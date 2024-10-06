@@ -13,6 +13,8 @@ export interface Config {
   collections: {
     users: User;
     media: Media;
+    blog: Blog;
+    'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
   };
@@ -20,7 +22,7 @@ export interface Config {
     defaultIDType: string;
   };
   globals: {};
-  locale: null;
+  locale: 'en' | 'de' | 'fr';
   user: User & {
     collection: 'users';
   };
@@ -49,6 +51,8 @@ export interface UserAuthOperations {
  */
 export interface User {
   id: string;
+  fullName: string;
+  function: string;
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -78,6 +82,55 @@ export interface Media {
   height?: number | null;
   focalX?: number | null;
   focalY?: number | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "blog".
+ */
+export interface Blog {
+  id: string;
+  blogShortTitle: string;
+  blogH1: string;
+  blogCaption: string;
+  blogParagraph: {
+    [k: string]: unknown;
+  }[];
+  author: string | User;
+  metaTitle: string;
+  metaDescription: string;
+  urlSlug: string;
+  releaseDate: string;
+  forAuthenticatedOnly?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-locked-documents".
+ */
+export interface PayloadLockedDocument {
+  id: string;
+  document?:
+    | ({
+        relationTo: 'users';
+        value: string | User;
+      } | null)
+    | ({
+        relationTo: 'media';
+        value: string | Media;
+      } | null)
+    | ({
+        relationTo: 'blog';
+        value: string | Blog;
+      } | null);
+  globalSlug?: string | null;
+  user: {
+    relationTo: 'users';
+    value: string | User;
+  };
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
