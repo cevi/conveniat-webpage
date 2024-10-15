@@ -17,6 +17,16 @@ const dirname = path.dirname(filename)
 
 export default buildConfig({
   admin: {
+    meta: {
+      title: 'Conveniat 2027 - Admin Panel',
+      icons: [
+        {
+          rel: 'icon',
+          type: 'image/svg+xml',
+          url: '/favicon.svg',
+        },
+      ],
+    },
     components: {
       beforeDashboard: [
         {
