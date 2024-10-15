@@ -130,6 +130,7 @@ const blogArticleURLField: Field = {
   label: 'URL Slug',
   type: 'text',
   required: true,
+  unique: true,
   admin: {
     position: 'sidebar',
     description: 'This is the URL that will be used to access the article. It should be unique and URL-friendly.',
