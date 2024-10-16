@@ -24,6 +24,19 @@ services:
     logging:
       driver: none
 
+  mongo-express:
+    image: mongo-express
+    ports:
+      - '8081:8081'
+    depends_on:
+      - mongo
+    environment:
+      ME_CONFIG_BASICAUTH_USERNAME: 'admin'
+      ME_CONFIG_BASICAUTH_PASSWORD: 'pass'
+      ME_CONFIG_MONGODB_SERVER: mongo
+    logging:
+      driver: none
+
 volumes:
   data:
   node_modules:

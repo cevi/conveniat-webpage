@@ -7,10 +7,10 @@ import sharp from 'sharp'
 
 import { Users } from './collections/Users'
 import { Media } from './collections/Media'
-import { en } from '@payloadcms/translations/languages/en'
-import { de } from '@payloadcms/translations/languages/de'
-import { fr } from '@payloadcms/translations/languages/fr'
 import { BlogArticle } from '@/collections/BlogArticle'
+import { en } from 'payload/i18n/en'
+import { de } from 'payload/i18n/de'
+import { fr } from 'payload/i18n/fr'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -41,7 +41,7 @@ export default buildConfig({
     dateFormat: 'yyyy-MM-dd HH:mm',
     livePreview: {
       url: 'http://localhost:3000',
-      collections: ['blog-articles'],
+      collections: ['blog'],
     },
   },
   collections: [Users, Media, BlogArticle],
@@ -85,11 +85,11 @@ export default buildConfig({
           de: 'Französisch',
           fr: 'Français',
         },
-        code: 'fr-FR',
+        code: 'fr-CH',
       },
     ],
     defaultLocale: 'de-CH',
-    fallback: true,
+    fallback: false,
   },
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {

@@ -24,6 +24,6 @@ export const Users: CollectionConfig = {
       admin: {
         description: 'The function of the user, as it will be displayed publicly.',
       },
-    }
+    },
   ],
 }

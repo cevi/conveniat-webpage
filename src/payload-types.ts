@@ -21,8 +21,12 @@ export interface Config {
   db: {
     defaultIDType: string;
   };
-  globals: {};
-  locale: 'en' | 'de' | 'fr';
+  globals: {
+    seo: Seo;
+    headerNav: HeaderNav;
+    footerNav: FooterNav;
+  };
+  locale: 'en-US' | 'de-CH' | 'fr-CH';
   user: User & {
     collection: 'users';
   };
@@ -89,18 +93,17 @@ export interface Media {
  */
 export interface Blog {
   id: string;
-  blogShortTitle: string;
   blogH1: string;
-  blogCaption: string;
-  blogParagraph: {
-    [k: string]: unknown;
-  }[];
-  author: string | User;
-  metaTitle: string;
-  metaDescription: string;
+  _localized_status:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   urlSlug: string;
-  releaseDate: string;
-  forAuthenticatedOnly?: boolean | null;
   updatedAt: string;
   createdAt: string;
   _status?: ('draft' | 'published') | null;
@@ -165,6 +168,33 @@ export interface PayloadMigration {
   batch?: number | null;
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "seo".
+ */
+export interface Seo {
+  id: string;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "headerNav".
+ */
+export interface HeaderNav {
+  id: string;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "footerNav".
+ */
+export interface FooterNav {
+  id: string;
+  updatedAt?: string | null;
+  createdAt?: string | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

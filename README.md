@@ -15,19 +15,19 @@ Make sure to have the following installed on your machine:
 
 ### Installation
 
-1) Clone the repository
-2) Copy the `.env.example` file to `.env` and fill empty values.
-3) Start Developing using the following commands:
+1.  Clone the repository
+2.  Copy the `.env.example` file to `.env` and fill empty values.
+3.  Start Developing using the following commands:
     ```bash
     docker compose up --build --watch
     ```
-   The above command launches a local development server with hot-reloading enabled.
-   You can open the website on `http://localhost:3000`.
-4) For Code Completion and Linting on you Host Machine, run the following command:
+    The above command launches a local development server with hot-reloading enabled.
+    You can open the website on `http://localhost:3000`.
+4.  For Code Completion and Linting on you Host Machine, run the following command:
     ```bash
-pnpm install
+    pnpm install
 
-    ```
+        ```
 
 ## Tech Stack and Decisions
 
