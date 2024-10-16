@@ -29,13 +29,6 @@ async function BlogPost({ slug }: BlogPostProps) {
   })
   const article = article_paged.docs[0]
 
-  const version = await payload.findVersions( {
-    id: article.id,
-    collection: 'blog',
-  })
-  console.log('version', version)
-
-
   const blog_de_CH = await payload.findByID({
     id: article.id,
     collection: 'blog',

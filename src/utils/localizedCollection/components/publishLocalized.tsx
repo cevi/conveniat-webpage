@@ -17,8 +17,16 @@ import {
   useOperation,
   useTranslation,
 } from '@payloadcms/ui'
+import { cva } from 'class-variance-authority'
+import { useIsPublished } from '@/utils/localizedCollection/hooks'
 
-
+/**
+ * Default Publish button for localized collections
+ *
+ * This class is based on https://github.com/payloadcms/payload/blob/beta/packages/ui/src/elements/PublishButton/index.tsx
+ * but heavily modified to support publishing in specific locales.
+ *
+ */
 export const DefaultPublishButton: React.FC<{ label?: string }> = ({ label: labelProp }) => {
   const {
     id,
@@ -94,16 +102,6 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = ({ label: labe
     }
   })
 
-  const isPublished = publishedDoc?._localized_status?.published || false
-
-  const publish = useCallback(() => {
-    void submit({
-      overrides: {
-        _status: 'published',
-      },
-    })
-  }, [submit])
-
   const publishSpecificLocale = useCallback(
     (locale) => {
       const params = qs.stringify({
@@ -154,6 +152,15 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = ({ label: labe
     return null
   }
 
+  const isPublished = useIsPublished(1000)
+
+
+  const unpublishClasses = cva({
+    'bg-red-200 text-red-900 dark:bg-red-800 dark:text-red-100': true,
+    'cursor-not-allowed opacity-50': !isPublished[code],
+  })
+
+
   return (<div className="flex gap-2">
       {/*
        We patch the version actions. We cannot use the default diff algorithm and version reset
@@ -167,8 +174,9 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = ({ label: labe
         }
       </style>
       <FormSubmit
-        className="bg-red-200 text-red-900 dark:bg-red-800 dark:text-red-100"
+        className={unpublishClasses()}
         buttonId="action-save"
+        disabled={!isPublished[code]}
         onClick={() => unpublishSpecificLocale(code)}
         size="medium"
         type="button"
@@ -178,7 +186,7 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = ({ label: labe
       <FormSubmit
         className="bg-green-200 text-green-900 dark:bg-green-800 dark:text-green-100"
         buttonId="action-save"
-        disabled={!canPublish}
+        disabled={!canPublish && isPublished[code]}
         onClick={() => publishSpecificLocale(code)}
         size="medium"
         type="button"

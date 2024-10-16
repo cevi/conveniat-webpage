@@ -1,45 +1,7 @@
 'use client'
 
-import { useDocumentInfo } from '@payloadcms/ui'
-import { useEffect, useState } from 'react'
 import { cva } from 'class-variance-authority'
-import { Blog } from '@/payload-types'
-import { Locale } from 'payload'
-import { locales as localesDefinition } from '@/utils/globalDefinitions'
-
-/**
- *
- * Retrieves the localized version of a document of a given collection.
- * It uses the Payload REST API to fetch the documents
- *
- * @param slug the slug of the collection
- * @param id the id of the document
- * @param draft
- * @param refetchInterval the intervall to refetch the document content, disable if set to 0
- */
-const useLocalizedDoc = (slug: string, id: string, draft: boolean = false, refetchInterval: number = 0) => {
-  const [doc, setDoc] = useState(null)
-
-
-  useEffect(() => {
-    const res = `/api/${slug}/${id}?depth=1&draft=${draft}&locale=all`
-
-    const fetchDocs = async () => {
-      setDoc(await fetch(res).then(res => res.json()))
-    }
-
-    if (refetchInterval === 0) {
-      fetchDocs().then()
-      return
-    }
-
-    const intervalId = setInterval(fetchDocs, refetchInterval)
-
-    return () => clearInterval(intervalId)
-  }, [id])
-
-  return doc
-}
+import { useHasPendingChanges, useIsPublished } from '@/utils/localizedCollection/hooks'
 
 
 const languageStatusClasses = cva(
@@ -100,23 +62,9 @@ const LanguageStatusPlaceholder = ({ label }: { label: string }) => (
 )
 
 const DashboardWelcomeBanner = () => {
-  const doc = useDocumentInfo()
-  const id = doc.id as string
 
-  const document: Blog = useLocalizedDoc('blog', id, false, 1000) as unknown as Blog
-  const localized_status = document?._localized_status as {
-    [key: string]: {
-      published: boolean
-    }
-  }
-
-  const locales: string [] = localesDefinition.map((l: Locale) => l.code)
-
-  const skippedFields = ['id', '_status', '_localized_status', 'Versions', 'createdAt', 'updatedAt']
-  const fields = Object.keys(doc.docPermissions?.fields || {})
-    .filter((key) => !skippedFields.includes(key))
-
-  const documentDraft: Blog = useLocalizedDoc('blog', id, true, 1000) as unknown as Blog
+  const hasPendingChanges = useHasPendingChanges(1000)
+  const isPublished = useIsPublished(1000)
 
 
   return (
@@ -128,30 +76,18 @@ const DashboardWelcomeBanner = () => {
         </p>
         <span className="text-sm font-medium me-2 py-0.5 text-gray-600">Publishing Status: </span>
 
-        {!document || !documentDraft ? (
-          // Show placeholders when the document is not loaded
-          locales.map(locale => (
+        {Object.entries(isPublished).map(([locale, published]) => (
+          published === undefined ? (
             <LanguageStatusPlaceholder key={locale} label={locale} />
-          ))
-        ) : (
-          // Show actual publishing status for each locale
-          locales.map(locale => {
-            const published = localized_status?.[locale]?.published
-            const pendingChanges = fields.some(field => {
-              // @ts-ignore
-              return documentDraft?.[field]?.[locale] !== document?.[field]?.[locale]
-            })
-
-            return (
-              <LanguageStatus
-                key={locale}
-                published={published}
-                pendingChanges={pendingChanges}
-                label={locale}
-              />
-            )
-          })
-        )}
+          ) : (
+            <LanguageStatus
+              key={locale}
+              published={published}
+              pendingChanges={hasPendingChanges[locale] || false}
+              label={locale}
+            />
+          )
+        ))}
       </div>
       <hr className="h-px my-8 bg-gray-200 border-0 dark:bg-gray-700" />
     </div>
