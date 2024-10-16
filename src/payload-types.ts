@@ -93,7 +93,6 @@ export interface Media {
  */
 export interface Blog {
   id: string;
-  blogH1: string;
   _localized_status:
     | {
         [k: string]: unknown;
@@ -103,6 +102,7 @@ export interface Blog {
     | number
     | boolean
     | null;
+  blogH1: string;
   urlSlug: string;
   updatedAt: string;
   createdAt: string;

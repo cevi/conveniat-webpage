@@ -19,6 +19,7 @@ function DateTime(props: { releaseDate: string }) {
 async function BlogPost({ slug }: BlogPostProps) {
   const payload = await getPayloadHMR({ config: configPromise })
 
+
   const article_paged = await payload.find({
     collection: 'blog',
     limit: 1,
@@ -27,7 +28,13 @@ async function BlogPost({ slug }: BlogPostProps) {
     },
   })
   const article = article_paged.docs[0]
-  console.log('Article: ', article)
+
+  const version = await payload.findVersions( {
+    id: article.id,
+    collection: 'blog',
+  })
+  console.log('version', version)
+
 
   const blog_de_CH = await payload.findByID({
     id: article.id,

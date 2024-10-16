@@ -1,2 +1,8 @@
+/***************************************************/
+/* We use the @tailwind directive to inject Tailwind's base, component, and utility styles. */
+/* According to the official docs Payload we must omit the @tailwind base import. */
+/* More infos can be found here: https://payloadcms.com/blog/how-to-setup-tailwindcss-and-shadcn-ui-in-payload */
+/***************************************************/
 @tailwind components;
 @tailwind utilities;
+/***************************************************/

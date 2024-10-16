@@ -11,9 +11,12 @@ import { BlogArticle } from '@/collections/BlogArticle'
 import { en } from 'payload/i18n/en'
 import { de } from 'payload/i18n/de'
 import { fr } from 'payload/i18n/fr'
+import { locales } from '@/utils/globalDefinitions'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
+
+
 
 export default buildConfig({
   admin: {
@@ -62,32 +65,7 @@ export default buildConfig({
     },
   ],
   localization: {
-    locales: [
-      {
-        label: {
-          en: 'English',
-          de: 'Englisch',
-          fr: 'Anglais',
-        },
-        code: 'en-US',
-      },
-      {
-        label: {
-          en: 'German',
-          de: 'Deutsch',
-          fr: 'Allemand',
-        },
-        code: 'de-CH',
-      },
-      {
-        label: {
-          en: 'French',
-          de: 'Französisch',
-          fr: 'Français',
-        },
-        code: 'fr-CH',
-      },
-    ],
+    locales,
     defaultLocale: 'de-CH',
     fallback: false,
   },

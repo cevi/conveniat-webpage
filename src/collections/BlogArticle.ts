@@ -1,20 +1,7 @@
-import { CollectionBeforeChangeHook, CollectionConfig, Field } from 'payload'
+import { CollectionConfig, Field } from 'payload'
 import { slateEditor } from '@payloadcms/richtext-slate'
+import { asLocalizedCollection } from '@/utils/localizedCollection'
 
-const beforeChangeHook: CollectionBeforeChangeHook = async ({
-                                                              data, // incoming data to update or create with
-                                                              req, // full express request
-                                                              operation, // name of the operation ie. 'create', 'update'
-                                                              originalDoc, // original document
-                                                            }) => {
-
-
-  // if
-
-
-
-  return data // Return data to either create or update a document with
-}
 const blogArticleTitleField: Field = {
   name: 'blogH1',
   label: {
@@ -96,7 +83,8 @@ const blogArticleFields: Field[] = [
   //blogArticleMainContentField,
 ]
 
-export const BlogArticle: CollectionConfig = {
+
+export const BlogArticle: CollectionConfig = asLocalizedCollection({
   // Unique, URL-friendly string that will act as an identifier for this Collection.
   slug: 'blog',
 
@@ -108,15 +96,7 @@ export const BlogArticle: CollectionConfig = {
     },
     defaultColumns: ['id', 'blogShortTitle', 'releaseDate'],
     useAsTitle: 'blogH1',
-    components: {
 
-      edit: {
-        PublishButton: '@/components/payload/publishLocalized',
-      },
-
-
-
-    },
   },
 
   labels: {
@@ -126,31 +106,9 @@ export const BlogArticle: CollectionConfig = {
 
   fields: [
 
-    {
-      name: 'Versions',
-      type: 'ui',
-      admin: {
-        components: {
-          Field:
-            '@/components/payload/version',
-        },
-      },
-    },
 
     ...blogArticleFields,
 
-    {
-      name: '_localized_status', // required
-      type: 'json', // required
-      required: true,
-      localized: true,
-      defaultValue: {
-        published: false,
-      },
-      admin: {
-        disabled: true,
-      },
-    },
 
     /*
     {
@@ -314,15 +272,6 @@ export const BlogArticle: CollectionConfig = {
           },
         },*/
   ],
-  versions: {
-    maxPerDoc: 100,
-    drafts: {
-      autosave: true,
-    },
-  },
 
-  hooks: {
-    beforeChange: [beforeChangeHook],
-  }
 
-}
+})

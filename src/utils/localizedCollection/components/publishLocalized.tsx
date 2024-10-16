@@ -154,8 +154,18 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = ({ label: labe
     return null
   }
 
-  return isPublished ?
-    (
+  return (<div className="flex gap-2">
+      {/*
+       We patch the version actions. We cannot use the default diff algorithm and version reset
+       for our modified localization system. Thus, we disable it completely.
+      */}
+      <style>
+        {`
+          .doc-controls__status {
+            display: none;
+          }`
+        }
+      </style>
       <FormSubmit
         className="bg-red-200 text-red-900 dark:bg-red-800 dark:text-red-100"
         buttonId="action-save"
@@ -164,7 +174,7 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = ({ label: labe
         type="button"
       >
         Unpublish in {code}
-      </FormSubmit>) : (
+      </FormSubmit>
       <FormSubmit
         className="bg-green-200 text-green-900 dark:bg-green-800 dark:text-green-100"
         buttonId="action-save"
@@ -175,7 +185,8 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = ({ label: labe
       >
         {t('version:publishIn', { locale: code })}
       </FormSubmit>
-    )
+    </div>
+  )
 }
 
 type Props = {
