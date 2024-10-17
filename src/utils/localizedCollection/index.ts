@@ -37,6 +37,17 @@ export const asLocalizedCollection = (config: CollectionConfig): CollectionConfi
         },
       },
 
+      {
+        name: 'Autotranslate',
+        type: 'ui',
+        admin: {
+          components: {
+            // adds the publishing status to the top of the edit page
+            Field: '@/utils/localizedCollection/components/autoTranslate',
+          },
+        },
+      },
+
       // add the localized publishing status field
       {
         name: '_localized_status', // required

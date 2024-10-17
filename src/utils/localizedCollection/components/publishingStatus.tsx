@@ -61,7 +61,7 @@ const LanguageStatusPlaceholder = ({ label }: { label: string }) => (
   </span>
 )
 
-const DashboardWelcomeBanner = () => {
+const PublishingStatus = () => {
 
   const hasPendingChanges = useHasPendingChanges(1000)
   const isPublished = useIsPublished(1000)
@@ -95,4 +95,4 @@ const DashboardWelcomeBanner = () => {
 
 }
 
-export default DashboardWelcomeBanner
+export default PublishingStatus
