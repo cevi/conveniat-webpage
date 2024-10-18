@@ -5,18 +5,17 @@ import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 
-import { Users } from './collections/Users'
+import { EditorUsers } from './collections/EditorUsers'
 import { Media } from './collections/Media'
 import { BlogArticle } from '@/collections/BlogArticle'
 import { en } from 'payload/i18n/en'
 import { de } from 'payload/i18n/de'
 import { fr } from 'payload/i18n/fr'
 import { locales } from '@/utils/globalDefinitions'
+import { Users } from '@/collections/Users'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
-
-
 
 export default buildConfig({
   admin: {
@@ -36,8 +35,13 @@ export default buildConfig({
           path: '@/components/payload/dashboardWelcomeBanner',
         },
       ],
+      afterLogin: [
+        {
+          path: '@/components/payload/login',
+        },
+      ],
     },
-    user: Users.slug,
+    user: EditorUsers.slug,
     importMap: {
       baseDir: path.resolve(dirname),
     },
@@ -47,7 +51,8 @@ export default buildConfig({
       collections: ['blog'],
     },
   },
-  collections: [Users, Media, BlogArticle],
+
+  collections: [EditorUsers, Media, BlogArticle, Users],
   editor: lexicalEditor(),
   globals: [
     {

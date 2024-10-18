@@ -8,12 +8,13 @@
 
 export interface Config {
   auth: {
-    users: UserAuthOperations;
+    editor_users: EditorUserAuthOperations;
   };
   collections: {
-    users: User;
+    editor_users: EditorUser;
     media: Media;
     blog: Blog;
+    users: User;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
@@ -27,11 +28,11 @@ export interface Config {
     footerNav: FooterNav;
   };
   locale: 'en-US' | 'de-CH' | 'fr-CH';
-  user: User & {
-    collection: 'users';
+  user: EditorUser & {
+    collection: 'editor_users';
   };
 }
-export interface UserAuthOperations {
+export interface EditorUserAuthOperations {
   forgotPassword: {
     email: string;
     password: string;
@@ -51,22 +52,22 @@ export interface UserAuthOperations {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users".
+ * via the `definition` "editor_users".
  */
-export interface User {
+export interface EditorUser {
   id: string;
+  groups?:
+    | {
+        id?: string | null;
+        name?: string | null;
+      }[]
+    | null;
+  cevi_db_uuid: number;
+  email: string;
   fullName: string;
   function: string;
   updatedAt: string;
   createdAt: string;
-  email: string;
-  resetPasswordToken?: string | null;
-  resetPasswordExpiration?: string | null;
-  salt?: string | null;
-  hash?: string | null;
-  loginAttempts?: number | null;
-  lockUntil?: string | null;
-  password?: string | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -110,14 +111,32 @@ export interface Blog {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "users".
+ */
+export interface User {
+  id: string;
+  groups?:
+    | {
+        id?: string | null;
+        name?: string | null;
+      }[]
+    | null;
+  cevi_db_uuid: number;
+  email: string;
+  fullName: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-locked-documents".
  */
 export interface PayloadLockedDocument {
   id: string;
   document?:
     | ({
-        relationTo: 'users';
-        value: string | User;
+        relationTo: 'editor_users';
+        value: string | EditorUser;
       } | null)
     | ({
         relationTo: 'media';
@@ -126,11 +145,15 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'blog';
         value: string | Blog;
+      } | null)
+    | ({
+        relationTo: 'users';
+        value: string | User;
       } | null);
   globalSlug?: string | null;
   user: {
-    relationTo: 'users';
-    value: string | User;
+    relationTo: 'editor_users';
+    value: string | EditorUser;
   };
   updatedAt: string;
   createdAt: string;
@@ -142,8 +165,8 @@ export interface PayloadLockedDocument {
 export interface PayloadPreference {
   id: string;
   user: {
-    relationTo: 'users';
-    value: string | User;
+    relationTo: 'editor_users';
+    value: string | EditorUser;
   };
   key?: string | null;
   value?:
