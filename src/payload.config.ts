@@ -1,23 +1,22 @@
 import { mongooseAdapter } from '@payloadcms/db-mongodb'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import path from 'path'
-import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 
-import { EditorUsers } from './collections/EditorUsers'
+import { Users } from './collections/Users'
 import { Media } from './collections/Media'
 import { BlogArticle } from '@/collections/BlogArticle'
 import { en } from 'payload/i18n/en'
 import { de } from 'payload/i18n/de'
 import { fr } from 'payload/i18n/fr'
 import { locales } from '@/utils/globalDefinitions'
-import { Users } from '@/collections/Users'
+import { buildSecureConfig } from '@/acces/secureConfig'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
-export default buildConfig({
+export default buildSecureConfig({
   admin: {
     meta: {
       title: 'Conveniat 2027 - Admin Panel',
@@ -41,7 +40,7 @@ export default buildConfig({
         },
       ],
     },
-    user: EditorUsers.slug,
+    user: Users.slug,
     importMap: {
       baseDir: path.resolve(dirname),
     },
@@ -51,8 +50,7 @@ export default buildConfig({
       collections: ['blog'],
     },
   },
-
-  collections: [EditorUsers, Media, BlogArticle, Users],
+  collections: [Users, Media, BlogArticle],
   editor: lexicalEditor(),
   globals: [
     {

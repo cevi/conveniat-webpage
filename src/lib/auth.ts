@@ -8,6 +8,10 @@ interface HitobitoProfile {
   first_name: string
   last_name: string
   nickname: string
+  roles: {
+    group_id: number
+    group_name: string
+  }[]
 }
 
 const HITOBITO_BASE_URL = process.env.HITOBITO_BASE_URL
@@ -79,16 +83,11 @@ export const authOptions: NextAuthOptions = {
       if (profile) {
         token.cevi_db_uuid = profile.id // the ide of the user in the CeviDB
 
-        // TODO: extract the group ids from the Hitobito profile
-        // --> we also want to extract the name of the groups
-        // the group id can then be used to restrict access to certain pages
-        // or to show certain content, e.g. only for convinat team members
-        token.groups = [
-          {
-            id: 1,
-            name: 'Cevi Schweiz',
-          },
-        ] // the groups the user is in
+        token.groups = profile.roles.map((role) => ({
+          id: role.group_id,
+          name: role.group_name,
+        }))
+
         token.email = profile.email
         token.name = profile.first_name + ' ' + profile.last_name
       }

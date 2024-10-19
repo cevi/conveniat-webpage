@@ -18,40 +18,23 @@ export type TheNameOfTheGroup = string;
  * The groups the user is in as extracted from the CeviDB profile.
  */
 export type GroupsOfTheUser = {
-  id?: TheIDOfTheGroup;
-  name?: TheNameOfTheGroup;
+  id: TheIDOfTheGroup;
+  name: TheNameOfTheGroup;
   [k: string]: unknown;
 }[];
 /**
  * This field indicates whether the document is published in the corresponding locale
  */
 export type IsPublishedInCorrespondingLocale = boolean;
-/**
- * The ID of the group as used in the CeviDB.
- */
-export type TheIDOfTheGroup1 = number;
-/**
- * The name of the group as used in the CeviDB.
- */
-export type TheNameOfTheGroup1 = string;
-/**
- * The groups the user is in as extracted from the CeviDB profile.
- */
-export type GroupsOfTheUser1 = {
-  id?: TheIDOfTheGroup1;
-  name?: TheNameOfTheGroup1;
-  [k: string]: unknown;
-}[];
 
 export interface Config {
   auth: {
-    editor_users: EditorUserAuthOperations;
+    users: UserAuthOperations;
   };
   collections: {
-    editor_users: EditorUser;
+    users: User;
     media: Media;
     blog: Blog;
-    users: User;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
@@ -65,11 +48,11 @@ export interface Config {
     footerNav: FooterNav;
   };
   locale: 'en-US' | 'de-CH' | 'fr-CH';
-  user: EditorUser & {
-    collection: 'editor_users';
+  user: User & {
+    collection: 'users';
   };
 }
-export interface EditorUserAuthOperations {
+export interface UserAuthOperations {
   forgotPassword: {
     email: string;
     password: string;
@@ -89,15 +72,14 @@ export interface EditorUserAuthOperations {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "editor_users".
+ * via the `definition` "users".
  */
-export interface EditorUser {
+export interface User {
   id: string;
   groups: GroupsOfTheUser;
   cevi_db_uuid: number;
   email: string;
   fullName: string;
-  function: string;
   updatedAt: string;
   createdAt: string;
 }
@@ -142,27 +124,14 @@ export interface LocalizedPublishingStatus {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users".
- */
-export interface User {
-  id: string;
-  groups: GroupsOfTheUser1;
-  cevi_db_uuid: number;
-  email: string;
-  fullName: string;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-locked-documents".
  */
 export interface PayloadLockedDocument {
   id: string;
   document?:
     | ({
-        relationTo: 'editor_users';
-        value: string | EditorUser;
+        relationTo: 'users';
+        value: string | User;
       } | null)
     | ({
         relationTo: 'media';
@@ -171,15 +140,11 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'blog';
         value: string | Blog;
-      } | null)
-    | ({
-        relationTo: 'users';
-        value: string | User;
       } | null);
   globalSlug?: string | null;
   user: {
-    relationTo: 'editor_users';
-    value: string | EditorUser;
+    relationTo: 'users';
+    value: string | User;
   };
   updatedAt: string;
   createdAt: string;
@@ -191,8 +156,8 @@ export interface PayloadLockedDocument {
 export interface PayloadPreference {
   id: string;
   user: {
-    relationTo: 'editor_users';
-    value: string | EditorUser;
+    relationTo: 'users';
+    value: string | User;
   };
   key?: string | null;
   value?:
