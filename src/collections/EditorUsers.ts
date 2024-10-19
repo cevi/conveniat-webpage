@@ -1,18 +1,16 @@
 import { BasePayload, CollectionConfig } from 'payload'
-import { User as UserNextAuth } from 'next-auth'
 import { userFields } from '@/collections/Users'
 
 const GROUPS_WITH_API_ACCESS = [1]
 
-async function saveUserToDB(
-  payload: BasePayload,
-  nextAuthUser: {
-    cevi_db_uuid: number
-    groups: { id: number; name: string }[]
-    email: string
-    name: string
-  },
-) {
+type HitobitoNextAuthUser = {
+  cevi_db_uuid: number
+  groups: { id: number; name: string }[]
+  email: string
+  name: string
+}
+
+async function saveUserToDB(payload: BasePayload, nextAuthUser: HitobitoNextAuthUser) {
   const userExists = await payload
     .count({
       collection: 'users',
@@ -60,7 +58,7 @@ export const EditorUsers: CollectionConfig = {
           }).then((res) => res.json())
           if (!session) return { user: null }
 
-          const nextAuthUser: UserNextAuth = session.user
+          const nextAuthUser: HitobitoNextAuthUser = session.user
 
           // validate nextAuthUser object
           if (
@@ -99,8 +97,7 @@ export const EditorUsers: CollectionConfig = {
           // check if user is in the allowed group
           if (
             !nextAuthUser.groups?.some(
-              (group: { id: number; name: string }) =>
-                group.id && GROUPS_WITH_API_ACCESS.includes(group.id),
+              (group) => group.id && GROUPS_WITH_API_ACCESS.includes(group.id),
             )
           ) {
             // deny access to the API

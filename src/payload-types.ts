@@ -7,9 +7,41 @@
  */
 
 /**
+ * The ID of the group as used in the CeviDB.
+ */
+export type TheIDOfTheGroup = number;
+/**
+ * The name of the group as used in the CeviDB.
+ */
+export type TheNameOfTheGroup = string;
+/**
+ * The groups the user is in as extracted from the CeviDB profile.
+ */
+export type GroupsOfTheUser = {
+  id?: TheIDOfTheGroup;
+  name?: TheNameOfTheGroup;
+  [k: string]: unknown;
+}[];
+/**
  * This field indicates whether the document is published in the corresponding locale
  */
 export type IsPublishedInCorrespondingLocale = boolean;
+/**
+ * The ID of the group as used in the CeviDB.
+ */
+export type TheIDOfTheGroup1 = number;
+/**
+ * The name of the group as used in the CeviDB.
+ */
+export type TheNameOfTheGroup1 = string;
+/**
+ * The groups the user is in as extracted from the CeviDB profile.
+ */
+export type GroupsOfTheUser1 = {
+  id?: TheIDOfTheGroup1;
+  name?: TheNameOfTheGroup1;
+  [k: string]: unknown;
+}[];
 
 export interface Config {
   auth: {
@@ -61,12 +93,7 @@ export interface EditorUserAuthOperations {
  */
 export interface EditorUser {
   id: string;
-  groups?:
-    | {
-        id?: string | null;
-        name?: string | null;
-      }[]
-    | null;
+  groups: GroupsOfTheUser;
   cevi_db_uuid: number;
   email: string;
   fullName: string;
@@ -119,12 +146,7 @@ export interface LocalizedPublishingStatus {
  */
 export interface User {
   id: string;
-  groups?:
-    | {
-        id?: string | null;
-        name?: string | null;
-      }[]
-    | null;
+  groups: GroupsOfTheUser1;
   cevi_db_uuid: number;
   email: string;
   fullName: string;
