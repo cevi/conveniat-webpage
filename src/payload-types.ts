@@ -6,6 +6,11 @@
  * and re-run `payload generate:types` to regenerate this file.
  */
 
+/**
+ * This field indicates whether the document is published in the corresponding locale
+ */
+export type IsPublishedInCorrespondingLocale = boolean;
+
 export interface Config {
   auth: {
     editor_users: EditorUserAuthOperations;
@@ -94,15 +99,19 @@ export interface Media {
  */
 export interface Blog {
   id: string;
-  _localized_status: {
-    published?: boolean;
-    [k: string]: unknown;
-  };
+  _localized_status: LocalizedPublishingStatus;
   blogH1: string;
   urlSlug: string;
   updatedAt: string;
   createdAt: string;
   _status?: ('draft' | 'published') | null;
+}
+/**
+ * Holds the publishing status of the document in each locale
+ */
+export interface LocalizedPublishingStatus {
+  published: IsPublishedInCorrespondingLocale;
+  [k: string]: unknown;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
