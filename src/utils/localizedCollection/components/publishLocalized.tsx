@@ -1,8 +1,8 @@
 'use client'
 
 import type { MappedComponent } from 'payload'
-
 import * as qs from 'qs-esm'
+
 import React, { useCallback } from 'react'
 import {
   FormSubmit,
@@ -45,16 +45,14 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = ({ label: labe
   const { code: locale } = useLocale()
 
   const {
-    localization,
     routes: { api },
     serverURL,
   } = config
 
-  const { i18n, t } = useTranslation()
+  const { t } = useTranslation()
   const { code } = useLocale()
-  const label = labelProp || t('version:publishChanges')
 
-  const hasNewerVersions = unpublishedVersions?.totalDocs > 0
+  const hasNewerVersions = (unpublishedVersions?.totalDocs || 0) > 0
   const canPublish = hasPublishPermission && (modified || hasNewerVersions || !publishedDoc)
   const operation = useOperation()
 
@@ -97,13 +95,13 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = ({ label: labe
     e.preventDefault()
     e.stopPropagation()
 
-    if (saveDraft && docConfig.versions?.drafts && docConfig.versions?.drafts?.autosave) {
+    if (saveDraft && docConfig?.versions?.drafts && docConfig.versions?.drafts?.autosave) {
       void saveDraft()
     }
   })
 
   const publishSpecificLocale = useCallback(
-    (locale) => {
+    (locale: string) => {
       const params = qs.stringify({
         publishSpecificLocale: locale,
       })
@@ -126,7 +124,7 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = ({ label: labe
   )
 
   const unpublishSpecificLocale = useCallback(
-    (locale) => {
+    (locale: string) => {
       const params = qs.stringify({
         publishSpecificLocale: locale,
       })
