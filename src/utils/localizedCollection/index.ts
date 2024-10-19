@@ -10,8 +10,6 @@ import { CollectionConfig } from 'payload'
  * @param config The collection configuration to localize
  */
 export const asLocalizedCollection = (config: CollectionConfig): CollectionConfig => {
-
-
   return {
     ...config, // we keep most of the original collection configuration
     admin: {

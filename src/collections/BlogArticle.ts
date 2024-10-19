@@ -16,7 +16,7 @@ const blogArticleTitleField: Field = {
     description: {
       en: 'This is the title that will be displayed on the page.',
       de: 'Dies ist der Titel, der auf der Seite angezeigt wird.',
-      fr: 'C\'est le titre qui sera affiché sur la page.',
+      fr: "C'est le titre qui sera affiché sur la page.",
     },
   },
 }
@@ -35,7 +35,7 @@ const blogArticleShortTitleField: Field = {
     description: {
       en: 'This is the title that will be displayed on top of the Title - h1.',
       de: 'Dies ist der Titel, der oben auf dem Titel - h1 angezeigt wird.',
-      fr: 'C\'est le titre qui sera affiché au-dessus du titre - h1.',
+      fr: "C'est le titre qui sera affiché au-dessus du titre - h1.",
     },
   },
 }
@@ -50,7 +50,7 @@ const blogArticleCaptionField: Field = {
     description: {
       en: 'This is the caption that will be displayed on top of the main content.',
       de: 'Dies ist die Bildunterschrift, die über dem Hauptinhalt angezeigt wird.',
-      fr: 'C\'est la légende qui sera affichée au-dessus du contenu principal.',
+      fr: "C'est la légende qui sera affichée au-dessus du contenu principal.",
     },
   },
 }
@@ -71,7 +71,7 @@ const blogArticleMainContentField: Field = {
     description: {
       en: 'This is the main content of the article....',
       de: 'Dies ist der Hauptinhalt des Artikels....',
-      fr: 'C\'est le contenu principal de l\'article....',
+      fr: "C'est le contenu principal de l'article....",
     },
   },
 }
@@ -82,7 +82,6 @@ const blogArticleFields: Field[] = [
   // blogArticleCaptionField,
   //blogArticleMainContentField,
 ]
-
 
 export const BlogArticle: CollectionConfig = asLocalizedCollection({
   // Unique, URL-friendly string that will act as an identifier for this Collection.
@@ -96,7 +95,6 @@ export const BlogArticle: CollectionConfig = asLocalizedCollection({
     },
     defaultColumns: ['id', 'blogShortTitle', 'releaseDate'],
     useAsTitle: 'blogH1',
-
   },
 
   labels: {
@@ -105,10 +103,7 @@ export const BlogArticle: CollectionConfig = asLocalizedCollection({
   },
 
   fields: [
-
-
     ...blogArticleFields,
-
 
     /*
     {
@@ -136,7 +131,8 @@ export const BlogArticle: CollectionConfig = asLocalizedCollection({
     {
       type: 'collapsible',
       label: 'SEO Settings',
-      fields: [/*
+      fields: [
+        /*
         {
           name: 'metaTitle',
           label: 'Meta Title',
@@ -201,7 +197,7 @@ export const BlogArticle: CollectionConfig = asLocalizedCollection({
             description: {
               en: 'This is the URL that will be used to access the article. It should be unique and URL-friendly.',
               de: 'Dies ist die URL, die zum Zugriff auf den Artikel verwendet wird. Es sollte eindeutig und URL-freundlich sein.',
-              fr: 'C\'est l\'URL qui sera utilisée pour accéder à l\'article. Il doit être unique et convivial pour les URL.',
+              fr: "C'est l'URL qui sera utilisée pour accéder à l'article. Il doit être unique et convivial pour les URL.",
             },
           },
         },
@@ -211,7 +207,7 @@ export const BlogArticle: CollectionConfig = asLocalizedCollection({
         description: {
           en: 'These settings are used to improve the visibility of the article in search engines.',
           de: 'Diese Einstellungen dienen dazu, die Sichtbarkeit des Artikels in Suchmaschinen zu verbessern.',
-          fr: 'Ces paramètres sont utilisés pour améliorer la visibilité de l\'article dans les moteurs de recherche.',
+          fr: "Ces paramètres sont utilisés pour améliorer la visibilité de l'article dans les moteurs de recherche.",
         },
       },
     },
@@ -272,6 +268,4 @@ export const BlogArticle: CollectionConfig = asLocalizedCollection({
           },
         },*/
   ],
-
-
 })

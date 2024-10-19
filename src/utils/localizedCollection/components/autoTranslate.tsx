@@ -3,8 +3,11 @@
 import { FormSubmit } from '@payloadcms/ui'
 import { useState } from 'react'
 
-const LanguageSelectionModal = ({ onClose, onTranslate }: {
-  onClose: () => void,
+const LanguageSelectionModal = ({
+  onClose,
+  onTranslate,
+}: {
+  onClose: () => void
   onTranslate: (source: string, target: string) => void
 }) => {
   const [sourceLanguage, setSourceLanguage] = useState('')
@@ -43,12 +46,8 @@ const LanguageSelectionModal = ({ onClose, onTranslate }: {
           </select>
         </label>
 
-
         <div className="flex justify-end">
-          <button
-            className="bg-gray-500 text-white px-4 py-2 mr-2 rounded"
-            onClick={onClose}
-          >
+          <button className="bg-gray-500 text-white px-4 py-2 mr-2 rounded" onClick={onClose}>
             Cancel
           </button>
           <button
@@ -76,23 +75,18 @@ const AutoTranslate = () => {
 
     // save the changes in the target language
     // TODO: Implement the save logic
-
   }
 
   return (
     <div className="mb-8 divide-slate-600">
       <div className="my-3">
         <p className="text-sm font-medium text-gray-600 max-w-prose">
-          We allow for automatic translation of content. Click on auto-translate to translate your content into
-          multiple languages. You are asked to specify the source language and the target languages. The translation
-          will be done by a third-party service.
+          We allow for automatic translation of content. Click on auto-translate to translate your
+          content into multiple languages. You are asked to specify the source language and the
+          target languages. The translation will be done by a third-party service.
         </p>
 
-        <FormSubmit
-          size="medium"
-          type="button"
-          onClick={() => setModalOpen(true)}
-        >
+        <FormSubmit size="medium" type="button" onClick={() => setModalOpen(true)}>
           Auto-translate
         </FormSubmit>
 
@@ -100,10 +94,7 @@ const AutoTranslate = () => {
       </div>
 
       {isModalOpen && (
-        <LanguageSelectionModal
-          onClose={() => setModalOpen(false)}
-          onTranslate={handleTranslate}
-        />
+        <LanguageSelectionModal onClose={() => setModalOpen(false)} onTranslate={handleTranslate} />
       )}
     </div>
   )

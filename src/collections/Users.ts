@@ -61,7 +61,6 @@ export const userFields: Field[] = [
   },
 ]
 
-
 export const Users: CollectionConfig = {
   slug: 'users',
   admin: {

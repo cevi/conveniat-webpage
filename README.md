@@ -26,8 +26,7 @@ Make sure to have the following installed on your machine:
 4.  For Code Completion and Linting on you Host Machine, run the following command:
     ```bash
     pnpm install
-
-        ```
+    ```
 
 ## Tech Stack and Decisions
 

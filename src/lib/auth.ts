@@ -3,11 +3,11 @@ import { OAuthConfig } from 'next-auth/providers/oauth'
 import { JWT } from 'next-auth/jwt'
 
 interface HitobitoProfile {
-  id: string;
-  email: string;
-  first_name: string;
-  last_name: string;
-  nickname: string;
+  id: string
+  email: string
+  first_name: string
+  last_name: string
+  nickname: string
 }
 
 const HITOBITO_BASE_URL = process.env.HITOBITO_BASE_URL
@@ -83,10 +83,12 @@ export const authOptions: NextAuthOptions = {
         // --> we also want to extract the name of the groups
         // the group id can then be used to restrict access to certain pages
         // or to show certain content, e.g. only for convinat team members
-        token.groups = [{
-          id: 1,
-          name: 'Cevi Schweiz',
-        }] // the groups the user is in
+        token.groups = [
+          {
+            id: 1,
+            name: 'Cevi Schweiz',
+          },
+        ] // the groups the user is in
         token.email = profile.email
         token.name = profile.first_name + ' ' + profile.last_name
       }

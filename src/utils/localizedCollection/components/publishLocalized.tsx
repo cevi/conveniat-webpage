@@ -154,14 +154,13 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = ({ label: labe
 
   const isPublished = useIsPublished(1000)
 
-
   const unpublishClasses = cva({
     'bg-red-200 text-red-900 dark:bg-red-800 dark:text-red-100': true,
     'cursor-not-allowed opacity-50': !isPublished[code],
   })
 
-
-  return (<div className="flex gap-2">
+  return (
+    <div className="flex gap-2">
       {/*
        We patch the version actions. We cannot use the default diff algorithm and version reset
        for our modified localization system. Thus, we disable it completely.
@@ -170,8 +169,7 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = ({ label: labe
         {`
           .doc-controls__status {
             display: none;
-          }`
-        }
+          }`}
       </style>
       <FormSubmit
         className={unpublishClasses()}

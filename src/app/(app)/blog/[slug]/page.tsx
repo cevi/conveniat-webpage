@@ -19,7 +19,6 @@ function DateTime(props: { releaseDate: string }) {
 async function BlogPost({ slug }: BlogPostProps) {
   const payload = await getPayloadHMR({ config: configPromise })
 
-
   const article_paged = await payload.find({
     collection: 'blog',
     limit: 1,
@@ -57,31 +56,23 @@ async function BlogPost({ slug }: BlogPostProps) {
 
   return (
     <article className="mx-auto px-4 py-8 max-w-6xl">
+      {blog_de_CH?._localized_status && blog_de_CH?._localized_status.published && (
+        <div className="px-3 py-1 text-xs font-semibold bg-amber-500 text-amber-950 rounded-full">
+          DE: {blog_de_CH?.blogH1}
+        </div>
+      )}
 
-      {
-        blog_de_CH?._localized_status && blog_de_CH?._localized_status.published && (
-          <div className="px-3 py-1 text-xs font-semibold bg-amber-500 text-amber-950 rounded-full">
-            DE: {blog_de_CH?.blogH1}
-          </div>
-        )
-      }
+      {blog_fr_CH?._localized_status && blog_fr_CH?._localized_status.published && (
+        <div className="px-3 py-1 text-xs font-semibold bg-amber-500 text-amber-950 rounded-full">
+          FR: {blog_fr_CH?.blogH1}
+        </div>
+      )}
 
-      {
-        blog_fr_CH?._localized_status && blog_fr_CH?._localized_status.published && (
-          <div className="px-3 py-1 text-xs font-semibold bg-amber-500 text-amber-950 rounded-full">
-            FR: {blog_fr_CH?.blogH1}
-          </div>
-        )
-      }
-
-      {
-        blog_en_US?._localized_status && blog_en_US?._localized_status.published && (
-          <div className="px-3 py-1 text-xs font-semibold bg-amber-500 text-amber-950 rounded-full">
-            EN: {blog_en_US?.blogH1}
-          </div>
-        )
-      }
-
+      {blog_en_US?._localized_status && blog_en_US?._localized_status.published && (
+        <div className="px-3 py-1 text-xs font-semibold bg-amber-500 text-amber-950 rounded-full">
+          EN: {blog_en_US?.blogH1}
+        </div>
+      )}
 
       {/*
       <div className="flex columns-2 gap-8 mt-8 mb-16">
