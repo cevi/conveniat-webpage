@@ -19,7 +19,6 @@ const localizedStatusSchema: PayloadJSONSchema = {
         title: 'Is Published in corresponding locale',
         description:
           'This field indicates whether the document is published in the corresponding locale',
-        required: true,
       },
     },
     title: 'Localized Publishing Status',
