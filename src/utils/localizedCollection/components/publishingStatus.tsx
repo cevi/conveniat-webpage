@@ -50,7 +50,7 @@ const LanguageStatus = ({
   return (
     <span className={languageStatusClasses({ published, pendingChanges })}>
       {label}
-      <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 w-max px-2 py-1 bg-gray-700 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+      <span className="absolute bottom-full left-1/2 mb-1 w-max -translate-x-1/2 transform rounded bg-gray-700 px-2 py-1 text-xs text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
         {tooltip}
       </span>
     </span>
@@ -58,7 +58,7 @@ const LanguageStatus = ({
 }
 
 const LanguageStatusPlaceholder = ({ label }: { label: string }) => (
-  <span className="bg-gray-200 text-gray-400 text-sm font-medium me-2 px-2.5 py-0.5 rounded animate-pulse">
+  <span className="me-2 animate-pulse rounded bg-gray-200 px-2.5 py-0.5 text-sm font-medium text-gray-400">
     {label}
   </span>
 )
@@ -70,11 +70,11 @@ const PublishingStatus = () => {
   return (
     <div className="mb-8 divide-slate-600">
       <div className="my-3">
-        <p className="text-sm font-medium text-gray-600 max-w-prose">
+        <p className="max-w-prose text-sm font-medium text-gray-600">
           This content type can be published in multiple languages. If you change any field, make
           sure to publish the changes in all languages you modified.
         </p>
-        <span className="text-sm font-medium me-2 py-0.5 text-gray-600">Publishing Status: </span>
+        <span className="me-2 py-0.5 text-sm font-medium text-gray-600">Publishing Status: </span>
 
         {Object.entries(isPublished).map(([locale, published]) =>
           published === undefined ? (
@@ -89,7 +89,7 @@ const PublishingStatus = () => {
           ),
         )}
       </div>
-      <hr className="h-px my-8 bg-gray-200 border-0 dark:bg-gray-700" />
+      <hr className="my-8 h-px border-0 bg-gray-200 dark:bg-gray-700" />
     </div>
   )
 }

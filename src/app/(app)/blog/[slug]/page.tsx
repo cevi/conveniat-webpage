@@ -10,8 +10,8 @@ interface BlogPostProps {
 
 function DateTime(props: { releaseDate: string }) {
   return (
-    <time className="text-sm text-muted-foreground flex items-center gap-1">
-      <CalendarIcon className="w-4 h-4" /> {stringDateToLocale(props.releaseDate)}
+    <time className="text-muted-foreground flex items-center gap-1 text-sm">
+      <CalendarIcon className="h-4 w-4" /> {stringDateToLocale(props.releaseDate)}
     </time>
   )
 }
@@ -55,21 +55,21 @@ async function BlogPost({ slug }: BlogPostProps) {
   // const fullName = (article.author as User).fullName
 
   return (
-    <article className="mx-auto px-4 py-8 max-w-6xl">
+    <article className="mx-auto max-w-6xl px-4 py-8">
       {blog_de_CH?._localized_status && blog_de_CH?._localized_status.published && (
-        <div className="px-3 py-1 text-xs font-semibold bg-amber-500 text-amber-950 rounded-full">
+        <div className="rounded-full bg-amber-500 px-3 py-1 text-xs font-semibold text-amber-950">
           DE: {blog_de_CH?.blogH1}
         </div>
       )}
 
       {blog_fr_CH?._localized_status && blog_fr_CH?._localized_status.published && (
-        <div className="px-3 py-1 text-xs font-semibold bg-amber-500 text-amber-950 rounded-full">
+        <div className="rounded-full bg-amber-500 px-3 py-1 text-xs font-semibold text-amber-950">
           FR: {blog_fr_CH?.blogH1}
         </div>
       )}
 
       {blog_en_US?._localized_status && blog_en_US?._localized_status.published && (
-        <div className="px-3 py-1 text-xs font-semibold bg-amber-500 text-amber-950 rounded-full">
+        <div className="rounded-full bg-amber-500 px-3 py-1 text-xs font-semibold text-amber-950">
           EN: {blog_en_US?.blogH1}
         </div>
       )}

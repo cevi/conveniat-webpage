@@ -19,15 +19,15 @@ const Page = async () => {
   const blogs = blogs_paged.docs
 
   return (
-    <article className="mx-auto px-4 py-8 max-w-6xl">
-      <h1 className="text-4xl font-serif font-bold leading-tight max-w-lg">Landing Page</h1>
+    <article className="mx-auto max-w-6xl px-4 py-8">
+      <h1 className="max-w-lg font-serif text-4xl font-bold leading-tight">Landing Page</h1>
 
       <h2>Latest Blog Articles</h2>
 
-      <div className="grid grid-cols-2 gap-8 max-w-8xl mx-auto mt-12">
+      <div className="max-w-8xl mx-auto mt-12 grid grid-cols-2 gap-8">
         {blogs.map((blog) => (
           <a key={blog.id} className="blog bg-amber-200 p-12" href={`/blog/${blog.urlSlug}`}>
-            <h3 className="text-2xl font-serif font-bold leading-tight max-w-lg">{blog.blogH1}</h3>
+            <h3 className="max-w-lg font-serif text-2xl font-bold leading-tight">{blog.blogH1}</h3>
             <p>{blog.blogH1}</p>
           </a>
         ))}

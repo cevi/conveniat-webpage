@@ -8,225 +8,224 @@
 
 export interface Config {
   auth: {
-    editor_users: EditorUserAuthOperations;
-  };
+    editor_users: EditorUserAuthOperations
+  }
   collections: {
-    editor_users: EditorUser;
-    media: Media;
-    blog: Blog;
-    users: User;
-    'payload-locked-documents': PayloadLockedDocument;
-    'payload-preferences': PayloadPreference;
-    'payload-migrations': PayloadMigration;
-  };
+    editor_users: EditorUser
+    media: Media
+    blog: Blog
+    users: User
+    'payload-locked-documents': PayloadLockedDocument
+    'payload-preferences': PayloadPreference
+    'payload-migrations': PayloadMigration
+  }
   db: {
-    defaultIDType: string;
-  };
+    defaultIDType: string
+  }
   globals: {
-    seo: Seo;
-    headerNav: HeaderNav;
-    footerNav: FooterNav;
-  };
-  locale: 'en-US' | 'de-CH' | 'fr-CH';
+    seo: Seo
+    headerNav: HeaderNav
+    footerNav: FooterNav
+  }
+  locale: 'en-US' | 'de-CH' | 'fr-CH'
   user: EditorUser & {
-    collection: 'editor_users';
-  };
+    collection: 'editor_users'
+  }
 }
 export interface EditorUserAuthOperations {
   forgotPassword: {
-    email: string;
-    password: string;
-  };
+    email: string
+    password: string
+  }
   login: {
-    email: string;
-    password: string;
-  };
+    email: string
+    password: string
+  }
   registerFirstUser: {
-    email: string;
-    password: string;
-  };
+    email: string
+    password: string
+  }
   unlock: {
-    email: string;
-    password: string;
-  };
+    email: string
+    password: string
+  }
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "editor_users".
  */
 export interface EditorUser {
-  id: string;
+  id: string
   groups?:
     | {
-        id?: string | null;
-        name?: string | null;
+        id?: string | null
+        name?: string | null
       }[]
-    | null;
-  cevi_db_uuid: number;
-  email: string;
-  fullName: string;
-  function: string;
-  updatedAt: string;
-  createdAt: string;
+    | null
+  cevi_db_uuid: number
+  email: string
+  fullName: string
+  function: string
+  updatedAt: string
+  createdAt: string
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "media".
  */
 export interface Media {
-  id: string;
-  alt: string;
-  updatedAt: string;
-  createdAt: string;
-  url?: string | null;
-  thumbnailURL?: string | null;
-  filename?: string | null;
-  mimeType?: string | null;
-  filesize?: number | null;
-  width?: number | null;
-  height?: number | null;
-  focalX?: number | null;
-  focalY?: number | null;
+  id: string
+  alt: string
+  updatedAt: string
+  createdAt: string
+  url?: string | null
+  thumbnailURL?: string | null
+  filename?: string | null
+  mimeType?: string | null
+  filesize?: number | null
+  width?: number | null
+  height?: number | null
+  focalX?: number | null
+  focalY?: number | null
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "blog".
  */
 export interface Blog {
-  id: string;
+  id: string
   _localized_status:
     | {
-        [k: string]: unknown;
+        [k: string]: unknown
       }
     | unknown[]
     | string
     | number
     | boolean
-    | null;
-  blogH1: string;
-  urlSlug: string;
-  updatedAt: string;
-  createdAt: string;
-  _status?: ('draft' | 'published') | null;
+    | null
+  blogH1: string
+  urlSlug: string
+  updatedAt: string
+  createdAt: string
+  _status?: ('draft' | 'published') | null
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users".
  */
 export interface User {
-  id: string;
+  id: string
   groups?:
     | {
-        id?: string | null;
-        name?: string | null;
+        id?: string | null
+        name?: string | null
       }[]
-    | null;
-  cevi_db_uuid: number;
-  email: string;
-  fullName: string;
-  updatedAt: string;
-  createdAt: string;
+    | null
+  cevi_db_uuid: number
+  email: string
+  fullName: string
+  updatedAt: string
+  createdAt: string
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-locked-documents".
  */
 export interface PayloadLockedDocument {
-  id: string;
+  id: string
   document?:
     | ({
-        relationTo: 'editor_users';
-        value: string | EditorUser;
+        relationTo: 'editor_users'
+        value: string | EditorUser
       } | null)
     | ({
-        relationTo: 'media';
-        value: string | Media;
+        relationTo: 'media'
+        value: string | Media
       } | null)
     | ({
-        relationTo: 'blog';
-        value: string | Blog;
+        relationTo: 'blog'
+        value: string | Blog
       } | null)
     | ({
-        relationTo: 'users';
-        value: string | User;
-      } | null);
-  globalSlug?: string | null;
+        relationTo: 'users'
+        value: string | User
+      } | null)
+  globalSlug?: string | null
   user: {
-    relationTo: 'editor_users';
-    value: string | EditorUser;
-  };
-  updatedAt: string;
-  createdAt: string;
+    relationTo: 'editor_users'
+    value: string | EditorUser
+  }
+  updatedAt: string
+  createdAt: string
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-preferences".
  */
 export interface PayloadPreference {
-  id: string;
+  id: string
   user: {
-    relationTo: 'editor_users';
-    value: string | EditorUser;
-  };
-  key?: string | null;
+    relationTo: 'editor_users'
+    value: string | EditorUser
+  }
+  key?: string | null
   value?:
     | {
-        [k: string]: unknown;
+        [k: string]: unknown
       }
     | unknown[]
     | string
     | number
     | boolean
-    | null;
-  updatedAt: string;
-  createdAt: string;
+    | null
+  updatedAt: string
+  createdAt: string
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-migrations".
  */
 export interface PayloadMigration {
-  id: string;
-  name?: string | null;
-  batch?: number | null;
-  updatedAt: string;
-  createdAt: string;
+  id: string
+  name?: string | null
+  batch?: number | null
+  updatedAt: string
+  createdAt: string
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "seo".
  */
 export interface Seo {
-  id: string;
-  updatedAt?: string | null;
-  createdAt?: string | null;
+  id: string
+  updatedAt?: string | null
+  createdAt?: string | null
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "headerNav".
  */
 export interface HeaderNav {
-  id: string;
-  updatedAt?: string | null;
-  createdAt?: string | null;
+  id: string
+  updatedAt?: string | null
+  createdAt?: string | null
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "footerNav".
  */
 export interface FooterNav {
-  id: string;
-  updatedAt?: string | null;
-  createdAt?: string | null;
+  id: string
+  updatedAt?: string | null
+  createdAt?: string | null
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "auth".
  */
 export interface Auth {
-  [k: string]: unknown;
+  [k: string]: unknown
 }
-
 
 declare module 'payload' {
   export interface GeneratedTypes extends Config {}
