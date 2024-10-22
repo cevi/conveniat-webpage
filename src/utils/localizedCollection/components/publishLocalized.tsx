@@ -89,7 +89,7 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = ({ label: labe
       },
       skipValidation: true,
     })
-  }, [submit, collectionSlug, globalSlug, serverURL, api, locale, id, forceDisable])
+  }, [forceDisable, locale, collectionSlug, globalSlug, submit, code, serverURL, api, id])
 
   useHotkey({ cmdCtrlKey: true, editDepth, keyCodes: ['s'] }, (e) => {
     e.preventDefault()
@@ -146,11 +146,11 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = ({ label: labe
     [api, collectionSlug, globalSlug, id, serverURL, submit],
   )
 
+  const isPublished = useIsPublished(1000)
+
   if (!hasPublishPermission) {
     return null
   }
-
-  const isPublished = useIsPublished(1000)
 
   const unpublishClasses = cva({
     'bg-red-200 text-red-900 dark:bg-red-800 dark:text-red-100': true,

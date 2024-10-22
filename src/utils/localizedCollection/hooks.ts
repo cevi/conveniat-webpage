@@ -36,7 +36,7 @@ export const useIsPublished = (refetchIntervall: number = 0) => {
         .map((locale, index) => ({ [locale]: published[index] }))
         .reduce((acc, val) => Object.assign(acc, val), {}),
     })
-  }, [document])
+  }, [document, locales, localized_status])
 
   return isPublished
 }
@@ -75,7 +75,7 @@ export const useHasPendingChanges = (refetchIntervall: number = 0) => {
       })
       setHasPendingChanges((prev) => ({ ...prev, [locale]: pendingChanges }))
     })
-  }, [document, documentDraft])
+  }, [document, documentDraft, fields, locales])
 
   return hasPendingChanges
 }
@@ -112,7 +112,7 @@ const useLocalizedDoc = (
     const intervalId = setInterval(fetchDocs, refetchInterval)
 
     return () => clearInterval(intervalId)
-  }, [id])
+  }, [draft, id, refetchInterval, slug])
 
   return doc
 }
