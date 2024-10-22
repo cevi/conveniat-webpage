@@ -1,10 +1,11 @@
 services:
   payload:
-    image: node:18-alpine
+    image: node:22-alpine
     ports:
       - '3000:3000'
     volumes:
       - .:/home/node/app
+      - next-cache:/home/node/app/.next
       - node_modules:/home/node/app/node_modules
     working_dir: /home/node/app/
     command: sh -c "corepack enable && corepack prepare pnpm@latest --activate && pnpm install && pnpm dev"
@@ -40,3 +41,4 @@ services:
 volumes:
   data:
   node_modules:
+  next-cache:
