@@ -70,7 +70,7 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       session.user = {
         ...session.user,
-        // @ts-ignore TODO: fix typing
+        // @ts-expect-error TODO: fix typing
         cevi_db_uuid: token.cevi_db_uuid,
         groups: token.groups,
       }

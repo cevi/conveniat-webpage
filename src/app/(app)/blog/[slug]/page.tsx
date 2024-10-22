@@ -1,19 +1,9 @@
 import { getPayloadHMR } from '@payloadcms/next/utilities'
 import configPromise from '@payload-config'
-import { CalendarIcon } from 'lucide-react'
 import { ErrorBoundary } from 'react-error-boundary'
-import { stringDateToLocale } from '@/lib/utils'
 
 interface BlogPostProps {
   slug?: string
-}
-
-function DateTime(props: { releaseDate: string }) {
-  return (
-    <time className="text-muted-foreground flex items-center gap-1 text-sm">
-      <CalendarIcon className="h-4 w-4" /> {stringDateToLocale(props.releaseDate)}
-    </time>
-  )
 }
 
 async function BlogPost({ slug }: BlogPostProps) {
@@ -123,7 +113,7 @@ async function BlogPost({ slug }: BlogPostProps) {
   )
 }
 
-const Page = async ({ params }: any) => {
+const Page = async ({ params }: { params: { slug: string } }) => {
   const { slug } = params
 
   return (

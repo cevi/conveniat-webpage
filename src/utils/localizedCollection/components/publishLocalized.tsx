@@ -27,7 +27,7 @@ import { useIsPublished } from '@/utils/localizedCollection/hooks'
  * but heavily modified to support publishing in specific locales.
  *
  */
-export const DefaultPublishButton: React.FC<{ label?: string }> = ({ label: labelProp }) => {
+export const DefaultPublishButton: React.FC<{ label?: string }> = () => {
   const {
     id,
     collectionSlug,
@@ -101,9 +101,9 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = ({ label: labe
   })
 
   const publishSpecificLocale = useCallback(
-    (locale: string) => {
+    (_locale: string) => {
       const params = qs.stringify({
-        publishSpecificLocale: locale,
+        publishSpecificLocale: _locale,
       })
 
       const action = `${serverURL}${api}${
@@ -124,9 +124,9 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = ({ label: labe
   )
 
   const unpublishSpecificLocale = useCallback(
-    (locale: string) => {
+    (_locale: string) => {
       const params = qs.stringify({
-        publishSpecificLocale: locale,
+        publishSpecificLocale: _locale,
       })
 
       const action = `${serverURL}${api}${

@@ -70,7 +70,7 @@ export const useHasPendingChanges = (refetchIntervall: number = 0) => {
   useEffect(() => {
     locales.forEach((locale) => {
       const pendingChanges = fields.some((field) => {
-        // @ts-ignore
+        // @ts-expect-error
         return documentDraft?.[field]?.[locale] !== document?.[field]?.[locale]
       })
       setHasPendingChanges((prev) => ({ ...prev, [locale]: pendingChanges }))
@@ -101,7 +101,7 @@ const useLocalizedDoc = (
     const res = `/api/${slug}/${id}?depth=1&draft=${draft}&locale=all`
 
     const fetchDocs = async () => {
-      setDoc(await fetch(res).then((res) => res.json()))
+      setDoc(await fetch(res).then((_response) => _response.json()))
     }
 
     if (refetchInterval === 0) {
