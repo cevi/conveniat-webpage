@@ -41,12 +41,12 @@ const LanguageStatus = ({
   pendingChanges: boolean
   label: string
 }) => {
-  const tooltip = pendingChanges
-    ? 'Published but has unpublished changes'
-    : published
-      ? 'Published and up to date'
-      : 'Not published'
-
+  let tooltip = 'Not published'
+  if (pendingChanges) {
+    tooltip = 'Published but has unpublished changes'
+  } else if (published) {
+    tooltip = 'Published and up to date'
+  }
   return (
     <span className={languageStatusClasses({ published, pendingChanges })}>
       {label}

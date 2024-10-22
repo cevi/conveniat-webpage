@@ -45,7 +45,7 @@ export const CeviDBProvider: OAuthConfig<HitobitoProfile> = {
           'X-Scope': 'with_roles',
         },
       })
-      return await response.json()
+      return (await response.json()) as HitobitoProfile
     },
   },
 
@@ -67,7 +67,7 @@ export const authOptions: NextAuthOptions = {
     // we need to expose the additional fields from the token
     // for the Payload CMS to be able to use them
     // warning: these fields are also exposed to the client
-    async session({ session, token }) {
+    session({ session, token }) {
       session.user = {
         ...session.user,
         // @ts-expect-error TODO: fix typing
@@ -78,19 +78,17 @@ export const authOptions: NextAuthOptions = {
     },
 
     // we inject additional info about the user to the JWT token
-    async jwt({ token, profile: _profile }): Promise<JWT> {
+    jwt({ token, profile: _profile }): JWT {
       const profile = _profile as HitobitoProfile
-      if (profile) {
-        token.cevi_db_uuid = profile.id // the ide of the user in the CeviDB
+      token.cevi_db_uuid = profile.id // the ide of the user in the CeviDB
 
-        token.groups = profile.roles.map((role) => ({
-          id: role.group_id,
-          name: role.group_name,
-        }))
+      token.groups = profile.roles.map((role) => ({
+        id: role.group_id,
+        name: role.group_name,
+      }))
 
-        token.email = profile.email
-        token.name = profile.first_name + ' ' + profile.last_name
-      }
+      token.email = profile.email
+      token.name = profile.first_name + ' ' + profile.last_name
       return token
     },
   },

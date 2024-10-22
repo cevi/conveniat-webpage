@@ -63,7 +63,7 @@ const LanguageSelectionModal = ({
 }
 
 const AutoTranslate = () => {
-  const [isModalOpen, setModalOpen] = useState(false)
+  const [modalOpen, setModalOpen] = useState(false)
 
   const handleTranslate = (source: string, target: string) => {
     // Call your third-party translation service here
@@ -93,7 +93,7 @@ const AutoTranslate = () => {
         <hr className="my-8 h-px border-0 bg-gray-200 dark:bg-gray-700" />
       </div>
 
-      {isModalOpen && (
+      {modalOpen && (
         <LanguageSelectionModal onClose={() => setModalOpen(false)} onTranslate={handleTranslate} />
       )}
     </div>

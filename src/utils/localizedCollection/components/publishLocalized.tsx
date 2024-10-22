@@ -95,7 +95,7 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = () => {
     e.preventDefault()
     e.stopPropagation()
 
-    if (saveDraft && docConfig?.versions.drafts && docConfig.versions.drafts.autosave) {
+    if (docConfig?.versions.drafts && docConfig.versions.drafts.autosave) {
       void saveDraft()
     }
   })
