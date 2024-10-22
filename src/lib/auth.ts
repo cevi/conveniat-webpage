@@ -1,5 +1,4 @@
-import { NextAuthOptions } from 'next-auth'
-import { OAuthConfig } from 'next-auth/providers/oauth'
+import { NextAuthConfig } from 'next-auth'
 import { JWT } from 'next-auth/jwt'
 
 interface HitobitoProfile {
@@ -16,49 +15,48 @@ interface HitobitoProfile {
 
 const HITOBITO_BASE_URL = process.env.HITOBITO_BASE_URL
 
-export const CeviDBProvider: OAuthConfig<HitobitoProfile> = {
-  id: 'cevi-db',
-  name: 'CeviDB',
-  authorization: {
-    url: `${HITOBITO_BASE_URL}/oauth/authorize`,
-    params: {
-      response_type: 'code',
-      scope: 'with_roles',
-    },
-  },
-  token: {
-    url: `${HITOBITO_BASE_URL}/oauth/token`,
-    params: {
-      grant_type: 'authorization_code',
-      scope: 'name',
-    },
-  },
-
-  // This custom is used as soon as we would like to use a scope different from 'email'.
-  // As Hitobito uses the 'X-Scopes' header to pass the scopes, and not the 'scope' parameter,
-  userinfo: {
-    async request({ tokens }) {
-      const url = `${HITOBITO_BASE_URL}/oauth/profile`
-      const response = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${tokens.access_token}`,
-          'X-Scope': 'with_roles',
+export const authOptions: NextAuthConfig = {
+  providers: [
+    {
+      id: 'cevi-db',
+      type: 'oauth',
+      name: 'CeviDB',
+      authorization: {
+        url: `${HITOBITO_BASE_URL}/oauth/authorize`,
+        params: {
+          response_type: 'code',
+          scope: 'with_roles',
         },
-      })
-      return (await response.json()) as HitobitoProfile
+      },
+      token: {
+        url: `${HITOBITO_BASE_URL}/oauth/token`,
+        params: {
+          grant_type: 'authorization_code',
+          scope: 'name',
+        },
+      },
+
+      // This custom is used as soon as we would like to use a scope different from 'email'.
+      // As Hitobito uses the 'X-Scopes' header to pass the scopes, and not the 'scope' parameter,
+      userinfo: {
+        async request({ tokens }) {
+          const url = `${HITOBITO_BASE_URL}/oauth/profile`
+          const response = await fetch(url, {
+            headers: {
+              Authorization: `Bearer ${tokens.access_token}`,
+              'X-Scope': 'with_roles',
+            },
+          })
+          console.log('response', response)
+          return (await response.json()) as HitobitoProfile
+        },
+      },
+
+      profile: (profile: HitobitoProfile) => profile,
+      clientId: process.env.CEVI_DB_CLIENT_ID,
+      clientSecret: process.env.CEVI_DB_CLIENT_SECRET,
     },
-  },
-
-  type: 'oauth',
-  version: '2.0',
-  httpOptions: { timeout: 10_000 },
-  profile: (profile: HitobitoProfile) => profile,
-  clientId: process.env.CEVI_DB_CLIENT_ID,
-  clientSecret: process.env.CEVI_DB_CLIENT_SECRET,
-}
-
-export const authOptions: NextAuthOptions = {
-  providers: [CeviDBProvider],
+  ],
   debug: false,
   session: {
     strategy: 'jwt',
@@ -80,6 +78,7 @@ export const authOptions: NextAuthOptions = {
     // we inject additional info about the user to the JWT token
     jwt({ token, profile: _profile }): JWT {
       const profile = _profile as HitobitoProfile
+      console.log('profile', profile)
       token.cevi_db_uuid = profile.id // the ide of the user in the CeviDB
 
       token.groups = profile.roles.map((role) => ({
