@@ -1,4 +1,4 @@
-import { BasePayload, CollectionConfig } from 'payload'
+import { AuthStrategyFunction, BasePayload, CollectionConfig } from 'payload'
 import { canAccessAdminPanel } from '@/acces/canAccessAdminPanel'
 
 type HitobitoNextAuthUser = {
@@ -29,6 +29,65 @@ async function saveUserToDB(payload: BasePayload, nextAuthUser: HitobitoNextAuth
     })
 }
 
+/**
+ * Fetches the session from the CeviDB API
+ * @param cookie the cookie to use for the request
+ */
+const fetchSessionFromCeviDB = async (cookie: string) => {
+  return (await fetch('http://localhost:3000/api/auth/session', {
+    headers: {
+      cookie,
+    },
+  }).then((res) => res.json())) as { user?: HitobitoNextAuthUser } | null
+}
+
+/**
+ * Fetches the Payload user from the database given a NextAuth user
+ * @param payload
+ * @param nextAuthUser
+ */
+async function getPayloadUserFromNextAuthUser(
+  payload: BasePayload,
+  nextAuthUser: HitobitoNextAuthUser,
+) {
+  return await payload
+    .find({
+      collection: 'users',
+      where: { cevi_db_uuid: { equals: nextAuthUser.cevi_db_uuid } },
+    })
+    .then((res) => res.docs[0])
+}
+
+/**
+ * Checks if a user is a valid NextAuth user, i.e. has all required fields
+ * @param user
+ */
+const isValidNextAuthUser = (user: HitobitoNextAuthUser) => {
+  return user.name && user.email && user.cevi_db_uuid
+}
+
+const getAuthenticateUsingCeviDB: AuthStrategyFunction = async ({ headers, payload }) => {
+  const cookie = headers.get('cookie')
+  if (!cookie) return { user: null }
+
+  const session = await fetchSessionFromCeviDB(cookie)
+  if (!session || !session.user || !isValidNextAuthUser(session.user)) {
+    return { user: null }
+  }
+
+  const nextAuthUser = session.user
+  await saveUserToDB(payload, nextAuthUser)
+
+  const user = await getPayloadUserFromNextAuthUser(payload, nextAuthUser)
+
+  return {
+    user: {
+      collection: 'users',
+      ...user,
+    },
+  }
+}
+
 export const Users: CollectionConfig = {
   slug: 'users',
   labels: {
@@ -55,46 +114,7 @@ export const Users: CollectionConfig = {
     strategies: [
       {
         name: 'CeviDB',
-        authenticate: async ({ headers, payload }) => {
-          const cookie = headers.get('cookie')
-          if (!cookie) return { user: null }
-
-          const session = await fetch('http://localhost:3000/api/auth/session', {
-            headers: {
-              cookie,
-            },
-          }).then((res) => res.json())
-          if (!session) return { user: null }
-
-          const nextAuthUser: HitobitoNextAuthUser = session.user
-
-          // validate nextAuthUser object
-          if (
-            !nextAuthUser ||
-            !nextAuthUser.name ||
-            !nextAuthUser.email ||
-            !nextAuthUser.cevi_db_uuid
-          ) {
-            return { user: null }
-          }
-
-          // save the user to the database if it does not exist yet
-          await saveUserToDB(payload, nextAuthUser)
-
-          const user = await payload
-            .find({
-              collection: 'users',
-              where: { cevi_db_uuid: { equals: nextAuthUser.cevi_db_uuid } },
-            })
-            .then((res) => res.docs[0])
-
-          return {
-            user: {
-              collection: 'users',
-              ...user,
-            },
-          }
-        },
+        authenticate: getAuthenticateUsingCeviDB,
       },
     ],
   },

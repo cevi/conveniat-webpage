@@ -21,10 +21,10 @@
     "@payloadcms/plugin-cloud": "beta",
     "@payloadcms/richtext-lexical": "beta",
     "@payloadcms/richtext-slate": "beta",
-    "@payloadcms/ui": "3.0.0-beta.114",
+    "@payloadcms/ui": "beta",
     "class-variance-authority": "^0.7.0",
     "cross-env": "^7.0.3",
-    "graphql": "^16.8.1",
+    "graphql": "^16.9.0",
     "lucide-react": "^0.447.0",
     "next": "15.0.0",
     "next-auth": "^4.24.8",
@@ -32,9 +32,9 @@
     "qs-esm": "^7.0.2",
     "react": "19.0.0-rc-65a56d0e-20241020",
     "react-dom": "19.0.0-rc-65a56d0e-20241020",
-    "react-error-boundary": "^4.1.0",
+    "react-error-boundary": "^4.1.2",
     "sharp": "0.32.6",
-    "tailwind-merge": "^2.3.0",
+    "tailwind-merge": "^2.5.4",
     "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
@@ -42,17 +42,18 @@
     "@eslint/eslintrc": "^3.1.0",
     "@eslint/js": "^9.13.0",
     "@next/eslint-plugin-next": "^15.0.0",
-    "@types/node": "^22.5.4",
+    "@types/node": "^22.7.8",
     "@types/react": "npm:types-react@19.0.0-rc.1",
     "@types/react-dom": "npm:types-react-dom@19.0.0-rc.1",
     "@typescript-eslint/eslint-plugin": "^8.11.0",
     "@typescript-eslint/parser": "^8.11.0",
     "autoprefixer": "^10.4.20",
-    "eslint": "^9.12.0",
+    "eslint": "^9.13.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.2.1",
     "eslint-plugin-react": "^7.37.1",
     "eslint-plugin-react-hooks": "^5.0.0",
+    "eslint-plugin-react-naming-convention": "^1.15.0",
     "globals": "^15.11.0",
     "postcss": "^8.4.47",
     "prettier": "^3.3.3",
@@ -75,5 +76,5 @@
     "@types/react": "npm:types-react@19.0.0-rc.1",
     "@types/react-dom": "npm:types-react-dom@19.0.0-rc.1"
   },
-  "packageManager": "pnpm@9.12.0+sha512.4abf725084d7bcbafbd728bfc7bee61f2f791f977fd87542b3579dcb23504d170d46337945e4c66485cd12d588a0c0e570ed9c477e7ccdd8507cf05f3f92eaca"
+  "packageManager": "pnpm@9.12.2"
 }

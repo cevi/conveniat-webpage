@@ -52,6 +52,7 @@ export interface Config {
     collection: 'users';
   };
 }
+
 export interface UserAuthOperations {
   forgotPassword: {
     email: string;

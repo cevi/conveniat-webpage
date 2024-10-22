@@ -16,7 +16,7 @@ export const useIsPublished = (refetchIntervall: number = 0) => {
   const id = _doc.id as string
 
   const document: Blog = useLocalizedDoc('blog', id, false, refetchIntervall) as unknown as Blog
-  const localized_status = document?._localized_status as {
+  const localized_status = document._localized_status as {
     [key: string]: {
       published: boolean
     }
@@ -30,7 +30,7 @@ export const useIsPublished = (refetchIntervall: number = 0) => {
   })
 
   useEffect(() => {
-    const published = locales.map((locale) => localized_status?.[locale]?.published)
+    const published = locales.map((locale) => localized_status[locale].published)
     setIsPublished({
       ...locales
         .map((locale, index) => ({ [locale]: published[index] }))
@@ -71,7 +71,7 @@ export const useHasPendingChanges = (refetchIntervall: number = 0) => {
     locales.forEach((locale) => {
       const pendingChanges = fields.some((field) => {
         // @ts-expect-error
-        return documentDraft?.[field]?.[locale] !== document?.[field]?.[locale]
+        return documentDraft[field]?.[locale] !== document[field]?.[locale]
       })
       setHasPendingChanges((prev) => ({ ...prev, [locale]: pendingChanges }))
     })
