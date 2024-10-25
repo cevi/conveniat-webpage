@@ -146,10 +146,10 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = () => {
     [api, collectionSlug, globalSlug, id, serverURL, submit],
   )
 
-  const isPublished = useIsPublished(1000)
+  const { isPublished } = useIsPublished()
 
-  if (!hasPublishPermission) {
-    return null
+  if (!isPublished) {
+    return <p>Loading</p>
   }
 
   const unpublishClasses = cva({

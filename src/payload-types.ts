@@ -110,6 +110,7 @@ export interface Blog {
   id: string;
   _localized_status: LocalizedPublishingStatus;
   blogH1: string;
+  aFieldInAllLocales: string;
   urlSlug: string;
   updatedAt: string;
   createdAt: string;

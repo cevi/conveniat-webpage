@@ -2,115 +2,121 @@ import { useDocumentInfo } from '@payloadcms/ui'
 import { locales as localesDefinition } from '@/utils/globalDefinitions'
 import { Locale } from 'payload'
 import { Blog } from '@/payload-types'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useLocalizedDoc } from '@/utils/localizedCollection/utils'
 
 /**
  * Hook to check if a document is published in all locales
  *
- * @param refetchIntervall the intervall to refetch the document content, disable if set to 0
  * @returns an object with the locales as keys and a boolean as value
  *
  */
-export const useIsPublished = (refetchIntervall: number = 0) => {
-  const _doc = useDocumentInfo()
-  const id = _doc.id as string
+export const useIsPublished = () => {
+  const [error, setError] = useState<Error | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [isPublished, setIsPublished] = useState<{ [p: string]: boolean } | undefined>(undefined)
 
-  const document: Blog = useLocalizedDoc('blog', id, false, refetchIntervall) as unknown as Blog
+  const {
+    error: _error,
+    doc: _doc,
+    isLoading: _isLoading,
+  } = useLocalizedDoc<Blog>({ draft: false })
 
-  const locales: string[] = localesDefinition.map((l: Locale) => l.code)
-  const [isPublished, setIsPublished] = useState<{ [p: string]: undefined | boolean }>({
-    ...locales
-      .map((locale) => ({ [locale]: undefined }))
-      .reduce((acc, val) => Object.assign(acc, val), {}),
-  })
+  useEffect(() => {
+    setError(_error)
+    setIsLoading(_isLoading)
 
-  const localized_status = document._localized_status as {
-    [key: string]: {
-      published: boolean
+    if (_doc) {
+      const published = localesDefinition
+        .map((l: Locale) => l.code)
+        .reduce((acc, locale) => {
+          const state = _doc._localized_status[locale]?.published
+          return { ...acc, [locale]: state }
+        }, {})
+      setIsPublished(published)
+    }
+  }, [_doc, _error, _isLoading])
+
+  return { isPublished, isLoading, error }
+}
+
+const hasDiffs = (locale: string, fieldDefs, doc1, doc2): boolean => {
+  const ignoredFields = ['updatedAt', 'createdAt', '_status']
+
+  for (const fieldDef of fieldDefs) {
+    const field = fieldDef.name
+
+    if (ignoredFields.includes(field)) {
+      continue
+    }
+
+    const fieldType = fieldDef.type
+    const isLocalized = fieldDef.localized
+    const isPresentational = fieldDef.presentational
+
+    if (fieldType == 'collapsible') {
+      if (hasDiffs(locale, fieldDef.fields, doc1, doc2)) {
+        return true
+      }
+    }
+
+    const value1 = doc1[field]
+    const value2 = doc2[field]
+
+    if (isLocalized && value1[locale] !== value2[locale]) {
+      return true
+    }
+
+    if (!isLocalized && !isPresentational && value1 !== value2) {
+      return true
     }
   }
 
-  useEffect(() => {
-    if (!document._localized_status) return
-
-    const published = locales.map((locale) => localized_status[locale].published)
-    setIsPublished({
-      ...locales
-        .map((locale, index) => ({ [locale]: published[index] }))
-        .reduce((acc, val) => Object.assign(acc, val), {}),
-    })
-  }, [document, locales])
-
-  return isPublished
+  return false
 }
 
 /**
  * Hook to check if a document has pending changes in all locales
  *
- * @param refetchIntervall the intervall to refetch the document content, disable if set to 0
  * @returns an object with the locales as keys and a boolean as value
  */
-export const useHasPendingChanges = (refetchIntervall: number = 0) => {
-  const doc = useDocumentInfo()
-  const id = doc.id as string
+export const useHasPendingChanges = () => {
+  const [error, setError] = useState<Error | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [hasUnpublishedChanges, setHasUnpublishedChanges] = useState<
+    { [p: string]: boolean } | undefined
+  >(undefined)
 
-  const locales: string[] = localesDefinition.map((l: Locale) => l.code)
+  const {
+    error: _error_draft,
+    doc: _doc_draft,
+    isLoading: _isLoading_draft,
+  } = useLocalizedDoc({ draft: true })
+  const { error: _error, doc: _doc, isLoading: _isLoading } = useLocalizedDoc({ draft: false })
 
-  const skippedFields = ['id', '_status', '_localized_status', 'Versions', 'createdAt', 'updatedAt']
-  const fields = Object.keys(doc.docPermissions?.fields || {}).filter(
-    (key) => !skippedFields.includes(key),
-  )
-
-  const document: Blog = useLocalizedDoc('blog', id, false, refetchIntervall) as unknown as Blog
-  const documentDraft: Blog = useLocalizedDoc('blog', id, true, refetchIntervall) as unknown as Blog
-
-  const [hasPendingChanges, setHasPendingChanges] = useState<{ [p: string]: undefined | boolean }>({
-    ...locales
-      .map((locale) => ({ [locale]: undefined }))
-      .reduce((acc, val) => Object.assign(acc, val), {}),
-  })
+  const { docConfig } = useDocumentInfo()
+  const fields = useMemo(() => docConfig?.fields, [docConfig?.fields])
 
   useEffect(() => {
-    locales.forEach((locale) => {
-      const pendingChanges = fields.some((field) => {
-        // @ts-expect-error
-        return documentDraft[field]?.[locale] !== document[field]?.[locale]
-      })
-      setHasPendingChanges((prev) => ({ ...prev, [locale]: pendingChanges }))
-    })
-  }, [document, documentDraft, fields, locales])
+    setError(_error || _error_draft)
+    setIsLoading(_isLoading || _isLoading_draft)
 
-  return hasPendingChanges
-}
-/**
- *
- * Retrieves the localized version of a document of a given collection.
- * It uses the Payload REST API to fetch the documents
- *
- * @param slug the slug of the collection
- * @param id the id of the document
- * @param draft
- * @param refetchInterval the intervall to refetch the document content, disable if set to 0
- */
-const useLocalizedDoc = async (
-  slug: string,
-  id: string,
-  draft: boolean = false,
-  refetchInterval: number = 0,
-) => {
-  const res = `/api/${slug}/${id}?depth=1&draft=${draft}&locale=all`
-  const docs = await fetch(res).then((_response) => _response.json())
+    if (fields && _doc && _doc_draft) {
+      const hasChanges: {
+        [p: string]: boolean
+      } = localesDefinition
+        .map((l: Locale) => l.code)
+        .reduce(
+          (acc, locale) => ({
+            ...acc,
+            [locale]: hasDiffs(locale, fields, _doc, _doc_draft),
+          }),
+          {},
+        )
 
-  const [doc, setDoc] = useState(docs)
-  if (refetchInterval === 0) return docs
+      setHasUnpublishedChanges(hasChanges)
+    }
+  }, [_doc, _doc_draft, _error, _error_draft, _isLoading, _isLoading_draft, fields])
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      fetch(res)
-        .then((_response) => _response.json())
-        .then((docs) => setDoc(docs))
-    }, refetchInterval)
-    return () => clearInterval(interval)
-  }, [refetchInterval])
-  return doc
+  return { hasUnpublishedChanges, isLoading, error }
 }

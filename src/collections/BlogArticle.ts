@@ -45,6 +45,18 @@ export const BlogArticle: CollectionConfig = asLocalizedCollection({
     ...blogArticleFields,
 
     {
+      name: 'aFieldInAllLocales',
+      label: {
+        en: 'aFieldInAllLocales',
+        de: 'aFieldInAllLocales',
+        fr: 'aFieldInAllLocales',
+      },
+      type: 'text',
+      localized: false,
+      required: true,
+    },
+
+    {
       type: 'collapsible',
       label: 'SEO Settings',
       fields: [

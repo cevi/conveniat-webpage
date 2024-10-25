@@ -3,7 +3,7 @@ import configPromise from '@payload-config'
 import { ErrorBoundary } from 'react-error-boundary'
 
 interface BlogPostProps {
-  slug?: Promise<string>
+  slug?: string
 }
 
 async function BlogPost({ slug }: BlogPostProps) {
@@ -65,8 +65,8 @@ async function BlogPost({ slug }: BlogPostProps) {
   )
 }
 
-const Page = ({ params }: { params: { slug: string } }) => {
-  const { slug } = params
+const Page = async ({ params }: { params: Promise<{ slug: string }> }) => {
+  const { slug } = await params
 
   return (
     <ErrorBoundary fallback={<div>Something went wrong</div>}>
