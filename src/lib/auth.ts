@@ -36,10 +36,12 @@ export const authOptions: NextAuthConfig = {
         },
       },
 
+      issuer: 'cevi-db',
+
       // This custom is used as soon as we would like to use a scope different from 'email'.
       // As Hitobito uses the 'X-Scopes' header to pass the scopes, and not the 'scope' parameter,
       userinfo: {
-        async request({ tokens }) {
+        async request({ tokens }: { tokens: { access_token: string } }) {
           const url = `${HITOBITO_BASE_URL}/oauth/profile`
           const response = await fetch(url, {
             headers: {
@@ -47,12 +49,18 @@ export const authOptions: NextAuthConfig = {
               'X-Scope': 'with_roles',
             },
           })
-          console.log('response', response)
           return (await response.json()) as HitobitoProfile
         },
       },
 
-      profile: (profile: HitobitoProfile) => profile,
+      profile: (profile: HitobitoProfile) => {
+        return {
+          id: profile.id,
+          name: profile.first_name + ' ' + profile.last_name,
+          email: profile.email,
+          roles: profile.roles,
+        }
+      },
       clientId: process.env.CEVI_DB_CLIENT_ID,
       clientSecret: process.env.CEVI_DB_CLIENT_SECRET,
     },
@@ -68,7 +76,7 @@ export const authOptions: NextAuthConfig = {
     session({ session, token }) {
       session.user = {
         ...session.user,
-        // @ts-expect-error TODO: fix typing
+        // @ts-ignore
         cevi_db_uuid: token.cevi_db_uuid,
         groups: token.groups,
       }
@@ -76,11 +84,12 @@ export const authOptions: NextAuthConfig = {
     },
 
     // we inject additional info about the user to the JWT token
-    jwt({ token, profile: _profile }): JWT {
-      const profile = _profile as HitobitoProfile
-      console.log('profile', profile)
+    jwt({ token, profile }): JWT {
+      if (!profile) return token
+
       token.cevi_db_uuid = profile.id // the ide of the user in the CeviDB
 
+      // @ts-ignore
       token.groups = profile.roles.map((role) => ({
         id: role.group_id,
         name: role.group_name,

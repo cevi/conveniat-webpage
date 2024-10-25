@@ -16,11 +16,6 @@ export const useIsPublished = (refetchIntervall: number = 0) => {
   const id = _doc.id as string
 
   const document: Blog = useLocalizedDoc('blog', id, false, refetchIntervall) as unknown as Blog
-  const localized_status = document._localized_status as {
-    [key: string]: {
-      published: boolean
-    }
-  }
 
   const locales: string[] = localesDefinition.map((l: Locale) => l.code)
   const [isPublished, setIsPublished] = useState<{ [p: string]: undefined | boolean }>({
@@ -29,14 +24,22 @@ export const useIsPublished = (refetchIntervall: number = 0) => {
       .reduce((acc, val) => Object.assign(acc, val), {}),
   })
 
+  const localized_status = document._localized_status as {
+    [key: string]: {
+      published: boolean
+    }
+  }
+
   useEffect(() => {
+    if (!document._localized_status) return
+
     const published = locales.map((locale) => localized_status[locale].published)
     setIsPublished({
       ...locales
         .map((locale, index) => ({ [locale]: published[index] }))
         .reduce((acc, val) => Object.assign(acc, val), {}),
     })
-  }, [document, locales, localized_status])
+  }, [document, locales])
 
   return isPublished
 }
@@ -59,7 +62,7 @@ export const useHasPendingChanges = (refetchIntervall: number = 0) => {
   )
 
   const document: Blog = useLocalizedDoc('blog', id, false, refetchIntervall) as unknown as Blog
-  const documentDraft: Blog = useLocalizedDoc('blog', id, true, 1000) as unknown as Blog
+  const documentDraft: Blog = useLocalizedDoc('blog', id, true, refetchIntervall) as unknown as Blog
 
   const [hasPendingChanges, setHasPendingChanges] = useState<{ [p: string]: undefined | boolean }>({
     ...locales
@@ -89,30 +92,25 @@ export const useHasPendingChanges = (refetchIntervall: number = 0) => {
  * @param draft
  * @param refetchInterval the intervall to refetch the document content, disable if set to 0
  */
-const useLocalizedDoc = (
+const useLocalizedDoc = async (
   slug: string,
   id: string,
   draft: boolean = false,
   refetchInterval: number = 0,
 ) => {
-  const [doc, setDoc] = useState(null)
+  const res = `/api/${slug}/${id}?depth=1&draft=${draft}&locale=all`
+  const docs = await fetch(res).then((_response) => _response.json())
+
+  const [doc, setDoc] = useState(docs)
+  if (refetchInterval === 0) return docs
 
   useEffect(() => {
-    const res = `/api/${slug}/${id}?depth=1&draft=${draft}&locale=all`
-
-    const fetchDocs = async () => {
-      setDoc(await fetch(res).then((_response) => _response.json()))
-    }
-
-    if (refetchInterval === 0) {
-      fetchDocs().then()
-      return
-    }
-
-    const intervalId = setInterval(fetchDocs, refetchInterval)
-
-    return () => clearInterval(intervalId)
-  }, [draft, id, refetchInterval, slug])
-
+    const interval = setInterval(() => {
+      fetch(res)
+        .then((_response) => _response.json())
+        .then((docs) => setDoc(docs))
+    }, refetchInterval)
+    return () => clearInterval(interval)
+  }, [refetchInterval])
   return doc
 }
