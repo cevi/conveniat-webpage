@@ -1,6 +1,7 @@
 'use client'
 import { cva } from 'class-variance-authority'
 import { useHasPendingChanges, useIsPublished } from '@/utils/localizedCollection/hooks'
+import { Config } from '@/payload-types'
 
 const languageStatusClasses = cva('text-sm font-medium me-2 px-2.5 py-0.5 rounded relative group', {
   variants: {
@@ -86,7 +87,7 @@ export const PublishingStatusBadges = () => {
         <LanguageStatus
           key={locale}
           published={published}
-          pendingChanges={hasUnpublishedChanges[locale]}
+          pendingChanges={hasUnpublishedChanges[locale as Config['locale']]}
           label={locale}
         />
       ))}

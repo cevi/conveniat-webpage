@@ -19,6 +19,7 @@ import {
 } from '@payloadcms/ui'
 import { cva } from 'class-variance-authority'
 import { useIsPublished } from '@/utils/localizedCollection/hooks'
+import { Config } from '@/payload-types'
 
 /**
  * Default Publish button for localized collections
@@ -27,6 +28,7 @@ import { useIsPublished } from '@/utils/localizedCollection/hooks'
  * but heavily modified to support publishing in specific locales.
  *
  */
+// eslint-disable-next-line complexity
 export const DefaultPublishButton: React.FC<{ label?: string }> = () => {
   const {
     id,
@@ -50,7 +52,7 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = () => {
   } = config
 
   const { t } = useTranslation()
-  const { code } = useLocale()
+  const { code } = useLocale() as { code: Config['locale'] }
 
   const hasNewerVersions = (unpublishedVersions?.totalDocs || 0) > 0
   const canPublish = hasPublishPermission && (modified || hasNewerVersions || !publishedDoc)
@@ -58,6 +60,7 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = () => {
 
   const forceDisable = operation === 'update' && !modified
 
+  // eslint-disable-next-line complexity
   const saveDraft = useCallback(async () => {
     if (forceDisable) {
       return

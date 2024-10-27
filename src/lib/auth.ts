@@ -84,12 +84,12 @@ export const authOptions: NextAuthConfig = {
     },
 
     // we inject additional info about the user to the JWT token
-    jwt({ token, profile }): JWT {
-      if (!profile) return token
+    jwt({ token, profile: _profile }): JWT {
+      if (!_profile) return token
 
+      const profile = _profile as unknown as HitobitoProfile
       token.cevi_db_uuid = profile.id // the ide of the user in the CeviDB
 
-      // @ts-ignore
       token.groups = profile.roles.map((role) => ({
         id: role.group_id,
         name: role.group_name,
