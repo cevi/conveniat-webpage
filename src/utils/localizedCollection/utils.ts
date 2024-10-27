@@ -17,6 +17,12 @@ const fetchDoc = async <T>({
   return (await response.json()) as T
 }
 
+export class NotYetSavedException extends Error {
+  constructor() {
+    super('Document not yet saved')
+  }
+}
+
 /**
  *
  * Retrieves the localized version of a document of a given collection.
@@ -35,6 +41,12 @@ export const useLocalizedDoc = <T>({ draft }: { draft: boolean }) => {
   useEffect(() => {
     setIsLoading(true)
     setError(null)
+
+    if (!debouncedParams.collectionSlug || !debouncedParams.id) {
+      setIsLoading(false)
+      setError(new NotYetSavedException())
+      return
+    }
 
     fetchDoc<T>({
       slug: debouncedParams.collectionSlug as CollectionSlug,

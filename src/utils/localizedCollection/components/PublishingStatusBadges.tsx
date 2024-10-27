@@ -2,6 +2,7 @@
 import { cva } from 'class-variance-authority'
 import { useHasPendingChanges, useIsPublished } from '@/utils/localizedCollection/hooks'
 import { Config } from '@/payload-types'
+import { NotYetSavedException } from '@/utils/localizedCollection/utils'
 
 const languageStatusClasses = cva('text-sm font-medium me-2 px-2.5 py-0.5 rounded relative group', {
   variants: {
@@ -68,6 +69,10 @@ export const PublishingStatusBadges = () => {
   const { hasUnpublishedChanges, error: errHasUnpub } = useHasPendingChanges()
 
   if (errIsPub || errHasUnpub) {
+    if (typeof errIsPub === 'object' && errIsPub instanceof NotYetSavedException) {
+      return <span>🛈 Not yet saved. Please save the document first.</span>
+    }
+
     return <span>⚠️ Something went wrong</span>
   }
 
