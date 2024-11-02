@@ -39,26 +39,26 @@
     "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
-    "@eslint/compat": "^1.2.1",
-    "@eslint/js": "^9.13.0",
+    "@eslint/compat": "^1.2.2",
+    "@eslint/js": "^9.14.0",
     "@next/eslint-plugin-next": "^14.2.16",
-    "@types/node": "^22.7.9",
+    "@types/node": "^22.8.6",
     "@types/react": "npm:types-react@19.0.0-rc.1",
     "@types/react-dom": "npm:types-react-dom@19.0.0-rc.1",
     "autoprefixer": "^10.4.20",
-    "eslint": "^9.13.0",
-    "eslint-config-next": "^15.0.1",
+    "eslint": "^9.14.0",
+    "eslint-config-next": "^15.0.2",
     "eslint-plugin-next": "^0.0.0",
     "eslint-plugin-react": "^7.37.2",
     "eslint-plugin-react-hooks": "^5.0.0",
-    "eslint-plugin-react-naming-convention": "^1.15.0",
+    "eslint-plugin-react-naming-convention": "^1.15.2",
     "globals": "^15.11.0",
     "postcss": "^8.4.47",
     "prettier": "^3.3.3",
     "prettier-plugin-tailwindcss": "^0.6.8",
     "tailwindcss": "^3.4.14",
     "typescript": "5.5.4",
-    "typescript-eslint": "^8.11.0"
+    "typescript-eslint": "^8.12.2"
   },
   "engines": {
     "node": "^18.20.2 || >=20.9.0"
