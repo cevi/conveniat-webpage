@@ -1,7 +1,12 @@
 {
   "name": "conveniat",
-  "version": "1.0.0",
-  "description": "A blank template to get started with Payload 3.0",
+  "version": "0.1.0",
+  "author": "Cyrill Püntener v/o JPG (cyrill.puentener@cevi.ch)",
+  "maintainers": [
+    "Cyrill Püntener v/o JPG (cyrill.puentener@cevi.ch)",
+    "Matthias Hüppi v/o Scirocco"
+  ],
+  "description": "The official website of the Conveniat 2027",
   "license": "MIT",
   "type": "module",
   "scripts": {
@@ -28,7 +33,7 @@
     "cross-env": "^7.0.3",
     "graphql": "^16.9.0",
     "lucide-react": "^0.447.0",
-    "next": "15.0.0",
+    "next": "^15",
     "next-auth": "beta",
     "payload": "beta",
     "qs-esm": "^7.0.2",

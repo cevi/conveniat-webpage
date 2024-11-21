@@ -127,7 +127,6 @@ export interface Blog {
   id: string;
   _localized_status: LocalizedPublishingStatus;
   blogH1: string;
-  aFieldInAllLocales: string;
   urlSlug: string;
   updatedAt: string;
   createdAt: string;
@@ -240,7 +239,6 @@ export interface BlogSelect<T extends boolean = true> {
   Autotranslate?: T;
   _localized_status?: T;
   blogH1?: T;
-  aFieldInAllLocales?: T;
   urlSlug?: T;
   updatedAt?: T;
   createdAt?: T;
