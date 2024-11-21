@@ -1,20 +1,20 @@
-import { mongooseAdapter } from '@payloadcms/db-mongodb'
-import { lexicalEditor } from '@payloadcms/richtext-lexical'
-import path from 'path'
-import { fileURLToPath } from 'url'
-import sharp from 'sharp'
+import { mongooseAdapter } from '@payloadcms/db-mongodb';
+import { lexicalEditor } from '@payloadcms/richtext-lexical';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import sharp from 'sharp';
 
-import { Users } from './collections/Users'
-import { Media } from './collections/Media'
-import { BlogArticle } from '@/collections/BlogArticle'
-import { en } from 'payload/i18n/en'
-import { de } from 'payload/i18n/de'
-import { fr } from 'payload/i18n/fr'
-import { locales } from '@/utils/globalDefinitions'
-import { buildSecureConfig } from '@/acces/secureConfig'
+import { Users } from './collections/Users';
+import { Media } from './collections/Media';
+import { BlogArticle } from '@/collections/BlogArticle';
+import { en } from 'payload/i18n/en';
+import { de } from 'payload/i18n/de';
+import { fr } from 'payload/i18n/fr';
+import { locales } from '@/utils/globalDefinitions';
+import { buildSecureConfig } from '@/acces/secureConfig';
 
-const filename = fileURLToPath(import.meta.url)
-const dirname = path.dirname(filename)
+const filename = fileURLToPath(import.meta.url);
+const dirname = path.dirname(filename);
 
 export default buildSecureConfig({
   admin: {
@@ -87,4 +87,4 @@ export default buildSecureConfig({
     fallbackLanguage: 'en',
     supportedLanguages: { en, de, fr },
   },
-})
+});

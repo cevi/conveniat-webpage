@@ -1,13 +1,13 @@
-import { getPayloadHMR } from '@payloadcms/next/utilities'
-import configPromise from '@payload-config'
-import { ErrorBoundary } from 'react-error-boundary'
+import { getPayloadHMR } from '@payloadcms/next/utilities';
+import configPromise from '@payload-config';
+import { ErrorBoundary } from 'react-error-boundary';
 
 interface BlogPostProps {
   slug?: string
 }
 
 async function BlogPost({ slug }: BlogPostProps) {
-  const payload = await getPayloadHMR({ config: configPromise })
+  const payload = await getPayloadHMR({ config: configPromise });
 
   const article_paged = await payload.find({
     collection: 'blog',
@@ -15,8 +15,8 @@ async function BlogPost({ slug }: BlogPostProps) {
     where: {
       and: [{ urlSlug: { equals: slug } }],
     },
-  })
-  const article = article_paged.docs[0]
+  });
+  const article = article_paged.docs[0];
 
   const blog_de_CH = await payload.findByID({
     id: article.id,
@@ -24,7 +24,7 @@ async function BlogPost({ slug }: BlogPostProps) {
     locale: 'de-CH',
     fallbackLocale: undefined,
     depth: 0,
-  })
+  });
 
   const blog_fr_CH = await payload.findByID({
     id: article.id,
@@ -32,7 +32,7 @@ async function BlogPost({ slug }: BlogPostProps) {
     locale: 'fr-CH',
     fallbackLocale: undefined,
     depth: 0,
-  })
+  });
 
   const blog_en_US = await payload.findByID({
     collection: 'blog',
@@ -40,7 +40,7 @@ async function BlogPost({ slug }: BlogPostProps) {
     locale: 'en-US',
     fallbackLocale: undefined,
     depth: 0,
-  })
+  });
 
   return (
     <article className="mx-auto max-w-6xl px-4 py-8">
@@ -62,17 +62,17 @@ async function BlogPost({ slug }: BlogPostProps) {
         </div>
       )}
     </article>
-  )
+  );
 }
 
 const Page = async ({ params }: { params: Promise<{ slug: string }> }) => {
-  const { slug } = await params
+  const { slug } = await params;
 
   return (
     <ErrorBoundary fallback={<div>Something went wrong</div>}>
       <BlogPost slug={slug} />
     </ErrorBoundary>
-  )
-}
+  );
+};
 
-export default Page
+export default Page;

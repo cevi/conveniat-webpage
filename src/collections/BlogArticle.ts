@@ -1,5 +1,5 @@
-import { CollectionConfig, Field } from 'payload'
-import { asLocalizedCollection } from '@/utils/localizedCollection'
+import { CollectionConfig, Field } from 'payload';
+import { asLocalizedCollection } from '@/utils/localizedCollection';
 
 const blogArticleTitleField: Field = {
   name: 'blogH1',
@@ -18,9 +18,9 @@ const blogArticleTitleField: Field = {
       fr: "C'est le titre qui sera affiché sur la page.",
     },
   },
-}
+};
 
-const blogArticleFields: Field[] = [blogArticleTitleField]
+const blogArticleFields: Field[] = [blogArticleTitleField];
 
 export const BlogArticle: CollectionConfig = asLocalizedCollection({
   // Unique, URL-friendly string that will act as an identifier for this Collection.
@@ -87,4 +87,4 @@ export const BlogArticle: CollectionConfig = asLocalizedCollection({
       },
     },
   ],
-})
+});

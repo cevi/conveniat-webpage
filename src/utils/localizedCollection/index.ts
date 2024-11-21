@@ -1,5 +1,5 @@
-import { CollectionConfig } from 'payload'
-import { JSONSchema4 } from '@typescript-eslint/utils/json-schema'
+import { CollectionConfig } from 'payload';
+import { JSONSchema4 } from '@typescript-eslint/utils/json-schema';
 
 /**
  * defines the type for the JSON schema of a field of type `json` in Payload
@@ -28,7 +28,7 @@ const localizedStatusSchema: PayloadJSONSchema = {
   // the following are random but unique identifiers for the schema
   uri: 'https://conveniat.ch/localized_status.schema.json',
   fileMatch: ['https://conveniat.ch/localized_status.schema.json'],
-}
+};
 
 /**
  * This is a utility function that adds the necessary fields to a collection to make it localized.
@@ -102,5 +102,5 @@ export const asLocalizedCollection = (config: CollectionConfig): CollectionConfi
       maxPerDoc: 100,
       drafts: true,
     },
-  }
-}
+  };
+};

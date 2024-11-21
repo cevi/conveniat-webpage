@@ -1,5 +1,5 @@
-import { buildConfig, Config } from 'payload'
-import { canAccessAPI } from '@/acces/canAccessAdminPanel'
+import { buildConfig, Config } from 'payload';
+import { canAccessAPI } from '@/acces/canAccessAdminPanel';
 
 /**
  * Builds a secure config by applying default access rules to all globals and collections.
@@ -22,8 +22,8 @@ export const buildSecureConfig = (config: Config) => {
       readVersions: canAccessAPI,
       readDrafts: canAccessAPI,
       ...global.access,
-    }
-  })
+    };
+  });
 
   // apply default rules to all collections
   config.collections?.forEach((collection) => {
@@ -35,8 +35,8 @@ export const buildSecureConfig = (config: Config) => {
       readVersions: canAccessAPI,
       unlock: canAccessAPI,
       ...collection.access,
-    }
-  })
+    };
+  });
 
-  return buildConfig(config)
-}
+  return buildConfig(config);
+};

@@ -1,5 +1,5 @@
-import { AuthStrategyFunction, BasePayload, CollectionConfig } from 'payload'
-import { canAccessAdminPanel } from '@/acces/canAccessAdminPanel'
+import { AuthStrategyFunction, BasePayload, CollectionConfig } from 'payload';
+import { canAccessAdminPanel } from '@/acces/canAccessAdminPanel';
 
 type HitobitoNextAuthUser = {
   cevi_db_uuid: number
@@ -14,7 +14,7 @@ async function saveUserToDB(payload: BasePayload, nextAuthUser: HitobitoNextAuth
       collection: 'users',
       where: { cevi_db_uuid: { equals: nextAuthUser.cevi_db_uuid } },
     })
-    .then((res) => res.totalDocs == 1)
+    .then((res) => res.totalDocs == 1);
 
   if (!userExists)
     // save the new user to the database
@@ -26,7 +26,7 @@ async function saveUserToDB(payload: BasePayload, nextAuthUser: HitobitoNextAuth
         email: nextAuthUser.email,
         fullName: nextAuthUser.name,
       },
-    })
+    });
 }
 
 /**
@@ -38,8 +38,8 @@ const fetchSessionFromCeviDB = async (cookie: string) => {
     headers: {
       cookie,
     },
-  }).then((res) => res.json())) as { user?: HitobitoNextAuthUser } | null
-}
+  }).then((res) => res.json())) as { user?: HitobitoNextAuthUser } | null;
+};
 
 /**
  * Fetches the Payload user from the database given a NextAuth user
@@ -55,7 +55,7 @@ async function getPayloadUserFromNextAuthUser(
       collection: 'users',
       where: { cevi_db_uuid: { equals: nextAuthUser.cevi_db_uuid } },
     })
-    .then((res) => res.docs[0])
+    .then((res) => res.docs[0]);
 }
 
 /**
@@ -63,30 +63,30 @@ async function getPayloadUserFromNextAuthUser(
  * @param user
  */
 const isValidNextAuthUser = (user: HitobitoNextAuthUser) => {
-  return user.name && user.email && user.cevi_db_uuid
-}
+  return user.name && user.email && user.cevi_db_uuid;
+};
 
 const getAuthenticateUsingCeviDB: AuthStrategyFunction = async ({ headers, payload }) => {
-  const cookie = headers.get('cookie')
-  if (!cookie) return { user: null }
+  const cookie = headers.get('cookie');
+  if (!cookie) return { user: null };
 
-  const session = await fetchSessionFromCeviDB(cookie)
-  if (!session || !session.user || !isValidNextAuthUser(session.user)) {
-    return { user: null }
+  const session = await fetchSessionFromCeviDB(cookie);
+  if (!session?.user || !isValidNextAuthUser(session.user)) {
+    return { user: null };
   }
 
-  const nextAuthUser = session.user
-  await saveUserToDB(payload, nextAuthUser)
+  const nextAuthUser = session.user;
+  await saveUserToDB(payload, nextAuthUser);
 
-  const user = await getPayloadUserFromNextAuthUser(payload, nextAuthUser)
+  const user = await getPayloadUserFromNextAuthUser(payload, nextAuthUser);
 
   return {
     user: {
       collection: 'users',
       ...user,
     },
-  }
-}
+  };
+};
 
 export const Users: CollectionConfig = {
   slug: 'users',
@@ -187,4 +187,4 @@ export const Users: CollectionConfig = {
       },
     },
   ],
-}
+};

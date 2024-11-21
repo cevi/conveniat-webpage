@@ -1,9 +1,9 @@
-import type { ReactNode } from 'react'
-import Link from 'next/link'
+import type { ReactNode } from 'react';
+import Link from 'next/link';
 
 // These styles apply to every route in the application
-import './globals.css'
-import { RadarIcon } from 'lucide-react'
+import './globals.css';
+import { RadarIcon } from 'lucide-react';
 
 type LayoutProps = {
   children: ReactNode
@@ -56,7 +56,7 @@ const Layout = ({ children }: LayoutProps) => {
         </footer>
       </body>
     </html>
-  )
-}
+  );
+};
 
-export default Layout
+export default Layout;

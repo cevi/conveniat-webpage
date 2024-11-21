@@ -1,5 +1,5 @@
-import { NextAuthConfig } from 'next-auth'
-import { JWT } from 'next-auth/jwt'
+import { NextAuthConfig } from 'next-auth';
+import { JWT } from 'next-auth/jwt';
 
 interface HitobitoProfile {
   id: string
@@ -13,7 +13,7 @@ interface HitobitoProfile {
   }[]
 }
 
-const HITOBITO_BASE_URL = process.env.HITOBITO_BASE_URL
+const HITOBITO_BASE_URL = process.env.HITOBITO_BASE_URL;
 
 export const authOptions: NextAuthConfig = {
   providers: [
@@ -42,14 +42,14 @@ export const authOptions: NextAuthConfig = {
       // As Hitobito uses the 'X-Scopes' header to pass the scopes, and not the 'scope' parameter,
       userinfo: {
         async request({ tokens }: { tokens: { access_token: string } }) {
-          const url = `${HITOBITO_BASE_URL}/oauth/profile`
+          const url = `${HITOBITO_BASE_URL}/oauth/profile`;
           const response = await fetch(url, {
             headers: {
               Authorization: `Bearer ${tokens.access_token}`,
               'X-Scope': 'with_roles',
             },
-          })
-          return (await response.json()) as HitobitoProfile
+          });
+          return (await response.json()) as HitobitoProfile;
         },
       },
 
@@ -59,7 +59,7 @@ export const authOptions: NextAuthConfig = {
           name: profile.first_name + ' ' + profile.last_name,
           email: profile.email,
           roles: profile.roles,
-        }
+        };
       },
       clientId: process.env.CEVI_DB_CLIENT_ID,
       clientSecret: process.env.CEVI_DB_CLIENT_SECRET,
@@ -79,25 +79,25 @@ export const authOptions: NextAuthConfig = {
         // @ts-ignore
         cevi_db_uuid: token.cevi_db_uuid,
         groups: token.groups,
-      }
-      return session
+      };
+      return session;
     },
 
     // we inject additional info about the user to the JWT token
     jwt({ token, profile: _profile }): JWT {
-      if (!_profile) return token
+      if (!_profile) return token;
 
-      const profile = _profile as unknown as HitobitoProfile
-      token.cevi_db_uuid = profile.id // the ide of the user in the CeviDB
+      const profile = _profile as unknown as HitobitoProfile;
+      token.cevi_db_uuid = profile.id; // the ide of the user in the CeviDB
 
       token.groups = profile.roles.map((role) => ({
         id: role.group_id,
         name: role.group_name,
-      }))
+      }));
 
-      token.email = profile.email
-      token.name = profile.first_name + ' ' + profile.last_name
-      return token
+      token.email = profile.email;
+      token.name = profile.first_name + ' ' + profile.last_name;
+      return token;
     },
   },
 
@@ -105,4 +105,4 @@ export const authOptions: NextAuthConfig = {
     signIn: '/admin/login',
     error: '/admin/login',
   },
-}
+};

@@ -1,33 +1,33 @@
-import path from 'node:path'
-import { fileURLToPath } from 'node:url'
-import js from '@eslint/js'
-import eslint from '@eslint/js'
-import { FlatCompat } from '@eslint/eslintrc'
-import { fixupPluginRules } from '@eslint/compat'
-import tsEslint from 'typescript-eslint'
-import reactNamingConvention from 'eslint-plugin-react-naming-convention'
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import js from '@eslint/js';
+import eslint from '@eslint/js';
+import { FlatCompat } from '@eslint/eslintrc';
+import { fixupPluginRules } from '@eslint/compat';
+import tsEslint from 'typescript-eslint';
+import reactNamingConvention from 'eslint-plugin-react-naming-convention';
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const compat = new FlatCompat({
   baseDirectory: __dirname,
   recommendedConfig: js.configs.recommended,
   allConfig: js.configs.all,
-})
+});
 
-const pluginsToPatch = ['@next/next', 'react-hooks', 'prettier/recommended']
+const pluginsToPatch = ['@next/next', 'react-hooks', 'prettier/recommended'];
 
-const compatConfig = [...compat.extends('next/core-web-vitals')]
+const compatConfig = [...compat.extends('next/core-web-vitals')];
 
 const patchedConfig = compatConfig.map((entry) => {
-  const plugins = entry.plugins
+  const plugins = entry.plugins;
   for (const key in plugins) {
     if (Object.prototype.hasOwnProperty.call(plugins, key) && pluginsToPatch.includes(key)) {
-      plugins[key] = fixupPluginRules(plugins[key])
+      plugins[key] = fixupPluginRules(plugins[key]);
     }
   }
-  return entry
-})
+  return entry;
+});
 
 const config = [
   eslint.configs.recommended,
@@ -61,11 +61,47 @@ const config = [
     rules: {
       'prefer-const': 'error',
       complexity: ['warn', { max: 5 }],
-      'no-shadow': 'warn',
-      'no-nested-ternary': 'warn',
-      '@typescript-eslint/ban-ts-comment': 'off',
-      '@typescript-eslint/no-unnecessary-condition': 'warn',
-      '@typescript-eslint/no-floating-promises': 'warn',
+      'no-shadow': 'error',
+      'no-nested-ternary': 'error',
+      '@typescript-eslint/ban-ts-comment': 'warn',
+      '@typescript-eslint/no-unnecessary-condition': 'error',
+      '@typescript-eslint/no-floating-promises': 'error',
+      '@typescript-eslint/require-array-sort-compare': 'error',
+      '@typescript-eslint/no-unused-vars': 'error',
+
+      '@typescript-eslint/no-unsafe-assignment': 'error',
+      '@typescript-eslint/no-misused-promises': 'error',
+      '@typescript-eslint/no-unsafe-argument': 'error',
+      '@typescript-eslint/no-unsafe-member-access': 'error',
+      '@typescript-eslint/no-unsafe-return': 'error',
+
+      '@typescript-eslint/no-unsafe-enum-comparison': 'error',
+      '@typescript-eslint/prefer-promise-reject-errors': 'error',
+      '@typescript-eslint/explicit-function-return-type': 'warn',
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-non-null-assertion': 'error',
+      '@typescript-eslint/no-unsafe-call': 'error',
+      '@typescript-eslint/prefer-for-of': 'error',
+      '@typescript-eslint/prefer-nullish-coalescing': 'warn',
+      '@typescript-eslint/prefer-optional-chain': 'error',
+      '@typescript-eslint/restrict-plus-operands': ['error', {
+        'allowAny': false,
+        'allowBoolean': false,
+        'allowNullish': false,
+        'allowNumberAndString': false,
+        'allowRegExp': false,
+      }],
+      '@typescript-eslint/restrict-template-expressions': 'error',
+      '@typescript-eslint/strict-boolean-expressions': ['warn', {
+        'allowNumber': false,
+        'allowString': false,
+      }],
+      '@typescript-eslint/use-unknown-in-catch-callback-variable': 'error',
+
+      semi: 'error',
+      'no-control-regex': 'warn',
+      'no-useless-escape': 'warn',
+      '@typescript-eslint/no-deprecated': 'warn',
     },
   },
   {
@@ -82,6 +118,6 @@ const config = [
     ],
   },
   ...patchedConfig,
-]
+];
 
-export default config
+export default config;

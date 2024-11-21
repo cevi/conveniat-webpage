@@ -1,8 +1,8 @@
-'use client'
-import { cva } from 'class-variance-authority'
-import { useHasPendingChanges, useIsPublished } from '@/utils/localizedCollection/hooks'
-import { Config } from '@/payload-types'
-import { NotYetSavedException } from '@/utils/localizedCollection/utils'
+'use client';
+import { cva } from 'class-variance-authority';
+import { useHasPendingChanges, useIsPublished } from '@/utils/localizedCollection/hooks';
+import { Config } from '@/payload-types';
+import { NotYetSavedException } from '@/utils/localizedCollection/utils';
 
 const languageStatusClasses = cva('text-sm font-medium me-2 px-2.5 py-0.5 rounded relative group', {
   variants: {
@@ -31,7 +31,7 @@ const languageStatusClasses = cva('text-sm font-medium me-2 px-2.5 py-0.5 rounde
     published: false,
     pendingChanges: false,
   },
-})
+});
 
 const LanguageStatus = ({
   published,
@@ -42,11 +42,11 @@ const LanguageStatus = ({
   pendingChanges: boolean
   label: string
 }) => {
-  let tooltip = 'Not published'
+  let tooltip = 'Not published';
   if (pendingChanges) {
-    tooltip = 'Published but has unpublished changes'
+    tooltip = 'Published but has unpublished changes';
   } else if (published) {
-    tooltip = 'Published and up to date'
+    tooltip = 'Published and up to date';
   }
   return (
     <span className={languageStatusClasses({ published, pendingChanges })}>
@@ -55,25 +55,25 @@ const LanguageStatus = ({
         {tooltip}
       </span>
     </span>
-  )
-}
+  );
+};
 
 const LanguageStatusPlaceholder = ({ label }: { label: string }) => (
   <span className="me-2 animate-pulse rounded bg-gray-200 px-2.5 py-0.5 text-sm font-medium text-gray-400">
     {label}
   </span>
-)
+);
 
 export const PublishingStatusBadges = () => {
-  const { isPublished, error: errIsPub } = useIsPublished()
-  const { hasUnpublishedChanges, error: errHasUnpub } = useHasPendingChanges()
+  const { isPublished, error: errIsPub } = useIsPublished();
+  const { hasUnpublishedChanges, error: errHasUnpub } = useHasPendingChanges();
 
   if (errIsPub || errHasUnpub) {
     if (typeof errIsPub === 'object' && errIsPub instanceof NotYetSavedException) {
-      return <span>🛈 Not yet saved. Please save the document first.</span>
+      return <span>🛈 Not yet saved. Please save the document first.</span>;
     }
 
-    return <span>⚠️ Something went wrong</span>
+    return <span>⚠️ Something went wrong</span>;
   }
 
   if (!isPublished || !hasUnpublishedChanges) {
@@ -83,7 +83,7 @@ export const PublishingStatusBadges = () => {
           <LanguageStatusPlaceholder key={locale} label={locale} />
         ))}
       </span>
-    )
+    );
   }
 
   return (
@@ -97,5 +97,5 @@ export const PublishingStatusBadges = () => {
         />
       ))}
     </span>
-  )
-}
+  );
+};

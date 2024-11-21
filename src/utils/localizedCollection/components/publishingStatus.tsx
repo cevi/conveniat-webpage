@@ -1,4 +1,4 @@
-import { PublishingStatusBadges } from '@/utils/localizedCollection/components/PublishingStatusBadges'
+import { PublishingStatusBadges } from '@/utils/localizedCollection/components/PublishingStatusBadges';
 
 const PublishingStatus = () => (
   <div className="mb-8 divide-slate-600">
@@ -12,6 +12,6 @@ const PublishingStatus = () => (
     </div>
     <hr className="my-8 h-px border-0 bg-gray-200 dark:bg-gray-700" />
   </div>
-)
+);
 
-export default PublishingStatus
+export default PublishingStatus;
