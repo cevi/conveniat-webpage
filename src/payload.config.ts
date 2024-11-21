@@ -16,6 +16,12 @@ import { buildSecureConfig } from '@/acces/secureConfig';
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
 
+const PAYLOAD_SECRET = process.env['PAYLOAD_SECRET'] ?? undefined;
+const DATABASE_URI = process.env['DATABASE_URI'] ?? undefined;
+
+if (PAYLOAD_SECRET === undefined) throw new Error('PAYLOAD_SECRET is not defined');
+if (DATABASE_URI === undefined) throw new Error('DATABASE_URI is not defined');
+
 export default buildSecureConfig({
   admin: {
     meta: {
@@ -72,13 +78,13 @@ export default buildSecureConfig({
     defaultLocale: 'de-CH',
     fallback: false,
   },
-  secret: process.env.PAYLOAD_SECRET || '',
+  secret: PAYLOAD_SECRET,
   typescript: {
     autoGenerate: true,
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },
   db: mongooseAdapter({
-    url: process.env.DATABASE_URI || '',
+    url: DATABASE_URI,
   }),
   sharp,
   telemetry: false,

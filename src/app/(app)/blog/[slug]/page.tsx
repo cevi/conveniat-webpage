@@ -3,7 +3,7 @@ import configPromise from '@payload-config';
 import { ErrorBoundary } from 'react-error-boundary';
 
 interface BlogPostProps {
-  slug?: string
+  slug?: string;
 }
 
 async function BlogPost({ slug }: BlogPostProps) {

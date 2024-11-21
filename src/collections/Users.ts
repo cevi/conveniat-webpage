@@ -2,11 +2,11 @@ import { AuthStrategyFunction, BasePayload, CollectionConfig } from 'payload';
 import { canAccessAdminPanel } from '@/acces/canAccessAdminPanel';
 
 type HitobitoNextAuthUser = {
-  cevi_db_uuid: number
-  groups: { id: number; name: string }[]
-  email: string
-  name: string
-}
+  cevi_db_uuid: number;
+  groups: { id: number; name: string }[];
+  email: string;
+  name: string;
+};
 
 async function saveUserToDB(payload: BasePayload, nextAuthUser: HitobitoNextAuthUser) {
   const userExists = await payload

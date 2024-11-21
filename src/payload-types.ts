@@ -39,7 +39,8 @@ export interface Config {
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
   };
-  collectionsSelect?: {
+  collectionsJoins: {};
+  collectionsSelect: {
     users: UsersSelect<false> | UsersSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     blog: BlogSelect<false> | BlogSelect<true>;
@@ -55,7 +56,7 @@ export interface Config {
     headerNav: HeaderNav;
     footerNav: FooterNav;
   };
-  globalsSelect?: {
+  globalsSelect: {
     seo: SeoSelect<false> | SeoSelect<true>;
     headerNav: HeaderNavSelect<false> | HeaderNavSelect<true>;
     footerNav: FooterNavSelect<false> | FooterNavSelect<true>;
@@ -64,9 +65,9 @@ export interface Config {
   user: User & {
     collection: 'users';
   };
-  jobs?: {
+  jobs: {
     tasks: unknown;
-    workflows?: unknown;
+    workflows: unknown;
   };
 }
 export interface UserAuthOperations {
