@@ -1,7 +1,7 @@
-'use client'
+'use client';
 
-import { FormSubmit } from '@payloadcms/ui'
-import { useState } from 'react'
+import { FormSubmit } from '@payloadcms/ui';
+import { useState } from 'react';
 
 const LanguageSelectionModal = ({
   onClose,
@@ -10,8 +10,8 @@ const LanguageSelectionModal = ({
   onClose: () => void
   onTranslate: (source: string, target: string) => void
 }) => {
-  const [sourceLanguage, setSourceLanguage] = useState('')
-  const [targetLanguage, setTargetLanguage] = useState('')
+  const [sourceLanguage, setSourceLanguage] = useState('');
+  const [targetLanguage, setTargetLanguage] = useState('');
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-600 bg-opacity-50">
@@ -59,23 +59,23 @@ const LanguageSelectionModal = ({
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
 const AutoTranslate = () => {
-  const [modalOpen, setModalOpen] = useState(false)
+  const [modalOpen, setModalOpen] = useState(false);
 
   const handleTranslate = (source: string, target: string) => {
     // Call your third-party translation service here
-    console.log('Translating from', source, 'to', target)
-    setModalOpen(false)
+    console.log('Translating from', source, 'to', target);
+    setModalOpen(false);
 
     // copy the entries to the target language and save the changes
     // TODO: Implement the translation logic
 
     // save the changes in the target language
     // TODO: Implement the save logic
-  }
+  };
 
   return (
     <div className="mb-8 divide-slate-600">
@@ -97,7 +97,7 @@ const AutoTranslate = () => {
         <LanguageSelectionModal onClose={() => setModalOpen(false)} onTranslate={handleTranslate} />
       )}
     </div>
-  )
-}
+  );
+};
 
-export default AutoTranslate
+export default AutoTranslate;

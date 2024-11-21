@@ -1,4 +1,4 @@
-import { Locale } from 'payload'
+import { Locale } from 'payload';
 
 export const locales: Locale[] = [
   {
@@ -25,4 +25,4 @@ export const locales: Locale[] = [
     },
     code: 'fr-CH',
   },
-]
+];

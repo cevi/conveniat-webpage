@@ -1,8 +1,8 @@
-import { getPayloadHMR } from '@payloadcms/next/utilities'
-import configPromise from '@payload-config'
+import config from '@payload-config';
+import { getPayload } from 'payload';
 
 const Page = async () => {
-  const payload = await getPayloadHMR({ config: configPromise })
+  const payload = await getPayload({ config });
 
   const blogs_paged = await payload.find({
     collection: 'blog',
@@ -14,9 +14,9 @@ const Page = async () => {
       },
     },
     limit: 5,
-  })
+  });
 
-  const blogs = blogs_paged.docs
+  const blogs = blogs_paged.docs;
 
   return (
     <article className="mx-auto max-w-6xl px-4 py-8">
@@ -33,7 +33,7 @@ const Page = async () => {
         ))}
       </div>
     </article>
-  )
-}
+  );
+};
 
-export default Page
+export default Page;

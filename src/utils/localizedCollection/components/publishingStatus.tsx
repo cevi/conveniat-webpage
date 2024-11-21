@@ -1,7 +1,7 @@
-'use client'
+'use client';
 
-import { cva } from 'class-variance-authority'
-import { useHasPendingChanges, useIsPublished } from '@/utils/localizedCollection/hooks'
+import { cva } from 'class-variance-authority';
+import { useHasPendingChanges, useIsPublished } from '@/utils/localizedCollection/hooks';
 
 const languageStatusClasses = cva('text-sm font-medium me-2 px-2.5 py-0.5 rounded relative group', {
   variants: {
@@ -30,7 +30,7 @@ const languageStatusClasses = cva('text-sm font-medium me-2 px-2.5 py-0.5 rounde
     published: false,
     pendingChanges: false,
   },
-})
+});
 
 const LanguageStatus = ({
   published,
@@ -41,11 +41,11 @@ const LanguageStatus = ({
   pendingChanges: boolean
   label: string
 }) => {
-  let tooltip = 'Not published'
+  let tooltip = 'Not published';
   if (pendingChanges) {
-    tooltip = 'Published but has unpublished changes'
+    tooltip = 'Published but has unpublished changes';
   } else if (published) {
-    tooltip = 'Published and up to date'
+    tooltip = 'Published and up to date';
   }
   return (
     <span className={languageStatusClasses({ published, pendingChanges })}>
@@ -54,18 +54,18 @@ const LanguageStatus = ({
         {tooltip}
       </span>
     </span>
-  )
-}
+  );
+};
 
 const LanguageStatusPlaceholder = ({ label }: { label: string }) => (
   <span className="me-2 animate-pulse rounded bg-gray-200 px-2.5 py-0.5 text-sm font-medium text-gray-400">
     {label}
   </span>
-)
+);
 
 const PublishingStatus = () => {
-  const hasPendingChanges = useHasPendingChanges(1000)
-  const isPublished = useIsPublished(1000)
+  const hasPendingChanges = useHasPendingChanges(1000);
+  const isPublished = useIsPublished(1000);
 
   return (
     <div className="mb-8 divide-slate-600">
@@ -91,7 +91,7 @@ const PublishingStatus = () => {
       </div>
       <hr className="my-8 h-px border-0 bg-gray-200 dark:bg-gray-700" />
     </div>
-  )
-}
+  );
+};
 
-export default PublishingStatus
+export default PublishingStatus;

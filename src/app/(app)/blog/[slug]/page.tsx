@@ -1,13 +1,15 @@
-import { getPayloadHMR } from '@payloadcms/next/utilities'
-import configPromise from '@payload-config'
-import { ErrorBoundary } from 'react-error-boundary'
+import { getPayload } from 'payload';
+import { ErrorBoundary } from 'react-error-boundary';
+import config from '@payload-config';
+
+import { JSX } from 'react';
 
 interface BlogPostProps {
-  slug?: Promise<string>
+  slug?: string;
 }
 
-async function BlogPost({ slug }: BlogPostProps) {
-  const payload = await getPayloadHMR({ config: configPromise })
+async function BlogPost({ slug }: BlogPostProps): Promise<JSX.Element> {
+  const payload = await getPayload({ config });
 
   const article_paged = await payload.find({
     collection: 'blog',
@@ -15,32 +17,36 @@ async function BlogPost({ slug }: BlogPostProps) {
     where: {
       and: [{ urlSlug: { equals: slug } }],
     },
-  })
-  const article = article_paged.docs[0]
+  });
+  const article = article_paged.docs[0];
+
+  if (!article) {
+    throw new Error('Article not found');
+  }
 
   const blog_de_CH = await payload.findByID({
     id: article.id,
     collection: 'blog',
     locale: 'de-CH',
-    fallbackLocale: undefined,
+    fallbackLocale: false,
     depth: 0,
-  })
+  });
 
   const blog_fr_CH = await payload.findByID({
     id: article.id,
     collection: 'blog',
     locale: 'fr-CH',
-    fallbackLocale: undefined,
+    fallbackLocale: false,
     depth: 0,
-  })
+  });
 
   const blog_en_US = await payload.findByID({
     collection: 'blog',
     id: article.id,
     locale: 'en-US',
-    fallbackLocale: undefined,
+    fallbackLocale: false,
     depth: 0,
-  })
+  });
 
   return (
     <article className="mx-auto max-w-6xl px-4 py-8">
@@ -62,17 +68,17 @@ async function BlogPost({ slug }: BlogPostProps) {
         </div>
       )}
     </article>
-  )
+  );
 }
 
-const Page = ({ params }: { params: { slug: string } }) => {
-  const { slug } = params
+const Page = ({ params }: { params: { slug: string } }): JSX.Element => {
+  const { slug } = params;
 
   return (
     <ErrorBoundary fallback={<div>Something went wrong</div>}>
       <BlogPost slug={slug} />
     </ErrorBoundary>
-  )
-}
+  );
+};
 
-export default Page
+export default Page;
