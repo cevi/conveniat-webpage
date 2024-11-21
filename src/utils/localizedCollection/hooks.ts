@@ -5,8 +5,8 @@ import { Blog, Config } from '@/payload-types';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocalizedDoc } from '@/utils/localizedCollection/utils';
 
-type LocalizedStatus = Record<Config['locale'], boolean> | undefined
-type LocalizedPublishingStatus = Record<Config['locale'], { published: boolean }>
+type LocalizedStatus = Record<Config['locale'], boolean> | undefined;
+type LocalizedPublishingStatus = Record<Config['locale'], { published: boolean }>;
 
 /**
  * Hook to check if a document is published in all locales
@@ -47,14 +47,14 @@ export const useIsPublished = () => {
 };
 
 type FieldDef = {
-  name: string
-  type: string
-  localized: boolean
-  presentational: boolean
-  fields: FieldDef[]
-}
+  name: string;
+  type: string;
+  localized: boolean;
+  presentational: boolean;
+  fields: FieldDef[];
+};
 
-type PayloadDoc = Record<string, Record<Config['locale'], string>>
+type PayloadDoc = Record<string, Record<Config['locale'], string>>;
 
 /**
  * Checks if two values are different
@@ -97,8 +97,8 @@ const hasDiffs = (
     if (ignoredFields.has(fieldDef.name)) continue;
 
     const { name, type, fields } = fieldDef;
-    const value1 = doc1[name];
-    const value2 = doc2[name];
+    const value1 = doc1[name] as Record<'en-US' | 'de-CH' | 'fr-CH', string>;
+    const value2 = doc2[name] as Record<'en-US' | 'de-CH' | 'fr-CH', string>;
 
     if (type === 'collapsible' && hasDiffs(locale, fields, doc1, doc2)) return true;
     if (isDiff(locale, fieldDef, value1, value2)) return true;

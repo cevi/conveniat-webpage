@@ -85,6 +85,7 @@ export const authOptions: NextAuthConfig = {
         ...session.user,
         // @ts-ignore
         cevi_db_uuid: token.cevi_db_uuid,
+        // @ts-ignore
         groups: token.groups,
       };
       return session;
@@ -95,8 +96,10 @@ export const authOptions: NextAuthConfig = {
       if (!_profile) return token;
 
       const profile = _profile as unknown as HitobitoProfile;
+      // @ts-ignore
       token.cevi_db_uuid = profile.id; // the ide of the user in the CeviDB
 
+      // @ts-ignore
       token.groups = profile.roles.map((role) => ({
         id: role.group_id,
         name: role.group_name,

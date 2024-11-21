@@ -81,6 +81,8 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = () => {
       action = `${serverURL}${api}/globals/${globalSlug}${search}`;
     }
 
+    if (action === undefined) throw new Error('Action is not defined');
+
     await submit({
       action,
       method,
@@ -197,8 +199,8 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = () => {
 };
 
 type Props = {
-  CustomComponent?: MappedComponent
-}
+  CustomComponent?: MappedComponent;
+};
 
 const PublishButton: React.FC<Props> = ({ CustomComponent }) => {
   if (CustomComponent) {

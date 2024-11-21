@@ -17,12 +17,13 @@ async function BlogPost({ slug }: BlogPostProps) {
     },
   });
   const article = article_paged.docs[0];
+  if (article === undefined) throw new Error('Article not found');
 
   const blog_de_CH = await payload.findByID({
     id: article.id,
     collection: 'blog',
     locale: 'de-CH',
-    fallbackLocale: undefined,
+    fallbackLocale: false,
     depth: 0,
   });
 
@@ -30,7 +31,7 @@ async function BlogPost({ slug }: BlogPostProps) {
     id: article.id,
     collection: 'blog',
     locale: 'fr-CH',
-    fallbackLocale: undefined,
+    fallbackLocale: false,
     depth: 0,
   });
 
@@ -38,7 +39,7 @@ async function BlogPost({ slug }: BlogPostProps) {
     collection: 'blog',
     id: article.id,
     locale: 'en-US',
-    fallbackLocale: undefined,
+    fallbackLocale: false,
     depth: 0,
   });
 

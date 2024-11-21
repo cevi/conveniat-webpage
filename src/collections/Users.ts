@@ -66,6 +66,7 @@ const isValidNextAuthUser = (user: HitobitoNextAuthUser) => {
   return user.name && user.email && user.cevi_db_uuid;
 };
 
+// @ts-ignore
 const getAuthenticateUsingCeviDB: AuthStrategyFunction = async ({ headers, payload }) => {
   const cookie = headers.get('cookie');
   if (!cookie) return { user: null };
