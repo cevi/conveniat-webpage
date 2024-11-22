@@ -17,6 +17,7 @@
     "generate:types": "cross-env NODE_OPTIONS=--no-deprecation payload generate:types",
     "lint": "(tsc --noemit --project ./tsconfig.json); eslint --fix --quiet .",
     "lint:warnings": "(tsc --noemit --project ./tsconfig.json); eslint --fix .",
+    "lint:check": "(tsc --noemit --project ./tsconfig.json); eslint .",
     "prettier": "prettier --write .",
     "prettier:check": "prettier --check .",
     "payload": "cross-env NODE_OPTIONS=--no-deprecation payload",

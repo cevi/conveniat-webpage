@@ -1,12 +1,10 @@
 'use client';
 
-import type { MappedComponent } from 'payload';
 import * as qs from 'qs-esm';
 
 import React, { useCallback } from 'react';
 import {
   FormSubmit,
-  RenderComponent,
   useConfig,
   useDocumentInfo,
   useEditDepth,
@@ -36,7 +34,9 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = () => {
     docConfig,
     globalSlug,
     hasPublishPermission,
+    // @ts-expect-error
     publishedDoc,
+    // @ts-expect-error
     unpublishedVersions,
   } = useDocumentInfo();
 
@@ -54,6 +54,7 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = () => {
   const { t } = useTranslation();
   const { code } = useLocale() as { code: Config['locale'] };
 
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const hasNewerVersions = (unpublishedVersions?.totalDocs || 0) > 0;
   const canPublish = hasPublishPermission && (modified || hasNewerVersions || !publishedDoc);
   const operation = useOperation();
@@ -198,14 +199,7 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = () => {
   );
 };
 
-type Props = {
-  CustomComponent?: MappedComponent;
-};
-
-const PublishButton: React.FC<Props> = ({ CustomComponent }) => {
-  if (CustomComponent) {
-    return <RenderComponent mappedComponent={CustomComponent} />;
-  }
+const PublishButton: React.FC = () => {
   return <DefaultPublishButton />;
 };
 

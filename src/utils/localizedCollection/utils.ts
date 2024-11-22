@@ -49,7 +49,7 @@ export const useLocalizedDoc = <T>({ draft }: { draft: boolean }) => {
     }
 
     fetchDoc<T>({
-      slug: debouncedParams.collectionSlug as CollectionSlug,
+      slug: debouncedParams.collectionSlug,
       id: debouncedParams.id as string,
       draft,
     })
