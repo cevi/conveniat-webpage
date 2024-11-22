@@ -6,8 +6,8 @@ import './globals.css';
 import { RadarIcon } from 'lucide-react';
 
 type LayoutProps = {
-  children: ReactNode
-}
+  children: ReactNode;
+};
 
 const Layout = ({ children }: LayoutProps) => {
   return (

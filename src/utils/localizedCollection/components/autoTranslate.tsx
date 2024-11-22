@@ -7,8 +7,8 @@ const LanguageSelectionModal = ({
   onClose,
   onTranslate,
 }: {
-  onClose: () => void
-  onTranslate: (source: string, target: string) => void
+  onClose: () => void;
+  onTranslate: (source: string, target: string) => void;
 }) => {
   const [sourceLanguage, setSourceLanguage] = useState('');
   const [targetLanguage, setTargetLanguage] = useState('');

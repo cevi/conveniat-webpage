@@ -5,10 +5,10 @@ import { JSONSchema4 } from '@typescript-eslint/utils/json-schema';
  * defines the type for the JSON schema of a field of type `json` in Payload
  */
 type PayloadJSONSchema = {
-  fileMatch: string[]
-  schema: JSONSchema4
-  uri: string
-}
+  fileMatch: string[];
+  schema: JSONSchema4;
+  uri: string;
+};
 
 const localizedStatusSchema: PayloadJSONSchema = {
   schema: {

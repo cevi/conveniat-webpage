@@ -84,18 +84,24 @@ const config = [
       '@typescript-eslint/prefer-for-of': 'error',
       '@typescript-eslint/prefer-nullish-coalescing': 'warn',
       '@typescript-eslint/prefer-optional-chain': 'error',
-      '@typescript-eslint/restrict-plus-operands': ['error', {
-        'allowAny': false,
-        'allowBoolean': false,
-        'allowNullish': false,
-        'allowNumberAndString': false,
-        'allowRegExp': false,
-      }],
+      '@typescript-eslint/restrict-plus-operands': [
+        'error',
+        {
+          allowAny: false,
+          allowBoolean: false,
+          allowNullish: false,
+          allowNumberAndString: false,
+          allowRegExp: false,
+        },
+      ],
       '@typescript-eslint/restrict-template-expressions': 'error',
-      '@typescript-eslint/strict-boolean-expressions': ['warn', {
-        'allowNumber': false,
-        'allowString': false,
-      }],
+      '@typescript-eslint/strict-boolean-expressions': [
+        'warn',
+        {
+          allowNumber: false,
+          allowString: false,
+        },
+      ],
       '@typescript-eslint/use-unknown-in-catch-callback-variable': 'error',
 
       semi: 'error',

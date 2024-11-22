@@ -38,9 +38,9 @@ const LanguageStatus = ({
   pendingChanges,
   label,
 }: {
-  published: boolean
-  pendingChanges: boolean
-  label: string
+  published: boolean;
+  pendingChanges: boolean;
+  label: string;
 }) => {
   let tooltip = 'Not published';
   if (pendingChanges) {

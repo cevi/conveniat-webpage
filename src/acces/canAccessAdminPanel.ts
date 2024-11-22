@@ -13,7 +13,7 @@ const GROUPS_WITH_API_ACCESS = [1];
 export const canAccessAdminPanel: ({
   req,
 }: {
-  req: PayloadRequest
+  req: PayloadRequest;
 }) => boolean | Promise<boolean> = ({ req: { user } }) => {
   if (!user) return false;
   return user.groups.some((group) => GROUPS_WITH_API_ACCESS.includes(group.id));
