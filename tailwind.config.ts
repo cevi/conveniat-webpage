@@ -2,7 +2,12 @@
 module.exports = {
   content: ['./src/**/*.{js,ts,jsx,tsx,mdx}'],
   prefix: '',
-  theme: {},
+  theme: {
+    colors: {
+      // TODO: define colors according to figma design
+      background: '#F3F3F3',
+    },
+  },
   plugins: [],
 
   // adjust the dark mode selector to include data-theme which is what Payload

@@ -26,7 +26,7 @@ const Page = async () => {
 
       <div className="max-w-8xl mx-auto mt-12 grid grid-cols-2 gap-8">
         {blogs.map((blog) => (
-          <a key={blog.id} className="blog bg-amber-200 p-12" href={`/blog/${blog.urlSlug}`}>
+          <a key={blog.id} className="blog p-12" href={`/blog/${blog.urlSlug}`}>
             <h3 className="max-w-lg font-serif text-2xl font-bold leading-tight">{blog.blogH1}</h3>
             <p>{blog.blogH1}</p>
           </a>
