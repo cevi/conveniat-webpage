@@ -16,17 +16,19 @@ async function saveUserToDB(payload: BasePayload, nextAuthUser: HitobitoNextAuth
     })
     .then((res) => res.totalDocs == 1);
 
-  if (!userExists)
-    // save the new user to the database
-    await payload.create({
-      collection: 'users',
-      data: {
-        cevi_db_uuid: nextAuthUser.cevi_db_uuid,
-        groups: nextAuthUser.groups,
-        email: nextAuthUser.email,
-        fullName: nextAuthUser.name,
-      },
-    });
+  // abort if the user already exists
+  if (userExists) return;
+
+  // save the new user to the database
+  await payload.create({
+    collection: 'users',
+    data: {
+      cevi_db_uuid: nextAuthUser.cevi_db_uuid,
+      groups: nextAuthUser.groups,
+      email: nextAuthUser.email,
+      fullName: nextAuthUser.name,
+    },
+  });
 }
 
 /**
