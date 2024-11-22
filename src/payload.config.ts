@@ -1,23 +1,28 @@
-import { mongooseAdapter } from '@payloadcms/db-mongodb'
-import { lexicalEditor } from '@payloadcms/richtext-lexical'
-import path from 'path'
-import { buildConfig } from 'payload'
-import { fileURLToPath } from 'url'
-import sharp from 'sharp'
+import { mongooseAdapter } from '@payloadcms/db-mongodb';
+import { lexicalEditor } from '@payloadcms/richtext-lexical';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import sharp from 'sharp';
 
-import { EditorUsers } from './collections/EditorUsers'
-import { Media } from './collections/Media'
-import { BlogArticle } from '@/collections/BlogArticle'
-import { en } from 'payload/i18n/en'
-import { de } from 'payload/i18n/de'
-import { fr } from 'payload/i18n/fr'
-import { locales } from '@/utils/globalDefinitions'
-import { Users } from '@/collections/Users'
+import { Users } from './collections/Users';
+import { Media } from './collections/Media';
+import { BlogArticle } from '@/collections/BlogArticle';
+import { en } from 'payload/i18n/en';
+import { de } from 'payload/i18n/de';
+import { fr } from 'payload/i18n/fr';
+import { locales } from '@/utils/globalDefinitions';
+import { buildSecureConfig } from '@/acces/secureConfig';
 
-const filename = fileURLToPath(import.meta.url)
-const dirname = path.dirname(filename)
+const filename = fileURLToPath(import.meta.url);
+const dirname = path.dirname(filename);
 
-export default buildConfig({
+const PAYLOAD_SECRET = process.env['PAYLOAD_SECRET'] ?? undefined;
+const DATABASE_URI = process.env['DATABASE_URI'] ?? undefined;
+
+if (PAYLOAD_SECRET === undefined) throw new Error('PAYLOAD_SECRET is not defined');
+if (DATABASE_URI === undefined) throw new Error('DATABASE_URI is not defined');
+
+export default buildSecureConfig({
   admin: {
     meta: {
       title: 'Conveniat 2027 - Admin Panel',
@@ -41,7 +46,7 @@ export default buildConfig({
         },
       ],
     },
-    user: EditorUsers.slug,
+    user: Users.slug,
     importMap: {
       baseDir: path.resolve(dirname),
     },
@@ -51,8 +56,7 @@ export default buildConfig({
       collections: ['blog'],
     },
   },
-
-  collections: [EditorUsers, Media, BlogArticle, Users],
+  collections: [Users, Media, BlogArticle],
   editor: lexicalEditor(),
   globals: [
     {
@@ -74,13 +78,13 @@ export default buildConfig({
     defaultLocale: 'de-CH',
     fallback: false,
   },
-  secret: process.env.PAYLOAD_SECRET || '',
+  secret: PAYLOAD_SECRET,
   typescript: {
     autoGenerate: true,
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },
   db: mongooseAdapter({
-    url: process.env.DATABASE_URI || '',
+    url: DATABASE_URI,
   }),
   sharp,
   telemetry: false,
@@ -89,4 +93,4 @@ export default buildConfig({
     fallbackLanguage: 'en',
     supportedLanguages: { en, de, fr },
   },
-})
+});

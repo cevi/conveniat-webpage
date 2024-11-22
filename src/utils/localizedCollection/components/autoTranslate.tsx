@@ -1,27 +1,27 @@
-'use client'
+'use client';
 
-import { FormSubmit } from '@payloadcms/ui'
-import { useState } from 'react'
+import { FormSubmit } from '@payloadcms/ui';
+import { useState } from 'react';
 
 const LanguageSelectionModal = ({
   onClose,
   onTranslate,
 }: {
-  onClose: () => void
-  onTranslate: (source: string, target: string) => void
+  onClose: () => void;
+  onTranslate: (source: string, target: string) => void;
 }) => {
-  const [sourceLanguage, setSourceLanguage] = useState('')
-  const [targetLanguage, setTargetLanguage] = useState('')
+  const [sourceLanguage, setSourceLanguage] = useState('');
+  const [targetLanguage, setTargetLanguage] = useState('');
 
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50">
-      <div className="bg-white p-6 rounded shadow-lg text-black">
-        <h2 className="text-lg font-medium mb-4">Select Source and Target Languages</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-600 bg-opacity-50">
+      <div className="rounded bg-white p-6 text-black shadow-lg">
+        <h2 className="mb-4 text-lg font-medium">Select Source and Target Languages</h2>
 
-        <label className="block mb-2">
+        <label className="mb-2 block">
           Source Language:
           <select
-            className="block w-full mt-1 p-2 border"
+            className="mt-1 block w-full border p-2"
             value={sourceLanguage}
             onChange={(e) => setSourceLanguage(e.target.value)}
           >
@@ -32,10 +32,10 @@ const LanguageSelectionModal = ({
           </select>
         </label>
 
-        <label className="block mb-2">
+        <label className="mb-2 block">
           Source Language:
           <select
-            className="block w-full mt-1 p-2 border"
+            className="mt-1 block w-full border p-2"
             value={targetLanguage}
             onChange={(e) => setTargetLanguage(e.target.value)}
           >
@@ -47,11 +47,11 @@ const LanguageSelectionModal = ({
         </label>
 
         <div className="flex justify-end">
-          <button className="bg-gray-500 text-white px-4 py-2 mr-2 rounded" onClick={onClose}>
+          <button className="mr-2 rounded bg-gray-500 px-4 py-2 text-white" onClick={onClose}>
             Cancel
           </button>
           <button
-            className="bg-blue-500 text-white px-4 py-2 rounded"
+            className="rounded bg-blue-500 px-4 py-2 text-white"
             onClick={() => onTranslate(sourceLanguage, targetLanguage)}
           >
             Translate
@@ -59,28 +59,28 @@ const LanguageSelectionModal = ({
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
 const AutoTranslate = () => {
-  const [isModalOpen, setModalOpen] = useState(false)
+  const [modalOpen, setModalOpen] = useState(false);
 
   const handleTranslate = (source: string, target: string) => {
     // Call your third-party translation service here
-    console.log('Translating from', source, 'to', target)
-    setModalOpen(false)
+    console.log('Translating from', source, 'to', target);
+    setModalOpen(false);
 
     // copy the entries to the target language and save the changes
     // TODO: Implement the translation logic
 
     // save the changes in the target language
     // TODO: Implement the save logic
-  }
+  };
 
   return (
     <div className="mb-8 divide-slate-600">
       <div className="my-3">
-        <p className="text-sm font-medium text-gray-600 max-w-prose">
+        <p className="max-w-prose text-sm font-medium text-gray-600">
           We allow for automatic translation of content. Click on auto-translate to translate your
           content into multiple languages. You are asked to specify the source language and the
           target languages. The translation will be done by a third-party service.
@@ -90,14 +90,14 @@ const AutoTranslate = () => {
           Auto-translate
         </FormSubmit>
 
-        <hr className="h-px my-8 bg-gray-200 border-0 dark:bg-gray-700" />
+        <hr className="my-8 h-px border-0 bg-gray-200 dark:bg-gray-700" />
       </div>
 
-      {isModalOpen && (
+      {modalOpen && (
         <LanguageSelectionModal onClose={() => setModalOpen(false)} onTranslate={handleTranslate} />
       )}
     </div>
-  )
-}
+  );
+};
 
-export default AutoTranslate
+export default AutoTranslate;

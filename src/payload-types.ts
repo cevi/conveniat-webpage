@@ -6,18 +6,47 @@
  * and re-run `payload generate:types` to regenerate this file.
  */
 
+/**
+ * The ID of the group as used in the CeviDB.
+ */
+export type TheIDOfTheGroup = number;
+/**
+ * The name of the group as used in the CeviDB.
+ */
+export type TheNameOfTheGroup = string;
+/**
+ * The groups the user is in as extracted from the CeviDB profile.
+ */
+export type GroupsOfTheUser = {
+  id: TheIDOfTheGroup;
+  name: TheNameOfTheGroup;
+  [k: string]: unknown;
+}[];
+/**
+ * This field indicates whether the document is published in the corresponding locale
+ */
+export type IsPublishedInCorrespondingLocale = boolean;
+
 export interface Config {
   auth: {
-    editor_users: EditorUserAuthOperations;
+    users: UserAuthOperations;
   };
   collections: {
-    editor_users: EditorUser;
+    users: User;
     media: Media;
     blog: Blog;
-    users: User;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
+  };
+  collectionsJoins: {};
+  collectionsSelect: {
+    users: UsersSelect<false> | UsersSelect<true>;
+    media: MediaSelect<false> | MediaSelect<true>;
+    blog: BlogSelect<false> | BlogSelect<true>;
+    'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
+    'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
+    'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
   };
   db: {
     defaultIDType: string;
@@ -27,12 +56,21 @@ export interface Config {
     headerNav: HeaderNav;
     footerNav: FooterNav;
   };
+  globalsSelect: {
+    seo: SeoSelect<false> | SeoSelect<true>;
+    headerNav: HeaderNavSelect<false> | HeaderNavSelect<true>;
+    footerNav: FooterNavSelect<false> | FooterNavSelect<true>;
+  };
   locale: 'en-US' | 'de-CH' | 'fr-CH';
-  user: EditorUser & {
-    collection: 'editor_users';
+  user: User & {
+    collection: 'users';
+  };
+  jobs: {
+    tasks: unknown;
+    workflows: unknown;
   };
 }
-export interface EditorUserAuthOperations {
+export interface UserAuthOperations {
   forgotPassword: {
     email: string;
     password: string;
@@ -52,20 +90,14 @@ export interface EditorUserAuthOperations {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "editor_users".
+ * via the `definition` "users".
  */
-export interface EditorUser {
+export interface User {
   id: string;
-  groups?:
-    | {
-        id?: string | null;
-        name?: string | null;
-      }[]
-    | null;
+  groups: GroupsOfTheUser;
   cevi_db_uuid: number;
   email: string;
   fullName: string;
-  function: string;
   updatedAt: string;
   createdAt: string;
 }
@@ -94,15 +126,7 @@ export interface Media {
  */
 export interface Blog {
   id: string;
-  _localized_status:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
+  _localized_status: LocalizedPublishingStatus;
   blogH1: string;
   urlSlug: string;
   updatedAt: string;
@@ -110,22 +134,11 @@ export interface Blog {
   _status?: ('draft' | 'published') | null;
 }
 /**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users".
+ * Holds the publishing status of the document in each locale
  */
-export interface User {
-  id: string;
-  groups?:
-    | {
-        id?: string | null;
-        name?: string | null;
-      }[]
-    | null;
-  cevi_db_uuid: number;
-  email: string;
-  fullName: string;
-  updatedAt: string;
-  createdAt: string;
+export interface LocalizedPublishingStatus {
+  published: IsPublishedInCorrespondingLocale;
+  [k: string]: unknown;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -135,8 +148,8 @@ export interface PayloadLockedDocument {
   id: string;
   document?:
     | ({
-        relationTo: 'editor_users';
-        value: string | EditorUser;
+        relationTo: 'users';
+        value: string | User;
       } | null)
     | ({
         relationTo: 'media';
@@ -145,15 +158,11 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'blog';
         value: string | Blog;
-      } | null)
-    | ({
-        relationTo: 'users';
-        value: string | User;
       } | null);
   globalSlug?: string | null;
   user: {
-    relationTo: 'editor_users';
-    value: string | EditorUser;
+    relationTo: 'users';
+    value: string | User;
   };
   updatedAt: string;
   createdAt: string;
@@ -165,8 +174,8 @@ export interface PayloadLockedDocument {
 export interface PayloadPreference {
   id: string;
   user: {
-    relationTo: 'editor_users';
-    value: string | EditorUser;
+    relationTo: 'users';
+    value: string | User;
   };
   key?: string | null;
   value?:
@@ -194,6 +203,82 @@ export interface PayloadMigration {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "users_select".
+ */
+export interface UsersSelect<T extends boolean = true> {
+  groups?: T;
+  cevi_db_uuid?: T;
+  email?: T;
+  fullName?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media_select".
+ */
+export interface MediaSelect<T extends boolean = true> {
+  alt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "blog_select".
+ */
+export interface BlogSelect<T extends boolean = true> {
+  Versions?: T;
+  Autotranslate?: T;
+  _localized_status?: T;
+  blogH1?: T;
+  urlSlug?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-locked-documents_select".
+ */
+export interface PayloadLockedDocumentsSelect<T extends boolean = true> {
+  document?: T;
+  globalSlug?: T;
+  user?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-preferences_select".
+ */
+export interface PayloadPreferencesSelect<T extends boolean = true> {
+  user?: T;
+  key?: T;
+  value?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-migrations_select".
+ */
+export interface PayloadMigrationsSelect<T extends boolean = true> {
+  name?: T;
+  batch?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "seo".
  */
 export interface Seo {
@@ -218,6 +303,33 @@ export interface FooterNav {
   id: string;
   updatedAt?: string | null;
   createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "seo_select".
+ */
+export interface SeoSelect<T extends boolean = true> {
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "headerNav_select".
+ */
+export interface HeaderNavSelect<T extends boolean = true> {
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "footerNav_select".
+ */
+export interface FooterNavSelect<T extends boolean = true> {
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

@@ -1,9 +1,15 @@
-'use client'
-import React from 'react'
-import { signIn } from 'next-auth/react'
+'use client';
+import React from 'react';
+import { signIn } from 'next-auth/react';
 
 const LoginButton = () => {
-  return <button onClick={() => signIn('cevi-db')}>Login with CeviDB</button>
-}
+  const handleLoginClick = () => {
+    signIn('cevi-db').catch((error: unknown) => {
+      console.error('Login error', error);
+    });
+  };
 
-export default LoginButton
+  return <button onClick={handleLoginClick}>Login with CeviDB</button>;
+};
+
+export default LoginButton;

@@ -1,13 +1,13 @@
-import type { ReactNode } from 'react'
-import Link from 'next/link'
+import type { ReactNode } from 'react';
+import Link from 'next/link';
 
 // These styles apply to every route in the application
-import './globals.css'
-import { RadarIcon } from 'lucide-react'
+import './globals.css';
+import { RadarIcon } from 'lucide-react';
 
 type LayoutProps = {
-  children: ReactNode
-}
+  children: ReactNode;
+};
 
 const Layout = ({ children }: LayoutProps) => {
   return (
@@ -18,10 +18,10 @@ const Layout = ({ children }: LayoutProps) => {
         <title>My App</title>
       </head>
       <body style={{ backgroundColor: '#faf5e8' }}>
-        <header className="mb-6 top-0 left-0 absolute w-full">
+        <header className="absolute left-0 top-0 mb-6 w-full">
           <div className="flex items-center justify-between px-6 py-4">
-            <Link href="/" className="flex items-center space-x-2 text-amber-600 font-semibold">
-              <RadarIcon className="w-8 h-8 mr-2" />
+            <Link href="/" className="flex items-center space-x-2 font-semibold text-amber-600">
+              <RadarIcon className="mr-2 h-8 w-8" />
               Conveniat 2027
             </Link>
 
@@ -51,12 +51,12 @@ const Layout = ({ children }: LayoutProps) => {
 
         <main className="mt-40">{children}</main>
 
-        <footer className={`flex items-center justify-center w-full h-24`}>
+        <footer className={`flex h-24 w-full items-center justify-center`}>
           <div>Some Footer</div>
         </footer>
       </body>
     </html>
-  )
-}
+  );
+};
 
-export default Layout
+export default Layout;

@@ -1,98 +1,113 @@
-import { NextAuthOptions } from 'next-auth'
-import { OAuthConfig } from 'next-auth/providers/oauth'
-import { JWT } from 'next-auth/jwt'
+import { NextAuthConfig } from 'next-auth';
+import { JWT } from 'next-auth/jwt';
 
 interface HitobitoProfile {
-  id: string
-  email: string
-  first_name: string
-  last_name: string
-  nickname: string
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  nickname: string;
+  roles: {
+    group_id: number;
+    group_name: string;
+  }[];
 }
 
-const HITOBITO_BASE_URL = process.env.HITOBITO_BASE_URL
+const HITOBITO_BASE_URL = process.env['HITOBITO_BASE_URL'] ?? undefined;
+const CEVI_DB_CLIENT_ID = process.env['CEVI_DB_CLIENT_ID'] ?? undefined;
+const CEVI_DB_CLIENT_SECRET = process.env['CEVI_DB_CLIENT_SECRET'] ?? undefined;
 
-export const CeviDBProvider: OAuthConfig<HitobitoProfile> = {
-  id: 'cevi-db',
-  name: 'CeviDB',
-  authorization: {
-    url: `${HITOBITO_BASE_URL}/oauth/authorize`,
-    params: {
-      response_type: 'code',
-      scope: 'with_roles',
-    },
-  },
-  token: {
-    url: `${HITOBITO_BASE_URL}/oauth/token`,
-    params: {
-      grant_type: 'authorization_code',
-      scope: 'name',
-    },
-  },
+if (HITOBITO_BASE_URL === undefined) throw new Error('HITOBITO_BASE_URL is not set');
+if (CEVI_DB_CLIENT_ID === undefined) throw new Error('CEVI_DB_CLIENT_ID is not set');
+if (CEVI_DB_CLIENT_SECRET === undefined) throw new Error('CEVI_DB_CLIENT_SECRET is not set');
 
-  // This custom is used as soon as we would like to use a scope different from 'email'.
-  // As Hitobito uses the 'X-Scopes' header to pass the scopes, and not the 'scope' parameter,
-  userinfo: {
-    async request({ tokens }) {
-      const url = `${HITOBITO_BASE_URL}/oauth/profile`
-      const response = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${tokens.access_token}`,
-          'X-Scope': 'with_roles',
+export const authOptions: NextAuthConfig = {
+  providers: [
+    {
+      id: 'cevi-db',
+      type: 'oauth',
+      name: 'CeviDB',
+      authorization: {
+        url: `${HITOBITO_BASE_URL}/oauth/authorize`,
+        params: {
+          response_type: 'code',
+          scope: 'with_roles',
         },
-      })
-      return await response.json()
+      },
+      token: {
+        url: `${HITOBITO_BASE_URL}/oauth/token`,
+        params: {
+          grant_type: 'authorization_code',
+          scope: 'name',
+        },
+      },
+
+      issuer: 'cevi-db',
+
+      // This custom is used as soon as we would like to use a scope different from 'email'.
+      // As Hitobito uses the 'X-Scopes' header to pass the scopes, and not the 'scope' parameter,
+      userinfo: {
+        async request({ tokens }: { tokens: { access_token: string } }) {
+          const url = `${HITOBITO_BASE_URL}/oauth/profile`;
+          const response = await fetch(url, {
+            headers: {
+              Authorization: `Bearer ${tokens.access_token}`,
+              'X-Scope': 'with_roles',
+            },
+          });
+          return (await response.json()) as HitobitoProfile;
+        },
+      },
+
+      profile: (profile: HitobitoProfile) => {
+        return {
+          id: profile.id,
+          name: profile.first_name + ' ' + profile.last_name,
+          email: profile.email,
+          roles: profile.roles,
+        };
+      },
+      clientId: CEVI_DB_CLIENT_ID,
+      clientSecret: CEVI_DB_CLIENT_SECRET,
     },
-  },
-
-  type: 'oauth',
-  version: '2.0',
-  httpOptions: { timeout: 10_000 },
-  profile: (profile: HitobitoProfile) => profile,
-  clientId: process.env.CEVI_DB_CLIENT_ID,
-  clientSecret: process.env.CEVI_DB_CLIENT_SECRET,
-}
-
-export const authOptions: NextAuthOptions = {
-  providers: [CeviDBProvider],
+  ],
   debug: false,
   session: {
     strategy: 'jwt',
   },
+
   callbacks: {
     // we need to expose the additional fields from the token
     // for the Payload CMS to be able to use them
     // warning: these fields are also exposed to the client
-    async session({ session, token }) {
+    session({ session, token }) {
       session.user = {
         ...session.user,
-        // @ts-ignore TODO: fix typing
+        // @ts-ignore
         cevi_db_uuid: token.cevi_db_uuid,
+        // @ts-ignore
         groups: token.groups,
-      }
-      return session
+      };
+      return session;
     },
 
     // we inject additional info about the user to the JWT token
-    async jwt({ token, profile: _profile }): Promise<JWT> {
-      const profile = _profile as HitobitoProfile
-      if (profile) {
-        token.cevi_db_uuid = profile.id // the ide of the user in the CeviDB
+    jwt({ token, profile: _profile }): JWT {
+      if (!_profile) return token;
 
-        // TODO: extract the group ids from the Hitobito profile
-        // --> we also want to extract the name of the groups
-        // the group id can then be used to restrict access to certain pages
-        // or to show certain content, e.g. only for convinat team members
-        token.groups = [
-          {
-            id: 1,
-            name: 'Cevi Schweiz',
-          },
-        ] // the groups the user is in
-        token.email = profile.email
-        token.name = profile.first_name + ' ' + profile.last_name
-      }
-      return token
+      const profile = _profile as unknown as HitobitoProfile;
+      // @ts-ignore
+      token.cevi_db_uuid = profile.id; // the ide of the user in the CeviDB
+
+      // @ts-ignore
+      token.groups = profile.roles.map((role) => ({
+        id: role.group_id,
+        name: role.group_name,
+      }));
+
+      token.email = profile.email;
+      token.name = profile.first_name + ' ' + profile.last_name;
+      return token;
     },
   },
 
@@ -100,4 +115,4 @@ export const authOptions: NextAuthOptions = {
     signIn: '/admin/login',
     error: '/admin/login',
   },
-}
+};
