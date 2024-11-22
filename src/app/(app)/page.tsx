@@ -1,8 +1,8 @@
-import { getPayloadHMR } from '@payloadcms/next/utilities';
-import configPromise from '@payload-config';
+import config from '@payload-config';
+import { getPayload } from 'payload';
 
 const Page = async () => {
-  const payload = await getPayloadHMR({ config: configPromise });
+  const payload = await getPayload({ config });
 
   const blogs_paged = await payload.find({
     collection: 'blog',
