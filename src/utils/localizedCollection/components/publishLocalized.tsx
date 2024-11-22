@@ -112,7 +112,7 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = () => {
       });
 
       const action = `${serverURL}${api}${
-        globalSlug ? `/globals/${globalSlug}` : `/${collectionSlug}/${id ? `${'/' + id}` : ''}`
+        globalSlug ? `/globals/${globalSlug}` : `/${collectionSlug}/${id ? `/${id}` : ''}`
       }${params ? '?' + params : ''}`;
 
       void submit({
@@ -135,7 +135,7 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = () => {
       });
 
       const action = `${serverURL}${api}${
-        globalSlug ? `/globals/${globalSlug}` : `/${collectionSlug}/${id ? `${'/' + id}` : ''}`
+        globalSlug ? `/globals/${globalSlug}` : `/${collectionSlug}/${id ? `/${id}` : ''}`
       }${params ? '?' + params : ''}`;
 
       void submit({

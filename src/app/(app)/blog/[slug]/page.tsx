@@ -19,27 +19,30 @@ async function BlogPost({ slug }: BlogPostProps) {
   const article = article_paged.docs[0];
   if (article === undefined) throw new Error('Article not found');
 
+  // @ts-ignore
   const blog_de_CH = await payload.findByID({
     id: article.id,
     collection: 'blog',
     locale: 'de-CH',
-    fallbackLocale: false,
+    fallbackLocale: undefined,
     depth: 0,
   });
 
+  // @ts-ignore
   const blog_fr_CH = await payload.findByID({
     id: article.id,
     collection: 'blog',
     locale: 'fr-CH',
-    fallbackLocale: false,
+    fallbackLocale: undefined,
     depth: 0,
   });
 
+  // @ts-ignore
   const blog_en_US = await payload.findByID({
     collection: 'blog',
     id: article.id,
     locale: 'en-US',
-    fallbackLocale: false,
+    fallbackLocale: undefined,
     depth: 0,
   });
 

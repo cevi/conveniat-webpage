@@ -49,15 +49,15 @@ export const useLocalizedDoc = <T>({ draft }: { draft: boolean }) => {
     }
 
     fetchDoc<T>({
-      slug: debouncedParams.collectionSlug,
+      slug: debouncedParams.collectionSlug as CollectionSlug,
       id: debouncedParams.id as string,
       draft,
     })
       .then((_doc) => {
         setDoc(_doc);
       })
-      .catch((e: Error) => {
-        setError(e);
+      .catch((e: unknown) => {
+        setError(e as Error);
       })
       .finally(() => {
         setIsLoading(false);
