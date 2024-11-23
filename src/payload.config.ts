@@ -11,7 +11,7 @@ import { en } from 'payload/i18n/en';
 import { de } from 'payload/i18n/de';
 import { fr } from 'payload/i18n/fr';
 import { locales } from '@/utils/globalDefinitions';
-import { buildSecureConfig } from '@/acces/secureConfig';
+import { buildSecureConfig } from '@/access/secureConfig';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);

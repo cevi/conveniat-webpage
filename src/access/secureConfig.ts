@@ -1,5 +1,5 @@
 import { buildConfig, Config } from 'payload';
-import { canAccessAPI } from '@/acces/canAccessAdminPanel';
+import { canAccessAPI } from '@/access/canAccessAdminPanel';
 
 /**
  * Builds a secure config by applying default access rules to all globals and collections.

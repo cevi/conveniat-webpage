@@ -1,5 +1,5 @@
 import { AuthStrategyFunction, BasePayload, CollectionConfig } from 'payload';
-import { canAccessAdminPanel } from '@/acces/canAccessAdminPanel';
+import { canAccessAdminPanel } from '@/access/canAccessAdminPanel';
 
 type HitobitoNextAuthUser = {
   cevi_db_uuid: number;
