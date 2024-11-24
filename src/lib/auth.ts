@@ -97,7 +97,7 @@ export const authOptions: NextAuthConfig = {
 
       const profile = _profile as unknown as HitobitoProfile;
       // @ts-ignore
-      token.cevi_db_uuid = profile.id; // the ide of the user in the CeviDB
+      token.cevi_db_uuid = profile.id; // the id of the user in the CeviDB
 
       // @ts-ignore
       token.groups = profile.roles.map((role) => ({

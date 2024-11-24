@@ -16,8 +16,20 @@ async function saveUserToDB(payload: BasePayload, nextAuthUser: HitobitoNextAuth
     })
     .then((res) => res.totalDocs == 1);
 
-  // abort if the user already exists
-  if (userExists) return;
+  // abort if the user already exists but still update user data
+  if (userExists) {
+    await payload.update({
+      collection: 'users',
+      where: { cevi_db_uuid: { equals: nextAuthUser.cevi_db_uuid }},
+      data: {
+        groups: nextAuthUser.groups,
+        email: nextAuthUser.email,
+        fullName: nextAuthUser.name
+      }
+    }
+    );
+    return; // bail out and do not create user
+  }
 
   // save the new user to the database
   await payload.create({
