@@ -1,13 +1,13 @@
-import { getPayloadHMR } from '@payloadcms/next/utilities';
-import configPromise from '@payload-config';
+import config from '@payload-config';
 import { ErrorBoundary } from 'react-error-boundary';
+import { getPayload } from 'payload';
 
 interface BlogPostProps {
   slug?: string;
 }
 
 async function BlogPost({ slug }: BlogPostProps) {
-  const payload = await getPayloadHMR({ config: configPromise });
+  const payload = await getPayload({ config });
 
   const article_paged = await payload.find({
     collection: 'blog',

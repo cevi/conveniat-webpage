@@ -67,9 +67,11 @@ type PayloadDoc = Record<string, Record<Config['locale'], string>>;
 const isDiff = (
   locale: Config['locale'],
   fieldDef: FieldDef,
-  value1: Record<Config['locale'], string>,
-  value2: Record<Config['locale'], string>,
+  value1: Record<Config['locale'], string> | undefined,
+  value2: Record<Config['locale'], string> | undefined,
 ): boolean => {
+  if (value1 === undefined || value2 === undefined) return true;
+
   if (fieldDef.localized) return value1[locale] !== value2[locale];
   return !fieldDef.presentational && value1 !== value2;
 };

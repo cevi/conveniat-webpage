@@ -11,16 +11,22 @@ import { en } from 'payload/i18n/en';
 import { de } from 'payload/i18n/de';
 import { fr } from 'payload/i18n/fr';
 import { locales } from '@/utils/globalDefinitions';
-import { buildSecureConfig } from '@/acces/secureConfig';
+import { buildSecureConfig } from '@/access/secureConfig';
+import { Footer } from './globals/Footer';
+import { SEO } from './globals/SEO';
+import { Header } from './globals/Header';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
 
-const PAYLOAD_SECRET = process.env['PAYLOAD_SECRET'] ?? undefined;
-const DATABASE_URI = process.env['DATABASE_URI'] ?? undefined;
+const PAYLOAD_SECRET = process.env['PAYLOAD_SECRET'] ?? '';
+const DATABASE_URI = process.env['DATABASE_URI'] ?? '';
+const APP_HOST_URL = process.env['APP_HOST_URL'] ?? '';
 
+/*
 if (PAYLOAD_SECRET === undefined) throw new Error('PAYLOAD_SECRET is not defined');
 if (DATABASE_URI === undefined) throw new Error('DATABASE_URI is not defined');
+*/
 
 export default buildSecureConfig({
   admin: {
@@ -52,27 +58,13 @@ export default buildSecureConfig({
     },
     dateFormat: 'yyyy-MM-dd HH:mm',
     livePreview: {
-      url: 'http://localhost:3000',
+      url: APP_HOST_URL,
       collections: ['blog'],
     },
   },
   collections: [Users, Media, BlogArticle],
   editor: lexicalEditor(),
-  globals: [
-    {
-      slug: 'seo',
-      label: 'SEO',
-      fields: [],
-    },
-    {
-      slug: 'headerNav',
-      fields: [],
-    },
-    {
-      slug: 'footerNav',
-      fields: [],
-    },
-  ],
+  globals: [SEO, Header, Footer],
   localization: {
     locales,
     defaultLocale: 'de-CH',

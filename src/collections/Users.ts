@@ -1,11 +1,12 @@
 import { AuthStrategyFunction, BasePayload, CollectionConfig } from 'payload';
-import { canAccessAdminPanel } from '@/acces/canAccessAdminPanel';
+import { canAccessAdminPanel } from '@/access/canAccessAdminPanel';
 
 type HitobitoNextAuthUser = {
   cevi_db_uuid: number;
   groups: { id: number; name: string }[];
   email: string;
   name: string;
+  nickname: string;
 };
 
 async function saveUserToDB(payload: BasePayload, nextAuthUser: HitobitoNextAuthUser) {
@@ -16,8 +17,23 @@ async function saveUserToDB(payload: BasePayload, nextAuthUser: HitobitoNextAuth
     })
     .then((res) => res.totalDocs == 1);
 
-  if (!userExists)
-    // save the new user to the database
+  // abort if the user already exists but still update user data
+  if (userExists) {
+    await payload.update({
+      collection: 'users',
+      where: { cevi_db_uuid: { equals: nextAuthUser.cevi_db_uuid } },
+      data: {
+        groups: nextAuthUser.groups,
+        email: nextAuthUser.email,
+        fullName: nextAuthUser.name,
+        nickname: nextAuthUser.nickname,
+      },
+    });
+    return; // bail out and do not create user
+  }
+
+  // save the new user to the database
+  try {
     await payload.create({
       collection: 'users',
       data: {
@@ -25,8 +41,12 @@ async function saveUserToDB(payload: BasePayload, nextAuthUser: HitobitoNextAuth
         groups: nextAuthUser.groups,
         email: nextAuthUser.email,
         fullName: nextAuthUser.name,
+        nickname: nextAuthUser.nickname,
       },
     });
+  } catch {
+    // Catch Race Condition
+  }
 }
 
 /**
@@ -34,7 +54,8 @@ async function saveUserToDB(payload: BasePayload, nextAuthUser: HitobitoNextAuth
  * @param cookie the cookie to use for the request
  */
 const fetchSessionFromCeviDB = async (cookie: string) => {
-  return (await fetch('http://localhost:3000/api/auth/session', {
+  const APP_HOST_URL = process.env['APP_HOST_URL'] ?? '';
+  return (await fetch(APP_HOST_URL + '/api/auth/session', {
     headers: {
       cookie,
     },
@@ -107,7 +128,7 @@ export const Users: CollectionConfig = {
     description:
       'Represents a Hitobito user. These information get automatically synced whenever the user logs in.',
     useAsTitle: 'email',
-    defaultColumns: ['email', 'fullName', 'cevi_db_uuid'],
+    defaultColumns: ['email', 'fullName', 'nickname', 'cevi_db_uuid'],
   },
   auth: {
     disableLocalStrategy: true,
@@ -120,6 +141,47 @@ export const Users: CollectionConfig = {
     ],
   },
   fields: [
+    {
+      name: 'cevi_db_uuid',
+      label: 'UserID inside CeviDB',
+      type: 'number',
+      required: true,
+      admin: {
+        readOnly: true,
+        description: 'The ID of the user in the CeviDB.',
+      },
+      unique: true,
+    },
+    {
+      name: 'email',
+      label: 'Email',
+      type: 'email',
+      required: true,
+      admin: {
+        readOnly: true,
+      },
+      unique: true,
+    },
+    {
+      name: 'fullName',
+      label: 'Full Name',
+      type: 'text',
+      required: true,
+      admin: {
+        readOnly: true,
+        description: 'The full name of the user, as it will be displayed publicly.',
+      },
+    },
+    {
+      name: 'nickname',
+      label: 'Ceviname',
+      type: 'text',
+      required: false,
+      admin: {
+        readOnly: true,
+        description: 'The Ceviname of the user.',
+      },
+    },
     {
       name: 'groups',
       label: 'Groups of the User',
@@ -154,37 +216,6 @@ export const Users: CollectionConfig = {
         // the following are random but unique identifiers for the schema
         uri: 'https://conveniat.ch/hitobito-groups.schema.json',
         fileMatch: ['https://conveniat.ch/hitobito-groups.schema.json'],
-      },
-    },
-    {
-      name: 'cevi_db_uuid',
-      label: 'UserID inside CeviDB',
-      type: 'number',
-      required: true,
-      admin: {
-        readOnly: true,
-        description: 'The ID of the user in the CeviDB.',
-      },
-      unique: true,
-    },
-    {
-      name: 'email',
-      label: 'Email',
-      type: 'email',
-      required: true,
-      admin: {
-        readOnly: true,
-      },
-      unique: true,
-    },
-    {
-      name: 'fullName',
-      label: 'Full Name',
-      type: 'text',
-      required: true,
-      admin: {
-        readOnly: true,
-        description: 'The full name of the user, as it will be displayed publicly.',
       },
     },
   ],

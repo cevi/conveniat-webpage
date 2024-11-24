@@ -1,0 +1,12 @@
+docker-compose.*
+Dockerfile*
+.git
+node_modules
+.pnpm-store
+.next
+.github
+
+# we don't want to include the .env file in the docker image
+# environment variables should be passed at runtime
+.env
+.env.example

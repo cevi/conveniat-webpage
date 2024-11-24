@@ -13,13 +13,15 @@ interface HitobitoProfile {
   }[];
 }
 
-const HITOBITO_BASE_URL = process.env['HITOBITO_BASE_URL'] ?? undefined;
-const CEVI_DB_CLIENT_ID = process.env['CEVI_DB_CLIENT_ID'] ?? undefined;
-const CEVI_DB_CLIENT_SECRET = process.env['CEVI_DB_CLIENT_SECRET'] ?? undefined;
+const HITOBITO_BASE_URL = process.env['HITOBITO_BASE_URL'] ?? '';
+const CEVI_DB_CLIENT_ID = process.env['CEVI_DB_CLIENT_ID'] ?? '';
+const CEVI_DB_CLIENT_SECRET = process.env['CEVI_DB_CLIENT_SECRET'] ?? '';
 
+/*
 if (HITOBITO_BASE_URL === undefined) throw new Error('HITOBITO_BASE_URL is not set');
 if (CEVI_DB_CLIENT_ID === undefined) throw new Error('CEVI_DB_CLIENT_ID is not set');
 if (CEVI_DB_CLIENT_SECRET === undefined) throw new Error('CEVI_DB_CLIENT_SECRET is not set');
+*/
 
 export const authOptions: NextAuthConfig = {
   providers: [
@@ -63,6 +65,7 @@ export const authOptions: NextAuthConfig = {
         return {
           id: profile.id,
           name: profile.first_name + ' ' + profile.last_name,
+          nickname: profile.nickname,
           email: profile.email,
           roles: profile.roles,
         };
@@ -87,6 +90,8 @@ export const authOptions: NextAuthConfig = {
         cevi_db_uuid: token.cevi_db_uuid,
         // @ts-ignore
         groups: token.groups,
+        // @ts-ignore
+        nickname: token.nickname,
       };
       return session;
     },
@@ -97,7 +102,7 @@ export const authOptions: NextAuthConfig = {
 
       const profile = _profile as unknown as HitobitoProfile;
       // @ts-ignore
-      token.cevi_db_uuid = profile.id; // the ide of the user in the CeviDB
+      token.cevi_db_uuid = profile.id; // the id of the user in the CeviDB
 
       // @ts-ignore
       token.groups = profile.roles.map((role) => ({
@@ -107,6 +112,7 @@ export const authOptions: NextAuthConfig = {
 
       token.email = profile.email;
       token.name = profile.first_name + ' ' + profile.last_name;
+      token['nickname'] = profile.nickname;
       return token;
     },
   },

@@ -52,14 +52,14 @@ export interface Config {
     defaultIDType: string;
   };
   globals: {
-    seo: Seo;
-    headerNav: HeaderNav;
-    footerNav: FooterNav;
+    SEO: SEO;
+    header: Header;
+    footer: Footer;
   };
   globalsSelect: {
-    seo: SeoSelect<false> | SeoSelect<true>;
-    headerNav: HeaderNavSelect<false> | HeaderNavSelect<true>;
-    footerNav: FooterNavSelect<false> | FooterNavSelect<true>;
+    SEO: SEOSelect<false> | SEOSelect<true>;
+    header: HeaderSelect<false> | HeaderSelect<true>;
+    footer: FooterSelect<false> | FooterSelect<true>;
   };
   locale: 'en-US' | 'de-CH' | 'fr-CH';
   user: User & {
@@ -94,10 +94,11 @@ export interface UserAuthOperations {
  */
 export interface User {
   id: string;
-  groups: GroupsOfTheUser;
   cevi_db_uuid: number;
   email: string;
   fullName: string;
+  nickname?: string | null;
+  groups: GroupsOfTheUser;
   updatedAt: string;
   createdAt: string;
 }
@@ -206,10 +207,11 @@ export interface PayloadMigration {
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
-  groups?: T;
   cevi_db_uuid?: T;
   email?: T;
   fullName?: T;
+  nickname?: T;
+  groups?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -279,54 +281,56 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "seo".
+ * via the `definition` "SEO".
  */
-export interface Seo {
+export interface SEO {
   id: string;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "headerNav".
+ * via the `definition` "header".
  */
-export interface HeaderNav {
+export interface Header {
   id: string;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "footerNav".
+ * via the `definition` "footer".
  */
-export interface FooterNav {
+export interface Footer {
   id: string;
+  donation_iban: string;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "seo_select".
+ * via the `definition` "SEO_select".
  */
-export interface SeoSelect<T extends boolean = true> {
+export interface SEOSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "headerNav_select".
+ * via the `definition` "header_select".
  */
-export interface HeaderNavSelect<T extends boolean = true> {
+export interface HeaderSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "footerNav_select".
+ * via the `definition` "footer_select".
  */
-export interface FooterNavSelect<T extends boolean = true> {
+export interface FooterSelect<T extends boolean = true> {
+  donation_iban?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

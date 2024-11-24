@@ -1,6 +1,6 @@
 import { Access, PayloadRequest } from 'payload';
 
-const GROUPS_WITH_API_ACCESS = [1];
+const GROUPS_WITH_API_ACCESS = [541];
 
 /**
  * Access control function that checks if the user is an editor.

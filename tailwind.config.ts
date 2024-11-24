@@ -2,7 +2,6 @@
 module.exports = {
   content: ['./src/**/*.{js,ts,jsx,tsx,mdx}'],
   prefix: '',
-  theme: {},
   plugins: [],
 
   // adjust the dark mode selector to include data-theme which is what Payload
