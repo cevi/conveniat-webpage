@@ -7,7 +7,6 @@ services:
 
     deploy:
       labels:
-
         - swarmpit.service.deployment.autoredeploy=true
 
         # Enable Traefik for this service, to make it available in the public network

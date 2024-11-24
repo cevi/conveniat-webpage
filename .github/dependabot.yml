@@ -1,18 +1,18 @@
 version: 2
 updates:
-  - package-ecosystem: "npm"  # Use npm for pnpm-managed projects
-    directory: "/"  # The directory where package.json lives, typically the root
+  - package-ecosystem: 'npm' # Use npm for pnpm-managed projects
+    directory: '/' # The directory where package.json lives, typically the root
     schedule:
-      interval: "weekly"  # Check for updates weekly
+      interval: 'weekly' # Check for updates weekly
     ignore:
-      - dependency-name: "*"
-        versions: ["*"]
-    versioning-strategy: "increase"  # This will aggregate updates
+      - dependency-name: '*'
+        versions: ['*']
+    versioning-strategy: 'increase' # This will aggregate updates
     pull-request-branch-name:
-      separator: "-"
-      prefix: "frontend-deps-update"
+      separator: '-'
+      prefix: 'frontend-deps-update'
     allow:
-      - dependency-type: "direct"  # This only updates direct dependencies
+      - dependency-type: 'direct' # This only updates direct dependencies
     commit-message:
-      prefix: "chore"  # Prefix for the commit message
+      prefix: 'chore' # Prefix for the commit message
     target-branch: dev # Target dev branch
