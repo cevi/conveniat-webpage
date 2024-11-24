@@ -33,16 +33,20 @@ async function saveUserToDB(payload: BasePayload, nextAuthUser: HitobitoNextAuth
   }
 
   // save the new user to the database
-  await payload.create({
-    collection: 'users',
-    data: {
-      cevi_db_uuid: nextAuthUser.cevi_db_uuid,
-      groups: nextAuthUser.groups,
-      email: nextAuthUser.email,
-      fullName: nextAuthUser.name,
-      nickname: nextAuthUser.nickname,
-    },
-  });
+  try {
+    await payload.create({
+      collection: 'users',
+      data: {
+        cevi_db_uuid: nextAuthUser.cevi_db_uuid,
+        groups: nextAuthUser.groups,
+        email: nextAuthUser.email,
+        fullName: nextAuthUser.name,
+        nickname: nextAuthUser.nickname,
+      },
+    });
+  } catch {
+    // Catch Race Condition
+  }
 }
 
 /**
