@@ -98,6 +98,7 @@ export interface User {
   cevi_db_uuid: number;
   email: string;
   fullName: string;
+  nickname?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -210,6 +211,7 @@ export interface UsersSelect<T extends boolean = true> {
   cevi_db_uuid?: T;
   email?: T;
   fullName?: T;
+  nickname?: T;
   updatedAt?: T;
   createdAt?: T;
 }

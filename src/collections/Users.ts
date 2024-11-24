@@ -6,6 +6,7 @@ type HitobitoNextAuthUser = {
   groups: { id: number; name: string }[];
   email: string;
   name: string;
+  nickname: string;
 };
 
 async function saveUserToDB(payload: BasePayload, nextAuthUser: HitobitoNextAuthUser) {
@@ -24,7 +25,8 @@ async function saveUserToDB(payload: BasePayload, nextAuthUser: HitobitoNextAuth
       data: {
         groups: nextAuthUser.groups,
         email: nextAuthUser.email,
-        fullName: nextAuthUser.name
+        fullName: nextAuthUser.name,
+        nickname: nextAuthUser.nickname
       }
     }
     );
@@ -39,6 +41,7 @@ async function saveUserToDB(payload: BasePayload, nextAuthUser: HitobitoNextAuth
       groups: nextAuthUser.groups,
       email: nextAuthUser.email,
       fullName: nextAuthUser.name,
+      nickname: nextAuthUser.nickname,
     },
   });
 }
@@ -121,7 +124,7 @@ export const Users: CollectionConfig = {
     description:
       'Represents a Hitobito user. These information get automatically synced whenever the user logs in.',
     useAsTitle: 'email',
-    defaultColumns: ['email', 'fullName', 'cevi_db_uuid'],
+    defaultColumns: ['email', 'fullName', 'nickname', 'cevi_db_uuid'],
   },
   auth: {
     disableLocalStrategy: true,
@@ -201,5 +204,15 @@ export const Users: CollectionConfig = {
         description: 'The full name of the user, as it will be displayed publicly.',
       },
     },
+    {
+      name: 'nickname',
+      label: 'Ceviname',
+      type: 'text',
+      required: false,
+      admin: {
+        readOnly: true,
+        description: 'The Ceviname of the user.'
+      }
+    }
   ],
 };

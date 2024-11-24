@@ -63,6 +63,7 @@ export const authOptions: NextAuthConfig = {
         return {
           id: profile.id,
           name: profile.first_name + ' ' + profile.last_name,
+          nickname: profile.nickname,
           email: profile.email,
           roles: profile.roles,
         };
@@ -87,6 +88,8 @@ export const authOptions: NextAuthConfig = {
         cevi_db_uuid: token.cevi_db_uuid,
         // @ts-ignore
         groups: token.groups,
+        // @ts-ignore
+        nickname: token.nickname,
       };
       return session;
     },
@@ -107,6 +110,7 @@ export const authOptions: NextAuthConfig = {
 
       token.email = profile.email;
       token.name = profile.first_name + ' ' + profile.last_name;
+      token['nickname'] = profile.nickname;
       return token;
     },
   },
