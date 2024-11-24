@@ -49,19 +49,19 @@ async function BlogPost({ slug }: BlogPostProps) {
   return (
     <article className="mx-auto max-w-6xl px-4 py-8">
       {blog_de_CH._localized_status.published && (
-        <div className="rounded-full bg-amber-500 px-3 py-1 text-xs font-semibold text-amber-950">
+        <div className="text-xs rounded-full bg-amber-500 px-3 py-1 font-semibold text-amber-950">
           DE: {blog_de_CH.blogH1}
         </div>
       )}
 
       {blog_fr_CH._localized_status.published && (
-        <div className="rounded-full bg-amber-500 px-3 py-1 text-xs font-semibold text-amber-950">
+        <div className="text-xs rounded-full bg-amber-500 px-3 py-1 font-semibold text-amber-950">
           FR: {blog_fr_CH.blogH1}
         </div>
       )}
 
       {blog_en_US._localized_status.published && (
-        <div className="rounded-full bg-amber-500 px-3 py-1 text-xs font-semibold text-amber-950">
+        <div className="text-xs rounded-full bg-amber-500 px-3 py-1 font-semibold text-amber-950">
           EN: {blog_en_US.blogH1}
         </div>
       )}

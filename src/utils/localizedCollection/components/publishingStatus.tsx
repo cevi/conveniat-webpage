@@ -1,7 +1,7 @@
 import { PublishingStatusBadges } from '@/utils/localizedCollection/components/PublishingStatusBadges';
 
 const PublishingStatus = () => (
-  <div className="mb-8 divide-slate-600">
+  <div className="divide-slate-600 mb-8">
     <div className="my-3">
       <p className="max-w-prose text-sm font-medium text-gray-600">
         This content type can be published in multiple languages. If you change any field, make sure
