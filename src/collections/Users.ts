@@ -54,7 +54,8 @@ async function saveUserToDB(payload: BasePayload, nextAuthUser: HitobitoNextAuth
  * @param cookie the cookie to use for the request
  */
 const fetchSessionFromCeviDB = async (cookie: string) => {
-  return (await fetch('/api/auth/session', {
+  const APP_HOST_URL = process.env["APP_HOST_URL"] ?? "";
+  return (await fetch(APP_HOST_URL + '/api/auth/session', {
     headers: {
       cookie,
     },
