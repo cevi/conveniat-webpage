@@ -34,7 +34,7 @@
     "cross-env": "^7.0.3",
     "graphql": "^16.9.0",
     "lucide-react": "^0.447.0",
-    "next": "^15",
+    "next": "^15.0.3",
     "next-auth": "5.0.0-beta.25",
     "payload": "3.0.2",
     "qs-esm": "^7.0.2",
@@ -42,7 +42,7 @@
     "react-dom": "19.0.0-rc-65a56d0e-20241020",
     "react-error-boundary": "^4.1.2",
     "sharp": "0.32.6",
-    "tailwind-merge": "^2.5.4",
+    "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
@@ -50,7 +50,7 @@
     "@eslint/eslintrc": "^3.2.0",
     "@eslint/js": "^9.15.0",
     "@next/eslint-plugin-next": "^14.2.18",
-    "@types/node": "^22.9.1",
+    "@types/node": "^22.9.3",
     "@types/react": "npm:types-react@19.0.0-rc.1",
     "@types/react-dom": "npm:types-react-dom@19.0.0-rc.1",
     "autoprefixer": "^10.4.20",
@@ -59,7 +59,7 @@
     "eslint-plugin-next": "^0.0.0",
     "eslint-plugin-react": "^7.37.2",
     "eslint-plugin-react-hooks": "^5.0.0",
-    "eslint-plugin-react-naming-convention": "^1.17.0",
+    "eslint-plugin-react-naming-convention": "^1.17.1",
     "globals": "^15.12.0",
     "postcss": "^8.4.49",
     "prettier": "^3.3.3",
@@ -82,5 +82,5 @@
     "@types/react": "npm:types-react@19.0.0-rc.1",
     "@types/react-dom": "npm:types-react-dom@19.0.0-rc.1"
   },
-  "packageManager": "pnpm@9.12.2"
+  "packageManager": "pnpm@9.14.2"
 }
