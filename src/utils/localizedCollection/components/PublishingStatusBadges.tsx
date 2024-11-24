@@ -51,7 +51,7 @@ const LanguageStatus = ({
   return (
     <span className={languageStatusClasses({ published, pendingChanges })}>
       {label}
-      <span className="absolute bottom-full left-1/2 mb-1 w-max -translate-x-1/2 transform rounded bg-gray-700 px-2 py-1 text-xs text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+      <span className="text-xs absolute bottom-full left-1/2 mb-1 w-max -translate-x-1/2 transform rounded bg-gray-700 px-2 py-1 text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
         {tooltip}
       </span>
     </span>

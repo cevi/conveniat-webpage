@@ -6,6 +6,15 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'www.cevi.ch',
+        port: '',
+      },
+    ],
+  },
 };
 
 export default withPayload(nextConfig);

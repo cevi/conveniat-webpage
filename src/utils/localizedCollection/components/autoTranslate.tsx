@@ -15,7 +15,7 @@ const LanguageSelectionModal = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-600 bg-opacity-50">
-      <div className="rounded bg-white p-6 text-black shadow-lg">
+      <div className="text-black rounded bg-white p-6 shadow-lg">
         <h2 className="mb-4 text-lg font-medium">Select Source and Target Languages</h2>
 
         <label className="mb-2 block">
@@ -51,7 +51,7 @@ const LanguageSelectionModal = ({
             Cancel
           </button>
           <button
-            className="rounded bg-blue-500 px-4 py-2 text-white"
+            className="bg-blue-500 rounded px-4 py-2 text-white"
             onClick={() => onTranslate(sourceLanguage, targetLanguage)}
           >
             Translate
@@ -78,7 +78,7 @@ const AutoTranslate = () => {
   };
 
   return (
-    <div className="mb-8 divide-slate-600">
+    <div className="divide-slate-600 mb-8">
       <div className="my-3">
         <p className="max-w-prose text-sm font-medium text-gray-600">
           We allow for automatic translation of content. Click on auto-translate to translate your
