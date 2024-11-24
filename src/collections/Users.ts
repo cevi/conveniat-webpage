@@ -21,15 +21,14 @@ async function saveUserToDB(payload: BasePayload, nextAuthUser: HitobitoNextAuth
   if (userExists) {
     await payload.update({
       collection: 'users',
-      where: { cevi_db_uuid: { equals: nextAuthUser.cevi_db_uuid }},
+      where: { cevi_db_uuid: { equals: nextAuthUser.cevi_db_uuid } },
       data: {
         groups: nextAuthUser.groups,
         email: nextAuthUser.email,
         fullName: nextAuthUser.name,
-        nickname: nextAuthUser.nickname
-      }
-    }
-    );
+        nickname: nextAuthUser.nickname,
+      },
+    });
     return; // bail out and do not create user
   }
 
@@ -138,42 +137,6 @@ export const Users: CollectionConfig = {
   },
   fields: [
     {
-      name: 'groups',
-      label: 'Groups of the User',
-      type: 'json',
-      required: true,
-      admin: {
-        readOnly: true,
-        description: 'The groups the user is in.',
-      },
-      jsonSchema: {
-        schema: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              id: {
-                type: 'integer',
-                title: 'The ID of the group',
-                description: 'The ID of the group as used in the CeviDB.',
-              },
-              name: {
-                title: 'The name of the group',
-                description: 'The name of the group as used in the CeviDB.',
-                type: 'string',
-              },
-            },
-            required: ['id', 'name'],
-          },
-          title: 'Groups of the User',
-          description: 'The groups the user is in as extracted from the CeviDB profile.',
-        },
-        // the following are random but unique identifiers for the schema
-        uri: 'https://conveniat.ch/hitobito-groups.schema.json',
-        fileMatch: ['https://conveniat.ch/hitobito-groups.schema.json'],
-      },
-    },
-    {
       name: 'cevi_db_uuid',
       label: 'UserID inside CeviDB',
       type: 'number',
@@ -211,8 +174,44 @@ export const Users: CollectionConfig = {
       required: false,
       admin: {
         readOnly: true,
-        description: 'The Ceviname of the user.'
-      }
-    }
+        description: 'The Ceviname of the user.',
+      },
+    },
+    {
+      name: 'groups',
+      label: 'Groups of the User',
+      type: 'json',
+      required: true,
+      admin: {
+        readOnly: true,
+        description: 'The groups the user is in.',
+      },
+      jsonSchema: {
+        schema: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: {
+                type: 'integer',
+                title: 'The ID of the group',
+                description: 'The ID of the group as used in the CeviDB.',
+              },
+              name: {
+                title: 'The name of the group',
+                description: 'The name of the group as used in the CeviDB.',
+                type: 'string',
+              },
+            },
+            required: ['id', 'name'],
+          },
+          title: 'Groups of the User',
+          description: 'The groups the user is in as extracted from the CeviDB profile.',
+        },
+        // the following are random but unique identifiers for the schema
+        uri: 'https://conveniat.ch/hitobito-groups.schema.json',
+        fileMatch: ['https://conveniat.ch/hitobito-groups.schema.json'],
+      },
+    },
   ],
 };

@@ -94,11 +94,11 @@ export interface UserAuthOperations {
  */
 export interface User {
   id: string;
-  groups: GroupsOfTheUser;
   cevi_db_uuid: number;
   email: string;
   fullName: string;
   nickname?: string | null;
+  groups: GroupsOfTheUser;
   updatedAt: string;
   createdAt: string;
 }
@@ -207,11 +207,11 @@ export interface PayloadMigration {
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
-  groups?: T;
   cevi_db_uuid?: T;
   email?: T;
   fullName?: T;
   nickname?: T;
+  groups?: T;
   updatedAt?: T;
   createdAt?: T;
 }
