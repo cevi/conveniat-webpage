@@ -19,12 +19,14 @@ import { Header } from './globals/Header';
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
 
-const PAYLOAD_SECRET = process.env['PAYLOAD_SECRET'] ?? undefined;
-const DATABASE_URI = process.env['DATABASE_URI'] ?? undefined;
-const APP_HOST_URL = process.env['APP_HOST_URL'] ?? "";
+const PAYLOAD_SECRET = process.env['PAYLOAD_SECRET'] ?? '';
+const DATABASE_URI = process.env['DATABASE_URI'] ?? '';
+const APP_HOST_URL = process.env['APP_HOST_URL'] ?? '';
 
+/*
 if (PAYLOAD_SECRET === undefined) throw new Error('PAYLOAD_SECRET is not defined');
 if (DATABASE_URI === undefined) throw new Error('DATABASE_URI is not defined');
+*/
 
 export default buildSecureConfig({
   admin: {
@@ -62,11 +64,7 @@ export default buildSecureConfig({
   },
   collections: [Users, Media, BlogArticle],
   editor: lexicalEditor(),
-  globals: [
-    SEO,
-    Header,
-    Footer
-  ],
+  globals: [SEO, Header, Footer],
   localization: {
     locales,
     defaultLocale: 'de-CH',

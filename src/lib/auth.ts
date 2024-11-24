@@ -13,13 +13,15 @@ interface HitobitoProfile {
   }[];
 }
 
-const HITOBITO_BASE_URL = process.env['HITOBITO_BASE_URL'] ?? undefined;
-const CEVI_DB_CLIENT_ID = process.env['CEVI_DB_CLIENT_ID'] ?? undefined;
-const CEVI_DB_CLIENT_SECRET = process.env['CEVI_DB_CLIENT_SECRET'] ?? undefined;
+const HITOBITO_BASE_URL = process.env['HITOBITO_BASE_URL'] ?? '';
+const CEVI_DB_CLIENT_ID = process.env['CEVI_DB_CLIENT_ID'] ?? '';
+const CEVI_DB_CLIENT_SECRET = process.env['CEVI_DB_CLIENT_SECRET'] ?? '';
 
+/*
 if (HITOBITO_BASE_URL === undefined) throw new Error('HITOBITO_BASE_URL is not set');
 if (CEVI_DB_CLIENT_ID === undefined) throw new Error('CEVI_DB_CLIENT_ID is not set');
 if (CEVI_DB_CLIENT_SECRET === undefined) throw new Error('CEVI_DB_CLIENT_SECRET is not set');
+*/
 
 export const authOptions: NextAuthConfig = {
   providers: [

@@ -1,6 +1,8 @@
 import config from '@payload-config';
 import { getPayload } from 'payload';
 
+import './globals.css';
+
 const Page = async () => {
   const payload = await getPayload({ config });
 
@@ -20,7 +22,9 @@ const Page = async () => {
 
   return (
     <article className="mx-auto max-w-6xl px-4 py-8">
-      <h1 className="max-w-lg font-serif text-4xl font-bold leading-tight">Landing Page</h1>
+      <h1 className="max-w-lg font-serif text-4xl font-bold leading-tight">
+        Landing Page (Prod Build)
+      </h1>
 
       <h2>Latest Blog Articles</h2>
 
@@ -36,4 +40,5 @@ const Page = async () => {
   );
 };
 
+export const dynamic = 'force-dynamic';
 export default Page;
