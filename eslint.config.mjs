@@ -1,11 +1,13 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import js from '@eslint/js';
-import eslint from '@eslint/js';
-import { FlatCompat } from '@eslint/eslintrc';
-import { fixupPluginRules } from '@eslint/compat';
-import tsEslint from 'typescript-eslint';
+import ts from 'typescript-eslint';
+import prettierConfigRecommended from 'eslint-plugin-prettier/recommended';
 import reactNamingConvention from 'eslint-plugin-react-naming-convention';
+import progress from 'eslint-plugin-file-progress';
+import eslintPluginUnicorn from 'eslint-plugin-unicorn';
+import { FlatCompat } from '@eslint/eslintrc';
+import { fixupConfigRules } from '@eslint/compat';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,23 +17,20 @@ const compat = new FlatCompat({
   allConfig: js.configs.all,
 });
 
-const pluginsToPatch = ['@next/next', 'react-hooks', 'prettier/recommended'];
-
-const compatConfig = [...compat.extends('next/core-web-vitals')];
-
-const patchedConfig = compatConfig.map((entry) => {
-  const plugins = entry.plugins;
-  for (const key in plugins) {
-    if (Object.prototype.hasOwnProperty.call(plugins, key) && pluginsToPatch.includes(key)) {
-      plugins[key] = fixupPluginRules(plugins[key]);
-    }
-  }
-  return entry;
-});
+const patchedConfig = fixupConfigRules([...compat.extends('next/core-web-vitals')]);
 
 const config = [
-  eslint.configs.recommended,
-  ...tsEslint.configs.recommendedTypeChecked,
+  progress.configs.recommended,
+  ...patchedConfig,
+  ...ts.configs.recommended,
+  prettierConfigRecommended,
+  eslintPluginUnicorn.configs['flat/recommended'],
+  {
+    files: ['**/next-env.d.ts'],
+    rules: {
+      'unicorn/prevent-abbreviations': 'off',
+    },
+  },
   {
     languageOptions: {
       parserOptions: {
@@ -50,11 +49,13 @@ const config = [
       // react-naming-convention recommended rules
       'react-naming-convention/filename-extension': ['warn', 'as-needed'],
       'react-naming-convention/use-state': 'warn',
+      'react-hooks/exhaustive-deps': 'error',
+      'react-hooks/rules-of-hooks': 'error',
     },
   },
   {
     // we check typescript naming conventions only for typescript files
-    files: ['**/*.{ts}'],
+    files: ['**/*.{ts}', '**/*.{tsx}'],
     rules: { '@typescript-eslint/naming-convention': 'warn' },
   },
   {
@@ -124,7 +125,6 @@ const config = [
       '**/(payload)/layout.tsx',
     ],
   },
-  ...patchedConfig,
 ];
 
 export default config;

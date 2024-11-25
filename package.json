@@ -11,7 +11,7 @@
   "type": "module",
   "scripts": {
     "build": "cross-env NODE_OPTIONS=--no-deprecation next build",
-    "dev": "cross-env NODE_OPTIONS=--no-deprecation next dev",
+    "dev": "nodemon",
     "devsafe": "rm -rf .next && cross-env NODE_OPTIONS=--no-deprecation next dev",
     "generate:importmap": "cross-env NODE_OPTIONS=--no-deprecation payload generate:importmap",
     "generate:types": "cross-env NODE_OPTIONS=--no-deprecation payload generate:types",
@@ -20,7 +20,6 @@
     "lint:check": "(tsc --noemit --project ./tsconfig.json); eslint .",
     "prettier": "prettier --write .",
     "prettier:check": "prettier --check .",
-    "payload": "cross-env NODE_OPTIONS=--no-deprecation payload",
     "start": "cross-env NODE_OPTIONS=--no-deprecation next start"
   },
   "dependencies": {
@@ -56,11 +55,16 @@
     "autoprefixer": "^10.4.20",
     "eslint": "^9.15.0",
     "eslint-config-next": "^15.0.3",
+    "eslint-plugin-file-progress": "^3.0.1",
     "eslint-plugin-next": "^0.0.0",
+    "eslint-plugin-prettier": "^5.2.1",
     "eslint-plugin-react": "^7.37.2",
+    "eslint-plugin-react-compiler": "19.0.0-beta-df7b47d-20241124",
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-react-naming-convention": "^1.17.1",
+    "eslint-plugin-unicorn": "^56.0.1",
     "globals": "^15.12.0",
+    "nodemon": "^3.1.7",
     "postcss": "^8.4.49",
     "prettier": "^3.3.3",
     "prettier-plugin-tailwindcss": "^0.6.9",

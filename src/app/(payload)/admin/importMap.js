@@ -1,13 +1,13 @@
-import { default as default_7fa041d179276453b5f2f9393e9bbd6e } from '@/utils/localizedCollection/components/publishingStatus'
-import { default as default_74fb94073fb9167b06eb6b783b4ee3fa } from '@/utils/localizedCollection/components/autoTranslate'
-import { default as default_2c2463c13adff3bd1c62ce908cf29578 } from '@/utils/localizedCollection/components/publishLocalized'
-import { default as default_468452e575ad66e753c7045adde05940 } from '@/components/payload/login'
-import { default as default_dbc7e56c6c46c5d54c4604e9e4c1fb1a } from '@/components/payload/dashboardWelcomeBanner'
+import { default as default_0ab278369767a73bfbc2c2f4a007b998 } from '@/payload-cms/components/multi-lang-publishing/publishing-status'
+import { default as default_9cd475b1aaf02d03a2cf4b9e18b7b42b } from '@/payload-cms/components/auto-translate/auto-translate'
+import { default as default_04fa20694178abb35147c42812b162ee } from '@/payload-cms/components/multi-lang-publishing/publish-localized'
+import { default as default_abbf2011d9b97ad31e02e7216d77d850 } from '@/payload-cms/components/login-page/login-button'
+import { default as default_c3cc3b6e219a6fc03e424c337d312b51 } from '@/payload-cms/components/dashboard-welcome-banner'
 
 export const importMap = {
-  "@/utils/localizedCollection/components/publishingStatus#default": default_7fa041d179276453b5f2f9393e9bbd6e,
-  "@/utils/localizedCollection/components/autoTranslate#default": default_74fb94073fb9167b06eb6b783b4ee3fa,
-  "@/utils/localizedCollection/components/publishLocalized#default": default_2c2463c13adff3bd1c62ce908cf29578,
-  "@/components/payload/login#default": default_468452e575ad66e753c7045adde05940,
-  "@/components/payload/dashboardWelcomeBanner#default": default_dbc7e56c6c46c5d54c4604e9e4c1fb1a
+  "@/payload-cms/components/multi-lang-publishing/publishing-status#default": default_0ab278369767a73bfbc2c2f4a007b998,
+  "@/payload-cms/components/auto-translate/auto-translate#default": default_9cd475b1aaf02d03a2cf4b9e18b7b42b,
+  "@/payload-cms/components/multi-lang-publishing/publish-localized#default": default_04fa20694178abb35147c42812b162ee,
+  "@/payload-cms/components/login-page/login-button#default": default_abbf2011d9b97ad31e02e7216d77d850,
+  "@/payload-cms/components/dashboard-welcome-banner#default": default_c3cc3b6e219a6fc03e424c337d312b51
 }

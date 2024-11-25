@@ -1,6 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 import colors from 'tailwindcss/colors';
 
+// eslint-disable-next-line unicorn/prefer-module
 module.exports = {
   content: ['./src/**/*.{js,ts,jsx,tsx,mdx}'],
   prefix: '',

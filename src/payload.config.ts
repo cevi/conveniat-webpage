@@ -1,20 +1,20 @@
 import { mongooseAdapter } from '@payloadcms/db-mongodb';
 import { lexicalEditor } from '@payloadcms/richtext-lexical';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 
-import { Users } from './collections/Users';
-import { Media } from './collections/Media';
-import { BlogArticle } from '@/collections/BlogArticle';
+import { UserCollection } from '@/payload-cms/collections/user-collection';
+import { MediaCollection } from '@/payload-cms/collections/media-collection';
+import { BlogArticleCollection } from '@/payload-cms/collections/blog-article-collection';
 import { en } from 'payload/i18n/en';
 import { de } from 'payload/i18n/de';
 import { fr } from 'payload/i18n/fr';
-import { locales } from '@/utils/globalDefinitions';
-import { buildSecureConfig } from '@/access/secureConfig';
-import { Footer } from './globals/Footer';
-import { SEO } from './globals/SEO';
-import { Header } from './globals/Header';
+import { locales } from '@/payload-cms/locales';
+import { buildSecureConfig } from '@/payload-cms/access-rules/build-secure-config';
+import { FooterGlobal } from '@/payload-cms/globals/footer-global';
+import { SeoGlobal } from '@/payload-cms/globals/seo-global';
+import { HeaderGlobal } from '@/payload-cms/globals/header-global';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -43,16 +43,16 @@ export default buildSecureConfig({
     components: {
       beforeDashboard: [
         {
-          path: '@/components/payload/dashboardWelcomeBanner',
+          path: '@/payload-cms/components/dashboard-welcome-banner',
         },
       ],
       afterLogin: [
         {
-          path: '@/components/payload/login',
+          path: '@/payload-cms/components/login-page/login-button',
         },
       ],
     },
-    user: Users.slug,
+    user: UserCollection.slug,
     importMap: {
       baseDir: path.resolve(dirname),
     },
@@ -62,9 +62,9 @@ export default buildSecureConfig({
       collections: ['blog'],
     },
   },
-  collections: [Users, Media, BlogArticle],
+  collections: [UserCollection, MediaCollection, BlogArticleCollection],
   editor: lexicalEditor(),
-  globals: [SEO, Header, Footer],
+  globals: [SeoGlobal, HeaderGlobal, FooterGlobal],
   localization: {
     locales,
     defaultLocale: 'de-CH',
