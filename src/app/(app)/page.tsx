@@ -5,6 +5,10 @@ import './globals.css';
 import Image from 'next/image';
 import Link from 'next/link';
 import React from 'react';
+import { HeadlineH1 } from '@/components/headline-h1';
+import { TeaserText } from '@/components/teaser-text';
+import { CallToAction } from '@/components/call-to-action';
+import { SubheadingH2 } from '@/components/subheading-h2';
 
 const Page: React.FC = async () => {
   const payload = await getPayload({ config });
@@ -25,31 +29,21 @@ const Page: React.FC = async () => {
 
   return (
     <article className="mx-auto max-w-6xl px-8 py-8">
-      <h1 className="max-w-lg font-heading text-[26px] font-extrabold leading-[40px] text-conveniat-green-500">
-        Landing Page (Prod Build)
-      </h1>
+      <HeadlineH1>Welcome to Conveniat 2027</HeadlineH1>
 
-      <p className="pb-12 font-body text-base font-normal text-conveniat-text">
+      <TeaserText>
         Apparently we had reached a great height in the atmosphere, for the sky was a dead black,
         and the stars had ceased to twinkle. By the same illusion which lifts the horizon of the sea
         to the level of the spectato.
-      </p>
+      </TeaserText>
 
-      <div className="mb-20 flex h-fit min-h-full justify-end">
-        <Link href="/">
-          <button className="rounded-[5px] bg-conveniat-green-500 px-12 py-4 text-center font-heading text-lg font-bold leading-normal text-[#f3f3f3] hover:bg-conveniat-green-600">
-            Erfahre mehr &gt;
-          </button>
-        </Link>
-      </div>
+      <CallToAction>Erfahre mehr &gt;</CallToAction>
 
       <div className="-mx-8">
         <Image src="/big-tent.png" alt="Konekta 2024" width={1200} height={800} />
       </div>
 
-      <h2 className="mt-10 max-w-lg py-4 font-heading text-[20px] font-extrabold leading-[32px] text-conveniat-green-500">
-        This is Just a Subheading
-      </h2>
+      <SubheadingH2>This is Just a Subheading</SubheadingH2>
 
       <p className="pb-12 font-body text-sm font-normal text-conveniat-text">
         Reached a great height in the atmosphere, for the sky was a dead black, and the stars had
@@ -62,9 +56,7 @@ const Page: React.FC = async () => {
         </Link>
       </p>
 
-      <h2 className="mt-10 max-w-lg py-4 font-heading text-[20px] font-extrabold leading-[32px] text-conveniat-green-500">
-        Another Subheading
-      </h2>
+      <SubheadingH2> Another Subheading</SubheadingH2>
 
       <p className="pb-12 font-body text-sm font-normal text-conveniat-text">
         Reached a great height in the atmosphere, for the sky was a dead black, and the stars had
@@ -87,9 +79,7 @@ const Page: React.FC = async () => {
 
       <hr />
 
-      <h2 className="mt-10 max-w-lg py-4 font-heading text-[20px] font-extrabold leading-[32px] text-conveniat-green-500">
-        Latest Blog Articles
-      </h2>
+      <SubheadingH2> Latest Blog Articles</SubheadingH2>
 
       <div className="max-w-8xl mx-auto mt-12 grid grid-cols-2 gap-8">
         {blogs.map((blog) => (
