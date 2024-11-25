@@ -9,7 +9,6 @@ import eslintPluginUnicorn from 'eslint-plugin-unicorn';
 import { FlatCompat } from '@eslint/eslintrc';
 import { fixupConfigRules } from '@eslint/compat';
 
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const compat = new FlatCompat({
@@ -30,7 +29,7 @@ const config = [
     files: ['**/next-env.d.ts'],
     rules: {
       'unicorn/prevent-abbreviations': 'off',
-    }
+    },
   },
   {
     languageOptions: {
