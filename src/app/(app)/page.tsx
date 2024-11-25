@@ -9,6 +9,7 @@ import { HeadlineH1 } from '@/components/typography/headline-h1';
 import { TeaserText } from '@/components/typography/teaser-text';
 import { CallToAction } from '@/components/buttons/call-to-action';
 import { SubheadingH2 } from '@/components/typography/subheading-h2';
+import { ParagraphText } from '@/components/typography/paragraph-text';
 
 const Page: React.FC = async () => {
   const payload = await getPayload({ config });
@@ -45,7 +46,7 @@ const Page: React.FC = async () => {
 
       <SubheadingH2>This is Just a Subheading</SubheadingH2>
 
-      <p className="pb-12 font-body text-sm font-normal text-conveniat-text">
+      <ParagraphText>
         Reached a great height in the atmosphere, for the sky was a dead black, and the stars had
         ceased to twinkle. By the same illusion which lifts the horizon of the sea to the level of
         the spectato. Apparently we had reached a great height in the atmosphere, for the sky was a
@@ -54,17 +55,17 @@ const Page: React.FC = async () => {
         <Link className="font-semibold text-cevi-blue-300 hover:text-cevi-blue-500" href={`/`}>
           Read more.
         </Link>
-      </p>
+      </ParagraphText>
 
       <SubheadingH2> Another Subheading</SubheadingH2>
 
-      <p className="pb-12 font-body text-sm font-normal text-conveniat-text">
+      <ParagraphText>
         Reached a great height in the atmosphere, for the sky was a dead black, and the stars had
         ceased to twinkle. By the same illusion which lifts the horizon of the sea to the level of
         the spectato. Apparently we had reached a great height in the atmosphere, for the sky was a
         dead black, and the stars had ceased to twinkle. By the same illusion which lifts the
         horizon of the sea to the level of the spectato
-      </p>
+      </ParagraphText>
 
       <div className="mb-16 mt-8 flex flex-col items-center justify-center space-y-4 text-center">
         <span className="max-w-xl font-['Solitreo'] text-cite font-normal text-conveniat-text">
