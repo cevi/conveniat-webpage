@@ -1,15 +1,12 @@
 'use client';
 
 import { FormSubmit } from '@payloadcms/ui';
-import { useState } from 'react';
+import React, { useState } from 'react';
 
-const LanguageSelectionModal = ({
-  onClose,
-  onTranslate,
-}: {
+const LanguageSelectionModal: React.FC<{
   onClose: () => void;
   onTranslate: (source: string, target: string) => void;
-}) => {
+}> = ({ onClose, onTranslate }) => {
   const [sourceLanguage, setSourceLanguage] = useState('');
   const [targetLanguage, setTargetLanguage] = useState('');
 
@@ -23,7 +20,7 @@ const LanguageSelectionModal = ({
           <select
             className="mt-1 block w-full border p-2"
             value={sourceLanguage}
-            onChange={(e) => setSourceLanguage(e.target.value)}
+            onChange={(event) => setSourceLanguage(event.target.value)}
           >
             <option value="">Select source language</option>
             <option value="en-US">English</option>
@@ -37,7 +34,7 @@ const LanguageSelectionModal = ({
           <select
             className="mt-1 block w-full border p-2"
             value={targetLanguage}
-            onChange={(e) => setTargetLanguage(e.target.value)}
+            onChange={(event) => setTargetLanguage(event.target.value)}
           >
             <option value="">Select source language</option>
             <option value="en">English</option>
@@ -62,7 +59,7 @@ const LanguageSelectionModal = ({
   );
 };
 
-const AutoTranslate = () => {
+const AutoTranslate: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
 
   const handleTranslate = (source: string, target: string) => {

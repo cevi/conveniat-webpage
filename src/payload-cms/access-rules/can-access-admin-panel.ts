@@ -1,6 +1,6 @@
 import { Access, PayloadRequest } from 'payload';
 
-const GROUPS_WITH_API_ACCESS = [541];
+const GROUPS_WITH_API_ACCESS = new Set([541]);
 
 /**
  * Access control function that checks if the user is an editor.
@@ -16,7 +16,7 @@ export const canAccessAdminPanel: ({
   req: PayloadRequest;
 }) => boolean | Promise<boolean> = ({ req: { user } }) => {
   if (!user) return false;
-  return user.groups.some((group) => GROUPS_WITH_API_ACCESS.includes(group.id));
+  return user.groups.some((group) => GROUPS_WITH_API_ACCESS.has(group.id));
 };
 
 /**
@@ -27,5 +27,5 @@ export const canAccessAdminPanel: ({
  */
 export const canAccessAPI: Access = ({ req: { user } }) => {
   if (!user) return false;
-  return user.groups.some((group) => GROUPS_WITH_API_ACCESS.includes(group.id));
+  return user.groups.some((group) => GROUPS_WITH_API_ACCESS.has(group.id));
 };

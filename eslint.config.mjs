@@ -5,6 +5,7 @@ import ts from 'typescript-eslint';
 import prettierConfigRecommended from 'eslint-plugin-prettier/recommended';
 import reactNamingConvention from 'eslint-plugin-react-naming-convention';
 import progress from 'eslint-plugin-file-progress';
+import eslintPluginUnicorn from 'eslint-plugin-unicorn';
 import { FlatCompat } from '@eslint/eslintrc';
 import { fixupConfigRules } from '@eslint/compat';
 
@@ -24,6 +25,13 @@ const config = [
   ...patchedConfig,
   ...ts.configs.recommended,
   prettierConfigRecommended,
+  eslintPluginUnicorn.configs['flat/recommended'],
+  {
+    files: ['**/next-env.d.ts'],
+    rules: {
+      'unicorn/prevent-abbreviations': 'off',
+    }
+  },
   {
     languageOptions: {
       parserOptions: {

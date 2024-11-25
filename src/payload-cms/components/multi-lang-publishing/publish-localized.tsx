@@ -16,7 +16,7 @@ import {
   useTranslation,
 } from '@payloadcms/ui';
 import { cva } from 'class-variance-authority';
-import { useIsPublished } from '@/utils/localizedCollection/hooks';
+import { useIsPublished } from '@/payload-cms/hooks/hooks';
 import { Config } from '@/payload-types';
 
 /**
@@ -97,9 +97,9 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = () => {
     });
   }, [forceDisable, locale, collectionSlug, globalSlug, submit, code, serverURL, api, id]);
 
-  useHotkey({ cmdCtrlKey: true, editDepth, keyCodes: ['s'] }, (e) => {
-    e.preventDefault();
-    e.stopPropagation();
+  useHotkey({ cmdCtrlKey: true, editDepth, keyCodes: ['s'] }, (event) => {
+    event.preventDefault();
+    event.stopPropagation();
 
     if (docConfig?.versions.drafts && docConfig.versions.drafts.autosave) {
       void saveDraft();
@@ -108,13 +108,13 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = () => {
 
   const publishSpecificLocale = useCallback(
     (_locale: string) => {
-      const params = qs.stringify({
+      const parameters = qs.stringify({
         publishSpecificLocale: _locale,
       });
 
       const action = `${serverURL}${api}${
         globalSlug ? `/globals/${globalSlug}` : `/${collectionSlug}/${id ? `/${id}` : ''}`
-      }${params ? '?' + params : ''}`;
+      }${parameters ? '?' + parameters : ''}`;
 
       void submit({
         action,
@@ -131,13 +131,13 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = () => {
 
   const unpublishSpecificLocale = useCallback(
     (_locale: string) => {
-      const params = qs.stringify({
+      const parameters = qs.stringify({
         publishSpecificLocale: _locale,
       });
 
       const action = `${serverURL}${api}${
         globalSlug ? `/globals/${globalSlug}` : `/${collectionSlug}/${id ? `/${id}` : ''}`
-      }${params ? '?' + params : ''}`;
+      }${parameters ? '?' + parameters : ''}`;
 
       void submit({
         action,

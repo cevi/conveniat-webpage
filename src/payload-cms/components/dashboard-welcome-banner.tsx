@@ -1,4 +1,6 @@
-const dashboardWelcomeBanner = () => {
+import React from 'react';
+
+const DashboardWelcomeBanner: React.FC = () => {
   return (
     <div>
       <h1>Willkommen zum CMS der Conveniat Webpage</h1>
@@ -7,4 +9,4 @@ const dashboardWelcomeBanner = () => {
   );
 };
 
-export default dashboardWelcomeBanner;
+export default DashboardWelcomeBanner;

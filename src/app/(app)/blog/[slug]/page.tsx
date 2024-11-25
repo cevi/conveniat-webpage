@@ -1,12 +1,13 @@
 import config from '@payload-config';
 import { ErrorBoundary } from 'react-error-boundary';
 import { getPayload } from 'payload';
+import React from 'react';
 
-interface BlogPostProps {
+interface BlogPostProperties {
   slug?: string;
 }
 
-async function BlogPost({ slug }: BlogPostProps) {
+const BlogPost: React.FC<BlogPostProperties> = async ({ slug }: BlogPostProperties) => {
   const payload = await getPayload({ config });
 
   const article_paged = await payload.find({
@@ -67,9 +68,9 @@ async function BlogPost({ slug }: BlogPostProps) {
       )}
     </article>
   );
-}
+};
 
-const Page = async ({ params }: { params: Promise<{ slug: string }> }) => {
+const Page: React.FC<{ params: Promise<{ slug: string }> }> = async ({ params }) => {
   const { slug } = await params;
 
   return (

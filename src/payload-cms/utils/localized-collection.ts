@@ -49,7 +49,7 @@ export const asLocalizedCollection = (config: CollectionConfig): CollectionConfi
         edit: {
           ...config.admin?.components?.edit,
           // modify the Publish button to publish only the current locale
-          PublishButton: '@/utils/localizedCollection/components/publishLocalized',
+          PublishButton: '@/payload-cms/components/multi-lang-publishing/publish-localized',
         },
       },
     },
@@ -60,7 +60,7 @@ export const asLocalizedCollection = (config: CollectionConfig): CollectionConfi
         admin: {
           components: {
             // adds the publishing status to the top of the edit page
-            Field: '@/utils/localizedCollection/components/publishingStatus',
+            Field: '@/payload-cms/components/multi-lang-publishing/publishing-status',
           },
         },
       },
@@ -71,7 +71,7 @@ export const asLocalizedCollection = (config: CollectionConfig): CollectionConfi
         admin: {
           components: {
             // adds the publishing status to the top of the edit page
-            Field: '@/utils/localizedCollection/components/autoTranslate',
+            Field: '@/payload-cms/components/auto-translate/auto-translate',
           },
         },
       },

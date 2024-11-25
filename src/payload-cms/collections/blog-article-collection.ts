@@ -1,5 +1,5 @@
 import { CollectionConfig, Field } from 'payload';
-import { asLocalizedCollection } from '@/utils/localizedCollection';
+import { asLocalizedCollection } from '@/payload-cms/utils/localized-collection';
 
 const blogArticleTitleField: Field = {
   name: 'blogH1',
@@ -22,7 +22,7 @@ const blogArticleTitleField: Field = {
 
 const blogArticleFields: Field[] = [blogArticleTitleField];
 
-export const BlogArticle: CollectionConfig = asLocalizedCollection({
+export const BlogArticleCollection: CollectionConfig = asLocalizedCollection({
   // Unique, URL-friendly string that will act as an identifier for this Collection.
   slug: 'blog',
 

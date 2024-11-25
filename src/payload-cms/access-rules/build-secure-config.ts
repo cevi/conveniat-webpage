@@ -1,5 +1,5 @@
 import { buildConfig, Config } from 'payload';
-import { canAccessAPI } from '@/access/canAccessAdminPanel';
+import { canAccessAPI } from '@/payload-cms/access-rules/can-access-admin-panel';
 
 /**
  * Builds a secure config by applying default access rules to all globals and collections.
@@ -15,28 +15,30 @@ import { canAccessAPI } from '@/access/canAccessAdminPanel';
  */
 export const buildSecureConfig = (config: Config) => {
   // apply default rules to all globals
-  config.globals?.forEach((global) => {
-    global.access = {
-      read: canAccessAPI,
-      update: canAccessAPI,
-      readVersions: canAccessAPI,
-      readDrafts: canAccessAPI,
-      ...global.access,
-    };
-  });
+  if (config.globals)
+    for (const global of config.globals) {
+      global.access = {
+        read: canAccessAPI,
+        update: canAccessAPI,
+        readVersions: canAccessAPI,
+        readDrafts: canAccessAPI,
+        ...global.access,
+      };
+    }
 
   // apply default rules to all collections
-  config.collections?.forEach((collection) => {
-    collection.access = {
-      read: canAccessAPI,
-      create: canAccessAPI,
-      update: canAccessAPI,
-      delete: canAccessAPI,
-      readVersions: canAccessAPI,
-      unlock: canAccessAPI,
-      ...collection.access,
-    };
-  });
+  if (config.collections)
+    for (const collection of config.collections) {
+      collection.access = {
+        read: canAccessAPI,
+        create: canAccessAPI,
+        update: canAccessAPI,
+        delete: canAccessAPI,
+        readVersions: canAccessAPI,
+        unlock: canAccessAPI,
+        ...collection.access,
+      };
+    }
 
   return buildConfig(config);
 };

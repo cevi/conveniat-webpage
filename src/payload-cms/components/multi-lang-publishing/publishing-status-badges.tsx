@@ -1,8 +1,8 @@
 'use client';
 import { cva } from 'class-variance-authority';
-import { useHasPendingChanges, useIsPublished } from '@/utils/localizedCollection/hooks';
+import { useHasPendingChanges, useIsPublished } from '@/payload-cms/hooks/hooks';
 import { Config } from '@/payload-types';
-import { NotYetSavedException } from '@/utils/localizedCollection/utils';
+import { NotYetSavedException } from '@/payload-cms/utils/utils';
 
 const languageStatusClasses = cva('text-sm font-medium me-2 px-2.5 py-0.5 rounded relative group', {
   variants: {
@@ -65,11 +65,11 @@ const LanguageStatusPlaceholder = ({ label }: { label: string }) => (
 );
 
 export const PublishingStatusBadges = () => {
-  const { isPublished, error: errIsPub } = useIsPublished();
-  const { hasUnpublishedChanges, error: errHasUnpub } = useHasPendingChanges();
+  const { isPublished, error: errorIsPub } = useIsPublished();
+  const { hasUnpublishedChanges, error: errorHasUnpub } = useHasPendingChanges();
 
-  if (errIsPub || errHasUnpub) {
-    if (typeof errIsPub === 'object' && errIsPub instanceof NotYetSavedException) {
+  if (errorIsPub || errorHasUnpub) {
+    if (typeof errorIsPub === 'object' && errorIsPub instanceof NotYetSavedException) {
       return <span>🛈 Not yet saved. Please save the document first.</span>;
     }
 

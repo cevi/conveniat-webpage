@@ -4,8 +4,9 @@ import { getPayload } from 'payload';
 import './globals.css';
 import Image from 'next/image';
 import Link from 'next/link';
+import React from 'react';
 
-const Page = async () => {
+const Page: React.FC = async () => {
   const payload = await getPayload({ config });
 
   const blogs_paged = await payload.find({

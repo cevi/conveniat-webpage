@@ -1,4 +1,4 @@
-import { PublishingStatusBadges } from '@/utils/localizedCollection/components/PublishingStatusBadges';
+import { PublishingStatusBadges } from '@/payload-cms/components/multi-lang-publishing/publishing-status-badges';
 
 const PublishingStatus = () => (
   <div className="divide-slate-600 mb-8">
