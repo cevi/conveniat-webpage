@@ -104,6 +104,9 @@ importers:
       eslint-config-next:
         specifier: ^15.0.3
         version: 15.0.3(eslint@9.15.0(jiti@1.21.6))(typescript@5.5.4)
+      eslint-plugin-file-progress:
+        specifier: ^3.0.1
+        version: 3.0.1(eslint@9.15.0(jiti@1.21.6))
       eslint-plugin-next:
         specifier: ^0.0.0
         version: 0.0.0
@@ -1989,6 +1992,12 @@ packages:
       eslint-import-resolver-webpack:
         optional: true
 
+  eslint-plugin-file-progress@3.0.1:
+    resolution: {integrity: sha512-sPUOIifutW3Ehhmujt40IU5ytXL6HnuGVev2n9cp4d5fzVOoQp1K17DJ/I+cRdctmTpMcYit/fOuF9efjmD98A==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    peerDependencies:
+      eslint: ^9.12.0
+
   eslint-plugin-import@2.31.0:
     resolution: {integrity: sha512-ixmkI62Rbc2/w8Vfxyh1jQRTdRTF52VxwRVHl/ykPAmqG+Nb7/kNn+byLP0LxPgI7zWA16Jt82SybJInmMia3A==}
     engines: {node: '>=4'}
@@ -2829,6 +2838,9 @@ packages:
     resolution: {integrity: sha512-eSRppjcPIatRIMC1U6UngP8XFcz8MQWGQdt1MTBQ7NaAmvXDfvNxbvWV3x2y6CdEUciCSsDHDQZbhYaB8QEo2g==}
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
+
+  nanospinner@1.2.0:
+    resolution: {integrity: sha512-dGxYcEj8YhuxjVO3PYmnj1nBhtwUkvuwYbLl/MduBPmQUPy3xBtG/ScJgqZgntQkX44UQaCSlFeW4rS5fUR/Sw==}
 
   napi-build-utils@1.0.2:
     resolution: {integrity: sha512-ONmRUqK7zj7DWX0D9ADe03wbwOBZxNAfF20PlGfCWQcD3+/MakShIHrMqx9YwPTfxDdF1zLeL+RGZiR9kGMLdg==}
@@ -6609,6 +6621,12 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  eslint-plugin-file-progress@3.0.1(eslint@9.15.0(jiti@1.21.6)):
+    dependencies:
+      eslint: 9.15.0(jiti@1.21.6)
+      nanospinner: 1.2.0
+      picocolors: 1.1.1
+
   eslint-plugin-import@2.31.0(@typescript-eslint/parser@8.15.0(eslint@9.15.0(jiti@1.21.6))(typescript@5.5.4))(eslint-import-resolver-typescript@3.6.3)(eslint@9.15.0(jiti@1.21.6)):
     dependencies:
       '@rtsao/scc': 1.1.0
@@ -7617,6 +7635,10 @@ snapshots:
       thenify-all: 1.6.0
 
   nanoid@3.3.7: {}
+
+  nanospinner@1.2.0:
+    dependencies:
+      picocolors: 1.1.1
 
   napi-build-utils@1.0.2: {}
 

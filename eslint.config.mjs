@@ -6,6 +6,8 @@ import { FlatCompat } from '@eslint/eslintrc';
 import { fixupPluginRules } from '@eslint/compat';
 import tsEslint from 'typescript-eslint';
 import reactNamingConvention from 'eslint-plugin-react-naming-convention';
+import progress from 'eslint-plugin-file-progress';
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -30,6 +32,7 @@ const patchedConfig = compatConfig.map((entry) => {
 });
 
 const config = [
+  progress.configs.recommended,
   eslint.configs.recommended,
   ...tsEslint.configs.recommendedTypeChecked,
   {
