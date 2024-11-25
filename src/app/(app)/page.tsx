@@ -5,10 +5,10 @@ import './globals.css';
 import Image from 'next/image';
 import Link from 'next/link';
 import React from 'react';
-import { HeadlineH1 } from '@/components/headline-h1';
-import { TeaserText } from '@/components/teaser-text';
-import { CallToAction } from '@/components/call-to-action';
-import { SubheadingH2 } from '@/components/subheading-h2';
+import { HeadlineH1 } from '@/components/typography/headline-h1';
+import { TeaserText } from '@/components/typography/teaser-text';
+import { CallToAction } from '@/components/buttons/call-to-action';
+import { SubheadingH2 } from '@/components/typography/subheading-h2';
 
 const Page: React.FC = async () => {
   const payload = await getPayload({ config });
