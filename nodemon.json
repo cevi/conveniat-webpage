@@ -1,5 +1,5 @@
 {
-  "watch": ["./src/payload-cms", "./payload.config.ts"],
+  "watch": ["./src/payload-cms", "./payload.config.ts", "./src/auth", "nodemon.json"],
   "ext": "js,ts,tsx,jsx,json",
   "exec": "pnpm generate:types && cross-env NODE_OPTIONS=--no-deprecation next dev"
 }
