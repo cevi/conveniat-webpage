@@ -1,4 +1,4 @@
-dd import { Block } from 'payload';
+import { Block } from 'payload';
 
 export const subheadingH2: Block = {
   slug: 'subheading', // required
