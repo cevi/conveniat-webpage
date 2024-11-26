@@ -66,12 +66,14 @@ export interface Config {
     header: Header;
     footer: Footer;
     PWA: PWA;
+    landingPage: LandingPage;
   };
   globalsSelect: {
     SEO: SEOSelect<false> | SEOSelect<true>;
     header: HeaderSelect<false> | HeaderSelect<true>;
     footer: FooterSelect<false> | FooterSelect<true>;
     PWA: PWASelect<false> | PWASelect<true>;
+    landingPage: LandingPageSelect<false> | LandingPageSelect<true>;
   };
   locale: 'en-US' | 'de-CH' | 'fr-CH';
   user: User & {
@@ -341,6 +343,37 @@ export interface PWA {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "landingPage".
+ */
+export interface LandingPage {
+  id: string;
+  pageTitle: string;
+  pageContent?: (SubheadingH2 | Paragraph)[] | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "SubheadingH2".
+ */
+export interface SubheadingH2 {
+  value: string;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'subheading';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "Paragraph".
+ */
+export interface Paragraph {
+  value: string;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'paragraph';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "SEO_select".
  */
 export interface SEOSelect<T extends boolean = true> {
@@ -385,6 +418,34 @@ export interface PWASelect<T extends boolean = true> {
   appName?: T;
   appShortName?: T;
   appDescription?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "landingPage_select".
+ */
+export interface LandingPageSelect<T extends boolean = true> {
+  pageTitle?: T;
+  pageContent?:
+    | T
+    | {
+        subheading?:
+          | T
+          | {
+              value?: T;
+              id?: T;
+              blockName?: T;
+            };
+        paragraph?:
+          | T
+          | {
+              value?: T;
+              id?: T;
+              blockName?: T;
+            };
+      };
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
