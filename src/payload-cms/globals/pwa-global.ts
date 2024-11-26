@@ -1,8 +1,12 @@
 import { GlobalConfig } from 'payload';
 
-export const PWAGlobals: GlobalConfig = {
+export const PWAGlobal: GlobalConfig = {
   slug: 'PWA',
   label: 'PWA Settings',
+  admin: {
+    group: 'Global Settings',
+    description: 'Settings for the Progressive Web App',
+  },
   fields: [
     {
       name: 'appName',

@@ -3,7 +3,6 @@ import { getPayload } from 'payload';
 
 import './globals.css';
 import Image from 'next/image';
-import Link from 'next/link';
 import React from 'react';
 import { HeadlineH1 } from '@/components/typography/headline-h1';
 import { TeaserText } from '@/components/typography/teaser-text';
@@ -14,7 +13,11 @@ import { ParagraphText } from '@/components/typography/paragraph-text';
 const Page: React.FC = async () => {
   const payload = await getPayload({ config });
 
-  const blogs_paged = await payload.find({
+  const { pageTitle, pageContent } = await payload.findGlobal({
+    slug: 'landingPage',
+  });
+
+  const blogsPaged = await payload.find({
     collection: 'blog',
     where: {
       _localized_status: {
@@ -26,11 +29,11 @@ const Page: React.FC = async () => {
     limit: 5,
   });
 
-  const blogs = blogs_paged.docs;
+  const blogs = blogsPaged.docs;
 
   return (
     <article className="mx-auto max-w-6xl px-8 py-8">
-      <HeadlineH1>Welcome to Conveniat 2027</HeadlineH1>
+      <HeadlineH1>{pageTitle}</HeadlineH1>
 
       <TeaserText>
         Apparently we had reached a great height in the atmosphere, for the sky was a dead black,
@@ -41,31 +44,20 @@ const Page: React.FC = async () => {
       <CallToAction>Erfahre mehr &gt;</CallToAction>
 
       <div className="-mx-8">
-        <Image src="/big-tent.png" alt="Konekta 2024" width={1200} height={800} />
+        <Image src="/imgs/big-tent.png" alt="Konekta 2024" width={1200} height={800} />
       </div>
 
-      <SubheadingH2>This is Just a Subheading</SubheadingH2>
+      {pageContent?.map((block) => {
+        return block.blockType === 'subheading' ? (
+          <SubheadingH2 key={block.id}>{block.value}</SubheadingH2>
+        ) : (
+          <ParagraphText key={block.id}>{block.value}</ParagraphText>
+        );
+      })}
 
-      <ParagraphText>
-        Reached a great height in the atmosphere, for the sky was a dead black, and the stars had
-        ceased to twinkle. By the same illusion which lifts the horizon of the sea to the level of
-        the spectato. Apparently we had reached a great height in the atmosphere, for the sky was a
-        dead black, and the stars had ceased to twinkle. By the same illusion which lifts the
-        horizon of the sea to the level of the spectato.{' '}
-        <Link className="font-semibold text-cevi-blue-300 hover:text-cevi-blue-500" href={`/`}>
-          Read more.
-        </Link>
-      </ParagraphText>
+      <hr />
 
       <SubheadingH2> Another Subheading</SubheadingH2>
-
-      <ParagraphText>
-        Reached a great height in the atmosphere, for the sky was a dead black, and the stars had
-        ceased to twinkle. By the same illusion which lifts the horizon of the sea to the level of
-        the spectato. Apparently we had reached a great height in the atmosphere, for the sky was a
-        dead black, and the stars had ceased to twinkle. By the same illusion which lifts the
-        horizon of the sea to the level of the spectato
-      </ParagraphText>
 
       <div className="mb-16 mt-8 flex flex-col items-center justify-center space-y-4 text-center">
         <span className="max-w-xl font-['Solitreo'] text-cite font-normal text-conveniat-text">
@@ -77,8 +69,6 @@ const Page: React.FC = async () => {
           <span className="text-conveniat-text">Teilnehmer Conveniat 2027</span>
         </div>
       </div>
-
-      <hr />
 
       <SubheadingH2> Latest Blog Articles</SubheadingH2>
 

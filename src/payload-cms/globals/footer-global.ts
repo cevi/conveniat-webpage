@@ -20,4 +20,8 @@ export const FooterGlobal: GlobalConfig = {
       required: true,
     },
   ],
+  admin: {
+    group: 'Content',
+    description: 'Settings for the footer',
+  },
 };

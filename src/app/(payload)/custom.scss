@@ -6,3 +6,8 @@
 @tailwind components;
 @tailwind utilities;
 /***************************************************/
+
+// increase the space after the collection / globals description
+.view-description {
+  margin-bottom: 60px;
+}

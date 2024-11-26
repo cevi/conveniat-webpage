@@ -3,6 +3,10 @@ import { GlobalConfig } from 'payload';
 export const SeoGlobal: GlobalConfig = {
   slug: 'SEO',
   label: 'SEO Settings',
+  admin: {
+    group: 'Global Settings',
+    description: 'Settings for the search engine optimization',
+  },
   fields: [
     {
       name: 'defaultTitle',
