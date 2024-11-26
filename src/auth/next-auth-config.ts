@@ -10,6 +10,8 @@ interface HitobitoProfile {
   roles: {
     group_id: number;
     group_name: string;
+    role_name: string;
+    role_class: string;
   }[];
 }
 
@@ -108,6 +110,8 @@ export const authOptions: NextAuthConfig = {
       token.groups = profile.roles.map((role) => ({
         id: role.group_id,
         name: role.group_name,
+        role_name: role.role_name,
+        role_class: role.role_class,
       }));
 
       token.email = profile.email;

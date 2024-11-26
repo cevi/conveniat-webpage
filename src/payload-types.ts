@@ -15,11 +15,21 @@ export type TheIDOfTheGroup = number;
  */
 export type TheNameOfTheGroup = string;
 /**
+ * The name of the role the user has in the group.
+ */
+export type TheNameOfTheRole = string;
+/**
+ * The class of the role the user has in the group.
+ */
+export type TheClassOfTheRole = string;
+/**
  * The groups the user is in as extracted from the CeviDB profile.
  */
 export type GroupsOfTheUser = {
   id: TheIDOfTheGroup;
   name: TheNameOfTheGroup;
+  role_name: TheNameOfTheRole;
+  role_class: TheClassOfTheRole;
   [k: string]: unknown;
 }[];
 /**
