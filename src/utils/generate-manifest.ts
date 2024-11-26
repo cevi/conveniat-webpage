@@ -23,7 +23,7 @@ export const generateManifest = async (): Promise<MetadataRoute.Manifest> => {
     short_name: appShortName,
     description: appDescription,
     start_url: '/',
-    display: 'fullscreen',
+    display: 'standalone',
     background_color: '#fff',
     theme_color: '#47564c',
     icons: manifestIconDefinitions,
