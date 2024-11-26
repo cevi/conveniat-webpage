@@ -18,8 +18,7 @@ services:
     image: mongo:latest
     ports:
       - '27017:27017'
-    command:
-      - --storageEngine=wiredTiger
+    command: mongod --quiet --logpath /dev/null  --storageEngine=wiredTiger
     volumes:
       - data:/data/db
     logging:
