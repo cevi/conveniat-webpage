@@ -55,11 +55,13 @@ export interface Config {
     SEO: SEO;
     header: Header;
     footer: Footer;
+    PWA: PWA;
   };
   globalsSelect: {
     SEO: SEOSelect<false> | SEOSelect<true>;
     header: HeaderSelect<false> | HeaderSelect<true>;
     footer: FooterSelect<false> | FooterSelect<true>;
+    PWA: PWASelect<false> | PWASelect<true>;
   };
   locale: 'en-US' | 'de-CH' | 'fr-CH';
   user: User & {
@@ -287,10 +289,11 @@ export interface SEO {
   id: string;
   defaultTitle: string;
   defaultDescription: string;
-  keywords: {
+  defaultKeywords: {
     keyword: string;
     id?: string | null;
   }[];
+  publisher: string;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -316,17 +319,30 @@ export interface Footer {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "PWA".
+ */
+export interface PWA {
+  id: string;
+  appName: string;
+  appShortName: string;
+  appDescription: string;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "SEO_select".
  */
 export interface SEOSelect<T extends boolean = true> {
   defaultTitle?: T;
   defaultDescription?: T;
-  keywords?:
+  defaultKeywords?:
     | T
     | {
         keyword?: T;
         id?: T;
       };
+  publisher?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
@@ -347,6 +363,18 @@ export interface HeaderSelect<T extends boolean = true> {
 export interface FooterSelect<T extends boolean = true> {
   donationIban?: T;
   footerClaim?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "PWA_select".
+ */
+export interface PWASelect<T extends boolean = true> {
+  appName?: T;
+  appShortName?: T;
+  appDescription?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

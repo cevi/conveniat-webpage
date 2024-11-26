@@ -15,6 +15,7 @@ import { buildSecureConfig } from '@/payload-cms/access-rules/build-secure-confi
 import { FooterGlobal } from '@/payload-cms/globals/footer-global';
 import { SeoGlobal } from '@/payload-cms/globals/seo-global';
 import { HeaderGlobal } from '@/payload-cms/globals/header-global';
+import { PWAGlobals } from '@/payload-cms/globals/pwa-global';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -64,7 +65,7 @@ export default buildSecureConfig({
   },
   collections: [UserCollection, MediaCollection, BlogArticleCollection],
   editor: lexicalEditor(),
-  globals: [SeoGlobal, HeaderGlobal, FooterGlobal],
+  globals: [SeoGlobal, HeaderGlobal, FooterGlobal, PWAGlobals],
   localization: {
     locales,
     defaultLocale: 'de-CH',
