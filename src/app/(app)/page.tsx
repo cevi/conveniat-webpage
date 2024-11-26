@@ -48,13 +48,11 @@ const Page: React.FC = async () => {
       </div>
 
       {pageContent?.map((block) => {
-        if (block.blockType === 'subheading') {
-          return <SubheadingH2 key={block.id}>{block.value}</SubheadingH2>;
-        } else if (block.blockType === 'paragraph') {
-          return <ParagraphText key={block.id}>{block.value}</ParagraphText>;
-        } else {
-          return null;
-        }
+        return block.blockType === 'subheading' ? (
+          <SubheadingH2 key={block.id}>{block.value}</SubheadingH2>
+        ) : (
+          <ParagraphText key={block.id}>{block.value}</ParagraphText>
+        );
       })}
 
       <hr />
