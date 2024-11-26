@@ -4,7 +4,7 @@ on:
       - main
 
 jobs:
-  eslint:
+  build-production-image:
     runs-on: ubuntu-latest
 
     steps:

@@ -1,4 +1,4 @@
-export { generateManifest as default } from '@/utils/generate-manifest';
+export { generateSitemap as default } from '@/utils/generate-sitemap';
 
 // TODO: bring back caching, e.g. to two hours
 //  currently the issue is that without 'force-dynamic' the page
