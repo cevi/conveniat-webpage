@@ -12,6 +12,10 @@ export const generateMetadata = async (): Promise<Metadata> => {
       slug: 'SEO',
     });
 
+  const { appName } = await payload.findGlobal({
+    slug: 'PWA',
+  });
+
   return {
     title: {
       default: defaultTitle,
@@ -26,6 +30,11 @@ export const generateMetadata = async (): Promise<Metadata> => {
       email: true,
       address: true,
       telephone: true,
+    },
+
+    appleWebApp: {
+      title: appName,
+      statusBarStyle: 'black-translucent',
     },
 
     alternates: {

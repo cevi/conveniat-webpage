@@ -25,7 +25,7 @@ export const generateManifest = async (): Promise<MetadataRoute.Manifest> => {
     start_url: '/',
     display: 'fullscreen',
     background_color: '#fff',
-    theme_color: '#fff',
+    theme_color: '#47564c',
     icons: manifestIconDefinitions,
     dir: 'ltr',
     orientation: 'portrait',
