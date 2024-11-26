@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { getPayload } from 'payload';
 import config from '@payload-config';
+import { manifestIconDefinitions } from '@/utils/icon-definitions';
 
 /**
  *
@@ -22,17 +23,10 @@ export const generateManifest = async (): Promise<MetadataRoute.Manifest> => {
     short_name: appShortName,
     description: appDescription,
     start_url: '/',
-    display: 'fullscreen',
+    display: 'standalone',
     background_color: '#fff',
-    theme_color: '#fff',
-    icons: [
-      // TODO: replace the icon urls with the actual urls / generate the corresponding files
-      {
-        src: '/logo-round.png',
-        sizes: '150x150',
-        type: 'image/png',
-      },
-    ],
+    theme_color: '#47564c',
+    icons: manifestIconDefinitions,
     dir: 'ltr',
     orientation: 'portrait',
     prefer_related_applications: false,

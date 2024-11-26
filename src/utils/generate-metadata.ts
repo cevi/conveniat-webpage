@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { getPayload } from 'payload';
 import config from '@payload-config';
 import { SEO } from '@/payload-types';
+import { metadataIconDefinitions } from '@/utils/icon-definitions';
 
 export const generateMetadata = async (): Promise<Metadata> => {
   const payload = await getPayload({ config });
@@ -10,6 +11,10 @@ export const generateMetadata = async (): Promise<Metadata> => {
     await payload.findGlobal({
       slug: 'SEO',
     });
+
+  const { appName } = await payload.findGlobal({
+    slug: 'PWA',
+  });
 
   return {
     title: {
@@ -25,6 +30,11 @@ export const generateMetadata = async (): Promise<Metadata> => {
       email: true,
       address: true,
       telephone: true,
+    },
+
+    appleWebApp: {
+      title: appName,
+      statusBarStyle: 'black-translucent',
     },
 
     alternates: {
@@ -45,24 +55,7 @@ export const generateMetadata = async (): Promise<Metadata> => {
       },
     },
 
-    // TODO: replace the icon urls with the actual urls / generate the corresponding files
-    icons: {
-      icon: [
-        { url: '/icon.png' },
-        new URL('/icon.png', 'https://example.com'),
-        { url: '/icon-dark.png', media: '(prefers-color-scheme: dark)' },
-      ],
-      shortcut: ['/shortcut-icon.png'],
-      apple: [
-        { url: '/apple-icon.png' },
-        { url: '/apple-icon-x3.png', sizes: '180x180', type: 'image/png' },
-      ],
-      other: {
-        rel: 'apple-touch-icon-precomposed',
-        url: '/apple-touch-icon-precomposed.png',
-      },
-    },
-
+    icons: metadataIconDefinitions,
     manifest: '/manifest.webmanifest',
 
     // TODO: include twitter card data
