@@ -41,7 +41,7 @@ const Page: React.FC = async () => {
       <CallToAction>Erfahre mehr &gt;</CallToAction>
 
       <div className="-mx-8">
-        <Image src="/big-tent.png" alt="Konekta 2024" width={1200} height={800} />
+        <Image src="/imgs/big-tent.png" alt="Konekta 2024" width={1200} height={800} />
       </div>
 
       <SubheadingH2>This is Just a Subheading</SubheadingH2>

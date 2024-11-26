@@ -9,7 +9,7 @@ export const HeaderComponent: React.FC = () => {
       <div className="flex items-center justify-between px-6">
         <Link href="/">
           <Image
-            src="/logo-round.png"
+            src="/favicon-96x96.png"
             alt="Conveniat 2027 Logo"
             width={75}
             height={75}
