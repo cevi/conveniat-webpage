@@ -123,6 +123,7 @@ const config = [
       '**/(payload)/admin/*/not-found.tsx',
       '**/(payload)/admin/*/page.tsx',
       '**/(payload)/layout.tsx',
+      "src/build.ts",
     ],
   },
 ];
