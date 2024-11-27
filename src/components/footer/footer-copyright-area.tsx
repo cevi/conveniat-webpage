@@ -2,6 +2,11 @@ import React from 'react';
 import { getPayload } from 'payload';
 import config from '@payload-config';
 
+const fs = require('fs');
+const path = require('path');
+const packageJsonPath = path.resolve(process.cwd(), 'package.json');
+const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+
 type Arguments = {
   children: React.ReactNode;
 };
@@ -17,7 +22,6 @@ const FooterBuildInfoText: React.FC<Arguments> = ({ children }: Arguments) => {
 export const FooterCopyrightArea: React.FC = async () => {
   const year = new Date().getFullYear();
   const copyright = `© ${year} · Conveniat · Cevi Schweiz`;
-  const version = '0.1.0';
 
   const payload = await getPayload({ config });
   const { footerClaim } = await payload.findGlobal({
@@ -32,7 +36,7 @@ export const FooterCopyrightArea: React.FC = async () => {
     <div className="flex h-[120px] w-full flex-col items-center justify-center bg-conveniat-green-500 text-white">
       <FooterCopyrightText>{footerClaim}</FooterCopyrightText>
       <FooterCopyrightText>{copyright}</FooterCopyrightText>
-      <FooterBuildInfoText>Version {version} </FooterBuildInfoText>
+      <FooterBuildInfoText>Version {packageJson.version} </FooterBuildInfoText>
       <FooterBuildInfoText>({buildInfo})</FooterBuildInfoText>
     </div>
   );
