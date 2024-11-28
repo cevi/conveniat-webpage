@@ -48,7 +48,7 @@ const LanguageSelectionModal: React.FC<{
             Cancel
           </button>
           <button
-            className="bg-blue-500 rounded px-4 py-2 text-white"
+            className="rounded bg-blue-500 px-4 py-2 text-white"
             onClick={() => onTranslate(sourceLanguage, targetLanguage)}
           >
             Translate
