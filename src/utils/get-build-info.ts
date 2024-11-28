@@ -16,7 +16,21 @@ interface BuildInfo {
 export const getBuildInfo = async (): Promise<BuildInfo | undefined> => {
   try {
     // @ts-ignore - ignore module not found error
-    const { default: buildInfo } = await import('@/build');
+    const { default: rawBuildInfo } = await import('@/build');
+
+    // parse the timestamp from the build info
+    // TODO: make localized..
+    const buildInfo = structuredClone(rawBuildInfo);
+    buildInfo.timestamp = new Date(buildInfo.timestamp).toLocaleDateString('de-CH', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      timeZone: 'Europe/Zurich',
+    });
+
     return buildInfo as BuildInfo;
   } catch {
     console.error('Build information not found, build info not displayed.');
