@@ -48,11 +48,21 @@ const Page: React.FC = async () => {
       </div>
 
       {pageContent?.map((block) => {
-        return block.blockType === 'subheading' ? (
-          <SubheadingH2 key={block.id}>{block.value}</SubheadingH2>
-        ) : (
-          <ParagraphText key={block.id}>{block.value}</ParagraphText>
-        );
+        switch (block.blockType) {
+          case 'subheading': {
+            return <SubheadingH2 key={block.id}>{block.value}</SubheadingH2>;
+          }
+          case 'paragraph': {
+            return <ParagraphText key={block.id}>{block.value}</ParagraphText>;
+          }
+          default: {
+            return (
+              <ParagraphText key={block.id}>
+                Content '{block.blockType}' not supported.
+              </ParagraphText>
+            );
+          }
+        }
       })}
 
       <hr />

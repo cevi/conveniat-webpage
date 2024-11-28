@@ -83,9 +83,7 @@ export default buildSecureConfig({
   }),
   sharp,
   telemetry: false,
-  plugins: [
-    formBuilderPlugin({})
-  ],
+  plugins: [formBuilderPlugin({})],
   i18n: {
     fallbackLanguage: 'en',
     supportedLanguages: { en, de, fr },
