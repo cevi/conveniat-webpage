@@ -7,6 +7,7 @@ export const generateRobots = (): MetadataRoute.Robots => {
       allow: '/',
       disallow: '/admin/',
     },
-    sitemap: '/sitemap.xml',
+    // TODO: remove hard-coded domain
+    sitemap: 'https://test.conveniat27.cevi.tools/sitemap.xml',
   };
 };
