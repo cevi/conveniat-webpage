@@ -22,13 +22,21 @@ export const generateManifest = async (): Promise<MetadataRoute.Manifest> => {
     name: appName,
     short_name: appShortName,
     description: appDescription,
-    start_url: '/',
+    id: 'https://test.conveniat27.cevi.tools', // TODO: remove hard-coded domain
+    start_url: 'https://test.conveniat27.cevi.tools/', // TODO: remove hard-coded domain
+    categories: ['kids', 'social', 'news'],
     display: 'standalone',
+    display_override: ['fullscreen', 'window-controls-overlay', 'minimal-ui'],
+    launch_handler: {
+      client_mode: 'auto',
+    },
     background_color: '#fff',
-    theme_color: '#47564c',
+    theme_color: '#E1E6E2',
     icons: manifestIconDefinitions,
     dir: 'ltr',
-    orientation: 'portrait',
+    lang: 'de-CH', // TODO: how to support multiple languages?
+    orientation: 'portrait-primary',
+    scope: 'https://test.conveniat27.cevi.tools/', // TODO: remove hard-coded domain
     prefer_related_applications: false,
   };
 };

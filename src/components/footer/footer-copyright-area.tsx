@@ -1,6 +1,7 @@
 import React from 'react';
 import { getPayload } from 'payload';
 import config from '@payload-config';
+import { getBuildInfo } from '@/utils/get-build-info';
 
 type Arguments = {
   children: React.ReactNode;
@@ -17,23 +18,30 @@ const FooterBuildInfoText: React.FC<Arguments> = ({ children }: Arguments) => {
 export const FooterCopyrightArea: React.FC = async () => {
   const year = new Date().getFullYear();
   const copyright = `© ${year} · Conveniat · Cevi Schweiz`;
-  const version = '0.1.0';
 
   const payload = await getPayload({ config });
   const { footerClaim } = await payload.findGlobal({
     slug: 'footer',
   });
 
-  const buildDate = '05.10.2024 11:32:28';
-  const commitHash = 'af10879';
-  const buildInfo = `Build ${commitHash} vom ${buildDate}`;
+  const build = await getBuildInfo();
 
   return (
     <div className="flex h-[120px] w-full flex-col items-center justify-center bg-conveniat-green-500 text-white">
       <FooterCopyrightText>{footerClaim}</FooterCopyrightText>
       <FooterCopyrightText>{copyright}</FooterCopyrightText>
-      <FooterBuildInfoText>Version {version} </FooterBuildInfoText>
-      <FooterBuildInfoText>({buildInfo})</FooterBuildInfoText>
+
+      {
+        /* The build info may not be available in (local) development mode */
+        build !== undefined && (
+          <>
+            <FooterBuildInfoText>Version {build.version} </FooterBuildInfoText>
+            <FooterBuildInfoText>
+              Build {build.git.hash} vom {build.timestamp}
+            </FooterBuildInfoText>
+          </>
+        )
+      }
     </div>
   );
 };

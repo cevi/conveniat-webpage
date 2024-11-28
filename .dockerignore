@@ -10,3 +10,7 @@ node_modules
 # environment variables should be passed at runtime
 .env
 .env.example
+
+# directories used for generating build information
+!.git/HEAD
+!.git/refs/heads/*

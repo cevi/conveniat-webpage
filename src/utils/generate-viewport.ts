@@ -6,7 +6,7 @@ import type { Viewport } from 'next';
  *
  */
 export const generateViewport = (): Viewport => ({
-  themeColor: [{ media: '(prefers-color-scheme: light)', color: '#47564c' }],
+  themeColor: [{ media: '(prefers-color-scheme: light)', color: '#E1E6E2' }],
   colorScheme: 'light',
   width: 'device-width',
   initialScale: 1,
@@ -14,6 +14,6 @@ export const generateViewport = (): Viewport => ({
   maximumScale: 5,
   userScalable: true,
   viewportFit: 'cover',
-  interactiveWidget: 'resizes-visual',
+  interactiveWidget: 'resizes-visual', // default value
   height: 'resizes-visual',
 });
