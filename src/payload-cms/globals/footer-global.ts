@@ -11,14 +11,6 @@ export const FooterGlobal: GlobalConfig = {
       defaultValue: 'CH23 8080 8002 2706 7598 8',
       required: true,
     },
-
-    {
-      name: 'footerClaim',
-      label: 'Footer Claim',
-      type: 'text',
-      defaultValue: 'MIR SIND CEVI',
-      required: true,
-    },
   ],
   admin: {
     group: 'Content',

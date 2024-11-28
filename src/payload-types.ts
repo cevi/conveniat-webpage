@@ -666,7 +666,6 @@ export interface Header {
 export interface Footer {
   id: string;
   donationIban: string;
-  footerClaim: string;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -756,7 +755,6 @@ export interface HeaderSelect<T extends boolean = true> {
  */
 export interface FooterSelect<T extends boolean = true> {
   donationIban?: T;
-  footerClaim?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

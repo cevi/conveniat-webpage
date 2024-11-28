@@ -2,6 +2,7 @@ import config from '@payload-config';
 import { ErrorBoundary } from 'react-error-boundary';
 import { getPayload } from 'payload';
 import React from 'react';
+import { HeadlineH1 } from '@/components/typography/headline-h1';
 
 interface BlogPostProperties {
   slug?: string;
@@ -48,24 +49,12 @@ const BlogPost: React.FC<BlogPostProperties> = async ({ slug }: BlogPostProperti
   });
 
   return (
-    <article className="mx-auto max-w-6xl px-4 py-8">
-      {blog_de_CH._localized_status.published && (
-        <div className="text-xs rounded-full bg-amber-500 px-3 py-1 font-semibold text-amber-950">
-          DE: {blog_de_CH.blogH1}
-        </div>
-      )}
+    <article className="mx-auto my-8 max-w-6xl px-8">
+      {blog_de_CH._localized_status.published && <HeadlineH1>DE: {blog_de_CH.blogH1}</HeadlineH1>}
 
-      {blog_fr_CH._localized_status.published && (
-        <div className="text-xs rounded-full bg-amber-500 px-3 py-1 font-semibold text-amber-950">
-          FR: {blog_fr_CH.blogH1}
-        </div>
-      )}
+      {blog_fr_CH._localized_status.published && <HeadlineH1>FR: {blog_fr_CH.blogH1}</HeadlineH1>}
 
-      {blog_en_US._localized_status.published && (
-        <div className="text-xs rounded-full bg-amber-500 px-3 py-1 font-semibold text-amber-950">
-          EN: {blog_en_US.blogH1}
-        </div>
-      )}
+      {blog_en_US._localized_status.published && <HeadlineH1>EN: {blog_en_US.blogH1}</HeadlineH1>}
     </article>
   );
 };
