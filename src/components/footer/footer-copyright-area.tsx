@@ -37,7 +37,7 @@ export const FooterCopyrightArea: React.FC = async () => {
           <>
             <FooterBuildInfoText>Version {build.version} </FooterBuildInfoText>
             <FooterBuildInfoText>
-              Build ${build.git.hash} vom ${build.timestamp}
+              Build ${build.git.hash} vom {build.timestamp}
             </FooterBuildInfoText>
           </>
         )
