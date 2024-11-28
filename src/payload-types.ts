@@ -686,39 +686,24 @@ export interface PWA {
 export interface LandingPage {
   id: string;
   pageTitle: string;
-  pageContent?: (SubheadingH2 | Paragraph | FormBlock)[] | null;
+  pageContent: {
+    root: {
+      type: string;
+      children: {
+        type: string;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  _status?: ('draft' | 'published') | null;
   updatedAt?: string | null;
   createdAt?: string | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "SubheadingH2".
- */
-export interface SubheadingH2 {
-  value: string;
-  id?: string | null;
-  blockName?: string | null;
-  blockType: 'subheading';
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "Paragraph".
- */
-export interface Paragraph {
-  value: string;
-  id?: string | null;
-  blockName?: string | null;
-  blockType: 'paragraph';
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "FormBlock".
- */
-export interface FormBlock {
-  form: string | Form;
-  id?: string | null;
-  blockName?: string | null;
-  blockType: 'formBlock';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -775,34 +760,21 @@ export interface PWASelect<T extends boolean = true> {
  */
 export interface LandingPageSelect<T extends boolean = true> {
   pageTitle?: T;
-  pageContent?:
-    | T
-    | {
-        subheading?:
-          | T
-          | {
-              value?: T;
-              id?: T;
-              blockName?: T;
-            };
-        paragraph?:
-          | T
-          | {
-              value?: T;
-              id?: T;
-              blockName?: T;
-            };
-        formBlock?:
-          | T
-          | {
-              form?: T;
-              id?: T;
-              blockName?: T;
-            };
-      };
+  pageContent?: T;
+  _status?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "FormBlock".
+ */
+export interface FormBlock {
+  form: string | Form;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'formBlock';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

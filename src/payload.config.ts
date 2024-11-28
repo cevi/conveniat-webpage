@@ -1,5 +1,10 @@
 import { mongooseAdapter } from '@payloadcms/db-mongodb';
-import { lexicalEditor } from '@payloadcms/richtext-lexical';
+import {
+  HeadingFeature,
+  ItalicFeature,
+  lexicalEditor,
+  LinkFeature,
+} from '@payloadcms/richtext-lexical';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
@@ -66,7 +71,15 @@ export default buildSecureConfig({
     },
   },
   collections: [UserCollection, MediaCollection, BlogArticleCollection],
-  editor: lexicalEditor(),
+  editor: lexicalEditor({
+    features: [
+      ItalicFeature(),
+      LinkFeature(),
+      HeadingFeature({
+        enabledHeadingSizes: ['h2', 'h3'],
+      }),
+    ],
+  }),
   globals: [SeoGlobal, HeaderGlobal, FooterGlobal, PWAGlobal, LandingPageGlobal],
   localization: {
     locales,

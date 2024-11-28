@@ -1,14 +1,25 @@
-import { BlocksField } from 'payload';
-import { subheadingH2 } from '@/payload-cms/blocks/subheading-h2-block';
-import { paragraph } from '@/payload-cms/blocks/paragraph-block';
+import { Field } from 'payload';
+import { BlocksFeature, lexicalEditor } from '@payloadcms/richtext-lexical';
 import { formBlock } from '@/payload-cms/blocks/form-block';
 
-export const pageContent: BlocksField = {
+export const pageContent: Field = {
   name: 'pageContent',
   label: 'Page Content',
-  type: 'blocks',
+  type: 'richText',
+  required: true,
+  // Pass the Lexical editor here and override base settings as necessary
+  editor: lexicalEditor({
+    features: ({ rootFeatures }) => [
+      ...rootFeatures,
+      BlocksFeature({
+        blocks: [formBlock],
+      }),
+    ],
+    admin: {
+      hideGutter: true,
+    },
+  }),
   admin: {
     description: 'The content of the landing page',
   },
-  blocks: [subheadingH2, paragraph, formBlock],
 };

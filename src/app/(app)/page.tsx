@@ -13,6 +13,8 @@ import { ParagraphText } from '@/components/typography/paragraph-text';
 import { SubheadingH3 } from '@/components/typography/subheading-h3';
 import Link from 'next/link';
 import { CeviLogo } from '@/components/svg-logos/cevi-logo';
+import { JSXConvertersFunction, RichText } from '@payloadcms/richtext-lexical/react';
+import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 
 const NewsCard: React.FC<{
   children: ReactNode;
@@ -59,6 +61,18 @@ const Page: React.FC = async () => {
       },
     },
     limit: 5,
+  });
+
+  const jsxConverters: JSXConvertersFunction = ({ defaultConverters }) => ({
+    ...defaultConverters,
+    paragraph: ({ node }) => <ParagraphText>{node.textFormat}</ParagraphText>,
+    heading: ({ node }) =>
+      node.tag === 'h2' ? (
+        <SubheadingH2>{node.children.detail}</SubheadingH2>
+      ) : (
+        <SubheadingH3>{node.children.detail}</SubheadingH3>
+      ),
+    blocks: {},
   });
 
   const blogs = blogsPaged.docs;
@@ -154,21 +168,9 @@ const Page: React.FC = async () => {
         to the level of the spectato.
       </ParagraphText>
 
-      {pageContent?.map((block) => {
-        switch (block.blockType) {
-          case 'subheading': {
-            return <SubheadingH2 key={block.id}>{block.value}</SubheadingH2>;
-          }
-          case 'paragraph': {
-            return <ParagraphText key={block.id}>{block.value}</ParagraphText>;
-          }
-          default: {
-            return (
-              <ParagraphText key={block.id}>Content {block.blockType} not supported.</ParagraphText>
-            );
-          }
-        }
-      })}
+      <hr />
+
+      <RichText converters={jsxConverters} data={pageContent as SerializedEditorState} />
 
       <hr />
 
