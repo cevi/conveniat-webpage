@@ -17,6 +17,7 @@ import { SeoGlobal } from '@/payload-cms/globals/seo-global';
 import { HeaderGlobal } from '@/payload-cms/globals/header-global';
 import { PWAGlobal } from '@/payload-cms/globals/pwa-global';
 import { LandingPageGlobal } from '@/payload-cms/globals/landing-page-global';
+import { formBuilderPlugin } from '@payloadcms/plugin-form-builder';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -82,7 +83,7 @@ export default buildSecureConfig({
   }),
   sharp,
   telemetry: false,
-  plugins: [],
+  plugins: [formBuilderPlugin({})],
   i18n: {
     fallbackLanguage: 'en',
     supportedLanguages: { en, de, fr },

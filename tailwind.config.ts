@@ -13,41 +13,69 @@ module.exports = {
       body: ['Inter', 'Helvetica', 'Arial', 'sans-serif'],
     },
 
-    fontSize: {
-      sm: ['16px', '28px'],
-      base: ['20px', '28px'],
-      lg: ['24px', '32px'],
-      xl: ['26px', '42px'],
-      cite: ['24px', '28px'],
-    },
-
     colors: {
-      'conveniat-text': '#6d6e76',
-
-      'conveniat-green': {
-        100: '#e7e8e7',
-        200: '#cad1d0',
-        300: '#b8bdba',
-        400: '#3d5b5a',
-        500: '#47564c',
-        600: '#3a4a40',
+      gray: {
+        50: '#F5F5F6',
+        100: '#E6E6E7',
+        200: '#CFD0D2',
+        300: '#ADAEB3',
+        400: '#84858C',
+        500: '#6D6E76',
+        600: '#595961',
+        700: '#4C4D52',
+        800: '#434347',
+        900: '#3B3B3E',
+        950: '#252627',
       },
 
-      'cevi-blue': {
-        300: '#406eab',
-        500: '#003D8F',
+      green: {
+        50: '#F6F7F6',
+        100: '#E1E6E2',
+        200: '#C2CDC5',
+        300: '#9CACA0',
+        400: '#778a7d',
+        500: '#5D6F63',
+        600: '#47564C',
+        700: '#3D4841',
+        800: '#3D4841',
+        900: '#2D342F',
+        950: '#171C19',
       },
 
-      'cevi-red': {
-        300: '#E94065',
-        500: '#E20031',
+      'conveniat-green': '#47564C',
+
+      red: {
+        50: '#FFF1F1',
+        100: '#FFE4E4',
+        200: '#FECDD0',
+        300: '#FDA4A9',
+        400: '#FB717C',
+        500: '#F43F53',
+        600: '#E11D3C',
+        700: '#C41333',
+        800: '#9F1230',
+        900: '#881330',
+        950: '#4C0514',
       },
 
-      // colors used in the backend
-      green: colors.green,
-      red: colors.red,
-      amber: colors.amber,
-      gray: colors.gray,
+      'cevi-red': '#C41333',
+
+      blue: {
+        50: '#EFF3FE',
+        100: '#E1EAFE',
+        200: '#CAD7FB',
+        300: '#A9BDF8',
+        400: '#8698F3',
+        500: '#6A75EA',
+        600: '#4D4FDE',
+        700: '#403FC3',
+        800: '#323394',
+        900: '#32347D',
+        950: '#1D1D49',
+      },
+
+      'cevi-blue': '#323394',
+
       white: colors.white,
     },
   },

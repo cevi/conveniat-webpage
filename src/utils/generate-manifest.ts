@@ -25,12 +25,13 @@ export const generateManifest = async (): Promise<MetadataRoute.Manifest> => {
     id: 'https://test.conveniat27.cevi.tools', // TODO: remove hard-coded domain
     start_url: 'https://test.conveniat27.cevi.tools/', // TODO: remove hard-coded domain
     categories: ['kids', 'social', 'news'],
+    //  it follows a pre-defined fallback chain: standalone → minimal-ui
     display: 'standalone',
-    display_override: ['fullscreen', 'window-controls-overlay', 'minimal-ui'],
+    display_override: ['standalone', 'minimal-ui'],
     launch_handler: {
       client_mode: 'auto',
     },
-    background_color: '#fff',
+    background_color: '#FFF',
     theme_color: '#E1E6E2',
     icons: manifestIconDefinitions,
     dir: 'ltr',
