@@ -14,6 +14,12 @@ export const PWAGlobal: GlobalConfig = {
       type: 'text',
       required: true,
       defaultValue: 'Conveniat 2027',
+      admin: {
+        readOnly: true,
+        description:
+          'Once deployed as an PWA App to the App Store, this name will be used ' +
+          'as the App Name. A change will require a new deployment to the App Store.',
+      },
     },
     {
       name: 'appShortName',
@@ -21,6 +27,12 @@ export const PWAGlobal: GlobalConfig = {
       type: 'text',
       required: true,
       defaultValue: 'Conveniat',
+      admin: {
+        readOnly: true,
+        description:
+          'Once deployed as an PWA App to the App Store, this name will be used ' +
+          'as the App Name. A change will require a new deployment to the App Store.',
+      },
     },
     {
       name: 'appDescription',
@@ -28,6 +40,12 @@ export const PWAGlobal: GlobalConfig = {
       type: 'textarea',
       required: true,
       defaultValue: 'Conveniat 2027 - MIR SIND CEVI',
+      admin: {
+        readOnly: true,
+        description:
+          'Once deployed as an PWA App to the App Store, this description will be used ' +
+          'as the App Description. A change will require a new deployment to the App Store.',
+      },
     },
   ],
 };
