@@ -73,6 +73,10 @@ export default buildSecureConfig({
     defaultLocale: 'de-CH',
     fallback: false,
   },
+  graphQL: {
+    disable: true,
+    disablePlaygroundInProduction: true,
+  },
   secret: PAYLOAD_SECRET,
   typescript: {
     autoGenerate: true,

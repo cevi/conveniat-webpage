@@ -445,8 +445,6 @@ export interface MediaSelect<T extends boolean = true> {
  * via the `definition` "blog_select".
  */
 export interface BlogSelect<T extends boolean = true> {
-  Versions?: T;
-  Autotranslate?: T;
   _localized_status?: T;
   blogH1?: T;
   urlSlug?: T;
