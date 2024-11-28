@@ -57,9 +57,7 @@ const Page: React.FC = async () => {
           }
           default: {
             return (
-              <ParagraphText key={block.id}>
-                Content '{block.blockType}' not supported.
-              </ParagraphText>
+              <ParagraphText key={block.id}>Content {block.blockType} not supported.</ParagraphText>
             );
           }
         }

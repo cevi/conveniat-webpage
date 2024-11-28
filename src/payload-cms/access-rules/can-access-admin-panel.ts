@@ -16,7 +16,6 @@ export const canAccessAdminPanel: ({
   req: PayloadRequest;
 }) => boolean | Promise<boolean> = ({ req: { user } }) => {
   if (!user) return false;
-  if (!user.groups) return false;
   return user.groups.some((group) => GROUPS_WITH_API_ACCESS.has(group.id));
 };
 
@@ -28,6 +27,5 @@ export const canAccessAdminPanel: ({
  */
 export const canAccessAPI: Access = ({ req: { user } }) => {
   if (!user) return false;
-  if (!user.groups) return false;
   return user.groups.some((group) => GROUPS_WITH_API_ACCESS.has(group.id));
 };
