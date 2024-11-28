@@ -1,7 +1,7 @@
 import React from 'react';
 import { getPayload } from 'payload';
 import config from '@payload-config';
-import build from '@/build';
+import { getBuildInfo } from '@/utils/get-build-info';
 
 type Arguments = {
   children: React.ReactNode;
@@ -24,14 +24,24 @@ export const FooterCopyrightArea: React.FC = async () => {
     slug: 'footer',
   });
 
-  const buildInformation = `Build ${build.git.hash} vom ${build.timestamp}`;
+  const build = await getBuildInfo();
 
   return (
     <div className="flex h-[120px] w-full flex-col items-center justify-center bg-conveniat-green-500 text-white">
       <FooterCopyrightText>{footerClaim}</FooterCopyrightText>
       <FooterCopyrightText>{copyright}</FooterCopyrightText>
-      <FooterBuildInfoText>Version {build.version} </FooterBuildInfoText>
-      <FooterBuildInfoText>({buildInformation})</FooterBuildInfoText>
+
+      {
+        /* The build info may not be available in (local) development mode */
+        build !== undefined && (
+          <>
+            <FooterBuildInfoText>Version {build.version} </FooterBuildInfoText>
+            <FooterBuildInfoText>
+              Build ${build.git.hash} vom ${build.timestamp}
+            </FooterBuildInfoText>
+          </>
+        )
+      }
     </div>
   );
 };
