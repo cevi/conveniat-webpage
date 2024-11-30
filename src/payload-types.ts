@@ -79,7 +79,7 @@ export interface Config {
     PWA: PWASelect<false> | PWASelect<true>;
     landingPage: LandingPageSelect<false> | LandingPageSelect<true>;
   };
-  locale: 'en-US' | 'de-CH' | 'fr-CH';
+  locale: 'en-GB' | 'de-CH' | 'fr-CH';
   user: User & {
     collection: 'users';
   };

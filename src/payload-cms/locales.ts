@@ -7,7 +7,7 @@ export const locales: Locale[] = [
       de: 'Englisch',
       fr: 'Anglais',
     },
-    code: 'en-US',
+    code: 'en-GB',
   },
   {
     label: {

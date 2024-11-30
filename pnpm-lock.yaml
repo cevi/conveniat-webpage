@@ -37,6 +37,12 @@ importers:
       cross-env:
         specifier: ^7.0.3
         version: 7.0.3
+      i18next:
+        specifier: ^24.0.2
+        version: 24.0.2(typescript@5.5.4)
+      i18next-resources-to-backend:
+        specifier: ^1.2.1
+        version: 1.2.1
       lucide-react:
         specifier: ^0.447.0
         version: 0.447.0(react@19.0.0-rc-66855b96-20241106)
@@ -46,6 +52,9 @@ importers:
       next-auth:
         specifier: 5.0.0-beta.25
         version: 5.0.0-beta.25(next@15.0.3(@babel/core@7.26.0)(react-dom@19.0.0-rc-66855b96-20241106(react@19.0.0-rc-66855b96-20241106))(react@19.0.0-rc-66855b96-20241106)(sass@1.77.4))(nodemailer@6.9.10)(react@19.0.0-rc-66855b96-20241106)
+      next-i18n-router:
+        specifier: ^5.5.1
+        version: 5.5.1
       payload:
         specifier: ^3.2.1
         version: 3.2.1(graphql@16.9.0)(monaco-editor@0.52.0)(react-dom@19.0.0-rc-66855b96-20241106(react@19.0.0-rc-66855b96-20241106))(react@19.0.0-rc-66855b96-20241106)(typescript@5.5.4)
@@ -61,6 +70,9 @@ importers:
       react-error-boundary:
         specifier: ^4.1.2
         version: 4.1.2(react@19.0.0-rc-66855b96-20241106)
+      react-i18next:
+        specifier: ^15.1.3
+        version: 15.1.3(i18next@24.0.2(typescript@5.5.4))(react-dom@19.0.0-rc-66855b96-20241106(react@19.0.0-rc-66855b96-20241106))(react@19.0.0-rc-66855b96-20241106)
       sharp:
         specifier: 0.32.6
         version: 0.32.6
@@ -723,6 +735,9 @@ packages:
 
   '@floating-ui/utils@0.2.8':
     resolution: {integrity: sha512-kym7SodPp8/wloecOpcmSnWJsK7M0E5Wg8UcFA+uO4B9s5d0ywXOEro/8HM9x0rW+TljRzul/14UYz3TleT3ig==}
+
+  '@formatjs/intl-localematcher@0.5.8':
+    resolution: {integrity: sha512-I+WDNWWJFZie+jkfkiK5Mp4hEDyRSEvmyfYadflOno/mmKJKcB17fEpEH0oJu/OWhhCJ8kJBDz2YMd/6cDl7Mg==}
 
   '@humanfs/core@0.19.1':
     resolution: {integrity: sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA==}
@@ -2338,9 +2353,23 @@ packages:
   hosted-git-info@2.8.9:
     resolution: {integrity: sha512-mxIDAb9Lsm6DoOJ7xH+5+X4y1LU/4Hi50L9C5sIswK3JzULS4bwk1FvjdBgvYR4bzT4tuUQiC15FE2f5HbLvYw==}
 
+  html-parse-stringify@3.0.1:
+    resolution: {integrity: sha512-KknJ50kTInJ7qIScF3jeaFRpMpE8/lfiTdzf/twXyPBLAGrLRTmkz3AdTnKeh40X8k9L2fdYwEp/42WGXIRGcg==}
+
   http-status@1.6.2:
     resolution: {integrity: sha512-oUExvfNckrpTpDazph7kNG8sQi5au3BeTo0idaZFXEhTaJKu7GNJCLHI0rYY2wljm548MSTM+Ljj/c6anqu2zQ==}
     engines: {node: '>= 0.4.0'}
+
+  i18next-resources-to-backend@1.2.1:
+    resolution: {integrity: sha512-okHbVA+HZ7n1/76MsfhPqDou0fptl2dAlhRDu2ideXloRRduzHsqDOznJBef+R3DFZnbvWoBW+KxJ7fnFjd6Yw==}
+
+  i18next@24.0.2:
+    resolution: {integrity: sha512-D88xyIGcWAKwBTAs4RSqASi8NXR/NhCVSTM4LDbdoU8qb/5dcEZjNCLDhtQBB7Epw/Cp1w2vH/3ujoTbqLSs5g==}
+    peerDependencies:
+      typescript: ^5
+    peerDependenciesMeta:
+      typescript:
+        optional: true
 
   ieee754@1.2.1:
     resolution: {integrity: sha512-dcyqhDvX1C46lXZcVqCpK+FtMRQVdIMN6/Df5js2zouUsqG7I6sFxitIC+7KYK29KdXOLHdu9zL4sFnoVQnqaA==}
@@ -2894,6 +2923,10 @@ packages:
   natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
 
+  negotiator@0.6.4:
+    resolution: {integrity: sha512-myRT3DiWPHqho5PrJaIRyaMv2kgYf0mUVgBNOYMuCH5Ki1yEiQaf/ZJuQ62nvpc44wL5WDbTX7yGJi1Neevw8w==}
+    engines: {node: '>= 0.6'}
+
   next-auth@5.0.0-beta.25:
     resolution: {integrity: sha512-2dJJw1sHQl2qxCrRk+KTQbeH+izFbGFPuJj5eGgBZFYyiYYtvlrBeUw1E/OJJxTRjuxbSYGnCTkUIRsIIW0bog==}
     peerDependencies:
@@ -2909,6 +2942,9 @@ packages:
         optional: true
       nodemailer:
         optional: true
+
+  next-i18n-router@5.5.1:
+    resolution: {integrity: sha512-uJGYUAQS33LbRT3Jx+kurR/E79iPQo1jWZUYmc+614UkPt58k2XYyGloSvHR74b21i4K/d6eksdBj6T2WojjdA==}
 
   next@15.0.3:
     resolution: {integrity: sha512-ontCbCRKJUIoivAdGB34yCaOcPgYXr9AAkV/IwqFfWWTXEPUgLYkSkqBhIk9KK7gGmgjc64B+RdoeIDM13Irnw==}
@@ -3335,6 +3371,19 @@ packages:
     resolution: {integrity: sha512-GQDxZ5Jd+Aq/qUxbCm1UtzmL/s++V7zKgE8yMktJiCQXCCFZnMZh9ng+6/Ne6PjNSXH0L9CjeOEREfRnq6Duag==}
     peerDependencies:
       react: '>=16.13.1'
+
+  react-i18next@15.1.3:
+    resolution: {integrity: sha512-J11oA30FbM3NZegUZjn8ySK903z6PLBz/ZuBYyT1JMR0QPrW6PFXvl1WoUhortdGi9dM0m48/zJQlPskVZXgVw==}
+    peerDependencies:
+      i18next: '>= 23.2.3'
+      react: '>= 16.8.0'
+      react-dom: '*'
+      react-native: '*'
+    peerDependenciesMeta:
+      react-dom:
+        optional: true
+      react-native:
+        optional: true
 
   react-image-crop@10.1.8:
     resolution: {integrity: sha512-4rb8XtXNx7ZaOZarKKnckgz4xLMvds/YrU6mpJfGhGAsy2Mg4mIw1x+DCCGngVGq2soTBVVOxx2s/C6mTX9+pA==}
@@ -3959,6 +4008,10 @@ packages:
 
   vfile-message@4.0.2:
     resolution: {integrity: sha512-jRDZ1IMLttGj41KcZvlrYAaI3CfqpLpfpf+Mfig13viT6NKvRzWZ+lXz0Y5D60w6uJIBAOGq9mSHf0gktF0duw==}
+
+  void-elements@3.1.0:
+    resolution: {integrity: sha512-Dhxzh5HZuiHQhbvTW9AMetFfBHDMYpo23Uo9btPXgdYP+3T5S+p+jgNy7spra+veYhBP2dCSgxR/i2Y02h5/6w==}
+    engines: {node: '>=0.10.0'}
 
   webidl-conversions@7.0.0:
     resolution: {integrity: sha512-VwddBukDzu71offAQR975unBIGqfKZpM+8ZX6ySk8nYhVoo5CYaZyzt3YBvYtRtO+aoGlqxPg/B87NGVZ/fu6g==}
@@ -5036,6 +5089,10 @@ snapshots:
       tabbable: 6.2.0
 
   '@floating-ui/utils@0.2.8': {}
+
+  '@formatjs/intl-localematcher@0.5.8':
+    dependencies:
+      tslib: 2.8.1
 
   '@humanfs/core@0.19.1': {}
 
@@ -7093,7 +7150,21 @@ snapshots:
 
   hosted-git-info@2.8.9: {}
 
+  html-parse-stringify@3.0.1:
+    dependencies:
+      void-elements: 3.1.0
+
   http-status@1.6.2: {}
+
+  i18next-resources-to-backend@1.2.1:
+    dependencies:
+      '@babel/runtime': 7.26.0
+
+  i18next@24.0.2(typescript@5.5.4):
+    dependencies:
+      '@babel/runtime': 7.26.0
+    optionalDependencies:
+      typescript: 5.5.4
 
   ieee754@1.2.1: {}
 
@@ -7731,6 +7802,8 @@ snapshots:
 
   natural-compare@1.4.0: {}
 
+  negotiator@0.6.4: {}
+
   next-auth@5.0.0-beta.25(next@15.0.3(@babel/core@7.26.0)(react-dom@19.0.0-rc-66855b96-20241106(react@19.0.0-rc-66855b96-20241106))(react@19.0.0-rc-66855b96-20241106)(sass@1.77.4))(nodemailer@6.9.10)(react@19.0.0-rc-66855b96-20241106):
     dependencies:
       '@auth/core': 0.37.2(nodemailer@6.9.10)
@@ -7738,6 +7811,11 @@ snapshots:
       react: 19.0.0-rc-66855b96-20241106
     optionalDependencies:
       nodemailer: 6.9.10
+
+  next-i18n-router@5.5.1:
+    dependencies:
+      '@formatjs/intl-localematcher': 0.5.8
+      negotiator: 0.6.4
 
   next@15.0.3(@babel/core@7.26.0)(react-dom@19.0.0-rc-66855b96-20241106(react@19.0.0-rc-66855b96-20241106))(react@19.0.0-rc-66855b96-20241106)(sass@1.77.4):
     dependencies:
@@ -8177,6 +8255,15 @@ snapshots:
     dependencies:
       '@babel/runtime': 7.26.0
       react: 19.0.0-rc-66855b96-20241106
+
+  react-i18next@15.1.3(i18next@24.0.2(typescript@5.5.4))(react-dom@19.0.0-rc-66855b96-20241106(react@19.0.0-rc-66855b96-20241106))(react@19.0.0-rc-66855b96-20241106):
+    dependencies:
+      '@babel/runtime': 7.26.0
+      html-parse-stringify: 3.0.1
+      i18next: 24.0.2(typescript@5.5.4)
+      react: 19.0.0-rc-66855b96-20241106
+    optionalDependencies:
+      react-dom: 19.0.0-rc-66855b96-20241106(react@19.0.0-rc-66855b96-20241106)
 
   react-image-crop@10.1.8(react@19.0.0-rc-66855b96-20241106):
     dependencies:
@@ -8928,6 +9015,8 @@ snapshots:
     dependencies:
       '@types/unist': 3.0.3
       unist-util-stringify-position: 4.0.0
+
+  void-elements@3.1.0: {}
 
   webidl-conversions@7.0.0: {}
 

@@ -13,15 +13,15 @@ type LayoutProperties = {
 
 const Layout: React.FC<LayoutProperties> = ({ children }) => {
   return (
-    <html lang="de-CH">
-      <body className="bg-background">
+    <html>
+      <body className="flex h-screen flex-col">
         <HeaderComponent />
 
         <div className="fixed top-0 z-[-999] h-screen w-screen p-[56px]">
           <CeviBackgroundLogo className="mx-auto h-full w-full max-w-[384px]" />
         </div>
 
-        <main>{children}</main>
+        <main className="grow">{children}</main>
 
         <FooterComponent />
       </body>

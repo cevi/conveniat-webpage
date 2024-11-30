@@ -144,8 +144,8 @@ const hasDiffs = (
     if (ignoredFields.has(field.name)) continue;
 
     const { name, type, fields } = field;
-    const value1 = document1[name] as Record<'en-US' | 'de-CH' | 'fr-CH', string>;
-    const value2 = document2[name] as Record<'en-US' | 'de-CH' | 'fr-CH', string>;
+    const value1 = document1[name] as Record<Config['locale'], string>;
+    const value2 = document2[name] as Record<Config['locale'], string>;
 
     if (type === 'collapsible' && hasDiffs(locale, fields, document1, document2)) {
       return true;

@@ -23,7 +23,7 @@ const LanguageSelectionModal: React.FC<{
             onChange={(event) => setSourceLanguage(event.target.value)}
           >
             <option value="">Select source language</option>
-            <option value="en-US">English</option>
+            <option value="en-GB">English</option>
             <option value="fr-CH">French</option>
             <option value="de-CH">German</option>
           </select>

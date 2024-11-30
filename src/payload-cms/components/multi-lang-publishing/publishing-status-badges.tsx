@@ -4,6 +4,7 @@ import { useHasPendingChanges, useIsPublished } from '@/payload-cms/hooks/hooks'
 import { Config } from '@/payload-types';
 import { NotYetSavedException } from '@/payload-cms/utils/utils';
 import React from 'react';
+import { locales } from '@/payload-cms/locales';
 
 const languageStatusClasses = cva('text-sm font-medium me-2 px-2.5 py-0.5 rounded relative group', {
   variants: {
@@ -76,8 +77,8 @@ export const PublishingStatusBadges: React.FC = () => {
   if (!isPublished || !hasUnpublishedChanges) {
     return (
       <span>
-        {['de-CH', 'en-US', 'fr-CH'].map((locale) => (
-          <LanguageStatusPlaceholder key={locale} label={locale} />
+        {locales.map((locale) => (
+          <LanguageStatusPlaceholder key={locale.code} label={locale.code} />
         ))}
       </span>
     );
