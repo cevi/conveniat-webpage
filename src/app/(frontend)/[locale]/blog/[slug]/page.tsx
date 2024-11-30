@@ -64,7 +64,7 @@ const BlogPost: React.FC<LocalizedBlogPost> = async ({ slug, locale }) => {
               .filter((lang: string) => articleAllLangs._localized_status[lang].published)
               .map((lang: string) => {
                 return (
-                  <li>
+                  <li key={lang}>
                     <Link href="/" className="font-bold text-red-600">
                       Available in {lang}
                     </Link>
