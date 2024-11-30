@@ -11,6 +11,13 @@ export const MediaCollection: CollectionConfig = {
       label: 'Alt Text',
       type: 'text',
       required: true,
+      admin: {
+        description: {
+          en: 'Describe the image for screen readers and search engines',
+          de: 'Beschreiben Sie das Bild für Screenreader und Suchmaschinen',
+          fr: "Décrivez l'image pour les lecteurs d'écran et les moteurs de recherche",
+        },
+      },
     },
   ],
   upload: true,

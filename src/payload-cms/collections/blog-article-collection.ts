@@ -1,5 +1,6 @@
 import { CollectionConfig, Field } from 'payload';
 import { asLocalizedCollection } from '@/payload-cms/utils/localized-collection';
+import { pageContent } from '@/payload-cms/fields/page-content';
 
 const blogArticleTitleField: Field = {
   name: 'blogH1',
@@ -20,7 +21,47 @@ const blogArticleTitleField: Field = {
   },
 };
 
-const blogArticleFields: Field[] = [blogArticleTitleField];
+const bannerImage: Field = {
+  name: 'bannerImage',
+  label: {
+    en: 'Banner Image',
+    de: 'Bannerbild',
+    fr: 'Image de bannière',
+  },
+  type: 'upload',
+  relationTo: 'media',
+  required: true,
+  admin: {
+    position: 'sidebar',
+  },
+};
+
+const blogTeaserText: Field = {
+  name: 'blogShortTitle',
+  label: {
+    en: 'Teaser Text',
+    de: 'Teaser-Text',
+    fr: "Texte d'accroche",
+  },
+  type: 'text',
+  localized: true,
+  required: true,
+  admin: {
+    position: 'sidebar',
+    description: {
+      en: 'This is the text that will be displayed as a teaser on the blog overview page.',
+      de: 'Dies ist der Text, der als Teaser auf der Blog-Übersichtsseite angezeigt wird.',
+      fr: "C'est le texte qui sera affiché en tant qu'accroche sur la page d'aperçu du blog.",
+    },
+  },
+};
+
+const blogArticleFields: Field[] = [
+  blogArticleTitleField,
+  bannerImage,
+  blogTeaserText,
+  pageContent,
+];
 
 export const BlogArticleCollection: CollectionConfig = asLocalizedCollection({
   // Unique, URL-friendly string that will act as an identifier for this Collection.

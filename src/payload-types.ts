@@ -147,6 +147,23 @@ export interface Blog {
   id: string;
   _localized_status: LocalizedPublishingStatus;
   blogH1: string;
+  bannerImage: string | Media;
+  blogShortTitle: string;
+  pageContent: {
+    root: {
+      type: string;
+      children: {
+        type: string;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
   urlSlug: string;
   updatedAt: string;
   createdAt: string;
@@ -447,6 +464,9 @@ export interface MediaSelect<T extends boolean = true> {
 export interface BlogSelect<T extends boolean = true> {
   _localized_status?: T;
   blogH1?: T;
+  bannerImage?: T;
+  blogShortTitle?: T;
+  pageContent?: T;
   urlSlug?: T;
   updatedAt?: T;
   createdAt?: T;

@@ -1,9 +1,12 @@
 import { mongooseAdapter } from '@payloadcms/db-mongodb';
 import {
+  BoldFeature,
+  defaultEditorLexicalConfig,
+  FixedToolbarFeature,
   HeadingFeature,
   ItalicFeature,
   lexicalEditor,
-  LinkFeature,
+  ParagraphFeature,
 } from '@payloadcms/richtext-lexical';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -67,18 +70,23 @@ export default buildSecureConfig({
     dateFormat: 'yyyy-MM-dd HH:mm',
     livePreview: {
       url: APP_HOST_URL,
-      collections: ['blog'],
+      collections: [], // ['blog'], // TODO: live preview breaks multi-locale editing
     },
   },
   collections: [UserCollection, MediaCollection, BlogArticleCollection],
   editor: lexicalEditor({
-    features: [
-      ItalicFeature(),
-      LinkFeature(),
-      HeadingFeature({
-        enabledHeadingSizes: ['h2', 'h3'],
-      }),
-    ],
+    features: () => {
+      return [
+        ItalicFeature(),
+        BoldFeature(),
+        ParagraphFeature(),
+        HeadingFeature({
+          enabledHeadingSizes: ['h2', 'h3'],
+        }),
+        FixedToolbarFeature(),
+      ];
+    },
+    lexical: defaultEditorLexicalConfig,
   }),
   globals: [SeoGlobal, HeaderGlobal, FooterGlobal, PWAGlobal, LandingPageGlobal],
   localization: {
@@ -86,6 +94,7 @@ export default buildSecureConfig({
     defaultLocale: 'de-CH',
     fallback: false,
   },
+  // we don't need GraphQL for this project, therefore we disable it
   graphQL: {
     disable: true,
     disablePlaygroundInProduction: true,

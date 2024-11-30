@@ -65,6 +65,7 @@ export const asLocalizedCollection = (config: CollectionConfig): CollectionConfi
         },
       },
 
+      /*
       {
         name: 'Autotranslate',
         type: 'ui',
@@ -75,6 +76,7 @@ export const asLocalizedCollection = (config: CollectionConfig): CollectionConfi
           },
         },
       },
+      */
 
       // add the localized publishing status field
       {

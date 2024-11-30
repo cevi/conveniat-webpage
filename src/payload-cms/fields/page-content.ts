@@ -15,11 +15,5 @@ export const pageContent: Field = {
         blocks: [formBlock],
       }),
     ],
-    admin: {
-      hideGutter: true,
-    },
   }),
-  admin: {
-    description: 'The content of the landing page',
-  },
 };
