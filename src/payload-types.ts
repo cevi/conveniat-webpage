@@ -146,6 +146,7 @@ export interface Media {
 export interface Blog {
   id: string;
   _localized_status: LocalizedPublishingStatus;
+  _locale: string;
   blogH1: string;
   bannerImage: string | Media;
   blogShortTitle: string;
@@ -463,6 +464,7 @@ export interface MediaSelect<T extends boolean = true> {
  */
 export interface BlogSelect<T extends boolean = true> {
   _localized_status?: T;
+  _locale?: T;
   blogH1?: T;
   bannerImage?: T;
   blogShortTitle?: T;

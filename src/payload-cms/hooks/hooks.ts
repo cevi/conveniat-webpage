@@ -138,7 +138,7 @@ const hasDiffs = (
 ): boolean => {
   if (!document1 || !document2) return false;
 
-  const ignoredFields = new Set(['updatedAt', 'createdAt', '_status']);
+  const ignoredFields = new Set(['Versions', 'updatedAt', 'createdAt', '_status']);
 
   for (const field of fieldDefs) {
     if (ignoredFields.has(field.name)) continue;
@@ -147,8 +147,21 @@ const hasDiffs = (
     const value1 = document1[name] as Record<'en-US' | 'de-CH' | 'fr-CH', string>;
     const value2 = document2[name] as Record<'en-US' | 'de-CH' | 'fr-CH', string>;
 
-    if (type === 'collapsible' && hasDiffs(locale, fields, document1, document2)) return true;
-    if (isDiff(locale, field, value1, value2)) return true;
+    if (type === 'collapsible' && hasDiffs(locale, fields, document1, document2)) {
+      return true;
+    }
+
+    // some types need special handling
+    if (type === 'upload') {
+      // @ts-ignore
+      if (field.localized) return value1[locale].id !== value2[locale].id;
+      // @ts-ignore
+      return !field.presentational && value1.id !== value2.id;
+    }
+
+    if (isDiff(locale, field, value1, value2)) {
+      return true;
+    }
   }
 
   return false;
@@ -195,7 +208,7 @@ export const useHasPendingChanges = () => {
   }, [_document, _document_draft, fields]);
 
   useEffect(() => {
-    setError(_error || _error_draft);
+    setError(_error ?? _error_draft);
     setIsLoading(_isLoading || _isLoading_draft);
     if (_document && _document_draft) setHasUnpublishedChanges(getHasChanges());
   }, [

@@ -1,7 +1,7 @@
 import { JSXConverters, TextJSXConverter } from '@payloadcms/richtext-lexical/react';
 import { SerializedHeadingNode } from '@payloadcms/richtext-lexical';
-import { HeadingJSXConverter } from '@/utils/richtext-lexical/converters/heading-converter';
-import { ParagraphJSXConverter } from '@/utils/richtext-lexical/converters/paragraph-converter';
+import { HeadingJSXConverter } from '@/utils/richtext-lexical/converter/heading-converter';
+import { ParagraphJSXConverter } from '@/utils/richtext-lexical/converter/paragraph-converter';
 
 /**
  * The JSX converters for the rich text editor.

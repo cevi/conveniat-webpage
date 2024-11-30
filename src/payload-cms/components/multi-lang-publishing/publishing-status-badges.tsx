@@ -38,7 +38,7 @@ const LanguageStatus: React.FC<{
   published: boolean;
   pendingChanges: boolean;
   label: string;
-}) => {
+}> = ({ published, pendingChanges, label }) => {
   let tooltip = 'Not published';
   if (pendingChanges) {
     tooltip = 'Published but has unpublished changes';

@@ -95,6 +95,16 @@ export const asLocalizedCollection = (config: CollectionConfig): CollectionConfi
         },
       },
 
+      {
+        name: '_locale',
+        type: 'text',
+        required: true,
+        localized: true,
+        admin: {
+          disabled: true,
+        },
+      },
+
       // add the existing fields from the original collection
       ...config.fields,
     ],

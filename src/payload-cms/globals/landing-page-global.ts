@@ -1,5 +1,5 @@
 import { GlobalConfig } from 'payload';
-import { pageContent } from '@/payload-cms/fields/page-content';
+import { pageContent } from '@/payload-cms/shared-fields/page-content';
 
 export const LandingPageGlobal: GlobalConfig = {
   slug: 'landingPage',

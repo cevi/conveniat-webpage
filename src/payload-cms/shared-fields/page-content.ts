@@ -1,6 +1,6 @@
 import { Field } from 'payload';
 import { BlocksFeature, lexicalEditor } from '@payloadcms/richtext-lexical';
-import { formBlock } from '@/payload-cms/blocks/form-block';
+import { formBlock } from '@/payload-cms/shared-blocks/form-block';
 
 export const pageContent: Field = {
   name: 'pageContent',

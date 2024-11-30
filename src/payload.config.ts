@@ -14,7 +14,6 @@ import sharp from 'sharp';
 
 import { UserCollection } from '@/payload-cms/collections/user-collection';
 import { MediaCollection } from '@/payload-cms/collections/media-collection';
-import { BlogArticleCollection } from '@/payload-cms/collections/blog-article-collection';
 import { en } from 'payload/i18n/en';
 import { de } from 'payload/i18n/de';
 import { fr } from 'payload/i18n/fr';
@@ -26,6 +25,7 @@ import { HeaderGlobal } from '@/payload-cms/globals/header-global';
 import { PWAGlobal } from '@/payload-cms/globals/pwa-global';
 import { LandingPageGlobal } from '@/payload-cms/globals/landing-page-global';
 import { formBuilderPlugin } from '@payloadcms/plugin-form-builder';
+import { BlogArticleCollection } from '@/payload-cms/collections/blog-article';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
