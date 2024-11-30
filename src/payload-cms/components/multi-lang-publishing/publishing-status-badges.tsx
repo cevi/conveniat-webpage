@@ -3,6 +3,7 @@ import { cva } from 'class-variance-authority';
 import { useHasPendingChanges, useIsPublished } from '@/payload-cms/hooks/hooks';
 import { Config } from '@/payload-types';
 import { NotYetSavedException } from '@/payload-cms/utils/utils';
+import React from 'react';
 
 const languageStatusClasses = cva('text-sm font-medium me-2 px-2.5 py-0.5 rounded relative group', {
   variants: {
@@ -33,11 +34,7 @@ const languageStatusClasses = cva('text-sm font-medium me-2 px-2.5 py-0.5 rounde
   },
 });
 
-const LanguageStatus = ({
-  published,
-  pendingChanges,
-  label,
-}: {
+const LanguageStatus: React.FC<{
   published: boolean;
   pendingChanges: boolean;
   label: string;
@@ -58,13 +55,13 @@ const LanguageStatus = ({
   );
 };
 
-const LanguageStatusPlaceholder = ({ label }: { label: string }) => (
+const LanguageStatusPlaceholder: React.FC<{ label: string }> = ({ label }) => (
   <span className="me-2 animate-pulse rounded bg-gray-200 px-2.5 py-0.5 text-sm font-medium text-gray-400">
     {label}
   </span>
 );
 
-export const PublishingStatusBadges = () => {
+export const PublishingStatusBadges: React.FC = () => {
   const { isPublished, error: errorIsPub } = useIsPublished();
   const { hasUnpublishedChanges, error: errorHasUnpub } = useHasPendingChanges();
 

@@ -62,7 +62,7 @@ const LanguageSelectionModal: React.FC<{
 const AutoTranslate: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
 
-  const handleTranslate = (source: string, target: string) => {
+  const handleTranslate = (source: string, target: string): void => {
     // Call your third-party translation service here
     console.log('Translating from', source, 'to', target);
     setModalOpen(false);
