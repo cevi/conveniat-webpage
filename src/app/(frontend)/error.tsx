@@ -1,14 +1,15 @@
+'use client';
 import React from 'react';
 import { HeadlineH1 } from '@/components/typography/headline-h1';
 import { TeaserText } from '@/components/typography/teaser-text';
 import Link from 'next/link';
 
-const NotFound: React.FC = () => {
+const Error: React.FC = () => {
   return (
     <article className="mx-auto my-8 max-w-6xl px-8">
-      <HeadlineH1>404 - Page Not Found</HeadlineH1>
+      <HeadlineH1>Something went wrong</HeadlineH1>
       <TeaserText>
-        The page you are looking for does not exist. Please check the URL or go back to the{' '}
+        The page failed to load. Please check the URL or go back to the{' '}
         <Link href="/" className="font-bold text-red-600">
           home page
         </Link>
@@ -18,4 +19,4 @@ const NotFound: React.FC = () => {
   );
 };
 
-export default NotFound;
+export default Error;

@@ -159,7 +159,7 @@ const Page: React.FC<LocalizedPage> = async ({ params }) => {
       <div className="mx-auto my-[32px] grid gap-y-6 min-[1200px]:grid-cols-2">
         {blogs.map((blog) => (
           <React.Fragment key={blog.urlSlug}>
-            <Link href={`/blog/${blog.urlSlug}~${blog.id}`} key={blog.id}>
+            <Link href={`/blog/${blog.urlSlug}`} key={blog.id}>
               <NewsCard date={new Date(blog.updatedAt)} headline={blog.blogH1}>
                 <ParagraphText>{blog.blogH1}</ParagraphText>
 

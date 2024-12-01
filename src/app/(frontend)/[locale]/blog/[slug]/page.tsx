@@ -5,12 +5,12 @@ import React from 'react';
 import { HeadlineH1 } from '@/components/typography/headline-h1';
 import { LexicalPageContent } from '@/components/lexical-page-content';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
-import { notFound } from 'next/navigation';
+import { Blog } from '@/payload-types';
 import Link from 'next/link';
-import { TeaserText } from '@/components/typography/teaser-text';
+import { notFound } from 'next/navigation';
 
 export type LocalizedBlogPost = {
-  slug?: string;
+  slug: string;
   locale: 'de' | 'en' | 'fr';
 };
 
@@ -28,61 +28,85 @@ const mapLocale = (locale: 'de' | 'en' | 'fr'): 'de-CH' | 'fr-CH' | 'en-GB' => {
   }
 };
 
+const BlogArticle: React.FC<{ primaryArticle: Blog }> = ({ primaryArticle }) => {
+  return (
+    <article className="mx-auto my-8 max-w-6xl px-8">
+      <HeadlineH1>{primaryArticle.blogH1}</HeadlineH1>
+      <LexicalPageContent pageContent={primaryArticle.pageContent as SerializedEditorState} />
+    </article>
+  );
+};
+
 const BlogPost: React.FC<LocalizedBlogPost> = async ({ slug, locale }) => {
   const payload = await getPayload({ config });
 
-  console.log('BlogPost:', slug, locale, mapLocale(locale));
-
-  // the id follows after ~
-  const id = slug?.split('~')[1] ?? '';
-  if (id === '') notFound();
-
-  const article = await payload.findByID({
+  const articlesInPrimaryLanguage = await payload.find({
     collection: 'blog',
-    id,
+    pagination: false,
     locale: mapLocale(locale),
+    fallbackLocale: false,
+    where: {
+      and: [{ urlSlug: { equals: slug } }, { _localized_status: { equals: { published: true } } }],
+    },
   });
 
-  if (!article._localized_status.published) {
-    // check in which locale the article is available
-    const articleAllLangs = await payload.findByID({
-      collection: 'blog',
-      id,
-      locale: 'all',
-    });
+  if (articlesInPrimaryLanguage.docs.length > 1)
+    throw new Error('More than one article with the same slug found');
 
-    console.log('Article:', JSON.stringify(articleAllLangs._localized_status));
+  const articleInPrimaryLanguage = articlesInPrimaryLanguage.docs[0];
 
-    return (
-      <>
-        <HeadlineH1>Not Found</HeadlineH1>
-        <TeaserText>
-          The article you are looking for does not exist in the selected language. It is available
-          in:
-          <ul>
-            {Object.keys(articleAllLangs._localized_status)
-              .filter((lang: string) => articleAllLangs._localized_status[lang].published)
-              .map((lang: string) => {
-                return (
-                  <li key={lang}>
-                    <Link href="/" className="font-bold text-red-600">
-                      Available in {lang}
-                    </Link>
-                  </li>
-                );
-              })}
-          </ul>
-        </TeaserText>
-      </>
-    );
+  // article found in current locale --> render
+  if (articleInPrimaryLanguage !== undefined) {
+    return <BlogArticle primaryArticle={articleInPrimaryLanguage} />;
   }
 
+  // fallback logic to find article in other locales
+  const locales: ('de-CH' | 'fr-CH' | 'en-GB')[] = ['de-CH', 'fr-CH', 'en-GB'].filter(
+    (l) => l !== mapLocale(locale),
+  ) as ('de-CH' | 'fr-CH' | 'en-GB')[];
+
+  const articles = await Promise.all(
+    locales.map((l) =>
+      payload.find({
+        collection: 'blog',
+        pagination: false,
+        locale: l,
+        where: {
+          and: [
+            { urlSlug: { equals: slug } },
+            { _localized_status: { equals: { published: true } } },
+          ],
+        },
+      }),
+    ),
+  ).then((results) =>
+    results
+      .filter((r) => r.docs.length === 1)
+      .flatMap((r) => r.docs[0])
+      .filter((a) => a !== undefined),
+  );
+
+  // no article found --> 404
+  if (articles.length === 0) {
+    notFound();
+  }
+
+  // list options for user to choose from
   return (
     <article className="mx-auto my-8 max-w-6xl px-8">
-      <HeadlineH1>{article.blogH1}</HeadlineH1>
-      <LexicalPageContent pageContent={article.pageContent as SerializedEditorState} />
-
-      <hr />
+      <HeadlineH1>Choose the correct article</HeadlineH1>
+      <ul>
+        {articles.map((article) => (
+          <li key={article.id}>
+            <Link
+              href={`/${article._locale.split('-')[0]}/blog/${article.urlSlug}`}
+              className="font-bold text-red-600"
+            >
+              - {article.blogH1} in {article._locale}
+            </Link>
+          </li>
+        ))}
+      </ul>
     </article>
   );
 };
@@ -100,3 +124,4 @@ const Page: React.FC<{ params: Promise<{ slug: string; locale: 'de' | 'en' | 'fr
 };
 
 export default Page;
+export const dynamic = 'force-dynamic';

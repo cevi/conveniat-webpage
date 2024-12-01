@@ -1,8 +1,8 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
 
-const Page: React.FC = () => {
+const page: React.FC = () => {
   notFound();
 };
 
-export default Page;
+export default page;
