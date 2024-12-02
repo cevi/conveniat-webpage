@@ -1,9 +1,8 @@
 import config from '@payload-config';
 import { getPayload } from 'payload';
 
-import './globals.css';
+import '../globals.css';
 import Image from 'next/image';
-import type { ReactNode } from 'react';
 import React from 'react';
 import { HeadlineH1 } from '@/components/typography/headline-h1';
 import { TeaserText } from '@/components/typography/teaser-text';
@@ -12,37 +11,19 @@ import { SubheadingH2 } from '@/components/typography/subheading-h2';
 import { ParagraphText } from '@/components/typography/paragraph-text';
 import { SubheadingH3 } from '@/components/typography/subheading-h3';
 import Link from 'next/link';
-import { CeviLogo } from '@/components/svg-logos/cevi-logo';
+import { LexicalPageContent } from '@/components/lexical-page-content';
+import { NewsCard } from '@/components/news-card';
 
-const NewsCard: React.FC<{
-  children: ReactNode;
-  date: Date;
-  headline: string;
-}> = ({ children, date, headline }) => {
-  return (
-    <div className="-mx-[8px] my-[32px] flex flex-col rounded-[16px] border border-gray-200 bg-green-100 p-[24px] text-center">
-      <CeviLogo className="mx-auto my-[8px] flex w-full" />
-
-      <span className="font-body text-[10px] font-bold leading-[20px] text-cevi-blue">
-        {date.toLocaleDateString('de-CH', {
-          weekday: 'long',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-          hour: 'numeric',
-          minute: 'numeric',
-          timeZone: 'Europe/Zurich',
-        })}
-      </span>
-      <h4 className="mb-[16px] font-heading text-[16px] font-extrabold leading-[22px] text-cevi-red">
-        {headline}
-      </h4>
-      {children}
-    </div>
-  );
+export type LocalizedPage = {
+  params: Promise<{
+    locale: 'de' | 'en' | 'fr';
+  }>;
 };
 
-const Page: React.FC = async () => {
+const Page: React.FC<LocalizedPage> = async ({ params }) => {
+  const { locale } = await params;
+  console.log('Page Locale:', locale);
+
   const payload = await getPayload({ config });
 
   const { pageTitle, pageContent } = await payload.findGlobal({
@@ -154,21 +135,9 @@ const Page: React.FC = async () => {
         to the level of the spectato.
       </ParagraphText>
 
-      {pageContent?.map((block) => {
-        switch (block.blockType) {
-          case 'subheading': {
-            return <SubheadingH2 key={block.id}>{block.value}</SubheadingH2>;
-          }
-          case 'paragraph': {
-            return <ParagraphText key={block.id}>{block.value}</ParagraphText>;
-          }
-          default: {
-            return (
-              <ParagraphText key={block.id}>Content {block.blockType} not supported.</ParagraphText>
-            );
-          }
-        }
-      })}
+      <hr />
+
+      <LexicalPageContent pageContent={pageContent} />
 
       <hr />
 
@@ -190,7 +159,7 @@ const Page: React.FC = async () => {
       <div className="mx-auto my-[32px] grid gap-y-6 min-[1200px]:grid-cols-2">
         {blogs.map((blog) => (
           <React.Fragment key={blog.urlSlug}>
-            <Link href={`/blog/${blog.urlSlug}`} key={blog.urlSlug}>
+            <Link href={`/blog/${blog.urlSlug}`} key={blog.id}>
               <NewsCard date={new Date(blog.updatedAt)} headline={blog.blogH1}>
                 <ParagraphText>{blog.blogH1}</ParagraphText>
 

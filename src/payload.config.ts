@@ -1,12 +1,19 @@
 import { mongooseAdapter } from '@payloadcms/db-mongodb';
-import { lexicalEditor } from '@payloadcms/richtext-lexical';
+import {
+  BoldFeature,
+  defaultEditorLexicalConfig,
+  FixedToolbarFeature,
+  HeadingFeature,
+  ItalicFeature,
+  lexicalEditor,
+  ParagraphFeature,
+} from '@payloadcms/richtext-lexical';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 
 import { UserCollection } from '@/payload-cms/collections/user-collection';
 import { MediaCollection } from '@/payload-cms/collections/media-collection';
-import { BlogArticleCollection } from '@/payload-cms/collections/blog-article-collection';
 import { en } from 'payload/i18n/en';
 import { de } from 'payload/i18n/de';
 import { fr } from 'payload/i18n/fr';
@@ -18,6 +25,7 @@ import { HeaderGlobal } from '@/payload-cms/globals/header-global';
 import { PWAGlobal } from '@/payload-cms/globals/pwa-global';
 import { LandingPageGlobal } from '@/payload-cms/globals/landing-page-global';
 import { formBuilderPlugin } from '@payloadcms/plugin-form-builder';
+import { BlogArticleCollection } from '@/payload-cms/collections/blog-article';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -62,17 +70,31 @@ export default buildSecureConfig({
     dateFormat: 'yyyy-MM-dd HH:mm',
     livePreview: {
       url: APP_HOST_URL,
-      collections: ['blog'],
+      collections: [], // ['blog'], // TODO: live preview breaks multi-locale editing
     },
   },
   collections: [UserCollection, MediaCollection, BlogArticleCollection],
-  editor: lexicalEditor(),
+  editor: lexicalEditor({
+    features: () => {
+      return [
+        ItalicFeature(),
+        BoldFeature(),
+        ParagraphFeature(),
+        HeadingFeature({
+          enabledHeadingSizes: ['h2', 'h3'],
+        }),
+        FixedToolbarFeature(),
+      ];
+    },
+    lexical: defaultEditorLexicalConfig,
+  }),
   globals: [SeoGlobal, HeaderGlobal, FooterGlobal, PWAGlobal, LandingPageGlobal],
   localization: {
     locales,
     defaultLocale: 'de-CH',
     fallback: false,
   },
+  // we don't need GraphQL for this project, therefore we disable it
   graphQL: {
     disable: true,
     disablePlaygroundInProduction: true,

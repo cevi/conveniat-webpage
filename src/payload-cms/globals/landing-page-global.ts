@@ -1,5 +1,5 @@
 import { GlobalConfig } from 'payload';
-import { pageContent } from '@/payload-cms/fields/page-content';
+import { pageContent } from '@/payload-cms/shared-fields/page-content';
 
 export const LandingPageGlobal: GlobalConfig = {
   slug: 'landingPage',
@@ -13,6 +13,7 @@ export const LandingPageGlobal: GlobalConfig = {
       name: 'pageTitle',
       label: 'Page Title',
       type: 'text',
+      localized: true,
       required: true,
       defaultValue: 'Welcome to Conveniat 2027',
       admin: {
@@ -22,4 +23,9 @@ export const LandingPageGlobal: GlobalConfig = {
 
     pageContent,
   ],
+
+  versions: {
+    max: 100,
+    drafts: true,
+  },
 };

@@ -15,5 +15,4 @@ export const generateViewport = (): Viewport => ({
   userScalable: true,
   viewportFit: 'cover',
   interactiveWidget: 'resizes-visual', // default value
-  height: 'resizes-visual',
 });

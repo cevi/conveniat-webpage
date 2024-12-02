@@ -1,4 +1,4 @@
-import { buildConfig, Config } from 'payload';
+import { buildConfig, Config, SanitizedConfig } from 'payload';
 import { canAccessAPI } from '@/payload-cms/access-rules/can-access-admin-panel';
 
 /**
@@ -13,7 +13,7 @@ import { canAccessAPI } from '@/payload-cms/access-rules/can-access-admin-panel'
  *
  * @param config the payload configuration to secure
  */
-export const buildSecureConfig = (config: Config) => {
+export const buildSecureConfig = (config: Config): Promise<SanitizedConfig> => {
   // apply default rules to all globals
   if (config.globals)
     for (const global of config.globals) {

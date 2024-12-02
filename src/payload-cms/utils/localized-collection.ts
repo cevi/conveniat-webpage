@@ -65,6 +65,7 @@ export const asLocalizedCollection = (config: CollectionConfig): CollectionConfi
         },
       },
 
+      /*
       {
         name: 'Autotranslate',
         type: 'ui',
@@ -75,6 +76,7 @@ export const asLocalizedCollection = (config: CollectionConfig): CollectionConfi
           },
         },
       },
+      */
 
       // add the localized publishing status field
       {
@@ -88,6 +90,16 @@ export const asLocalizedCollection = (config: CollectionConfig): CollectionConfi
         // we use a custom JSON schema for the field
         // in order to generate the correct types
         jsonSchema: localizedStatusSchema,
+        admin: {
+          disabled: true,
+        },
+      },
+
+      {
+        name: '_locale',
+        type: 'text',
+        required: true,
+        localized: true,
         admin: {
           disabled: true,
         },

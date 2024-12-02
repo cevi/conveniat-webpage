@@ -1,26 +1,12 @@
-import { CollectionConfig, Field } from 'payload';
+import { CollectionConfig } from 'payload';
 import { asLocalizedCollection } from '@/payload-cms/utils/localized-collection';
-
-const blogArticleTitleField: Field = {
-  name: 'blogH1',
-  label: {
-    en: 'Title',
-    de: 'Titel',
-    fr: 'Titre',
-  },
-  type: 'text',
-  localized: true,
-  required: true,
-  admin: {
-    description: {
-      en: 'This is the title that will be displayed on the page.',
-      de: 'Dies ist der Titel, der auf der Seite angezeigt wird.',
-      fr: "C'est le titre qui sera affiché sur la page.",
-    },
-  },
-};
-
-const blogArticleFields: Field[] = [blogArticleTitleField];
+import { pageContent } from '@/payload-cms/shared-fields/page-content';
+import {
+  bannerImage,
+  blogArticleTitleField,
+  blogTeaserText,
+} from '@/payload-cms/collections/blog-article/fields';
+import { slugValidation } from '@/payload-cms/collections/blog-article/validation';
 
 export const BlogArticleCollection: CollectionConfig = asLocalizedCollection({
   // Unique, URL-friendly string that will act as an identifier for this Collection.
@@ -42,7 +28,10 @@ export const BlogArticleCollection: CollectionConfig = asLocalizedCollection({
   },
 
   fields: [
-    ...blogArticleFields,
+    blogArticleTitleField,
+    bannerImage,
+    blogTeaserText,
+    pageContent,
 
     {
       type: 'collapsible',
@@ -55,6 +44,7 @@ export const BlogArticleCollection: CollectionConfig = asLocalizedCollection({
           required: true,
           localized: true,
           unique: true,
+          validate: slugValidation,
           admin: {
             position: 'sidebar',
             description: {
