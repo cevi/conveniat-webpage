@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { fetchDocument, NotYetSavedException } from '@/payload-cms/utils/utils';
 
 type LocalizedStatus = Record<Config['locale'], boolean> | undefined;
-type LocalizedPublishingStatus = Record<Config['locale'], { published: boolean }>;
+type LocalizedPublishingStatus = Record<Config['locale'], { published: boolean } | undefined>;
 
 /**
  *
@@ -79,9 +79,10 @@ export const useIsPublished = () => {
         // eslint-disable-next-line unicorn/no-array-reduce
         .reduce((accumulator, _locale) => {
           const locale = _locale as Config['locale'];
-          const state: boolean = (
-            _document._localized_status as unknown as LocalizedPublishingStatus
-          )[locale].published;
+          const state: boolean = Boolean(
+            (_document._localized_status as unknown as LocalizedPublishingStatus)[locale]
+              ?.published,
+          );
           return { ...accumulator, [locale]: state };
         }, {});
       setIsPublished(published as LocalizedStatus);
@@ -102,7 +103,10 @@ type Field = {
 type PayloadDocument = Record<string, Record<Config['locale'], string>>;
 
 /**
- * Checks if two values are different
+ * Checks if two values are different.
+ *
+ * Returns false if one of the values is undefined or null.
+ * Returns true if the values are different.
  *
  * @param locale
  * @param field
@@ -112,17 +116,28 @@ type PayloadDocument = Record<string, Record<Config['locale'], string>>;
 const isDiff = (
   locale: Config['locale'],
   field: Field,
-  value1: Record<Config['locale'], string> | undefined,
-  value2: Record<Config['locale'], string> | undefined,
+  value1: unknown,
+  value2: unknown,
 ): boolean => {
-  if (value1 === undefined || value2 === undefined) return true;
+  if (value1 === undefined || value2 === undefined) return false;
+  if (value1 === null || value2 === null) return false;
 
-  if (field.localized) return value1[locale] !== value2[locale];
-  return !field.presentational && value1 !== value2;
+  if (field.localized) {
+    const v1 = value1 as Record<Config['locale'], string>;
+    const v2 = value2 as Record<Config['locale'], string>;
+
+    if (v1[locale] !== v2[locale]) console.log('Diff:', v1[locale], v2[locale]);
+    return JSON.stringify(v1[locale]) !== JSON.stringify(v2[locale]);
+  }
+  if (!field.presentational && value1 !== value2) console.log('Diff:', value1, value2);
+  return !field.presentational && JSON.stringify(value1) !== JSON.stringify(value2);
 };
 
 /**
- * Recursively checks if two documents have differences
+ * Recursively checks if two documents have differences.
+ *
+ * If the document is invalid, i.e. it contains undefined values,
+ * it will return false (no diffs). This may happen after a schema change.
  *
  * @param locale the locale for which to check the diffs
  * @param fieldDefs the field definitions of the document
@@ -144,23 +159,33 @@ const hasDiffs = (
     if (ignoredFields.has(field.name)) continue;
 
     const { name, type, fields } = field;
-    const value1 = document1[name] as Record<Config['locale'], string>;
-    const value2 = document2[name] as Record<Config['locale'], string>;
+    const value1 = document1[name] as unknown;
+    const value2 = document2[name] as unknown;
 
+    // if the field is collapsible, we need to check the fields inside
     if (type === 'collapsible' && hasDiffs(locale, fields, document1, document2)) {
       return true;
     }
 
     // some types need special handling
     if (type === 'upload') {
-      // @ts-ignore
-      if (field.localized) return value1[locale].id !== value2[locale].id;
-      // @ts-ignore
-      return !field.presentational && value1.id !== value2.id;
+      type UploadRecord = Record<Config['locale'], { id: string } | undefined>;
+      if (field.localized) {
+        const v1 = value1 as UploadRecord;
+        const v2 = value2 as UploadRecord;
+        if (v1[locale] === undefined || v2[locale] === undefined) return false;
+        return v1[locale].id !== v2[locale].id;
+      }
+
+      if (value1 === undefined || value2 === undefined) return false;
+      const v1 = value1 as { id: string };
+      const v2 = value2 as { id: string };
+      return !field.presentational && v1.id !== v2.id;
     }
 
+    // if the field is localized, we need to check the locale
     if (isDiff(locale, field, value1, value2)) {
-      return true;
+      return true; // found a diff, abort and return true
     }
   }
 
