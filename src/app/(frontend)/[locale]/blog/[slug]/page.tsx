@@ -57,7 +57,7 @@ const BlogPost: React.FC<LocalizedBlogPost> = async ({ slug, locale }) => {
 
   // article found in current locale --> render
   if (articleInPrimaryLanguage !== undefined) {
-    return <BlogArticle primaryArticle={articleInPrimaryLanguage} />;
+    return <BlogArticle article={articleInPrimaryLanguage} />;
   }
 
   // fallback logic to find article in other locales
