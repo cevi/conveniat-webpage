@@ -92,6 +92,10 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = () => {
         },
         _locale: code,
       },
+      // TODO: this does not work as expected
+      // we do not validate the fields during saving a draft
+      // since we do not want to enforce the user to fill out all fields
+      // before saving a draft (e.g. when the schema was changed)
       skipValidation: true,
     });
   }, [forceDisable, locale, collectionSlug, globalSlug, submit, code, serverURL, api, id]);
@@ -126,6 +130,8 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = () => {
           },
           _locale: code,
         },
+        // TODO: this does not work as expected
+        skipValidation: false, // here we do validate the fields!
       });
     },
     [api, code, collectionSlug, globalSlug, id, serverURL, submit],
@@ -146,11 +152,19 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = () => {
       void submit({
         action,
         overrides: {
+          // TODO: if we unpublish the last locale of a document,
+          //  we should also unpublish the document itself
+          //  currently, we only unpublish the specific locale
           _status: 'published',
           _localized_status: {
             published: false,
           },
         },
+        // TODO: this does not work as expected
+        // We do not validate the fields during unpublishing.
+        // Since we do not want to enforce the user to fill out all fields
+        // before unpublishing a document (e.g. when the schema was changed)
+        skipValidation: true,
       });
     },
     [api, collectionSlug, globalSlug, id, serverURL, submit],
