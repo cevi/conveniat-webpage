@@ -1,5 +1,4 @@
 import config from '@payload-config';
-import { ErrorBoundary } from 'react-error-boundary';
 import { getPayload } from 'payload';
 import React from 'react';
 import { HeadlineH1 } from '@/components/typography/headline-h1';
@@ -116,11 +115,7 @@ const Page: React.FC<{ params: Promise<{ slug: string; locale: 'de' | 'en' | 'fr
 }) => {
   const { slug, locale } = await params;
 
-  return (
-    <ErrorBoundary fallback={<div>Something went wrong</div>}>
-      <BlogPost slug={slug} locale={locale} />
-    </ErrorBoundary>
-  );
+  return <BlogPost slug={slug} locale={locale} />;
 };
 
 export default Page;
