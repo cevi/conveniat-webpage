@@ -1,6 +1,7 @@
 import { PublishingStatusBadges } from '@/payload-cms/components/multi-lang-publishing/publishing-status-badges';
+import React from 'react';
 
-const PublishingStatus = () => (
+const PublishingStatus: React.FC = () => (
   <div className="divide-slate-600 mb-8">
     <div className="my-3">
       <p className="max-w-prose text-sm font-medium text-gray-600">

@@ -21,7 +21,7 @@ export const HeaderComponent: React.FC = () => {
             <span className="absolute left-0 top-[22px] flex w-full items-center justify-center text-[24px] font-extrabold leading-normal">
               Conveniat
             </span>
-            <Menu className="absolute right-[20px] top-[22px]" />
+            <Menu className="absolute right-[21px] top-[22px]" />
           </div>
         </div>
       </div>

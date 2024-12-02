@@ -23,7 +23,7 @@ const LanguageSelectionModal: React.FC<{
             onChange={(event) => setSourceLanguage(event.target.value)}
           >
             <option value="">Select source language</option>
-            <option value="en-US">English</option>
+            <option value="en-GB">English</option>
             <option value="fr-CH">French</option>
             <option value="de-CH">German</option>
           </select>
@@ -62,7 +62,7 @@ const LanguageSelectionModal: React.FC<{
 const AutoTranslate: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
 
-  const handleTranslate = (source: string, target: string) => {
+  const handleTranslate = (source: string, target: string): void => {
     // Call your third-party translation service here
     console.log('Translating from', source, 'to', target);
     setModalOpen(false);

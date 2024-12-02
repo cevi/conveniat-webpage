@@ -33,11 +33,9 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = () => {
     collectionSlug,
     docConfig,
     globalSlug,
+    unpublishedVersionCount,
     hasPublishPermission,
-    // @ts-expect-error
-    publishedDoc,
-    // @ts-expect-error
-    unpublishedVersions,
+    hasPublishedDoc,
   } = useDocumentInfo();
 
   const { config } = useConfig();
@@ -54,9 +52,9 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = () => {
   const { t } = useTranslation();
   const { code } = useLocale() as { code: Config['locale'] };
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  const hasNewerVersions = (unpublishedVersions?.totalDocs || 0) > 0;
-  const canPublish = hasPublishPermission && (modified || hasNewerVersions || !publishedDoc);
+  const hasNewerVersions = unpublishedVersionCount > 0;
+  const canPublish =
+    hasPublishPermission === true && (modified || hasNewerVersions || hasPublishedDoc);
   const operation = useOperation();
 
   const forceDisable = operation === 'update' && !modified;
@@ -71,14 +69,14 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = () => {
     let action;
     let method = 'POST';
 
-    if (collectionSlug) {
-      action = `${serverURL}${api}/${collectionSlug}${id ? `/${id}` : ''}${search}`;
-      if (id) {
+    if (collectionSlug !== undefined) {
+      action = `${serverURL}${api}/${collectionSlug}${id === undefined ? '' : `/${id}`}${search}`;
+      if (id !== undefined) {
         method = 'PATCH';
       }
     }
 
-    if (globalSlug) {
+    if (globalSlug !== undefined) {
       action = `${serverURL}${api}/globals/${globalSlug}${search}`;
     }
 
@@ -92,7 +90,12 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = () => {
         _published: {
           [code]: true,
         },
+        _locale: code,
       },
+      // TODO: this does not work as expected
+      // we do not validate the fields during saving a draft
+      // since we do not want to enforce the user to fill out all fields
+      // before saving a draft (e.g. when the schema was changed)
       skipValidation: true,
     });
   }, [forceDisable, locale, collectionSlug, globalSlug, submit, code, serverURL, api, id]);
@@ -101,7 +104,7 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = () => {
     event.preventDefault();
     event.stopPropagation();
 
-    if (docConfig?.versions.drafts && docConfig.versions.drafts.autosave) {
+    if (Boolean(docConfig?.versions.drafts)) {
       void saveDraft();
     }
   });
@@ -113,8 +116,10 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = () => {
       });
 
       const action = `${serverURL}${api}${
-        globalSlug ? `/globals/${globalSlug}` : `/${collectionSlug}/${id ? `/${id}` : ''}`
-      }${parameters ? '?' + parameters : ''}`;
+        globalSlug === undefined
+          ? `/${collectionSlug}/${id === undefined ? '' : `/${id}`}`
+          : `/globals/${globalSlug}`
+      }${parameters === '' ? '' : '?' + parameters}`;
 
       void submit({
         action,
@@ -123,10 +128,13 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = () => {
           _localized_status: {
             published: true,
           },
+          _locale: code,
         },
+        // TODO: this does not work as expected
+        skipValidation: false, // here we do validate the fields!
       });
     },
-    [api, collectionSlug, globalSlug, id, serverURL, submit],
+    [api, code, collectionSlug, globalSlug, id, serverURL, submit],
   );
 
   const unpublishSpecificLocale = useCallback(
@@ -136,17 +144,27 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = () => {
       });
 
       const action = `${serverURL}${api}${
-        globalSlug ? `/globals/${globalSlug}` : `/${collectionSlug}/${id ? `/${id}` : ''}`
-      }${parameters ? '?' + parameters : ''}`;
+        globalSlug === undefined
+          ? `/${collectionSlug}/${id === undefined ? '' : `/${id}`}`
+          : `/globals/${globalSlug}`
+      }${parameters === '' ? '' : '?' + parameters}`;
 
       void submit({
         action,
         overrides: {
+          // TODO: if we unpublish the last locale of a document,
+          //  we should also unpublish the document itself
+          //  currently, we only unpublish the specific locale
           _status: 'published',
           _localized_status: {
             published: false,
           },
         },
+        // TODO: this does not work as expected
+        // We do not validate the fields during unpublishing.
+        // Since we do not want to enforce the user to fill out all fields
+        // before unpublishing a document (e.g. when the schema was changed)
+        skipValidation: true,
       });
     },
     [api, collectionSlug, globalSlug, id, serverURL, submit],
