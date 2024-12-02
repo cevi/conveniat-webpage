@@ -28,11 +28,11 @@ const mapLocale = (locale: 'de' | 'en' | 'fr'): 'de-CH' | 'fr-CH' | 'en-GB' => {
   }
 };
 
-const BlogArticle: React.FC<{ primaryArticle: Blog }> = ({ primaryArticle }) => {
+const BlogArticle: React.FC<{ article: Blog }> = ({ article }) => {
   return (
     <article className="mx-auto my-8 max-w-6xl px-8">
-      <HeadlineH1>{primaryArticle.blogH1}</HeadlineH1>
-      <LexicalPageContent pageContent={primaryArticle.pageContent as SerializedEditorState} />
+      <HeadlineH1>{article.blogH1}</HeadlineH1>
+      <LexicalPageContent pageContent={article.pageContent as SerializedEditorState} />
     </article>
   );
 };
