@@ -4,7 +4,7 @@ import { HeadlineH1 } from '@/components/typography/headline-h1';
 import { TeaserText } from '@/components/typography/teaser-text';
 import Link from 'next/link';
 
-const Error: React.FC = () => {
+const ErrorPage: React.FC = () => {
   return (
     <article className="mx-auto my-8 max-w-6xl px-8">
       <HeadlineH1>Something went wrong</HeadlineH1>
@@ -19,4 +19,4 @@ const Error: React.FC = () => {
   );
 };
 
-export default Error;
+export default ErrorPage;

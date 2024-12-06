@@ -1,42 +1,16 @@
-import config from '@payload-config';
-import { getPayload } from 'payload';
-import React from 'react';
 import { HeadlineH1 } from '@/components/typography/headline-h1';
-import { LexicalPageContent } from '@/components/lexical-page-content';
-import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
-import { Blog } from '@/payload-types';
-import Link from 'next/link';
+import React from 'react';
+import { getPayload } from 'payload';
+import config from '@payload-config';
+import { mapLocale } from '@/utils/map-locale';
 import { notFound } from 'next/navigation';
+import Link from 'next/link';
+import { BlogArticle } from '@/content-pages/blog-posts/article';
 
-export type LocalizedBlogPost = {
+export const BlogPostPage: React.FC<{
   slug: string;
   locale: 'de' | 'en' | 'fr';
-};
-
-const mapLocale = (locale: 'de' | 'en' | 'fr'): 'de-CH' | 'fr-CH' | 'en-GB' => {
-  switch (locale) {
-    case 'de': {
-      return 'de-CH';
-    }
-    case 'en': {
-      return 'en-GB';
-    }
-    case 'fr': {
-      return 'fr-CH';
-    }
-  }
-};
-
-const BlogArticle: React.FC<{ article: Blog }> = ({ article }) => {
-  return (
-    <article className="mx-auto my-8 max-w-6xl px-8">
-      <HeadlineH1>{article.blogH1}</HeadlineH1>
-      <LexicalPageContent pageContent={article.pageContent as SerializedEditorState} />
-    </article>
-  );
-};
-
-const BlogPost: React.FC<LocalizedBlogPost> = async ({ slug, locale }) => {
+}> = async ({ slug, locale }) => {
   const payload = await getPayload({ config });
 
   const articlesInPrimaryLanguage = await payload.find({
@@ -109,14 +83,3 @@ const BlogPost: React.FC<LocalizedBlogPost> = async ({ slug, locale }) => {
     </article>
   );
 };
-
-const Page: React.FC<{ params: Promise<{ slug: string; locale: 'de' | 'en' | 'fr' }> }> = async ({
-  params,
-}) => {
-  const { slug, locale } = await params;
-
-  return <BlogPost slug={slug} locale={locale} />;
-};
-
-export default Page;
-export const dynamic = 'force-dynamic';

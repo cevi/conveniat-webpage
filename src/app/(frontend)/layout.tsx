@@ -7,13 +7,13 @@ import { FooterComponent } from '@/components/footer/footer-component';
 import { HeaderComponent } from '@/components/header-component';
 import { CeviBackgroundLogo } from '@/components/svg-logos/cevi-background-logo';
 import { ErrorBoundary } from 'react-error-boundary';
-import Error from '@/app/(frontend)/error';
+import ErrorPage from '@/app/(frontend)/error';
 
 type LayoutProperties = {
   children: ReactNode;
 };
 
-const Layout: React.FC<LayoutProperties> = ({ children }) => {
+const RootLayout: React.FC<LayoutProperties> = ({ children }) => {
   return (
     <html>
       <body className="flex h-screen flex-col">
@@ -23,7 +23,7 @@ const Layout: React.FC<LayoutProperties> = ({ children }) => {
           <CeviBackgroundLogo className="mx-auto h-full w-full max-w-[384px]" />
         </div>
 
-        <ErrorBoundary fallback={<Error />}>
+        <ErrorBoundary fallback={<ErrorPage />}>
           <main className="grow">{children}</main>
         </ErrorBoundary>
 
@@ -33,7 +33,7 @@ const Layout: React.FC<LayoutProperties> = ({ children }) => {
   );
 };
 
-export default Layout;
+export default RootLayout;
 
 // configure the viewport and metadata
 export { generateViewport } from '@/utils/generate-viewport';
