@@ -1,11 +1,16 @@
 import { GlobalConfig } from 'payload';
+import { GlobalGroups } from '@/payload-cms/globals/global-groups';
 
 export const PWAGlobal: GlobalConfig = {
   slug: 'PWA',
   label: 'PWA Settings',
   admin: {
-    group: 'Global Settings',
-    description: 'Settings for the Progressive Web App',
+    group: GlobalGroups.GlobalSettings,
+    description: {
+      en: 'Settings for the Progressive Web App',
+      de: 'Einstellungen für die Progressive Web App',
+      fr: "Paramètres pour l'application web progressive",
+    },
   },
   fields: [
     {

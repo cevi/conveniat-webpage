@@ -1,11 +1,16 @@
 import { GlobalConfig } from 'payload';
+import { GlobalGroups } from '@/payload-cms/globals/global-groups';
 
 export const SeoGlobal: GlobalConfig = {
   slug: 'SEO',
   label: 'SEO Settings',
   admin: {
-    group: 'Global Settings',
-    description: 'Settings for the search engine optimization',
+    group: GlobalGroups.GlobalSettings,
+    description: {
+      en: 'Settings for the search engine optimization',
+      de: 'Einstellungen für die Suchmaschinenoptimierung',
+      fr: "Paramètres pour l'optimisation des moteurs de recherche",
+    },
   },
   fields: [
     {

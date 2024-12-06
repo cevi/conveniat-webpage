@@ -1,7 +1,11 @@
 import type { CollectionConfig } from 'payload';
+import { CollectionGroups } from '@/payload-cms/collections/collection-groups';
 
 export const MediaCollection: CollectionConfig = {
   slug: 'media',
+  admin: {
+    group: CollectionGroups.HelperCollections,
+  },
   access: {
     read: () => true,
   },

@@ -1,4 +1,5 @@
 import { GlobalConfig } from 'payload';
+import { GlobalGroups } from '@/payload-cms/globals/global-groups';
 
 export const DataPrivacyStatement: GlobalConfig = {
   slug: 'data-privacy-statement',
@@ -9,7 +10,7 @@ export const DataPrivacyStatement: GlobalConfig = {
   },
   fields: [],
   admin: {
-    group: 'Unique Content',
+    group: GlobalGroups.UniqueContent,
     description: {
       en: 'Settings for the data privacy statement',
       de: 'Einstellungen für die Datenschutzerklärung',
