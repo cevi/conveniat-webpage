@@ -27,6 +27,7 @@ import { LandingPageGlobal } from '@/payload-cms/globals/landing-page-global';
 import { formBuilderPlugin } from '@payloadcms/plugin-form-builder';
 import { BlogArticleCollection } from '@/payload-cms/collections/blog-article';
 import { seedDatabase } from '@/seed-database';
+import { DataPrivacyStatement } from '@/payload-cms/globals/data-privacy-statement';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -91,7 +92,14 @@ export default buildSecureConfig({
     },
     lexical: defaultEditorLexicalConfig,
   }),
-  globals: [LandingPageGlobal, FooterGlobal, HeaderGlobal, SeoGlobal, PWAGlobal],
+  globals: [
+    LandingPageGlobal,
+    FooterGlobal,
+    DataPrivacyStatement,
+    HeaderGlobal,
+    SeoGlobal,
+    PWAGlobal,
+  ],
   localization: {
     locales,
     defaultLocale: 'de-CH',

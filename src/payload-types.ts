@@ -72,6 +72,7 @@ export interface Config {
   globals: {
     landingPage: LandingPage;
     footer: Footer;
+    'data-privacy-statement': DataPrivacyStatement;
     header: Header;
     SEO: SEO;
     PWA: PWA;
@@ -79,6 +80,7 @@ export interface Config {
   globalsSelect: {
     landingPage: LandingPageSelect<false> | LandingPageSelect<true>;
     footer: FooterSelect<false> | FooterSelect<true>;
+    'data-privacy-statement': DataPrivacyStatementSelect<false> | DataPrivacyStatementSelect<true>;
     header: HeaderSelect<false> | HeaderSelect<true>;
     SEO: SEOSelect<false> | SEOSelect<true>;
     PWA: PWASelect<false> | PWASelect<true>;
@@ -705,6 +707,15 @@ export interface Footer {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "data-privacy-statement".
+ */
+export interface DataPrivacyStatement {
+  id: string;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "header".
  */
 export interface Header {
@@ -760,6 +771,15 @@ export interface LandingPageSelect<T extends boolean = true> {
  */
 export interface FooterSelect<T extends boolean = true> {
   donationIban?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "data-privacy-statement_select".
+ */
+export interface DataPrivacyStatementSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
