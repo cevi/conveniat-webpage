@@ -1,11 +1,12 @@
 import { GlobalConfig } from 'payload';
-import { GlobalGroups } from '@/payload-cms/globals/global-groups';
+import { AdminPanelDashboardGroups } from '@/payload-cms/admin-panel-dashboard-groups';
+import { localizedDefaultValue } from '@/payload-cms/utils/localized-default-value';
 
 export const PWAGlobal: GlobalConfig = {
   slug: 'PWA',
   label: 'PWA Settings',
   admin: {
-    group: GlobalGroups.GlobalSettings,
+    group: AdminPanelDashboardGroups.GlobalSettings,
     description: {
       en: 'Settings for the Progressive Web App',
       de: 'Einstellungen für die Progressive Web App',
@@ -44,7 +45,11 @@ export const PWAGlobal: GlobalConfig = {
       label: 'App Description',
       type: 'textarea',
       required: true,
-      defaultValue: 'Conveniat 2027 - MIR SIND CEVI',
+      defaultValue: localizedDefaultValue({
+        de: 'Conveniat 2027 - MIR SIND CEVI',
+        en: 'Conveniat 2027 - WE ARE CEVI',
+        fr: 'Conveniat 2027 - NOUS SOMMES LES UCS',
+      }),
       admin: {
         readOnly: true,
         description:

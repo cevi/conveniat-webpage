@@ -1,7 +1,7 @@
 import { CollectionConfig } from 'payload';
 import { canAccessAdminPanel } from '@/payload-cms/access-rules/can-access-admin-panel';
 import { getAuthenticateUsingCeviDB } from '@/auth/auth-helpers';
-import { CollectionGroups } from '@/payload-cms/collections/collection-groups';
+import { AdminPanelDashboardGroups } from '@/payload-cms/admin-panel-dashboard-groups';
 
 export const UserCollection: CollectionConfig = {
   slug: 'users',
@@ -21,7 +21,7 @@ export const UserCollection: CollectionConfig = {
     description:
       'Represents a Hitobito user. These information get automatically synced whenever the user logs in.',
     useAsTitle: 'email',
-    group: CollectionGroups.InternalCollections,
+    group: AdminPanelDashboardGroups.InternalCollections,
     defaultColumns: ['email', 'fullName', 'nickname', 'cevi_db_uuid'],
   },
   auth: {

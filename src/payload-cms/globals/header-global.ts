@@ -1,12 +1,12 @@
 import { GlobalConfig } from 'payload';
-import { GlobalGroups } from '@/payload-cms/globals/global-groups';
+import { AdminPanelDashboardGroups } from '@/payload-cms/admin-panel-dashboard-groups';
 
 export const HeaderGlobal: GlobalConfig = {
   slug: 'header',
   label: 'Header Navigation',
   fields: [],
   admin: {
-    group: GlobalGroups.UniqueContent,
+    group: AdminPanelDashboardGroups.UniqueContent,
     description: 'Settings for the header navigation',
   },
 };

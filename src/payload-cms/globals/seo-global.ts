@@ -1,11 +1,12 @@
 import { GlobalConfig } from 'payload';
-import { GlobalGroups } from '@/payload-cms/globals/global-groups';
+import { AdminPanelDashboardGroups } from '@/payload-cms/admin-panel-dashboard-groups';
+import { localizedDefaultValue } from '@/payload-cms/utils/localized-default-value';
 
 export const SeoGlobal: GlobalConfig = {
   slug: 'SEO',
   label: 'SEO Settings',
   admin: {
-    group: GlobalGroups.GlobalSettings,
+    group: AdminPanelDashboardGroups.GlobalSettings,
     description: {
       en: 'Settings for the search engine optimization',
       de: 'Einstellungen für die Suchmaschinenoptimierung',
@@ -24,11 +25,20 @@ export const SeoGlobal: GlobalConfig = {
           'value for the title, but each page can have its own title.',
       },
       required: true,
-      defaultValue: 'Conveniat 2027 - MIR SIND CEVI',
+      defaultValue: localizedDefaultValue({
+        de: 'Conveniat 2027 - MIR SIND CEVI',
+        en: 'Conveniat 2027 - WE ARE CEVI',
+        fr: 'Conveniat 2027 - NOUS SOMMES LES UCS',
+      }),
     },
     {
       name: 'defaultDescription',
       label: 'Default Description',
+      defaultValue: localizedDefaultValue({
+        de: 'Conveniat 2027 - MIR SIND CEVI',
+        en: 'Conveniat 2027 - WE ARE CEVI',
+        fr: 'Conveniat 2027 - NOUS SOMMES LES UCS',
+      }),
       admin: {
         description:
           'The description should be under 155 characters for mobile prefer 105. The description ' +
@@ -56,11 +66,15 @@ export const SeoGlobal: GlobalConfig = {
           required: true,
         },
       ],
-      defaultValue: [
-        { keyword: 'Conveniat 2027' },
-        { keyword: 'Cevi Schweiz' },
-        { keyword: 'Lager' },
-      ],
+      defaultValue: localizedDefaultValue({
+        de: [{ keyword: 'Conveniat 2027' }, { keyword: 'Cevi Schweiz' }, { keyword: 'Lager' }],
+        en: [{ keyword: 'Conveniat 2027' }, { keyword: 'Cevi Switzerland' }, { keyword: 'Camp' }],
+        fr: [
+          { keyword: 'Conveniat 2027' },
+          { keyword: 'Unions Chrétiennes Suisses' },
+          { keyword: 'Camp' },
+        ],
+      }),
     },
     {
       name: 'publisher',
@@ -70,7 +84,11 @@ export const SeoGlobal: GlobalConfig = {
         description: 'The content publisher',
       },
       required: true,
-      defaultValue: 'Conveniat · Cevi Schweiz',
+      defaultValue: localizedDefaultValue({
+        de: 'Conveniat · Cevi Schweiz',
+        en: 'Conveniat · Cevi Switzerland',
+        fr: 'Conveniat · Unions Chrétiennes Suisses',
+      }),
     },
   ],
 };

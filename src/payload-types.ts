@@ -40,6 +40,10 @@ export type GroupsOfTheUser = {
  * This field indicates whether the document is published in the corresponding locale
  */
 export type IsPublishedInCorrespondingLocale1 = boolean;
+/**
+ * This field indicates whether the document is published in the corresponding locale
+ */
+export type IsPublishedInCorrespondingLocale2 = boolean;
 
 export interface Config {
   auth: {
@@ -73,6 +77,7 @@ export interface Config {
     landingPage: LandingPage;
     footer: Footer;
     'data-privacy-statement': DataPrivacyStatement;
+    imprint: Imprint;
     header: Header;
     SEO: SEO;
     PWA: PWA;
@@ -81,6 +86,7 @@ export interface Config {
     landingPage: LandingPageSelect<false> | LandingPageSelect<true>;
     footer: FooterSelect<false> | FooterSelect<true>;
     'data-privacy-statement': DataPrivacyStatementSelect<false> | DataPrivacyStatementSelect<true>;
+    imprint: ImprintSelect<false> | ImprintSelect<true>;
     header: HeaderSelect<false> | HeaderSelect<true>;
     SEO: SEOSelect<false> | SEOSelect<true>;
     PWA: PWASelect<false> | PWASelect<true>;
@@ -711,8 +717,31 @@ export interface Footer {
  */
 export interface DataPrivacyStatement {
   id: string;
+  urlSlug: string;
+  pageTitle: string;
   updatedAt?: string | null;
   createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "imprint".
+ */
+export interface Imprint {
+  id: string;
+  _localized_status: LocalizedPublishingStatus2;
+  _locale: string;
+  urlSlug: string;
+  pageTitle: string;
+  _status?: ('draft' | 'published') | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * Holds the publishing status of the document in each locale
+ */
+export interface LocalizedPublishingStatus2 {
+  published: IsPublishedInCorrespondingLocale2;
+  [k: string]: unknown;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -780,6 +809,22 @@ export interface FooterSelect<T extends boolean = true> {
  * via the `definition` "data-privacy-statement_select".
  */
 export interface DataPrivacyStatementSelect<T extends boolean = true> {
+  urlSlug?: T;
+  pageTitle?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "imprint_select".
+ */
+export interface ImprintSelect<T extends boolean = true> {
+  _localized_status?: T;
+  _locale?: T;
+  urlSlug?: T;
+  pageTitle?: T;
+  _status?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
