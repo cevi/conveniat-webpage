@@ -2,7 +2,7 @@
 import { cva } from 'class-variance-authority';
 import { useHasPendingChanges, useIsPublished } from '@/payload-cms/hooks/hooks';
 import { Config } from '@/payload-types';
-import { NotYetSavedException } from '@/payload-cms/utils/utils';
+import { NotYetSavedException } from '@/payload-cms/components/multi-lang-publishing/utils';
 import React from 'react';
 import { locales } from '@/payload-cms/locales';
 
@@ -13,20 +13,21 @@ const languageStatusClasses = cva('text-sm font-medium me-2 px-2.5 py-0.5 rounde
       false: '',
     },
     published: {
-      true: '',
-      false: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
+      true: 'border-solid border-2',
+      false: 'border-solid border-2 border-red-300',
     },
   },
   compoundVariants: [
     {
       published: true,
       pendingChanges: true,
-      className: 'border-solid border-2 border-green-900 text-green-800 dark:text-green-300',
+      className: 'border-red-300 bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
     },
     {
       published: true,
       pendingChanges: false,
-      className: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+      className:
+        'border-green-300 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
     },
   ],
   defaultVariants: {

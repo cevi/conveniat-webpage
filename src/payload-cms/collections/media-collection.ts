@@ -1,7 +1,11 @@
 import type { CollectionConfig } from 'payload';
+import { AdminPanelDashboardGroups } from '@/payload-cms/admin-panel-dashboard-groups';
 
 export const MediaCollection: CollectionConfig = {
   slug: 'media',
+  admin: {
+    group: AdminPanelDashboardGroups.InternalCollections,
+  },
   access: {
     read: () => true,
   },

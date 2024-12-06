@@ -13,6 +13,7 @@ import { SubheadingH3 } from '@/components/typography/subheading-h3';
 import Link from 'next/link';
 import { LexicalPageContent } from '@/components/lexical-page-content';
 import { NewsCard } from '@/components/news-card';
+import { mapLocale } from '@/utils/map-locale';
 
 export type LocalizedPage = {
   params: Promise<{
@@ -20,9 +21,8 @@ export type LocalizedPage = {
   }>;
 };
 
-const Page: React.FC<LocalizedPage> = async ({ params }) => {
+const LandingPage: React.FC<LocalizedPage> = async ({ params }) => {
   const { locale } = await params;
-  console.log('Page Locale:', locale);
 
   const payload = await getPayload({ config });
 
@@ -39,6 +39,7 @@ const Page: React.FC<LocalizedPage> = async ({ params }) => {
         },
       },
     },
+    locale: mapLocale(locale),
     limit: 5,
   });
 
@@ -180,4 +181,4 @@ const Page: React.FC<LocalizedPage> = async ({ params }) => {
 };
 
 export const dynamic = 'force-dynamic';
-export default Page;
+export default LandingPage;

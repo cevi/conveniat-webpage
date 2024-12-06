@@ -7,12 +7,14 @@ import {
   blogTeaserText,
 } from '@/payload-cms/collections/blog-article/fields';
 import { slugValidation } from '@/payload-cms/collections/blog-article/validation';
+import { AdminPanelDashboardGroups } from '@/payload-cms/admin-panel-dashboard-groups';
 
 export const BlogArticleCollection: CollectionConfig = asLocalizedCollection({
   // Unique, URL-friendly string that will act as an identifier for this Collection.
   slug: 'blog',
 
   admin: {
+    group: AdminPanelDashboardGroups.Pages,
     description: {
       en: 'Represents a block article that can be published on the website.',
       de: 'Stellt einen Blog-Artikel dar, der auf der Website veröffentlicht werden kann.',

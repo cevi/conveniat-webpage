@@ -1,8 +1,13 @@
 import { GlobalConfig } from 'payload';
+import { AdminPanelDashboardGroups } from '@/payload-cms/admin-panel-dashboard-groups';
 
 export const FooterGlobal: GlobalConfig = {
   slug: 'footer',
-  label: 'Footer',
+  label: {
+    en: 'Footer',
+    de: 'Fusszeile',
+    fr: 'Pied de page',
+  },
   fields: [
     {
       name: 'donationIban',
@@ -13,7 +18,11 @@ export const FooterGlobal: GlobalConfig = {
     },
   ],
   admin: {
-    group: 'Content',
-    description: 'Settings for the footer',
+    group: AdminPanelDashboardGroups.UniqueContent,
+    description: {
+      en: 'Settings for the footer',
+      de: 'Einstellungen für die Fusszeile',
+      fr: 'Paramètres pour le pied de page',
+    },
   },
 };

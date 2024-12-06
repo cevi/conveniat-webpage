@@ -7,6 +7,10 @@
  */
 
 /**
+ * This field indicates whether the document is published in the corresponding locale
+ */
+export type IsPublishedInCorrespondingLocale = boolean;
+/**
  * The ID of the group as used in the CeviDB.
  */
 export type TheIDOfTheGroup = number;
@@ -35,16 +39,20 @@ export type GroupsOfTheUser = {
 /**
  * This field indicates whether the document is published in the corresponding locale
  */
-export type IsPublishedInCorrespondingLocale = boolean;
+export type IsPublishedInCorrespondingLocale1 = boolean;
+/**
+ * This field indicates whether the document is published in the corresponding locale
+ */
+export type IsPublishedInCorrespondingLocale2 = boolean;
 
 export interface Config {
   auth: {
     users: UserAuthOperations;
   };
   collections: {
-    users: User;
-    media: Media;
     blog: Blog;
+    media: Media;
+    users: User;
     forms: Form;
     'form-submissions': FormSubmission;
     'payload-locked-documents': PayloadLockedDocument;
@@ -53,9 +61,9 @@ export interface Config {
   };
   collectionsJoins: {};
   collectionsSelect: {
-    users: UsersSelect<false> | UsersSelect<true>;
-    media: MediaSelect<false> | MediaSelect<true>;
     blog: BlogSelect<false> | BlogSelect<true>;
+    media: MediaSelect<false> | MediaSelect<true>;
+    users: UsersSelect<false> | UsersSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -66,18 +74,22 @@ export interface Config {
     defaultIDType: string;
   };
   globals: {
-    SEO: SEO;
-    header: Header;
-    footer: Footer;
-    PWA: PWA;
     landingPage: LandingPage;
+    footer: Footer;
+    'data-privacy-statement': DataPrivacyStatement;
+    imprint: Imprint;
+    header: Header;
+    SEO: SEO;
+    PWA: PWA;
   };
   globalsSelect: {
-    SEO: SEOSelect<false> | SEOSelect<true>;
-    header: HeaderSelect<false> | HeaderSelect<true>;
-    footer: FooterSelect<false> | FooterSelect<true>;
-    PWA: PWASelect<false> | PWASelect<true>;
     landingPage: LandingPageSelect<false> | LandingPageSelect<true>;
+    footer: FooterSelect<false> | FooterSelect<true>;
+    'data-privacy-statement': DataPrivacyStatementSelect<false> | DataPrivacyStatementSelect<true>;
+    imprint: ImprintSelect<false> | ImprintSelect<true>;
+    header: HeaderSelect<false> | HeaderSelect<true>;
+    SEO: SEOSelect<false> | SEOSelect<true>;
+    PWA: PWASelect<false> | PWASelect<true>;
   };
   locale: 'en-GB' | 'de-CH' | 'fr-CH';
   user: User & {
@@ -105,39 +117,6 @@ export interface UserAuthOperations {
     email: string;
     password: string;
   };
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users".
- */
-export interface User {
-  id: string;
-  cevi_db_uuid: number;
-  email: string;
-  fullName: string;
-  nickname?: string | null;
-  groups: GroupsOfTheUser;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "media".
- */
-export interface Media {
-  id: string;
-  alt: string;
-  updatedAt: string;
-  createdAt: string;
-  url?: string | null;
-  thumbnailURL?: string | null;
-  filename?: string | null;
-  mimeType?: string | null;
-  filesize?: number | null;
-  width?: number | null;
-  height?: number | null;
-  focalX?: number | null;
-  focalY?: number | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -176,6 +155,39 @@ export interface Blog {
 export interface LocalizedPublishingStatus {
   published: IsPublishedInCorrespondingLocale;
   [k: string]: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media".
+ */
+export interface Media {
+  id: string;
+  alt: string;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "users".
+ */
+export interface User {
+  id: string;
+  cevi_db_uuid: number;
+  email: string;
+  fullName: string;
+  nickname?: string | null;
+  groups: GroupsOfTheUser;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -366,16 +378,16 @@ export interface PayloadLockedDocument {
   id: string;
   document?:
     | ({
-        relationTo: 'users';
-        value: string | User;
+        relationTo: 'blog';
+        value: string | Blog;
       } | null)
     | ({
         relationTo: 'media';
         value: string | Media;
       } | null)
     | ({
-        relationTo: 'blog';
-        value: string | Blog;
+        relationTo: 'users';
+        value: string | User;
       } | null)
     | ({
         relationTo: 'forms';
@@ -429,16 +441,19 @@ export interface PayloadMigration {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users_select".
+ * via the `definition` "blog_select".
  */
-export interface UsersSelect<T extends boolean = true> {
-  cevi_db_uuid?: T;
-  email?: T;
-  fullName?: T;
-  nickname?: T;
-  groups?: T;
+export interface BlogSelect<T extends boolean = true> {
+  _localized_status?: T;
+  _locale?: T;
+  blogH1?: T;
+  bannerImage?: T;
+  blogShortTitle?: T;
+  pageContent?: T;
+  urlSlug?: T;
   updatedAt?: T;
   createdAt?: T;
+  _status?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -460,19 +475,16 @@ export interface MediaSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "blog_select".
+ * via the `definition` "users_select".
  */
-export interface BlogSelect<T extends boolean = true> {
-  _localized_status?: T;
-  _locale?: T;
-  blogH1?: T;
-  bannerImage?: T;
-  blogShortTitle?: T;
-  pageContent?: T;
-  urlSlug?: T;
+export interface UsersSelect<T extends boolean = true> {
+  cevi_db_uuid?: T;
+  email?: T;
+  fullName?: T;
+  nickname?: T;
+  groups?: T;
   updatedAt?: T;
   createdAt?: T;
-  _status?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -656,57 +668,12 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "SEO".
- */
-export interface SEO {
-  id: string;
-  defaultTitle: string;
-  defaultDescription: string;
-  defaultKeywords: {
-    keyword: string;
-    id?: string | null;
-  }[];
-  publisher: string;
-  updatedAt?: string | null;
-  createdAt?: string | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "header".
- */
-export interface Header {
-  id: string;
-  updatedAt?: string | null;
-  createdAt?: string | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "footer".
- */
-export interface Footer {
-  id: string;
-  donationIban: string;
-  updatedAt?: string | null;
-  createdAt?: string | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "PWA".
- */
-export interface PWA {
-  id: string;
-  appName: string;
-  appShortName: string;
-  appDescription: string;
-  updatedAt?: string | null;
-  createdAt?: string | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "landingPage".
  */
 export interface LandingPage {
   id: string;
+  _localized_status: LocalizedPublishingStatus1;
+  _locale: string;
   pageTitle: string;
   pageContent: {
     root: {
@@ -728,6 +695,150 @@ export interface LandingPage {
   createdAt?: string | null;
 }
 /**
+ * Holds the publishing status of the document in each locale
+ */
+export interface LocalizedPublishingStatus1 {
+  published: IsPublishedInCorrespondingLocale1;
+  [k: string]: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "footer".
+ */
+export interface Footer {
+  id: string;
+  donationIban: string;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "data-privacy-statement".
+ */
+export interface DataPrivacyStatement {
+  id: string;
+  urlSlug: string;
+  pageTitle: string;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "imprint".
+ */
+export interface Imprint {
+  id: string;
+  _localized_status: LocalizedPublishingStatus2;
+  _locale: string;
+  urlSlug: string;
+  pageTitle: string;
+  _status?: ('draft' | 'published') | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * Holds the publishing status of the document in each locale
+ */
+export interface LocalizedPublishingStatus2 {
+  published: IsPublishedInCorrespondingLocale2;
+  [k: string]: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "header".
+ */
+export interface Header {
+  id: string;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "SEO".
+ */
+export interface SEO {
+  id: string;
+  defaultTitle: string;
+  defaultDescription: string;
+  defaultKeywords: {
+    keyword: string;
+    id?: string | null;
+  }[];
+  publisher: string;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "PWA".
+ */
+export interface PWA {
+  id: string;
+  appName: string;
+  appShortName: string;
+  appDescription: string;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "landingPage_select".
+ */
+export interface LandingPageSelect<T extends boolean = true> {
+  _localized_status?: T;
+  _locale?: T;
+  pageTitle?: T;
+  pageContent?: T;
+  _status?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "footer_select".
+ */
+export interface FooterSelect<T extends boolean = true> {
+  donationIban?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "data-privacy-statement_select".
+ */
+export interface DataPrivacyStatementSelect<T extends boolean = true> {
+  urlSlug?: T;
+  pageTitle?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "imprint_select".
+ */
+export interface ImprintSelect<T extends boolean = true> {
+  _localized_status?: T;
+  _locale?: T;
+  urlSlug?: T;
+  pageTitle?: T;
+  _status?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "header_select".
+ */
+export interface HeaderSelect<T extends boolean = true> {
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "SEO_select".
  */
@@ -747,43 +858,12 @@ export interface SEOSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "header_select".
- */
-export interface HeaderSelect<T extends boolean = true> {
-  updatedAt?: T;
-  createdAt?: T;
-  globalType?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "footer_select".
- */
-export interface FooterSelect<T extends boolean = true> {
-  donationIban?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  globalType?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "PWA_select".
  */
 export interface PWASelect<T extends boolean = true> {
   appName?: T;
   appShortName?: T;
   appDescription?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  globalType?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "landingPage_select".
- */
-export interface LandingPageSelect<T extends boolean = true> {
-  pageTitle?: T;
-  pageContent?: T;
-  _status?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
