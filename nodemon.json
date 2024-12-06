@@ -6,10 +6,7 @@
     "./src/auth",
     "nodemon.json"
   ],
-  "ignore": [
-    "./src/payload-cms/components/**",
-    "./src/payload-cms/hooks/**"
-  ],
+  "ignore": ["./src/payload-cms/components/**", "./src/payload-cms/hooks/**"],
   "ext": "js,ts,tsx,jsx,json",
   "exec": "pnpm generate:types && cross-env NODE_OPTIONS=--no-deprecation next dev --turbopack"
 }
