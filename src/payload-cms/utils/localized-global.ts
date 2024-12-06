@@ -1,24 +1,24 @@
-import { CollectionConfig } from 'payload';
+import { GlobalConfig } from 'payload';
 import { localizedStatusSchema } from '@/payload-cms/utils/localized-status-schema';
 
 /**
- * This is a utility function that adds the necessary fields to a collection to make it localized.
+ * This is a utility function that adds the necessary fields to a global to make it localized.
  *
- * It adds a field called `_localized_status` to the collection, which is a JSON field that contains
+ * It adds a field called `_localized_status` to the global, which is a JSON field that contains
  * the publishing status of the document in each locale. It also modifies the `admin` configuration
- * of the collection to use custom components for the Publish button and the publishing status field.
+ * of the global to use custom components for the Publish button and the publishing status field.
  *
- * @param config The collection configuration to localize
+ * @param config The global configuration to localize
  */
-export const asLocalizedCollection = (config: CollectionConfig): CollectionConfig => {
+export const asLocalizedGlobal = (config: GlobalConfig): GlobalConfig => {
   return {
     ...config, // we keep most of the original collection configuration
     admin: {
       ...config.admin,
       components: {
         ...config.admin?.components,
-        edit: {
-          ...config.admin?.components?.edit,
+        elements: {
+          ...config.admin?.components?.elements,
           // modify the Publish button to publish only the current locale
           PublishButton: '@/payload-cms/components/multi-lang-publishing/publish-localized',
         },
@@ -36,22 +36,6 @@ export const asLocalizedCollection = (config: CollectionConfig): CollectionConfi
         },
       },
 
-      /*
-
-      TODO: re-enable auto-translate
-
-      {
-        name: 'Autotranslate',
-        type: 'ui',
-        admin: {
-          components: {
-            // adds the publishing status to the top of the edit page
-            Field: '@/payload-cms/components/auto-translate/auto-translate',
-          },
-        },
-      },
-      */
-
       // add the localized publishing status field
       {
         name: '_localized_status',
@@ -59,7 +43,7 @@ export const asLocalizedCollection = (config: CollectionConfig): CollectionConfi
         required: true,
         localized: true,
         defaultValue: {
-          published: false,
+          published: true, // globals cannot be unpublished
         },
         // we use a custom JSON schema for the field
         // in order to generate the correct types
@@ -85,7 +69,7 @@ export const asLocalizedCollection = (config: CollectionConfig): CollectionConfi
 
     // versioning must be enabled for localized collections
     versions: {
-      maxPerDoc: 100,
+      max: 100,
       drafts: true,
     },
   };

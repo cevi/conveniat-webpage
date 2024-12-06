@@ -26,6 +26,7 @@ import { PWAGlobal } from '@/payload-cms/globals/pwa-global';
 import { LandingPageGlobal } from '@/payload-cms/globals/landing-page-global';
 import { formBuilderPlugin } from '@payloadcms/plugin-form-builder';
 import { BlogArticleCollection } from '@/payload-cms/collections/blog-article';
+import { seedDatabase } from '@/seed-database';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -40,6 +41,7 @@ if (DATABASE_URI === undefined) throw new Error('DATABASE_URI is not defined');
 */
 
 export default buildSecureConfig({
+  onInit: seedDatabase,
   admin: {
     meta: {
       title: 'Conveniat 2027 - Admin Panel',
@@ -73,7 +75,7 @@ export default buildSecureConfig({
       collections: [], // ['blog'], // TODO: live preview breaks multi-locale editing
     },
   },
-  collections: [UserCollection, MediaCollection, BlogArticleCollection],
+  collections: [BlogArticleCollection, MediaCollection, UserCollection],
   editor: lexicalEditor({
     features: () => {
       return [
@@ -88,7 +90,7 @@ export default buildSecureConfig({
     },
     lexical: defaultEditorLexicalConfig,
   }),
-  globals: [SeoGlobal, HeaderGlobal, FooterGlobal, PWAGlobal, LandingPageGlobal],
+  globals: [LandingPageGlobal, FooterGlobal, HeaderGlobal, SeoGlobal, PWAGlobal],
   localization: {
     locales,
     defaultLocale: 'de-CH',

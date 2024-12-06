@@ -20,6 +20,7 @@ export const UserCollection: CollectionConfig = {
     description:
       'Represents a Hitobito user. These information get automatically synced whenever the user logs in.',
     useAsTitle: 'email',
+    group: 'Internal Collections',
     defaultColumns: ['email', 'fullName', 'nickname', 'cevi_db_uuid'],
   },
   auth: {

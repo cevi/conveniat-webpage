@@ -13,7 +13,7 @@ export const FooterGlobal: GlobalConfig = {
     },
   ],
   admin: {
-    group: 'Content',
+    group: 'Unique Content',
     description: 'Settings for the footer',
   },
 };

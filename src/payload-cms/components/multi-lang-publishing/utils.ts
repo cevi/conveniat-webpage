@@ -20,3 +20,16 @@ export class NotYetSavedException extends Error {
     super('Document not yet saved');
   }
 }
+
+export const fetchGlobalDocument = async <T>({
+  slug,
+  draft,
+}: {
+  slug: string;
+  draft: boolean;
+}): Promise<T> => {
+  const url = `/api/globals/${slug}?depth=1&draft=${draft ? 'true' : 'false'}&locale=all`;
+
+  const response = await fetch(url);
+  return (await response.json()) as T;
+};

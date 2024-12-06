@@ -1,11 +1,12 @@
 import { GlobalConfig } from 'payload';
 import { pageContent } from '@/payload-cms/shared-fields/page-content';
+import { asLocalizedGlobal } from '@/payload-cms/utils/localized-global';
 
-export const LandingPageGlobal: GlobalConfig = {
+export const LandingPageGlobal: GlobalConfig = asLocalizedGlobal({
   slug: 'landingPage',
   label: 'Landing Page',
   admin: {
-    group: 'Content',
+    group: 'Unique Content',
     description: 'Settings for the (browser) landing page',
   },
   fields: [
@@ -23,9 +24,4 @@ export const LandingPageGlobal: GlobalConfig = {
 
     pageContent,
   ],
-
-  versions: {
-    max: 100,
-    drafts: true,
-  },
-};
+});

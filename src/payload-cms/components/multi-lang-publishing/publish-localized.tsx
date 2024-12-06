@@ -20,10 +20,12 @@ import { useIsPublished } from '@/payload-cms/hooks/hooks';
 import { Config } from '@/payload-types';
 
 /**
- * Default Publish button for localized collections
+ * Default Publish button for localized collections or globals.
  *
  * This class is based on https://github.com/payloadcms/payload/blob/beta/packages/ui/src/elements/PublishButton/index.tsx
  * but heavily modified to support publishing in specific locales.
+ *
+ * Globals cannot be unpublished, therefore the unpublish button is disabled for globals.
  *
  */
 // eslint-disable-next-line complexity
@@ -172,13 +174,22 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = () => {
 
   const { isPublished } = useIsPublished();
 
-  if (!isPublished) {
+  // we ignore the publishing state for global documents
+  // this we check if the globalSlug not set
+  if (!isPublished && globalSlug === undefined) {
     return <p>Loading</p>;
   }
 
   const unpublishClasses = cva({
-    'bg-red-200 text-red-900 dark:bg-red-800 dark:text-red-100': true,
-    'cursor-not-allowed opacity-50': !isPublished[code],
+    'border-solid border border-red-300 bg-red-200 text-red-900 dark:bg-red-800 dark:text-red-100':
+      true,
+    'cursor-not-allowed opacity-40': isPublished?.[code] === false,
+  });
+
+  const publishClasses = cva({
+    'border-solid border border-green-300 bg-green-200 text-green-900 dark:bg-green-800 dark:text-green-100':
+      true,
+    'cursor-not-allowed opacity-40': !canPublish && isPublished?.[code],
   });
 
   return (
@@ -193,20 +204,25 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = () => {
             display: none;
           }`}
       </style>
+      {
+        // global documents cannot be unpublished
+        globalSlug === undefined && (
+          <FormSubmit
+            className={unpublishClasses()}
+            buttonId="action-save"
+            disabled={isPublished?.[code] === false}
+            onClick={() => unpublishSpecificLocale(code)}
+            size="medium"
+            type="button"
+          >
+            Unpublish in {code}
+          </FormSubmit>
+        )
+      }
       <FormSubmit
-        className={unpublishClasses()}
+        className={publishClasses()}
         buttonId="action-save"
-        disabled={!isPublished[code]}
-        onClick={() => unpublishSpecificLocale(code)}
-        size="medium"
-        type="button"
-      >
-        Unpublish in {code}
-      </FormSubmit>
-      <FormSubmit
-        className="bg-green-200 text-green-900 dark:bg-green-800 dark:text-green-100"
-        buttonId="action-save"
-        disabled={!canPublish && isPublished[code]}
+        disabled={(!canPublish && isPublished?.[code]) ?? true}
         onClick={() => publishSpecificLocale(code)}
         size="medium"
         type="button"

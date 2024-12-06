@@ -1,9 +1,13 @@
 import { useDebounce, useDocumentInfo } from '@payloadcms/ui';
 import { locales as localesDefinition } from '@/payload-cms/locales';
 import { Locale } from 'payload';
-import { Blog, Config } from '@/payload-types';
+import { Config } from '@/payload-types';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { fetchDocument, NotYetSavedException } from '@/payload-cms/utils/utils';
+import {
+  fetchDocument,
+  fetchGlobalDocument,
+  NotYetSavedException,
+} from '@/payload-cms/components/multi-lang-publishing/utils';
 
 type LocalizedStatus = Record<Config['locale'], boolean> | undefined;
 type LocalizedPublishingStatus = Record<Config['locale'], { published: boolean } | undefined>;
@@ -13,7 +17,6 @@ type LocalizedPublishingStatus = Record<Config['locale'], { published: boolean }
  * Retrieves the localized version of a document of a given collection.
  * It uses the Payload REST API to fetch the documents
  *
- *
  * @param draft
  */
 export const useLocalizedDocument = <T>({ draft }: { draft: boolean }) => {
@@ -22,34 +25,65 @@ export const useLocalizedDocument = <T>({ draft }: { draft: boolean }) => {
   const [error, setError] = useState<Error | undefined>();
   const [isLoading, setIsLoading] = useState(false);
   const [document_, setDocument] = useState<T | undefined>();
+  const [isGlobal, setIsGlobal] = useState(false);
 
   useEffect(() => {
     setIsLoading(true);
     setError(undefined);
 
-    if (!debouncedParameters.collectionSlug || !debouncedParameters.id) {
+    // is neither a collection nor a global
+    if (
+      debouncedParameters.collectionSlug === undefined &&
+      debouncedParameters.globalSlug === undefined
+    ) {
       setIsLoading(false);
-      setError(new NotYetSavedException());
+      setError(new Error('Invalid object (neither collection nor global)'));
       return;
     }
 
-    fetchDocument<T>({
-      slug: debouncedParameters.collectionSlug,
-      id: debouncedParameters.id as string,
-      draft,
-    })
-      .then((_document) => {
-        setDocument(_document);
-      })
-      .catch((error_: unknown) => {
-        setError(error_ as Error);
-      })
-      .finally(() => {
+    // check for collection
+    if (debouncedParameters.collectionSlug !== undefined) {
+      if (debouncedParameters.id === undefined) {
         setIsLoading(false);
-      });
+        setError(new NotYetSavedException());
+        return;
+      }
+
+      fetchDocument<T>({
+        slug: debouncedParameters.collectionSlug,
+        id: debouncedParameters.id as string,
+        draft,
+      })
+        .then((_document) => {
+          setDocument(_document);
+        })
+        .catch((error_: unknown) => {
+          setError(error_ as Error);
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+    }
+    // check for global
+    else if (debouncedParameters.globalSlug !== undefined) {
+      fetchGlobalDocument<T>({
+        slug: debouncedParameters.globalSlug as string,
+        draft,
+      })
+        .then((_document) => {
+          setDocument(_document);
+          setIsGlobal(true);
+        })
+        .catch((error_: unknown) => {
+          setError(error_ as Error);
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+    }
   }, [debouncedParameters, draft]);
 
-  return { doc: document_, isLoading, error };
+  return { doc: document_, isLoading, error, isGlobal };
 };
 
 /**
@@ -58,7 +92,15 @@ export const useLocalizedDocument = <T>({ draft }: { draft: boolean }) => {
  * @returns an object with the locales as keys and a boolean as value
  *
  */
-export const useIsPublished = () => {
+export const useIsPublished = <
+  T extends {
+    _localized_status: LocalizedPublishingStatus;
+  },
+>(): {
+  isLoading: boolean;
+  isPublished: Record<'en-GB' | 'de-CH' | 'fr-CH', boolean> | undefined;
+  error: Error | undefined;
+} => {
   const [error, setError] = useState<Error | undefined>();
   const [isLoading, setIsLoading] = useState(false);
   const [isPublished, setIsPublished] = useState<LocalizedStatus>();
@@ -67,13 +109,14 @@ export const useIsPublished = () => {
     error: _error,
     doc: _document,
     isLoading: _isLoading,
-  } = useLocalizedDocument<Blog>({ draft: false });
+    isGlobal: _isGlobal,
+  } = useLocalizedDocument<T>({ draft: false });
 
   useEffect(() => {
     setError(_error);
     setIsLoading(_isLoading);
 
-    if (_document) {
+    if (_document && !_isGlobal) {
       const published = localesDefinition
         .map((l: Locale) => l.code)
         // eslint-disable-next-line unicorn/no-array-reduce
@@ -87,7 +130,13 @@ export const useIsPublished = () => {
         }, {});
       setIsPublished(published as LocalizedStatus);
     }
-  }, [_document, _error, _isLoading]);
+
+    // globals cannot be unpublished
+    if (_isGlobal) {
+      // TODO: map over localesDefinition instead of hardcoding the locales
+      setIsPublished({ 'en-GB': true, 'de-CH': true, 'fr-CH': true });
+    }
+  }, [_document, _error, _isGlobal, _isLoading]);
 
   return { isPublished, isLoading, error };
 };
@@ -125,11 +174,9 @@ const isDiff = (
   if (field.localized) {
     const v1 = value1 as Record<Config['locale'], string>;
     const v2 = value2 as Record<Config['locale'], string>;
-
-    if (v1[locale] !== v2[locale]) console.log('Diff:', v1[locale], v2[locale]);
     return JSON.stringify(v1[locale]) !== JSON.stringify(v2[locale]);
   }
-  if (!field.presentational && value1 !== value2) console.log('Diff:', value1, value2);
+
   return !field.presentational && JSON.stringify(value1) !== JSON.stringify(value2);
 };
 

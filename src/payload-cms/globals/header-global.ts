@@ -5,7 +5,7 @@ export const HeaderGlobal: GlobalConfig = {
   label: 'Header Navigation',
   fields: [],
   admin: {
-    group: 'Content',
+    group: 'Unique Content',
     description: 'Settings for the header navigation',
   },
 };
