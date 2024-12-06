@@ -43,6 +43,7 @@ if (DATABASE_URI === undefined) throw new Error('DATABASE_URI is not defined');
 export default buildSecureConfig({
   onInit: seedDatabase,
   admin: {
+    avatar: 'default',
     meta: {
       title: 'Conveniat 2027 - Admin Panel',
       icons: [
