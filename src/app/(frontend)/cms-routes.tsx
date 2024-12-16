@@ -1,6 +1,7 @@
 import { LocalizedPage } from '@/content-pages/localized-page';
 import React, { ReactElement } from 'react';
 import { ImprintPage } from '@/content-pages/imprint/page';
+import { PrivacyPage } from '@/content-pages/privacy/page';
 
 /*
  *
@@ -34,11 +35,14 @@ export const CMS_ROUTES: {
 } = {
   de: {
     impressum: <ImprintPage locale="de" />,
+    datenschutz: <PrivacyPage locale="de" />
   },
   en: {
     imprint: <ImprintPage locale="en" />,
+    privacy: <PrivacyPage locale="en" />
   },
   fr: {
     'mentions-legales': <ImprintPage locale="fr" />,
+    'protection-donnees': <PrivacyPage locale="fr" />
   },
 };
