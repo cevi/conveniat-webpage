@@ -1,16 +1,25 @@
 'use client';
+
 import React, { useState } from 'react';
-import { Menu, Languages } from 'lucide-react';
+import { Languages, Menu } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
 
 export const NavComponent: React.FC = () => {
+  const route = useRouter();
+  const pathname = usePathname();
+
   // State to toggle the visibility of the language buttons
   const [showLanguageOptions, setShowLanguageOptions] = useState(false);
 
-  // Function to handle language change (just for demonstration)
-  const handleLanguageChange = (lang: string) => {
-    console.log('Need to change to ' + lang);
-    // You could add logic to actually change the language here (e.g., i18n)
-    setShowLanguageOptions(false); // Close the language options after selection
+  const handleLanguageChange = (lang: string): void => {
+    setShowLanguageOptions(false);
+
+    const langRegex = /^\/(de|en|fr)\//;
+    if (langRegex.test(pathname)) {
+      route.push(pathname.replace(langRegex, `/${lang}/`));
+    } else {
+      route.push(`/${lang}/${pathname.replace(/\/(de|en|fr)\/?$/, '')}`);
+    }
   };
 
   return (
