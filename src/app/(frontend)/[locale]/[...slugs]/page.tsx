@@ -1,7 +1,7 @@
 import React from 'react';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { BlogPostPage } from '@/content-pages/blog-posts/page';
-import { CMS_ROUTES } from '@/app/(frontend)/cms-routes';
+import { routeLookupTable } from '@/app/(frontend)/router-lookup-table';
 
 /**
  *
@@ -26,8 +26,15 @@ const CMSPage: React.FC<{
   // check if slug is a global URL
   /////////////////////////////////////
   const url = slugs.join('/');
-  const pageComponent = CMS_ROUTES[locale][url];
-  if (pageComponent !== undefined) return pageComponent;
+
+  const page = routeLookupTable[url];
+  if (page !== undefined && page.locale === locale) {
+    return <page.component locale={locale} />;
+  } else {
+    // redirect to alternative page if available
+    const alternative = page?.alternatives[locale];
+    if (alternative !== undefined) redirect(`/${locale}/${alternative}`);
+  }
 
   /////////////////////////////////////
   // check if slug is a collection URL

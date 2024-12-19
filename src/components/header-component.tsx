@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { Menu } from 'lucide-react';
 import React from 'react';
+import { NavComponent } from '@/components/menu/nav-component';
 
 export const HeaderComponent: React.FC = () => {
   return (
@@ -15,13 +15,13 @@ export const HeaderComponent: React.FC = () => {
                 alt="Conveniat 2027 Logo"
                 width={80}
                 height={80}
-                className="absolute left-[24px] top-[12px]"
+                className="absolute left-[24px] top-[12px] z-[999]"
               />
             </Link>
             <span className="absolute left-0 top-[22px] flex w-full items-center justify-center text-[24px] font-extrabold leading-normal">
               Conveniat
             </span>
-            <Menu className="absolute right-[21px] top-[22px]" />
+            <NavComponent />
           </div>
         </div>
       </div>
