@@ -35,14 +35,14 @@ export const CMS_ROUTES: {
 } = {
   de: {
     impressum: <ImprintPage locale="de" />,
-    datenschutz: <PrivacyPage locale="de" />
+    datenschutz: <PrivacyPage locale="de" />,
   },
   en: {
     imprint: <ImprintPage locale="en" />,
-    privacy: <PrivacyPage locale="en" />
+    privacy: <PrivacyPage locale="en" />,
   },
   fr: {
     'mentions-legales': <ImprintPage locale="fr" />,
-    'protection-donnees': <PrivacyPage locale="fr" />
+    'protection-donnees': <PrivacyPage locale="fr" />,
   },
 };
