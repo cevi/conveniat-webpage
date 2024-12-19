@@ -29,6 +29,18 @@ const CMSPage: React.FC<{
   const pageComponent = CMS_ROUTES[locale][url];
   if (pageComponent !== undefined) return pageComponent;
 
+  // check if there is a matching slug in a different locale
+  const otherLocales = Object.keys(CMS_ROUTES).filter((l) => l !== locale) as (
+    | 'de'
+    | 'en'
+    | 'fr'
+  )[];
+  for (const otherLocale of otherLocales) {
+    const page = CMS_ROUTES[otherLocale][url];
+    // TODO: do a redirect instead of rendering the page
+    if (page !== undefined) return page;
+  }
+
   /////////////////////////////////////
   // check if slug is a collection URL
   //  --> currently we only have blog
