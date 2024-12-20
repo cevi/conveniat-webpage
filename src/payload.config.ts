@@ -26,13 +26,13 @@ import { PWAGlobal } from '@/payload-cms/globals/pwa-global';
 import { LandingPageGlobal } from '@/payload-cms/globals/landing-page-global';
 import { formBuilderPlugin } from '@payloadcms/plugin-form-builder';
 import { BlogArticleCollection } from '@/payload-cms/collections/blog-article';
-import { seedDatabase } from '@/seed-database';
 import { DataPrivacyStatementGlobal } from '@/payload-cms/globals/data-privacy-statement-global';
 import { ImprintGlobal } from '@/payload-cms/globals/imprint-global';
 import { Config, GlobalConfig } from 'payload';
 import { LocalizedPage } from '@/content-pages/localized-page';
 import { ImprintPage } from '@/content-pages/imprint/page';
 import React from 'react';
+import { onPayloadInit } from '@/payload-cms/on-payload-init';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -61,7 +61,7 @@ export type RoutableConfig = Omit<Config, 'globals'> & {
 };
 
 export const payloadConfig: RoutableConfig = {
-  onInit: seedDatabase,
+  onInit: onPayloadInit,
   admin: {
     avatar: 'default',
     meta: {
@@ -113,7 +113,6 @@ export const payloadConfig: RoutableConfig = {
   }),
   globals: [
     LandingPageGlobal,
-    FooterGlobal,
 
     /*
      * TODO: I'm still not sure if that is the best way to define global pages. Anyway
@@ -134,6 +133,7 @@ export const payloadConfig: RoutableConfig = {
     },
 
     HeaderGlobal,
+    FooterGlobal,
     SeoGlobal,
     PWAGlobal,
   ],

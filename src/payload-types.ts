@@ -75,19 +75,19 @@ export interface Config {
   };
   globals: {
     landingPage: LandingPage;
-    footer: Footer;
     'data-privacy-statement': DataPrivacyStatement;
     imprint: Imprint;
     header: Header;
+    footer: Footer;
     SEO: SEO;
     PWA: PWA;
   };
   globalsSelect: {
     landingPage: LandingPageSelect<false> | LandingPageSelect<true>;
-    footer: FooterSelect<false> | FooterSelect<true>;
     'data-privacy-statement': DataPrivacyStatementSelect<false> | DataPrivacyStatementSelect<true>;
     imprint: ImprintSelect<false> | ImprintSelect<true>;
     header: HeaderSelect<false> | HeaderSelect<true>;
+    footer: FooterSelect<false> | FooterSelect<true>;
     SEO: SEOSelect<false> | SEOSelect<true>;
     PWA: PWASelect<false> | PWASelect<true>;
   };
@@ -703,16 +703,6 @@ export interface LocalizedPublishingStatus1 {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "footer".
- */
-export interface Footer {
-  id: string;
-  donationIban: string;
-  updatedAt?: string | null;
-  createdAt?: string | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "data-privacy-statement".
  */
 export interface DataPrivacyStatement {
@@ -749,6 +739,16 @@ export interface LocalizedPublishingStatus2 {
  */
 export interface Header {
   id: string;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "footer".
+ */
+export interface Footer {
+  id: string;
+  donationIban: string;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -796,16 +796,6 @@ export interface LandingPageSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "footer_select".
- */
-export interface FooterSelect<T extends boolean = true> {
-  donationIban?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  globalType?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "data-privacy-statement_select".
  */
 export interface DataPrivacyStatementSelect<T extends boolean = true> {
@@ -834,6 +824,16 @@ export interface ImprintSelect<T extends boolean = true> {
  * via the `definition` "header_select".
  */
 export interface HeaderSelect<T extends boolean = true> {
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "footer_select".
+ */
+export interface FooterSelect<T extends boolean = true> {
+  donationIban?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
