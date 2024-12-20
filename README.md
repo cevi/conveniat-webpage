@@ -28,6 +28,15 @@ Make sure to have the following installed on your machine:
    pnpm install
    ```
 
+### Clear Database and Seed Data
+
+You can clear and reseed the local database by running the following command, followed by a restart of the dev server
+with `docker compose up --build --watch`.
+
+```bash
+docker compose down --volumes
+```
+
 ## Tech Stack and Decisions
 
 The application is based on [Next.js](https://nextjs.org/docs/canary/app/api-reference/functions/generate-metadata), a

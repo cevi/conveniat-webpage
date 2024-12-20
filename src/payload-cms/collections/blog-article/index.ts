@@ -1,6 +1,6 @@
 import { CollectionConfig } from 'payload';
 import { asLocalizedCollection } from '@/payload-cms/utils/localized-collection';
-import { pageContent } from '@/payload-cms/shared-fields/page-content';
+import { richTextParagraphsField } from '@/payload-cms/shared-fields/rich-text-paragraphs-field';
 import {
   bannerImage,
   blogArticleTitleField,
@@ -33,7 +33,7 @@ export const BlogArticleCollection: CollectionConfig = asLocalizedCollection({
     blogArticleTitleField,
     bannerImage,
     blogTeaserText,
-    pageContent,
+    richTextParagraphsField,
 
     {
       type: 'collapsible',

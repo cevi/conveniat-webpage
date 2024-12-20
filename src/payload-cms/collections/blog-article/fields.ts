@@ -29,7 +29,7 @@ export const bannerImage: Field = {
     fr: 'Image de bannière',
   },
   type: 'upload',
-  relationTo: 'media',
+  relationTo: 'images',
   required: true,
   admin: {
     position: 'sidebar',

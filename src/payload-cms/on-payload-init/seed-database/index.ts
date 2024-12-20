@@ -25,9 +25,34 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     slug: 'landingPage',
     locale: 'de-CH' as const,
     data: {
-      pageTitle: 'Conveniat 2027 - WIR SIND CEVI',
-      pageContent: lexicalPlaceholder,
+      content: {
+        pageTitle: 'Conveniat 2027 - WIR SIND CEVI',
+        mainContent: [
+          {
+            blockType: 'article' as const,
+            pageContent: lexicalPlaceholder,
+          },
+          {
+            blockType: 'blogPostsOverview' as const,
+          },
+        ],
+      },
       _locale: 'de-CH' as const,
     },
   });
+
+  const globalSlugs = ['imprint', 'data-privacy-statement'] as const;
+  for (const slug of globalSlugs) {
+    await payload.updateGlobal({
+      slug,
+      locale: 'de-CH' as const,
+      data: {
+        content: {
+          pageTitle: slug,
+          mainContent: lexicalPlaceholder,
+        },
+        _locale: 'de-CH' as const,
+      },
+    });
+  }
 };

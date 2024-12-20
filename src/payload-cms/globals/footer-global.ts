@@ -18,7 +18,7 @@ export const FooterGlobal: GlobalConfig = {
     },
   ],
   admin: {
-    group: AdminPanelDashboardGroups.UniqueContent,
+    group: AdminPanelDashboardGroups.GlobalSettings,
     description: {
       en: 'Settings for the footer',
       de: 'Einstellungen für die Fusszeile',

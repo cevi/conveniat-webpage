@@ -24,10 +24,11 @@ const LandingPage: React.FC<{
   const { locale } = await params;
 
   const payload = await getPayload({ config });
-  const { pageTitle, pageContentBlocks } = await payload.findGlobal({
+  const { content } = await payload.findGlobal({
     slug: 'landingPage',
     locale: mapLocale(locale),
   });
+  const { pageTitle, mainContent } = content;
 
   return (
     <article className="mx-auto my-8 max-w-6xl px-8">
@@ -41,7 +42,7 @@ const LandingPage: React.FC<{
 
       <CallToAction>Erfahre mehr &gt;</CallToAction>
 
-      <BuildingBlocks blocks={pageContentBlocks as ContentBlock[]} locale={locale} />
+      <BuildingBlocks blocks={mainContent as ContentBlock[]} locale={locale} />
     </article>
   );
 };
