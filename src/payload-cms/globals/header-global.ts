@@ -6,7 +6,7 @@ export const HeaderGlobal: GlobalConfig = {
   label: 'Header Navigation',
   fields: [],
   admin: {
-    group: AdminPanelDashboardGroups.UniqueContent,
+    group: AdminPanelDashboardGroups.GlobalSettings,
     description: 'Settings for the header navigation',
   },
 };

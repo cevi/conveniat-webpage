@@ -1,6 +1,6 @@
 import { Block } from 'payload';
 
-export const subheadingH2: Block = {
+export const subheadingH2Block: Block = {
   slug: 'subheading', // required
   interfaceName: 'SubheadingH2', // optional
   fields: [

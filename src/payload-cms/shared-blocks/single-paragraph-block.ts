@@ -1,6 +1,6 @@
 import { Block } from 'payload';
 
-export const paragraph: Block = {
+export const singleParagraphBlock: Block = {
   slug: 'paragraph', // required
   interfaceName: 'Paragraph', // optional
   fields: [

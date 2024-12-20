@@ -5,7 +5,7 @@ import config from '@payload-config';
 import { mapLocale } from '@/utils/map-locale';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { BlogArticle } from '@/content-pages/blog-posts/article';
+import { BlogArticle } from '@/converters/blog-article';
 
 export const BlogPostPage: React.FC<{
   slug: string;

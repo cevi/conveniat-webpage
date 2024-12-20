@@ -1,8 +1,12 @@
 import type { CollectionConfig } from 'payload';
 import { AdminPanelDashboardGroups } from '@/payload-cms/admin-panel-dashboard-groups';
 
-export const MediaCollection: CollectionConfig = {
-  slug: 'media',
+export const ImageCollection: CollectionConfig = {
+  slug: 'images',
+  labels: {
+    singular: 'Bild',
+    plural: 'Bilder',
+  },
   admin: {
     group: AdminPanelDashboardGroups.InternalCollections,
   },

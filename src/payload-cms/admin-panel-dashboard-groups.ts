@@ -1,8 +1,8 @@
 export const AdminPanelDashboardGroups = {
-  UniqueContent: {
-    en: 'Unique Content',
-    de: 'Spezifischer Seiteninhalt',
-    fr: 'Contenu unique',
+  StaticPages: {
+    en: 'Special Content',
+    de: 'Spezielle Inhalte',
+    fr: 'Contenu spécial',
   },
   GlobalSettings: {
     en: 'Global Settings',
@@ -10,9 +10,9 @@ export const AdminPanelDashboardGroups = {
     fr: 'Paramètres globaux',
   },
   Pages: {
-    en: 'Content',
-    de: 'Seiteninhalt',
-    fr: 'Contenu',
+    en: 'Pages and Content',
+    de: 'Seiten und Inhalte',
+    fr: 'Pages et contenu',
   },
   InternalCollections: {
     en: 'Collections',

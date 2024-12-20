@@ -4,7 +4,7 @@ import React from 'react';
 // These styles apply to every route in the application
 import './globals.css';
 import { FooterComponent } from '@/components/footer/footer-component';
-import { HeaderComponent } from '@/components/header-component';
+import { HeaderComponent } from '@/components/header/header-component';
 import { CeviBackgroundLogo } from '@/components/svg-logos/cevi-background-logo';
 import { ErrorBoundary } from 'react-error-boundary';
 import ErrorPage from '@/app/(frontend)/error';
