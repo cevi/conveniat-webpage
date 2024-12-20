@@ -29,10 +29,11 @@ import { BlogArticleCollection } from '@/payload-cms/collections/blog-article';
 import { DataPrivacyStatementGlobal } from '@/payload-cms/globals/data-privacy-statement-global';
 import { ImprintGlobal } from '@/payload-cms/globals/imprint-global';
 import { Config, GlobalConfig } from 'payload';
-import { LocalizedPage } from '@/content-pages/localized-page';
-import { ImprintPage } from '@/content-pages/imprint/page';
+import { LocalizedPage } from '@/page-layouts/localized-page';
+import { ImprintPage } from '@/page-layouts/imprint-page';
 import React from 'react';
 import { onPayloadInit } from '@/payload-cms/on-payload-init';
+import { PrivacyPage } from '@/page-layouts/privacy-page';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -123,7 +124,7 @@ export const payloadConfig: RoutableConfig = {
      */
     {
       urlSlug: { de: 'datenschutz', en: 'privacy', fr: 'protection-donnees' },
-      reactComponent: ImprintPage,
+      reactComponent: PrivacyPage,
       payloadGlobal: DataPrivacyStatementGlobal,
     },
     {

@@ -9,7 +9,7 @@ export const HeaderComponent: React.FC = () => {
       <div className="mb-[32px] border-b border-b-gray-200 bg-green-100">
         <div className="relative mx-auto h-[60px] w-full max-w-6xl text-conveniat-green">
           <div className="flex items-center justify-between px-6">
-            <Link href="/">
+            <Link href="/public">
               <Image
                 src="/favicon.svg"
                 alt="Conveniat 2027 Logo"

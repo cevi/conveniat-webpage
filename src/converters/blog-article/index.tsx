@@ -1,6 +1,6 @@
 import { Blog } from '@/payload-types';
 import { HeadlineH1 } from '@/components/typography/headline-h1';
-import { LexicalPageContent } from '@/components/lexical-page-content';
+import { LexicalPageContent } from '@/components/content-blocks/lexical-page-content';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import React from 'react';
 

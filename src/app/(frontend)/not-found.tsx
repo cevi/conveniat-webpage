@@ -3,6 +3,9 @@ import { HeadlineH1 } from '@/components/typography/headline-h1';
 import { TeaserText } from '@/components/typography/teaser-text';
 import Link from 'next/link';
 
+/**
+ * This file is responsible for converters a general 404 error page.
+ */
 const NotFoundPage: React.FC = () => {
   return (
     <article className="mx-auto my-8 max-w-6xl px-8">

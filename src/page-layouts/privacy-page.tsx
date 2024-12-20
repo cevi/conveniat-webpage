@@ -1,4 +1,4 @@
-import { LocalizedPage } from '@/content-pages/localized-page';
+import { LocalizedPage } from '@/page-layouts/localized-page';
 import React from 'react';
 
 export const PrivacyPage: React.FC<LocalizedPage> = (properties) => {

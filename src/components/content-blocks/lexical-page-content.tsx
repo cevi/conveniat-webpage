@@ -1,7 +1,7 @@
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import { RichText } from '@payloadcms/richtext-lexical/react';
 import React from 'react';
-import { jsxConverters } from '@/utils/richtext-lexical/converter';
+import { jsxConverters } from '@/converters/richtext-lexical';
 
 /**
  * Renders the page content from an editor state.

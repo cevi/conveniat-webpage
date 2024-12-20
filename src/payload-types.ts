@@ -675,21 +675,35 @@ export interface LandingPage {
   _localized_status: LocalizedPublishingStatus1;
   _locale: string;
   pageTitle: string;
-  pageContent: {
-    root: {
-      type: string;
-      children: {
-        type: string;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  };
+  pageContentBlocks?:
+    | (
+        | {
+            pageContent: {
+              root: {
+                type: string;
+                children: {
+                  type: string;
+                  version: number;
+                  [k: string]: unknown;
+                }[];
+                direction: ('ltr' | 'rtl') | null;
+                format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                indent: number;
+                version: number;
+              };
+              [k: string]: unknown;
+            };
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'textContent';
+          }
+        | {
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'blogPostsOverview';
+          }
+      )[]
+    | null;
   _status?: ('draft' | 'published') | null;
   updatedAt?: string | null;
   createdAt?: string | null;
@@ -788,7 +802,23 @@ export interface LandingPageSelect<T extends boolean = true> {
   _localized_status?: T;
   _locale?: T;
   pageTitle?: T;
-  pageContent?: T;
+  pageContentBlocks?:
+    | T
+    | {
+        textContent?:
+          | T
+          | {
+              pageContent?: T;
+              id?: T;
+              blockName?: T;
+            };
+        blogPostsOverview?:
+          | T
+          | {
+              id?: T;
+              blockName?: T;
+            };
+      };
   _status?: T;
   updatedAt?: T;
   createdAt?: T;

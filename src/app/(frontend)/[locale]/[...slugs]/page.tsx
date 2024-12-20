@@ -1,7 +1,7 @@
 import React from 'react';
 import { notFound, redirect } from 'next/navigation';
-import { BlogPostPage } from '@/content-pages/blog-posts/page';
-import { routeLookupTable } from '@/app/(frontend)/router-lookup-table';
+import { BlogPostPage } from '@/page-layouts/blog-posts';
+import { routeLookupTable } from '@/page-layouts/router-lookup-table';
 
 /**
  *

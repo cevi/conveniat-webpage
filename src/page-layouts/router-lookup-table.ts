@@ -1,4 +1,4 @@
-import { LocalizedPage } from '@/content-pages/localized-page';
+import { LocalizedPage } from '@/page-layouts/localized-page';
 import React from 'react';
 import { payloadConfig } from '@payload-config';
 
@@ -21,7 +21,7 @@ type RouteLookupTable = {
  * are special and enforced to be globally available (e.g. imprint, privacy policy, etc.).
  *
  * The landing page is not handled by this lookup table, as it is a special case and is handled
- * separately in the `src/app/(frontend)/page.tsx` file.
+ * separately in the `src/app/(frontend)/blog-posts.tsx` file.
  *
  */
 export const routeLookupTable: RouteLookupTable =

@@ -36,6 +36,19 @@ export const LandingPageGlobal: GlobalConfig = asLocalizedGlobal({
       },
     },
 
-    pageContent,
+    {
+      name: 'pageContentBlocks',
+      type: 'blocks',
+      blocks: [
+        {
+          slug: 'textContent',
+          fields: [pageContent],
+        },
+        {
+          slug: 'blogPostsOverview',
+          fields: [],
+        },
+      ],
+    },
   ],
 });
