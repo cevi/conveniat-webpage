@@ -58,6 +58,6 @@ rather a collaboration of files that work together to generate the page.
 3) We then resolve the content of the page based on the URL and pattern matching on all Globals and Collections defined
    within the `payload.config.ts` file. This is done by the `routeLookupTable` and by searching throw the collections.
 
-4) Once found, the corresponding page layout is rendered. The layout is defined in the `src/app/page-layouts` directory.
-   For complex, potentially nested content types we use the converters defined in the `src/app/converters` directory to
-   map the content to react components defined inside `src/app/components` directory.
+4) Once found, the corresponding page layout is rendered. The layout is defined in the `src/page-layouts` directory.
+   For complex, potentially nested content types we use the converters defined in the `src/converters` directory to
+   map the content to react components defined inside `src/components` directory.
