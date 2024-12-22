@@ -9,8 +9,6 @@ export const richTextParagraphsField: Field = {
   localized: true,
   // Pass the Lexical editor here and override base settings as necessary
   editor: lexicalEditor({
-    features: ({ rootFeatures }) => [
-      ...rootFeatures
-    ],
+    features: ({ rootFeatures }) => [...rootFeatures],
   }),
 };

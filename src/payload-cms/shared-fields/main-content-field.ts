@@ -20,6 +20,6 @@ export const MainContentField: Field = {
       slug: 'blogPostsOverview',
       fields: [],
     },
-    FormBlock
+    FormBlock,
   ],
 };

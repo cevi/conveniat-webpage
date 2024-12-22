@@ -1,9 +1,9 @@
-import { FormBlock } from "@/components/form"
+import { FormBlock } from '@/components/form';
 
-export const ShowForm: React.FC<any> = async ({...block}) => {
-    return (
-        <div>
-            <FormBlock {...block}/>
-        </div>
-    )
-}
+export const ShowForm: React.FC<any> = async ({ ...block }) => {
+  return (
+    <div>
+      <FormBlock {...block} />
+    </div>
+  );
+};

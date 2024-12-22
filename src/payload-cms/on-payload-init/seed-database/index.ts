@@ -34,7 +34,7 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
           },
           {
             blockType: 'blogPostsOverview' as const,
-          }
+          },
         ],
       },
       _locale: 'de' as const,

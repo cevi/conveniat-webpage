@@ -1,7 +1,7 @@
 import { Text } from './text';
-import { Email} from './email'
+import { Email } from './email';
 
 export const fields = {
-    text: Text,
-    email: Email,
+  text: Text,
+  email: Email,
 };

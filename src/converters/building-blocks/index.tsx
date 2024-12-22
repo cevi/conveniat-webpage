@@ -38,10 +38,9 @@ export const BuildingBlocks: React.FC<LocalizedPage & { blocks: ContentBlock[] }
       case 'formBlock': {
         return (
           <section key={block.id} className="mt-16">
-            
-            <ShowForm {...block}/>
+            <ShowForm {...block} />
           </section>
-        )
+        );
       }
     }
   });

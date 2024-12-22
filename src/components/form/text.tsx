@@ -1,30 +1,24 @@
-import type { TextField } from '@payloadcms/plugin-form-builder/types'
-import type { FieldErrorsImpl, FieldValues, UseFormRegister } from 'react-hook-form'
+import type { TextField } from '@payloadcms/plugin-form-builder/types';
+import type { FieldErrorsImpl, FieldValues, UseFormRegister } from 'react-hook-form';
 
-import React from 'react'
-import { Error } from './error'
+import React from 'react';
+import { Error } from './error';
 
 export const Text: React.FC<
   {
     errors: Partial<
       FieldErrorsImpl<{
-        [x: string]: any
+        [x: string]: any;
       }>
-    >
-    register: UseFormRegister<any & FieldValues>
+    >;
+    register: UseFormRegister<any & FieldValues>;
   } & TextField
-> = ({ name, errors, label, register, required: requiredFromProps }) => {
+> = ({ name, errors, label, register, required: requiredFromProperties }) => {
   return (
     <div>
-      <label htmlFor={name}>
-        {label}
-      </label>
-      <input
-        id={name}
-        type="text"
-        {...register(name, { required: requiredFromProps })}
-      />
-      {requiredFromProps && errors[name] && <Error />}
+      <label htmlFor={name}>{label}</label>
+      <input id={name} type="text" {...register(name, { required: requiredFromProperties })} />
+      {requiredFromProperties && errors[name] && <Error />}
     </div>
-  )
-}
+  );
+};
