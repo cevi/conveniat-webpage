@@ -40,7 +40,7 @@ export const ListBlogPosts: React.FC<LocalizedPage> = async ({ locale }) => {
         return (
           <React.Fragment key={blog.urlSlug}>
             <Link href={`/blog/${blog.urlSlug}`} key={blog.id}>
-              <NewsCard date={new Date(blog.updatedAt)} headline={blog.blogH1}>
+              <NewsCard date={blog.updatedAt} headline={blog.blogH1}>
                 <ParagraphText>{blog.blogH1} </ParagraphText>
                 <Image
                   className="rounded-[8px]"

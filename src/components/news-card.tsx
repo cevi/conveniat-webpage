@@ -3,7 +3,7 @@ import { CeviLogoGreen } from '@/components/svg-logos/cevi-logo-green';
 
 export const NewsCard: React.FC<{
   children: ReactNode;
-  date: Date;
+  date: string;
   headline: string;
 }> = ({ children, date, headline }) => {
   return (
@@ -11,7 +11,7 @@ export const NewsCard: React.FC<{
       <CeviLogoGreen className="mx-auto my-[8px] flex w-full" />
 
       <span className="font-body text-[10px] font-bold leading-[20px] text-gray-500">
-        {date.toLocaleDateString('de', {
+        {new Date(date).toLocaleDateString('de', {
           weekday: 'long',
           year: 'numeric',
           month: 'long',
