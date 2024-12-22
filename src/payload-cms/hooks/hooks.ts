@@ -276,10 +276,6 @@ const hasDiffs = (
       }
 
       // handle relationship fields
-      case 'join':
-      case 'relationship': {
-        throw new Error('Field type relationship not implemented');
-      }
 
       // handle leaf fields
       case 'textarea':
@@ -298,6 +294,9 @@ const hasDiffs = (
         break; // no diff found, continue with the next field
       }
 
+      // handle relationship fields
+      case 'join':
+      case 'relationship':
       case 'upload': {
         type UploadRecord = Record<Config['locale'], { id: string } | undefined>;
         if (field.localized) {
@@ -310,9 +309,9 @@ const hasDiffs = (
         }
 
         if (value1 === undefined || value2 === undefined) return false;
-        const v1 = value1 as { id: string };
-        const v2 = value2 as { id: string };
-        if (!field.presentational && v1.id !== v2.id) return true;
+        const v1 = value1 as { id: string } | undefined;
+        const v2 = value2 as { id: string } | undefined;
+        if (!field.presentational && v1?.id !== v2?.id) return true;
         break; // no diff found, continue with the next field
       }
 
