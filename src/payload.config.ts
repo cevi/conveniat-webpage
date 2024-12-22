@@ -35,10 +35,11 @@ import { ImprintPage } from '@/page-layouts/imprint-page';
 import React from 'react';
 import { onPayloadInit } from '@/payload-cms/on-payload-init';
 import { PrivacyPage } from '@/page-layouts/privacy-page';
-import { GenericPage } from '@/payload-cms/collections/generic-page';
 import { DocumentsCollection } from '@/payload-cms/collections/documents-collection';
 import { dropRouteInfo } from '@/payload-cms/global-routes';
 import { BlogPostPage } from '@/page-layouts/blog-posts';
+import { GenericPage as GenericPageCollection } from '@/payload-cms/collections/generic-page';
+import { GenericPage } from '@/page-layouts/generic-page';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -97,8 +98,8 @@ const collectionConfig: RoutableCollectionConfigs = [
   },
   {
     urlPrefix: { de: '', en: '', fr: '' },
-    reactComponent: BlogPostPage, // TODO: add a template for generic pages
-    payloadCollection: GenericPage,
+    reactComponent: GenericPage,
+    payloadCollection: GenericPageCollection,
   },
 
   // general purpose collections

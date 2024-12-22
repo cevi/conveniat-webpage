@@ -44,22 +44,25 @@ const CMSPage: React.FC<{
   /////////////////////////////////////
 
   // check if part of a routable collection of the form [collection]/[slug]
-  if (slugs.length >= 2) {
-    const collection = slugs[0] as string;
-    const remainingSlugs = slugs.slice(1);
+  const collection = slugs[0] as string;
+  const remainingSlugs = slugs.slice(1);
 
-    const collectionPage = collectionRouteLookupTable[collection];
+  let collectionPage = collectionRouteLookupTable[collection];
+  if (collectionPage === undefined && collectionRouteLookupTable[''] !== undefined) {
+    // if no collection found, try to match the first slug to the default collection
+    collectionPage = collectionRouteLookupTable[''];
+    remainingSlugs.unshift(collection);
+  }
 
-    if (collectionPage?.locales.includes(locale) === true) {
+  if (collectionPage !== undefined) {
+    if (collectionPage.locales.includes(locale)) {
       return <collectionPage.component locale={locale} slugs={remainingSlugs} />;
     } else {
       // redirect to alternative collectionPage if available
-      const alternative = collectionPage?.alternatives[locale];
-      if (alternative !== undefined) redirect(`/${locale}/${alternative}`);
+      const alternative = collectionPage.alternatives[locale];
+      redirect(`/${locale}/${alternative}`);
     }
   }
-
-  console.log('Cannot find page for', slugs, locale);
 
   /////////////////////////////////////
   // no matching page found
