@@ -12,7 +12,7 @@ import {
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
-
+import { s3Storage } from '@payloadcms/storage-s3'
 import { UserCollection } from '@/payload-cms/collections/user-collection';
 import { ImageCollection } from '@/payload-cms/collections/image-collection';
 import { en } from 'payload/i18n/en';
@@ -193,7 +193,25 @@ export const payloadConfig: RoutableConfig = {
   }),
   sharp,
   telemetry: false,
-  plugins: [formBuilderPlugin({})],
+  plugins: [
+    formBuilderPlugin({}),
+    s3Storage({
+      collections: {
+        images: true,
+      },
+      bucket: process.env.MINIO_BUCKET_NAME,
+      config: {
+        credentials: {
+          accessKeyId: process.env.MINIO_ACCESS_KEY_ID,
+          secretAccessKey: process.env.MINIO_SECRET_ACCESS_KEY,
+        },
+        region: 'us-east-1',
+        s3ForcePathStyle: true,
+        forcePathStyle: true,
+        endpoint: process.env.MINIO_HOST,
+      }
+    }),
+  ],
   i18n: {
     fallbackLanguage: 'en',
     supportedLanguages: { en, de, fr },
