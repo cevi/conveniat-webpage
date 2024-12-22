@@ -6,7 +6,6 @@ import React from 'react';
 import { HeadlineH1 } from '@/components/typography/headline-h1';
 import { TeaserText } from '@/components/typography/teaser-text';
 import { CallToAction } from '@/components/buttons/call-to-action';
-import { mapLocale } from '@/utils/map-locale';
 import { BuildingBlocks, ContentBlock } from '@/converters/building-blocks';
 
 /**
@@ -26,7 +25,7 @@ const LandingPage: React.FC<{
   const payload = await getPayload({ config });
   const { content } = await payload.findGlobal({
     slug: 'landingPage',
-    locale: mapLocale(locale),
+    locale: locale,
   });
   const { pageTitle, mainContent } = content;
 

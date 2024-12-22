@@ -23,7 +23,7 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
 
   await payload.updateGlobal({
     slug: 'landingPage',
-    locale: 'de-CH' as const,
+    locale: 'de' as const,
     data: {
       content: {
         pageTitle: 'Conveniat 2027 - WIR SIND CEVI',
@@ -37,7 +37,7 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
           },
         ],
       },
-      _locale: 'de-CH' as const,
+      _locale: 'de' as const,
     },
   });
 
@@ -45,13 +45,13 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
   for (const slug of globalSlugs) {
     await payload.updateGlobal({
       slug,
-      locale: 'de-CH' as const,
+      locale: 'de' as const,
       data: {
         content: {
           pageTitle: slug,
           mainContent: lexicalPlaceholder,
         },
-        _locale: 'de-CH' as const,
+        _locale: 'de' as const,
       },
     });
   }

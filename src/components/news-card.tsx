@@ -11,7 +11,7 @@ export const NewsCard: React.FC<{
       <CeviLogo className="mx-auto my-[8px] flex w-full" />
 
       <span className="font-body text-[10px] font-bold leading-[20px] text-cevi-blue">
-        {date.toLocaleDateString('de-CH', {
+        {date.toLocaleDateString('de', {
           weekday: 'long',
           year: 'numeric',
           month: 'long',

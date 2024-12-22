@@ -1,7 +1,6 @@
 import { LocalizedPage } from '@/page-layouts/localized-page';
 import { getPayload } from 'payload';
 import config from '@payload-config';
-import { mapLocale } from '@/utils/map-locale';
 import Link from 'next/link';
 import { ParagraphText } from '@/components/typography/paragraph-text';
 import { NewsCard } from '@/components/news-card';
@@ -19,7 +18,7 @@ export const ListBlogPosts: React.FC<LocalizedPage> = async ({ locale }) => {
         },
       },
     },
-    locale: mapLocale(locale),
+    locale: locale,
     limit: 5,
   });
 

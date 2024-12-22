@@ -2,7 +2,6 @@ import { HeadlineH1 } from '@/components/typography/headline-h1';
 import React from 'react';
 import { getPayload } from 'payload';
 import config from '@payload-config';
-import { mapLocale } from '@/utils/map-locale';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { BlogArticle } from '@/converters/blog-article';
@@ -16,7 +15,7 @@ export const BlogPostPage: React.FC<{
   const articlesInPrimaryLanguage = await payload.find({
     collection: 'blog',
     pagination: false,
-    locale: mapLocale(locale),
+    locale: locale,
     fallbackLocale: false,
     where: {
       and: [{ urlSlug: { equals: slug } }, { _localized_status: { equals: { published: true } } }],
@@ -34,9 +33,9 @@ export const BlogPostPage: React.FC<{
   }
 
   // fallback logic to find article in other locales
-  const locales: ('de-CH' | 'fr-CH' | 'en-GB')[] = ['de-CH', 'fr-CH', 'en-GB'].filter(
-    (l) => l !== mapLocale(locale),
-  ) as ('de-CH' | 'fr-CH' | 'en-GB')[];
+  const locales: ('de' | 'fr' | 'en')[] = ['de', 'fr', 'en'].filter(
+    (l) => l !== locale,
+  ) as ('de' | 'fr' | 'en')[];
 
   const articles = await Promise.all(
     locales.map((l) =>

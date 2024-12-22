@@ -103,7 +103,7 @@ export interface Config {
     SEO: SEOSelect<false> | SEOSelect<true>;
     PWA: PWASelect<false> | PWASelect<true>;
   };
-  locale: 'en-GB' | 'de-CH' | 'fr-CH';
+  locale: 'en' | 'de' | 'fr';
   user: User & {
     collection: 'users';
   };

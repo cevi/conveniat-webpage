@@ -98,7 +98,7 @@ export const useIsPublished = <
   },
 >(): {
   isLoading: boolean;
-  isPublished: Record<'en-GB' | 'de-CH' | 'fr-CH', boolean> | undefined;
+  isPublished: Record<'en' | 'de' | 'fr', boolean> | undefined;
   error: Error | undefined;
 } => {
   const [error, setError] = useState<Error | undefined>();
@@ -134,7 +134,7 @@ export const useIsPublished = <
     // globals cannot be unpublished
     if (_isGlobal) {
       // TODO: map over localesDefinition instead of hardcoding the locales
-      setIsPublished({ 'en-GB': true, 'de-CH': true, 'fr-CH': true });
+      setIsPublished({ 'en': true, 'de': true, 'fr': true });
     }
   }, [_document, _error, _isGlobal, _isLoading]);
 

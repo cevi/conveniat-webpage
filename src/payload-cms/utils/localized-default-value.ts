@@ -1,9 +1,9 @@
 export const localizedDefaultValue =
   <T>(mapping: { de: T; en: T; fr: T }) =>
-  ({ locale }: { locale: 'de-CH' | 'fr-CH' | 'en-GB' }): T => {
-    if (locale === 'de-CH') {
+  ({ locale }: { locale: 'de' | 'fr' | 'en' }): T => {
+    if (locale === 'de') {
       return mapping['de'];
-    } else if (locale === 'fr-CH') {
+    } else if (locale === 'fr') {
       return mapping['fr'];
     }
     return mapping['en'];

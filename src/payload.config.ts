@@ -153,7 +153,7 @@ export const payloadConfig: RoutableConfig = {
   globals: globalConfig,
   localization: {
     locales,
-    defaultLocale: 'de-CH',
+    defaultLocale: 'de',
     fallback: false,
   },
   graphQL: {
