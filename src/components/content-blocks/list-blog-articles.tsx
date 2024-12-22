@@ -6,6 +6,7 @@ import { ParagraphText } from '@/components/typography/paragraph-text';
 import { NewsCard } from '@/components/news-card';
 import React from 'react';
 import Image from 'next/image';
+import { Blog } from '@/payload-types';
 
 export const ListBlogPosts: React.FC<LocalizedPage> = async ({ locale }) => {
   const payload = await getPayload({ config });
@@ -22,26 +23,37 @@ export const ListBlogPosts: React.FC<LocalizedPage> = async ({ locale }) => {
     limit: 5,
   });
 
-  const blogs = blogsPaged.docs;
+  const blogs = blogsPaged.docs as Blog[];
 
   return (
     <div className="mx-auto my-[32px] grid gap-y-6 min-[1200px]:grid-cols-2">
-      {blogs.map((blog) => (
-        <React.Fragment key={blog.urlSlug}>
-          <Link href={`/blog/${blog.urlSlug}`} key={blog.id}>
-            <NewsCard date={new Date(blog.updatedAt)} headline={blog.blogH1}>
-              <ParagraphText>{blog.blogH1} </ParagraphText>
-              <Image
-                className="rounded-[8px]"
-                src="/imgs/big-tent.png"
-                alt="Konekta 2024"
-                width={1200}
-                height={800}
-              />
-            </NewsCard>
-          </Link>
-        </React.Fragment>
-      ))}
+      {blogs.map((blog) => {
+        if (typeof blog.bannerImage === 'string') {
+          throw new TypeError(
+            'Expected bannerImage to be an object, you may got the ID instead of the object',
+          );
+        }
+
+        const source = blog.bannerImage.url ?? '/images/placeholder.png';
+        const altText = blog.bannerImage.alt;
+
+        return (
+          <React.Fragment key={blog.urlSlug}>
+            <Link href={`/blog/${blog.urlSlug}`} key={blog.id}>
+              <NewsCard date={new Date(blog.updatedAt)} headline={blog.blogH1}>
+                <ParagraphText>{blog.blogH1} </ParagraphText>
+                <Image
+                  className="rounded-[8px]"
+                  src={source}
+                  alt={altText}
+                  width={1200}
+                  height={800}
+                />
+              </NewsCard>
+            </Link>
+          </React.Fragment>
+        );
+      })}
     </div>
   );
 };
