@@ -148,7 +148,7 @@ type Field = {
   presentational: boolean;
   fields?: Field[];
   tabs?: (Tab & { name: string })[];
-  blocks?: (Block & { name: string })[];
+  blocks?: (Block & { slug: string })[];
 };
 
 type PayloadDocument = Record<string, Record<Config['locale'], string>>;
@@ -216,14 +216,33 @@ const hasDiffs = (
       case 'blocks': {
         if (blocks === undefined) throw new Error('Blocks are undefined');
 
-        for (const block of blocks) {
-          const blockName = block.name;
-          const blockValue1 = document1[blockName] as unknown as PayloadDocument;
-          const blockValue2 = document2[blockName] as unknown as PayloadDocument;
-          const blockFields = block.fields as Field[];
-          if (hasDiffs(locale, blockFields, blockValue1, blockValue2)) {
+        type BlockType = Record<string, unknown>;
+        type LocalizedBlockType = Record<Config['locale'], BlockType[]>;
+
+        const blocks1 = field.localized
+          ? (value1 as LocalizedBlockType)[locale]
+          : (value1 as BlockType[]);
+        const blocks2 = field.localized
+          ? (value2 as LocalizedBlockType)[locale]
+          : (value2 as BlockType[]);
+
+        for (const block1 of blocks1) {
+          const blockType = block1['blockType'];
+          const block2 = blocks2.find((b) => b['id'] === block1['id']);
+          if (block2 === undefined) return true; // block not found in document2
+
+          const blockTypeDefinition = blocks.find((b) => b.slug === blockType);
+          if (blockTypeDefinition === undefined) throw new Error('Block type not found');
+
+          if (
+            hasDiffs(
+              locale,
+              blockTypeDefinition['fields'] as Field[],
+              block1 as PayloadDocument,
+              block2 as PayloadDocument,
+            )
+          )
             return true;
-          }
         }
 
         break; // no diff found, continue with the next field
