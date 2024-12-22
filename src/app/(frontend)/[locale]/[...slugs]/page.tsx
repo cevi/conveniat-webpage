@@ -1,7 +1,9 @@
 import React from 'react';
 import { notFound, redirect } from 'next/navigation';
-import { BlogPostPage } from '@/page-layouts/blog-posts';
-import { routeLookupTable } from '@/page-layouts/router-lookup-table';
+import {
+  collectionRouteLookupTable,
+  globalsRouteLookupTable,
+} from '@/page-layouts/router-lookup-table';
 
 /**
  *
@@ -27,8 +29,8 @@ const CMSPage: React.FC<{
   /////////////////////////////////////
   const url = slugs.join('/');
 
-  const page = routeLookupTable[url];
-  if (page !== undefined && page.locale === locale) {
+  const page = globalsRouteLookupTable[url];
+  if (page?.locales.includes(locale) === true) {
     return <page.component locale={locale} />;
   } else {
     // redirect to alternative page if available
@@ -41,18 +43,23 @@ const CMSPage: React.FC<{
   //  --> currently we only have blog
   /////////////////////////////////////
 
-  // check if it is a blog article
-  if (slugs.length === 2) {
-    const collection = slugs[0];
-    const slug = slugs[1];
+  // check if part of a routable collection of the form [collection]/[slug]
+  if (slugs.length >= 2) {
+    const collection = slugs[0] as string;
+    const remainingSlugs = slugs.slice(1);
 
-    // abort if path is not a blog article
-    if (collection !== 'blog') notFound();
-    if (slug === undefined) notFound();
+    const collectionPage = collectionRouteLookupTable[collection];
 
-    // render blog article
-    return <BlogPostPage slug={slug} locale={locale} />;
+    if (collectionPage?.locales.includes(locale) === true) {
+      return <collectionPage.component locale={locale} slugs={remainingSlugs} />;
+    } else {
+      // redirect to alternative collectionPage if available
+      const alternative = collectionPage?.alternatives[locale];
+      if (alternative !== undefined) redirect(`/${locale}/${alternative}`);
+    }
   }
+
+  console.log('Cannot find page for', slugs, locale);
 
   /////////////////////////////////////
   // no matching page found

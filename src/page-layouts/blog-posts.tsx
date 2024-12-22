@@ -5,12 +5,11 @@ import config from '@payload-config';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { BlogArticle } from '@/converters/blog-article';
+import { LocalizedCollectionPage } from '@/page-layouts/localized-page';
 
-export const BlogPostPage: React.FC<{
-  slug: string;
-  locale: 'de' | 'en' | 'fr';
-}> = async ({ slug, locale }) => {
+export const BlogPostPage: React.FC<LocalizedCollectionPage> = async ({ slugs, locale }) => {
   const payload = await getPayload({ config });
+  const slug = slugs.join('/');
 
   const articlesInPrimaryLanguage = await payload.find({
     collection: 'blog',

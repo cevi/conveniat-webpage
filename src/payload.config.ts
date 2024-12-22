@@ -30,14 +30,15 @@ import { BlogArticleCollection } from '@/payload-cms/collections/blog-article';
 import { DataPrivacyStatementGlobal } from '@/payload-cms/globals/data-privacy-statement-global';
 import { ImprintGlobal } from '@/payload-cms/globals/imprint-global';
 import { CollectionConfig, Config, GlobalConfig } from 'payload';
-import { LocalizedPage } from '@/page-layouts/localized-page';
+import { LocalizedCollectionPage, LocalizedPage } from '@/page-layouts/localized-page';
 import { ImprintPage } from '@/page-layouts/imprint-page';
 import React from 'react';
 import { onPayloadInit } from '@/payload-cms/on-payload-init';
 import { PrivacyPage } from '@/page-layouts/privacy-page';
 import { GenericPage } from '@/payload-cms/collections/generic-page';
 import { DocumentsCollection } from '@/payload-cms/collections/documents-collection';
-import { applyGlobalRoutes } from '@/payload-cms/global-routes';
+import { dropRouteInfo } from '@/payload-cms/global-routes';
+import { BlogPostPage } from '@/page-layouts/blog-posts';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -51,6 +52,14 @@ if (PAYLOAD_SECRET === undefined) throw new Error('PAYLOAD_SECRET is not defined
 if (DATABASE_URI === undefined) throw new Error('DATABASE_URI is not defined');
 */
 
+export type RoutableCollectionConfig = {
+  urlPrefix: {
+    [locale in 'de' | 'en' | 'fr']: string;
+  };
+  reactComponent: React.FC<LocalizedCollectionPage>;
+  payloadCollection: CollectionConfig;
+};
+
 export type RoutableGlobalConfig = {
   urlSlug: {
     [locale in 'de' | 'en' | 'fr']: string;
@@ -60,9 +69,11 @@ export type RoutableGlobalConfig = {
 };
 
 export type RoutableGlobalConfigs = (GlobalConfig | RoutableGlobalConfig)[];
+export type RoutableCollectionConfigs = (CollectionConfig | RoutableCollectionConfig)[];
 
-export type RoutableConfig = Omit<Config, 'globals'> & {
+export type RoutableConfig = Omit<Omit<Config, 'globals'>, 'collections'> & {
   globals?: RoutableGlobalConfigs;
+  collections?: RoutableCollectionConfigs;
 };
 
 const defaultEditorFeatures: LexicalEditorProps['features'] = () => {
@@ -77,9 +88,20 @@ const defaultEditorFeatures: LexicalEditorProps['features'] = () => {
   ];
 };
 
-const collectionConfig: CollectionConfig[] = [
-  GenericPage,
-  BlogArticleCollection,
+const collectionConfig: RoutableCollectionConfigs = [
+  // routable collections
+  {
+    urlPrefix: { de: 'blog', en: 'blog', fr: 'blog' },
+    reactComponent: BlogPostPage,
+    payloadCollection: BlogArticleCollection,
+  },
+  {
+    urlPrefix: { de: '', en: '', fr: '' },
+    reactComponent: BlogPostPage, // TODO: add a template for generic pages
+    payloadCollection: GenericPage,
+  },
+
+  // general purpose collections
   ImageCollection,
   DocumentsCollection,
   UserCollection,
@@ -178,4 +200,4 @@ export const payloadConfig: RoutableConfig = {
 };
 
 // export the config for PayloadCMS
-export default buildSecureConfig(applyGlobalRoutes(payloadConfig));
+export default buildSecureConfig(dropRouteInfo(payloadConfig));

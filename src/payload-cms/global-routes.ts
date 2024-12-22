@@ -28,7 +28,8 @@ const generateURLSlugField = (global: RoutableGlobalConfig): Field => {
     defaultValue: localizedDefaultValue(addPrefixToLocalized('/', global.urlSlug)),
   };
 };
-const addReadOnlySlugField = (global: RoutableGlobalConfig): GlobalConfig => ({
+
+const globalAddReadOnlySlugField = (global: RoutableGlobalConfig): GlobalConfig => ({
   ...global.payloadGlobal,
   fields: global.payloadGlobal.fields.map(
     (field: Field): Field => ({
@@ -57,10 +58,14 @@ const addReadOnlySlugField = (global: RoutableGlobalConfig): GlobalConfig => ({
  *
  * @param config
  */
-export const applyGlobalRoutes = (config: RoutableConfig): Config => ({
+export const dropRouteInfo = (config: RoutableConfig): Config => ({
   ...config,
   globals:
     config.globals?.map((global) => ({
-      ...('payloadGlobal' in global ? addReadOnlySlugField(global) : global),
+      ...('payloadGlobal' in global ? globalAddReadOnlySlugField(global) : global),
+    })) ?? [],
+  collections:
+    config.collections?.map((collection) => ({
+      ...('payloadCollection' in collection ? collection.payloadCollection : collection),
     })) ?? [],
 });

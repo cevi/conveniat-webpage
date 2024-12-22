@@ -1,14 +1,24 @@
-import { LocalizedPage } from '@/page-layouts/localized-page';
+import { LocalizedCollectionPage, LocalizedPage } from '@/page-layouts/localized-page';
 import React from 'react';
 import { payloadConfig } from '@payload-config';
 
-type RouteLookupTable = {
+type GlobalRouteLookupTable = {
   [slug: string]: {
-    locale: 'de' | 'en' | 'fr';
+    locales: ('de' | 'en' | 'fr')[];
     alternatives: {
       [locale in 'de' | 'en' | 'fr']: string;
     };
     component: React.FC<LocalizedPage>;
+  };
+};
+
+type CollectionRouteLookupTable = {
+  [slugPrefix: string]: {
+    locales: ('de' | 'en' | 'fr')[];
+    alternatives: {
+      [locale in 'de' | 'en' | 'fr']: string;
+    };
+    component: React.FC<LocalizedCollectionPage>;
   };
 };
 
@@ -24,17 +34,46 @@ type RouteLookupTable = {
  * separately in the `src/app/(frontend)/blog-posts.tsx` file.
  *
  */
-export const routeLookupTable: RouteLookupTable =
+export const globalsRouteLookupTable: GlobalRouteLookupTable =
   payloadConfig.globals?.reduce((routes, global) => {
     if ('urlSlug' in global && 'reactComponent' in global) {
       const { urlSlug, reactComponent } = global;
       for (const [locale, slug] of Object.entries(urlSlug)) {
+        const locales = [locale as 'de' | 'en' | 'fr', ...(routes[slug]?.locales ?? [])];
+
+        if (slug in routes && routes[slug]?.component !== reactComponent) {
+          throw new Error(`More than one component defined for the same global page slug: ${slug}`);
+        }
+
         routes[slug] = {
-          locale: locale as 'de' | 'en' | 'fr',
+          locales: locales,
           alternatives: urlSlug,
           component: reactComponent,
         };
       }
     }
     return routes;
-  }, {} as RouteLookupTable) ?? {};
+  }, {} as GlobalRouteLookupTable) ?? {};
+
+export const collectionRouteLookupTable: CollectionRouteLookupTable =
+  payloadConfig.collections?.reduce((routes, collection) => {
+    if ('urlPrefix' in collection && 'reactComponent' in collection) {
+      const { urlPrefix, reactComponent } = collection;
+      for (const [locale, prefix] of Object.entries(urlPrefix)) {
+        const locales = [locale as 'de' | 'en' | 'fr', ...(routes[prefix]?.locales ?? [])];
+
+        if (prefix in routes && routes[prefix]?.component !== reactComponent) {
+          throw new Error(
+            `More than one component defined for the same collection prefix: ${prefix}`,
+          );
+        }
+
+        routes[prefix] = {
+          locales: locales,
+          alternatives: urlPrefix,
+          component: reactComponent,
+        };
+      }
+    }
+    return routes;
+  }, {} as CollectionRouteLookupTable) ?? {};
