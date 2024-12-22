@@ -1,6 +1,7 @@
 import { LocalizedCollectionPage, LocalizedPage } from '@/page-layouts/localized-page';
 import React from 'react';
 import { payloadConfig } from '@payload-config';
+import { CollectionSlug } from 'payload';
 
 type GlobalRouteLookupTable = {
   [slug: string]: {
@@ -19,6 +20,7 @@ type CollectionRouteLookupTable = {
       [locale in 'de' | 'en' | 'fr']: string;
     };
     component: React.FC<LocalizedCollectionPage>;
+    collectionSlug: CollectionSlug;
   };
 };
 
@@ -72,8 +74,16 @@ export const collectionRouteLookupTable: CollectionRouteLookupTable =
           locales: locales,
           alternatives: urlPrefix,
           component: reactComponent,
+          collectionSlug: collection.payloadCollection.slug as CollectionSlug,
         };
       }
     }
     return routes;
   }, {} as CollectionRouteLookupTable) ?? {};
+
+export const urlPrefixToCollectionSlug = (urlPrefix: string): CollectionSlug | undefined => {
+  return (
+    Object.entries(collectionRouteLookupTable).find(([prefix]) => prefix === urlPrefix)?.[1]
+      .collectionSlug ?? undefined
+  );
+};
