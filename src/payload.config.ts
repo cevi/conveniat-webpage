@@ -198,6 +198,7 @@ export const payloadConfig: RoutableConfig = {
     s3Storage({
       collections: {
         images: true,
+        documents: true,
       },
       bucket: process.env.MINIO_BUCKET_NAME,
       config: {
