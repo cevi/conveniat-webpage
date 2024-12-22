@@ -4,9 +4,9 @@ import React, { useCallback, useState } from "react"
 import type { Form as FormType } from '@payloadcms/plugin-form-builder/types'
 import {fields} from './fields'
 import { useRouter } from "next/navigation"
-import { RichText } from "@payloadcms/richtext-lexical/react"
 import { useForm } from 'react-hook-form'
 import { buildInitialFormState } from "./buildInitialFormState"
+import { RichText } from "@payloadcms/richtext-lexical/react"
 
 export type Value = unknown
 
@@ -42,12 +42,15 @@ export type FormBlockType = {
     } = formMethods
 
     const [isLoading, setIsLoading] = useState(false);
-    const [hasSubmitted, setHasSubmitted] = useState<boolean>(false)
+    const [hasSubmitted, setHasSubmitted] = useState<boolean>();
+    const [error, setError] = useState<{ message: string; status?: string } | undefined>()
     const router = useRouter();
     const onSubmit = useCallback(
         (data: Data) => {
             let loadingTimerID: ReturnType<typeof setTimeout>
             const submitForm = async () => {
+                setError(undefined);
+
                 const dataToSend = Object.entries(data).map(([name, value]) => ({
                     field: name,
                     value
@@ -74,12 +77,17 @@ export type FormBlockType = {
 
                     if (req.status >= 400) {
                         setIsLoading(false);
-                        // TODO: handle error
+                        
+                        setError({
+                            message: res.errors?.[0].message || 'Internal Server Error',
+                            status: res.status,
+                        })
+
                         return;
                     }
 
                     setIsLoading(false);
-                    setHasSubmitted(false);
+                    setHasSubmitted(true);
                     
                     if(confirmationType === 'redirect' && redirect) {
                         const { url }= redirect;
@@ -89,7 +97,9 @@ export type FormBlockType = {
                 } catch(err) {
                     console.warn(err);
                     setIsLoading(false);
-                    // todo: handle error
+                    setError({
+                        message: 'Something went wrong.'
+                    })
                 }
             }
             void submitForm()
@@ -99,9 +109,10 @@ export type FormBlockType = {
     return (
         <div>
             {!isLoading && hasSubmitted && confirmationType === 'message' && (
-                <p>{confirmationMessage}</p>
+                <RichText data={confirmationMessage} />
             )}
             {isLoading && !hasSubmitted && <p>Loading, please wait...</p>}
+            {error && <div>{`${error.status || 500}: ${error.message || ''}`}</div>}
             {!hasSubmitted && (
                 <form id={formID} onSubmit={handleSubmit(onSubmit)}>
                     <div>
@@ -113,6 +124,9 @@ export type FormBlockType = {
                                         <Field
                                             form={formFromProps}
                                             {...field}
+                                            {...formMethods}
+                                            control={control}
+                                            errors={errors}
                                             register={register}
                                             />
                                     </React.Fragment>
