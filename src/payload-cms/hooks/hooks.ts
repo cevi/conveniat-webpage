@@ -134,7 +134,7 @@ export const useIsPublished = <
     // globals cannot be unpublished
     if (_isGlobal) {
       // TODO: map over localesDefinition instead of hardcoding the locales
-      setIsPublished({ 'en': true, 'de': true, 'fr': true });
+      setIsPublished({ en: true, de: true, fr: true });
     }
   }, [_document, _error, _isGlobal, _isLoading]);
 

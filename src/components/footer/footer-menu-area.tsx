@@ -4,8 +4,8 @@ import config from '@payload-config';
 
 export const FooterMenuArea: React.FC = async () => {
   const payload = await getPayload({ config });
-  const globalFooter = await payload.findGlobal({slug: 'footer'});
-  const IBAN = globalFooter?.donationIban;
+  const globalFooter = await payload.findGlobal({ slug: 'footer' });
+  const IBAN = globalFooter.donationIban;
 
   return (
     <div className="flex h-[260px] w-full flex-col items-center justify-center space-y-8 bg-green-200">

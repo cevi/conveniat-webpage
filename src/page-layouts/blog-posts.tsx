@@ -33,9 +33,11 @@ export const BlogPostPage: React.FC<{
   }
 
   // fallback logic to find article in other locales
-  const locales: ('de' | 'fr' | 'en')[] = ['de', 'fr', 'en'].filter(
-    (l) => l !== locale,
-  ) as ('de' | 'fr' | 'en')[];
+  const locales: ('de' | 'fr' | 'en')[] = ['de', 'fr', 'en'].filter((l) => l !== locale) as (
+    | 'de'
+    | 'fr'
+    | 'en'
+  )[];
 
   const articles = await Promise.all(
     locales.map((l) =>

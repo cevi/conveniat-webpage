@@ -40,9 +40,9 @@ export const generateMetadata = async (): Promise<Metadata> => {
     alternates: {
       canonical: '/',
       languages: {
-        'en': '/en',
-        'de': '/',
-        'fr': '/fr',
+        en: '/en',
+        de: '/',
+        fr: '/fr',
       },
     },
 
