@@ -48,6 +48,11 @@ const PAYLOAD_SECRET = process.env['PAYLOAD_SECRET'] ?? '';
 const DATABASE_URI = process.env['DATABASE_URI'] ?? '';
 const APP_HOST_URL = process.env['APP_HOST_URL'] ?? '';
 
+const MINIO_HOST = process.env['MINIO_HOST'] ?? '';
+const MINIO_BUCKET_NAME = process.env['MINIO_BUCKET_NAME'] ?? '';
+const MINIO_ACCESS_KEY_ID = process.env['MINIO_ACCESS_KEY_ID'] ?? '';
+const MINIO_SECRET_ACCESS_KEY = process.env['MINIO_SECRET_ACCESS_KEY'] ?? '';
+
 /*
 if (PAYLOAD_SECRET === undefined) throw new Error('PAYLOAD_SECRET is not defined');
 if (DATABASE_URI === undefined) throw new Error('DATABASE_URI is not defined');
@@ -200,16 +205,15 @@ export const payloadConfig: RoutableConfig = {
         images: true,
         documents: true,
       },
-      bucket: process.env.MINIO_BUCKET_NAME,
+      bucket: MINIO_BUCKET_NAME,
       config: {
         credentials: {
-          accessKeyId: process.env.MINIO_ACCESS_KEY_ID,
-          secretAccessKey: process.env.MINIO_SECRET_ACCESS_KEY,
+          accessKeyId: MINIO_ACCESS_KEY_ID,
+          secretAccessKey: MINIO_SECRET_ACCESS_KEY,
         },
         region: 'us-east-1',
-        s3ForcePathStyle: true,
         forcePathStyle: true,
-        endpoint: process.env.MINIO_HOST,
+        endpoint: MINIO_HOST,
       }
     }),
   ],
