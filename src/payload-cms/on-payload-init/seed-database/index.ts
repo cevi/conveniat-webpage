@@ -1,5 +1,6 @@
 import { Payload } from 'payload';
 import { lexicalPlaceholder } from '@/payload-cms/on-payload-init/seed-database/placeholder-lexical';
+import { basicForm } from './all-types-form';
 
 /**
  * Seed the database with some initial data.
@@ -21,6 +22,12 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     return;
   }
 
+  const { id: formID  } = await payload.create({
+    collection: 'forms',
+    //@ts-ignore
+    data: JSON.parse(JSON.stringify(basicForm)),
+  });
+
   await payload.updateGlobal({
     slug: 'landingPage',
     locale: 'de' as const,
@@ -31,6 +38,11 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
           {
             blockType: 'article' as const,
             pageContent: lexicalPlaceholder,
+          },
+          {
+            //@ts-ignore
+            blockType: 'formBlock' as const,
+            form: formID,
           },
           {
             blockType: 'blogPostsOverview' as const,
@@ -55,4 +67,7 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
       },
     });
   }
+
+  
+
 };
