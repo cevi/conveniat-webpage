@@ -19,7 +19,7 @@ export const Number: React.FC<
     <div className="mb-4">
       <label className="block text-[#6d6e76] text-xs font-normal font-['Inter'] mb-1" htmlFor={name}>{label}{requiredFromProperties && <Required />}</label>
       <input
-        className="w-full h-10 px-4 border border-[#47564c] rounded text-[#595961] text-sm font-normal font-['Inter'] focus:outline-none focus:ring-2 focus:ring-[#47564c] focus:border-[#47564c]"        classNamePrefix="rs"
+        className="w-full h-10 px-4 border border-[#47564c] rounded text-[#595961] text-sm font-normal font-['Inter'] focus:outline-none focus:ring-2 focus:ring-[#47564c] focus:border-[#47564c]"
         id={name}
         type="number"
         styles={{

@@ -199,7 +199,11 @@ export const payloadConfig: RoutableConfig = {
   sharp,
   telemetry: false,
   plugins: [
-    formBuilderPlugin({}),
+    formBuilderPlugin({
+      fields: {
+        state: false, // we do not use states in CH
+      }
+    }),
     s3Storage({
       collections: {
         images: true,
