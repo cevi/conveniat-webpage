@@ -131,21 +131,18 @@ export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties)
             </h2>
             {formFromProperties.fields.map((field, index) => {
               const Field: React.FC<any> = fields[field.blockType];
-              if (Field) {
-                return (
-                  <React.Fragment key={index}>
-                    <Field
-                      form={formFromProperties}
-                      {...field}
-                      {...formMethods}
-                      control={control}
-                      errors={errors}
-                      register={register}
-                    />
-                  </React.Fragment>
-                );
-              }
-              return null;
+              return (
+                <React.Fragment key={index}>
+                  <Field
+                    form={formFromProperties}
+                    {...field}
+                    {...formMethods}
+                    control={control}
+                    errors={errors}
+                    register={register}
+                  />
+                </React.Fragment>
+              );
             })}
           </div>
           <button
