@@ -68,7 +68,7 @@ export const basicForm = {
         name: 'country',
         label: 'Country',
         blockName: 'country-selection',
-        required: true,
+        required: false,
       },
       {
         blockType: 'number',
