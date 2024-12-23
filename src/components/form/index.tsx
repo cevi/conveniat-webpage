@@ -24,7 +24,7 @@ export interface Data {
 export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties) => {
   const {
     form: formFromProperties,
-    form: { id: formID, confirmationMessage, confirmationType, redirect, submitButtonLabel } = {},
+    form: { id: formID, title, confirmationMessage, confirmationType, redirect, submitButtonLabel } = {},
   } = properties;
 
   const formMethods = useForm({
@@ -113,8 +113,9 @@ export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties)
       {isLoading && !hasSubmitted && <p>Loading, please wait...</p>}
       {error && <div>{`${error.status || 500}: ${error.message || ''}`}</div>}
       {!hasSubmitted && (
-        <form id={formID} onSubmit={handleSubmit(onSubmit)}>
+        <form className="w-[390px] h-auto mx-auto p-4 bg-white rounded-md shadow-md" id={formID} onSubmit={handleSubmit(onSubmit)}>
           <div>
+            <h2 className="text-[#47564c] text-lg font-extrabold font-['Montserrat'] mb-4">{title}</h2>
             {formFromProperties &&
               formFromProperties.fields &&
               formFromProperties.fields.map((field, index) => {
@@ -136,7 +137,7 @@ export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties)
                 return null;
               })}
           </div>
-          <button type="submit" form={formID}>
+          <button type="submit" form={formID} className="w-full h-10 bg-[#47564c] text-[#e1e6e2] text-base font-bold font-['Montserrat'] rounded-lg hover:bg-[#3b4a3f] transition duration-300">
             {submitButtonLabel}
           </button>
         </form>

@@ -16,11 +16,11 @@ export const Email: React.FC<
   } & EmailField
 > = ({ name, errors, label, register, required: requiredFromProperties }) => {
   return (
-    <div>
-      <label htmlFor={name}>{label}</label>
+    <div className="mb-4">
+      <label className="block text-[#6d6e76] text-xs font-normal font-['Inter'] mb-1" htmlFor={name}>{label}</label>
       <input
+        className="w-full h-10 px-4 bg-[#e1e6e2] border border-transparent rounded focus:outline-none focus:ring-2 focus:ring-[#47564c] text-[#595961] text-sm font-normal font-['Inter']"
         id={name}
-        placeholder="Email"
         type="text"
         {...register(name, { pattern: /^\S[^\s@]*@\S+$/, required: requiredFromProperties })}
       />
