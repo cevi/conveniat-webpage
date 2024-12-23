@@ -30,21 +30,6 @@ export const Number: React.FC<
         className="h-10 w-full rounded border border-[#47564c] px-4 font-['Inter'] text-sm font-normal text-[#595961] focus:border-[#47564c] focus:outline-none focus:ring-2 focus:ring-[#47564c]"
         id={name}
         type="number"
-        styles={{
-          control: (provided) => ({
-            ...provided,
-            backgroundColor: 'white !important', // Force the background color
-            borderColor: '#47564c', // Keep the border color consistent
-          }),
-          menu: (provided) => ({
-            ...provided,
-            backgroundColor: 'white !important', // Force the dropdown background color
-          }),
-          singleValue: (provided) => ({
-            ...provided,
-            color: '#595961', // Ensure text color is correct
-          }),
-        }}
         {...register(name, { required: requiredFromProperties })}
       />
     </div>

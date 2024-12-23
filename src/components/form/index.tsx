@@ -37,7 +37,6 @@ export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties)
   } = properties;
 
   const formMethods = useForm({
-    //@ts-ignore
     defaultValues: buildInitialFormState(formFromProperties.fields),
   });
   const {
@@ -65,48 +64,46 @@ export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties)
           setIsLoading(true);
         }, 1000);
 
-        try {
-          const request = await fetch(`/api/form-submissions`, {
-            body: JSON.stringify({
-              form: formID,
-              submissionData: dataToSend,
-            }),
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            method: 'POST',
-          });
+        await fetch(`/api/form-submissions`, {
+          body: JSON.stringify({
+            form: formID,
+            submissionData: dataToSend,
+          }),
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          method: 'POST',
+        })
+          .then((response) => response.json())
+          .then((response: any) => {
+            clearTimeout(loadingTimerID);
+            if (request.status >= 400) {
+              setIsLoading(false);
 
-          const response = await request.json();
+              setError({
+                message: response.errors?.[0].message || 'Internal Server Error',
+                status: response.status,
+              });
 
-          clearTimeout(loadingTimerID);
+              return;
+            }
 
-          if (request.status >= 400) {
             setIsLoading(false);
+            setHasSubmitted(true);
 
+            if (confirmationType === 'redirect' && redirect) {
+              const { url } = redirect;
+              const redirectURL = url;
+              if (redirectURL) router.push(redirectURL);
+            }
+          })
+          .catch((error_) => {
+            console.warn(error_);
+            setIsLoading(false);
             setError({
-              message: response.errors?.[0].message || 'Internal Server Error',
-              status: response.status,
+              message: 'Something went wrong.',
             });
-
-            return;
-          }
-
-          setIsLoading(false);
-          setHasSubmitted(true);
-
-          if (confirmationType === 'redirect' && redirect) {
-            const { url } = redirect;
-            const redirectURL = url;
-            if (redirectURL) router.push(redirectURL);
-          }
-        } catch (error_) {
-          console.warn(error_);
-          setIsLoading(false);
-          setError({
-            message: 'Something went wrong.',
           });
-        }
       };
       void submitForm();
     },
