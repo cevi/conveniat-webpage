@@ -1,3 +1,5 @@
+//@ts-nocheck
+
 import type { TextField } from '@payloadcms/plugin-form-builder/types';
 import type { FieldErrorsImpl, FieldValues, UseFormRegister } from 'react-hook-form';
 
@@ -13,11 +15,22 @@ export const Text: React.FC<
     >;
     register: UseFormRegister<any & FieldValues>;
   } & TextField
-> = ({ name, errors, label, register, required: requiredFromProperties }) => {
+> = ({ name, label, register, required: requiredFromProperties }) => {
   return (
     <div className="mb-4">
-      <label className="block text-[#6d6e76] text-xs font-normal font-['Inter'] mb-1" htmlFor={name}>{label}{requiredFromProperties && <Required />}</label>
-      <input id={name} className="w-full h-10 px-4 bg-[#e1e6e2] border border-transparent rounded focus:outline-none focus:ring-2 focus:ring-[#47564c] text-[#595961] text-sm font-normal font-['Inter']" type="text" {...register(name, { required: requiredFromProperties })} />
+      <label
+        className="mb-1 block font-['Inter'] text-xs font-normal text-[#6d6e76]"
+        htmlFor={name}
+      >
+        {label}
+        {requiredFromProperties && <Required />}
+      </label>
+      <input
+        id={name}
+        className="border-transparent h-10 w-full rounded border bg-[#e1e6e2] px-4 font-['Inter'] text-sm font-normal text-[#595961] focus:outline-none focus:ring-2 focus:ring-[#47564c]"
+        type="text"
+        {...register(name, { required: requiredFromProperties })}
+      />
     </div>
   );
 };

@@ -4,7 +4,7 @@ import { Checkbox } from './checkbox';
 import { Country } from './country';
 import { Number } from './number';
 import { Select } from './select';
-import { Textarea } from './textarea';
+import { TextArea } from './textarea';
 
 export const fields = {
   text: Text,
@@ -13,5 +13,5 @@ export const fields = {
   country: Country,
   number: Number,
   select: Select,
-  textarea: Textarea
+  textarea: TextArea,
 };

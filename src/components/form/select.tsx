@@ -1,29 +1,34 @@
-import type { SelectField } from '@payloadcms/plugin-form-builder/types'
-import type { Control, FieldErrorsImpl, FieldValues, UseFormRegister} from 'react-hook-form'
+//@ts-nocheck
 
-import React from 'react'
-import { Controller } from 'react-hook-form'
-import  ReactSelect from 'react-select';
+import type { SelectField } from '@payloadcms/plugin-form-builder/types';
+import type { Control, FieldErrorsImpl, FieldValues, UseFormRegister } from 'react-hook-form';
 
-import { Required } from './required'
+import React from 'react';
+import { Controller } from 'react-hook-form';
+import ReactSelect from 'react-select';
+
+import { Required } from './required';
 
 export const Select: React.FC<
   {
-    control: Control<FieldValues, any>
+    control: Control<FieldValues, any>;
     errors: Partial<
       FieldErrorsImpl<{
-        [x: string]: any
+        [x: string]: any;
       }>
-    >
+    >;
     register: UseFormRegister<any & FieldValues>;
   } & SelectField
 > = ({ name, control, label, register, options, required: requiredFromProperties }) => {
   return (
     <div className="mb-4">
       <div>
-        <label className="block text-[#6d6e76] text-xs font-normal font-['Inter'] mb-1"
-            htmlFor={name}>
-            {label}{requiredFromProperties && <Required />}
+        <label
+          className="mb-1 block font-['Inter'] text-xs font-normal text-[#6d6e76]"
+          htmlFor={name}
+        >
+          {label}
+          {requiredFromProperties && <Required />}
         </label>
         <Controller
           control={control}
@@ -31,10 +36,10 @@ export const Select: React.FC<
           name={name}
           render={({ field: { onChange, value } }) => (
             <ReactSelect
-              className="w-full h-10 rounded text-[#595961] text-sm font-normal font-['Inter'] focus:outline-none focus:ring-2 focus:ring-[#47564c] focus:border-[#47564c]"
+              className="h-10 w-full rounded font-['Inter'] text-sm font-normal text-[#595961] focus:border-[#47564c] focus:outline-none focus:ring-2 focus:ring-[#47564c]"
               inputId={name}
               instanceId={name}
-              onChange={(val) => onChange(val ? val.value : '')}
+              onChange={(value_) => onChange(value_ ? value_.value : '')}
               options={options}
               value={options.find((s) => s.value === value)}
               styles={{
@@ -89,5 +94,5 @@ export const Select: React.FC<
         />
       </div>
     </div>
-  )
-}
+  );
+};

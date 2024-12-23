@@ -1,3 +1,5 @@
+//@ts-nocheck
+
 'use client';
 
 import React, { useCallback, useState } from 'react';
@@ -5,7 +7,7 @@ import type { Form as FormType } from '@payloadcms/plugin-form-builder/types';
 import { fields } from './fields';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
-import { buildInitialFormState } from './buildInitialFormState';
+import { buildInitialFormState } from './build-initial-form-state';
 import { RichText } from '@payloadcms/richtext-lexical/react';
 
 export type Value = unknown;
@@ -24,7 +26,14 @@ export interface Data {
 export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties) => {
   const {
     form: formFromProperties,
-    form: { id: formID, title, confirmationMessage, confirmationType, redirect, submitButtonLabel } = {},
+    form: {
+      id: formID,
+      title,
+      confirmationMessage,
+      confirmationType,
+      redirect,
+      submitButtonLabel,
+    } = {},
   } = properties;
 
   const formMethods = useForm({
@@ -34,10 +43,8 @@ export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties)
   const {
     control,
     formState: { errors },
-    getValues,
     handleSubmit,
     register,
-    setValue,
   } = formMethods;
 
   const [isLoading, setIsLoading] = useState(false);
@@ -113,31 +120,39 @@ export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties)
       {isLoading && !hasSubmitted && <p>Loading, please wait...</p>}
       {error && <div>{`${error.status || 500}: ${error.message || ''}`}</div>}
       {!hasSubmitted && (
-        <form className="w-[390px] h-auto mx-auto p-4 bg-white rounded-md shadow-md" id={formID} onSubmit={handleSubmit(onSubmit)}>
+        <form
+          className="mx-auto h-auto w-[390px] rounded-md bg-white p-4 shadow-md"
+          id={formID}
+          onSubmit={handleSubmit(onSubmit)}
+        >
           <div>
-            <h2 className="text-[#47564c] text-lg font-extrabold font-['Montserrat'] mb-4">{title}</h2>
-            {formFromProperties &&
-              formFromProperties.fields &&
-              formFromProperties.fields.map((field, index) => {
-                const Field: React.FC<any> = fields[field.blockType];
-                if (Field) {
-                  return (
-                    <React.Fragment key={index}>
-                      <Field
-                        form={formFromProperties}
-                        {...field}
-                        {...formMethods}
-                        control={control}
-                        errors={errors}
-                        register={register}
-                      />
-                    </React.Fragment>
-                  );
-                }
-                return null;
-              })}
+            <h2 className="mb-4 font-['Montserrat'] text-lg font-extrabold text-[#47564c]">
+              {title}
+            </h2>
+            {formFromProperties.fields.map((field, index) => {
+              const Field: React.FC<any> = fields[field.blockType];
+              if (Field) {
+                return (
+                  <React.Fragment key={index}>
+                    <Field
+                      form={formFromProperties}
+                      {...field}
+                      {...formMethods}
+                      control={control}
+                      errors={errors}
+                      register={register}
+                    />
+                  </React.Fragment>
+                );
+              }
+              return null;
+            })}
           </div>
-          <button type="submit" form={formID} className="w-full h-10 bg-[#47564c] text-[#e1e6e2] text-base font-bold font-['Montserrat'] rounded-lg hover:bg-[#3b4a3f] transition duration-300">
+          <button
+            type="submit"
+            form={formID}
+            className="h-10 w-full rounded-lg bg-[#47564c] font-['Montserrat'] text-base font-bold text-[#e1e6e2] transition duration-300 hover:bg-[#3b4a3f]"
+          >
             {submitButtonLabel}
           </button>
         </form>

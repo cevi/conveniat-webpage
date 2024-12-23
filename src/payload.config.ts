@@ -12,7 +12,7 @@ import {
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
-import { s3Storage } from '@payloadcms/storage-s3'
+import { s3Storage } from '@payloadcms/storage-s3';
 import { UserCollection } from '@/payload-cms/collections/user-collection';
 import { ImageCollection } from '@/payload-cms/collections/image-collection';
 import { en } from 'payload/i18n/en';
@@ -202,7 +202,7 @@ export const payloadConfig: RoutableConfig = {
     formBuilderPlugin({
       fields: {
         state: false, // we do not use states in CH
-      }
+      },
     }),
     s3Storage({
       collections: {
@@ -218,7 +218,7 @@ export const payloadConfig: RoutableConfig = {
         region: 'us-east-1',
         forcePathStyle: true,
         endpoint: MINIO_HOST,
-      }
+      },
     }),
   ],
   i18n: {

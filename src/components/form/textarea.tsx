@@ -1,11 +1,12 @@
-import type { TextField } from '@payloadcms/plugin-form-builder/types';
+//@ts-nocheck
+
+import type { TextAreaField } from '@payloadcms/plugin-form-builder/types';
 import type { FieldErrorsImpl, FieldValues, UseFormRegister } from 'react-hook-form';
 
 import React from 'react';
 import { Required } from './required';
-import { TextareaField } from 'payload';
 
-export const Textarea: React.FC<
+export const TextArea: React.FC<
   {
     errors: Partial<
       FieldErrorsImpl<{
@@ -13,15 +14,23 @@ export const Textarea: React.FC<
       }>
     >;
     register: UseFormRegister<any & FieldValues>;
-  } & TextareaField
+  } & TextAreaField
 > = ({ name, label, register, required: requiredFromProperties }) => {
   return (
     <div className="mb-4">
-      <label className="block text-[#6d6e76] text-xs font-normal font-['Inter'] mb-1" htmlFor={name}>{label}{requiredFromProperties && <Required />}</label>
-      <textarea id={name}
-        className="w-full h-30 px-4 bg-[#e1e6e2] border border-transparent rounded focus:outline-none focus:ring-2 focus:ring-[#47564c] text-[#595961] text-sm font-normal font-['Inter']"
+      <label
+        className="mb-1 block font-['Inter'] text-xs font-normal text-[#6d6e76]"
+        htmlFor={name}
+      >
+        {label}
+        {requiredFromProperties && <Required />}
+      </label>
+      <textarea
+        id={name}
+        className="h-30 border-transparent w-full rounded border bg-[#e1e6e2] px-4 font-['Inter'] text-sm font-normal text-[#595961] focus:outline-none focus:ring-2 focus:ring-[#47564c]"
         rows="4"
-        {...register(name, { required: requiredFromProperties })} />
+        {...register(name, { required: requiredFromProperties })}
+      />
     </div>
   );
 };

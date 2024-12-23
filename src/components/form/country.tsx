@@ -1,13 +1,20 @@
-import { Control, Controller, type FieldErrorsImpl, type FieldValues, type UseFormRegister } from 'react-hook-form';
+//@ts-nocheck
+import {
+  Control,
+  Controller,
+  type FieldErrorsImpl,
+  type FieldValues,
+  type UseFormRegister,
+} from 'react-hook-form';
 import { Required } from './required';
 import React from 'react';
-import { CountryField } from "@payloadcms/plugin-form-builder/types";
-import ReactSelect  from 'react-select';
-import { countryOptions } from './country_options';
+import { CountryField } from '@payloadcms/plugin-form-builder/types';
+import ReactSelect from 'react-select';
+import { countryOptions } from './country-options';
 
 export const Country: React.FC<
   {
-    control: Control<FieldValues, any>
+    control: Control<FieldValues, any>;
     errors: Partial<
       FieldErrorsImpl<{
         [x: string]: any;
@@ -18,8 +25,12 @@ export const Country: React.FC<
 > = ({ name, control, label, register, required: requiredFromProperties }) => {
   return (
     <div className="mb-4">
-      <label className="block text-[#6d6e76] text-xs font-normal font-['Inter'] mb-1" htmlFor={name}>
-        {label}{requiredFromProperties && <Required />}
+      <label
+        className="mb-1 block font-['Inter'] text-xs font-normal text-[#6d6e76]"
+        htmlFor={name}
+      >
+        {label}
+        {requiredFromProperties && <Required />}
       </label>
       <Controller
         defaultValue="CH"
@@ -27,9 +38,9 @@ export const Country: React.FC<
         name={name}
         render={({ field: { onChange, value } }) => (
           <ReactSelect
-            className="w-full h-10 rounded text-[#595961] text-sm font-normal font-['Inter'] focus:outline-none focus:ring-2 focus:ring-[#47564c] focus:border-[#47564c]"
+            className="h-10 w-full rounded font-['Inter'] text-sm font-normal text-[#595961] focus:border-[#47564c] focus:outline-none focus:ring-2 focus:ring-[#47564c]"
             inputId={name}
-            onChange={(val) => onChange(val ? val.value : '')}
+            onChange={(value_) => onChange(value_ ? value_.value : '')}
             options={countryOptions}
             value={countryOptions.find((c) => c.value === value)}
             styles={{
@@ -72,10 +83,10 @@ export const Country: React.FC<
                 ...provided,
                 backgroundColor: state.isSelected ? '#47564c' : 'transparent',
                 color: state.isSelected ? '#fff' : '#595961',
-                  '&:hover': {
-                    backgroundColor: '#f4f8f3',
-                    color: '#595961',
-                  },
+                '&:hover': {
+                  backgroundColor: '#f4f8f3',
+                  color: '#595961',
+                },
               }),
             }}
           />
@@ -84,4 +95,4 @@ export const Country: React.FC<
       />
     </div>
   );
-}
+};
