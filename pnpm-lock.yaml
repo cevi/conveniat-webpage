@@ -79,6 +79,9 @@ importers:
       react-i18next:
         specifier: ^15.2.0
         version: 15.2.0(i18next@24.2.0(typescript@5.5.4))(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+      react-select:
+        specifier: ^5.9.0
+        version: 5.9.0(react-dom@19.0.0(react@19.0.0))(react@19.0.0)(types-react@19.0.0-rc.1)
       sharp:
         specifier: 0.32.6
         version: 0.32.6

@@ -2,7 +2,7 @@ import { Control, Controller, type FieldErrorsImpl, type FieldValues, type UseFo
 import { Required } from './required';
 import React from 'react';
 import { CountryField } from "@payloadcms/plugin-form-builder/types";
-import { ReactSelect } from '@payloadcms/ui';
+import ReactSelect  from 'react-select';
 import { countryOptions } from './country_options';
 
 export const Country: React.FC<
@@ -27,11 +27,7 @@ export const Country: React.FC<
         name={name}
         render={({ field: { onChange, value } }) => (
           <ReactSelect
-            components={{
-              DropdownIndicator: () => null, // Removes the dropdown arrow
-              IndicatorSeparator: () => null, // Removes the vertical separator
-            }}
-            className="w-full h-10 px-4 border border-[#47564c] rounded text-[#595961] text-sm font-normal font-['Inter'] focus:outline-none focus:ring-2 focus:ring-[#47564c] focus:border-[#47564c]"
+            className="w-full h-10 rounded text-[#595961] text-sm font-normal font-['Inter'] focus:outline-none focus:ring-2 focus:ring-[#47564c] focus:border-[#47564c]"
             inputId={name}
             onChange={(val) => onChange(val ? val.value : '')}
             options={countryOptions}
@@ -39,16 +35,47 @@ export const Country: React.FC<
             styles={{
               control: (provided) => ({
                 ...provided,
-                backgroundColor: 'white !important', // Force the background color
-                borderColor: '#47564c', // Keep the border color consistent
+                width: '100%',
+                height: '2.5rem', // Match h-10
+                padding: '0 1rem', // Adjusted padding to remove left/right gaps
+                backgroundColor: '#e1e6e2',
+                border: '1px solid transparent',
+                borderRadius: '0.375rem', // Rounded corners
+                fontFamily: 'Inter, sans-serif',
+                fontSize: '0.875rem', // Match text-sm
+                color: '#595961',
+                boxShadow: 'none',
+                '&:hover': {
+                  borderColor: '#47564c',
+                },
+                '&:focus': {
+                  outline: 'none',
+                  ringColor: '#47564c',
+                  borderColor: '#47564c',
+                },
+              }),
+              dropdownIndicator: (provided) => ({
+                ...provided,
+                color: '#595961',
+              }),
+              indicatorSeparator: (provided) => ({
+                ...provided,
+                backgroundColor: 'transparent',
               }),
               menu: (provided) => ({
                 ...provided,
-                backgroundColor: 'white !important', // Force the dropdown background color
+                backgroundColor: '#fff',
+                borderRadius: '0.375rem',
+                boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)',
               }),
-              singleValue: (provided) => ({
+              option: (provided, state) => ({
                 ...provided,
-                color: '#595961', // Ensure text color is correct
+                backgroundColor: state.isSelected ? '#47564c' : 'transparent',
+                color: state.isSelected ? '#fff' : '#595961',
+                  '&:hover': {
+                    backgroundColor: '#f4f8f3',
+                    color: '#595961',
+                  },
               }),
             }}
           />
