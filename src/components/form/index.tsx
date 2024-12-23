@@ -77,7 +77,7 @@ export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties)
             method: 'POST',
           });
 
-          const res = await request.json();
+          const response = await request.json();
 
           clearTimeout(loadingTimerID);
 
@@ -85,8 +85,8 @@ export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties)
             setIsLoading(false);
 
             setError({
-              message: res.errors?.[0].message || 'Internal Server Error',
-              status: res.status,
+              message: response.errors?.[0].message || 'Internal Server Error',
+              status: response.status,
             });
 
             return;
