@@ -38,14 +38,17 @@ docker compose down --volumes
 ```
 
 ### MinIO Setup
+
 Start the MinIO Container (`docker compose up -d minio`) and log in (admin:password).
 Then, create a new Bucket (note the name) and a new user. For the user, create an Access Key.
 Write these values into the `.env` file:
+
 ```
 MINIO_ACCESS_KEY_ID=
 MINIO_SECRET_ACCESS_KEY=
 MINIO_BUCKET_NAME=
 ```
+
 Then, start the rest of the stack (`docker compose up -d`) and upload images into your bucket.
 
 ## Tech Stack and Decisions
