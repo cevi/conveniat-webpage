@@ -1,7 +1,11 @@
 import { LocalizedCollectionPage, LocalizedPage } from '@/page-layouts/localized-page';
 import React from 'react';
-import { payloadConfig } from '@payload-config';
+import { payloadConfig, RoutableCollectionConfig, RoutableGlobalConfig } from '@payload-config';
 import { CollectionSlug } from 'payload';
+import { PrivacyPage } from '@/page-layouts/privacy-page';
+import { ImprintPage } from '@/page-layouts/imprint-page';
+import { BlogPostPage } from '@/page-layouts/blog-posts';
+import { GenericPage } from '@/page-layouts/generic-page';
 
 type GlobalRouteLookupTable = {
   [slug: string]: {
@@ -24,6 +28,31 @@ type CollectionRouteLookupTable = {
   };
 };
 
+/** The slugs that are used to identify the React components that
+ * should be used to render the pages. */
+type PageSlug =
+  | RoutableCollectionConfig['reactComponentSlug']
+  | RoutableGlobalConfig['reactComponentSlug'];
+
+/**
+ * Maps the pageSlugs to React components.
+ *
+ * We cannot use the `import` statement to import the components directly, as this breaks
+ * the generate:types script. Instead, we use a lookup table to map the slugs to the components.
+ *
+ * This way, the components are never imported when reading the PayloadConfig, and$
+ * the generate:types script can generate the types correctly.
+ */
+const reactComponentSlugLookup: Record<
+  PageSlug,
+  React.FC<LocalizedCollectionPage> | React.FC<LocalizedPage>
+> = {
+  'privacy-page': PrivacyPage,
+  'imprint-page': ImprintPage,
+  'blog-posts': BlogPostPage,
+  'generic-page': GenericPage,
+};
+
 /**
  * This is a lookup table for all routes that are defined in the global config.
  * It is used to map the URL to the corresponding page component.
@@ -37,20 +66,28 @@ type CollectionRouteLookupTable = {
  *
  */
 export const globalsRouteLookupTable: GlobalRouteLookupTable =
+  // eslint-disable-next-line complexity
   payloadConfig.globals?.reduce((routes, global) => {
-    if ('urlSlug' in global && 'reactComponent' in global) {
-      const { urlSlug, reactComponent } = global;
+    if ('urlSlug' in global && 'reactComponentSlug' in global) {
+      const { urlSlug, reactComponentSlug } = global;
       for (const [locale, slug] of Object.entries(urlSlug)) {
         const locales = [locale as 'de' | 'en' | 'fr', ...(routes[slug]?.locales ?? [])];
 
-        if (slug in routes && routes[slug]?.component !== reactComponent) {
+        if (!(reactComponentSlug in reactComponentSlugLookup)) {
+          throw new Error(
+            `Component not found for reactComponentSlug: ${reactComponentSlug as string}`,
+          );
+        }
+
+        const component = reactComponentSlugLookup[reactComponentSlug];
+        if (slug in routes && routes[slug]?.component !== component) {
           throw new Error(`More than one component defined for the same global page slug: ${slug}`);
         }
 
         routes[slug] = {
           locales: locales,
           alternatives: urlSlug,
-          component: reactComponent,
+          component: component as React.FC<LocalizedPage>,
         };
       }
     }
@@ -58,13 +95,21 @@ export const globalsRouteLookupTable: GlobalRouteLookupTable =
   }, {} as GlobalRouteLookupTable) ?? {};
 
 export const collectionRouteLookupTable: CollectionRouteLookupTable =
+  // eslint-disable-next-line complexity
   payloadConfig.collections?.reduce((routes, collection) => {
-    if ('urlPrefix' in collection && 'reactComponent' in collection) {
-      const { urlPrefix, reactComponent } = collection;
+    if ('urlPrefix' in collection && 'reactComponentSlug' in collection) {
+      const { urlPrefix, reactComponentSlug } = collection;
       for (const [locale, prefix] of Object.entries(urlPrefix)) {
         const locales = [locale as 'de' | 'en' | 'fr', ...(routes[prefix]?.locales ?? [])];
 
-        if (prefix in routes && routes[prefix]?.component !== reactComponent) {
+        if (!(reactComponentSlug in reactComponentSlugLookup)) {
+          throw new Error(
+            `Component not found for reactComponentSlug: ${reactComponentSlug as string}`,
+          );
+        }
+
+        const component = reactComponentSlugLookup[reactComponentSlug];
+        if (prefix in routes && routes[prefix]?.component !== component) {
           throw new Error(
             `More than one component defined for the same collection prefix: ${prefix}`,
           );
@@ -73,7 +118,7 @@ export const collectionRouteLookupTable: CollectionRouteLookupTable =
         routes[prefix] = {
           locales: locales,
           alternatives: urlPrefix,
-          component: reactComponent,
+          component: component as React.FC<LocalizedCollectionPage>,
           collectionSlug: collection.payloadCollection.slug as CollectionSlug,
         };
       }

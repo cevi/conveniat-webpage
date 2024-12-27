@@ -1,11 +1,9 @@
-//@ts-nocheck
-
 import type { TextField } from '@payloadcms/plugin-form-builder/types';
 import type { FieldErrorsImpl, FieldValues, UseFormRegister } from 'react-hook-form';
 
 import React from 'react';
 
-import { Required } from './required';
+import { Required } from '@/components/form/required';
 
 export const Number: React.FC<
   {
@@ -14,9 +12,12 @@ export const Number: React.FC<
         [x: string]: any;
       }>
     >;
-    register: UseFormRegister<any & FieldValues>;
+    registerAction: UseFormRegister<any & FieldValues>;
   } & TextField
-> = ({ name, label, register, required: requiredFromProperties }) => {
+> = ({ name, label, registerAction, required: requiredFromProperties }) => {
+  // set default values
+  if (requiredFromProperties === undefined) requiredFromProperties = false;
+
   return (
     <div className="mb-4">
       <label
@@ -30,7 +31,7 @@ export const Number: React.FC<
         className="h-10 w-full rounded border border-[#47564c] px-4 font-['Inter'] text-sm font-normal text-[#595961] focus:border-[#47564c] focus:outline-none focus:ring-2 focus:ring-[#47564c]"
         id={name}
         type="number"
-        {...register(name, { required: requiredFromProperties })}
+        {...registerAction(name, { required: requiredFromProperties })}
       />
     </div>
   );

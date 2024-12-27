@@ -1,25 +1,26 @@
-//@ts-nocheck
-
 import type { SelectField } from '@payloadcms/plugin-form-builder/types';
 import type { Control, FieldErrorsImpl, FieldValues, UseFormRegister } from 'react-hook-form';
+import { Controller } from 'react-hook-form';
 
 import React from 'react';
-import { Controller } from 'react-hook-form';
 import ReactSelect from 'react-select';
 
-import { Required } from './required';
+import { Required } from '@/components/form/required';
 
 export const Select: React.FC<
   {
-    control: Control<FieldValues, any>;
+    control: Control;
     errors: Partial<
       FieldErrorsImpl<{
-        [x: string]: any;
+        [x: string]: never;
       }>
     >;
-    register: UseFormRegister<any & FieldValues>;
+    registerAction: UseFormRegister<string & FieldValues>;
   } & SelectField
-> = ({ name, control, label, register, options, required: requiredFromProperties }) => {
+> = ({ name, control, label, registerAction, options, required: requiredFromProperties }) => {
+  // set default values
+  if (requiredFromProperties === undefined) requiredFromProperties = false;
+
   return (
     <div className="mb-4">
       <div>
@@ -33,7 +34,6 @@ export const Select: React.FC<
         <Controller
           control={control}
           defaultValue=""
-          name={name}
           render={({ field: { onChange, value } }) => (
             <ReactSelect
               className="h-10 w-full rounded font-['Inter'] text-sm font-normal text-[#595961] focus:border-[#47564c] focus:outline-none focus:ring-2 focus:ring-[#47564c]"
@@ -90,7 +90,7 @@ export const Select: React.FC<
               }}
             />
           )}
-          {...register(name, { required: requiredFromProperties })}
+          {...registerAction(name, { required: requiredFromProperties })}
         />
       </div>
     </div>

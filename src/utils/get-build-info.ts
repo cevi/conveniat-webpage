@@ -15,7 +15,6 @@ interface BuildInfo {
  */
 export const getBuildInfo = async (): Promise<BuildInfo | undefined> => {
   try {
-    // @ts-ignore - ignore module not found error
     const { default: rawBuildInfo } = (await import('@/build')) as {
       default: BuildInfo;
     };

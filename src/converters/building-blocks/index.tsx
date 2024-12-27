@@ -4,6 +4,7 @@ import { ListBlogPosts } from '@/components/content-blocks/list-blog-articles';
 import React from 'react';
 import { LocalizedPage } from '@/page-layouts/localized-page';
 import { ShowForm } from '@/components/content-blocks/show-form';
+import { FormBlockType } from '@/components/form';
 
 export type ContentBlockTypeNames = 'blogPostsOverview' | 'article' | 'formBlock';
 export type ContentBlock = {
@@ -38,7 +39,7 @@ export const BuildingBlocks: React.FC<LocalizedPage & { blocks: ContentBlock[] }
       case 'formBlock': {
         return (
           <section key={block.id} className="mt-16">
-            <ShowForm {...block} />
+            <ShowForm {...(block as FormBlockType)} />
           </section>
         );
       }

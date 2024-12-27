@@ -1,10 +1,8 @@
-//@ts-nocheck
-
 import type { TextAreaField } from '@payloadcms/plugin-form-builder/types';
 import type { FieldErrorsImpl, FieldValues, UseFormRegister } from 'react-hook-form';
 
 import React from 'react';
-import { Required } from './required';
+import { Required } from '@/components/form/required';
 
 export const TextArea: React.FC<
   {
@@ -13,9 +11,12 @@ export const TextArea: React.FC<
         [x: string]: any;
       }>
     >;
-    register: UseFormRegister<any & FieldValues>;
+    registerAction: UseFormRegister<any & FieldValues>;
   } & TextAreaField
-> = ({ name, label, register, required: requiredFromProperties }) => {
+> = ({ name, label, registerAction, required: requiredFromProperties }) => {
+  // set default values
+  if (requiredFromProperties === undefined) requiredFromProperties = false;
+
   return (
     <div className="mb-4">
       <label
@@ -28,8 +29,8 @@ export const TextArea: React.FC<
       <textarea
         id={name}
         className="h-30 border-transparent w-full rounded border bg-[#e1e6e2] px-4 font-['Inter'] text-sm font-normal text-[#595961] focus:outline-none focus:ring-2 focus:ring-[#47564c]"
-        rows="4"
-        {...register(name, { required: requiredFromProperties })}
+        rows={4}
+        {...registerAction(name, { required: requiredFromProperties })}
       />
     </div>
   );

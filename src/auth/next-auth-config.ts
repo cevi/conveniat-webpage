@@ -51,7 +51,7 @@ export const authOptions: NextAuthConfig = {
       // This custom is used as soon as we would like to use a scope different from 'email'.
       // As Hitobito uses the 'X-Scopes' header to pass the scopes, and not the 'scope' parameter,
       userinfo: {
-        async request({ tokens }: { tokens: { access_token: string } }) {
+        async request({ tokens }: { tokens: { access_token: string } }): Promise<HitobitoProfile> {
           const url = `${HITOBITO_BASE_URL}/oauth/profile`;
           const response = await fetch(url, {
             headers: {
@@ -63,7 +63,15 @@ export const authOptions: NextAuthConfig = {
         },
       },
 
-      profile: (profile: HitobitoProfile) => {
+      profile: (
+        profile: HitobitoProfile,
+      ): {
+        roles: { group_id: number; group_name: string; role_name: string; role_class: string }[];
+        name: string;
+        nickname: string;
+        id: string;
+        email: string;
+      } => {
         return {
           id: profile.id,
           name: profile.first_name + ' ' + profile.last_name,

@@ -58,8 +58,8 @@ export interface Config {
     users: UserAuthOperations;
   };
   collections: {
-    'generic-page': GenericPage;
     blog: Blog;
+    'generic-page': GenericPage;
     images: Image;
     documents: Document;
     users: User;
@@ -71,8 +71,8 @@ export interface Config {
   };
   collectionsJoins: {};
   collectionsSelect: {
-    'generic-page': GenericPageSelect<false> | GenericPageSelect<true>;
     blog: BlogSelect<false> | BlogSelect<true>;
+    'generic-page': GenericPageSelect<false> | GenericPageSelect<true>;
     images: ImagesSelect<false> | ImagesSelect<true>;
     documents: DocumentsSelect<false> | DocumentsSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
@@ -131,25 +131,6 @@ export interface UserAuthOperations {
   };
 }
 /**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "generic-page".
- */
-export interface GenericPage {
-  id: string;
-  _localized_status: LocalizedPublishingStatus;
-  _locale: string;
-  updatedAt: string;
-  createdAt: string;
-  _status?: ('draft' | 'published') | null;
-}
-/**
- * Holds the publishing status of the document in each locale
- */
-export interface LocalizedPublishingStatus {
-  published: IsPublishedInCorrespondingLocale;
-  [k: string]: unknown;
-}
-/**
  * Represents a block article that can be published on the website.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -157,7 +138,7 @@ export interface LocalizedPublishingStatus {
  */
 export interface Blog {
   id: string;
-  _localized_status: LocalizedPublishingStatus1;
+  _localized_status: LocalizedPublishingStatus;
   _locale: string;
   /**
    * This is the title that will be displayed on the page.
@@ -194,8 +175,8 @@ export interface Blog {
 /**
  * Holds the publishing status of the document in each locale
  */
-export interface LocalizedPublishingStatus1 {
-  published: IsPublishedInCorrespondingLocale1;
+export interface LocalizedPublishingStatus {
+  published: IsPublishedInCorrespondingLocale;
   [k: string]: unknown;
 }
 /**
@@ -219,6 +200,29 @@ export interface Image {
   height?: number | null;
   focalX?: number | null;
   focalY?: number | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "generic-page".
+ */
+export interface GenericPage {
+  id: string;
+  _localized_status: LocalizedPublishingStatus1;
+  _locale: string;
+  /**
+   * This is the URL that will be used to access the article. It should be unique and URL-friendly.
+   */
+  urlSlug: string;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * Holds the publishing status of the document in each locale
+ */
+export interface LocalizedPublishingStatus1 {
+  published: IsPublishedInCorrespondingLocale1;
+  [k: string]: unknown;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -351,15 +355,6 @@ export interface Form {
             name: string;
             label?: string | null;
             width?: number | null;
-            required?: boolean | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'state';
-          }
-        | {
-            name: string;
-            label?: string | null;
-            width?: number | null;
             defaultValue?: string | null;
             required?: boolean | null;
             id?: string | null;
@@ -461,12 +456,12 @@ export interface PayloadLockedDocument {
   id: string;
   document?:
     | ({
-        relationTo: 'generic-page';
-        value: string | GenericPage;
-      } | null)
-    | ({
         relationTo: 'blog';
         value: string | Blog;
+      } | null)
+    | ({
+        relationTo: 'generic-page';
+        value: string | GenericPage;
       } | null)
     | ({
         relationTo: 'images';
@@ -532,17 +527,6 @@ export interface PayloadMigration {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "generic-page_select".
- */
-export interface GenericPageSelect<T extends boolean = true> {
-  _localized_status?: T;
-  _locale?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  _status?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "blog_select".
  */
 export interface BlogSelect<T extends boolean = true> {
@@ -552,6 +536,18 @@ export interface BlogSelect<T extends boolean = true> {
   bannerImage?: T;
   blogShortTitle?: T;
   pageContent?: T;
+  urlSlug?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "generic-page_select".
+ */
+export interface GenericPageSelect<T extends boolean = true> {
+  _localized_status?: T;
+  _locale?: T;
   urlSlug?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -677,16 +673,6 @@ export interface FormsSelect<T extends boolean = true> {
                     value?: T;
                     id?: T;
                   };
-              required?: T;
-              id?: T;
-              blockName?: T;
-            };
-        state?:
-          | T
-          | {
-              name?: T;
-              label?: T;
-              width?: T;
               required?: T;
               id?: T;
               blockName?: T;
@@ -827,6 +813,7 @@ export interface LandingPage {
           blockName?: string | null;
           blockType: 'blogPostsOverview';
         }
+      | FormBlock
     )[];
   };
   seo: {
@@ -842,6 +829,16 @@ export interface LandingPage {
 export interface LocalizedPublishingStatus2 {
   published: IsPublishedInCorrespondingLocale2;
   [k: string]: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "FormBlock".
+ */
+export interface FormBlock {
+  form: string | Form;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'formBlock';
 }
 /**
  * Settings for the data privacy statement
@@ -1042,6 +1039,7 @@ export interface LandingPageSelect<T extends boolean = true> {
                     id?: T;
                     blockName?: T;
                   };
+              formBlock?: T | FormBlockSelect<T>;
             };
       };
   seo?:
@@ -1053,6 +1051,15 @@ export interface LandingPageSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "FormBlock_select".
+ */
+export interface FormBlockSelect<T extends boolean = true> {
+  form?: T;
+  id?: T;
+  blockName?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1148,16 +1155,6 @@ export interface PWASelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "FormBlock".
- */
-export interface FormBlock {
-  form: string | Form;
-  id?: string | null;
-  blockName?: string | null;
-  blockType: 'formBlock';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

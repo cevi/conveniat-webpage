@@ -30,16 +30,10 @@ import { BlogArticleCollection } from '@/payload-cms/collections/blog-article';
 import { DataPrivacyStatementGlobal } from '@/payload-cms/globals/data-privacy-statement-global';
 import { ImprintGlobal } from '@/payload-cms/globals/imprint-global';
 import { CollectionConfig, Config, GlobalConfig } from 'payload';
-import { LocalizedCollectionPage, LocalizedPage } from '@/page-layouts/localized-page';
-import { ImprintPage } from '@/page-layouts/imprint-page';
-import React from 'react';
 import { onPayloadInit } from '@/payload-cms/on-payload-init';
-import { PrivacyPage } from '@/page-layouts/privacy-page';
 import { DocumentsCollection } from '@/payload-cms/collections/documents-collection';
 import { dropRouteInfo } from '@/payload-cms/global-routes';
-import { BlogPostPage } from '@/page-layouts/blog-posts';
 import { GenericPage as GenericPageCollection } from '@/payload-cms/collections/generic-page';
-import { GenericPage } from '@/page-layouts/generic-page';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -62,7 +56,10 @@ export type RoutableCollectionConfig = {
   urlPrefix: {
     [locale in 'de' | 'en' | 'fr']: string;
   };
-  reactComponent: React.FC<LocalizedCollectionPage>;
+  /** Defines a unique identifier for the React component that should be used to render the page.
+   * This identifier is used to lookup the component in the `reactComponentSlugLookup` table. */
+  reactComponentSlug: 'blog-posts' | 'generic-page';
+  /** The collection configuration that should be used to render the page. */
   payloadCollection: CollectionConfig;
 };
 
@@ -70,7 +67,10 @@ export type RoutableGlobalConfig = {
   urlSlug: {
     [locale in 'de' | 'en' | 'fr']: string;
   };
-  reactComponent: React.FC<LocalizedPage>;
+  /** Defines a unique identifier for the React component that should be used to render the page.
+   * This identifier is used to lookup the component in the `reactComponentSlugLookup` table. */
+  reactComponentSlug: 'privacy-page' | 'imprint-page';
+  /** The global configuration that should be used to render the page. */
   payloadGlobal: GlobalConfig;
 };
 
@@ -98,12 +98,12 @@ const collectionConfig: RoutableCollectionConfigs = [
   // routable collections
   {
     urlPrefix: { de: 'blog', en: 'blog', fr: 'blog' },
-    reactComponent: BlogPostPage,
+    reactComponentSlug: 'blog-posts',
     payloadCollection: BlogArticleCollection,
   },
   {
     urlPrefix: { de: '', en: '', fr: '' },
-    reactComponent: GenericPage,
+    reactComponentSlug: 'generic-page',
     payloadCollection: GenericPageCollection,
   },
 
@@ -122,12 +122,12 @@ const globalConfig: RoutableGlobalConfigs = [
    */
   {
     urlSlug: { de: 'datenschutz', en: 'privacy', fr: 'protection-donnees' },
-    reactComponent: PrivacyPage,
+    reactComponentSlug: 'privacy-page',
     payloadGlobal: DataPrivacyStatementGlobal,
   },
   {
     urlSlug: { de: 'impressum', en: 'imprint', fr: 'mentions-legales' },
-    reactComponent: ImprintPage,
+    reactComponentSlug: 'imprint-page',
     payloadGlobal: ImprintGlobal,
   },
 

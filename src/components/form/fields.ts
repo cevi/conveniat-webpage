@@ -5,8 +5,9 @@ import { Country } from './country';
 import { Number } from './number';
 import { Select } from './select';
 import { TextArea } from './textarea';
+import React from 'react';
 
-export const fields = {
+export const fields: Record<string, React.FC<any>> = {
   text: Text,
   email: Email,
   checkbox: Checkbox,

@@ -22,10 +22,9 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     return;
   }
 
-  const { id: formID  } = await payload.create({
+  const { id: formID } = await payload.create({
     collection: 'forms',
-    //@ts-ignore
-    data: JSON.parse(JSON.stringify(basicForm)),
+    data: structuredClone(basicForm),
   });
 
   await payload.updateGlobal({
@@ -40,7 +39,6 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
             pageContent: lexicalPlaceholder,
           },
           {
-            //@ts-ignore
             blockType: 'formBlock' as const,
             form: formID,
           },
@@ -67,7 +65,4 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
       },
     });
   }
-
-  
-
 };

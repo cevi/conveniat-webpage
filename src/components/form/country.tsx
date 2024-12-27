@@ -1,4 +1,3 @@
-//@ts-nocheck
 import {
   Control,
   Controller,
@@ -14,15 +13,18 @@ import { countryOptions } from './country-options';
 
 export const Country: React.FC<
   {
-    control: Control<FieldValues, any>;
+    control: Control;
     errors: Partial<
       FieldErrorsImpl<{
         [x: string]: any;
       }>
     >;
-    register: UseFormRegister<any & FieldValues>;
+    registerAction: UseFormRegister<any & FieldValues>;
   } & CountryField
-> = ({ name, control, label, register, required: requiredFromProperties }) => {
+> = ({ name, control, label, registerAction, required: requiredFromProperties }) => {
+  // set default values
+  if (requiredFromProperties === undefined) requiredFromProperties = false;
+
   return (
     <div className="mb-4">
       <label
@@ -35,7 +37,6 @@ export const Country: React.FC<
       <Controller
         defaultValue="CH"
         control={control}
-        name={name}
         render={({ field: { onChange, value } }) => (
           <ReactSelect
             className="h-10 w-full rounded font-['Inter'] text-sm font-normal text-[#595961] focus:border-[#47564c] focus:outline-none focus:ring-2 focus:ring-[#47564c]"
@@ -91,7 +92,7 @@ export const Country: React.FC<
             }}
           />
         )}
-        {...register(name, { required: requiredFromProperties })}
+        {...registerAction(name, { required: requiredFromProperties })}
       />
     </div>
   );

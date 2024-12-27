@@ -1,7 +1,7 @@
 import type { FormFieldBlock } from '@payloadcms/plugin-form-builder/types';
+import { DefaultValues, FieldValues } from 'react-hook-form';
 
-export const buildInitialFormState = (fields: FormFieldBlock[]) => {
-  //@ts-ignore
+export const buildInitialFormState = (fields: FormFieldBlock[]): DefaultValues<FieldValues> => {
   return fields.reduce((initialSchema, field) => {
     if (field.blockType === 'checkbox') {
       return {
@@ -33,5 +33,19 @@ export const buildInitialFormState = (fields: FormFieldBlock[]) => {
         [field.name]: '',
       };
     }
-  }, {});
+    if (field.blockType === 'state') {
+      return {
+        ...initialSchema,
+        [field.name]: '',
+      };
+    }
+    if (field.blockType === 'textarea') {
+      return {
+        ...initialSchema,
+        [field.name]: '',
+      };
+    }
+
+    return initialSchema;
+  }, {} as DefaultValues<FieldValues>);
 };
