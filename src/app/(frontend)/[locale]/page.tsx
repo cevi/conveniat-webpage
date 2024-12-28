@@ -7,6 +7,21 @@ import { HeadlineH1 } from '@/components/typography/headline-h1';
 import { TeaserText } from '@/components/typography/teaser-text';
 import { CallToAction } from '@/components/buttons/call-to-action';
 import { BuildingBlocks, ContentBlock } from '@/converters/building-blocks';
+import { LandingPage as LandingPagePayloadType } from '@/payload-types';
+import type { Metadata } from 'next';
+
+/**
+ * This function is responsible for fetching the landing page from the CMS.
+ *
+ * @param locale - The locale of the landing page
+ */
+const findLandingPage = async (locale: 'de' | 'en' | 'fr'): Promise<LandingPagePayloadType> => {
+  const payload = await getPayload({ config });
+  return await payload.findGlobal({
+    slug: 'landingPage',
+    locale,
+  });
+};
 
 /**
  * This file is responsible for converters the landing page.
@@ -22,11 +37,7 @@ const LandingPage: React.FC<{
 }> = async ({ params }) => {
   const { locale } = await params;
 
-  const payload = await getPayload({ config });
-  const { content } = await payload.findGlobal({
-    slug: 'landingPage',
-    locale: locale,
-  });
+  const { content } = await findLandingPage(locale);
   const { pageTitle, mainContent, pageTeaser, callToAction } = content;
   const { link, linkText } = callToAction;
 
@@ -38,6 +49,23 @@ const LandingPage: React.FC<{
       <BuildingBlocks blocks={mainContent as ContentBlock[]} locale={locale} />
     </article>
   );
+};
+
+export const generateMetadata = async ({
+  params,
+}: {
+  params: Promise<{
+    locale: 'de' | 'en' | 'fr';
+  }>;
+}): Promise<Metadata> => {
+  const { locale } = await params;
+  const { seo } = await findLandingPage(locale);
+
+  return {
+    ...(seo.metaTitle === undefined ? {} : { title: seo.metaTitle }),
+    ...(seo.metaDescription === undefined ? {} : { description: seo.metaDescription }),
+    ...(seo.keywords === undefined ? {} : { keywords: seo.keywords }),
+  };
 };
 
 export const dynamic = 'force-dynamic';

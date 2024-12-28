@@ -832,6 +832,18 @@ export interface LandingPage {
   };
   seo: {
     urlSlug: string;
+    /**
+     * This is the title that will be displayed in the browser tab.
+     */
+    metaTitle?: string | null;
+    /**
+     * This is the description that will be displayed in search engine results.
+     */
+    metaDescription?: string | null;
+    /**
+     * These are the keywords that will be used to improve the visibility of the page in search engines.
+     */
+    keywords?: string | null;
   };
   _status?: ('draft' | 'published') | null;
   updatedAt?: string | null;
@@ -1067,6 +1079,9 @@ export interface LandingPageSelect<T extends boolean = true> {
     | T
     | {
         urlSlug?: T;
+        metaTitle?: T;
+        metaDescription?: T;
+        keywords?: T;
       };
   _status?: T;
   updatedAt?: T;

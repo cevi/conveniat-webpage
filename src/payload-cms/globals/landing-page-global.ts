@@ -3,6 +3,9 @@ import { asLocalizedGlobal } from '@/payload-cms/utils/localized-global';
 import { AdminPanelDashboardGroups } from '@/payload-cms/admin-panel-dashboard-groups';
 import { localizedDefaultValue } from '@/payload-cms/utils/localized-default-value';
 import { MainContentField } from '@/payload-cms/shared-fields/main-content-field';
+import { MetaTitle } from '@/payload-cms/shared-fields/meta-title';
+import { MetaDescription } from '@/payload-cms/shared-fields/meta-description';
+import { MetaKeywords } from '@/payload-cms/shared-fields/meta-keywords';
 
 const PageTitleField: Field = {
   name: 'pageTitle',
@@ -103,6 +106,10 @@ const LandingPageSeoTab: Tab = {
       admin: { readOnly: true },
       defaultValue: '/',
     },
+
+    MetaTitle,
+    MetaDescription,
+    MetaKeywords,
   ],
 };
 
