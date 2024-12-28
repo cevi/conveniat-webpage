@@ -58,8 +58,8 @@ export interface Config {
     users: UserAuthOperations;
   };
   collections: {
-    'generic-page': GenericPage;
     blog: Blog;
+    'generic-page': GenericPage;
     images: Image;
     documents: Document;
     users: User;
@@ -71,8 +71,8 @@ export interface Config {
   };
   collectionsJoins: {};
   collectionsSelect: {
-    'generic-page': GenericPageSelect<false> | GenericPageSelect<true>;
     blog: BlogSelect<false> | BlogSelect<true>;
+    'generic-page': GenericPageSelect<false> | GenericPageSelect<true>;
     images: ImagesSelect<false> | ImagesSelect<true>;
     documents: DocumentsSelect<false> | DocumentsSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
@@ -103,7 +103,7 @@ export interface Config {
     SEO: SEOSelect<false> | SEOSelect<true>;
     PWA: PWASelect<false> | PWASelect<true>;
   };
-  locale: 'en-GB' | 'de-CH' | 'fr-CH';
+  locale: 'en' | 'de' | 'fr';
   user: User & {
     collection: 'users';
   };
@@ -131,34 +131,23 @@ export interface UserAuthOperations {
   };
 }
 /**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "generic-page".
- */
-export interface GenericPage {
-  id: string;
-  _localized_status: LocalizedPublishingStatus;
-  _locale: string;
-  updatedAt: string;
-  createdAt: string;
-  _status?: ('draft' | 'published') | null;
-}
-/**
- * Holds the publishing status of the document in each locale
- */
-export interface LocalizedPublishingStatus {
-  published: IsPublishedInCorrespondingLocale;
-  [k: string]: unknown;
-}
-/**
+ * Represents a block article that can be published on the website.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "blog".
  */
 export interface Blog {
   id: string;
-  _localized_status: LocalizedPublishingStatus1;
+  _localized_status: LocalizedPublishingStatus;
   _locale: string;
+  /**
+   * This is the title that will be displayed on the page.
+   */
   blogH1: string;
   bannerImage: string | Image;
+  /**
+   * This is the text that will be displayed as a teaser on the blog overview page.
+   */
   blogShortTitle: string;
   pageContent: {
     root: {
@@ -175,6 +164,9 @@ export interface Blog {
     };
     [k: string]: unknown;
   };
+  /**
+   * This is the URL that will be used to access the article. It should be unique and URL-friendly.
+   */
   urlSlug: string;
   updatedAt: string;
   createdAt: string;
@@ -183,8 +175,8 @@ export interface Blog {
 /**
  * Holds the publishing status of the document in each locale
  */
-export interface LocalizedPublishingStatus1 {
-  published: IsPublishedInCorrespondingLocale1;
+export interface LocalizedPublishingStatus {
+  published: IsPublishedInCorrespondingLocale;
   [k: string]: unknown;
 }
 /**
@@ -193,6 +185,9 @@ export interface LocalizedPublishingStatus1 {
  */
 export interface Image {
   id: string;
+  /**
+   * Describe the image for screen readers and search engines
+   */
   alt: string;
   updatedAt: string;
   createdAt: string;
@@ -205,6 +200,29 @@ export interface Image {
   height?: number | null;
   focalX?: number | null;
   focalY?: number | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "generic-page".
+ */
+export interface GenericPage {
+  id: string;
+  _localized_status: LocalizedPublishingStatus1;
+  _locale: string;
+  /**
+   * This is the URL that will be used to access the article. It should be unique and URL-friendly.
+   */
+  urlSlug: string;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * Holds the publishing status of the document in each locale
+ */
+export interface LocalizedPublishingStatus1 {
+  published: IsPublishedInCorrespondingLocale1;
+  [k: string]: unknown;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -225,14 +243,25 @@ export interface Document {
   focalY?: number | null;
 }
 /**
+ * Represents a Hitobito user. These information get automatically synced whenever the user logs in.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users".
  */
 export interface User {
   id: string;
+  /**
+   * The ID of the user in the CeviDB.
+   */
   cevi_db_uuid: number;
   email: string;
+  /**
+   * The full name of the user, as it will be displayed publicly.
+   */
   fullName: string;
+  /**
+   * The Ceviname of the user.
+   */
   nickname?: string | null;
   groups: GroupsOfTheUser;
   updatedAt: string;
@@ -326,15 +355,6 @@ export interface Form {
             name: string;
             label?: string | null;
             width?: number | null;
-            required?: boolean | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'state';
-          }
-        | {
-            name: string;
-            label?: string | null;
-            width?: number | null;
             defaultValue?: string | null;
             required?: boolean | null;
             id?: string | null;
@@ -354,6 +374,9 @@ export interface Form {
       )[]
     | null;
   submitButtonLabel?: string | null;
+  /**
+   * Choose whether to display an on-page message or redirect to a different page after they submit the form.
+   */
   confirmationType?: ('message' | 'redirect') | null;
   confirmationMessage?: {
     root: {
@@ -373,6 +396,9 @@ export interface Form {
   redirect?: {
     url: string;
   };
+  /**
+   * Send custom emails when the form submits. Use comma separated lists to send the same email to multiple recipients. To reference a value from this form, wrap that field's name with double curly brackets, i.e. {{firstName}}. You can use a wildcard {{*}} to output all data and {{*:table}} to format it as an HTML table in the email.
+   */
   emails?:
     | {
         emailTo?: string | null;
@@ -381,6 +407,9 @@ export interface Form {
         replyTo?: string | null;
         emailFrom?: string | null;
         subject: string;
+        /**
+         * Enter the message that should be sent in this email.
+         */
         message?: {
           root: {
             type: string;
@@ -427,12 +456,12 @@ export interface PayloadLockedDocument {
   id: string;
   document?:
     | ({
-        relationTo: 'generic-page';
-        value: string | GenericPage;
-      } | null)
-    | ({
         relationTo: 'blog';
         value: string | Blog;
+      } | null)
+    | ({
+        relationTo: 'generic-page';
+        value: string | GenericPage;
       } | null)
     | ({
         relationTo: 'images';
@@ -498,17 +527,6 @@ export interface PayloadMigration {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "generic-page_select".
- */
-export interface GenericPageSelect<T extends boolean = true> {
-  _localized_status?: T;
-  _locale?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  _status?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "blog_select".
  */
 export interface BlogSelect<T extends boolean = true> {
@@ -518,6 +536,18 @@ export interface BlogSelect<T extends boolean = true> {
   bannerImage?: T;
   blogShortTitle?: T;
   pageContent?: T;
+  urlSlug?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "generic-page_select".
+ */
+export interface GenericPageSelect<T extends boolean = true> {
+  _localized_status?: T;
+  _locale?: T;
   urlSlug?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -647,16 +677,6 @@ export interface FormsSelect<T extends boolean = true> {
               id?: T;
               blockName?: T;
             };
-        state?:
-          | T
-          | {
-              name?: T;
-              label?: T;
-              width?: T;
-              required?: T;
-              id?: T;
-              blockName?: T;
-            };
         text?:
           | T
           | {
@@ -760,7 +780,13 @@ export interface LandingPage {
   _localized_status: LocalizedPublishingStatus2;
   _locale: string;
   content: {
+    /**
+     * This is the title that will be displayed on the page.
+     */
     pageTitle: string;
+    /**
+     * The main content of the page
+     */
     mainContent: (
       | {
           pageContent: {
@@ -787,6 +813,7 @@ export interface LandingPage {
           blockName?: string | null;
           blockType: 'blogPostsOverview';
         }
+      | FormBlock
     )[];
   };
   seo: {
@@ -805,6 +832,18 @@ export interface LocalizedPublishingStatus2 {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "FormBlock".
+ */
+export interface FormBlock {
+  form: string | Form;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'formBlock';
+}
+/**
+ * Settings for the data privacy statement
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "data-privacy-statement".
  */
 export interface DataPrivacyStatement {
@@ -812,7 +851,13 @@ export interface DataPrivacyStatement {
   _localized_status: LocalizedPublishingStatus3;
   _locale: string;
   content: {
+    /**
+     * This is the title that will be displayed on the page.
+     */
     pageTitle: string;
+    /**
+     * The main content of the page
+     */
     mainContent: {
       root: {
         type: string;
@@ -844,6 +889,8 @@ export interface LocalizedPublishingStatus3 {
   [k: string]: unknown;
 }
 /**
+ * Settings for the data privacy statement
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "imprint".
  */
@@ -852,7 +899,13 @@ export interface Imprint {
   _localized_status: LocalizedPublishingStatus4;
   _locale: string;
   content: {
+    /**
+     * This is the title that will be displayed on the page.
+     */
     pageTitle: string;
+    /**
+     * The main content of the page
+     */
     mainContent: {
       root: {
         type: string;
@@ -884,6 +937,8 @@ export interface LocalizedPublishingStatus4 {
   [k: string]: unknown;
 }
 /**
+ * Settings for the header navigation
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "header".
  */
@@ -893,6 +948,8 @@ export interface Header {
   createdAt?: string | null;
 }
 /**
+ * Settings for the footer
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "footer".
  */
@@ -903,29 +960,54 @@ export interface Footer {
   createdAt?: string | null;
 }
 /**
+ * Settings for the search engine optimization
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "SEO".
  */
 export interface SEO {
   id: string;
+  /**
+   * The title should be under 60 characters for mobile prefer 50. The title is shown in the Google search results and on desktop as the tab title. This field defines the default value for the title, but each page can have its own title.
+   */
   defaultTitle: string;
+  /**
+   * The description should be under 155 characters for mobile prefer 105. The description is shown in the Google search results.
+   */
   defaultDescription: string;
+  /**
+   * Keywords are not used by Google anymore, but other search engines might use them. Keywords are not shown directly to the user, but they are used by search engines to determine the content of the page. This field defines the default value for the keywords, but each page can have its own keywords.
+   */
   defaultKeywords: {
     keyword: string;
     id?: string | null;
   }[];
+  /**
+   * The content publisher
+   */
   publisher: string;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
 /**
+ * Settings for the Progressive Web App
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "PWA".
  */
 export interface PWA {
   id: string;
+  /**
+   * Once deployed as an PWA App to the App Store, this name will be used as the App Name. A change will require a new deployment to the App Store.
+   */
   appName: string;
+  /**
+   * Once deployed as an PWA App to the App Store, this name will be used as the App Name. A change will require a new deployment to the App Store.
+   */
   appShortName: string;
+  /**
+   * Once deployed as an PWA App to the App Store, this description will be used as the App Description. A change will require a new deployment to the App Store.
+   */
   appDescription: string;
   updatedAt?: string | null;
   createdAt?: string | null;
@@ -957,6 +1039,7 @@ export interface LandingPageSelect<T extends boolean = true> {
                     id?: T;
                     blockName?: T;
                   };
+              formBlock?: T | FormBlockSelect<T>;
             };
       };
   seo?:
@@ -968,6 +1051,15 @@ export interface LandingPageSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "FormBlock_select".
+ */
+export interface FormBlockSelect<T extends boolean = true> {
+  form?: T;
+  id?: T;
+  blockName?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1063,16 +1155,6 @@ export interface PWASelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "FormBlock".
- */
-export interface FormBlock {
-  form: string | Form;
-  id?: string | null;
-  blockName?: string | null;
-  blockType: 'formBlock';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

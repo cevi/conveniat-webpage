@@ -4,7 +4,7 @@ export const HeadlineH1: React.FC<{
   children?: React.ReactNode;
 }> = ({ children }) => {
   return (
-    <h1 className="max-[384px] mb-[16px] mt-[24px] text-balance font-heading text-[30px] font-extrabold leading-[32px] text-conveniat-green">
+    <h1 className="mb-4 mt-6 max-w-4xl text-balance font-heading text-3xl font-extrabold text-conveniat-green">
       {children}
     </h1>
   );

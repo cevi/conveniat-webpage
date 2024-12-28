@@ -1,5 +1,6 @@
 import { Payload } from 'payload';
 import { lexicalPlaceholder } from '@/payload-cms/on-payload-init/seed-database/placeholder-lexical';
+import { basicForm } from './all-types-form';
 
 /**
  * Seed the database with some initial data.
@@ -21,9 +22,14 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     return;
   }
 
+  const { id: formID } = await payload.create({
+    collection: 'forms',
+    data: structuredClone(basicForm),
+  });
+
   await payload.updateGlobal({
     slug: 'landingPage',
-    locale: 'de-CH' as const,
+    locale: 'de' as const,
     data: {
       content: {
         pageTitle: 'Conveniat 2027 - WIR SIND CEVI',
@@ -33,11 +39,15 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
             pageContent: lexicalPlaceholder,
           },
           {
+            blockType: 'formBlock' as const,
+            form: formID,
+          },
+          {
             blockType: 'blogPostsOverview' as const,
           },
         ],
       },
-      _locale: 'de-CH' as const,
+      _locale: 'de' as const,
     },
   });
 
@@ -45,13 +55,13 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
   for (const slug of globalSlugs) {
     await payload.updateGlobal({
       slug,
-      locale: 'de-CH' as const,
+      locale: 'de' as const,
       data: {
         content: {
           pageTitle: slug,
           mainContent: lexicalPlaceholder,
         },
-        _locale: 'de-CH' as const,
+        _locale: 'de' as const,
       },
     });
   }

@@ -1,18 +1,15 @@
-import { HeadlineH1 } from '@/components/typography/headline-h1';
 import React from 'react';
 import { getPayload } from 'payload';
 import config from '@payload-config';
 import { notFound } from 'next/navigation';
-import Link from 'next/link';
-import { BlogArticle } from '@/converters/blog-article';
 import { LocalizedCollectionPage } from '@/page-layouts/localized-page';
 
-export const BlogPostPage: React.FC<LocalizedCollectionPage> = async ({ slugs, locale }) => {
+export const GenericPage: React.FC<LocalizedCollectionPage> = async ({ slugs, locale }) => {
   const payload = await getPayload({ config });
   const slug = slugs.join('/');
 
   const articlesInPrimaryLanguage = await payload.find({
-    collection: 'blog',
+    collection: 'generic-page',
     pagination: false,
     locale: locale,
     fallbackLocale: false,
@@ -28,7 +25,7 @@ export const BlogPostPage: React.FC<LocalizedCollectionPage> = async ({ slugs, l
 
   // article found in current locale --> render
   if (articleInPrimaryLanguage !== undefined) {
-    return <BlogArticle article={articleInPrimaryLanguage} />;
+    return <span>Render Generic Page in {locale}</span>;
   }
 
   // fallback logic to find article in other locales
@@ -41,7 +38,7 @@ export const BlogPostPage: React.FC<LocalizedCollectionPage> = async ({ slugs, l
   const articles = await Promise.all(
     locales.map((l) =>
       payload.find({
-        collection: 'blog',
+        collection: 'generic-page',
         pagination: false,
         locale: l,
         where: {
@@ -64,22 +61,10 @@ export const BlogPostPage: React.FC<LocalizedCollectionPage> = async ({ slugs, l
     notFound();
   }
 
-  // list options for user to choose from
-  return (
-    <article className="mx-auto my-8 max-w-5xl px-8">
-      <HeadlineH1>Choose the correct article</HeadlineH1>
-      <ul>
-        {articles.map((article) => (
-          <li key={article.id}>
-            <Link
-              href={`/${article._locale.split('-')[0]}/blog/${article.urlSlug}`}
-              className="font-bold text-red-600"
-            >
-              - {article.blogH1} in {article._locale}
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </article>
-  );
+  if (articles.length === 1) {
+    // TODO....
+    notFound();
+  }
+
+  notFound();
 };

@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import React from 'react';
 
 // These styles apply to every route in the application
-import './globals.css';
+import './globals.scss';
 import { FooterComponent } from '@/components/footer/footer-component';
 import { HeaderComponent } from '@/components/header/header-component';
 import { CeviBackgroundLogo } from '@/components/svg-logos/cevi-background-logo';
@@ -24,7 +24,7 @@ const RootLayout: React.FC<LayoutProperties> = ({ children }) => {
         </div>
 
         <ErrorBoundary fallback={<ErrorPage />}>
-          <main className="grow">{children}</main>
+          <main className="mt-[112px] grow">{children}</main>
         </ErrorBoundary>
 
         <FooterComponent />

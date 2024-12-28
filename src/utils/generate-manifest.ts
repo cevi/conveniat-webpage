@@ -35,7 +35,7 @@ export const generateManifest = async (): Promise<MetadataRoute.Manifest> => {
     theme_color: '#E1E6E2',
     icons: manifestIconDefinitions,
     dir: 'ltr',
-    lang: 'de-CH', // TODO: how to support multiple languages?
+    lang: 'de', // TODO: how to support multiple languages?
     orientation: 'portrait-primary',
     scope: 'https://test.conveniat27.cevi.tools/', // TODO: remove hard-coded domain
     prefer_related_applications: false,

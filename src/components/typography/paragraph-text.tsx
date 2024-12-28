@@ -4,7 +4,7 @@ export const ParagraphText: React.FC<{
   children?: React.ReactNode;
 }> = ({ children }) => {
   return (
-    <p className="my-[8px] text-left font-body text-[16px] font-normal leading-[24px] text-gray-500">
+    <p className="my-2 max-w-2xl text-left font-body text-base font-normal text-gray-500">
       {children}
     </p>
   );

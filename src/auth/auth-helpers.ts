@@ -5,8 +5,8 @@ import { AuthStrategyFunction, BasePayload } from 'payload';
  * Checks if a user is a valid NextAuth user, i.e. has all required fields
  * @param user
  */
-export const isValidNextAuthUser = (user: HitobitoNextAuthUser) => {
-  return user.name && user.email && user.cevi_db_uuid;
+export const isValidNextAuthUser = (user: HitobitoNextAuthUser): boolean => {
+  return user.name !== '' && user.email !== '' && user.cevi_db_uuid > 0;
 };
 
 async function saveUserToDB(payload: BasePayload, nextAuthUser: HitobitoNextAuthUser) {

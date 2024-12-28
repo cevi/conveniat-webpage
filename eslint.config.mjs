@@ -79,7 +79,7 @@ const config = [
       '@typescript-eslint/no-unsafe-enum-comparison': 'error',
       '@typescript-eslint/prefer-promise-reject-errors': 'error',
       '@typescript-eslint/explicit-function-return-type': 'warn',
-      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-non-null-assertion': 'error',
       '@typescript-eslint/no-unsafe-call': 'error',
       '@typescript-eslint/prefer-for-of': 'error',
@@ -109,6 +109,7 @@ const config = [
       'no-control-regex': 'warn',
       'no-useless-escape': 'warn',
       '@typescript-eslint/no-deprecated': 'warn',
+      'unicorn/no-array-reduce': 'warn',
     },
   },
   {

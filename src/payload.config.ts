@@ -12,7 +12,7 @@ import {
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
-
+import { s3Storage } from '@payloadcms/storage-s3';
 import { UserCollection } from '@/payload-cms/collections/user-collection';
 import { ImageCollection } from '@/payload-cms/collections/image-collection';
 import { en } from 'payload/i18n/en';
@@ -30,14 +30,10 @@ import { BlogArticleCollection } from '@/payload-cms/collections/blog-article';
 import { DataPrivacyStatementGlobal } from '@/payload-cms/globals/data-privacy-statement-global';
 import { ImprintGlobal } from '@/payload-cms/globals/imprint-global';
 import { CollectionConfig, Config, GlobalConfig } from 'payload';
-import { LocalizedPage } from '@/page-layouts/localized-page';
-import { ImprintPage } from '@/page-layouts/imprint-page';
-import React from 'react';
 import { onPayloadInit } from '@/payload-cms/on-payload-init';
-import { PrivacyPage } from '@/page-layouts/privacy-page';
-import { GenericPage } from '@/payload-cms/collections/generic-page';
 import { DocumentsCollection } from '@/payload-cms/collections/documents-collection';
-import { applyGlobalRoutes } from '@/payload-cms/global-routes';
+import { dropRouteInfo } from '@/payload-cms/global-routes';
+import { GenericPage as GenericPageCollection } from '@/payload-cms/collections/generic-page';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -46,23 +42,44 @@ const PAYLOAD_SECRET = process.env['PAYLOAD_SECRET'] ?? '';
 const DATABASE_URI = process.env['DATABASE_URI'] ?? '';
 const APP_HOST_URL = process.env['APP_HOST_URL'] ?? '';
 
+const MINIO_HOST = process.env['MINIO_HOST'] ?? '';
+const MINIO_BUCKET_NAME = process.env['MINIO_BUCKET_NAME'] ?? '';
+const MINIO_ACCESS_KEY_ID = process.env['MINIO_ACCESS_KEY_ID'] ?? '';
+const MINIO_SECRET_ACCESS_KEY = process.env['MINIO_SECRET_ACCESS_KEY'] ?? '';
+
 /*
 if (PAYLOAD_SECRET === undefined) throw new Error('PAYLOAD_SECRET is not defined');
 if (DATABASE_URI === undefined) throw new Error('DATABASE_URI is not defined');
 */
 
+export type RoutableCollectionConfig = {
+  urlPrefix: {
+    [locale in 'de' | 'en' | 'fr']: string;
+  };
+  /** Defines a unique identifier for the React component that should be used to render the page.
+   * This identifier is used to lookup the component in the `reactComponentSlugLookup` table. */
+  reactComponentSlug: 'blog-posts' | 'generic-page';
+  /** The collection configuration that should be used to render the page. */
+  payloadCollection: CollectionConfig;
+};
+
 export type RoutableGlobalConfig = {
   urlSlug: {
     [locale in 'de' | 'en' | 'fr']: string;
   };
-  reactComponent: React.FC<LocalizedPage>;
+  /** Defines a unique identifier for the React component that should be used to render the page.
+   * This identifier is used to lookup the component in the `reactComponentSlugLookup` table. */
+  reactComponentSlug: 'privacy-page' | 'imprint-page';
+  /** The global configuration that should be used to render the page. */
   payloadGlobal: GlobalConfig;
 };
 
 export type RoutableGlobalConfigs = (GlobalConfig | RoutableGlobalConfig)[];
+export type RoutableCollectionConfigs = (CollectionConfig | RoutableCollectionConfig)[];
 
-export type RoutableConfig = Omit<Config, 'globals'> & {
+export type RoutableConfig = Omit<Omit<Config, 'globals'>, 'collections'> & {
   globals?: RoutableGlobalConfigs;
+  collections?: RoutableCollectionConfigs;
 };
 
 const defaultEditorFeatures: LexicalEditorProps['features'] = () => {
@@ -77,9 +94,20 @@ const defaultEditorFeatures: LexicalEditorProps['features'] = () => {
   ];
 };
 
-const collectionConfig: CollectionConfig[] = [
-  GenericPage,
-  BlogArticleCollection,
+const collectionConfig: RoutableCollectionConfigs = [
+  // routable collections
+  {
+    urlPrefix: { de: 'blog', en: 'blog', fr: 'blog' },
+    reactComponentSlug: 'blog-posts',
+    payloadCollection: BlogArticleCollection,
+  },
+  {
+    urlPrefix: { de: '', en: '', fr: '' },
+    reactComponentSlug: 'generic-page',
+    payloadCollection: GenericPageCollection,
+  },
+
+  // general purpose collections
   ImageCollection,
   DocumentsCollection,
   UserCollection,
@@ -94,12 +122,12 @@ const globalConfig: RoutableGlobalConfigs = [
    */
   {
     urlSlug: { de: 'datenschutz', en: 'privacy', fr: 'protection-donnees' },
-    reactComponent: PrivacyPage,
+    reactComponentSlug: 'privacy-page',
     payloadGlobal: DataPrivacyStatementGlobal,
   },
   {
     urlSlug: { de: 'impressum', en: 'imprint', fr: 'mentions-legales' },
-    reactComponent: ImprintPage,
+    reactComponentSlug: 'imprint-page',
     payloadGlobal: ImprintGlobal,
   },
 
@@ -153,7 +181,7 @@ export const payloadConfig: RoutableConfig = {
   globals: globalConfig,
   localization: {
     locales,
-    defaultLocale: 'de-CH',
+    defaultLocale: 'de',
     fallback: false,
   },
   graphQL: {
@@ -170,7 +198,29 @@ export const payloadConfig: RoutableConfig = {
   }),
   sharp,
   telemetry: false,
-  plugins: [formBuilderPlugin({})],
+  plugins: [
+    formBuilderPlugin({
+      fields: {
+        state: false, // we do not use states in CH
+      },
+    }),
+    s3Storage({
+      collections: {
+        images: true,
+        documents: true,
+      },
+      bucket: MINIO_BUCKET_NAME,
+      config: {
+        credentials: {
+          accessKeyId: MINIO_ACCESS_KEY_ID,
+          secretAccessKey: MINIO_SECRET_ACCESS_KEY,
+        },
+        region: 'us-east-1',
+        forcePathStyle: true,
+        endpoint: MINIO_HOST,
+      },
+    }),
+  ],
   i18n: {
     fallbackLanguage: 'en',
     supportedLanguages: { en, de, fr },
@@ -178,4 +228,4 @@ export const payloadConfig: RoutableConfig = {
 };
 
 // export the config for PayloadCMS
-export default buildSecureConfig(applyGlobalRoutes(payloadConfig));
+export default buildSecureConfig(dropRouteInfo(payloadConfig));

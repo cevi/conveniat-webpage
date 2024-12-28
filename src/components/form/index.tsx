@@ -1,0 +1,167 @@
+'use client';
+
+import React, { useState } from 'react';
+import type { Form as FormType } from '@payloadcms/plugin-form-builder/types';
+import { fields } from './fields';
+import { useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { buildInitialFormState } from './build-initial-form-state';
+import { RichText } from '@payloadcms/richtext-lexical/react';
+import { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
+
+export type Value = unknown;
+
+export interface Property {
+  [key: string]: Value;
+}
+
+export type FormBlockType = {
+  blockName?: string;
+  blockType?: 'formBlock';
+  form: FormType;
+};
+
+export interface Data {
+  [key: string]: Property | Property[] | Value;
+}
+
+export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties) => {
+  const {
+    form: formFromProperties,
+    form: {
+      id: formID,
+      title,
+      confirmationMessage,
+      confirmationType,
+      redirect,
+      submitButtonLabel,
+    } = {},
+  } = properties;
+
+  const formMethods = useForm({
+    defaultValues: buildInitialFormState(formFromProperties.fields),
+  });
+
+  const {
+    control,
+    formState: { errors },
+    handleSubmit,
+    register,
+  } = formMethods;
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasSubmitted, setHasSubmitted] = useState<boolean>();
+  const [error, setError] = useState<{ message: string; status?: string } | undefined>();
+  const router = useRouter();
+
+  const onSubmit = (data: Data) => {
+    let loadingTimerID: ReturnType<typeof setTimeout>;
+    const submitForm = async () => {
+      setError(undefined);
+
+      const dataToSend = Object.entries(data).map(([name, value]) => ({
+        field: name,
+        value,
+      }));
+      loadingTimerID = setTimeout(() => {
+        setIsLoading(true);
+      }, 1000);
+
+      try {
+        const request = await fetch(`/api/form-submissions`, {
+          body: JSON.stringify({
+            form: formID,
+            submissionData: dataToSend,
+          }),
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          method: 'POST',
+        });
+
+        const response = request.json();
+        clearTimeout(loadingTimerID);
+        if (request.status >= 400) {
+          setIsLoading(false);
+
+          setError({
+            // @ts-ignore
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
+            message: response.errors?.[0].message || 'Internal Server Error',
+            // @ts-ignore
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            status: response.status,
+          });
+
+          return;
+        }
+
+        setIsLoading(false);
+        setHasSubmitted(true);
+
+        if (confirmationType === 'redirect' && redirect) {
+          const { url } = redirect;
+          const redirectURL = url;
+          if (redirectURL) router.push(redirectURL);
+        }
+      } catch (error_) {
+        console.warn(error_);
+        setIsLoading(false);
+        setError({
+          message: 'Something went wrong.',
+        });
+      }
+    };
+
+    void submitForm();
+  };
+
+  return (
+    <div>
+      {!isLoading && hasSubmitted === true && confirmationType === 'message' && (
+        <RichText data={confirmationMessage as SerializedEditorState} />
+      )}
+      {isLoading && hasSubmitted === false && <p>Loading, please wait...</p>}
+      {error && <div>{`${error.status ?? 500}: ${error.message}`}</div>}
+      {hasSubmitted !== true && (
+        <form
+          className="mx-auto h-auto max-w-xl rounded-2xl border-2 border-gray-200 bg-white p-8"
+          id={formID}
+          onSubmit={(event?: React.BaseSyntheticEvent) => {
+            handleSubmit(onSubmit)(event).catch((error_: unknown) => console.warn(error_));
+          }}
+        >
+          <div>
+            <h2 className="mb-4 font-['Montserrat'] text-lg font-extrabold text-[#47564c]">
+              {title}
+            </h2>
+            {formFromProperties.fields.map((field, index) => {
+              const Field = fields[field.blockType as keyof typeof fields];
+              if (!Field) throw new Error(`Field type ${field.blockType} is not supported`);
+
+              return (
+                <React.Fragment key={'id' in field ? (field.id as string) : `field-${index}`}>
+                  <Field
+                    form={formFromProperties}
+                    {...field}
+                    {...formMethods}
+                    control={control}
+                    errors={errors}
+                    registerAction={register}
+                  />
+                </React.Fragment>
+              );
+            })}
+          </div>
+          <button
+            type="submit"
+            form={formID}
+            className="h-10 w-full rounded-lg bg-[#47564c] font-['Montserrat'] text-base font-bold text-[#e1e6e2] transition duration-300 hover:bg-[#3b4a3f]"
+          >
+            {submitButtonLabel}
+          </button>
+        </form>
+      )}
+    </div>
+  );
+};

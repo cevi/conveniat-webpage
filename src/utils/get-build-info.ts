@@ -15,7 +15,6 @@ interface BuildInfo {
  */
 export const getBuildInfo = async (): Promise<BuildInfo | undefined> => {
   try {
-    // @ts-ignore - ignore module not found error
     const { default: rawBuildInfo } = (await import('@/build')) as {
       default: BuildInfo;
     };
@@ -23,7 +22,7 @@ export const getBuildInfo = async (): Promise<BuildInfo | undefined> => {
     // parse the timestamp from the build info
     // TODO: make localized..
     const buildInfo = structuredClone(rawBuildInfo);
-    buildInfo.timestamp = new Date(buildInfo.timestamp).toLocaleDateString('de-CH', {
+    buildInfo.timestamp = new Date(buildInfo.timestamp).toLocaleDateString('de', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',

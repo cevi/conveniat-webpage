@@ -7,7 +7,7 @@ export const locales: Locale[] = [
       de: 'Englisch',
       fr: 'Anglais',
     },
-    code: 'en-GB',
+    code: 'en',
   },
   {
     label: {
@@ -15,7 +15,7 @@ export const locales: Locale[] = [
       de: 'Deutsch',
       fr: 'Allemand',
     },
-    code: 'de-CH',
+    code: 'de',
   },
   {
     label: {
@@ -23,6 +23,6 @@ export const locales: Locale[] = [
       de: 'Französisch',
       fr: 'Français',
     },
-    code: 'fr-CH',
+    code: 'fr',
   },
 ];
