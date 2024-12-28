@@ -26,7 +26,7 @@ export const ListBlogPosts: React.FC<LocalizedPage> = async ({ locale }) => {
   const blogs = blogsPaged.docs as Blog[];
 
   return (
-    <div className="mx-auto my-[32px] grid gap-y-6 min-[1200px]:grid-cols-2">
+    <div className="mx-auto my-8 grid gap-y-6 min-[1200px]:grid-cols-2">
       {blogs.map((blog) => {
         if (typeof blog.bannerImage === 'string') {
           throw new TypeError(
@@ -41,9 +41,9 @@ export const ListBlogPosts: React.FC<LocalizedPage> = async ({ locale }) => {
           <React.Fragment key={blog.urlSlug}>
             <Link href={`/blog/${blog.urlSlug}`} key={blog.id}>
               <NewsCard date={blog.updatedAt} headline={blog.blogH1}>
-                <ParagraphText>{blog.blogH1} </ParagraphText>
+                <ParagraphText> {blog.blogH1} </ParagraphText>
                 <Image
-                  className="rounded-[8px]"
+                  className="w-full rounded-lg object-cover"
                   src={source}
                   alt={altText}
                   width={1200}

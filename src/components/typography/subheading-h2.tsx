@@ -4,7 +4,7 @@ export const SubheadingH2: React.FC<{
   children?: React.ReactNode;
 }> = ({ children }) => {
   return (
-    <h2 className="max-[384px] mb-[8px] mt-[32px] text-balance font-heading text-[18px] font-extrabold leading-[24px] text-conveniat-green">
+    <h2 className="mb-2 mt-8 max-w-4xl text-balance font-heading text-lg font-extrabold text-conveniat-green">
       {children}
     </h2>
   );

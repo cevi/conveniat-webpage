@@ -5,9 +5,9 @@ import { NavComponent } from '@/components/menu/nav-component';
 
 export const HeaderComponent: React.FC = () => {
   return (
-    <header className="sticky left-0 top-0 h-[112px]">
+    <header className="fixed left-0 top-0 z-50 h-[112px] w-screen">
       <div className="mb-[32px] border-b border-b-gray-200 bg-green-100">
-        <div className="relative mx-auto h-[60px] w-full max-w-6xl text-conveniat-green">
+        <div className="relative mx-auto h-[60px] w-full max-w-5xl text-conveniat-green">
           <div className="flex items-center justify-between px-6">
             <Link href="/">
               <Image

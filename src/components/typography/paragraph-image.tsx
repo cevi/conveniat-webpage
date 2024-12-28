@@ -3,9 +3,9 @@ import React from 'react';
 
 export const ParagraphImage: React.FC = () => {
   return (
-    <div className="-mx-[8px] my-[32px] bg-white">
+    <div className="-mx-2 my-8 bg-white">
       <Image
-        className="rounded-[16px]"
+        className="rounded-base"
         src="/imgs/big-tent.png"
         alt="Konekta 2024"
         width={1200}

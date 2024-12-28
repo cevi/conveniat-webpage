@@ -1,7 +1,7 @@
 import config from '@payload-config';
 import { getPayload } from 'payload';
 
-import '../globals.css';
+import '../globals.scss';
 import React from 'react';
 import { HeadlineH1 } from '@/components/typography/headline-h1';
 import { TeaserText } from '@/components/typography/teaser-text';
@@ -30,7 +30,7 @@ const LandingPage: React.FC<{
   const { pageTitle, mainContent } = content;
 
   return (
-    <article className="mx-auto my-8 max-w-6xl px-8">
+    <article className="mx-auto my-8 max-w-5xl px-8">
       <HeadlineH1>{pageTitle}</HeadlineH1>
 
       <TeaserText>

@@ -66,7 +66,7 @@ export const BlogPostPage: React.FC<LocalizedCollectionPage> = async ({ slugs, l
 
   // list options for user to choose from
   return (
-    <article className="mx-auto my-8 max-w-6xl px-8">
+    <article className="mx-auto my-8 max-w-5xl px-8">
       <HeadlineH1>Choose the correct article</HeadlineH1>
       <ul>
         {articles.map((article) => (

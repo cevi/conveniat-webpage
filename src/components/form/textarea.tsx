@@ -28,7 +28,7 @@ export const TextArea: React.FC<
       </label>
       <textarea
         id={name}
-        className="h-30 border-transparent w-full rounded border bg-[#e1e6e2] px-4 font-['Inter'] text-sm font-normal text-[#595961] focus:outline-none focus:ring-2 focus:ring-[#47564c]"
+        className="h-30 border-transparent min-h-12 w-full rounded border bg-[#e1e6e2] px-4 font-['Inter'] text-sm font-normal text-[#595961] focus:outline-none focus:ring-2 focus:ring-[#47564c]"
         rows={4}
         {...registerAction(name, { required: requiredFromProperties })}
       />
