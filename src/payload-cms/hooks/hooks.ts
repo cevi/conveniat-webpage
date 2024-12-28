@@ -226,6 +226,12 @@ const hasDiffs = (
           ? (value2 as LocalizedBlockType)[locale]
           : (value2 as BlockType[]);
 
+        // the following check is necessary for the case where there is not
+        // previous version of the document, i.e. the document was just created
+        // in that case the types are wrong...
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        if (blocks1 === undefined || blocks2 === undefined) return true;
+
         for (const block1 of blocks1) {
           const blockType = block1['blockType'];
           const block2 = blocks2.find((b) => b['id'] === block1['id']);
