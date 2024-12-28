@@ -109,7 +109,7 @@ const config = [
       'no-control-regex': 'warn',
       'no-useless-escape': 'warn',
       '@typescript-eslint/no-deprecated': 'warn',
-      'unicorn/no-array-reduce': 'warn'
+      'unicorn/no-array-reduce': 'warn',
     },
   },
   {
