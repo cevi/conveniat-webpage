@@ -785,6 +785,20 @@ export interface LandingPage {
      */
     pageTitle: string;
     /**
+     * This is the teaser that will be displayed on the page.
+     */
+    pageTeaser: string;
+    callToAction: {
+      /**
+       * This is the call to action that will be displayed on the page.
+       */
+      linkText: string;
+      /**
+       * This is the link that the call to action will point to.
+       */
+      link: string;
+    };
+    /**
      * The main content of the page
      */
     mainContent: (
@@ -1023,6 +1037,13 @@ export interface LandingPageSelect<T extends boolean = true> {
     | T
     | {
         pageTitle?: T;
+        pageTeaser?: T;
+        callToAction?:
+          | T
+          | {
+              linkText?: T;
+              link?: T;
+            };
         mainContent?:
           | T
           | {

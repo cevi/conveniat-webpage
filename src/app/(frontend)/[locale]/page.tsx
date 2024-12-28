@@ -27,20 +27,14 @@ const LandingPage: React.FC<{
     slug: 'landingPage',
     locale: locale,
   });
-  const { pageTitle, mainContent } = content;
+  const { pageTitle, mainContent, pageTeaser, callToAction } = content;
+  const { link, linkText } = callToAction;
 
   return (
     <article className="mx-auto my-8 max-w-5xl px-8">
       <HeadlineH1>{pageTitle}</HeadlineH1>
-
-      <TeaserText>
-        Apparently we had reached a great height in the atmosphere, for the sky was a dead black,
-        and the stars had ceased to twinkle. By the same illusion which lifts the horizon of the sea
-        to the level of the spectato.
-      </TeaserText>
-
-      <CallToAction>Erfahre mehr &gt;</CallToAction>
-
+      <TeaserText>{pageTeaser}</TeaserText>
+      <CallToAction href={link}>{linkText}</CallToAction>
       <BuildingBlocks blocks={mainContent as ContentBlock[]} locale={locale} />
     </article>
   );
