@@ -1088,6 +1088,19 @@ export interface Header {
 export interface Footer {
   id: string;
   donationIban: string;
+  footerMenu?:
+    | {
+        menuSubTitle: string;
+        menuItem?:
+          | {
+              label: string;
+              link?: string | null;
+              id?: string | null;
+            }[]
+          | null;
+        id?: string | null;
+      }[]
+    | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -1255,6 +1268,19 @@ export interface HeaderSelect<T extends boolean = true> {
  */
 export interface FooterSelect<T extends boolean = true> {
   donationIban?: T;
+  footerMenu?:
+    | T
+    | {
+        menuSubTitle?: T;
+        menuItem?:
+          | T
+          | {
+              label?: T;
+              link?: T;
+              id?: T;
+            };
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

@@ -16,6 +16,61 @@ export const FooterGlobal: GlobalConfig = {
       defaultValue: 'CH23 8080 8002 2706 7598 8',
       required: true,
     },
+
+    {
+      name: 'footerMenu',
+      label: {
+        en: 'Footer Menu Block',
+        de: 'Fusszeilen-Menü-Block',
+        fr: 'Menu du pied de page',
+      },
+      // we localize the entire footer menu not individual items
+      localized: true,
+      type: 'array',
+      fields: [
+        {
+          name: 'menuSubTitle',
+          label: {
+            en: 'Menu Subtitle',
+            de: 'Menü-Subtitel',
+            fr: 'Sous-titre du menu',
+          },
+          type: 'text',
+          required: true,
+        },
+        {
+          name: 'menuItem',
+          label: {
+            en: 'Menu Item',
+            de: 'Menüpunkt',
+            fr: 'Élément de menu',
+          },
+          type: 'array',
+          fields: [
+            {
+              name: 'label',
+              label: {
+                en: 'Label',
+                de: 'Bezeichnung',
+                fr: 'Libellé',
+              },
+              type: 'text',
+              required: true,
+            },
+            {
+              name: 'link',
+              label: {
+                en: 'Link',
+                de: 'Link',
+                fr: 'Lien',
+              },
+              type: 'text',
+              required: false,
+            },
+          ],
+        },
+      ],
+    },
   ],
   admin: {
     group: AdminPanelDashboardGroups.GlobalSettings,
