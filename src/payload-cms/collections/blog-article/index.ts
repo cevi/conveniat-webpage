@@ -55,7 +55,7 @@ export const BlogArticleCollection: CollectionConfig = asLocalizedCollection({
               name: 'urlSlug',
               label: 'URL Slug',
               type: 'text',
-              localized: false,
+              localized: true,
               required: true,
             },
 
