@@ -25,9 +25,9 @@ const renderMenuItem = (menuItem: FooterMenuItem): React.JSX.Element => {
   );
 };
 
-const renderMenuSection = (menu: FooterMenuSection): React.JSX.Element => {
+const renderMenuSection: React.FC<FooterMenuSection> = (menu) => {
   return (
-    <div className="flex flex-col items-center justify-center" key={menu.id}>
+    <div className="flex flex-col items-center justify-center">
       <span className="font-heading text-[14px] font-extrabold text-green-600">
         {menu.menuSubTitle}
       </span>
@@ -45,7 +45,9 @@ export const FooterMenuArea: React.FC = async () => {
 
   return (
     <div className="flex h-[260px] w-full flex-col items-center justify-center space-y-8 bg-green-200">
-      {footerMenu.map((menuSection) => renderMenuSection(menuSection))}
+      {footerMenu.map((menuSection) => (
+        <React.Fragment key={menuSection.id}>{renderMenuSection(menuSection)}</React.Fragment>
+      ))}
     </div>
   );
 };
