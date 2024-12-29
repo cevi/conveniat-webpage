@@ -28,5 +28,7 @@ export const ImageCollection: CollectionConfig = {
       },
     },
   ],
-  upload: true,
+  upload: {
+    mimeTypes: ['image/*'],
+  },
 };
