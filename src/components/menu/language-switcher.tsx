@@ -22,25 +22,31 @@ export const LanguageSwitcher: React.FC = () => {
 
     const langRegex = /^\/(de|en|fr)\//;
     if (langRegex.test(pathname)) {
-      route.push(pathname.replace(langRegex, `/${lang}/`));
+      route.push(pathname.replace(langRegex, `/${lang}/`), {
+        scroll: false,
+      });
+      route.refresh();
     } else {
-      route.push(`/${lang}/${pathname.replace(/\/(de|en|fr)\/?$/, '')}`);
+      route.push(`/${lang}/${pathname.replace(/\/(de|en|fr)\/?$/, '')}`, {
+        scroll: false,
+      });
+      route.refresh();
     }
   };
 
   return (
     <>
-      <button className="group flex w-full items-center gap-2 rounded-lg px-3 py-1.5 data-[focus]:bg-white/10">
-        <Languages
-          className="cursor-pointer"
-          onClick={() => setShowLanguageOptions(!showLanguageOptions)}
-        />
+      <button
+        className="group flex w-full items-center gap-2 rounded-lg px-3 py-1.5 data-[focus]:bg-white/10"
+        onClick={() => setShowLanguageOptions(!showLanguageOptions)}
+      >
+        <Languages className="cursor-pointer" />
         Sprache
       </button>
 
       {/* Show language options when `showLanguageOptions` is true */}
       {showLanguageOptions && (
-        <div className="absolute right-[45px] top-[50px] flex flex-col gap-2 rounded bg-white p-3 shadow-lg">
+        <div className="flex flex-col gap-2 rounded-xl border-2 border-gray-200 bg-white p-3">
           <button
             className="px-4 py-2 hover:bg-gray-200"
             onClick={() => handleLanguageChange('de')}

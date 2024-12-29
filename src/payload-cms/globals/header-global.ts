@@ -5,6 +5,7 @@ const MainMenu: Field = {
   name: 'mainMenu',
   label: 'Main Menu',
   type: 'array',
+  localized: true,
   labels: {
     singular: 'Menu Item',
     plural: 'Menu Items',
