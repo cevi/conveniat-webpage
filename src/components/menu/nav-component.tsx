@@ -1,58 +1,48 @@
-'use client';
+import React from 'react';
+import { Popover, PopoverBackdrop, PopoverButton, PopoverPanel } from '@headlessui/react';
+import { CircleX, Menu as MenuIcon } from 'lucide-react';
+import { getPayload } from 'payload';
+import config from '@payload-config';
+import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
+import Link from 'next/link';
 
-import React, { useState } from 'react';
-import { Languages, Menu } from 'lucide-react';
-import { usePathname, useRouter } from 'next/navigation';
+export const NavComponent: React.FC = async () => {
+  const payload = await getPayload({ config });
+  const locale = await getLocaleFromCookies();
 
-export const NavComponent: React.FC = () => {
-  const route = useRouter();
-  const pathname = usePathname();
-
-  // State to toggle the visibility of the language buttons
-  const [showLanguageOptions, setShowLanguageOptions] = useState(false);
-
-  const handleLanguageChange = (lang: string): void => {
-    setShowLanguageOptions(false);
-
-    const langRegex = /^\/(de|en|fr)\//;
-    if (langRegex.test(pathname)) {
-      route.push(pathname.replace(langRegex, `/${lang}/`));
-    } else {
-      route.push(`/${lang}/${pathname.replace(/\/(de|en|fr)\/?$/, '')}`);
-    }
-  };
+  const { mainMenu } = await payload.findGlobal({ slug: 'header', locale });
+  if (mainMenu === undefined || mainMenu === null) return;
 
   return (
-    <>
-      <Languages
-        className="absolute right-[45px] top-[22px] cursor-pointer"
-        onClick={() => setShowLanguageOptions(!showLanguageOptions)}
-      />
-      <Menu className="absolute right-[21px] top-[22px]" />
+    <Popover>
+      <PopoverButton className="relative top-[18px] outline-none">
+        <MenuIcon aria-hidden="true" />
+      </PopoverButton>
 
-      {/* Show language options when `showLanguageOptions` is true */}
-      {showLanguageOptions && (
-        <div className="absolute right-[45px] top-[50px] flex flex-col gap-2 rounded bg-white p-3 shadow-lg">
-          <button
-            className="px-4 py-2 hover:bg-gray-200"
-            onClick={() => handleLanguageChange('de')}
-          >
-            Deutsch
-          </button>
-          <button
-            className="px-4 py-2 hover:bg-gray-200"
-            onClick={() => handleLanguageChange('en')}
-          >
-            English
-          </button>
-          <button
-            className="px-4 py-2 hover:bg-gray-200"
-            onClick={() => handleLanguageChange('fr')}
-          >
-            Français
-          </button>
+      <PopoverPanel
+        transition
+        className="fixed left-0 top-0 z-[120] h-dvh w-svw bg-[#a4aca7cc] p-8"
+      >
+        <div className="h-full w-full shrink rounded-xl bg-white p-4 text-sm/6 font-semibold text-gray-900 shadow-lg ring-1 ring-gray-900/5">
+          <div className="flex justify-end">
+            <PopoverBackdrop>
+              <CircleX />
+            </PopoverBackdrop>
+          </div>
+          <nav>
+            {mainMenu.map((item) => (
+              <PopoverBackdrop
+                key={item.id}
+                as={Link}
+                href={item.link}
+                className="hover:text-indigo-600 block p-2"
+              >
+                {item.label}
+              </PopoverBackdrop>
+            ))}
+          </nav>
         </div>
-      )}
-    </>
+      </PopoverPanel>
+    </Popover>
   );
 };

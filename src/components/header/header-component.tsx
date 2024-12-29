@@ -15,7 +15,7 @@ export const HeaderComponent: React.FC = () => {
                 alt="Conveniat 2027 Logo"
                 width={80}
                 height={80}
-                className="absolute left-[24px] top-[12px] z-[999]"
+                className="absolute left-[24px] top-[12px] z-[100]"
               />
             </Link>
             <span className="absolute left-0 top-[22px] flex w-full items-center justify-center text-[24px] font-extrabold leading-normal">

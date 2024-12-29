@@ -23,6 +23,7 @@
     "start": "cross-env NODE_OPTIONS=--no-deprecation next start"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.0",
     "@payloadcms/db-mongodb": "^3.12.0",
     "@payloadcms/next": "^3.12.0",
     "@payloadcms/plugin-form-builder": "^3.12.0",

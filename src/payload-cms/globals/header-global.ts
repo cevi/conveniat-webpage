@@ -1,10 +1,34 @@
-import { GlobalConfig } from 'payload';
+import { Field, GlobalConfig } from 'payload';
 import { AdminPanelDashboardGroups } from '@/payload-cms/admin-panel-dashboard-groups';
+
+const MainMenu: Field = {
+  name: 'mainMenu',
+  label: 'Main Menu',
+  type: 'array',
+  labels: {
+    singular: 'Menu Item',
+    plural: 'Menu Items',
+  },
+  fields: [
+    {
+      name: 'label',
+      label: 'Label',
+      type: 'text',
+      required: true,
+    },
+    {
+      name: 'link',
+      label: 'Link',
+      type: 'text',
+      required: true,
+    },
+  ],
+};
 
 export const HeaderGlobal: GlobalConfig = {
   slug: 'header',
   label: 'Header Navigation',
-  fields: [],
+  fields: [MainMenu],
   admin: {
     group: AdminPanelDashboardGroups.GlobalSettings,
     description: 'Settings for the header navigation',
