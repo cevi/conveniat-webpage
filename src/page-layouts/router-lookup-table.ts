@@ -6,12 +6,13 @@ import { PrivacyPage } from '@/page-layouts/privacy-page';
 import { ImprintPage } from '@/page-layouts/imprint-page';
 import { BlogPostPage } from '@/page-layouts/blog-posts';
 import { GenericPage } from '@/page-layouts/generic-page';
+import { Locale } from '@/middleware';
 
 type GlobalRouteLookupTable = {
   [slug: string]: {
-    locales: ('de' | 'en' | 'fr')[];
+    locales: Locale[];
     alternatives: {
-      [locale in 'de' | 'en' | 'fr']: string;
+      [locale in Locale]: string;
     };
     component: React.FC<LocalizedPage>;
   };
@@ -19,9 +20,9 @@ type GlobalRouteLookupTable = {
 
 type CollectionRouteLookupTable = {
   [slugPrefix: string]: {
-    locales: ('de' | 'en' | 'fr')[];
+    locales: Locale[];
     alternatives: {
-      [locale in 'de' | 'en' | 'fr']: string;
+      [locale in Locale]: string;
     };
     component: React.FC<LocalizedCollectionPage>;
     collectionSlug: CollectionSlug;
@@ -71,7 +72,7 @@ export const globalsRouteLookupTable: GlobalRouteLookupTable =
     if ('urlSlug' in global && 'reactComponentSlug' in global) {
       const { urlSlug, reactComponentSlug } = global;
       for (const [locale, slug] of Object.entries(urlSlug)) {
-        const locales = [locale as 'de' | 'en' | 'fr', ...(routes[slug]?.locales ?? [])];
+        const locales = [locale as Locale, ...(routes[slug]?.locales ?? [])];
 
         if (!(reactComponentSlug in reactComponentSlugLookup)) {
           throw new Error(
@@ -100,7 +101,7 @@ export const collectionRouteLookupTable: CollectionRouteLookupTable =
     if ('urlPrefix' in collection && 'reactComponentSlug' in collection) {
       const { urlPrefix, reactComponentSlug } = collection;
       for (const [locale, prefix] of Object.entries(urlPrefix)) {
-        const locales = [locale as 'de' | 'en' | 'fr', ...(routes[prefix]?.locales ?? [])];
+        const locales = [locale as Locale, ...(routes[prefix]?.locales ?? [])];
 
         if (!(reactComponentSlug in reactComponentSlugLookup)) {
           throw new Error(

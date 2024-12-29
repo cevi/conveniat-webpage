@@ -34,6 +34,7 @@ import { onPayloadInit } from '@/payload-cms/on-payload-init';
 import { DocumentsCollection } from '@/payload-cms/collections/documents-collection';
 import { dropRouteInfo } from '@/payload-cms/global-routes';
 import { GenericPage as GenericPageCollection } from '@/payload-cms/collections/generic-page';
+import { Locale } from '@/middleware';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -54,7 +55,7 @@ if (DATABASE_URI === undefined) throw new Error('DATABASE_URI is not defined');
 
 export type RoutableCollectionConfig = {
   urlPrefix: {
-    [locale in 'de' | 'en' | 'fr']: string;
+    [locale in Locale]: string;
   };
   /** Defines a unique identifier for the React component that should be used to render the page.
    * This identifier is used to lookup the component in the `reactComponentSlugLookup` table. */
@@ -65,7 +66,7 @@ export type RoutableCollectionConfig = {
 
 export type RoutableGlobalConfig = {
   urlSlug: {
-    [locale in 'de' | 'en' | 'fr']: string;
+    [locale in Locale]: string;
   };
   /** Defines a unique identifier for the React component that should be used to render the page.
    * This identifier is used to lookup the component in the `reactComponentSlugLookup` table. */

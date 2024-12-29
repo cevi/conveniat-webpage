@@ -9,13 +9,14 @@ import { CallToAction } from '@/components/buttons/call-to-action';
 import { BuildingBlocks, ContentBlock } from '@/converters/building-blocks';
 import { LandingPage as LandingPagePayloadType } from '@/payload-types';
 import type { Metadata } from 'next';
+import { Locale } from '@/middleware';
 
 /**
  * This function is responsible for fetching the landing page from the CMS.
  *
  * @param locale - The locale of the landing page
  */
-const findLandingPage = async (locale: 'de' | 'en' | 'fr'): Promise<LandingPagePayloadType> => {
+const findLandingPage = async (locale: Locale): Promise<LandingPagePayloadType> => {
   const payload = await getPayload({ config });
   return await payload.findGlobal({
     slug: 'landingPage',
@@ -32,7 +33,7 @@ const findLandingPage = async (locale: 'de' | 'en' | 'fr'): Promise<LandingPageP
  */
 const LandingPage: React.FC<{
   params: Promise<{
-    locale: 'de' | 'en' | 'fr';
+    locale: Locale;
   }>;
 }> = async ({ params }) => {
   const { locale } = await params;
@@ -55,7 +56,7 @@ export const generateMetadata = async ({
   params,
 }: {
   params: Promise<{
-    locale: 'de' | 'en' | 'fr';
+    locale: Locale;
   }>;
 }): Promise<Metadata> => {
   const { locale } = await params;

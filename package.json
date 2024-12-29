@@ -46,6 +46,7 @@
     "react-hook-form": "^7.54.2",
     "react-i18next": "^15.2.0",
     "react-select": "^5.9.0",
+    "server-only": "^0.0.1",
     "sharp": "0.32.6",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7"

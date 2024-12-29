@@ -4,6 +4,7 @@ import {
   collectionRouteLookupTable,
   globalsRouteLookupTable,
 } from '@/page-layouts/router-lookup-table';
+import { Locale } from '@/middleware';
 
 /**
  *
@@ -19,7 +20,7 @@ import {
 const CMSPage: React.FC<{
   params: Promise<{
     slugs: string[];
-    locale: 'de' | 'en' | 'fr';
+    locale: Locale;
   }>;
 }> =
   // eslint-disable-next-line complexity

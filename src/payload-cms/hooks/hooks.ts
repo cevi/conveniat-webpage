@@ -98,7 +98,7 @@ export const useIsPublished = <
   },
 >(): {
   isLoading: boolean;
-  isPublished: Record<'en' | 'de' | 'fr', boolean> | undefined;
+  isPublished: Record<Locale, boolean> | undefined;
   error: Error | undefined;
 } => {
   const [error, setError] = useState<Error | undefined>();

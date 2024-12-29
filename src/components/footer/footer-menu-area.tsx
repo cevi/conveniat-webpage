@@ -3,6 +3,7 @@ import { getPayload } from 'payload';
 import config from '@payload-config';
 import Link from 'next/link';
 import { Footer } from '@/payload-types';
+import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 
 type FooterMenuSection = NonNullable<Footer['footerMenu']>[number];
 type FooterMenuItem = NonNullable<FooterMenuSection['menuItem']>[number];
@@ -37,8 +38,9 @@ const renderMenuSection = (menu: FooterMenuSection): React.JSX.Element => {
 
 export const FooterMenuArea: React.FC = async () => {
   const payload = await getPayload({ config });
+  const locale = await getLocaleFromCookies();
 
-  const { footerMenu } = await payload.findGlobal({ slug: 'footer' });
+  const { footerMenu } = await payload.findGlobal({ slug: 'footer', locale });
   if (footerMenu === undefined || footerMenu === null) return;
 
   return (

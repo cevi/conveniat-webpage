@@ -1,5 +1,7 @@
+import { Locale } from '@/middleware';
+
 export type LocalizedPage = {
-  locale: 'de' | 'en' | 'fr';
+  locale: Locale;
 };
 
 export type LocalizedCollectionPage = LocalizedPage & {
