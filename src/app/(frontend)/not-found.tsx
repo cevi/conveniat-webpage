@@ -8,7 +8,7 @@ import Link from 'next/link';
  */
 const NotFoundPage: React.FC = () => {
   return (
-    <article className="mx-auto my-8 max-w-6xl px-8">
+    <article className="mx-auto my-8 max-w-5xl px-8">
       <HeadlineH1>404 - Page Not Found</HeadlineH1>
       <TeaserText>
         The page you are looking for does not exist. Please check the URL or go back to the{' '}
