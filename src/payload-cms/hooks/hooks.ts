@@ -8,6 +8,7 @@ import {
   fetchGlobalDocument,
   NotYetSavedException,
 } from '@/payload-cms/components/multi-lang-publishing/utils';
+import { Locale as LocaleType } from '@/middleware';
 
 type LocalizedStatus = Record<Config['locale'], boolean> | undefined;
 type LocalizedPublishingStatus = Record<Config['locale'], { published: boolean } | undefined>;
@@ -98,7 +99,7 @@ export const useIsPublished = <
   },
 >(): {
   isLoading: boolean;
-  isPublished: Record<Locale, boolean> | undefined;
+  isPublished: Record<LocaleType, boolean> | undefined;
   error: Error | undefined;
 } => {
   const [error, setError] = useState<Error | undefined>();
