@@ -10,6 +10,7 @@ import { AdminPanelDashboardGroups } from '@/payload-cms/admin-panel-dashboard-g
 import { MetaTitle } from '@/payload-cms/shared-fields/meta-title';
 import { MetaDescription } from '@/payload-cms/shared-fields/meta-description';
 import { MetaKeywords } from '@/payload-cms/shared-fields/meta-keywords';
+import { slugValidation } from '@/payload-cms/collections/blog-article/validation';
 
 export const BlogArticleCollection: CollectionConfig = asLocalizedCollection({
   // Unique, URL-friendly string that will act as an identifier for this Collection.
@@ -57,6 +58,7 @@ export const BlogArticleCollection: CollectionConfig = asLocalizedCollection({
               type: 'text',
               localized: true,
               required: true,
+              validate: slugValidation,
             },
 
             MetaTitle,
