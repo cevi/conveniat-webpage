@@ -17,7 +17,10 @@ export const BlogPostPage: React.FC<LocalizedCollectionPage> = async ({ slugs, l
     locale: locale,
     fallbackLocale: false,
     where: {
-      and: [{ urlSlug: { equals: slug } }, { _localized_status: { equals: { published: true } } }],
+      and: [
+        { 'seo.urlSlug': { equals: slug } },
+        { _localized_status: { equals: { published: true } } },
+      ],
     },
   });
 
@@ -46,7 +49,7 @@ export const BlogPostPage: React.FC<LocalizedCollectionPage> = async ({ slugs, l
         locale: l,
         where: {
           and: [
-            { urlSlug: { equals: slug } },
+            { 'seo.urlSlug': { equals: slug } },
             { _localized_status: { equals: { published: true } } },
           ],
         },
@@ -72,10 +75,10 @@ export const BlogPostPage: React.FC<LocalizedCollectionPage> = async ({ slugs, l
         {articles.map((article) => (
           <li key={article.id}>
             <Link
-              href={`/${article._locale.split('-')[0]}/blog/${article.urlSlug}`}
+              href={`/${article._locale.split('-')[0]}/blog/${article.seo.urlSlug}`}
               className="font-bold text-red-600"
             >
-              - {article.blogH1} in {article._locale}
+              - {article.content.blogH1} in {article._locale}
             </Link>
           </li>
         ))}

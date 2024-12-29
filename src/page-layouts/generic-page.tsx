@@ -14,7 +14,10 @@ export const GenericPage: React.FC<LocalizedCollectionPage> = async ({ slugs, lo
     locale: locale,
     fallbackLocale: false,
     where: {
-      and: [{ urlSlug: { equals: slug } }, { _localized_status: { equals: { published: true } } }],
+      and: [
+        { 'seo.urlSlug': { equals: slug } },
+        { _localized_status: { equals: { published: true } } },
+      ],
     },
   });
 
@@ -43,7 +46,7 @@ export const GenericPage: React.FC<LocalizedCollectionPage> = async ({ slugs, lo
         locale: l,
         where: {
           and: [
-            { urlSlug: { equals: slug } },
+            { 'seo.urlSlug': { equals: slug } },
             { _localized_status: { equals: { published: true } } },
           ],
         },

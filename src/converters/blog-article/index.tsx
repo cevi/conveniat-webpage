@@ -6,14 +6,14 @@ import React from 'react';
 import Image from 'next/image';
 
 export const BlogArticle: React.FC<{ article: Blog }> = ({ article }) => {
-  if (typeof article.bannerImage === 'string') {
+  if (typeof article.content.bannerImage === 'string') {
     throw new TypeError(
       'Expected bannerImage to be an object, you may got the ID instead of the object',
     );
   }
 
-  const source = article.bannerImage.url ?? '/images/placeholder.png';
-  const altText = article.bannerImage.alt;
+  const source = article.content.bannerImage.url ?? '/images/placeholder.png';
+  const altText = article.content.bannerImage.alt;
 
   return (
     <>
@@ -22,8 +22,8 @@ export const BlogArticle: React.FC<{ article: Blog }> = ({ article }) => {
           <Image objectFit="contain" layout="fill" src={source} alt={altText} fill={true} />
         </div>
 
-        <HeadlineH1>{article.blogH1}</HeadlineH1>
-        <LexicalPageContent pageContent={article.pageContent as SerializedEditorState} />
+        <HeadlineH1>{article.content.blogH1}</HeadlineH1>
+        <LexicalPageContent pageContent={article.content.pageContent as SerializedEditorState} />
       </article>
     </>
   );

@@ -140,34 +140,47 @@ export interface Blog {
   id: string;
   _localized_status: LocalizedPublishingStatus;
   _locale: string;
-  /**
-   * This is the title that will be displayed on the page.
-   */
-  blogH1: string;
-  bannerImage: string | Image;
-  /**
-   * This is the text that will be displayed as a teaser on the blog overview page.
-   */
-  blogShortTitle: string;
-  pageContent: {
-    root: {
-      type: string;
-      children: {
+  content: {
+    /**
+     * This is the title that will be displayed on the page.
+     */
+    blogH1: string;
+    bannerImage: string | Image;
+    /**
+     * This is the text that will be displayed as a teaser on the blog overview page.
+     */
+    blogShortTitle: string;
+    pageContent: {
+      root: {
         type: string;
+        children: {
+          type: string;
+          version: number;
+          [k: string]: unknown;
+        }[];
+        direction: ('ltr' | 'rtl') | null;
+        format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+        indent: number;
         version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
+      };
+      [k: string]: unknown;
     };
-    [k: string]: unknown;
   };
-  /**
-   * This is the URL that will be used to access the article. It should be unique and URL-friendly.
-   */
-  urlSlug: string;
+  seo: {
+    urlSlug: string;
+    /**
+     * This is the title that will be displayed in the browser tab.
+     */
+    metaTitle?: string | null;
+    /**
+     * This is the description that will be displayed in search engine results.
+     */
+    metaDescription?: string | null;
+    /**
+     * These are the keywords that will be used to improve the visibility of the page in search engines.
+     */
+    keywords?: string | null;
+  };
   updatedAt: string;
   createdAt: string;
   _status?: ('draft' | 'published') | null;
@@ -209,10 +222,54 @@ export interface GenericPage {
   id: string;
   _localized_status: LocalizedPublishingStatus1;
   _locale: string;
-  /**
-   * This is the URL that will be used to access the article. It should be unique and URL-friendly.
-   */
-  urlSlug: string;
+  content: {
+    /**
+     * The main content of the page
+     */
+    mainContent: (
+      | {
+          pageContent: {
+            root: {
+              type: string;
+              children: {
+                type: string;
+                version: number;
+                [k: string]: unknown;
+              }[];
+              direction: ('ltr' | 'rtl') | null;
+              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+              indent: number;
+              version: number;
+            };
+            [k: string]: unknown;
+          };
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'article';
+        }
+      | {
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'blogPostsOverview';
+        }
+      | FormBlock
+    )[];
+  };
+  seo: {
+    urlSlug: string;
+    /**
+     * This is the title that will be displayed in the browser tab.
+     */
+    metaTitle?: string | null;
+    /**
+     * This is the description that will be displayed in search engine results.
+     */
+    metaDescription?: string | null;
+    /**
+     * These are the keywords that will be used to improve the visibility of the page in search engines.
+     */
+    keywords?: string | null;
+  };
   updatedAt: string;
   createdAt: string;
   _status?: ('draft' | 'published') | null;
@@ -226,46 +283,13 @@ export interface LocalizedPublishingStatus1 {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "documents".
+ * via the `definition` "FormBlock".
  */
-export interface Document {
-  id: string;
-  updatedAt: string;
-  createdAt: string;
-  url?: string | null;
-  thumbnailURL?: string | null;
-  filename?: string | null;
-  mimeType?: string | null;
-  filesize?: number | null;
-  width?: number | null;
-  height?: number | null;
-  focalX?: number | null;
-  focalY?: number | null;
-}
-/**
- * Represents a Hitobito user. These information get automatically synced whenever the user logs in.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users".
- */
-export interface User {
-  id: string;
-  /**
-   * The ID of the user in the CeviDB.
-   */
-  cevi_db_uuid: number;
-  email: string;
-  /**
-   * The full name of the user, as it will be displayed publicly.
-   */
-  fullName: string;
-  /**
-   * The Ceviname of the user.
-   */
-  nickname?: string | null;
-  groups: GroupsOfTheUser;
-  updatedAt: string;
-  createdAt: string;
+export interface FormBlock {
+  form: string | Form;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'formBlock';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -433,6 +457,49 @@ export interface Form {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "documents".
+ */
+export interface Document {
+  id: string;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
+ * Represents a Hitobito user. These information get automatically synced whenever the user logs in.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "users".
+ */
+export interface User {
+  id: string;
+  /**
+   * The ID of the user in the CeviDB.
+   */
+  cevi_db_uuid: number;
+  email: string;
+  /**
+   * The full name of the user, as it will be displayed publicly.
+   */
+  fullName: string;
+  /**
+   * The Ceviname of the user.
+   */
+  nickname?: string | null;
+  groups: GroupsOfTheUser;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "form-submissions".
  */
 export interface FormSubmission {
@@ -532,11 +599,22 @@ export interface PayloadMigration {
 export interface BlogSelect<T extends boolean = true> {
   _localized_status?: T;
   _locale?: T;
-  blogH1?: T;
-  bannerImage?: T;
-  blogShortTitle?: T;
-  pageContent?: T;
-  urlSlug?: T;
+  content?:
+    | T
+    | {
+        blogH1?: T;
+        bannerImage?: T;
+        blogShortTitle?: T;
+        pageContent?: T;
+      };
+  seo?:
+    | T
+    | {
+        urlSlug?: T;
+        metaTitle?: T;
+        metaDescription?: T;
+        keywords?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
@@ -548,10 +626,48 @@ export interface BlogSelect<T extends boolean = true> {
 export interface GenericPageSelect<T extends boolean = true> {
   _localized_status?: T;
   _locale?: T;
-  urlSlug?: T;
+  content?:
+    | T
+    | {
+        mainContent?:
+          | T
+          | {
+              article?:
+                | T
+                | {
+                    pageContent?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              blogPostsOverview?:
+                | T
+                | {
+                    id?: T;
+                    blockName?: T;
+                  };
+              formBlock?: T | FormBlockSelect<T>;
+            };
+      };
+  seo?:
+    | T
+    | {
+        urlSlug?: T;
+        metaTitle?: T;
+        metaDescription?: T;
+        keywords?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "FormBlock_select".
+ */
+export interface FormBlockSelect<T extends boolean = true> {
+  form?: T;
+  id?: T;
+  blockName?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -857,16 +973,6 @@ export interface LocalizedPublishingStatus2 {
   [k: string]: unknown;
 }
 /**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "FormBlock".
- */
-export interface FormBlock {
-  form: string | Form;
-  id?: string | null;
-  blockName?: string | null;
-  blockType: 'formBlock';
-}
-/**
  * Settings for the data privacy statement
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1087,15 +1193,6 @@ export interface LandingPageSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "FormBlock_select".
- */
-export interface FormBlockSelect<T extends boolean = true> {
-  form?: T;
-  id?: T;
-  blockName?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
