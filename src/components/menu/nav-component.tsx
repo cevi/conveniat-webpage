@@ -17,7 +17,7 @@ export const NavComponent: React.FC = async () => {
   return (
     <Popover>
       <PopoverButton className="relative top-[18px] outline-none">
-        <MenuIcon aria-hidden="true" />
+        <MenuIcon aria-hidden="true" aria-label="Main Menu" tabIndex={1} />
       </PopoverButton>
 
       <PopoverPanel
