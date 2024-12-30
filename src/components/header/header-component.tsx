@@ -18,7 +18,10 @@ export const HeaderComponent: React.FC = () => {
                 className="absolute left-[24px] top-[12px] z-[100]"
               />
             </Link>
-            <span className="absolute left-0 top-[16px] flex w-full items-center justify-center text-[24px] font-extrabold leading-normal">
+            <span className="absolute left-0 top-[16px] hidden w-full items-center justify-center text-[24px] font-extrabold leading-normal opacity-0 sm:flex sm:opacity-100">
+              Conveniat 2027
+            </span>
+            <span className="absolute left-0 top-[16px] flex w-full items-center justify-center text-[24px] font-extrabold leading-normal sm:hidden">
               Conveniat
             </span>
             <NavComponent />
