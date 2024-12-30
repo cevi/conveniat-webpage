@@ -64,10 +64,22 @@ export const BlogPostPage: React.FC<LocalizedCollectionPage> = async ({ slugs, l
     notFound();
   }
 
+  const languageChooseText: Record<Locale, string> = {
+    en: 'Choose the correct article',
+    de: 'Wähle den korrekten Artikel',
+    fr: "Choisissez l'article correct",
+  };
+
+  const languagePreposition: Record<Locale, string> = {
+    en: 'in',
+    de: 'in',
+    fr: 'en',
+  };
+
   // list options for user to choose from
   return (
     <article className="mx-auto my-8 max-w-5xl px-8">
-      <HeadlineH1>Choose the correct article</HeadlineH1>
+      <HeadlineH1>{languageChooseText[locale]}</HeadlineH1>
       <ul>
         {articles.map((article) => (
           <li key={article.id}>
@@ -75,7 +87,7 @@ export const BlogPostPage: React.FC<LocalizedCollectionPage> = async ({ slugs, l
               href={`/${article._locale.split('-')[0]}/blog/${article.seo.urlSlug}`}
               className="font-bold text-red-600"
             >
-              - {article.content.blogH1} in {article._locale}
+              - {article.content.blogH1} {languagePreposition[locale]} {article._locale}
             </Link>
           </li>
         ))}

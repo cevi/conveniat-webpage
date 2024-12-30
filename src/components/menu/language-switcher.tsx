@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 import { Languages } from 'lucide-react';
+import { Locale } from '@/middleware';
 
 /**
  * Simple Drop Down Menu that allows to switch between languages.
@@ -10,7 +11,7 @@ import { Languages } from 'lucide-react';
  * This is a client component.
  *
  */
-export const LanguageSwitcher: React.FC = () => {
+export const LanguageSwitcher: React.FC<{ locale: Locale }> = ({ locale }) => {
   // State to toggle the visibility of the language buttons
   const [showLanguageOptions, setShowLanguageOptions] = useState(false);
 
@@ -34,6 +35,8 @@ export const LanguageSwitcher: React.FC = () => {
     }
   };
 
+  const language: Record<Locale, string> = { de: 'Sprache', en: 'Language', fr: 'Langue' };
+
   return (
     <>
       <button
@@ -41,7 +44,7 @@ export const LanguageSwitcher: React.FC = () => {
         onClick={() => setShowLanguageOptions(!showLanguageOptions)}
       >
         <Languages className="cursor-pointer" />
-        Sprache
+        {language[locale]}
       </button>
 
       {/* Show language options when `showLanguageOptions` is true */}

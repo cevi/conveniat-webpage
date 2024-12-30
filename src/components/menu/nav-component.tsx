@@ -42,7 +42,7 @@ export const NavComponent: React.FC = async () => {
 
           <hr className="my-6" />
 
-          <LanguageSwitcher />
+          <LanguageSwitcher locale={locale} />
         </div>
       </PopoverPanel>
     </Popover>

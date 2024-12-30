@@ -8,6 +8,8 @@ import { useForm } from 'react-hook-form';
 import { buildInitialFormState } from './build-initial-form-state';
 import { RichText } from '@payloadcms/richtext-lexical/react';
 import { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
+import { i18nConfig, Locale } from '@/middleware';
+import { useCurrentLocale } from 'next-i18n-router/client';
 
 export type Value = unknown;
 
@@ -38,6 +40,7 @@ export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties)
     } = {},
   } = properties;
 
+  const locale = useCurrentLocale(i18nConfig);
   const formMethods = useForm({
     defaultValues: buildInitialFormState(formFromProperties.fields),
   });
@@ -116,6 +119,18 @@ export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties)
     void submitForm();
   };
 
+  const resetFormText: Record<Locale, string> = {
+    en: 'Reset Form',
+    de: 'Formular zurücksetzen',
+    fr: 'Réinitialiser le formulaire',
+  };
+
+  const pleaseWaitText: Record<Locale, string> = {
+    en: 'Loading, please wait...',
+    de: 'Laden, bitte warten...',
+    fr: 'Chargement, veuillez patient',
+  };
+
   return (
     <div>
       {error && <div>{`${error.status ?? 500}: ${error.message}`}</div>}
@@ -137,10 +152,11 @@ export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties)
               type="button"
               onClick={() => {
                 setHasSubmitted(false);
+                formMethods.reset();
               }}
               className="mt-4 h-10 w-full rounded-lg bg-[#47564c] font-['Montserrat'] text-base font-bold text-[#e1e6e2] transition duration-300 hover:bg-[#3b4a3f]"
             >
-              Reset Form
+              {resetFormText[locale as Locale]}
             </button>
           </div>
         )}
@@ -150,7 +166,7 @@ export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties)
             className="absolute bg-white text-center"
             style={{ height: 'calc(100% - 4rem)', width: 'calc(100% - 4rem)' }}
           >
-            <p>Loading, please wait...</p>
+            <p>{pleaseWaitText[locale as Locale]}</p>
           </div>
         )}
 
