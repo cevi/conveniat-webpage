@@ -22,9 +22,9 @@ export const NavComponent: React.FC = async () => {
 
       <PopoverPanel
         transition
-        className="fixed left-0 top-0 z-[120] h-dvh w-svw bg-[#a4aca7cc] p-8"
+        className="fixed left-0 top-0 z-[120] h-dvh w-svw bg-[#F8FAFF80] p-8"
       >
-        <div className="h-full w-full shrink rounded-2xl border-2 border-gray-200 bg-white p-4 text-sm/6 font-semibold text-gray-900 shadow-lg ring-1 ring-gray-900/5">
+        <div className="mx-auto h-full w-full max-w-2xl shrink rounded-2xl border-2 border-gray-200 bg-white p-4 text-sm/6 font-semibold text-gray-900 shadow-lg ring-1 ring-gray-900/5">
           <div className="flex justify-end">
             <PopoverBackdrop>
               <CircleX />

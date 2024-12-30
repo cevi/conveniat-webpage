@@ -15,7 +15,7 @@ export const ImprintPage: React.FC<LocalizedPage> = async (properties) => {
   });
 
   return (
-    <article className="mx-auto my-8 max-w-5xl px-8">
+    <article className="mx-auto my-8 max-w-2xl px-8">
       <HeadlineH1>{content.pageTitle}</HeadlineH1>
       <LexicalPageContent pageContent={content.mainContent as SerializedEditorState} />
     </article>

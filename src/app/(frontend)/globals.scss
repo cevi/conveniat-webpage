@@ -5,16 +5,8 @@
 @tailwind utilities;
 /***************************************************/
 
-/* Adjust Size for Wide Desktop */
-@media (min-width: 1440px) {
-  // tailwind xl <= x
-  html {
-    font-size: 24px;
-  }
-}
-
 /* Adjust Size for Desktop */
-@media (min-width: 1024px) and (max-width: 1439px) {
+@media (min-width: 1024px) {
   // tailwind lg <= x < xl
   html {
     font-size: 20px;

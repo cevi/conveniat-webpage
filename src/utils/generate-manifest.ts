@@ -31,8 +31,8 @@ export const generateManifest = async (): Promise<MetadataRoute.Manifest> => {
     launch_handler: {
       client_mode: 'auto',
     },
-    background_color: '#FFF',
-    theme_color: '#E1E6E2',
+    background_color: '#f8fafc',
+    theme_color: '#FFF',
     icons: manifestIconDefinitions,
     dir: 'ltr',
     lang: 'de', // TODO: how to support multiple languages?

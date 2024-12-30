@@ -5,11 +5,11 @@ import React from 'react';
 import './globals.scss';
 import { FooterComponent } from '@/components/footer/footer-component';
 import { HeaderComponent } from '@/components/header/header-component';
-import { CeviBackgroundLogo } from '@/components/svg-logos/cevi-background-logo';
 import { ErrorBoundary } from 'react-error-boundary';
 import ErrorPage from '@/app/(frontend)/error';
 import { Inter, Montserrat } from 'next/font/google';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
+import { CeviLogo } from '@/components/svg-logos/cevi-logo';
 
 type LayoutProperties = {
   children: ReactNode;
@@ -27,11 +27,11 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children }) => {
 
   return (
     <html className={`${montserrat.className} ${inter.className}`} lang={locale}>
-      <body className="flex h-screen flex-col">
+      <body className="flex h-screen flex-col bg-[#f8fafc]">
         <HeaderComponent />
 
-        <div className="fixed top-0 z-[-999] h-screen w-screen p-[56px]">
-          <CeviBackgroundLogo className="mx-auto h-full w-full max-w-[384px]" />
+        <div className="absolute top-0 z-[-999] h-screen w-full p-[56px]">
+          <CeviLogo className="mx-auto h-full max-h-[60vh] w-full max-w-[384px] opacity-10 blur-md" />
         </div>
 
         <ErrorBoundary fallback={<ErrorPage />}>

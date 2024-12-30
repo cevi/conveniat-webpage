@@ -51,7 +51,7 @@ const ErrorPage: React.FC = () => {
   };
 
   return (
-    <article className="mx-auto my-8 max-w-5xl px-8">
+    <article className="mx-auto my-8 max-w-2xl px-8">
       <HeadlineH1>{error[locale as Locale]}</HeadlineH1>
       <TeaserText>{errorDescription[locale as Locale]}</TeaserText>
     </article>

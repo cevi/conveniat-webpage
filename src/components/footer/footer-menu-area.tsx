@@ -42,9 +42,10 @@ export const FooterMenuArea: React.FC = async () => {
 
   const { footerMenu } = await payload.findGlobal({ slug: 'footer', locale });
   if (footerMenu === undefined || footerMenu === null) return;
+  if (footerMenu.length === 0) return <div className="block h-32" />;
 
   return (
-    <div className="flex h-[260px] w-full flex-col items-center justify-center space-y-8 bg-green-200">
+    <div className="flex h-[260px] w-full flex-col items-center justify-center space-y-8 border-t-2 border-gray-200 bg-white">
       {footerMenu.map((menuSection) => (
         <React.Fragment key={menuSection.id}>{renderMenuSection(menuSection)}</React.Fragment>
       ))}
