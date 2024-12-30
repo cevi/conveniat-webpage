@@ -22,8 +22,8 @@ export const generateManifest = async (): Promise<MetadataRoute.Manifest> => {
     name: appName,
     short_name: appShortName,
     description: appDescription,
-    id: 'https://test.conveniat27.cevi.tools', // TODO: remove hard-coded domain
-    start_url: 'https://test.conveniat27.cevi.tools/', // TODO: remove hard-coded domain
+    id: 'https://conveniat27.ch', // TODO: remove hard-coded domain
+    start_url: './?app-mode=true', // TODO: remove hard-coded domain
     categories: ['kids', 'social', 'news'],
     //  it follows a pre-defined fallback chain: standalone → minimal-ui
     display: 'standalone',
@@ -37,7 +37,7 @@ export const generateManifest = async (): Promise<MetadataRoute.Manifest> => {
     dir: 'ltr',
     lang: 'de', // TODO: how to support multiple languages?
     orientation: 'portrait-primary',
-    scope: 'https://test.conveniat27.cevi.tools/', // TODO: remove hard-coded domain
+    scope: 'https://conveniat27.ch/', // TODO: remove hard-coded domain
     prefer_related_applications: false,
   };
 };
