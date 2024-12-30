@@ -3,6 +3,8 @@ import { getPayload } from 'payload';
 import config from '@payload-config';
 import { notFound } from 'next/navigation';
 import { LocalizedCollectionPage } from '@/page-layouts/localized-page';
+import { i18nConfig, Locale } from '@/middleware';
+import { GenericPageConverter } from '@/converters/generic-page';
 
 export const GenericPage: React.FC<LocalizedCollectionPage> = async ({ slugs, locale }) => {
   const payload = await getPayload({ config });
@@ -14,7 +16,10 @@ export const GenericPage: React.FC<LocalizedCollectionPage> = async ({ slugs, lo
     locale: locale,
     fallbackLocale: false,
     where: {
-      and: [{ urlSlug: { equals: slug } }, { _localized_status: { equals: { published: true } } }],
+      and: [
+        { 'seo.urlSlug': { equals: slug } },
+        { _localized_status: { equals: { published: true } } },
+      ],
     },
   });
 
@@ -25,15 +30,11 @@ export const GenericPage: React.FC<LocalizedCollectionPage> = async ({ slugs, lo
 
   // article found in current locale --> render
   if (articleInPrimaryLanguage !== undefined) {
-    return <span>Render Generic Page in {locale}</span>;
+    return <GenericPageConverter page={articleInPrimaryLanguage} locale={locale} />;
   }
 
   // fallback logic to find article in other locales
-  const locales: ('de' | 'fr' | 'en')[] = ['de', 'fr', 'en'].filter((l) => l !== locale) as (
-    | 'de'
-    | 'fr'
-    | 'en'
-  )[];
+  const locales: Locale[] = i18nConfig.locales.filter((l) => l !== locale) as Locale[];
 
   const articles = await Promise.all(
     locales.map((l) =>
@@ -43,7 +44,7 @@ export const GenericPage: React.FC<LocalizedCollectionPage> = async ({ slugs, lo
         locale: l,
         where: {
           and: [
-            { urlSlug: { equals: slug } },
+            { 'seo.urlSlug': { equals: slug } },
             { _localized_status: { equals: { published: true } } },
           ],
         },

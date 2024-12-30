@@ -2,11 +2,15 @@ import { i18nRouter } from 'next-i18n-router';
 import { NextRequest, NextResponse } from 'next/server';
 import { Config } from 'next-i18n-router/dist/types';
 
+const locales = ['en', 'de', 'fr'] as const;
+
 export const i18nConfig: Config = {
-  locales: ['en', 'de', 'fr'],
+  locales: locales,
   defaultLocale: 'de',
   serverSetCookie: 'always',
 };
+
+export type Locale = (typeof locales)[number];
 
 export const middleware = (request: NextRequest): NextResponse => {
   return i18nRouter(request, i18nConfig);

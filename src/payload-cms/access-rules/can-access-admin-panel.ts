@@ -1,6 +1,9 @@
 import { Access, PayloadRequest } from 'payload';
 
-const GROUPS_WITH_API_ACCESS = new Set([541]);
+const GROUPS_WITH_API_ACCESS_RAW = process.env['GROUPS_WITH_API_ACCESS'] ?? '';
+const GROUPS_WITH_API_ACCESS = new Set(
+  GROUPS_WITH_API_ACCESS_RAW.split(',').map((id) => Number.parseInt(id, 10)),
+);
 
 /**
  * Access control function that checks if the user is an editor.

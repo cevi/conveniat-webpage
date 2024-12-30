@@ -3,6 +3,9 @@ import { asLocalizedGlobal } from '@/payload-cms/utils/localized-global';
 import { AdminPanelDashboardGroups } from '@/payload-cms/admin-panel-dashboard-groups';
 import { localizedDefaultValue } from '@/payload-cms/utils/localized-default-value';
 import { MainContentField } from '@/payload-cms/shared-fields/main-content-field';
+import { MetaTitle } from '@/payload-cms/shared-fields/meta-title';
+import { MetaDescription } from '@/payload-cms/shared-fields/meta-description';
+import { MetaKeywords } from '@/payload-cms/shared-fields/meta-keywords';
 
 const PageTitleField: Field = {
   name: 'pageTitle',
@@ -24,6 +27,58 @@ const PageTitleField: Field = {
   },
 };
 
+const PageTeaserField: Field = {
+  name: 'pageTeaser',
+  label: 'Page Title Teaser',
+  type: 'textarea',
+  localized: true,
+  required: true,
+  admin: {
+    description: {
+      en: 'This is the teaser that will be displayed on the page.',
+      de: 'Dies ist der Teaser, der auf der Seite angezeigt wird.',
+      fr: "C'est le teaser qui sera affiché sur la page.",
+    },
+  },
+};
+
+const CallToActionField: Field = {
+  name: 'linkText',
+  label: 'Call to Action',
+  type: 'text',
+  localized: true,
+  required: true,
+  admin: {
+    description: {
+      en: 'This is the call to action that will be displayed on the page.',
+      de: 'Dies ist der Handlungsaufforderung, die auf der Seite angezeigt wird.',
+      fr: "C'est l'appel à l'action qui sera affiché sur la page.",
+    },
+  },
+};
+
+const CallToActionLinkField: Field = {
+  name: 'link',
+  label: 'Call to Action Link',
+  type: 'text',
+  localized: true,
+  required: true,
+  admin: {
+    description: {
+      en: 'This is the link that the call to action will point to.',
+      de: 'Dies ist der Link, auf den die Handlungsaufforderung zeigt.',
+      fr: "C'est le lien vers lequel l'appel à l'action pointera.",
+    },
+  },
+};
+
+const CallToActionGroupField: Field = {
+  name: 'callToAction',
+  label: 'Call to Action Group',
+  type: 'group',
+  fields: [CallToActionField, CallToActionLinkField],
+};
+
 const LandingPageContentTab: Tab = {
   name: 'content',
   label: {
@@ -31,7 +86,7 @@ const LandingPageContentTab: Tab = {
     de: 'Seiteninhalt',
     fr: 'Contenu',
   },
-  fields: [PageTitleField, MainContentField],
+  fields: [PageTitleField, PageTeaserField, CallToActionGroupField, MainContentField],
 };
 
 const LandingPageSeoTab: Tab = {
@@ -51,6 +106,10 @@ const LandingPageSeoTab: Tab = {
       admin: { readOnly: true },
       defaultValue: '/',
     },
+
+    MetaTitle,
+    MetaDescription,
+    MetaKeywords,
   ],
 };
 

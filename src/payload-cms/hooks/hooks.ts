@@ -8,6 +8,7 @@ import {
   fetchGlobalDocument,
   NotYetSavedException,
 } from '@/payload-cms/components/multi-lang-publishing/utils';
+import { Locale as LocaleType } from '@/middleware';
 
 type LocalizedStatus = Record<Config['locale'], boolean> | undefined;
 type LocalizedPublishingStatus = Record<Config['locale'], { published: boolean } | undefined>;
@@ -98,7 +99,7 @@ export const useIsPublished = <
   },
 >(): {
   isLoading: boolean;
-  isPublished: Record<'en' | 'de' | 'fr', boolean> | undefined;
+  isPublished: Record<LocaleType, boolean> | undefined;
   error: Error | undefined;
 } => {
   const [error, setError] = useState<Error | undefined>();
@@ -225,6 +226,12 @@ const hasDiffs = (
         const blocks2 = field.localized
           ? (value2 as LocalizedBlockType)[locale]
           : (value2 as BlockType[]);
+
+        // the following check is necessary for the case where there is not
+        // previous version of the document, i.e. the document was just created
+        // in that case the types are wrong...
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        if (blocks1 === undefined || blocks2 === undefined) return true;
 
         for (const block1 of blocks1) {
           const blockType = block1['blockType'];

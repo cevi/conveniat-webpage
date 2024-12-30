@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { BlogArticle } from '@/converters/blog-article';
 import { LocalizedCollectionPage } from '@/page-layouts/localized-page';
+import { i18nConfig, Locale } from '@/middleware';
 
 export const BlogPostPage: React.FC<LocalizedCollectionPage> = async ({ slugs, locale }) => {
   const payload = await getPayload({ config });
@@ -17,7 +18,10 @@ export const BlogPostPage: React.FC<LocalizedCollectionPage> = async ({ slugs, l
     locale: locale,
     fallbackLocale: false,
     where: {
-      and: [{ urlSlug: { equals: slug } }, { _localized_status: { equals: { published: true } } }],
+      and: [
+        { 'seo.urlSlug': { equals: slug } },
+        { _localized_status: { equals: { published: true } } },
+      ],
     },
   });
 
@@ -28,15 +32,11 @@ export const BlogPostPage: React.FC<LocalizedCollectionPage> = async ({ slugs, l
 
   // article found in current locale --> render
   if (articleInPrimaryLanguage !== undefined) {
-    return <BlogArticle article={articleInPrimaryLanguage} />;
+    return <BlogArticle article={articleInPrimaryLanguage} locale={locale} />;
   }
 
   // fallback logic to find article in other locales
-  const locales: ('de' | 'fr' | 'en')[] = ['de', 'fr', 'en'].filter((l) => l !== locale) as (
-    | 'de'
-    | 'fr'
-    | 'en'
-  )[];
+  const locales: Locale[] = i18nConfig.locales.filter((l) => l !== locale) as Locale[];
 
   const articles = await Promise.all(
     locales.map((l) =>
@@ -46,7 +46,7 @@ export const BlogPostPage: React.FC<LocalizedCollectionPage> = async ({ slugs, l
         locale: l,
         where: {
           and: [
-            { urlSlug: { equals: slug } },
+            { 'seo.urlSlug': { equals: slug } },
             { _localized_status: { equals: { published: true } } },
           ],
         },
@@ -64,18 +64,30 @@ export const BlogPostPage: React.FC<LocalizedCollectionPage> = async ({ slugs, l
     notFound();
   }
 
+  const languageChooseText: Record<Locale, string> = {
+    en: 'Choose the correct article',
+    de: 'Wähle den korrekten Artikel',
+    fr: "Choisissez l'article correct",
+  };
+
+  const languagePreposition: Record<Locale, string> = {
+    en: 'in',
+    de: 'in',
+    fr: 'en',
+  };
+
   // list options for user to choose from
   return (
     <article className="mx-auto my-8 max-w-5xl px-8">
-      <HeadlineH1>Choose the correct article</HeadlineH1>
+      <HeadlineH1>{languageChooseText[locale]}</HeadlineH1>
       <ul>
         {articles.map((article) => (
           <li key={article.id}>
             <Link
-              href={`/${article._locale.split('-')[0]}/blog/${article.urlSlug}`}
+              href={`/${article._locale.split('-')[0]}/blog/${article.seo.urlSlug}`}
               className="font-bold text-red-600"
             >
-              - {article.blogH1} in {article._locale}
+              - {article.content.blogH1} {languagePreposition[locale]} {article._locale}
             </Link>
           </li>
         ))}

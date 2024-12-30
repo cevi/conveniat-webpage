@@ -28,20 +28,20 @@ export const ListBlogPosts: React.FC<LocalizedPage> = async ({ locale }) => {
   return (
     <div className="mx-auto my-8 grid gap-y-6 min-[1200px]:grid-cols-2">
       {blogs.map((blog) => {
-        if (typeof blog.bannerImage === 'string') {
+        if (typeof blog.content.bannerImage === 'string') {
           throw new TypeError(
             'Expected bannerImage to be an object, you may got the ID instead of the object',
           );
         }
 
-        const source = blog.bannerImage.url ?? '/images/placeholder.png';
-        const altText = blog.bannerImage.alt;
+        const source = blog.content.bannerImage.url ?? '/images/placeholder.png';
+        const altText = blog.content.bannerImage.alt;
 
         return (
-          <React.Fragment key={blog.urlSlug}>
-            <Link href={`/blog/${blog.urlSlug}`} key={blog.id}>
-              <NewsCard date={blog.updatedAt} headline={blog.blogH1}>
-                <ParagraphText> {blog.blogH1} </ParagraphText>
+          <React.Fragment key={blog.seo.urlSlug}>
+            <Link href={`/blog/${blog.seo.urlSlug}`} key={blog.id}>
+              <NewsCard date={blog.updatedAt} headline={blog.content.blogH1}>
+                <ParagraphText> {blog.content.blogH1} </ParagraphText>
                 <Image
                   className="w-full rounded-lg object-cover"
                   src={source}

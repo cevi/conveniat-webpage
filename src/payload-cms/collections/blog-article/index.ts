@@ -1,13 +1,16 @@
 import { CollectionConfig } from 'payload';
 import { asLocalizedCollection } from '@/payload-cms/utils/localized-collection';
-import { richTextParagraphsField } from '@/payload-cms/shared-fields/rich-text-paragraphs-field';
 import {
   bannerImage,
   blogArticleTitleField,
   blogTeaserText,
 } from '@/payload-cms/collections/blog-article/fields';
-import { slugValidation } from '@/payload-cms/collections/blog-article/validation';
 import { AdminPanelDashboardGroups } from '@/payload-cms/admin-panel-dashboard-groups';
+import { MetaTitle } from '@/payload-cms/shared-fields/meta-title';
+import { MetaDescription } from '@/payload-cms/shared-fields/meta-description';
+import { MetaKeywords } from '@/payload-cms/shared-fields/meta-keywords';
+import { slugValidation } from '@/payload-cms/collections/blog-article/validation';
+import { MainContentField } from '@/payload-cms/shared-fields/main-content-field';
 
 export const BlogArticleCollection: CollectionConfig = asLocalizedCollection({
   // Unique, URL-friendly string that will act as an identifier for this Collection.
@@ -21,7 +24,6 @@ export const BlogArticleCollection: CollectionConfig = asLocalizedCollection({
       fr: 'Représente un article de blog qui peut être publié sur le site Web.',
     },
     defaultColumns: ['id', 'blogShortTitle', 'releaseDate'],
-    useAsTitle: 'blogH1',
   },
 
   labels: {
@@ -30,41 +32,41 @@ export const BlogArticleCollection: CollectionConfig = asLocalizedCollection({
   },
 
   fields: [
-    blogArticleTitleField,
-    bannerImage,
-    blogTeaserText,
-    richTextParagraphsField,
-
     {
-      type: 'collapsible',
-      label: 'SEO Settings',
-      fields: [
+      type: 'tabs',
+      tabs: [
         {
-          name: 'urlSlug',
-          label: 'URL Slug',
-          type: 'text',
-          required: true,
-          localized: true,
-          unique: true,
-          validate: slugValidation,
-          admin: {
-            position: 'sidebar',
-            description: {
-              en: 'This is the URL that will be used to access the article. It should be unique and URL-friendly.',
-              de: 'Dies ist die URL, die zum Zugriff auf den Artikel verwendet wird. Es sollte eindeutig und URL-freundlich sein.',
-              fr: "C'est l'URL qui sera utilisée pour accéder à l'article. Il doit être unique et convivial pour les URL.",
-            },
+          name: 'content',
+          label: {
+            en: 'Content',
+            de: 'Seiteninhalt',
+            fr: 'Contenu',
           },
+          fields: [blogArticleTitleField, bannerImage, blogTeaserText, MainContentField],
+        },
+        {
+          name: 'seo',
+          label: {
+            en: 'SEO',
+            de: 'SEO',
+            fr: 'SEO',
+          },
+          fields: [
+            {
+              name: 'urlSlug',
+              label: 'URL Slug',
+              type: 'text',
+              localized: true,
+              required: true,
+              validate: slugValidation,
+            },
+
+            MetaTitle,
+            MetaDescription,
+            MetaKeywords,
+          ],
         },
       ],
-      admin: {
-        position: 'sidebar',
-        description: {
-          en: 'These settings are used to improve the visibility of the article in search engines.',
-          de: 'Diese Einstellungen dienen dazu, die Sichtbarkeit des Artikels in Suchmaschinen zu verbessern.',
-          fr: "Ces paramètres sont utilisés pour améliorer la visibilité de l'article dans les moteurs de recherche.",
-        },
-      },
     },
   ],
 });
