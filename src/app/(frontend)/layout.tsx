@@ -9,6 +9,7 @@ import { CeviBackgroundLogo } from '@/components/svg-logos/cevi-background-logo'
 import { ErrorBoundary } from 'react-error-boundary';
 import ErrorPage from '@/app/(frontend)/error';
 import { Inter, Montserrat } from 'next/font/google';
+import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 
 type LayoutProperties = {
   children: ReactNode;
@@ -21,9 +22,11 @@ const inter = Inter({
   subsets: ['latin'],
 });
 
-const RootLayout: React.FC<LayoutProperties> = ({ children }) => {
+const RootLayout: React.FC<LayoutProperties> = async ({ children }) => {
+  const locale = await getLocaleFromCookies();
+
   return (
-    <html className={`${montserrat.className} ${inter.className}`}>
+    <html className={`${montserrat.className} ${inter.className}`} lang={locale}>
       <body className="flex h-screen flex-col">
         <HeaderComponent />
 
