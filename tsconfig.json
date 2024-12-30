@@ -38,7 +38,7 @@
       "@/*": ["./src/*"],
       "@payload-config": ["./src/payload.config.ts"]
     },
-    "target": "ES2017"
+    "target": "es2021"
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
   "exclude": ["node_modules", ".next", "src/app/(payload)/layout.tsx"]
