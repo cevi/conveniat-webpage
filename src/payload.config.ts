@@ -7,6 +7,7 @@ import {
   ItalicFeature,
   lexicalEditor,
   LexicalEditorProps,
+  LinkFeature,
   ParagraphFeature,
 } from '@payloadcms/richtext-lexical';
 import path from 'node:path';
@@ -90,6 +91,12 @@ const defaultEditorFeatures: LexicalEditorProps['features'] = () => {
     ParagraphFeature(),
     HeadingFeature({
       enabledHeadingSizes: ['h2', 'h3'],
+    }),
+    LinkFeature({
+      fields: ({ defaultFields }) => [...defaultFields],
+      // we only allow links to pages or blog posts
+      // TODO: we should list the title or slug instead of the ID in the overview
+      enabledCollections: ['generic-page', 'blog'],
     }),
     FixedToolbarFeature(),
   ];

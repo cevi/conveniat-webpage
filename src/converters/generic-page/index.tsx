@@ -8,8 +8,6 @@ export const GenericPageConverter: React.FC<{ page: GenericPage; locale: Locale 
   page,
   locale,
 }) => {
-  console.log(page);
-
   return (
     <>
       <article className="mx-auto my-8 max-w-5xl px-8">

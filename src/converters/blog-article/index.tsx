@@ -5,15 +5,15 @@ import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical
 import React from 'react';
 import Image from 'next/image';
 
-export const BlogArticle: React.FC<{ article: Blog }> = ({ article }) => {
-  if (typeof article.content.bannerImage === 'string') {
+export const BlogArticle: React.FC<{ article: Blog }> = ({ page }) => {
+  if (typeof page.content.bannerImage === 'string') {
     throw new TypeError(
       'Expected bannerImage to be an object, you may got the ID instead of the object',
     );
   }
 
-  const source = article.content.bannerImage.url ?? '/images/placeholder.png';
-  const altText = article.content.bannerImage.alt;
+  const source = page.content.bannerImage.url ?? '/images/placeholder.png';
+  const altText = page.content.bannerImage.alt;
 
   return (
     <>
@@ -22,8 +22,8 @@ export const BlogArticle: React.FC<{ article: Blog }> = ({ article }) => {
           <Image objectFit="contain" layout="fill" src={source} alt={altText} fill={true} />
         </div>
 
-        <HeadlineH1>{article.content.blogH1}</HeadlineH1>
-        <LexicalPageContent pageContent={article.content.pageContent as SerializedEditorState} />
+        <HeadlineH1>{page.content.blogH1}</HeadlineH1>
+        <LexicalPageContent pageContent={page.content.pageContent as SerializedEditorState} />
       </article>
     </>
   );
