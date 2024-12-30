@@ -48,3 +48,8 @@ next-env.d.ts
 tsconfig.tsbuildinfo
 
 src/build.ts
+
+
+# Serwist
+public/sw*
+public/swe-worker*

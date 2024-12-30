@@ -19,6 +19,6 @@ export const middleware = (request: NextRequest): NextResponse => {
 // applies this middleware only to files in the app directory
 export const config = {
   matcher: [
-    '/((?!_next|favicon.svg|manifest.webmanifest|sitemap.xml|robots.txt|api|admin|imgs|favicon-96x96.png|favicon.ico|apple-touch-icon.png|web-app-manifest-192x192.png|web-app-manifest-512x512.png).*)',
+    '/((?!_next|favicon.svg|sw.js|swe-worker-*.js|manifest.webmanifest|sitemap.xml|robots.txt|api|admin|imgs|favicon-96x96.png|favicon.ico|apple-touch-icon.png|web-app-manifest-192x192.png|web-app-manifest-512x512.png).*)',
   ],
 };
