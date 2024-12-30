@@ -8,14 +8,22 @@ import { HeaderComponent } from '@/components/header/header-component';
 import { CeviBackgroundLogo } from '@/components/svg-logos/cevi-background-logo';
 import { ErrorBoundary } from 'react-error-boundary';
 import ErrorPage from '@/app/(frontend)/error';
+import { Inter, Montserrat } from 'next/font/google';
 
 type LayoutProperties = {
   children: ReactNode;
 };
 
+const montserrat = Montserrat({
+  subsets: ['latin'],
+});
+const inter = Inter({
+  subsets: ['latin'],
+});
+
 const RootLayout: React.FC<LayoutProperties> = ({ children }) => {
   return (
-    <html>
+    <html className={`${montserrat.className} ${inter.className}`}>
       <body className="flex h-screen flex-col">
         <HeaderComponent />
 
