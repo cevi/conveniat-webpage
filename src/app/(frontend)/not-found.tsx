@@ -39,9 +39,9 @@ const NotFoundPage: React.FC = async () => {
     ),
     fr: (
       <>
-        La page que vous recherchez n'existe pas. Veuillez vérifier l'URL ou revenir à la{' '}
+        La page que vous recherchez n&#39;existe pas. Veuillez vérifier l&#39;URL ou revenir à la{' '}
         <Link href="/" className="font-bold text-red-600">
-          page d'accueil
+          page d&#39;accueil
         </Link>
         .
       </>

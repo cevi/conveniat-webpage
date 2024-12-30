@@ -9,7 +9,7 @@ import { useCurrentLocale } from 'next-i18n-router/client';
 /**
  * This file is responsible for converters a general runtime error page.
  */
-const ErrorPage: React.FC = async () => {
+const ErrorPage: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig);
 
   const error: Record<Locale, string> = {
@@ -41,9 +41,9 @@ const ErrorPage: React.FC = async () => {
 
     fr: (
       <>
-        La page n'a pas pu être chargée. Veuillez vérifier l'URL ou revenir à la{' '}
+        La page n&#39;a pas pu être chargée. Veuillez vérifier l&#39;URL ou revenir à la{' '}
         <Link href="/" className="font-bold text-red-600">
-          page d'accueil
+          page d&#39;accueil
         </Link>
         .
       </>
