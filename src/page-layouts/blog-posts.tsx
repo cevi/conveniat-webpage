@@ -32,7 +32,7 @@ export const BlogPostPage: React.FC<LocalizedCollectionPage> = async ({ slugs, l
 
   // article found in current locale --> render
   if (articleInPrimaryLanguage !== undefined) {
-    return <BlogArticle article={articleInPrimaryLanguage} />;
+    return <BlogArticle article={articleInPrimaryLanguage} locale={locale} />;
   }
 
   // fallback logic to find article in other locales

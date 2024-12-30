@@ -1,6 +1,5 @@
 import { CollectionConfig } from 'payload';
 import { asLocalizedCollection } from '@/payload-cms/utils/localized-collection';
-import { richTextParagraphsField } from '@/payload-cms/shared-fields/rich-text-paragraphs-field';
 import {
   bannerImage,
   blogArticleTitleField,
@@ -11,6 +10,7 @@ import { MetaTitle } from '@/payload-cms/shared-fields/meta-title';
 import { MetaDescription } from '@/payload-cms/shared-fields/meta-description';
 import { MetaKeywords } from '@/payload-cms/shared-fields/meta-keywords';
 import { slugValidation } from '@/payload-cms/collections/blog-article/validation';
+import { MainContentField } from '@/payload-cms/shared-fields/main-content-field';
 
 export const BlogArticleCollection: CollectionConfig = asLocalizedCollection({
   // Unique, URL-friendly string that will act as an identifier for this Collection.
@@ -42,7 +42,7 @@ export const BlogArticleCollection: CollectionConfig = asLocalizedCollection({
             de: 'Seiteninhalt',
             fr: 'Contenu',
           },
-          fields: [blogArticleTitleField, bannerImage, blogTeaserText, richTextParagraphsField],
+          fields: [blogArticleTitleField, bannerImage, blogTeaserText, MainContentField],
         },
         {
           name: 'seo',

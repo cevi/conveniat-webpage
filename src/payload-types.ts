@@ -150,79 +150,6 @@ export interface Blog {
      * This is the text that will be displayed as a teaser on the blog overview page.
      */
     blogShortTitle: string;
-    pageContent: {
-      root: {
-        type: string;
-        children: {
-          type: string;
-          version: number;
-          [k: string]: unknown;
-        }[];
-        direction: ('ltr' | 'rtl') | null;
-        format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-        indent: number;
-        version: number;
-      };
-      [k: string]: unknown;
-    };
-  };
-  seo: {
-    urlSlug: string;
-    /**
-     * This is the title that will be displayed in the browser tab.
-     */
-    metaTitle?: string | null;
-    /**
-     * This is the description that will be displayed in search engine results.
-     */
-    metaDescription?: string | null;
-    /**
-     * These are the keywords that will be used to improve the visibility of the page in search engines.
-     */
-    keywords?: string | null;
-  };
-  updatedAt: string;
-  createdAt: string;
-  _status?: ('draft' | 'published') | null;
-}
-/**
- * Holds the publishing status of the document in each locale
- */
-export interface LocalizedPublishingStatus {
-  published: IsPublishedInCorrespondingLocale;
-  [k: string]: unknown;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "images".
- */
-export interface Image {
-  id: string;
-  /**
-   * Describe the image for screen readers and search engines
-   */
-  alt: string;
-  updatedAt: string;
-  createdAt: string;
-  url?: string | null;
-  thumbnailURL?: string | null;
-  filename?: string | null;
-  mimeType?: string | null;
-  filesize?: number | null;
-  width?: number | null;
-  height?: number | null;
-  focalX?: number | null;
-  focalY?: number | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "generic-page".
- */
-export interface GenericPage {
-  id: string;
-  _localized_status: LocalizedPublishingStatus1;
-  _locale: string;
-  content: {
     /**
      * The main content of the page
      */
@@ -277,9 +204,31 @@ export interface GenericPage {
 /**
  * Holds the publishing status of the document in each locale
  */
-export interface LocalizedPublishingStatus1 {
-  published: IsPublishedInCorrespondingLocale1;
+export interface LocalizedPublishingStatus {
+  published: IsPublishedInCorrespondingLocale;
   [k: string]: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "images".
+ */
+export interface Image {
+  id: string;
+  /**
+   * Describe the image for screen readers and search engines
+   */
+  alt: string;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -457,6 +406,73 @@ export interface Form {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "generic-page".
+ */
+export interface GenericPage {
+  id: string;
+  _localized_status: LocalizedPublishingStatus1;
+  _locale: string;
+  content: {
+    /**
+     * The main content of the page
+     */
+    mainContent: (
+      | {
+          pageContent: {
+            root: {
+              type: string;
+              children: {
+                type: string;
+                version: number;
+                [k: string]: unknown;
+              }[];
+              direction: ('ltr' | 'rtl') | null;
+              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+              indent: number;
+              version: number;
+            };
+            [k: string]: unknown;
+          };
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'article';
+        }
+      | {
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'blogPostsOverview';
+        }
+      | FormBlock
+    )[];
+  };
+  seo: {
+    urlSlug: string;
+    /**
+     * This is the title that will be displayed in the browser tab.
+     */
+    metaTitle?: string | null;
+    /**
+     * This is the description that will be displayed in search engine results.
+     */
+    metaDescription?: string | null;
+    /**
+     * These are the keywords that will be used to improve the visibility of the page in search engines.
+     */
+    keywords?: string | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * Holds the publishing status of the document in each locale
+ */
+export interface LocalizedPublishingStatus1 {
+  published: IsPublishedInCorrespondingLocale1;
+  [k: string]: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "documents".
  */
 export interface Document {
@@ -605,7 +621,24 @@ export interface BlogSelect<T extends boolean = true> {
         blogH1?: T;
         bannerImage?: T;
         blogShortTitle?: T;
-        pageContent?: T;
+        mainContent?:
+          | T
+          | {
+              article?:
+                | T
+                | {
+                    pageContent?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              blogPostsOverview?:
+                | T
+                | {
+                    id?: T;
+                    blockName?: T;
+                  };
+              formBlock?: T | FormBlockSelect<T>;
+            };
       };
   seo?:
     | T
@@ -618,6 +651,15 @@ export interface BlogSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "FormBlock_select".
+ */
+export interface FormBlockSelect<T extends boolean = true> {
+  form?: T;
+  id?: T;
+  blockName?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -659,15 +701,6 @@ export interface GenericPageSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "FormBlock_select".
- */
-export interface FormBlockSelect<T extends boolean = true> {
-  form?: T;
-  id?: T;
-  blockName?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
