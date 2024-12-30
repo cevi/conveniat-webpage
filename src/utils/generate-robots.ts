@@ -8,6 +8,6 @@ export const generateRobots = (): MetadataRoute.Robots => {
       disallow: '/admin/',
     },
     // TODO: remove hard-coded domain
-    sitemap: 'https://test.conveniat27.cevi.tools/sitemap.xml',
+    sitemap: 'https://conveniat27.ch/sitemap.xml',
   };
 };
