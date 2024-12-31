@@ -1,6 +1,7 @@
 import { Field } from 'payload';
 import { richtextArticleBlock } from '@/payload-cms/shared-blocks/richtext-article-block';
 import { FormBlock } from '../shared-blocks/form-block';
+import { PhotoCarouselBlock } from '@/payload-cms/shared-blocks/photo-carousel-block';
 
 export const MainContentField: Field = {
   name: 'mainContent',
@@ -21,5 +22,6 @@ export const MainContentField: Field = {
       fields: [],
     },
     FormBlock,
+    PhotoCarouselBlock,
   ],
 };

@@ -6,12 +6,14 @@ import { LocalizedPage } from '@/page-layouts/localized-page';
 import { ShowForm } from '@/components/content-blocks/show-form';
 import { FormBlockType } from '@/components/form';
 import { ErrorBoundary } from 'react-error-boundary';
+import { PhotoCarousel, PhotoCarouselBlock } from '@/components/gallery';
 
-export type ContentBlockTypeNames = 'blogPostsOverview' | 'article' | 'formBlock';
+export type ContentBlockTypeNames = 'blogPostsOverview' | 'article' | 'formBlock' | 'photoCarousel';
 export type ContentBlock = {
   pageContent?: SerializedEditorState;
   id?: string | null;
   blockName?: string | null;
+  images?: PhotoCarouselBlock;
   blockType: ContentBlockTypeNames;
 };
 
@@ -73,6 +75,22 @@ export const BuildingBlocks: React.FC<LocalizedPage & { blocks: ContentBlock[] }
               }
             >
               <ShowForm {...(block as FormBlockType)} />
+            </ErrorBoundary>
+          </section>
+        );
+      }
+
+      case 'photoCarousel': {
+        return (
+          <section key={block.id} className="mt-16">
+            <ErrorBoundary
+              fallback={
+                <ErrorFallback
+                  error={new Error('Failed to load photo carousel. Reload the page to try again.')}
+                />
+              }
+            >
+              <PhotoCarousel images={block.images ?? []} />
             </ErrorBoundary>
           </section>
         );

@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useEffect } from 'react';
 import useEmblaCarousel, { type UseEmblaCarouselType } from 'embla-carousel-react';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 
@@ -30,15 +31,30 @@ type CarouselContextProperties = {
 
 const CarouselContext = React.createContext<CarouselContextProperties | undefined>(undefined);
 
-function useCarousel() {
+const useCarousel = (): CarouselContextProperties & { current: number; size: number } => {
   const context = React.useContext(CarouselContext);
 
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useCarousel must be used within a <Carousel />');
   }
+  const { api } = context;
 
-  return context;
-}
+  const [current, setCurrent] = React.useState(0);
+  const [size, setSize] = React.useState(0);
+
+  useEffect(() => {
+    if (!api) return;
+    setCurrent(api.selectedScrollSnap() + 1);
+
+    api.on('select', () => {
+      setCurrent(api.selectedScrollSnap() + 1);
+    });
+
+    setSize(api.slideNodes().length);
+  }, [api]);
+
+  return { ...context, current, size };
+};
 
 const Carousel = React.forwardRef<
   HTMLDivElement,
@@ -111,30 +127,32 @@ const Carousel = React.forwardRef<
     }, [api, onSelect]);
 
     return (
-      <CarouselContext.Provider
-        value={{
-          carouselRef: carouselReference,
-          api: api,
-          opts,
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-          orientation: orientation ?? (opts?.axis === 'y' ? 'vertical' : 'horizontal'),
-          scrollPrev: scrollPrevious,
-          scrollNext,
-          canScrollPrev: canScrollPrevious,
-          canScrollNext,
-        }}
-      >
-        <div
-          ref={reference}
-          onKeyDownCapture={handleKeyDown}
-          className={cn('relative', className)}
-          role="region"
-          aria-roledescription="carousel"
-          {...properties}
+      <>
+        <CarouselContext.Provider
+          value={{
+            carouselRef: carouselReference,
+            api: api,
+            opts,
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+            orientation: orientation ?? (opts?.axis === 'y' ? 'vertical' : 'horizontal'),
+            scrollPrev: scrollPrevious,
+            scrollNext,
+            canScrollPrev: canScrollPrevious,
+            canScrollNext,
+          }}
         >
-          {children}
-        </div>
-      </CarouselContext.Provider>
+          <div
+            ref={reference}
+            onKeyDownCapture={handleKeyDown}
+            className={cn('relative', className)}
+            role="region"
+            aria-roledescription="carousel"
+            {...properties}
+          >
+            {children}
+          </div>
+        </CarouselContext.Provider>
+      </>
     );
   },
 );
@@ -161,44 +179,39 @@ const CarouselContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HT
 );
 CarouselContent.displayName = 'CarouselContent';
 
-const CarouselItem = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...properties }, reference) => {
-    const { orientation, scrollPrev, scrollNext } = useCarousel();
+const CarouselItem = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement> & { index: number }
+>(({ index, className, ...properties }, reference) => {
+  const { size: maxIndex, current, orientation, scrollPrev, scrollNext } = useCarousel();
 
-    /**
-     * Scroll to the previous or next slide based on the click position.
-     */
-    const onClick = (event: React.MouseEvent<HTMLDivElement>): void => {
-      // get element position from event
-      const { left, right } = event.currentTarget.getBoundingClientRect();
+  /**
+   * Scroll to the previous or next slide based on the click position.
+   */
+  const onClick = (): void => {
+    if (current - 1 === (index + 1) % maxIndex) {
+      scrollPrev();
+    } else if (current - 1 === (index - 1 + maxIndex) % maxIndex) {
+      scrollNext();
+    }
+  };
 
-      // if left is off the screen, scroll to the previous slide
-      if (left <= 0) {
-        scrollPrev();
-      } else if (right >= window.innerWidth) {
-        scrollNext();
-      } else {
-        // else enlarge the current image as a modal
-        console.log('enlarge image, not implemented');
-      }
-    };
-
-    return (
-      <div
-        ref={reference}
-        role="group"
-        onClick={onClick}
-        aria-roledescription="slide"
-        className={cn(
-          'min-w-0 shrink-0 grow-0 basis-full',
-          orientation === 'horizontal' ? 'pl-4' : 'pt-4',
-          className,
-        )}
-        {...properties}
-      />
-    );
-  },
-);
+  return (
+    <div
+      ref={reference}
+      key={index}
+      role="group"
+      onClick={onClick}
+      aria-roledescription="slide"
+      className={cn(
+        'min-w-0 shrink-0 grow-0 basis-full',
+        orientation === 'horizontal' ? 'pl-4' : 'pt-4',
+        className,
+      )}
+      {...properties}
+    />
+  );
+});
 CarouselItem.displayName = 'CarouselItem';
 
 const CarouselPrevious = React.forwardRef<HTMLButtonElement, React.ComponentProps<typeof Button>>(
@@ -213,7 +226,7 @@ const CarouselPrevious = React.forwardRef<HTMLButtonElement, React.ComponentProp
         className={cn(
           'absolute h-8 w-8 rounded-full',
           orientation === 'horizontal'
-            ? '-left-12 top-1/2 -translate-y-1/2'
+            ? '-left-12 top-[140px] -translate-y-1/2'
             : '-top-12 left-1/2 -translate-x-1/2 rotate-90',
           className,
         )}
@@ -221,7 +234,7 @@ const CarouselPrevious = React.forwardRef<HTMLButtonElement, React.ComponentProp
         onClick={scrollPrev}
         {...properties}
       >
-        <ArrowLeft className="h-4 w-4" />
+        <ArrowLeft className="h-4 w-4 text-conveniat-green" />
         <span className="sr-only">Previous slide</span>
       </Button>
     );
@@ -241,7 +254,7 @@ const CarouselNext = React.forwardRef<HTMLButtonElement, React.ComponentProps<ty
         className={cn(
           'absolute h-8 w-8 rounded-full',
           orientation === 'horizontal'
-            ? '-right-12 top-1/2 -translate-y-1/2'
+            ? '-right-12 top-[140px] -translate-y-1/2'
             : '-bottom-12 left-1/2 -translate-x-1/2 rotate-90',
           className,
         )}
@@ -249,13 +262,39 @@ const CarouselNext = React.forwardRef<HTMLButtonElement, React.ComponentProps<ty
         onClick={scrollNext}
         {...properties}
       >
-        <ArrowRight className="h-4 w-4" />
+        <ArrowRight className="h-4 w-4 text-conveniat-green" />
         <span className="sr-only">Next slide</span>
       </Button>
     );
   },
 );
 CarouselNext.displayName = 'CarouselNext';
+
+const CarouselDescription = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement> & { index: number }
+>(({ className, index, ...properties }, reference) => {
+  const { current } = useCarousel();
+
+  const [isVisible, setIsVisible] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsVisible(current - 1 === index);
+  }, [current, index]);
+
+  return (
+    <div
+      ref={reference}
+      className={cn(
+        'mx-auto w-full text-balance py-2 text-center text-xs text-gray-300 transition-opacity duration-300 lg:max-w-[75%]',
+        className,
+      )}
+      style={{ opacity: isVisible ? 1 : 0 }}
+      {...properties}
+    />
+  );
+});
+CarouselDescription.displayName = 'CarouselDescription';
 
 export {
   type CarouselApi,
@@ -264,4 +303,5 @@ export {
   CarouselItem,
   CarouselPrevious,
   CarouselNext,
+  CarouselDescription,
 };

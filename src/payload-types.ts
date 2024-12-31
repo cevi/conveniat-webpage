@@ -180,6 +180,12 @@ export interface Blog {
           blockType: 'blogPostsOverview';
         }
       | FormBlock
+      | {
+          images: (string | Image)[];
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'photoCarousel';
+        }
     )[];
   };
   seo: {
@@ -443,6 +449,12 @@ export interface GenericPage {
           blockType: 'blogPostsOverview';
         }
       | FormBlock
+      | {
+          images: (string | Image)[];
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'photoCarousel';
+        }
     )[];
   };
   seo: {
@@ -638,6 +650,13 @@ export interface BlogSelect<T extends boolean = true> {
                     blockName?: T;
                   };
               formBlock?: T | FormBlockSelect<T>;
+              photoCarousel?:
+                | T
+                | {
+                    images?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
             };
       };
   seo?:
@@ -688,6 +707,13 @@ export interface GenericPageSelect<T extends boolean = true> {
                     blockName?: T;
                   };
               formBlock?: T | FormBlockSelect<T>;
+              photoCarousel?:
+                | T
+                | {
+                    images?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
             };
       };
   seo?:
@@ -977,6 +1003,12 @@ export interface LandingPage {
           blockType: 'blogPostsOverview';
         }
       | FormBlock
+      | {
+          images: (string | Image)[];
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'photoCarousel';
+        }
     )[];
   };
   seo: {
@@ -1231,6 +1263,13 @@ export interface LandingPageSelect<T extends boolean = true> {
                     blockName?: T;
                   };
               formBlock?: T | FormBlockSelect<T>;
+              photoCarousel?:
+                | T
+                | {
+                    images?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
             };
       };
   seo?:
