@@ -10,7 +10,6 @@ import { BuildingBlocks, ContentBlock } from '@/converters/building-blocks';
 import { LandingPage as LandingPagePayloadType } from '@/payload-types';
 import type { Metadata } from 'next';
 import { Locale } from '@/middleware';
-import { ParagraphImage } from '@/components/typography/paragraph-image';
 
 /**
  * This function is responsible for fetching the landing page from the CMS.
@@ -49,7 +48,6 @@ const LandingPage: React.FC<{
       <TeaserText>{pageTeaser}</TeaserText>
       <CallToAction href={link}>{linkText}</CallToAction>
       <BuildingBlocks blocks={mainContent as ContentBlock[]} locale={locale} />
-      <ParagraphImage />
     </article>
   );
 };
