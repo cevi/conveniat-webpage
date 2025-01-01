@@ -150,7 +150,8 @@ export const payloadConfig: RoutableConfig = {
   admin: {
     avatar: 'default',
     meta: {
-      title: 'Conveniat 2027 - Admin Panel',
+      title: 'Admin Panel',
+      description: 'Conveniat 2027 - Admin Panel',
       icons: [
         {
           rel: 'icon',
@@ -158,8 +159,24 @@ export const payloadConfig: RoutableConfig = {
           url: '/favicon.svg',
         },
       ],
+      titleSuffix: ' | Conveniat 2027',
+      openGraph: {
+        title: 'Conveniat 2027 - Admin Panel',
+        description: 'Conveniat 2027 - Admin Panel',
+        images: [
+          {
+            url: '/favicon.svg',
+            width: 75,
+            height: 75,
+          },
+        ],
+      },
     },
     components: {
+      graphics: {
+        Icon: '@/components/svg-logos/conveniat-logo.tsx#ConveniatLogo',
+        Logo: '@/components/svg-logos/conveniat-logo.tsx#ConveniatLogo',
+      },
       beforeDashboard: [
         {
           path: '@/payload-cms/components/dashboard-welcome-banner',
