@@ -13,6 +13,7 @@ import { ErrorBoundary } from 'react-error-boundary';
 export type PhotoCarouselBlock = {
   url: string;
   alt: string;
+  imageCaption?: string;
 }[];
 
 export const PhotoCarousel: React.FC<{
@@ -55,27 +56,12 @@ export const PhotoCarousel: React.FC<{
                     height={200}
                   />
                 </div>
-                {index < 4 && (
-                  <CarouselDescription index={index}>
+                <CarouselDescription index={index} className="flex flex-col">
+                  {images[index % images.length]?.imageCaption}
+                  <span className="mt-2">
                     {index + 1} / {length}
-                  </CarouselDescription>
-                )}
-                {index >= 4 && index <= 8 && (
-                  <CarouselDescription index={index} className="flex flex-col">
-                    Lorem Ipsum is simply dummy text of the printing and typesetting industry.
-                    <span className="mt-2">
-                      {index + 1} / {length}
-                    </span>
-                  </CarouselDescription>
-                )}
-                {index > 8 && (
-                  <CarouselDescription index={index} className="flex flex-col">
-                    © 2024 Konekta, Cevi Schweiz
-                    <span className="mt-2">
-                      {index + 1} / {length}
-                    </span>
-                  </CarouselDescription>
-                )}
+                  </span>
+                </CarouselDescription>
               </CarouselItem>
             ))}
           </CarouselContent>

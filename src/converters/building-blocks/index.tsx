@@ -1,4 +1,4 @@
-import { LexicalPageContent } from '@/components/content-blocks/lexical-page-content';
+import { LexicalRichTextSection } from '@/components/content-blocks/lexical-rich-text-section';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import { ListBlogPosts } from '@/components/content-blocks/list-blog-articles';
 import React from 'react';
@@ -8,9 +8,13 @@ import { FormBlockType } from '@/components/form';
 import { ErrorBoundary } from 'react-error-boundary';
 import { PhotoCarousel, PhotoCarouselBlock } from '@/components/gallery';
 
-export type ContentBlockTypeNames = 'blogPostsOverview' | 'article' | 'formBlock' | 'photoCarousel';
+export type ContentBlockTypeNames =
+  | 'blogPostsOverview'
+  | 'richTextSection'
+  | 'formBlock'
+  | 'photoCarousel';
 export type ContentBlock = {
-  pageContent?: SerializedEditorState;
+  richTextSection?: SerializedEditorState;
   id?: string | null;
   blockName?: string | null;
   images?: PhotoCarouselBlock;
@@ -32,17 +36,19 @@ export const BuildingBlocks: React.FC<LocalizedPage & { blocks: ContentBlock[] }
 }) => {
   return blocks.map((block) => {
     switch (block.blockType) {
-      case 'article': {
+      case 'richTextSection': {
         return (
           <section key={block.id} className="mt-16">
             <ErrorBoundary
               fallback={
                 <ErrorFallback
-                  error={new Error('Failed to load article. Reload the page to try again.')}
+                  error={new Error('Failed to load richTextSection. Reload the page to try again.')}
                 />
               }
             >
-              <LexicalPageContent pageContent={block.pageContent as SerializedEditorState} />
+              <LexicalRichTextSection
+                richTextSection={block.richTextSection as SerializedEditorState}
+              />
             </ErrorBoundary>
           </section>
         );

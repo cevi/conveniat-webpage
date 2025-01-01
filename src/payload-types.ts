@@ -155,7 +155,7 @@ export interface Blog {
      */
     mainContent: (
       | {
-          pageContent: {
+          richTextSection: {
             root: {
               type: string;
               children: {
@@ -172,7 +172,7 @@ export interface Blog {
           };
           id?: string | null;
           blockName?: string | null;
-          blockType: 'article';
+          blockType: 'richTextSection';
         }
       | {
           id?: string | null;
@@ -221,9 +221,13 @@ export interface LocalizedPublishingStatus {
 export interface Image {
   id: string;
   /**
-   * Describe the image for screen readers and search engines
+   * Describe the image for screen readers.
    */
   alt: string;
+  /**
+   * Optional text to display below the image (e.g. image source, copyright information, explanatory text)
+   */
+  imageCaption?: string | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -424,7 +428,7 @@ export interface GenericPage {
      */
     mainContent: (
       | {
-          pageContent: {
+          richTextSection: {
             root: {
               type: string;
               children: {
@@ -441,7 +445,7 @@ export interface GenericPage {
           };
           id?: string | null;
           blockName?: string | null;
-          blockType: 'article';
+          blockType: 'richTextSection';
         }
       | {
           id?: string | null;
@@ -636,10 +640,10 @@ export interface BlogSelect<T extends boolean = true> {
         mainContent?:
           | T
           | {
-              article?:
+              richTextSection?:
                 | T
                 | {
-                    pageContent?: T;
+                    richTextSection?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -693,10 +697,10 @@ export interface GenericPageSelect<T extends boolean = true> {
         mainContent?:
           | T
           | {
-              article?:
+              richTextSection?:
                 | T
                 | {
-                    pageContent?: T;
+                    richTextSection?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -734,6 +738,7 @@ export interface GenericPageSelect<T extends boolean = true> {
  */
 export interface ImagesSelect<T extends boolean = true> {
   alt?: T;
+  imageCaption?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -978,7 +983,7 @@ export interface LandingPage {
      */
     mainContent: (
       | {
-          pageContent: {
+          richTextSection: {
             root: {
               type: string;
               children: {
@@ -995,7 +1000,7 @@ export interface LandingPage {
           };
           id?: string | null;
           blockName?: string | null;
-          blockType: 'article';
+          blockType: 'richTextSection';
         }
       | {
           id?: string | null;
@@ -1249,10 +1254,10 @@ export interface LandingPageSelect<T extends boolean = true> {
         mainContent?:
           | T
           | {
-              article?:
+              richTextSection?:
                 | T
                 | {
-                    pageContent?: T;
+                    richTextSection?: T;
                     id?: T;
                     blockName?: T;
                   };

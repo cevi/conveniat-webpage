@@ -6,11 +6,11 @@ import { jsxConverters } from '@/converters/richtext-lexical';
 /**
  * Renders the page content from an editor state.
  *
- * @param pageContent
+ * @param richTextSection
  *
  */
-export const LexicalPageContent: React.FC<{
-  pageContent: SerializedEditorState;
-}> = ({ pageContent }) => {
-  return <RichText converters={jsxConverters} data={pageContent} />;
+export const LexicalRichTextSection: React.FC<{
+  richTextSection: SerializedEditorState;
+}> = ({ richTextSection }) => {
+  return <RichText converters={jsxConverters} data={richTextSection} />;
 };
