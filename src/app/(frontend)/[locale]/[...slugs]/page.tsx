@@ -32,7 +32,7 @@ const CMSPage: React.FC<{
     /////////////////////////////////////
     const url = slugs.join('/');
 
-    if(slugs[0] === 'admin') {
+    if (slugs[0] === 'admin') {
       redirect(`/admin/${slugs.slice(1).join('/')}`); // forward to admin page without locale
     }
 

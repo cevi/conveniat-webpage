@@ -14,6 +14,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 import { s3Storage } from '@payloadcms/storage-s3';
+import { searchPlugin } from '@payloadcms/plugin-search';
 import { UserCollection } from '@/payload-cms/collections/user-collection';
 import { ImageCollection } from '@/payload-cms/collections/image-collection';
 import { en } from 'payload/i18n/en';
@@ -102,7 +103,7 @@ const defaultEditorFeatures: LexicalEditorProps['features'] = () => {
   ];
 };
 
-const collectionConfig: RoutableCollectionConfigs = [
+const collectionsConfig: RoutableCollectionConfigs = [
   // routable collections
   {
     urlPrefix: { de: 'blog', en: 'blog', fr: 'blog' },
@@ -194,11 +195,16 @@ export const payloadConfig: RoutableConfig = {
     },
     dateFormat: 'yyyy-MM-dd HH:mm',
     livePreview: {
-      url: APP_HOST_URL,
-      collections: [], // ['blog'], // TODO: live preview breaks multi-locale editing
+      url: ({ data, collectionConfig, locale }) =>
+        `${APP_HOST_URL}${`/${locale.code}`}${
+          collectionConfig && collectionConfig.slug === 'blog'
+            ? `/blog/${data['seo']['urlSlug']}`
+            : ''
+        }`,
+      collections: ['blog'],
     },
   },
-  collections: collectionConfig,
+  collections: collectionsConfig,
   editor: lexicalEditor({
     features: defaultEditorFeatures,
     lexical: defaultEditorLexicalConfig,
@@ -244,6 +250,9 @@ export const payloadConfig: RoutableConfig = {
         forcePathStyle: true,
         endpoint: MINIO_HOST,
       },
+    }),
+    searchPlugin({
+      collections: ['blog', 'documents', 'generic-page'],
     }),
   ],
   i18n: {

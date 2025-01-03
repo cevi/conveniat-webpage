@@ -4,6 +4,7 @@ import React from 'react';
 import Image from 'next/image';
 import { BuildingBlocks, ContentBlock } from '@/converters/building-blocks';
 import { Locale } from '@/middleware';
+import { RefreshRouteOnSave } from '@/components/refresh-preview';
 
 export const BlogArticle: React.FC<{ article: Blog; locale: Locale }> = ({ article, locale }) => {
   if (typeof article.content.bannerImage === 'string') {
@@ -14,9 +15,9 @@ export const BlogArticle: React.FC<{ article: Blog; locale: Locale }> = ({ artic
 
   const source = article.content.bannerImage.url ?? '/images/placeholder.png';
   const altText = article.content.bannerImage.alt;
-
   return (
     <>
+      <RefreshRouteOnSave />
       <article className="mx-auto my-8 max-w-2xl px-8">
         <div className="relative h-56 w-full">
           <Image objectFit="contain" layout="fill" src={source} alt={altText} fill={true} />
