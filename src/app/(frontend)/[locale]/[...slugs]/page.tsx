@@ -32,6 +32,10 @@ const CMSPage: React.FC<{
     /////////////////////////////////////
     const url = slugs.join('/');
 
+    if(slugs[0] === 'admin') {
+      redirect(`/admin/${slugs.slice(1).join('/')}`); // forward to admin page without locale
+    }
+
     const page = globalsRouteLookupTable[url];
     if (page?.locales.includes(locale) === true) {
       return <page.component locale={locale} />;
@@ -65,6 +69,11 @@ const CMSPage: React.FC<{
         const alternative = collectionPage.alternatives[locale];
         redirect(`/${locale}/${alternative}`);
       }
+    }
+
+    console.log(collection);
+    if (collection === 'admin') {
+      redirect(`/admin`);
     }
 
     /////////////////////////////////////
