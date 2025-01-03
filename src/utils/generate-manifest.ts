@@ -18,11 +18,13 @@ export const generateManifest = async (): Promise<MetadataRoute.Manifest> => {
     slug: 'PWA',
   });
 
+  const APP_HOST_URL = process.env['APP_HOST_URL'] ?? '';
+
   return {
     name: appName,
     short_name: appShortName,
     description: appDescription,
-    id: 'https://conveniat27.ch', // TODO: remove hard-coded domain
+    id: APP_HOST_URL,
     start_url: './?app-mode=true', // TODO: remove hard-coded domain
     categories: ['kids', 'social', 'news'],
     //  it follows a pre-defined fallback chain: standalone → minimal-ui
@@ -37,7 +39,7 @@ export const generateManifest = async (): Promise<MetadataRoute.Manifest> => {
     dir: 'ltr',
     lang: 'de', // TODO: how to support multiple languages?
     orientation: 'portrait-primary',
-    scope: 'https://conveniat27.ch/', // TODO: remove hard-coded domain
+    scope: APP_HOST_URL,
     prefer_related_applications: false,
   };
 };
