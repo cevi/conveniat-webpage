@@ -12,8 +12,8 @@ export const ConveniatLogo: React.FC<{
       xmlns="http://www.w3.org/2000/svg"
       className={className}
     >
-      <rect width="75" height="75" fill="url(#pattern0_0_1)" fill-opacity="0"></rect>
-      <circle cx="37.5" cy="37.5" r="36" stroke="#47564C" fill="#fff" stroke-width="3"></circle>
+      <rect width="75" height="75" fill="url(#pattern0_0_1)" fillOpacity="0"></rect>
+      <circle cx="37.5" cy="37.5" r="36" stroke="#47564C" fill="#fff" strokeWidth="3"></circle>
       <path
         d="M16.4783 45.8427C16.4492 45.8593 16.4173 45.8646 16.3877 45.8796H24.0941C28.3348 40.8075 31.7103 35.1598 33.1141 28.7697V24.5258C31.596 29.0215 29.208 32.9888 26.2733 36.6173C23.3818 40.1927 20.2977 43.6579 16.4783 45.8427Z"
         fill="#47564C"
