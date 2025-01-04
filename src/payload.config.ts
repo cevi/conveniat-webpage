@@ -43,7 +43,7 @@ const dirname = path.dirname(filename);
 
 const PAYLOAD_SECRET = process.env['PAYLOAD_SECRET'] ?? '';
 const DATABASE_URI = process.env['DATABASE_URI'] ?? '';
-const APP_HOST_URL = process.env['APP_HOST_URL'] ?? '';
+//const APP_HOST_URL = process.env['APP_HOST_URL'] ?? ''; // not needed as live-preview is currently disabled
 
 const MINIO_HOST = process.env['MINIO_HOST'] ?? '';
 const MINIO_BUCKET_NAME = process.env['MINIO_BUCKET_NAME'] ?? '';
