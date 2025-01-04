@@ -43,7 +43,7 @@ const LandingPage: React.FC<{
   const { link, linkText } = callToAction;
 
   return (
-    <article className="mx-auto my-8 max-w-5xl px-8">
+    <article className="mx-auto my-8 max-w-2xl px-8">
       <HeadlineH1>{pageTitle}</HeadlineH1>
       <TeaserText>{pageTeaser}</TeaserText>
       <CallToAction href={link}>{linkText}</CallToAction>

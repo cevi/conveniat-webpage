@@ -7,7 +7,7 @@ export const NewsCard: React.FC<{
   headline: string;
 }> = ({ children, date, headline }) => {
   return (
-    <div className="my-8 flex max-h-96 basis-1 flex-col rounded-2xl border-2 border-gray-200 bg-green-100 p-6 text-center lg:max-w-96">
+    <div className="my-8 flex max-h-96 basis-1 flex-col rounded-2xl border-2 border-gray-200 bg-white p-6 text-center lg:max-w-96">
       <div>
         <CeviLogoGreen className="mx-auto my-2 flex w-full" />
         <span className="font-body text-xs font-bold text-gray-500">

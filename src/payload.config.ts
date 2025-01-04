@@ -1,5 +1,6 @@
 import { mongooseAdapter } from '@payloadcms/db-mongodb';
 import {
+  BlockquoteFeature,
   BoldFeature,
   defaultEditorLexicalConfig,
   FixedToolbarFeature,
@@ -14,6 +15,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 import { s3Storage } from '@payloadcms/storage-s3';
+import { searchPlugin } from '@payloadcms/plugin-search';
 import { UserCollection } from '@/payload-cms/collections/user-collection';
 import { ImageCollection } from '@/payload-cms/collections/image-collection';
 import { en } from 'payload/i18n/en';
@@ -42,7 +44,7 @@ const dirname = path.dirname(filename);
 
 const PAYLOAD_SECRET = process.env['PAYLOAD_SECRET'] ?? '';
 const DATABASE_URI = process.env['DATABASE_URI'] ?? '';
-const APP_HOST_URL = process.env['APP_HOST_URL'] ?? '';
+//const APP_HOST_URL = process.env['APP_HOST_URL'] ?? ''; // not needed as live-preview is currently disabled
 
 const MINIO_HOST = process.env['MINIO_HOST'] ?? '';
 const MINIO_BUCKET_NAME = process.env['MINIO_BUCKET_NAME'] ?? '';
@@ -99,10 +101,11 @@ const defaultEditorFeatures: LexicalEditorProps['features'] = () => {
       enabledCollections: ['generic-page', 'blog'],
     }),
     FixedToolbarFeature(),
+    BlockquoteFeature(),
   ];
 };
 
-const collectionConfig: RoutableCollectionConfigs = [
+const collectionsConfig: RoutableCollectionConfigs = [
   // routable collections
   {
     urlPrefix: { de: 'blog', en: 'blog', fr: 'blog' },
@@ -150,7 +153,8 @@ export const payloadConfig: RoutableConfig = {
   admin: {
     avatar: 'default',
     meta: {
-      title: 'Conveniat 2027 - Admin Panel',
+      title: 'Admin Panel',
+      description: 'Conveniat 2027 - Admin Panel',
       icons: [
         {
           rel: 'icon',
@@ -158,8 +162,24 @@ export const payloadConfig: RoutableConfig = {
           url: '/favicon.svg',
         },
       ],
+      titleSuffix: ' | Conveniat 2027',
+      openGraph: {
+        title: 'Conveniat 2027 - Admin Panel',
+        description: 'Conveniat 2027 - Admin Panel',
+        images: [
+          {
+            url: '/favicon.svg',
+            width: 75,
+            height: 75,
+          },
+        ],
+      },
     },
     components: {
+      graphics: {
+        Icon: '@/components/svg-logos/conveniat-logo.tsx#ConveniatLogo',
+        Logo: '@/components/svg-logos/conveniat-logo.tsx#ConveniatLogo',
+      },
       beforeDashboard: [
         {
           path: '@/payload-cms/components/dashboard-welcome-banner',
@@ -176,12 +196,21 @@ export const payloadConfig: RoutableConfig = {
       baseDir: path.resolve(dirname),
     },
     dateFormat: 'yyyy-MM-dd HH:mm',
+    /*
     livePreview: {
-      url: APP_HOST_URL,
-      collections: [], // ['blog'], // TODO: live preview breaks multi-locale editing
+      url: ({ data, collectionConfig, locale }) => {
+        // TODO: fix typing in order to remove eslint-disable
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        const urlSlug: string = data['seo']?.['urlSlug'] || '';
+        return `${APP_HOST_URL}${`/${locale.code}`}${
+          collectionConfig && collectionConfig.slug === 'blog' ? `/blog/${urlSlug}` : ''
+        }`;
+      },
+      collections: ['blog'],
     },
+    */
   },
-  collections: collectionConfig,
+  collections: collectionsConfig,
   editor: lexicalEditor({
     features: defaultEditorFeatures,
     lexical: defaultEditorLexicalConfig,
@@ -227,6 +256,9 @@ export const payloadConfig: RoutableConfig = {
         forcePathStyle: true,
         endpoint: MINIO_HOST,
       },
+    }),
+    searchPlugin({
+      collections: ['blog', 'documents', 'generic-page'],
     }),
   ],
   i18n: {

@@ -19,11 +19,31 @@ export const ImageCollection: CollectionConfig = {
       label: 'Alt Text',
       type: 'text',
       required: true,
+      localized: true,
+      admin: {
+        position: 'sidebar',
+        description: {
+          en: 'Describe the image for screen readers.',
+          de: 'Beschreiben Sie das Bild für Screenreader.',
+          fr: "Décrivez l'image pour les lecteurs d'écran.",
+        },
+      },
+    },
+    {
+      name: 'imageCaption',
+      label: {
+        en: 'Image Caption',
+        de: 'Bildunterschrift',
+        fr: 'Légende de l’image',
+      },
+      type: 'text',
+      required: false,
+      localized: true,
       admin: {
         description: {
-          en: 'Describe the image for screen readers and search engines',
-          de: 'Beschreiben Sie das Bild für Screenreader und Suchmaschinen',
-          fr: "Décrivez l'image pour les lecteurs d'écran et les moteurs de recherche",
+          en: 'Optional text to display below the image (e.g. image source, copyright information, explanatory text)',
+          de: 'Optionaler Text, der unter dem Bild angezeigt wird (z.B. Bildquelle, Urheberrechtsinformationen, erläuternder Text)',
+          fr: 'Texte facultatif à afficher sous l’image (par exemple, source de l’image, informations de droits d’auteur, texte explicatif)',
         },
       },
     },

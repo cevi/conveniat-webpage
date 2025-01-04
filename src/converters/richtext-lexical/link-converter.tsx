@@ -15,7 +15,7 @@ export const LinkJSXConverter: JSXConverters<SerializedParagraphNode> = {
 
     return (
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access
-      <Link href={node.fields?.['url'] ?? ''} className="font-bold text-cevi-red">
+      <Link href={node.fields?.['url'] ?? ''} className="font-extrabold text-cevi-red">
         {children}
       </Link>
     );

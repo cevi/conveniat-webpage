@@ -1,4 +1,4 @@
-import { TextFieldSingleValidation } from 'payload';
+import { RelationshipFieldManyValidation, TextFieldSingleValidation } from 'payload';
 import { text } from 'payload/shared';
 
 const titleMinWordCount = 3;
@@ -38,4 +38,11 @@ export const slugValidation: TextFieldSingleValidation = (value, arguments_) => 
 
   // use default text validation
   return text(value, arguments_);
+};
+
+export const photoCarouselMinSelectionValidation: RelationshipFieldManyValidation = (value) => {
+  if (value === undefined || value === null || value.length < 4)
+    return 'At least 4 images are required';
+
+  return true;
 };

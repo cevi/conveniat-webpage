@@ -7,6 +7,7 @@ import { Select } from './select';
 import { TextArea } from './textarea';
 import React from 'react';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const fields: Record<string, React.FC<any>> = {
   text: Text,
   email: Email,

@@ -79,6 +79,16 @@ export const asLocalizedCollection = (config: CollectionConfig): CollectionConfi
         },
       },
 
+      {
+        name: '_qr_code',
+        type: 'ui',
+        admin: {
+          components: {
+            Field: '@/payload-cms/components/qr-code/qr-code',
+          },
+        },
+      },
+
       // add the existing fields from the original collection
       ...config.fields,
     ],

@@ -65,6 +65,7 @@ export interface Config {
     users: User;
     forms: Form;
     'form-submissions': FormSubmission;
+    search: Search;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
@@ -78,6 +79,7 @@ export interface Config {
     users: UsersSelect<false> | UsersSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
+    search: SearchSelect<false> | SearchSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
@@ -155,7 +157,7 @@ export interface Blog {
      */
     mainContent: (
       | {
-          pageContent: {
+          richTextSection: {
             root: {
               type: string;
               children: {
@@ -172,7 +174,7 @@ export interface Blog {
           };
           id?: string | null;
           blockName?: string | null;
-          blockType: 'article';
+          blockType: 'richTextSection';
         }
       | {
           id?: string | null;
@@ -180,6 +182,13 @@ export interface Blog {
           blockType: 'blogPostsOverview';
         }
       | FormBlock
+      | {
+          images: (string | Image)[];
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'photoCarousel';
+        }
+      | YoutubeEmbedding
     )[];
   };
   seo: {
@@ -215,9 +224,13 @@ export interface LocalizedPublishingStatus {
 export interface Image {
   id: string;
   /**
-   * Describe the image for screen readers and search engines
+   * Describe the image for screen readers.
    */
   alt: string;
+  /**
+   * Optional text to display below the image (e.g. image source, copyright information, explanatory text)
+   */
+  imageCaption?: string | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -406,6 +419,16 @@ export interface Form {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "YoutubeEmbedding".
+ */
+export interface YoutubeEmbedding {
+  link: string;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'youtubeEmbed';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "generic-page".
  */
 export interface GenericPage {
@@ -418,7 +441,7 @@ export interface GenericPage {
      */
     mainContent: (
       | {
-          pageContent: {
+          richTextSection: {
             root: {
               type: string;
               children: {
@@ -435,7 +458,7 @@ export interface GenericPage {
           };
           id?: string | null;
           blockName?: string | null;
-          blockType: 'article';
+          blockType: 'richTextSection';
         }
       | {
           id?: string | null;
@@ -443,6 +466,13 @@ export interface GenericPage {
           blockType: 'blogPostsOverview';
         }
       | FormBlock
+      | {
+          images: (string | Image)[];
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'photoCarousel';
+        }
+      | YoutubeEmbedding
     )[];
   };
   seo: {
@@ -532,6 +562,32 @@ export interface FormSubmission {
   createdAt: string;
 }
 /**
+ * This is a collection of automatically created search results. These results are used by the global site search and will be updated automatically as documents in the CMS are created or updated.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "search".
+ */
+export interface Search {
+  id: string;
+  title?: string | null;
+  priority?: number | null;
+  doc:
+    | {
+        relationTo: 'blog';
+        value: string | Blog;
+      }
+    | {
+        relationTo: 'documents';
+        value: string | Document;
+      }
+    | {
+        relationTo: 'generic-page';
+        value: string | GenericPage;
+      };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-locked-documents".
  */
@@ -565,6 +621,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'form-submissions';
         value: string | FormSubmission;
+      } | null)
+    | ({
+        relationTo: 'search';
+        value: string | Search;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -624,10 +684,10 @@ export interface BlogSelect<T extends boolean = true> {
         mainContent?:
           | T
           | {
-              article?:
+              richTextSection?:
                 | T
                 | {
-                    pageContent?: T;
+                    richTextSection?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -638,6 +698,14 @@ export interface BlogSelect<T extends boolean = true> {
                     blockName?: T;
                   };
               formBlock?: T | FormBlockSelect<T>;
+              photoCarousel?:
+                | T
+                | {
+                    images?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              youtubeEmbed?: T | YoutubeEmbeddingSelect<T>;
             };
       };
   seo?:
@@ -663,6 +731,15 @@ export interface FormBlockSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "YoutubeEmbedding_select".
+ */
+export interface YoutubeEmbeddingSelect<T extends boolean = true> {
+  link?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "generic-page_select".
  */
 export interface GenericPageSelect<T extends boolean = true> {
@@ -674,10 +751,10 @@ export interface GenericPageSelect<T extends boolean = true> {
         mainContent?:
           | T
           | {
-              article?:
+              richTextSection?:
                 | T
                 | {
-                    pageContent?: T;
+                    richTextSection?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -688,6 +765,14 @@ export interface GenericPageSelect<T extends boolean = true> {
                     blockName?: T;
                   };
               formBlock?: T | FormBlockSelect<T>;
+              photoCarousel?:
+                | T
+                | {
+                    images?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              youtubeEmbed?: T | YoutubeEmbeddingSelect<T>;
             };
       };
   seo?:
@@ -708,6 +793,7 @@ export interface GenericPageSelect<T extends boolean = true> {
  */
 export interface ImagesSelect<T extends boolean = true> {
   alt?: T;
+  imageCaption?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -890,6 +976,17 @@ export interface FormSubmissionsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "search_select".
+ */
+export interface SearchSelect<T extends boolean = true> {
+  title?: T;
+  priority?: T;
+  doc?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-locked-documents_select".
  */
 export interface PayloadLockedDocumentsSelect<T extends boolean = true> {
@@ -952,7 +1049,7 @@ export interface LandingPage {
      */
     mainContent: (
       | {
-          pageContent: {
+          richTextSection: {
             root: {
               type: string;
               children: {
@@ -969,7 +1066,7 @@ export interface LandingPage {
           };
           id?: string | null;
           blockName?: string | null;
-          blockType: 'article';
+          blockType: 'richTextSection';
         }
       | {
           id?: string | null;
@@ -977,6 +1074,13 @@ export interface LandingPage {
           blockType: 'blogPostsOverview';
         }
       | FormBlock
+      | {
+          images: (string | Image)[];
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'photoCarousel';
+        }
+      | YoutubeEmbedding
     )[];
   };
   seo: {
@@ -1217,10 +1321,10 @@ export interface LandingPageSelect<T extends boolean = true> {
         mainContent?:
           | T
           | {
-              article?:
+              richTextSection?:
                 | T
                 | {
-                    pageContent?: T;
+                    richTextSection?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -1231,6 +1335,14 @@ export interface LandingPageSelect<T extends boolean = true> {
                     blockName?: T;
                   };
               formBlock?: T | FormBlockSelect<T>;
+              photoCarousel?:
+                | T
+                | {
+                    images?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              youtubeEmbed?: T | YoutubeEmbeddingSelect<T>;
             };
       };
   seo?:

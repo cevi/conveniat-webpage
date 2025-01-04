@@ -1,6 +1,8 @@
 import { Field } from 'payload';
-import { richtextArticleBlock } from '@/payload-cms/shared-blocks/richtext-article-block';
+import { RichTextArticleBlock } from '@/payload-cms/shared-blocks/rich-text-article-block';
 import { FormBlock } from '../shared-blocks/form-block';
+import { PhotoCarouselBlock } from '@/payload-cms/shared-blocks/photo-carousel-block';
+import { YoutubeEmbedBlock } from '../shared-blocks/youtube-embed-block';
 
 export const MainContentField: Field = {
   name: 'mainContent',
@@ -15,11 +17,13 @@ export const MainContentField: Field = {
     },
   },
   blocks: [
-    richtextArticleBlock,
+    RichTextArticleBlock,
     {
       slug: 'blogPostsOverview',
       fields: [],
     },
     FormBlock,
+    PhotoCarouselBlock,
+    YoutubeEmbedBlock,
   ],
 };

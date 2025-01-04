@@ -18,7 +18,7 @@ const FooterBuildInfoText: React.FC<Arguments> = ({ children }: Arguments) => {
 
 export const FooterCopyrightArea: React.FC = async () => {
   const year = new Date().getFullYear();
-  const copyright = `© ${year} · Conveniat 2017`;
+  const copyright = `© ${year} · Conveniat 2027`;
 
   const build = await getBuildInfo();
 

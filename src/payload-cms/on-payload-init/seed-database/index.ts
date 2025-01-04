@@ -43,8 +43,8 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
         },
         mainContent: [
           {
-            blockType: 'article' as const,
-            pageContent: lexicalPlaceholder,
+            blockType: 'richTextSection' as const,
+            richTextSection: lexicalPlaceholder,
           },
           {
             blockType: 'formBlock' as const,
@@ -52,6 +52,10 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
           },
           {
             blockType: 'blogPostsOverview' as const,
+          },
+          {
+            blockType: 'youtubeEmbed' as const,
+            link: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
           },
         ],
       },

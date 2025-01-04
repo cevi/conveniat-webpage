@@ -8,10 +8,10 @@ export const TextArea: React.FC<
   {
     errors: Partial<
       FieldErrorsImpl<{
-        [x: string]: any;
+        [x: string]: never;
       }>
     >;
-    registerAction: UseFormRegister<any & FieldValues>;
+    registerAction: UseFormRegister<string & FieldValues>;
   } & TextAreaField
 > = ({ name, label, registerAction, required: requiredFromProperties }) => {
   // set default values

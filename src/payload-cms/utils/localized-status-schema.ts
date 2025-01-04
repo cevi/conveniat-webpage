@@ -24,6 +24,6 @@ export const localizedStatusSchema: PayloadJSONSchema = {
     required: ['published'],
   },
   // the following are random but unique identifiers for the schema
-  uri: 'https://conveniat.ch/localized_status.schema.json',
-  fileMatch: ['https://conveniat.ch/localized_status.schema.json'],
+  uri: 'https://conveniat27.ch/localized_status.schema.json',
+  fileMatch: ['https://conveniat27.ch/localized_status.schema.json'],
 };

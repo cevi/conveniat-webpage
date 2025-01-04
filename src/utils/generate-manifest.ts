@@ -18,12 +18,14 @@ export const generateManifest = async (): Promise<MetadataRoute.Manifest> => {
     slug: 'PWA',
   });
 
+  const APP_HOST_URL = process.env['APP_HOST_URL'] ?? '';
+
   return {
     name: appName,
     short_name: appShortName,
     description: appDescription,
-    id: 'https://test.conveniat27.cevi.tools', // TODO: remove hard-coded domain
-    start_url: 'https://test.conveniat27.cevi.tools/', // TODO: remove hard-coded domain
+    id: APP_HOST_URL,
+    start_url: './?app-mode=true', // TODO: remove hard-coded domain
     categories: ['kids', 'social', 'news'],
     //  it follows a pre-defined fallback chain: standalone → minimal-ui
     display: 'standalone',
@@ -31,13 +33,13 @@ export const generateManifest = async (): Promise<MetadataRoute.Manifest> => {
     launch_handler: {
       client_mode: 'auto',
     },
-    background_color: '#FFF',
-    theme_color: '#E1E6E2',
+    background_color: '#f8fafc',
+    theme_color: '#FFF',
     icons: manifestIconDefinitions,
     dir: 'ltr',
     lang: 'de', // TODO: how to support multiple languages?
     orientation: 'portrait-primary',
-    scope: 'https://test.conveniat27.cevi.tools/', // TODO: remove hard-coded domain
+    scope: APP_HOST_URL,
     prefer_related_applications: false,
   };
 };

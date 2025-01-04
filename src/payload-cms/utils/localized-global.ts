@@ -54,6 +54,16 @@ export const asLocalizedGlobal = (config: GlobalConfig): GlobalConfig => {
       },
 
       {
+        name: '_qr_code',
+        type: 'ui',
+        admin: {
+          components: {
+            Field: '@/payload-cms/components/qr-code/qr-code',
+          },
+        },
+      },
+
+      {
         name: '_locale',
         type: 'text',
         required: true,

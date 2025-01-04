@@ -1,6 +1,6 @@
 # Conveniat 2027 - Official Website
 
-See `conveniat.ch` for the live version of the website.
+See `conveniat27.ch` for the live version of the website.
 
 ## Getting Started
 
@@ -75,3 +75,9 @@ rather a collaboration of files that work together to generate the page.
 4. Once found, the corresponding page layout is rendered. The layout is defined in the `src/page-layouts` directory.
    For complex, potentially nested content types we use the converters defined in the `src/converters` directory to
    map the content to react components defined inside `src/components` directory.
+
+## UI Component Library
+
+We are using [shadcn/ui](https://ui.shadcn.com/) as the main component library for the project. Some functional
+component are implemented with the help of [HeadlessUI](https://headlessui.com/). Additionally, we use
+the [lucide icon](https://lucide.dev/icons/) library for SVG icons.

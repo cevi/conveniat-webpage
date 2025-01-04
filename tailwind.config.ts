@@ -1,11 +1,12 @@
 /** @type {import('tailwindcss').Config} */
 import colors from 'tailwindcss/colors';
+import twAnimate from 'tailwindcss-animate';
 
 // eslint-disable-next-line unicorn/prefer-module
 module.exports = {
   content: ['./src/**/*.{js,ts,jsx,tsx,mdx}'],
   prefix: '',
-  plugins: [],
+  plugins: [twAnimate],
 
   theme: {
     fontFamily: {

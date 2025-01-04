@@ -1,7 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,100..900;1,100..900&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Solitreo&display=swap');
-
 /* We use the @tailwind directive to inject Tailwind's base, component, and utility styles. */
 /***************************************************/
 @tailwind base;
@@ -9,16 +5,8 @@
 @tailwind utilities;
 /***************************************************/
 
-/* Adjust Size for Wide Desktop */
-@media (min-width: 1440px) {
-  // tailwind xl <= x
-  html {
-    font-size: 24px;
-  }
-}
-
 /* Adjust Size for Desktop */
-@media (min-width: 1024px) and (max-width: 1439px) {
+@media (min-width: 1024px) {
   // tailwind lg <= x < xl
   html {
     font-size: 20px;

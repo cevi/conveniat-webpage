@@ -1,4 +1,4 @@
-import { LexicalPageContent } from '@/components/content-blocks/lexical-page-content';
+import { LexicalRichTextSection } from '@/components/content-blocks/lexical-rich-text-section';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import { ListBlogPosts } from '@/components/content-blocks/list-blog-articles';
 import React from 'react';
@@ -6,12 +6,21 @@ import { LocalizedPage } from '@/page-layouts/localized-page';
 import { ShowForm } from '@/components/content-blocks/show-form';
 import { FormBlockType } from '@/components/form';
 import { ErrorBoundary } from 'react-error-boundary';
+import { PhotoCarousel, PhotoCarouselBlock } from '@/components/gallery';
+import { YoutubeEmbed } from '@/components/content-blocks/youtube-embed';
 
-export type ContentBlockTypeNames = 'blogPostsOverview' | 'article' | 'formBlock';
+export type ContentBlockTypeNames =
+  | 'blogPostsOverview'
+  | 'richTextSection'
+  | 'formBlock'
+  | 'photoCarousel'
+  | 'youtubeEmbed';
 export type ContentBlock = {
-  pageContent?: SerializedEditorState;
+  richTextSection?: SerializedEditorState;
   id?: string | null;
   blockName?: string | null;
+  images?: PhotoCarouselBlock;
+  link?: string | null;
   blockType: ContentBlockTypeNames;
 };
 
@@ -30,17 +39,19 @@ export const BuildingBlocks: React.FC<LocalizedPage & { blocks: ContentBlock[] }
 }) => {
   return blocks.map((block) => {
     switch (block.blockType) {
-      case 'article': {
+      case 'richTextSection': {
         return (
           <section key={block.id} className="mt-16">
             <ErrorBoundary
               fallback={
                 <ErrorFallback
-                  error={new Error('Failed to load article. Reload the page to try again.')}
+                  error={new Error('Failed to load richTextSection. Reload the page to try again.')}
                 />
               }
             >
-              <LexicalPageContent pageContent={block.pageContent as SerializedEditorState} />
+              <LexicalRichTextSection
+                richTextSection={block.richTextSection as SerializedEditorState}
+              />
             </ErrorBoundary>
           </section>
         );
@@ -73,6 +84,38 @@ export const BuildingBlocks: React.FC<LocalizedPage & { blocks: ContentBlock[] }
               }
             >
               <ShowForm {...(block as FormBlockType)} />
+            </ErrorBoundary>
+          </section>
+        );
+      }
+
+      case 'photoCarousel': {
+        return (
+          <section key={block.id} className="mt-16">
+            <ErrorBoundary
+              fallback={
+                <ErrorFallback
+                  error={new Error('Failed to load photo carousel. Reload the page to try again.')}
+                />
+              }
+            >
+              <PhotoCarousel images={block.images ?? []} />
+            </ErrorBoundary>
+          </section>
+        );
+      }
+
+      case 'youtubeEmbed': {
+        return (
+          <section key={block.id} className="mt-16">
+            <ErrorBoundary
+              fallback={
+                <ErrorFallback
+                  error={new Error('Failed to load youtube link. Reload the page to try again.')}
+                />
+              }
+            >
+              <YoutubeEmbed link={block.link ?? ''} />
             </ErrorBoundary>
           </section>
         );

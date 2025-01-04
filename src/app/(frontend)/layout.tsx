@@ -1,26 +1,36 @@
-import type { ReactNode } from 'react';
-import React from 'react';
+import React, { ReactNode } from 'react';
 
 // These styles apply to every route in the application
 import './globals.scss';
 import { FooterComponent } from '@/components/footer/footer-component';
 import { HeaderComponent } from '@/components/header/header-component';
-import { CeviBackgroundLogo } from '@/components/svg-logos/cevi-background-logo';
 import { ErrorBoundary } from 'react-error-boundary';
 import ErrorPage from '@/app/(frontend)/error';
+import { Inter, Montserrat } from 'next/font/google';
+import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
+import { CeviLogo } from '@/components/svg-logos/cevi-logo';
 
 type LayoutProperties = {
   children: ReactNode;
 };
 
-const RootLayout: React.FC<LayoutProperties> = ({ children }) => {
+const montserrat = Montserrat({
+  subsets: ['latin'],
+});
+const inter = Inter({
+  subsets: ['latin'],
+});
+
+const RootLayout: React.FC<LayoutProperties> = async ({ children }) => {
+  const locale = await getLocaleFromCookies();
+
   return (
-    <html>
-      <body className="flex h-screen flex-col">
+    <html className={`${montserrat.className} ${inter.className}`} lang={locale}>
+      <body className="flex h-screen flex-col bg-[#f8fafc]">
         <HeaderComponent />
 
-        <div className="fixed top-0 z-[-999] h-screen w-screen p-[56px]">
-          <CeviBackgroundLogo className="mx-auto h-full w-full max-w-[384px]" />
+        <div className="absolute top-0 z-[-999] h-screen w-full p-[56px]">
+          <CeviLogo className="mx-auto h-full max-h-[60vh] w-full max-w-[384px] opacity-10 blur-md" />
         </div>
 
         <ErrorBoundary fallback={<ErrorPage />}>

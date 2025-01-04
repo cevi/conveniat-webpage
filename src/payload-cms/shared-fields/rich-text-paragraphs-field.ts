@@ -1,9 +1,13 @@
 import { Field } from 'payload';
 import { lexicalEditor } from '@payloadcms/richtext-lexical';
 
-export const richTextParagraphsField: Field = {
-  name: 'pageContent',
-  label: 'Page Content',
+export const RichTextParagraphsField: Field = {
+  name: 'richTextSection',
+  label: {
+    en: 'Rich Text Section',
+    de: 'Textabschnitt',
+    fr: 'Section de texte',
+  },
   type: 'richText',
   required: true,
   localized: true,
