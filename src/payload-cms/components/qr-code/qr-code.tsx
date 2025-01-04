@@ -16,12 +16,13 @@ const QRCode: React.FC = () => {
     const urlSlug: string = savedDocumentData?.['seo']?.['urlSlug'] || '';
     const finalCollectionSlug: string = collectionSlug ? `/${collectionSlug}` : '';
     const finalUrlSlug: string = urlSlug.startsWith('/') ? urlSlug : `/${urlSlug || ''}`;
-    const fullURL =
-      String(process.env['NEXT_PUBLIC_APP_HOST_URL']) +
-      '/' +
-      locale +
-      finalCollectionSlug +
-      finalUrlSlug;
+
+    // TODO: fix this instead of using hard-coded domain
+    const domain = process.env['NEXT_PUBLIC_APP_HOST_URL']
+      ? String(process.env['NEXT_PUBLIC_APP_HOST_URL'])
+      : 'https://conveniat27.ch';
+
+    const fullURL = domain + '/' + locale + finalCollectionSlug + finalUrlSlug;
 
     // make a fetch call to fetch the QR code.
     fetch('https://backend.qr.cevi.tools/png', {
