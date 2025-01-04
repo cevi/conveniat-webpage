@@ -195,12 +195,14 @@ export const payloadConfig: RoutableConfig = {
     },
     dateFormat: 'yyyy-MM-dd HH:mm',
     livePreview: {
-      url: ({ data, collectionConfig, locale }) =>
-        `${APP_HOST_URL}${`/${locale.code}`}${
-          collectionConfig && collectionConfig.slug === 'blog'
-            ? `/blog/${data['seo']['urlSlug']}`
-            : ''
-        }`,
+      url: ({ data, collectionConfig, locale }) => {
+        // TODO: fix typing in order to remove eslint-disable
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        const urlSlug: string = data['seo']?.['urlSlug'] || '';
+        return `${APP_HOST_URL}${`/${locale.code}`}${
+          collectionConfig && collectionConfig.slug === 'blog' ? `/blog/${urlSlug}` : ''
+        }`;
+      },
       collections: ['blog'],
     },
   },

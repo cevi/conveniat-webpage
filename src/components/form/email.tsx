@@ -10,10 +10,10 @@ export const Email: React.FC<
   {
     errors: Partial<
       FieldErrorsImpl<{
-        [x: string]: any;
+        [x: string]: never;
       }>
     >;
-    registerAction: UseFormRegister<any & FieldValues>;
+    registerAction: UseFormRegister<string & FieldValues>;
   } & EmailField
 > = ({ name, label, registerAction, required: requiredFromProperties }) => {
   // set default values

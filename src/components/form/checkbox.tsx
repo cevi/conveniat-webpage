@@ -7,10 +7,10 @@ export const Checkbox: React.FC<
   {
     errors: Partial<
       FieldErrorsImpl<{
-        [x: string]: any;
+        [x: string]: never;
       }>
     >;
-    registerAction: UseFormRegister<any & FieldValues>;
+    registerAction: UseFormRegister<string & FieldValues>;
     label?: string;
   } & CheckboxField
 > = ({ name, label, registerAction, required: requiredFromProperties }) => {

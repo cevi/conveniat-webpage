@@ -56,7 +56,7 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
           {
             blockType: 'youtubeEmbed' as const,
             link: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-          }
+          },
         ],
       },
       _locale: 'de' as const,
