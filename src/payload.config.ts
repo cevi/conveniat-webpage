@@ -194,6 +194,7 @@ export const payloadConfig: RoutableConfig = {
       baseDir: path.resolve(dirname),
     },
     dateFormat: 'yyyy-MM-dd HH:mm',
+    /*
     livePreview: {
       url: ({ data, collectionConfig, locale }) => {
         // TODO: fix typing in order to remove eslint-disable
@@ -205,6 +206,7 @@ export const payloadConfig: RoutableConfig = {
       },
       collections: ['blog'],
     },
+    */
   },
   collections: collectionsConfig,
   editor: lexicalEditor({
