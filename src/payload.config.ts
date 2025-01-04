@@ -1,5 +1,6 @@
 import { mongooseAdapter } from '@payloadcms/db-mongodb';
 import {
+  BlockquoteFeature,
   BoldFeature,
   defaultEditorLexicalConfig,
   FixedToolbarFeature,
@@ -100,6 +101,7 @@ const defaultEditorFeatures: LexicalEditorProps['features'] = () => {
       enabledCollections: ['generic-page', 'blog'],
     }),
     FixedToolbarFeature(),
+    BlockquoteFeature(),
   ];
 };
 
