@@ -1,5 +1,4 @@
-import type { ReactNode } from 'react';
-import React from 'react';
+import React, { ReactNode } from 'react';
 
 // These styles apply to every route in the application
 import './globals.scss';
