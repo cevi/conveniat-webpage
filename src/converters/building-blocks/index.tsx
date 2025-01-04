@@ -7,17 +7,20 @@ import { ShowForm } from '@/components/content-blocks/show-form';
 import { FormBlockType } from '@/components/form';
 import { ErrorBoundary } from 'react-error-boundary';
 import { PhotoCarousel, PhotoCarouselBlock } from '@/components/gallery';
+import { YoutubeEmbed } from '@/components/content-blocks/youtube-embed';
 
 export type ContentBlockTypeNames =
   | 'blogPostsOverview'
   | 'richTextSection'
   | 'formBlock'
-  | 'photoCarousel';
+  | 'photoCarousel'
+  | 'youtubeEmbed';
 export type ContentBlock = {
   richTextSection?: SerializedEditorState;
   id?: string | null;
   blockName?: string | null;
   images?: PhotoCarouselBlock;
+  link?: string | null;
   blockType: ContentBlockTypeNames;
 };
 
@@ -97,6 +100,22 @@ export const BuildingBlocks: React.FC<LocalizedPage & { blocks: ContentBlock[] }
               }
             >
               <PhotoCarousel images={block.images ?? []} />
+            </ErrorBoundary>
+          </section>
+        );
+      }
+
+      case 'youtubeEmbed': {
+        return (
+          <section key={block.id} className="mt-16">
+            <ErrorBoundary
+              fallback={
+                <ErrorFallback
+                  error={new Error('Failed to load youtube link. Reload the page to try again.')}
+                />
+              }
+            >
+              <YoutubeEmbed link={block.link ?? ''} />
             </ErrorBoundary>
           </section>
         );

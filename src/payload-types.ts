@@ -188,6 +188,7 @@ export interface Blog {
           blockName?: string | null;
           blockType: 'photoCarousel';
         }
+      | YoutubeEmbedding
     )[];
   };
   seo: {
@@ -418,6 +419,16 @@ export interface Form {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "YoutubeEmbedding".
+ */
+export interface YoutubeEmbedding {
+  link: string;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'youtubeEmbed';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "generic-page".
  */
 export interface GenericPage {
@@ -461,6 +472,7 @@ export interface GenericPage {
           blockName?: string | null;
           blockType: 'photoCarousel';
         }
+      | YoutubeEmbedding
     )[];
   };
   seo: {
@@ -693,6 +705,7 @@ export interface BlogSelect<T extends boolean = true> {
                     id?: T;
                     blockName?: T;
                   };
+              youtubeEmbed?: T | YoutubeEmbeddingSelect<T>;
             };
       };
   seo?:
@@ -713,6 +726,15 @@ export interface BlogSelect<T extends boolean = true> {
  */
 export interface FormBlockSelect<T extends boolean = true> {
   form?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "YoutubeEmbedding_select".
+ */
+export interface YoutubeEmbeddingSelect<T extends boolean = true> {
+  link?: T;
   id?: T;
   blockName?: T;
 }
@@ -750,6 +772,7 @@ export interface GenericPageSelect<T extends boolean = true> {
                     id?: T;
                     blockName?: T;
                   };
+              youtubeEmbed?: T | YoutubeEmbeddingSelect<T>;
             };
       };
   seo?:
@@ -1057,6 +1080,7 @@ export interface LandingPage {
           blockName?: string | null;
           blockType: 'photoCarousel';
         }
+      | YoutubeEmbedding
     )[];
   };
   seo: {
@@ -1318,6 +1342,7 @@ export interface LandingPageSelect<T extends boolean = true> {
                     id?: T;
                     blockName?: T;
                   };
+              youtubeEmbed?: T | YoutubeEmbeddingSelect<T>;
             };
       };
   seo?:
