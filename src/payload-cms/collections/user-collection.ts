@@ -118,8 +118,8 @@ export const UserCollection: CollectionConfig = {
           description: 'The groups the user is in as extracted from the CeviDB profile.',
         },
         // the following are random but unique identifiers for the schema
-        uri: 'https://conveniat.ch/hitobito-groups.schema.json',
-        fileMatch: ['https://conveniat.ch/hitobito-groups.schema.json'],
+        uri: 'https://conveniat27.ch/hitobito-groups.schema.json',
+        fileMatch: ['https://conveniat27.ch/hitobito-groups.schema.json'],
       },
     },
   ],
