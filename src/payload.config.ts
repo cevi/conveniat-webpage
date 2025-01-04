@@ -258,7 +258,39 @@ export const payloadConfig: RoutableConfig = {
       },
     }),
     searchPlugin({
-      collections: ['blog', 'documents', 'generic-page'],
+      collections: ['blog'],
+      defaultPriorities: {
+        blog: 1,
+      },
+      searchOverrides: {
+        admin: {
+          useAsTitle: 'blogTitle',
+        },
+        fields: ({ defaultFields }) => [
+          ...defaultFields,
+          {
+            name: 'urlSlug',
+            type: 'text',
+            localized: true,
+            admin: {
+              readOnly: true,
+            },
+            index: true,
+          },
+          {
+            name: 'blogTitle',
+            type: 'text',
+            localized: true,
+            admin: { readOnly: true },
+            index: true,
+          },
+        ],
+      },
+      beforeSync: ({ originalDoc, searchDoc }) => ({
+        ...searchDoc,
+        urlSlug: originalDoc['seo']?.['urlSlug'] || originalDoc['seo'],
+        blogTitle: originalDoc['content']?.['blogH1'] || originalDoc['content'],
+      }),
     }),
   ],
   i18n: {
