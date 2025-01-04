@@ -7,6 +7,8 @@ import { metadataIconDefinitions } from '@/utils/icon-definitions';
 export const generateMetadata = async (): Promise<Metadata> => {
   const payload = await getPayload({ config });
 
+  const APP_HOST_URL = process.env['APP_HOST_URL'] ?? '';
+
   const { defaultTitle, defaultDescription, defaultKeywords, publisher }: SEO =
     await payload.findGlobal({
       slug: 'SEO',
@@ -38,11 +40,11 @@ export const generateMetadata = async (): Promise<Metadata> => {
     },
 
     alternates: {
-      canonical: '/',
+      canonical: APP_HOST_URL,
       languages: {
-        en: '/en',
-        de: '/',
-        fr: '/fr',
+        en: APP_HOST_URL + '/en',
+        de: APP_HOST_URL + '/de',
+        fr: APP_HOST_URL + '/fr',
       },
     },
 
