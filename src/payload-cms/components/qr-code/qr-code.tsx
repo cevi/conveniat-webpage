@@ -17,6 +17,7 @@ const QRCode: React.FC = () => {
     const finalCollectionSlug: string = collectionSlug ? `/${collectionSlug}` : '';
     const finalUrlSlug: string = urlSlug.startsWith('/') ? urlSlug : `/${urlSlug || ''}`;
 
+    // TODO: fix this instead of using hard-coded domain
     const domain = process.env['NEXT_PUBLIC_APP_HOST_URL']
       ? String(process.env['NEXT_PUBLIC_APP_HOST_URL'])
       : 'https://conveniat27.ch';
