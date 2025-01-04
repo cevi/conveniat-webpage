@@ -9,14 +9,19 @@ const QRCode: React.FC = () => {
 
   const { code: locale } = useLocale();
 
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
   const isPublished = savedDocumentData?.['_localized_status']?.['published'] || false;
   const generateQR = useCallback(() => {
-    const urlSlug = savedDocumentData?.['seo']?.['urlSlug'];
-
-    const finalCollectionSlug = collectionSlug ? `/${collectionSlug}` : '';
-    const finalUrlSlug = urlSlug?.startsWith('/') ? urlSlug : `/${urlSlug || ''}`;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+    const urlSlug: string = savedDocumentData?.['seo']?.['urlSlug'] || '';
+    const finalCollectionSlug: string = collectionSlug ? `/${collectionSlug}` : '';
+    const finalUrlSlug: string = urlSlug.startsWith('/') ? urlSlug : `/${urlSlug || ''}`;
     const fullURL =
-      process.env['NEXT_PUBLIC_APP_HOST_URL'] + '/' + locale + finalCollectionSlug + finalUrlSlug;
+      String(process.env['NEXT_PUBLIC_APP_HOST_URL']) +
+      '/' +
+      locale +
+      finalCollectionSlug +
+      finalUrlSlug;
 
     // make a fetch call to fetch the QR code.
     fetch('https://backend.qr.cevi.tools/png', {
@@ -37,10 +42,10 @@ const QRCode: React.FC = () => {
         const fixedBlob = new Blob([blob], { type: 'image/png' });
         setImageData(URL.createObjectURL(fixedBlob));
       })
-      .catch((error) => {
+      .catch((error: unknown) => {
         console.error('Error:', error);
       });
-  }, []);
+  }, [savedDocumentData, collectionSlug, locale]);
 
   return (
     <div>
