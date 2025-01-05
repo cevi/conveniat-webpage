@@ -38,6 +38,7 @@ import { DocumentsCollection } from '@/payload-cms/collections/documents-collect
 import { dropRouteInfo } from '@/payload-cms/global-routes';
 import { GenericPage as GenericPageCollection } from '@/payload-cms/collections/generic-page';
 import { Locale } from '@/middleware';
+import { beforeSyncWithSearch } from './search/beforeSync';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -264,33 +265,44 @@ export const payloadConfig: RoutableConfig = {
       },
       searchOverrides: {
         admin: {
-          useAsTitle: 'blogTitle',
+          useAsTitle: 'id',
         },
         fields: ({ defaultFields }) => [
           ...defaultFields,
           {
-            name: 'urlSlug',
-            type: 'text',
-            localized: true,
+            name: 'content',
+            type: 'group',
+            index: true,
             admin: {
               readOnly: true,
             },
-            index: true,
+            fields: [
+              {
+                name: 'blogH1',
+                type: 'text',
+                localized: true,
+              },
+            ]
           },
           {
-            name: 'blogTitle',
-            type: 'text',
-            localized: true,
-            admin: { readOnly: true },
+            name: 'seo',
+            type: 'group',
             index: true,
+            admin: {
+              readOnly: true,
+            },
+            fields: [
+              {
+                name: 'urlSlug',
+                type: 'text',
+                localized: true,
+              },
+            ]
           },
+          
         ],
       },
-      beforeSync: ({ originalDoc, searchDoc }) => ({
-        ...searchDoc,
-        urlSlug: originalDoc['seo']?.['urlSlug'] || originalDoc['seo'],
-        blogTitle: originalDoc['content']?.['blogH1'] || originalDoc['content'],
-      }),
+      beforeSync: beforeSyncWithSearch,
     }),
   ],
   i18n: {

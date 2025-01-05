@@ -575,8 +575,12 @@ export interface Search {
     relationTo: 'blog';
     value: string | Blog;
   };
-  urlSlug?: string | null;
-  blogTitle?: string | null;
+  content?: {
+    blogH1?: string | null;
+  };
+  seo?: {
+    urlSlug?: string | null;
+  };
   updatedAt: string;
   createdAt: string;
 }
@@ -975,8 +979,16 @@ export interface SearchSelect<T extends boolean = true> {
   title?: T;
   priority?: T;
   doc?: T;
-  urlSlug?: T;
-  blogTitle?: T;
+  content?:
+    | T
+    | {
+        blogH1?: T;
+      };
+  seo?:
+    | T
+    | {
+        urlSlug?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }
