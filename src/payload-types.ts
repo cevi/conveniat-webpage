@@ -571,19 +571,16 @@ export interface Search {
   id: string;
   title?: string | null;
   priority?: number | null;
-  doc:
-    | {
-        relationTo: 'blog';
-        value: string | Blog;
-      }
-    | {
-        relationTo: 'documents';
-        value: string | Document;
-      }
-    | {
-        relationTo: 'generic-page';
-        value: string | GenericPage;
-      };
+  doc: {
+    relationTo: 'blog';
+    value: string | Blog;
+  };
+  content?: {
+    blogH1?: string | null;
+  };
+  seo?: {
+    urlSlug?: string | null;
+  };
   updatedAt: string;
   createdAt: string;
 }
@@ -982,6 +979,16 @@ export interface SearchSelect<T extends boolean = true> {
   title?: T;
   priority?: T;
   doc?: T;
+  content?:
+    | T
+    | {
+        blogH1?: T;
+      };
+  seo?:
+    | T
+    | {
+        urlSlug?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }

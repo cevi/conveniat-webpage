@@ -38,6 +38,7 @@ import { DocumentsCollection } from '@/payload-cms/collections/documents-collect
 import { dropRouteInfo } from '@/payload-cms/global-routes';
 import { GenericPage as GenericPageCollection } from '@/payload-cms/collections/generic-page';
 import { Locale } from '@/middleware';
+import { beforeSyncWithSearch } from './search/before-sync';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -258,7 +259,49 @@ export const payloadConfig: RoutableConfig = {
       },
     }),
     searchPlugin({
-      collections: ['blog', 'documents', 'generic-page'],
+      collections: ['blog'],
+      defaultPriorities: {
+        blog: 1,
+      },
+      searchOverrides: {
+        admin: {
+          useAsTitle: 'id',
+        },
+        fields: ({ defaultFields }) => [
+          ...defaultFields,
+          {
+            name: 'content',
+            type: 'group',
+            index: true,
+            admin: {
+              readOnly: true,
+            },
+            fields: [
+              {
+                name: 'blogH1',
+                type: 'text',
+                localized: true,
+              },
+            ],
+          },
+          {
+            name: 'seo',
+            type: 'group',
+            index: true,
+            admin: {
+              readOnly: true,
+            },
+            fields: [
+              {
+                name: 'urlSlug',
+                type: 'text',
+                localized: true,
+              },
+            ],
+          },
+        ],
+      },
+      beforeSync: beforeSyncWithSearch,
     }),
   ],
   i18n: {
