@@ -16,3 +16,10 @@
   width: 18px;
   height: 18px;
 }
+
+@media (width <= 1024px) {
+  .step-nav .step-nav__home {
+    width: 18px;
+    height: 18px;
+  }
+}
