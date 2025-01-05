@@ -5,8 +5,8 @@ export type YoutubeEmbedType = {
 };
 
 export const YoutubeEmbed: React.FC<YoutubeEmbedType> = async ({ ...block }) => {
-  const videoId = block.link.split('v=')[1]?.split('&')[0] || undefined;
-  if (!videoId) {
+  const videoId = block.link.split('v=')[1]?.split('&')[0] ?? undefined;
+  if (videoId === undefined) {
     return <p>Invalid YouTube URL.</p>;
   }
   return (
