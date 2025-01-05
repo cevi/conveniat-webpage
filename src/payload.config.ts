@@ -282,7 +282,7 @@ export const payloadConfig: RoutableConfig = {
                 type: 'text',
                 localized: true,
               },
-            ]
+            ],
           },
           {
             name: 'seo',
@@ -297,9 +297,8 @@ export const payloadConfig: RoutableConfig = {
                 type: 'text',
                 localized: true,
               },
-            ]
+            ],
           },
-          
         ],
       },
       beforeSync: beforeSyncWithSearch,
