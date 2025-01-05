@@ -38,7 +38,7 @@ import { DocumentsCollection } from '@/payload-cms/collections/documents-collect
 import { dropRouteInfo } from '@/payload-cms/global-routes';
 import { GenericPage as GenericPageCollection } from '@/payload-cms/collections/generic-page';
 import { Locale } from '@/middleware';
-import { beforeSyncWithSearch } from './search/beforeSync';
+import { beforeSyncWithSearch } from './search/before-sync';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
