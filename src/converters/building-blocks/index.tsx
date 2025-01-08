@@ -36,6 +36,7 @@ const ErrorFallback: React.FC<{ error: Error }> = ({ error }) => {
 export const BuildingBlocks: React.FC<LocalizedPage & { blocks: ContentBlock[] }> = ({
   blocks,
   locale,
+  searchParams,
 }) => {
   return blocks.map((block) => {
     switch (block.blockType) {
@@ -67,7 +68,7 @@ export const BuildingBlocks: React.FC<LocalizedPage & { blocks: ContentBlock[] }
                 />
               }
             >
-              <ListBlogPosts locale={locale} />
+              <ListBlogPosts locale={locale} searchParams={searchParams}/>
             </ErrorBoundary>
           </section>
         );

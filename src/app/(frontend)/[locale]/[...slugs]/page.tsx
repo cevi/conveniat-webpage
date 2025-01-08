@@ -48,7 +48,7 @@ const CMSPage: React.FC<{
 
     const page = globalsRouteLookupTable[url];
     if (page?.locales.includes(locale) === true) {
-      return <page.component locale={locale} />;
+      return <page.component locale={locale} searchParams={searchParameters}/>;
     } else {
       // redirect to alternative page if available
       const alternative = page?.alternatives[locale];
@@ -76,7 +76,7 @@ const CMSPage: React.FC<{
 
     if (collectionPage !== undefined) {
       if (collectionPage.locales.includes(locale)) {
-        return <collectionPage.component locale={locale} slugs={remainingSlugs} />;
+        return <collectionPage.component locale={locale} slugs={remainingSlugs} searchParams={searchParameters}/>;
       } else {
         // redirect to alternative collectionPage if available
         const alternative = collectionPage.alternatives[locale];

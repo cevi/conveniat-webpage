@@ -35,8 +35,12 @@ const LandingPage: React.FC<{
   params: Promise<{
     locale: Locale;
   }>;
-}> = async ({ params }) => {
+  searchParams: Promise<{
+    [key: string]: string | string[];
+  }>;
+}> = async ({ params, searchParams: searchParamsPromise }) => {
   const { locale } = await params;
+  const searchParams = await searchParamsPromise;
 
   const { content } = await findLandingPage(locale);
   const { pageTitle, mainContent, pageTeaser, callToAction } = content;
@@ -47,7 +51,7 @@ const LandingPage: React.FC<{
       <HeadlineH1>{pageTitle}</HeadlineH1>
       <TeaserText>{pageTeaser}</TeaserText>
       <CallToAction href={link}>{linkText}</CallToAction>
-      <BuildingBlocks blocks={mainContent as ContentBlock[]} locale={locale} />
+      <BuildingBlocks blocks={mainContent as ContentBlock[]} locale={locale} searchParams={searchParams}/>
     </article>
   );
 };
