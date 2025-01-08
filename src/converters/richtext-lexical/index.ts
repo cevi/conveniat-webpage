@@ -7,6 +7,7 @@ import {
   ListItemJSXConverter,
   ListJSXConverter,
 } from '@/converters/richtext-lexical/list-converter';
+import { QuoteJSXConverter } from '@/converters/richtext-lexical/quote-converter';
 
 /**
  * The JSX converters for the rich text editor.
@@ -21,4 +22,5 @@ export const jsxConverters: JSXConverters<SerializedHeadingNode> = {
   ...HeadingJSXConverter,
   ...ListJSXConverter,
   ...ListItemJSXConverter,
+  ...QuoteJSXConverter
 };
