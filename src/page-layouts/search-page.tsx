@@ -67,7 +67,7 @@ export const SearchPage: React.FC<LocalizedPage> = async (properties) => {
             <React.Fragment key={blog.seo.urlSlug}>
               <Link href={`/blog/${blog.seo.urlSlug}`} key={blog.id}>
                 <NewsCard date={blog.updatedAt} headline={blog.content.blogH1}>
-                  <ParagraphText> {blog.content.blogH1} </ParagraphText>
+                  <ParagraphText> {blog.content.blogShortTitle} </ParagraphText>
                   <Image
                     className="w-full rounded-lg object-cover"
                     src={source}
