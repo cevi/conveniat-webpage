@@ -22,10 +22,20 @@ const CMSPage: React.FC<{
     slugs: string[];
     locale: Locale;
   }>;
+  searchParams: Promise<{
+    [key: string]: string | string[];
+  }>;
 }> =
   // eslint-disable-next-line complexity
-  async ({ params }) => {
+  async ({ params, searchParams: searchParametersPromise }) => {
     const { locale, slugs } = await params;
+    const searchParameters = await searchParametersPromise;
+
+    const searchParametersString = Object.entries(searchParameters)
+      .map(([key, value]) => {
+        return Array.isArray(value) ? value.map((v) => `${key}=${v}`).join('&') : `${key}=${value}`;
+      })
+      .join('&');
 
     /////////////////////////////////////
     // check if slug is a global URL
@@ -33,7 +43,7 @@ const CMSPage: React.FC<{
     const url = slugs.join('/');
 
     if (slugs[0] === 'admin') {
-      redirect(`/admin/${slugs.slice(1).join('/')}`); // forward to admin page without locale
+      redirect(`/admin/${slugs.slice(1).join('/')}?${searchParametersString}`); // forward to admin page without locale
     }
 
     const page = globalsRouteLookupTable[url];
@@ -42,7 +52,10 @@ const CMSPage: React.FC<{
     } else {
       // redirect to alternative page if available
       const alternative = page?.alternatives[locale];
-      if (alternative !== undefined) redirect(`/${locale}/${alternative}`);
+      if (alternative !== undefined) {
+        // make sure, that params after ? are not lost
+        redirect(`/${locale}/${alternative}?${searchParametersString}`);
+      }
     }
 
     /////////////////////////////////////
@@ -67,7 +80,7 @@ const CMSPage: React.FC<{
       } else {
         // redirect to alternative collectionPage if available
         const alternative = collectionPage.alternatives[locale];
-        redirect(`/${locale}/${alternative}`);
+        redirect(`/${locale}/${alternative}?${searchParametersString}`);
       }
     }
 
