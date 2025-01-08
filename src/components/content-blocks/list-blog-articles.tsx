@@ -54,7 +54,7 @@ export const ListBlogPosts: React.FC<LocalizedPage> = async ({ locale }) => {
   return (
     <div className="mx-auto my-8 grid gap-y-6 min-[1200px]:grid-cols-2">
       {blogs.map((blog) => {
-        return <BlogDisplay blog={blog} key={blog.seo.urlSlug}/>;
+        return <BlogDisplay blog={blog} key={blog.seo.urlSlug} />;
       })}
     </div>
   );
