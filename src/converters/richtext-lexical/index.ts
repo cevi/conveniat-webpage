@@ -3,6 +3,10 @@ import { SerializedHeadingNode } from '@payloadcms/richtext-lexical';
 import { HeadingJSXConverter } from '@/converters/richtext-lexical/heading-converter';
 import { ParagraphJSXConverter } from '@/converters/richtext-lexical/paragraph-converter';
 import { LinkJSXConverter } from '@/converters/richtext-lexical/link-converter';
+import {
+  ListItemJSXConverter,
+  ListJSXConverter,
+} from '@/converters/richtext-lexical/list-converter';
 
 /**
  * The JSX converters for the rich text editor.
@@ -15,4 +19,6 @@ export const jsxConverters: JSXConverters<SerializedHeadingNode> = {
   ...LinkJSXConverter,
   ...ParagraphJSXConverter,
   ...HeadingJSXConverter,
+  ...ListJSXConverter,
+  ...ListItemJSXConverter,
 };

@@ -5,6 +5,15 @@
 @tailwind utilities;
 /***************************************************/
 
+li {
+  padding-left:26px;
+  list-style:none;
+  background-image:url(/favicon.svg);
+  background-repeat:no-repeat;
+  background-position:0 7px;
+  background-size:16px
+}
+
 /* Adjust Size for Desktop */
 @media (min-width: 1024px) {
   // tailwind lg <= x < xl

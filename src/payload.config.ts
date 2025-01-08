@@ -10,6 +10,7 @@ import {
   LexicalEditorProps,
   LinkFeature,
   ParagraphFeature,
+  UnorderedListFeature,
 } from '@payloadcms/richtext-lexical';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -104,6 +105,7 @@ const defaultEditorFeatures: LexicalEditorProps['features'] = () => {
     }),
     FixedToolbarFeature(),
     BlockquoteFeature(),
+    UnorderedListFeature(),
   ];
 };
 
