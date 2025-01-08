@@ -68,7 +68,7 @@ export const BuildingBlocks: React.FC<LocalizedPage & { blocks: ContentBlock[] }
                 />
               }
             >
-              <ListBlogPosts locale={locale} searchParams={searchParams}/>
+              <ListBlogPosts locale={locale} searchParams={searchParams} />
             </ErrorBoundary>
           </section>
         );

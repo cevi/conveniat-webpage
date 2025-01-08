@@ -8,7 +8,11 @@ import { BlogArticle } from '@/converters/blog-article';
 import { LocalizedCollectionPage } from '@/page-layouts/localized-page';
 import { i18nConfig, Locale } from '@/middleware';
 
-export const BlogPostPage: React.FC<LocalizedCollectionPage> = async ({ slugs, locale }) => {
+export const BlogPostPage: React.FC<LocalizedCollectionPage> = async ({
+  slugs,
+  locale,
+  searchParams,
+}) => {
   const payload = await getPayload({ config });
   const slug = slugs.join('/');
 
@@ -32,7 +36,9 @@ export const BlogPostPage: React.FC<LocalizedCollectionPage> = async ({ slugs, l
 
   // article found in current locale --> render
   if (articleInPrimaryLanguage !== undefined) {
-    return <BlogArticle article={articleInPrimaryLanguage} locale={locale} />;
+    return (
+      <BlogArticle article={articleInPrimaryLanguage} locale={locale} searchParams={searchParams} />
+    );
   }
 
   // fallback logic to find article in other locales

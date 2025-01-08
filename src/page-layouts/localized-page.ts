@@ -1,8 +1,8 @@
-import { Locale } from '@/middleware';
+import { Locale, SearchParameters } from '@/middleware';
 
 export type LocalizedPage = {
   locale: Locale;
-  searchParams: { [key: string]: string | string[] };
+  searchParams: SearchParameters;
 };
 
 export type LocalizedCollectionPage = LocalizedPage & {

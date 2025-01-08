@@ -11,6 +11,7 @@ export const i18nConfig: Config = {
 };
 
 export type Locale = (typeof locales)[number];
+export type SearchParameters = { [key: string]: string | string[] };
 
 export const middleware = (request: NextRequest): NextResponse => {
   return i18nRouter(request, i18nConfig);
