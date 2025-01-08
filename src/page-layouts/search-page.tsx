@@ -3,11 +3,8 @@ import { getPayload } from 'payload';
 import config from '@payload-config';
 import { HeadlineH1 } from '@/components/typography/headline-h1';
 import { LocalizedPage } from './localized-page';
-import Link from 'next/link';
-import { ParagraphText } from '@/components/typography/paragraph-text';
-import { NewsCard } from '@/components/news-card';
-import Image from 'next/image';
 import { Blog } from '@/payload-types';
+import { BlogDisplay } from '@/components/content-blocks/list-blog-articles';
 
 export const SearchPage: React.FC<LocalizedPage> = async (properties) => {
   const { locale, searchParams } = await properties;
@@ -54,31 +51,7 @@ export const SearchPage: React.FC<LocalizedPage> = async (properties) => {
       </HeadlineH1>
       <div className="mx-auto my-8 grid gap-y-6 min-[1200px]:grid-cols-2">
         {blogs.map((blog) => {
-          if (typeof blog.content.bannerImage === 'string') {
-            throw new TypeError(
-              'Expected bannerImage to be an object, you may got the ID instead of the object',
-            );
-          }
-
-          const source = blog.content.bannerImage.url ?? '/images/placeholder.png';
-          const altText = blog.content.bannerImage.alt;
-
-          return (
-            <React.Fragment key={blog.seo.urlSlug}>
-              <Link href={`/blog/${blog.seo.urlSlug}`} key={blog.id}>
-                <NewsCard date={blog.updatedAt} headline={blog.content.blogH1}>
-                  <ParagraphText> {blog.content.blogShortTitle} </ParagraphText>
-                  <Image
-                    className="w-full rounded-lg object-cover"
-                    src={source}
-                    alt={altText}
-                    width={1200}
-                    height={800}
-                  />
-                </NewsCard>
-              </Link>
-            </React.Fragment>
-          );
+          return <BlogDisplay blog={blog} />;
         })}
       </div>
     </article>
