@@ -291,6 +291,16 @@ export const payloadConfig: RoutableConfig = {
                 type: 'text',
                 localized: true,
               },
+              {
+                name: 'blogShortTitle',
+                type: 'text',
+                localized: true,
+              },
+              {
+                name: 'blogSearchKeywords',
+                type: 'text',
+                localized: true,
+              },
             ],
           },
           {

@@ -196,6 +196,10 @@ export interface Blog {
         }
       | YoutubeEmbedding
     )[];
+    /**
+     * These keywords will be used for user search.
+     */
+    blogSearchKeywords?: string | null;
   };
   seo: {
     urlSlug: string;
@@ -583,6 +587,8 @@ export interface SearchCollection {
   };
   content?: {
     blogH1?: string | null;
+    blogShortTitle?: string | null;
+    blogSearchKeywords?: string | null;
   };
   seo?: {
     urlSlug?: string | null;
@@ -710,6 +716,7 @@ export interface BlogSelect<T extends boolean = true> {
                   };
               youtubeEmbed?: T | YoutubeEmbeddingSelect<T>;
             };
+        blogSearchKeywords?: T;
       };
   seo?:
     | T
@@ -989,6 +996,8 @@ export interface SearchCollectionSelect<T extends boolean = true> {
     | T
     | {
         blogH1?: T;
+        blogShortTitle?: T;
+        blogSearchKeywords?: T;
       };
   seo?:
     | T

@@ -32,6 +32,16 @@ export const SearchPage: React.FC<LocalizedPage> = async (properties) => {
                 },
               },
               {
+                'content.blogShortTitle': {
+                  like: searchQuery,
+                },
+              },
+              {
+                'content.blogSearchKeywords': {
+                  like: searchQuery,
+                },
+              },
+              {
                 'seo.urlSlug': {
                   like: searchQuery,
                 },
@@ -51,7 +61,7 @@ export const SearchPage: React.FC<LocalizedPage> = async (properties) => {
       </HeadlineH1>
       <div className="mx-auto my-8 grid gap-y-6 min-[1200px]:grid-cols-2">
         {blogs.map((blog) => {
-          return <BlogDisplay blog={blog} />;
+          return <BlogDisplay blog={blog} key={blog.seo.urlSlug}/>;
         })}
       </div>
     </article>

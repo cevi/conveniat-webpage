@@ -22,5 +22,5 @@ export const jsxConverters: JSXConverters<SerializedHeadingNode> = {
   ...HeadingJSXConverter,
   ...ListJSXConverter,
   ...ListItemJSXConverter,
-  ...QuoteJSXConverter
+  ...QuoteJSXConverter,
 };
