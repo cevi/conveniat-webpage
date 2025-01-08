@@ -52,6 +52,10 @@ export type IsPublishedInCorrespondingLocale3 = boolean;
  * This field indicates whether the document is published in the corresponding locale
  */
 export type IsPublishedInCorrespondingLocale4 = boolean;
+/**
+ * This field indicates whether the document is published in the corresponding locale
+ */
+export type IsPublishedInCorrespondingLocale5 = boolean;
 
 export interface Config {
   auth: {
@@ -65,7 +69,7 @@ export interface Config {
     users: User;
     forms: Form;
     'form-submissions': FormSubmission;
-    search: Search;
+    'search-collection': SearchCollection;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
@@ -79,7 +83,7 @@ export interface Config {
     users: UsersSelect<false> | UsersSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
-    search: SearchSelect<false> | SearchSelect<true>;
+    'search-collection': SearchCollectionSelect<false> | SearchCollectionSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
@@ -91,6 +95,7 @@ export interface Config {
     landingPage: LandingPage;
     'data-privacy-statement': DataPrivacyStatement;
     imprint: Imprint;
+    search: Search;
     header: Header;
     footer: Footer;
     SEO: SEO;
@@ -100,6 +105,7 @@ export interface Config {
     landingPage: LandingPageSelect<false> | LandingPageSelect<true>;
     'data-privacy-statement': DataPrivacyStatementSelect<false> | DataPrivacyStatementSelect<true>;
     imprint: ImprintSelect<false> | ImprintSelect<true>;
+    search: SearchSelect<false> | SearchSelect<true>;
     header: HeaderSelect<false> | HeaderSelect<true>;
     footer: FooterSelect<false> | FooterSelect<true>;
     SEO: SEOSelect<false> | SEOSelect<true>;
@@ -565,9 +571,9 @@ export interface FormSubmission {
  * This is a collection of automatically created search results. These results are used by the global site search and will be updated automatically as documents in the CMS are created or updated.
  *
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "search".
+ * via the `definition` "search-collection".
  */
-export interface Search {
+export interface SearchCollection {
   id: string;
   title?: string | null;
   priority?: number | null;
@@ -620,8 +626,8 @@ export interface PayloadLockedDocument {
         value: string | FormSubmission;
       } | null)
     | ({
-        relationTo: 'search';
-        value: string | Search;
+        relationTo: 'search-collection';
+        value: string | SearchCollection;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -973,9 +979,9 @@ export interface FormSubmissionsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "search_select".
+ * via the `definition` "search-collection_select".
  */
-export interface SearchSelect<T extends boolean = true> {
+export interface SearchCollectionSelect<T extends boolean = true> {
   title?: T;
   priority?: T;
   doc?: T;
@@ -1213,6 +1219,36 @@ export interface LocalizedPublishingStatus4 {
   [k: string]: unknown;
 }
 /**
+ * Settings for the search page
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "search".
+ */
+export interface Search {
+  id: string;
+  _localized_status: LocalizedPublishingStatus5;
+  _locale: string;
+  content: {
+    /**
+     * This is the title that will be displayed on the page.
+     */
+    pageTitle: string;
+  };
+  seo: {
+    urlSlug: string;
+  };
+  _status?: ('draft' | 'published') | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * Holds the publishing status of the document in each locale
+ */
+export interface LocalizedPublishingStatus5 {
+  published: IsPublishedInCorrespondingLocale5;
+  [k: string]: unknown;
+}
+/**
  * Settings for the header navigation
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1400,6 +1436,28 @@ export interface ImprintSelect<T extends boolean = true> {
     | {
         pageTitle?: T;
         mainContent?: T;
+      };
+  seo?:
+    | T
+    | {
+        urlSlug?: T;
+      };
+  _status?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "search_select".
+ */
+export interface SearchSelect<T extends boolean = true> {
+  _localized_status?: T;
+  _locale?: T;
+  content?:
+    | T
+    | {
+        pageTitle?: T;
       };
   seo?:
     | T

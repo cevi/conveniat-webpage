@@ -39,6 +39,7 @@ import { dropRouteInfo } from '@/payload-cms/global-routes';
 import { GenericPage as GenericPageCollection } from '@/payload-cms/collections/generic-page';
 import { Locale } from '@/middleware';
 import { beforeSyncWithSearch } from './search/before-sync';
+import { SearchGlobal } from '@/payload-cms/globals/search-global';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -74,7 +75,7 @@ export type RoutableGlobalConfig = {
   };
   /** Defines a unique identifier for the React component that should be used to render the page.
    * This identifier is used to lookup the component in the `reactComponentSlugLookup` table. */
-  reactComponentSlug: 'privacy-page' | 'imprint-page';
+  reactComponentSlug: 'privacy-page' | 'imprint-page' | 'search-page';
   /** The global configuration that should be used to render the page. */
   payloadGlobal: GlobalConfig;
 };
@@ -141,6 +142,11 @@ const globalConfig: RoutableGlobalConfigs = [
     urlSlug: { de: 'impressum', en: 'imprint', fr: 'mentions-legales' },
     reactComponentSlug: 'imprint-page',
     payloadGlobal: ImprintGlobal,
+  },
+  {
+    urlSlug: { de: 'suche', en: 'search', fr: 'recherche' },
+    reactComponentSlug: 'search-page',
+    payloadGlobal: SearchGlobal,
   },
 
   HeaderGlobal,
@@ -264,6 +270,7 @@ export const payloadConfig: RoutableConfig = {
         blog: 1,
       },
       searchOverrides: {
+        slug: 'search-collection',
         admin: {
           useAsTitle: 'id',
         },
