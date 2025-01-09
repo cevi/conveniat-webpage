@@ -6,7 +6,7 @@ import config from '@payload-config';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import Link from 'next/link';
 import { LanguageSwitcher } from '@/components/menu/language-switcher';
-import { SearchComponent } from './search';
+import { SearchComponent } from '@/components/menu/search';
 
 export const NavComponent: React.FC = async () => {
   const payload = await getPayload({ config });

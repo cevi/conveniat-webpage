@@ -39,8 +39,9 @@ import { DocumentsCollection } from '@/payload-cms/collections/documents-collect
 import { dropRouteInfo } from '@/payload-cms/global-routes';
 import { GenericPage as GenericPageCollection } from '@/payload-cms/collections/generic-page';
 import { Locale } from '@/middleware';
-import { beforeSyncWithSearch } from './search/before-sync';
+import { beforeSyncWithSearch } from '@/search/before-sync';
 import { SearchGlobal } from '@/payload-cms/globals/search-global';
+import { searchOverrides } from '@/search/search-overrides';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -271,55 +272,7 @@ export const payloadConfig: RoutableConfig = {
       defaultPriorities: {
         blog: 1,
       },
-      searchOverrides: {
-        slug: 'search-collection',
-        admin: {
-          useAsTitle: 'id',
-        },
-        fields: ({ defaultFields }) => [
-          ...defaultFields,
-          {
-            name: 'content',
-            type: 'group',
-            index: true,
-            admin: {
-              readOnly: true,
-            },
-            fields: [
-              {
-                name: 'blogH1',
-                type: 'text',
-                localized: true,
-              },
-              {
-                name: 'blogShortTitle',
-                type: 'text',
-                localized: true,
-              },
-              {
-                name: 'blogSearchKeywords',
-                type: 'text',
-                localized: true,
-              },
-            ],
-          },
-          {
-            name: 'seo',
-            type: 'group',
-            index: true,
-            admin: {
-              readOnly: true,
-            },
-            fields: [
-              {
-                name: 'urlSlug',
-                type: 'text',
-                localized: true,
-              },
-            ],
-          },
-        ],
-      },
+      searchOverrides: searchOverrides,
       beforeSync: beforeSyncWithSearch,
     }),
   ],
