@@ -1,8 +1,8 @@
 import { AdminPanelDashboardGroups } from '@/payload-cms/admin-panel-dashboard-groups';
 import { asLocalizedCollection } from '@/payload-cms/utils/localized-collection';
 import { CollectionConfig } from 'payload';
-import { MainContentField } from '@/payload-cms/shared-fields/main-content-field';
-import { blogArticleTitleField } from '../blog-article/fields';
+import { RichTextArticleBlock } from '@/payload-cms/shared-blocks/rich-text-article-block';
+import { PhotoCarouselBlock } from '@/payload-cms/shared-blocks/photo-carousel-block';
 
 export const TimelineCollection: CollectionConfig = asLocalizedCollection({
   slug: 'timeline',
@@ -33,7 +33,37 @@ export const TimelineCollection: CollectionConfig = asLocalizedCollection({
       },
       required: true,
     },
-    blogArticleTitleField,
-    MainContentField,
+    {
+      name: 'title',
+      label: {
+        en: 'Title',
+        de: 'Titel',
+        fr: 'Titre',
+      },
+      type: 'text',
+      localized: true,
+      required: true,
+      admin: {
+        description: {
+          en: 'This is the title that will be displayed on the page.',
+          de: 'Dies ist der Titel, der auf der Seite angezeigt wird.',
+          fr: "C'est le titre qui sera affiché sur la page.",
+        },
+      },
+    },
+    {
+      name: 'mainContent',
+      type: 'blocks',
+      required: false,
+      localized: true,
+      admin: {
+        description: {
+          en: 'The main content of the page',
+          de: 'Der Hauptinhalt der Seite',
+          fr: 'Le contenu principal de la page',
+        },
+      },
+      blocks: [RichTextArticleBlock, PhotoCarouselBlock],
+    },
   ],
 });

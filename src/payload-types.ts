@@ -531,45 +531,40 @@ export interface Timeline {
   /**
    * This is the title that will be displayed on the page.
    */
-  blogH1: string;
+  title: string;
   /**
    * The main content of the page
    */
-  mainContent: (
-    | {
-        richTextSection: {
-          root: {
-            type: string;
-            children: {
-              type: string;
-              version: number;
+  mainContent?:
+    | (
+        | {
+            richTextSection: {
+              root: {
+                type: string;
+                children: {
+                  type: string;
+                  version: number;
+                  [k: string]: unknown;
+                }[];
+                direction: ('ltr' | 'rtl') | null;
+                format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                indent: number;
+                version: number;
+              };
               [k: string]: unknown;
-            }[];
-            direction: ('ltr' | 'rtl') | null;
-            format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-            indent: number;
-            version: number;
-          };
-          [k: string]: unknown;
-        };
-        id?: string | null;
-        blockName?: string | null;
-        blockType: 'richTextSection';
-      }
-    | {
-        id?: string | null;
-        blockName?: string | null;
-        blockType: 'blogPostsOverview';
-      }
-    | FormBlock
-    | {
-        images: (string | Image)[];
-        id?: string | null;
-        blockName?: string | null;
-        blockType: 'photoCarousel';
-      }
-    | YoutubeEmbedding
-  )[];
+            };
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'richTextSection';
+          }
+        | {
+            images: (string | Image)[];
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'photoCarousel';
+          }
+      )[]
+    | null;
   updatedAt: string;
   createdAt: string;
   _status?: ('draft' | 'published') | null;
@@ -879,7 +874,7 @@ export interface TimelineSelect<T extends boolean = true> {
   _localized_status?: T;
   _locale?: T;
   date?: T;
-  blogH1?: T;
+  title?: T;
   mainContent?:
     | T
     | {
@@ -890,13 +885,6 @@ export interface TimelineSelect<T extends boolean = true> {
               id?: T;
               blockName?: T;
             };
-        blogPostsOverview?:
-          | T
-          | {
-              id?: T;
-              blockName?: T;
-            };
-        formBlock?: T | FormBlockSelect<T>;
         photoCarousel?:
           | T
           | {
@@ -904,7 +892,6 @@ export interface TimelineSelect<T extends boolean = true> {
               id?: T;
               blockName?: T;
             };
-        youtubeEmbed?: T | YoutubeEmbeddingSelect<T>;
       };
   updatedAt?: T;
   createdAt?: T;
