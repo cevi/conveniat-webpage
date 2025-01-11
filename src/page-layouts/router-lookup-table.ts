@@ -8,6 +8,7 @@ import { BlogPostPage } from '@/page-layouts/blog-posts';
 import { GenericPage } from '@/page-layouts/generic-page';
 import { Locale } from '@/middleware';
 import { SearchPage } from '@/page-layouts/search-page';
+import { TimeLinePage } from './timeline-page';
 
 type GlobalRouteLookupTable = {
   [slug: string]: {
@@ -53,6 +54,7 @@ const reactComponentSlugLookup: Record<
   'imprint-page': ImprintPage,
   'search-page': SearchPage,
   'blog-posts': BlogPostPage,
+  'timeline-posts': TimeLinePage,
   'generic-page': GenericPage,
 };
 

@@ -15,6 +15,10 @@ export type IsPublishedInCorrespondingLocale = boolean;
  */
 export type IsPublishedInCorrespondingLocale1 = boolean;
 /**
+ * This field indicates whether the document is published in the corresponding locale
+ */
+export type IsPublishedInCorrespondingLocale2 = boolean;
+/**
  * The ID of the group as used in the CeviDB.
  */
 export type TheIDOfTheGroup = number;
@@ -43,10 +47,6 @@ export type GroupsOfTheUser = {
 /**
  * This field indicates whether the document is published in the corresponding locale
  */
-export type IsPublishedInCorrespondingLocale2 = boolean;
-/**
- * This field indicates whether the document is published in the corresponding locale
- */
 export type IsPublishedInCorrespondingLocale3 = boolean;
 /**
  * This field indicates whether the document is published in the corresponding locale
@@ -56,6 +56,10 @@ export type IsPublishedInCorrespondingLocale4 = boolean;
  * This field indicates whether the document is published in the corresponding locale
  */
 export type IsPublishedInCorrespondingLocale5 = boolean;
+/**
+ * This field indicates whether the document is published in the corresponding locale
+ */
+export type IsPublishedInCorrespondingLocale6 = boolean;
 
 export interface Config {
   auth: {
@@ -64,6 +68,7 @@ export interface Config {
   collections: {
     blog: Blog;
     'generic-page': GenericPage;
+    timeline: Timeline;
     images: Image;
     documents: Document;
     users: User;
@@ -78,6 +83,7 @@ export interface Config {
   collectionsSelect: {
     blog: BlogSelect<false> | BlogSelect<true>;
     'generic-page': GenericPageSelect<false> | GenericPageSelect<true>;
+    timeline: TimelineSelect<false> | TimelineSelect<true>;
     images: ImagesSelect<false> | ImagesSelect<true>;
     documents: DocumentsSelect<false> | DocumentsSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
@@ -512,6 +518,70 @@ export interface LocalizedPublishingStatus1 {
   [k: string]: unknown;
 }
 /**
+ * Represents a timeline that can be published on the website.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "timeline".
+ */
+export interface Timeline {
+  id: string;
+  _localized_status: LocalizedPublishingStatus2;
+  _locale: string;
+  date: string;
+  /**
+   * This is the title that will be displayed on the page.
+   */
+  blogH1: string;
+  /**
+   * The main content of the page
+   */
+  mainContent: (
+    | {
+        richTextSection: {
+          root: {
+            type: string;
+            children: {
+              type: string;
+              version: number;
+              [k: string]: unknown;
+            }[];
+            direction: ('ltr' | 'rtl') | null;
+            format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+            indent: number;
+            version: number;
+          };
+          [k: string]: unknown;
+        };
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'richTextSection';
+      }
+    | {
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'blogPostsOverview';
+      }
+    | FormBlock
+    | {
+        images: (string | Image)[];
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'photoCarousel';
+      }
+    | YoutubeEmbedding
+  )[];
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * Holds the publishing status of the document in each locale
+ */
+export interface LocalizedPublishingStatus2 {
+  published: IsPublishedInCorrespondingLocale2;
+  [k: string]: unknown;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "documents".
  */
@@ -610,6 +680,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'generic-page';
         value: string | GenericPage;
+      } | null)
+    | ({
+        relationTo: 'timeline';
+        value: string | Timeline;
       } | null)
     | ({
         relationTo: 'images';
@@ -792,6 +866,45 @@ export interface GenericPageSelect<T extends boolean = true> {
         metaTitle?: T;
         metaDescription?: T;
         keywords?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "timeline_select".
+ */
+export interface TimelineSelect<T extends boolean = true> {
+  _localized_status?: T;
+  _locale?: T;
+  date?: T;
+  blogH1?: T;
+  mainContent?:
+    | T
+    | {
+        richTextSection?:
+          | T
+          | {
+              richTextSection?: T;
+              id?: T;
+              blockName?: T;
+            };
+        blogPostsOverview?:
+          | T
+          | {
+              id?: T;
+              blockName?: T;
+            };
+        formBlock?: T | FormBlockSelect<T>;
+        photoCarousel?:
+          | T
+          | {
+              images?: T;
+              id?: T;
+              blockName?: T;
+            };
+        youtubeEmbed?: T | YoutubeEmbeddingSelect<T>;
       };
   updatedAt?: T;
   createdAt?: T;
@@ -1045,7 +1158,7 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
  */
 export interface LandingPage {
   id: string;
-  _localized_status: LocalizedPublishingStatus2;
+  _localized_status: LocalizedPublishingStatus3;
   _locale: string;
   content: {
     /**
@@ -1127,8 +1240,8 @@ export interface LandingPage {
 /**
  * Holds the publishing status of the document in each locale
  */
-export interface LocalizedPublishingStatus2 {
-  published: IsPublishedInCorrespondingLocale2;
+export interface LocalizedPublishingStatus3 {
+  published: IsPublishedInCorrespondingLocale3;
   [k: string]: unknown;
 }
 /**
@@ -1138,54 +1251,6 @@ export interface LocalizedPublishingStatus2 {
  * via the `definition` "data-privacy-statement".
  */
 export interface DataPrivacyStatement {
-  id: string;
-  _localized_status: LocalizedPublishingStatus3;
-  _locale: string;
-  content: {
-    /**
-     * This is the title that will be displayed on the page.
-     */
-    pageTitle: string;
-    /**
-     * The main content of the page
-     */
-    mainContent: {
-      root: {
-        type: string;
-        children: {
-          type: string;
-          version: number;
-          [k: string]: unknown;
-        }[];
-        direction: ('ltr' | 'rtl') | null;
-        format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-        indent: number;
-        version: number;
-      };
-      [k: string]: unknown;
-    };
-  };
-  seo: {
-    urlSlug: string;
-  };
-  _status?: ('draft' | 'published') | null;
-  updatedAt?: string | null;
-  createdAt?: string | null;
-}
-/**
- * Holds the publishing status of the document in each locale
- */
-export interface LocalizedPublishingStatus3 {
-  published: IsPublishedInCorrespondingLocale3;
-  [k: string]: unknown;
-}
-/**
- * Settings for the data privacy statement
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "imprint".
- */
-export interface Imprint {
   id: string;
   _localized_status: LocalizedPublishingStatus4;
   _locale: string;
@@ -1228,6 +1293,54 @@ export interface LocalizedPublishingStatus4 {
   [k: string]: unknown;
 }
 /**
+ * Settings for the data privacy statement
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "imprint".
+ */
+export interface Imprint {
+  id: string;
+  _localized_status: LocalizedPublishingStatus5;
+  _locale: string;
+  content: {
+    /**
+     * This is the title that will be displayed on the page.
+     */
+    pageTitle: string;
+    /**
+     * The main content of the page
+     */
+    mainContent: {
+      root: {
+        type: string;
+        children: {
+          type: string;
+          version: number;
+          [k: string]: unknown;
+        }[];
+        direction: ('ltr' | 'rtl') | null;
+        format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+        indent: number;
+        version: number;
+      };
+      [k: string]: unknown;
+    };
+  };
+  seo: {
+    urlSlug: string;
+  };
+  _status?: ('draft' | 'published') | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * Holds the publishing status of the document in each locale
+ */
+export interface LocalizedPublishingStatus5 {
+  published: IsPublishedInCorrespondingLocale5;
+  [k: string]: unknown;
+}
+/**
  * Settings for the search page
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1235,7 +1348,7 @@ export interface LocalizedPublishingStatus4 {
  */
 export interface Search {
   id: string;
-  _localized_status: LocalizedPublishingStatus5;
+  _localized_status: LocalizedPublishingStatus6;
   _locale: string;
   content: {
     /**
@@ -1253,8 +1366,8 @@ export interface Search {
 /**
  * Holds the publishing status of the document in each locale
  */
-export interface LocalizedPublishingStatus5 {
-  published: IsPublishedInCorrespondingLocale5;
+export interface LocalizedPublishingStatus6 {
+  published: IsPublishedInCorrespondingLocale6;
   [k: string]: unknown;
 }
 /**

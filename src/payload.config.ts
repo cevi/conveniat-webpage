@@ -42,6 +42,7 @@ import { Locale } from '@/middleware';
 import { beforeSyncWithSearch } from '@/search/before-sync';
 import { SearchGlobal } from '@/payload-cms/globals/search-global';
 import { searchOverrides } from '@/search/search-overrides';
+import { TimelineCollection } from './payload-cms/collections/timeline';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -66,7 +67,7 @@ export type RoutableCollectionConfig = {
   };
   /** Defines a unique identifier for the React component that should be used to render the page.
    * This identifier is used to lookup the component in the `reactComponentSlugLookup` table. */
-  reactComponentSlug: 'blog-posts' | 'generic-page';
+  reactComponentSlug: 'blog-posts' | 'generic-page' | 'timeline-posts';
   /** The collection configuration that should be used to render the page. */
   payloadCollection: CollectionConfig;
 };
@@ -121,6 +122,11 @@ const collectionsConfig: RoutableCollectionConfigs = [
     urlPrefix: { de: '', en: '', fr: '' },
     reactComponentSlug: 'generic-page',
     payloadCollection: GenericPageCollection,
+  },
+  {
+    urlPrefix: { de: 'zeitstrahl', en: 'timeline', fr: 'chronologie' },
+    reactComponentSlug: 'timeline-posts',
+    payloadCollection: TimelineCollection,
   },
 
   // general purpose collections
