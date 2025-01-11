@@ -299,9 +299,9 @@ export const payloadConfig: RoutableConfig = {
       port: 587,
       auth: {
         user: SMTP_USER,
-        pass: SMTP_PASS
+        pass: SMTP_PASS,
       },
-    }
+    },
   }),
 };
 
