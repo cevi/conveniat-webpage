@@ -43,6 +43,7 @@ import { beforeSyncWithSearch } from '@/search/before-sync';
 import { SearchGlobal } from '@/payload-cms/globals/search-global';
 import { searchOverrides } from '@/search/search-overrides';
 import { TimelineCollection } from './payload-cms/collections/timeline';
+import { nodemailerAdapter } from '@payloadcms/email-nodemailer';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -55,6 +56,10 @@ const MINIO_HOST = process.env['MINIO_HOST'] ?? '';
 const MINIO_BUCKET_NAME = process.env['MINIO_BUCKET_NAME'] ?? '';
 const MINIO_ACCESS_KEY_ID = process.env['MINIO_ACCESS_KEY_ID'] ?? '';
 const MINIO_SECRET_ACCESS_KEY = process.env['MINIO_SECRET_ACCESS_KEY'] ?? '';
+
+const SMTP_HOST = process.env['SMTP_HOST'] ?? '';
+const SMTP_USER = process.env['SMTP_USER'] ?? '';
+const SMTP_PASS = process.env['SMTP_PASS'] ?? '';
 
 /*
 if (PAYLOAD_SECRET === undefined) throw new Error('PAYLOAD_SECRET is not defined');
@@ -286,6 +291,18 @@ export const payloadConfig: RoutableConfig = {
     fallbackLanguage: 'en',
     supportedLanguages: { en, de, fr },
   },
+  email: nodemailerAdapter({
+    defaultFromAddress: 'no-reply@conveniat27.ch',
+    defaultFromName: 'Conveniat27',
+    transportOptions: {
+      host: SMTP_HOST,
+      port: 587,
+      auth: {
+        user: SMTP_USER,
+        pass: SMTP_PASS
+      },
+    }
+  }),
 };
 
 // export the config for PayloadCMS
