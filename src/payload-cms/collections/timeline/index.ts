@@ -18,8 +18,8 @@ export const TimelineCollection: CollectionConfig = asLocalizedCollection({
   },
 
   labels: {
-    singular: 'Timeline',
-    plural: 'Timelines',
+    singular: 'Timeline Item',
+    plural: 'Timeline Items',
   },
 
   fields: [
