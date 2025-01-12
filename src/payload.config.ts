@@ -58,6 +58,7 @@ const MINIO_ACCESS_KEY_ID = process.env['MINIO_ACCESS_KEY_ID'] ?? '';
 const MINIO_SECRET_ACCESS_KEY = process.env['MINIO_SECRET_ACCESS_KEY'] ?? '';
 
 const SMTP_HOST = process.env['SMTP_HOST'] ?? '';
+const SMTP_PORT = process.env['SMTP_PORT'] ?? 0;
 const SMTP_USER = process.env['SMTP_USER'] ?? '';
 const SMTP_PASS = process.env['SMTP_PASS'] ?? '';
 
@@ -296,7 +297,7 @@ export const payloadConfig: RoutableConfig = {
     defaultFromName: 'Conveniat27',
     transportOptions: {
       host: SMTP_HOST,
-      port: 587,
+      port: SMTP_PORT,
       auth: {
         user: SMTP_USER,
         pass: SMTP_PASS,

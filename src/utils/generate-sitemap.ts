@@ -7,12 +7,12 @@ import {
 import { i18nConfig } from '@/middleware';
 import config from '@payload-config';
 import { getPayload } from 'payload';
+import { Blog } from '@/payload-types';
 
 const toURL = (urlSegments: string[]): string => {
   return urlSegments.filter((seg) => seg !== '').join('/');
 };
 
-// TODO: build sitemap dynamically
 export const generateSitemap = async (): Promise<MetadataRoute.Sitemap> => {
   const sitemap: MetadataRoute.Sitemap = [];
   const APP_HOST_URL = process.env['APP_HOST_URL'] ?? '';
@@ -46,6 +46,17 @@ export const generateSitemap = async (): Promise<MetadataRoute.Sitemap> => {
   }
 
   for (const [urlPrefix, collection] of Object.entries(collectionRouteLookupTable)) {
+    // add urlPrefix as it's own page to the sitemap
+    for (const locale of collection.locales) {
+      const localePrefix = locale === defaultLocale ? '' : `${locale}`;
+
+      sitemap.push({
+        url: toURL([APP_HOST_URL, localePrefix, urlPrefix]),
+      });
+    }
+
+    if(collection.collectionSlug == 'timeline') continue; // skip timeline entries
+
     for (const locale of collection.locales) {
       const localePrefix = locale === defaultLocale ? '' : `${locale}`;
 
@@ -67,10 +78,11 @@ export const generateSitemap = async (): Promise<MetadataRoute.Sitemap> => {
       });
 
       for (const element of collectionPayloadElements.docs) {
+        const elementURL = collectionSlug == 'blog' ? (element as Blog).seo.urlSlug : 'does-not-exist';
         sitemap.push({
           // @ts-ignore
           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-          url: toURL([APP_HOST_URL, localePrefix, urlPrefix, element.urlSlug]),
+          url: toURL([APP_HOST_URL, localePrefix, urlPrefix, elementURL]),
           lastModified: element.updatedAt,
           alternates: {
             // TODO: list alternatives, currently this needs another query to the CMS
