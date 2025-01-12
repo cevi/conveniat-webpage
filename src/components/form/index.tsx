@@ -8,7 +8,7 @@ import { useForm } from 'react-hook-form';
 import { buildInitialFormState } from './build-initial-form-state';
 import { RichText } from '@payloadcms/richtext-lexical/react';
 import { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
-import { i18nConfig, Locale } from '@/middleware';
+import { i18nConfig, Locale } from '@/types';
 import { useCurrentLocale } from 'next-i18n-router/client';
 
 export type Value = unknown;

@@ -38,7 +38,7 @@ import { onPayloadInit } from '@/payload-cms/on-payload-init';
 import { DocumentsCollection } from '@/payload-cms/collections/documents-collection';
 import { dropRouteInfo } from '@/payload-cms/global-routes';
 import { GenericPage as GenericPageCollection } from '@/payload-cms/collections/generic-page';
-import { Locale } from '@/middleware';
+import { Locale } from '@/types';
 import { beforeSyncWithSearch } from '@/search/before-sync';
 import { SearchGlobal } from '@/payload-cms/globals/search-global';
 import { searchOverrides } from '@/search/search-overrides';

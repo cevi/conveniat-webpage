@@ -9,7 +9,7 @@ import { CallToAction } from '@/components/buttons/call-to-action';
 import { BuildingBlocks, ContentBlock } from '@/converters/building-blocks';
 import { LandingPage as LandingPagePayloadType } from '@/payload-types';
 import type { Metadata } from 'next';
-import { Locale } from '@/middleware';
+import { Locale } from '@/types';
 
 /**
  * This function is responsible for fetching the landing page from the CMS.

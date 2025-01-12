@@ -3,7 +3,7 @@ import { LocalizedCollectionPage } from './localized-page';
 import { getPayload } from 'payload';
 import config from '@payload-config';
 import { HeadlineH1 } from '@/components/typography/headline-h1';
-import { Locale } from '@/middleware';
+import { Locale } from '@/types';
 import { BuildingBlocks, ContentBlock } from '@/converters/building-blocks';
 
 const isActive = (date: string) => {

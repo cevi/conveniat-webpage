@@ -3,7 +3,7 @@
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import React, { useState } from 'react';
 import { Languages } from 'lucide-react';
-import { Locale } from '@/middleware';
+import { Locale } from '@/types';
 import { useClose } from '@headlessui/react';
 
 /**

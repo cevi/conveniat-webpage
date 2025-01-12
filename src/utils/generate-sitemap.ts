@@ -4,7 +4,7 @@ import {
   globalsRouteLookupTable,
   urlPrefixToCollectionSlug,
 } from '@/page-layouts/router-lookup-table';
-import { i18nConfig } from '@/middleware';
+import { i18nConfig } from '@/types';
 import config from '@payload-config';
 import { getPayload } from 'payload';
 import { Blog } from '@/payload-types';

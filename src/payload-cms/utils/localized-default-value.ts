@@ -1,4 +1,4 @@
-import { Locale } from '@/middleware';
+import { Locale } from '@/types';
 
 // TODO: this should be fully dynamic with
 //  regards to the defined locales

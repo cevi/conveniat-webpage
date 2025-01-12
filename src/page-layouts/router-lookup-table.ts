@@ -6,7 +6,7 @@ import { PrivacyPage } from '@/page-layouts/privacy-page';
 import { ImprintPage } from '@/page-layouts/imprint-page';
 import { BlogPostPage } from '@/page-layouts/blog-posts';
 import { GenericPage } from '@/page-layouts/generic-page';
-import { Locale } from '@/middleware';
+import { Locale } from '@/types';
 import { SearchPage } from '@/page-layouts/search-page';
 import { TimeLinePage } from './timeline-page';
 

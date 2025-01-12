@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { Locale } from '@/middleware';
+import { Locale } from '@/types';
 import { useClose } from '@headlessui/react';
 
 export const SearchComponent: React.FC<{ locale: Locale }> = ({ locale }) => {

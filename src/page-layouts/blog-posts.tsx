@@ -6,7 +6,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { BlogArticle } from '@/converters/blog-article';
 import { LocalizedCollectionPage } from '@/page-layouts/localized-page';
-import { i18nConfig, Locale } from '@/middleware';
+import { i18nConfig, Locale } from '@/types';
 
 export const BlogPostPage: React.FC<LocalizedCollectionPage> = async ({
   slugs,

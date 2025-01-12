@@ -1,4 +1,4 @@
-import { Locale, SearchParameters } from '@/middleware';
+import { Locale, SearchParameters } from '@/types';
 
 export type LocalizedPage = {
   locale: Locale;

@@ -3,7 +3,7 @@ import { getPayload } from 'payload';
 import config from '@payload-config';
 import { notFound } from 'next/navigation';
 import { LocalizedCollectionPage } from '@/page-layouts/localized-page';
-import { i18nConfig, Locale } from '@/middleware';
+import { i18nConfig, Locale } from '@/types';
 import { GenericPageConverter } from '@/converters/generic-page';
 
 export const GenericPage: React.FC<LocalizedCollectionPage> = async ({

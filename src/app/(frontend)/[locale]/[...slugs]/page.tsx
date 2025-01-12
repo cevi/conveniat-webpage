@@ -4,7 +4,7 @@ import {
   collectionRouteLookupTable,
   globalsRouteLookupTable,
 } from '@/page-layouts/router-lookup-table';
-import { Locale } from '@/middleware';
+import { Locale } from '@/types';
 
 /**
  *

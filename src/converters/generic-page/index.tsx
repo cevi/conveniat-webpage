@@ -2,7 +2,7 @@ import { GenericPage } from '@/payload-types';
 import { HeadlineH1 } from '@/components/typography/headline-h1';
 import React from 'react';
 import { BuildingBlocks, ContentBlock } from '@/converters/building-blocks';
-import { Locale, SearchParameters } from '@/middleware';
+import { Locale, SearchParameters } from '@/types';
 
 export const GenericPageConverter: React.FC<{
   page: GenericPage;
