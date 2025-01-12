@@ -143,7 +143,7 @@ export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties)
       >
         {!isLoading && hasSubmitted === true && confirmationType === 'message' && (
           <div
-            className="absolute bg-white text-center"
+            className="absolute bg-white text-center z-10"
             style={{ height: 'calc(100% - 4rem)', width: 'calc(100% - 4rem)' }}
           >
             <RichText data={confirmationMessage as SerializedEditorState} />
