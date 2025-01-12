@@ -3,6 +3,7 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { Locale } from '@/middleware';
+import { useClose } from '@headlessui/react';
 
 export const SearchComponent: React.FC<{ locale: Locale }> = ({ locale }) => {
   const router = useRouter();
@@ -11,14 +12,17 @@ export const SearchComponent: React.FC<{ locale: Locale }> = ({ locale }) => {
     en: 'Search',
     fr: 'Chercher',
   };
+
+  const close = useClose();
+
   const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const searchData = new FormData(event.currentTarget);
     const searchInput = searchData.get('searchInput') as string;
     if (searchInput) {
-      // TODO: close nav menu here.
-
       router.push(`/${locale as Locale}/search?q=${searchInput}`);
+      router.refresh();
+      close(); // close nav
     }
   };
   return (
