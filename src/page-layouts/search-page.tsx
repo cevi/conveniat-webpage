@@ -26,40 +26,40 @@ export const SearchPage: React.FC<LocalizedPage> = async (properties) => {
     locale,
     ...(searchQuery
       ? {
-        where: {
-          and: [
-            {
-              'content.releaseDate': {
-                less_than_equal: currentDate,
-              }
-            },
-            {
-              or: [
-                {
-                  'content.blogH1': {
-                    like: searchQuery,
-                  },
+          where: {
+            and: [
+              {
+                'content.releaseDate': {
+                  less_than_equal: currentDate,
                 },
-                {
-                  'content.blogShortTitle': {
-                    like: searchQuery,
+              },
+              {
+                or: [
+                  {
+                    'content.blogH1': {
+                      like: searchQuery,
+                    },
                   },
-                },
-                {
-                  'content.blogSearchKeywords': {
-                    like: searchQuery,
+                  {
+                    'content.blogShortTitle': {
+                      like: searchQuery,
+                    },
                   },
-                },
-                {
-                  'seo.urlSlug': {
-                    like: searchQuery,
+                  {
+                    'content.blogSearchKeywords': {
+                      like: searchQuery,
+                    },
                   },
-                },
-              ],
-            },
-          ],
-        },
-      }
+                  {
+                    'seo.urlSlug': {
+                      like: searchQuery,
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        }
       : {}),
   });
 

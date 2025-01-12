@@ -27,10 +27,11 @@ export const BlogPostPage: React.FC<LocalizedCollectionPage> = async ({
       and: [
         { 'seo.urlSlug': { equals: slug } },
         { _localized_status: { equals: { published: true } } },
-        { 'content.releaseDate': {
-          less_than_equal: currentDate,
-          }
-        }
+        {
+          'content.releaseDate': {
+            less_than_equal: currentDate,
+          },
+        },
       ],
     },
   });
@@ -60,10 +61,11 @@ export const BlogPostPage: React.FC<LocalizedCollectionPage> = async ({
           and: [
             { 'seo.urlSlug': { equals: slug } },
             { _localized_status: { equals: { published: true } } },
-            { 'content.releaseDate': {
-              less_than_equal: currentDate,
-              }
-            }
+            {
+              'content.releaseDate': {
+                less_than_equal: currentDate,
+              },
+            },
           ],
         },
       }),

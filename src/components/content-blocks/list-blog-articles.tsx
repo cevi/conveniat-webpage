@@ -48,10 +48,11 @@ export const ListBlogPosts: React.FC<LocalizedPage> = async ({ locale }) => {
             },
           },
         },
-        { 'content.releaseDate': {
-          less_than_equal: currentDate,
-          }
-        }
+        {
+          'content.releaseDate': {
+            less_than_equal: currentDate,
+          },
+        },
       ],
     },
     locale: locale,

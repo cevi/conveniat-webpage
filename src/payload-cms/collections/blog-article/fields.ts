@@ -44,7 +44,7 @@ export const blogReleaseDate: Field = {
     fr: 'Date de publication',
   },
   type: 'date',
-  
+
   required: true,
   admin: {
     position: 'sidebar',
@@ -52,7 +52,7 @@ export const blogReleaseDate: Field = {
       pickerAppearance: 'dayAndTime',
     },
   },
-}
+};
 
 export const blogTeaserText: Field = {
   name: 'blogShortTitle',
