@@ -3,7 +3,7 @@ import { lexicalPlaceholder } from '@/payload-cms/on-payload-init/seed-database/
 import { basicForm } from './all-types-form';
 import { basicBlog } from './blog-post';
 import { basicTimelineObject } from './timeline';
-
+import { readFileSync } from 'node:fs';
 /**
  * Seed the database with some initial data.
  * Seeding is only done if the database is empty and the environment is development.
@@ -11,8 +11,6 @@ import { basicTimelineObject } from './timeline';
  * @param payload The Payload instance
  */
 export const seedDatabase = async (payload: Payload): Promise<void> => {
-  const fs = require('fs');
-
   // we only seed for the dev instance
   if (process.env.NODE_ENV !== 'development') {
     console.log(`Skipping seeding for NODE_ENV=${process.env.NODE_ENV}`);
@@ -31,7 +29,7 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     data: structuredClone(basicForm),
   });
 
-  const imageBuffer = fs.readFileSync('public/web-app-manifest-512x512.png');
+  const imageBuffer = readFileSync('public/web-app-manifest-512x512.png');
   const { id: imageID } = await payload.create({
     collection: 'images',
     data: {
@@ -43,9 +41,9 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
       data: imageBuffer,
       mimetype: 'image/png',
       name: 'favicon.png',
-      size: 96
-    }
-  })
+      size: 96,
+    },
+  });
 
   await payload.create({
     collection: 'timeline',
@@ -68,11 +66,11 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
         },
         {
           label: 'Impressum',
-          link: '/impressum'
+          link: '/impressum',
         },
-      ]
-    }
-  })
+      ],
+    },
+  });
 
   await payload.updateGlobal({
     slug: 'landingPage',
