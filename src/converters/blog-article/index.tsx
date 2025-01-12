@@ -24,7 +24,7 @@ export const BlogArticle: React.FC<{
       <RefreshRouteOnSave />
       <article className="mx-auto my-8 max-w-2xl px-8">
         <div className="relative h-56 w-full">
-          <Image objectFit="contain" layout="fill" src={source} alt={altText} fill={true} />
+          <Image src={source} alt={altText} fill={true} style={{ objectFit: 'contain' }} />
         </div>
 
         <HeadlineH1>{article.content.blogH1}</HeadlineH1>
