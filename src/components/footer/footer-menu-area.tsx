@@ -11,7 +11,10 @@ type FooterMenuItem = NonNullable<FooterMenuSection['menuItem']>[number];
 const renderMenuItem = (menuItem: FooterMenuItem): React.JSX.Element => {
   if (menuItem.link === undefined || menuItem.link === null)
     return (
-      <span key={menuItem.id} className="font-inter text-[14px] font-normal leading-[24px] text-green-600">
+      <span
+        key={menuItem.id}
+        className="font-inter text-[14px] font-normal leading-[24px] text-green-600"
+      >
         {menuItem.label}
       </span>
     );
