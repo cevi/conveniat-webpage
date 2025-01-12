@@ -36,14 +36,23 @@ export const BlogDisplay: React.FC<{ blog: Blog }> = ({ blog }) => {
 
 export const ListBlogPosts: React.FC<LocalizedPage> = async ({ locale }) => {
   const payload = await getPayload({ config });
+  const currentDate = new Date().toISOString();
   const blogsPaged = await payload.find({
     collection: 'blog',
     where: {
-      _localized_status: {
-        equals: {
-          published: true,
+      and: [
+        {
+          _localized_status: {
+            equals: {
+              published: true,
+            },
+          },
         },
-      },
+        { 'content.releaseDate': {
+          less_than_equal: currentDate,
+          }
+        }
+      ],
     },
     locale: locale,
     limit: 5,

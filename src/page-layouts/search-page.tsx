@@ -17,6 +17,8 @@ export const SearchPage: React.FC<LocalizedPage> = async (properties) => {
 
   const searchQuery = searchParams['q'] as string;
 
+  const currentDate = new Date().toISOString();
+
   const blogsPaged = await payload.find({
     collection: 'blog',
     depth: 1,
@@ -24,31 +26,40 @@ export const SearchPage: React.FC<LocalizedPage> = async (properties) => {
     locale,
     ...(searchQuery
       ? {
-          where: {
-            or: [
-              {
-                'content.blogH1': {
-                  like: searchQuery,
+        where: {
+          and: [
+            {
+              'content.releaseDate': {
+                less_than_equal: currentDate,
+              }
+            },
+            {
+              or: [
+                {
+                  'content.blogH1': {
+                    like: searchQuery,
+                  },
                 },
-              },
-              {
-                'content.blogShortTitle': {
-                  like: searchQuery,
+                {
+                  'content.blogShortTitle': {
+                    like: searchQuery,
+                  },
                 },
-              },
-              {
-                'content.blogSearchKeywords': {
-                  like: searchQuery,
+                {
+                  'content.blogSearchKeywords': {
+                    like: searchQuery,
+                  },
                 },
-              },
-              {
-                'seo.urlSlug': {
-                  like: searchQuery,
+                {
+                  'seo.urlSlug': {
+                    like: searchQuery,
+                  },
                 },
-              },
-            ],
-          },
-        }
+              ],
+            },
+          ],
+        },
+      }
       : {}),
   });
 

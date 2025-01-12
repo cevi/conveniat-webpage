@@ -3,6 +3,7 @@ import { asLocalizedCollection } from '@/payload-cms/utils/localized-collection'
 import {
   bannerImage,
   blogArticleTitleField,
+  blogReleaseDate,
   blogSearchKeywords,
   blogTeaserText,
 } from '@/payload-cms/collections/blog-article/fields';
@@ -46,6 +47,7 @@ export const BlogArticleCollection: CollectionConfig = asLocalizedCollection({
           fields: [
             blogArticleTitleField,
             bannerImage,
+            blogReleaseDate,
             blogTeaserText,
             MainContentField,
             blogSearchKeywords,

@@ -160,6 +160,7 @@ export interface Blog {
      */
     blogH1: string;
     bannerImage: string | Image;
+    releaseDate: string;
     /**
      * This is the text that will be displayed as a teaser on the blog overview page.
      */
@@ -758,6 +759,7 @@ export interface BlogSelect<T extends boolean = true> {
     | {
         blogH1?: T;
         bannerImage?: T;
+        releaseDate?: T;
         blogShortTitle?: T;
         mainContent?:
           | T
