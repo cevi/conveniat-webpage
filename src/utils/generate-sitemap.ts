@@ -55,7 +55,7 @@ export const generateSitemap = async (): Promise<MetadataRoute.Sitemap> => {
       });
     }
 
-    if(collection.collectionSlug == 'timeline') continue; // skip timeline entries
+    if (collection.collectionSlug == 'timeline') continue; // skip timeline entries
 
     for (const locale of collection.locales) {
       const localePrefix = locale === defaultLocale ? '' : `${locale}`;
@@ -78,7 +78,16 @@ export const generateSitemap = async (): Promise<MetadataRoute.Sitemap> => {
       });
 
       for (const element of collectionPayloadElements.docs) {
-        const elementURL = collectionSlug == 'blog' ? (element as Blog).seo.urlSlug : 'does-not-exist';
+        const elementURL =
+          collectionSlug == 'blog' ? (element as Blog).seo.urlSlug : 'does-not-exist';
+
+        if (collectionSlug === 'blog') {
+          const currentDate = new Date().toISOString();
+          if ((element as Blog).content.releaseDate > currentDate) {
+            continue;
+          }
+        }
+
         sitemap.push({
           // @ts-ignore
           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
