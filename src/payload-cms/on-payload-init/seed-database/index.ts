@@ -58,6 +58,23 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
   });
 
   await payload.updateGlobal({
+    slug: 'header',
+    locale: 'de' as const,
+    data: {
+      mainMenu: [
+        {
+          label: 'Zeitstrahl',
+          link: '/zeitstrahl',
+        },
+        {
+          label: 'Impressum',
+          link: '/impressum'
+        },
+      ]
+    }
+  })
+
+  await payload.updateGlobal({
     slug: 'landingPage',
     locale: 'de' as const,
     data: {
