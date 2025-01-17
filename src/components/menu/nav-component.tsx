@@ -6,6 +6,7 @@ import config from '@payload-config';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import Link from 'next/link';
 import { LanguageSwitcher } from '@/components/menu/language-switcher';
+import { SearchComponent } from '@/components/menu/search';
 
 export const NavComponent: React.FC = async () => {
   const payload = await getPayload({ config });
@@ -43,6 +44,7 @@ export const NavComponent: React.FC = async () => {
           <hr className="my-6" />
 
           <LanguageSwitcher locale={locale} />
+          <SearchComponent locale={locale} />
         </div>
       </PopoverPanel>
     </Popover>

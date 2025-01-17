@@ -6,11 +6,17 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { BlogArticle } from '@/converters/blog-article';
 import { LocalizedCollectionPage } from '@/page-layouts/localized-page';
-import { i18nConfig, Locale } from '@/middleware';
+import { i18nConfig, Locale } from '@/types';
 
-export const BlogPostPage: React.FC<LocalizedCollectionPage> = async ({ slugs, locale }) => {
+export const BlogPostPage: React.FC<LocalizedCollectionPage> = async ({
+  slugs,
+  locale,
+  searchParams,
+}) => {
   const payload = await getPayload({ config });
   const slug = slugs.join('/');
+
+  const currentDate = new Date().toISOString();
 
   const articlesInPrimaryLanguage = await payload.find({
     collection: 'blog',
@@ -21,6 +27,11 @@ export const BlogPostPage: React.FC<LocalizedCollectionPage> = async ({ slugs, l
       and: [
         { 'seo.urlSlug': { equals: slug } },
         { _localized_status: { equals: { published: true } } },
+        {
+          'content.releaseDate': {
+            less_than_equal: currentDate,
+          },
+        },
       ],
     },
   });
@@ -32,7 +43,9 @@ export const BlogPostPage: React.FC<LocalizedCollectionPage> = async ({ slugs, l
 
   // article found in current locale --> render
   if (articleInPrimaryLanguage !== undefined) {
-    return <BlogArticle article={articleInPrimaryLanguage} locale={locale} />;
+    return (
+      <BlogArticle article={articleInPrimaryLanguage} locale={locale} searchParams={searchParams} />
+    );
   }
 
   // fallback logic to find article in other locales
@@ -48,6 +61,11 @@ export const BlogPostPage: React.FC<LocalizedCollectionPage> = async ({ slugs, l
           and: [
             { 'seo.urlSlug': { equals: slug } },
             { _localized_status: { equals: { published: true } } },
+            {
+              'content.releaseDate': {
+                less_than_equal: currentDate,
+              },
+            },
           ],
         },
       }),

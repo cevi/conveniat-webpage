@@ -3,7 +3,7 @@ import { HeadlineH1 } from '@/components/typography/headline-h1';
 import { TeaserText } from '@/components/typography/teaser-text';
 import Link from 'next/link';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
-import { Locale } from '@/middleware';
+import { Locale } from '@/types';
 
 /**
  * This file is responsible for converters a general 404 error page.

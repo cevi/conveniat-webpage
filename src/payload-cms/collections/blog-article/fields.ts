@@ -36,6 +36,24 @@ export const bannerImage: Field = {
   },
 };
 
+export const blogReleaseDate: Field = {
+  name: 'releaseDate',
+  label: {
+    en: 'Release Date',
+    de: 'Datum der Veröffentlichung',
+    fr: 'Date de publication',
+  },
+  type: 'date',
+
+  required: true,
+  admin: {
+    position: 'sidebar',
+    date: {
+      pickerAppearance: 'dayAndTime',
+    },
+  },
+};
+
 export const blogTeaserText: Field = {
   name: 'blogShortTitle',
   label: {
@@ -52,6 +70,25 @@ export const blogTeaserText: Field = {
       en: 'This is the text that will be displayed as a teaser on the blog overview page.',
       de: 'Dies ist der Text, der als Teaser auf der Blog-Übersichtsseite angezeigt wird.',
       fr: "C'est le texte qui sera affiché en tant qu'accroche sur la page d'aperçu du blog.",
+    },
+  },
+};
+
+export const blogSearchKeywords: Field = {
+  name: 'blogSearchKeywords',
+  label: {
+    en: 'Search Keywords',
+    de: 'Suchbegriffe',
+    fr: 'Mots-clés de recherche',
+  },
+  type: 'textarea',
+  localized: true,
+  admin: {
+    position: 'sidebar',
+    description: {
+      en: 'These keywords will be used for user search.',
+      de: 'Diese Schlüsselwörter werden für die Benutzersuche verwendet.',
+      fr: 'Ces mots-clés seront utilisés pour la recherche utilisateur.',
     },
   },
 };

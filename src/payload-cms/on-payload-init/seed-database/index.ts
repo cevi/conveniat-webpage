@@ -1,7 +1,9 @@
 import { Payload } from 'payload';
 import { lexicalPlaceholder } from '@/payload-cms/on-payload-init/seed-database/placeholder-lexical';
 import { basicForm } from './all-types-form';
-
+import { basicBlog } from './blog-post';
+import { basicTimelineObject } from './timeline';
+import { readFileSync } from 'node:fs';
 /**
  * Seed the database with some initial data.
  * Seeding is only done if the database is empty and the environment is development.
@@ -25,6 +27,49 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
   const { id: formID } = await payload.create({
     collection: 'forms',
     data: structuredClone(basicForm),
+  });
+
+  const imageBuffer = readFileSync('public/web-app-manifest-512x512.png');
+  const { id: imageID } = await payload.create({
+    collection: 'images',
+    data: {
+      alt: 'Alternative Text',
+      updatedAt: '2025-01-01T01:00:00.000Z',
+      createdAt: '2025-01-01T01:00:00.000Z',
+    },
+    file: {
+      data: imageBuffer,
+      mimetype: 'image/png',
+      name: 'favicon.png',
+      size: 96,
+    },
+  });
+
+  await payload.create({
+    collection: 'timeline',
+    data: structuredClone(basicTimelineObject),
+  });
+
+  await payload.create({
+    collection: 'blog',
+    data: structuredClone(basicBlog(imageID)),
+  });
+
+  await payload.updateGlobal({
+    slug: 'header',
+    locale: 'de' as const,
+    data: {
+      mainMenu: [
+        {
+          label: 'Zeitstrahl',
+          link: '/zeitstrahl',
+        },
+        {
+          label: 'Impressum',
+          link: '/impressum',
+        },
+      ],
+    },
   });
 
   await payload.updateGlobal({

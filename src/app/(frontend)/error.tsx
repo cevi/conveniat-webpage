@@ -3,7 +3,7 @@ import React from 'react';
 import { HeadlineH1 } from '@/components/typography/headline-h1';
 import { TeaserText } from '@/components/typography/teaser-text';
 import Link from 'next/link';
-import { i18nConfig, Locale } from '@/middleware';
+import { i18nConfig, Locale } from '@/types';
 import { useCurrentLocale } from 'next-i18n-router/client';
 
 /**

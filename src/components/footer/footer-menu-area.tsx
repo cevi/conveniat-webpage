@@ -11,7 +11,10 @@ type FooterMenuItem = NonNullable<FooterMenuSection['menuItem']>[number];
 const renderMenuItem = (menuItem: FooterMenuItem): React.JSX.Element => {
   if (menuItem.link === undefined || menuItem.link === null)
     return (
-      <span className="font-inter text-[14px] font-normal leading-[24px] text-green-600">
+      <span
+        key={menuItem.id}
+        className="font-inter text-[14px] font-normal leading-[24px] text-green-600"
+      >
         {menuItem.label}
       </span>
     );
@@ -27,7 +30,7 @@ const renderMenuItem = (menuItem: FooterMenuItem): React.JSX.Element => {
 
 const renderMenuSection: React.FC<FooterMenuSection> = (menu) => {
   return (
-    <div className="flex flex-col items-center justify-center">
+    <div key={menu.id} className="flex flex-col items-center justify-center">
       <span className="font-heading text-[14px] font-extrabold text-green-600">
         {menu.menuSubTitle}
       </span>

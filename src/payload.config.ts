@@ -10,6 +10,7 @@ import {
   LexicalEditorProps,
   LinkFeature,
   ParagraphFeature,
+  UnorderedListFeature,
 } from '@payloadcms/richtext-lexical';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -37,7 +38,12 @@ import { onPayloadInit } from '@/payload-cms/on-payload-init';
 import { DocumentsCollection } from '@/payload-cms/collections/documents-collection';
 import { dropRouteInfo } from '@/payload-cms/global-routes';
 import { GenericPage as GenericPageCollection } from '@/payload-cms/collections/generic-page';
-import { Locale } from '@/middleware';
+import { Locale } from '@/types';
+import { beforeSyncWithSearch } from '@/search/before-sync';
+import { SearchGlobal } from '@/payload-cms/globals/search-global';
+import { searchOverrides } from '@/search/search-overrides';
+import { TimelineCollection } from './payload-cms/collections/timeline';
+import { nodemailerAdapter } from '@payloadcms/email-nodemailer';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -51,6 +57,11 @@ const MINIO_BUCKET_NAME = process.env['MINIO_BUCKET_NAME'] ?? '';
 const MINIO_ACCESS_KEY_ID = process.env['MINIO_ACCESS_KEY_ID'] ?? '';
 const MINIO_SECRET_ACCESS_KEY = process.env['MINIO_SECRET_ACCESS_KEY'] ?? '';
 
+const SMTP_HOST = process.env['SMTP_HOST'] ?? '';
+const SMTP_PORT = process.env['SMTP_PORT'] ?? 0;
+const SMTP_USER = process.env['SMTP_USER'] ?? '';
+const SMTP_PASS = process.env['SMTP_PASS'] ?? '';
+
 /*
 if (PAYLOAD_SECRET === undefined) throw new Error('PAYLOAD_SECRET is not defined');
 if (DATABASE_URI === undefined) throw new Error('DATABASE_URI is not defined');
@@ -62,7 +73,7 @@ export type RoutableCollectionConfig = {
   };
   /** Defines a unique identifier for the React component that should be used to render the page.
    * This identifier is used to lookup the component in the `reactComponentSlugLookup` table. */
-  reactComponentSlug: 'blog-posts' | 'generic-page';
+  reactComponentSlug: 'blog-posts' | 'generic-page' | 'timeline-posts';
   /** The collection configuration that should be used to render the page. */
   payloadCollection: CollectionConfig;
 };
@@ -73,7 +84,7 @@ export type RoutableGlobalConfig = {
   };
   /** Defines a unique identifier for the React component that should be used to render the page.
    * This identifier is used to lookup the component in the `reactComponentSlugLookup` table. */
-  reactComponentSlug: 'privacy-page' | 'imprint-page';
+  reactComponentSlug: 'privacy-page' | 'imprint-page' | 'search-page';
   /** The global configuration that should be used to render the page. */
   payloadGlobal: GlobalConfig;
 };
@@ -102,6 +113,7 @@ const defaultEditorFeatures: LexicalEditorProps['features'] = () => {
     }),
     FixedToolbarFeature(),
     BlockquoteFeature(),
+    UnorderedListFeature(),
   ];
 };
 
@@ -116,6 +128,11 @@ const collectionsConfig: RoutableCollectionConfigs = [
     urlPrefix: { de: '', en: '', fr: '' },
     reactComponentSlug: 'generic-page',
     payloadCollection: GenericPageCollection,
+  },
+  {
+    urlPrefix: { de: 'zeitstrahl', en: 'timeline', fr: 'chronologie' },
+    reactComponentSlug: 'timeline-posts',
+    payloadCollection: TimelineCollection,
   },
 
   // general purpose collections
@@ -140,6 +157,11 @@ const globalConfig: RoutableGlobalConfigs = [
     urlSlug: { de: 'impressum', en: 'imprint', fr: 'mentions-legales' },
     reactComponentSlug: 'imprint-page',
     payloadGlobal: ImprintGlobal,
+  },
+  {
+    urlSlug: { de: 'suche', en: 'search', fr: 'recherche' },
+    reactComponentSlug: 'search-page',
+    payloadGlobal: SearchGlobal,
   },
 
   HeaderGlobal,
@@ -258,13 +280,30 @@ export const payloadConfig: RoutableConfig = {
       },
     }),
     searchPlugin({
-      collections: ['blog', 'documents', 'generic-page'],
+      collections: ['blog'],
+      defaultPriorities: {
+        blog: 1,
+      },
+      searchOverrides: searchOverrides,
+      beforeSync: beforeSyncWithSearch,
     }),
   ],
   i18n: {
     fallbackLanguage: 'en',
     supportedLanguages: { en, de, fr },
   },
+  email: nodemailerAdapter({
+    defaultFromAddress: 'no-reply@conveniat27.ch',
+    defaultFromName: 'Conveniat27',
+    transportOptions: {
+      host: SMTP_HOST,
+      port: SMTP_PORT,
+      auth: {
+        user: SMTP_USER,
+        pass: SMTP_PASS,
+      },
+    },
+  }),
 };
 
 // export the config for PayloadCMS

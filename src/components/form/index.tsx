@@ -8,7 +8,7 @@ import { useForm } from 'react-hook-form';
 import { buildInitialFormState } from './build-initial-form-state';
 import { RichText } from '@payloadcms/richtext-lexical/react';
 import { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
-import { i18nConfig, Locale } from '@/middleware';
+import { i18nConfig, Locale } from '@/types';
 import { useCurrentLocale } from 'next-i18n-router/client';
 
 export type Value = unknown;
@@ -143,7 +143,7 @@ export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties)
       >
         {!isLoading && hasSubmitted === true && confirmationType === 'message' && (
           <div
-            className="absolute bg-white text-center"
+            className="absolute z-10 bg-white text-center"
             style={{ height: 'calc(100% - 4rem)', width: 'calc(100% - 4rem)' }}
           >
             <RichText data={confirmationMessage as SerializedEditorState} />

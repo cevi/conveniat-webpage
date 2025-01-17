@@ -1,9 +1,10 @@
 'use client';
 
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import React, { useState } from 'react';
 import { Languages } from 'lucide-react';
-import { Locale } from '@/middleware';
+import { Locale } from '@/types';
+import { useClose } from '@headlessui/react';
 
 /**
  * Simple Drop Down Menu that allows to switch between languages.
@@ -17,21 +18,29 @@ export const LanguageSwitcher: React.FC<{ locale: Locale }> = ({ locale }) => {
 
   const route = useRouter();
   const pathname = usePathname();
+  const searchParameters = useSearchParams();
+
+  const close = useClose();
 
   const handleLanguageChange = (lang: string): void => {
     setShowLanguageOptions(false);
 
     const langRegex = /^\/(de|en|fr)\//;
     if (langRegex.test(pathname)) {
-      route.push(pathname.replace(langRegex, `/${lang}/`), {
+      route.push(pathname.replace(langRegex, `/${lang}/`) + '?' + searchParameters.toString(), {
         scroll: false,
       });
       route.refresh();
+      close(); // close nav
     } else {
-      route.push(`/${lang}/${pathname.replace(/\/(de|en|fr)\/?$/, '')}`, {
-        scroll: false,
-      });
+      route.push(
+        `/${lang}/${pathname.replace(/\/(de|en|fr)\/?$/, '')}?${searchParameters.toString()}`,
+        {
+          scroll: false,
+        },
+      );
       route.refresh();
+      close(); // close nav
     }
   };
 

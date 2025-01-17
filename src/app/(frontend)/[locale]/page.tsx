@@ -9,7 +9,7 @@ import { CallToAction } from '@/components/buttons/call-to-action';
 import { BuildingBlocks, ContentBlock } from '@/converters/building-blocks';
 import { LandingPage as LandingPagePayloadType } from '@/payload-types';
 import type { Metadata } from 'next';
-import { Locale } from '@/middleware';
+import { Locale } from '@/types';
 
 /**
  * This function is responsible for fetching the landing page from the CMS.
@@ -35,8 +35,12 @@ const LandingPage: React.FC<{
   params: Promise<{
     locale: Locale;
   }>;
-}> = async ({ params }) => {
+  searchParams: Promise<{
+    [key: string]: string | string[];
+  }>;
+}> = async ({ params, searchParams: searchParametersPromise }) => {
   const { locale } = await params;
+  const searchParameters = await searchParametersPromise;
 
   const { content } = await findLandingPage(locale);
   const { pageTitle, mainContent, pageTeaser, callToAction } = content;
@@ -47,7 +51,11 @@ const LandingPage: React.FC<{
       <HeadlineH1>{pageTitle}</HeadlineH1>
       <TeaserText>{pageTeaser}</TeaserText>
       <CallToAction href={link}>{linkText}</CallToAction>
-      <BuildingBlocks blocks={mainContent as ContentBlock[]} locale={locale} />
+      <BuildingBlocks
+        blocks={mainContent as ContentBlock[]}
+        locale={locale}
+        searchParams={searchParameters}
+      />
     </article>
   );
 };

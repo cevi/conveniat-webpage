@@ -8,7 +8,7 @@ import {
   fetchGlobalDocument,
   NotYetSavedException,
 } from '@/payload-cms/components/multi-lang-publishing/utils';
-import { Locale as LocaleType } from '@/middleware';
+import { Locale as LocaleType } from '@/types';
 
 type LocalizedStatus = Record<Config['locale'], boolean> | undefined;
 type LocalizedPublishingStatus = Record<Config['locale'], { published: boolean } | undefined>;

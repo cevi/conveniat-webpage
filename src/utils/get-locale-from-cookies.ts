@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { i18nConfig, Locale } from '@/middleware';
+import { i18nConfig, Locale } from '@/types';
 import { cookies } from 'next/headers';
 
 /**

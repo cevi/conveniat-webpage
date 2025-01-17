@@ -6,7 +6,9 @@ import { PrivacyPage } from '@/page-layouts/privacy-page';
 import { ImprintPage } from '@/page-layouts/imprint-page';
 import { BlogPostPage } from '@/page-layouts/blog-posts';
 import { GenericPage } from '@/page-layouts/generic-page';
-import { Locale } from '@/middleware';
+import { Locale } from '@/types';
+import { SearchPage } from '@/page-layouts/search-page';
+import { TimeLinePage } from './timeline-page';
 
 type GlobalRouteLookupTable = {
   [slug: string]: {
@@ -50,7 +52,9 @@ const reactComponentSlugLookup: Record<
 > = {
   'privacy-page': PrivacyPage,
   'imprint-page': ImprintPage,
+  'search-page': SearchPage,
   'blog-posts': BlogPostPage,
+  'timeline-posts': TimeLinePage,
   'generic-page': GenericPage,
 };
 
@@ -63,7 +67,7 @@ const reactComponentSlugLookup: Record<
  * are special and enforced to be globally available (e.g. imprint, privacy policy, etc.).
  *
  * The landing page is not handled by this lookup table, as it is a special case and is handled
- * separately in the `src/app/(frontend)/blog-posts.tsx` file.
+ * separately in the `src/app/(frontend)/page.tsx` file.
  *
  */
 export const globalsRouteLookupTable: GlobalRouteLookupTable =

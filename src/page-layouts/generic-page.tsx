@@ -3,10 +3,14 @@ import { getPayload } from 'payload';
 import config from '@payload-config';
 import { notFound } from 'next/navigation';
 import { LocalizedCollectionPage } from '@/page-layouts/localized-page';
-import { i18nConfig, Locale } from '@/middleware';
+import { i18nConfig, Locale } from '@/types';
 import { GenericPageConverter } from '@/converters/generic-page';
 
-export const GenericPage: React.FC<LocalizedCollectionPage> = async ({ slugs, locale }) => {
+export const GenericPage: React.FC<LocalizedCollectionPage> = async ({
+  slugs,
+  locale,
+  searchParams,
+}) => {
   const payload = await getPayload({ config });
   const slug = slugs.join('/');
 
@@ -30,7 +34,13 @@ export const GenericPage: React.FC<LocalizedCollectionPage> = async ({ slugs, lo
 
   // article found in current locale --> render
   if (articleInPrimaryLanguage !== undefined) {
-    return <GenericPageConverter page={articleInPrimaryLanguage} locale={locale} />;
+    return (
+      <GenericPageConverter
+        page={articleInPrimaryLanguage}
+        locale={locale}
+        searchParams={searchParams}
+      />
+    );
   }
 
   // fallback logic to find article in other locales

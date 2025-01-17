@@ -3,6 +3,8 @@ import { asLocalizedCollection } from '@/payload-cms/utils/localized-collection'
 import {
   bannerImage,
   blogArticleTitleField,
+  blogReleaseDate,
+  blogSearchKeywords,
   blogTeaserText,
 } from '@/payload-cms/collections/blog-article/fields';
 import { AdminPanelDashboardGroups } from '@/payload-cms/admin-panel-dashboard-groups';
@@ -42,7 +44,14 @@ export const BlogArticleCollection: CollectionConfig = asLocalizedCollection({
             de: 'Seiteninhalt',
             fr: 'Contenu',
           },
-          fields: [blogArticleTitleField, bannerImage, blogTeaserText, MainContentField],
+          fields: [
+            blogArticleTitleField,
+            bannerImage,
+            blogReleaseDate,
+            blogTeaserText,
+            MainContentField,
+            blogSearchKeywords,
+          ],
         },
         {
           name: 'seo',
