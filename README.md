@@ -1,4 +1,4 @@
-# Conveniat 2027 - Official Website
+# conveniat27 - Official Website
 
 See `conveniat27.ch` for the live version of the website.
 

@@ -1,12 +1,12 @@
 {
-  "name": "conveniat",
+  "name": "conveniat27",
   "version": "0.1.2",
   "author": "Cyrill Püntener v/o JPG (cyrill.puentener@cevi.ch)",
   "maintainers": [
     "Cyrill Püntener v/o JPG (cyrill.puentener@cevi.ch)",
     "Matthias Hüppi v/o Scirocco (scirocco@cevi.ch)"
   ],
-  "description": "The official website of the Conveniat 2027",
+  "description": "The official website of conveniat27",
   "license": "MIT",
   "type": "module",
   "scripts": {

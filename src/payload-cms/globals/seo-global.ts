@@ -26,18 +26,18 @@ export const SeoGlobal: GlobalConfig = {
       },
       required: true,
       defaultValue: localizedDefaultValue({
-        de: 'Conveniat 2027 - MIR SIND CEVI',
-        en: 'Conveniat 2027 - WE ARE CEVI',
-        fr: 'Conveniat 2027 - NOUS SOMMES LES UCS',
+        de: 'conveniat27 - MIR SIND CEVI',
+        en: 'conveniat27 - WE ARE CEVI',
+        fr: 'conveniat27 - NOUS SOMMES LES UCS',
       }),
     },
     {
       name: 'defaultDescription',
       label: 'Default Description',
       defaultValue: localizedDefaultValue({
-        de: 'Conveniat 2027 - MIR SIND CEVI',
-        en: 'Conveniat 2027 - WE ARE CEVI',
-        fr: 'Conveniat 2027 - NOUS SOMMES LES UCS',
+        de: 'conveniat27 - MIR SIND CEVI',
+        en: 'conveniat27 - WE ARE CEVI',
+        fr: 'conveniat27 - NOUS SOMMES LES UCS',
       }),
       admin: {
         description:
@@ -67,10 +67,10 @@ export const SeoGlobal: GlobalConfig = {
         },
       ],
       defaultValue: localizedDefaultValue({
-        de: [{ keyword: 'Conveniat 2027' }, { keyword: 'Cevi Schweiz' }, { keyword: 'Lager' }],
-        en: [{ keyword: 'Conveniat 2027' }, { keyword: 'Cevi Switzerland' }, { keyword: 'Camp' }],
+        de: [{ keyword: 'conveniat27' }, { keyword: 'Cevi Schweiz' }, { keyword: 'Lager' }],
+        en: [{ keyword: 'conveniat27' }, { keyword: 'Cevi Switzerland' }, { keyword: 'Camp' }],
         fr: [
-          { keyword: 'Conveniat 2027' },
+          { keyword: 'conveniat27' },
           { keyword: 'Unions Chrétiennes Suisses' },
           { keyword: 'Camp' },
         ],
@@ -85,9 +85,9 @@ export const SeoGlobal: GlobalConfig = {
       },
       required: true,
       defaultValue: localizedDefaultValue({
-        de: 'Conveniat · Cevi Schweiz',
-        en: 'Conveniat · Cevi Switzerland',
-        fr: 'Conveniat · Unions Chrétiennes Suisses',
+        de: 'conveniat27 · Cevi Schweiz',
+        en: 'conveniat27 · Cevi Switzerland',
+        fr: 'conveniat27 · Unions Chrétiennes Suisses',
       }),
     },
   ],

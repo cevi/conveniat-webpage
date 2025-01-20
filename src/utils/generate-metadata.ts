@@ -21,7 +21,7 @@ export const generateMetadata = async (): Promise<Metadata> => {
   return {
     title: {
       default: defaultTitle,
-      template: '%s | Conveniat 2027',
+      template: '%s | conveniat27',
     },
     description: defaultDescription,
     keywords: defaultKeywords.map((keyword) => keyword.keyword),

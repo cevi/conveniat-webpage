@@ -189,7 +189,7 @@ const emailSettings = ENABLE_MAIL
   ? {
       email: nodemailerAdapter({
         defaultFromAddress: 'no-reply@conveniat27.ch',
-        defaultFromName: 'Conveniat27',
+        defaultFromName: 'conveniat27',
         transportOptions: {
           host: SMTP_HOST,
           port: SMTP_PORT,
@@ -208,7 +208,7 @@ export const payloadConfig: RoutableConfig = {
     avatar: 'default',
     meta: {
       title: 'Admin Panel',
-      description: 'Conveniat 2027 - Admin Panel',
+      description: 'conveniat27 - Admin Panel',
       icons: [
         {
           rel: 'icon',
@@ -216,10 +216,10 @@ export const payloadConfig: RoutableConfig = {
           url: '/favicon.svg',
         },
       ],
-      titleSuffix: ' | Conveniat 2027',
+      titleSuffix: ' | conveniat27',
       openGraph: {
-        title: 'Conveniat 2027 - Admin Panel',
-        description: 'Conveniat 2027 - Admin Panel',
+        title: 'conveniat27 - Admin Panel',
+        description: 'conveniat27 - Admin Panel',
         images: [
           {
             url: '/favicon.svg',

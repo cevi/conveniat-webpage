@@ -20,7 +20,7 @@ export const lexicalPlaceholder: LexicalPlaceholder = {
             format: 0,
             mode: 'normal',
             style: '',
-            text: 'Conveniat 2027 - WIR SIND CEVI',
+            text: 'conveniat27 - WIR SIND CEVI',
             type: 'text',
             version: 1,
           },
