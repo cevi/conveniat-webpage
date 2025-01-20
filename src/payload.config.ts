@@ -57,6 +57,7 @@ const MINIO_BUCKET_NAME = process.env['MINIO_BUCKET_NAME'] ?? '';
 const MINIO_ACCESS_KEY_ID = process.env['MINIO_ACCESS_KEY_ID'] ?? '';
 const MINIO_SECRET_ACCESS_KEY = process.env['MINIO_SECRET_ACCESS_KEY'] ?? '';
 
+const ENABLE_MAIL = process.env['ENABLE_NODEMAILER'] === 'true';
 const SMTP_HOST = process.env['SMTP_HOST'] ?? '';
 const SMTP_PORT = process.env['SMTP_PORT'] ?? 0;
 const SMTP_USER = process.env['SMTP_USER'] ?? '';
@@ -169,6 +170,37 @@ const globalConfig: RoutableGlobalConfigs = [
   SeoGlobal,
   PWAGlobal,
 ];
+
+/**
+ * NodeMailer Adapter for sending emails via SMTP
+ * @see https://payloadcms.com/docs/email/overview
+ *
+ * Note: The following environment variables must be set in order to enable email sending:
+ * - ENABLE_NODEMAILER=true
+ * - SMTP_HOST
+ * - SMTP_PORT
+ * - SMTP_USER
+ * - SMTP_PASS
+ *
+ * By default, email sending is disabled for local development,
+ * it must be enabled using ENABLE_NODEMAILER.
+ */
+const emailSettings = ENABLE_MAIL
+  ? {
+      email: nodemailerAdapter({
+        defaultFromAddress: 'no-reply@conveniat27.ch',
+        defaultFromName: 'Conveniat27',
+        transportOptions: {
+          host: SMTP_HOST,
+          port: SMTP_PORT,
+          auth: {
+            user: SMTP_USER,
+            pass: SMTP_PASS,
+          },
+        },
+      }),
+    }
+  : {};
 
 export const payloadConfig: RoutableConfig = {
   onInit: onPayloadInit,
@@ -292,18 +324,7 @@ export const payloadConfig: RoutableConfig = {
     fallbackLanguage: 'en',
     supportedLanguages: { en, de, fr },
   },
-  email: nodemailerAdapter({
-    defaultFromAddress: 'no-reply@conveniat27.ch',
-    defaultFromName: 'Conveniat27',
-    transportOptions: {
-      host: SMTP_HOST,
-      port: SMTP_PORT,
-      auth: {
-        user: SMTP_USER,
-        pass: SMTP_PASS,
-      },
-    },
-  }),
+  ...emailSettings,
 };
 
 // export the config for PayloadCMS
