@@ -4,7 +4,6 @@ import React from 'react';
 import Image from 'next/image';
 import { BuildingBlocks, ContentBlock } from '@/converters/building-blocks';
 import { Locale, SearchParameters } from '@/types';
-import { RefreshRouteOnSave } from '@/components/refresh-preview';
 
 export const BlogArticle: React.FC<{
   article: Blog;
@@ -21,7 +20,6 @@ export const BlogArticle: React.FC<{
   const altText = article.content.bannerImage.alt;
   return (
     <>
-      <RefreshRouteOnSave />
       <article className="mx-auto my-8 max-w-2xl px-8">
         <div className="relative h-56 w-full">
           <Image src={source} alt={altText} fill={true} style={{ objectFit: 'contain' }} />
