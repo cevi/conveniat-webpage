@@ -29,7 +29,7 @@ services:
         - traefik.http.middlewares.conveniat27-to-non-www.redirectregex.permanent=true
 
     dns:
-      - 8.8.8.8  # Replace with your desired DNS server
+      - 8.8.8.8 # Replace with your desired DNS server
 
     ports:
       - '3000:3000'
@@ -60,9 +60,7 @@ services:
     image: minio/minio
 
     deploy:
-
       labels:
-
         - swarmpit.service.deployment.autoredeploy=true
         - traefik.enable=true
 
