@@ -44,12 +44,13 @@ export const blogReleaseDate: Field = {
     fr: 'Date de publication',
   },
   type: 'date',
-
   required: true,
   admin: {
     position: 'sidebar',
     date: {
       pickerAppearance: 'dayAndTime',
+      displayFormat: 'YYYY-MM-DD HH:mm',
+      timeIntervals: 15,
     },
   },
 };
