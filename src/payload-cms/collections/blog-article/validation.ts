@@ -27,7 +27,10 @@ export const blogArticleTitleValidation: TextFieldSingleValidation = (value, arg
 };
 
 export const slugValidation: TextFieldSingleValidation = (value, arguments_) => {
-  if (value === undefined || value === null || value === '') return 'Slug is required';
+  if (value === undefined || value === null) return 'Slug is required';
+
+  // for landing page we allow empty slug
+  if (value === '') return true;
 
   // slug can only contain lowercase letters, numbers, and hyphens
   if (!/^[a-z0-9-]+$/.test(value))

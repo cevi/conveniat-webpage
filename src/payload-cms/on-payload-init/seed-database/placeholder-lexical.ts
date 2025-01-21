@@ -1,12 +1,12 @@
 type LexicalPlaceholder = {
-  [p: string]: unknown;
-  root?: {
-    type?: string;
-    children?: ({ [p: string]: unknown; type?: string; version?: number } | undefined)[];
-    direction?: 'ltr' | 'rtl' | null;
-    format?: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-    indent?: number;
-    version?: number;
+  [k: string]: unknown;
+  root: {
+    type: string;
+    children: { [k: string]: unknown; type: string; version: number }[];
+    direction: 'ltr' | 'rtl' | null;
+    format: '' | 'left' | 'start' | 'center' | 'right' | 'end' | 'justify';
+    indent: number;
+    version: number;
   };
 };
 

@@ -1,9 +1,10 @@
-import { Payload } from 'payload';
+import { Payload, RequiredDataFromCollectionSlug } from 'payload';
 import { lexicalPlaceholder } from '@/payload-cms/on-payload-init/seed-database/placeholder-lexical';
 import { basicForm } from './all-types-form';
 import { basicBlog } from './blog-post';
 import { basicTimelineObject } from './timeline';
 import { readFileSync } from 'node:fs';
+
 /**
  * Seed the database with some initial data.
  * Seeding is only done if the database is empty and the environment is development.
@@ -72,54 +73,64 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     },
   });
 
-  await payload.updateGlobal({
-    slug: 'landingPage',
+  const landingPageContent: RequiredDataFromCollectionSlug<'generic-page'> = {
+    content: {
+      mainContent: [
+        {
+          blockType: 'richTextSection' as const,
+          richTextSection: lexicalPlaceholder,
+        },
+        {
+          blockType: 'formBlock' as const,
+          form: formID,
+        },
+        {
+          blockType: 'blogPostsOverview' as const,
+        },
+        {
+          blockType: 'youtubeEmbed' as const,
+          link: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        },
+      ],
+    },
+    seo: {
+      urlSlug: '',
+      metaTitle: 'conveniat27',
+      metaDescription: 'conveniat27',
+      keywords: '',
+    },
+    _localized_status: {
+      published: true,
+    },
+    _locale: 'de' as const,
+  };
+
+  const landingPage = await payload.create({
+    collection: 'generic-page',
     locale: 'de' as const,
     data: {
-      content: {
-        pageTeaser:
-          'Apparently we had reached a great height in the atmosphere, for the sky was a dead black, ' +
-          'and the stars had ceased to twinkle. By the same illusion which lifts the horizon of the ' +
-          'sea to the level of the spectato.',
-        pageTitle: 'conveniat27 - WIR SIND CEVI',
-        callToAction: {
-          link: '/',
-          linkText: 'Call to Action',
-        },
-        mainContent: [
-          {
-            blockType: 'richTextSection' as const,
-            richTextSection: lexicalPlaceholder,
-          },
-          {
-            blockType: 'formBlock' as const,
-            form: formID,
-          },
-          {
-            blockType: 'blogPostsOverview' as const,
-          },
-          {
-            blockType: 'youtubeEmbed' as const,
-            link: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-          },
-        ],
-      },
+      ...landingPageContent,
       _locale: 'de' as const,
     },
   });
 
-  const globalSlugs = ['imprint', 'data-privacy-statement'] as const;
-  for (const slug of globalSlugs) {
-    await payload.updateGlobal({
-      slug,
-      locale: 'de' as const,
-      data: {
-        content: {
-          pageTitle: slug,
-          mainContent: lexicalPlaceholder,
-        },
-        _locale: 'de' as const,
-      },
-    });
-  }
+  await payload.update({
+    collection: 'generic-page',
+    id: landingPage.id,
+    locale: 'en' as const,
+    data: {
+      ...landingPageContent,
+      _locale: 'en' as const,
+    },
+  });
+
+  await payload.update({
+    collection: 'generic-page',
+    id: landingPage.id,
+    locale: 'fr' as const,
+    data: {
+      ...landingPageContent,
+      _locale: 'fr' as const,
+    },
+  });
 };

@@ -1,9 +1,6 @@
 import React from 'react';
 import { notFound, redirect } from 'next/navigation';
-import {
-  collectionRouteLookupTable,
-  globalsRouteLookupTable,
-} from '@/page-layouts/router-lookup-table';
+import { collectionRouteLookupTable } from '@/page-layouts/router-lookup-table';
 import { Locale } from '@/types';
 
 /**
@@ -19,7 +16,7 @@ import { Locale } from '@/types';
  */
 const CMSPage: React.FC<{
   params: Promise<{
-    slugs: string[];
+    slugs: string[] | undefined;
     locale: Locale;
   }>;
   searchParams: Promise<{
@@ -37,35 +34,9 @@ const CMSPage: React.FC<{
       })
       .join('&');
 
-    /////////////////////////////////////
-    // check if slug is a global URL
-    /////////////////////////////////////
-    const url = slugs.join('/');
-
-    if (slugs[0] === 'admin') {
-      redirect(`/admin/${slugs.slice(1).join('/')}?${searchParametersString}`); // forward to admin page without locale
-    }
-
-    const page = globalsRouteLookupTable[url];
-    if (page?.locales.includes(locale) === true) {
-      return <page.component locale={locale} searchParams={searchParameters} />;
-    } else {
-      // redirect to alternative page if available
-      const alternative = page?.alternatives[locale];
-      if (alternative !== undefined) {
-        // make sure, that params after ? are not lost
-        redirect(`/${locale}/${alternative}?${searchParametersString}`);
-      }
-    }
-
-    /////////////////////////////////////
-    // check if slug is a collection URL
-    //  --> currently we only have blog
-    /////////////////////////////////////
-
     // check if part of a routable collection of the form [collection]/[slug]
-    const collection = slugs[0] as string;
-    const remainingSlugs = slugs.slice(1);
+    const collection = (slugs?.[0] ?? '') as string;
+    const remainingSlugs = slugs?.slice(1) ?? [];
 
     let collectionPage = collectionRouteLookupTable[collection];
     if (collectionPage === undefined && collectionRouteLookupTable[''] !== undefined) {

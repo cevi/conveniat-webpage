@@ -1,7 +1,6 @@
 import type { MetadataRoute } from 'next';
 import {
   collectionRouteLookupTable,
-  globalsRouteLookupTable,
   urlPrefixToCollectionSlug,
 } from '@/page-layouts/router-lookup-table';
 import { i18nConfig } from '@/types';
@@ -20,30 +19,6 @@ export const generateSitemap = async (): Promise<MetadataRoute.Sitemap> => {
   const payload = await getPayload({ config });
 
   const defaultLocale = i18nConfig.defaultLocale;
-
-  for (const [url, page] of Object.entries(globalsRouteLookupTable)) {
-    for (const locale of page.locales) {
-      const localePrefix = locale === defaultLocale ? '' : `${locale}`;
-
-      sitemap.push({
-        url: toURL([APP_HOST_URL, localePrefix, url]),
-        lastModified: new Date().toISOString(), // TODO: load from CMS
-        alternates: {
-          languages: {
-            ...(page.alternatives['de'] !== '' && {
-              de: toURL([APP_HOST_URL, 'de', page.alternatives['de']]),
-            }),
-            ...(page.alternatives['en'] !== '' && {
-              en: toURL([APP_HOST_URL, 'en', page.alternatives['en']]),
-            }),
-            ...(page.alternatives['fr'] !== '' && {
-              fr: toURL([APP_HOST_URL, 'fr', page.alternatives['fr']]),
-            }),
-          },
-        },
-      } as MetadataRoute.Sitemap[0]);
-    }
-  }
 
   for (const [urlPrefix, collection] of Object.entries(collectionRouteLookupTable)) {
     // add urlPrefix as it's own page to the sitemap
@@ -90,7 +65,7 @@ export const generateSitemap = async (): Promise<MetadataRoute.Sitemap> => {
 
         sitemap.push({
           // @ts-ignore
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+
           url: toURL([APP_HOST_URL, localePrefix, urlPrefix, elementURL]),
           lastModified: element.updatedAt,
           alternates: {
