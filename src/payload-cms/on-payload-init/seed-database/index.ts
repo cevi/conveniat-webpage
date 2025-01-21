@@ -81,7 +81,7 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
           'Apparently we had reached a great height in the atmosphere, for the sky was a dead black, ' +
           'and the stars had ceased to twinkle. By the same illusion which lifts the horizon of the ' +
           'sea to the level of the spectato.',
-        pageTitle: 'Conveniat 2027 - WIR SIND CEVI',
+        pageTitle: 'conveniat27 - WIR SIND CEVI',
         callToAction: {
           link: '/',
           linkText: 'Call to Action',

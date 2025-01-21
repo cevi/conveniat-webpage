@@ -19,7 +19,7 @@ export const PWAGlobal: GlobalConfig = {
       label: 'App Name',
       type: 'text',
       required: true,
-      defaultValue: 'Conveniat 2027',
+      defaultValue: 'conveniat27',
       admin: {
         readOnly: true,
         description:
@@ -32,7 +32,7 @@ export const PWAGlobal: GlobalConfig = {
       label: 'App Short Name',
       type: 'text',
       required: true,
-      defaultValue: 'Conveniat',
+      defaultValue: 'conveniat27',
       admin: {
         readOnly: true,
         description:
@@ -46,9 +46,9 @@ export const PWAGlobal: GlobalConfig = {
       type: 'textarea',
       required: true,
       defaultValue: localizedDefaultValue({
-        de: 'Conveniat 2027 - MIR SIND CEVI',
-        en: 'Conveniat 2027 - WE ARE CEVI',
-        fr: 'Conveniat 2027 - NOUS SOMMES LES UCS',
+        de: 'conveniat27 - MIR SIND CEVI',
+        en: 'conveniat27 - WE ARE CEVI',
+        fr: 'conveniat27 - NOUS SOMMES LES UCS',
       }),
       admin: {
         readOnly: true,

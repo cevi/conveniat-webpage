@@ -14,9 +14,9 @@ const PageTitleField: Field = {
   localized: true,
   required: true,
   defaultValue: localizedDefaultValue({
-    de: 'Conveniat 2027 - WIR SIND CEVI',
-    en: 'Conveniat 2027 - WE ARE CEVI',
-    fr: 'Conveniat 2027 - NOUS SOMMES LES UCS',
+    de: 'conveniat27 - WIR SIND CEVI',
+    en: 'conveniat27 - WE ARE CEVI',
+    fr: 'conveniat27 - NOUS SOMMES LES UCS',
   }),
   admin: {
     description: {
