@@ -1,5 +1,6 @@
 import React, { ReactNode } from 'react';
 import { CeviLogoGreen } from '@/components/svg-logos/cevi-logo-green';
+import { LOCALE } from '@/payload-cms/locales';
 
 export const NewsCard: React.FC<{
   children: ReactNode;
@@ -11,7 +12,7 @@ export const NewsCard: React.FC<{
       <div>
         <CeviLogoGreen className="mx-auto my-2 flex w-full" />
         <span className="font-body text-xs font-bold text-gray-500">
-          {new Date(date).toLocaleDateString('de', {
+          {new Date(date).toLocaleDateString(LOCALE.DE, {
             weekday: 'long',
             year: 'numeric',
             month: 'long',

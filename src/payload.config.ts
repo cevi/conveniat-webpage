@@ -22,7 +22,7 @@ import { ImageCollection } from '@/payload-cms/collections/image-collection';
 import { en } from 'payload/i18n/en';
 import { de } from 'payload/i18n/de';
 import { fr } from 'payload/i18n/fr';
-import { locales } from '@/payload-cms/locales';
+import { LOCALE, locales } from '@/payload-cms/locales';
 import { buildSecureConfig } from '@/payload-cms/access-rules/build-secure-config';
 import { FooterGlobal } from '@/payload-cms/globals/footer-global';
 import { SeoGlobal } from '@/payload-cms/globals/seo-global';
@@ -233,7 +233,7 @@ export const payloadConfig: RoutableConfig = {
   globals: globalConfig,
   localization: {
     locales,
-    defaultLocale: 'de',
+    defaultLocale: LOCALE.DE,
     fallback: false,
   },
   graphQL: {
@@ -282,7 +282,7 @@ export const payloadConfig: RoutableConfig = {
     }),
   ],
   i18n: {
-    fallbackLanguage: 'en',
+    fallbackLanguage: LOCALE.DE,
     supportedLanguages: { en, de, fr },
   },
   ...emailSettings,

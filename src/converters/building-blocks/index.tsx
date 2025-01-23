@@ -8,13 +8,15 @@ import { FormBlockType } from '@/components/form';
 import { ErrorBoundary } from 'react-error-boundary';
 import { PhotoCarousel, PhotoCarouselBlock } from '@/components/gallery';
 import { YoutubeEmbed } from '@/components/content-blocks/youtube-embed';
+import { HeroSection, HeroSectionType } from '@/components/content-blocks/hero-section';
 
 export type ContentBlockTypeNames =
   | 'blogPostsOverview'
   | 'richTextSection'
   | 'formBlock'
   | 'photoCarousel'
-  | 'youtubeEmbed';
+  | 'youtubeEmbed'
+  | 'heroSection';
 export type ContentBlock = {
   richTextSection?: SerializedEditorState;
   id?: string | null;
@@ -117,6 +119,22 @@ export const BuildingBlocks: React.FC<LocalizedPage & { blocks: ContentBlock[] }
               }
             >
               <YoutubeEmbed link={block.link ?? ''} />
+            </ErrorBoundary>
+          </section>
+        );
+      }
+
+      case 'heroSection': {
+        return (
+          <section key={block.id}>
+            <ErrorBoundary
+              fallback={
+                <ErrorFallback
+                  error={new Error('Failed to load hero section. Reload the page to try again.')}
+                />
+              }
+            >
+              <HeroSection {...(block as HeroSectionType)} />
             </ErrorBoundary>
           </section>
         );

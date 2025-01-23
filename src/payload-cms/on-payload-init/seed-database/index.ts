@@ -4,6 +4,7 @@ import { basicForm } from './all-types-form';
 import { basicBlog } from './blog-post';
 import { basicTimelineObject } from './timeline';
 import { readFileSync } from 'node:fs';
+import { LOCALE } from '@/payload-cms/locales';
 
 /**
  * Seed the database with some initial data.
@@ -58,7 +59,7 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
 
   await payload.updateGlobal({
     slug: 'header',
-    locale: 'de' as const,
+    locale: LOCALE.DE,
     data: {
       mainMenu: [
         {
@@ -74,6 +75,7 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
   });
 
   const landingPageContent: RequiredDataFromCollectionSlug<'generic-page'> = {
+    internalPageName: 'startseite',
     content: {
       mainContent: [
         {
@@ -102,35 +104,35 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     _localized_status: {
       published: true,
     },
-    _locale: 'de' as const,
+    _locale: LOCALE.DE,
   };
 
   const landingPage = await payload.create({
     collection: 'generic-page',
-    locale: 'de' as const,
+    locale: LOCALE.DE,
     data: {
       ...landingPageContent,
-      _locale: 'de' as const,
+      _locale: LOCALE.DE,
     },
   });
 
   await payload.update({
     collection: 'generic-page',
     id: landingPage.id,
-    locale: 'en' as const,
+    locale: LOCALE.EN,
     data: {
       ...landingPageContent,
-      _locale: 'en' as const,
+      _locale: LOCALE.EN,
     },
   });
 
   await payload.update({
     collection: 'generic-page',
     id: landingPage.id,
-    locale: 'fr' as const,
+    locale: LOCALE.FR,
     data: {
       ...landingPageContent,
-      _locale: 'fr' as const,
+      _locale: LOCALE.FR,
     },
   });
 };

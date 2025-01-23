@@ -1,4 +1,5 @@
 import { Timeline } from '@/payload-types';
+import { LOCALE } from '@/payload-cms/locales';
 
 export const basicTimelineObject: Timeline = {
   id: '6783e3524eb8bebdce04d3dd',
@@ -11,5 +12,5 @@ export const basicTimelineObject: Timeline = {
   _status: 'published',
   createdAt: '2025-01-12T15:44:18.621Z',
   updatedAt: '2025-01-12T15:44:22.745Z',
-  _locale: 'de' as const,
+  _locale: LOCALE.DE,
 };

@@ -130,6 +130,10 @@ export interface Blog {
   id: string;
   _localized_status: LocalizedPublishingStatus;
   _locale: string;
+  /**
+   * Name of the page for internal purposes.
+   */
+  internalPageName: string;
   content: {
     /**
      * This is the title that will be displayed on the page.
@@ -169,6 +173,25 @@ export interface Blog {
           id?: string | null;
           blockName?: string | null;
           blockType: 'blogPostsOverview';
+        }
+      | {
+          /**
+           * This is the teaser that will be displayed on the page.
+           */
+          pageTeaser: string;
+          callToAction: {
+            /**
+             * This is the call to action that will be displayed on the page.
+             */
+            linkText: string;
+            /**
+             * This is the link that the call to action will point to.
+             */
+            link: string;
+          };
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'heroSection';
         }
       | FormBlock
       | {
@@ -428,7 +451,15 @@ export interface GenericPage {
   id: string;
   _localized_status: LocalizedPublishingStatus1;
   _locale: string;
+  /**
+   * Name of the page for internal purposes.
+   */
+  internalPageName: string;
   content: {
+    /**
+     * This is the title that will be displayed on the page.
+     */
+    pageTitle: string;
     /**
      * The main content of the page
      */
@@ -457,6 +488,25 @@ export interface GenericPage {
           id?: string | null;
           blockName?: string | null;
           blockType: 'blogPostsOverview';
+        }
+      | {
+          /**
+           * This is the teaser that will be displayed on the page.
+           */
+          pageTeaser: string;
+          callToAction: {
+            /**
+             * This is the call to action that will be displayed on the page.
+             */
+            linkText: string;
+            /**
+             * This is the link that the call to action will point to.
+             */
+            link: string;
+          };
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'heroSection';
         }
       | FormBlock
       | {
@@ -730,6 +780,7 @@ export interface PayloadMigration {
 export interface BlogSelect<T extends boolean = true> {
   _localized_status?: T;
   _locale?: T;
+  internalPageName?: T;
   content?:
     | T
     | {
@@ -750,6 +801,19 @@ export interface BlogSelect<T extends boolean = true> {
               blogPostsOverview?:
                 | T
                 | {
+                    id?: T;
+                    blockName?: T;
+                  };
+              heroSection?:
+                | T
+                | {
+                    pageTeaser?: T;
+                    callToAction?:
+                      | T
+                      | {
+                          linkText?: T;
+                          link?: T;
+                        };
                     id?: T;
                     blockName?: T;
                   };
@@ -802,9 +866,11 @@ export interface YoutubeEmbeddingSelect<T extends boolean = true> {
 export interface GenericPageSelect<T extends boolean = true> {
   _localized_status?: T;
   _locale?: T;
+  internalPageName?: T;
   content?:
     | T
     | {
+        pageTitle?: T;
         mainContent?:
           | T
           | {
@@ -818,6 +884,19 @@ export interface GenericPageSelect<T extends boolean = true> {
               blogPostsOverview?:
                 | T
                 | {
+                    id?: T;
+                    blockName?: T;
+                  };
+              heroSection?:
+                | T
+                | {
+                    pageTeaser?: T;
+                    callToAction?:
+                      | T
+                      | {
+                          linkText?: T;
+                          link?: T;
+                        };
                     id?: T;
                     blockName?: T;
                   };

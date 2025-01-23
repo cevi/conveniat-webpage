@@ -9,6 +9,8 @@ import { RoutableConfig } from '@payload-config';
  * TODO: this function should validate that there are not two global pages
  *  with the same URL slug (how to handle different locales?)
  *
+ * TODO: validate that page has an SEO tab
+ *
  * @param config
  */
 export const dropRouteInfo = (config: RoutableConfig): Config => ({

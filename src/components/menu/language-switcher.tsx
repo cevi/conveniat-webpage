@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 import { Languages } from 'lucide-react';
 import { Locale } from '@/types';
 import { useClose } from '@headlessui/react';
+import { LOCALE } from '@/payload-cms/locales';
 
 /**
  * Simple Drop Down Menu that allows to switch between languages.
@@ -61,19 +62,19 @@ export const LanguageSwitcher: React.FC<{ locale: Locale }> = ({ locale }) => {
         <div className="flex flex-col gap-2 rounded-xl border-2 border-gray-200 bg-white p-3">
           <button
             className="px-4 py-2 hover:bg-gray-200"
-            onClick={() => handleLanguageChange('de')}
+            onClick={() => handleLanguageChange(LOCALE.DE)}
           >
             Deutsch
           </button>
           <button
             className="px-4 py-2 hover:bg-gray-200"
-            onClick={() => handleLanguageChange('en')}
+            onClick={() => handleLanguageChange(LOCALE.EN)}
           >
             English
           </button>
           <button
             className="px-4 py-2 hover:bg-gray-200"
-            onClick={() => handleLanguageChange('fr')}
+            onClick={() => handleLanguageChange(LOCALE.FR)}
           >
             Français
           </button>

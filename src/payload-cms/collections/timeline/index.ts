@@ -1,8 +1,8 @@
 import { AdminPanelDashboardGroups } from '@/payload-cms/admin-panel-dashboard-groups';
 import { asLocalizedCollection } from '@/payload-cms/utils/localized-collection';
 import { CollectionConfig } from 'payload';
-import { RichTextArticleBlock } from '@/payload-cms/shared-blocks/rich-text-article-block';
-import { PhotoCarouselBlock } from '@/payload-cms/shared-blocks/photo-carousel-block';
+import { richTextArticleBlock } from '@/payload-cms/shared-blocks/rich-text-article-block';
+import { photoCarouselBlock } from '@/payload-cms/shared-blocks/photo-carousel-block';
 
 export const TimelineCollection: CollectionConfig = asLocalizedCollection({
   slug: 'timeline',
@@ -63,7 +63,7 @@ export const TimelineCollection: CollectionConfig = asLocalizedCollection({
           fr: 'Le contenu principal de la page',
         },
       },
-      blocks: [RichTextArticleBlock, PhotoCarouselBlock],
+      blocks: [richTextArticleBlock, photoCarouselBlock],
     },
   ],
 });

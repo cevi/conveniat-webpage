@@ -1,6 +1,6 @@
 import { Field } from 'payload';
 
-export const MetaTitle: Field = {
+export const metaTitle: Field = {
   name: 'metaTitle',
   label: 'Meta Title',
   type: 'text',

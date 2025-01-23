@@ -1,9 +1,11 @@
 import { Blog } from '@/payload-types';
+import { LOCALE } from '@/payload-cms/locales';
 
 export const basicBlog = (imageID: string): Blog => {
   return {
     id: '6783df844eb8bebdce04d1b8',
-    _locale: 'de' as const,
+    _locale: LOCALE.DE,
+    internalPageName: 'blog1',
     content: {
       releaseDate: '2025-01-01T01:00:00.000Z',
       blogH1: 'Hallo und Willkommen!',

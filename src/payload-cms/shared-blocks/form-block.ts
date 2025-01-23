@@ -1,6 +1,6 @@
 import { Block } from 'payload';
 
-export const FormBlock: Block = {
+export const formBlock: Block = {
   slug: 'formBlock',
   interfaceName: 'FormBlock',
   fields: [

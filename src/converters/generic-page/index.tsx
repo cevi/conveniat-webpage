@@ -12,7 +12,7 @@ export const GenericPageConverter: React.FC<{
   return (
     <>
       <article className="mx-auto my-8 max-w-2xl px-8">
-        <HeadlineH1>This is a Generic Page</HeadlineH1>
+        <HeadlineH1>{page.content.pageTitle}</HeadlineH1>
         <BuildingBlocks
           blocks={page.content.mainContent as ContentBlock[]}
           locale={locale}

@@ -1,11 +1,10 @@
 import { CollectionConfig } from 'payload';
 import { asLocalizedCollection } from '@/payload-cms/utils/localized-collection';
 import { AdminPanelDashboardGroups } from '@/payload-cms/admin-panel-dashboard-groups';
-import { MainContentField } from '@/payload-cms/shared-fields/main-content-field';
-import { MetaTitle } from '@/payload-cms/shared-fields/meta-title';
-import { MetaDescription } from '@/payload-cms/shared-fields/meta-description';
-import { MetaKeywords } from '@/payload-cms/shared-fields/meta-keywords';
-import { slugValidation } from '@/payload-cms/collections/blog-article/validation';
+import { mainContentField } from '@/payload-cms/shared-fields/main-content-field';
+import { internalPageNameField } from '@/payload-cms/shared-fields/internal-page-name-field';
+import { seoTab } from '@/payload-cms/shared-tabs/seo-tab';
+import { pageTitleField } from '@/payload-cms/shared-fields/page-title-field';
 
 export const GenericPage: CollectionConfig = asLocalizedCollection({
   slug: 'generic-page',
@@ -13,10 +12,13 @@ export const GenericPage: CollectionConfig = asLocalizedCollection({
     singular: 'Page',
     plural: 'Pages',
   },
+  defaultSort: 'internalPageName',
   admin: {
     group: AdminPanelDashboardGroups.Pages,
+    useAsTitle: 'internalPageName',
   },
   fields: [
+    internalPageNameField,
     {
       type: 'tabs',
       tabs: [
@@ -27,30 +29,9 @@ export const GenericPage: CollectionConfig = asLocalizedCollection({
             de: 'Seiteninhalt',
             fr: 'Contenu',
           },
-          fields: [MainContentField],
+          fields: [pageTitleField, mainContentField],
         },
-        {
-          name: 'seo',
-          label: {
-            en: 'SEO',
-            de: 'SEO',
-            fr: 'SEO',
-          },
-          fields: [
-            {
-              name: 'urlSlug',
-              label: 'URL Slug',
-              type: 'text',
-              localized: true,
-              required: true,
-              validate: slugValidation,
-            },
-
-            MetaTitle,
-            MetaDescription,
-            MetaKeywords,
-          ],
-        },
+        seoTab,
       ],
     },
   ],

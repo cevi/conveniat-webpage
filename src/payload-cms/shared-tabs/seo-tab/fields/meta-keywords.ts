@@ -1,6 +1,6 @@
 import { Field } from 'payload';
 
-export const MetaKeywords: Field = {
+export const metaKeywords: Field = {
   name: 'keywords',
   label: 'Keywords',
   type: 'text',

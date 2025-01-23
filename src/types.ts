@@ -1,10 +1,11 @@
 import { Config } from 'next-i18n-router/dist/types';
+import { LOCALE } from '@/payload-cms/locales';
 
-const locales = ['en', 'de', 'fr'] as const;
+const locales = Object.values(LOCALE);
 
 export const i18nConfig: Config = {
   locales: locales,
-  defaultLocale: 'de',
+  defaultLocale: LOCALE.DE,
   serverSetCookie: 'always',
 };
 
