@@ -1,7 +1,7 @@
 import { Field } from 'payload';
 
 const callToActionField: Field = {
-  name: 'linkText',
+  name: 'linkLabel',
   label: 'Call to Action',
   type: 'text',
   localized: true,

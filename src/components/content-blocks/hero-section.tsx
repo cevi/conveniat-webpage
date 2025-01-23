@@ -8,7 +8,7 @@ export type HeroSectionType = {
   pageTeaser: string;
   callToAction: {
     link: string;
-    linkText: string;
+    linkLabel: string;
   };
 };
 
@@ -16,7 +16,7 @@ export const HeroSection: React.FC<HeroSectionType> = async ({ ...block }) => {
   return (
     <>
       <TeaserText>{block.pageTeaser}</TeaserText>
-      <CallToAction href={block.callToAction.link}>{block.callToAction.linkText}</CallToAction>
+      <CallToAction href={block.callToAction.link}>{block.callToAction.linkLabel}</CallToAction>
     </>
   );
 };

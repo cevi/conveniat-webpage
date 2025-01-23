@@ -77,7 +77,21 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
   const landingPageContent: RequiredDataFromCollectionSlug<'generic-page'> = {
     internalPageName: 'startseite',
     content: {
+      pageTitle: 'conveniat27 - WIR SIND CEVI',
       mainContent: [
+        {
+          blockType: 'heroSection' as const,
+          pageTeaser:
+            'Im Jahr 2009 hat im Jura das erste und bisher einzige nationale Zeltlager des Cevi Schweiz stattgefunden. ' +
+            'Fast 4000 junge Menschen aus der gesamten Schweiz sind zusammengekommen, um die verschiedenen Facetten des ' +
+            'Cevi zu feiern und gemeinsam eine grossartige Zeit zu haben. Neben unvergänglichen Erinnerungen wurden viele ' +
+            'Freundschaften über alle Landesteile hinweg geschlossen und die nationale Identität des Cevi gestärkt sowie ' +
+            'die grundlegenden sozialen und christlich geprägten Werte gepflegt.',
+          callToAction: {
+            linkLabel: 'Mehr erfahren',
+            link: '/zeitstrahl',
+          },
+        },
         {
           blockType: 'richTextSection' as const,
           richTextSection: lexicalPlaceholder,

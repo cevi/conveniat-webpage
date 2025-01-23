@@ -183,7 +183,7 @@ export interface Blog {
             /**
              * This is the call to action that will be displayed on the page.
              */
-            linkText: string;
+            linkLabel: string;
             /**
              * This is the link that the call to action will point to.
              */
@@ -498,7 +498,7 @@ export interface GenericPage {
             /**
              * This is the call to action that will be displayed on the page.
              */
-            linkText: string;
+            linkLabel: string;
             /**
              * This is the link that the call to action will point to.
              */
@@ -811,7 +811,7 @@ export interface BlogSelect<T extends boolean = true> {
                     callToAction?:
                       | T
                       | {
-                          linkText?: T;
+                          linkLabel?: T;
                           link?: T;
                         };
                     id?: T;
@@ -894,7 +894,7 @@ export interface GenericPageSelect<T extends boolean = true> {
                     callToAction?:
                       | T
                       | {
-                          linkText?: T;
+                          linkLabel?: T;
                           link?: T;
                         };
                     id?: T;
