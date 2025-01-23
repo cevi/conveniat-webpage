@@ -2,6 +2,24 @@ import { GlobalConfig } from 'payload';
 import { AdminPanelDashboardGroups } from '@/payload-cms/admin-panel-dashboard-groups';
 import { localizedDefaultValue } from '@/payload-cms/utils/localized-default-value';
 
+const googleSearchConsoleVerificationValidation = (
+  value: string | null | undefined,
+): true | string => {
+  if (value === undefined || value === null || value === '') return true;
+
+  const disallowedCharacters = ['<', '>', '/', '"', '='];
+
+  if (
+    disallowedCharacters.some((disallowedCharacter) => {
+      return value.includes(disallowedCharacter);
+    })
+  ) {
+    return 'Please paste only the content of the meta tag, not the whole meta tag.';
+  }
+
+  return true;
+};
+
 export const SeoGlobal: GlobalConfig = {
   slug: 'SEO',
   label: 'SEO Settings',
@@ -89,6 +107,19 @@ export const SeoGlobal: GlobalConfig = {
         en: 'conveniat27 · Cevi Switzerland',
         fr: 'conveniat27 · Unions Chrétiennes Suisses',
       }),
+    },
+    {
+      name: 'googleSearchConsoleVerification',
+      label: 'Google Search Console Verification (HTML Tag)',
+      type: 'text',
+      admin: {
+        description:
+          'The HTML tag for Google Search Console verification. This tag is used to verify the ' +
+          'ownership of the website in Google Search Console. Please paste only the content of the ' +
+          'meta tag, not the whole meta, e.g. "gabchedl45s56dsaJKHfg_12M"',
+      },
+      required: false,
+      validate: googleSearchConsoleVerificationValidation,
     },
   ],
 };

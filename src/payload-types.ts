@@ -1265,6 +1265,10 @@ export interface SEO {
    * The content publisher
    */
   publisher: string;
+  /**
+   * The HTML tag for Google Search Console verification. This tag is used to verify the ownership of the website in Google Search Console. Please paste only the content of the meta tag, not the whole meta, e.g. "gabchedl45s56dsaJKHfg_12M"
+   */
+  googleSearchConsoleVerification?: string | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -1343,6 +1347,7 @@ export interface SEOSelect<T extends boolean = true> {
         id?: T;
       };
   publisher?: T;
+  googleSearchConsoleVerification?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
