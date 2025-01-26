@@ -45,7 +45,7 @@ export const generateMetadata = async (): Promise<Metadata> => {
 
     appleWebApp: {
       title: appName,
-      statusBarStyle: 'black-translucent',
+      statusBarStyle: 'black',
     },
 
     alternates: {
