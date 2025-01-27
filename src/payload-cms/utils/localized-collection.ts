@@ -20,7 +20,7 @@ export const asLocalizedCollection = (config: CollectionConfig): CollectionConfi
         beforeList: [
           // disable publishing and unpublishing action for list view
           // and remove the Edit Many action
-          '@/payload-cms/components/disable-many-actions/index',
+          '@/payload-cms/components/disable-actions/disable-many-actions',
         ],
         edit: {
           ...config.admin?.components?.edit,
