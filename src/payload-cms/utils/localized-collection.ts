@@ -17,6 +17,11 @@ export const asLocalizedCollection = (config: CollectionConfig): CollectionConfi
       ...config.admin,
       components: {
         ...config.admin?.components,
+        beforeList: [
+          // disable publishing and unpublishing action for list view
+          // and remove the Edit Many action
+          '@/payload-cms/components/disable-many-actions/index',
+        ],
         edit: {
           ...config.admin?.components?.edit,
           // modify the Publish button to publish only the current locale
