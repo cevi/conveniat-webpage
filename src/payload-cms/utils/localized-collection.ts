@@ -91,6 +91,7 @@ export const asLocalizedCollection = (config: CollectionConfig): CollectionConfi
           components: {
             Field: '@/payload-cms/components/qr-code/qr-code',
           },
+          disableListColumn: true,
         },
       },
 
