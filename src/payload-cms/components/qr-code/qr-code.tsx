@@ -1,7 +1,7 @@
 'use client';
 
 import { FormSubmit, useDocumentInfo, useLocale } from '@payloadcms/ui';
-import { useCallback, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { serverSideSlugToUrlResolution } from '@/utils/find-url-prefix';
 import { CollectionSlug } from 'payload';
 import { Locale } from '@/types';
