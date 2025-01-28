@@ -73,3 +73,14 @@ export const urlPrefixToCollectionSlug = (urlPrefix: string): CollectionSlug | u
       .collectionSlug ?? undefined
   );
 };
+
+export const findPrefixByCollectionSlugAndLocale = (
+  collectionSlug: CollectionSlug,
+  locale: Locale,
+): string => {
+  return (
+    Object.entries(collectionRouteLookupTable).find(
+      (entry) => entry[1].collectionSlug === collectionSlug && entry[1].locales.includes(locale),
+    )?.[0] ?? ''
+  );
+};

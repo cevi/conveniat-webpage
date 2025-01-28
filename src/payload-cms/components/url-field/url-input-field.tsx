@@ -1,6 +1,8 @@
 import React from 'react';
-import type { TextFieldClientComponent } from 'payload';
-import { collectionRouteLookupTable } from '@/page-layouts/router-lookup-table';
+import { CollectionSlug, TextFieldLabelServerComponent } from 'payload';
+import { findPrefixByCollectionSlugAndLocale } from '@/page-layouts/router-lookup-table';
+import { Locale } from '@/types';
+import { LOCALE } from '@/payload-cms/locales';
 
 /**
  * Approximates the width of a string of text in a given font size. This is a hacky solution that
@@ -39,13 +41,23 @@ const measureText = (string_: string, fontSize: number): number => {
   );
 };
 
-const CustomTextFieldClient: TextFieldClientComponent = ({ path, schemaPath }) => {
-  const slug = schemaPath?.split('.')[0] ?? '';
-  const inputFieldId = `field-${path.replaceAll('.', '__')}`;
-  const prefix = `/${collectionRouteLookupTable[slug]?.['collectionSlug'] ?? ''}/`.replaceAll(
-    /\/+/g,
-    '/',
-  );
+/**
+ *
+ * Adds a prefix to the URL slug field in the admin interface.
+ * Displaying the URL for the current locale and collection.
+ *
+ * @param arguments_
+ * @constructor
+ */
+const urlSlugPrefixField: TextFieldLabelServerComponent = (arguments_) => {
+  const { collectionSlug, path, req } = arguments_;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  const locale = ((req as never)['locale'] ?? LOCALE.DE) as Locale;
+  const slug: CollectionSlug = collectionSlug as unknown as CollectionSlug;
+  const inputFieldId = `field-${path?.replaceAll('.', '__')}`;
+
+  const prefix_slug = findPrefixByCollectionSlugAndLocale(slug as CollectionSlug, locale);
+  const prefix = `/${locale === LOCALE.DE ? '' : locale}/${prefix_slug}/`.replaceAll(/\/+/g, '/');
 
   return (
     <>
@@ -61,4 +73,4 @@ const CustomTextFieldClient: TextFieldClientComponent = ({ path, schemaPath }) =
   );
 };
 
-export default CustomTextFieldClient;
+export default urlSlugPrefixField;
