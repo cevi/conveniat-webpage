@@ -128,6 +128,15 @@ export interface UserAuthOperations {
  */
 export interface Blog {
   id: string;
+  publishingStatus?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   _localized_status: LocalizedPublishingStatus;
   _locale: string;
   /**
@@ -449,6 +458,15 @@ export interface YoutubeEmbedding {
  */
 export interface GenericPage {
   id: string;
+  publishingStatus?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   _localized_status: LocalizedPublishingStatus1;
   _locale: string;
   /**
@@ -552,6 +570,15 @@ export interface LocalizedPublishingStatus1 {
  */
 export interface Timeline {
   id: string;
+  publishingStatus?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   _localized_status: LocalizedPublishingStatus2;
   _locale: string;
   date: string;
@@ -778,6 +805,7 @@ export interface PayloadMigration {
  * via the `definition` "blog_select".
  */
 export interface BlogSelect<T extends boolean = true> {
+  publishingStatus?: T;
   _localized_status?: T;
   _locale?: T;
   internalPageName?: T;
@@ -864,6 +892,7 @@ export interface YoutubeEmbeddingSelect<T extends boolean = true> {
  * via the `definition` "generic-page_select".
  */
 export interface GenericPageSelect<T extends boolean = true> {
+  publishingStatus?: T;
   _localized_status?: T;
   _locale?: T;
   internalPageName?: T;
@@ -928,6 +957,7 @@ export interface GenericPageSelect<T extends boolean = true> {
  * via the `definition` "timeline_select".
  */
 export interface TimelineSelect<T extends boolean = true> {
+  publishingStatus?: T;
   _localized_status?: T;
   _locale?: T;
   date?: T;

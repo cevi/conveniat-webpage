@@ -1,5 +1,6 @@
 import { CollectionConfig } from 'payload';
 import { localizedStatusSchema } from '@/payload-cms/utils/localized-status-schema';
+import { getPublishingStatus } from '@/payload-cms/hooks/publishing-status';
 
 /**
  * This is a utility function that adds the necessary fields to a collection to make it localized.
@@ -13,7 +14,12 @@ import { localizedStatusSchema } from '@/payload-cms/utils/localized-status-sche
 export const asLocalizedCollection = (config: CollectionConfig): CollectionConfig => {
   return {
     ...config, // we keep most of the original collection configuration
+    defaultPopulate: {
+      ...config.defaultPopulate,
+      versions: false,
+    },
     admin: {
+      defaultColumns: ['id', 'publishingStatus', 'title'],
       ...config.admin,
       components: {
         ...config.admin?.components,
@@ -31,13 +37,17 @@ export const asLocalizedCollection = (config: CollectionConfig): CollectionConfi
     },
     fields: [
       {
-        name: 'Versions',
-        type: 'ui',
+        name: 'publishingStatus',
+        type: 'json',
         admin: {
           components: {
-            // adds the publishing status to the top of the edit page
             Field: '@/payload-cms/components/multi-lang-publishing/publishing-status',
+            Cell: '@/payload-cms/components/multi-lang-publishing/publishing-status',
           },
+        },
+        virtual: true,
+        hooks: {
+          afterRead: [getPublishingStatus(config)],
         },
       },
 
