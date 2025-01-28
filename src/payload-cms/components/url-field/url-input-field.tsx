@@ -46,11 +46,8 @@ const measureText = (string_: string, fontSize: number): number => {
  * Adds a prefix to the URL slug field in the admin interface.
  * Displaying the URL for the current locale and collection.
  *
- * @param arguments_
- * @constructor
  */
-const urlSlugPrefixField: TextFieldLabelServerComponent = (arguments_) => {
-  const { collectionSlug, path, req } = arguments_;
+const urlSlugPrefixField: TextFieldLabelServerComponent = ({ collectionSlug, path, req }) => {
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const locale = ((req as never)['locale'] ?? LOCALE.DE) as Locale;
   const slug: CollectionSlug = collectionSlug as unknown as CollectionSlug;
