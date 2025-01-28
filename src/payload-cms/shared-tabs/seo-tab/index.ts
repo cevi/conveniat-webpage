@@ -26,6 +26,7 @@ export const seoTab: Tab = {
       localized: true,
       required: true,
       validate: slugValidation,
+      unique: true,
       admin: {
         components: {
           beforeInput: ['@/payload-cms/components/url-field/url-input-field'],
