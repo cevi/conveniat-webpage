@@ -63,7 +63,9 @@ const QRCode: React.FC = () => {
           className=""
           buttonId="generate-qr"
           disabled={!isPublished}
-          onClick={() => generateQR()}
+          onClick={() => {
+            generateQR().catch(console.error);
+          }}
           size="medium"
           type="button"
         >
