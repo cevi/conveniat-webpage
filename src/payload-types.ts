@@ -138,6 +138,7 @@ export interface Blog {
     | boolean
     | null;
   _localized_status: LocalizedPublishingStatus;
+  _disable_unpublishing?: boolean | null;
   _locale: string;
   /**
    * Name of the page for internal purposes.
@@ -468,6 +469,7 @@ export interface GenericPage {
     | boolean
     | null;
   _localized_status: LocalizedPublishingStatus1;
+  _disable_unpublishing?: boolean | null;
   _locale: string;
   /**
    * Name of the page for internal purposes.
@@ -580,6 +582,7 @@ export interface Timeline {
     | boolean
     | null;
   _localized_status: LocalizedPublishingStatus2;
+  _disable_unpublishing?: boolean | null;
   _locale: string;
   date: string;
   /**
@@ -807,6 +810,7 @@ export interface PayloadMigration {
 export interface BlogSelect<T extends boolean = true> {
   publishingStatus?: T;
   _localized_status?: T;
+  _disable_unpublishing?: T;
   _locale?: T;
   internalPageName?: T;
   content?:
@@ -894,6 +898,7 @@ export interface YoutubeEmbeddingSelect<T extends boolean = true> {
 export interface GenericPageSelect<T extends boolean = true> {
   publishingStatus?: T;
   _localized_status?: T;
+  _disable_unpublishing?: T;
   _locale?: T;
   internalPageName?: T;
   content?:
@@ -959,6 +964,7 @@ export interface GenericPageSelect<T extends boolean = true> {
 export interface TimelineSelect<T extends boolean = true> {
   publishingStatus?: T;
   _localized_status?: T;
+  _disable_unpublishing?: T;
   _locale?: T;
   date?: T;
   title?: T;

@@ -101,6 +101,7 @@ export const useIsPublished = <
   isLoading: boolean;
   isPublished: Record<LocaleType, boolean> | undefined;
   error: Error | undefined;
+  canUnpublish: boolean;
 } => {
   const [error, setError] = useState<Error | undefined>();
   const [isLoading, setIsLoading] = useState(false);
@@ -110,14 +111,13 @@ export const useIsPublished = <
     error: _error,
     doc: _document,
     isLoading: _isLoading,
-    isGlobal: _isGlobal,
   } = useLocalizedDocument<T>({ draft: false });
 
   useEffect(() => {
     setError(_error);
     setIsLoading(_isLoading);
 
-    if (_document && !_isGlobal) {
+    if (_document) {
       const published = localesDefinition
         .map((l: Locale) => l.code)
         // eslint-disable-next-line unicorn/no-array-reduce
@@ -131,13 +131,14 @@ export const useIsPublished = <
         }, {});
       setIsPublished(published as LocalizedStatus);
     }
+  }, [_document, _error, _isLoading]);
 
-    // globals cannot be unpublished
-    if (_isGlobal) {
-      // TODO: map over localesDefinition instead of hardcoding the locales
-      setIsPublished({ en: true, de: true, fr: true });
-    }
-  }, [_document, _error, _isGlobal, _isLoading]);
-
-  return { isPublished, isLoading, error };
+  return {
+    isPublished,
+    isLoading,
+    error,
+    canUnpublish:
+      (_document as { _disable_unpublishing?: boolean } | undefined)?.['_disable_unpublishing'] ===
+      false,
+  };
 };

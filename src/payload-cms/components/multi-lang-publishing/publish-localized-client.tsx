@@ -172,7 +172,7 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = () => {
     [api, collectionSlug, globalSlug, id, serverURL, submit],
   );
 
-  const { isPublished } = useIsPublished();
+  const { isPublished, canUnpublish } = useIsPublished();
 
   // we ignore the publishing state for global documents
   // this we check if the globalSlug not set
@@ -196,7 +196,7 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = () => {
     <div className="flex gap-2">
       {
         // global documents cannot be unpublished
-        globalSlug === undefined && (
+        globalSlug === undefined && canUnpublish && (
           <FormSubmit
             className={unpublishClasses()}
             buttonId="action-save"

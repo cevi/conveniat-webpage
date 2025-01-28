@@ -76,6 +76,8 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
 
   const landingPageContent: RequiredDataFromCollectionSlug<'generic-page'> = {
     internalPageName: 'startseite',
+    _disable_unpublishing: true,
+    _status: 'published',
     content: {
       pageTitle: 'conveniat27 - WIR SIND CEVI',
       mainContent: [
