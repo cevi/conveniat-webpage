@@ -6,7 +6,7 @@ import { LOCALE } from '@/payload-cms/locales';
 
 /**
  * Approximates the width of a string of text in a given font size. This is a hacky solution that
- * uses a precomputed table of character widths
+ * uses a precomputed table of character widths.
  *
  * Code was originally posted here: https://stackoverflow.com/a/48172630
  *
@@ -63,11 +63,13 @@ const urlSlugPrefixField: TextFieldLabelServerComponent = (arguments_) => {
     <>
       <span className="absolute m-3 text-gray-400">{prefix}</span>
       <style>
-        {`
-          #${inputFieldId} {
-            padding-left: ${measureText(prefix, 13) + 10}px;
-          }
-        `}
+        {
+          /*
+           * Adding padding like this using a static width calculation is not ideal, but it's the
+           * only way to achieve this without modifying the Payload source code.
+           */
+          `#${inputFieldId} { padding-left: ${measureText(prefix, 13) + 10}px; }`
+        }
       </style>
     </>
   );
