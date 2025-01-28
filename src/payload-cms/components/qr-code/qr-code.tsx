@@ -62,7 +62,7 @@ const QRCode: React.FC = () => {
         <FormSubmit
           className=""
           buttonId="generate-qr"
-          disabled={!isPublished}
+          disabled={!Boolean(isPublished)}
           onClick={() => {
             generateQR().catch(console.error);
           }}
@@ -72,7 +72,7 @@ const QRCode: React.FC = () => {
           Generate QR Code for {locale}
         </FormSubmit>
       </div>
-      {imageData && <img src={imageData} height="100" width="100" />}
+      {imageData !== '' && <img src={imageData} height="100" width="100" alt="link-qr-code" />}
     </div>
   );
 };

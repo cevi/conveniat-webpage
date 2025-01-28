@@ -105,7 +105,7 @@ export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties)
         if (confirmationType === 'redirect' && redirect) {
           const { url } = redirect;
           const redirectURL = url;
-          if (redirectURL) router.push(redirectURL);
+          if (redirectURL !== '') router.push(redirectURL);
         }
       } catch (error_) {
         console.warn(error_);

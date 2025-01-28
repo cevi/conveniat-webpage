@@ -19,7 +19,7 @@ export const SearchComponent: React.FC<{ locale: Locale }> = ({ locale }) => {
     event.preventDefault();
     const searchData = new FormData(event.currentTarget);
     const searchInput = searchData.get('searchInput') as string;
-    if (searchInput) {
+    if (searchInput !== '') {
       router.push(`/${locale as Locale}/search?q=${searchInput}`);
       router.refresh();
       close(); // close nav

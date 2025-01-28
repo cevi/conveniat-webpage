@@ -24,13 +24,13 @@ export const beforeSyncWithSearch: BeforeSync = async ({ originalDoc, searchDoc 
     ...searchDoc,
     seo: {
       ...seo,
-      slugUrl: seo?.slugURL || slugUrl,
+      slugUrl: seo?.slugURL ?? slugUrl,
     },
     content: {
       ...content,
-      blogH1: content?.blogH1 || blogH1,
-      blogShortTitle: content?.blogShortTitle || blogShortTitle,
-      blogSearchKeywords: content?.blogSearchKeywords || blogSearchKeywords,
+      blogH1: content?.blogH1 ?? blogH1,
+      blogShortTitle: content?.blogShortTitle ?? blogShortTitle,
+      blogSearchKeywords: content?.blogSearchKeywords ?? blogSearchKeywords,
     },
   };
 
