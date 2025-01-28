@@ -1,4 +1,4 @@
-import { CollectionConfig, FieldAccess } from 'payload';
+import { CollectionConfig } from 'payload';
 import { localizedStatusSchema } from '@/payload-cms/utils/localized-status-schema';
 import { getPublishingStatus } from '@/payload-cms/hooks/publishing-status';
 
@@ -82,21 +82,13 @@ export const asLocalizedCollection = (config: CollectionConfig): CollectionConfi
         admin: {
           disabled: true,
         },
-        access: {
-          update: (({ doc }): boolean =>
-            (doc as { _disable_unpublishing: boolean } | undefined)?.['_disable_unpublishing'] ===
-            false) as FieldAccess,
-        },
       },
 
       {
         name: '_disable_unpublishing',
         type: 'checkbox',
-        access: {
-          update: () => false,
-        },
         admin: {
-          hidden: true,
+          disabled: true,
         },
         localized: false,
         defaultValue: false,
