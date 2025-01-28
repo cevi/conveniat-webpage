@@ -68,9 +68,6 @@ export type RoutableCollectionConfig = {
   urlPrefix: {
     [locale in Locale]: string;
   };
-  /** Defines a unique identifier for the React component that should be used to render the page.
-   * This identifier is used to lookup the component in the `reactComponentSlugLookup` table. */
-  reactComponentSlug: 'blog-posts' | 'generic-page' | 'timeline-posts';
   /** The collection configuration that should be used to render the page. */
   payloadCollection: CollectionConfig;
 };
@@ -110,17 +107,14 @@ const collectionsConfig: RoutableCollectionConfigs = [
   // routable collections
   {
     urlPrefix: { de: 'blog', en: 'blog', fr: 'blog' },
-    reactComponentSlug: 'blog-posts',
     payloadCollection: BlogArticleCollection,
   },
   {
     urlPrefix: { de: '', en: '', fr: '' },
-    reactComponentSlug: 'generic-page',
     payloadCollection: GenericPageCollection,
   },
   {
     urlPrefix: { de: 'zeitstrahl', en: 'timeline', fr: 'chronologie' },
-    reactComponentSlug: 'timeline-posts',
     payloadCollection: TimelineCollection,
   },
 

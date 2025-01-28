@@ -26,6 +26,11 @@ export const seoTab: Tab = {
       localized: true,
       required: true,
       validate: slugValidation,
+      admin: {
+        components: {
+          beforeInput: ['@/payload-cms/components/url-field/url-input-field'],
+        },
+      },
     },
 
     metaTitle,

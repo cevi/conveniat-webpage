@@ -20,7 +20,7 @@ type CollectionRouteLookupTable = {
 
 /** The slugs that are used to identify the React components that
  * should be used to render the pages. */
-type PageSlug = RoutableCollectionConfig['reactComponentSlug'];
+type PageSlug = RoutableCollectionConfig['payloadCollection']['slug'];
 
 /**
  * Maps the pageSlugs to React components.
@@ -31,30 +31,25 @@ type PageSlug = RoutableCollectionConfig['reactComponentSlug'];
  * This way, the components are never imported when reading the PayloadConfig, and$
  * the generate:types script can generate the types correctly.
  */
-const reactComponentSlugLookup: Record<
-  PageSlug,
-  React.FC<LocalizedCollectionPage> | React.FC<LocalizedPage>
-> = {
-  'blog-posts': BlogPostPage,
-  'timeline-posts': TimeLinePage,
+const slugLookup: Record<PageSlug, React.FC<LocalizedCollectionPage> | React.FC<LocalizedPage>> = {
+  blog: BlogPostPage,
+  timeline: TimeLinePage,
   'generic-page': GenericPage,
 };
 
 export const collectionRouteLookupTable: CollectionRouteLookupTable =
   // eslint-disable-next-line complexity
   payloadConfig.collections?.reduce((routes, collection) => {
-    if ('urlPrefix' in collection && 'reactComponentSlug' in collection) {
-      const { urlPrefix, reactComponentSlug } = collection;
+    if ('urlPrefix' in collection) {
+      const { urlPrefix, payloadCollection } = collection;
       for (const [locale, prefix] of Object.entries(urlPrefix)) {
         const locales = [locale as Locale, ...(routes[prefix]?.locales ?? [])];
 
-        if (!(reactComponentSlug in reactComponentSlugLookup)) {
-          throw new Error(
-            `Component not found for reactComponentSlug: ${reactComponentSlug as string}`,
-          );
+        if (!(payloadCollection['slug'] in slugLookup)) {
+          throw new Error(`Component not found for slug: ${payloadCollection['slug'] as string}`);
         }
 
-        const component = reactComponentSlugLookup[reactComponentSlug];
+        const component = slugLookup[payloadCollection['slug']];
         if (prefix in routes && routes[prefix]?.component !== component) {
           throw new Error(
             `More than one component defined for the same collection prefix: ${prefix}`,
