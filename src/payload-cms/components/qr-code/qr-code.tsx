@@ -2,6 +2,9 @@
 
 import { FormSubmit, useDocumentInfo, useLocale } from '@payloadcms/ui';
 import { useCallback, useState } from 'react';
+import { serverSideSlugToUrlResolution } from '@/utils/find-url-prefix';
+import { CollectionSlug } from 'payload';
+import { Locale } from '@/types';
 
 const QRCode: React.FC = () => {
   const { collectionSlug, savedDocumentData } = useDocumentInfo();
@@ -11,10 +14,15 @@ const QRCode: React.FC = () => {
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
   const isPublished = savedDocumentData?.['_localized_status']?.['published'] || false;
-  const generateQR = useCallback(() => {
+  const generateQR = useCallback(async () => {
+    const path = await serverSideSlugToUrlResolution(
+      collectionSlug as CollectionSlug,
+      locale as Locale,
+    );
+
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
     const urlSlug: string = savedDocumentData?.['seo']?.['urlSlug'] || '';
-    const finalCollectionSlug: string = collectionSlug ? `/${collectionSlug}` : '';
+    const finalCollectionSlug: string = path ? `/${path}` : '';
     const finalUrlSlug: string = urlSlug.startsWith('/') ? urlSlug : `/${urlSlug || ''}`;
 
     // TODO: fix this instead of using hard-coded domain
