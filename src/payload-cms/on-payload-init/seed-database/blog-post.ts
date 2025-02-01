@@ -1,16 +1,20 @@
 import { Blog } from '@/payload-types';
 import { LOCALE } from '@/payload-cms/locales';
+import { generateRichTextSection } from '@/payload-cms/on-payload-init/seed-database/placeholder-lexical';
+import { fakerDE as faker } from '@faker-js/faker';
 
-export const basicBlog = (imageID: string): Blog => {
+export const basicBlog = (bannerImage: string, imageIds: string[]): Blog => {
+  const slug = faker.lorem.slug();
+
   return {
     id: '6783df844eb8bebdce04d1b8',
     _locale: LOCALE.DE,
-    internalPageName: 'blog1',
+    internalPageName: slug,
     content: {
       releaseDate: '2025-01-01T01:00:00.000Z',
-      blogH1: 'Hallo und Willkommen!',
-      blogShortTitle: 'Titel',
-      bannerImage: imageID,
+      blogH1: faker.lorem.sentence(),
+      blogShortTitle: faker.lorem.sentence(),
+      bannerImage: bannerImage,
       mainContent: [
         {
           blockType: 'richTextSection',
@@ -20,7 +24,7 @@ export const basicBlog = (imageID: string): Blog => {
               children: [
                 {
                   id: '6783df844eb8bebdce04d1c9',
-                  text: 'Random Blog Content!',
+                  text: faker.lorem.paragraph(),
                   type: 'text',
                   version: 1,
                 },
@@ -33,11 +37,20 @@ export const basicBlog = (imageID: string): Blog => {
             },
           },
         },
+        {
+          blockType: 'richTextSection' as const,
+          richTextSection: generateRichTextSection(),
+        },
+        {
+          blockType: 'photoCarousel',
+          images: imageIds,
+          id: '679cd696d513ff58014d2144',
+        },
       ],
       blogSearchKeywords: 'blog',
     },
     seo: {
-      urlSlug: 'blog1-de',
+      urlSlug: slug,
     },
     createdAt: '2025-01-01T01:00:00.000Z',
     updatedAt: '2025-01-01T01:00:00.000Z',

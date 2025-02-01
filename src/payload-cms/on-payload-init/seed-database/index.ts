@@ -1,10 +1,10 @@
 import { Payload, RequiredDataFromCollectionSlug } from 'payload';
-import { lexicalPlaceholder } from '@/payload-cms/on-payload-init/seed-database/placeholder-lexical';
+import { generateRichTextSection } from '@/payload-cms/on-payload-init/seed-database/placeholder-lexical';
 import { basicForm } from './all-types-form';
 import { basicBlog } from './blog-post';
 import { basicTimelineObject } from './timeline';
-import { readFileSync } from 'node:fs';
 import { LOCALE } from '@/payload-cms/locales';
+import { fakerDE as faker } from '@faker-js/faker';
 
 /**
  * Seed the database with some initial data.
@@ -31,31 +31,64 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     data: structuredClone(basicForm),
   });
 
-  const imageBuffer = readFileSync('public/web-app-manifest-512x512.png');
-  const { id: imageID } = await payload.create({
-    collection: 'images',
-    data: {
-      alt: 'Alternative Text',
-      updatedAt: '2025-01-01T01:00:00.000Z',
-      createdAt: '2025-01-01T01:00:00.000Z',
-    },
-    file: {
-      data: imageBuffer,
-      mimetype: 'image/png',
-      name: 'favicon.png',
-      size: 96,
-    },
-  });
+  // seed images
+  const listOfImageUrls = [
+    'https://www.cevi.ch/files/cevi/galerie/Konekta_2024/Konekta_5-min.jpg',
+    'https://www.cevi.ch/files/cevi/galerie/Konekta_2024/Konekta_40-min.jpg',
+    'https://www.cevi.ch/files/cevi/galerie/Konekta_2024/Konekta_11-min.jpg',
+    'https://www.cevi.ch/files/cevi/galerie/Konekta_2024/Konekta_1-min.jpg',
+    'https://www.cevi.ch/files/cevi/galerie/Konekta_2024/Konekta_17-min.jpg',
+    'https://www.cevi.ch/files/cevi/galerie/Konekta_2024/Konekta_23-min.jpg',
+    'https://www.cevi.ch/files/cevi/galerie/Konekta_2024/Konekta_18-min.jpg',
+    'https://www.cevi.ch/files/cevi/galerie/Konekta_2024/Konekta_22-min.jpg',
+    'https://www.cevi.ch/files/cevi/galerie/Konekta_2024/Konekta_25-min.jpg',
+    'https://www.cevi.ch/files/cevi/galerie/Konekta_2024/Konekta_26-min.jpg',
+    'https://www.cevi.ch/files/cevi/galerie/Konekta_2024/Konekta_14-min.jpg',
+    'https://www.cevi.ch/files/cevi/galerie/Konekta_2024/Konekta_21-min.jpg',
+  ];
+
+  const imageIds: string[] = [];
+
+  for (const imageUrl of listOfImageUrls) {
+    const image = await fetch(imageUrl);
+
+    const { id: imageID } = await payload.create({
+      collection: 'images',
+      data: {
+        alt: faker.lorem.sentence({ min: 5, max: 8 }),
+        updatedAt: '2025-01-01T01:00:00.000Z',
+        createdAt: '2025-01-01T01:00:00.000Z',
+        url: imageUrl,
+        imageCaption: faker.lorem.sentence({ min: 4, max: 6 }),
+      },
+      file: {
+        data: Buffer.from(await image.arrayBuffer()),
+        mimetype: 'image/jpeg',
+        name: 'image.jpg',
+        size: 0,
+      },
+    });
+
+    imageIds.push(imageID);
+  }
 
   await payload.create({
     collection: 'timeline',
     data: structuredClone(basicTimelineObject),
   });
 
-  await payload.create({
-    collection: 'blog',
-    data: structuredClone(basicBlog(imageID)),
-  });
+  const blockCount = 20;
+  for (let index = 0; index < blockCount; index++) {
+    const imageId = imageIds[index % imageIds.length];
+    if (imageId === undefined) {
+      throw new Error('Could not find image ID');
+    }
+
+    await payload.create({
+      collection: 'blog',
+      data: structuredClone(basicBlog(imageId, imageIds)),
+    });
+  }
 
   await payload.updateGlobal({
     slug: 'header',
@@ -96,7 +129,15 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
         },
         {
           blockType: 'richTextSection' as const,
-          richTextSection: lexicalPlaceholder,
+          richTextSection: generateRichTextSection(),
+        },
+        {
+          blockType: 'photoCarousel',
+          images: faker.helpers.shuffle(imageIds).slice(0, faker.number.int({ min: 4, max: 8 })),
+        },
+        {
+          blockType: 'richTextSection' as const,
+          richTextSection: generateRichTextSection(),
         },
         {
           blockType: 'formBlock' as const,
