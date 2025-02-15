@@ -2,6 +2,7 @@ import type { MetadataRoute } from 'next';
 import { getPayload } from 'payload';
 import config from '@payload-config';
 import { manifestIconDefinitions } from '@/utils/icon-definitions';
+import { LOCALE } from '@/payload-cms/locales';
 
 /**
  *
@@ -37,7 +38,7 @@ export const generateManifest = async (): Promise<MetadataRoute.Manifest> => {
     theme_color: '#FFF',
     icons: manifestIconDefinitions,
     dir: 'ltr',
-    lang: 'de', // TODO: how to support multiple languages?
+    lang: LOCALE.DE, // TODO: how to support multiple languages?
     orientation: 'portrait-primary',
     scope: APP_HOST_URL,
     prefer_related_applications: false,

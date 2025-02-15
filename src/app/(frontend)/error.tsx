@@ -3,20 +3,20 @@ import React from 'react';
 import { HeadlineH1 } from '@/components/typography/headline-h1';
 import { TeaserText } from '@/components/typography/teaser-text';
 import Link from 'next/link';
-import { i18nConfig, Locale } from '@/types';
+import { i18nConfig, Locale, StaticTranslationString } from '@/types';
 import { useCurrentLocale } from 'next-i18n-router/client';
+
+const error: StaticTranslationString = {
+  de: 'Es ist ein Fehler aufgetreten',
+  en: 'Something went wrong',
+  fr: "Une erreur s'est produite",
+};
 
 /**
  * This file is responsible for converters a general runtime error page.
  */
 const ErrorPage: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig);
-
-  const error: Record<Locale, string> = {
-    de: 'Es ist ein Fehler aufgetreten',
-    en: 'Something went wrong',
-    fr: "Une erreur s'est produite",
-  };
 
   const errorDescription: Record<Locale, React.JSX.Element> = {
     en: (

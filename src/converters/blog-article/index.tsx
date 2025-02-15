@@ -2,10 +2,10 @@ import { Blog } from '@/payload-types';
 import { HeadlineH1 } from '@/components/typography/headline-h1';
 import React from 'react';
 import Image from 'next/image';
-import { BuildingBlocks, ContentBlock } from '@/converters/building-blocks';
+import { PageSectionsConverter, ContentBlock } from 'src/converters/page-sections';
 import { Locale, SearchParameters } from '@/types';
 
-export const BlogArticle: React.FC<{
+export const BlogArticleConverter: React.FC<{
   article: Blog;
   locale: Locale;
   searchParams: SearchParameters;
@@ -26,7 +26,7 @@ export const BlogArticle: React.FC<{
         </div>
 
         <HeadlineH1>{article.content.blogH1}</HeadlineH1>
-        <BuildingBlocks
+        <PageSectionsConverter
           blocks={article.content.mainContent as ContentBlock[]}
           locale={locale}
           searchParams={searchParams}

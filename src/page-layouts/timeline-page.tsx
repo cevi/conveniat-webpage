@@ -1,14 +1,19 @@
 import React from 'react';
-import { LocalizedCollectionPage } from './localized-page';
 import { getPayload } from 'payload';
 import config from '@payload-config';
 import { HeadlineH1 } from '@/components/typography/headline-h1';
-import { Locale } from '@/types';
-import { BuildingBlocks, ContentBlock } from '@/converters/building-blocks';
+import { PageSectionsConverter, ContentBlock } from 'src/converters/page-sections';
+import { LocalizedCollectionPage, StaticTranslationString } from '@/types';
 
 const isActive = (date: string) => {
   // if date is in the past, return 'is-active', else return ''
   return new Date(date) < new Date() ? 'is-active' : '';
+};
+
+const pageTitle: StaticTranslationString = {
+  en: 'Timeline',
+  de: 'Zeitstrahl',
+  fr: 'Chronologie',
 };
 
 export const TimeLinePage: React.FC<LocalizedCollectionPage> = async ({ locale, searchParams }) => {
@@ -26,12 +31,6 @@ export const TimeLinePage: React.FC<LocalizedCollectionPage> = async ({ locale, 
       },
     },
   });
-
-  const pageTitle: Record<Locale, string> = {
-    en: 'Timeline',
-    de: 'Zeitstrahl',
-    fr: 'Chronologie',
-  };
 
   const convertDate = (date: string) => {
     // i want dd.mm.yyyy
@@ -69,7 +68,7 @@ export const TimeLinePage: React.FC<LocalizedCollectionPage> = async ({ locale, 
                   </time>
                 </div>
                 <div>
-                  <BuildingBlocks
+                  <PageSectionsConverter
                     blocks={item.mainContent as ContentBlock[]}
                     locale={locale}
                     searchParams={searchParams}

@@ -8,7 +8,7 @@ import { useForm } from 'react-hook-form';
 import { buildInitialFormState } from './build-initial-form-state';
 import { RichText } from '@payloadcms/richtext-lexical/react';
 import { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
-import { i18nConfig, Locale } from '@/types';
+import { i18nConfig, Locale, StaticTranslationString } from '@/types';
 import { useCurrentLocale } from 'next-i18n-router/client';
 
 export type Value = unknown;
@@ -26,6 +26,18 @@ export type FormBlockType = {
 export interface Data {
   [key: string]: Property | Property[] | Value;
 }
+
+const resetFormText: StaticTranslationString = {
+  en: 'Reset Form',
+  de: 'Formular zurücksetzen',
+  fr: 'Réinitialiser le formulaire',
+};
+
+const pleaseWaitText: StaticTranslationString = {
+  en: 'Loading, please wait...',
+  de: 'Laden, bitte warten...',
+  fr: 'Chargement, veuillez patient',
+};
 
 export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties) => {
   const {
@@ -105,7 +117,7 @@ export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties)
         if (confirmationType === 'redirect' && redirect) {
           const { url } = redirect;
           const redirectURL = url;
-          if (redirectURL) router.push(redirectURL);
+          if (redirectURL !== '') router.push(redirectURL);
         }
       } catch (error_) {
         console.warn(error_);
@@ -117,18 +129,6 @@ export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties)
     };
 
     void submitForm();
-  };
-
-  const resetFormText: Record<Locale, string> = {
-    en: 'Reset Form',
-    de: 'Formular zurücksetzen',
-    fr: 'Réinitialiser le formulaire',
-  };
-
-  const pleaseWaitText: Record<Locale, string> = {
-    en: 'Loading, please wait...',
-    de: 'Laden, bitte warten...',
-    fr: 'Chargement, veuillez patient',
   };
 
   return (

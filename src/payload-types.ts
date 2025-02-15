@@ -44,22 +44,6 @@ export type GroupsOfTheUser = {
   role_class: TheClassOfTheRole;
   [k: string]: unknown;
 }[];
-/**
- * This field indicates whether the document is published in the corresponding locale
- */
-export type IsPublishedInCorrespondingLocale3 = boolean;
-/**
- * This field indicates whether the document is published in the corresponding locale
- */
-export type IsPublishedInCorrespondingLocale4 = boolean;
-/**
- * This field indicates whether the document is published in the corresponding locale
- */
-export type IsPublishedInCorrespondingLocale5 = boolean;
-/**
- * This field indicates whether the document is published in the corresponding locale
- */
-export type IsPublishedInCorrespondingLocale6 = boolean;
 
 export interface Config {
   auth: {
@@ -98,20 +82,12 @@ export interface Config {
     defaultIDType: string;
   };
   globals: {
-    landingPage: LandingPage;
-    'data-privacy-statement': DataPrivacyStatement;
-    imprint: Imprint;
-    search: Search;
     header: Header;
     footer: Footer;
     SEO: SEO;
     PWA: PWA;
   };
   globalsSelect: {
-    landingPage: LandingPageSelect<false> | LandingPageSelect<true>;
-    'data-privacy-statement': DataPrivacyStatementSelect<false> | DataPrivacyStatementSelect<true>;
-    imprint: ImprintSelect<false> | ImprintSelect<true>;
-    search: SearchSelect<false> | SearchSelect<true>;
     header: HeaderSelect<false> | HeaderSelect<true>;
     footer: FooterSelect<false> | FooterSelect<true>;
     SEO: SEOSelect<false> | SEOSelect<true>;
@@ -152,8 +128,22 @@ export interface UserAuthOperations {
  */
 export interface Blog {
   id: string;
+  publishingStatus?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   _localized_status: LocalizedPublishingStatus;
+  _disable_unpublishing?: boolean | null;
   _locale: string;
+  /**
+   * Name of the page for internal purposes.
+   */
+  internalPageName: string;
   content: {
     /**
      * This is the title that will be displayed on the page.
@@ -193,6 +183,25 @@ export interface Blog {
           id?: string | null;
           blockName?: string | null;
           blockType: 'blogPostsOverview';
+        }
+      | {
+          /**
+           * This is the teaser that will be displayed on the page.
+           */
+          pageTeaser: string;
+          callToAction: {
+            /**
+             * This is the call to action that will be displayed on the page.
+             */
+            linkLabel: string;
+            /**
+             * This is the link that the call to action will point to.
+             */
+            link: string;
+          };
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'heroSection';
         }
       | FormBlock
       | {
@@ -450,9 +459,27 @@ export interface YoutubeEmbedding {
  */
 export interface GenericPage {
   id: string;
+  publishingStatus?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   _localized_status: LocalizedPublishingStatus1;
+  _disable_unpublishing?: boolean | null;
   _locale: string;
+  /**
+   * Name of the page for internal purposes.
+   */
+  internalPageName: string;
   content: {
+    /**
+     * This is the title that will be displayed on the page.
+     */
+    pageTitle: string;
     /**
      * The main content of the page
      */
@@ -481,6 +508,25 @@ export interface GenericPage {
           id?: string | null;
           blockName?: string | null;
           blockType: 'blogPostsOverview';
+        }
+      | {
+          /**
+           * This is the teaser that will be displayed on the page.
+           */
+          pageTeaser: string;
+          callToAction: {
+            /**
+             * This is the call to action that will be displayed on the page.
+             */
+            linkLabel: string;
+            /**
+             * This is the link that the call to action will point to.
+             */
+            link: string;
+          };
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'heroSection';
         }
       | FormBlock
       | {
@@ -526,7 +572,17 @@ export interface LocalizedPublishingStatus1 {
  */
 export interface Timeline {
   id: string;
+  publishingStatus?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   _localized_status: LocalizedPublishingStatus2;
+  _disable_unpublishing?: boolean | null;
   _locale: string;
   date: string;
   /**
@@ -752,8 +808,11 @@ export interface PayloadMigration {
  * via the `definition` "blog_select".
  */
 export interface BlogSelect<T extends boolean = true> {
+  publishingStatus?: T;
   _localized_status?: T;
+  _disable_unpublishing?: T;
   _locale?: T;
+  internalPageName?: T;
   content?:
     | T
     | {
@@ -774,6 +833,19 @@ export interface BlogSelect<T extends boolean = true> {
               blogPostsOverview?:
                 | T
                 | {
+                    id?: T;
+                    blockName?: T;
+                  };
+              heroSection?:
+                | T
+                | {
+                    pageTeaser?: T;
+                    callToAction?:
+                      | T
+                      | {
+                          linkLabel?: T;
+                          link?: T;
+                        };
                     id?: T;
                     blockName?: T;
                   };
@@ -824,11 +896,15 @@ export interface YoutubeEmbeddingSelect<T extends boolean = true> {
  * via the `definition` "generic-page_select".
  */
 export interface GenericPageSelect<T extends boolean = true> {
+  publishingStatus?: T;
   _localized_status?: T;
+  _disable_unpublishing?: T;
   _locale?: T;
+  internalPageName?: T;
   content?:
     | T
     | {
+        pageTitle?: T;
         mainContent?:
           | T
           | {
@@ -842,6 +918,19 @@ export interface GenericPageSelect<T extends boolean = true> {
               blogPostsOverview?:
                 | T
                 | {
+                    id?: T;
+                    blockName?: T;
+                  };
+              heroSection?:
+                | T
+                | {
+                    pageTeaser?: T;
+                    callToAction?:
+                      | T
+                      | {
+                          linkLabel?: T;
+                          link?: T;
+                        };
                     id?: T;
                     blockName?: T;
                   };
@@ -873,7 +962,9 @@ export interface GenericPageSelect<T extends boolean = true> {
  * via the `definition` "timeline_select".
  */
 export interface TimelineSelect<T extends boolean = true> {
+  publishingStatus?: T;
   _localized_status?: T;
+  _disable_unpublishing?: T;
   _locale?: T;
   date?: T;
   title?: T;
@@ -1142,224 +1233,6 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   createdAt?: T;
 }
 /**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "landingPage".
- */
-export interface LandingPage {
-  id: string;
-  _localized_status: LocalizedPublishingStatus3;
-  _locale: string;
-  content: {
-    /**
-     * This is the title that will be displayed on the page.
-     */
-    pageTitle: string;
-    /**
-     * This is the teaser that will be displayed on the page.
-     */
-    pageTeaser: string;
-    callToAction: {
-      /**
-       * This is the call to action that will be displayed on the page.
-       */
-      linkText: string;
-      /**
-       * This is the link that the call to action will point to.
-       */
-      link: string;
-    };
-    /**
-     * The main content of the page
-     */
-    mainContent: (
-      | {
-          richTextSection: {
-            root: {
-              type: string;
-              children: {
-                type: string;
-                version: number;
-                [k: string]: unknown;
-              }[];
-              direction: ('ltr' | 'rtl') | null;
-              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-              indent: number;
-              version: number;
-            };
-            [k: string]: unknown;
-          };
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'richTextSection';
-        }
-      | {
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'blogPostsOverview';
-        }
-      | FormBlock
-      | {
-          images: (string | Image)[];
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'photoCarousel';
-        }
-      | YoutubeEmbedding
-    )[];
-  };
-  seo: {
-    urlSlug: string;
-    /**
-     * This is the title that will be displayed in the browser tab.
-     */
-    metaTitle?: string | null;
-    /**
-     * This is the description that will be displayed in search engine results.
-     */
-    metaDescription?: string | null;
-    /**
-     * These are the keywords that will be used to improve the visibility of the page in search engines.
-     */
-    keywords?: string | null;
-  };
-  _status?: ('draft' | 'published') | null;
-  updatedAt?: string | null;
-  createdAt?: string | null;
-}
-/**
- * Holds the publishing status of the document in each locale
- */
-export interface LocalizedPublishingStatus3 {
-  published: IsPublishedInCorrespondingLocale3;
-  [k: string]: unknown;
-}
-/**
- * Settings for the data privacy statement
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "data-privacy-statement".
- */
-export interface DataPrivacyStatement {
-  id: string;
-  _localized_status: LocalizedPublishingStatus4;
-  _locale: string;
-  content: {
-    /**
-     * This is the title that will be displayed on the page.
-     */
-    pageTitle: string;
-    /**
-     * The main content of the page
-     */
-    mainContent: {
-      root: {
-        type: string;
-        children: {
-          type: string;
-          version: number;
-          [k: string]: unknown;
-        }[];
-        direction: ('ltr' | 'rtl') | null;
-        format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-        indent: number;
-        version: number;
-      };
-      [k: string]: unknown;
-    };
-  };
-  seo: {
-    urlSlug: string;
-  };
-  _status?: ('draft' | 'published') | null;
-  updatedAt?: string | null;
-  createdAt?: string | null;
-}
-/**
- * Holds the publishing status of the document in each locale
- */
-export interface LocalizedPublishingStatus4 {
-  published: IsPublishedInCorrespondingLocale4;
-  [k: string]: unknown;
-}
-/**
- * Settings for the data privacy statement
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "imprint".
- */
-export interface Imprint {
-  id: string;
-  _localized_status: LocalizedPublishingStatus5;
-  _locale: string;
-  content: {
-    /**
-     * This is the title that will be displayed on the page.
-     */
-    pageTitle: string;
-    /**
-     * The main content of the page
-     */
-    mainContent: {
-      root: {
-        type: string;
-        children: {
-          type: string;
-          version: number;
-          [k: string]: unknown;
-        }[];
-        direction: ('ltr' | 'rtl') | null;
-        format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-        indent: number;
-        version: number;
-      };
-      [k: string]: unknown;
-    };
-  };
-  seo: {
-    urlSlug: string;
-  };
-  _status?: ('draft' | 'published') | null;
-  updatedAt?: string | null;
-  createdAt?: string | null;
-}
-/**
- * Holds the publishing status of the document in each locale
- */
-export interface LocalizedPublishingStatus5 {
-  published: IsPublishedInCorrespondingLocale5;
-  [k: string]: unknown;
-}
-/**
- * Settings for the search page
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "search".
- */
-export interface Search {
-  id: string;
-  _localized_status: LocalizedPublishingStatus6;
-  _locale: string;
-  content: {
-    /**
-     * This is the title that will be displayed on the page.
-     */
-    pageTitle: string;
-  };
-  seo: {
-    urlSlug: string;
-  };
-  _status?: ('draft' | 'published') | null;
-  updatedAt?: string | null;
-  createdAt?: string | null;
-}
-/**
- * Holds the publishing status of the document in each locale
- */
-export interface LocalizedPublishingStatus6 {
-  published: IsPublishedInCorrespondingLocale6;
-  [k: string]: unknown;
-}
-/**
  * Settings for the header navigation
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1428,6 +1301,10 @@ export interface SEO {
    * The content publisher
    */
   publisher: string;
+  /**
+   * The HTML tag for Google Search Console verification. This tag is used to verify the ownership of the website in Google Search Console. Please paste only the content of the meta tag, not the whole meta, e.g. "gabchedl45s56dsaJKHfg_12M"
+   */
+  googleSearchConsoleVerification?: string | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -1453,132 +1330,6 @@ export interface PWA {
   appDescription: string;
   updatedAt?: string | null;
   createdAt?: string | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "landingPage_select".
- */
-export interface LandingPageSelect<T extends boolean = true> {
-  _localized_status?: T;
-  _locale?: T;
-  content?:
-    | T
-    | {
-        pageTitle?: T;
-        pageTeaser?: T;
-        callToAction?:
-          | T
-          | {
-              linkText?: T;
-              link?: T;
-            };
-        mainContent?:
-          | T
-          | {
-              richTextSection?:
-                | T
-                | {
-                    richTextSection?: T;
-                    id?: T;
-                    blockName?: T;
-                  };
-              blogPostsOverview?:
-                | T
-                | {
-                    id?: T;
-                    blockName?: T;
-                  };
-              formBlock?: T | FormBlockSelect<T>;
-              photoCarousel?:
-                | T
-                | {
-                    images?: T;
-                    id?: T;
-                    blockName?: T;
-                  };
-              youtubeEmbed?: T | YoutubeEmbeddingSelect<T>;
-            };
-      };
-  seo?:
-    | T
-    | {
-        urlSlug?: T;
-        metaTitle?: T;
-        metaDescription?: T;
-        keywords?: T;
-      };
-  _status?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  globalType?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "data-privacy-statement_select".
- */
-export interface DataPrivacyStatementSelect<T extends boolean = true> {
-  _localized_status?: T;
-  _locale?: T;
-  content?:
-    | T
-    | {
-        pageTitle?: T;
-        mainContent?: T;
-      };
-  seo?:
-    | T
-    | {
-        urlSlug?: T;
-      };
-  _status?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  globalType?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "imprint_select".
- */
-export interface ImprintSelect<T extends boolean = true> {
-  _localized_status?: T;
-  _locale?: T;
-  content?:
-    | T
-    | {
-        pageTitle?: T;
-        mainContent?: T;
-      };
-  seo?:
-    | T
-    | {
-        urlSlug?: T;
-      };
-  _status?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  globalType?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "search_select".
- */
-export interface SearchSelect<T extends boolean = true> {
-  _localized_status?: T;
-  _locale?: T;
-  content?:
-    | T
-    | {
-        pageTitle?: T;
-      };
-  seo?:
-    | T
-    | {
-        urlSlug?: T;
-      };
-  _status?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1632,6 +1383,7 @@ export interface SEOSelect<T extends boolean = true> {
         id?: T;
       };
   publisher?: T;
+  googleSearchConsoleVerification?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

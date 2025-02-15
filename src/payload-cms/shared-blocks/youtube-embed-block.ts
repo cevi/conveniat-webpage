@@ -1,7 +1,7 @@
 import { Block } from 'payload';
-import { youtubeLinkValidaiton } from '../collections/youtube-validation';
+import { youtubeLinkValidation } from '../collections/youtube-validation';
 
-export const YoutubeEmbedBlock: Block = {
+export const youtubeEmbedBlock: Block = {
   slug: 'youtubeEmbed',
   interfaceName: 'YoutubeEmbedding',
   fields: [
@@ -9,7 +9,7 @@ export const YoutubeEmbedBlock: Block = {
       name: 'link',
       type: 'text',
       required: true,
-      validate: youtubeLinkValidaiton,
+      validate: youtubeLinkValidation,
     },
   ],
 };

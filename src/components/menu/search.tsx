@@ -2,24 +2,24 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { Locale } from '@/types';
+import { Locale, StaticTranslationString } from '@/types';
 import { useClose } from '@headlessui/react';
+
+const searchButtonText: StaticTranslationString = {
+  de: 'Suchen',
+  en: 'Search',
+  fr: 'Chercher',
+};
 
 export const SearchComponent: React.FC<{ locale: Locale }> = ({ locale }) => {
   const router = useRouter();
-  const searchButtonText: Record<Locale, string> = {
-    de: 'Suchen',
-    en: 'Search',
-    fr: 'Chercher',
-  };
-
   const close = useClose();
 
   const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const searchData = new FormData(event.currentTarget);
     const searchInput = searchData.get('searchInput') as string;
-    if (searchInput) {
+    if (searchInput !== '') {
       router.push(`/${locale as Locale}/search?q=${searchInput}`);
       router.refresh();
       close(); // close nav

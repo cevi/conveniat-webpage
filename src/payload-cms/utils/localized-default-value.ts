@@ -1,14 +1,15 @@
 import { Locale } from '@/types';
+import { LOCALE as COUNTRY_CODES } from '@/payload-cms/locales';
 
 // TODO: this should be fully dynamic with
 //  regards to the defined locales
 export const localizedDefaultValue =
   <T>(mapping: { de: T; en: T; fr: T }) =>
   ({ locale }: { locale: Locale }): T => {
-    if (locale === 'de') {
-      return mapping['de'];
-    } else if (locale === 'fr') {
-      return mapping['fr'];
+    if (locale === COUNTRY_CODES.DE) {
+      return mapping[COUNTRY_CODES.DE];
+    } else if (locale === COUNTRY_CODES.FR) {
+      return mapping[COUNTRY_CODES.FR];
     }
-    return mapping['en'];
+    return mapping[COUNTRY_CODES.EN];
   };

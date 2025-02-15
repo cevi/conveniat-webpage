@@ -1,5 +1,6 @@
 import { HitobitoNextAuthUser } from '@/auth/hitobito-next-auth-user';
 import { AuthStrategyFunction, BasePayload } from 'payload';
+import { User } from '@/payload-types';
 
 /**
  * Checks if a user is a valid NextAuth user, i.e. has all required fields
@@ -9,7 +10,10 @@ export const isValidNextAuthUser = (user: HitobitoNextAuthUser): boolean => {
   return user.name !== '' && user.email !== '' && user.cevi_db_uuid > 0;
 };
 
-async function saveUserToDB(payload: BasePayload, nextAuthUser: HitobitoNextAuthUser) {
+async function saveUserToDB(
+  payload: BasePayload,
+  nextAuthUser: HitobitoNextAuthUser,
+): Promise<void> {
   const userExists = await payload
     .count({
       collection: 'users',
@@ -70,7 +74,7 @@ const fetchSessionFromCeviDB = async (cookie: string) => {
 async function getPayloadUserFromNextAuthUser(
   payload: BasePayload,
   nextAuthUser: HitobitoNextAuthUser,
-) {
+): Promise<User | undefined> {
   return await payload
     .find({
       collection: 'users',

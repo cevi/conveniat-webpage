@@ -1,10 +1,11 @@
 import { Field } from 'payload';
-import { RichTextArticleBlock } from '@/payload-cms/shared-blocks/rich-text-article-block';
-import { FormBlock } from '../shared-blocks/form-block';
-import { PhotoCarouselBlock } from '@/payload-cms/shared-blocks/photo-carousel-block';
-import { YoutubeEmbedBlock } from '../shared-blocks/youtube-embed-block';
+import { richTextArticleBlock } from '@/payload-cms/shared-blocks/rich-text-article-block';
+import { formBlock } from '../shared-blocks/form-block';
+import { photoCarouselBlock } from '@/payload-cms/shared-blocks/photo-carousel-block';
+import { youtubeEmbedBlock } from '../shared-blocks/youtube-embed-block';
+import { heroSection } from '@/payload-cms/shared-blocks/hero-section-block';
 
-export const MainContentField: Field = {
+export const mainContentField: Field = {
   name: 'mainContent',
   type: 'blocks',
   required: true,
@@ -17,13 +18,14 @@ export const MainContentField: Field = {
     },
   },
   blocks: [
-    RichTextArticleBlock,
+    richTextArticleBlock,
     {
       slug: 'blogPostsOverview',
       fields: [],
     },
-    FormBlock,
-    PhotoCarouselBlock,
-    YoutubeEmbedBlock,
+    heroSection,
+    formBlock,
+    photoCarouselBlock,
+    youtubeEmbedBlock,
   ],
 };

@@ -1,7 +1,7 @@
 import { Block } from 'payload';
 import { photoCarouselMinSelectionValidation } from '@/payload-cms/collections/blog-article/validation';
 
-export const PhotoCarouselBlock: Block = {
+export const photoCarouselBlock: Block = {
   slug: 'photoCarousel',
   fields: [
     {

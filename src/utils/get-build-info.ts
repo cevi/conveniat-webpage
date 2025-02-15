@@ -1,3 +1,5 @@
+import { LOCALE } from '@/payload-cms/locales';
+
 interface BuildInfo {
   version: string;
   timestamp: string;
@@ -22,7 +24,7 @@ export const getBuildInfo = async (): Promise<BuildInfo | undefined> => {
     // parse the timestamp from the build info
     // TODO: make localized..
     const buildInfo = structuredClone(rawBuildInfo);
-    buildInfo.timestamp = new Date(buildInfo.timestamp).toLocaleDateString('de', {
+    buildInfo.timestamp = new Date(buildInfo.timestamp).toLocaleDateString(LOCALE.DE, {
       year: 'numeric',
       month: 'short',
       day: 'numeric',

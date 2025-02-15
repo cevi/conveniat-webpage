@@ -9,10 +9,15 @@ export const generateMetadata = async (): Promise<Metadata> => {
 
   const APP_HOST_URL = process.env['APP_HOST_URL'] ?? '';
 
-  const { defaultTitle, defaultDescription, defaultKeywords, publisher }: SEO =
-    await payload.findGlobal({
-      slug: 'SEO',
-    });
+  const {
+    defaultTitle,
+    defaultDescription,
+    defaultKeywords,
+    publisher,
+    googleSearchConsoleVerification,
+  }: SEO = await payload.findGlobal({
+    slug: 'SEO',
+  });
 
   const { appName } = await payload.findGlobal({
     slug: 'PWA',
@@ -28,6 +33,10 @@ export const generateMetadata = async (): Promise<Metadata> => {
 
     publisher,
 
+    verification: {
+      google: (googleSearchConsoleVerification ?? '') as string,
+    },
+
     formatDetection: {
       email: true,
       address: true,
@@ -36,7 +45,7 @@ export const generateMetadata = async (): Promise<Metadata> => {
 
     appleWebApp: {
       title: appName,
-      statusBarStyle: 'black-translucent',
+      statusBarStyle: 'black',
     },
 
     alternates: {

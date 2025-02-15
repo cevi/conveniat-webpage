@@ -1,4 +1,4 @@
-export const youtubeLinkValidaiton = (value: string | undefined | null) => {
+export const youtubeLinkValidation = (value: string | undefined | null) => {
   if (value === undefined || value === null || value === '') return 'Link is required.';
 
   // check against regex

@@ -5,7 +5,7 @@ import { useEffect } from 'react';
 import useEmblaCarousel, { type UseEmblaCarouselType } from 'embla-carousel-react';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/tailwindcss-override';
 import { Button } from '@/components/ui/button';
 
 type CarouselApi = UseEmblaCarouselType[1];
@@ -121,7 +121,7 @@ const Carousel = React.forwardRef<
       api.on('reInit', onSelect);
       api.on('select', onSelect);
 
-      return () => {
+      return (): void => {
         api.off('select', onSelect);
       };
     }, [api, onSelect]);

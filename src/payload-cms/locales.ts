@@ -1,5 +1,10 @@
 import { Locale } from 'payload';
 
+const DE = 'de' as const;
+const FR = 'fr' as const;
+const EN = 'en' as const;
+export const LOCALE = { DE, FR, EN };
+
 export const locales: Locale[] = [
   {
     label: {
@@ -7,7 +12,7 @@ export const locales: Locale[] = [
       de: 'Englisch',
       fr: 'Anglais',
     },
-    code: 'en',
+    code: LOCALE.EN,
   },
   {
     label: {
@@ -15,7 +20,7 @@ export const locales: Locale[] = [
       de: 'Deutsch',
       fr: 'Allemand',
     },
-    code: 'de',
+    code: LOCALE.DE,
   },
   {
     label: {
@@ -23,6 +28,6 @@ export const locales: Locale[] = [
       de: 'Französisch',
       fr: 'Français',
     },
-    code: 'fr',
+    code: LOCALE.FR,
   },
 ];

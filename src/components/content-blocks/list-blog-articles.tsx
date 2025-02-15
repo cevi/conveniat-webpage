@@ -1,4 +1,3 @@
-import { LocalizedPage } from '@/page-layouts/localized-page';
 import { getPayload } from 'payload';
 import config from '@payload-config';
 import Link from 'next/link';
@@ -7,6 +6,7 @@ import { NewsCard } from '@/components/news-card';
 import React from 'react';
 import Image from 'next/image';
 import { Blog } from '@/payload-types';
+import { LocalizedPageType } from '@/types';
 
 export const BlogDisplay: React.FC<{ blog: Blog }> = ({ blog }) => {
   if (typeof blog.content.bannerImage === 'string') {
@@ -34,7 +34,7 @@ export const BlogDisplay: React.FC<{ blog: Blog }> = ({ blog }) => {
   );
 };
 
-export const ListBlogPosts: React.FC<LocalizedPage> = async ({ locale }) => {
+export const ListBlogPosts: React.FC<LocalizedPageType> = async ({ locale }) => {
   const payload = await getPayload({ config });
   const currentDate = new Date().toISOString();
   const blogsPaged = await payload.find({
