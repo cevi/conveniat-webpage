@@ -5,6 +5,7 @@ import { useLocale } from '@payloadcms/ui';
 import { Config } from '@/payload-types';
 import { AdminPanelBackgroundFaker } from '@/payload-cms/components/login-page/admin-panel-background-faker';
 import { StaticTranslationString } from '@/types';
+import { Button } from '@/components/ui/button';
 
 /**
  * Redirect to the CeviDB login page (using NextAuth).
@@ -41,12 +42,9 @@ const AdminPanelLoginPage: React.FC = () => {
           <h1 className="mb-16 text-3xl font-extrabold text-conveniat-green">conveniat27</h1>
         </div>
         <div className="flex justify-center">
-          <button
-            className="rounded border-2 border-solid border-green-600 bg-green-100 px-4 py-2 font-bold text-conveniat-green outline-none"
-            onClick={handleLoginClick}
-          >
+          <Button variant="secondary" onClick={handleLoginClick}>
             {localizedLoginText[code]}
-          </button>
+          </Button>
         </div>
       </div>
     </>
