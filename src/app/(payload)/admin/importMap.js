@@ -16,7 +16,7 @@ import { default as default_04fa20694178abb35147c42812b162ee } from '@/payload-c
 import { LinkToDoc as LinkToDoc_aead06e4cbf6b2620c5c51c9ab283634 } from '@payloadcms/plugin-search/client'
 import { ReindexButton as ReindexButton_aead06e4cbf6b2620c5c51c9ab283634 } from '@payloadcms/plugin-search/client'
 import { ConveniatLogo as ConveniatLogo_1dcd95bfbb6787f73675c94df91c942d } from '@/components/svg-logos/conveniat-logo.tsx'
-import { default as default_abbf2011d9b97ad31e02e7216d77d850 } from '@/payload-cms/components/login-page/login-button'
+import { default as default_17d63aa389bc01a392997a5c43778dff } from '@/payload-cms/components/login-page/admin-panel-login-page'
 import { default as default_c3cc3b6e219a6fc03e424c337d312b51 } from '@/payload-cms/components/dashboard-welcome-banner'
 
 export const importMap = {
@@ -38,6 +38,6 @@ export const importMap = {
   "@payloadcms/plugin-search/client#LinkToDoc": LinkToDoc_aead06e4cbf6b2620c5c51c9ab283634,
   "@payloadcms/plugin-search/client#ReindexButton": ReindexButton_aead06e4cbf6b2620c5c51c9ab283634,
   "@/components/svg-logos/conveniat-logo.tsx#ConveniatLogo": ConveniatLogo_1dcd95bfbb6787f73675c94df91c942d,
-  "@/payload-cms/components/login-page/login-button#default": default_abbf2011d9b97ad31e02e7216d77d850,
+  "@/payload-cms/components/login-page/admin-panel-login-page#default": default_17d63aa389bc01a392997a5c43778dff,
   "@/payload-cms/components/dashboard-welcome-banner#default": default_c3cc3b6e219a6fc03e424c337d312b51
 }

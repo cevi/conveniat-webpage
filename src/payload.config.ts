@@ -196,7 +196,7 @@ export const payloadConfig: RoutableConfig = {
       ],
       afterLogin: [
         {
-          path: '@/payload-cms/components/login-page/login-button',
+          path: '@/payload-cms/components/login-page/admin-panel-login-page',
         },
       ],
     },

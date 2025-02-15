@@ -28,7 +28,7 @@ const localizedLoginText: StaticTranslationString = {
  *
  * @constructor
  */
-const LoginButton: React.FC = () => {
+const AdminPanelLoginPage: React.FC = () => {
   const { code } = useLocale() as { code: Config['locale'] };
 
   return (
@@ -53,4 +53,4 @@ const LoginButton: React.FC = () => {
   );
 };
 
-export default LoginButton;
+export default AdminPanelLoginPage;
