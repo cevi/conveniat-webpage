@@ -2,17 +2,17 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { Locale } from '@/types';
+import { Locale, StaticTranslationString } from '@/types';
 import { useClose } from '@headlessui/react';
+
+const searchButtonText: StaticTranslationString = {
+  de: 'Suchen',
+  en: 'Search',
+  fr: 'Chercher',
+};
 
 export const SearchComponent: React.FC<{ locale: Locale }> = ({ locale }) => {
   const router = useRouter();
-  const searchButtonText: Record<Locale, string> = {
-    de: 'Suchen',
-    en: 'Search',
-    fr: 'Chercher',
-  };
-
   const close = useClose();
 
   const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {

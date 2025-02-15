@@ -4,6 +4,7 @@ import { signIn } from 'next-auth/react';
 import { useLocale } from '@payloadcms/ui';
 import { Config } from '@/payload-types';
 import { AdminPanelBackgroundFaker } from '@/payload-cms/components/login-page/admin-panel-background-faker';
+import { StaticTranslationString } from '@/types';
 
 /**
  * Redirect to the CeviDB login page (using NextAuth).
@@ -14,9 +15,7 @@ const handleLoginClick = (): void => {
   });
 };
 
-const localizedLoginText: {
-  [key in Config['locale']]: string;
-} = {
+const localizedLoginText: StaticTranslationString = {
   en: 'Login with CeviDB',
   de: 'Mit CeviDB anmelden',
   fr: 'Se connecter avec CeviDB',

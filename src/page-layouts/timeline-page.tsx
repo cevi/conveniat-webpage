@@ -3,12 +3,18 @@ import { LocalizedCollectionPage } from './localized-page';
 import { getPayload } from 'payload';
 import config from '@payload-config';
 import { HeadlineH1 } from '@/components/typography/headline-h1';
-import { Locale } from '@/types';
 import { BuildingBlocks, ContentBlock } from '@/converters/building-blocks';
+import { StaticTranslationString } from '@/types';
 
 const isActive = (date: string) => {
   // if date is in the past, return 'is-active', else return ''
   return new Date(date) < new Date() ? 'is-active' : '';
+};
+
+const pageTitle: StaticTranslationString = {
+  en: 'Timeline',
+  de: 'Zeitstrahl',
+  fr: 'Chronologie',
 };
 
 export const TimeLinePage: React.FC<LocalizedCollectionPage> = async ({ locale, searchParams }) => {
@@ -26,12 +32,6 @@ export const TimeLinePage: React.FC<LocalizedCollectionPage> = async ({ locale, 
       },
     },
   });
-
-  const pageTitle: Record<Locale, string> = {
-    en: 'Timeline',
-    de: 'Zeitstrahl',
-    fr: 'Chronologie',
-  };
 
   const convertDate = (date: string) => {
     // i want dd.mm.yyyy

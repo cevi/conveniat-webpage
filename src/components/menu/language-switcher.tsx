@@ -3,9 +3,15 @@
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import React, { useState } from 'react';
 import { Languages } from 'lucide-react';
-import { Locale } from '@/types';
+import { Locale, StaticTranslationString } from '@/types';
 import { useClose } from '@headlessui/react';
 import { LOCALE } from '@/payload-cms/locales';
+
+const language: StaticTranslationString = {
+  de: 'Sprache',
+  en: 'Language',
+  fr: 'Langue',
+};
 
 /**
  * Simple Drop Down Menu that allows to switch between languages.
@@ -44,8 +50,6 @@ export const LanguageSwitcher: React.FC<{ locale: Locale }> = ({ locale }) => {
       close(); // close nav
     }
   };
-
-  const language: Record<Locale, string> = { de: 'Sprache', en: 'Language', fr: 'Langue' };
 
   return (
     <>

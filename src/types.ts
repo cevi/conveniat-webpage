@@ -10,4 +10,5 @@ export const i18nConfig: Config = {
 };
 
 export type Locale = (typeof locales)[number];
+export type StaticTranslationString = Record<Locale, string>;
 export type SearchParameters = { [key: string]: string | string[] };

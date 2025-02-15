@@ -3,19 +3,19 @@ import { HeadlineH1 } from '@/components/typography/headline-h1';
 import { TeaserText } from '@/components/typography/teaser-text';
 import Link from 'next/link';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
-import { Locale } from '@/types';
+import { Locale, StaticTranslationString } from '@/types';
+
+const error404: StaticTranslationString = {
+  de: '404 - Seite nicht gefunden',
+  en: '404 - Page Not Found',
+  fr: '404 - Page non trouvée',
+};
 
 /**
  * This file is responsible for converters a general 404 error page.
  */
 const NotFoundPage: React.FC = async () => {
   const locale = await getLocaleFromCookies();
-
-  const error404: Record<Locale, string> = {
-    de: '404 - Seite nicht gefunden',
-    en: '404 - Page Not Found',
-    fr: '404 - Page non trouvée',
-  };
 
   const error404Description: Record<Locale, React.JSX.Element> = {
     en: (
