@@ -1,4 +1,4 @@
-import PublishButtonClient from '@/payload-cms/components/multi-lang-publishing/publish-localized-client';
+import PublishingButtonClientWrapper from '@/payload-cms/components/multi-lang-publishing/publish-localized-client';
 import React from 'react';
 
 /**
@@ -8,7 +8,7 @@ import React from 'react';
  * would be too late leading to a flickering effect.
  *
  */
-const PublishButton: React.FC = () => {
+const PublishingButtonServerWrapper: React.FC = () => {
   return (
     <>
       <style>
@@ -17,9 +17,9 @@ const PublishButton: React.FC = () => {
           display: none;
         }`}
       </style>
-      <PublishButtonClient />
+      <PublishingButtonClientWrapper />
     </>
   );
 };
 
-export default PublishButton;
+export default PublishingButtonServerWrapper;

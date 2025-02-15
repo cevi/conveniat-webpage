@@ -18,6 +18,13 @@ import {
 import { cva } from 'class-variance-authority';
 import { useIsPublished } from '@/payload-cms/hooks/hooks';
 import { Config } from '@/payload-types';
+import { StaticTranslationString } from '@/types';
+
+const unpublishingActionString: StaticTranslationString = {
+  en: 'Unpublish in',
+  de: 'Deaktivieren in',
+  fr: 'Dépublier en',
+};
 
 /**
  * Default Publish button for localized collections or globals.
@@ -29,7 +36,7 @@ import { Config } from '@/payload-types';
  *
  */
 // eslint-disable-next-line complexity
-export const DefaultPublishButton: React.FC<{ label?: string }> = () => {
+export const PublishingButton: React.FC<{ label?: string }> = () => {
   const {
     id,
     collectionSlug,
@@ -205,7 +212,7 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = () => {
             size="medium"
             type="button"
           >
-            Unpublish in {code}
+            {unpublishingActionString[code]} {code}
           </FormSubmit>
         )
       }
@@ -223,8 +230,8 @@ export const DefaultPublishButton: React.FC<{ label?: string }> = () => {
   );
 };
 
-const PublishButtonClient: React.FC = () => {
-  return <DefaultPublishButton />;
+const PublishingButtonClientWrapper: React.FC = () => {
+  return <PublishingButton />;
 };
 
-export default PublishButtonClient;
+export default PublishingButtonClientWrapper;
