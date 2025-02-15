@@ -30,13 +30,18 @@ const LoginButton: React.FC = () => {
       </div>
 
       {/* login button */}
-      <div className="flex justify-center">
-        <button
-          className="rounded border-2 border-solid border-green-600 bg-green-100 px-4 py-2 font-bold text-conveniat-green outline-none"
-          onClick={handleLoginClick}
-        >
-          {localizedLoginText[code]}
-        </button>
+      <div>
+        <div className="mt-2 flex justify-center">
+          <h1 className="mb-16 text-3xl font-extrabold text-conveniat-green">conveniat27</h1>
+        </div>
+        <div className="flex justify-center">
+          <button
+            className="rounded border-2 border-solid border-green-600 bg-green-100 px-4 py-2 font-bold text-conveniat-green outline-none"
+            onClick={handleLoginClick}
+          >
+            {localizedLoginText[code]}
+          </button>
+        </div>
       </div>
     </>
   );
