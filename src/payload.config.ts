@@ -1,7 +1,6 @@
 import { mongooseAdapter } from '@payloadcms/db-mongodb';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import sharp from 'sharp';
 import { UserCollection } from '@/payload-cms/collections/user-collection';
 import { en } from 'payload/i18n/en';
 import { de } from 'payload/i18n/de';
@@ -18,6 +17,7 @@ import { lexicalEditor } from '@/payload-cms/plugins/lexical-editor';
 import { s3StorageConfiguration } from '@/payload-cms/plugins/s3-storage-plugin-configuration';
 import { searchPluginConfiguration } from '@/payload-cms/plugins/search/search-plugin-configuration';
 import { globalConfig } from '@/payload-cms/globals';
+import sharp from 'sharp';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -108,7 +108,7 @@ export const payloadConfig: RoutableConfig = {
   db: mongooseAdapter({
     url: DATABASE_URI,
   }),
-  sharp,
+  sharp: sharp,
   telemetry: false,
   plugins: [
     formBuilderPlugin({
