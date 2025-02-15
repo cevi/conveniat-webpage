@@ -16,7 +16,7 @@ import {
   useTranslation,
 } from '@payloadcms/ui';
 import { cva } from 'class-variance-authority';
-import { useIsPublished } from '@/payload-cms/hooks/hooks';
+import { useIsPublished } from '@/payload-cms/hooks/is-published';
 import { Config } from '@/payload-types';
 import { StaticTranslationString } from '@/types';
 

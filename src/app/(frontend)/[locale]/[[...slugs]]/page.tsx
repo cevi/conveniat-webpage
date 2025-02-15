@@ -1,6 +1,6 @@
 import React from 'react';
 import { notFound, redirect } from 'next/navigation';
-import { collectionRouteLookupTable } from '@/page-layouts/router-lookup-table';
+import { routeResolutionTable } from '@/route-resolution-table';
 import { Locale } from '@/types';
 
 /**
@@ -12,6 +12,7 @@ import { Locale } from '@/types';
  * corresponding page component defined for a given object in the CMS.
  *
  * @param params - The parameters for the page route
+ * @param searchParametersPromise - The search parameters for the page route
  *
  */
 const CMSPage: React.FC<{
@@ -38,10 +39,10 @@ const CMSPage: React.FC<{
     const collection = (slugs?.[0] ?? '') as string;
     const remainingSlugs = slugs?.slice(1) ?? [];
 
-    let collectionPage = collectionRouteLookupTable[collection];
-    if (collectionPage === undefined && collectionRouteLookupTable[''] !== undefined) {
+    let collectionPage = routeResolutionTable[collection];
+    if (collectionPage === undefined && routeResolutionTable[''] !== undefined) {
       // if no collection found, try to match the first slug to the default collection
-      collectionPage = collectionRouteLookupTable[''];
+      collectionPage = routeResolutionTable[''];
       remainingSlugs.unshift(collection);
     }
 
@@ -61,7 +62,6 @@ const CMSPage: React.FC<{
       }
     }
 
-    console.log(collection);
     if (collection === 'admin') {
       redirect(`/admin`);
     }

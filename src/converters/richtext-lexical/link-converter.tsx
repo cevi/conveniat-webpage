@@ -1,7 +1,7 @@
 import { JSXConverters } from '@payloadcms/richtext-lexical/react';
 import { SerializedParagraphNode } from '@payloadcms/richtext-lexical';
 import Link from 'next/link';
-import { collectionRouteLookupTable } from '@/page-layouts/router-lookup-table';
+import { routeResolutionTable } from '@/route-resolution-table';
 
 /**
  * The fields of a link node.
@@ -34,7 +34,7 @@ const resolveInternalLink = (fields: LinkFields): string => {
     const urlSlug = `/${fields.doc.value.seo.urlSlug}`;
     const collectionName = fields.doc.relationTo as string;
 
-    for (const [key, value] of Object.entries(collectionRouteLookupTable)) {
+    for (const [key, value] of Object.entries(routeResolutionTable)) {
       if (value.collectionSlug === collectionName) {
         url = key === '' ? urlSlug : collectionName + urlSlug;
         break;

@@ -4,9 +4,8 @@ import { getPayload } from 'payload';
 import config from '@payload-config';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { BlogArticle } from '@/converters/blog-article';
-import { LocalizedCollectionPage } from '@/page-layouts/localized-page';
-import { i18nConfig, Locale, StaticTranslationString } from '@/types';
+import { BlogArticleConverter } from '@/converters/blog-article';
+import { i18nConfig, Locale, LocalizedCollectionPage, StaticTranslationString } from '@/types';
 
 const languageChooseText: StaticTranslationString = {
   en: 'Choose the correct article',
@@ -56,7 +55,11 @@ export const BlogPostPage: React.FC<LocalizedCollectionPage> = async ({
   // article found in current locale --> render
   if (articleInPrimaryLanguage !== undefined) {
     return (
-      <BlogArticle article={articleInPrimaryLanguage} locale={locale} searchParams={searchParams} />
+      <BlogArticleConverter
+        article={articleInPrimaryLanguage}
+        locale={locale}
+        searchParams={searchParams}
+      />
     );
   }
 

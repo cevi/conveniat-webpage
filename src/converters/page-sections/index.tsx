@@ -2,13 +2,13 @@ import { LexicalRichTextSection } from '@/components/content-blocks/lexical-rich
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import { ListBlogPosts } from '@/components/content-blocks/list-blog-articles';
 import React from 'react';
-import { LocalizedPage } from '@/page-layouts/localized-page';
 import { ShowForm } from '@/components/content-blocks/show-form';
 import { FormBlockType } from '@/components/form';
 import { ErrorBoundary } from 'react-error-boundary';
 import { PhotoCarousel, PhotoCarouselBlock } from '@/components/gallery';
 import { YoutubeEmbed } from '@/components/content-blocks/youtube-embed';
 import { HeroSection, HeroSectionType } from '@/components/content-blocks/hero-section';
+import { LocalizedPageType } from '@/types';
 
 export type ContentBlockTypeNames =
   | 'blogPostsOverview'
@@ -35,7 +35,16 @@ const ErrorFallback: React.FC<{ error: Error }> = ({ error }) => {
   );
 };
 
-export const BuildingBlocks: React.FC<LocalizedPage & { blocks: ContentBlock[] }> = ({
+/**
+ * A React component responsible for rendering the page sections of type blocks: ContentBlock.
+ * This component is used to render the main content of a page.
+ *
+ * @param blocks
+ * @param locale
+ * @param searchParams
+ * @constructor
+ */
+export const PageSectionsConverter: React.FC<LocalizedPageType & { blocks: ContentBlock[] }> = ({
   blocks,
   locale,
   searchParams,

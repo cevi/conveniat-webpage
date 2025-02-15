@@ -1,8 +1,5 @@
 import type { MetadataRoute } from 'next';
-import {
-  collectionRouteLookupTable,
-  urlPrefixToCollectionSlug,
-} from '@/page-layouts/router-lookup-table';
+import { routeResolutionTable, urlPrefixToCollectionSlug } from '@/route-resolution-table';
 import { i18nConfig } from '@/types';
 import config from '@payload-config';
 import { getPayload } from 'payload';
@@ -20,7 +17,7 @@ export const generateSitemap = async (): Promise<MetadataRoute.Sitemap> => {
 
   const defaultLocale = i18nConfig.defaultLocale;
 
-  for (const [urlPrefix, collection] of Object.entries(collectionRouteLookupTable)) {
+  for (const [urlPrefix, collection] of Object.entries(routeResolutionTable)) {
     // add urlPrefix as it's own page to the sitemap
     for (const locale of collection.locales) {
       const localePrefix = locale === defaultLocale ? '' : `${locale}`;

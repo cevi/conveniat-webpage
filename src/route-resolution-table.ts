@@ -1,13 +1,17 @@
-import { LocalizedCollectionPage, LocalizedPage } from '@/page-layouts/localized-page';
 import React from 'react';
-import { payloadConfig, RoutableCollectionConfig } from '@payload-config';
+import { payloadConfig } from '@payload-config';
 import { CollectionSlug } from 'payload';
 import { BlogPostPage } from '@/page-layouts/blog-posts';
 import { GenericPage } from '@/page-layouts/generic-page';
-import { Locale } from '@/types';
-import { TimeLinePage } from './timeline-page';
+import {
+  Locale,
+  LocalizedCollectionPage,
+  LocalizedPageType,
+  RoutableCollectionConfig,
+} from '@/types';
+import { TimeLinePage } from './page-layouts/timeline-page';
 
-type CollectionRouteLookupTable = {
+type RouteResolutionTable = {
   [slugPrefix: string]: {
     locales: Locale[];
     alternatives: {
@@ -31,13 +35,16 @@ type PageSlug = RoutableCollectionConfig['payloadCollection']['slug'];
  * This way, the components are never imported when reading the PayloadConfig, and$
  * the generate:types script can generate the types correctly.
  */
-const slugLookup: Record<PageSlug, React.FC<LocalizedCollectionPage> | React.FC<LocalizedPage>> = {
+const slugLookup: Record<
+  PageSlug,
+  React.FC<LocalizedCollectionPage> | React.FC<LocalizedPageType>
+> = {
   blog: BlogPostPage,
   timeline: TimeLinePage,
   'generic-page': GenericPage,
 };
 
-export const collectionRouteLookupTable: CollectionRouteLookupTable =
+export const routeResolutionTable: RouteResolutionTable =
   // eslint-disable-next-line complexity
   payloadConfig.collections?.reduce((routes, collection) => {
     if ('urlPrefix' in collection) {
@@ -65,21 +72,37 @@ export const collectionRouteLookupTable: CollectionRouteLookupTable =
       }
     }
     return routes;
-  }, {} as CollectionRouteLookupTable) ?? {};
+  }, {} as RouteResolutionTable) ?? {};
 
+/**
+ * Maps an url prefix to the corresponding collection slug.
+ *
+ * @example If the user defines a blogs collection with the url prefix 'blog', this function
+ * will return the collection slug 'blogs'.
+ *
+ * TODO: currently this function does not check if the locale is correct.
+ *
+ * @param urlPrefix
+ */
 export const urlPrefixToCollectionSlug = (urlPrefix: string): CollectionSlug | undefined => {
   return (
-    Object.entries(collectionRouteLookupTable).find(([prefix]) => prefix === urlPrefix)?.[1]
+    Object.entries(routeResolutionTable).find(([prefix]) => prefix === urlPrefix)?.[1]
       .collectionSlug ?? undefined
   );
 };
 
+/**
+ * Finds the url prefix for a given collection slug and locale.
+ *
+ * @param collectionSlug
+ * @param locale
+ */
 export const findPrefixByCollectionSlugAndLocale = (
   collectionSlug: CollectionSlug,
   locale: Locale,
 ): string => {
   return (
-    Object.entries(collectionRouteLookupTable).find(
+    Object.entries(routeResolutionTable).find(
       (entry) => entry[1].collectionSlug === collectionSlug && entry[1].locales.includes(locale),
     )?.[0] ?? ''
   );

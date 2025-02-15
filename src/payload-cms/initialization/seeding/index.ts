@@ -1,5 +1,5 @@
 import { Payload, RequiredDataFromCollectionSlug } from 'payload';
-import { generateRichTextSection } from '@/payload-cms/on-payload-init/seed-database/placeholder-lexical';
+import { generateRichTextSection } from '@/payload-cms/initialization/seeding/placeholder-lexical';
 import { basicForm } from './all-types-form';
 import { basicBlog } from './blog-post';
 import { basicTimelineObject } from './timeline';

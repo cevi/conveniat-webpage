@@ -1,6 +1,6 @@
 import React from 'react';
 import { CollectionSlug, TextFieldLabelServerComponent } from 'payload';
-import { findPrefixByCollectionSlugAndLocale } from '@/page-layouts/router-lookup-table';
+import { findPrefixByCollectionSlugAndLocale } from '@/route-resolution-table';
 import { Locale } from '@/types';
 import { LOCALE } from '@/payload-cms/locales';
 

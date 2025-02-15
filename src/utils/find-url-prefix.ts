@@ -2,7 +2,7 @@
 
 import { CollectionSlug } from 'payload';
 import { Locale } from '@/types';
-import { findPrefixByCollectionSlugAndLocale } from '@/page-layouts/router-lookup-table';
+import { findPrefixByCollectionSlugAndLocale } from '@/route-resolution-table';
 
 /**
  * A simple server function wrapper for the findPrefixByCollectionSlugAndLocale function.

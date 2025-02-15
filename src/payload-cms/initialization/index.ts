@@ -1,5 +1,5 @@
 import { Payload } from 'payload';
-import { seedDatabase } from '@/payload-cms/on-payload-init/seed-database';
+import { seedDatabase } from 'src/payload-cms/initialization/seeding';
 
 /**
  * This function is called when the Payload server has started.

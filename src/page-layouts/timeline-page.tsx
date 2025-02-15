@@ -1,10 +1,9 @@
 import React from 'react';
-import { LocalizedCollectionPage } from './localized-page';
 import { getPayload } from 'payload';
 import config from '@payload-config';
 import { HeadlineH1 } from '@/components/typography/headline-h1';
-import { BuildingBlocks, ContentBlock } from '@/converters/building-blocks';
-import { StaticTranslationString } from '@/types';
+import { PageSectionsConverter, ContentBlock } from 'src/converters/page-sections';
+import { LocalizedCollectionPage, StaticTranslationString } from '@/types';
 
 const isActive = (date: string) => {
   // if date is in the past, return 'is-active', else return ''
@@ -69,7 +68,7 @@ export const TimeLinePage: React.FC<LocalizedCollectionPage> = async ({ locale, 
                   </time>
                 </div>
                 <div>
-                  <BuildingBlocks
+                  <PageSectionsConverter
                     blocks={item.mainContent as ContentBlock[]}
                     locale={locale}
                     searchParams={searchParams}
