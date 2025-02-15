@@ -1,4 +1,4 @@
-import { JSONSchema4 } from '@typescript-eslint/utils/json-schema';
+import { JSONSchema4 } from 'json-schema';
 
 /**
  * defines the type for the JSON schema of a field of type `json` in Payload
