@@ -264,6 +264,7 @@ export interface Blog {
           blockType: 'photoCarousel';
         }
       | YoutubeEmbedding
+      | SwisstopoMapEmbedding
     )[];
     /**
      * These keywords will be used for user search.
@@ -508,6 +509,15 @@ export interface YoutubeEmbedding {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "SwisstopoMapEmbedding".
+ */
+export interface SwisstopoMapEmbedding {
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'swisstopoEmbed';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "generic-page".
  */
 export interface GenericPage {
@@ -589,6 +599,7 @@ export interface GenericPage {
           blockType: 'photoCarousel';
         }
       | YoutubeEmbedding
+      | SwisstopoMapEmbedding
     )[];
   };
   seo: {
@@ -911,6 +922,7 @@ export interface BlogSelect<T extends boolean = true> {
                     blockName?: T;
                   };
               youtubeEmbed?: T | YoutubeEmbeddingSelect<T>;
+              swisstopoEmbed?: T | SwisstopoMapEmbeddingSelect<T>;
             };
         blogSearchKeywords?: T;
       };
@@ -941,6 +953,14 @@ export interface FormBlockSelect<T extends boolean = true> {
  */
 export interface YoutubeEmbeddingSelect<T extends boolean = true> {
   link?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "SwisstopoMapEmbedding_select".
+ */
+export interface SwisstopoMapEmbeddingSelect<T extends boolean = true> {
   id?: T;
   blockName?: T;
 }
@@ -996,6 +1016,7 @@ export interface GenericPageSelect<T extends boolean = true> {
                     blockName?: T;
                   };
               youtubeEmbed?: T | YoutubeEmbeddingSelect<T>;
+              swisstopoEmbed?: T | SwisstopoMapEmbeddingSelect<T>;
             };
       };
   seo?:

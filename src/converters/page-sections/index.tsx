@@ -9,6 +9,7 @@ import { PhotoCarousel, PhotoCarouselBlock } from '@/components/gallery';
 import { YoutubeEmbed } from '@/components/content-blocks/youtube-embed';
 import { HeroSection, HeroSectionType } from '@/components/content-blocks/hero-section';
 import { LocalizedPageType } from '@/types';
+import InlineSwisstopoMapEmbed from '@/components/map-viewer/inline-swisstopo-map-embed';
 
 export type ContentBlockTypeNames =
   | 'blogPostsOverview'
@@ -16,6 +17,7 @@ export type ContentBlockTypeNames =
   | 'formBlock'
   | 'photoCarousel'
   | 'youtubeEmbed'
+  | 'swisstopoEmbed'
   | 'heroSection';
 export type ContentBlock = {
   richTextSection?: SerializedEditorState;
@@ -144,6 +146,22 @@ export const PageSectionsConverter: React.FC<LocalizedPageType & { blocks: Conte
               }
             >
               <HeroSection {...(block as HeroSectionType)} />
+            </ErrorBoundary>
+          </section>
+        );
+      }
+
+      case 'swisstopoEmbed': {
+        return (
+          <section key={block.id} className="mt-16">
+            <ErrorBoundary
+              fallback={
+                <ErrorFallback
+                  error={new Error('Failed to load swisstopo embed. Reload the page to try again.')}
+                />
+              }
+            >
+              <InlineSwisstopoMapEmbed />
             </ErrorBoundary>
           </section>
         );
