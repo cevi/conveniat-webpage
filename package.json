@@ -1,6 +1,6 @@
 {
   "name": "conveniat27",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "author": "Cyrill Püntener v/o JPG (cyrill.puentener@cevi.ch)",
   "maintainers": [
     "Cyrill Püntener v/o JPG (cyrill.puentener@cevi.ch)",
@@ -56,7 +56,7 @@
     "react-select": "^5.10.0",
     "server-only": "^0.0.1",
     "serwist": "^9.0.11",
-    "sharp": "0.32.6",
+    "sharp": "^0.32.6",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7"
   },
@@ -96,15 +96,24 @@
     "node": ">=20.9.0"
   },
   "pnpm": {
+    "supportedArchitectures": {
+      "libc": [
+        "musl"
+      ]
+    },
     "overrides": {
       "eslint": "^9.12.0",
       "@types/react": "npm:types-react@19.0.0-rc.1",
       "@types/react-dom": "npm:types-react-dom@19.0.0-rc.1"
-    }
+    },
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "sharp"
+    ]
   },
   "overrides": {
     "@types/react": "npm:types-react@19.0.0-rc.1",
     "@types/react-dom": "npm:types-react-dom@19.0.0-rc.1"
   },
-  "packageManager": "pnpm@10.4.0"
+  "packageManager": "pnpm@10.4.1+sha512.c753b6c3ad7afa13af388fa6d808035a008e30ea9993f58c6663e2bc5ff21679aa834db094987129aa4d488b86df57f7b634981b2f827cdcacc698cc0cfb88af"
 }

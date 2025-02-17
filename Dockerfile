@@ -1,7 +1,7 @@
 # To use this Dockerfile, you have to set output: 'standalone' in your next.config.mjs file.
 # From https://github.com/vercel/next.js/blob/canary/examples/with-docker/Dockerfile
 
-FROM node:22-alpine AS base
+FROM node:22.14-alpine AS base
 
 # Install dependencies only when needed
 FROM base AS deps
@@ -13,6 +13,7 @@ WORKDIR /app
 COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
 RUN apk add --no-cache vips vips-dev fftw-dev gcc g++ make python3
 RUN npm rebuild sharp --platform=linuxmusl --arch=x64
+
 RUN \
   if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
   elif [ -f package-lock.json ]; then npm ci; \
