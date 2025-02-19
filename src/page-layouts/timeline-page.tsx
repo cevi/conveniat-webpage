@@ -2,10 +2,9 @@ import React from 'react';
 import { getPayload } from 'payload';
 import config from '@payload-config';
 import { HeadlineH1 } from '@/components/typography/headline-h1';
-import { PageSectionsConverter, ContentBlock } from 'src/converters/page-sections';
+import { ContentBlock, PageSectionsConverter } from 'src/converters/page-sections';
 import { LocalizedCollectionPage, StaticTranslationString } from '@/types';
 import { SubheadingH2 } from '@/components/typography/subheading-h2';
-import { ParagraphText } from '@/components/typography/paragraph-text';
 
 const pageTitle: StaticTranslationString = {
   en: 'Timeline',
@@ -46,19 +45,27 @@ export const TimeLinePage: React.FC<LocalizedCollectionPage> = async ({ locale, 
       <HeadlineH1>{pageTitle[locale]}</HeadlineH1>
       {timeLineItems.docs.map((item) => {
         return (
-        <div key={item.date}>
-          <ParagraphText className="my-0">{convertDate(item.date)}</ParagraphText>
-          <div className="border-l-green-100 border-l-4 p-4 m-2">
-            <SubheadingH2 className='m-0'>{item.title}</SubheadingH2>
+          <div key={item.date}>
+            <div className="mb-[-14px] mt-[-6px] flex items-center">
+              <div className="mx-[6px] mr-2 h-2 w-2 rounded-full bg-gray-500"></div>
+              <span className="my-2 ml-[6px] max-w-2xl text-left font-body text-xs font-bold text-gray-500">
+                {convertDate(item.date)}
+              </span>
+            </div>
+            <div className="m-2 mb-0 border-l-4 border-l-green-100 p-4">
+              <SubheadingH2 className="text-md m-0 mt-[-8]">{item.title}</SubheadingH2>
 
-            <PageSectionsConverter
-              blocks={item.mainContent as ContentBlock[]}
-              locale={locale}
-              searchParams={searchParams}
-            />
+              <PageSectionsConverter
+                blocks={item.mainContent as ContentBlock[]}
+                locale={locale}
+                searchParams={searchParams}
+                sectionClassName="mt-2"
+                sectionOverrides={{ photoCarousel: 'lg:mx-[60px]' }}
+              />
+            </div>
           </div>
-        </div>
-      )})}
+        );
+      })}
     </article>
   );
 };

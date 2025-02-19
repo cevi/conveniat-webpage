@@ -2,13 +2,14 @@ import { LexicalRichTextSection } from '@/components/content-blocks/lexical-rich
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import { ListBlogPosts } from '@/components/content-blocks/list-blog-articles';
 import React from 'react';
-import { ShowForm } from '@/components/content-blocks/show-form';
-import { FormBlockType } from '@/components/form';
 import { ErrorBoundary } from 'react-error-boundary';
 import { PhotoCarousel, PhotoCarouselBlock } from '@/components/gallery';
-import { YoutubeEmbed } from '@/components/content-blocks/youtube-embed';
-import { HeroSection, HeroSectionType } from '@/components/content-blocks/hero-section';
 import { LocalizedPageType } from '@/types';
+import { cn } from '@/utils/tailwindcss-override';
+import { HeroSection, HeroSectionType } from '@/components/content-blocks/hero-section';
+import { YoutubeEmbed } from '@/components/content-blocks/youtube-embed';
+import { ShowForm } from '@/components/content-blocks/show-form';
+import { FormBlockType } from '@/components/form';
 
 export type ContentBlockTypeNames =
   | 'blogPostsOverview'
@@ -42,18 +43,25 @@ const ErrorFallback: React.FC<{ error: Error }> = ({ error }) => {
  * @param blocks
  * @param locale
  * @param searchParams
+ * @param sectionClassName
  * @constructor
  */
-export const PageSectionsConverter: React.FC<LocalizedPageType & { blocks: ContentBlock[] }> = ({
-  blocks,
-  locale,
-  searchParams,
-}) => {
+export const PageSectionsConverter: React.FC<
+  LocalizedPageType & {
+    blocks: ContentBlock[];
+    sectionClassName?: string;
+    // potential overrides for specific sections (key value ContentBlockTypeNames -> string)
+    sectionOverrides: { [key in ContentBlockTypeNames]?: string };
+  }
+> = ({ blocks, locale, searchParams, sectionClassName, sectionOverrides }) => {
   return blocks.map((block) => {
     switch (block.blockType) {
       case 'richTextSection': {
         return (
-          <section key={block.id} className="mt-16">
+          <section
+            key={block.id}
+            className={cn(cn('mt-16', sectionClassName), sectionOverrides['richTextSection'])}
+          >
             <ErrorBoundary
               fallback={
                 <ErrorFallback
@@ -71,7 +79,10 @@ export const PageSectionsConverter: React.FC<LocalizedPageType & { blocks: Conte
 
       case 'blogPostsOverview': {
         return (
-          <section key={block.id} className="mt-16">
+          <section
+            key={block.id}
+            className={cn(cn('mt-16', sectionClassName), sectionOverrides['blogPostsOverview'])}
+          >
             <ErrorBoundary
               fallback={
                 <ErrorFallback
@@ -87,7 +98,10 @@ export const PageSectionsConverter: React.FC<LocalizedPageType & { blocks: Conte
 
       case 'formBlock': {
         return (
-          <section key={block.id} className="mt-16">
+          <section
+            key={block.id}
+            className={cn(cn('mt-16', sectionClassName), sectionOverrides['formBlock'])}
+          >
             <ErrorBoundary
               fallback={
                 <ErrorFallback
@@ -103,7 +117,10 @@ export const PageSectionsConverter: React.FC<LocalizedPageType & { blocks: Conte
 
       case 'photoCarousel': {
         return (
-          <section key={block.id} className="mt-16">
+          <section
+            key={block.id}
+            className={cn(cn('mt-16', sectionClassName), sectionOverrides['photoCarousel'])}
+          >
             <ErrorBoundary
               fallback={
                 <ErrorFallback
@@ -119,7 +136,10 @@ export const PageSectionsConverter: React.FC<LocalizedPageType & { blocks: Conte
 
       case 'youtubeEmbed': {
         return (
-          <section key={block.id} className="mt-16">
+          <section
+            key={block.id}
+            className={cn(cn('mt-16', sectionClassName), sectionOverrides['youtubeEmbed'])}
+          >
             <ErrorBoundary
               fallback={
                 <ErrorFallback
@@ -135,7 +155,10 @@ export const PageSectionsConverter: React.FC<LocalizedPageType & { blocks: Conte
 
       case 'heroSection': {
         return (
-          <section key={block.id}>
+          <section
+            key={block.id}
+            className={cn(cn('mt-16', sectionClassName), sectionOverrides['heroSection'])}
+          >
             <ErrorBoundary
               fallback={
                 <ErrorFallback
