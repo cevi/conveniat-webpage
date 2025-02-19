@@ -1,8 +1,9 @@
 import { GenericPage } from '@/payload-types';
 import { HeadlineH1 } from '@/components/typography/headline-h1';
 import React from 'react';
-import { ContentBlock, PageSectionsConverter } from 'src/converters/page-sections';
+import { PageSectionsConverter } from 'src/converters/page-sections';
 import { Locale, SearchParameters } from '@/types';
+import { ContentBlock } from '@/converters/page-sections/section-wrapper';
 
 export const GenericPageConverter: React.FC<{
   page: GenericPage;
