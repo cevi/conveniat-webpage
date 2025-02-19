@@ -14,7 +14,7 @@
     "LOCAL_WORKSPACE_FOLDER": "${localWorkspaceFolder}"
   },
 
-  "postStartCommand": "npm rebuild sharp && pnpm install --frozen-lockfile --ignore-scripts",
+  "postStartCommand": "cp .env.example .env && npm rebuild sharp && pnpm install --frozen-lockfile --ignore-scripts",
 
   "build": {
     "dockerfile": "Dockerfile" // Use a Dockerfile
