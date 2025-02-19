@@ -2,13 +2,10 @@ import React from 'react';
 import { getPayload } from 'payload';
 import config from '@payload-config';
 import { HeadlineH1 } from '@/components/typography/headline-h1';
-import { PageSectionsConverter, ContentBlock } from 'src/converters/page-sections';
+import { PageSectionsConverter } from 'src/converters/page-sections';
 import { LocalizedCollectionPage, StaticTranslationString } from '@/types';
-
-const isActive = (date: string) => {
-  // if date is in the past, return 'is-active', else return ''
-  return new Date(date) < new Date() ? 'is-active' : '';
-};
+import { SubheadingH2 } from '@/components/typography/subheading-h2';
+import { ContentBlock } from '@/converters/page-sections/section-wrapper';
 
 const pageTitle: StaticTranslationString = {
   en: 'Timeline',
@@ -33,11 +30,13 @@ export const TimeLinePage: React.FC<LocalizedCollectionPage> = async ({ locale, 
   });
 
   const convertDate = (date: string) => {
-    // i want dd.mm.yyyy
+    // i want dd month yyyy, hh:mm Uhr
     const options: Intl.DateTimeFormatOptions = {
       year: 'numeric',
-      month: '2-digit',
+      month: 'long',
       day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
     };
     return new Date(date).toLocaleDateString(locale, options);
   };
@@ -45,40 +44,29 @@ export const TimeLinePage: React.FC<LocalizedCollectionPage> = async ({ locale, 
   return (
     <article className="mx-auto my-8 max-w-2xl px-8">
       <HeadlineH1>{pageTitle[locale]}</HeadlineH1>
-
-      <div className="before:to-transparent relative space-y-8 before:absolute before:inset-0 before:ml-5 before:h-full before:w-0.5 before:-translate-x-px before:bg-gradient-to-b before:from-conveniat-green before:via-conveniat-green md:before:mx-auto md:before:translate-x-0">
-        {timeLineItems.docs.map((item) => {
-          const isItemActive = isActive(item.date);
-          return (
-            <div
-              key={item.date}
-              className={`group relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse ${isActive(item.date)}`}
-            >
-              <div
-                className={`${
-                  isItemActive ? 'bg-cevi-blue text-white' : 'bg-cevi-red'
-                } flex h-10 w-10 shrink-0 items-center justify-center rounded-full shadow md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2`}
-              ></div>
-
-              <div className="border-slate-200 w-[calc(100%-4rem)] rounded border bg-white p-4 shadow md:w-[calc(50%-2.5rem)]">
-                <div className="mb-1 flex items-center justify-between space-x-2">
-                  <div className="text-slate-900 font-bold">{item.title}</div>
-                  <time className="font-caveat text-indigo-500 font-medium">
-                    {convertDate(item.date)}
-                  </time>
-                </div>
-                <div>
-                  <PageSectionsConverter
-                    blocks={item.mainContent as ContentBlock[]}
-                    locale={locale}
-                    searchParams={searchParams}
-                  />
-                </div>
-              </div>
+      {timeLineItems.docs.map((item) => {
+        return (
+          <div key={item.date}>
+            <div className="mb-[-14px] mt-[-6px] flex items-center">
+              <div className="mx-[6px] mr-2 h-2 w-2 rounded-full bg-gray-500"></div>
+              <span className="my-2 ml-[6px] max-w-2xl text-left font-body text-xs font-bold text-gray-500">
+                {convertDate(item.date)}
+              </span>
             </div>
-          );
-        })}
-      </div>
+            <div className="m-2 mb-0 border-l-4 border-l-green-100 p-4">
+              <SubheadingH2 className="text-md m-0 mt-[-8]">{item.title}</SubheadingH2>
+
+              <PageSectionsConverter
+                blocks={item.mainContent as ContentBlock[]}
+                locale={locale}
+                searchParams={searchParams}
+                sectionClassName="mt-2"
+                sectionOverrides={{ photoCarousel: 'lg:mx-[60px]' }}
+              />
+            </div>
+          </div>
+        );
+      })}
     </article>
   );
 };

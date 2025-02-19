@@ -1,6 +1,6 @@
 {
   "name": "conveniat27",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "author": "Cyrill Püntener v/o JPG (cyrill.puentener@cevi.ch)",
   "maintainers": [
     "Cyrill Püntener v/o JPG (cyrill.puentener@cevi.ch)",
@@ -57,7 +57,7 @@
     "react-select": "^5.10.0",
     "server-only": "^0.0.1",
     "serwist": "^9.0.11",
-    "sharp": "^0.32.6",
+    "sharp": "0.32.6",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7"
   },
