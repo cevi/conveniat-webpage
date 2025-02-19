@@ -10,6 +10,7 @@ import {
   RenderRichTextSection,
   RenderYoutubeEmbed,
   SectionRenderer,
+  SwisstopoInlineMapSection,
 } from '@/converters/page-sections/content-blocks';
 
 /**
@@ -20,10 +21,10 @@ import {
  */
 export const PageSectionsConverter: React.FC<
   LocalizedPageType & {
-  blocks: ContentBlock[];
-  sectionClassName?: string;
-  sectionOverrides?: { [key in ContentBlockTypeNames]?: string };
-}
+    blocks: ContentBlock[];
+    sectionClassName?: string;
+    sectionOverrides?: { [key in ContentBlockTypeNames]?: string };
+  }
 > = (sectionProperties) => {
   const { blocks } = sectionProperties;
 
@@ -34,6 +35,7 @@ export const PageSectionsConverter: React.FC<
     photoCarousel: RenderPhotoCarousel,
     youtubeEmbed: RenderYoutubeEmbed,
     heroSection: RenderHeroSection,
+    swisstopoEmbed: SwisstopoInlineMapSection,
   };
 
   return blocks.map((block) => {

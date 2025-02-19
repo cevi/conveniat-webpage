@@ -9,6 +9,7 @@ import { LexicalRichTextSection } from '@/components/content-blocks/lexical-rich
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import { ListBlogPosts } from '@/components/content-blocks/list-blog-articles';
 import { YoutubeEmbed } from '@/components/content-blocks/youtube-embed';
+import InlineSwisstopoMapEmbed from '@/components/map-viewer/inline-swisstopo-map-embed';
 
 export type ContentBlockTypeNames =
   | 'blogPostsOverview'
@@ -16,7 +17,8 @@ export type ContentBlockTypeNames =
   | 'formBlock'
   | 'photoCarousel'
   | 'youtubeEmbed'
-  | 'heroSection';
+  | 'heroSection'
+  | 'swisstopoEmbed';
 
 export type SectionRenderer = React.FC<
   LocalizedPageType & {
@@ -25,6 +27,23 @@ export type SectionRenderer = React.FC<
     sectionOverrides?: { [key in ContentBlockTypeNames]?: string };
   }
 >;
+
+export const SwisstopoInlineMapSection: SectionRenderer = ({
+  block,
+  sectionClassName,
+  sectionOverrides,
+}) => {
+  return (
+    <SectionWrapper
+      block={block}
+      sectionClassName={sectionClassName}
+      sectionOverrides={sectionOverrides}
+      errorFallbackMessage="Failed to load hero section. Reload the page to try again."
+    >
+      <InlineSwisstopoMapEmbed />
+    </SectionWrapper>
+  );
+};
 
 export const RenderHeroSection: SectionRenderer = ({
   block,
