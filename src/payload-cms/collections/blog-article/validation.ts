@@ -80,8 +80,8 @@ export const slugValidation: TextFieldSingleValidation = async (value, arguments
 };
 
 export const photoCarouselMinSelectionValidation: RelationshipFieldManyValidation = (value) => {
-  if (value === undefined || value === null || value.length < 4)
-    return 'At least 4 images are required';
+  if (value === undefined || value === null || value.length < 5)
+    return 'At least 5 images are required';
 
   return true;
 };
