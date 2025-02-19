@@ -4,6 +4,9 @@ import { ErrorBoundary } from 'react-error-boundary';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import { PhotoCarouselBlock } from '@/components/gallery';
 import { ContentBlockTypeNames } from '@/converters/page-sections/content-blocks';
+import { InlineSwisstopoMapEmbedType } from '@/components/map-viewer/inline-swisstopo-map-embed';
+import { HeroSectionType } from '@/components/content-blocks/hero-section';
+import { FormBlockType } from '@/components/form';
 
 export type ContentBlock = {
   richTextSection?: SerializedEditorState;
@@ -12,7 +15,9 @@ export type ContentBlock = {
   images?: PhotoCarouselBlock;
   link?: string | null;
   blockType: ContentBlockTypeNames;
-};
+} & InlineSwisstopoMapEmbedType &
+  HeroSectionType &
+  FormBlockType;
 
 const ErrorFallback: React.FC<{ error: Error }> = ({ error }) => {
   return (

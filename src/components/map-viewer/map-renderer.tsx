@@ -11,21 +11,19 @@ import 'maplibre-gl/dist/maplibre-gl.css';
  * Interface for the initial map pose.
  * This is used to define the initial center and zoom level of the map.
  */
-interface InitialMapPose {
-  centerLongitude: number;
-  centerLatitude: number;
+export interface InitialMapPose {
+  initialMapCenter: [number, number];
   zoom: number;
 }
 
 /**
  * Interface for a Cevi Logo Marker.
  */
-interface CeviLogoMarker {
+export interface CeviLogoMarker {
   geometry: {
     coordinates: [number, number];
   };
   title: string;
-  description: string;
 }
 
 /**
@@ -48,7 +46,7 @@ export const MapLibreRenderer = ({
 
   // this effect is called when the component is mounted
   useEffect(() => {
-    const { centerLongitude, centerLatitude, zoom } = initialMapPose;
+    const { initialMapCenter, zoom } = initialMapPose;
 
     // check if the map container reference
     if (mapContainerReference.current === null) return;
@@ -70,7 +68,7 @@ export const MapLibreRenderer = ({
       touchPitch: false,
 
       // define initial map pose
-      center: [centerLongitude, centerLatitude],
+      center: initialMapCenter,
       zoom: zoom,
 
       // restrict map pose to Switzerland

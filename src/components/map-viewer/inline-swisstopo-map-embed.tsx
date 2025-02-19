@@ -1,29 +1,25 @@
 import React from 'react';
 
-import { MapLibreRenderer } from '@/components/map-viewer/map-renderer';
+import {
+  CeviLogoMarker,
+  InitialMapPose,
+  MapLibreRenderer,
+} from '@/components/map-viewer/map-renderer';
 
-const InlineSwisstopoMapEmbed = (): React.JSX.Element => {
+export type InlineSwisstopoMapEmbedType = {
+  blockName?: string;
+  initialMapPose: InitialMapPose;
+  ceviLogoMarkers: CeviLogoMarker[];
+};
+
+const InlineSwisstopoMapEmbed: React.FC<InlineSwisstopoMapEmbedType> = ({
+  initialMapPose,
+  ceviLogoMarkers,
+}) => {
+  console.log(initialMapPose);
   return (
     <div className="h-[400px] w-full overflow-hidden rounded">
-      <MapLibreRenderer
-        initialMapPose={{
-          centerLongitude: 8.303_628,
-          centerLatitude: 46.502_992,
-          zoom: 15.5,
-        }}
-        ceviLogoMarkers={[
-          {
-            geometry: { coordinates: [8.303_628, 46.502_992] },
-            title: 'Cevi Logo',
-            description: 'This is the Cevi Logo',
-          },
-          {
-            geometry: { coordinates: [8.603_728, 46.502_892] },
-            title: 'Cevi Logo',
-            description: 'This is the Cevi Logo',
-          },
-        ]}
-      />
+      <MapLibreRenderer initialMapPose={initialMapPose} ceviLogoMarkers={ceviLogoMarkers} />
     </div>
   );
 };

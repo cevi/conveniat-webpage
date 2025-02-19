@@ -9,7 +9,9 @@ import { LexicalRichTextSection } from '@/components/content-blocks/lexical-rich
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import { ListBlogPosts } from '@/components/content-blocks/list-blog-articles';
 import { YoutubeEmbed } from '@/components/content-blocks/youtube-embed';
-import InlineSwisstopoMapEmbed from '@/components/map-viewer/inline-swisstopo-map-embed';
+import InlineSwisstopoMapEmbed, {
+  InlineSwisstopoMapEmbedType,
+} from '@/components/map-viewer/inline-swisstopo-map-embed';
 
 export type ContentBlockTypeNames =
   | 'blogPostsOverview'
@@ -40,7 +42,7 @@ export const SwisstopoInlineMapSection: SectionRenderer = ({
       sectionOverrides={sectionOverrides}
       errorFallbackMessage="Failed to load hero section. Reload the page to try again."
     >
-      <InlineSwisstopoMapEmbed />
+      <InlineSwisstopoMapEmbed {...(block as InlineSwisstopoMapEmbedType)} />
     </SectionWrapper>
   );
 };

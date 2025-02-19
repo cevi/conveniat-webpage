@@ -512,6 +512,30 @@ export interface YoutubeEmbedding {
  * via the `definition` "SwisstopoMapEmbedding".
  */
 export interface SwisstopoMapEmbedding {
+  initialMapPose?: {
+    zoom?: number | null;
+    /**
+     * @minItems 2
+     * @maxItems 2
+     */
+    initialMapCenter?: [number, number] | null;
+  };
+  /**
+   * Markers on the map with a small Cevi logo
+   */
+  ceviLogoMarkers?:
+    | {
+        title?: string | null;
+        geometry?: {
+          /**
+           * @minItems 2
+           * @maxItems 2
+           */
+          coordinates?: [number, number] | null;
+        };
+        id?: string | null;
+      }[]
+    | null;
   id?: string | null;
   blockName?: string | null;
   blockType: 'swisstopoEmbed';
@@ -961,6 +985,23 @@ export interface YoutubeEmbeddingSelect<T extends boolean = true> {
  * via the `definition` "SwisstopoMapEmbedding_select".
  */
 export interface SwisstopoMapEmbeddingSelect<T extends boolean = true> {
+  initialMapPose?:
+    | T
+    | {
+        zoom?: T;
+        initialMapCenter?: T;
+      };
+  ceviLogoMarkers?:
+    | T
+    | {
+        title?: T;
+        geometry?:
+          | T
+          | {
+              coordinates?: T;
+            };
+        id?: T;
+      };
   id?: T;
   blockName?: T;
 }
