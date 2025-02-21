@@ -68,7 +68,7 @@ services:
   fake-oauth:
     build: dev-oauth
     ports:
-      - "3001:5000"
+      - '3001:5000'
     restart: always
 
 volumes:

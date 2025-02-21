@@ -9,7 +9,10 @@ export const SubheadingH3: React.FC<{
   return (
     <h3
       id={nodeToAnchorReference(children)}
-      className={cn("mb-1 mt-8 max-w-4xl text-balance font-heading text-base font-extrabold text-conveniat-green", className)}
+      className={cn(
+        'mb-1 mt-8 max-w-4xl text-balance font-heading text-base font-extrabold text-conveniat-green',
+        className,
+      )}
     >
       {children}
     </h3>

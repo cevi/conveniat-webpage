@@ -102,6 +102,7 @@ export interface Config {
   auth: {
     users: UserAuthOperations;
   };
+  blocks: {};
   collections: {
     blog: Blog;
     'generic-page': GenericPage;

@@ -16,7 +16,7 @@ Make sure to have the following installed on your machine:
 1. Clone the repository
 2. Copy the `.env.example` file to `.env` and fill empty values.
 3. Open the project using the provided devconatiner inside your IDE (VSCode or Webstorm are tested).
-3. Start Developing using the following commands:
+4. Start Developing using the following commands:
    ```bash
    docker compose up --build --watch
    ```
