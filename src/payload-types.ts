@@ -1374,6 +1374,19 @@ export interface Header {
  */
 export interface Footer {
   id: string;
+  /**
+   * Menu item in the dark area of the footer
+   */
+  minimalFooterMenu?:
+    | {
+        label: string;
+        link?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Menu item in the light area of the footer
+   */
   footerMenu?:
     | {
         menuSubTitle: string;
@@ -1468,6 +1481,13 @@ export interface HeaderSelect<T extends boolean = true> {
  * via the `definition` "footer_select".
  */
 export interface FooterSelect<T extends boolean = true> {
+  minimalFooterMenu?:
+    | T
+    | {
+        label?: T;
+        link?: T;
+        id?: T;
+      };
   footerMenu?:
     | T
     | {

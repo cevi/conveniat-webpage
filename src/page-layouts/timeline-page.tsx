@@ -57,7 +57,7 @@ export const TimeLinePage: React.FC<LocalizedCollectionPage> = async ({ locale, 
               <SubheadingH2 className="text-md m-0 mt-[-8]">{item.title}</SubheadingH2>
 
               <PageSectionsConverter
-                blocks={item.mainContent as ContentBlock[]}
+                blocks={item.mainContent as unknown as ContentBlock[]}
                 locale={locale}
                 searchParams={searchParams}
                 sectionClassName="mt-2"
