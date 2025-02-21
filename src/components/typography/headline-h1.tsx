@@ -1,13 +1,18 @@
 import React from 'react';
 import { nodeToAnchorReference } from '@/utils/node-to-anchor-reference';
+import { cn } from '@/utils/tailwindcss-override';
 
 export const HeadlineH1: React.FC<{
   children?: React.ReactNode;
-}> = ({ children }) => {
+  className?: string;
+}> = ({ children, className }) => {
   return (
     <h1
       id={nodeToAnchorReference(children)}
-      className="mb-4 mt-6 max-w-4xl text-balance font-heading text-3xl font-extrabold text-conveniat-green md:pt-20"
+      className={cn(
+        'mb-4 mt-6 max-w-4xl text-balance font-heading text-3xl font-extrabold text-conveniat-green md:pt-20',
+        className,
+      )}
     >
       {children}
     </h1>

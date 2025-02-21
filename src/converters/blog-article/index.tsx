@@ -2,8 +2,9 @@ import { Blog } from '@/payload-types';
 import { HeadlineH1 } from '@/components/typography/headline-h1';
 import React from 'react';
 import Image from 'next/image';
-import { PageSectionsConverter, ContentBlock } from 'src/converters/page-sections';
+import { PageSectionsConverter } from 'src/converters/page-sections';
 import { Locale, SearchParameters } from '@/types';
+import { ContentBlock } from '@/converters/page-sections/section-wrapper';
 
 export const BlogArticleConverter: React.FC<{
   article: Blog;

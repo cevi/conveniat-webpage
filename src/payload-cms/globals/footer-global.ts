@@ -10,7 +10,54 @@ export const FooterGlobal: GlobalConfig = {
   },
   fields: [
     {
+      name: 'minimalFooterMenu',
+      admin: {
+        description: {
+          de: 'Menueintrag im Dunklen bereich des Footers',
+          en: 'Menu item in the dark area of the footer',
+          fr: 'Élément de menu dans la zone sombre du pied de page',
+        },
+      },
+      label: {
+        en: 'Menu Item',
+        de: 'Menüpunkt',
+        fr: 'Élément de menu',
+      },
+      type: 'array',
+      localized: true,
+      fields: [
+        {
+          name: 'label',
+          label: {
+            en: 'Label',
+            de: 'Bezeichnung',
+            fr: 'Libellé',
+          },
+          type: 'text',
+          required: true,
+        },
+        {
+          name: 'link',
+          label: {
+            en: 'Link',
+            de: 'Link',
+            fr: 'Lien',
+          },
+          type: 'text',
+          required: false,
+        },
+      ],
+    },
+
+    {
       name: 'footerMenu',
+      admin: {
+        description: {
+          de: 'Menüpunkt im hellen Bereich des Footers',
+          en: 'Menu item in the light area of the footer',
+          fr: 'Élément de menu dans la zone claire du pied de page',
+        },
+      },
       label: {
         en: 'Footer Menu Block',
         de: 'Fusszeilen-Menü-Block',

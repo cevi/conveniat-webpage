@@ -8,25 +8,20 @@ See `conveniat27.ch` for the live version of the website.
 
 Make sure to have the following installed on your machine:
 
-- [Node.js](https://nodejs.org/en/)
-- [pnpm](https://pnpm.io/)
 - [Git](https://git-scm.com/)
 - [Docker](https://www.docker.com/)
 
-### Installation
+### Launch Project Locally using a devcontainer
 
 1. Clone the repository
 2. Copy the `.env.example` file to `.env` and fill empty values.
-3. Start Developing using the following commands:
+3. Open the project using the provided devconatiner inside your IDE (VSCode or Webstorm are tested).
+4. Start Developing using the following commands:
    ```bash
    docker compose up --build --watch
    ```
    The above command launches a local development server with hot-reloading enabled.
    You can open the website on `http://localhost:3000`.
-4. For Code Completion and Linting on you Host Machine, run the following command:
-   ```bash
-   pnpm install
-   ```
 
 ### Clear Database and Seed Data
 
@@ -36,20 +31,6 @@ with `docker compose up --build --watch`.
 ```bash
 docker compose down --volumes
 ```
-
-### MinIO Setup
-
-Start the MinIO Container (`docker compose up -d minio`) and log in (admin:password).
-Then, create a new Bucket (note the name) and a new user. For the user, create an Access Key.
-Write these values into the `.env` file:
-
-```
-MINIO_ACCESS_KEY_ID=
-MINIO_SECRET_ACCESS_KEY=
-MINIO_BUCKET_NAME=
-```
-
-Then, start the rest of the stack (`docker compose up -d`) and upload images into your bucket.
 
 ## Tech Stack and Decisions
 

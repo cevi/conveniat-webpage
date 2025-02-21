@@ -102,6 +102,7 @@ export interface Config {
   auth: {
     users: UserAuthOperations;
   };
+  blocks: {};
   collections: {
     blog: Blog;
     'generic-page': GenericPage;
@@ -264,6 +265,7 @@ export interface Blog {
           blockType: 'photoCarousel';
         }
       | YoutubeEmbedding
+      | SwisstopoMapEmbedding
     )[];
     /**
      * These keywords will be used for user search.
@@ -508,6 +510,39 @@ export interface YoutubeEmbedding {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "SwisstopoMapEmbedding".
+ */
+export interface SwisstopoMapEmbedding {
+  initialMapPose?: {
+    zoom?: number | null;
+    /**
+     * @minItems 2
+     * @maxItems 2
+     */
+    initialMapCenter?: [number, number] | null;
+  };
+  /**
+   * Markers on the map with a small Cevi logo
+   */
+  ceviLogoMarkers?:
+    | {
+        title?: string | null;
+        geometry?: {
+          /**
+           * @minItems 2
+           * @maxItems 2
+           */
+          coordinates?: [number, number] | null;
+        };
+        id?: string | null;
+      }[]
+    | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'swisstopoEmbed';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "generic-page".
  */
 export interface GenericPage {
@@ -589,6 +624,7 @@ export interface GenericPage {
           blockType: 'photoCarousel';
         }
       | YoutubeEmbedding
+      | SwisstopoMapEmbedding
     )[];
   };
   seo: {
@@ -911,6 +947,7 @@ export interface BlogSelect<T extends boolean = true> {
                     blockName?: T;
                   };
               youtubeEmbed?: T | YoutubeEmbeddingSelect<T>;
+              swisstopoEmbed?: T | SwisstopoMapEmbeddingSelect<T>;
             };
         blogSearchKeywords?: T;
       };
@@ -941,6 +978,31 @@ export interface FormBlockSelect<T extends boolean = true> {
  */
 export interface YoutubeEmbeddingSelect<T extends boolean = true> {
   link?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "SwisstopoMapEmbedding_select".
+ */
+export interface SwisstopoMapEmbeddingSelect<T extends boolean = true> {
+  initialMapPose?:
+    | T
+    | {
+        zoom?: T;
+        initialMapCenter?: T;
+      };
+  ceviLogoMarkers?:
+    | T
+    | {
+        title?: T;
+        geometry?:
+          | T
+          | {
+              coordinates?: T;
+            };
+        id?: T;
+      };
   id?: T;
   blockName?: T;
 }
@@ -996,6 +1058,7 @@ export interface GenericPageSelect<T extends boolean = true> {
                     blockName?: T;
                   };
               youtubeEmbed?: T | YoutubeEmbeddingSelect<T>;
+              swisstopoEmbed?: T | SwisstopoMapEmbeddingSelect<T>;
             };
       };
   seo?:
@@ -1311,6 +1374,19 @@ export interface Header {
  */
 export interface Footer {
   id: string;
+  /**
+   * Menu item in the dark area of the footer
+   */
+  minimalFooterMenu?:
+    | {
+        label: string;
+        link?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Menu item in the light area of the footer
+   */
   footerMenu?:
     | {
         menuSubTitle: string;
@@ -1405,6 +1481,13 @@ export interface HeaderSelect<T extends boolean = true> {
  * via the `definition` "footer_select".
  */
 export interface FooterSelect<T extends boolean = true> {
+  minimalFooterMenu?:
+    | T
+    | {
+        label?: T;
+        link?: T;
+        id?: T;
+      };
   footerMenu?:
     | T
     | {

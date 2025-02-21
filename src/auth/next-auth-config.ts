@@ -16,6 +16,7 @@ interface HitobitoProfile {
 }
 
 const HITOBITO_BASE_URL = process.env['HITOBITO_BASE_URL'] ?? '';
+const HITOBITO_FORWARD_URL = process.env['HITOBITO_FORWARD_URL'] ?? '';
 const CEVI_DB_CLIENT_ID = process.env['CEVI_DB_CLIENT_ID'] ?? '';
 const CEVI_DB_CLIENT_SECRET = process.env['CEVI_DB_CLIENT_SECRET'] ?? '';
 
@@ -32,7 +33,7 @@ export const authOptions: NextAuthConfig = {
       type: 'oauth',
       name: 'CeviDB',
       authorization: {
-        url: `${HITOBITO_BASE_URL}/oauth/authorize`,
+        url: `${HITOBITO_FORWARD_URL}/oauth/authorize`,
         params: {
           response_type: 'code',
           scope: 'with_roles',

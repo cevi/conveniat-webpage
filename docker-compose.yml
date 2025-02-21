@@ -65,6 +65,12 @@ services:
     volumes:
       - miniodata:/data
 
+  fake-oauth:
+    build: dev-oauth
+    ports:
+      - '3001:5000'
+    restart: always
+
 volumes:
   data:
   node_modules:

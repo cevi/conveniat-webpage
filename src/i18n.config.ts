@@ -16,6 +16,9 @@ export const i18nExcludedRoutes: string[] = [
   'api',
   'admin',
 
+  // map styles
+  'vector-map',
+
   // Static Files (Service Workers, Manifests, SEO)
   'sw.js',
   'swe-worker-*.js',

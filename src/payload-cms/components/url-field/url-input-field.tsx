@@ -1,5 +1,5 @@
 import React from 'react';
-import { CollectionSlug, TextFieldLabelServerComponent } from 'payload';
+import { CollectionSlug } from 'payload';
 import { findPrefixByCollectionSlugAndLocale } from '@/route-resolution-table';
 import { Locale } from '@/types';
 import { LOCALE } from '@/payload-cms/locales';
@@ -47,11 +47,17 @@ const measureText = (string_: string, fontSize: number): number => {
  * Displaying the URL for the current locale and collection.
  *
  */
-const urlSlugPrefixField: TextFieldLabelServerComponent = ({ collectionSlug, path, req }) => {
+const urlSlugPrefixField: React.FC<{
+  path: string;
+  collectionSlug: string;
+  req: {
+    locale: string;
+  };
+}> = ({ collectionSlug, path, req }) => {
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const locale = ((req as never)['locale'] ?? LOCALE.DE) as Locale;
   const slug: CollectionSlug = collectionSlug as unknown as CollectionSlug;
-  const inputFieldId = `field-${path?.replaceAll('.', '__')}`;
+  const inputFieldId = `field-${path.replaceAll('.', '__')}`;
 
   const prefix_slug = findPrefixByCollectionSlugAndLocale(slug as CollectionSlug, locale);
   const prefix = `/${locale === LOCALE.DE ? '' : locale}/${prefix_slug}/`.replaceAll(/\/+/g, '/');
