@@ -12,9 +12,10 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN apk add --no-cache libc6-compat
 
 # Install dependencies based on the preferred package manager
-COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
 RUN apk add --no-cache vips vips-dev fftw-dev gcc g++ make python3
 RUN npm rebuild sharp --platform=linuxmusl --arch=x64
+
+COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
 
 RUN \
   if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
