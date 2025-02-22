@@ -24,6 +24,7 @@ const dirname = path.dirname(filename);
 
 const PAYLOAD_SECRET = process.env['PAYLOAD_SECRET'] ?? '';
 const DATABASE_URI = process.env['DATABASE_URI'] ?? '';
+const APP_HOST_URL = process.env['APP_HOST_URL'] ?? '';
 //const APP_HOST_URL = process.env['APP_HOST_URL'] ?? ''; // not needed as live-preview is currently disabled
 
 export const payloadConfig: RoutableConfig = {
@@ -101,6 +102,9 @@ export const payloadConfig: RoutableConfig = {
     disablePlaygroundInProduction: true,
   },
   secret: PAYLOAD_SECRET,
+  // helps prevent CSRF attacks
+  // (see https://payloadcms.com/docs/authentication/cookies#csrf-prevention)
+  csrf: [APP_HOST_URL],
   typescript: {
     autoGenerate: true,
     outputFile: path.resolve(dirname, 'payload-types.ts'),
