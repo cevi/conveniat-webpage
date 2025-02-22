@@ -1,7 +1,7 @@
 import React from 'react';
 import { notFound, redirect } from 'next/navigation';
 import { routeResolutionTable } from '@/route-resolution-table';
-import { Locale } from '@/types';
+import { Locale, SearchParameters } from '@/types';
 
 /**
  *
@@ -20,9 +20,7 @@ const CMSPage: React.FC<{
     slugs: string[] | undefined;
     locale: Locale;
   }>;
-  searchParams: Promise<{
-    [key: string]: string | string[];
-  }>;
+  searchParams: Promise<SearchParameters>;
 }> =
   // eslint-disable-next-line complexity
   async ({ params, searchParams: searchParametersPromise }) => {
