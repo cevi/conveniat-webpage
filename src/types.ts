@@ -21,6 +21,7 @@ export type LocalizedPageType = {
 
 export type LocalizedCollectionPage = LocalizedPageType & {
   slugs: string[];
+  renderInPreviewMode: boolean;
 };
 export type RoutableCollectionConfig = {
   urlPrefix: {

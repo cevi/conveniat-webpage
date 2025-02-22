@@ -13,9 +13,20 @@ import { i18nExcludedRoutes } from '@/i18n.config';
  *
  */
 export const middleware = (request: NextRequest): NextResponse => {
+  const response = NextResponse.next();
+
+  // in order to render the preview banner for any frontend page, we
+  // inject the `preview` cookie with the value `true` when the user
+  // navigates to the admin panel. This way, we don't show the preview
+  // banner when an admin signs in to the app but never navigates to
+  // the admin panel (e.g. while using the app).
+  if (request.nextUrl.pathname.startsWith('/admin')) {
+    response.cookies.set('preview', 'true');
+  }
+
   // exclude paths from next-i18n-router
   if (i18nExcludedRoutes.some((path) => request.nextUrl.pathname.startsWith(`/${path}`))) {
-    return NextResponse.next();
+    return response;
   }
 
   // apply i18n routing

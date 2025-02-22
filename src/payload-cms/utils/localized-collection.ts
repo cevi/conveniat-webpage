@@ -122,7 +122,11 @@ export const asLocalizedCollection = (config: CollectionConfig): CollectionConfi
     // versioning must be enabled for localized collections
     versions: {
       maxPerDoc: 100,
-      drafts: true,
+      drafts: {
+        autosave: {
+          interval: 375,
+        },
+      },
     },
   };
 };

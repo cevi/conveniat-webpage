@@ -23,6 +23,7 @@ export const BlogPostPage: React.FC<LocalizedCollectionPage> = async ({
   slugs,
   locale,
   searchParams,
+  renderInPreviewMode,
 }) => {
   const payload = await getPayload({ config });
   const slug = slugs.join('/');
@@ -34,6 +35,7 @@ export const BlogPostPage: React.FC<LocalizedCollectionPage> = async ({
     pagination: false,
     locale: locale,
     fallbackLocale: false,
+    draft: renderInPreviewMode,
     where: {
       and: [
         { 'seo.urlSlug': { equals: slug } },
@@ -71,6 +73,7 @@ export const BlogPostPage: React.FC<LocalizedCollectionPage> = async ({
       payload.find({
         collection: 'blog',
         pagination: false,
+        draft: renderInPreviewMode,
         locale: l,
         where: {
           and: [

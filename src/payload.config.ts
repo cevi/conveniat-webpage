@@ -18,6 +18,7 @@ import { s3StorageConfiguration } from '@/payload-cms/plugins/s3-storage-plugin-
 import { searchPluginConfiguration } from '@/payload-cms/plugins/search/search-plugin-configuration';
 import { globalConfig } from '@/payload-cms/globals';
 import sharp from 'sharp';
+import { CollectionConfig, Locale } from 'payload';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -26,6 +27,30 @@ const PAYLOAD_SECRET = process.env['PAYLOAD_SECRET'] ?? '';
 const DATABASE_URI = process.env['DATABASE_URI'] ?? '';
 const APP_HOST_URL = process.env['APP_HOST_URL'] ?? '';
 //const APP_HOST_URL = process.env['APP_HOST_URL'] ?? ''; // not needed as live-preview is currently disabled
+
+/**
+ * Generates the preview URL for the live preview feature.
+ *
+ * @param data
+ * @param collectionConfig
+ * @param locale
+ */
+const generatePreviewUrl = ({
+  data,
+  collectionConfig,
+  locale,
+}: {
+  data: { seo?: { urlSlug?: string } };
+  collectionConfig?: CollectionConfig;
+  locale: Locale;
+}): string => {
+  if (!data.seo) return '';
+  const urlSlug: string | undefined = data.seo.urlSlug;
+  if (urlSlug == undefined) return '';
+  return `${APP_HOST_URL}/${locale.code}${
+    collectionConfig && collectionConfig.slug === 'blog' ? `/blog/${urlSlug}` : ''
+  }?preview=true`;
+};
 
 export const payloadConfig: RoutableConfig = {
   onInit: onPayloadInit,
@@ -75,19 +100,11 @@ export const payloadConfig: RoutableConfig = {
       baseDir: path.resolve(dirname),
     },
     dateFormat: 'yyyy-MM-dd HH:mm',
-    /*
+
     livePreview: {
-      url: ({ data, collectionConfig, locale }) => {
-        // TODO: fix typing in order to remove eslint-disable
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-        const urlSlug: string = data['seo']?.['urlSlug'] || '';
-        return `${APP_HOST_URL}${`/${locale.code}`}${
-          collectionConfig && collectionConfig.slug === 'blog' ? `/blog/${urlSlug}` : ''
-        }`;
-      },
-      collections: ['blog'],
+      url: generatePreviewUrl,
+      collections: ['blog', 'generic-page', 'timeline'],
     },
-    */
   },
   collections: collectionsConfig,
   editor: lexicalEditor,
