@@ -17,7 +17,7 @@ const Layout: React.FC<LayoutProperties> = async ({ children }) => {
       <ErrorBoundary
         fallback={<ErrorPage error={new Error('main content failed to render at root layout')} />}
       >
-        <main className="mt-[60px] grow">{children}</main>
+        <main className="mt-[60px] grow pb-20">{children}</main>
       </ErrorBoundary>
 
       {isInAppDesign && <FooterAppNavBar />}
