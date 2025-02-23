@@ -2,10 +2,16 @@ import Link from 'next/link';
 import React from 'react';
 import { NavComponent } from '@/components/menu/nav-component';
 import { ConveniatLogo } from '@/components/svg-logos/conveniat-logo';
+import { PreviewModeBanner } from '@/components/header/preview-mode-banner';
+import { auth } from '@/auth/auth';
 
-export const HeaderComponent: React.FC = () => {
+export const HeaderComponent: React.FC = async () => {
+  const session = await auth();
+
   return (
     <header className="fixed left-0 top-0 z-50 h-[112px] w-full">
+      <PreviewModeBanner user={session?.user} />
+
       <div className="mb-[32px] border-b-2 border-gray-200 bg-white">
         <div className="relative mx-auto h-[60px] w-full max-w-2xl text-conveniat-green">
           <div className="flex items-center justify-between px-6">

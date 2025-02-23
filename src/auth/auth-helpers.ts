@@ -83,10 +83,11 @@ async function getPayloadUserFromNextAuthUser(
     .then((response) => response.docs[0]);
 }
 
-// @ts-ignore
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-expect-error
 export const getAuthenticateUsingCeviDB: AuthStrategyFunction = async ({ headers, payload }) => {
   const cookie = headers.get('cookie');
-  if (!cookie) return { user: undefined };
+  if (cookie === null) return { user: undefined };
 
   const session = await fetchSessionFromCeviDB(cookie);
   if (!session?.user || !isValidNextAuthUser(session.user)) {

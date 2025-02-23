@@ -9,19 +9,26 @@ export const GenericPage: React.FC<LocalizedCollectionPage> = async ({
   slugs,
   locale,
   searchParams,
+  renderInPreviewMode,
 }) => {
   const payload = await getPayload({ config });
   const slug = slugs.join('/');
+
+  if (renderInPreviewMode) {
+    console.log('Preview mode enabled');
+  }
 
   const articlesInPrimaryLanguage = await payload.find({
     collection: 'generic-page',
     pagination: false,
     locale: locale,
     fallbackLocale: false,
+    draft: renderInPreviewMode,
     where: {
       and: [
         { 'seo.urlSlug': { equals: slug } },
-        { _localized_status: { equals: { published: true } } },
+        // we only resolve published pages unless in preview mode
+        renderInPreviewMode ? {} : { _localized_status: { equals: { published: true } } },
       ],
     },
   });
@@ -50,11 +57,13 @@ export const GenericPage: React.FC<LocalizedCollectionPage> = async ({
       payload.find({
         collection: 'generic-page',
         pagination: false,
+        draft: renderInPreviewMode,
         locale: l,
         where: {
           and: [
             { 'seo.urlSlug': { equals: slug } },
-            { _localized_status: { equals: { published: true } } },
+            // we only resolve published pages unless in preview mode
+            renderInPreviewMode ? {} : { _localized_status: { equals: { published: true } } },
           ],
         },
       }),

@@ -23,6 +23,7 @@ export const BlogPostPage: React.FC<LocalizedCollectionPage> = async ({
   slugs,
   locale,
   searchParams,
+  renderInPreviewMode,
 }) => {
   const payload = await getPayload({ config });
   const slug = slugs.join('/');
@@ -34,10 +35,12 @@ export const BlogPostPage: React.FC<LocalizedCollectionPage> = async ({
     pagination: false,
     locale: locale,
     fallbackLocale: false,
+    draft: renderInPreviewMode,
     where: {
       and: [
         { 'seo.urlSlug': { equals: slug } },
-        { _localized_status: { equals: { published: true } } },
+        // we only resolve published pages unless in preview mode
+        renderInPreviewMode ? {} : { _localized_status: { equals: { published: true } } },
         {
           'content.releaseDate': {
             less_than_equal: currentDate,
@@ -71,11 +74,13 @@ export const BlogPostPage: React.FC<LocalizedCollectionPage> = async ({
       payload.find({
         collection: 'blog',
         pagination: false,
+        draft: renderInPreviewMode,
         locale: l,
         where: {
           and: [
             { 'seo.urlSlug': { equals: slug } },
-            { _localized_status: { equals: { published: true } } },
+            // we only resolve published pages unless in preview mode
+            renderInPreviewMode ? {} : { _localized_status: { equals: { published: true } } },
             {
               'content.releaseDate': {
                 less_than_equal: currentDate,

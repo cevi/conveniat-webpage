@@ -18,13 +18,100 @@ import { s3StorageConfiguration } from '@/payload-cms/plugins/s3-storage-plugin-
 import { searchPluginConfiguration } from '@/payload-cms/plugins/search/search-plugin-configuration';
 import { globalConfig } from '@/payload-cms/globals';
 import sharp from 'sharp';
+import { CollectionConfig, Locale } from 'payload';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
 
 const PAYLOAD_SECRET = process.env['PAYLOAD_SECRET'] ?? '';
 const DATABASE_URI = process.env['DATABASE_URI'] ?? '';
+const APP_HOST_URL = process.env['APP_HOST_URL'] ?? '';
 //const APP_HOST_URL = process.env['APP_HOST_URL'] ?? ''; // not needed as live-preview is currently disabled
+
+const smartphoneBreakpoints: {
+  height: number | string;
+  label: string;
+  name: string;
+  width: number | string;
+}[] = [
+  {
+    name: 'iphone-se',
+    label: 'iPhone SE (375x667)',
+    width: 375,
+    height: 667,
+  },
+  {
+    name: 'iphone-xr',
+    label: 'iPhone XR (414x896)',
+    width: 414,
+    height: 896,
+  },
+  {
+    name: 'iphone-14',
+    label: 'iPhone 14 (390x844)',
+    width: 390,
+    height: 844,
+  },
+  {
+    name: 'iphone-14-pro',
+    label: 'iPhone 14 Pro (393x852)',
+    width: 393,
+    height: 852,
+  },
+  {
+    name: 'iphone-14-pro-max',
+    label: 'iPhone 14 Pro Max (430x932)',
+    width: 430,
+    height: 932,
+  },
+  {
+    name: 'google-pixel-6',
+    label: 'Google Pixel 6 (393x851)',
+    width: 393,
+    height: 851,
+  },
+  {
+    name: 'google-pixel-7',
+    label: 'Google Pixel 7 (412x870)',
+    width: 412,
+    height: 870,
+  },
+  {
+    name: 'google-pixel-7-pro',
+    label: 'Google Pixel 7 Pro (412x892)',
+    width: 412,
+    height: 892,
+  },
+];
+
+/**
+ * Generates the preview URL for the live preview feature.
+ *
+ * @param data
+ * @param collectionConfig
+ * @param locale
+ */
+const generatePreviewUrl = ({
+  data,
+  collectionConfig,
+  locale,
+}: {
+  data: { seo?: { urlSlug?: string } };
+  collectionConfig?: CollectionConfig;
+  locale: Locale;
+}): string => {
+  if (!data.seo) return '';
+  const urlSlug: string | undefined = data.seo.urlSlug;
+  if (urlSlug == undefined) return '';
+  console.log(
+    `${APP_HOST_URL}/${locale.code}${
+      collectionConfig && collectionConfig.slug === 'blog' ? `/blog/${urlSlug}` : ''
+    }?preview=true`,
+  );
+  return `${APP_HOST_URL}/${locale.code}/${
+    collectionConfig && collectionConfig.slug === 'blog' ? `blog/` : ''
+  }${urlSlug}?preview=true`;
+};
 
 export const payloadConfig: RoutableConfig = {
   onInit: onPayloadInit,
@@ -74,19 +161,12 @@ export const payloadConfig: RoutableConfig = {
       baseDir: path.resolve(dirname),
     },
     dateFormat: 'yyyy-MM-dd HH:mm',
-    /*
+
     livePreview: {
-      url: ({ data, collectionConfig, locale }) => {
-        // TODO: fix typing in order to remove eslint-disable
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-        const urlSlug: string = data['seo']?.['urlSlug'] || '';
-        return `${APP_HOST_URL}${`/${locale.code}`}${
-          collectionConfig && collectionConfig.slug === 'blog' ? `/blog/${urlSlug}` : ''
-        }`;
-      },
-      collections: ['blog'],
+      url: generatePreviewUrl,
+      breakpoints: smartphoneBreakpoints,
+      collections: ['blog', 'generic-page'],
     },
-    */
   },
   collections: collectionsConfig,
   editor: lexicalEditor,
@@ -101,6 +181,9 @@ export const payloadConfig: RoutableConfig = {
     disablePlaygroundInProduction: true,
   },
   secret: PAYLOAD_SECRET,
+  // helps prevent CSRF attacks
+  // (see https://payloadcms.com/docs/authentication/cookies#csrf-prevention)
+  csrf: [APP_HOST_URL],
   typescript: {
     autoGenerate: true,
     outputFile: path.resolve(dirname, 'payload-types.ts'),
