@@ -28,6 +28,14 @@ services:
         - traefik.http.middlewares.conveniat27-to-non-www.redirectregex.replacement=https://conveniat27.ch/$$$${1}
         - traefik.http.middlewares.conveniat27-to-non-www.redirectregex.permanent=true
 
+      resources:
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+        limits:
+          cpus: '1.0'
+          memory: 512M
+
     dns:
       - 8.8.8.8 # Replace with your desired DNS server
 

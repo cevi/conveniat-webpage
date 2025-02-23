@@ -1,0 +1,103 @@
+services:
+  payload:
+    image: registry.cevi.tools/cevi/conveniat27-webpage:dev
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    deploy:
+      labels:
+        - swarmpit.service.deployment.autoredeploy=true
+
+        # Enable Traefik for this service, to make it available in the public network
+        - traefik.enable=true
+
+        # HTTP gets redirected to HTTPS
+        - traefik.http.routers.conveniat27-dev-router-http.rule=Host(`conveniat27.cevi.tools`)
+        - traefik.http.routers.conveniat27-dev-router-http.entrypoints=web
+        - traefik.http.routers.conveniat27-dev-router-http.middlewares=redirect-to-https@file
+
+        - traefik.http.routers.conveniat27-dev-router.rule=Host(`conveniat27.cevi.tools`)
+        - traefik.http.routers.conveniat27-dev-router.entrypoints=websecure
+        - traefik.http.routers.conveniat27-dev-router.service=conveniat27-dev
+
+        - traefik.http.services.conveniat27-dev.loadbalancer.server.port=3000
+
+      resources:
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+        limits:
+          cpus: '1.0'
+          memory: 512M
+
+    dns:
+      - 8.8.8.8 # Replace with your desired DNS server
+
+    depends_on:
+      - mongo
+    env_file:
+      - .env
+
+    networks:
+      - traefik-net
+      - backend-net
+
+  mongo:
+    image: mongo:latest
+    command:
+      - --storageEngine=wiredTiger
+    volumes:
+      - /cluster/swarm/data/conveniat-dev/mongodb-data:/data/db
+    logging:
+      driver: none
+
+    networks:
+      - backend-net
+
+  minio:
+    image: minio/minio
+
+    deploy:
+      labels:
+        - swarmpit.service.deployment.autoredeploy=true
+        - traefik.enable=true
+
+        - traefik.http.routers.conveniat27-dev-minio-router-http.rule=Host(`minio.conveniat27.cevi.tools`)
+        - traefik.http.routers.conveniat27-dev-minio-router-http.entrypoints=web
+        - traefik.http.routers.conveniat27-dev-minio-router-http.middlewares=redirect-to-https@file
+
+        - traefik.http.routers.conveniat27-dev-minio-router-console-http.rule=Host(`console-minio.conveniat27.cevi.tools`)
+        - traefik.http.routers.conveniat27-dev-minio-router-console-http.entrypoints=web
+        - traefik.http.routers.conveniat27-dev-minio-router-console-http.middlewares=redirect-to-https@file
+
+        - traefik.http.routers.conveniat27-dev-minio-router.rule=Host(`minio.conveniat27.cevi.tools`)
+        - traefik.http.routers.conveniat27-dev-minio-router.entrypoints=websecure
+        - traefik.http.routers.conveniat27-dev-minio-router.service=conveniat27-dev-minio
+
+        - traefik.http.routers.conveniat27-dev-console-minio-router.rule=Host(`console-minio.conveniat27.cevi.tools`)
+        - traefik.http.routers.conveniat27-dev-console-minio-router.entrypoints=websecure
+        - traefik.http.routers.conveniat27-dev-console-minio-router.service=conveniat27-dev-console-minio
+
+        - traefik.http.services.conveniat27-dev-minio.loadbalancer.server.port=9000
+        - traefik.http.services.conveniat27-dev-console-minio.loadbalancer.server.port=9001
+
+    command: server --console-address ":9001" /data
+
+    env_file:
+      - .env
+
+    volumes:
+      - /cluster/swarm/data/conveniat-dev/minio-data:/data
+
+    networks:
+      - traefik-net
+      - backend-net
+
+networks:
+  traefik-net:
+    external: true
+
+  backend-net:
+    driver: overlay
+    attachable: true
