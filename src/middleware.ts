@@ -20,7 +20,11 @@ export const middleware = (request: NextRequest): NextResponse => {
   // navigates to the admin panel. This way, we don't show the preview
   // banner when an admin signs in to the app but never navigates to
   // the admin panel (e.g. while using the app).
-  if (request.nextUrl.pathname.startsWith('/admin')) {
+  if (
+    request.nextUrl.pathname.startsWith('/admin') && // set cookie if not set
+    !request.cookies.has('preview')
+  ) {
+    console.log('Setting preview cookie');
     response.cookies.set('preview', 'true');
   }
 
