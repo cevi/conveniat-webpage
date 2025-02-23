@@ -38,9 +38,11 @@ const minZoomLevelForSwitzerland = 4;
 export const MapLibreRenderer = ({
   initialMapPose,
   ceviLogoMarkers,
+  limitUsage = true,
 }: {
   initialMapPose: InitialMapPose;
   ceviLogoMarkers: CeviLogoMarker[];
+  limitUsage?: boolean;
 }): React.JSX.Element => {
   const mapContainerReference = useRef<HTMLDivElement>(null);
 
@@ -61,10 +63,13 @@ export const MapLibreRenderer = ({
       style: '/vector-map/base_style.json',
 
       // limit map usage
-      cooperativeGestures: true,
-      pitchWithRotate: false,
+      ...(!limitUsage && {
+        cooperativeGestures: true,
+        touchZoomRotate: false,
+      }),
+
       dragRotate: false,
-      touchZoomRotate: false,
+      pitchWithRotate: false,
       touchPitch: false,
 
       // define initial map pose

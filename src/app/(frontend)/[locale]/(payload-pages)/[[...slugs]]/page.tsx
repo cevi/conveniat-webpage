@@ -1,3 +1,5 @@
+import 'server-only';
+
 import React from 'react';
 import { notFound, redirect } from 'next/navigation';
 import { routeResolutionTable } from '@/route-resolution-table';

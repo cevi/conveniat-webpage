@@ -2,10 +2,7 @@ import React, { ReactNode } from 'react';
 
 // These styles apply to every route in the application
 import './globals.scss';
-import { FooterComponent } from '@/components/footer/footer-component';
 import { HeaderComponent } from '@/components/header/header-component';
-import { ErrorBoundary } from 'react-error-boundary';
-import ErrorPage from '@/app/(frontend)/error';
 import { Inter, Montserrat } from 'next/font/google';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { CeviLogo } from '@/components/svg-logos/cevi-logo';
@@ -33,13 +30,7 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children }) => {
           <CeviLogo className="mx-auto h-full max-h-[60vh] w-full max-w-[384px] opacity-10 blur-md" />
         </div>
 
-        <ErrorBoundary
-          fallback={<ErrorPage error={new Error('main content failed to render at root layout')} />}
-        >
-          <main className="mt-[112px] grow">{children}</main>
-        </ErrorBoundary>
-
-        <FooterComponent />
+        {children}
       </body>
     </html>
   );
