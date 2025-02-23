@@ -45,6 +45,45 @@ const hasFieldDifferentValue = (
 };
 
 /**
+ * Strips internal links from a JSON object.
+ *
+ * traverse the JSON recursively and remove internal links
+ * by replacing any nested fields.doc.value with '>> not comparable <<'
+ *
+ * @param value
+ */
+const stripInternalLinks = (value: unknown): unknown => {
+  if (typeof value !== 'object' || value === null) return value;
+
+  if (Array.isArray(value)) {
+    return value.map((element) => stripInternalLinks(element));
+  }
+
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-expect-error
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  if (Boolean(value.fields?.doc?.value)) {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
+    value.fields.doc.linkedDocId = value.fields.doc.value.id ?? '';
+
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    value.fields.doc.value = '>> not comparable <<';
+  }
+
+  for (const key in value) {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
+    value[key] = stripInternalLinks(value[key]);
+  }
+
+  return value;
+};
+
+/**
  * Recursively checks if two documents have differences.
  *
  * If the document is invalid, i.e. it contains undefined values,
@@ -142,13 +181,18 @@ const hasDiffs = (
         break; // no diff found, continue with the next field
       }
 
-      // handle relationship fields
+      // handle rich text
+      case 'richText': {
+        const strippedValue1 = stripInternalLinks(value1);
+        const strippedValue2 = stripInternalLinks(value2);
+        if (hasFieldDifferentValue(locale, field, strippedValue1, strippedValue2)) return true;
+        break; // no diff found, continue with the next field
+      }
 
       // handle leaf fields
       case 'textarea':
       case 'text':
       case 'select':
-      case 'richText':
       case 'radio':
       case 'point':
       case 'number':
