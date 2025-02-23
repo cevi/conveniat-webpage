@@ -103,9 +103,14 @@ const generatePreviewUrl = ({
   if (!data.seo) return '';
   const urlSlug: string | undefined = data.seo.urlSlug;
   if (urlSlug == undefined) return '';
-  return `${APP_HOST_URL}/${locale.code}${
-    collectionConfig && collectionConfig.slug === 'blog' ? `/blog/${urlSlug}` : ''
-  }?preview=true`;
+  console.log(
+    `${APP_HOST_URL}/${locale.code}${
+      collectionConfig && collectionConfig.slug === 'blog' ? `/blog/${urlSlug}` : ''
+    }?preview=true`,
+  );
+  return `${APP_HOST_URL}/${locale.code}/${
+    collectionConfig && collectionConfig.slug === 'blog' ? `blog/` : ''
+  }${urlSlug}?preview=true`;
 };
 
 export const payloadConfig: RoutableConfig = {
@@ -160,7 +165,7 @@ export const payloadConfig: RoutableConfig = {
     livePreview: {
       url: generatePreviewUrl,
       breakpoints: smartphoneBreakpoints,
-      collections: ['blog', 'generic-page', 'timeline'],
+      collections: ['blog', 'generic-page'],
     },
   },
   collections: collectionsConfig,

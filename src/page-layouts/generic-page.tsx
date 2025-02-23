@@ -27,7 +27,8 @@ export const GenericPage: React.FC<LocalizedCollectionPage> = async ({
     where: {
       and: [
         { 'seo.urlSlug': { equals: slug } },
-        { _localized_status: { equals: { published: true } } },
+        // we only resolve published pages unless in preview mode
+        renderInPreviewMode ? {} : { _localized_status: { equals: { published: true } } },
       ],
     },
   });
@@ -61,7 +62,8 @@ export const GenericPage: React.FC<LocalizedCollectionPage> = async ({
         where: {
           and: [
             { 'seo.urlSlug': { equals: slug } },
-            { _localized_status: { equals: { published: true } } },
+            // we only resolve published pages unless in preview mode
+            renderInPreviewMode ? {} : { _localized_status: { equals: { published: true } } },
           ],
         },
       }),
