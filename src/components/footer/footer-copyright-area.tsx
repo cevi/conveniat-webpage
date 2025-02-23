@@ -59,6 +59,7 @@ export const FooterCopyrightArea: React.FC = async () => {
         'justify-center',
         'bg-green-600',
         'text-green-200',
+        'pb-6',
         { 'pb-16': isInAppDesign },
       )}
     >
