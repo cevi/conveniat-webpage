@@ -6,6 +6,8 @@ import { HeaderComponent } from '@/components/header/header-component';
 import { Inter, Montserrat } from 'next/font/google';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { CeviLogo } from '@/components/svg-logos/cevi-logo';
+import { renderInAppDesign } from '@/utils/render-in-app-design';
+import { cn } from '@/utils/tailwindcss-override';
 
 type LayoutProperties = {
   children: ReactNode;
@@ -20,10 +22,20 @@ const inter = Inter({
 
 const RootLayout: React.FC<LayoutProperties> = async ({ children }) => {
   const locale = await getLocaleFromCookies();
+  const isInAppDesign = await renderInAppDesign();
 
   return (
-    <html className={`${montserrat.className} ${inter.className}`} lang={locale}>
-      <body className="flex h-screen w-screen flex-col overflow-x-hidden bg-[#f8fafc]">
+    <html
+      className={cn(`${montserrat.className} ${inter.className}`, {
+        'overscroll-y-none': isInAppDesign,
+      })}
+      lang={locale}
+    >
+      <body
+        className={cn('flex h-screen w-screen flex-col overflow-x-hidden bg-[#f8fafc]', {
+          'overscroll-y-none': isInAppDesign,
+        })}
+      >
         <HeaderComponent />
 
         <div className="absolute top-0 z-[-999] h-screen w-full p-[56px]">
