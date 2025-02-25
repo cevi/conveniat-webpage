@@ -1,5 +1,5 @@
 'use client';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { HeadlineH1 } from '@/components/typography/headline-h1';
 import { TeaserText } from '@/components/typography/teaser-text';
 import Link from 'next/link';
@@ -15,8 +15,15 @@ const error: StaticTranslationString = {
 /**
  * This file is responsible for converters a general runtime error page.
  */
-const ErrorPage: React.FC = () => {
+const ErrorPage: React.FC<{
+  error: Error & { digest?: string };
+}> = (arguments_) => {
   const locale = useCurrentLocale(i18nConfig);
+
+  useEffect(() => {
+    console.error(arguments_.error);
+    console.error(arguments_.error.stack);
+  }, [arguments_]);
 
   const errorDescription: Record<Locale, React.JSX.Element> = {
     en: (
