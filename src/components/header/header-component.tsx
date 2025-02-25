@@ -4,13 +4,19 @@ import { NavComponent } from '@/components/menu/nav-component';
 import { ConveniatLogo } from '@/components/svg-logos/conveniat-logo';
 import { PreviewModeBanner } from '@/components/header/preview-mode-banner';
 import { auth } from '@/auth/auth';
+import { canAccessAdminPanel } from '@/payload-cms/access-rules/can-access-admin-panel';
+import { PayloadRequest } from 'payload';
 
 export const HeaderComponent: React.FC = async () => {
   const session = await auth();
 
+  const canAccessAdminDashboard = await canAccessAdminPanel({
+    req: { user: session?.user } as unknown as PayloadRequest,
+  });
+
   return (
     <header className="fixed left-0 top-0 z-50 h-[112px] w-full">
-      <PreviewModeBanner user={session?.user} />
+      <PreviewModeBanner user={session?.user} canAccessAdmin={canAccessAdminDashboard} />
 
       <div className="mb-[32px] border-b-2 border-gray-200 bg-white">
         <div className="relative mx-auto h-[60px] w-full max-w-2xl text-conveniat-green">

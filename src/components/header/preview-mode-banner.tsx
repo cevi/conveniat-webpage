@@ -3,9 +3,11 @@ import React, { useEffect, useState } from 'react';
 import { User } from 'next-auth';
 import { useSearchParams } from 'next/navigation';
 import { PreviewModeToggle } from '@/components/header/preview-mode-toggler';
+import { RefreshCw } from 'lucide-react';
 
 interface PreviewModeBannerProperties {
   user: User | undefined;
+  canAccessAdmin: boolean;
 }
 
 /**
@@ -23,17 +25,29 @@ interface PreviewModeBannerProperties {
  * The preview banner of a non-payload admin is only visible on the specific page that is in preview mode.
  *
  */
-export const PreviewModeBanner: React.FC<PreviewModeBannerProperties> = ({ user }) => {
+export const PreviewModeBanner: React.FC<PreviewModeBannerProperties> = ({
+  user,
+  canAccessAdmin,
+}) => {
   const searchParameters = useSearchParams();
 
   const [renderPreviewModeBanner, setRenderPreviewModeBanner] = useState(false);
 
   useEffect(() => {
+    // check preview token
     const tokenParameter = searchParameters.get('preview-token');
-    const hasValidPreviewToken = tokenParameter !== null && tokenParameter.length > 0;
+    const accessWithToken = tokenParameter !== null && tokenParameter.length > 0;
+
+    // check if cookie is set and user is a Payload admin
     const isPreviewCookieSet = document.cookie.includes('preview=true');
-    setRenderPreviewModeBanner(hasValidPreviewToken || isPreviewCookieSet);
-  }, [searchParameters]);
+    const accessWithCookie = isPreviewCookieSet && canAccessAdmin;
+
+    // we render the preview banner if...
+    // ... the user is a Payload admin and the preview cookie is set,
+    // ... or, the user has a valid preview token (e.g., the preview-token query parameter is set),
+    // access control is handled by the render logic of the page.
+    setRenderPreviewModeBanner(accessWithToken || accessWithCookie);
+  }, [searchParameters, canAccessAdmin]);
 
   // abort, don't render the preview banner...
   if (!renderPreviewModeBanner) return <></>;
@@ -51,6 +65,10 @@ export const PreviewModeBanner: React.FC<PreviewModeBannerProperties> = ({ user 
         <span className="text-xs text-gray-300">Preview&nbsp;Mode:</span>
         <PreviewModeToggle />
       </div>
+      <RefreshCw
+        className="h-4 w-4 cursor-pointer text-gray-300"
+        onClick={() => globalThis.location.reload()}
+      />
     </div>
   );
 };
