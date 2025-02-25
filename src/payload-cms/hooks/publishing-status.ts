@@ -252,7 +252,9 @@ export const getPublishingStatus =
 
     const id = data?.['id'] as string | undefined;
 
-    if (id == undefined) throw new Error('Document ID is undefined');
+    // we cannot determine the publishing status if the document has no id
+    // e.g. for a new document
+    if (id == undefined) return {};
 
     const originalDocument = (await payload.findByID({
       collection: config.slug as CollectionSlug,
