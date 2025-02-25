@@ -20,6 +20,10 @@ const withSerwist = withSerwistInit({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
+
+  // TODO: for the dev deployment we should include the source maps
+  // productionBrowserSourceMaps: true,
+
   serverExternalPackages: ['mongodb', 'mongoose'],
   reactStrictMode: true,
   eslint: {
