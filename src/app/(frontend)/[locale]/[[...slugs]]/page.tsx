@@ -138,7 +138,9 @@ const CMSPage: React.FC<{
       if (collectionPage.locales.includes(locale)) {
         return (
           <>
-            {previewModeAllowed && hasPreviewSearchParameter && <RefreshRouteOnSave />}
+            {previewModeAllowed && hasPreviewSearchParameter && (
+              <RefreshRouteOnSave serverURL={process.env['APP_HOST_URL'] ?? ''} />
+            )}
 
             <collectionPage.component
               locale={locale}

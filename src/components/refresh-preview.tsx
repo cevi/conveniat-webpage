@@ -4,9 +4,10 @@ import { RefreshRouteOnSave as PayloadLivePreview } from '@payloadcms/live-previ
 import { useRouter } from 'next/navigation';
 import React from 'react';
 
-export const RefreshRouteOnSave: React.FC = () => {
+export const RefreshRouteOnSave: React.FC<{
+  serverURL: string;
+}> = ({ serverURL }) => {
   const router = useRouter();
-  const APP_HOST_URL = process.env['NEXT_PUBLIC_APP_HOST_URL'] ?? '';
 
-  return <PayloadLivePreview refresh={() => router.refresh()} serverURL={APP_HOST_URL} />;
+  return <PayloadLivePreview refresh={() => router.refresh()} serverURL={serverURL} />;
 };
