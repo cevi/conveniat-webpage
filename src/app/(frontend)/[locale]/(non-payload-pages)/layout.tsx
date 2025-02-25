@@ -4,6 +4,7 @@ import ErrorPage from '@/app/(frontend)/error';
 
 import { FooterAppNavBar } from '@/components/footer/footer-app-nav-bar';
 import { renderInAppDesign } from '@/utils/render-in-app-design';
+import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 
 type LayoutProperties = {
   children: ReactNode;
@@ -11,6 +12,7 @@ type LayoutProperties = {
 
 const Layout: React.FC<LayoutProperties> = async ({ children }) => {
   const isInAppDesign = await renderInAppDesign();
+  const locale = await getLocaleFromCookies();
 
   return (
     <>
@@ -20,7 +22,7 @@ const Layout: React.FC<LayoutProperties> = async ({ children }) => {
         <main className="mt-[60px] grow pb-20">{children}</main>
       </ErrorBoundary>
 
-      {isInAppDesign && <FooterAppNavBar />}
+      {isInAppDesign && <FooterAppNavBar locale={locale} />}
     </>
   );
 };

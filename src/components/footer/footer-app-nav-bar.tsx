@@ -1,28 +1,77 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import Link from 'next/link';
 import { Calendar, Map as MapIcon, MessageCircle, Newspaper, Siren } from 'lucide-react';
 import { cn } from '@/utils/tailwindcss-override';
 import { usePathname } from 'next/navigation';
+import { Config } from '@/payload-types';
 
 const navItems = [
-  { icon: MessageCircle, label: 'Chats', href: '/app/chat' },
-  { icon: Siren, label: 'Notfall', href: '/app/emergency', color: 'red' },
-  { icon: Newspaper, label: 'Webseite', href: '/' },
-  { icon: MapIcon, label: 'Lagerplatz', href: '/app/map' },
-  { icon: Calendar, label: 'Programm', href: '/app/program' },
+  {
+    icon: MessageCircle,
+    label: {
+      de: 'Chats',
+      en: 'Chats',
+      fr: 'Chats',
+    },
+    href: '/app/chat',
+  },
+  {
+    icon: Siren,
+    label: {
+      de: 'Notfall',
+      en: 'Emergency',
+      fr: 'Urgence',
+    },
+    href: '/app/emergency',
+    color: 'red',
+  },
+  {
+    icon: Newspaper,
+    label: {
+      de: 'Webseite',
+      en: 'Website',
+      fr: 'Site web',
+    },
+    href: '/',
+  },
+  {
+    icon: MapIcon,
+    label: {
+      de: 'Lagerplatz',
+      en: 'Campsite',
+      fr: 'Carte',
+    },
+    href: '/app/map',
+  },
+  {
+    icon: Calendar,
+    label: {
+      de: 'Programm',
+      en: 'Program',
+      fr: 'Programme',
+    },
+    href: '/app/program',
+  },
 ];
 
-export const FooterAppNavBar: React.FC = () => {
+export const FooterAppNavBar: React.FC<{
+  locale: Config['locale'];
+}> = ({ locale }) => {
   const pathname = usePathname();
+  const [longestMatch, setLongestMatch] = React.useState<string>('');
 
-  const longestMatch = navItems.reduce((accumulator, item) => {
-    if (pathname.startsWith(item.href) && item.href.length > accumulator.length) {
-      return item.href;
-    }
-    return accumulator;
-  }, '');
+  useEffect(() => {
+    const pathnameWithoutLocale = pathname.replace(/^\/(de|en|fr)\/(.*)/, '/$2');
+    const _longestMatch = navItems.reduce((accumulator, item) => {
+      if (pathnameWithoutLocale.startsWith(item.href) && item.href.length > accumulator.length) {
+        return item.href;
+      }
+      return accumulator;
+    }, '');
+    setLongestMatch(_longestMatch);
+  }, [pathname]);
 
   return (
     <>
@@ -33,7 +82,7 @@ export const FooterAppNavBar: React.FC = () => {
 
             return (
               <Link
-                key={item.label}
+                key={item.label[locale]}
                 href={item.href}
                 className={cn('flex flex-col items-center justify-center space-y-1', {
                   'text-blue-600': isActive,
@@ -52,7 +101,7 @@ export const FooterAppNavBar: React.FC = () => {
                     'text-cevi-red': item.color === 'red',
                   })}
                 >
-                  {item.label}
+                  {item.label[locale]}
                 </span>
               </Link>
             );
