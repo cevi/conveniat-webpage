@@ -1,7 +1,7 @@
 on:
   push:
     branches:
-      - main
+      - dev
 
 jobs:
   build-dev-image:
@@ -19,7 +19,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build Docker Image
-        run: docker build -t registry.cevi.tools/cevi/conveniat27-webpage:dev -f dev.Dockerfile .
+        run: docker build -t registry.cevi.tools/cevi/conveniat27-webpage:dev -f Dockerfile .
 
       - name: Push Docker Image
         run: docker push registry.cevi.tools/cevi/conveniat27-webpage:dev
