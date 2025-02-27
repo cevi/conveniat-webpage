@@ -26,7 +26,7 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children }) => {
 
   return (
     <html className={`${montserrat.className} ${inter.className}`} lang={locale}>
-      <body className="flex h-screen flex-col bg-[#f8fafc]">
+      <body className="flex h-screen w-screen flex-col overflow-x-hidden bg-[#f8fafc]">
         <HeaderComponent />
 
         <div className="absolute top-0 z-[-999] h-screen w-full p-[56px]">
