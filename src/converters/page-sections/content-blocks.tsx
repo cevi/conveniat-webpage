@@ -20,7 +20,8 @@ export type ContentBlockTypeNames =
   | 'photoCarousel'
   | 'youtubeEmbed'
   | 'heroSection'
-  | 'swisstopoEmbed';
+  | 'swisstopoEmbed'
+  | 'detailsTable';
 
 export type SectionRenderer = React.FC<
   LocalizedPageType & {
@@ -29,6 +30,31 @@ export type SectionRenderer = React.FC<
     sectionOverrides?: { [key in ContentBlockTypeNames]?: string };
   }
 >;
+
+export const DetailsTable: SectionRenderer = ({ block, sectionClassName, sectionOverrides }) => {
+  return (
+    <SectionWrapper
+      block={block}
+      sectionClassName={sectionClassName}
+      sectionOverrides={sectionOverrides}
+      errorFallbackMessage="Failed to load hero section. Reload the page to try again."
+    >
+      <LexicalRichTextSection richTextSection={block.introduction as SerializedEditorState} />
+      <div>
+        <hr className="border-b-2 border-gray-100" />
+        {block.detailsTableBlocks?.map((detailsTableBlock, index) => (
+          <div key={index} className="grid gap-x-2 p-2 md:grid-cols-2">
+            <div className="my-2 font-semibold text-conveniat-green">{detailsTableBlock.label}</div>
+            <LexicalRichTextSection
+              richTextSection={detailsTableBlock.value as SerializedEditorState}
+            />
+            <hr className="grid-cols-2 border-b-2 border-gray-100" />
+          </div>
+        ))}
+      </div>
+    </SectionWrapper>
+  );
+};
 
 export const SwisstopoInlineMapSection: SectionRenderer = ({
   block,

@@ -3,6 +3,7 @@ import { LocalizedPageType } from '@/types';
 import { ContentBlock } from '@/converters/page-sections/section-wrapper';
 import {
   ContentBlockTypeNames,
+  DetailsTable,
   RenderBlogPostsOverview,
   RenderFormBlock,
   RenderHeroSection,
@@ -36,6 +37,7 @@ export const PageSectionsConverter: React.FC<
     youtubeEmbed: RenderYoutubeEmbed,
     heroSection: RenderHeroSection,
     swisstopoEmbed: SwisstopoInlineMapSection,
+    detailsTable: DetailsTable,
   };
 
   return blocks.map((block) => {
