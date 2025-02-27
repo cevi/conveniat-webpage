@@ -8,7 +8,7 @@ import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 type FooterMenuSection = NonNullable<Footer['footerMenu']>[number];
 type FooterMenuItem = NonNullable<FooterMenuSection['menuItem']>[number];
 
-const renderMenuItem = (menuItem: FooterMenuItem): React.JSX.Element => {
+const renderMenuItem: React.FC<FooterMenuItem> = (menuItem) => {
   if (menuItem.link === undefined || menuItem.link === null)
     return (
       <span
