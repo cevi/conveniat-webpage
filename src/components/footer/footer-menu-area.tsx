@@ -2,8 +2,8 @@ import React from 'react';
 import { getPayload } from 'payload';
 import config from '@payload-config';
 import Link from 'next/link';
-import { Footer } from '@/payload-types';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
+import { Footer } from '@/payload-types';
 
 type FooterMenuSection = NonNullable<Footer['footerMenu']>[number];
 type FooterMenuItem = NonNullable<FooterMenuSection['menuItem']>[number];
@@ -28,7 +28,7 @@ const renderMenuItem = (menuItem: FooterMenuItem): React.JSX.Element => {
   );
 };
 
-const renderMenuSection: React.FC<FooterMenuSection> = (menu) => {
+const renderMenuSection = (menu: FooterMenuSection): React.JSX.Element => {
   return (
     <div key={menu.id} className="flex flex-col items-center justify-center">
       <span className="font-heading text-[14px] font-extrabold text-green-600">
@@ -50,7 +50,9 @@ export const FooterMenuArea: React.FC = async () => {
   return (
     <div className="flex h-[260px] w-full flex-col items-center justify-center space-y-8 border-t-2 border-gray-200 bg-white">
       {footerMenu.map((menuSection) => (
-        <React.Fragment key={menuSection.id}>{renderMenuSection(menuSection)}</React.Fragment>
+        <React.Fragment key={menuSection.id}>
+          {renderMenuSection(menuSection as unknown as FooterMenuSection)}
+        </React.Fragment>
       ))}
     </div>
   );
