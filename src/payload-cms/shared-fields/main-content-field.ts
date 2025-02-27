@@ -5,6 +5,7 @@ import { photoCarouselBlock } from '@/payload-cms/shared-blocks/photo-carousel-b
 import { youtubeEmbedBlock } from '../shared-blocks/youtube-embed-block';
 import { heroSection } from '@/payload-cms/shared-blocks/hero-section-block';
 import { swisstopoMapEmbedBlock } from '@/payload-cms/shared-blocks/swisstopo-embed-block';
+import { detailsTable } from '@/payload-cms/shared-blocks/details-table';
 
 export const mainContentField: Field = {
   name: 'mainContent',
@@ -29,5 +30,6 @@ export const mainContentField: Field = {
     photoCarouselBlock,
     youtubeEmbedBlock,
     swisstopoMapEmbedBlock,
+    detailsTable,
   ],
 };
