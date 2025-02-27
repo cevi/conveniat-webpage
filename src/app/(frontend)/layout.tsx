@@ -33,7 +33,9 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children }) => {
           <CeviLogo className="mx-auto h-full max-h-[60vh] w-full max-w-[384px] opacity-10 blur-md" />
         </div>
 
-        <ErrorBoundary fallback={<ErrorPage />}>
+        <ErrorBoundary
+          fallback={<ErrorPage error={new Error('main content failed to render at root layout')} />}
+        >
           <main className="mt-[112px] grow">{children}</main>
         </ErrorBoundary>
 

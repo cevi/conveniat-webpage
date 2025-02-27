@@ -1,7 +1,7 @@
 import React from 'react';
 import { getPayload } from 'payload';
 import config from '@payload-config';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { i18nConfig, Locale, LocalizedCollectionPage } from '@/types';
 import { GenericPageConverter } from '@/converters/generic-page';
 
@@ -9,19 +9,26 @@ export const GenericPage: React.FC<LocalizedCollectionPage> = async ({
   slugs,
   locale,
   searchParams,
+  renderInPreviewMode,
 }) => {
   const payload = await getPayload({ config });
   const slug = slugs.join('/');
+
+  if (renderInPreviewMode) {
+    console.log('Preview mode enabled');
+  }
 
   const articlesInPrimaryLanguage = await payload.find({
     collection: 'generic-page',
     pagination: false,
     locale: locale,
     fallbackLocale: false,
+    draft: renderInPreviewMode,
     where: {
       and: [
         { 'seo.urlSlug': { equals: slug } },
-        { _localized_status: { equals: { published: true } } },
+        // we only resolve published pages unless in preview mode
+        renderInPreviewMode ? {} : { _localized_status: { equals: { published: true } } },
       ],
     },
   });
@@ -50,11 +57,13 @@ export const GenericPage: React.FC<LocalizedCollectionPage> = async ({
       payload.find({
         collection: 'generic-page',
         pagination: false,
+        draft: renderInPreviewMode,
         locale: l,
         where: {
           and: [
             { 'seo.urlSlug': { equals: slug } },
-            { _localized_status: { equals: { published: true } } },
+            // we only resolve published pages unless in preview mode
+            renderInPreviewMode ? {} : { _localized_status: { equals: { published: true } } },
           ],
         },
       }),
@@ -72,8 +81,24 @@ export const GenericPage: React.FC<LocalizedCollectionPage> = async ({
   }
 
   if (articles.length === 1) {
-    // TODO....
-    notFound();
+    // get page in current locale
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
+    const articleID = articles[0].id;
+
+    const article = await payload.findByID({
+      collection: 'generic-page',
+      id: articleID,
+      locale: locale,
+      draft: renderInPreviewMode,
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    if (article === null) {
+      notFound();
+    }
+    // rewrite URL to the correct locale
+    redirect(`/${locale}/${article.seo.urlSlug}`);
   }
 
   notFound();

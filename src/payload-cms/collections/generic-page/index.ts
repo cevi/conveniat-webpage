@@ -16,6 +16,7 @@ export const GenericPage: CollectionConfig = asLocalizedCollection({
   admin: {
     group: AdminPanelDashboardGroups.Pages,
     useAsTitle: 'internalPageName',
+    defaultColumns: ['internalPageName', 'id', 'publishingStatus'],
   },
   fields: [
     internalPageNameField,

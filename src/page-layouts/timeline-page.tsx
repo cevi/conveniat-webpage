@@ -13,13 +13,18 @@ const pageTitle: StaticTranslationString = {
   fr: 'Chronologie',
 };
 
-export const TimeLinePage: React.FC<LocalizedCollectionPage> = async ({ locale, searchParams }) => {
+export const TimeLinePage: React.FC<LocalizedCollectionPage> = async ({
+  locale,
+  searchParams,
+  renderInPreviewMode,
+}) => {
   const payload = await getPayload({ config });
   const timeLineItems = await payload.find({
     collection: 'timeline',
     locale: locale,
     pagination: false,
     sort: '-date',
+    draft: renderInPreviewMode,
     where: {
       _localized_status: {
         equals: {

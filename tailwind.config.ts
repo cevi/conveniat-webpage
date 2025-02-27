@@ -78,6 +78,10 @@ module.exports = {
       'cevi-blue': '#323394',
 
       white: colors.white,
+
+      orange: {
+        500: '#FFA500',
+      },
     },
   },
 

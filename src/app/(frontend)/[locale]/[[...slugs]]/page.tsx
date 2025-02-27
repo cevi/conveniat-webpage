@@ -1,7 +1,93 @@
 import React from 'react';
 import { notFound, redirect } from 'next/navigation';
 import { routeResolutionTable } from '@/route-resolution-table';
-import { Locale } from '@/types';
+import { Locale, SearchParameters } from '@/types';
+import { cookies } from 'next/headers';
+import { auth } from '@/auth/auth';
+import { canAccessAdminPanel } from '@/payload-cms/access-rules/can-access-admin-panel';
+import { PayloadRequest } from 'payload';
+import { RefreshRouteOnSave } from '@/components/refresh-preview';
+
+/**
+ * Checks if the preview token is valid.
+ *
+ * We do that using the same concept as for a JWT token validation.
+ * The token has a signature and is a compressed object { url: string; expires: number }
+ * This function verify the signature and check if the token is still valid.
+ *
+ * @param previewToken
+ * @param url the url of the current page (always include the locale,
+ * especially for the default locale is included)
+ */
+const isValidPreviewToken = async (
+  previewToken: string | undefined,
+  url: string,
+): Promise<boolean> => {
+  if (previewToken === undefined) return false;
+
+  // TODO: currently there is no way to generate a token...
+  //    this should be handled by the QR code component (we should
+  //    always generate a token and link which includes the locale, even the default locale
+  //    such that the validation works properly, even if the client has configured a
+  //    different default locale).
+
+  // TODO: do proper token validation.
+
+  console.log('Preview token:', previewToken);
+  console.log('URL:', url);
+
+  return false;
+};
+
+/**
+ * Checks if the page should be rendered in preview mode.
+ * This is the case of the `preview` query parameter is set to `true` and
+ *
+ * 1) the cookie `preview` is set and the use can access the payload admin panel
+ * 2) or if the `preview-token` query parameter is set and valid
+ *
+ * @param searchParameters
+ * @param url
+ */
+const canAccessPreviewOfCurrentPage = async (
+  searchParameters: SearchParameters,
+  url: string,
+): Promise<boolean> => {
+  let previewToken = searchParameters['preview-token'];
+
+  if (Array.isArray(previewToken)) {
+    previewToken = previewToken[0];
+  }
+
+  // check if preview token is set and valid
+  const hasValidPreviewToken = await isValidPreviewToken(previewToken, url);
+  if (hasValidPreviewToken) return true;
+
+  // check if cookie is set
+  const cookieStore = await cookies();
+  const previewCookie = cookieStore.get('preview');
+  const isPreviewCookieSet = previewCookie?.value === 'true';
+  if (!isPreviewCookieSet) return false;
+
+  const session = await auth();
+  if (session === null) return false;
+
+  // check if user is an admin
+  const user = session.user;
+  if (user === undefined) return false;
+
+  return canAccessAdminPanel({ req: { user } as unknown as PayloadRequest });
+};
+
+const PreviewWarning: React.FC = () => {
+  return (
+    <div className="fixed bottom-0 right-0 z-50 p-4">
+      <div className="rounded-lg bg-orange-500 px-4 py-2 font-bold text-white shadow-lg">
+        THIS IS A PREVIEW
+      </div>
+    </div>
+  );
+};
 
 /**
  *
@@ -20,9 +106,7 @@ const CMSPage: React.FC<{
     slugs: string[] | undefined;
     locale: Locale;
   }>;
-  searchParams: Promise<{
-    [key: string]: string | string[];
-  }>;
+  searchParams: Promise<SearchParameters>;
 }> =
   // eslint-disable-next-line complexity
   async ({ params, searchParams: searchParametersPromise }) => {
@@ -46,14 +130,27 @@ const CMSPage: React.FC<{
       remainingSlugs.unshift(collection);
     }
 
+    const url = `/${locale}/${slugs?.join('/')}`;
+    const previewModeAllowed = await canAccessPreviewOfCurrentPage(searchParameters, url);
+    const hasPreviewSearchParameter = searchParameters['preview'] === 'true';
+
     if (collectionPage !== undefined) {
       if (collectionPage.locales.includes(locale)) {
         return (
-          <collectionPage.component
-            locale={locale}
-            slugs={remainingSlugs}
-            searchParams={searchParameters}
-          />
+          <>
+            {previewModeAllowed && hasPreviewSearchParameter && (
+              <RefreshRouteOnSave serverURL={process.env['APP_HOST_URL'] ?? ''} />
+            )}
+
+            <collectionPage.component
+              locale={locale}
+              slugs={remainingSlugs}
+              searchParams={searchParameters}
+              renderInPreviewMode={previewModeAllowed && hasPreviewSearchParameter}
+            />
+
+            {previewModeAllowed && hasPreviewSearchParameter && <PreviewWarning />}
+          </>
         );
       } else {
         // redirect to alternative collectionPage if available

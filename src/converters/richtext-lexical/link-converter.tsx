@@ -45,6 +45,26 @@ const resolveInternalLink = (fields: LinkFields): string => {
   return url;
 };
 
+const linkConverter: JSXConverters<SerializedParagraphNode>['link'] = ({ node, nodesToJSX }) => {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access
+  const children = nodesToJSX({ nodes: node.children });
+
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  const fields = node.fields as unknown as LinkFields;
+
+  let url = (fields.url ?? '') as string;
+
+  if (fields.linkType === 'internal') {
+    url = resolveInternalLink(fields);
+  }
+
+  return (
+    <Link href={url} className="font-extrabold text-cevi-red">
+      {children}
+    </Link>
+  );
+};
+
 /**
  *
  * Converts a link node to JSX.
@@ -55,23 +75,6 @@ const resolveInternalLink = (fields: LinkFields): string => {
  *
  */
 export const LinkJSXConverter: JSXConverters<SerializedParagraphNode> = {
-  link: ({ node, nodesToJSX }) => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access
-    const children = nodesToJSX({ nodes: node.children });
-
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const fields = node.fields as unknown as LinkFields;
-
-    let url = (fields.url ?? '') as string;
-
-    if (fields.linkType === 'internal') {
-      url = resolveInternalLink(fields);
-    }
-
-    return (
-      <Link href={url} className="font-extrabold text-cevi-red">
-        {children}
-      </Link>
-    );
-  },
+  link: linkConverter,
+  autolink: linkConverter, // this is used to resolve copy-pasted links
 };
