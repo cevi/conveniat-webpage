@@ -1,7 +1,7 @@
 import React from 'react';
 import { getPayload } from 'payload';
 import config from '@payload-config';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { i18nConfig, Locale, LocalizedCollectionPage } from '@/types';
 import { GenericPageConverter } from '@/converters/generic-page';
 
@@ -81,8 +81,24 @@ export const GenericPage: React.FC<LocalizedCollectionPage> = async ({
   }
 
   if (articles.length === 1) {
-    // TODO....
-    notFound();
+    // get page in current locale
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
+    const articleID = articles[0].id;
+
+    const article = await payload.findByID({
+      collection: 'generic-page',
+      id: articleID,
+      locale: locale,
+      draft: renderInPreviewMode,
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    if (article === null) {
+      notFound();
+    }
+    // rewrite URL to the correct locale
+    redirect(`/${locale}/${article.seo.urlSlug}`);
   }
 
   notFound();
