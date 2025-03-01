@@ -80,8 +80,23 @@ const QRCode: React.FC = () => {
           Generate QR Code for {locale}
         </FormSubmit>
       </div>
-      {imageData !== '' && <img src={imageData} height="200" width="200" alt="link-qr-code" />}
-      <p>{fullURL}</p>
+      {imageData !== '' && (
+        <div>
+          <img src={imageData} height="200" width="200" alt="link-qr-code" />
+          <input readOnly value={fullURL}></input>
+          <FormSubmit
+            className=""
+            size="small"
+            type="button"
+            onClick={(event) => {
+              event.preventDefault();
+              navigator.clipboard.writeText(fullURL);
+            }}
+          >
+            Copy Link
+          </FormSubmit>
+        </div>
+      )}
     </div>
   );
 };
