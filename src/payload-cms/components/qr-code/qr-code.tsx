@@ -1,11 +1,13 @@
 'use client';
 
 import { FormSubmit, useDocumentInfo, useLocale } from '@payloadcms/ui';
-import React, { useCallback, useState } from 'react';
+import React, { MouseEventHandler, useCallback, useState } from 'react';
 import { serverSideSlugToUrlResolution } from '@/utils/find-url-prefix';
 import { CollectionSlug } from 'payload';
 import { Locale } from '@/types';
 import { generatePreviewToken } from '@/utils/preview-token';
+import { Check, Copy } from 'lucide-react';
+import Image from 'next/image';
 
 const QRCode: React.FC = () => {
   const { collectionSlug, savedDocumentData } = useDocumentInfo();
@@ -64,6 +66,20 @@ const QRCode: React.FC = () => {
       });
   }, [savedDocumentData, collectionSlug, locale]);
 
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy: MouseEventHandler<HTMLButtonElement> = (event): void => {
+    navigator.clipboard
+      .writeText(fullURL)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      })
+      .catch(console.error);
+
+    event.preventDefault();
+  };
+
   return (
     <div>
       <div>
@@ -82,23 +98,29 @@ const QRCode: React.FC = () => {
       </div>
       {imageData !== '' && (
         <div>
-          <img src={imageData} height="200" width="200" alt="link-qr-code" />
-          <input readOnly value={fullURL}></input>
-          <FormSubmit
-            className=""
-            size="small"
-            type="button"
-            onClick={(event) => {
-              event.preventDefault();
-              navigator.clipboard.writeText(fullURL).catch(console.error);
-            }}
-          >
-            Copy Link
-          </FormSubmit>
+          <Image src={imageData} height="200" width="200" alt="link-qr-code" />
+
+          <div className="relative mb-4 w-full max-w-[200px]">
+            <input
+              className="w-full rounded-md border border-solid border-gray-300 p-[4px] pr-10 text-sm shadow-none outline-none focus:ring-1"
+              readOnly
+              value={fullURL}
+            />
+            <button
+              className="absolute right-1 top-0.5 m-0 h-7 w-7 -translate-y-1/2 cursor-pointer items-center rounded-md border border-solid border-gray-300 bg-gray-50 p-0 text-center"
+              onClick={handleCopy}
+              aria-label="Copy link"
+            >
+              {copied ? (
+                <Check className="h-4 w-4 text-green-400" />
+              ) : (
+                <Copy className="h-4 w-4 text-gray-600" />
+              )}
+            </button>
+          </div>
         </div>
       )}
     </div>
   );
 };
-
 export default QRCode;
