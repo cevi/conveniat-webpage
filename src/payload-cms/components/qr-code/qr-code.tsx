@@ -18,6 +18,8 @@ const QRCode: React.FC = () => {
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
   const isPublished = savedDocumentData?.['_localized_status']?.['published'] || false;
+  const qrCodeEnabled = savedDocumentData?.['seo']?.['urlSlug'] || '';
+
   const generateQR = useCallback(async () => {
     const path = await serverSideSlugToUrlResolution(
       collectionSlug as CollectionSlug,
@@ -86,7 +88,7 @@ const QRCode: React.FC = () => {
         <FormSubmit
           className=""
           buttonId="generate-qr"
-          disabled={!Boolean(isPublished)}
+          disabled={!Boolean(isPublished || qrCodeEnabled)}
           onClick={() => {
             generateQR().catch(console.error);
           }}
