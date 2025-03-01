@@ -32,11 +32,12 @@ const QRCode: React.FC = () => {
       ? String(process.env['NEXT_PUBLIC_APP_HOST_URL'])
       : 'https://conveniat27.ch';
 
-
     const fullURLForToken = domain + '/' + locale + finalCollectionSlug + finalUrlSlug;
 
-    const previewToken = await generatePreviewToken('/' + locale + finalCollectionSlug + finalUrlSlug);
-    const previewTokenURL = "?preview=true&preview-token=" + previewToken;
+    const previewToken = await generatePreviewToken(
+      '/' + locale + finalCollectionSlug + finalUrlSlug,
+    );
+    const previewTokenURL = '?preview=true&preview-token=' + previewToken;
 
     setFullURL(fullURLForToken + previewTokenURL);
     // make a fetch call to fetch the QR code.
