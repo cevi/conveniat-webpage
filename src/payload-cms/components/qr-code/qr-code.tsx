@@ -36,7 +36,7 @@ const QRCode: React.FC = () => {
 
     const previewToken = await generatePreviewToken(
       '/' + locale + finalCollectionSlug + finalUrlSlug,
-    );
+    ).catch(console.error);
     const previewTokenURL = '?preview=true&preview-token=' + previewToken;
 
     setFullURL(fullURLForToken + previewTokenURL);
@@ -90,7 +90,7 @@ const QRCode: React.FC = () => {
             type="button"
             onClick={(event) => {
               event.preventDefault();
-              navigator.clipboard.writeText(fullURL);
+              navigator.clipboard.writeText(fullURL).catch(console.error);
             }}
           >
             Copy Link
