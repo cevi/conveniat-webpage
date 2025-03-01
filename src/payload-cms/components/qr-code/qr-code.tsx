@@ -18,6 +18,7 @@ const QRCode: React.FC = () => {
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
   const isPublished = savedDocumentData?.['_localized_status']?.['published'] || false;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
   const qrCodeEnabled = savedDocumentData?.['seo']?.['urlSlug'] || '';
 
   const generateQR = useCallback(async () => {
