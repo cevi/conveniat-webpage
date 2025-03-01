@@ -5,10 +5,12 @@ import React, { useCallback, useState } from 'react';
 import { serverSideSlugToUrlResolution } from '@/utils/find-url-prefix';
 import { CollectionSlug } from 'payload';
 import { Locale } from '@/types';
+import { generatePreviewToken } from '@/utils/preview-token';
 
 const QRCode: React.FC = () => {
   const { collectionSlug, savedDocumentData } = useDocumentInfo();
   const [imageData, setImageData] = useState('');
+  const [fullURL, setFullURL] = useState('');
 
   const { code: locale } = useLocale();
 
@@ -30,15 +32,20 @@ const QRCode: React.FC = () => {
       ? String(process.env['NEXT_PUBLIC_APP_HOST_URL'])
       : 'https://conveniat27.ch';
 
-    const fullURL = domain + '/' + locale + finalCollectionSlug + finalUrlSlug;
 
+    const fullURLForToken = domain + '/' + locale + finalCollectionSlug + finalUrlSlug;
+
+    const previewToken = await generatePreviewToken('/' + locale + finalCollectionSlug + finalUrlSlug);
+    const previewTokenURL = "?preview=true&preview-token=" + previewToken;
+
+    setFullURL(fullURLForToken + previewTokenURL);
     // make a fetch call to fetch the QR code.
     fetch('https://backend.qr.cevi.tools/png', {
       method: 'POST', // Assuming this is a POST request
       headers: {
         'Content-Type': 'application/json', // Specify the content type
       },
-      body: JSON.stringify({ text: fullURL }), // Convert data to JSON string
+      body: JSON.stringify({ text: fullURLForToken + previewTokenURL }), // Convert data to JSON string
     })
       .then((response) => {
         if (!response.ok) {
@@ -72,7 +79,8 @@ const QRCode: React.FC = () => {
           Generate QR Code for {locale}
         </FormSubmit>
       </div>
-      {imageData !== '' && <img src={imageData} height="100" width="100" alt="link-qr-code" />}
+      {imageData !== '' && <img src={imageData} height="200" width="200" alt="link-qr-code" />}
+      <p>{fullURL}</p>
     </div>
   );
 };
