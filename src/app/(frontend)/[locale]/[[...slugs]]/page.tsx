@@ -69,11 +69,21 @@ const canAccessPreviewOfCurrentPage = async (
   return canAccessAdminPanel({ req: { user } as unknown as PayloadRequest });
 };
 
-const PreviewWarning: React.FC = () => {
+const PreviewWarning: React.FC<{
+  params: Promise<{
+    locale: Locale;
+  }>;
+}> = async ({ params }) => {
+  const { locale } = await params;
+  const StatisPreviewString = {
+    de: 'DIES IST EINE VORSCHAU',
+    en: 'THIS IS A PREVIEW',
+    fr: 'CECI EST UNE PRÉVISUALISATION',
+  };
   return (
     <div className="fixed bottom-0 right-0 z-50 p-4">
       <div className="rounded-lg bg-orange-500 px-4 py-2 font-bold text-white shadow-lg">
-        THIS IS A PREVIEW
+        {StatisPreviewString[locale]}
       </div>
     </div>
   );
@@ -139,9 +149,9 @@ const CMSPage: React.FC<{
               renderInPreviewMode={previewModeAllowed && hasPreviewSearchParameter}
             />
 
-            {previewModeAllowed && hasPreviewSearchParameter && <PreviewWarning />}
+            {previewModeAllowed && hasPreviewSearchParameter && <PreviewWarning params={params} />}
 
-            {!previewModeAllowed || !hasPreviewSearchParameter && <CookieBanner />}
+            {!previewModeAllowed || (!hasPreviewSearchParameter && <CookieBanner />)}
           </>
         );
       } else {
