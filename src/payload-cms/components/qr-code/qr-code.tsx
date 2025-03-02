@@ -1,19 +1,26 @@
 'use client';
 
 import { FormSubmit, useDocumentInfo, useLocale } from '@payloadcms/ui';
-import React, { useCallback, useState } from 'react';
+import React, { MouseEventHandler, useCallback, useState } from 'react';
 import { serverSideSlugToUrlResolution } from '@/utils/find-url-prefix';
 import { CollectionSlug } from 'payload';
 import { Locale } from '@/types';
+import { generatePreviewToken } from '@/utils/preview-token';
+import { Check, Copy } from 'lucide-react';
+import Image from 'next/image';
 
 const QRCode: React.FC = () => {
   const { collectionSlug, savedDocumentData } = useDocumentInfo();
   const [imageData, setImageData] = useState('');
+  const [fullURL, setFullURL] = useState('');
 
   const { code: locale } = useLocale();
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
   const isPublished = savedDocumentData?.['_localized_status']?.['published'] || false;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+  const qrCodeEnabled = savedDocumentData?.['seo']?.['urlSlug'] || '';
+
   const generateQR = useCallback(async () => {
     const path = await serverSideSlugToUrlResolution(
       collectionSlug as CollectionSlug,
@@ -30,15 +37,21 @@ const QRCode: React.FC = () => {
       ? String(process.env['NEXT_PUBLIC_APP_HOST_URL'])
       : 'https://conveniat27.ch';
 
-    const fullURL = domain + '/' + locale + finalCollectionSlug + finalUrlSlug;
+    const fullURLForToken = domain + '/' + locale + finalCollectionSlug + finalUrlSlug;
 
+    const previewToken = await generatePreviewToken(
+      '/' + locale + finalCollectionSlug + finalUrlSlug,
+    ).catch(console.error);
+    const previewTokenURL = '?preview=true&preview-token=' + previewToken;
+
+    setFullURL(fullURLForToken + previewTokenURL);
     // make a fetch call to fetch the QR code.
     fetch('https://backend.qr.cevi.tools/png', {
       method: 'POST', // Assuming this is a POST request
       headers: {
         'Content-Type': 'application/json', // Specify the content type
       },
-      body: JSON.stringify({ text: fullURL }), // Convert data to JSON string
+      body: JSON.stringify({ text: fullURLForToken + previewTokenURL }), // Convert data to JSON string
     })
       .then((response) => {
         if (!response.ok) {
@@ -56,13 +69,27 @@ const QRCode: React.FC = () => {
       });
   }, [savedDocumentData, collectionSlug, locale]);
 
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy: MouseEventHandler<HTMLButtonElement> = (event): void => {
+    navigator.clipboard
+      .writeText(fullURL)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      })
+      .catch(console.error);
+
+    event.preventDefault();
+  };
+
   return (
     <div>
       <div>
         <FormSubmit
           className=""
           buttonId="generate-qr"
-          disabled={!Boolean(isPublished)}
+          disabled={!Boolean(isPublished || qrCodeEnabled)}
           onClick={() => {
             generateQR().catch(console.error);
           }}
@@ -72,9 +99,31 @@ const QRCode: React.FC = () => {
           Generate QR Code for {locale}
         </FormSubmit>
       </div>
-      {imageData !== '' && <img src={imageData} height="100" width="100" alt="link-qr-code" />}
+      {imageData !== '' && (
+        <div>
+          <Image src={imageData} height="200" width="200" alt="link-qr-code" />
+
+          <div className="relative mb-4 w-full max-w-[200px]">
+            <input
+              className="w-full rounded-md border border-solid border-gray-300 p-[4px] pr-10 text-sm shadow-none outline-none focus:ring-1"
+              readOnly
+              value={fullURL}
+            />
+            <button
+              className="absolute right-1 top-0.5 m-0 h-7 w-7 -translate-y-1/2 cursor-pointer items-center rounded-md border border-solid border-gray-300 bg-gray-50 p-0 text-center"
+              onClick={handleCopy}
+              aria-label="Copy link"
+            >
+              {copied ? (
+                <Check className="h-4 w-4 text-green-400" />
+              ) : (
+                <Copy className="h-4 w-4 text-gray-600" />
+              )}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
-
 export default QRCode;

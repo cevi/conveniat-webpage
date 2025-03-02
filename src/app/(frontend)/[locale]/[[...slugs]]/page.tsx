@@ -7,6 +7,7 @@ import { auth } from '@/auth/auth';
 import { canAccessAdminPanel } from '@/payload-cms/access-rules/can-access-admin-panel';
 import { PayloadRequest } from 'payload';
 import { RefreshRouteOnSave } from '@/components/refresh-preview';
+import { isPreviewTokenValid } from '@/utils/preview-token';
 
 /**
  * Checks if the preview token is valid.
@@ -24,19 +25,7 @@ const isValidPreviewToken = async (
   url: string,
 ): Promise<boolean> => {
   if (previewToken === undefined) return false;
-
-  // TODO: currently there is no way to generate a token...
-  //    this should be handled by the QR code component (we should
-  //    always generate a token and link which includes the locale, even the default locale
-  //    such that the validation works properly, even if the client has configured a
-  //    different default locale).
-
-  // TODO: do proper token validation.
-
-  console.log('Preview token:', previewToken);
-  console.log('URL:', url);
-
-  return false;
+  return await isPreviewTokenValid(url, previewToken);
 };
 
 /**
