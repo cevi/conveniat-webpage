@@ -8,11 +8,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { i18nConfig, Locale } from '@/types';
+import { useCurrentLocale } from 'next-i18n-router/client';
 
 /**
  * Handles the change of the preview mode and updates the URL accordingly.
  */
 export const PreviewModeToggle: React.FC = () => {
+  const locale = useCurrentLocale(i18nConfig) as Locale;
+
   const searchParameters = useSearchParams();
   const router = useRouter();
 
@@ -39,6 +43,19 @@ export const PreviewModeToggle: React.FC = () => {
     return <></>;
   }
 
+  const StaticTranslationStrings = {
+    enabled: {
+      de: 'Aktiviert',
+      en: 'Enabled',
+      fr: 'Activé',
+    },
+    disabled: {
+      de: 'Deaktiviert',
+      en: 'Disabled',
+      fr: 'Désactivé',
+    },
+  };
+
   return (
     <Select defaultValue={isInPreviewMode} onValueChange={handlePreviewModeChange}>
       <SelectTrigger className="flex h-7 items-center border-none bg-gray-900 px-2 text-xs text-gray-100">
@@ -46,10 +63,10 @@ export const PreviewModeToggle: React.FC = () => {
       </SelectTrigger>
       <SelectContent className="z-[250] bg-gray-900 p-2 text-gray-100">
         <SelectItem className="text-xs" value="enabled">
-          Enabled
+          {StaticTranslationStrings.enabled[locale]}
         </SelectItem>
         <SelectItem className="text-xs" value="disabled">
-          Disabled
+          {StaticTranslationStrings.disabled[locale]}
         </SelectItem>
       </SelectContent>
     </Select>
