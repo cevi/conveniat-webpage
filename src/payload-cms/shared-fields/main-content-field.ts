@@ -1,10 +1,11 @@
 import { Field } from 'payload';
 import { richTextArticleBlock } from '@/payload-cms/shared-blocks/rich-text-article-block';
-import { formBlock } from '../shared-blocks/form-block';
+import { formBlock } from '@/payload-cms/shared-blocks/form-block';
 import { photoCarouselBlock } from '@/payload-cms/shared-blocks/photo-carousel-block';
-import { youtubeEmbedBlock } from '../shared-blocks/youtube-embed-block';
+import { youtubeEmbedBlock } from '@/payload-cms/shared-blocks/youtube-embed-block';
 import { heroSection } from '@/payload-cms/shared-blocks/hero-section-block';
 import { swisstopoMapEmbedBlock } from '@/payload-cms/shared-blocks/swisstopo-embed-block';
+import { fileDownloadBlock } from '@/payload-cms/shared-blocks/file-download-block';
 
 export const mainContentField: Field = {
   name: 'mainContent',
@@ -29,5 +30,6 @@ export const mainContentField: Field = {
     photoCarouselBlock,
     youtubeEmbedBlock,
     swisstopoMapEmbedBlock,
+    fileDownloadBlock,
   ],
 };

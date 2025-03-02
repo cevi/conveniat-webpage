@@ -9,6 +9,7 @@ import {
   RenderPhotoCarousel,
   RenderRichTextSection,
   RenderYoutubeEmbed,
+  RenderFileDownload,
   SectionRenderer,
   SwisstopoInlineMapSection,
 } from '@/converters/page-sections/content-blocks';
@@ -36,6 +37,7 @@ export const PageSectionsConverter: React.FC<
     youtubeEmbed: RenderYoutubeEmbed,
     heroSection: RenderHeroSection,
     swisstopoEmbed: SwisstopoInlineMapSection,
+    fileDownload: RenderFileDownload,
   };
 
   return blocks.map((block) => {

@@ -7,6 +7,7 @@ import { ContentBlockTypeNames } from '@/converters/page-sections/content-blocks
 import { InlineSwisstopoMapEmbedType } from '@/components/map-viewer/inline-swisstopo-map-embed';
 import { HeroSectionType } from '@/components/content-blocks/hero-section';
 import { FormBlockType } from '@/components/form';
+import { FileDownloadType } from '@/components/content-blocks/file-download';
 
 export type ContentBlock = {
   richTextSection?: SerializedEditorState;
@@ -17,7 +18,8 @@ export type ContentBlock = {
   blockType: ContentBlockTypeNames;
 } & InlineSwisstopoMapEmbedType &
   HeroSectionType &
-  FormBlockType;
+  FormBlockType &
+  FileDownloadType;
 
 const ErrorFallback: React.FC<{ error: Error }> = ({ error }) => {
   return (

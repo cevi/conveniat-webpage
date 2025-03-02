@@ -12,6 +12,7 @@ import { YoutubeEmbed } from '@/components/content-blocks/youtube-embed';
 import InlineSwisstopoMapEmbed, {
   InlineSwisstopoMapEmbedType,
 } from '@/components/map-viewer/inline-swisstopo-map-embed';
+import { FileDownload, FileDownloadType } from '@/components/content-blocks/file-download';
 
 export type ContentBlockTypeNames =
   | 'blogPostsOverview'
@@ -20,7 +21,8 @@ export type ContentBlockTypeNames =
   | 'photoCarousel'
   | 'youtubeEmbed'
   | 'heroSection'
-  | 'swisstopoEmbed';
+  | 'swisstopoEmbed'
+  | 'fileDownload';
 
 export type SectionRenderer = React.FC<
   LocalizedPageType & {
@@ -143,6 +145,23 @@ export const RenderRichTextSection: SectionRenderer = ({
       errorFallbackMessage="Failed to load blog posts overview. Reload the page to try again."
     >
       <LexicalRichTextSection richTextSection={block.richTextSection as SerializedEditorState} />
+    </SectionWrapper>
+  );
+};
+
+export const RenderFileDownload: SectionRenderer = ({
+  block,
+  sectionClassName,
+  sectionOverrides,
+}) => {
+  return (
+    <SectionWrapper
+      block={block}
+      sectionClassName={sectionClassName}
+      sectionOverrides={sectionOverrides}
+      errorFallbackMessage="Failed to load blog posts overview. Reload the page to try again."
+    >
+      <FileDownload {...(block as FileDownloadType)} />
     </SectionWrapper>
   );
 };
