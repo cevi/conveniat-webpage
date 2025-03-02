@@ -8,6 +8,7 @@ import { canAccessAdminPanel } from '@/payload-cms/access-rules/can-access-admin
 import { PayloadRequest } from 'payload';
 import { RefreshRouteOnSave } from '@/components/refresh-preview';
 import { isPreviewTokenValid } from '@/utils/preview-token';
+import { CookieBanner } from '@/components/utils/cookie-banner';
 
 /**
  * Checks if the preview token is valid.
@@ -139,6 +140,8 @@ const CMSPage: React.FC<{
             />
 
             {previewModeAllowed && hasPreviewSearchParameter && <PreviewWarning />}
+
+            <CookieBanner />
           </>
         );
       } else {
