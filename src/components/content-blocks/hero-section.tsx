@@ -4,7 +4,7 @@ import { CallToAction } from '@/components/buttons/call-to-action';
 
 export type HeroSectionType = {
   blockName?: string;
-  blockType?: 'formBlock';
+  blockType?: 'heroSection';
   pageTeaser: string;
   callToAction: {
     link: string;
