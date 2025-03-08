@@ -11,14 +11,14 @@ import Image from 'next/image';
 import { ErrorBoundary } from 'react-error-boundary';
 
 export type PhotoCarouselBlock = {
-  url: string;
-  alt: string;
-  imageCaption?: string;
-}[];
+  images: {
+    url: string;
+    alt: string;
+    imageCaption?: string;
+  }[];
+};
 
-export const PhotoCarousel: React.FC<{
-  images: PhotoCarouselBlock;
-}> = ({ images }) => {
+export const PhotoCarousel: React.FC<PhotoCarouselBlock> = ({ images }) => {
   const length = images.length;
 
   if (length === 0) {

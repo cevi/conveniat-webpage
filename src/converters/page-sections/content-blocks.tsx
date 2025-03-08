@@ -1,14 +1,14 @@
 import SectionWrapper, { ContentBlock } from '@/converters/page-sections/section-wrapper';
 import { HeroSection, HeroSectionType } from '@/components/content-blocks/hero-section';
 import React from 'react';
-import { PhotoCarousel } from '@/components/gallery';
+import { PhotoCarousel, PhotoCarouselBlock } from '@/components/gallery';
 import { LocalizedPageType } from '@/types';
 import { ShowForm } from '@/components/content-blocks/show-form';
 import { FormBlockType } from '@/components/form';
 import { LexicalRichTextSection } from '@/components/content-blocks/lexical-rich-text-section';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import { ListBlogPosts } from '@/components/content-blocks/list-blog-articles';
-import { YoutubeEmbed } from '@/components/content-blocks/youtube-embed';
+import { YoutubeEmbed, YoutubeEmbedType } from '@/components/content-blocks/youtube-embed';
 import InlineSwisstopoMapEmbed, {
   InlineSwisstopoMapEmbedType,
 } from '@/components/map-viewer/inline-swisstopo-map-embed';
@@ -69,6 +69,8 @@ export const RenderYoutubeEmbed: SectionRenderer = ({
   sectionClassName,
   sectionOverrides,
 }) => {
+  const youtubeEmbedBlock = block as YoutubeEmbedType;
+
   return (
     <SectionWrapper
       block={block}
@@ -76,7 +78,7 @@ export const RenderYoutubeEmbed: SectionRenderer = ({
       sectionOverrides={sectionOverrides}
       errorFallbackMessage="Failed to load youtube link. Reload the page to try again."
     >
-      <YoutubeEmbed link={block.link ?? ''} />
+      <YoutubeEmbed link={youtubeEmbedBlock.link} />
     </SectionWrapper>
   );
 };
@@ -86,6 +88,8 @@ export const RenderPhotoCarousel: SectionRenderer = ({
   sectionClassName,
   sectionOverrides,
 }) => {
+  const photoCarouselBlock = block as PhotoCarouselBlock;
+
   return (
     <SectionWrapper
       block={block}
@@ -93,7 +97,7 @@ export const RenderPhotoCarousel: SectionRenderer = ({
       sectionOverrides={sectionOverrides}
       errorFallbackMessage="Failed to load photo carousel. Reload the page to try again."
     >
-      <PhotoCarousel images={block.images ?? []} />
+      <PhotoCarousel images={photoCarouselBlock.images} />
     </SectionWrapper>
   );
 };
@@ -135,6 +139,8 @@ export const RenderRichTextSection: SectionRenderer = ({
   sectionClassName,
   sectionOverrides,
 }) => {
+  const richTextBlock = block as { richTextSection: SerializedEditorState };
+
   return (
     <SectionWrapper
       block={block}
@@ -142,7 +148,7 @@ export const RenderRichTextSection: SectionRenderer = ({
       sectionOverrides={sectionOverrides}
       errorFallbackMessage="Failed to load blog posts overview. Reload the page to try again."
     >
-      <LexicalRichTextSection richTextSection={block.richTextSection as SerializedEditorState} />
+      <LexicalRichTextSection richTextSection={richTextBlock.richTextSection} />
     </SectionWrapper>
   );
 };

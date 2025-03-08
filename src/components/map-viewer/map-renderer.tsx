@@ -90,7 +90,7 @@ export const MapLibreRenderer = ({
         .setLngLat(marker.geometry.coordinates)
         .addTo(map),
     );
-  }, [initialMapPose, ceviLogoMarkers]);
+  }, [initialMapPose, ceviLogoMarkers, limitUsage]);
 
   return <div className="h-full w-full" ref={mapContainerReference} />;
 };

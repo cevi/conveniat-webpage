@@ -1,23 +1,22 @@
 import React from 'react';
 import { cn } from '@/utils/tailwindcss-override';
 import { ErrorBoundary } from 'react-error-boundary';
-import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import { PhotoCarouselBlock } from '@/components/gallery';
 import { ContentBlockTypeNames } from '@/converters/page-sections/content-blocks';
 import { InlineSwisstopoMapEmbedType } from '@/components/map-viewer/inline-swisstopo-map-embed';
 import { HeroSectionType } from '@/components/content-blocks/hero-section';
 import { FormBlockType } from '@/components/form';
+import { YoutubeEmbedType } from '@/components/content-blocks/youtube-embed';
+import { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 
-export type ContentBlock = {
-  richTextSection?: SerializedEditorState;
-  id?: string | null;
-  blockName?: string | null;
-  images?: PhotoCarouselBlock;
-  link?: string | null;
-  blockType: ContentBlockTypeNames;
-} & InlineSwisstopoMapEmbedType &
-  HeroSectionType &
-  FormBlockType;
+export type ContentBlock = { blockType: ContentBlockTypeNames; id: string } & (
+  | InlineSwisstopoMapEmbedType
+  | HeroSectionType
+  | FormBlockType
+  | PhotoCarouselBlock
+  | YoutubeEmbedType
+  | { richTextSection: SerializedEditorState }
+);
 
 const ErrorFallback: React.FC<{ error: Error }> = ({ error }) => {
   return (
