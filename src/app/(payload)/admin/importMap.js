@@ -18,6 +18,7 @@ import { ReindexButton as ReindexButton_aead06e4cbf6b2620c5c51c9ab283634 } from 
 import { ConveniatLogo as ConveniatLogo_1dcd95bfbb6787f73675c94df91c942d } from '@/components/svg-logos/conveniat-logo.tsx'
 import { default as default_17d63aa389bc01a392997a5c43778dff } from '@/payload-cms/components/login-page/admin-panel-login-page'
 import { default as default_c3cc3b6e219a6fc03e424c337d312b51 } from '@/payload-cms/components/dashboard-welcome-banner'
+import { S3ClientUploadHandler as S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24 } from '@payloadcms/storage-s3/client'
 
 export const importMap = {
   "@/payload-cms/components/multi-lang-publishing/publishing-status#default": default_0ab278369767a73bfbc2c2f4a007b998,
@@ -39,5 +40,6 @@ export const importMap = {
   "@payloadcms/plugin-search/client#ReindexButton": ReindexButton_aead06e4cbf6b2620c5c51c9ab283634,
   "@/components/svg-logos/conveniat-logo.tsx#ConveniatLogo": ConveniatLogo_1dcd95bfbb6787f73675c94df91c942d,
   "@/payload-cms/components/login-page/admin-panel-login-page#default": default_17d63aa389bc01a392997a5c43778dff,
-  "@/payload-cms/components/dashboard-welcome-banner#default": default_c3cc3b6e219a6fc03e424c337d312b51
+  "@/payload-cms/components/dashboard-welcome-banner#default": default_c3cc3b6e219a6fc03e424c337d312b51,
+  "@payloadcms/storage-s3/client#S3ClientUploadHandler": S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24
 }
