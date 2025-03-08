@@ -22,4 +22,4 @@ jobs:
         run: docker compose -f docker-compose.prod.yml build
 
       - name: Push Docker Image
-        run: docker compose -f docker-compose.prod.yml push
+        run: docker push registry.cevi.tools/cevi/conveniat27-webpage:latest
