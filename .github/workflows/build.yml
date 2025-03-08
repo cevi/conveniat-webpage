@@ -19,7 +19,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build Docker Image
-        run: docker build -t registry.cevi.tools/cevi/conveniat27-webpage:latest -f Dockerfile .
+        run: docker compose -f docker-compose.prod.yml build
 
       - name: Push Docker Image
-        run: docker push registry.cevi.tools/cevi/conveniat27-webpage:latest
+        run: docker compose -f docker-compose.prod.yml push

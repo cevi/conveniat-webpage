@@ -30,6 +30,7 @@ FROM base AS builder
 WORKDIR /app
 
 ENV NEXT_TELEMETRY_DISABLED=1
+ARG NEXT_PUBLIC_APP_HOST_URL=https://conveniat27.ch
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
