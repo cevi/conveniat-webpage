@@ -11,14 +11,6 @@
  */
 export type IsPublishedInCorrespondingLocale = boolean;
 /**
- * This field indicates whether the document is published in the corresponding locale
- */
-export type IsPublishedInCorrespondingLocale1 = boolean;
-/**
- * This field indicates whether the document is published in the corresponding locale
- */
-export type IsPublishedInCorrespondingLocale2 = boolean;
-/**
  * The ID of the group as used in the CeviDB.
  */
 export type TheIDOfTheGroup = number;
@@ -556,7 +548,7 @@ export interface GenericPage {
     | number
     | boolean
     | null;
-  _localized_status: LocalizedPublishingStatus1;
+  _localized_status: LocalizedPublishingStatus;
   _disable_unpublishing?: boolean | null;
   _locale: string;
   /**
@@ -647,13 +639,6 @@ export interface GenericPage {
   _status?: ('draft' | 'published') | null;
 }
 /**
- * Holds the publishing status of the document in each locale
- */
-export interface LocalizedPublishingStatus1 {
-  published: IsPublishedInCorrespondingLocale1;
-  [k: string]: unknown;
-}
-/**
  * Represents a timeline that can be published on the website.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -670,7 +655,7 @@ export interface Timeline {
     | number
     | boolean
     | null;
-  _localized_status: LocalizedPublishingStatus2;
+  _localized_status: LocalizedPublishingStatus;
   _disable_unpublishing?: boolean | null;
   _locale: string;
   date: string;
@@ -714,13 +699,6 @@ export interface Timeline {
   updatedAt: string;
   createdAt: string;
   _status?: ('draft' | 'published') | null;
-}
-/**
- * Holds the publishing status of the document in each locale
- */
-export interface LocalizedPublishingStatus2 {
-  published: IsPublishedInCorrespondingLocale2;
-  [k: string]: unknown;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
