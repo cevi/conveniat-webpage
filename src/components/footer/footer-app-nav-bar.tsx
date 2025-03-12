@@ -84,9 +84,12 @@ export const FooterAppNavBar: React.FC<{
               <Link
                 key={item.label[locale]}
                 href={item.href}
-                className={cn('flex flex-col items-center justify-center space-y-1', {
-                  'text-blue-600': isActive,
-                })}
+                className={cn(
+                  'flex h-full flex-1 flex-col items-center justify-center space-y-1 py-2',
+                  {
+                    'text-blue-600': isActive,
+                  },
+                )}
               >
                 <item.icon
                   className={cn('h-9 w-12 rounded-xl px-3 py-1 text-gray-300', {
