@@ -1,3 +1,5 @@
+import 'server-only';
+
 import React from 'react';
 import { notFound, redirect } from 'next/navigation';
 import { routeResolutionTable } from '@/route-resolution-table';
@@ -7,6 +9,8 @@ import { auth } from '@/auth/auth';
 import { canAccessAdminPanel } from '@/payload-cms/access-rules/can-access-admin-panel';
 import { PayloadRequest } from 'payload';
 import { RefreshRouteOnSave } from '@/components/refresh-preview';
+import { isPreviewTokenValid } from '@/utils/preview-token';
+import { CookieBanner } from '@/components/utils/cookie-banner';
 
 /**
  * Checks if the preview token is valid.
@@ -24,19 +28,7 @@ const isValidPreviewToken = async (
   url: string,
 ): Promise<boolean> => {
   if (previewToken === undefined) return false;
-
-  // TODO: currently there is no way to generate a token...
-  //    this should be handled by the QR code component (we should
-  //    always generate a token and link which includes the locale, even the default locale
-  //    such that the validation works properly, even if the client has configured a
-  //    different default locale).
-
-  // TODO: do proper token validation.
-
-  console.log('Preview token:', previewToken);
-  console.log('URL:', url);
-
-  return false;
+  return await isPreviewTokenValid(url, previewToken);
 };
 
 /**
@@ -79,11 +71,21 @@ const canAccessPreviewOfCurrentPage = async (
   return canAccessAdminPanel({ req: { user } as unknown as PayloadRequest });
 };
 
-const PreviewWarning: React.FC = () => {
+const PreviewWarning: React.FC<{
+  params: Promise<{
+    locale: Locale;
+  }>;
+}> = async ({ params }) => {
+  const { locale } = await params;
+  const StatisPreviewString = {
+    de: 'DIES IST EINE VORSCHAU',
+    en: 'THIS IS A PREVIEW',
+    fr: 'CECI EST UNE PRÉVISUALISATION',
+  };
   return (
     <div className="fixed bottom-0 right-0 z-50 p-4">
       <div className="rounded-lg bg-orange-500 px-4 py-2 font-bold text-white shadow-lg">
-        THIS IS A PREVIEW
+        {StatisPreviewString[locale]}
       </div>
     </div>
   );
@@ -149,7 +151,9 @@ const CMSPage: React.FC<{
               renderInPreviewMode={previewModeAllowed && hasPreviewSearchParameter}
             />
 
-            {previewModeAllowed && hasPreviewSearchParameter && <PreviewWarning />}
+            {previewModeAllowed && hasPreviewSearchParameter && <PreviewWarning params={params} />}
+
+            {!previewModeAllowed || (!hasPreviewSearchParameter && <CookieBanner />)}
           </>
         );
       } else {

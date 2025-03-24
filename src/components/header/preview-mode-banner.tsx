@@ -4,6 +4,8 @@ import { User } from 'next-auth';
 import { useSearchParams } from 'next/navigation';
 import { PreviewModeToggle } from '@/components/header/preview-mode-toggler';
 import { RefreshCw } from 'lucide-react';
+import { i18nConfig, Locale } from '@/types';
+import { useCurrentLocale } from 'next-i18n-router/client';
 
 interface PreviewModeBannerProperties {
   user: User | undefined;
@@ -29,6 +31,7 @@ export const PreviewModeBanner: React.FC<PreviewModeBannerProperties> = ({
   user,
   canAccessAdmin,
 }) => {
+  const locale = useCurrentLocale(i18nConfig) as Locale;
   const searchParameters = useSearchParams();
 
   const [renderPreviewModeBanner, setRenderPreviewModeBanner] = useState(false);
@@ -52,17 +55,39 @@ export const PreviewModeBanner: React.FC<PreviewModeBannerProperties> = ({
   // abort, don't render the preview banner...
   if (!renderPreviewModeBanner) return <></>;
 
+  const StaticTranslationStrings = {
+    account: {
+      de: 'Account: ',
+      en: 'Account: ',
+      fr: 'Compte: ',
+    },
+    anonymous: {
+      de: 'anonym',
+      en: 'anonymous',
+      fr: 'anonyme',
+    },
+    previewMode: {
+      de: 'Vorschau:',
+      en: 'Preview:',
+      fr: 'Aperçu:',
+    },
+  };
+
   // we set the email to 'anonymous' if the user is not signed in
-  const { email: userEmail } = user ?? { email: 'anonymous' };
+  const { email: userEmail } = user ?? { email: StaticTranslationStrings.anonymous[locale] };
 
   return (
     <div className="relative z-[200] flex h-[32px] items-center justify-between overflow-hidden bg-gray-900 px-1 md:px-8">
       <span className="flex items-center text-xs text-gray-100">
-        <span className="text-gray-300 max-sm:hidden">Account: </span>
+        <span className="text-gray-300 max-sm:hidden">
+          {StaticTranslationStrings.account[locale]}
+        </span>
         <span className="ml-1 font-medium">{userEmail}</span>
       </span>
       <div className="flex items-center space-x-2">
-        <span className="text-xs text-gray-300">Preview&nbsp;Mode:</span>
+        <span className="text-xs text-gray-300">
+          {StaticTranslationStrings.previewMode[locale]}
+        </span>
         <PreviewModeToggle />
       </div>
       <RefreshCw

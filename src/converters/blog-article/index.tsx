@@ -22,11 +22,12 @@ export const BlogArticleConverter: React.FC<{
   return (
     <>
       <article className="mx-auto my-8 max-w-2xl px-8">
-        <div className="relative h-56 w-full">
-          <Image src={source} alt={altText} fill={true} style={{ objectFit: 'contain' }} />
+        <HeadlineH1>{article.content.blogH1}</HeadlineH1>
+
+        <div className="relative mt-10 h-56 w-full text-lg text-conveniat-green">
+          <Image src={source} alt={altText} fill={true} style={{ objectFit: 'cover' }} />
         </div>
 
-        <HeadlineH1>{article.content.blogH1}</HeadlineH1>
         <PageSectionsConverter
           blocks={article.content.mainContent as ContentBlock[]}
           locale={locale}
