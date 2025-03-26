@@ -1,6 +1,6 @@
 'use client';
 
-import { FormSubmit, useDocumentInfo, useLocale } from '@payloadcms/ui';
+import { FormSubmit, useDocumentInfo, useLocale, useTheme } from '@payloadcms/ui';
 import React, { MouseEventHandler, useCallback, useState } from 'react';
 import { serverSideSlugToUrlResolution } from '@/utils/find-url-prefix';
 import { CollectionSlug } from 'payload';
@@ -15,6 +15,7 @@ const QRCode: React.FC = () => {
   const [fullURL, setFullURL] = useState('');
 
   const { code: locale } = useLocale();
+  const { theme } = useTheme();
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
   const isPublished = savedDocumentData?.['_localized_status']?.['published'] || false;
@@ -45,13 +46,18 @@ const QRCode: React.FC = () => {
     const previewTokenURL = '?preview=true&preview-token=' + previewToken;
 
     setFullURL(fullURLForToken + previewTokenURL);
+
     // make a fetch call to fetch the QR code.
     fetch('https://backend.qr.cevi.tools/png', {
-      method: 'POST', // Assuming this is a POST request
+      method: 'POST',
       headers: {
-        'Content-Type': 'application/json', // Specify the content type
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ text: fullURLForToken + previewTokenURL }), // Convert data to JSON string
+      body: JSON.stringify({
+        text: fullURLForToken + previewTokenURL,
+        // set the color scheme based on the payload theme
+        options: { color_scheme: theme === 'light' ? 'cevi' : 'white' },
+      }),
     })
       .then((response) => {
         if (!response.ok) {
