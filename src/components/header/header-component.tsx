@@ -15,7 +15,7 @@ export const HeaderComponent: React.FC = async () => {
   });
 
   return (
-    <header className="fixed left-0 top-0 z-50 h-[112px] w-full">
+    <header className="fixed left-0 top-0 z-50 h-[60px] w-full">
       <PreviewModeBanner user={session?.user} canAccessAdmin={canAccessAdminDashboard} />
 
       <div className="mb-[32px] border-b-2 border-gray-200 bg-white">
