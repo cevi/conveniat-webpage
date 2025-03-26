@@ -40,4 +40,4 @@ const nextConfig = {
   },
 };
 
-export default withSerwist(withPayload(nextConfig));
+export default withSerwist(withPayload(nextConfig, { devBundleServerPackages: false }));
