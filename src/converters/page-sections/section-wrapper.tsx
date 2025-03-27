@@ -16,6 +16,10 @@ export type ContentBlock = { blockType: ContentBlockTypeNames; id: string } & (
   | PhotoCarouselBlock
   | YoutubeEmbedType
   | { richTextSection: SerializedEditorState }
+  | {
+      introduction: SerializedEditorState;
+      detailsTableBlocks: { label: string; value: SerializedEditorState }[];
+    }
 );
 
 const ErrorFallback: React.FC<{ error: Error }> = ({ error }) => {

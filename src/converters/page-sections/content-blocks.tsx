@@ -32,6 +32,11 @@ export type SectionRenderer = React.FC<
 >;
 
 export const DetailsTable: SectionRenderer = ({ block, sectionClassName, sectionOverrides }) => {
+  const detailsTableBlock = block as {
+    introduction: SerializedEditorState;
+    detailsTableBlocks: { label: string; value: SerializedEditorState }[];
+  };
+
   return (
     <SectionWrapper
       block={block}
@@ -39,17 +44,20 @@ export const DetailsTable: SectionRenderer = ({ block, sectionClassName, section
       sectionOverrides={sectionOverrides}
       errorFallbackMessage="Failed to load hero section. Reload the page to try again."
     >
-      <LexicalRichTextSection richTextSection={block.introduction as SerializedEditorState} />
-      <div>
+      <LexicalRichTextSection richTextSection={detailsTableBlock.introduction} />
+
+      <div className="mt-4">
         <hr className="border-b-2 border-gray-100" />
-        {block.detailsTableBlocks?.map((detailsTableBlock, index) => (
-          <div key={index} className="grid gap-x-2 p-2 md:grid-cols-2">
-            <div className="my-2 font-semibold text-conveniat-green">{detailsTableBlock.label}</div>
-            <LexicalRichTextSection
-              richTextSection={detailsTableBlock.value as SerializedEditorState}
-            />
+        {detailsTableBlock.detailsTableBlocks.map((detailsTableEntry, index) => (
+          <React.Fragment key={index}>
+            <div className="grid gap-x-2 hyphens-auto p-2 md:grid-cols-[1fr_2fr]">
+              <div className="my-2 font-semibold text-conveniat-green">
+                {detailsTableEntry.label}
+              </div>
+              <LexicalRichTextSection richTextSection={detailsTableEntry.value} />
+            </div>
             <hr className="grid-cols-2 border-b-2 border-gray-100" />
-          </div>
+          </React.Fragment>
         ))}
       </div>
     </SectionWrapper>
