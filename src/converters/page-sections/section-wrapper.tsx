@@ -1,26 +1,9 @@
 import React from 'react';
 import { cn } from '@/utils/tailwindcss-override';
 import { ErrorBoundary } from 'react-error-boundary';
-import { PhotoCarouselBlock } from '@/components/gallery';
 import { ContentBlockTypeNames } from '@/converters/page-sections/content-blocks';
-import { InlineSwisstopoMapEmbedType } from '@/components/map-viewer/inline-swisstopo-map-embed';
-import { HeroSectionType } from '@/components/content-blocks/hero-section';
-import { FormBlockType } from '@/components/form';
-import { YoutubeEmbedType } from '@/components/content-blocks/youtube-embed';
-import { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 
-export type ContentBlock = { blockType: ContentBlockTypeNames; id: string } & (
-  | InlineSwisstopoMapEmbedType
-  | HeroSectionType
-  | FormBlockType
-  | PhotoCarouselBlock
-  | YoutubeEmbedType
-  | { richTextSection: SerializedEditorState }
-  | {
-      introduction: SerializedEditorState;
-      detailsTableBlocks: { label: string; value: SerializedEditorState }[];
-    }
-);
+export type ContentBlock<T = object> = { blockType: ContentBlockTypeNames; id: string } & T;
 
 const ErrorFallback: React.FC<{ error: Error }> = ({ error }) => {
   return (

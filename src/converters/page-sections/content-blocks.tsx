@@ -5,7 +5,10 @@ import { PhotoCarousel, PhotoCarouselBlock } from '@/components/gallery';
 import { LocalizedPageType } from '@/types';
 import { ShowForm } from '@/components/content-blocks/show-form';
 import { FormBlockType } from '@/components/form';
-import { LexicalRichTextSection } from '@/components/content-blocks/lexical-rich-text-section';
+import {
+  LexicalRichTextSection,
+  LexicalRichTextSectionType,
+} from '@/components/content-blocks/lexical-rich-text-section';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import { ListBlogPosts } from '@/components/content-blocks/list-blog-articles';
 import { YoutubeEmbed, YoutubeEmbedType } from '@/components/content-blocks/youtube-embed';
@@ -23,20 +26,18 @@ export type ContentBlockTypeNames =
   | 'swisstopoEmbed'
   | 'detailsTable';
 
-export type SectionRenderer = React.FC<
+export type SectionRenderer<T = object> = React.FC<
   LocalizedPageType & {
-    block: ContentBlock;
+    block: ContentBlock<T>;
     sectionClassName?: string;
     sectionOverrides?: { [key in ContentBlockTypeNames]?: string };
   }
 >;
 
-export const DetailsTable: SectionRenderer = ({ block, sectionClassName, sectionOverrides }) => {
-  const detailsTableBlock = block as {
-    introduction: SerializedEditorState;
-    detailsTableBlocks: { label: string; value: SerializedEditorState }[];
-  };
-
+export const DetailsTable: SectionRenderer<{
+  introduction: SerializedEditorState;
+  detailsTableBlocks: { label: string; value: SerializedEditorState }[];
+}> = ({ block, sectionClassName, sectionOverrides }) => {
   return (
     <SectionWrapper
       block={block}
@@ -44,11 +45,11 @@ export const DetailsTable: SectionRenderer = ({ block, sectionClassName, section
       sectionOverrides={sectionOverrides}
       errorFallbackMessage="Failed to load hero section. Reload the page to try again."
     >
-      <LexicalRichTextSection richTextSection={detailsTableBlock.introduction} />
+      <LexicalRichTextSection richTextSection={block.introduction} />
 
       <div className="mt-4">
         <hr className="border-b-2 border-gray-100" />
-        {detailsTableBlock.detailsTableBlocks.map((detailsTableEntry, index) => (
+        {block.detailsTableBlocks.map((detailsTableEntry, index) => (
           <React.Fragment key={index}>
             <div className="grid gap-x-2 hyphens-auto p-2 md:grid-cols-[1fr_2fr]">
               <div className="my-2 font-semibold text-conveniat-green">
@@ -64,7 +65,7 @@ export const DetailsTable: SectionRenderer = ({ block, sectionClassName, section
   );
 };
 
-export const SwisstopoInlineMapSection: SectionRenderer = ({
+export const SwisstopoInlineMapSection: SectionRenderer<InlineSwisstopoMapEmbedType> = ({
   block,
   sectionClassName,
   sectionOverrides,
@@ -76,12 +77,12 @@ export const SwisstopoInlineMapSection: SectionRenderer = ({
       sectionOverrides={sectionOverrides}
       errorFallbackMessage="Failed to load hero section. Reload the page to try again."
     >
-      <InlineSwisstopoMapEmbed {...(block as InlineSwisstopoMapEmbedType)} />
+      <InlineSwisstopoMapEmbed {...block} />
     </SectionWrapper>
   );
 };
 
-export const RenderHeroSection: SectionRenderer = ({
+export const RenderHeroSection: SectionRenderer<HeroSectionType> = ({
   block,
   sectionClassName,
   sectionOverrides,
@@ -93,18 +94,16 @@ export const RenderHeroSection: SectionRenderer = ({
       sectionOverrides={sectionOverrides}
       errorFallbackMessage="Failed to load hero section. Reload the page to try again."
     >
-      <HeroSection {...(block as HeroSectionType)} />
+      <HeroSection {...block} />
     </SectionWrapper>
   );
 };
 
-export const RenderYoutubeEmbed: SectionRenderer = ({
+export const RenderYoutubeEmbed: SectionRenderer<YoutubeEmbedType> = ({
   block,
   sectionClassName,
   sectionOverrides,
 }) => {
-  const youtubeEmbedBlock = block as YoutubeEmbedType;
-
   return (
     <SectionWrapper
       block={block}
@@ -112,18 +111,16 @@ export const RenderYoutubeEmbed: SectionRenderer = ({
       sectionOverrides={sectionOverrides}
       errorFallbackMessage="Failed to load youtube link. Reload the page to try again."
     >
-      <YoutubeEmbed link={youtubeEmbedBlock.link} />
+      <YoutubeEmbed link={block.link} />
     </SectionWrapper>
   );
 };
 
-export const RenderPhotoCarousel: SectionRenderer = ({
+export const RenderPhotoCarousel: SectionRenderer<PhotoCarouselBlock> = ({
   block,
   sectionClassName,
   sectionOverrides,
 }) => {
-  const photoCarouselBlock = block as PhotoCarouselBlock;
-
   return (
     <SectionWrapper
       block={block}
@@ -131,12 +128,16 @@ export const RenderPhotoCarousel: SectionRenderer = ({
       sectionOverrides={sectionOverrides}
       errorFallbackMessage="Failed to load photo carousel. Reload the page to try again."
     >
-      <PhotoCarousel images={photoCarouselBlock.images} />
+      <PhotoCarousel images={block.images} />
     </SectionWrapper>
   );
 };
 
-export const RenderFormBlock: SectionRenderer = ({ block, sectionClassName, sectionOverrides }) => {
+export const RenderFormBlock: SectionRenderer<FormBlockType> = ({
+  block,
+  sectionClassName,
+  sectionOverrides,
+}) => {
   return (
     <SectionWrapper
       block={block}
@@ -144,7 +145,7 @@ export const RenderFormBlock: SectionRenderer = ({ block, sectionClassName, sect
       sectionOverrides={sectionOverrides}
       errorFallbackMessage="Failed to load form block. Reload the page to try again."
     >
-      <ShowForm {...(block as FormBlockType)} />
+      <ShowForm {...block} />
     </SectionWrapper>
   );
 };
@@ -168,13 +169,11 @@ export const RenderBlogPostsOverview: SectionRenderer = ({
   );
 };
 
-export const RenderRichTextSection: SectionRenderer = ({
+export const RenderRichTextSection: SectionRenderer<LexicalRichTextSectionType> = ({
   block,
   sectionClassName,
   sectionOverrides,
 }) => {
-  const richTextBlock = block as { richTextSection: SerializedEditorState };
-
   return (
     <SectionWrapper
       block={block}
@@ -182,7 +181,7 @@ export const RenderRichTextSection: SectionRenderer = ({
       sectionOverrides={sectionOverrides}
       errorFallbackMessage="Failed to load blog posts overview. Reload the page to try again."
     >
-      <LexicalRichTextSection richTextSection={richTextBlock.richTextSection} />
+      <LexicalRichTextSection richTextSection={block.richTextSection} />
     </SectionWrapper>
   );
 };
