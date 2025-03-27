@@ -29,7 +29,7 @@ export const PageSectionsConverter: React.FC<
 > = (sectionProperties) => {
   const { blocks } = sectionProperties;
 
-  const componentMap: Record<ContentBlockTypeNames, SectionRenderer | undefined> = {
+  const componentMap: Record<ContentBlockTypeNames, SectionRenderer<never> | undefined> = {
     richTextSection: RenderRichTextSection,
     blogPostsOverview: RenderBlogPostsOverview,
     formBlock: RenderFormBlock,
@@ -44,6 +44,7 @@ export const PageSectionsConverter: React.FC<
     const BlockComponent = componentMap[block.blockType];
     if (BlockComponent === undefined)
       return <div key={block.id}>Unknown Block Type: {block.blockType}</div>;
-    return <BlockComponent key={block.id} {...sectionProperties} block={block} />;
+    // we need to cast block to never because the block type is unknown
+    return <BlockComponent key={block.id} {...sectionProperties} block={block as never} />;
   });
 };
