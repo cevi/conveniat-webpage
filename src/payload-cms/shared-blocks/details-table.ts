@@ -9,6 +9,10 @@ import {
 export const detailsTable: Block = {
   slug: 'detailsTable',
   interfaceName: 'DetailsTable',
+
+  imageURL: '/admin-block-images/details-table-block.png',
+  imageAltText: 'Details Table block',
+
   fields: [
     {
       name: 'introduction',

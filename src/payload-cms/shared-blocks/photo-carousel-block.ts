@@ -3,6 +3,10 @@ import { photoCarouselMinSelectionValidation } from '@/payload-cms/collections/b
 
 export const photoCarouselBlock: Block = {
   slug: 'photoCarousel',
+
+  imageURL: '/admin-block-images/photo-carousel-block.png',
+  imageAltText: 'Photo carousel block',
+
   fields: [
     {
       name: 'images',
