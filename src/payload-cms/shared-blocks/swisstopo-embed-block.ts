@@ -3,6 +3,10 @@ import { Block } from 'payload';
 export const swisstopoMapEmbedBlock: Block = {
   slug: 'swisstopoEmbed',
   interfaceName: 'SwisstopoMapEmbedding',
+
+  imageURL: '/admin-block-images/swisstopo-map-embed-block.png',
+  imageAltText: 'Youtube Embed block',
+
   fields: [
     {
       name: 'initialMapPose',
