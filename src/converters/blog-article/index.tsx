@@ -24,8 +24,13 @@ export const BlogArticleConverter: React.FC<{
       <article className="mx-auto my-8 max-w-2xl px-8">
         <HeadlineH1>{article.content.blogH1}</HeadlineH1>
 
-        <div className="relative mt-10 h-56 w-full text-lg text-conveniat-green">
-          <Image src={source} alt={altText} fill={true} style={{ objectFit: 'cover' }} />
+        <div className="relative mt-10 aspect-[16/9] w-full text-lg text-conveniat-green">
+          <Image
+            src={source}
+            alt={altText}
+            className="block rounded-2xl object-cover"
+            fill={true}
+          />
         </div>
 
         <PageSectionsConverter

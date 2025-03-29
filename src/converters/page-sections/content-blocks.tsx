@@ -15,6 +15,7 @@ import { YoutubeEmbed, YoutubeEmbedType } from '@/components/content-blocks/yout
 import InlineSwisstopoMapEmbed, {
   InlineSwisstopoMapEmbedType,
 } from '@/components/map-viewer/inline-swisstopo-map-embed';
+import Image from 'next/image';
 
 export type ContentBlockTypeNames =
   | 'blogPostsOverview'
@@ -22,6 +23,7 @@ export type ContentBlockTypeNames =
   | 'formBlock'
   | 'photoCarousel'
   | 'youtubeEmbed'
+  | 'singlePicture'
   | 'heroSection'
   | 'swisstopoEmbed'
   | 'detailsTable';
@@ -78,6 +80,32 @@ export const SwisstopoInlineMapSection: SectionRenderer<InlineSwisstopoMapEmbedT
       errorFallbackMessage="Failed to load hero section. Reload the page to try again."
     >
       <InlineSwisstopoMapEmbed {...block} />
+    </SectionWrapper>
+  );
+};
+
+export const RenderSinglePicture: SectionRenderer<{
+  image: {
+    url: string;
+    alt: string;
+    imageCaption?: string;
+  };
+}> = ({ block, sectionClassName, sectionOverrides }) => {
+  return (
+    <SectionWrapper
+      block={block}
+      sectionClassName={sectionClassName}
+      sectionOverrides={sectionOverrides}
+      errorFallbackMessage="Failed to load hero section. Reload the page to try again."
+    >
+      <div className="relative mt-10 aspect-[16/9] w-[calc(100%+32px)] text-lg text-conveniat-green max-md:mx-[-16px]">
+        <Image
+          src={block.image.url}
+          alt={block.image.alt}
+          className="block rounded-2xl object-cover"
+          fill={true}
+        />
+      </div>
     </SectionWrapper>
   );
 };

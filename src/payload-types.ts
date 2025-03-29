@@ -257,6 +257,12 @@ export interface Blog {
           blockName?: string | null;
           blockType: 'photoCarousel';
         }
+      | {
+          image: string | Image;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'singlePicture';
+        }
       | YoutubeEmbedding
       | SwisstopoMapEmbedding
       | DetailsTable
@@ -663,6 +669,12 @@ export interface GenericPage {
           blockName?: string | null;
           blockType: 'photoCarousel';
         }
+      | {
+          image: string | Image;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'singlePicture';
+        }
       | YoutubeEmbedding
       | SwisstopoMapEmbedding
       | DetailsTable
@@ -738,10 +750,10 @@ export interface Timeline {
             blockType: 'richTextSection';
           }
         | {
-            images: (string | Image)[];
+            image: string | Image;
             id?: string | null;
             blockName?: string | null;
-            blockType: 'photoCarousel';
+            blockType: 'singlePicture';
           }
       )[]
     | null;
@@ -973,6 +985,13 @@ export interface BlogSelect<T extends boolean = true> {
                     id?: T;
                     blockName?: T;
                   };
+              singlePicture?:
+                | T
+                | {
+                    image?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
               youtubeEmbed?: T | YoutubeEmbeddingSelect<T>;
               swisstopoEmbed?: T | SwisstopoMapEmbeddingSelect<T>;
               detailsTable?: T | DetailsTableSelect<T>;
@@ -1101,6 +1120,13 @@ export interface GenericPageSelect<T extends boolean = true> {
                     id?: T;
                     blockName?: T;
                   };
+              singlePicture?:
+                | T
+                | {
+                    image?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
               youtubeEmbed?: T | YoutubeEmbeddingSelect<T>;
               swisstopoEmbed?: T | SwisstopoMapEmbeddingSelect<T>;
               detailsTable?: T | DetailsTableSelect<T>;
@@ -1139,10 +1165,10 @@ export interface TimelineSelect<T extends boolean = true> {
               id?: T;
               blockName?: T;
             };
-        photoCarousel?:
+        singlePicture?:
           | T
           | {
-              images?: T;
+              image?: T;
               id?: T;
               blockName?: T;
             };
