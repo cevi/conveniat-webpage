@@ -13,7 +13,7 @@ const Layout: React.FC<LayoutProperties> = async ({ children }) => {
       <ErrorBoundary
         fallback={<ErrorPage error={new Error('main content failed to render at root layout')} />}
       >
-        <main className="mt-[112px] grow">{children}</main>
+        <main className="mt-[96px] grow">{children}</main>
       </ErrorBoundary>
 
       <FooterComponent />
