@@ -10,7 +10,6 @@ updates:
     versioning-strategy: 'increase' # This will aggregate updates
     pull-request-branch-name:
       separator: '-'
-      prefix: 'frontend-deps-update'
     allow:
       - dependency-type: 'direct' # This only updates direct dependencies
     commit-message:
