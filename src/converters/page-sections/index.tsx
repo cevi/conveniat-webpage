@@ -40,11 +40,15 @@ export const PageSectionsConverter: React.FC<
     detailsTable: DetailsTable,
   };
 
-  return blocks.map((block) => {
-    const BlockComponent = componentMap[block.blockType];
-    if (BlockComponent === undefined)
-      return <div key={block.id}>Unknown Block Type: {block.blockType}</div>;
-    // we need to cast block to never because the block type is unknown
-    return <BlockComponent key={block.id} {...sectionProperties} block={block as never} />;
-  });
+  return (
+    <div>
+      {blocks.map((block) => {
+        const BlockComponent = componentMap[block.blockType];
+        if (BlockComponent === undefined)
+          return <div key={block.id}>Unknown Block Type: {block.blockType}</div>;
+        // we need to cast block to never because the block type is unknown
+        return <BlockComponent key={block.id} {...sectionProperties} block={block as never} />;
+      })}
+    </div>
+  );
 };

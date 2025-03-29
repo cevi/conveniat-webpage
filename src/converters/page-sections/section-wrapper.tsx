@@ -23,7 +23,10 @@ const SectionWrapper: React.FC<{
 }> = ({ block, sectionClassName, sectionOverrides, children, errorFallbackMessage }) => {
   const blockTypeOverrideClassName = sectionOverrides?.[block.blockType];
   return (
-    <section key={block.id} className={cn('mt-16', sectionClassName, blockTypeOverrideClassName)}>
+    <section
+      key={block.id}
+      className={cn('mt-8 first:mt-0', sectionClassName, blockTypeOverrideClassName)}
+    >
       <ErrorBoundary fallback={<ErrorFallback error={new Error(errorFallbackMessage)} />}>
         {children}
       </ErrorBoundary>
