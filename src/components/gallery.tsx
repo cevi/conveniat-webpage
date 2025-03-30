@@ -11,14 +11,14 @@ import Image from 'next/image';
 import { ErrorBoundary } from 'react-error-boundary';
 
 export type PhotoCarouselBlock = {
-  url: string;
-  alt: string;
-  imageCaption?: string;
-}[];
+  images: {
+    url: string;
+    alt: string;
+    imageCaption?: string;
+  }[];
+};
 
-export const PhotoCarousel: React.FC<{
-  images: PhotoCarouselBlock;
-}> = ({ images }) => {
+export const PhotoCarousel: React.FC<PhotoCarouselBlock> = ({ images }) => {
   const length = images.length;
 
   if (length === 0) {
@@ -37,7 +37,7 @@ export const PhotoCarousel: React.FC<{
 
   return (
     <ErrorBoundary fallback={<></>}>
-      <div className="mb-16 w-full select-none max-lg:overflow-hidden">
+      <div className="mb-8 w-full select-none max-lg:overflow-hidden">
         <Carousel
           opts={{ align: 'center', loop: true }}
           className="w-full max-lg:w-[200%] max-lg:translate-x-[-25%] max-lg:transform"

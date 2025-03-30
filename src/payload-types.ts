@@ -264,6 +264,12 @@ export interface Blog {
           blockName?: string | null;
           blockType: 'photoCarousel';
         }
+      | {
+          image: string | Image;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'singlePicture';
+        }
       | YoutubeEmbedding
       | SwisstopoMapEmbedding
       | {
@@ -273,6 +279,7 @@ export interface Blog {
           blockName?: string | null;
           blockType: 'fileDownload';
         }
+      | DetailsTable
     )[];
     /**
      * These keywords will be used for user search.
@@ -568,6 +575,51 @@ export interface Document {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "DetailsTable".
+ */
+export interface DetailsTable {
+  introduction: {
+    root: {
+      type: string;
+      children: {
+        type: string;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  detailsTableBlocks?:
+    | {
+        label: string;
+        value: {
+          root: {
+            type: string;
+            children: {
+              type: string;
+              version: number;
+              [k: string]: unknown;
+            }[];
+            direction: ('ltr' | 'rtl') | null;
+            format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+            indent: number;
+            version: number;
+          };
+          [k: string]: unknown;
+        };
+        id?: string | null;
+      }[]
+    | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'detailsTable';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "generic-page".
  */
 export interface GenericPage {
@@ -648,6 +700,12 @@ export interface GenericPage {
           blockName?: string | null;
           blockType: 'photoCarousel';
         }
+      | {
+          image: string | Image;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'singlePicture';
+        }
       | YoutubeEmbedding
       | SwisstopoMapEmbedding
       | {
@@ -657,6 +715,7 @@ export interface GenericPage {
           blockName?: string | null;
           blockType: 'fileDownload';
         }
+      | DetailsTable
     )[];
   };
   seo: {
@@ -736,10 +795,10 @@ export interface Timeline {
             blockType: 'richTextSection';
           }
         | {
-            images: (string | Image)[];
+            image: string | Image;
             id?: string | null;
             blockName?: string | null;
-            blockType: 'photoCarousel';
+            blockType: 'singlePicture';
           }
       )[]
     | null;
@@ -960,6 +1019,13 @@ export interface BlogSelect<T extends boolean = true> {
                     id?: T;
                     blockName?: T;
                   };
+              singlePicture?:
+                | T
+                | {
+                    image?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
               youtubeEmbed?: T | YoutubeEmbeddingSelect<T>;
               swisstopoEmbed?: T | SwisstopoMapEmbeddingSelect<T>;
               fileDownload?:
@@ -970,6 +1036,7 @@ export interface BlogSelect<T extends boolean = true> {
                     id?: T;
                     blockName?: T;
                   };
+              detailsTable?: T | DetailsTableSelect<T>;
             };
         blogSearchKeywords?: T;
       };
@@ -1030,6 +1097,22 @@ export interface SwisstopoMapEmbeddingSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "DetailsTable_select".
+ */
+export interface DetailsTableSelect<T extends boolean = true> {
+  introduction?: T;
+  detailsTableBlocks?:
+    | T
+    | {
+        label?: T;
+        value?: T;
+        id?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "generic-page_select".
  */
 export interface GenericPageSelect<T extends boolean = true> {
@@ -1079,6 +1162,13 @@ export interface GenericPageSelect<T extends boolean = true> {
                     id?: T;
                     blockName?: T;
                   };
+              singlePicture?:
+                | T
+                | {
+                    image?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
               youtubeEmbed?: T | YoutubeEmbeddingSelect<T>;
               swisstopoEmbed?: T | SwisstopoMapEmbeddingSelect<T>;
               fileDownload?:
@@ -1089,6 +1179,7 @@ export interface GenericPageSelect<T extends boolean = true> {
                     id?: T;
                     blockName?: T;
                   };
+              detailsTable?: T | DetailsTableSelect<T>;
             };
       };
   seo?:
@@ -1124,10 +1215,10 @@ export interface TimelineSelect<T extends boolean = true> {
               id?: T;
               blockName?: T;
             };
-        photoCarousel?:
+        singlePicture?:
           | T
           | {
-              images?: T;
+              image?: T;
               id?: T;
               blockName?: T;
             };

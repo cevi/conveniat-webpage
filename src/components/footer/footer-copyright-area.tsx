@@ -5,6 +5,8 @@ import { getPayload } from 'payload';
 import config from '@payload-config';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import Link from 'next/link';
+import { renderInAppDesign } from '@/utils/render-in-app-design';
+import { cn } from '@/utils/tailwindcss-override';
 
 type Arguments = {
   children: React.ReactNode;
@@ -16,6 +18,8 @@ const FooterMinimalMenu: React.FC = async () => {
 
   const { minimalFooterMenu } = await payload.findGlobal({ slug: 'footer', locale });
   if (minimalFooterMenu === undefined || minimalFooterMenu === null) return <></>;
+
+  if (minimalFooterMenu.length === 0) return <></>;
 
   return (
     <div className="mb-6 flex justify-center gap-x-4 text-xs">
@@ -43,11 +47,24 @@ export const FooterCopyrightArea: React.FC = async () => {
   const copyright = `© ${year} · conveniat27`;
 
   const build = await getBuildInfo();
+  const isInAppDesign = await renderInAppDesign();
 
   return (
-    <div className="flex w-full flex-col items-center justify-center bg-green-600 text-green-200">
+    <div
+      className={cn(
+        'flex',
+        'w-full',
+        'flex-col',
+        'items-center',
+        'justify-center',
+        'bg-green-600',
+        'text-green-200',
+        'pb-6',
+        { 'pb-16': isInAppDesign },
+      )}
+    >
       <FooterCopyrightText>{copyright}</FooterCopyrightText>
-      <div className="mb-[16px]">
+      <div className={cn({ 'mb-[16px]': isInAppDesign })}>
         <CeviSchweiz />
       </div>
       {
@@ -55,10 +72,14 @@ export const FooterCopyrightArea: React.FC = async () => {
         build !== undefined && (
           <div className="mb-[16px] flex flex-col text-center">
             <FooterMinimalMenu />
-            <FooterBuildInfoText>Version {build.version} </FooterBuildInfoText>
-            <FooterBuildInfoText>
-              Build {build.git.hash} vom {build.timestamp}
-            </FooterBuildInfoText>
+            {!isInAppDesign && (
+              <>
+                <FooterBuildInfoText>Version {build.version} </FooterBuildInfoText>
+                <FooterBuildInfoText>
+                  Build {build.git.hash} vom {build.timestamp}
+                </FooterBuildInfoText>
+              </>
+            )}
           </div>
         )
       }

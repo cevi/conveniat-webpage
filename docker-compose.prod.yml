@@ -4,6 +4,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_APP_HOST_URL=https://conveniat27.ch
 
     deploy:
       labels:

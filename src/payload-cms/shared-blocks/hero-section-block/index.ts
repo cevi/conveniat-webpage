@@ -4,5 +4,9 @@ import { pageTeaserField } from '@/payload-cms/shared-blocks/hero-section-block/
 
 export const heroSection: Block = {
   slug: 'heroSection',
+
+  imageURL: '/admin-block-images/hero-section-block.png',
+  imageAltText: 'Hero section block',
+
   fields: [pageTeaserField, callToActionGroupField],
 };

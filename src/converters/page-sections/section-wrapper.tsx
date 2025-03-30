@@ -1,8 +1,6 @@
 import React from 'react';
 import { cn } from '@/utils/tailwindcss-override';
 import { ErrorBoundary } from 'react-error-boundary';
-import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
-import { PhotoCarouselBlock } from '@/components/gallery';
 import { ContentBlockTypeNames } from '@/converters/page-sections/content-blocks';
 import { InlineSwisstopoMapEmbedType } from '@/components/map-viewer/inline-swisstopo-map-embed';
 import { HeroSectionType } from '@/components/content-blocks/hero-section';
@@ -20,6 +18,8 @@ export type ContentBlock = {
   HeroSectionType &
   FormBlockType &
   FileDownloadType;
+
+export type ContentBlock<T = object> = { blockType: ContentBlockTypeNames; id: string } & T;
 
 const ErrorFallback: React.FC<{ error: Error }> = ({ error }) => {
   return (
@@ -41,7 +41,7 @@ const SectionWrapper: React.FC<{
   return (
     <section
       key={block.id}
-      className={cn(cn('mt-16', sectionClassName), blockTypeOverrideClassName)}
+      className={cn('mt-8 first:mt-0', sectionClassName, blockTypeOverrideClassName)}
     >
       <ErrorBoundary fallback={<ErrorFallback error={new Error(errorFallbackMessage)} />}>
         {children}

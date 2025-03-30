@@ -15,6 +15,24 @@ import { i18nExcludedRoutes } from '@/i18n.config';
 export const middleware = (request: NextRequest): NextResponse => {
   const response = NextResponse.next();
 
+  // check if app design feature is enabled, render app design if enabled
+  if (process.env['FEATURE_ENABLE_APP_FEATURE'] === 'true') {
+    if (!request.cookies.has('app-design')) {
+      response.cookies.set('app-design', 'true');
+    }
+  } else {
+    if (request.cookies.has('app-design')) {
+      response.cookies.delete('app-design');
+    }
+    if (
+      [...i18nConfig.locales, ''].some((locale) =>
+        request.nextUrl.pathname.startsWith(`/${locale}/app`),
+      )
+    ) {
+      return NextResponse.rewrite(new URL('/', request.url));
+    }
+  }
+
   // in order to render the preview banner for any frontend page, we
   // inject the `preview` cookie with the value `true` when the user
   // navigates to the admin panel. This way, we don't show the preview

@@ -6,6 +6,8 @@ import { youtubeEmbedBlock } from '@/payload-cms/shared-blocks/youtube-embed-blo
 import { heroSection } from '@/payload-cms/shared-blocks/hero-section-block';
 import { swisstopoMapEmbedBlock } from '@/payload-cms/shared-blocks/swisstopo-embed-block';
 import { fileDownloadBlock } from '@/payload-cms/shared-blocks/file-download-block';
+import { detailsTable } from '@/payload-cms/shared-blocks/details-table';
+import { singlePictureBlock } from '@/payload-cms/shared-blocks/single-picture-block';
 
 export const mainContentField: Field = {
   name: 'mainContent',
@@ -28,8 +30,10 @@ export const mainContentField: Field = {
     heroSection,
     formBlock,
     photoCarouselBlock,
+    singlePictureBlock,
     youtubeEmbedBlock,
     swisstopoMapEmbedBlock,
     fileDownloadBlock,
+    detailsTable,
   ],
 };
