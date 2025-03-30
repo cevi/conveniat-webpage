@@ -3,8 +3,6 @@ import Link from 'next/link';
 import { Paperclip } from 'lucide-react';
 
 export type FileDownloadType = {
-  blockName?: string;
-  blockType?: 'fileDownload';
   file: {
     url: string;
     filename: string;
@@ -15,13 +13,13 @@ export type FileDownloadType = {
 
 const formatBytes = (bytes: number, decimals = 2): string => {
   // if < 1kb
-  if (bytes < 1024) return bytes + ' Bytes';
+  if (bytes < 1024) return `${bytes} Bytes`;
   // if < 1mb
-  if (bytes < 1014 ** 2) return (bytes / 1024).toFixed(decimals) + ' KB';
+  if (bytes < 1024 ** 2) return `${(bytes / 1024).toFixed(decimals)} KB`;
   // if < 1gb
-  if (bytes < 1014 ** 3) return (bytes / 1024 ** 2).toFixed(decimals) + ' MB';
+  if (bytes < 1024 ** 3) return `${(bytes / 1024 ** 2).toFixed(decimals)} MB`;
 
-  return (bytes / 1024 ** 3).toFixed(decimals) + ' GB';
+  return `${(bytes / 1024 ** 3).toFixed(decimals)} GB`;
 };
 
 export const FileDownload: React.FC<FileDownloadType> = async ({ ...block }) => {

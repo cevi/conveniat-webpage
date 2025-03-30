@@ -216,7 +216,7 @@ export const RenderRichTextSection: SectionRenderer<LexicalRichTextSectionType> 
   );
 };
 
-export const RenderFileDownload: SectionRenderer = ({
+export const RenderFileDownload: SectionRenderer<FileDownloadType> = ({
   block,
   sectionClassName,
   sectionOverrides,
@@ -228,7 +228,7 @@ export const RenderFileDownload: SectionRenderer = ({
       sectionOverrides={sectionOverrides}
       errorFallbackMessage="Failed to load blog posts overview. Reload the page to try again."
     >
-      <FileDownload {...(block as FileDownloadType)} />
+      <FileDownload {...block} />
     </SectionWrapper>
   );
 };
