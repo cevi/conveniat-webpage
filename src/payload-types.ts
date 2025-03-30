@@ -265,6 +265,13 @@ export interface Blog {
         }
       | YoutubeEmbedding
       | SwisstopoMapEmbedding
+      | {
+          file: string | Document;
+          openInNewTab?: boolean | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'fileDownload';
+        }
       | DetailsTable
     )[];
     /**
@@ -544,6 +551,24 @@ export interface SwisstopoMapEmbedding {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "documents".
+ */
+export interface Document {
+  id: string;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "DetailsTable".
  */
 export interface DetailsTable {
@@ -677,6 +702,13 @@ export interface GenericPage {
         }
       | YoutubeEmbedding
       | SwisstopoMapEmbedding
+      | {
+          file: string | Document;
+          openInNewTab?: boolean | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'fileDownload';
+        }
       | DetailsTable
     )[];
   };
@@ -760,24 +792,6 @@ export interface Timeline {
   updatedAt: string;
   createdAt: string;
   _status?: ('draft' | 'published') | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "documents".
- */
-export interface Document {
-  id: string;
-  updatedAt: string;
-  createdAt: string;
-  url?: string | null;
-  thumbnailURL?: string | null;
-  filename?: string | null;
-  mimeType?: string | null;
-  filesize?: number | null;
-  width?: number | null;
-  height?: number | null;
-  focalX?: number | null;
-  focalY?: number | null;
 }
 /**
  * Represents a Hitobito user. These information get automatically synced whenever the user logs in.
@@ -994,6 +1008,14 @@ export interface BlogSelect<T extends boolean = true> {
                   };
               youtubeEmbed?: T | YoutubeEmbeddingSelect<T>;
               swisstopoEmbed?: T | SwisstopoMapEmbeddingSelect<T>;
+              fileDownload?:
+                | T
+                | {
+                    file?: T;
+                    openInNewTab?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
               detailsTable?: T | DetailsTableSelect<T>;
             };
         blogSearchKeywords?: T;
@@ -1129,6 +1151,14 @@ export interface GenericPageSelect<T extends boolean = true> {
                   };
               youtubeEmbed?: T | YoutubeEmbeddingSelect<T>;
               swisstopoEmbed?: T | SwisstopoMapEmbeddingSelect<T>;
+              fileDownload?:
+                | T
+                | {
+                    file?: T;
+                    openInNewTab?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
               detailsTable?: T | DetailsTableSelect<T>;
             };
       };
