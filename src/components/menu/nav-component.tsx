@@ -7,10 +7,15 @@ import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import Link from 'next/link';
 import { LanguageSwitcher } from '@/components/menu/language-switcher';
 import { SearchComponent } from '@/components/menu/search';
+import { renderInAppDesign } from '@/utils/render-in-app-design';
+import { getBuildInfo } from '@/utils/get-build-info';
+import { FooterBuildInfoText } from '../footer/footer-copyright-area';
 
 export const NavComponent: React.FC = async () => {
   const payload = await getPayload({ config });
   const locale = await getLocaleFromCookies();
+  const isInAppDesign = await renderInAppDesign();
+  const build = await getBuildInfo();
 
   const { mainMenu } = await payload.findGlobal({ slug: 'header', locale });
   if (mainMenu === undefined || mainMenu === null) return;
@@ -45,6 +50,17 @@ export const NavComponent: React.FC = async () => {
 
           <LanguageSwitcher locale={locale} />
           <SearchComponent locale={locale} />
+
+          {isInAppDesign && build && (
+            <>
+              <div className="my-2 mb-[16px] flex flex-col text-center">
+                <FooterBuildInfoText>Version {build.version} </FooterBuildInfoText>
+                <FooterBuildInfoText>
+                  Build {build.git.hash} vom {build.timestamp}
+                </FooterBuildInfoText>
+              </div>
+            </>
+          )}
         </div>
       </PopoverPanel>
     </Popover>
