@@ -15,6 +15,7 @@ const withSerwist = withSerwistInit({
   additionalPrecacheEntries: [{ url: '/~offline', revision }],
   register: true,
   reloadOnOnline: true,
+  disable: process.env.NODE_ENV !== 'production',
 });
 
 /** @type {import('next').NextConfig} */
@@ -40,4 +41,4 @@ const nextConfig = {
   },
 };
 
-export default withSerwist(withPayload(nextConfig));
+export default withSerwist(withPayload(nextConfig, { devBundleServerPackages: false }));

@@ -84,6 +84,7 @@ export type SupportedTimezones =
   | 'Asia/Singapore'
   | 'Asia/Tokyo'
   | 'Asia/Seoul'
+  | 'Australia/Brisbane'
   | 'Australia/Sydney'
   | 'Pacific/Guam'
   | 'Pacific/Noumea'
@@ -256,8 +257,22 @@ export interface Blog {
           blockName?: string | null;
           blockType: 'photoCarousel';
         }
+      | {
+          image: string | Image;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'singlePicture';
+        }
       | YoutubeEmbedding
       | SwisstopoMapEmbedding
+      | {
+          file: string | Document;
+          openInNewTab?: boolean | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'fileDownload';
+        }
+      | DetailsTable
     )[];
     /**
      * These keywords will be used for user search.
@@ -398,6 +413,7 @@ export interface Form {
             label?: string | null;
             width?: number | null;
             defaultValue?: string | null;
+            placeholder?: string | null;
             options?:
               | {
                   label: string;
@@ -535,6 +551,69 @@ export interface SwisstopoMapEmbedding {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "documents".
+ */
+export interface Document {
+  id: string;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "DetailsTable".
+ */
+export interface DetailsTable {
+  introduction: {
+    root: {
+      type: string;
+      children: {
+        type: string;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  detailsTableBlocks?:
+    | {
+        label: string;
+        value: {
+          root: {
+            type: string;
+            children: {
+              type: string;
+              version: number;
+              [k: string]: unknown;
+            }[];
+            direction: ('ltr' | 'rtl') | null;
+            format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+            indent: number;
+            version: number;
+          };
+          [k: string]: unknown;
+        };
+        id?: string | null;
+      }[]
+    | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'detailsTable';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "generic-page".
  */
 export interface GenericPage {
@@ -615,8 +694,22 @@ export interface GenericPage {
           blockName?: string | null;
           blockType: 'photoCarousel';
         }
+      | {
+          image: string | Image;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'singlePicture';
+        }
       | YoutubeEmbedding
       | SwisstopoMapEmbedding
+      | {
+          file: string | Document;
+          openInNewTab?: boolean | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'fileDownload';
+        }
+      | DetailsTable
     )[];
   };
   seo: {
@@ -689,34 +782,16 @@ export interface Timeline {
             blockType: 'richTextSection';
           }
         | {
-            images: (string | Image)[];
+            image: string | Image;
             id?: string | null;
             blockName?: string | null;
-            blockType: 'photoCarousel';
+            blockType: 'singlePicture';
           }
       )[]
     | null;
   updatedAt: string;
   createdAt: string;
   _status?: ('draft' | 'published') | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "documents".
- */
-export interface Document {
-  id: string;
-  updatedAt: string;
-  createdAt: string;
-  url?: string | null;
-  thumbnailURL?: string | null;
-  filename?: string | null;
-  mimeType?: string | null;
-  filesize?: number | null;
-  width?: number | null;
-  height?: number | null;
-  focalX?: number | null;
-  focalY?: number | null;
 }
 /**
  * Represents a Hitobito user. These information get automatically synced whenever the user logs in.
@@ -924,8 +999,24 @@ export interface BlogSelect<T extends boolean = true> {
                     id?: T;
                     blockName?: T;
                   };
+              singlePicture?:
+                | T
+                | {
+                    image?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
               youtubeEmbed?: T | YoutubeEmbeddingSelect<T>;
               swisstopoEmbed?: T | SwisstopoMapEmbeddingSelect<T>;
+              fileDownload?:
+                | T
+                | {
+                    file?: T;
+                    openInNewTab?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              detailsTable?: T | DetailsTableSelect<T>;
             };
         blogSearchKeywords?: T;
       };
@@ -986,6 +1077,22 @@ export interface SwisstopoMapEmbeddingSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "DetailsTable_select".
+ */
+export interface DetailsTableSelect<T extends boolean = true> {
+  introduction?: T;
+  detailsTableBlocks?:
+    | T
+    | {
+        label?: T;
+        value?: T;
+        id?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "generic-page_select".
  */
 export interface GenericPageSelect<T extends boolean = true> {
@@ -1035,8 +1142,24 @@ export interface GenericPageSelect<T extends boolean = true> {
                     id?: T;
                     blockName?: T;
                   };
+              singlePicture?:
+                | T
+                | {
+                    image?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
               youtubeEmbed?: T | YoutubeEmbeddingSelect<T>;
               swisstopoEmbed?: T | SwisstopoMapEmbeddingSelect<T>;
+              fileDownload?:
+                | T
+                | {
+                    file?: T;
+                    openInNewTab?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              detailsTable?: T | DetailsTableSelect<T>;
             };
       };
   seo?:
@@ -1072,10 +1195,10 @@ export interface TimelineSelect<T extends boolean = true> {
               id?: T;
               blockName?: T;
             };
-        photoCarousel?:
+        singlePicture?:
           | T
           | {
-              images?: T;
+              image?: T;
               id?: T;
               blockName?: T;
             };
@@ -1198,6 +1321,7 @@ export interface FormsSelect<T extends boolean = true> {
               label?: T;
               width?: T;
               defaultValue?: T;
+              placeholder?: T;
               options?:
                 | T
                 | {

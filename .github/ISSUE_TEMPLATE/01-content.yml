@@ -1,0 +1,14 @@
+name: Content
+description: There is content missing
+title: "[Bug]: "
+labels: ["content"]
+body:
+  - type: textarea
+    id: content-report
+    attributes:
+      label: Content Missing
+      description: Where is the content missing? What should be shown?
+      placeholder:
+      value:
+    validations:
+      required: true

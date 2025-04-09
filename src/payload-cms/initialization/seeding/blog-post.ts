@@ -17,27 +17,6 @@ export const basicBlog = (bannerImage: string, imageIds: string[]): Blog => {
       bannerImage: bannerImage,
       mainContent: [
         {
-          blockType: 'richTextSection',
-          blockName: 'text',
-          richTextSection: {
-            root: {
-              children: [
-                {
-                  id: '6783df844eb8bebdce04d1c9',
-                  text: faker.lorem.paragraph(),
-                  type: 'text',
-                  version: 1,
-                },
-              ],
-              direction: 'ltr' as const,
-              format: 'start' as const,
-              indent: 0,
-              type: 'paragraph',
-              version: 1,
-            },
-          },
-        },
-        {
           blockType: 'richTextSection' as const,
           richTextSection: generateRichTextSection(),
         },

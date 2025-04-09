@@ -38,7 +38,7 @@ const FooterCopyrightText: React.FC<Arguments> = ({ children }) => {
   );
 };
 
-const FooterBuildInfoText: React.FC<Arguments> = ({ children }: Arguments) => {
+export const FooterBuildInfoText: React.FC<Arguments> = ({ children }: Arguments) => {
   return <span className="text-[8px] font-light leading-[10px]">{children}</span>;
 };
 

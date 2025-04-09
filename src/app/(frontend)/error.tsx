@@ -59,7 +59,7 @@ const ErrorPage: React.FC<{
 
   return (
     <>
-      <main className="mt-[112px] grow">
+      <main className="mt-[96px] grow">
         <article className="mx-auto my-8 max-w-2xl px-8">
           <HeadlineH1>{error[locale as Locale]}</HeadlineH1>
           <TeaserText>{errorDescription[locale as Locale]}</TeaserText>

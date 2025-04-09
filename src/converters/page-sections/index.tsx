@@ -3,12 +3,15 @@ import { LocalizedPageType } from '@/types';
 import { ContentBlock } from '@/converters/page-sections/section-wrapper';
 import {
   ContentBlockTypeNames,
+  DetailsTable,
   RenderBlogPostsOverview,
   RenderFormBlock,
   RenderHeroSection,
   RenderPhotoCarousel,
   RenderRichTextSection,
+  RenderSinglePicture,
   RenderYoutubeEmbed,
+  RenderFileDownload,
   SectionRenderer,
   SwisstopoInlineMapSection,
 } from '@/converters/page-sections/content-blocks';
@@ -28,20 +31,28 @@ export const PageSectionsConverter: React.FC<
 > = (sectionProperties) => {
   const { blocks } = sectionProperties;
 
-  const componentMap: Record<ContentBlockTypeNames, SectionRenderer | undefined> = {
+  const componentMap: Record<ContentBlockTypeNames, SectionRenderer<never> | undefined> = {
     richTextSection: RenderRichTextSection,
     blogPostsOverview: RenderBlogPostsOverview,
     formBlock: RenderFormBlock,
     photoCarousel: RenderPhotoCarousel,
+    singlePicture: RenderSinglePicture,
     youtubeEmbed: RenderYoutubeEmbed,
     heroSection: RenderHeroSection,
     swisstopoEmbed: SwisstopoInlineMapSection,
+    fileDownload: RenderFileDownload,
+    detailsTable: DetailsTable,
   };
 
-  return blocks.map((block) => {
-    const BlockComponent = componentMap[block.blockType];
-    if (BlockComponent === undefined)
-      return <div key={block.id}>Unknown Block Type: {block.blockType}</div>;
-    return <BlockComponent key={block.id} {...sectionProperties} block={block} />;
-  });
+  return (
+    <div>
+      {blocks.map((block) => {
+        const BlockComponent = componentMap[block.blockType];
+        if (BlockComponent === undefined)
+          return <div key={block.id}>Unknown Block Type: {block.blockType}</div>;
+        // we need to cast block to never because the block type is unknown
+        return <BlockComponent key={block.id} {...sectionProperties} block={block as never} />;
+      })}
+    </div>
+  );
 };

@@ -5,13 +5,18 @@ import { PhotoCarousel, PhotoCarouselBlock } from '@/components/gallery';
 import { LocalizedPageType } from '@/types';
 import { ShowForm } from '@/components/content-blocks/show-form';
 import { FormBlockType } from '@/components/form';
-import { LexicalRichTextSection } from '@/components/content-blocks/lexical-rich-text-section';
+import {
+  LexicalRichTextSection,
+  LexicalRichTextSectionType,
+} from '@/components/content-blocks/lexical-rich-text-section';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import { ListBlogPosts } from '@/components/content-blocks/list-blog-articles';
 import { YoutubeEmbed, YoutubeEmbedType } from '@/components/content-blocks/youtube-embed';
 import InlineSwisstopoMapEmbed, {
   InlineSwisstopoMapEmbedType,
 } from '@/components/map-viewer/inline-swisstopo-map-embed';
+import { FileDownload, FileDownloadType } from '@/components/content-blocks/file-download';
+import Image from 'next/image';
 
 export type ContentBlockTypeNames =
   | 'blogPostsOverview'
@@ -19,18 +24,95 @@ export type ContentBlockTypeNames =
   | 'formBlock'
   | 'photoCarousel'
   | 'youtubeEmbed'
+  | 'singlePicture'
   | 'heroSection'
-  | 'swisstopoEmbed';
+  | 'swisstopoEmbed'
+  | 'fileDownload'
+  | 'detailsTable';
 
-export type SectionRenderer = React.FC<
+export type SectionRenderer<T = object> = React.FC<
   LocalizedPageType & {
-    block: ContentBlock;
+    block: ContentBlock<T>;
     sectionClassName?: string;
     sectionOverrides?: { [key in ContentBlockTypeNames]?: string };
   }
 >;
 
-export const SwisstopoInlineMapSection: SectionRenderer = ({
+export const DetailsTable: SectionRenderer<{
+  introduction: SerializedEditorState;
+  detailsTableBlocks: { label: string; value: SerializedEditorState }[];
+}> = ({ block, sectionClassName, sectionOverrides }) => {
+  return (
+    <SectionWrapper
+      block={block}
+      sectionClassName={sectionClassName}
+      sectionOverrides={sectionOverrides}
+      errorFallbackMessage="Failed to load details table. Reload the page to try again."
+    >
+      <LexicalRichTextSection richTextSection={block.introduction} />
+
+      <div className="mt-4">
+        <hr className="border-b-2 border-gray-100" />
+        {block.detailsTableBlocks.map((detailsTableEntry, index) => (
+          <React.Fragment key={index}>
+            <div className="grid gap-x-2 hyphens-auto p-2 md:grid-cols-[1fr_2fr]">
+              <div className="my-2 font-semibold text-conveniat-green">
+                {detailsTableEntry.label}
+              </div>
+              <LexicalRichTextSection richTextSection={detailsTableEntry.value} />
+            </div>
+            <hr className="grid-cols-2 border-b-2 border-gray-100" />
+          </React.Fragment>
+        ))}
+      </div>
+    </SectionWrapper>
+  );
+};
+
+export const SwisstopoInlineMapSection: SectionRenderer<InlineSwisstopoMapEmbedType> = ({
+  block,
+  sectionClassName,
+  sectionOverrides,
+}) => {
+  return (
+    <SectionWrapper
+      block={block}
+      sectionClassName={sectionClassName}
+      sectionOverrides={sectionOverrides}
+      errorFallbackMessage="Failed to load swisstopo inline map. Reload the page to try again."
+    >
+      <InlineSwisstopoMapEmbed {...block} />
+    </SectionWrapper>
+  );
+};
+
+export const RenderSinglePicture: SectionRenderer<{
+  image: {
+    url: string;
+    alt: string;
+    imageCaption?: string;
+  };
+}> = ({ block, sectionClassName, sectionOverrides }) => {
+  return (
+    <SectionWrapper
+      block={block}
+      sectionClassName={sectionClassName}
+      sectionOverrides={sectionOverrides}
+      errorFallbackMessage="Failed to load single picture. Reload the page to try again."
+    >
+      <div className="relative mt-10 aspect-[16/9] w-[calc(100%+32px)] text-lg text-conveniat-green max-md:mx-[-16px]">
+        <Image
+          src={block.image.url}
+          alt={block.image.alt}
+          className="block rounded-2xl object-cover"
+          fill={true}
+        />
+      </div>
+    </SectionWrapper>
+  );
+};
+
+export const RenderHeroSection: SectionRenderer<HeroSectionType> = ({
   block,
   sectionClassName,
   sectionOverrides,
@@ -42,35 +124,16 @@ export const SwisstopoInlineMapSection: SectionRenderer = ({
       sectionOverrides={sectionOverrides}
       errorFallbackMessage="Failed to load hero section. Reload the page to try again."
     >
-      <InlineSwisstopoMapEmbed {...(block as InlineSwisstopoMapEmbedType)} />
+      <HeroSection {...block} />
     </SectionWrapper>
   );
 };
 
-export const RenderHeroSection: SectionRenderer = ({
+export const RenderYoutubeEmbed: SectionRenderer<YoutubeEmbedType> = ({
   block,
   sectionClassName,
   sectionOverrides,
 }) => {
-  return (
-    <SectionWrapper
-      block={block}
-      sectionClassName={sectionClassName}
-      sectionOverrides={sectionOverrides}
-      errorFallbackMessage="Failed to load hero section. Reload the page to try again."
-    >
-      <HeroSection {...(block as HeroSectionType)} />
-    </SectionWrapper>
-  );
-};
-
-export const RenderYoutubeEmbed: SectionRenderer = ({
-  block,
-  sectionClassName,
-  sectionOverrides,
-}) => {
-  const youtubeEmbedBlock = block as YoutubeEmbedType;
-
   return (
     <SectionWrapper
       block={block}
@@ -78,18 +141,16 @@ export const RenderYoutubeEmbed: SectionRenderer = ({
       sectionOverrides={sectionOverrides}
       errorFallbackMessage="Failed to load youtube link. Reload the page to try again."
     >
-      <YoutubeEmbed link={youtubeEmbedBlock.link} />
+      <YoutubeEmbed link={block.link} />
     </SectionWrapper>
   );
 };
 
-export const RenderPhotoCarousel: SectionRenderer = ({
+export const RenderPhotoCarousel: SectionRenderer<PhotoCarouselBlock> = ({
   block,
   sectionClassName,
   sectionOverrides,
 }) => {
-  const photoCarouselBlock = block as PhotoCarouselBlock;
-
   return (
     <SectionWrapper
       block={block}
@@ -97,12 +158,16 @@ export const RenderPhotoCarousel: SectionRenderer = ({
       sectionOverrides={sectionOverrides}
       errorFallbackMessage="Failed to load photo carousel. Reload the page to try again."
     >
-      <PhotoCarousel images={photoCarouselBlock.images} />
+      <PhotoCarousel images={block.images} />
     </SectionWrapper>
   );
 };
 
-export const RenderFormBlock: SectionRenderer = ({ block, sectionClassName, sectionOverrides }) => {
+export const RenderFormBlock: SectionRenderer<FormBlockType> = ({
+  block,
+  sectionClassName,
+  sectionOverrides,
+}) => {
   return (
     <SectionWrapper
       block={block}
@@ -110,7 +175,7 @@ export const RenderFormBlock: SectionRenderer = ({ block, sectionClassName, sect
       sectionOverrides={sectionOverrides}
       errorFallbackMessage="Failed to load form block. Reload the page to try again."
     >
-      <ShowForm {...(block as FormBlockType)} />
+      <ShowForm {...block} />
     </SectionWrapper>
   );
 };
@@ -134,21 +199,36 @@ export const RenderBlogPostsOverview: SectionRenderer = ({
   );
 };
 
-export const RenderRichTextSection: SectionRenderer = ({
+export const RenderRichTextSection: SectionRenderer<LexicalRichTextSectionType> = ({
   block,
   sectionClassName,
   sectionOverrides,
 }) => {
-  const richTextBlock = block as { richTextSection: SerializedEditorState };
-
   return (
     <SectionWrapper
       block={block}
       sectionClassName={sectionClassName}
       sectionOverrides={sectionOverrides}
-      errorFallbackMessage="Failed to load blog posts overview. Reload the page to try again."
+      errorFallbackMessage="Failed to load rich text section. Reload the page to try again."
     >
-      <LexicalRichTextSection richTextSection={richTextBlock.richTextSection} />
+      <LexicalRichTextSection richTextSection={block.richTextSection} />
+    </SectionWrapper>
+  );
+};
+
+export const RenderFileDownload: SectionRenderer<FileDownloadType> = ({
+  block,
+  sectionClassName,
+  sectionOverrides,
+}) => {
+  return (
+    <SectionWrapper
+      block={block}
+      sectionClassName={sectionClassName}
+      sectionOverrides={sectionOverrides}
+      errorFallbackMessage="Failed to load file download. Reload the page to try again."
+    >
+      <FileDownload {...block} />
     </SectionWrapper>
   );
 };

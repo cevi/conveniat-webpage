@@ -8,7 +8,7 @@ import { useCurrentLocale } from 'next-i18n-router/client';
 const COOKIE_NAME = 'conveniat-cookie-banner';
 
 const shouldShowCookieBanner = (): boolean => {
-  return Cookies.get(COOKIE_NAME) !== 'true';
+  return (Cookies.get(COOKIE_NAME) ?? 'false') === 'false';
 };
 
 export const CookieBanner: React.FC = () => {
