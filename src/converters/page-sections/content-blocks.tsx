@@ -47,7 +47,7 @@ export const DetailsTable: SectionRenderer<{
       block={block}
       sectionClassName={sectionClassName}
       sectionOverrides={sectionOverrides}
-      errorFallbackMessage="Failed to load hero section. Reload the page to try again."
+      errorFallbackMessage="Failed to load details table. Reload the page to try again."
     >
       <LexicalRichTextSection richTextSection={block.introduction} />
 
@@ -79,7 +79,7 @@ export const SwisstopoInlineMapSection: SectionRenderer<InlineSwisstopoMapEmbedT
       block={block}
       sectionClassName={sectionClassName}
       sectionOverrides={sectionOverrides}
-      errorFallbackMessage="Failed to load hero section. Reload the page to try again."
+      errorFallbackMessage="Failed to load swisstopo inline map. Reload the page to try again."
     >
       <InlineSwisstopoMapEmbed {...block} />
     </SectionWrapper>
@@ -98,7 +98,7 @@ export const RenderSinglePicture: SectionRenderer<{
       block={block}
       sectionClassName={sectionClassName}
       sectionOverrides={sectionOverrides}
-      errorFallbackMessage="Failed to load hero section. Reload the page to try again."
+      errorFallbackMessage="Failed to load single picture. Reload the page to try again."
     >
       <div className="relative mt-10 aspect-[16/9] w-[calc(100%+32px)] text-lg text-conveniat-green max-md:mx-[-16px]">
         <Image
@@ -209,7 +209,7 @@ export const RenderRichTextSection: SectionRenderer<LexicalRichTextSectionType> 
       block={block}
       sectionClassName={sectionClassName}
       sectionOverrides={sectionOverrides}
-      errorFallbackMessage="Failed to load blog posts overview. Reload the page to try again."
+      errorFallbackMessage="Failed to load rich text section. Reload the page to try again."
     >
       <LexicalRichTextSection richTextSection={block.richTextSection} />
     </SectionWrapper>
@@ -226,7 +226,7 @@ export const RenderFileDownload: SectionRenderer<FileDownloadType> = ({
       block={block}
       sectionClassName={sectionClassName}
       sectionOverrides={sectionOverrides}
-      errorFallbackMessage="Failed to load blog posts overview. Reload the page to try again."
+      errorFallbackMessage="Failed to load file download. Reload the page to try again."
     >
       <FileDownload {...block} />
     </SectionWrapper>
