@@ -41,11 +41,13 @@ export const BlogPostPage: React.FC<LocalizedCollectionPage> = async ({
         { 'seo.urlSlug': { equals: slug } },
         // we only resolve published pages unless in preview mode
         renderInPreviewMode ? {} : { _localized_status: { equals: { published: true } } },
-        renderInPreviewMode ? {} : {
-          'content.releaseDate': {
-            less_than_equal: currentDate,
-          },
-        },
+        renderInPreviewMode
+          ? {}
+          : {
+              'content.releaseDate': {
+                less_than_equal: currentDate,
+              },
+            },
       ],
     },
   });
@@ -81,11 +83,13 @@ export const BlogPostPage: React.FC<LocalizedCollectionPage> = async ({
             { 'seo.urlSlug': { equals: slug } },
             // we only resolve published pages unless in preview mode
             renderInPreviewMode ? {} : { _localized_status: { equals: { published: true } } },
-            renderInPreviewMode ? {} : {
-              'content.releaseDate': {
-                less_than_equal: currentDate,
-              },
-            },
+            renderInPreviewMode
+              ? {}
+              : {
+                  'content.releaseDate': {
+                    less_than_equal: currentDate,
+                  },
+                },
           ],
         },
       }),
