@@ -1,6 +1,6 @@
 name: Content
 description: There is content missing
-title: "[Bug]: "
+title: "[Content]: "
 labels: ["content"]
 body:
   - type: textarea
