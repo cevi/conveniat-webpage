@@ -10,6 +10,7 @@ export const PermissionsCollection: CollectionConfig = {
   admin: {
     group: AdminPanelDashboardGroups.InternalCollections,
     defaultColumns: ['permissionName', 'permissions'],
+    useAsTitle: 'permissionName',
   },
   access: {
     read: () => true,
