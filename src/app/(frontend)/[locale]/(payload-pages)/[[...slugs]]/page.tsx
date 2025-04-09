@@ -132,7 +132,7 @@ const CMSPage: React.FC<{
       remainingSlugs.unshift(collection);
     }
 
-    const url = `/${locale}/${slugs?.join('/')}`;
+    const url = `/${locale}/${slugs?.join('/') ?? ''}`;
     const previewModeAllowed = await canAccessPreviewOfCurrentPage(searchParameters, url);
     const hasPreviewSearchParameter = searchParameters['preview'] === 'true';
 
