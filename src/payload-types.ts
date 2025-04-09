@@ -103,6 +103,7 @@ export interface Config {
     images: Image;
     documents: Document;
     users: User;
+    permissions: Permission;
     forms: Form;
     'form-submissions': FormSubmission;
     'search-collection': SearchCollection;
@@ -118,6 +119,7 @@ export interface Config {
     images: ImagesSelect<false> | ImagesSelect<true>;
     documents: DocumentsSelect<false> | DocumentsSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
+    permissions: PermissionsSelect<false> | PermissionsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     'search-collection': SearchCollectionSelect<false> | SearchCollectionSelect<true>;
@@ -198,6 +200,7 @@ export interface Blog {
     blogH1: string;
     bannerImage: string | Image;
     releaseDate: string;
+    permissions?: (string | null) | Permission;
     /**
      * This is the text that will be displayed as a teaser on the blog overview page.
      */
@@ -330,6 +333,26 @@ export interface Image {
   height?: number | null;
   focalX?: number | null;
   focalY?: number | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "permissions".
+ */
+export interface Permission {
+  id: string;
+  /**
+   * The name of the permission.
+   */
+  permissionName: string;
+  /**
+   * List of Groups in the CeviDB for this permission.
+   */
+  permissions: {
+    group_id: number;
+    id?: string | null;
+  }[];
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -892,6 +915,10 @@ export interface PayloadLockedDocument {
         value: string | User;
       } | null)
     | ({
+        relationTo: 'permissions';
+        value: string | Permission;
+      } | null)
+    | ({
         relationTo: 'forms';
         value: string | Form;
       } | null)
@@ -961,6 +988,7 @@ export interface BlogSelect<T extends boolean = true> {
         blogH1?: T;
         bannerImage?: T;
         releaseDate?: T;
+        permissions?: T;
         blogShortTitle?: T;
         mainContent?:
           | T
@@ -1253,6 +1281,21 @@ export interface UsersSelect<T extends boolean = true> {
   fullName?: T;
   nickname?: T;
   groups?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "permissions_select".
+ */
+export interface PermissionsSelect<T extends boolean = true> {
+  permissionName?: T;
+  permissions?:
+    | T
+    | {
+        group_id?: T;
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }

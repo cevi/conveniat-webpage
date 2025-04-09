@@ -6,6 +6,7 @@ import {
   blogReleaseDate,
   blogSearchKeywords,
   blogTeaserText,
+  permissionsField,
 } from '@/payload-cms/collections/blog-article/fields';
 import { AdminPanelDashboardGroups } from '@/payload-cms/admin-panel-dashboard-groups';
 import { mainContentField } from '@/payload-cms/shared-fields/main-content-field';
@@ -48,6 +49,7 @@ export const BlogArticleCollection: CollectionConfig = asLocalizedCollection({
             blogArticleTitleField,
             bannerImage,
             blogReleaseDate,
+            permissionsField,
             blogTeaserText,
             mainContentField,
             blogSearchKeywords,
