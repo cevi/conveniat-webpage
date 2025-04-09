@@ -74,18 +74,19 @@ export const GenericPage: React.FC<LocalizedCollectionPage> = async ({
         },
       }),
     ),
-  ).then((results) =>
-    results
-      .filter((r) => r.docs.length === 1)
-      .flatMap((r) => r.docs[0])
-      .filter((a) => a !== undefined),
   )
-  .then(async (a) => {
-    const filteredArticles = await Promise.all(
-      a.map(async (article) => await hasPermissions(article.content.permissions as Permission)),
-    );
-    return a.filter((_, index) => filteredArticles[index] ?? false);
-  });
+    .then((results) =>
+      results
+        .filter((r) => r.docs.length === 1)
+        .flatMap((r) => r.docs[0])
+        .filter((a) => a !== undefined),
+    )
+    .then(async (a) => {
+      const filteredArticles = await Promise.all(
+        a.map(async (article) => await hasPermissions(article.content.permissions as Permission)),
+      );
+      return a.filter((_, index) => filteredArticles[index] ?? false);
+    });
 
   // no article found --> 404
   if (articles.length === 0) {
