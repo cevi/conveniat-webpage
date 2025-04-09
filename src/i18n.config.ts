@@ -21,7 +21,7 @@ export const i18nExcludedRoutes: string[] = [
 
   // Static Files (Service Workers, Manifests, SEO)
   'sw.js',
-  'swe-worker-*.js',
+  'swe-worker-',
   'manifest.webmanifest',
   'sitemap.xml',
   'robots.txt',
