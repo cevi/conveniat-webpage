@@ -349,6 +349,7 @@ export interface Permission {
    */
   permissions: {
     group_id: number;
+    note?: string | null;
     id?: string | null;
   }[];
   updatedAt: string;
@@ -1296,6 +1297,7 @@ export interface PermissionsSelect<T extends boolean = true> {
     | T
     | {
         group_id?: T;
+        note?: T;
         id?: T;
       };
   updatedAt?: T;

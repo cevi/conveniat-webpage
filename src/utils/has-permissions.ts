@@ -15,18 +15,20 @@ export const hasPermissions = async (
 ): Promise<boolean> => {
   const userPerm = await auth();
 
-  const userGroups = (userPerm?.user as UserWithGroup).groups;
+  if (permission === null || permission === undefined) {
+    return true;
+  }
 
-  // if not logged in, page is accessible if no permission is required
+  const userGroups = (userPerm?.user as UserWithGroup).groups ?? undefined;
+
   if (userGroups === undefined) {
-    return permission === null || permission === undefined;
+    return true;
   }
 
   const userGroupIds = new Set(userGroups.map((group) => group.id));
-  const permissionGroups = permission?.permissions ?? [];
 
   // Check if any of the user's group IDs match the permission groups
-  const hasPermission = permissionGroups.some((permissionGroup) =>
+  const hasPermission = permission.permissions.some((permissionGroup) =>
     userGroupIds.has(permissionGroup.group_id),
   );
 
