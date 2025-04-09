@@ -4,6 +4,8 @@ import config from '@payload-config';
 import { notFound, redirect } from 'next/navigation';
 import { i18nConfig, Locale, LocalizedCollectionPage } from '@/types';
 import { GenericPageConverter } from '@/converters/generic-page';
+import { hasPermissions } from '@/utils/has-permissions';
+import { Permission } from '@/payload-types';
 
 export const GenericPage: React.FC<LocalizedCollectionPage> = async ({
   slugs,
@@ -40,13 +42,17 @@ export const GenericPage: React.FC<LocalizedCollectionPage> = async ({
 
   // article found in current locale --> render
   if (articleInPrimaryLanguage !== undefined) {
-    return (
-      <GenericPageConverter
-        page={articleInPrimaryLanguage}
-        locale={locale}
-        searchParams={searchParams}
-      />
-    );
+    if (await hasPermissions(articleInPrimaryLanguage.content.permissions as Permission)) {
+      return (
+        <GenericPageConverter
+          page={articleInPrimaryLanguage}
+          locale={locale}
+          searchParams={searchParams}
+        />
+      );
+    } else {
+      notFound();
+    }
   }
 
   // fallback logic to find article in other locales
@@ -73,7 +79,13 @@ export const GenericPage: React.FC<LocalizedCollectionPage> = async ({
       .filter((r) => r.docs.length === 1)
       .flatMap((r) => r.docs[0])
       .filter((a) => a !== undefined),
-  );
+  )
+  .then(async (a) => {
+    const filteredArticles = await Promise.all(
+      a.map(async (article) => await hasPermissions(article.content.permissions as Permission)),
+    );
+    return a.filter((_, index) => filteredArticles[index] ?? false);
+  });
 
   // no article found --> 404
   if (articles.length === 0) {

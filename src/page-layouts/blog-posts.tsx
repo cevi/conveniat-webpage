@@ -111,7 +111,7 @@ export const BlogPostPage: React.FC<LocalizedCollectionPage> = async ({
       const filteredArticles = await Promise.all(
         a.map(async (article) => await hasPermissions(article.content.permissions as Permission)),
       );
-      return a.filter((_, index) => filteredArticles[index]);
+      return a.filter((_, index) => filteredArticles[index] ?? false);
     });
 
   // no article found --> 404

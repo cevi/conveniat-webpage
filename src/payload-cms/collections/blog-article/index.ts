@@ -6,10 +6,10 @@ import {
   blogReleaseDate,
   blogSearchKeywords,
   blogTeaserText,
-  permissionsField,
 } from '@/payload-cms/collections/blog-article/fields';
 import { AdminPanelDashboardGroups } from '@/payload-cms/admin-panel-dashboard-groups';
 import { mainContentField } from '@/payload-cms/shared-fields/main-content-field';
+import { permissionsField } from '@/payload-cms/shared-fields/permissions-field';
 import { internalPageNameField } from '@/payload-cms/shared-fields/internal-page-name-field';
 import { seoTab } from '@/payload-cms/shared-tabs/seo-tab';
 

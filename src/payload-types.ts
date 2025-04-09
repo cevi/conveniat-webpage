@@ -662,6 +662,7 @@ export interface GenericPage {
      * This is the title that will be displayed on the page.
      */
     pageTitle: string;
+    permissions?: (string | null) | Permission;
     /**
      * The main content of the page
      */
@@ -1133,6 +1134,7 @@ export interface GenericPageSelect<T extends boolean = true> {
     | T
     | {
         pageTitle?: T;
+        permissions?: T;
         mainContent?:
           | T
           | {
