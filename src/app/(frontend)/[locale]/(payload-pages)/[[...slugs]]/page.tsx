@@ -153,7 +153,7 @@ const CMSPage: React.FC<{
 
             {previewModeAllowed && hasPreviewSearchParameter && <PreviewWarning params={params} />}
 
-            {!previewModeAllowed || (!hasPreviewSearchParameter && <CookieBanner />)}
+            <CookieBanner />
           </>
         );
       } else {
