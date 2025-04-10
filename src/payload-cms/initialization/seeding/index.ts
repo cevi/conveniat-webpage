@@ -26,6 +26,15 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     return;
   }
 
+  // check if generic-page exists
+  const { totalDocs: genericPageCount } = await payload.count({
+    collection: 'generic-page',
+  });
+  if (genericPageCount > 0) {
+    console.log('Generic page already exists, skipping seeding');
+    return;
+  }
+
   const { id: formID } = await payload.create({
     collection: 'forms',
     data: structuredClone(basicForm),
