@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Cookies from 'js-cookie';
 import { i18nConfig, Locale } from '@/types';
 import { useCurrentLocale } from 'next-i18n-router/client';
@@ -20,8 +20,8 @@ export const CookieBanner: React.FC = () => {
     setShowBanner(shouldShowCookieBanner());
   }, []);
 
-  const acceptCookies = () => {
-    Cookies.set(COOKIE_NAME, 'true');
+  const acceptCookies = (): void => {
+    Cookies.set(COOKIE_NAME, 'true', { expires: 90 });
     setShowBanner(false);
   };
 
