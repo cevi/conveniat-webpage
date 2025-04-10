@@ -15,7 +15,8 @@ const withSerwist = withSerwistInit({
   additionalPrecacheEntries: [{ url: '/offline', revision }],
   register: true,
   reloadOnOnline: true,
-  disable: process.env.NODE_ENV !== 'production' && process.env.ENABLE_SERVICE_WORKER_LOCALLY !== 'true',
+  disable:
+    process.env.NODE_ENV !== 'production' && process.env.ENABLE_SERVICE_WORKER_LOCALLY !== 'true',
 });
 
 /** @type {import('next').NextConfig} */
