@@ -1,4 +1,5 @@
 import { default as default_0ab278369767a73bfbc2c2f4a007b998 } from '@/payload-cms/components/multi-lang-publishing/publishing-status'
+import { default as default_19b6f497f07b2419c2c60a422688c70d } from '@/payload-cms/components/multi-lang-publishing/publishing-status-client'
 import { default as default_3c9ca46507dfbdb2d0020bf71080bda1 } from '@/payload-cms/components/qr-code/qr-code'
 import { RscEntryLexicalCell as RscEntryLexicalCell_44fe37237e0ebf4470c9990d8cb7b07e } from '@payloadcms/richtext-lexical/rsc'
 import { RscEntryLexicalField as RscEntryLexicalField_44fe37237e0ebf4470c9990d8cb7b07e } from '@payloadcms/richtext-lexical/rsc'
@@ -23,6 +24,7 @@ import { S3ClientUploadHandler as S3ClientUploadHandler_f97aa6c64367fa259c5bc056
 
 export const importMap = {
   "@/payload-cms/components/multi-lang-publishing/publishing-status#default": default_0ab278369767a73bfbc2c2f4a007b998,
+  "@/payload-cms/components/multi-lang-publishing/publishing-status-client#default": default_19b6f497f07b2419c2c60a422688c70d,
   "@/payload-cms/components/qr-code/qr-code#default": default_3c9ca46507dfbdb2d0020bf71080bda1,
   "@payloadcms/richtext-lexical/rsc#RscEntryLexicalCell": RscEntryLexicalCell_44fe37237e0ebf4470c9990d8cb7b07e,
   "@payloadcms/richtext-lexical/rsc#RscEntryLexicalField": RscEntryLexicalField_44fe37237e0ebf4470c9990d8cb7b07e,

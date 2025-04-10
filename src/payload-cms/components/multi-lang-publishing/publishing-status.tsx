@@ -1,40 +1,44 @@
 import React from 'react';
 
 import { cva } from 'class-variance-authority';
+import { PublishingStatusType } from '@/payload-cms/components/multi-lang-publishing/type';
 
-const languageStatusClasses = cva('text-sm font-medium me-2 px-2.5 py-0.5 rounded relative group', {
-  variants: {
-    pendingChanges: {
-      true: '',
-      false: '',
+export const languageStatusClasses = cva(
+  'text-sm font-medium me-2 px-2.5 py-0.5 rounded relative group',
+  {
+    variants: {
+      pendingChanges: {
+        true: '',
+        false: '',
+      },
+      published: {
+        true: 'border-solid border-2',
+        false:
+          'border-solid border-2 border-gray-200 text-gray-300 dark:border-gray-700 dark:text-gray-700',
+      },
     },
-    published: {
-      true: 'border-solid border-2',
-      false:
-        'border-solid border-2 border-gray-200 text-gray-300 dark:border-gray-700 dark:text-gray-700',
-    },
-  },
-  compoundVariants: [
-    {
-      published: true,
-      pendingChanges: true,
-      className:
-        'border-red-300 bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300 dark:border-red-500',
-    },
-    {
-      published: true,
+    compoundVariants: [
+      {
+        published: true,
+        pendingChanges: true,
+        className:
+          'border-red-300 bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300 dark:border-red-500',
+      },
+      {
+        published: true,
+        pendingChanges: false,
+        className:
+          'border-green-300 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 dark:border-green-500',
+      },
+    ],
+    defaultVariants: {
+      published: false,
       pendingChanges: false,
-      className:
-        'border-green-300 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 dark:border-green-500',
     },
-  ],
-  defaultVariants: {
-    published: false,
-    pendingChanges: false,
   },
-});
+);
 
-const LanguageStatus: React.FC<{
+export const LanguageStatus: React.FC<{
   published: boolean;
   pendingChanges: boolean;
   label: string;
@@ -56,12 +60,7 @@ const LanguageStatus: React.FC<{
 };
 
 export const PublishingStatusBadges: React.FC<{
-  publishingStatus: {
-    [locale: string]: {
-      published: boolean;
-      pendingChanges: boolean;
-    };
-  };
+  publishingStatus: PublishingStatusType;
 }> = ({ publishingStatus }) => {
   return (
     <span>

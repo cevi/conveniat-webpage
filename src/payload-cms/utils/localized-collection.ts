@@ -40,10 +40,15 @@ export const asLocalizedCollection = (config: CollectionConfig): CollectionConfi
         name: 'publishingStatus',
         type: 'json',
         admin: {
+          readOnly: true,
           components: {
-            Field: '@/payload-cms/components/multi-lang-publishing/publishing-status',
+            Field: '@/payload-cms/components/multi-lang-publishing/publishing-status-client',
             Cell: '@/payload-cms/components/multi-lang-publishing/publishing-status',
           },
+        },
+        access: {
+          create: () => false,
+          update: () => false,
         },
         virtual: true,
         hooks: {

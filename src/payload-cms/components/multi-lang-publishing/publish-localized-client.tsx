@@ -8,6 +8,7 @@ import {
   useConfig,
   useDocumentInfo,
   useEditDepth,
+  useField,
   useForm,
   useFormModified,
   useHotkey,
@@ -52,6 +53,9 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
   const modified = useFormModified();
   const editDepth = useEditDepth();
   const { code: locale } = useLocale();
+  const { value: publishingState, setValue: setPublishingState } = useField({
+    path: 'publishingStatus',
+  });
 
   const {
     routes: { api },
@@ -101,13 +105,22 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
         },
         _locale: code,
       },
-      // TODO: this does not work as expected
-      // we do not validate the fields during saving a draft
-      // since we do not want to enforce the user to fill out all fields
-      // before saving a draft (e.g. when the schema was changed)
-      skipValidation: true,
-    });
-  }, [forceDisable, locale, collectionSlug, globalSlug, submit, code, serverURL, api, id]);
+    })
+      // this is necessary such that the publishingState is correctly updated
+      .finally(() => setPublishingState(structuredClone(publishingState)));
+  }, [
+    forceDisable,
+    locale,
+    collectionSlug,
+    globalSlug,
+    submit,
+    code,
+    serverURL,
+    api,
+    id,
+    setPublishingState,
+    publishingState,
+  ]);
 
   useHotkey({ cmdCtrlKey: true, editDepth, keyCodes: ['s'] }, (event) => {
     event.preventDefault();
@@ -139,11 +152,21 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
           },
           _locale: code,
         },
-        // TODO: this does not work as expected
-        skipValidation: false, // here we do validate the fields!
-      });
+      })
+        // this is necessary such that the publishingState is correctly updated
+        .finally(() => setPublishingState(structuredClone(publishingState)));
     },
-    [api, code, collectionSlug, globalSlug, id, serverURL, submit],
+    [
+      api,
+      code,
+      collectionSlug,
+      globalSlug,
+      id,
+      publishingState,
+      serverURL,
+      setPublishingState,
+      submit,
+    ],
   );
 
   const unpublishSpecificLocale = useCallback(
@@ -169,14 +192,11 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
             published: false,
           },
         },
-        // TODO: this does not work as expected
-        // We do not validate the fields during unpublishing.
-        // Since we do not want to enforce the user to fill out all fields
-        // before unpublishing a document (e.g. when the schema was changed)
-        skipValidation: true,
-      });
+      })
+        // this is necessary such that the publishingState is correctly updated
+        .finally(() => setPublishingState(structuredClone(publishingState)));
     },
-    [api, collectionSlug, globalSlug, id, serverURL, submit],
+    [api, collectionSlug, globalSlug, id, publishingState, serverURL, setPublishingState, submit],
   );
 
   const { isPublished, canUnpublish } = useIsPublished();
