@@ -13,7 +13,21 @@ services:
     command: >
       sh -c "corepack enable pnpm && pnpm i --frozen-lockfile &&
       sh /home/node/app/create_build_info.sh &&
-      pnpm dev"
+      if [ \"$ENABLE_SERVICE_WORKER_LOCALLY\" = \"true\" ]; then
+        echo '' &&
+        echo '**************************************************' &&
+        echo '*   WARNING: SERVICE WORKER ENABLED              *' &&
+        echo '*   Turbopack is DISABLED. Dev server will be    *' &&
+        echo '*   significantly SLOWER.                        *' &&
+        echo '**************************************************' &&
+        echo '' &&
+        pnpm devsafe
+      else
+        echo 'Service worker disabled' &&
+        pnpm dev
+      fi"
+    dns:
+      - 8.8.8.8
     depends_on:
       - mongo
     env_file:
