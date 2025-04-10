@@ -60,7 +60,7 @@ const PublishingStatus: React.FC<{ path: string }> = ({ path }) => {
         clearTimeout(debounceTimeout.current);
       }
     };
-  }, [fields, id, path, publishingStatusDefault]);
+  }, [collectionSlug, fields, id, path, publishingStatusDefault]);
 
   return <PublishingStatusBadges publishingStatus={publishingStatus} />;
 };
