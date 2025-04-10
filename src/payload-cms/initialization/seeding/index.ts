@@ -133,7 +133,7 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
         },
         {
           blockType: 'photoCarousel',
-          images: faker.helpers.shuffle(imageIds).slice(0, faker.number.int({ min: 4, max: 8 })),
+          images: faker.helpers.shuffle(imageIds).slice(0, faker.number.int({ min: 5, max: 8 })),
         },
         {
           blockType: 'richTextSection' as const,
