@@ -39,10 +39,12 @@ export const MapLibreRenderer = ({
   initialMapPose,
   ceviLogoMarkers,
   limitUsage = true,
+  validateStyle = true,
 }: {
   initialMapPose: InitialMapPose;
   ceviLogoMarkers: CeviLogoMarker[];
   limitUsage?: boolean;
+  validateStyle?: boolean;
 }): React.JSX.Element => {
   const mapContainerReference = useRef<HTMLDivElement>(null);
 
@@ -56,7 +58,7 @@ export const MapLibreRenderer = ({
     const map = new MapLibre({
       container: mapContainerReference.current,
 
-      validateStyle: true, // TODO: this should be disabled in production
+      validateStyle: validateStyle,
 
       // this file defines the map style and layers
       // custom style based on https://api3.geo.admin.ch/services/sdiservices.html#getstyle

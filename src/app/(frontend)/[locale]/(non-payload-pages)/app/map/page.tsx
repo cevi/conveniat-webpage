@@ -9,7 +9,11 @@ const initialMapPoseObergoms: InitialMapPose = {
 const MapPage: React.FC = async () => {
   return (
     <div className="fixed left-0 top-[60px] h-[calc(100dvh-60px)] w-screen pb-20">
-      <MapLibreRenderer initialMapPose={initialMapPoseObergoms} ceviLogoMarkers={[]} />
+      <MapLibreRenderer
+        initialMapPose={initialMapPoseObergoms}
+        ceviLogoMarkers={[]}
+        validateStyle={process.env.NODE_ENV !== 'production'}
+      />
     </div>
   );
 };

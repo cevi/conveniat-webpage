@@ -16,10 +16,13 @@ const InlineSwisstopoMapEmbed: React.FC<InlineSwisstopoMapEmbedType> = ({
   initialMapPose,
   ceviLogoMarkers,
 }) => {
-  console.log(initialMapPose);
   return (
     <div className="h-[400px] w-full overflow-hidden rounded">
-      <MapLibreRenderer initialMapPose={initialMapPose} ceviLogoMarkers={ceviLogoMarkers} />
+      <MapLibreRenderer
+        initialMapPose={initialMapPose}
+        ceviLogoMarkers={ceviLogoMarkers}
+        validateStyle={process.env.NODE_ENV !== 'production'}
+      />
     </div>
   );
 };
