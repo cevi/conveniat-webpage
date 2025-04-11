@@ -13,6 +13,6 @@ import { cookies } from 'next/headers';
 export const getLocaleFromCookies = async (): Promise<Locale> => {
   const cookieStore = await cookies();
   let locale = cookieStore.get('NEXT_LOCALE')?.value as Locale | undefined;
-  if (locale === undefined) locale = i18nConfig.defaultLocale as Locale;
+  locale ??= i18nConfig.defaultLocale as Locale;
   return locale;
 };

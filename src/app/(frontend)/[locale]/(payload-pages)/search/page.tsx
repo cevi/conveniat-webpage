@@ -33,8 +33,9 @@ const SearchPage: React.FC<{
     depth: 1,
     limit: 10,
     locale,
-    ...(searchQuery
-      ? {
+    ...(searchQuery === ''
+      ? {}
+      : {
           where: {
             and: [
               {
@@ -68,8 +69,7 @@ const SearchPage: React.FC<{
               },
             ],
           },
-        }
-      : {}),
+        }),
   });
 
   const blogs = blogsPaged.docs as Blog[];

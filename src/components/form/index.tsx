@@ -69,9 +69,9 @@ export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties)
   const [error, setError] = useState<{ message: string; status?: string } | undefined>();
   const router = useRouter();
 
-  const onSubmit = (data: Data) => {
+  const onSubmit = (data: Data): void => {
     let loadingTimerID: ReturnType<typeof setTimeout>;
-    const submitForm = async () => {
+    const submitForm = async (): Promise<void> => {
       setError(undefined);
 
       const dataToSend = Object.entries(data).map(([name, value]) => ({
@@ -102,7 +102,7 @@ export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties)
           setError({
             // @ts-ignore
             // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
-            message: response.errors?.[0].message || 'Internal Server Error',
+            message: response.errors?.[0].message ?? 'Internal Server Error',
             // @ts-ignore
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             status: response.status,

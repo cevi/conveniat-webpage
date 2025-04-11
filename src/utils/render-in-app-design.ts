@@ -1,7 +1,7 @@
 import 'server-only';
 import { cookies } from 'next/headers';
 
-export const renderInAppDesign = async () => {
+export const renderInAppDesign = async (): Promise<boolean> => {
   const cookieStore = await cookies();
   const renderAppDesign = cookieStore.get('app-design');
   return renderAppDesign?.value === 'true';

@@ -15,7 +15,7 @@ export const Checkbox: React.FC<
   } & CheckboxField
 > = ({ name, label, registerAction, required: requiredFromProperties }) => {
   // set default values
-  if (requiredFromProperties === undefined) requiredFromProperties = false;
+  requiredFromProperties ??= false;
 
   return (
     <div className="mb-4 flex items-center space-x-2">

@@ -18,7 +18,7 @@ const QRCode: React.FC = () => {
   const { theme } = useTheme();
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-  const isPublished = savedDocumentData?.['_localized_status']?.['published'] ?? false;
+  const isPublished: boolean = savedDocumentData?.['_localized_status']?.['published'] ?? false;
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
   const qrCodeEnabled = savedDocumentData?.['seo']?.['urlSlug'] ?? '';
 
@@ -34,9 +34,10 @@ const QRCode: React.FC = () => {
     const finalUrlSlug: string = urlSlug.startsWith('/') ? urlSlug : `/${urlSlug}`;
 
     // TODO: fix this instead of using hard-coded domain
-    const domain = process.env['NEXT_PUBLIC_APP_HOST_URL']
-      ? String(process.env['NEXT_PUBLIC_APP_HOST_URL'])
-      : 'https://conveniat27.ch';
+    const domain =
+      process.env['NEXT_PUBLIC_APP_HOST_URL'] == undefined
+        ? 'https://conveniat27.ch'
+        : String(process.env['NEXT_PUBLIC_APP_HOST_URL']);
 
     const fullURLForToken = domain + '/' + locale + finalCollectionSlug + finalUrlSlug;
 

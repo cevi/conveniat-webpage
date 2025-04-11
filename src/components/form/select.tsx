@@ -19,7 +19,7 @@ export const Select: React.FC<
   } & SelectField
 > = ({ name, control, label, registerAction, options, required: requiredFromProperties }) => {
   // set default values
-  if (requiredFromProperties === undefined) requiredFromProperties = false;
+  requiredFromProperties ??= false;
 
   return (
     <div className="mb-4">

@@ -15,7 +15,7 @@ export const SearchComponent: React.FC<{ locale: Locale }> = ({ locale }) => {
   const router = useRouter();
   const close = useClose();
 
-  const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const onSubmit = (event: React.FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
     const searchData = new FormData(event.currentTarget);
     const searchInput = searchData.get('searchInput') as string;

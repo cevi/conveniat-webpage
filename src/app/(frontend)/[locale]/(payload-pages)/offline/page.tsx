@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   description: 'No internet connection detected.',
 };
 
-export default function OfflinePage() {
+export default function OfflinePage(): React.JSX.Element {
   return (
     <div className="from-slate-900 to-slate-800 bg-gradient-to-b">
       <div className="container mx-auto px-4 py-12">

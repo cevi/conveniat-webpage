@@ -81,7 +81,7 @@ const AlertPage: React.FC = () => {
     alert.title.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  const clearSearch = () => {
+  const clearSearch = (): void => {
     setSearchTerm('');
   };
 
@@ -122,7 +122,7 @@ const AlertPage: React.FC = () => {
               className="absolute left-3 top-1/2 -translate-y-1/2 transform text-gray-400"
               size={20}
             />
-            {searchTerm && (
+            {searchTerm !== '' && (
               <Button
                 variant="ghost"
                 size="icon"

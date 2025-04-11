@@ -15,7 +15,7 @@ export const Text: React.FC<
   } & TextField
 > = ({ name, label, registerAction, required: requiredFromProperties }) => {
   // set default values
-  if (requiredFromProperties === undefined) requiredFromProperties = false;
+  requiredFromProperties ??= false;
 
   return (
     <div className="mb-4">

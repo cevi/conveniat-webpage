@@ -34,7 +34,7 @@ export const TimeLinePage: React.FC<LocalizedCollectionPage> = async ({
     },
   });
 
-  const convertDate = (date: string) => {
+  const convertDate = (date: string): string => {
     // i want dd month yyyy, hh:mm Uhr
     const options: Intl.DateTimeFormatOptions = {
       year: 'numeric',

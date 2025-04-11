@@ -17,7 +17,7 @@ export const Email: React.FC<
   } & EmailField
 > = ({ name, label, registerAction, required: requiredFromProperties }) => {
   // set default values
-  if (requiredFromProperties === undefined) requiredFromProperties = false;
+  requiredFromProperties ??= false;
 
   return (
     <div className="mb-4">

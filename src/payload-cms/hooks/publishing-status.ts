@@ -1,6 +1,7 @@
 import { Block, CollectionConfig, CollectionSlug, FieldHookArgs, Tab } from 'payload';
 import { Config } from '@/payload-types';
 import { LOCALE } from '@/payload-cms/locales';
+import { PublishingStatusType } from '@/payload-cms/components/multi-lang-publishing/type';
 
 type Field = {
   name: string;
@@ -246,7 +247,8 @@ const hasDiffs = (
  * @param config the collection configuration
  */
 export const getPublishingStatus =
-  (config: CollectionConfig) => async (arguments_: FieldHookArgs) => {
+  (config: CollectionConfig) =>
+  async (arguments_: FieldHookArgs): Promise<PublishingStatusType> => {
     const { data, req, collection } = arguments_;
     const { payload } = req;
 

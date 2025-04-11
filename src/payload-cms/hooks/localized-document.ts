@@ -13,7 +13,16 @@ import { useEffect, useState } from 'react';
  *
  * @param draft
  */
-export const useLocalizedDocument = <T>({ draft }: { draft: boolean }) => {
+export const useLocalizedDocument = <T>({
+  draft,
+}: {
+  draft: boolean;
+}): {
+  doc: T | undefined;
+  isLoading: boolean;
+  error: Error | undefined;
+  isGlobal: boolean;
+} => {
   const debouncedParameters = useDebounce(useDocumentInfo(), 1000);
 
   const [error, setError] = useState<Error | undefined>();

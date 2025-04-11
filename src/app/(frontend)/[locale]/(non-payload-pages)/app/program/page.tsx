@@ -109,7 +109,7 @@ const ProgramMapPage: React.FC = () => {
   const minDate = new Date('2025-02-22');
   const maxDate = new Date('2025-02-24');
 
-  const handlePreviousDay = () => {
+  const handlePreviousDay = (): void => {
     const previousDay = new Date(currentDate);
     previousDay.setDate(currentDate.getDate() - 1);
     if (previousDay >= minDate) {
@@ -117,7 +117,7 @@ const ProgramMapPage: React.FC = () => {
     }
   };
 
-  const handleNextDay = () => {
+  const handleNextDay = (): void => {
     const nextDay = new Date(currentDate);
     nextDay.setDate(currentDate.getDate() + 1);
     if (nextDay <= maxDate) {
@@ -125,11 +125,11 @@ const ProgramMapPage: React.FC = () => {
     }
   };
 
-  const handleEntryClick = (entry: ProgramEntry) => {
+  const handleEntryClick = (entry: ProgramEntry): void => {
     setSelectedEntry(entry);
   };
 
-  const handleCloseDetails = () => {
+  const handleCloseDetails = (): void => {
     setSelectedEntry(undefined);
   };
 

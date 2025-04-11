@@ -41,7 +41,7 @@ export const useIsPublished = <
     if (_document) {
       const published = localesDefinition
         .map((l: Locale) => l.code)
-        // eslint-disable-next-line unicorn/no-array-reduce
+
         .reduce((accumulator, _locale) => {
           const locale = _locale as Config['locale'];
           const state: boolean = Boolean(

@@ -62,8 +62,6 @@ export const generateSitemap = async (): Promise<MetadataRoute.Sitemap> => {
         }
 
         sitemap.push({
-          // @ts-ignore
-
           url: toURL([APP_HOST_URL, localePrefix, urlPrefix, elementURL]),
           lastModified: element.updatedAt,
           alternates: {
