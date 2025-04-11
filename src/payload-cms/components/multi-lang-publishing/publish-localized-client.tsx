@@ -72,7 +72,6 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
 
   const forceDisable = operation === 'update' && !modified;
 
-  // eslint-disable-next-line complexity
   const saveDraft = useCallback(async () => {
     if (forceDisable) {
       return;

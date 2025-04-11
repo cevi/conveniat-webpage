@@ -45,7 +45,6 @@ const slugLookup: Record<
 };
 
 export const routeResolutionTable: RouteResolutionTable =
-  // eslint-disable-next-line complexity
   payloadConfig.collections?.reduce((routes, collection) => {
     if ('urlPrefix' in collection) {
       const { urlPrefix, payloadCollection } = collection;

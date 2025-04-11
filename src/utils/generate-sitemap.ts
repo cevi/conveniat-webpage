@@ -9,6 +9,7 @@ const toURL = (urlSegments: string[]): string => {
   return urlSegments.filter((seg) => seg !== '').join('/');
 };
 
+// eslint-disable-next-line complexity
 export const generateSitemap = async (): Promise<MetadataRoute.Sitemap> => {
   const sitemap: MetadataRoute.Sitemap = [];
   const APP_HOST_URL = process.env['APP_HOST_URL'] ?? '';

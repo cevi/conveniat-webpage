@@ -61,7 +61,7 @@ const config = [
   {
     rules: {
       'prefer-const': 'error',
-      complexity: ['warn', { max: 5 }],
+      complexity: ['error', { max: 10 }],
       'no-shadow': 'error',
       'no-nested-ternary': 'error',
       '@typescript-eslint/ban-ts-comment': 'warn',
