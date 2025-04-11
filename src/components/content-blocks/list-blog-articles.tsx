@@ -15,7 +15,8 @@ export const BlogDisplay: React.FC<{ blog: Blog }> = ({ blog }) => {
     );
   }
   const source = blog.content.bannerImage.url ?? '/images/placeholder.png';
-  const altText = blog.content.bannerImage.alt;
+  // the alt text may be not defined in all locales
+  const altText = blog.content.bannerImage.alt as string | undefined;
   return (
     <React.Fragment key={blog.seo.urlSlug}>
       <Link href={`/blog/${blog.seo.urlSlug}`} key={blog.id}>
@@ -23,7 +24,7 @@ export const BlogDisplay: React.FC<{ blog: Blog }> = ({ blog }) => {
           <Image
             className="w-full rounded-lg object-cover"
             src={source}
-            alt={altText}
+            alt={altText ?? 'Blog post banner image'}
             width={1200}
             height={800}
           />
