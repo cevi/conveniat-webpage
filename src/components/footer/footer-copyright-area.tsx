@@ -7,6 +7,7 @@ import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import Link from 'next/link';
 import { renderInAppDesign } from '@/utils/render-in-app-design';
 import { cn } from '@/utils/tailwindcss-override';
+import { StaticTranslationString } from '@/types';
 
 type Arguments = {
   children: React.ReactNode;
@@ -38,6 +39,12 @@ const FooterCopyrightText: React.FC<Arguments> = ({ children }) => {
   );
 };
 
+const footerCopyrightText: StaticTranslationString = {
+  de: 'vom',
+  fr: 'de',
+  en: 'from',
+};
+
 export const FooterBuildInfoText: React.FC<Arguments> = ({ children }: Arguments) => {
   return <span className="text-[8px] font-light leading-[10px]">{children}</span>;
 };
@@ -48,6 +55,7 @@ export const FooterCopyrightArea: React.FC = async () => {
 
   const build = await getBuildInfo();
   const isInAppDesign = await renderInAppDesign();
+  const locale = await getLocaleFromCookies();
 
   return (
     <div
@@ -76,7 +84,7 @@ export const FooterCopyrightArea: React.FC = async () => {
               <>
                 <FooterBuildInfoText>Version {build.version} </FooterBuildInfoText>
                 <FooterBuildInfoText>
-                  Build {build.git.hash} vom {build.timestamp}
+                  Build {build.git.hash} {footerCopyrightText[locale]} {build.timestamp}
                 </FooterBuildInfoText>
               </>
             )}
