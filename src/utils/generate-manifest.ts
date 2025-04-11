@@ -26,7 +26,7 @@ export const generateManifest = async (): Promise<MetadataRoute.Manifest> => {
     short_name: appShortName,
     description: appDescription,
     id: APP_HOST_URL,
-    start_url: './?app-mode=true', // TODO: remove hard-coded domain
+    start_url: './?app-mode=true',
     categories: ['kids', 'social', 'news'],
     //  it follows a pre-defined fallback chain: standalone → minimal-ui
     display: 'standalone',
