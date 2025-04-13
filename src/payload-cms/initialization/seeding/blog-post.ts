@@ -3,7 +3,11 @@ import { LOCALE } from '@/payload-cms/locales';
 import { generateRichTextSection } from '@/payload-cms/initialization/seeding/placeholder-lexical';
 import { fakerDE as faker } from '@faker-js/faker';
 
-export const basicBlog = (bannerImage: string, imageIds: string[]): Blog => {
+export const basicBlog = (
+  bannerImage: string,
+  imageIds: string[],
+  public_permission_id: string,
+): Blog => {
   const slug = faker.lorem.slug();
 
   return {
@@ -14,6 +18,7 @@ export const basicBlog = (bannerImage: string, imageIds: string[]): Blog => {
       releaseDate: '2025-01-01T01:00:00.000Z',
       blogH1: faker.lorem.sentence(),
       blogShortTitle: faker.lorem.sentence(),
+      permissions: public_permission_id,
       bannerImage: bannerImage,
       mainContent: [
         {

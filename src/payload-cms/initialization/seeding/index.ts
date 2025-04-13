@@ -86,6 +86,37 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     data: structuredClone(basicTimelineObject),
   });
 
+  const public_permission = await payload.create({
+    collection: 'permissions',
+    data: {
+      permissionName: 'Everyone',
+      permissions: [],
+      public: true,
+    },
+  });
+
+  await payload.create({
+    collection: 'permissions',
+    data: {
+      permissionName: 'Internal',
+      permissions: [],
+      logged_in: true,
+    },
+  });
+
+  await payload.create({
+    collection: 'permissions',
+    data: {
+      permissionName: 'Admins Only',
+      permissions: [
+        {
+          group_id: 541,
+          note: 'CeviDB Group ID',
+        },
+      ],
+    },
+  });
+
   const blockCount = 20;
   for (let index = 0; index < blockCount; index++) {
     const imageId = imageIds[index % imageIds.length];
@@ -95,7 +126,7 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
 
     await payload.create({
       collection: 'blog',
-      data: structuredClone(basicBlog(imageId, imageIds)),
+      data: structuredClone(basicBlog(imageId, imageIds, public_permission.id)),
     });
   }
 
@@ -122,6 +153,7 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     _status: 'published',
     content: {
       pageTitle: 'conveniat27 - WIR SIND CEVI',
+      permissions: public_permission.id,
       mainContent: [
         {
           blockType: 'heroSection' as const,
@@ -199,37 +231,6 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     data: {
       ...landingPageContent,
       _locale: LOCALE.FR,
-    },
-  });
-
-  await payload.create({
-    collection: 'permissions',
-    data: {
-      permissionName: 'Everyone',
-      permissions: [],
-      public: true,
-    },
-  });
-
-  await payload.create({
-    collection: 'permissions',
-    data: {
-      permissionName: 'Internal',
-      permissions: [],
-      logged_in: true,
-    },
-  });
-
-  await payload.create({
-    collection: 'permissions',
-    data: {
-      permissionName: 'Admins Only',
-      permissions: [
-        {
-          group_id: 541,
-          note: 'CeviDB Group ID',
-        },
-      ],
     },
   });
 };
