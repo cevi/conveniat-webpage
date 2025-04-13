@@ -201,4 +201,35 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
       _locale: LOCALE.FR,
     },
   });
+
+  await payload.create({
+    collection: 'permissions',
+    data: {
+      permissionName: 'Everyone',
+      permissions: [],
+      public: true,
+    },
+  });
+
+  await payload.create({
+    collection: 'permissions',
+    data: {
+      permissionName: 'Internal',
+      permissions: [],
+      logged_in: true,
+    },
+  });
+
+  await payload.create({
+    collection: 'permissions',
+    data: {
+      permissionName: 'Admins Only',
+      permissions: [
+        {
+          group_id: 541,
+          note: 'CeviDB Group ID',
+        },
+      ],
+    },
+  });
 };

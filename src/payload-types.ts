@@ -347,11 +347,15 @@ export interface Permission {
   /**
    * List of Groups in the CeviDB for this permission.
    */
-  permissions: {
-    group_id: number;
-    note?: string | null;
-    id?: string | null;
-  }[];
+  permissions?:
+    | {
+        group_id: number;
+        note?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  public?: boolean | null;
+  logged_in?: boolean | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1300,6 +1304,8 @@ export interface PermissionsSelect<T extends boolean = true> {
         note?: T;
         id?: T;
       };
+  public?: T;
+  logged_in?: T;
   updatedAt?: T;
   createdAt?: T;
 }

@@ -43,7 +43,7 @@ export const PermissionsCollection: CollectionConfig = {
         fr: 'Autorisations',
       },
       type: 'array',
-      required: true,
+      required: false,
       localized: true,
       admin: {
         description: {
@@ -76,6 +76,28 @@ export const PermissionsCollection: CollectionConfig = {
           localized: false,
         },
       ],
+    },
+    {
+      name: 'public',
+      label: {
+        en: 'Always Public',
+        de: 'Immer öffentlich',
+        fr: 'Toujours public',
+      },
+      type: 'checkbox',
+      required: false,
+      localized: false,
+    },
+    {
+      name: 'logged_in',
+      label: {
+        en: 'Always Logged In',
+        de: 'Immer eingeloggt',
+        fr: 'Toujours connecté',
+      },
+      type: 'checkbox',
+      required: false,
+      localized: false,
     },
   ],
 };

@@ -10,27 +10,52 @@ type UserWithGroup = {
     | undefined;
 };
 
-export const hasPermissions = async (
-  permission: undefined | null | Permission,
+const isPermissionPublic = (permission: Permission | null | undefined): boolean => {
+  return permission?.public === true;
+};
+
+const isPermissionLoggedInRequired = async (
+  permission: Permission | null | undefined,
 ): Promise<boolean> => {
-  const userPerm = await auth();
-
-  if (permission === null || permission === undefined) {
-    return true;
+  if (permission?.logged_in === true) {
+    const userPerm = await auth();
+    return userPerm !== null;
   }
+  return true;
+};
 
-  const userGroups = (userPerm?.user as UserWithGroup).groups ?? undefined;
-
-  if (userGroups === undefined) {
+const hasGroupPermissions = (
+  permission: Permission | null | undefined,
+  userGroups: { id: number; role: string }[] | undefined,
+): boolean => {
+  if (!permission?.permissions || !userGroups) {
     return true;
   }
 
   const userGroupIds = new Set(userGroups.map((group) => group.id));
-
-  // Check if any of the user's group IDs match the permission groups
-  const hasPermission = permission.permissions.some((permissionGroup) =>
+  return permission.permissions.some((permissionGroup) =>
     userGroupIds.has(permissionGroup.group_id),
   );
+};
 
-  return hasPermission;
+export const hasPermissions = async (
+  permission: undefined | null | Permission,
+): Promise<boolean> => {
+  if (!permission) {
+    return true;
+  }
+
+  if (isPermissionPublic(permission)) {
+    return true;
+  }
+
+  const userPerm = await auth();
+  if (!userPerm) {
+    return false;
+  }
+
+  const userGroups = (userPerm.user as UserWithGroup).groups;
+  return (
+    (await isPermissionLoggedInRequired(permission)) && hasGroupPermissions(permission, userGroups)
+  );
 };
