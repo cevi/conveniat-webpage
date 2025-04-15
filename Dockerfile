@@ -32,6 +32,10 @@ WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 ARG NEXT_PUBLIC_APP_HOST_URL=https://conveniat27.ch
 
+# set vapid public key, this must be available at build time
+ARG NEXT_PUBLIC_VAPID_PUBLIC_KEY
+ENV NEXT_PUBLIC_VAPID_PUBLIC_KEY=${NEXT_PUBLIC_VAPID_PUBLIC_KEY}
+
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
