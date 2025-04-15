@@ -4,7 +4,7 @@ import {
   sendNotification,
   subscribeUser,
   unsubscribeUser,
-} from '@/app/(frontend)/api/push-notifications/actions';
+} from '@/app/(api)/api/push-notifications/actions';
 import { urlBase64ToUint8Array } from '@/utils/url-base64-to-uint8-array';
 import React, { useEffect, useState } from 'react';
 import webpush from 'web-push';

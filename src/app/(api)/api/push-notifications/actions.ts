@@ -92,9 +92,8 @@ export async function sendNotification(message: string): Promise<{
       return webpush.sendNotification(
         subscription,
         JSON.stringify({
-          title: 'Test Notification',
+          title: 'conveniat27',
           body: message,
-          icon: '/favicon.svg',
         }),
       );
     });
