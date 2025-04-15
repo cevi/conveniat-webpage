@@ -6,6 +6,7 @@ import { ImageCollection } from '@/payload-cms/collections/image-collection';
 import { DocumentsCollection } from '@/payload-cms/collections/documents-collection';
 import { UserCollection } from '@/payload-cms/collections/user-collection';
 import { PermissionsCollection } from '@/payload-cms/collections/permission-collection';
+import { PushNotificationSubscriptions } from '@/payload-cms/collections/push-notification-subscriptions';
 
 // TODO: based on the definition here, pattern for invalid URLs slugs should be generated
 //   and used in the slug validation. E.g. is should be forbidden to create a slug in the
@@ -39,4 +40,5 @@ export const collectionsConfig: RoutableCollectionConfigs = [
   DocumentsCollection,
   UserCollection,
   PermissionsCollection,
+  PushNotificationSubscriptions,
 ];

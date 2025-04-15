@@ -104,6 +104,7 @@ export interface Config {
     documents: Document;
     users: User;
     permissions: Permission;
+    'push-notification-subscriptions': PushNotificationSubscription;
     forms: Form;
     'form-submissions': FormSubmission;
     'search-collection': SearchCollection;
@@ -120,6 +121,7 @@ export interface Config {
     documents: DocumentsSelect<false> | DocumentsSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     permissions: PermissionsSelect<false> | PermissionsSelect<true>;
+    'push-notification-subscriptions': PushNotificationSubscriptionsSelect<false> | PushNotificationSubscriptionsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     'search-collection': SearchCollectionSelect<false> | SearchCollectionSelect<true>;
@@ -849,6 +851,21 @@ export interface User {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "push-notification-subscriptions".
+ */
+export interface PushNotificationSubscription {
+  id: string;
+  endpoint: string;
+  expirationTime?: number | null;
+  keys: {
+    p256dh: string;
+    auth: string;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "form-submissions".
  */
 export interface FormSubmission {
@@ -923,6 +940,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'permissions';
         value: string | Permission;
+      } | null)
+    | ({
+        relationTo: 'push-notification-subscriptions';
+        value: string | PushNotificationSubscription;
       } | null)
     | ({
         relationTo: 'forms';
@@ -1306,6 +1327,22 @@ export interface PermissionsSelect<T extends boolean = true> {
       };
   public?: T;
   logged_in?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "push-notification-subscriptions_select".
+ */
+export interface PushNotificationSubscriptionsSelect<T extends boolean = true> {
+  endpoint?: T;
+  expirationTime?: T;
+  keys?:
+    | T
+    | {
+        p256dh?: T;
+        auth?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }
