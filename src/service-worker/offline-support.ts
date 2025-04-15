@@ -4,11 +4,12 @@ import { defaultCache } from '@serwist/next/worker';
 /**
  * Serwist factory function.
  *
- * @param self - The service worker global scope.
+ * @param precacheEntries - The service worker global scope.
+ *
  */
-const serwistFactory = (self: ServiceWorkerGlobalScope): Serwist => {
+const serwistFactory = (precacheEntries: (string | PrecacheEntry)[] | undefined): Serwist => {
   return new Serwist({
-    precacheEntries: self.__SW_MANIFEST as (string | PrecacheEntry)[],
+    precacheEntries: precacheEntries ?? [],
     precacheOptions: {
       cleanupOutdatedCaches: true,
       concurrency: 10,
@@ -44,12 +45,12 @@ const serwistRouteCatchHandler: RouteHandler = async ({ request }) => {
 /**
  * Callback function to register the offline support handler.
  *
- * @param serviceWorkerScope
+ * @param precacheEntries - The entries to be precached.
  */
 export const offlineSupportInstallHandler =
-  (serviceWorkerScope: ServiceWorkerGlobalScope) =>
+  (precacheEntries: (string | PrecacheEntry)[] | undefined) =>
   (event: ExtendableEvent): void => {
-    const serwist = serwistFactory(serviceWorkerScope);
+    const serwist = serwistFactory(precacheEntries);
     serwist.setCatchHandler(serwistRouteCatchHandler);
     serwist.addEventListeners();
 

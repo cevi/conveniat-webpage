@@ -1,9 +1,9 @@
-import { PrecacheEntry, SerwistGlobalConfig } from 'serwist';
 import {
   notificationClickHandler,
   pushNotificationHandler,
 } from '@/service-worker/push-notifications';
 import { offlineSupportInstallHandler } from '@/service-worker/offline-support';
+import { PrecacheEntry, SerwistGlobalConfig } from 'serwist';
 
 /**
  * Declares the global `__SW_MANIFEST` property on the `WorkerGlobalScope`.
@@ -29,15 +29,9 @@ declare global {
 // Ensures the global `self` variable is correctly typed as `ServiceWorkerGlobalScope`.
 declare const self: ServiceWorkerGlobalScope;
 
-/*
- * --------------------------------------------------------------------------
- * Service Worker Event Listeners
- * --------------------------------------------------------------------------
- */
-
 // offline support
 //  » handled by serwist
-self.addEventListener('install', offlineSupportInstallHandler(self));
+self.addEventListener('install', offlineSupportInstallHandler(self.__SW_MANIFEST));
 
 // push notifications
 //  » has nothing to do with serwist
