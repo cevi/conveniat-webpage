@@ -2,13 +2,46 @@ import type { Metadata } from 'next';
 import React from 'react';
 import { HeadlineH1 } from '@/components/typography/headline-h1';
 import { ParagraphText } from '@/components/typography/paragraph-text';
+import { Locale, StaticTranslationString } from '@/types';
 
-export const metadata: Metadata = {
-  title: "You're Offline",
-  description: 'No internet connection detected.',
+const metadataTitle: StaticTranslationString = {
+  en: "You're Offline",
+  de: 'Sie sind offline',
+  fr: 'Vous êtes hors ligne',
 };
 
-export default function OfflinePage(): React.JSX.Element {
+const metadataDescription: StaticTranslationString = {
+  en: 'No internet connection detected.',
+  de: 'Keine Internetverbindung erkannt.',
+  fr: 'Aucune connexion Internet détectée.',
+};
+
+const offlineHeadline: StaticTranslationString = {
+  en: "You're Offline",
+  de: 'Sie sind offline',
+  fr: 'Vous êtes hors ligne',
+};
+
+const offlineLongText: StaticTranslationString = {
+  en: "It looks like you've lost your internet connection. Please check your network settings or try again later.",
+  de: 'Es sieht so aus, als hätten Sie Ihre Internetverbindung verloren. Bitte überprüfen Sie Ihre Netzwerkeinstellungen oder versuchen Sie es später erneut.',
+  fr: 'Il semble que vous ayez perdu votre connexion Internet. Veuillez vérifier vos paramètres réseau ou réessayer plus tard.',
+};
+
+type Properties = { params: Promise<{ locale: Locale }> };
+
+export async function generateMetadata({ params }: Properties): Promise<Metadata> {
+  const { locale } = await params;
+
+  return {
+    title: metadataTitle[locale],
+    description: metadataDescription[locale],
+  };
+}
+
+const OfflinePage: React.FC<Properties> = async ({ params }) => {
+  const { locale } = await params;
+
   return (
     <div className="from-slate-900 to-slate-800 bg-gradient-to-b">
       <div className="container mx-auto px-4 py-12">
@@ -31,18 +64,17 @@ export default function OfflinePage(): React.JSX.Element {
             </svg>
           </div>
 
-          <HeadlineH1>You&#39;re Offline</HeadlineH1>
+          <HeadlineH1>{offlineHeadline[locale]}</HeadlineH1>
 
           <div className="mb-8 mt-4">
-            <ParagraphText className="text-center">
-              It looks like you&#39;ve lost your internet connection. <br />
-              Please check your network settings or try again later.
-            </ParagraphText>
+            <ParagraphText className="text-center">{offlineLongText[locale]}</ParagraphText>
           </div>
         </div>
       </div>
     </div>
   );
-}
+};
+
+export default OfflinePage;
 
 export const dynamic = 'force-static';
