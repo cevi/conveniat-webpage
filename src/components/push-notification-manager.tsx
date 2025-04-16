@@ -1,10 +1,6 @@
 'use client';
 
-import {
-  sendNotification,
-  subscribeUser,
-  unsubscribeUser,
-} from '@/app/(api)/api/push-notifications/actions';
+import { subscribeUser, unsubscribeUser } from '@/app/(api)/api/push-notifications/actions';
 import { urlBase64ToUint8Array } from '@/utils/url-base64-to-uint8-array';
 import React, { useEffect, useState } from 'react';
 import webpush from 'web-push';
@@ -23,7 +19,6 @@ if (vapidPublicKey === undefined) {
 export const PushNotificationManager = (): React.JSX.Element => {
   const [isSupported, setIsSupported] = useState(false);
   const [subscription, setSubscription] = useState<PushSubscription | undefined>();
-  const [message, setMessage] = useState('');
 
   useEffect(() => {
     if ('serviceWorker' in navigator && 'PushManager' in globalThis) {
@@ -69,44 +64,43 @@ export const PushNotificationManager = (): React.JSX.Element => {
     _unsubscribeFromPush().catch(console.error);
   };
 
-  const _sendTestNotification = async (): Promise<void> => {
-    if (subscription) {
-      await sendNotification(message);
-      setMessage('');
-    }
-  };
-
-  const sendTestNotification = (): void => {
-    _sendTestNotification().catch(console.error);
-  };
-
   if (!isSupported) {
     return (
-      <div className="mt-20">
-        <p>Push notifications are not supported in this browser.</p>
-      </div>
+      <>
+        <h1 className="mb-4 text-2xl font-semibold">Push Notifications</h1>
+        <p className="mb-4 text-balance text-gray-700">
+          Push notifications are not supported in this browser.
+        </p>
+      </>
     );
   }
 
   return (
-    <div className="mt-20">
-      <h3>Push Notifications</h3>
+    <div className="mb-8">
+      <h1 className="mb-4 text-2xl font-semibold">Push Notifications</h1>
       {subscription ? (
         <>
-          <p>You are subscribed to push notifications.</p>
-          <button onClick={unsubscribeFromPush}>Unsubscribe</button>
-          <input
-            type="text"
-            placeholder="Enter notification message"
-            value={message}
-            onChange={(event) => setMessage(event.target.value)}
-          />
-          <button onClick={sendTestNotification}>Send Test</button>
+          <p className="mb-4 text-balance text-gray-700">
+            You are subscribed to push notifications.
+          </p>
+          <button
+            className="rounded-[8px] bg-red-700 px-8 py-3 text-center font-heading text-lg font-bold leading-normal text-red-100 hover:bg-red-800"
+            onClick={unsubscribeFromPush}
+          >
+            Unsubscribe
+          </button>
         </>
       ) : (
         <>
-          <p>You are not subscribed to push notifications.</p>
-          <button onClick={subscribeToPush}>Subscribe</button>
+          <p className="mb-4 text-balance text-gray-700">
+            You are not subscribed to push notifications.
+          </p>
+          <button
+            className="rounded-[8px] bg-red-700 px-8 py-3 text-center font-heading text-lg font-bold leading-normal text-red-100 hover:bg-red-800"
+            onClick={subscribeToPush}
+          >
+            Subscribe
+          </button>
         </>
       )}
     </div>

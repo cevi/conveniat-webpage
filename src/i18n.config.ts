@@ -11,6 +11,9 @@ export const i18nExcludedRoutes: string[] = [
   'web-app-manifest-512x512.png',
   'favicon.svg',
 
+  // app landing page (is localized manually)
+  'entrypoint',
+
   // Internal Paths (API, Admin Panel of Payload CMS)
   '_next',
   'api',

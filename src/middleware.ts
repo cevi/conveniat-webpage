@@ -17,8 +17,21 @@ export const middleware = (request: NextRequest): NextResponse => {
 
   // check if app design feature is enabled, render app design if enabled
   if (process.env['FEATURE_ENABLE_APP_FEATURE'] === 'true') {
-    if (!request.cookies.has('app-design')) {
-      response.cookies.set('app-design', 'true');
+    if (
+      request.nextUrl.pathname !== '/entrypoint' &&
+      request.cookies.has('app-design') &&
+      !request.cookies.has('conveniat-cookie-banner')
+    ) {
+      return NextResponse.redirect(new URL('/entrypoint', request.url));
+    }
+
+    if (
+      request.nextUrl.pathname === '/entrypoint' &&
+      request.cookies.has('app-design') &&
+      request.cookies.has('conveniat-cookie-banner')
+    ) {
+      console.log('App design already set, redirecting to /');
+      return NextResponse.redirect(new URL('/', request.url));
     }
   } else {
     if (request.cookies.has('app-design')) {
@@ -27,7 +40,8 @@ export const middleware = (request: NextRequest): NextResponse => {
     if (
       [...i18nConfig.locales, ''].some((locale) =>
         request.nextUrl.pathname.startsWith(`/${locale}/app`),
-      )
+      ) ||
+      request.nextUrl.pathname.startsWith('/entrypoint')
     ) {
       return NextResponse.rewrite(new URL('/', request.url));
     }
