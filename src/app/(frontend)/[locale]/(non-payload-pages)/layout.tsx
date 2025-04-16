@@ -17,7 +17,9 @@ const Layout: React.FC<LayoutProperties> = async ({ children }) => {
   return (
     <>
       <ErrorBoundary
-        fallback={<ErrorPage error={new Error('main content failed to render at root layout')} />}
+        fallback={
+          <ErrorPage error={new Error('main content failed to render at non payload page')} />
+        }
       >
         <main className="mt-[60px] grow pb-20">{children}</main>
       </ErrorBoundary>
