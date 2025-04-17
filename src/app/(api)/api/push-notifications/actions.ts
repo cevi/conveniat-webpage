@@ -4,7 +4,7 @@ import webpush from 'web-push';
 import { getPayload, Where } from 'payload';
 import config from '@payload-config';
 
-const subject: string | undefined = process.env['VAPID_SUBJECT'];
+const subject: string | undefined = process.env['NEXT_PUBLIC_APP_HOST_URL'];
 const publicKey: string | undefined = process.env['NEXT_PUBLIC_VAPID_PUBLIC_KEY'];
 const privateKey: string | undefined = process.env['VAPID_PRIVATE_KEY'];
 
