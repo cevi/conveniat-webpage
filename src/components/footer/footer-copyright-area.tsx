@@ -72,7 +72,7 @@ export const FooterCopyrightArea: React.FC = async () => {
       )}
     >
       <FooterCopyrightText>{copyright}</FooterCopyrightText>
-      <div className={cn({ 'mb-[16px]': isInAppDesign })}>
+      <div className="mb-[16px]">
         <CeviSchweiz />
       </div>
       {
