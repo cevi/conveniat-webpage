@@ -26,7 +26,7 @@ export const generateManifest = async (): Promise<MetadataRoute.Manifest> => {
     short_name: appShortName,
     description: appDescription,
     id: APP_HOST_URL,
-    start_url: './entrypoint', // navigates to the app entrypoint on launch
+    start_url: '/entrypoint', // navigates to the app entrypoint on launch
     categories: ['kids', 'social', 'news'],
     //  it follows a pre-defined fallback chain: standalone → minimal-ui
     display: 'standalone',
@@ -40,7 +40,7 @@ export const generateManifest = async (): Promise<MetadataRoute.Manifest> => {
     dir: 'ltr',
     lang: LOCALE.DE, // TODO: how to support multiple languages?
     orientation: 'portrait-primary',
-    scope: APP_HOST_URL,
+    scope: '/',
     prefer_related_applications: false,
   };
 };

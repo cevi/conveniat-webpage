@@ -29,6 +29,21 @@ export async function subscribeUser(sub: webpush.PushSubscription): Promise<{ su
     data: sub,
   });
 
+  // send a test notification to the user
+  try {
+    await webpush.sendNotification(
+      sub,
+      JSON.stringify({
+        title: 'conveniat27',
+        // TODO: use a translation function
+        body: 'You have successfully subscribed to push notifications!',
+      }),
+    );
+  } catch (error) {
+    console.error('Error sending test notification:', error);
+    throw new Error('Failed to send test notification');
+  }
+
   return { success: true };
 }
 
