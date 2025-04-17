@@ -107,7 +107,7 @@ export async function sendNotification(message: string): Promise<{
       return sendNotificationToSubscription(
         subscription as webpush.PushSubscription,
         message,
-      ).catch((error) => {
+      ).catch((error: unknown) => {
         console.error(`Error sending notification to subscription ${subscription.id}:`, error);
         throw new Error(`Failed to send notification to subscription ${subscription.id}`); // Rethrow the error to be caught in the outer catch block
       });
