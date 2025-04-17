@@ -9,7 +9,7 @@ const callToActionField: Field = {
   admin: {
     description: {
       en: 'This is the call to action that will be displayed on the page.',
-      de: 'Dies ist der Handlungsaufforderung, die auf der Seite angezeigt wird.',
+      de: 'Dies ist die Handlungsaufforderung, die auf der Seite angezeigt wird.',
       fr: "C'est l'appel à l'action qui sera affiché sur la page.",
     },
   },
