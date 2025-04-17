@@ -18,14 +18,22 @@ const SendPushNotification: React.FC = () => {
       {hasData && (
         <div>
           <h5>Send Push Notification</h5>
-          <input type="text" placeholder="Push Notification Content" />
+          <input type="text" placeholder="Push Notification Content" id="send-push-content" />
           <button
-            onClick={(event) => {
+            onClick={async (event) => {
               event.preventDefault(); // prevent default form submission
-              return sendNotificationToSubscription(
-                savedDocumentData as webpush.PushSubscription,
-                (event.target as HTMLInputElement).value,
+              const subscription: webpush.PushSubscription =
+                savedDocumentData as webpush.PushSubscription;
+
+              const success = await sendNotificationToSubscription(
+                subscription,
+                (document.getElementById('send-push-content') as HTMLInputElement).value,
               );
+              if (success.success) {
+                alert('Push notification sent successfully');
+              } else {
+                alert('Failed to send push notification');
+              }
             }}
           >
             Send Push Notification
