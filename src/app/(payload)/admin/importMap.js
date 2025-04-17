@@ -15,6 +15,7 @@ import { UnorderedListFeatureClient as UnorderedListFeatureClient_e70f5e05f09f93
 import { default as default_bbae86ba8a00b783ed258b779fb3642a } from '@/payload-cms/components/url-field/url-input-field'
 import { default as default_c11185631465f95aa3fa15783b994e98 } from '@/payload-cms/components/disable-actions/disable-many-actions'
 import { default as default_04fa20694178abb35147c42812b162ee } from '@/payload-cms/components/multi-lang-publishing/publish-localized'
+import { default as default_c7e85c6e224db456b24ec1cb1fe85835 } from '@/payload-cms/components/push-notification/push-notification'
 import { LinkToDoc as LinkToDoc_aead06e4cbf6b2620c5c51c9ab283634 } from '@payloadcms/plugin-search/client'
 import { ReindexButton as ReindexButton_aead06e4cbf6b2620c5c51c9ab283634 } from '@payloadcms/plugin-search/client'
 import { ConveniatLogo as ConveniatLogo_1dcd95bfbb6787f73675c94df91c942d } from '@/components/svg-logos/conveniat-logo.tsx'
@@ -40,6 +41,7 @@ export const importMap = {
   "@/payload-cms/components/url-field/url-input-field#default": default_bbae86ba8a00b783ed258b779fb3642a,
   "@/payload-cms/components/disable-actions/disable-many-actions#default": default_c11185631465f95aa3fa15783b994e98,
   "@/payload-cms/components/multi-lang-publishing/publish-localized#default": default_04fa20694178abb35147c42812b162ee,
+  "@/payload-cms/components/push-notification/push-notification#default": default_c7e85c6e224db456b24ec1cb1fe85835,
   "@payloadcms/plugin-search/client#LinkToDoc": LinkToDoc_aead06e4cbf6b2620c5c51c9ab283634,
   "@payloadcms/plugin-search/client#ReindexButton": ReindexButton_aead06e4cbf6b2620c5c51c9ab283634,
   "@/components/svg-logos/conveniat-logo.tsx#ConveniatLogo": ConveniatLogo_1dcd95bfbb6787f73675c94df91c942d,

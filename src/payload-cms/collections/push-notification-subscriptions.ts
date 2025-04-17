@@ -1,7 +1,8 @@
 import { CollectionConfig } from 'payload';
 import { AdminPanelDashboardGroups } from '@/payload-cms/admin-panel-dashboard-groups';
+import { asPushNotificationCollection } from '../utils/push-notification-collection';
 
-export const PushNotificationSubscriptions: CollectionConfig = {
+export const PushNotificationSubscriptions: CollectionConfig = asPushNotificationCollection({
   slug: 'push-notification-subscriptions',
 
   fields: [
@@ -43,4 +44,4 @@ export const PushNotificationSubscriptions: CollectionConfig = {
   admin: {
     group: AdminPanelDashboardGroups.InternalCollections,
   },
-};
+});
