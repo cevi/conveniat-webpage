@@ -16,7 +16,9 @@ if (vapidPublicKey === undefined) {
  * PushNotificationManager is a React component that manages push notifications.
  * @constructor
  */
-export const PushNotificationManager = (): React.JSX.Element => {
+export const PushNotificationManager: React.FC<{
+  callback: () => void;
+}> = ({ callback }) => {
   const [isSupported, setIsSupported] = useState(false);
   const [subscription, setSubscription] = useState<PushSubscription | undefined>();
 
@@ -51,7 +53,7 @@ export const PushNotificationManager = (): React.JSX.Element => {
   };
 
   const subscribeToPush = (): void => {
-    _subscribeToPush().catch(console.error);
+    _subscribeToPush().then(callback).catch(console.error);
   };
 
   const _unsubscribeFromPush = async (): Promise<void> => {
@@ -67,7 +69,6 @@ export const PushNotificationManager = (): React.JSX.Element => {
   if (!isSupported) {
     return (
       <>
-        <h1 className="mb-4 text-2xl font-semibold">Push Notifications</h1>
         <p className="mb-4 text-balance text-gray-700">
           Push notifications are not supported in this browser.
         </p>
@@ -77,14 +78,13 @@ export const PushNotificationManager = (): React.JSX.Element => {
 
   return (
     <div className="mb-8">
-      <h1 className="mb-4 text-2xl font-semibold">Push Notifications</h1>
       {subscription ? (
         <>
           <p className="mb-4 text-balance text-gray-700">
             You are subscribed to push notifications.
           </p>
           <button
-            className="rounded-[8px] bg-red-700 px-8 py-3 text-center font-heading text-lg font-bold leading-normal text-red-100 hover:bg-red-800"
+            className="rounded-[8px] bg-gray-200 px-8 py-3 text-center font-heading text-lg font-bold leading-normal text-gray-600 hover:bg-gray-300"
             onClick={unsubscribeFromPush}
           >
             Unsubscribe

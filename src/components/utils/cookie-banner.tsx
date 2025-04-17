@@ -2,13 +2,11 @@
 
 import React, { useEffect, useState } from 'react';
 import Cookies from 'js-cookie';
-import { i18nConfig, Locale } from '@/types';
+import { Cookie, i18nConfig, Locale } from '@/types';
 import { useCurrentLocale } from 'next-i18n-router/client';
 
-const COOKIE_NAME = 'conveniat-cookie-banner';
-
 const shouldShowCookieBanner = (): boolean => {
-  return (Cookies.get(COOKIE_NAME) ?? 'false') === 'false';
+  return (Cookies.get(Cookie.CONVENIAT_COOKIE_BANNER) ?? 'false') === 'false';
 };
 
 export const CookieBanner: React.FC = () => {
@@ -21,7 +19,7 @@ export const CookieBanner: React.FC = () => {
   }, []);
 
   const acceptCookies = (): void => {
-    Cookies.set(COOKIE_NAME, 'true', { expires: 90 });
+    Cookies.set(Cookie.CONVENIAT_COOKIE_BANNER, 'true', { expires: 90 });
     setShowBanner(false);
   };
 

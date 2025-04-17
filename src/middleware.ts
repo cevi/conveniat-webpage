@@ -1,6 +1,6 @@
 import { i18nRouter } from 'next-i18n-router';
 import { NextRequest, NextResponse } from 'next/server';
-import { i18nConfig } from '@/types';
+import { Cookie, i18nConfig } from '@/types';
 import { i18nExcludedRoutes } from '@/i18n.config';
 
 /**
@@ -19,23 +19,23 @@ export const middleware = (request: NextRequest): NextResponse => {
   if (process.env['FEATURE_ENABLE_APP_FEATURE'] === 'true') {
     if (
       request.nextUrl.pathname !== '/entrypoint' &&
-      request.cookies.has('app-design') &&
-      !request.cookies.has('conveniat-cookie-banner')
+      request.cookies.has(Cookie.APP_DESIGN) &&
+      !request.cookies.has(Cookie.CONVENIAT_COOKIE_BANNER)
     ) {
       return NextResponse.redirect(new URL('/entrypoint', request.url));
     }
 
     if (
       request.nextUrl.pathname === '/entrypoint' &&
-      request.cookies.has('app-design') &&
-      request.cookies.has('conveniat-cookie-banner')
+      request.cookies.has(Cookie.APP_DESIGN) &&
+      request.cookies.has(Cookie.CONVENIAT_COOKIE_BANNER)
     ) {
       console.log('App design already set, redirecting to /');
       return NextResponse.redirect(new URL('/', request.url));
     }
   } else {
-    if (request.cookies.has('app-design')) {
-      response.cookies.delete('app-design');
+    if (request.cookies.has(Cookie.APP_DESIGN)) {
+      response.cookies.delete(Cookie.APP_DESIGN);
     }
     if (
       [...i18nConfig.locales, ''].some((locale) =>

@@ -36,3 +36,9 @@ export type RoutableCollectionConfigs = (CollectionConfig | RoutableCollectionCo
 export type RoutableConfig = Omit<PayloadConfig, 'collections'> & {
   collections?: RoutableCollectionConfigs;
 };
+
+export enum Cookie {
+  APP_DESIGN = 'app-design',
+  HAS_LOGGED_IN = 'has-logged-in',
+  CONVENIAT_COOKIE_BANNER = 'conveniat-cookie-banner',
+}
