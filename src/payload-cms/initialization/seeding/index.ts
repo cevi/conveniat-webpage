@@ -5,6 +5,11 @@ import { basicBlog } from './blog-post';
 import { basicTimelineObject } from './timeline';
 import { LOCALE } from '@/payload-cms/locales';
 import { fakerDE as faker } from '@faker-js/faker';
+import {
+  seedPermissionAdminsOnly,
+  seedPermissionLoggedIn,
+  seedPermissionPublic,
+} from './permissions';
 
 /**
  * Seed the database with some initial data.
@@ -86,36 +91,9 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     data: structuredClone(basicTimelineObject),
   });
 
-  const public_permission = await payload.create({
-    collection: 'permissions',
-    data: {
-      permissionName: 'Everyone',
-      permissions: [],
-      public: true,
-    },
-  });
-
-  await payload.create({
-    collection: 'permissions',
-    data: {
-      permissionName: 'Internal',
-      permissions: [],
-      logged_in: true,
-    },
-  });
-
-  await payload.create({
-    collection: 'permissions',
-    data: {
-      permissionName: 'Admins Only',
-      permissions: [
-        {
-          group_id: 541,
-          note: 'CeviDB Group ID',
-        },
-      ],
-    },
-  });
+  const public_permission = await seedPermissionPublic(payload);
+  await seedPermissionAdminsOnly(payload);
+  await seedPermissionLoggedIn(payload);
 
   const blockCount = 20;
   for (let index = 0; index < blockCount; index++) {

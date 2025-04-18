@@ -44,7 +44,7 @@ export const PermissionsCollection: CollectionConfig = {
       },
       type: 'array',
       required: false,
-      localized: true,
+      localized: false,
       admin: {
         description: {
           en: 'List of Groups in the CeviDB for this permission.',
