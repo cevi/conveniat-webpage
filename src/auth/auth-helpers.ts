@@ -73,7 +73,7 @@ const fetchSessionFromCeviDB = async (
  * @param payload
  * @param nextAuthUser
  */
-async function getPayloadUserFromNextAuthUser(
+export async function getPayloadUserFromNextAuthUser(
   payload: BasePayload,
   nextAuthUser: HitobitoNextAuthUser,
 ): Promise<User | undefined> {

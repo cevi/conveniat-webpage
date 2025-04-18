@@ -3,6 +3,9 @@
 import webpush from 'web-push';
 import { getPayload, Where } from 'payload';
 import config from '@payload-config';
+import { auth } from '@/auth/auth';
+import { getPayloadUserFromNextAuthUser } from '@/auth/auth-helpers';
+import { HitobitoNextAuthUser } from '@/auth/hitobito-next-auth-user';
 
 const subject: string | undefined = process.env['NEXT_PUBLIC_APP_HOST_URL'];
 const publicKey: string | undefined = process.env['NEXT_PUBLIC_VAPID_PUBLIC_KEY'];
@@ -22,11 +25,16 @@ webpush.setVapidDetails(subject, publicKey, privateKey);
  * @param sub
  */
 export async function subscribeUser(sub: webpush.PushSubscription): Promise<{ success: boolean }> {
-  // TODO: associate additional user data with the subscription
   const payload = await getPayload({ config });
+  const session = await auth();
+
+  const hitobito_user = session?.user as HitobitoNextAuthUser;
+
+  // eslint-disable-next-line unicorn/no-null
+  const payloadUser = (await getPayloadUserFromNextAuthUser(payload, hitobito_user)) ?? null;
   await payload.create({
     collection: 'push-notification-subscriptions',
-    data: sub,
+    data: { ...sub, user: payloadUser },
   });
 
   // send a test notification to the user

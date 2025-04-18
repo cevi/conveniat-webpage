@@ -7,15 +7,26 @@ export const PushNotificationSubscriptions: CollectionConfig = asPushNotificatio
 
   fields: [
     {
+      name: 'user',
+      relationTo: 'users',
+      type: 'relationship',
+    },
+    {
       type: 'text',
       name: 'endpoint',
       required: true,
+      admin: {
+        readOnly: true,
+      },
     },
 
     {
       type: 'number',
       name: 'expirationTime',
       required: false,
+      admin: {
+        readOnly: true,
+      },
     },
     {
       type: 'group',
@@ -25,11 +36,17 @@ export const PushNotificationSubscriptions: CollectionConfig = asPushNotificatio
           type: 'text',
           name: 'p256dh',
           required: true,
+          admin: {
+            readOnly: true,
+          },
         },
         {
           type: 'text',
           name: 'auth',
           required: true,
+          admin: {
+            readOnly: true,
+          },
         },
       ],
     },

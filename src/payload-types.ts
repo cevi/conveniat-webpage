@@ -855,6 +855,7 @@ export interface User {
  */
 export interface PushNotificationSubscription {
   id: string;
+  user?: (string | null) | User;
   endpoint: string;
   expirationTime?: number | null;
   keys: {
@@ -1335,6 +1336,7 @@ export interface PermissionsSelect<T extends boolean = true> {
  * via the `definition` "push-notification-subscriptions_select".
  */
 export interface PushNotificationSubscriptionsSelect<T extends boolean = true> {
+  user?: T;
   endpoint?: T;
   expirationTime?: T;
   keys?:
