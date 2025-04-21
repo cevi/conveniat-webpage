@@ -9,19 +9,19 @@ This repository contains the source code for the official website of conveniat27
 - [Core Technologies](#core-technologies)
 - [Prerequisites](#prerequisites)
 - [Getting Started](#getting-started)
-    - [Launch Project Locally (Devcontainer Recommended)](#launch-project-locally-devcontainer-recommended)
-    - [Local Development Commands](#local-development-commands)
-    - [Accessing the Payload Admin Panel](#accessing-the-payload-admin-panel)
+  - [Launch Project Locally (Devcontainer Recommended)](#launch-project-locally-devcontainer-recommended)
+  - [Local Development Commands](#local-development-commands)
+  - [Accessing the Payload Admin Panel](#accessing-the-payload-admin-panel)
 - [Project Structure](#project-structure)
-    - [Folder Overview](#folder-overview)
-    - [Feature-Based Modularity](#feature-based-modularity)
+  - [Folder Overview](#folder-overview)
+  - [Feature-Based Modularity](#feature-based-modularity)
 - [Key Concepts](#key-concepts)
-    - [Dynamic Page Rendering](#dynamic-page-rendering)
-    - [Progressive Web App (PWA)](#progressive-web-app-pwa)
+  - [Dynamic Page Rendering](#dynamic-page-rendering)
+  - [Progressive Web App (PWA)](#progressive-web-app-pwa)
 - [Code Quality & Conventions](#code-quality--conventions)
-    - [TypeScript Strictness](#typescript-strictness)
-    - [Linting and Formatting](#linting-and-formatting)
-    - [Import Restrictions](#import-restrictions)
+  - [TypeScript Strictness](#typescript-strictness)
+  - [Linting and Formatting](#linting-and-formatting)
+  - [Import Restrictions](#import-restrictions)
 - [UI Component Library](#ui-component-library)
 - [Environment Variables](#environment-variables)
 - [License](#license)
@@ -123,11 +123,11 @@ src/
   subdirectories, scoped to that feature.
 - **Import Restrictions:** ESLint rules (`import/no-restricted-paths` in `eslint.config.mjs`) enforce unidirectional
   dependencies:
-    - `app` can import from `features` and shared directories (`components`, `hooks`, etc.).
-    - `features` *cannot* import from `app` or shared directories.
-    - Features generally should *not* import directly from other features, promoting loose coupling. Exceptions are
-      explicitly defined (e.g., `payload-cms` and `next-auth` can be imported more broadly).
-    - Shared directories (`components`, `hooks`, `lib`, `types`, `utils`) should not import from `app` or `features`.
+  - `app` can import from `features` and shared directories (`components`, `hooks`, etc.).
+  - `features` _cannot_ import from `app` or shared directories.
+  - Features generally should _not_ import directly from other features, promoting loose coupling. Exceptions are
+    explicitly defined (e.g., `payload-cms` and `next-auth` can be imported more broadly).
+  - Shared directories (`components`, `hooks`, `lib`, `types`, `utils`) should not import from `app` or `features`.
 - **Payload CMS Exception:** The `payload-cms` feature is central and can be imported by other parts of the application
   as it defines the core data structures / content types used throughout the app.
 

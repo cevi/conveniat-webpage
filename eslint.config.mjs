@@ -33,20 +33,19 @@ const features_folder = [
 // assert that all folders in src/features are in the features array
 const featuresDir = path.join(__dirname, 'src', 'features');
 const featuresFiles = await fs.promises.readdir(featuresDir);
-const featuresFolders = featuresFiles.filter(async file => {
+const featuresFolders = featuresFiles.filter(async (file) => {
   const stat = await fs.promises.stat(path.join(featuresDir, file));
   return stat.isDirectory();
 });
 const featuresFoldersSet = new Set(featuresFolders);
 const featuresSet = new Set(features_folder);
-const missingFeatures = [...featuresFoldersSet].filter(feature => !featuresSet.has(feature));
+const missingFeatures = [...featuresFoldersSet].filter((feature) => !featuresSet.has(feature));
 if (missingFeatures.length > 0) {
   throw new Error(
     `Missing features in the features array: ${missingFeatures.join(', ')}.
     Consider adding them to the features_folder array in eslint.config.mjs!`,
   );
 }
-
 
 const config = [
   progress.configs.recommended,
@@ -154,9 +153,8 @@ const config = [
         'error',
         {
           zones: [
-
             // enforce unidirectional codebase:
-            ...features_folder.map(feature => ({
+            ...features_folder.map((feature) => ({
               target: `./src/features/${feature}`,
               from: './src/features',
               except: [
@@ -198,7 +196,6 @@ const config = [
           ],
         },
       ],
-
     },
   },
   {
