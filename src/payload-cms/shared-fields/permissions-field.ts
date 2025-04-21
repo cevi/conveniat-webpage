@@ -1,7 +1,8 @@
-import { Field, getPayload } from 'payload';
+import type { Field } from 'payload';
+import { getPayload } from 'payload';
 import config from '@payload-config';
 
-export const defaultPublicPermission = async () => {
+export const defaultPublicPermission = async (): Promise<string | undefined> => {
   const payload = await getPayload({ config });
   // search payload collection for permission where "public" is true.
   const pub_perm = await payload.find({

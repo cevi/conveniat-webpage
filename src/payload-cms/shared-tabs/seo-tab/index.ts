@@ -1,4 +1,4 @@
-import { Tab } from 'payload';
+import type { Tab } from 'payload';
 import { slugValidation } from '@/payload-cms/collections/blog-article/validation';
 import { metaTitle } from '@/payload-cms/shared-tabs/seo-tab/fields/meta-title';
 import { metaDescription } from '@/payload-cms/shared-tabs/seo-tab/fields/meta-description';

@@ -1,4 +1,4 @@
-import { Block } from 'payload';
+import type { Block } from 'payload';
 import { minimalEditorFeatures } from '@/payload-cms/plugins/lexical-editor';
 import {
   defaultEditorLexicalConfig,

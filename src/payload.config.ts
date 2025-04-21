@@ -10,7 +10,7 @@ import { buildSecureConfig } from '@/payload-cms/access-rules/build-secure-confi
 import { formBuilderPlugin } from '@payloadcms/plugin-form-builder';
 import { onPayloadInit } from 'src/payload-cms/initialization';
 import { dropRouteInfo } from '@/payload-cms/global-routes';
-import { RoutableConfig } from '@/types';
+import type { RoutableConfig } from '@/types';
 import { emailSettings } from '@/payload-cms/email-settings';
 import { collectionsConfig } from '@/payload-cms/collections';
 import { lexicalEditor } from '@/payload-cms/plugins/lexical-editor';
@@ -18,7 +18,7 @@ import { s3StorageConfiguration } from '@/payload-cms/plugins/s3-storage-plugin-
 import { searchPluginConfiguration } from '@/payload-cms/plugins/search/search-plugin-configuration';
 import { globalConfig } from '@/payload-cms/globals';
 import sharp from 'sharp';
-import { CollectionConfig, Locale } from 'payload';
+import type { CollectionConfig, Locale } from 'payload';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);

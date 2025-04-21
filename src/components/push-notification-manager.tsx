@@ -3,7 +3,7 @@
 import { subscribeUser, unsubscribeUser } from '@/app/(api)/api/push-notification';
 import { urlBase64ToUint8Array } from '@/utils/url-base64-to-uint8-array';
 import React, { useEffect, useState } from 'react';
-import webpush from 'web-push';
+import type webpush from 'web-push';
 
 const vapidPublicKey: string | undefined = process.env['NEXT_PUBLIC_VAPID_PUBLIC_KEY'];
 if (vapidPublicKey === undefined) {

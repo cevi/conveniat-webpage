@@ -1,10 +1,10 @@
-import { Blog } from '@/payload-types';
+import type { Blog } from '@/payload-types';
 import { HeadlineH1 } from '@/components/typography/headline-h1';
 import React from 'react';
 import Image from 'next/image';
 import { PageSectionsConverter } from 'src/converters/page-sections';
-import { Locale, SearchParameters } from '@/types';
-import { ContentBlock } from '@/converters/page-sections/section-wrapper';
+import type { Locale, SearchParameters } from '@/types';
+import type { ContentBlock } from '@/converters/page-sections/section-wrapper';
 
 export const BlogArticleConverter: React.FC<{
   article: Blog;
@@ -25,12 +25,7 @@ export const BlogArticleConverter: React.FC<{
         <HeadlineH1>{article.content.blogH1}</HeadlineH1>
 
         <div className="relative mt-10 aspect-[16/9] w-full text-lg text-conveniat-green">
-          <Image
-            src={source}
-            alt={altText}
-            className="block rounded-2xl object-cover"
-            fill={true}
-          />
+          <Image src={source} alt={altText} className="block rounded-2xl object-cover" fill />
         </div>
 
         <PageSectionsConverter

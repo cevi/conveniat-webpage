@@ -2,14 +2,14 @@ import React from 'react';
 import Link from 'next/link';
 import { Paperclip } from 'lucide-react';
 
-export type FileDownloadType = {
+export interface FileDownloadType {
   file: {
     url: string;
     filename: string;
     filesize: number;
   };
   openInNewTab: boolean;
-};
+}
 
 const formatBytes = (bytes: number, decimals = 2): string => {
   // if < 1kb

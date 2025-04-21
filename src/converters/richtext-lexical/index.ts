@@ -1,5 +1,6 @@
-import { JSXConverters, TextJSXConverter } from '@payloadcms/richtext-lexical/react';
-import { SerializedHeadingNode } from '@payloadcms/richtext-lexical';
+import type { JSXConverters } from '@payloadcms/richtext-lexical/react';
+import { TextJSXConverter } from '@payloadcms/richtext-lexical/react';
+import type { SerializedHeadingNode } from '@payloadcms/richtext-lexical';
 import { HeadingJSXConverter } from '@/converters/richtext-lexical/heading-converter';
 import { ParagraphJSXConverter } from '@/converters/richtext-lexical/paragraph-converter';
 import { LinkJSXConverter } from '@/converters/richtext-lexical/link-converter';

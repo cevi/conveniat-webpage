@@ -1,4 +1,4 @@
-import { Block } from 'payload';
+import type { Block } from 'payload';
 import { photoCarouselMinSelectionValidation } from '@/payload-cms/collections/blog-article/validation';
 
 export const photoCarouselBlock: Block = {

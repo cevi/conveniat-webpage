@@ -1,4 +1,4 @@
-import { Field } from 'payload';
+import type { Field } from 'payload';
 import { richTextArticleBlock } from '@/payload-cms/shared-blocks/rich-text-article-block';
 import { formBlock } from '@/payload-cms/shared-blocks/form-block';
 import { photoCarouselBlock } from '@/payload-cms/shared-blocks/photo-carousel-block';

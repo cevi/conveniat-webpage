@@ -1,4 +1,4 @@
-import { Access, PayloadRequest } from 'payload';
+import type { Access, PayloadRequest } from 'payload';
 
 const GROUPS_WITH_API_ACCESS_RAW = process.env['GROUPS_WITH_API_ACCESS'] ?? '';
 const GROUPS_WITH_API_ACCESS = new Set(

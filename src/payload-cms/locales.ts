@@ -1,4 +1,4 @@
-import { Locale } from 'payload';
+import type { Locale } from 'payload';
 
 const DE = 'de' as const;
 const FR = 'fr' as const;

@@ -1,11 +1,12 @@
-import React, { ReactNode } from 'react';
+import type { ReactNode } from 'react';
+import React from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import ErrorPage from '@/app/(frontend)/error';
 import { FooterComponent } from '@/components/footer/footer-component';
 
-type LayoutProperties = {
+interface LayoutProperties {
   children: ReactNode;
-};
+}
 
 const Layout: React.FC<LayoutProperties> = async ({ children }) => {
   return (

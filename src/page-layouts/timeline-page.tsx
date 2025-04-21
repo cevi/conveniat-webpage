@@ -3,9 +3,9 @@ import { getPayload } from 'payload';
 import config from '@payload-config';
 import { HeadlineH1 } from '@/components/typography/headline-h1';
 import { PageSectionsConverter } from 'src/converters/page-sections';
-import { LocalizedCollectionPage, StaticTranslationString } from '@/types';
+import type { LocalizedCollectionPage, StaticTranslationString } from '@/types';
 import { SubheadingH2 } from '@/components/typography/subheading-h2';
-import { ContentBlock } from '@/converters/page-sections/section-wrapper';
+import type { ContentBlock } from '@/converters/page-sections/section-wrapper';
 
 const pageTitle: StaticTranslationString = {
   en: 'Timeline',

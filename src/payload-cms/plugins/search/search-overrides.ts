@@ -1,5 +1,5 @@
-import { FieldsOverride } from 'node_modules/@payloadcms/plugin-search/dist/types';
-import { CollectionConfig } from 'payload';
+import type { FieldsOverride } from 'node_modules/@payloadcms/plugin-search/dist/types';
+import type { CollectionConfig } from 'payload';
 
 export const searchOverrides: { fields?: FieldsOverride } & Partial<
   Omit<CollectionConfig, 'fields'>

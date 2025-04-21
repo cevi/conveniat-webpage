@@ -3,7 +3,9 @@ import { RichText } from '@payloadcms/richtext-lexical/react';
 import React from 'react';
 import { jsxConverters } from '@/converters/richtext-lexical';
 
-export type LexicalRichTextSectionType = { richTextSection: SerializedEditorState };
+export interface LexicalRichTextSectionType {
+  richTextSection: SerializedEditorState;
+}
 
 /**
  * Renders the page content from an editor state.

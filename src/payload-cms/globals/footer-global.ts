@@ -1,4 +1,4 @@
-import { GlobalConfig } from 'payload';
+import type { GlobalConfig } from 'payload';
 import { AdminPanelDashboardGroups } from '@/payload-cms/admin-panel-dashboard-groups';
 
 export const FooterGlobal: GlobalConfig = {

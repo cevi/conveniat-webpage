@@ -1,4 +1,4 @@
-import { Block } from 'payload';
+import type { Block } from 'payload';
 import { youtubeLinkValidation } from '../collections/youtube-validation';
 
 export const youtubeEmbedBlock: Block = {

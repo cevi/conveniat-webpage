@@ -3,7 +3,7 @@ import {
   pushNotificationHandler,
 } from '@/service-worker/push-notifications';
 import { offlineSupportInstallHandler } from '@/service-worker/offline-support';
-import { PrecacheEntry, SerwistGlobalConfig } from 'serwist';
+import type { PrecacheEntry, SerwistGlobalConfig } from 'serwist';
 
 /**
  * Declares the global `__SW_MANIFEST` property on the `WorkerGlobalScope`.

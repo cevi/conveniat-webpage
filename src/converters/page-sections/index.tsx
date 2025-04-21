@@ -1,8 +1,11 @@
 import React from 'react';
-import { LocalizedPageType } from '@/types';
-import { ContentBlock } from '@/converters/page-sections/section-wrapper';
-import {
+import type { LocalizedPageType } from '@/types';
+import type { ContentBlock } from '@/converters/page-sections/section-wrapper';
+import type {
   ContentBlockTypeNames,
+  SectionRenderer,
+} from '@/converters/page-sections/content-blocks';
+import {
   DetailsTable,
   RenderBlogPostsOverview,
   RenderFormBlock,
@@ -12,7 +15,6 @@ import {
   RenderSinglePicture,
   RenderYoutubeEmbed,
   RenderFileDownload,
-  SectionRenderer,
   SwisstopoInlineMapSection,
 } from '@/converters/page-sections/content-blocks';
 

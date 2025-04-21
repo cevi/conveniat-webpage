@@ -1,4 +1,4 @@
-import { CollectionConfig } from 'payload';
+import type { CollectionConfig } from 'payload';
 import { localizedStatusSchema } from '@/payload-cms/utils/localized-status-schema';
 import { getPublishingStatus } from '@/payload-cms/hooks/publishing-status';
 

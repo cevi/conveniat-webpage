@@ -1,4 +1,4 @@
-import { Timeline } from '@/payload-types';
+import type { Timeline } from '@/payload-types';
 import { LOCALE } from '@/payload-cms/locales';
 
 export const basicTimelineObject: Timeline = {

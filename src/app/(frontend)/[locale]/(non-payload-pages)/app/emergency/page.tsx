@@ -1,6 +1,7 @@
 'use client';
 
-import React, { ChangeEvent, useState } from 'react';
+import type { ChangeEvent } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, Search, X } from 'lucide-react';
 import { HeadlineH1 } from '@/components/typography/headline-h1';

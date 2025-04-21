@@ -1,14 +1,14 @@
 import { auth } from '@/auth/auth';
-import { Permission } from '@/payload-types';
+import type { Permission } from '@/payload-types';
 
-type UserWithGroup = {
+interface UserWithGroup {
   groups:
     | {
         id: number;
         role: string;
       }[]
     | undefined;
-};
+}
 
 const isPermissionPublic = (permission: Permission | null | undefined): boolean => {
   return permission?.public === true;

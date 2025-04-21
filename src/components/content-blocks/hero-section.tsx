@@ -2,7 +2,7 @@ import React from 'react';
 import { TeaserText } from '@/components/typography/teaser-text';
 import { CallToAction } from '@/components/buttons/call-to-action';
 
-export type HeroSectionType = {
+export interface HeroSectionType {
   blockName?: string;
   blockType?: 'heroSection';
   pageTeaser: string;
@@ -10,7 +10,7 @@ export type HeroSectionType = {
     link: string;
     linkLabel: string;
   };
-};
+}
 
 export const HeroSection: React.FC<HeroSectionType> = async ({ ...block }) => {
   return (

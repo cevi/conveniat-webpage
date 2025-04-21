@@ -1,4 +1,4 @@
-import { Field, GlobalConfig } from 'payload';
+import type { Field, GlobalConfig } from 'payload';
 import { AdminPanelDashboardGroups } from '@/payload-cms/admin-panel-dashboard-groups';
 
 const MainMenu: Field = {

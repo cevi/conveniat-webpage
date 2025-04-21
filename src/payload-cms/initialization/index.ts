@@ -1,4 +1,4 @@
-import { Payload } from 'payload';
+import type { Payload } from 'payload';
 import { seedDatabase } from 'src/payload-cms/initialization/seeding';
 
 /**

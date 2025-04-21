@@ -3,10 +3,11 @@ import React, { useEffect } from 'react';
 import { HeadlineH1 } from '@/components/typography/headline-h1';
 import { TeaserText } from '@/components/typography/teaser-text';
 import Link from 'next/link';
-import { i18nConfig, Locale, StaticTranslationString } from '@/types';
+import type { Locale, StaticTranslationString } from '@/types';
+import { i18nConfig } from '@/types';
 import { useCurrentLocale } from 'next-i18n-router/client';
 
-const error: StaticTranslationString = {
+const errorMessage: StaticTranslationString = {
   de: 'Es ist ein Fehler aufgetreten',
   en: 'Something went wrong',
   fr: "Une erreur s'est produite",
@@ -49,19 +50,19 @@ const errorDescription: Record<Locale, React.JSX.Element> = {
  */
 const ErrorPage: React.FC<{
   error: Error & { digest?: string };
-}> = (arguments_) => {
+}> = ({ error }) => {
   const locale = useCurrentLocale(i18nConfig);
 
   useEffect(() => {
-    console.error(arguments_.error);
-    console.error(arguments_.error.stack);
-  }, [arguments_]);
+    console.error(error);
+    console.error(error.stack);
+  }, [error]);
 
   return (
     <>
       <main className="mt-[96px] grow">
         <article className="mx-auto my-8 max-w-2xl px-8">
-          <HeadlineH1>{error[locale as Locale]}</HeadlineH1>
+          <HeadlineH1>{errorMessage[locale as Locale]}</HeadlineH1>
           <TeaserText>{errorDescription[locale as Locale]}</TeaserText>
         </article>
       </main>

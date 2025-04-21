@@ -1,6 +1,6 @@
-import { Config } from 'payload';
+import type { Config } from 'payload';
 
-import { RoutableConfig } from '@/types';
+import type { RoutableConfig } from '@/types';
 
 /**
  * Helper function to remove route information from the config.

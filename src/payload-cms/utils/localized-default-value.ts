@@ -1,4 +1,4 @@
-import { Locale } from '@/types';
+import type { Locale } from '@/types';
 import { LOCALE as COUNTRY_CODES } from '@/payload-cms/locales';
 
 // TODO: this should be fully dynamic with

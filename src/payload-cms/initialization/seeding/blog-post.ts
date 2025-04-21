@@ -1,4 +1,4 @@
-import { Blog } from '@/payload-types';
+import type { Blog } from '@/payload-types';
 import { LOCALE } from '@/payload-cms/locales';
 import { generateRichTextSection } from '@/payload-cms/initialization/seeding/placeholder-lexical';
 import { fakerDE as faker } from '@faker-js/faker';

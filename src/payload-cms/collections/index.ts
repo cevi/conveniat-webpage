@@ -1,4 +1,4 @@
-import { RoutableCollectionConfigs } from '@/types';
+import type { RoutableCollectionConfigs } from '@/types';
 import { BlogArticleCollection } from '@/payload-cms/collections/blog-article';
 import { GenericPage as GenericPageCollection } from '@/payload-cms/collections/generic-page';
 import { TimelineCollection } from '@/payload-cms/collections/timeline';

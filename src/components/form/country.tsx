@@ -1,5 +1,5 @@
+import type { Control } from 'react-hook-form';
 import {
-  Control,
   Controller,
   type FieldErrorsImpl,
   type FieldValues,
@@ -7,7 +7,7 @@ import {
 } from 'react-hook-form';
 import { Required } from './required';
 import React from 'react';
-import { CountryField } from '@payloadcms/plugin-form-builder/types';
+import type { CountryField } from '@payloadcms/plugin-form-builder/types';
 import ReactSelect from 'react-select';
 import { countryOptions } from './country-options';
 

@@ -1,5 +1,5 @@
-import { JSXConverters } from '@payloadcms/richtext-lexical/react';
-import { SerializedParagraphNode } from '@payloadcms/richtext-lexical';
+import type { JSXConverters } from '@payloadcms/richtext-lexical/react';
+import type { SerializedParagraphNode } from '@payloadcms/richtext-lexical';
 import { ParagraphText } from '@/components/typography/paragraph-text';
 
 /**

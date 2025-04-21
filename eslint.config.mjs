@@ -70,6 +70,17 @@ const config = [
       '@typescript-eslint/require-array-sort-compare': 'error',
       '@typescript-eslint/no-unused-vars': 'error',
 
+      // stricter rules for type checking
+      '@typescript-eslint/consistent-type-definitions': 'error',
+      '@typescript-eslint/consistent-type-exports': 'error',
+      '@typescript-eslint/consistent-type-imports': 'error',
+      '@typescript-eslint/consistent-type-assertions': 'error',
+      '@typescript-eslint/explicit-function-return-type': 'error',
+
+      'react/no-unstable-nested-components': 'error',
+      'react/destructuring-assignment': 'error',
+
+      'react/jsx-boolean-value': 'error',
       '@typescript-eslint/no-unsafe-assignment': 'error',
       '@typescript-eslint/no-misused-promises': 'error',
       '@typescript-eslint/no-unsafe-argument': 'error',
@@ -78,7 +89,6 @@ const config = [
 
       '@typescript-eslint/no-unsafe-enum-comparison': 'error',
       '@typescript-eslint/prefer-promise-reject-errors': 'error',
-      '@typescript-eslint/explicit-function-return-type': 'warn',
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-non-null-assertion': 'error',
       '@typescript-eslint/no-unsafe-call': 'error',

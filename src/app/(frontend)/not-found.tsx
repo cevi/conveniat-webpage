@@ -3,7 +3,7 @@ import { HeadlineH1 } from '@/components/typography/headline-h1';
 import { TeaserText } from '@/components/typography/teaser-text';
 import Link from 'next/link';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
-import { Locale, StaticTranslationString } from '@/types';
+import type { Locale, StaticTranslationString } from '@/types';
 import { FooterComponent } from '@/components/footer/footer-component';
 
 const error404: StaticTranslationString = {

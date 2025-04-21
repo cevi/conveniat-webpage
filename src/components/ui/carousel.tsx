@@ -13,12 +13,12 @@ type UseCarouselParameters = Parameters<typeof useEmblaCarousel>;
 type CarouselOptions = UseCarouselParameters[0];
 type CarouselPlugin = UseCarouselParameters[1];
 
-type CarouselProperties = {
+interface CarouselProperties {
   opts?: CarouselOptions;
   plugins?: CarouselPlugin;
   orientation?: 'horizontal' | 'vertical';
   setApi?: (api: CarouselApi) => void;
-};
+}
 
 type CarouselContextProperties = {
   carouselRef: ReturnType<typeof useEmblaCarousel>[0];

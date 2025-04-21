@@ -1,6 +1,6 @@
 import { AdminPanelDashboardGroups } from '@/payload-cms/admin-panel-dashboard-groups';
 import { asLocalizedCollection } from '@/payload-cms/utils/localized-collection';
-import { CollectionConfig } from 'payload';
+import type { CollectionConfig } from 'payload';
 import { richTextArticleBlock } from '@/payload-cms/shared-blocks/rich-text-article-block';
 import { singlePictureBlock } from '@/payload-cms/shared-blocks/single-picture-block';
 

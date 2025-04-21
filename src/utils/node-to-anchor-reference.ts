@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 /**
  * Converts a ReactNode to a string that can be used as an anchor reference.

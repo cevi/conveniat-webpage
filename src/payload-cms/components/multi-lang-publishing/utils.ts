@@ -1,4 +1,4 @@
-import { CollectionSlug } from 'payload';
+import type { CollectionSlug } from 'payload';
 
 export const fetchDocument = async <T>({
   slug,

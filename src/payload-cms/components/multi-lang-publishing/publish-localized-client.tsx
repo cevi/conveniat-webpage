@@ -18,8 +18,8 @@ import {
 } from '@payloadcms/ui';
 import { cva } from 'class-variance-authority';
 import { useIsPublished } from '@/payload-cms/hooks/is-published';
-import { Config } from '@/payload-types';
-import { StaticTranslationString } from '@/types';
+import type { Config } from '@/payload-types';
+import type { StaticTranslationString } from '@/types';
 
 const unpublishingActionString: StaticTranslationString = {
   en: 'Unpublish in',

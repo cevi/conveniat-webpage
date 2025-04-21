@@ -1,13 +1,13 @@
-import { JSONSchema4 } from 'json-schema';
+import type { JSONSchema4 } from 'json-schema';
 
 /**
  * defines the type for the JSON schema of a field of type `json` in Payload
  */
-type PayloadJSONSchema = {
+interface PayloadJSONSchema {
   fileMatch: string[];
   schema: JSONSchema4;
   uri: string;
-};
+}
 export const localizedStatusSchema: PayloadJSONSchema = {
   schema: {
     type: 'object',

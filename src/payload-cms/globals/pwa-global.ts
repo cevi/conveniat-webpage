@@ -1,4 +1,4 @@
-import { GlobalConfig } from 'payload';
+import type { GlobalConfig } from 'payload';
 import { AdminPanelDashboardGroups } from '@/payload-cms/admin-panel-dashboard-groups';
 import { localizedDefaultValue } from '@/payload-cms/utils/localized-default-value';
 

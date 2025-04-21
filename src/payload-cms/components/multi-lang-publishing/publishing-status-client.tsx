@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useAllFormFields, useDocumentInfo } from '@payloadcms/ui';
 import { LanguageStatus } from '@/payload-cms/components/multi-lang-publishing/publishing-status';
-import { PublishingStatusType } from '@/payload-cms/components/multi-lang-publishing/type';
+import type { PublishingStatusType } from '@/payload-cms/components/multi-lang-publishing/type';
 
 export const PublishingStatusBadges: React.FC<{
   publishingStatus: PublishingStatusType;

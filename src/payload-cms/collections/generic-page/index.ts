@@ -1,4 +1,4 @@
-import { CollectionConfig } from 'payload';
+import type { CollectionConfig } from 'payload';
 import { asLocalizedCollection } from '@/payload-cms/utils/localized-collection';
 import { AdminPanelDashboardGroups } from '@/payload-cms/admin-panel-dashboard-groups';
 import { mainContentField } from '@/payload-cms/shared-fields/main-content-field';

@@ -1,4 +1,4 @@
-import { CollectionConfig } from 'payload';
+import type { CollectionConfig } from 'payload';
 import { canAccessAdminPanel } from '@/payload-cms/access-rules/can-access-admin-panel';
 import { getAuthenticateUsingCeviDB } from '@/auth/auth-helpers';
 import { AdminPanelDashboardGroups } from '@/payload-cms/admin-panel-dashboard-groups';

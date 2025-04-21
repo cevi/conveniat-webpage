@@ -1,6 +1,6 @@
 'use client';
 
-import webpush from 'web-push';
+import type webpush from 'web-push';
 import { sendNotificationToSubscription } from '@/app/(api)/api/push-notification';
 import { useDocumentInfo } from '@payloadcms/ui';
 
@@ -22,7 +22,7 @@ const SendPushNotification: React.FC = () => {
           <button
             onClick={(event) => {
               event.preventDefault(); // prevent default form submission
-              void (async () => {
+              void (async (): Promise<void> => {
                 const subscription: webpush.PushSubscription =
                   savedDocumentData as webpush.PushSubscription;
 

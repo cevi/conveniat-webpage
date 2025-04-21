@@ -7,8 +7,9 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { buildInitialFormState } from './build-initial-form-state';
 import { RichText } from '@payloadcms/richtext-lexical/react';
-import { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
-import { i18nConfig, Locale, StaticTranslationString } from '@/types';
+import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
+import type { Locale, StaticTranslationString } from '@/types';
+import { i18nConfig } from '@/types';
 import { useCurrentLocale } from 'next-i18n-router/client';
 
 export type Value = unknown;
@@ -17,11 +18,11 @@ export interface Property {
   [key: string]: Value;
 }
 
-export type FormBlockType = {
+export interface FormBlockType {
   blockName?: string;
   blockType?: 'formBlock';
   form: FormType;
-};
+}
 
 export interface Data {
   [key: string]: Property | Property[] | Value;

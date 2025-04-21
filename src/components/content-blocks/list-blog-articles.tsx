@@ -5,8 +5,8 @@ import { ParagraphText } from '@/components/typography/paragraph-text';
 import { NewsCard } from '@/components/news-card';
 import React from 'react';
 import Image from 'next/image';
-import { Blog } from '@/payload-types';
-import { LocalizedPageType } from '@/types';
+import type { Blog } from '@/payload-types';
+import type { LocalizedPageType } from '@/types';
 
 export const BlogDisplay: React.FC<{ blog: Blog }> = ({ blog }) => {
   if (typeof blog.content.bannerImage === 'string') {

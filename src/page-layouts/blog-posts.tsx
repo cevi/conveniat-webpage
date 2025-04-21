@@ -5,9 +5,10 @@ import config from '@payload-config';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { BlogArticleConverter } from '@/converters/blog-article';
-import { i18nConfig, Locale, LocalizedCollectionPage, StaticTranslationString } from '@/types';
+import type { Locale, LocalizedCollectionPage, StaticTranslationString } from '@/types';
+import { i18nConfig } from '@/types';
 import { hasPermissions } from '@/utils/has-permissions';
-import { Permission } from '@/payload-types';
+import type { Permission } from '@/payload-types';
 
 const languageChooseText: StaticTranslationString = {
   en: 'Choose the correct article',

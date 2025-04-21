@@ -1,4 +1,5 @@
-import { PrecacheEntry, RouteHandler, Serwist } from 'serwist';
+import type { PrecacheEntry, RouteHandler } from 'serwist';
+import { Serwist } from 'serwist';
 import { defaultCache } from '@serwist/next/worker';
 
 /**

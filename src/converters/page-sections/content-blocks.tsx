@@ -1,21 +1,23 @@
-import SectionWrapper, { ContentBlock } from '@/converters/page-sections/section-wrapper';
-import { HeroSection, HeroSectionType } from '@/components/content-blocks/hero-section';
+import type { ContentBlock } from '@/converters/page-sections/section-wrapper';
+import SectionWrapper from '@/converters/page-sections/section-wrapper';
+import type { HeroSectionType } from '@/components/content-blocks/hero-section';
+import { HeroSection } from '@/components/content-blocks/hero-section';
 import React from 'react';
-import { PhotoCarousel, PhotoCarouselBlock } from '@/components/gallery';
-import { LocalizedPageType } from '@/types';
+import type { PhotoCarouselBlock } from '@/components/gallery';
+import { PhotoCarousel } from '@/components/gallery';
+import type { LocalizedPageType } from '@/types';
 import { ShowForm } from '@/components/content-blocks/show-form';
-import { FormBlockType } from '@/components/form';
-import {
-  LexicalRichTextSection,
-  LexicalRichTextSectionType,
-} from '@/components/content-blocks/lexical-rich-text-section';
+import type { FormBlockType } from '@/components/form';
+import type { LexicalRichTextSectionType } from '@/components/content-blocks/lexical-rich-text-section';
+import { LexicalRichTextSection } from '@/components/content-blocks/lexical-rich-text-section';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import { ListBlogPosts } from '@/components/content-blocks/list-blog-articles';
-import { YoutubeEmbed, YoutubeEmbedType } from '@/components/content-blocks/youtube-embed';
-import InlineSwisstopoMapEmbed, {
-  InlineSwisstopoMapEmbedType,
-} from '@/components/map-viewer/inline-swisstopo-map-embed';
-import { FileDownload, FileDownloadType } from '@/components/content-blocks/file-download';
+import type { YoutubeEmbedType } from '@/components/content-blocks/youtube-embed';
+import { YoutubeEmbed } from '@/components/content-blocks/youtube-embed';
+import type { InlineSwisstopoMapEmbedType } from '@/components/map-viewer/inline-swisstopo-map-embed';
+import InlineSwisstopoMapEmbed from '@/components/map-viewer/inline-swisstopo-map-embed';
+import type { FileDownloadType } from '@/components/content-blocks/file-download';
+import { FileDownload } from '@/components/content-blocks/file-download';
 import Image from 'next/image';
 
 export type ContentBlockTypeNames =
@@ -105,7 +107,7 @@ export const RenderSinglePicture: SectionRenderer<{
           src={block.image.url}
           alt={block.image.alt}
           className="block rounded-2xl object-cover"
-          fill={true}
+          fill
         />
       </div>
     </SectionWrapper>

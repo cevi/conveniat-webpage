@@ -2,9 +2,9 @@ import React from 'react';
 import { getPayload } from 'payload';
 import config from '@payload-config';
 import { HeadlineH1 } from '@/components/typography/headline-h1';
-import { Blog } from '@/payload-types';
+import type { Blog } from '@/payload-types';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
-import { StaticTranslationString } from '@/types';
+import type { StaticTranslationString } from '@/types';
 import { BlogDisplay } from '@/components/content-blocks/list-blog-articles';
 
 const searchResultHeader: StaticTranslationString = {

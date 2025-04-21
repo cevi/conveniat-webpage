@@ -1,5 +1,6 @@
 import { i18nRouter } from 'next-i18n-router';
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import { Cookie, i18nConfig } from '@/types';
 import { i18nExcludedRoutes } from '@/i18n.config';
 

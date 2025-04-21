@@ -1,12 +1,13 @@
 'use server';
 
 import webpush from 'web-push';
-import { getPayload, Where } from 'payload';
+import type { Where } from 'payload';
+import { getPayload } from 'payload';
 import config from '@payload-config';
 import { auth } from '@/auth/auth';
 import { getPayloadUserFromNextAuthUser } from '@/auth/auth-helpers';
-import { HitobitoNextAuthUser } from '@/auth/hitobito-next-auth-user';
-import { StaticTranslationString } from '@/types';
+import type { HitobitoNextAuthUser } from '@/auth/hitobito-next-auth-user';
+import type { StaticTranslationString } from '@/types';
 
 const NEXT_PUBLIC_APP_HOST_URL = process.env['NEXT_PUBLIC_APP_HOST_URL'] ?? '';
 

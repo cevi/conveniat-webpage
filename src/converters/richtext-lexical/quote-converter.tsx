@@ -1,5 +1,5 @@
-import { SerializedQuoteNode } from '@payloadcms/richtext-lexical';
-import { JSXConverters } from '@payloadcms/richtext-lexical/react';
+import type { SerializedQuoteNode } from '@payloadcms/richtext-lexical';
+import type { JSXConverters } from '@payloadcms/richtext-lexical/react';
 
 export const QuoteJSXConverter: JSXConverters<SerializedQuoteNode> = {
   quote: ({ node, nodesToJSX }) => {

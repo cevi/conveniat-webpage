@@ -1,5 +1,5 @@
 import React from 'react';
-import { StaticTranslationString } from '@/types';
+import type { StaticTranslationString } from '@/types';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 
 const welcomeMessageTitle: StaticTranslationString = {

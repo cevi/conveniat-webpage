@@ -1,9 +1,9 @@
-import React from 'react';
+import type React from 'react';
 import { payloadConfig } from '@payload-config';
-import { CollectionSlug } from 'payload';
+import type { CollectionSlug } from 'payload';
 import { BlogPostPage } from '@/page-layouts/blog-posts';
 import { GenericPage } from '@/page-layouts/generic-page';
-import {
+import type {
   Locale,
   LocalizedCollectionPage,
   LocalizedPageType,
@@ -11,7 +11,7 @@ import {
 } from '@/types';
 import { TimeLinePage } from './page-layouts/timeline-page';
 
-type RouteResolutionTable = {
+interface RouteResolutionTable {
   [slugPrefix: string]: {
     locales: Locale[];
     alternatives: {
@@ -20,7 +20,7 @@ type RouteResolutionTable = {
     component: React.FC<LocalizedCollectionPage>;
     collectionSlug: CollectionSlug;
   };
-};
+}
 
 /** The slugs that are used to identify the React components that
  * should be used to render the pages. */

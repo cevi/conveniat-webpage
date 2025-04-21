@@ -2,10 +2,11 @@ import React from 'react';
 import { getPayload } from 'payload';
 import config from '@payload-config';
 import { notFound, redirect } from 'next/navigation';
-import { i18nConfig, Locale, LocalizedCollectionPage } from '@/types';
+import type { Locale, LocalizedCollectionPage } from '@/types';
+import { i18nConfig } from '@/types';
 import { GenericPageConverter } from '@/converters/generic-page';
 import { hasPermissions } from '@/utils/has-permissions';
-import { Permission } from '@/payload-types';
+import type { Permission } from '@/payload-types';
 
 export const GenericPage: React.FC<LocalizedCollectionPage> = async ({
   slugs,

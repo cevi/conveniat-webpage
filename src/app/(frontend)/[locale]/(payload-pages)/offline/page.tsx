@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import React from 'react';
 import { HeadlineH1 } from '@/components/typography/headline-h1';
 import { ParagraphText } from '@/components/typography/paragraph-text';
-import { Locale, StaticTranslationString } from '@/types';
+import type { Locale, StaticTranslationString } from '@/types';
 
 const metadataTitle: StaticTranslationString = {
   en: "You're Offline",
@@ -28,7 +28,9 @@ const offlineLongText: StaticTranslationString = {
   fr: 'Il semble que vous ayez perdu votre connexion Internet. Veuillez vérifier vos paramètres réseau ou réessayer plus tard.',
 };
 
-type Properties = { params: Promise<{ locale: Locale }> };
+interface Properties {
+  params: Promise<{ locale: Locale }>;
+}
 
 export async function generateMetadata({ params }: Properties): Promise<Metadata> {
   const { locale } = await params;

@@ -1,4 +1,5 @@
-import React, { ReactNode } from 'react';
+import type { ReactNode } from 'react';
+import React from 'react';
 
 // These styles apply to every route in the application
 import '../globals.scss';
@@ -6,9 +7,9 @@ import { Inter, Montserrat } from 'next/font/google';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { CeviLogo } from '@/components/svg-logos/cevi-logo';
 
-type LayoutProperties = {
+interface LayoutProperties {
   children: ReactNode;
-};
+}
 
 const montserrat = Montserrat({ subsets: ['latin'] });
 const inter = Inter({ subsets: ['latin'] });

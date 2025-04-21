@@ -1,4 +1,4 @@
-import { GlobalConfig } from 'payload';
+import type { GlobalConfig } from 'payload';
 import { localizedStatusSchema } from '@/payload-cms/utils/localized-status-schema';
 
 /**

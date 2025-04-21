@@ -1,5 +1,6 @@
 import React from 'react';
-import { InitialMapPose, MapLibreRenderer } from '@/components/map-viewer/map-renderer';
+import type { InitialMapPose } from '@/components/map-viewer/map-renderer';
+import { MapLibreRenderer } from '@/components/map-viewer/map-renderer';
 
 const initialMapPoseObergoms: InitialMapPose = {
   initialMapCenter: [8.301_211, 46.502_822],

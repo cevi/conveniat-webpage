@@ -1,4 +1,4 @@
-import { CheckboxField } from 'payload';
+import type { CheckboxField } from 'payload';
 import type { FieldErrorsImpl, FieldValues, UseFormRegister } from 'react-hook-form';
 import { Required } from '@/components/form/required';
 import React from 'react';

@@ -5,7 +5,7 @@ import { ConveniatLogo } from '@/components/svg-logos/conveniat-logo';
 import { PreviewModeBanner } from '@/components/header/preview-mode-banner';
 import { auth } from '@/auth/auth';
 import { canAccessAdminPanel } from '@/payload-cms/access-rules/can-access-admin-panel';
-import { PayloadRequest } from 'payload';
+import type { PayloadRequest } from 'payload';
 
 export const HeaderComponent: React.FC = async () => {
   const session = await auth();

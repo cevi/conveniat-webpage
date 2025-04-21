@@ -1,10 +1,11 @@
 'use client';
 
 import { FormSubmit, useDocumentInfo, useLocale, useTheme } from '@payloadcms/ui';
-import React, { MouseEventHandler, useCallback, useState } from 'react';
+import type { MouseEventHandler } from 'react';
+import React, { useCallback, useState } from 'react';
 import { serverSideSlugToUrlResolution } from '@/utils/find-url-prefix';
-import { CollectionSlug } from 'payload';
-import { Locale } from '@/types';
+import type { CollectionSlug } from 'payload';
+import type { Locale } from '@/types';
 import { generatePreviewToken } from '@/utils/preview-token';
 import { Check, Copy } from 'lucide-react';
 import Image from 'next/image';

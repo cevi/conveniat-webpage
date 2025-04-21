@@ -1,8 +1,8 @@
 import { locales as localesDefinition } from '@/payload-cms/locales';
-import { Locale } from 'payload';
-import { Config } from '@/payload-types';
+import type { Locale } from 'payload';
+import type { Config } from '@/payload-types';
 import { useEffect, useState } from 'react';
-import { Locale as LocaleType } from '@/types';
+import type { Locale as LocaleType } from '@/types';
 import { useLocalizedDocument } from '@/payload-cms/hooks/localized-document';
 
 type LocalizedStatus = Record<Config['locale'], boolean> | undefined;

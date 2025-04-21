@@ -2,9 +2,9 @@
 import React from 'react';
 import { signIn } from 'next-auth/react';
 import { useLocale } from '@payloadcms/ui';
-import { Config } from '@/payload-types';
+import type { Config } from '@/payload-types';
 import { AdminPanelBackgroundFaker } from '@/payload-cms/components/login-page/admin-panel-background-faker';
-import { StaticTranslationString } from '@/types';
+import type { StaticTranslationString } from '@/types';
 import { Button } from '@/components/ui/button';
 
 /**

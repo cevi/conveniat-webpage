@@ -1,5 +1,5 @@
 import type { FormFieldBlock } from '@payloadcms/plugin-form-builder/types';
-import { DefaultValues, FieldValues } from 'react-hook-form';
+import type { DefaultValues, FieldValues } from 'react-hook-form';
 
 export const buildInitialFormState = (fields: FormFieldBlock[]): DefaultValues<FieldValues> => {
   return fields.reduce((initialSchema, field) => {

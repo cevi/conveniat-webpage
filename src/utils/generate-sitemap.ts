@@ -3,7 +3,7 @@ import { routeResolutionTable, urlPrefixToCollectionSlug } from '@/route-resolut
 import { i18nConfig } from '@/types';
 import config from '@payload-config';
 import { getPayload } from 'payload';
-import { Blog } from '@/payload-types';
+import type { Blog } from '@/payload-types';
 
 const toURL = (urlSegments: string[]): string => {
   return urlSegments.filter((seg) => seg !== '').join('/');

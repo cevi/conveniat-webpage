@@ -1,4 +1,4 @@
-import { Field } from 'payload';
+import type { Field } from 'payload';
 
 export const pageTeaserField: Field = {
   name: 'pageTeaser',

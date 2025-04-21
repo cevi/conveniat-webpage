@@ -1,8 +1,8 @@
 import React from 'react';
 
-export type YoutubeEmbedType = {
+export interface YoutubeEmbedType {
   link: string;
-};
+}
 
 export const YoutubeEmbed: React.FC<YoutubeEmbedType> = async ({ ...block }) => {
   const videoId = block.link.split('v=')[1]?.split('&')[0] ?? undefined;

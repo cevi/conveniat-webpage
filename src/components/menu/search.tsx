@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { Locale, StaticTranslationString } from '@/types';
+import type { Locale, StaticTranslationString } from '@/types';
 import { useClose } from '@headlessui/react';
 
 const searchButtonText: StaticTranslationString = {

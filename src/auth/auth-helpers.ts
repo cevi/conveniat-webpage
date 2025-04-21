@@ -1,6 +1,6 @@
-import { HitobitoNextAuthUser } from '@/auth/hitobito-next-auth-user';
-import { AuthStrategyFunction, BasePayload } from 'payload';
-import { User } from '@/payload-types';
+import type { HitobitoNextAuthUser } from '@/auth/hitobito-next-auth-user';
+import type { AuthStrategyFunction, BasePayload } from 'payload';
+import type { User } from '@/payload-types';
 
 /**
  * Checks if the provided NextAuth user object is considered valid based on specific criteria.

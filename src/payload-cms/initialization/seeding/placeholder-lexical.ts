@@ -1,12 +1,12 @@
 import { fakerDE as faker } from '@faker-js/faker';
 
-type LexicalPlaceholderChild = {
+interface LexicalPlaceholderChild {
   [k: string]: unknown;
   type: string;
   version: number;
-};
+}
 
-type LexicalPlaceholder = {
+interface LexicalPlaceholder {
   [k: string]: unknown;
   root: {
     type: string;
@@ -16,7 +16,7 @@ type LexicalPlaceholder = {
     indent: number;
     version: number;
   };
-};
+}
 
 /**
  * Generate a child for a rich text section.

@@ -1,4 +1,4 @@
-import { Payload, RequiredDataFromCollectionSlug } from 'payload';
+import type { Payload, RequiredDataFromCollectionSlug } from 'payload';
 import { generateRichTextSection } from '@/payload-cms/initialization/seeding/placeholder-lexical';
 import { basicForm } from './all-types-form';
 import { basicBlog } from './blog-post';

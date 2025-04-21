@@ -1,12 +1,12 @@
-import { JSXConverters } from '@payloadcms/richtext-lexical/react';
-import { SerializedParagraphNode } from '@payloadcms/richtext-lexical';
+import type { JSXConverters } from '@payloadcms/richtext-lexical/react';
+import type { SerializedParagraphNode } from '@payloadcms/richtext-lexical';
 import Link from 'next/link';
 import { routeResolutionTable } from '@/route-resolution-table';
 
 /**
  * The fields of a link node.
  */
-type LinkFields = {
+interface LinkFields {
   url: string | unknown;
   linkType: string;
   doc: {
@@ -17,7 +17,7 @@ type LinkFields = {
     };
     relationTo: string;
   };
-};
+}
 
 /**
  * Resolves an internal link to the correct URL.

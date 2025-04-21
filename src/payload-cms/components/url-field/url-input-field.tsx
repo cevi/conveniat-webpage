@@ -1,7 +1,7 @@
 import React from 'react';
-import { CollectionSlug } from 'payload';
+import type { CollectionSlug } from 'payload';
 import { findPrefixByCollectionSlugAndLocale } from '@/route-resolution-table';
-import { Locale } from '@/types';
+import type { Locale } from '@/types';
 import { LOCALE } from '@/payload-cms/locales';
 
 /**

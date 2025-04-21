@@ -1,6 +1,6 @@
-import { Config } from 'next-i18n-router/dist/types';
+import type { Config } from 'next-i18n-router/dist/types';
 import { LOCALE } from '@/payload-cms/locales';
-import { CollectionConfig, Config as PayloadConfig } from 'payload';
+import type { CollectionConfig, Config as PayloadConfig } from 'payload';
 
 const locales = Object.values(LOCALE);
 
@@ -12,24 +12,26 @@ export const i18nConfig: Config = {
 
 export type Locale = (typeof locales)[number];
 export type StaticTranslationString = Record<Locale, string>;
-export type SearchParameters = { [key: string]: string | string[] };
+export interface SearchParameters {
+  [key: string]: string | string[];
+}
 
-export type LocalizedPageType = {
+export interface LocalizedPageType {
   locale: Locale;
   searchParams: SearchParameters;
-};
+}
 
 export type LocalizedCollectionPage = LocalizedPageType & {
   slugs: string[];
   renderInPreviewMode: boolean;
 };
-export type RoutableCollectionConfig = {
+export interface RoutableCollectionConfig {
   urlPrefix: {
     [locale in Locale]: string;
   };
   /** The collection configuration that should be used to render the page. */
   payloadCollection: CollectionConfig;
-};
+}
 
 export type RoutableCollectionConfigs = (CollectionConfig | RoutableCollectionConfig)[];
 

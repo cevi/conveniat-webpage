@@ -1,7 +1,7 @@
 'use server';
 
-import { CollectionSlug } from 'payload';
-import { Locale } from '@/types';
+import type { CollectionSlug } from 'payload';
+import type { Locale } from '@/types';
 import { findPrefixByCollectionSlugAndLocale } from '@/route-resolution-table';
 
 /**

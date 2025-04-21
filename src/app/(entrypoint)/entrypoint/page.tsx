@@ -4,10 +4,8 @@ import Cookies from 'js-cookie';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { PushNotificationManager } from '@/components/push-notification-manager';
-import {
-  AcceptCookieEntrypointComponent,
-  cookieInfoText,
-} from '@/content/entrypoint/accept-cookies-component';
+import type { cookieInfoText } from '@/content/entrypoint/accept-cookies-component';
+import { AcceptCookieEntrypointComponent } from '@/content/entrypoint/accept-cookies-component';
 import { Cookie } from '@/types';
 import { CenteredConveniatLogo } from '@/content/entrypoint/centered-conveniat-logo';
 
@@ -26,7 +24,7 @@ const handleLogin = (): void => {
     });
 };
 
-const LoginEntrypointComponent = (properties: { onClick: () => void }) => {
+const LoginEntrypointComponent: React.FC<{ onClick: () => void }> = ({ onClick }) => {
   return (
     <div className="flex flex-col rounded-lg p-8 text-center">
       <CenteredConveniatLogo />
@@ -41,31 +39,31 @@ const LoginEntrypointComponent = (properties: { onClick: () => void }) => {
         Login mit Cevi.DB
       </button>
 
-      <button onClick={properties.onClick} className="mt-3 font-semibold text-gray-400">
+      <button onClick={onClick} className="mt-3 font-semibold text-gray-400">
         überspringen
       </button>
     </div>
   );
 };
 
-const PushNotificationManagerEntrypointComponent = (properties: {
+const PushNotificationManagerEntrypointComponent: React.FC<{
   callback: () => void;
   locale: 'de' | 'fr' | 'en';
-}) => {
+}> = ({ callback, locale }) => {
   return (
     <div className="rounded-lg p-8 text-center">
       <CenteredConveniatLogo />
 
-      <PushNotificationManager callback={properties.callback} locale={properties.locale} />
+      <PushNotificationManager callback={callback} locale={locale} />
 
-      <button onClick={properties.callback} className="mt-3 font-semibold text-gray-400">
+      <button onClick={callback} className="mt-3 font-semibold text-gray-400">
         überspringen
       </button>
     </div>
   );
 };
 
-const GettingReadyEntrypointComponent = () => {
+const GettingReadyEntrypointComponent: React.FC = () => {
   return (
     <div className="rounded-lg p-8 text-center">
       <CenteredConveniatLogo />

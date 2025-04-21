@@ -1,4 +1,5 @@
-import { buildConfig, Config, SanitizedConfig } from 'payload';
+import type { Config, SanitizedConfig } from 'payload';
+import { buildConfig } from 'payload';
 import { canAccessAPI } from '@/payload-cms/access-rules/can-access-admin-panel';
 
 /**

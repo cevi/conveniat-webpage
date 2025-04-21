@@ -1,4 +1,4 @@
-import { BeforeSync, DocToSync } from '@payloadcms/plugin-search/types';
+import type { BeforeSync, DocToSync } from '@payloadcms/plugin-search/types';
 
 interface Seo {
   slugURL?: string;

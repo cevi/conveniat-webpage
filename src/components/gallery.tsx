@@ -10,13 +10,13 @@ import {
 import Image from 'next/image';
 import { ErrorBoundary } from 'react-error-boundary';
 
-export type PhotoCarouselBlock = {
+export interface PhotoCarouselBlock {
   images: {
     url: string;
     alt: string;
     imageCaption?: string;
   }[];
-};
+}
 
 export const PhotoCarousel: React.FC<PhotoCarouselBlock> = ({ images }) => {
   const length = images.length;

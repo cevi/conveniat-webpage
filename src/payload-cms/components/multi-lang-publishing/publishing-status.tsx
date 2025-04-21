@@ -1,7 +1,7 @@
 import React from 'react';
 
 import { cva } from 'class-variance-authority';
-import { PublishingStatusType } from '@/payload-cms/components/multi-lang-publishing/type';
+import type { PublishingStatusType } from '@/payload-cms/components/multi-lang-publishing/type';
 
 export const languageStatusClasses = cva(
   'text-sm font-medium me-2 px-2.5 py-0.5 rounded relative group',
@@ -91,13 +91,13 @@ const PublishingStatus: React.FC<{
       };
     };
   };
-}> = (properties) => {
+}> = ({ cellData, data }) => {
   let publishingStatus;
 
-  if ('cellData' in properties) {
-    publishingStatus = properties.cellData;
-  } else if ('data' in properties) {
-    publishingStatus = properties.data['publishingStatus'];
+  if (cellData !== undefined) {
+    publishingStatus = cellData;
+  } else if (data !== undefined) {
+    publishingStatus = data['publishingStatus'];
   }
 
   if (publishingStatus === undefined) {

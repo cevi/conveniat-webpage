@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '@/utils/tailwindcss-override';
 import { ErrorBoundary } from 'react-error-boundary';
-import { ContentBlockTypeNames } from '@/converters/page-sections/content-blocks';
+import type { ContentBlockTypeNames } from '@/converters/page-sections/content-blocks';
 
 export type ContentBlock<T = object> = { blockType: ContentBlockTypeNames; id: string } & T;
 

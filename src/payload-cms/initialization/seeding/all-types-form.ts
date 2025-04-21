@@ -1,4 +1,4 @@
-import { Form } from '@/payload-types';
+import type { Form } from '@/payload-types';
 
 export const basicForm: Form = {
   id: '63c0651b132c8e2783f8dcae',

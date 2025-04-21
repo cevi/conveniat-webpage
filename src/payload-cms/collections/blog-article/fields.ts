@@ -1,4 +1,4 @@
-import { Field } from 'payload';
+import type { Field } from 'payload';
 import { blogArticleTitleValidation } from '@/payload-cms/collections/blog-article/validation';
 
 export const blogArticleTitleField: Field = {

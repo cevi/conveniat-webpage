@@ -1,9 +1,9 @@
-import { Block, CollectionConfig, CollectionSlug, FieldHookArgs, Tab } from 'payload';
-import { Config } from '@/payload-types';
+import type { Block, CollectionConfig, CollectionSlug, FieldHookArgs, Tab } from 'payload';
+import type { Config } from '@/payload-types';
 import { LOCALE } from '@/payload-cms/locales';
-import { PublishingStatusType } from '@/payload-cms/components/multi-lang-publishing/type';
+import type { PublishingStatusType } from '@/payload-cms/components/multi-lang-publishing/type';
 
-type Field = {
+interface Field {
   name: string;
   type: string;
   localized: boolean;
@@ -11,7 +11,7 @@ type Field = {
   fields?: Field[];
   tabs?: (Tab & { name: string })[];
   blocks?: (Block & { slug: string })[];
-};
+}
 
 type PayloadDocument = Record<string, Record<Config['locale'], string>>;
 

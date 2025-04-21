@@ -1,4 +1,5 @@
-import { Cookie, StaticTranslationString } from '@/types';
+import type { StaticTranslationString } from '@/types';
+import { Cookie } from '@/types';
 import React from 'react';
 import Cookies from 'js-cookie';
 import { CenteredConveniatLogo } from '@/content/entrypoint/centered-conveniat-logo';

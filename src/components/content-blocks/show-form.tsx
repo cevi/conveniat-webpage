@@ -1,4 +1,5 @@
-import { FormBlock, FormBlockType } from '@/components/form';
+import type { FormBlockType } from '@/components/form';
+import { FormBlock } from '@/components/form';
 import React from 'react';
 import { ClientOnly } from '@/components/form/client-only';
 
