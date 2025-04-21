@@ -3,11 +3,19 @@ import { AuthStrategyFunction, BasePayload } from 'payload';
 import { User } from '@/payload-types';
 
 /**
- * Checks if a user is a valid NextAuth user, i.e. has all required fields
- * @param user
+ * Checks if the provided NextAuth user object is considered valid based on specific criteria.
+ *
+ * A user is considered valid if:
+ * 1. The user object itself is not `undefined`.
+ * 2. The `name` property is not an empty string.
+ * 3. The `email` property is not an empty string.
+ * 4. The `cevi_db_uuid` property is a number greater than 0.
+ *
+ * @param {HitobitoNextAuthUser} user - The NextAuth user object to validate. Might be `undefined`.
+ * @returns {boolean} `true` if the user meets all validity criteria, `false` otherwise.
  */
-export const isValidNextAuthUser = (user: HitobitoNextAuthUser): boolean => {
-  return user.name !== '' && user.email !== '' && user.cevi_db_uuid > 0;
+export const isValidNextAuthUser = (user?: HitobitoNextAuthUser): boolean => {
+  return user !== undefined && user.name !== '' && user.email !== '' && user.cevi_db_uuid > 0;
 };
 
 async function saveUserToDB(
@@ -69,14 +77,21 @@ const fetchSessionFromCeviDB = async (
 };
 
 /**
- * Fetches the Payload user from the database given a NextAuth user
- * @param payload
- * @param nextAuthUser
+ * Attempts to find a Payload user document corresponding to a given NextAuth user
+ * based on the `cevi_db_uuid`.
+ *
+ * @param {BasePayload} payload - The Payload instance.
+ * @param {HitobitoNextAuthUser} nextAuthUser - The NextAuth user object
+ *
+ * @returns {Promise<User | undefined>} A promise that resolves to the found Payload user document,
+ *   or `undefined` if the NextAuth user is invalid or no corresponding user is found.
  */
 export async function getPayloadUserFromNextAuthUser(
   payload: BasePayload,
   nextAuthUser: HitobitoNextAuthUser,
 ): Promise<User | undefined> {
+  if (!isValidNextAuthUser(nextAuthUser)) return undefined;
+
   return await payload
     .find({
       collection: 'users',
