@@ -1,10 +1,4 @@
-const NEXT_PUBLIC_APP_HOST_URL = process.env['NEXT_PUBLIC_APP_HOST_URL'];
-
-if (NEXT_PUBLIC_APP_HOST_URL === undefined) {
-  throw new Error('NEXT_PUBLIC_APP_HOST_URL is not defined');
-} else if (NEXT_PUBLIC_APP_HOST_URL === '') {
-  throw new Error('NEXT_PUBLIC_APP_HOST_URL is empty');
-}
+import { environmentVariables } from '@/config/environment-variables';
 
 /**
  * Callback function to register the push notification handler.
@@ -44,5 +38,7 @@ export const notificationClickHandler =
   (event: NotificationEvent): void => {
     console.log('Notification click received.');
     event.notification.close();
-    event.waitUntil(serviceWorkerScope.clients.openWindow(NEXT_PUBLIC_APP_HOST_URL));
+    event.waitUntil(
+      serviceWorkerScope.clients.openWindow(environmentVariables.NEXT_PUBLIC_APP_HOST_URL),
+    );
   };

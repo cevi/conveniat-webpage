@@ -7,6 +7,7 @@ import { i18nConfig } from '@/types/types';
 import config from '@payload-config';
 import { getPayload } from 'payload';
 import type { Blog } from '@/features/payload-cms/payload-types';
+import { environmentVariables } from '@/config/environment-variables';
 
 const toURL = (urlSegments: string[]): string => {
   return urlSegments.filter((seg) => seg !== '').join('/');
@@ -15,7 +16,7 @@ const toURL = (urlSegments: string[]): string => {
 // eslint-disable-next-line complexity
 export const generateSitemap = async (): Promise<MetadataRoute.Sitemap> => {
   const sitemap: MetadataRoute.Sitemap = [];
-  const APP_HOST_URL = process.env['APP_HOST_URL'] ?? '';
+  const APP_HOST_URL = environmentVariables.APP_HOST_URL;
 
   const payload = await getPayload({ config });
 

@@ -4,13 +4,9 @@ import { subscribeUser, unsubscribeUser } from '@/features/onboarding/api/push-n
 import { urlBase64ToUint8Array } from '@/utils/url-base64-to-uint8-array';
 import React, { useEffect, useState } from 'react';
 import type webpush from 'web-push';
+import { environmentVariables } from '@/config/environment-variables';
 
-const vapidPublicKey: string | undefined = process.env['NEXT_PUBLIC_VAPID_PUBLIC_KEY'];
-if (vapidPublicKey === undefined) {
-  throw new Error('VAPID public key is not defined');
-} else if (vapidPublicKey === '') {
-  throw new Error('VAPID public key is empty');
-}
+const vapidPublicKey: string | undefined = environmentVariables.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 
 /**
  * PushNotificationManager is a React component that manages push notifications.

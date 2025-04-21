@@ -2,6 +2,7 @@ import type React from 'react';
 
 import type { CeviLogoMarker, InitialMapPose } from '@/features/map/components/map-renderer';
 import { MapLibreRenderer } from '@/features/map/components/map-renderer';
+import { environmentVariables } from '@/config/environment-variables';
 
 export interface InlineSwisstopoMapEmbedType {
   blockName?: string;
@@ -18,7 +19,7 @@ const InlineSwisstopoMapEmbed: React.FC<InlineSwisstopoMapEmbedType> = ({
       <MapLibreRenderer
         initialMapPose={initialMapPose}
         ceviLogoMarkers={ceviLogoMarkers}
-        validateStyle={process.env.NODE_ENV !== 'production'}
+        validateStyle={environmentVariables.NODE_ENV !== 'production'}
       />
     </div>
   );

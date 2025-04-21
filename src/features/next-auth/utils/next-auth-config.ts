@@ -1,11 +1,12 @@
 import type { NextAuthConfig } from 'next-auth';
 import type { JWT } from 'next-auth/jwt';
 import type { HitobitoProfile } from '../types/hitobito-profile';
+import { environmentVariables } from '@/config/environment-variables';
 
-const HITOBITO_BASE_URL = process.env['HITOBITO_BASE_URL'] ?? '';
-const HITOBITO_FORWARD_URL = process.env['HITOBITO_FORWARD_URL'] ?? '';
-const CEVI_DB_CLIENT_ID = process.env['CEVI_DB_CLIENT_ID'] ?? '';
-const CEVI_DB_CLIENT_SECRET = process.env['CEVI_DB_CLIENT_SECRET'] ?? '';
+const HITOBITO_BASE_URL = environmentVariables.HITOBITO_BASE_URL;
+const HITOBITO_FORWARD_URL = environmentVariables.HITOBITO_FORWARD_URL;
+const CEVI_DB_CLIENT_ID = environmentVariables.CEVI_DB_CLIENT_ID;
+const CEVI_DB_CLIENT_SECRET = environmentVariables.CEVI_DB_CLIENT_SECRET;
 
 /*
 if (HITOBITO_BASE_URL === undefined) throw new Error('HITOBITO_BASE_URL is not set');

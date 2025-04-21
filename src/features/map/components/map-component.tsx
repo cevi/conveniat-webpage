@@ -1,6 +1,7 @@
 import React from 'react';
 import type { InitialMapPose } from '@/features/map/components/map-renderer';
 import { MapLibreRenderer } from '@/features/map/components/map-renderer';
+import { environmentVariables } from '@/config/environment-variables';
 
 const initialMapPoseObergoms: InitialMapPose = {
   initialMapCenter: [8.301_211, 46.502_822],
@@ -13,7 +14,7 @@ export const MapComponent: React.FC = async () => {
       <MapLibreRenderer
         initialMapPose={initialMapPoseObergoms}
         ceviLogoMarkers={[]}
-        validateStyle={process.env.NODE_ENV !== 'production'}
+        validateStyle={environmentVariables.NODE_ENV !== 'production'}
       />
     </div>
   );

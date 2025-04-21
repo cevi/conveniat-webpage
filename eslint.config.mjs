@@ -9,6 +9,7 @@ import eslintPluginUnicorn from 'eslint-plugin-unicorn';
 import { FlatCompat } from '@eslint/eslintrc';
 import { fixupConfigRules } from '@eslint/compat';
 import * as fs from 'node:fs';
+import nodePlugin from 'eslint-plugin-n';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -87,6 +88,14 @@ const config = [
     files: ['**/*.{ts}', '**/*.{tsx}'],
     rules: { '@typescript-eslint/naming-convention': 'warn' },
   },
+
+  // disallow directly accessing process.env, use the config file instead
+  {
+    plugins: { n: nodePlugin },
+    rules: { 'n/no-process-env': ['error'] },
+    ignores: ['src/config/environment-variables.ts'], // ignore the env extractor
+  },
+
   {
     rules: {
       'prefer-const': 'error',
@@ -194,6 +203,7 @@ const config = [
                 './lib',
                 './types',
                 './utils',
+                './config'
               ],
             },
           ],

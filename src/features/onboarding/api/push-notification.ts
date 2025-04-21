@@ -7,8 +7,9 @@ import config from '@payload-config';
 import { auth, getPayloadUserFromNextAuthUser } from '@/utils/auth-helpers';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { StaticTranslationString } from '@/types/types';
+import { environmentVariables } from '@/config/environment-variables';
 
-const NEXT_PUBLIC_APP_HOST_URL = process.env['NEXT_PUBLIC_APP_HOST_URL'] ?? '';
+const NEXT_PUBLIC_APP_HOST_URL = environmentVariables.NEXT_PUBLIC_APP_HOST_URL;
 
 // vapid subject must be mailto or https, thus we fall back to https://conveniat27.ch
 // if the NEXT_PUBLIC_APP_HOST_URL is not set or localhost
@@ -16,14 +17,8 @@ const subject: string | undefined =
   NEXT_PUBLIC_APP_HOST_URL !== '' && NEXT_PUBLIC_APP_HOST_URL.includes('https://')
     ? NEXT_PUBLIC_APP_HOST_URL
     : 'https://conveniat27.ch';
-const publicKey: string | undefined = process.env['NEXT_PUBLIC_VAPID_PUBLIC_KEY'];
-const privateKey: string | undefined = process.env['VAPID_PRIVATE_KEY'];
-
-if (publicKey === undefined || privateKey === undefined) {
-  throw new Error('VAPID keys are not set in the environment variables');
-} else if (subject === '' || publicKey === '' || privateKey === '') {
-  throw new Error('VAPID keys are empty');
-}
+const publicKey: string | undefined = environmentVariables.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+const privateKey: string | undefined = environmentVariables.VAPID_PRIVATE_KEY;
 
 webpush.setVapidDetails(subject, publicKey, privateKey);
 

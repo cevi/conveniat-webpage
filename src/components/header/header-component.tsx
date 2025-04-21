@@ -3,7 +3,7 @@ import React from 'react';
 import { NavComponent } from '@/components/menu/nav-component';
 import { ConveniatLogo } from '@/components/svg-logos/conveniat-logo';
 import { PreviewModeBanner } from '@/components/header/preview-mode-banner';
-import { canAccessAdminPanel } from '@/features/payload-cms/settings/access-rules/can-access-admin-panel';
+import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import type { PayloadRequest } from 'payload';
 import { auth } from '@/utils/auth-helpers';
 

@@ -4,13 +4,14 @@ import { notFound, redirect } from 'next/navigation';
 import { routeResolutionTable } from '@/features/payload-cms/route-resolution-table';
 import type { Locale, SearchParameters } from '@/types/types';
 import { cookies } from 'next/headers';
-import { canAccessAdminPanel } from '@/features/payload-cms/settings/access-rules/can-access-admin-panel';
+import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import type { PayloadRequest } from 'payload';
 import { RefreshRouteOnSave } from '@/components/utils/refresh-preview';
 import { isPreviewTokenValid } from '@/utils/preview-token';
 import { CookieBanner } from '@/components/utils/cookie-banner';
 import { auth } from '@/utils/auth-helpers';
 import type React from 'react';
+import { environmentVariables } from '@/config/environment-variables';
 
 /**
  * Checks if the preview token is valid.
@@ -141,7 +142,7 @@ const CMSPage: React.FC<{
         return (
           <>
             {previewModeAllowed && hasPreviewSearchParameter && (
-              <RefreshRouteOnSave serverURL={process.env['APP_HOST_URL'] ?? ''} />
+              <RefreshRouteOnSave serverURL={environmentVariables.APP_HOST_URL} />
             )}
 
             <collectionPage.component

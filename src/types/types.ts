@@ -1,5 +1,5 @@
 import type { Config } from 'next-i18n-router/dist/types';
-import { LOCALE } from '@/features/payload-cms/settings/locales';
+import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import type { CollectionConfig, Config as PayloadConfig } from 'payload';
 
 const locales = Object.values(LOCALE);

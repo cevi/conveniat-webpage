@@ -1,31 +1,28 @@
 import { mongooseAdapter } from '@payloadcms/db-mongodb';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { UserCollection } from '@/features/payload-cms/settings/collections/user-collection';
+import { UserCollection } from '@/features/payload-cms/payload-cms/collections/user-collection';
 import { en } from 'payload/i18n/en';
 import { de } from 'payload/i18n/de';
 import { fr } from 'payload/i18n/fr';
-import { LOCALE, locales } from '@/features/payload-cms/settings/locales';
-import { buildSecureConfig } from '@/features/payload-cms/settings/access-rules/build-secure-config';
+import { LOCALE, locales } from '@/features/payload-cms/payload-cms/locales';
+import { buildSecureConfig } from '@/features/payload-cms/payload-cms/access-rules/build-secure-config';
 import { formBuilderPlugin } from '@payloadcms/plugin-form-builder';
-import { onPayloadInit } from '@/features/payload-cms/settings/initialization';
-import { dropRouteInfo } from '@/features/payload-cms/settings/global-routes';
+import { onPayloadInit } from '@/features/payload-cms/payload-cms/initialization';
+import { dropRouteInfo } from '@/features/payload-cms/payload-cms/global-routes';
 import type { RoutableConfig } from '@/types/types';
-import { emailSettings } from '@/features/payload-cms/settings/email-settings';
-import { collectionsConfig } from '@/features/payload-cms/settings/collections';
-import { lexicalEditor } from '@/features/payload-cms/settings/plugins/lexical-editor';
-import { s3StorageConfiguration } from '@/features/payload-cms/settings/plugins/s3-storage-plugin-configuration';
-import { searchPluginConfiguration } from '@/features/payload-cms/settings/plugins/search/search-plugin-configuration';
-import { globalConfig } from '@/features/payload-cms/settings/globals';
+import { emailSettings } from '@/features/payload-cms/payload-cms/email-settings';
+import { collectionsConfig } from '@/features/payload-cms/payload-cms/collections';
+import { lexicalEditor } from '@/features/payload-cms/payload-cms/plugins/lexical-editor';
+import { s3StorageConfiguration } from '@/features/payload-cms/payload-cms/plugins/s3-storage-plugin-configuration';
+import { searchPluginConfiguration } from '@/features/payload-cms/payload-cms/plugins/search/search-plugin-configuration';
+import { globalConfig } from '@/features/payload-cms/payload-cms/globals';
 import sharp from 'sharp';
 import type { CollectionConfig, Locale } from 'payload';
+import { environmentVariables } from '@/config/environment-variables';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
-
-const PAYLOAD_SECRET = process.env['PAYLOAD_SECRET'] ?? '';
-const DATABASE_URI = process.env['DATABASE_URI'] ?? '';
-const APP_HOST_URL = process.env['APP_HOST_URL'] ?? '';
 
 const smartphoneBreakpoints: {
   height: number | string;
@@ -103,11 +100,11 @@ const generatePreviewUrl = ({
   const urlSlug: string | undefined = data.seo.urlSlug;
   if (urlSlug == undefined) return '';
   console.log(
-    `${APP_HOST_URL}/${locale.code}${
+    `${environmentVariables.APP_HOST_URL}/${locale.code}${
       collectionConfig && collectionConfig.slug === 'blog' ? `/blog/${urlSlug}` : ''
     }?preview=true`,
   );
-  return `${APP_HOST_URL}/${locale.code}/${
+  return `${environmentVariables.APP_HOST_URL}/${locale.code}/${
     collectionConfig && collectionConfig.slug === 'blog' ? `blog/` : ''
   }${urlSlug}?preview=true`;
 };
@@ -146,12 +143,12 @@ export const payloadConfig: RoutableConfig = {
       },
       beforeDashboard: [
         {
-          path: '@/payload-cms/components/dashboard-welcome-banner',
+          path: '@/features/payload-cms/payload-cms/components/dashboard-welcome-banner',
         },
       ],
       afterLogin: [
         {
-          path: '@/payload-cms/components/login-page/admin-panel-login-page',
+          path: '@/features/payload-cms/payload-cms/components/login-page/admin-panel-login-page',
         },
       ],
     },
@@ -179,16 +176,16 @@ export const payloadConfig: RoutableConfig = {
     disable: true, // we don't need GraphQL for this project
     disablePlaygroundInProduction: true,
   },
-  secret: PAYLOAD_SECRET,
+  secret: environmentVariables.PAYLOAD_SECRET,
   // helps prevent CSRF attacks
   // (see https://payloadcms.com/docs/authentication/cookies#csrf-prevention)
-  csrf: [APP_HOST_URL],
+  csrf: [environmentVariables.APP_HOST_URL],
   typescript: {
     autoGenerate: true,
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },
   db: mongooseAdapter({
-    url: DATABASE_URI,
+    url: environmentVariables.DATABASE_URI,
   }),
   sharp: sharp,
   telemetry: false,

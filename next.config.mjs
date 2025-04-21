@@ -1,4 +1,6 @@
 import { withPayload } from '@payloadcms/next/withPayload';
+import createJiti from 'jiti';
+import { fileURLToPath } from 'node:url';
 
 import withSerwistInit from '@serwist/next';
 
@@ -7,6 +9,10 @@ import withSerwistInit from '@serwist/next';
 // files more efficiently.
 // A viable option is `git rev-parse HEAD`.
 const revision = crypto.randomUUID();
+
+// verify enviroment variables at build time
+const jiti = createJiti(fileURLToPath(import.meta.url));
+jiti('./src/config/environment-variables.ts');
 
 const withSerwist = withSerwistInit({
   cacheOnNavigation: true,
@@ -24,6 +30,7 @@ const nextConfig = {
   output: 'standalone',
   productionBrowserSourceMaps: process.env.INCLUDE_SOURCE_MAP === 'true',
   serverExternalPackages: ['mongodb', 'mongoose'],
+  transpilePackages: ['@t3-oss/env-nextjs', '@t3-oss/env-core'],
   reactStrictMode: true,
   eslint: {
     ignoreDuringBuilds: true,

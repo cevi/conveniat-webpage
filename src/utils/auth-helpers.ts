@@ -3,6 +3,7 @@ import type { AuthStrategyFunction, BasePayload } from 'payload';
 import type { User } from '@/features/payload-cms/payload-types';
 import NextAuth from 'next-auth';
 import { authOptions } from '@/features/next-auth/utils/next-auth-config';
+import { environmentVariables } from '@/config/environment-variables';
 
 export const { handlers, auth } = NextAuth(authOptions);
 
@@ -72,7 +73,7 @@ async function saveUserToDB(
 const fetchSessionFromCeviDB = async (
   cookie: string,
 ): Promise<{ user?: HitobitoNextAuthUser } | null> => {
-  const APP_HOST_URL = process.env['APP_HOST_URL'] ?? '';
+  const APP_HOST_URL = environmentVariables.APP_HOST_URL;
   return (await fetch(APP_HOST_URL + '/api/auth/session', {
     headers: {
       cookie,
