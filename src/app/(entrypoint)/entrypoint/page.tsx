@@ -28,7 +28,7 @@ const handleLogin = (): void => {
 
 const LoginEntrypointComponent = (properties: { onClick: () => void }) => {
   return (
-    <div className="rounded-lg p-8 text-center">
+    <div className="flex flex-col rounded-lg p-8 text-center">
       <CenteredConveniatLogo />
 
       <p className="mb-4 text-balance text-gray-700">
