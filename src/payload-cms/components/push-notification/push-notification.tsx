@@ -1,7 +1,7 @@
 'use client';
 
 import webpush from 'web-push';
-import { sendNotificationToSubscription } from '@/app/(api)/api/push-notifications/actions';
+import { sendNotificationToSubscription } from '@/app/(api)/api/push-notification';
 import { useDocumentInfo } from '@payloadcms/ui';
 
 const SendPushNotification: React.FC = () => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { subscribeUser, unsubscribeUser } from '@/app/(api)/api/push-notifications/actions';
+import { subscribeUser, unsubscribeUser } from '@/app/(api)/api/push-notification';
 import { urlBase64ToUint8Array } from '@/utils/url-base64-to-uint8-array';
 import React, { useEffect, useState } from 'react';
 import webpush from 'web-push';
