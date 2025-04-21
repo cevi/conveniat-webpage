@@ -1,7 +1,7 @@
 import 'server-only';
 
-import type { Locale } from '@/types';
-import { i18nConfig } from '@/types';
+import type { Locale } from '@/types/types';
+import { i18nConfig } from '@/types/types';
 import { cookies } from 'next/headers';
 
 /**

@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next';
 import { getPayload } from 'payload';
 import config from '@payload-config';
 import { manifestIconDefinitions } from '@/utils/icon-definitions';
-import { LOCALE } from '@/payload-cms/locales';
+import { LOCALE } from '@/features/payload-cms/settings/locales';
 
 /**
  *

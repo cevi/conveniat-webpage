@@ -8,6 +8,7 @@ import progress from 'eslint-plugin-file-progress';
 import eslintPluginUnicorn from 'eslint-plugin-unicorn';
 import { FlatCompat } from '@eslint/eslintrc';
 import { fixupConfigRules } from '@eslint/compat';
+import * as fs from 'node:fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,6 +19,34 @@ const compat = new FlatCompat({
 });
 
 const patchedConfig = fixupConfigRules([...compat.extends('next/core-web-vitals')]);
+
+const features_folder = [
+  'next-auth',
+  'chat',
+  'map',
+  'onboarding',
+  'service-worker',
+  'emergency',
+  'payload-cms',
+];
+
+// assert that all folders in src/features are in the features array
+const featuresDir = path.join(__dirname, 'src', 'features');
+const featuresFiles = await fs.promises.readdir(featuresDir);
+const featuresFolders = featuresFiles.filter(async file => {
+  const stat = await fs.promises.stat(path.join(featuresDir, file));
+  return stat.isDirectory();
+});
+const featuresFoldersSet = new Set(featuresFolders);
+const featuresSet = new Set(features_folder);
+const missingFeatures = [...featuresFoldersSet].filter(feature => !featuresSet.has(feature));
+if (missingFeatures.length > 0) {
+  throw new Error(
+    `Missing features in the features array: ${missingFeatures.join(', ')}.
+    Consider adding them to the features_folder array in eslint.config.mjs!`,
+  );
+}
+
 
 const config = [
   progress.configs.recommended,
@@ -120,6 +149,56 @@ const config = [
       'no-useless-escape': 'warn',
       '@typescript-eslint/no-deprecated': 'warn',
       'unicorn/no-array-reduce': 'off',
+
+      'import/no-restricted-paths': [
+        'error',
+        {
+          zones: [
+
+            // enforce unidirectional codebase:
+            ...features_folder.map(feature => ({
+              target: `./src/features/${feature}`,
+              from: './src/features',
+              except: [
+                `./${feature}`,
+                // payload-cms can be imported from anywhere, avoid duplicates
+                ...(feature !== 'payload-cms' ? ['./payload-cms'] : []),
+              ],
+              message: `Do not import from ${feature} directly, use the shared modules instead.`,
+            })),
+
+            // enforce unidirectional codebase:
+            // e.g. src/app can import from src/features but not the other way around
+            {
+              target: './src/features',
+              from: './src/app',
+              message: 'Features should not import from app directory.',
+            },
+
+            // src/features and src/app can import from these shared modules but not the other way around
+            {
+              target: [
+                './src/components',
+                './src/hooks',
+                './src/lib',
+                './src/types',
+                './src/utils',
+              ],
+              from: ['./src'],
+              except: [
+                './features/payload-cms', // payload-cms can be imported from anywhere
+                './features/next-auth', // next-auth can be imported from anywhere
+                './components',
+                './hooks',
+                './lib',
+                './types',
+                './utils',
+              ],
+            },
+          ],
+        },
+      ],
+
     },
   },
   {

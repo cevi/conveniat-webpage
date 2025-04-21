@@ -1,5 +1,5 @@
-import { auth } from '@/auth/auth';
-import type { Permission } from '@/payload-types';
+import type { Permission } from '@/features/payload-cms/payload-types';
+import { auth } from '@/utils/auth-helpers';
 
 interface UserWithGroup {
   groups:

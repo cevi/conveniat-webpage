@@ -3,8 +3,8 @@ import React, { useEffect } from 'react';
 import { HeadlineH1 } from '@/components/typography/headline-h1';
 import { TeaserText } from '@/components/typography/teaser-text';
 import Link from 'next/link';
-import type { Locale, StaticTranslationString } from '@/types';
-import { i18nConfig } from '@/types';
+import type { Locale, StaticTranslationString } from '@/types/types';
+import { i18nConfig } from '@/types/types';
 import { useCurrentLocale } from 'next-i18n-router/client';
 
 const errorMessage: StaticTranslationString = {

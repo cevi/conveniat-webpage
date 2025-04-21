@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
-import React from 'react';
+import type React from 'react';
 import { HeadlineH1 } from '@/components/typography/headline-h1';
 import { ParagraphText } from '@/components/typography/paragraph-text';
-import type { Locale, StaticTranslationString } from '@/types';
+import type { Locale, StaticTranslationString } from '@/types/types';
 
 const metadataTitle: StaticTranslationString = {
   en: "You're Offline",

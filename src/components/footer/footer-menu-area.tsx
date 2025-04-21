@@ -3,7 +3,7 @@ import { getPayload } from 'payload';
 import config from '@payload-config';
 import Link from 'next/link';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
-import type { Footer } from '@/payload-types';
+import type { Footer } from '@/features/payload-cms/payload-types';
 
 type FooterMenuSection = NonNullable<Footer['footerMenu']>[number];
 type FooterMenuItem = NonNullable<FooterMenuSection['menuItem']>[number];

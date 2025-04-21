@@ -4,8 +4,8 @@ import type { User } from 'next-auth';
 import { useSearchParams } from 'next/navigation';
 import { PreviewModeToggle } from '@/components/header/preview-mode-toggler';
 import { RefreshCw } from 'lucide-react';
-import type { Locale } from '@/types';
-import { i18nConfig } from '@/types';
+import type { Locale } from '@/types/types';
+import { i18nConfig } from '@/types/types';
 import { useCurrentLocale } from 'next-i18n-router/client';
 
 interface PreviewModeBannerProperties {

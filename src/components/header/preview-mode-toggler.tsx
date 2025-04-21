@@ -8,8 +8,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { Locale } from '@/types';
-import { i18nConfig } from '@/types';
+import type { Locale } from '@/types/types';
+import { i18nConfig } from '@/types/types';
 import { useCurrentLocale } from 'next-i18n-router/client';
 
 /**

@@ -1,11 +1,11 @@
 'use client';
 
 import { signOut } from 'next-auth/react';
-import { AdminPanelBackgroundFaker } from '@/payload-cms/components/login-page/admin-panel-background-faker';
-import { Config } from '@/payload-types';
+import { AdminPanelBackgroundFaker } from '@/features/payload-cms/settings/components/login-page/admin-panel-background-faker';
+import { Config } from '@/features/payload-cms/payload-types';
 import { useLocale } from '@payloadcms/ui';
 import { ConveniatLogo } from '@/components/svg-logos/conveniat-logo';
-import { StaticTranslationString } from '@/types';
+import { StaticTranslationString } from '@/types/types';
 
 const localizedLogoutText: StaticTranslationString = {
   en: 'Logging out...',

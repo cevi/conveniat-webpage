@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { getPayload } from 'payload';
 import config from '@payload-config';
-import type { SEO } from '@/payload-types';
+import type { SEO } from '@/features/payload-cms/payload-types';
 import { metadataIconDefinitions } from '@/utils/icon-definitions';
 
 export const generateMetadata = async (): Promise<Metadata> => {

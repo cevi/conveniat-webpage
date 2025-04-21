@@ -7,7 +7,7 @@ import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import Link from 'next/link';
 import { renderInAppDesign } from '@/utils/render-in-app-design';
 import { cn } from '@/utils/tailwindcss-override';
-import type { StaticTranslationString } from '@/types';
+import type { StaticTranslationString } from '@/types/types';
 
 interface Arguments {
   children: React.ReactNode;

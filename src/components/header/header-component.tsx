@@ -3,9 +3,9 @@ import React from 'react';
 import { NavComponent } from '@/components/menu/nav-component';
 import { ConveniatLogo } from '@/components/svg-logos/conveniat-logo';
 import { PreviewModeBanner } from '@/components/header/preview-mode-banner';
-import { auth } from '@/auth/auth';
-import { canAccessAdminPanel } from '@/payload-cms/access-rules/can-access-admin-panel';
+import { canAccessAdminPanel } from '@/features/payload-cms/settings/access-rules/can-access-admin-panel';
 import type { PayloadRequest } from 'payload';
+import { auth } from '@/utils/auth-helpers';
 
 export const HeaderComponent: React.FC = async () => {
   const session = await auth();

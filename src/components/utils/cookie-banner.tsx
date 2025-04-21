@@ -2,8 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import Cookies from 'js-cookie';
-import type { Locale } from '@/types';
-import { Cookie, i18nConfig } from '@/types';
+import type { Locale } from '@/types/types';
+import { Cookie, i18nConfig } from '@/types/types';
 import { useCurrentLocale } from 'next-i18n-router/client';
 
 const shouldShowCookieBanner = (): boolean => {

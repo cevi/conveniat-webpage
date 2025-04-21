@@ -3,9 +3,9 @@
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import React, { useState } from 'react';
 import { Languages } from 'lucide-react';
-import type { Locale, StaticTranslationString } from '@/types';
+import type { Locale, StaticTranslationString } from '@/types/types';
 import { useClose } from '@headlessui/react';
-import { LOCALE } from '@/payload-cms/locales';
+import { LOCALE } from '@/features/payload-cms/settings/locales';
 
 const language: StaticTranslationString = {
   de: 'Sprache',

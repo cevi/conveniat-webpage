@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Calendar, Map as MapIcon, MessageCircle, Newspaper, Siren } from 'lucide-react';
 import { cn } from '@/utils/tailwindcss-override';
 import { usePathname } from 'next/navigation';
-import type { Config } from '@/payload-types';
+import type { Config } from '@/features/payload-cms/payload-types';
 
 const navItems = [
   {
