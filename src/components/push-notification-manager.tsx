@@ -18,7 +18,8 @@ if (vapidPublicKey === undefined) {
  */
 export const PushNotificationManager: React.FC<{
   callback: () => void;
-}> = ({ callback }) => {
+  locale: 'de' | 'fr' | 'en';
+}> = ({ callback, locale }) => {
   const [isSupported, setIsSupported] = useState(false);
   const [subscription, setSubscription] = useState<PushSubscription | undefined>();
 
@@ -49,7 +50,7 @@ export const PushNotificationManager: React.FC<{
     });
     setSubscription(sub);
     // structured clone algorithm does not work here
-    await subscribeUser(sub.toJSON() as webpush.PushSubscription);
+    await subscribeUser(sub.toJSON() as webpush.PushSubscription, locale);
   };
 
   const subscribeToPush = (): void => {

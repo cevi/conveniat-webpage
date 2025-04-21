@@ -48,12 +48,15 @@ const LoginEntrypointComponent = (properties: { onClick: () => void }) => {
   );
 };
 
-const PushNotificationManagerEntrypointComponent = (properties: { callback: () => void }) => {
+const PushNotificationManagerEntrypointComponent = (properties: {
+  callback: () => void;
+  locale: 'de' | 'fr' | 'en';
+}) => {
   return (
     <div className="rounded-lg p-8 text-center">
       <CenteredConveniatLogo />
 
-      <PushNotificationManager callback={properties.callback} />
+      <PushNotificationManager callback={properties.callback} locale={properties.locale} />
 
       <button onClick={properties.callback} className="mt-3 font-semibold text-gray-400">
         überspringen
@@ -127,7 +130,10 @@ const OnboardingPage: React.FC = () => {
       )}
 
       {onboardingStep === 'push-notifications' && (
-        <PushNotificationManagerEntrypointComponent callback={handlePushNotification} />
+        <PushNotificationManagerEntrypointComponent
+          callback={handlePushNotification}
+          locale={locale}
+        />
       )}
 
       {onboardingStep === 'loading' && <GettingReadyEntrypointComponent />}

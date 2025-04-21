@@ -6,6 +6,7 @@ import config from '@payload-config';
 import { auth } from '@/auth/auth';
 import { getPayloadUserFromNextAuthUser } from '@/auth/auth-helpers';
 import { HitobitoNextAuthUser } from '@/auth/hitobito-next-auth-user';
+import { StaticTranslationString } from '@/types';
 
 const NEXT_PUBLIC_APP_HOST_URL = process.env['NEXT_PUBLIC_APP_HOST_URL'] ?? '';
 
@@ -26,12 +27,22 @@ if (publicKey === undefined || privateKey === undefined) {
 
 webpush.setVapidDetails(subject, publicKey, privateKey);
 
+const subscribedConfirmationPush: StaticTranslationString = {
+  de: 'Du hast dich erfolgreich für Push-Benachrichtigungen angemeldet.',
+  fr: 'Vous vous êtes inscrit avec succès aux notifications push.',
+  en: 'You have successfully subscribed to push notifications.',
+};
+
 /**
  * Subscribes the user to push notifications.
  *
  * @param sub
+ * @param locale
  */
-export async function subscribeUser(sub: webpush.PushSubscription): Promise<{ success: boolean }> {
+export async function subscribeUser(
+  sub: webpush.PushSubscription,
+  locale: 'de' | 'fr' | 'en',
+): Promise<{ success: boolean }> {
   const payload = await getPayload({ config });
   const session = await auth();
 
@@ -50,8 +61,7 @@ export async function subscribeUser(sub: webpush.PushSubscription): Promise<{ su
       sub,
       JSON.stringify({
         title: 'conveniat27',
-        // TODO: use a translation function
-        body: 'You have successfully subscribed to push notifications!',
+        body: subscribedConfirmationPush[locale],
       }),
     );
   } catch (error) {
