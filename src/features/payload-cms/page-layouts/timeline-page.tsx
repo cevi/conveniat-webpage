@@ -1,10 +1,10 @@
 import React from 'react';
 import { getPayload } from 'payload';
 import config from '@payload-config';
-import { HeadlineH1 } from '@/components/typography/headline-h1';
+import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { PageSectionsConverter } from '@/features/payload-cms/converters/page-sections';
 import type { LocalizedCollectionPage, StaticTranslationString } from '@/types/types';
-import { SubheadingH2 } from '@/components/typography/subheading-h2';
+import { SubheadingH2 } from '@/components/ui/typography/subheading-h2';
 import type { ContentBlock } from '@/features/payload-cms/converters/page-sections/section-wrapper';
 
 const pageTitle: StaticTranslationString = {

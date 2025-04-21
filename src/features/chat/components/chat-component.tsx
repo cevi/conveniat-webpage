@@ -1,6 +1,6 @@
 import React from 'react';
 import { MessageSquare, UserRound, UsersRound } from 'lucide-react';
-import { HeadlineH1 } from '@/components/typography/headline-h1';
+import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 
 export const ChatComponent: React.FC = () => {
   const chats = [

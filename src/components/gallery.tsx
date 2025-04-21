@@ -6,7 +6,7 @@ import {
   CarouselItem,
   CarouselNext,
   CarouselPrevious,
-} from '@/components/ui/carousel';
+} from '@/components/carousel';
 import Image from 'next/image';
 import { ErrorBoundary } from 'react-error-boundary';
 

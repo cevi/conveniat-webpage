@@ -5,7 +5,7 @@ import { useLocale } from '@payloadcms/ui';
 import type { Config } from '@/features/payload-cms/payload-types';
 import { AdminPanelBackgroundFaker } from '@/features/payload-cms/settings/components/login-page/admin-panel-background-faker';
 import type { StaticTranslationString } from '@/types/types';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/buttons/button';
 
 /**
  * Redirect to the CeviDB login page (using NextAuth).

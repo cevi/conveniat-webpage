@@ -1,5 +1,5 @@
 import type { Blog } from '@/features/payload-cms/payload-types';
-import { HeadlineH1 } from '@/components/typography/headline-h1';
+import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import React from 'react';
 import Image from 'next/image';
 import { PageSectionsConverter } from '@/features/payload-cms/converters/page-sections';

@@ -1,6 +1,6 @@
 'use client';
 import React, { useState } from 'react';
-import { HeadlineH1 } from '@/components/typography/headline-h1';
+import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 
 interface ProgramEntry {
   id: number;
@@ -96,7 +96,7 @@ const dailyPrograms: { [key: string]: ProgramEntry[] } = {
   ],
 };
 
-const ProgramMapPage: React.FC = () => {
+export const ScheduleComponent: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date('2025-02-23'));
   const [selectedEntry, setSelectedEntry] = useState<ProgramEntry | undefined>();
 
@@ -192,5 +192,3 @@ const ProgramMapPage: React.FC = () => {
     </article>
   );
 };
-
-export default ProgramMapPage;

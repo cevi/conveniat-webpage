@@ -2,9 +2,21 @@
 
 import React, { useEffect, useState } from 'react';
 import Cookies from 'js-cookie';
-import type { Locale } from '@/types/types';
+import type { Locale, StaticTranslationString } from '@/types/types';
 import { Cookie, i18nConfig } from '@/types/types';
 import { useCurrentLocale } from 'next-i18n-router/client';
+
+const staticCookieString: StaticTranslationString = {
+  de: 'Bitte akzeptiere die Cookies.',
+  en: 'Please accept the cookies.',
+  fr: 'Veuillez accepter les cookies.',
+};
+
+const staticCookieAcceptString: StaticTranslationString = {
+  de: 'Akzeptieren',
+  en: 'Accept',
+  fr: 'Accepter',
+};
 
 const shouldShowCookieBanner = (): boolean => {
   return (Cookies.get(Cookie.CONVENIAT_COOKIE_BANNER) ?? 'false') === 'false';
@@ -26,23 +38,12 @@ export const CookieBanner: React.FC = () => {
 
   if (!showBanner) return <></>;
 
-  const StaticCookieString = {
-    de: 'Bitte akzeptiere die Cookies.',
-    en: 'Please accept the cookies.',
-    fr: 'Veuillez accepter les cookies.',
-  };
-  const StaticCookieAccpetString = {
-    de: 'Akzeptieren',
-    en: 'Accept',
-    fr: 'Accepter',
-  };
-
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 p-4">
       <div className="rounded-lg bg-gray-800 px-4 py-2 font-bold text-white shadow-lg">
-        {StaticCookieString[locale]}
+        {staticCookieString[locale]}
         <button onClick={acceptCookies} className="ml-4 rounded bg-white p-2 text-gray-500">
-          {StaticCookieAccpetString[locale]}
+          {staticCookieAcceptString[locale]}
         </button>
       </div>
     </div>

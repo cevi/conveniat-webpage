@@ -1,5 +1,5 @@
 import type { GenericPage } from '@/features/payload-cms/payload-types';
-import { HeadlineH1 } from '@/components/typography/headline-h1';
+import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import React from 'react';
 import { PageSectionsConverter } from '@/features/payload-cms/converters/page-sections';
 import type { Locale, SearchParameters } from '@/types/types';

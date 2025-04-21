@@ -14,8 +14,8 @@ import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical
 import { ListBlogPosts } from '@/features/payload-cms/components/content-blocks/list-blog-articles';
 import type { YoutubeEmbedType } from '@/features/payload-cms/components/content-blocks/youtube-embed';
 import { YoutubeEmbed } from '@/features/payload-cms/components/content-blocks/youtube-embed';
-import type { InlineSwisstopoMapEmbedType } from '@/components/map-viewer/inline-swisstopo-map-embed';
-import InlineSwisstopoMapEmbed from '@/components/map-viewer/inline-swisstopo-map-embed';
+import type { InlineSwisstopoMapEmbedType } from '@/features/payload-cms/components/content-blocks/inline-swisstopo-map-embed';
+import InlineSwisstopoMapEmbed from '@/features/payload-cms/components/content-blocks/inline-swisstopo-map-embed';
 import type { FileDownloadType } from '@/features/payload-cms/components/content-blocks/file-download';
 import { FileDownload } from '@/features/payload-cms/components/content-blocks/file-download';
 import Image from 'next/image';

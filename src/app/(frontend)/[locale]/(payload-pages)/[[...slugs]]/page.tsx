@@ -6,7 +6,7 @@ import type { Locale, SearchParameters } from '@/types/types';
 import { cookies } from 'next/headers';
 import { canAccessAdminPanel } from '@/features/payload-cms/settings/access-rules/can-access-admin-panel';
 import type { PayloadRequest } from 'payload';
-import { RefreshRouteOnSave } from '@/components/refresh-preview';
+import { RefreshRouteOnSave } from '@/components/utils/refresh-preview';
 import { isPreviewTokenValid } from '@/utils/preview-token';
 import { CookieBanner } from '@/components/utils/cookie-banner';
 import { auth } from '@/utils/auth-helpers';

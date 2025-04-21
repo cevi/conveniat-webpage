@@ -1,7 +1,7 @@
 import { getPayload } from 'payload';
 import config from '@payload-config';
 import Link from 'next/link';
-import { ParagraphText } from '@/components/typography/paragraph-text';
+import { ParagraphText } from '@/components/ui/typography/paragraph-text';
 import { NewsCard } from '@/components/news-card';
 import React from 'react';
 import Image from 'next/image';

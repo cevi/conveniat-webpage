@@ -1,4 +1,4 @@
-import { HeadlineH1 } from '@/components/typography/headline-h1';
+import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import React from 'react';
 import { getPayload } from 'payload';
 import config from '@payload-config';

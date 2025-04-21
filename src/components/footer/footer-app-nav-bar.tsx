@@ -52,7 +52,7 @@ const navItems = [
       en: 'Program',
       fr: 'Programme',
     },
-    href: '/app/program',
+    href: '/app/schedule',
   },
 ];
 

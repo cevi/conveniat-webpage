@@ -1,7 +1,7 @@
 import React from 'react';
 import { getPayload } from 'payload';
 import config from '@payload-config';
-import { HeadlineH1 } from '@/components/typography/headline-h1';
+import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import type { Blog } from '@/features/payload-cms/payload-types';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import type { StaticTranslationString } from '@/types/types';

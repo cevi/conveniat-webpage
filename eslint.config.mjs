@@ -24,6 +24,7 @@ const features_folder = [
   'next-auth',
   'chat',
   'map',
+  'schedule',
   'onboarding',
   'service-worker',
   'emergency',
@@ -101,7 +102,10 @@ const config = [
       // stricter rules for type checking
       '@typescript-eslint/consistent-type-definitions': 'error',
       '@typescript-eslint/consistent-type-exports': 'error',
-      '@typescript-eslint/consistent-type-imports': 'error',
+      '@typescript-eslint/consistent-type-imports': ['error', {
+        prefer: 'type-imports',
+        disallowTypeAnnotations: false,
+      }],
       '@typescript-eslint/consistent-type-assertions': 'error',
       '@typescript-eslint/explicit-function-return-type': 'error',
 
@@ -154,16 +158,15 @@ const config = [
         {
           zones: [
             // enforce unidirectional codebase:
-            ...features_folder.map((feature) => ({
-              target: `./src/features/${feature}`,
-              from: './src/features',
-              except: [
-                `./${feature}`,
-                // payload-cms can be imported from anywhere, avoid duplicates
-                ...(feature !== 'payload-cms' ? ['./payload-cms'] : []),
-              ],
-              message: `Do not import from ${feature} directly, use the shared modules instead.`,
-            })),
+            ...features_folder
+              // no restrictions to payload-cms feature
+              .filter(feature => feature != 'payload-cms')
+              .map((feature) => ({
+                target: `./src/features/${feature}`,
+                from: './src/features',
+                except: [`./${feature}`, './payload-cms'],
+                message: `Do not import from ${feature} directly, use the shared modules instead.`,
+              })),
 
             // enforce unidirectional codebase:
             // e.g. src/app can import from src/features but not the other way around

@@ -1,7 +1,7 @@
 'use client';
 import React, { useEffect } from 'react';
-import { HeadlineH1 } from '@/components/typography/headline-h1';
-import { TeaserText } from '@/components/typography/teaser-text';
+import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
+import { TeaserText } from '@/components/ui/typography/teaser-text';
 import Link from 'next/link';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';

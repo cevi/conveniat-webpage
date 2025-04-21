@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import type React from 'react';
-import { HeadlineH1 } from '@/components/typography/headline-h1';
-import { ParagraphText } from '@/components/typography/paragraph-text';
+import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
+import { ParagraphText } from '@/components/ui/typography/paragraph-text';
 import type { Locale, StaticTranslationString } from '@/types/types';
 
 const metadataTitle: StaticTranslationString = {

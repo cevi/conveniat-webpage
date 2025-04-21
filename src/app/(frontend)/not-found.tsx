@@ -1,6 +1,6 @@
 import React from 'react';
-import { HeadlineH1 } from '@/components/typography/headline-h1';
-import { TeaserText } from '@/components/typography/teaser-text';
+import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
+import { TeaserText } from '@/components/ui/typography/teaser-text';
 import Link from 'next/link';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import type { Locale, StaticTranslationString } from '@/types/types';
