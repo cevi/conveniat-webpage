@@ -111,10 +111,13 @@ const config = [
       // stricter rules for type checking
       '@typescript-eslint/consistent-type-definitions': 'error',
       '@typescript-eslint/consistent-type-exports': 'error',
-      '@typescript-eslint/consistent-type-imports': ['error', {
-        prefer: 'type-imports',
-        disallowTypeAnnotations: false,
-      }],
+      '@typescript-eslint/consistent-type-imports': [
+        'error',
+        {
+          prefer: 'type-imports',
+          disallowTypeAnnotations: false,
+        },
+      ],
       '@typescript-eslint/consistent-type-assertions': 'error',
       '@typescript-eslint/explicit-function-return-type': 'error',
 
@@ -169,7 +172,7 @@ const config = [
             // enforce unidirectional codebase:
             ...features_folder
               // no restrictions to payload-cms feature
-              .filter(feature => feature != 'payload-cms')
+              .filter((feature) => feature != 'payload-cms')
               .map((feature) => ({
                 target: `./src/features/${feature}`,
                 from: './src/features',
@@ -203,7 +206,7 @@ const config = [
                 './lib',
                 './types',
                 './utils',
-                './config'
+                './config',
               ],
             },
           ],
