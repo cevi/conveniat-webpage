@@ -18,6 +18,7 @@ import InlineSwisstopoMapEmbed from '@/features/payload-cms/components/content-b
 import type { FileDownloadType } from '@/features/payload-cms/components/content-blocks/file-download';
 import { FileDownload } from '@/features/payload-cms/components/content-blocks/file-download';
 import Image from 'next/image';
+import type { FormBlockType } from '@/features/payload-cms/components/form';
 
 export type ContentBlockTypeNames =
   | 'blogPostsOverview'

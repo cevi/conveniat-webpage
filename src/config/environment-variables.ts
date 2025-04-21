@@ -21,7 +21,7 @@ export const environmentVariables = createEnv({
       value
         .split(',')
         .map((s) => Number(s.trim()))
-        .filter((n) => !isNaN(n)),
+        .filter((n) => !Number.isNaN(n)),
     ),
     CEVI_DB_CLIENT_ID: z.string().min(1),
     CEVI_DB_CLIENT_SECRET: z.string().min(1),
