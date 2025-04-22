@@ -12,7 +12,7 @@ export const environmentVariables = createEnv({
     APP_HOST_URL: z.string().url(),
     NODE_ENV: z.string().default('development'),
     NEXTAUTH_URL: z.string().url(),
-    AUTH_TRUST_HOST: z.string().transform((value) => (value === 'true' ? true : false)),
+    AUTH_TRUST_HOST: z.string().transform((value) => value === 'true'),
     NEXTAUTH_SECRET: z.string().min(5),
     JWT_SECRET: z.string().min(5),
     HITOBITO_BASE_URL: z.string().url(),
@@ -31,16 +31,14 @@ export const environmentVariables = createEnv({
     MINIO_SECRET_ACCESS_KEY: z.string().min(5),
     MINIO_BUCKET_NAME: z.string().min(5),
     MINIO_HOST: z.string().url(),
-    ENABLE_NODEMAILER: z.string().transform((value) => (value === 'true' ? true : false)),
+    ENABLE_NODEMAILER: z.string().transform((value) => value === 'true'),
     SMTP_HOST: z.string().url().optional(),
     SMTP_PORT: z.coerce.number().optional(),
     SMTP_USER: z.string().optional(),
     SMTP_PASS: z.string().optional(),
     VAPID_PRIVATE_KEY: z.string().min(5),
-    FEATURE_ENABLE_APP_FEATURE: z.string().transform((value) => (value === 'true' ? true : false)),
-    ENABLE_SERVICE_WORKER_LOCALLY: z
-      .string()
-      .transform((value) => (value === 'true' ? true : false)),
+    FEATURE_ENABLE_APP_FEATURE: z.string().transform((value) => value === 'true'),
+    ENABLE_SERVICE_WORKER_LOCALLY: z.string().transform((value) => value === 'true'),
   },
   /*
    * Environment variables available on the client (and server).
