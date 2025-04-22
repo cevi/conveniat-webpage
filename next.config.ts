@@ -1,7 +1,10 @@
-import { withPayload } from '@payloadcms/next/withPayload';
-import createJiti from 'jiti';
-import { fileURLToPath } from 'node:url';
+import type { NextConfig } from 'next';
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import { withPayload } from '@payloadcms/next/withPayload';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
 import withSerwistInit from '@serwist/next';
 
 // TODO: see https://github.com/serwist/serwist/blob/main/examples/next-basic/next.config.mjs
@@ -9,10 +12,6 @@ import withSerwistInit from '@serwist/next';
 // files more efficiently.
 // A viable option is `git rev-parse HEAD`.
 const revision = crypto.randomUUID();
-
-// verify enviroment variables at build time
-const jiti = createJiti(fileURLToPath(import.meta.url));
-jiti('./src/config/environment-variables.ts');
 
 const withSerwist = withSerwistInit({
   cacheOnNavigation: true,
@@ -22,16 +21,19 @@ const withSerwist = withSerwistInit({
   register: true,
   reloadOnOnline: true,
   disable:
-    process.env.NODE_ENV !== 'production' && process.env.ENABLE_SERVICE_WORKER_LOCALLY !== 'true',
+    process.env.NODE_ENV !== 'production' &&
+    process.env['ENABLE_SERVICE_WORKER_LOCALLY'] !== 'true',
 });
 
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+const nextConfig: NextConfig = {
   output: 'standalone',
-  productionBrowserSourceMaps: process.env.INCLUDE_SOURCE_MAP === 'true',
+  productionBrowserSourceMaps: process.env['INCLUDE_SOURCE_MAP'] === 'true',
   serverExternalPackages: ['mongodb', 'mongoose'],
   transpilePackages: ['@t3-oss/env-nextjs', '@t3-oss/env-core'],
   reactStrictMode: true,
+  turbopack: {
+    moduleIds: 'named',
+  },
   eslint: {
     ignoreDuringBuilds: true,
   },

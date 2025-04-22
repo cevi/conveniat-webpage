@@ -93,7 +93,10 @@ const config = [
   {
     plugins: { n: nodePlugin },
     rules: { 'n/no-process-env': ['error'] },
-    ignores: ['src/config/environment-variables.ts'], // ignore the env extractor
+    ignores: [
+      'src/config/environment-variables.ts', // ignore the env extractor
+      'next.config.ts', // ignore NextJS config
+    ],
   },
 
   {
@@ -172,7 +175,7 @@ const config = [
             // enforce unidirectional codebase:
             ...features_folder
               // no restrictions to payload-cms feature
-              .filter((feature) => feature != 'payload-cms')
+              .filter((feature) => feature !== 'payload-cms')
               .map((feature) => ({
                 target: `./src/features/${feature}`,
                 from: './src/features',
