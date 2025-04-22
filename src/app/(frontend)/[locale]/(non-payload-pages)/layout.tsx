@@ -6,6 +6,7 @@ import { ErrorBoundary } from 'react-error-boundary';
 import { FooterAppNavBar } from '@/components/footer/footer-app-nav-bar';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { renderInAppDesign } from '@/utils/render-in-app-design';
+import { SessionProvider } from 'next-auth/react';
 
 interface LayoutProperties {
   children: ReactNode;
@@ -22,7 +23,9 @@ const Layout: React.FC<LayoutProperties> = async ({ children }) => {
           <ErrorPage error={new Error('main content failed to render at non payload page')} />
         }
       >
-        <main className="mt-[60px] grow pb-20">{children}</main>
+        <SessionProvider>
+          <main className="mt-[60px] grow pb-20">{children}</main>
+        </SessionProvider>
       </ErrorBoundary>
 
       {isInAppDesign && <FooterAppNavBar locale={locale} />}
