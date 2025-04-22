@@ -6,18 +6,13 @@ import { withPayload } from '@payloadcms/next/withPayload';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import withSerwistInit from '@serwist/next';
-
-// TODO: see https://github.com/serwist/serwist/blob/main/examples/next-basic/next.config.mjs
-// You may want to use a more robust revision to cache
-// files more efficiently.
-// A viable option is `git rev-parse HEAD`.
-const revision = crypto.randomUUID();
+import build from '@/build';
 
 const withSerwist = withSerwistInit({
   cacheOnNavigation: true,
   swSrc: 'src/features/service-worker/index.ts',
   swDest: 'public/sw.js',
-  additionalPrecacheEntries: [{ url: '/offline', revision }],
+  additionalPrecacheEntries: [{ url: '/offline', revision: build.git.hash }],
   register: true,
   reloadOnOnline: true,
   disable:
