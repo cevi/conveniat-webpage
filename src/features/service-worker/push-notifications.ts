@@ -12,23 +12,51 @@ export const pushNotificationHandler =
   (serviceWorkerScope: ServiceWorkerGlobalScope) =>
   (event: PushEvent): void => {
     console.log('Push notification received.');
-    if (event.data) {
-      // TODO: is this type correct?
-      const data = event.data.json() as {
-        title: string;
-        body: string;
-      };
-      const options: NotificationOptions = {
-        body: data.body,
-        icon: '/favicon.svg',
-        badge: '/favicon.svg',
-        requireInteraction: true,
-        tag: 'conveniat27',
-        data: {},
-      };
+    if (!event.data) return;
 
-      event.waitUntil(serviceWorkerScope.registration.showNotification(data.title, options));
-    }
+    const data = event.data.json() as {
+      title: string;
+      body: string;
+    };
+
+    const options: NotificationOptions = {
+      body: data.body,
+      icon: '/favicon.svg',
+      badge: '/favicon.svg',
+      requireInteraction: true,
+      tag: 'conveniat27',
+      data: {},
+    };
+
+    event.waitUntil(
+      (async () => {
+        const clientList = await serviceWorkerScope.clients.matchAll({
+          type: 'window',
+          includeUncontrolled: true,
+        });
+
+        const isAppInFocus = clientList.some((client) => {
+          return (
+            (client as WindowClient).visibilityState === 'visible' &&
+            (client as WindowClient).focused
+          );
+        });
+
+        if (isAppInFocus) {
+          console.log('App is in focus; skipping notification.');
+
+          // send notification to all clients
+          for (const client of clientList) {
+            client.postMessage({
+              type: 'notification',
+              data,
+            });
+          }
+        } else {
+          await serviceWorkerScope.registration.showNotification(data.title, options);
+        }
+      })(),
+    );
   };
 
 export const notificationClickHandler =

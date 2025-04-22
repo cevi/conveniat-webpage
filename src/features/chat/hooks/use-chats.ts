@@ -17,9 +17,7 @@ export const useChats = (): {
   const [error, setError] = useState<string | undefined>();
 
   useEffect(() => {
-    const intervalId = setIntervalImmediately(() => {
-      setError(undefined);
-
+    const fetchChats = (): void => {
       getChats()
         .then((fetchedChats) => {
           // debounce if object has not changed
@@ -35,14 +33,26 @@ export const useChats = (): {
           setError('Failed to fetch chats.');
           setLoading(false);
         });
-    }, 1000);
+    };
 
-    return (): void => clearInterval(intervalId); // Cleanup on unmount
-  }, []);
+    setLoading(true);
+    fetchChats();
+
+    const handleMessage = (): void => {
+      console.log('Received message via push notification, start fetching chats');
+      fetchChats();
+      setLoading(false);
+    };
+
+    navigator.serviceWorker.addEventListener('message', handleMessage);
+
+    return (): void => {
+      navigator.serviceWorker.removeEventListener('message', handleMessage);
+    };
+  }, [chats]);
 
   return { chats, loading, error };
 };
-
 export const useChatDetail = (
   chatId: string,
 ): {
@@ -55,18 +65,15 @@ export const useChatDetail = (
   const [error, setError] = useState<string | undefined>();
 
   useEffect(() => {
-    const intervalId = setIntervalImmediately(() => {
-      setError(undefined);
+    setError(undefined);
 
+    const fetchChatDetails = (): void => {
       getChatDetail(chatId)
         .then((fetchedChatDetail) => {
           // debounce if object has not changed
           if (JSON.stringify(chatDetail) === JSON.stringify(fetchedChatDetail)) {
             setLoading(false);
             return;
-          } else {
-            console.log(chatDetail);
-            console.log(fetchedChatDetail);
           }
 
           setChatDetail(fetchedChatDetail);
@@ -76,10 +83,22 @@ export const useChatDetail = (
           setError('Failed to fetch chat detail.');
           setLoading(false);
         });
-    }, 1000);
+    };
 
-    return (): void => clearInterval(intervalId); // Cleanup on unmount
-  }, [chatId]);
+    fetchChatDetails();
+
+    const handleMessage = (): void => {
+      console.log('Received message via push notification, start fetching chats');
+      fetchChatDetails();
+      setLoading(false);
+    };
+
+    navigator.serviceWorker.addEventListener('message', handleMessage);
+
+    return (): void => {
+      navigator.serviceWorker.removeEventListener('message', handleMessage);
+    };
+  }, [chatDetail, chatId]);
 
   return { chatDetail, loading, error };
 };

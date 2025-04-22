@@ -1,9 +1,11 @@
 'use server';
 
-import { chatStore } from '@/features/chat/api/message-in-memory-store';
-import type { Chat, ChatDetail, Message } from '@/features/chat/types/chat';
+import type { Chat, ChatDetail } from '@/features/chat/types/chat';
+import { PrismaClient } from '@/lib/prisma/client';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import { auth } from '@/utils/auth-helpers';
+
+const prisma = new PrismaClient();
 
 export const getChats = async (): Promise<Chat[]> => {
   const session = await auth();
@@ -13,46 +15,55 @@ export const getChats = async (): Promise<Chat[]> => {
     throw new Error('User not authenticated');
   }
 
-  if (chatStore.has(user.cevi_db_uuid)) {
-    const chats = chatStore.get(user.cevi_db_uuid);
-
-    if (chats) {
-      return chats.map((chat) => ({
-        ...chat,
-        messages: undefined,
-        timestamp: new Date(Date.now() - Math.random() * 1000 * 60 * 60 * 24),
-      }));
-    }
-  }
-
-  // generate random chats if no chats are found
-  const numberOfChats = Math.floor(Math.random() * 5) + 1;
-
-  const chats = Array.from({ length: numberOfChats }, (_, index) => {
-    const numberOfMessages = Math.floor(Math.random() * 10) + 1;
-
-    const messages = Array.from(
-      { length: numberOfMessages },
-      () =>
-        ({
-          id: `message-${Math.random()}`,
-          senderId: `user-${Math.floor(Math.random() * 10)}`,
-          content: `This is a random message ${index + 1} in chat ${index}`,
-          timestamp: new Date(Date.now() - Math.random() * 1000 * 60 * 60 * 24),
-        }) as Message,
-    );
-
-    return {
-      id: `chat-${numberOfChats}`,
-      name: `Chat ${index + 1}`,
-      messages,
-      lastMessage: messages.at(-1),
-      timestamp: new Date(Date.now() - Math.random() * 1000 * 60 * 60 * 24),
-    } as ChatDetail;
+  let prismaUser = await prisma.user.findUnique({
+    where: {
+      ceviDbID: user.cevi_db_uuid.toString(),
+    },
   });
 
-  chatStore.set(user.cevi_db_uuid, chats);
-  return getChats();
+  // create user if not exists
+  prismaUser ??= await prisma.user.create({
+    data: {
+      ceviDbID: user.cevi_db_uuid.toString(),
+      name: user.name,
+    },
+  });
+
+  const chats = await prisma.chat.findMany({
+    where: {
+      users: {
+        some: {
+          uuid: prismaUser.uuid,
+        },
+      },
+    },
+    include: {
+      messages: true,
+    },
+    orderBy: {
+      lastUpdate: 'desc',
+    },
+  });
+
+  return chats.map((chat): Chat => {
+    const messages = chat.messages.sort((m) => m.timestamp.toISOString());
+    const lastMessage = messages.at(-1);
+    if (lastMessage === undefined) {
+      throw new Error('No messages found in chat');
+    }
+
+    return {
+      lastUpdate: chat.lastUpdate,
+      name: chat.name,
+      id: chat.uuid,
+      lastMessage: {
+        id: lastMessage.uuid,
+        timestamp: chat.lastUpdate,
+        content: lastMessage.content,
+        senderId: lastMessage.senderId,
+      },
+    };
+  });
 };
 
 export const getChatDetail = async (chatID: string): Promise<ChatDetail> => {
@@ -63,24 +74,38 @@ export const getChatDetail = async (chatID: string): Promise<ChatDetail> => {
     throw new Error('User not authenticated');
   }
 
-  if (chatStore.has(user.cevi_db_uuid)) {
-    const chats = chatStore.get(user.cevi_db_uuid);
+  const chat = await prisma.chat.findUnique({
+    where: {
+      uuid: chatID,
+    },
+    include: {
+      messages: true,
+    },
+  });
 
-    console.log('chats:', chats);
-    if (chats) {
-      const chatDetail = chats.find((chat) => chat.id === chatID);
-
-      if (chatDetail) {
-        return chatDetail;
-      } else {
-        throw new Error(
-          `Chat with ID ${chatID} not found, only found ${chats.map((chat) => chat.id).join(', ')}`,
-        );
-      }
-    }
+  if (chat === null) {
+    throw new Error('Chat not found');
   }
 
-  throw new Error(
-    `Chat with ID ${chatID} not found, only found ${JSON.stringify(chatStore.keys())}`,
-  );
+  const messages = chat.messages;
+  if (messages.length === 0) {
+    throw new Error('No messages found in chat');
+  }
+
+  const lastMessage = messages.at(-1);
+  if (lastMessage === undefined) {
+    throw new Error('No messages found in chat');
+  }
+
+  return {
+    lastUpdate: chat.lastUpdate,
+    name: chat.name,
+    id: chat.uuid,
+    messages: messages.map((message) => ({
+      id: message.uuid,
+      timestamp: message.timestamp,
+      content: message.content,
+      senderId: message.senderId,
+    })),
+  };
 };

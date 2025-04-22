@@ -1,37 +1,108 @@
 'use server';
 
-import { chatStore } from '@/features/chat/api/message-in-memory-store';
-import type { ChatDetail, Message, SendMessage } from '@/features/chat/types/chat';
+import type { SendMessage } from '@/features/chat/types/chat';
+import { sendNotificationToSubscription } from '@/features/onboarding/api/push-notification';
+import { PrismaClient } from '@/lib/prisma';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import { auth } from '@/utils/auth-helpers';
+import config from '@payload-config';
+import { getPayload } from 'payload';
+import type webpush from 'web-push';
+
+const prisma = new PrismaClient();
+
+/**
+ * Sends a push notification to the user.
+ * @param message
+ */
+async function sendNotification(message: string): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  const payload = await getPayload({ config });
+
+  const { totalDocs } = await payload.count({ collection: 'push-notification-subscriptions' });
+  if (totalDocs === 0) {
+    throw new Error('No subscription available');
+  }
+
+  const { docs: subscriptions } = await payload.find({
+    collection: 'push-notification-subscriptions',
+    depth: 0,
+  });
+
+  console.log(`Sending notification to ${subscriptions.length} subscriptions`);
+
+  try {
+    const webPushPromises = subscriptions.map((subscription) => {
+      return sendNotificationToSubscription(
+        subscription as webpush.PushSubscription,
+        message,
+      ).catch((error: unknown) => {
+        console.error(`Error sending notification to subscription ${subscription.id}:`, error);
+        throw new Error(`Failed to send notification to subscription ${subscription.id}`);
+      });
+    });
+    await Promise.all(webPushPromises);
+
+    console.log('Push notifications sent successfully');
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending push notification:', error);
+    return { success: false, error: 'Failed to send notification' };
+  }
+}
 
 export const sendMessage = async (message: SendMessage): Promise<void> => {
-  // get current user
   const session = await auth();
   const user = session?.user as unknown as HitobitoNextAuthUser | undefined;
   if (user === undefined) {
     throw new Error('User not authenticated');
   }
 
-  // TODO: save message to a database
-  if (chatStore.has(user.cevi_db_uuid)) {
-    const chats = chatStore.get(user.cevi_db_uuid);
-    if (chats) {
-      const chat = chats.find((_chat: ChatDetail) => _chat.id === message.chatId);
-      if (chat) {
-        const chatMessage: Message = {
-          id: `message-${Math.random()}`,
-          senderId: user.cevi_db_uuid.toString(),
-          content: message.content,
-          timestamp: new Date(),
-        };
+  await prisma.message.create({
+    data: {
+      content: message.content,
+      sender: {
+        connect: {
+          ceviDbID: user.cevi_db_uuid.toString(),
+        },
+      },
+      chat: {
+        connect: {
+          uuid: message.chatId,
+        },
+      },
+    },
+  });
 
-        chat.messages.push(chatMessage);
-        chat.lastMessage = chatMessage;
-      }
-    }
-  }
+  // mock a response message after 10 seconds
+  setTimeout(() => {
+    prisma.message
+      .create({
+        data: {
+          timestamp: new Date().toISOString(),
+          content: 'This is a response message',
+          sender: {
+            create: {
+              ceviDbID: `${Math.random()}`,
+              name: user.name,
+            },
+          },
+          chat: {
+            connect: {
+              uuid: message.chatId,
+            },
+          },
+        },
+      })
+      .then(() => sendNotification('This is a response message'))
+      .catch(console.error);
+  }, 5000);
 
-  // TODO: send push notification to the recipient
-  console.log(`Push notification sent to participants of chat-id=${message.chatId}`);
+  // TODO: send push notification to all users in the chat
+  sendNotification(message.content).catch(() => {
+    console.error('Error sending notification:');
+  });
 };

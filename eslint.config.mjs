@@ -102,6 +102,7 @@ const config = [
     ignores: [
       'src/config/environment-variables.ts', // ignore the env extractor
       'next.config.ts', // ignore NextJS config
+      'src/features/service-worker/**/*.ts', // ignore service worker
     ],
   },
 

@@ -9,11 +9,47 @@ interface MessageProperties {
   isCurrentUser: boolean;
 }
 
+const formatMessageContent = (text: string): React.ReactNode[] => {
+  // Regex to split the string by WhatsApp-style formatting delimiters, keeping the delimiters.
+  // It looks for *non-greedy* content between matching pairs of *, _, or ~.
+  const splitRegex = /(\*.*?\*|_.*?_|~.*?~)/g;
+
+  // Regexes to identify the type of formatting in a matched part
+  const boldRegex = /^\*(.+)\*$/; // Matches *content*
+  const italicRegex = /^_(.+)_$/; // Matches _content_
+  const strikethroughRegex = /^~(.+)~$/; // Matches ~content~
+
+  const parts = text.split(splitRegex).filter(Boolean);
+
+  return parts.map((part, index) => {
+    let match;
+
+    match = part.match(boldRegex);
+    if (match?.[1] != undefined) {
+      return <strong key={index}>{match[1]}</strong>;
+    }
+
+    match = part.match(italicRegex);
+    if (match?.[1] != undefined) {
+      return <em key={index}>{match[1]}</em>; // <em> for italics
+    }
+
+    match = part.match(strikethroughRegex);
+    if (match?.[1] != undefined) {
+      return <s key={index}>{match[1]}</s>; // <s> for strikethrough
+    }
+
+    return part;
+  });
+};
+
 export const MessageComponent: React.FC<MessageProperties> = ({ message, isCurrentUser }) => {
   const formattedTime = useFormatDate().formatMessageTime(message.timestamp);
 
+  const renderedContent = formatMessageContent(message.content);
+
   return (
-    <div className={cn('flex max-w-[80%] items-end gap-2', isCurrentUser ? 'ml-auto' : 'mr-auto')}>
+    <div className={cn('flex items-end gap-2', isCurrentUser ? 'justify-end' : 'justify-start')}>
       {!isCurrentUser && <UserCircle />}
 
       <div className="flex flex-col">
@@ -25,7 +61,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({ message, isCurre
               : 'rounded-bl-none bg-gray-200 text-gray-800',
           )}
         >
-          {message.content}
+          {renderedContent}
         </div>
         <span className="text-muted-foreground mt-1 text-xs">{formattedTime}</span>
       </div>

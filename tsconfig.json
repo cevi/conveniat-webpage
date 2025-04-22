@@ -37,7 +37,8 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "@payload-config": ["./src/features/payload-cms/payload.config.ts"]
+      "@payload-config": ["./src/features/payload-cms/payload.config.ts"],
+      "@prisma/client": ["./src/lib/prisma/client"]
     },
     "target": "es2021"
   },
