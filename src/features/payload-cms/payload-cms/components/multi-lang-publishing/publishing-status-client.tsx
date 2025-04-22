@@ -1,8 +1,8 @@
 'use client';
-import React, { useEffect, useRef, useState } from 'react';
-import { useAllFormFields, useDocumentInfo } from '@payloadcms/ui';
 import { LanguageStatus } from '@/features/payload-cms/payload-cms/components/multi-lang-publishing/publishing-status';
 import type { PublishingStatusType } from '@/features/payload-cms/payload-cms/components/multi-lang-publishing/type';
+import { useAllFormFields, useDocumentInfo } from '@payloadcms/ui';
+import React, { useEffect, useRef, useState } from 'react';
 
 export const PublishingStatusBadges: React.FC<{
   publishingStatus: PublishingStatusType;

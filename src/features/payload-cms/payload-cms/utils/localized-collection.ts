@@ -1,6 +1,6 @@
-import type { CollectionConfig } from 'payload';
-import { localizedStatusSchema } from '@/features/payload-cms/payload-cms/utils/localized-status-schema';
 import { getPublishingStatus } from '@/features/payload-cms/payload-cms/hooks/publishing-status';
+import { localizedStatusSchema } from '@/features/payload-cms/payload-cms/utils/localized-status-schema';
+import type { CollectionConfig } from 'payload';
 
 /**
  * This is a utility function that adds the necessary fields to a collection to make it localized.

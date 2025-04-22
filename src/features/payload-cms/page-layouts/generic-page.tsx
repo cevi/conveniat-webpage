@@ -1,12 +1,12 @@
-import React from 'react';
-import { getPayload } from 'payload';
-import config from '@payload-config';
-import { notFound, redirect } from 'next/navigation';
+import { GenericPageConverter } from '@/features/payload-cms/converters/generic-page';
+import type { Permission } from '@/features/payload-cms/payload-types';
 import type { Locale, LocalizedCollectionPage } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { GenericPageConverter } from '@/features/payload-cms/converters/generic-page';
 import { hasPermissions } from '@/utils/has-permissions';
-import type { Permission } from '@/features/payload-cms/payload-types';
+import config from '@payload-config';
+import { notFound, redirect } from 'next/navigation';
+import { getPayload } from 'payload';
+import React from 'react';
 
 export const GenericPage: React.FC<LocalizedCollectionPage> = async ({
   slugs,

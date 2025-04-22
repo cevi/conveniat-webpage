@@ -1,6 +1,6 @@
-import React from 'react';
-import Link from 'next/link';
 import { Paperclip } from 'lucide-react';
+import Link from 'next/link';
+import React from 'react';
 
 export interface FileDownloadType {
   file: {

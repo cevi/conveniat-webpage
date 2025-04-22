@@ -1,14 +1,14 @@
-import React from 'react';
-import { Popover, PopoverBackdrop, PopoverButton, PopoverPanel } from '@headlessui/react';
-import { CircleX, Menu as MenuIcon } from 'lucide-react';
-import { getPayload } from 'payload';
-import config from '@payload-config';
-import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
-import Link from 'next/link';
 import { LanguageSwitcher } from '@/components/menu/language-switcher';
 import { SearchComponent } from '@/components/menu/search';
-import { renderInAppDesign } from '@/utils/render-in-app-design';
 import { getBuildInfo } from '@/utils/get-build-info';
+import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
+import { renderInAppDesign } from '@/utils/render-in-app-design';
+import { Popover, PopoverBackdrop, PopoverButton, PopoverPanel } from '@headlessui/react';
+import config from '@payload-config';
+import { CircleX, Menu as MenuIcon } from 'lucide-react';
+import Link from 'next/link';
+import { getPayload } from 'payload';
+import React from 'react';
 import { FooterBuildInfoText } from '../footer/footer-copyright-area';
 
 export const NavComponent: React.FC = async () => {

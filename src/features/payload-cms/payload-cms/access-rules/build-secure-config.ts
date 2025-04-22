@@ -1,6 +1,6 @@
+import { canAccessAPI } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import type { Config, SanitizedConfig } from 'payload';
 import { buildConfig } from 'payload';
-import { canAccessAPI } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 
 /**
  * Builds a secure config by applying default access rules to all globals and collections.

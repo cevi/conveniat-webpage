@@ -1,10 +1,10 @@
-import type { Blog } from '@/features/payload-cms/payload-types';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
-import React from 'react';
-import Image from 'next/image';
 import { PageSectionsConverter } from '@/features/payload-cms/converters/page-sections';
-import type { Locale, SearchParameters } from '@/types/types';
 import type { ContentBlock } from '@/features/payload-cms/converters/page-sections/section-wrapper';
+import type { Blog } from '@/features/payload-cms/payload-types';
+import type { Locale, SearchParameters } from '@/types/types';
+import Image from 'next/image';
+import React from 'react';
 
 export const BlogArticleConverter: React.FC<{
   article: Blog;

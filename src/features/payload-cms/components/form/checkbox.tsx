@@ -1,7 +1,7 @@
-import type { CheckboxField } from 'payload';
-import type { FieldErrorsImpl, FieldValues, UseFormRegister } from 'react-hook-form';
 import { Required } from '@/features/payload-cms/components/form/required';
+import type { CheckboxField } from 'payload';
 import React from 'react';
+import type { FieldErrorsImpl, FieldValues, UseFormRegister } from 'react-hook-form';
 
 export const Checkbox: React.FC<
   {

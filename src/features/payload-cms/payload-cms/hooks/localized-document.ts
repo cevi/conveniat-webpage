@@ -1,9 +1,9 @@
-import { useDebounce, useDocumentInfo } from '@payloadcms/ui';
 import {
   fetchDocument,
   fetchGlobalDocument,
   NotYetSavedException,
 } from '@/features/payload-cms/payload-cms/components/multi-lang-publishing/utils';
+import { useDebounce, useDocumentInfo } from '@payloadcms/ui';
 import { useEffect, useState } from 'react';
 
 /**

@@ -1,8 +1,8 @@
-import React from 'react';
 import { CenteredConveniatLogo } from '@/features/onboarding/components/centered-conveniat-logo';
-import { signIn } from 'next-auth/react';
-import Cookies from 'js-cookie';
 import { Cookie } from '@/types/types';
+import Cookies from 'js-cookie';
+import { signIn } from 'next-auth/react';
+import React from 'react';
 
 const handleLogin = (): void => {
   signIn('cevi-db', {

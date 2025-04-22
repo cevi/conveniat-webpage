@@ -1,5 +1,5 @@
-import type { MetadataRoute } from 'next';
 import { environmentVariables } from '@/config/environment-variables';
+import type { MetadataRoute } from 'next';
 
 export const generateRobots = (): MetadataRoute.Robots => {
   const NEXT_PUBLIC_APP_HOST_URL = environmentVariables.NEXT_PUBLIC_APP_HOST_URL;

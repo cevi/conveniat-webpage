@@ -1,6 +1,6 @@
-import type { GlobalConfig } from 'payload';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { localizedDefaultValue } from '@/features/payload-cms/payload-cms/utils/localized-default-value';
+import type { GlobalConfig } from 'payload';
 
 export const PWAGlobal: GlobalConfig = {
   slug: 'PWA',

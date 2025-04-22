@@ -2,10 +2,10 @@ import type { ReactNode } from 'react';
 import React from 'react';
 
 // These styles apply to every route in the application
-import '../globals.scss';
-import { Inter, Montserrat } from 'next/font/google';
-import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { CeviLogo } from '@/components/svg-logos/cevi-logo';
+import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
+import { Inter, Montserrat } from 'next/font/google';
+import '../globals.scss';
 
 interface LayoutProperties {
   children: ReactNode;
@@ -39,5 +39,5 @@ const AppEntrypointRootLayout: React.FC<LayoutProperties> = async ({ children })
 export default AppEntrypointRootLayout;
 
 // configure the viewport and metadata
-export { generateViewport } from '@/utils/generate-viewport';
 export { generateMetadata } from '@/utils/generate-metadata';
+export { generateViewport } from '@/utils/generate-viewport';

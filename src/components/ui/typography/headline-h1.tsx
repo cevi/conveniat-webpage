@@ -1,6 +1,6 @@
-import React from 'react';
 import { nodeToAnchorReference } from '@/utils/node-to-anchor-reference';
 import { cn } from '@/utils/tailwindcss-override';
+import React from 'react';
 
 export const HeadlineH1: React.FC<{
   children?: React.ReactNode;

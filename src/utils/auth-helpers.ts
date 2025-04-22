@@ -1,9 +1,9 @@
-import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
-import type { AuthStrategyFunction, BasePayload } from 'payload';
-import type { User } from '@/features/payload-cms/payload-types';
-import NextAuth from 'next-auth';
-import { authOptions } from '@/features/next-auth/utils/next-auth-config';
 import { environmentVariables } from '@/config/environment-variables';
+import { authOptions } from '@/features/next-auth/utils/next-auth-config';
+import type { User } from '@/features/payload-cms/payload-types';
+import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
+import NextAuth from 'next-auth';
+import type { AuthStrategyFunction, BasePayload } from 'payload';
 
 export const { handlers, auth } = NextAuth(authOptions);
 

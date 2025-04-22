@@ -1,5 +1,5 @@
-import { nodemailerAdapter } from '@payloadcms/email-nodemailer';
 import { environmentVariables } from '@/config/environment-variables';
+import { nodemailerAdapter } from '@payloadcms/email-nodemailer';
 
 /**
  * NodeMailer Adapter for sending emails via SMTP

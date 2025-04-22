@@ -1,15 +1,15 @@
-import type React from 'react';
-import { payloadConfig } from '@payload-config';
-import type { CollectionSlug } from 'payload';
 import { BlogPostPage } from '@/features/payload-cms/page-layouts/blog-posts';
 import { GenericPage } from '@/features/payload-cms/page-layouts/generic-page';
+import { TimeLinePage } from '@/features/payload-cms/page-layouts/timeline-page';
 import type {
   Locale,
   LocalizedCollectionPage,
   LocalizedPageType,
   RoutableCollectionConfig,
 } from '@/types/types';
-import { TimeLinePage } from '@/features/payload-cms/page-layouts/timeline-page';
+import { payloadConfig } from '@payload-config';
+import type { CollectionSlug } from 'payload';
+import type React from 'react';
 
 interface RouteResolutionTable {
   [slugPrefix: string]: {

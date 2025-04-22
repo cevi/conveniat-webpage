@@ -1,8 +1,8 @@
+import { CenteredConveniatLogo } from '@/features/onboarding/components/centered-conveniat-logo';
 import type { StaticTranslationString } from '@/types/types';
 import { Cookie } from '@/types/types';
-import React from 'react';
 import Cookies from 'js-cookie';
-import { CenteredConveniatLogo } from '@/features/onboarding/components/centered-conveniat-logo';
+import React from 'react';
 
 export const cookieInfoText: StaticTranslationString = {
   en: 'We use cookies to ensure you get the best experience within our app.',

@@ -1,13 +1,13 @@
-import type { MetadataRoute } from 'next';
+import { environmentVariables } from '@/config/environment-variables';
+import type { Blog } from '@/features/payload-cms/payload-types';
 import {
   routeResolutionTable,
   urlPrefixToCollectionSlug,
 } from '@/features/payload-cms/route-resolution-table';
 import { i18nConfig } from '@/types/types';
 import config from '@payload-config';
+import type { MetadataRoute } from 'next';
 import { getPayload } from 'payload';
-import type { Blog } from '@/features/payload-cms/payload-types';
-import { environmentVariables } from '@/config/environment-variables';
 
 const toURL = (urlSegments: string[]): string => {
   return urlSegments.filter((seg) => seg !== '').join('/');

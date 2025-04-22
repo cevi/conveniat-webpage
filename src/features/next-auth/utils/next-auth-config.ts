@@ -1,7 +1,7 @@
+import { environmentVariables } from '@/config/environment-variables';
 import type { NextAuthConfig } from 'next-auth';
 import type { JWT } from 'next-auth/jwt';
 import type { HitobitoProfile } from '../types/hitobito-profile';
-import { environmentVariables } from '@/config/environment-variables';
 
 const HITOBITO_BASE_URL = environmentVariables.HITOBITO_BASE_URL;
 const HITOBITO_FORWARD_URL = environmentVariables.HITOBITO_FORWARD_URL;

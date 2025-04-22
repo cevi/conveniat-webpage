@@ -1,8 +1,8 @@
-import React from 'react';
-import type { CollectionSlug } from 'payload';
+import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import { findPrefixByCollectionSlugAndLocale } from '@/features/payload-cms/route-resolution-table';
 import type { Locale } from '@/types/types';
-import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
+import type { CollectionSlug } from 'payload';
+import React from 'react';
 
 /**
  * Approximates the width of a string of text in a given font size. This is a hacky solution that

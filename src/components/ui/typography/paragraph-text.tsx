@@ -1,5 +1,5 @@
-import React from 'react';
 import { cn } from '@/utils/tailwindcss-override';
+import React from 'react';
 
 export const ParagraphText: React.FC<{
   children?: React.ReactNode;

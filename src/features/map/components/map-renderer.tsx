@@ -1,8 +1,8 @@
 'use client';
-import React, { useEffect, useRef } from 'react';
-import { Map as MapLibre, Marker, NavigationControl, ScaleControl } from 'maplibre-gl';
-import { reactToDomElement } from '@/utils/react-to-dom-element';
 import { CeviLogo } from '@/components/svg-logos/cevi-logo';
+import { reactToDomElement } from '@/utils/react-to-dom-element';
+import { Map as MapLibre, Marker, NavigationControl, ScaleControl } from 'maplibre-gl';
+import React, { useEffect, useRef } from 'react';
 
 // styles for the map viewer
 import 'maplibre-gl/dist/maplibre-gl.css';

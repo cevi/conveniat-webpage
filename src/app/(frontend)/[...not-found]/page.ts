@@ -1,5 +1,5 @@
-import type React from 'react';
 import { notFound } from 'next/navigation';
+import type React from 'react';
 
 /**
  * This page is rendered when no other page is found.

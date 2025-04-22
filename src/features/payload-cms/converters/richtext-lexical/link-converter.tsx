@@ -1,7 +1,7 @@
-import type { JSXConverters } from '@payloadcms/richtext-lexical/react';
-import type { SerializedParagraphNode } from '@payloadcms/richtext-lexical';
-import Link from 'next/link';
 import { routeResolutionTable } from '@/features/payload-cms/route-resolution-table';
+import type { SerializedParagraphNode } from '@payloadcms/richtext-lexical';
+import type { JSXConverters } from '@payloadcms/richtext-lexical/react';
+import Link from 'next/link';
 
 /**
  * The fields of a link node.

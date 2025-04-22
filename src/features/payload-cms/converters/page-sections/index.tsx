@@ -1,6 +1,3 @@
-import React from 'react';
-import type { LocalizedPageType } from '@/types/types';
-import type { ContentBlock } from '@/features/payload-cms/converters/page-sections/section-wrapper';
 import type {
   ContentBlockTypeNames,
   SectionRenderer,
@@ -8,15 +5,18 @@ import type {
 import {
   DetailsTable,
   RenderBlogPostsOverview,
+  RenderFileDownload,
   RenderFormBlock,
   RenderHeroSection,
   RenderPhotoCarousel,
   RenderRichTextSection,
   RenderSinglePicture,
   RenderYoutubeEmbed,
-  RenderFileDownload,
   SwisstopoInlineMapSection,
 } from '@/features/payload-cms/converters/page-sections/content-blocks';
+import type { ContentBlock } from '@/features/payload-cms/converters/page-sections/section-wrapper';
+import type { LocalizedPageType } from '@/types/types';
+import React from 'react';
 
 /**
  * A React component responsible for rendering the page sections of type blocks: ContentBlock.

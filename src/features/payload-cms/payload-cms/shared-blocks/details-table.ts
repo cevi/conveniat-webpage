@@ -1,10 +1,10 @@
-import type { Block } from 'payload';
 import { minimalEditorFeatures } from '@/features/payload-cms/payload-cms/plugins/lexical-editor';
 import {
   defaultEditorLexicalConfig,
   HeadingFeature,
   lexicalEditor,
 } from '@payloadcms/richtext-lexical';
+import type { Block } from 'payload';
 
 export const detailsTable: Block = {
   slug: 'detailsTable',

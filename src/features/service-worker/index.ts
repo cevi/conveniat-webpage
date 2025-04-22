@@ -1,8 +1,8 @@
+import { offlineSupportInstallHandler } from '@/features/service-worker/offline-support';
 import {
   notificationClickHandler,
   pushNotificationHandler,
 } from '@/features/service-worker/push-notifications';
-import { offlineSupportInstallHandler } from '@/features/service-worker/offline-support';
 import type { PrecacheEntry, SerwistGlobalConfig } from 'serwist';
 
 /**

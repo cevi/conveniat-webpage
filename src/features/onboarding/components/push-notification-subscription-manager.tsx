@@ -1,10 +1,10 @@
 'use client';
 
+import { environmentVariables } from '@/config/environment-variables';
 import { subscribeUser, unsubscribeUser } from '@/features/onboarding/api/push-notification';
 import { urlBase64ToUint8Array } from '@/utils/url-base64-to-uint8-array';
 import React, { useEffect, useState } from 'react';
 import type webpush from 'web-push';
-import { environmentVariables } from '@/config/environment-variables';
 
 const vapidPublicKey: string | undefined = environmentVariables.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 

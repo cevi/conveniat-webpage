@@ -1,5 +1,5 @@
-import React from 'react';
 import { CenteredConveniatLogo } from '@/features/onboarding/components/centered-conveniat-logo';
+import React from 'react';
 
 export const GettingReadyEntrypointComponent: React.FC = () => {
   return (

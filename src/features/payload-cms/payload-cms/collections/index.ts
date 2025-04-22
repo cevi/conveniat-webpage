@@ -1,12 +1,12 @@
-import type { RoutableCollectionConfigs } from '@/types/types';
 import { BlogArticleCollection } from '@/features/payload-cms/payload-cms/collections/blog-article';
-import { GenericPage as GenericPageCollection } from '@/features/payload-cms/payload-cms/collections/generic-page';
-import { TimelineCollection } from '@/features/payload-cms/payload-cms/collections/timeline';
-import { ImageCollection } from '@/features/payload-cms/payload-cms/collections/image-collection';
 import { DocumentsCollection } from '@/features/payload-cms/payload-cms/collections/documents-collection';
-import { UserCollection } from '@/features/payload-cms/payload-cms/collections/user-collection';
+import { GenericPage as GenericPageCollection } from '@/features/payload-cms/payload-cms/collections/generic-page';
+import { ImageCollection } from '@/features/payload-cms/payload-cms/collections/image-collection';
 import { PermissionsCollection } from '@/features/payload-cms/payload-cms/collections/permission-collection';
 import { PushNotificationSubscriptions } from '@/features/payload-cms/payload-cms/collections/push-notification-subscriptions';
+import { TimelineCollection } from '@/features/payload-cms/payload-cms/collections/timeline';
+import { UserCollection } from '@/features/payload-cms/payload-cms/collections/user-collection';
+import type { RoutableCollectionConfigs } from '@/types/types';
 
 // TODO: based on the definition here, pattern for invalid URLs slugs should be generated
 //   and used in the slug validation. E.g. is should be forbidden to create a slug in the

@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   Carousel,
   CarouselContent,
@@ -8,6 +7,7 @@ import {
   CarouselPrevious,
 } from '@/components/carousel';
 import Image from 'next/image';
+import React from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 
 export interface PhotoCarouselBlock {

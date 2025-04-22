@@ -1,7 +1,7 @@
-import type { ReactNode } from 'react';
-import React from 'react';
 import { CeviLogoGreen } from '@/components/svg-logos/cevi-logo-green';
 import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
+import type { ReactNode } from 'react';
+import React from 'react';
 
 export const NewsCard: React.FC<{
   children: ReactNode;

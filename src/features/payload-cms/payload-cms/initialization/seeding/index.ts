@@ -1,16 +1,16 @@
-import type { Payload, RequiredDataFromCollectionSlug } from 'payload';
+import { environmentVariables } from '@/config/environment-variables';
 import { generateRichTextSection } from '@/features/payload-cms/payload-cms/initialization/seeding/placeholder-lexical';
-import { basicForm } from './all-types-form';
-import { basicBlog } from './blog-post';
-import { basicTimelineObject } from './timeline';
 import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import { fakerDE as faker } from '@faker-js/faker';
+import type { Payload, RequiredDataFromCollectionSlug } from 'payload';
+import { basicForm } from './all-types-form';
+import { basicBlog } from './blog-post';
 import {
   seedPermissionAdminsOnly,
   seedPermissionLoggedIn,
   seedPermissionPublic,
 } from './permissions';
-import { environmentVariables } from '@/config/environment-variables';
+import { basicTimelineObject } from './timeline';
 
 /**
  * Seed the database with some initial data.

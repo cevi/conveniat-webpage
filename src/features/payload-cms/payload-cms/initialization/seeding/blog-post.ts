@@ -1,6 +1,6 @@
-import type { Blog } from '@/features/payload-cms/payload-types';
-import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import { generateRichTextSection } from '@/features/payload-cms/payload-cms/initialization/seeding/placeholder-lexical';
+import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
+import type { Blog } from '@/features/payload-cms/payload-types';
 import { fakerDE as faker } from '@faker-js/faker';
 
 export const basicBlog = (

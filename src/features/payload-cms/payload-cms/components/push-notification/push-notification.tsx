@@ -1,8 +1,8 @@
 'use client';
 
-import type webpush from 'web-push';
 import { sendNotificationToSubscription } from '@/features/onboarding/api/push-notification';
 import { useDocumentInfo } from '@payloadcms/ui';
+import type webpush from 'web-push';
 
 const SendPushNotification: React.FC = () => {
   const { savedDocumentData } = useDocumentInfo();

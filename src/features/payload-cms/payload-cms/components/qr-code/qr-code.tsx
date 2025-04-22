@@ -1,15 +1,15 @@
 'use client';
 
-import { FormSubmit, useDocumentInfo, useLocale, useTheme } from '@payloadcms/ui';
-import type { MouseEventHandler } from 'react';
-import React, { useCallback, useState } from 'react';
-import { serverSideSlugToUrlResolution } from '@/utils/find-url-prefix';
-import type { CollectionSlug } from 'payload';
+import { environmentVariables } from '@/config/environment-variables';
 import type { Locale } from '@/types/types';
+import { serverSideSlugToUrlResolution } from '@/utils/find-url-prefix';
 import { generatePreviewToken } from '@/utils/preview-token';
+import { FormSubmit, useDocumentInfo, useLocale, useTheme } from '@payloadcms/ui';
 import { Check, Copy } from 'lucide-react';
 import Image from 'next/image';
-import { environmentVariables } from '@/config/environment-variables';
+import type { CollectionSlug } from 'payload';
+import type { MouseEventHandler } from 'react';
+import React, { useCallback, useState } from 'react';
 
 const QRCode: React.FC = () => {
   const { collectionSlug, savedDocumentData } = useDocumentInfo();

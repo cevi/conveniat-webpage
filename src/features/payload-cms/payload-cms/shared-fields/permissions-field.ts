@@ -1,6 +1,6 @@
+import config from '@payload-config';
 import type { Field } from 'payload';
 import { getPayload } from 'payload';
-import config from '@payload-config';
 
 export const defaultPublicPermission = async (): Promise<string | undefined> => {
   const payload = await getPayload({ config });

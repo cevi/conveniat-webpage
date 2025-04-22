@@ -1,7 +1,7 @@
-import type { Block, CollectionConfig, CollectionSlug, FieldHookArgs, Tab } from 'payload';
-import type { Config } from '@/features/payload-cms/payload-types';
-import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import type { PublishingStatusType } from '@/features/payload-cms/payload-cms/components/multi-lang-publishing/type';
+import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
+import type { Config } from '@/features/payload-cms/payload-types';
+import type { Block, CollectionConfig, CollectionSlug, FieldHookArgs, Tab } from 'payload';
 
 interface Field {
   name: string;

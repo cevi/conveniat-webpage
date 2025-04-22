@@ -1,14 +1,14 @@
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
-import React from 'react';
-import { getPayload } from 'payload';
-import config from '@payload-config';
-import { notFound } from 'next/navigation';
-import Link from 'next/link';
 import { BlogArticleConverter } from '@/features/payload-cms/converters/blog-article';
+import type { Permission } from '@/features/payload-cms/payload-types';
 import type { Locale, LocalizedCollectionPage, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { hasPermissions } from '@/utils/has-permissions';
-import type { Permission } from '@/features/payload-cms/payload-types';
+import config from '@payload-config';
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { getPayload } from 'payload';
+import React from 'react';
 
 const languageChooseText: StaticTranslationString = {
   en: 'Choose the correct article',

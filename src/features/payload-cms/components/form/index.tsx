@@ -1,16 +1,16 @@
 'use client';
 
-import React, { useState } from 'react';
-import type { Form as FormType } from '@payloadcms/plugin-form-builder/types';
-import { fields } from './fields';
-import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { buildInitialFormState } from './build-initial-form-state';
-import { RichText } from '@payloadcms/richtext-lexical/react';
-import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import type { Form as FormType } from '@payloadcms/plugin-form-builder/types';
+import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
+import { RichText } from '@payloadcms/richtext-lexical/react';
 import { useCurrentLocale } from 'next-i18n-router/client';
+import { useRouter } from 'next/navigation';
+import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { buildInitialFormState } from './build-initial-form-state';
+import { fields } from './fields';
 
 export type Value = unknown;
 

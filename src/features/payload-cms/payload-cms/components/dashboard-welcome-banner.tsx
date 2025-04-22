@@ -1,6 +1,6 @@
-import React from 'react';
 import type { StaticTranslationString } from '@/types/types';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
+import React from 'react';
 
 const welcomeMessageTitle: StaticTranslationString = {
   de: 'conveniat27 CMS',

@@ -1,5 +1,5 @@
-import type { GlobalConfig } from 'payload';
 import { localizedStatusSchema } from '@/features/payload-cms/payload-cms/utils/localized-status-schema';
+import type { GlobalConfig } from 'payload';
 
 /**
  * This is a utility function that adds the necessary fields to a global to make it localized.

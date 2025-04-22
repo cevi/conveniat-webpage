@@ -1,5 +1,5 @@
-import type { Field } from 'payload';
 import { localizedDefaultValue } from '@/features/payload-cms/payload-cms/utils/localized-default-value';
+import type { Field } from 'payload';
 
 export const pageTitleField: Field = {
   name: 'pageTitle',

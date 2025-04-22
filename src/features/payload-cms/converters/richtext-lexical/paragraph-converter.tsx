@@ -1,6 +1,6 @@
-import type { JSXConverters } from '@payloadcms/richtext-lexical/react';
-import type { SerializedParagraphNode } from '@payloadcms/richtext-lexical';
 import { ParagraphText } from '@/components/ui/typography/paragraph-text';
+import type { SerializedParagraphNode } from '@payloadcms/richtext-lexical';
+import type { JSXConverters } from '@payloadcms/richtext-lexical/react';
 
 /**
  * Converts a paragraph node to JSX.

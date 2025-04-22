@@ -1,9 +1,9 @@
+import { environmentVariables } from '@/config/environment-variables';
+import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
+import { manifestIconDefinitions } from '@/utils/icon-definitions';
+import config from '@payload-config';
 import type { MetadataRoute } from 'next';
 import { getPayload } from 'payload';
-import config from '@payload-config';
-import { manifestIconDefinitions } from '@/utils/icon-definitions';
-import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
-import { environmentVariables } from '@/config/environment-variables';
 
 /**
  *

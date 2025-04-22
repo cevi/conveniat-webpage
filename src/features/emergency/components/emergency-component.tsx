@@ -1,13 +1,13 @@
 'use client';
 
-import type { ChangeEvent } from 'react';
-import React, { useState } from 'react';
+import { AccordionContent, AccordionItem, AccordionTrigger } from '@/components/accordion';
 import { Button } from '@/components/ui/buttons/button';
-import { AlertCircle, Search, X } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { Accordion } from '@radix-ui/react-accordion';
-import { AccordionContent, AccordionItem, AccordionTrigger } from '@/components/accordion';
-import { Input } from '@/components/ui/input';
+import { AlertCircle, Search, X } from 'lucide-react';
+import type { ChangeEvent } from 'react';
+import React, { useState } from 'react';
 
 const alertTypes = [
   {

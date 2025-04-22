@@ -1,5 +1,5 @@
-import type { Access, PayloadRequest } from 'payload';
 import { environmentVariables } from '@/config/environment-variables';
+import type { Access, PayloadRequest } from 'payload';
 
 const GROUPS_WITH_API_ACCESS = new Set(environmentVariables.GROUPS_WITH_API_ACCESS);
 

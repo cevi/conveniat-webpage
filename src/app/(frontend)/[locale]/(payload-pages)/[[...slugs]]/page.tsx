@@ -1,17 +1,17 @@
 import 'server-only';
 
-import { notFound, redirect } from 'next/navigation';
+import { CookieBanner } from '@/components/utils/cookie-banner';
+import { RefreshRouteOnSave } from '@/components/utils/refresh-preview';
+import { environmentVariables } from '@/config/environment-variables';
+import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import { routeResolutionTable } from '@/features/payload-cms/route-resolution-table';
 import type { Locale, SearchParameters } from '@/types/types';
-import { cookies } from 'next/headers';
-import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
-import type { PayloadRequest } from 'payload';
-import { RefreshRouteOnSave } from '@/components/utils/refresh-preview';
-import { isPreviewTokenValid } from '@/utils/preview-token';
-import { CookieBanner } from '@/components/utils/cookie-banner';
 import { auth } from '@/utils/auth-helpers';
+import { isPreviewTokenValid } from '@/utils/preview-token';
+import { cookies } from 'next/headers';
+import { notFound, redirect } from 'next/navigation';
+import type { PayloadRequest } from 'payload';
 import type React from 'react';
-import { environmentVariables } from '@/config/environment-variables';
 
 /**
  * Checks if the preview token is valid.

@@ -1,7 +1,7 @@
+import { jsxConverters } from '@/features/payload-cms/converters/richtext-lexical';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import { RichText } from '@payloadcms/richtext-lexical/react';
 import React from 'react';
-import { jsxConverters } from '@/features/payload-cms/converters/richtext-lexical';
 
 export interface LexicalRichTextSectionType {
   richTextSection: SerializedEditorState;

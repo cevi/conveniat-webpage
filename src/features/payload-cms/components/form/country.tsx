@@ -1,3 +1,5 @@
+import type { CountryField } from '@payloadcms/plugin-form-builder/types';
+import React from 'react';
 import type { Control } from 'react-hook-form';
 import {
   Controller,
@@ -5,11 +7,9 @@ import {
   type FieldValues,
   type UseFormRegister,
 } from 'react-hook-form';
-import { Required } from './required';
-import React from 'react';
-import type { CountryField } from '@payloadcms/plugin-form-builder/types';
 import ReactSelect from 'react-select';
 import { countryOptions } from './country-options';
+import { Required } from './required';
 
 export const Country: React.FC<
   {

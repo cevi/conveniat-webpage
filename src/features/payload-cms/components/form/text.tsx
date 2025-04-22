@@ -1,8 +1,8 @@
 import type { TextField } from '@payloadcms/plugin-form-builder/types';
 import type { FieldErrorsImpl, FieldValues, UseFormRegister } from 'react-hook-form';
 
-import React from 'react';
 import { Required } from '@/features/payload-cms/components/form/required';
+import React from 'react';
 
 export const Text: React.FC<
   {

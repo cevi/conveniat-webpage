@@ -1,24 +1,24 @@
-import type { ContentBlock } from '@/features/payload-cms/converters/page-sections/section-wrapper';
-import SectionWrapper from '@/features/payload-cms/converters/page-sections/section-wrapper';
-import type { HeroSectionType } from '@/features/payload-cms/components/content-blocks/hero-section';
-import { HeroSection } from '@/features/payload-cms/components/content-blocks/hero-section';
-import React from 'react';
 import type { PhotoCarouselBlock } from '@/components/gallery';
 import { PhotoCarousel } from '@/components/gallery';
-import type { LocalizedPageType } from '@/types/types';
-import { ShowForm } from '@/features/payload-cms/components/content-blocks/show-form';
-import type { LexicalRichTextSectionType } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
-import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
-import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
-import { ListBlogPosts } from '@/features/payload-cms/components/content-blocks/list-blog-articles';
-import type { YoutubeEmbedType } from '@/features/payload-cms/components/content-blocks/youtube-embed';
-import { YoutubeEmbed } from '@/features/payload-cms/components/content-blocks/youtube-embed';
-import type { InlineSwisstopoMapEmbedType } from '@/features/payload-cms/components/content-blocks/inline-swisstopo-map-embed';
-import InlineSwisstopoMapEmbed from '@/features/payload-cms/components/content-blocks/inline-swisstopo-map-embed';
 import type { FileDownloadType } from '@/features/payload-cms/components/content-blocks/file-download';
 import { FileDownload } from '@/features/payload-cms/components/content-blocks/file-download';
-import Image from 'next/image';
+import type { HeroSectionType } from '@/features/payload-cms/components/content-blocks/hero-section';
+import { HeroSection } from '@/features/payload-cms/components/content-blocks/hero-section';
+import type { InlineSwisstopoMapEmbedType } from '@/features/payload-cms/components/content-blocks/inline-swisstopo-map-embed';
+import InlineSwisstopoMapEmbed from '@/features/payload-cms/components/content-blocks/inline-swisstopo-map-embed';
+import type { LexicalRichTextSectionType } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
+import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
+import { ListBlogPosts } from '@/features/payload-cms/components/content-blocks/list-blog-articles';
+import { ShowForm } from '@/features/payload-cms/components/content-blocks/show-form';
+import type { YoutubeEmbedType } from '@/features/payload-cms/components/content-blocks/youtube-embed';
+import { YoutubeEmbed } from '@/features/payload-cms/components/content-blocks/youtube-embed';
 import type { FormBlockType } from '@/features/payload-cms/components/form';
+import type { ContentBlock } from '@/features/payload-cms/converters/page-sections/section-wrapper';
+import SectionWrapper from '@/features/payload-cms/converters/page-sections/section-wrapper';
+import type { LocalizedPageType } from '@/types/types';
+import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
+import Image from 'next/image';
+import React from 'react';
 
 export type ContentBlockTypeNames =
   | 'blogPostsOverview'

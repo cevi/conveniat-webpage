@@ -1,8 +1,8 @@
 'use server';
 
-import type { CollectionSlug } from 'payload';
-import type { Locale } from '@/types/types';
 import { findPrefixByCollectionSlugAndLocale } from '@/features/payload-cms/route-resolution-table';
+import type { Locale } from '@/types/types';
+import type { CollectionSlug } from 'payload';
 
 /**
  * A simple server function wrapper for the findPrefixByCollectionSlugAndLocale function.

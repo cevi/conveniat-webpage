@@ -1,6 +1,6 @@
 'use client';
-import React, { useState } from 'react';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
+import React, { useState } from 'react';
 
 interface ProgramEntry {
   id: number;

@@ -1,5 +1,5 @@
-import { s3Storage } from '@payloadcms/storage-s3';
 import { environmentVariables } from '@/config/environment-variables';
+import { s3Storage } from '@payloadcms/storage-s3';
 
 const MINIO_HOST = environmentVariables.MINIO_HOST;
 const MINIO_BUCKET_NAME = environmentVariables.MINIO_BUCKET_NAME;

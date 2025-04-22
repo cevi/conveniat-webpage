@@ -1,9 +1,9 @@
-import { locales as localesDefinition } from '@/features/payload-cms/payload-cms/locales';
-import type { Locale } from 'payload';
-import type { Config } from '@/features/payload-cms/payload-types';
-import { useEffect, useState } from 'react';
-import type { Locale as LocaleType } from '@/types/types';
 import { useLocalizedDocument } from '@/features/payload-cms/payload-cms/hooks/localized-document';
+import { locales as localesDefinition } from '@/features/payload-cms/payload-cms/locales';
+import type { Config } from '@/features/payload-cms/payload-types';
+import type { Locale as LocaleType } from '@/types/types';
+import type { Locale } from 'payload';
+import { useEffect, useState } from 'react';
 
 type LocalizedStatus = Record<Config['locale'], boolean> | undefined;
 type LocalizedPublishingStatus = Record<Config['locale'], { published: boolean } | undefined>;

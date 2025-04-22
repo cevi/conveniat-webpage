@@ -1,5 +1,5 @@
-import type { Field } from 'payload';
 import { lexicalEditor } from '@payloadcms/richtext-lexical';
+import type { Field } from 'payload';
 
 export const RichTextParagraphsField: Field = {
   name: 'richTextSection',

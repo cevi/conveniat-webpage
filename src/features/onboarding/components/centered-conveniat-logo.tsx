@@ -1,5 +1,5 @@
-import React from 'react';
 import { ConveniatLogo } from '@/components/svg-logos/conveniat-logo';
+import React from 'react';
 
 export const CenteredConveniatLogo: React.FC = () => {
   return (

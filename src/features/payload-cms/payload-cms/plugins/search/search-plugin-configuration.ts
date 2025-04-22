@@ -1,6 +1,6 @@
-import { searchPlugin } from '@payloadcms/plugin-search';
-import { searchOverrides } from '@/features/payload-cms/payload-cms/plugins/search/search-overrides';
 import { beforeSyncWithSearch } from '@/features/payload-cms/payload-cms/plugins/search/before-sync';
+import { searchOverrides } from '@/features/payload-cms/payload-cms/plugins/search/search-overrides';
+import { searchPlugin } from '@payloadcms/plugin-search';
 
 /**
  * Search Plugin Configuration

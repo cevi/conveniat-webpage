@@ -1,5 +1,5 @@
-import type { Timeline } from '@/features/payload-cms/payload-types';
 import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
+import type { Timeline } from '@/features/payload-cms/payload-types';
 
 export const basicTimelineObject: Timeline = {
   id: '6783e3524eb8bebdce04d3dd',

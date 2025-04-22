@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import Cookies from 'js-cookie';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { Cookie, i18nConfig } from '@/types/types';
+import Cookies from 'js-cookie';
 import { useCurrentLocale } from 'next-i18n-router/client';
+import React, { useEffect, useState } from 'react';
 
 const staticCookieString: StaticTranslationString = {
   de: 'Bitte akzeptiere die Cookies.',

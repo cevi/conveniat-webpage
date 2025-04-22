@@ -1,15 +1,15 @@
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fixupConfigRules } from '@eslint/compat';
+import { FlatCompat } from '@eslint/eslintrc';
 import js from '@eslint/js';
-import ts from 'typescript-eslint';
+import progress from 'eslint-plugin-file-progress';
+import nodePlugin from 'eslint-plugin-n';
 import prettierConfigRecommended from 'eslint-plugin-prettier/recommended';
 import reactNamingConvention from 'eslint-plugin-react-naming-convention';
-import progress from 'eslint-plugin-file-progress';
 import eslintPluginUnicorn from 'eslint-plugin-unicorn';
-import { FlatCompat } from '@eslint/eslintrc';
-import { fixupConfigRules } from '@eslint/compat';
 import * as fs from 'node:fs';
-import nodePlugin from 'eslint-plugin-n';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import ts from 'typescript-eslint';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

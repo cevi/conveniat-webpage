@@ -1,11 +1,11 @@
-import React from 'react';
-import { getPayload } from 'payload';
-import config from '@payload-config';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
-import type { Blog } from '@/features/payload-cms/payload-types';
-import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
-import type { StaticTranslationString } from '@/types/types';
 import { BlogDisplay } from '@/features/payload-cms/components/content-blocks/list-blog-articles';
+import type { Blog } from '@/features/payload-cms/payload-types';
+import type { StaticTranslationString } from '@/types/types';
+import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
+import config from '@payload-config';
+import { getPayload } from 'payload';
+import React from 'react';
 
 const searchResultHeader: StaticTranslationString = {
   de: 'Suchresultate für ',

@@ -1,6 +1,6 @@
-import type { Payload } from 'payload';
-import { seedDatabase } from '@/features/payload-cms/payload-cms/initialization/seeding';
 import { environmentVariables } from '@/config/environment-variables';
+import { seedDatabase } from '@/features/payload-cms/payload-cms/initialization/seeding';
+import type { Payload } from 'payload';
 
 /**
  * This function is called when the Payload server has started.

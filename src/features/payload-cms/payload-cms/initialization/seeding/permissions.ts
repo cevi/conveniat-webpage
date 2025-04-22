@@ -1,6 +1,6 @@
-import type { Payload } from 'payload';
 import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import type { Permission } from '@/features/payload-cms/payload-types';
+import type { Payload } from 'payload';
 
 export const seedPermissionPublic = async (payload: Payload): Promise<Permission> => {
   const public_permission = await payload.create({

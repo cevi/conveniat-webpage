@@ -1,14 +1,14 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import type { cookieInfoText } from '@/features/onboarding/components/accept-cookies-component';
 import { AcceptCookieEntrypointComponent } from '@/features/onboarding/components/accept-cookies-component';
-import Cookies from 'js-cookie';
-import { Cookie } from '@/types/types';
+import { GettingReadyEntrypointComponent } from '@/features/onboarding/components/getting-started';
 import { LoginScreen } from '@/features/onboarding/components/login-screen';
 import { PushNotificationManagerEntrypointComponent } from '@/features/onboarding/components/push-notification-manager';
-import { GettingReadyEntrypointComponent } from '@/features/onboarding/components/getting-started';
+import { Cookie } from '@/types/types';
+import Cookies from 'js-cookie';
+import { useRouter } from 'next/navigation';
+import React, { useEffect, useState } from 'react';
 
 type OnboardingStep = 'initial' | 'login' | 'push-notifications' | 'loading' | undefined;
 

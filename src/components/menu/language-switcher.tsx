@@ -1,11 +1,11 @@
 'use client';
 
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import React, { useState } from 'react';
-import { Languages } from 'lucide-react';
+import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { useClose } from '@headlessui/react';
-import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
+import { Languages } from 'lucide-react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import React, { useState } from 'react';
 
 const language: StaticTranslationString = {
   de: 'Sprache',

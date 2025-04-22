@@ -1,7 +1,7 @@
 'use server';
 
-import * as jwt from 'jsonwebtoken';
 import { environmentVariables } from '@/config/environment-variables';
+import * as jwt from 'jsonwebtoken';
 
 export const generatePreviewToken = async (url: string): Promise<string> => {
   const JWT_SECRET_KEY = environmentVariables.JWT_SECRET;

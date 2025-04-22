@@ -1,10 +1,10 @@
+import type { Locale } from '@/types/types';
 import type {
   CollectionSlug,
   RelationshipFieldManyValidation,
   TextFieldSingleValidation,
 } from 'payload';
 import { text } from 'payload/shared';
-import type { Locale } from '@/types/types';
 
 const titleMinWordCount = 3;
 const titleMaxLength = 120;

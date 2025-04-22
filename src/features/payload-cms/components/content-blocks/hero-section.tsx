@@ -1,6 +1,6 @@
-import React from 'react';
-import { TeaserText } from '@/components/ui/typography/teaser-text';
 import { CallToAction } from '@/components/ui/buttons/call-to-action';
+import { TeaserText } from '@/components/ui/typography/teaser-text';
+import React from 'react';
 
 export interface HeroSectionType {
   blockName?: string;

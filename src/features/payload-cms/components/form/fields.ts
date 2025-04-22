@@ -1,11 +1,11 @@
-import { Text } from './text';
-import { Email } from './email';
+import type React from 'react';
 import { Checkbox } from './checkbox';
 import { Country } from './country';
+import { Email } from './email';
 import { Number } from './number';
 import { Select } from './select';
+import { Text } from './text';
 import { TextArea } from './textarea';
-import type React from 'react';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const fields: Record<string, React.FC<any>> = {

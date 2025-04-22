@@ -1,7 +1,7 @@
 import React from 'react';
 
-import { cva } from 'class-variance-authority';
 import type { PublishingStatusType } from '@/features/payload-cms/payload-cms/components/multi-lang-publishing/type';
+import { cva } from 'class-variance-authority';
 
 export const languageStatusClasses = cva(
   'text-sm font-medium me-2 px-2.5 py-0.5 rounded relative group',

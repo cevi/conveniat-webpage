@@ -5,8 +5,8 @@ import type { NextConfig } from 'next';
 import { withPayload } from '@payloadcms/next/withPayload';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
-import withSerwistInit from '@serwist/next';
 import build from '@/build';
+import withSerwistInit from '@serwist/next';
 
 const withSerwist = withSerwistInit({
   cacheOnNavigation: true,

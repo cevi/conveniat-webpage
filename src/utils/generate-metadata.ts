@@ -1,9 +1,9 @@
-import type { Metadata } from 'next';
-import { getPayload } from 'payload';
-import config from '@payload-config';
+import { environmentVariables } from '@/config/environment-variables';
 import type { SEO } from '@/features/payload-cms/payload-types';
 import { metadataIconDefinitions } from '@/utils/icon-definitions';
-import { environmentVariables } from '@/config/environment-variables';
+import config from '@payload-config';
+import type { Metadata } from 'next';
+import { getPayload } from 'payload';
 
 export const generateMetadata = async (): Promise<Metadata> => {
   const payload = await getPayload({ config });

@@ -1,10 +1,10 @@
-import type { JSXConverters } from '@payloadcms/richtext-lexical/react';
-import type { SerializedHeadingNode } from '@payloadcms/richtext-lexical';
-import type { ReactNode } from 'react';
-import React from 'react';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { SubheadingH2 } from '@/components/ui/typography/subheading-h2';
 import { SubheadingH3 } from '@/components/ui/typography/subheading-h3';
+import type { SerializedHeadingNode } from '@payloadcms/richtext-lexical';
+import type { JSXConverters } from '@payloadcms/richtext-lexical/react';
+import type { ReactNode } from 'react';
+import React from 'react';
 
 /**
  * Converts a heading node to JSX.
