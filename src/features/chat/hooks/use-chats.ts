@@ -2,11 +2,6 @@ import { getChatDetail, getChats } from '@/features/chat/api/get-messages';
 import type { Chat, ChatDetail } from '@/features/chat/types/chat';
 import { useEffect, useState } from 'react';
 
-const setIntervalImmediately = (callbackFunction: () => void, interval: number): NodeJS.Timeout => {
-  callbackFunction();
-  return setInterval(callbackFunction, interval);
-};
-
 export const useChats = (): {
   chats: Chat[];
   loading: boolean;
