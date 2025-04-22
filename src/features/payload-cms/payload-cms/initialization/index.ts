@@ -13,5 +13,5 @@ export const onPayloadInit = async (payload: Payload): Promise<void> => {
     console.log(environmentVariables);
   }
 
-  await seedDatabase(payload);
+  await seedDatabase(payload).catch(console.error);
 };
