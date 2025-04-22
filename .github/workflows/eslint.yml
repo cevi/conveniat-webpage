@@ -19,7 +19,7 @@ jobs:
           cache: 'pnpm'
 
       - name: Generate Build Info
-        run: sh create_build_info.sh
+        run: bash create_build_info.sh
 
       - name: Install prettier
         run: pnpm add prettier
