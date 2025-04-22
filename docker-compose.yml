@@ -34,7 +34,7 @@ services:
     env_file:
       - .env
     environment:
-      - NODE_COMPILE_CACHE=/nodecache  # see https://nodejs.org/en/blog/release/v22.1.0
+      - NODE_COMPILE_CACHE=/nodecache # see https://nodejs.org/en/blog/release/v22.1.0
 
   mongo:
     image: mongo:latest
