@@ -32,7 +32,7 @@ export const environmentVariables = createEnv({
     MINIO_BUCKET_NAME: z.string().min(5),
     MINIO_HOST: z.string().url(),
     ENABLE_NODEMAILER: z.string().transform((value) => value === 'true'),
-    SMTP_HOST: z.string().url().optional(),
+    SMTP_HOST: z.string().optional(),
     SMTP_PORT: z.coerce.number().optional(),
     SMTP_USER: z.string().optional(),
     SMTP_PASS: z.string().optional(),
