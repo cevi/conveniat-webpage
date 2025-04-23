@@ -1,6 +1,6 @@
-import 'server-only';
+import { Cookie } from '@/types/types';
 import { cookies } from 'next/headers';
-import { Cookie } from '@/types';
+import 'server-only';
 
 export const renderInAppDesign = async (): Promise<boolean> => {
   const cookieStore = await cookies();

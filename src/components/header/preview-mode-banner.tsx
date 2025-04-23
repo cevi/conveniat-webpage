@@ -1,11 +1,12 @@
 'use client';
-import React, { useEffect, useState } from 'react';
-import { User } from 'next-auth';
-import { useSearchParams } from 'next/navigation';
 import { PreviewModeToggle } from '@/components/header/preview-mode-toggler';
+import type { Locale } from '@/types/types';
+import { i18nConfig } from '@/types/types';
 import { RefreshCw } from 'lucide-react';
-import { i18nConfig, Locale } from '@/types';
+import type { User } from 'next-auth';
 import { useCurrentLocale } from 'next-i18n-router/client';
+import { useSearchParams } from 'next/navigation';
+import React, { useEffect, useState } from 'react';
 
 interface PreviewModeBannerProperties {
   user: User | undefined;

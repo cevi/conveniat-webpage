@@ -1,9 +1,9 @@
 'use client';
 
-import React from 'react';
-import { useRouter } from 'next/navigation';
-import { Locale, StaticTranslationString } from '@/types';
+import type { Locale, StaticTranslationString } from '@/types/types';
 import { useClose } from '@headlessui/react';
+import { useRouter } from 'next/navigation';
+import React from 'react';
 
 const searchButtonText: StaticTranslationString = {
   de: 'Suchen',

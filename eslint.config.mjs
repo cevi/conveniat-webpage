@@ -1,13 +1,15 @@
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fixupConfigRules } from '@eslint/compat';
+import { FlatCompat } from '@eslint/eslintrc';
 import js from '@eslint/js';
-import ts from 'typescript-eslint';
+import progress from 'eslint-plugin-file-progress';
+import nodePlugin from 'eslint-plugin-n';
 import prettierConfigRecommended from 'eslint-plugin-prettier/recommended';
 import reactNamingConvention from 'eslint-plugin-react-naming-convention';
-import progress from 'eslint-plugin-file-progress';
 import eslintPluginUnicorn from 'eslint-plugin-unicorn';
-import { FlatCompat } from '@eslint/eslintrc';
-import { fixupConfigRules } from '@eslint/compat';
+import * as fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import ts from 'typescript-eslint';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,6 +20,34 @@ const compat = new FlatCompat({
 });
 
 const patchedConfig = fixupConfigRules([...compat.extends('next/core-web-vitals')]);
+
+const features_folder = [
+  'next-auth',
+  'chat',
+  'map',
+  'schedule',
+  'onboarding',
+  'service-worker',
+  'emergency',
+  'payload-cms',
+];
+
+// assert that all folders in src/features are in the features array
+const featuresDir = path.join(__dirname, 'src', 'features');
+const featuresFiles = await fs.promises.readdir(featuresDir);
+const featuresFolders = featuresFiles.filter(async (file) => {
+  const stat = await fs.promises.stat(path.join(featuresDir, file));
+  return stat.isDirectory();
+});
+const featuresFoldersSet = new Set(featuresFolders);
+const featuresSet = new Set(features_folder);
+const missingFeatures = [...featuresFoldersSet].filter((feature) => !featuresSet.has(feature));
+if (missingFeatures.length > 0) {
+  throw new Error(
+    `Missing features in the features array: ${missingFeatures.join(', ')}.
+    Consider adding them to the features_folder array in eslint.config.mjs!`,
+  );
+}
 
 const config = [
   progress.configs.recommended,
@@ -58,6 +88,17 @@ const config = [
     files: ['**/*.{ts}', '**/*.{tsx}'],
     rules: { '@typescript-eslint/naming-convention': 'warn' },
   },
+
+  // disallow directly accessing process.env, use the config file instead
+  {
+    plugins: { n: nodePlugin },
+    rules: { 'n/no-process-env': ['error'] },
+    ignores: [
+      'src/config/environment-variables.ts', // ignore the env extractor
+      'next.config.ts', // ignore NextJS config
+    ],
+  },
+
   {
     rules: {
       'prefer-const': 'error',
@@ -70,6 +111,23 @@ const config = [
       '@typescript-eslint/require-array-sort-compare': 'error',
       '@typescript-eslint/no-unused-vars': 'error',
 
+      // stricter rules for type checking
+      '@typescript-eslint/consistent-type-definitions': 'error',
+      '@typescript-eslint/consistent-type-exports': 'error',
+      '@typescript-eslint/consistent-type-imports': [
+        'error',
+        {
+          prefer: 'type-imports',
+          disallowTypeAnnotations: false,
+        },
+      ],
+      '@typescript-eslint/consistent-type-assertions': 'error',
+      '@typescript-eslint/explicit-function-return-type': 'error',
+
+      'react/no-unstable-nested-components': 'error',
+      'react/destructuring-assignment': 'error',
+
+      'react/jsx-boolean-value': 'error',
       '@typescript-eslint/no-unsafe-assignment': 'error',
       '@typescript-eslint/no-misused-promises': 'error',
       '@typescript-eslint/no-unsafe-argument': 'error',
@@ -78,7 +136,6 @@ const config = [
 
       '@typescript-eslint/no-unsafe-enum-comparison': 'error',
       '@typescript-eslint/prefer-promise-reject-errors': 'error',
-      '@typescript-eslint/explicit-function-return-type': 'warn',
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-non-null-assertion': 'error',
       '@typescript-eslint/no-unsafe-call': 'error',
@@ -110,6 +167,54 @@ const config = [
       'no-useless-escape': 'warn',
       '@typescript-eslint/no-deprecated': 'warn',
       'unicorn/no-array-reduce': 'off',
+
+      'import/no-restricted-paths': [
+        'error',
+        {
+          zones: [
+            // enforce unidirectional codebase:
+            ...features_folder
+              // no restrictions to payload-cms feature
+              .filter((feature) => feature !== 'payload-cms')
+              .map((feature) => ({
+                target: `./src/features/${feature}`,
+                from: './src/features',
+                except: [`./${feature}`, './payload-cms'],
+                message: `Do not import from ${feature} directly, use the shared modules instead.`,
+              })),
+
+            // enforce unidirectional codebase:
+            // e.g. src/app can import from src/features but not the other way around
+            {
+              target: './src/features',
+              from: './src/app',
+              message: 'Features should not import from app directory.',
+            },
+
+            // src/features and src/app can import from these shared modules but not the other way around
+            {
+              target: [
+                './src/components',
+                './src/hooks',
+                './src/lib',
+                './src/types',
+                './src/utils',
+              ],
+              from: ['./src'],
+              except: [
+                './features/payload-cms', // payload-cms can be imported from anywhere
+                './features/next-auth', // next-auth can be imported from anywhere
+                './components',
+                './hooks',
+                './lib',
+                './types',
+                './utils',
+                './config',
+              ],
+            },
+          ],
+        },
+      ],
     },
   },
   {

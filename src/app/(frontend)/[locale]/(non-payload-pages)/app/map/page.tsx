@@ -1,21 +1,8 @@
-import React from 'react';
-import { InitialMapPose, MapLibreRenderer } from '@/components/map-viewer/map-renderer';
+import { MapComponent } from '@/features/map/components/map-component';
+import type React from 'react';
 
-const initialMapPoseObergoms: InitialMapPose = {
-  initialMapCenter: [8.301_211, 46.502_822],
-  zoom: 15.5,
-};
-
-const MapPage: React.FC = async () => {
-  return (
-    <div className="fixed left-0 top-[60px] h-[calc(100dvh-60px)] w-screen pb-20">
-      <MapLibreRenderer
-        initialMapPose={initialMapPoseObergoms}
-        ceviLogoMarkers={[]}
-        validateStyle={process.env.NODE_ENV !== 'production'}
-      />
-    </div>
-  );
+const MapPage: React.FC = () => {
+  return <MapComponent />;
 };
 
 export default MapPage;

@@ -6,6 +6,8 @@ FROM node:22.14-alpine AS base
 FROM base AS deps
 WORKDIR /app
 
+ENV BUILD_TARGET=production
+ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
@@ -29,6 +31,8 @@ RUN \
 FROM base AS builder
 WORKDIR /app
 
+ENV BUILD_TARGET=production
+ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ARG NEXT_PUBLIC_APP_HOST_URL=https://conveniat27.ch
 

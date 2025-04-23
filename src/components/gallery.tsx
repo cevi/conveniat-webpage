@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   Carousel,
   CarouselContent,
@@ -6,17 +5,18 @@ import {
   CarouselItem,
   CarouselNext,
   CarouselPrevious,
-} from '@/components/ui/carousel';
+} from '@/components/carousel';
 import Image from 'next/image';
+import React from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 
-export type PhotoCarouselBlock = {
+export interface PhotoCarouselBlock {
   images: {
     url: string;
     alt: string;
     imageCaption?: string;
   }[];
-};
+}
 
 export const PhotoCarousel: React.FC<PhotoCarouselBlock> = ({ images }) => {
   const length = images.length;

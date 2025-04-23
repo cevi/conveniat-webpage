@@ -37,7 +37,7 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "@payload-config": ["./src/payload.config.ts"]
+      "@payload-config": ["./src/features/payload-cms/payload.config.ts"]
     },
     "target": "es2021"
   },

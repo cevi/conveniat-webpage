@@ -1,4 +1,4 @@
-export { generateSitemap as default } from '@/utils/generate-sitemap';
+export { generateSitemap as default } from '@/features/payload-cms/utils/generate-sitemap';
 
 // TODO: bring back caching, e.g. to two hours
 //  currently the issue is that without 'force-dynamic' the page

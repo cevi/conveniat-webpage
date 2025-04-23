@@ -1,8 +1,9 @@
+import { environmentVariables } from '@/config/environment-variables';
+import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
+import { manifestIconDefinitions } from '@/utils/icon-definitions';
+import config from '@payload-config';
 import type { MetadataRoute } from 'next';
 import { getPayload } from 'payload';
-import config from '@payload-config';
-import { manifestIconDefinitions } from '@/utils/icon-definitions';
-import { LOCALE } from '@/payload-cms/locales';
 
 /**
  *
@@ -19,7 +20,7 @@ export const generateManifest = async (): Promise<MetadataRoute.Manifest> => {
     slug: 'PWA',
   });
 
-  const APP_HOST_URL = process.env['APP_HOST_URL'] ?? '';
+  const APP_HOST_URL = environmentVariables.APP_HOST_URL;
 
   return {
     name: appName,

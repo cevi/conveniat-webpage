@@ -1,7 +1,9 @@
-import { i18nRouter } from 'next-i18n-router';
-import { NextRequest, NextResponse } from 'next/server';
-import { Cookie, i18nConfig } from '@/types';
+import { environmentVariables } from '@/config/environment-variables';
 import { i18nExcludedRoutes } from '@/i18n.config';
+import { Cookie, i18nConfig } from '@/types/types';
+import { i18nRouter } from 'next-i18n-router';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 
 /**
  * Middleware to handle i18n routing.
@@ -29,7 +31,7 @@ export const middleware = (request: NextRequest): NextResponse => {
 };
 
 function isAppFeatureEnabled(request: NextRequest, response: NextResponse): boolean {
-  const isFeatureEnabled = process.env['FEATURE_ENABLE_APP_FEATURE'] === 'true';
+  const isFeatureEnabled = environmentVariables.FEATURE_ENABLE_APP_FEATURE === true;
   const url = request.nextUrl;
   const { pathname } = url;
 

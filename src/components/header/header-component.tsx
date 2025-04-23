@@ -1,11 +1,11 @@
-import Link from 'next/link';
-import React from 'react';
+import { PreviewModeBanner } from '@/components/header/preview-mode-banner';
 import { NavComponent } from '@/components/menu/nav-component';
 import { ConveniatLogo } from '@/components/svg-logos/conveniat-logo';
-import { PreviewModeBanner } from '@/components/header/preview-mode-banner';
-import { auth } from '@/auth/auth';
-import { canAccessAdminPanel } from '@/payload-cms/access-rules/can-access-admin-panel';
-import { PayloadRequest } from 'payload';
+import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
+import { auth } from '@/utils/auth-helpers';
+import Link from 'next/link';
+import type { PayloadRequest } from 'payload';
+import React from 'react';
 
 export const HeaderComponent: React.FC = async () => {
   const session = await auth();

@@ -1,17 +1,17 @@
-import React, { Fragment } from 'react';
-import { getBuildInfo } from '@/utils/get-build-info';
 import { CeviSchweiz } from '@/components/svg-logos/cevi-schweiz';
-import { getPayload } from 'payload';
-import config from '@payload-config';
+import type { StaticTranslationString } from '@/types/types';
+import { getBuildInfo } from '@/utils/get-build-info';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
-import Link from 'next/link';
 import { renderInAppDesign } from '@/utils/render-in-app-design';
 import { cn } from '@/utils/tailwindcss-override';
-import { StaticTranslationString } from '@/types';
+import config from '@payload-config';
+import Link from 'next/link';
+import { getPayload } from 'payload';
+import React, { Fragment } from 'react';
 
-type Arguments = {
+interface Arguments {
   children: React.ReactNode;
-};
+}
 
 const FooterMinimalMenu: React.FC = async () => {
   const payload = await getPayload({ config });

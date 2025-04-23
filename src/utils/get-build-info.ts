@@ -17,6 +17,7 @@ interface BuildInfo {
  */
 export const getBuildInfo = async (): Promise<BuildInfo | undefined> => {
   try {
+    // eslint-disable-next-line import/no-restricted-paths
     const { default: rawBuildInfo } = (await import('@/build')) as {
       default: BuildInfo;
     };

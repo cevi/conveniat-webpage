@@ -1,5 +1,5 @@
-import type { Viewport } from 'next';
 import { renderInAppDesign } from '@/utils/render-in-app-design';
+import type { Viewport } from 'next';
 
 /**
  * Generates the viewport meta tag as specified by
