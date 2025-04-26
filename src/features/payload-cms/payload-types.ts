@@ -347,7 +347,7 @@ export interface Permission {
    */
   permissionName: string;
   /**
-   * List of Groups in the CeviDB for this permission.
+   * List of Groups in the CeviDB for this permission. Disables the special permissions section.
    */
   permissions?:
     | {
@@ -356,8 +356,13 @@ export interface Permission {
         id?: string | null;
       }[]
     | null;
-  public?: boolean | null;
-  logged_in?: boolean | null;
+  /**
+   * These permissions are special and disable group checking for CeviDB groups.
+   */
+  special_permissions?: {
+    public?: boolean | null;
+    logged_in?: boolean | null;
+  };
   updatedAt: string;
   createdAt: string;
 }
@@ -1326,8 +1331,12 @@ export interface PermissionsSelect<T extends boolean = true> {
         note?: T;
         id?: T;
       };
-  public?: T;
-  logged_in?: T;
+  special_permissions?:
+    | T
+    | {
+        public?: T;
+        logged_in?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }

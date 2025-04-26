@@ -1,6 +1,17 @@
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import type { CollectionConfig } from 'payload';
 
+type ConditionType<> = {
+  permissions: {
+    group_id: number;
+    note: string;
+  }[];
+  special_permissions: {
+    public: boolean;
+    logged_in: boolean;
+  };
+};
+
 export const PermissionsCollection: CollectionConfig = {
   slug: 'permissions',
   labels: {
@@ -47,9 +58,13 @@ export const PermissionsCollection: CollectionConfig = {
       localized: false,
       admin: {
         description: {
-          en: 'List of Groups in the CeviDB for this permission.',
-          de: 'Liste der Gruppen in der CeviDB für diese Berechtigung.',
-          fr: 'Liste des groupes dans la CeviDB pour cette autorisation.',
+          en: 'List of Groups in the CeviDB for this permission. Disables the special permissions section.',
+          de: 'Liste der Gruppen in der CeviDB für diese Berechtigung. Deaktiviert den Abschnitt für spezielle Berechtigungen.',
+          fr: 'Liste des groupes dans la CeviDB pour cette autorisation. Désactive la section des autorisations spéciales.',
+        },
+        condition: (data, _) => {
+          const typedData = data as ConditionType;
+          return !typedData.special_permissions.public && !typedData.special_permissions.logged_in;
         },
       },
       fields: [
@@ -78,26 +93,65 @@ export const PermissionsCollection: CollectionConfig = {
       ],
     },
     {
-      name: 'public',
+      name: 'special_permissions',
       label: {
-        en: 'Always Public',
-        de: 'Immer öffentlich',
-        fr: 'Toujours public',
+        en: 'Special Permissions',
+        de: 'Sonderberechtigungen',
+        fr: 'Autorisations spéciales',
       },
-      type: 'checkbox',
-      required: false,
-      localized: false,
-    },
-    {
-      name: 'logged_in',
-      label: {
-        en: 'Always Logged In',
-        de: 'Immer eingeloggt',
-        fr: 'Toujours connecté',
+      type: 'group',
+      localized: true,
+      admin: {
+        description: {
+          en: 'These permissions are special and disable group checking for CeviDB groups.',
+          de: 'Diese Berechtigungen sind speziell und deaktivieren die Gruppenüberprüfung für CeviDB-Gruppen.',
+          fr: 'Ces autorisations sont spéciales et désactivent la vérification des groupes pour les groupes CeviDB.',
+        },
       },
-      type: 'checkbox',
-      required: false,
-      localized: false,
+      fields: [
+        {
+          name: 'public',
+          label: {
+            en: 'Without Login (Public)',
+            de: 'Ohne Login (Öffentlich)',
+            fr: 'Sans connexion (public)',
+          },
+          type: 'checkbox',
+          required: false,
+          localized: false,
+          admin: {
+            condition: (data, _) => {
+              const typedData = data as ConditionType;
+              if (typedData.permissions && typedData.permissions.length > 0) {
+                return false;
+              } else {
+                return !typedData.special_permissions.logged_in;
+              }
+            },
+          },
+        },
+        {
+          name: 'logged_in',
+          label: {
+            en: 'Must be logged in (any CeviDB account)',
+            de: 'Muss eingeloggt sein (jedes CeviDB-Konto)',
+            fr: "Doit être connecté (n'importe quel compte CeviDB)",
+          },
+          type: 'checkbox',
+          required: false,
+          localized: false,
+          admin: {
+            condition: (data, _) => {
+              const typedData = data as ConditionType;
+              if (typedData.permissions && typedData.permissions.length > 0) {
+                return false;
+              } else {
+                return !typedData.special_permissions.public;
+              }
+            },
+          },
+        },
+      ],
     },
   ],
 };
