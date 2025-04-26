@@ -1,7 +1,7 @@
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import type { CollectionConfig } from 'payload';
 
-type ConditionType<> = {
+interface ConditionType<> {
   permissions: {
     group_id: number;
     note: string;
@@ -10,7 +10,7 @@ type ConditionType<> = {
     public: boolean;
     logged_in: boolean;
   };
-};
+}
 
 export const PermissionsCollection: CollectionConfig = {
   slug: 'permissions',
@@ -122,11 +122,9 @@ export const PermissionsCollection: CollectionConfig = {
           admin: {
             condition: (data, _) => {
               const typedData = data as ConditionType;
-              if (typedData.permissions && typedData.permissions.length > 0) {
-                return false;
-              } else {
-                return !typedData.special_permissions.logged_in;
-              }
+              return typedData.permissions && typedData.permissions.length > 0
+                ? false
+                : !typedData.special_permissions.logged_in;
             },
           },
         },
@@ -143,11 +141,9 @@ export const PermissionsCollection: CollectionConfig = {
           admin: {
             condition: (data, _) => {
               const typedData = data as ConditionType;
-              if (typedData.permissions && typedData.permissions.length > 0) {
-                return false;
-              } else {
-                return !typedData.special_permissions.public;
-              }
+              return typedData.permissions && typedData.permissions.length > 0
+                ? false
+                : !typedData.special_permissions.public;
             },
           },
         },

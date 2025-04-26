@@ -10,7 +10,8 @@ export const seedPermissionPublic = async (payload: Payload): Promise<Permission
       permissions: [],
       special_permissions: {
         public: true,
-        logged_in: false,},
+        logged_in: false,
+      },
     },
   });
   await payload.update({
@@ -49,7 +50,7 @@ export const seedPermissionLoggedIn = async (payload: Payload): Promise<Permissi
       special_permissions: {
         logged_in: true,
         public: false,
-      }
+      },
     },
   });
   await payload.update({
