@@ -62,7 +62,7 @@ export const PermissionsCollection: CollectionConfig = {
           de: 'Liste der Gruppen in der CeviDB für diese Berechtigung. Deaktiviert den Abschnitt für spezielle Berechtigungen.',
           fr: 'Liste des groupes dans la CeviDB pour cette autorisation. Désactive la section des autorisations spéciales.',
         },
-        condition: (data,) : boolean => {
+        condition: (data): boolean => {
           const typedData = data as ConditionType;
           return !typedData.special_permissions.public && !typedData.special_permissions.logged_in;
         },
@@ -120,7 +120,7 @@ export const PermissionsCollection: CollectionConfig = {
           required: false,
           localized: false,
           admin: {
-            condition: (data,) : boolean  => {
+            condition: (data): boolean => {
               const typedData = data as ConditionType;
               return typedData.permissions.length > 0
                 ? false
@@ -139,7 +139,7 @@ export const PermissionsCollection: CollectionConfig = {
           required: false,
           localized: false,
           admin: {
-            condition: (data,) : boolean  => {
+            condition: (data): boolean => {
               const typedData = data as ConditionType;
               return typedData.permissions.length > 0
                 ? false
