@@ -5,7 +5,7 @@ interface ConditionType<> {
   permissions: {
     group_id: number;
     note: string;
-  }[];
+  }[] | undefined;
   special_permissions: {
     public: boolean;
     logged_in: boolean;
@@ -122,7 +122,7 @@ export const PermissionsCollection: CollectionConfig = {
           admin: {
             condition: (data): boolean => {
               const typedData = data as ConditionType;
-              return typedData.permissions.length > 0
+              return typedData.permissions && typedData.permissions.length > 0
                 ? false
                 : !typedData.special_permissions.logged_in;
             },
@@ -141,7 +141,7 @@ export const PermissionsCollection: CollectionConfig = {
           admin: {
             condition: (data): boolean => {
               const typedData = data as ConditionType;
-              return typedData.permissions.length > 0
+              return typedData.permissions && typedData.permissions.length > 0
                 ? false
                 : !typedData.special_permissions.public;
             },
