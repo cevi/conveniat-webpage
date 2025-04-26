@@ -11,13 +11,13 @@ interface UserWithGroup {
 }
 
 const isPermissionPublic = (permission: Permission | null | undefined): boolean => {
-  return permission?.public === true;
+  return permission?.special_permissions?.public === true;
 };
 
 const isPermissionLoggedInRequired = async (
   permission: Permission | null | undefined,
 ): Promise<boolean> => {
-  if (permission?.logged_in === true) {
+  if (permission?.special_permissions?.logged_in === true) {
     const userPerm = await auth();
     return userPerm !== null;
   }

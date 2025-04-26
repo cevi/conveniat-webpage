@@ -100,7 +100,7 @@ export const PermissionsCollection: CollectionConfig = {
         fr: 'Autorisations spéciales',
       },
       type: 'group',
-      localized: true,
+      localized: false,
       admin: {
         description: {
           en: 'These permissions are special and disable group checking for CeviDB groups.',
