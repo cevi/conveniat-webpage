@@ -2,10 +2,12 @@ import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/ad
 import type { CollectionConfig } from 'payload';
 
 interface ConditionType<> {
-  permissions: {
-    group_id: number;
-    note: string;
-  }[] | undefined;
+  permissions:
+    | {
+        group_id: number;
+        note: string;
+      }[]
+    | undefined;
   special_permissions: {
     public: boolean;
     logged_in: boolean;
