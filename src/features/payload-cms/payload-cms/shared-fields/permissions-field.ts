@@ -8,7 +8,7 @@ export const defaultPublicPermission = async (): Promise<string | undefined> => 
   const pub_perm = await payload.find({
     collection: 'permissions',
     where: {
-      public: {
+      'special_permissions.public': {
         equals: true,
       },
     },
