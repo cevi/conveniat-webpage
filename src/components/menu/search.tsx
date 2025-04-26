@@ -2,6 +2,7 @@
 
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { useClose } from '@headlessui/react';
+import { Search } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React from 'react';
 
@@ -25,24 +26,30 @@ export const SearchComponent: React.FC<{ locale: Locale }> = ({ locale }) => {
       close(); // close nav
     }
   };
-  return (
-    <div>
-      <form className="" id="search-form" onSubmit={onSubmit}>
-        <div className="mb-4">
-          <input
-            id="search-input"
-            name="searchInput"
-            className="border-transparent h-10 w-full rounded border bg-[#e1e6e2] px-4 font-['Inter'] text-sm font-normal text-[#595961] focus:outline-none focus:ring-2 focus:ring-[#47564c]"
-            type="text"
-          />
-        </div>
 
+  return (
+    <div className="w-full max-w-md mx-auto">
+      <form
+        className="flex overflow-hidden rounded-lg border border-[#cbd5d1] bg-white shadow-sm focus-within:ring-2 focus-within:ring-[#47564c]"
+        id="search-form"
+        onSubmit={onSubmit}
+      >
+        <input
+          id="search-input"
+          name="searchInput"
+          className="flex-grow h-12 px-4 font-['Inter'] text-sm text-[#333] placeholder-[#999] focus:outline-none"
+          type="text"
+          placeholder={searchButtonText[locale as Locale]}
+        />
         <button
           type="submit"
           form="search-form"
-          className="h-10 w-full rounded-lg bg-[#47564c] font-['Montserrat'] text-base font-bold text-[#e1e6e2] transition duration-300 hover:bg-[#3b4a3f]"
+          className="flex items-center justify-center h-12 px-4 bg-[#47564c] text-white transition-colors duration-300 hover:bg-[#3b4a3f]"
         >
-          {searchButtonText[locale as Locale]}
+          <Search className="text-lg" aria-hidden="true" />
+          <span className="ml-2 hidden font-['Montserrat'] text-sm font-semibold sm:inline">
+            {searchButtonText[locale as Locale]}
+          </span>
         </button>
       </form>
     </div>
