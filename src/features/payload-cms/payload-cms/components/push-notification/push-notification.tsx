@@ -31,6 +31,7 @@ const SendPushNotification: React.FC = () => {
                   (document.querySelector('#send-push-content') as HTMLInputElement).value,
                 );
                 if (success.success) {
+                  (document.querySelector('#send-push-content') as HTMLInputElement).value = '';
                   alert('Push notification sent successfully');
                 } else {
                   alert('Failed to send push notification');
