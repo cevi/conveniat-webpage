@@ -84,6 +84,13 @@ RUN adduser --system --uid 1001 nextjs
 # Remove this line if you do not have this folder
 COPY --from=builder /app/public ./public
 
+# Copy the dev icons for the dev build
+# if NEXT_PUBLIC_APP_HOST_URL is not set to conveniat27.ch
+RUN \
+  if [ "${NEXT_PUBLIC_APP_HOST_URL}" != "https://conveniat27.ch" ]; then \
+    cp /app/public/dev-icons/* /app/public/; \
+  fi
+
 # Set the correct permission for prerender cache
 RUN mkdir .next
 RUN chown nextjs:nodejs .next
