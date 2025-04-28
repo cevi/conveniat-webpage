@@ -1,7 +1,7 @@
-import { slugValidation } from '@/features/payload-cms/payload-cms/collections/blog-article/validation';
 import { metaDescription } from '@/features/payload-cms/payload-cms/shared-tabs/seo-tab/fields/meta-description';
 import { metaKeywords } from '@/features/payload-cms/payload-cms/shared-tabs/seo-tab/fields/meta-keywords';
 import { metaTitle } from '@/features/payload-cms/payload-cms/shared-tabs/seo-tab/fields/meta-title';
+import { slugValidation } from '@/features/payload-cms/payload-cms/utils/slug-validation';
 import type { Tab } from 'payload';
 
 /**
