@@ -6,13 +6,15 @@ export interface YoutubeEmbedType {
 
 export const YoutubeEmbed: React.FC<YoutubeEmbedType> = async ({ ...block }) => {
   const videoId = block.link.split('v=')[1]?.split('&')[0] ?? undefined;
-  if (videoId === undefined) {
+  const youtubeShortsId = block.link.split('shorts/')[1]?.split('?')[0] ?? undefined;
+  if (videoId === undefined && youtubeShortsId === undefined) {
     return <p>Invalid YouTube URL.</p>;
   }
+  const id = videoId ?? youtubeShortsId;
   return (
     <div className="relative aspect-video overflow-hidden rounded-xl">
       <iframe
-        src={`https://www.youtube-nocookie.com/embed/${videoId}?rel=0&showinfo=1&modestbranding=1`}
+        src={`https://www.youtube-nocookie.com/embed/${id}?rel=0&showinfo=1&modestbranding=1`}
         title="YouTube Video"
         style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"

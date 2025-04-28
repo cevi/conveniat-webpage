@@ -5,7 +5,10 @@ export const youtubeLinkValidation = (value: string | undefined | null): true | 
   const youtubeRegex =
     /^(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})(\S+)?$/;
 
-  if (!youtubeRegex.test(value)) {
+  const youtubeShortsRegex =
+    /^(https?:\/\/)?(www\.)?(youtube\.com\/shorts\/|youtu\.be\/)([a-zA-Z0-9_-]{11})(\S+)?$/;
+
+  if (!youtubeRegex.test(value) && !youtubeShortsRegex.test(value)) {
     return 'Please enter a valid YouTube URL.';
   }
 
