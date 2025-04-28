@@ -546,7 +546,18 @@ export interface Form {
  * via the `definition` "YoutubeEmbedding".
  */
 export interface YoutubeEmbedding {
-  link: string;
+  /**
+   * Links to the Youtube videos
+   */
+  links?:
+    | {
+        /**
+         * Link to the Youtube video
+         */
+        link: string;
+        id?: string | null;
+      }[]
+    | null;
   id?: string | null;
   blockName?: string | null;
   blockType: 'youtubeEmbed';
@@ -1107,7 +1118,12 @@ export interface FormBlockSelect<T extends boolean = true> {
  * via the `definition` "YoutubeEmbedding_select".
  */
 export interface YoutubeEmbeddingSelect<T extends boolean = true> {
-  link?: T;
+  links?:
+    | T
+    | {
+        link?: T;
+        id?: T;
+      };
   id?: T;
   blockName?: T;
 }

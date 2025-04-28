@@ -143,7 +143,7 @@ export const RenderYoutubeEmbed: SectionRenderer<YoutubeEmbedType> = ({
       sectionOverrides={sectionOverrides}
       errorFallbackMessage="Failed to load youtube link. Reload the page to try again."
     >
-      <YoutubeEmbed link={block.link} />
+      <YoutubeEmbed links={block.links} />
     </SectionWrapper>
   );
 };

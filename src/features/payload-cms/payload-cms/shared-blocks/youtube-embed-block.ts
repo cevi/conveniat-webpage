@@ -10,10 +10,31 @@ export const youtubeEmbedBlock: Block = {
 
   fields: [
     {
-      name: 'link',
-      type: 'text',
-      required: true,
-      validate: youtubeLinkValidation,
+      name: 'links',
+      type: 'array',
+      label: 'Links',
+      admin: {
+        description: {
+          en: 'Links to the Youtube videos',
+          de: 'Links zu den Youtube Videos',
+          fr: 'Liens vers les vidéos Youtube',
+        },
+      },
+      fields: [
+        {
+          name: 'link',
+          type: 'text',
+          required: true,
+          validate: youtubeLinkValidation,
+          admin: {
+            description: {
+              en: 'Link to the Youtube video',
+              de: 'Link zum Youtube Video',
+              fr: 'Lien vers la vidéo Youtube',
+            },
+          },
+        },
+      ],
     },
   ],
 };
