@@ -12,6 +12,7 @@ import { LinkFeatureClient as LinkFeatureClient_e70f5e05f09f93e00b997edb1ef0c864
 import { HeadingFeatureClient as HeadingFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { BlockquoteFeatureClient as BlockquoteFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { UnorderedListFeatureClient as UnorderedListFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
+import { SlugComponent as SlugComponent_f8d18e9ffd9ba326b0ef9eec14d7ac57 } from '@/features/payload-cms/payload-cms/components/slug/slug-component'
 import { default as default_0f53903a30b274c16c4f93e0efdf32e5 } from '@/features/payload-cms/payload-cms/components/url-field/url-input-field'
 import { default as default_b8a91c281781c959c4c68385023a0bcf } from '@/features/payload-cms/payload-cms/components/disable-actions/disable-many-actions'
 import { default as default_ad2ab9e4ee1f1c863c85f67238030f8f } from '@/features/payload-cms/payload-cms/components/multi-lang-publishing/publish-localized'
@@ -38,6 +39,7 @@ export const importMap = {
   "@payloadcms/richtext-lexical/client#HeadingFeatureClient": HeadingFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#BlockquoteFeatureClient": BlockquoteFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#UnorderedListFeatureClient": UnorderedListFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
+  "@/features/payload-cms/payload-cms/components/slug/slug-component#SlugComponent": SlugComponent_f8d18e9ffd9ba326b0ef9eec14d7ac57,
   "@/features/payload-cms/payload-cms/components/url-field/url-input-field#default": default_0f53903a30b274c16c4f93e0efdf32e5,
   "@/features/payload-cms/payload-cms/components/disable-actions/disable-many-actions#default": default_b8a91c281781c959c4c68385023a0bcf,
   "@/features/payload-cms/payload-cms/components/multi-lang-publishing/publish-localized#default": default_ad2ab9e4ee1f1c863c85f67238030f8f,

@@ -61,7 +61,6 @@ const urlSlugPrefixField: React.FC<{
 
   const prefix_slug = findPrefixByCollectionSlugAndLocale(slug as CollectionSlug, locale);
   const prefix = `/${locale === LOCALE.DE ? '' : locale}/${prefix_slug}/`.replaceAll(/\/+/g, '/');
-
   return (
     <>
       <span className="absolute m-3 text-gray-400">{prefix}</span>

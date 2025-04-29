@@ -1,4 +1,4 @@
-import { Locale } from '@/types/types';
+import type { Locale } from '@/types/types';
 import type { CollectionSlug, TextFieldSingleValidation } from 'payload';
 import { text } from 'payload/shared';
 

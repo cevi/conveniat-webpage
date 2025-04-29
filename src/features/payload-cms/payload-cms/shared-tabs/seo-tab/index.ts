@@ -1,8 +1,8 @@
 import { metaDescription } from '@/features/payload-cms/payload-cms/shared-tabs/seo-tab/fields/meta-description';
 import { metaKeywords } from '@/features/payload-cms/payload-cms/shared-tabs/seo-tab/fields/meta-keywords';
 import { metaTitle } from '@/features/payload-cms/payload-cms/shared-tabs/seo-tab/fields/meta-title';
-import { slugValidation } from '@/features/payload-cms/payload-cms/utils/slug-validation';
 import type { Tab } from 'payload';
+import { SlugField } from '../../shared-fields/slug-field';
 
 /**
  *
@@ -18,24 +18,5 @@ export const seoTab: Tab = {
     de: 'SEO',
     fr: 'SEO',
   },
-  fields: [
-    {
-      name: 'urlSlug',
-      label: 'URL Slug',
-      type: 'text',
-      localized: true,
-      required: true,
-      validate: slugValidation,
-      unique: true,
-      admin: {
-        components: {
-          beforeInput: ['@/features/payload-cms/payload-cms/components/url-field/url-input-field'],
-        },
-      },
-    },
-
-    metaTitle,
-    metaDescription,
-    metaKeywords,
-  ],
+  fields: [SlugField, metaTitle, metaDescription, metaKeywords],
 };
