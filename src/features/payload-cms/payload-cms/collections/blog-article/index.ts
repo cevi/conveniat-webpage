@@ -55,7 +55,7 @@ export const BlogArticleCollection: CollectionConfig = asLocalizedCollection({
             blogSearchKeywords,
           ],
         },
-        seoTab,
+        seoTab('blog'),
       ],
     },
   ],

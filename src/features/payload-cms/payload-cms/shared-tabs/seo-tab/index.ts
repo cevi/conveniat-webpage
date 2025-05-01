@@ -11,12 +11,12 @@ import { SlugField } from '../../shared-fields/slug-field';
  * tabs array of the collection's fields.
  *
  */
-export const seoTab: Tab = {
+export const seoTab = (collectionSlug: string): Tab => ({
   name: 'seo',
   label: {
     en: 'SEO',
     de: 'SEO',
     fr: 'SEO',
   },
-  fields: [SlugField, metaTitle, metaDescription, metaKeywords],
-};
+  fields: [SlugField(collectionSlug), metaTitle, metaDescription, metaKeywords],
+});

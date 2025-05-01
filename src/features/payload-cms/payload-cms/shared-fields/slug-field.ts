@@ -1,7 +1,7 @@
 import type { TextField } from 'payload';
 import { slugValidation } from '../utils/slug-validation';
 
-export const SlugField: TextField = {
+export const SlugField = (collectionSlug: string): TextField => ({
   name: 'urlSlug',
   type: 'text',
   label: 'URL Slug',
@@ -14,10 +14,12 @@ export const SlugField: TextField = {
   validate: slugValidation,
   admin: {
     components: {
-      beforeInput: ['@/features/payload-cms/payload-cms/components/url-field/url-input-field'],
       Field: {
         path: '@/features/payload-cms/payload-cms/components/slug/slug-component#SlugComponent',
+        clientProps: {
+          collectionSlug: collectionSlug,
+        },
       },
     },
   },
-};
+});

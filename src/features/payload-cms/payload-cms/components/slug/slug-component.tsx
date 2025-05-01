@@ -1,14 +1,25 @@
 'use client';
 
-import { FieldLabel, TextInput, useField, useFormFields } from '@payloadcms/ui';
+import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
+import type { Locale } from '@/types/types';
+import { FieldLabel, TextInput, useField, useFormFields, useLocale } from '@payloadcms/ui';
 import { Lock, Unlock } from 'lucide-react'; // Import icons from Lucide
 import type { TextFieldClientProps } from 'payload';
 import React, { useCallback, useEffect, useState } from 'react';
 import { formatSlug } from './format-slug';
 
-export const SlugComponent: React.FC<TextFieldClientProps> = ({ field, path }) => {
-  const { label } = field;
+interface CustomProperties {
+  collectionSlug: string;
+  locale: Locale;
+}
 
+export const SlugComponent: React.FC<TextFieldClientProps & CustomProperties> = ({
+  field,
+  path,
+  collectionSlug,
+}) => {
+  const { label } = field;
+  const locale = useLocale();
   const { value, setValue } = useField<string>({ path: path || 'seo.urlSlug' });
 
   const [checkboxValue, setCheckboxValue] = useState(true);
@@ -40,6 +51,13 @@ export const SlugComponent: React.FC<TextFieldClientProps> = ({ field, path }) =
 
   const readOnly = checkboxValue;
 
+  // TODO: this is wrong when a collection has multiple locale prefixes
+  const prefix =
+    `/${(locale.code as Locale) === LOCALE.DE ? '' : locale.code}/${collectionSlug}/`.replaceAll(
+      /\/+/g,
+      '/',
+    );
+
   return (
     <div className="field-type slug-field-component space-y-2">
       <div className="flex items-center justify-between">
@@ -54,6 +72,10 @@ export const SlugComponent: React.FC<TextFieldClientProps> = ({ field, path }) =
         </button>
       </div>
 
+      <div className="text-sm text-gray-500 mb-2">
+        {prefix}
+        <span className="text-gray-700">{value}</span>
+      </div>
       <TextInput
         value={value}
         onChange={setValue}
