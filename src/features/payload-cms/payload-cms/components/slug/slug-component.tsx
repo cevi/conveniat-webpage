@@ -7,19 +7,35 @@ import { Lock, Unlock } from 'lucide-react'; // Import icons from Lucide
 import type { TextFieldClientProps } from 'payload';
 import React, { useCallback, useEffect, useState } from 'react';
 import { formatSlug } from './format-slug';
+import type { CustomSlugComponentProperties } from './types';
 
-interface CustomProperties {
-  collectionSlug: string;
-  locale: Locale;
-}
-
-export const SlugComponent: React.FC<TextFieldClientProps & CustomProperties> = ({
-  field,
-  path,
-  collectionSlug,
-}) => {
-  const { label } = field;
+export const SlugComponent: React.FC<
+  TextFieldClientProps & { collectionName: CustomSlugComponentProperties }
+> = (properties) => {
+  const { field, path, collectionName } = properties;
   const locale = useLocale();
+
+  let collectionSlug = '';
+  switch (locale.code) {
+    case LOCALE.DE: {
+      collectionSlug = collectionName.collectionSlugDE;
+
+      break;
+    }
+    case LOCALE.EN: {
+      collectionSlug = collectionName.collectionSlugEN;
+
+      break;
+    }
+    case LOCALE.FR: {
+      collectionSlug = collectionName.collectionSlugFR;
+
+      break;
+    }
+    // No default
+  }
+
+  const { label } = field;
   const { value, setValue } = useField<string>({ path: path || 'seo.urlSlug' });
 
   const [checkboxValue, setCheckboxValue] = useState(true);

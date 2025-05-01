@@ -33,7 +33,7 @@ export const GenericPage: CollectionConfig = asLocalizedCollection({
           },
           fields: [pageTitleField, permissionsField, mainContentField],
         },
-        seoTab(''), // empty slug for generic page
+        seoTab({ collectionSlugDE: '', collectionSlugEN: '', collectionSlugFR: '' }),
       ],
     },
   ],

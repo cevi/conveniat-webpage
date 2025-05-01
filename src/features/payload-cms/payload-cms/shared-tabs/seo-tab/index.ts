@@ -2,6 +2,7 @@ import { metaDescription } from '@/features/payload-cms/payload-cms/shared-tabs/
 import { metaKeywords } from '@/features/payload-cms/payload-cms/shared-tabs/seo-tab/fields/meta-keywords';
 import { metaTitle } from '@/features/payload-cms/payload-cms/shared-tabs/seo-tab/fields/meta-title';
 import type { Tab } from 'payload';
+import type { CustomSlugComponentProperties } from '../../components/slug/types';
 import { SlugField } from '../../shared-fields/slug-field';
 
 /**
@@ -11,12 +12,12 @@ import { SlugField } from '../../shared-fields/slug-field';
  * tabs array of the collection's fields.
  *
  */
-export const seoTab = (collectionSlug: string): Tab => ({
+export const seoTab = (properties: CustomSlugComponentProperties): Tab => ({
   name: 'seo',
   label: {
     en: 'SEO',
     de: 'SEO',
     fr: 'SEO',
   },
-  fields: [SlugField(collectionSlug), metaTitle, metaDescription, metaKeywords],
+  fields: [SlugField(properties), metaTitle, metaDescription, metaKeywords],
 });
