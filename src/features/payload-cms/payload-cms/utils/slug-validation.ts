@@ -15,6 +15,8 @@ export const slugValidation: TextFieldSingleValidation = async (value, arguments
   if (!/^[a-z0-9-]+$/.test(value))
     return 'Slug can only contain lowercase letters, numbers, and hyphens';
 
+  if (/^(api|admin|app)$/.test(value)) return 'Slug cannot be api, admin or app';
+
   if (value.length < slugMinLength) return `Slug must be at least ${slugMinLength} characters long`;
   if (value.length > slugMaxLength) return 'Slug cannot be longer than ${slugMaxLength} characters';
 
