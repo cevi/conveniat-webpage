@@ -16,19 +16,24 @@ interface RichTextSection {
   root: RichTextRoot;
 }
 
-interface BlogContentBlock {
+interface ContentBlock {
   blockType: string;
   richTextSection?: RichTextSection;
 }
 
-interface Content {
+interface BlogContent {
   blogH1?: string;
   blogShortTitle?: string;
-  mainContent: BlogContentBlock[];
+  mainContent: ContentBlock[];
+}
+
+interface PageContent {
+  pageTitle?: string;
+  mainContent: ContentBlock[];
 }
 
 interface OriginalDocument {
-  content: Content;
+  content: BlogContent | PageContent;
 }
 
 interface SearchDocument {
@@ -43,27 +48,45 @@ export const beforeSyncWithSearch: BeforeSync = async ({ originalDoc, searchDoc 
   const typedDocument = originalDoc as OriginalDocument;
   const typedSearchDocument = searchDoc as SearchDocument;
 
-  const content = typedDocument.content;
-
-  const blogH1 = content.blogH1;
-  const shortTitle = content.blogShortTitle;
-
-  typedSearchDocument.search_title = blogH1 || shortTitle || '';
-  typedSearchDocument.title = typedSearchDocument.search_title;
-
   typedSearchDocument.search_content = '';
 
-  const blogContent = content.mainContent;
-  for (const block of blogContent) {
-    if (block.blockType === 'richTextSection' && block.richTextSection) {
-      const richTextSection = block.richTextSection;
-      const text = richTextSection.root.children.map((paragraph) => {
-        const paragraphText = paragraph.children.map((child) => child.text || '');
-        return paragraphText.join(' ');
-      });
-      typedSearchDocument.search_content = text.join('\n');
+  // check if typedDocument is a blog or a generic page
+  if (searchDoc.doc.relationTo !== 'blog') {
+    const content = typedDocument.content as PageContent;
+    typedSearchDocument.search_title = content.pageTitle || '';
+
+    for (const block of content.mainContent) {
+      if (block.blockType === 'richTextSection' && block.richTextSection) {
+        const richTextSection = block.richTextSection;
+        const text = richTextSection.root.children.map((paragraph) => {
+          const paragraphText = paragraph.children.map((child) => child.text || '');
+          return paragraphText.join(' ');
+        });
+        typedSearchDocument.search_content += text.join(' ');
+      }
+    }
+  } else {
+    const content = typedDocument.content as BlogContent;
+    const blogH1 = content.blogH1;
+    const shortTitle = content.blogShortTitle;
+
+    console.log(originalDoc);
+    console.log(typedDocument);
+
+    typedSearchDocument.search_title = blogH1 || shortTitle || '';
+
+    for (const block of content.mainContent) {
+      if (block.blockType === 'richTextSection' && block.richTextSection) {
+        const richTextSection = block.richTextSection;
+        const text = richTextSection.root.children.map((paragraph) => {
+          const paragraphText = paragraph.children.map((child) => child.text || '');
+          return paragraphText.join(' ');
+        });
+        typedSearchDocument.search_content += text.join(' ');
+      }
     }
   }
 
+  typedSearchDocument.title = typedSearchDocument.search_title;
   return typedSearchDocument;
 };
