@@ -41,7 +41,7 @@ export const SlugComponent: React.FC<
   const [checkboxValue, setCheckboxValue] = useState(true);
 
   const targetFieldValue = useFormFields(([fields]) => {
-    return fields['seo.urlSlug']?.value as string;
+    return fields[path || 'seo.urlSlug']?.value as string;
   });
 
   useEffect(() => {

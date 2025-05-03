@@ -48,6 +48,11 @@ export const slugValidation: TextFieldSingleValidation = async (value, arguments
   // check if the slug is unique
   const { payload, locale } = arguments_.req;
   const { data, collectionSlug } = arguments_;
+
+  if (collectionSlug === 'redirects') {
+    return text(value, arguments_); // do not check for uniqueness in redirects
+  }
+
   const duplicates = await payload.find({
     collection: collectionSlug as CollectionSlug,
     draft: false,

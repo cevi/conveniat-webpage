@@ -136,7 +136,7 @@ const CMSPage: React.FC<{
       limit: 1,
       locale,
       where: {
-        from: {
+        urlSlug: {
           equals: collection,
         },
       },
@@ -144,8 +144,7 @@ const CMSPage: React.FC<{
     if (redirectPages.totalDocs > 0) {
       const redirectPage = redirectPages.docs[0];
       if (redirectPage === undefined) {
-        // redirect to the default page
-        redirect(`/${locale}`);
+        notFound();
       }
       // check if redirectPage.to.type is "reference" or "custom"
       const redirectPageTo = redirectPage.to as

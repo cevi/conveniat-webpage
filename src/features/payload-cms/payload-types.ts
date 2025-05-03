@@ -921,7 +921,7 @@ export interface SearchCollection {
  */
 export interface Redirect {
   id: string;
-  from: string;
+  urlSlug: string;
   to?: {
     type?: ('reference' | 'custom') | null;
     reference?:
@@ -1548,7 +1548,7 @@ export interface SearchCollectionSelect<T extends boolean = true> {
  * via the `definition` "redirects_select".
  */
 export interface RedirectsSelect<T extends boolean = true> {
-  from?: T;
+  urlSlug?: T;
   to?:
     | T
     | {

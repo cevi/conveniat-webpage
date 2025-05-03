@@ -8,12 +8,12 @@ import { globalConfig } from '@/features/payload-cms/payload-cms/globals';
 import { onPayloadInit } from '@/features/payload-cms/payload-cms/initialization';
 import { LOCALE, locales } from '@/features/payload-cms/payload-cms/locales';
 import { lexicalEditor } from '@/features/payload-cms/payload-cms/plugins/lexical-editor';
+import { redirectsPluginConfiguration } from '@/features/payload-cms/payload-cms/plugins/redirects/redirects-plugin-configuration';
 import { s3StorageConfiguration } from '@/features/payload-cms/payload-cms/plugins/s3-storage-plugin-configuration';
 import { searchPluginConfiguration } from '@/features/payload-cms/payload-cms/plugins/search/search-plugin-configuration';
 import type { RoutableConfig } from '@/types/types';
 import { mongooseAdapter } from '@payloadcms/db-mongodb';
 import { formBuilderPlugin } from '@payloadcms/plugin-form-builder';
-import { redirectsPlugin } from '@payloadcms/plugin-redirects';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { CollectionConfig, Locale } from 'payload';
@@ -198,9 +198,7 @@ export const payloadConfig: RoutableConfig = {
     }),
     s3StorageConfiguration,
     searchPluginConfiguration,
-    redirectsPlugin({
-      collections: ['blog', 'generic-page'],
-    }),
+    redirectsPluginConfiguration,
   ],
   i18n: {
     fallbackLanguage: LOCALE.DE,
