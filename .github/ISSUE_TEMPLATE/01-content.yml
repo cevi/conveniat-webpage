@@ -6,7 +6,7 @@ body:
   - type: textarea
     id: content-report
     attributes:
-      label: Content Missing
+      label: Content is missing
       description: Where is the content missing? What should be shown?
       placeholder:
       value:

@@ -1,0 +1,14 @@
+name: Design
+description: There is a design issue
+title: '[Design]: '
+labels: ['design']
+body:
+  - type: textarea
+    id: design-report
+    attributes:
+      label: There is a design issue
+      description: Where is the design wrong? What should be shown?
+      placeholder:
+      value:
+    validations:
+      required: true
