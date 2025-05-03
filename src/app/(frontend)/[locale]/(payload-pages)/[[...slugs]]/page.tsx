@@ -151,16 +151,16 @@ const CMSPage: React.FC<{
       const redirectPageTo = redirectPage.to as
         | { type: 'custom'; url: string }
         | {
-          type: 'reference';
-          reference: {
-            relationTo: string;
-            value: {
-              seo: {
-                urlSlug: string;
+            type: 'reference';
+            reference: {
+              relationTo: string;
+              value: {
+                seo: {
+                  urlSlug: string;
+                };
               };
             };
           };
-        };
 
       if (redirectPageTo.type === 'custom') {
         const redirectPageToCustom = redirectPageTo as { type: 'custom'; url: string };
