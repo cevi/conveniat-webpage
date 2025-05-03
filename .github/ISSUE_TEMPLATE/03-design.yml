@@ -1,7 +1,7 @@
 name: Design
 description: There is a design issue
 title: '[Design]: '
-labels: ['design']
+labels: ['design / UI/UX']
 body:
   - type: textarea
     id: design-report
