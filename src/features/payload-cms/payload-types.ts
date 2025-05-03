@@ -279,10 +279,6 @@ export interface Blog {
         }
       | DetailsTable
     )[];
-    /**
-     * These keywords will be used for user search.
-     */
-    blogSearchKeywords?: string | null;
   };
   seo: {
     urlSlug: string;
@@ -912,14 +908,8 @@ export interface SearchCollection {
     relationTo: 'blog';
     value: string | Blog;
   };
-  content?: {
-    blogH1?: string | null;
-    blogShortTitle?: string | null;
-    blogSearchKeywords?: string | null;
-  };
-  seo?: {
-    urlSlug?: string | null;
-  };
+  search_content?: string | null;
+  search_title?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1090,7 +1080,6 @@ export interface BlogSelect<T extends boolean = true> {
                   };
               detailsTable?: T | DetailsTableSelect<T>;
             };
-        blogSearchKeywords?: T;
       };
   seo?:
     | T
@@ -1520,18 +1509,8 @@ export interface SearchCollectionSelect<T extends boolean = true> {
   title?: T;
   priority?: T;
   doc?: T;
-  content?:
-    | T
-    | {
-        blogH1?: T;
-        blogShortTitle?: T;
-        blogSearchKeywords?: T;
-      };
-  seo?:
-    | T
-    | {
-        urlSlug?: T;
-      };
+  search_content?: T;
+  search_title?: T;
   updatedAt?: T;
   createdAt?: T;
 }

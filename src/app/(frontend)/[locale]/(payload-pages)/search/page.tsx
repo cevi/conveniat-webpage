@@ -28,51 +28,60 @@ const SearchPage: React.FC<{
 
   const currentDate = new Date().toISOString();
 
-  const blogsPaged = await payload.find({
-    collection: 'blog',
+  // search for search_content and search_title
+  const searchCollectionEntriesResult = await payload.find({
+    collection: 'search-collection',
     depth: 1,
     limit: 10,
     locale,
-    ...(searchQuery === ''
-      ? {}
-      : {
-          where: {
-            and: [
-              {
-                'content.releaseDate': {
-                  less_than_equal: currentDate,
-                },
-              },
-              {
-                or: [
-                  {
-                    'content.blogH1': {
-                      like: searchQuery,
-                    },
-                  },
-                  {
-                    'content.blogShortTitle': {
-                      like: searchQuery,
-                    },
-                  },
-                  {
-                    'content.blogSearchKeywords': {
-                      like: searchQuery,
-                    },
-                  },
-                  {
-                    'seo.urlSlug': {
-                      like: searchQuery,
-                    },
-                  },
-                ],
-              },
-            ],
+    where: {
+      or: [
+        {
+          search_content: {
+            like: searchQuery,
           },
-        }),
+        },
+        {
+          search_title: {
+            like: searchQuery,
+          },
+        },
+      ],
+    },
   });
+  const searchCollectionEntries = searchCollectionEntriesResult.docs;
 
-  const blogs = blogsPaged.docs as Blog[];
+  const blogsPublished = await Promise.all(
+    searchCollectionEntries.map(async (entry) => {
+      // fetch the blog article and check if the release date is in the past
+      const blogArticleResult = await payload.find({
+        collection: 'blog',
+        depth: 1,
+        limit: 1,
+        locale,
+        where: {
+          and: [
+            {
+              id: {
+                equals: entry.doc.value,
+              },
+            },
+            {
+              'content.releaseDate': {
+                less_than_equal: currentDate,
+              },
+            },
+          ],
+        },
+      });
+      if (blogArticleResult.docs.length > 0) {
+        return blogArticleResult.docs[0];
+      }
+
+      return;
+    }),
+  );
+  const blogs = blogsPublished.filter((blog) => blog !== undefined) as Blog[];
 
   return (
     <article className="mx-auto my-8 max-w-2xl px-8">

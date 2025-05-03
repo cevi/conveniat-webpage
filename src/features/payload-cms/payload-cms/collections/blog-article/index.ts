@@ -3,7 +3,6 @@ import {
   bannerImage,
   blogArticleTitleField,
   blogReleaseDate,
-  blogSearchKeywords,
   blogTeaserText,
 } from '@/features/payload-cms/payload-cms/collections/blog-article/fields';
 import { internalPageNameField } from '@/features/payload-cms/payload-cms/shared-fields/internal-page-name-field';
@@ -52,7 +51,6 @@ export const BlogArticleCollection: CollectionConfig = asLocalizedCollection({
             permissionsField,
             blogTeaserText,
             mainContentField,
-            blogSearchKeywords,
           ],
         },
         seoTab({ collectionSlugDE: 'blog', collectionSlugEN: 'blog', collectionSlugFR: 'blog' }),

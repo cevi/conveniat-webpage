@@ -6,49 +6,17 @@ export const searchOverrides: { fields?: FieldsOverride } & Partial<
 > = {
   slug: 'search-collection',
   admin: {
-    useAsTitle: 'id',
+    useAsTitle: 'search_title',
   },
   fields: ({ defaultFields }) => [
     ...defaultFields,
     {
-      name: 'content',
-      type: 'group',
-      index: true,
-      admin: {
-        readOnly: true,
-      },
-      fields: [
-        {
-          name: 'blogH1',
-          type: 'text',
-          localized: true,
-        },
-        {
-          name: 'blogShortTitle',
-          type: 'text',
-          localized: true,
-        },
-        {
-          name: 'blogSearchKeywords',
-          type: 'text',
-          localized: true,
-        },
-      ],
+      name: 'search_content',
+      type: 'text',
     },
     {
-      name: 'seo',
-      type: 'group',
-      index: true,
-      admin: {
-        readOnly: true,
-      },
-      fields: [
-        {
-          name: 'urlSlug',
-          type: 'text',
-          localized: true,
-        },
-      ],
+      name: 'search_title',
+      type: 'text',
     },
   ],
 };

@@ -74,22 +74,3 @@ export const blogTeaserText: Field = {
     },
   },
 };
-
-export const blogSearchKeywords: Field = {
-  name: 'blogSearchKeywords',
-  label: {
-    en: 'Search Keywords',
-    de: 'Suchbegriffe',
-    fr: 'Mots-clés de recherche',
-  },
-  type: 'textarea',
-  localized: true,
-  admin: {
-    position: 'sidebar',
-    description: {
-      en: 'These keywords will be used for user search.',
-      de: 'Diese Schlüsselwörter werden für die Benutzersuche verwendet.',
-      fr: 'Ces mots-clés seront utilisés pour la recherche utilisateur.',
-    },
-  },
-};
