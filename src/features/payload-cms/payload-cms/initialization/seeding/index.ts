@@ -118,10 +118,6 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
           label: 'Zeitstrahl',
           link: '/zeitstrahl',
         },
-        {
-          label: 'Impressum',
-          link: '/impressum',
-        },
       ],
     },
   });
