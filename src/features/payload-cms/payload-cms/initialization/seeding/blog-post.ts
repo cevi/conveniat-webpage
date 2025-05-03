@@ -31,7 +31,6 @@ export const basicBlog = (
           id: '679cd696d513ff58014d2144',
         },
       ],
-      blogSearchKeywords: 'blog',
     },
     seo: {
       urlSlug: slug,
@@ -41,5 +40,6 @@ export const basicBlog = (
     _localized_status: {
       published: true,
     },
+    _status: 'published',
   };
 };
