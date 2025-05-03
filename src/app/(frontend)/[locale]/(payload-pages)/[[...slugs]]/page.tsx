@@ -8,9 +8,10 @@ import { routeResolutionTable } from '@/features/payload-cms/route-resolution-ta
 import type { Locale, SearchParameters } from '@/types/types';
 import { auth } from '@/utils/auth-helpers';
 import { isPreviewTokenValid } from '@/utils/preview-token';
+import config from '@payload-config';
 import { cookies } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
-import type { PayloadRequest } from 'payload';
+import { getPayload, type PayloadRequest } from 'payload';
 import type React from 'react';
 
 /**
@@ -116,6 +117,8 @@ const CMSPage: React.FC<{
     const { locale, slugs } = await params;
     const searchParameters = await searchParametersPromise;
 
+    const payload = await getPayload({ config });
+
     const searchParametersString = Object.entries(searchParameters)
       .map(([key, value]) => {
         return Array.isArray(value) ? value.map((v) => `${key}=${v}`).join('&') : `${key}=${value}`;
@@ -125,6 +128,50 @@ const CMSPage: React.FC<{
     // check if part of a routable collection of the form [collection]/[slug]
     const collection = (slugs?.[0] ?? '') as string;
     const remainingSlugs = slugs?.slice(1) ?? [];
+
+    // check if the page is actually a redirect slug
+    const redirectPages = await payload.find({
+      collection: 'redirects',
+      depth: 1,
+      limit: 1,
+      locale,
+      where: {
+        from: {
+          equals: collection,
+        },
+      },
+    });
+    if (redirectPages.totalDocs > 0) {
+      const redirectPage = redirectPages.docs[0];
+      if (redirectPage === undefined) {
+        // redirect to the default page
+        redirect(`/${locale}`);
+      }
+      // check if redirectPage.to.type is "reference" or "custom"
+      const redirectPageTo = redirectPage.to as
+        | { type: 'custom'; url: string }
+        | {
+          type: 'reference';
+          reference: {
+            relationTo: string;
+            value: {
+              seo: {
+                urlSlug: string;
+              };
+            };
+          };
+        };
+
+      if (redirectPageTo.type === 'custom') {
+        const redirectPageToCustom = redirectPageTo as { type: 'custom'; url: string };
+        const redirectPageToValue = redirectPageToCustom.url;
+        redirect(redirectPageToValue);
+      } else {
+        const redirectPageToValue = redirectPageTo.reference.value.seo.urlSlug;
+        const redirectPageToRelationTo = redirectPageTo.reference.relationTo;
+        redirect(`/${locale}/${redirectPageToRelationTo}/${redirectPageToValue}`);
+      }
+    }
 
     let collectionPage = routeResolutionTable[collection];
     if (collectionPage === undefined && routeResolutionTable[''] !== undefined) {

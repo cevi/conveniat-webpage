@@ -13,6 +13,7 @@ import { searchPluginConfiguration } from '@/features/payload-cms/payload-cms/pl
 import type { RoutableConfig } from '@/types/types';
 import { mongooseAdapter } from '@payloadcms/db-mongodb';
 import { formBuilderPlugin } from '@payloadcms/plugin-form-builder';
+import { redirectsPlugin } from '@payloadcms/plugin-redirects';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { CollectionConfig, Locale } from 'payload';
@@ -197,6 +198,9 @@ export const payloadConfig: RoutableConfig = {
     }),
     s3StorageConfiguration,
     searchPluginConfiguration,
+    redirectsPlugin({
+      collections: ['blog', 'generic-page'],
+    }),
   ],
   i18n: {
     fallbackLanguage: LOCALE.DE,
