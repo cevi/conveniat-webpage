@@ -5,21 +5,42 @@ import { text } from 'payload/shared';
 const slugMinLength = 3;
 const slugMaxLength = 100;
 
+const checkForbiddenRegexes = (value: string): { error: boolean; message: string } => {
+  // slug can only contain lowercase letters, numbers, and hyphens
+  if (!/^[a-z0-9-]+$/.test(value)) {
+    return {
+      error: true,
+      message: 'Slug can only contain lowercase letters, numbers, and hyphens',
+    };
+  }
+
+  // slug cannot start or end with a hyphen and cannot contain consecutive hyphens
+  if (/^-|-$/.test(value)) {
+    return { error: true, message: 'Slug cannot start or end with a hyphen' };
+  }
+  if (/--/.test(value)) {
+    return { error: true, message: 'Slug cannot contain consecutive hyphens' };
+  }
+
+  // slug cannot be one of the reserved words
+  if (/^(api|admin|app)$/.test(value)) {
+    return { error: true, message: 'Slug cannot be api, admin or app' };
+  }
+
+  // if no errors, return a success object
+  return { error: false, message: '' };
+};
+
 export const slugValidation: TextFieldSingleValidation = async (value, arguments_) => {
   if (value === undefined || value === null) return 'Slug is required';
 
   // for landing page we allow empty slug
   if (value === '') return true;
 
-  // slug can only contain lowercase letters, numbers, and hyphens
-  if (!/^[a-z0-9-]+$/.test(value))
-    return 'Slug can only contain lowercase letters, numbers, and hyphens';
-
-  // slug cannot start or end with a hyphen and cannot contain consecutive hyphens
-  if (/^-|-$/.test(value)) return 'Slug cannot start or end with a hyphen';
-  if (/--/.test(value)) return 'Slug cannot contain consecutive hyphens';
-
-  if (/^(api|admin|app)$/.test(value)) return 'Slug cannot be api, admin or app';
+  const forbidden = checkForbiddenRegexes(value);
+  if (forbidden.error) {
+    return forbidden.message;
+  }
 
   if (value.length < slugMinLength) return `Slug must be at least ${slugMinLength} characters long`;
   if (value.length > slugMaxLength) return 'Slug cannot be longer than ${slugMaxLength} characters';
