@@ -684,6 +684,7 @@ export interface GenericPage {
      */
     pageTitle: string;
     permissions?: (string | null) | Permission;
+    releaseDate: string;
     /**
      * The main content of the page
      */
@@ -906,10 +907,15 @@ export interface SearchCollection {
   id: string;
   title?: string | null;
   priority?: number | null;
-  doc: {
-    relationTo: 'blog';
-    value: string | Blog;
-  };
+  doc:
+    | {
+        relationTo: 'blog';
+        value: string | Blog;
+      }
+    | {
+        relationTo: 'generic-page';
+        value: string | GenericPage;
+      };
   search_content?: string | null;
   search_title?: string | null;
   updatedAt: string;
@@ -1201,6 +1207,7 @@ export interface GenericPageSelect<T extends boolean = true> {
     | {
         pageTitle?: T;
         permissions?: T;
+        releaseDate?: T;
         mainContent?:
           | T
           | {

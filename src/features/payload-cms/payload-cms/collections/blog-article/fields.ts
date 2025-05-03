@@ -36,25 +36,6 @@ export const bannerImage: Field = {
   },
 };
 
-export const blogReleaseDate: Field = {
-  name: 'releaseDate',
-  label: {
-    en: 'Release Date',
-    de: 'Datum der Veröffentlichung',
-    fr: 'Date de publication',
-  },
-  type: 'date',
-  required: true,
-  admin: {
-    position: 'sidebar',
-    date: {
-      pickerAppearance: 'dayAndTime',
-      displayFormat: 'YYYY-MM-DD HH:mm',
-      timeIntervals: 15,
-    },
-  },
-};
-
 export const blogTeaserText: Field = {
   name: 'blogShortTitle',
   label: {

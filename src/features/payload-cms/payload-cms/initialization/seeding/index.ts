@@ -128,6 +128,7 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     _status: 'published',
     content: {
       pageTitle: 'conveniat27 - WIR SIND CEVI',
+      releaseDate: '2025-01-01T01:00:00.000Z',
       permissions: public_permission.id,
       mainContent: [
         {

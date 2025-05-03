@@ -3,6 +3,7 @@ import { internalPageNameField } from '@/features/payload-cms/payload-cms/shared
 import { mainContentField } from '@/features/payload-cms/payload-cms/shared-fields/main-content-field';
 import { pageTitleField } from '@/features/payload-cms/payload-cms/shared-fields/page-title-field';
 import { permissionsField } from '@/features/payload-cms/payload-cms/shared-fields/permissions-field';
+import { releaseDate } from '@/features/payload-cms/payload-cms/shared-fields/release-date-field';
 import { seoTab } from '@/features/payload-cms/payload-cms/shared-tabs/seo-tab';
 import { asLocalizedCollection } from '@/features/payload-cms/payload-cms/utils/localized-collection';
 import type { CollectionConfig } from 'payload';
@@ -31,7 +32,7 @@ export const GenericPage: CollectionConfig = asLocalizedCollection({
             de: 'Seiteninhalt',
             fr: 'Contenu',
           },
-          fields: [pageTitleField, permissionsField, mainContentField],
+          fields: [pageTitleField, permissionsField, releaseDate, mainContentField],
         },
         seoTab({ collectionSlugDE: '', collectionSlugEN: '', collectionSlugFR: '' }),
       ],

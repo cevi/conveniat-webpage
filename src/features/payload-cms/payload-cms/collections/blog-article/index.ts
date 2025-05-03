@@ -2,12 +2,12 @@ import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/ad
 import {
   bannerImage,
   blogArticleTitleField,
-  blogReleaseDate,
   blogTeaserText,
 } from '@/features/payload-cms/payload-cms/collections/blog-article/fields';
 import { internalPageNameField } from '@/features/payload-cms/payload-cms/shared-fields/internal-page-name-field';
 import { mainContentField } from '@/features/payload-cms/payload-cms/shared-fields/main-content-field';
 import { permissionsField } from '@/features/payload-cms/payload-cms/shared-fields/permissions-field';
+import { releaseDate } from '@/features/payload-cms/payload-cms/shared-fields/release-date-field';
 import { seoTab } from '@/features/payload-cms/payload-cms/shared-tabs/seo-tab';
 import { asLocalizedCollection } from '@/features/payload-cms/payload-cms/utils/localized-collection';
 import type { CollectionConfig } from 'payload';
@@ -47,7 +47,7 @@ export const BlogArticleCollection: CollectionConfig = asLocalizedCollection({
           fields: [
             blogArticleTitleField,
             bannerImage,
-            blogReleaseDate,
+            releaseDate,
             permissionsField,
             blogTeaserText,
             mainContentField,
