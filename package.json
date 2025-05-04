@@ -60,7 +60,7 @@
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "react-error-boundary": "^4.1.2",
-    "react-hook-form": "^7.56.1",
+    "react-hook-form": "^7.56.2",
     "react-i18next": "^15.5.1",
     "react-select": "^5.10.1",
     "server-only": "^0.0.1",
@@ -93,7 +93,7 @@
     "eslint-plugin-next": "^0.0.0",
     "eslint-plugin-no-relative-import-paths": "^1.6.1",
     "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-prettier": "^5.2.6",
+    "eslint-plugin-prettier": "^5.3.1",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-compiler": "19.0.0-beta-df7b47d-20241124",
     "eslint-plugin-react-hooks": "^5.2.0",
@@ -126,5 +126,5 @@
       "unrs-resolver"
     ]
   },
-  "packageManager": "pnpm@10.9.0+sha512.0486e394640d3c1fb3c9d43d49cf92879ff74f8516959c235308f5a8f62e2e19528a65cdc2a3058f587cde71eba3d5b56327c8c33a97e4c4051ca48a10ca2d5f"
+  "packageManager": "pnpm@10.10.0"
 }
