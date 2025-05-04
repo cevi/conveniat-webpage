@@ -108,7 +108,7 @@ export interface Config {
     forms: Form;
     'form-submissions': FormSubmission;
     'search-collection': SearchCollection;
-    redirects: Redirect;
+    go: Go;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
@@ -126,7 +126,7 @@ export interface Config {
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     'search-collection': SearchCollectionSelect<false> | SearchCollectionSelect<true>;
-    redirects: RedirectsSelect<false> | RedirectsSelect<true>;
+    go: GoSelect<false> | GoSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
@@ -938,9 +938,9 @@ export interface SearchCollection {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "redirects".
+ * via the `definition` "go".
  */
-export interface Redirect {
+export interface Go {
   id: string;
   urlSlug: string;
   to?: {
@@ -1011,8 +1011,8 @@ export interface PayloadLockedDocument {
         value: string | SearchCollection;
       } | null)
     | ({
-        relationTo: 'redirects';
-        value: string | Redirect;
+        relationTo: 'go';
+        value: string | Go;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -1578,9 +1578,9 @@ export interface SearchCollectionSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "redirects_select".
+ * via the `definition` "go_select".
  */
-export interface RedirectsSelect<T extends boolean = true> {
+export interface GoSelect<T extends boolean = true> {
   urlSlug?: T;
   to?:
     | T

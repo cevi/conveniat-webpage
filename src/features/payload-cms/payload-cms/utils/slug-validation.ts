@@ -47,11 +47,25 @@ export const slugValidation: TextFieldSingleValidation = async (value, arguments
 
   // check if the slug is unique
   const { payload, locale } = arguments_.req;
-  const { data, collectionSlug } = arguments_;
+  const { data, collectionSlug, path } = arguments_;
 
   if (collectionSlug === 'redirects') {
     return text(value, arguments_); // do not check for uniqueness in redirects
   }
+
+  // rebuild the path of the slug field
+  const mergedPath = path
+    .map((element) => {
+      if (typeof element === 'string') {
+        return element;
+      }
+      if (typeof element === 'number') {
+        return `[${element}]`;
+      }
+      return '';
+    })
+    .join('.')
+    .replaceAll('.[', '[');
 
   const duplicates = await payload.find({
     collection: collectionSlug as CollectionSlug,
@@ -60,7 +74,7 @@ export const slugValidation: TextFieldSingleValidation = async (value, arguments
     where: {
       and: [
         { id: { not_equals: (data as { id: string })['id'] } },
-        { 'seo.urlSlug': { equals: value } },
+        { [mergedPath]: { equals: value } },
       ],
     },
   });
