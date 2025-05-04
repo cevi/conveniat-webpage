@@ -10,7 +10,9 @@ const handleLogin = (): void => {
   })
     .then(() => {
       console.log('Logged in successfully!');
-      Cookies.set(Cookie.HAS_LOGGED_IN, 'true');
+      Cookies.set(Cookie.HAS_LOGGED_IN, 'true', {
+        expires: 730, // 2 years
+      });
     })
     .catch((error: unknown) => {
       console.error('Login error', error);
