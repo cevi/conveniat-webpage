@@ -1,5 +1,3 @@
-import { environmentVariables } from '@/config/environment-variables';
-
 /**
  * Callback function to register the push notification handler.
  * This function is called when a push event is received.
@@ -39,6 +37,9 @@ export const notificationClickHandler =
     console.log('Notification click received.');
     event.notification.close();
     event.waitUntil(
-      serviceWorkerScope.clients.openWindow(environmentVariables.NEXT_PUBLIC_APP_HOST_URL),
+      serviceWorkerScope.clients.openWindow(
+        // eslint-disable-next-line n/no-process-env
+        process.env['NEXT_PUBLIC_APP_HOST_URL'] ?? 'https://conveniat27.ch',
+      ),
     );
   };
