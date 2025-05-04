@@ -3,7 +3,7 @@ export const instagramLinkValidation = (value: string | undefined | null): true 
 
   // check against regex
   const instagramRegex =
-    /^(https?:\/\/)?(www\.)?(instagram\.com\/([a-zA-Z0-9_-]*)\/p\/|instagr\.am\/p\/)([a-zA-Z0-9_-]{11})(\S+)?$/;
+    /^(https?:\/\/)?(www\.)?(instagram\.com\/?([a-zA-Z0-9_-]*)\/p\/|instagr\.am\/p\/)([a-zA-Z0-9_-]{11})(\S+)?$/;
 
   if (!instagramRegex.test(value)) {
     return 'Please enter a valid Instagram URL.';
