@@ -3,6 +3,7 @@ import { FlatCompat } from '@eslint/eslintrc';
 import js from '@eslint/js';
 import progress from 'eslint-plugin-file-progress';
 import nodePlugin from 'eslint-plugin-n';
+import noRelativeImportPaths from 'eslint-plugin-no-relative-import-paths';
 import prettierConfigRecommended from 'eslint-plugin-prettier/recommended';
 import reactNamingConvention from 'eslint-plugin-react-naming-convention';
 import eslintPluginUnicorn from 'eslint-plugin-unicorn';
@@ -74,6 +75,7 @@ const config = [
     files: ['**/*.{ts,tsx}'],
     plugins: {
       'react-naming-convention': reactNamingConvention,
+      'no-relative-import-paths': noRelativeImportPaths,
     },
     rules: {
       // react-naming-convention recommended rules
@@ -81,6 +83,10 @@ const config = [
       'react-naming-convention/use-state': 'warn',
       'react-hooks/exhaustive-deps': 'error',
       'react-hooks/rules-of-hooks': 'error',
+      'no-relative-import-paths/no-relative-import-paths': [
+        'error',
+        { allowSameFolder: false, rootDir: 'src', prefix: '@' },
+      ],
     },
   },
   {

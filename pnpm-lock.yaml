@@ -207,6 +207,9 @@ importers:
       eslint-plugin-next:
         specifier: ^0.0.0
         version: 0.0.0
+      eslint-plugin-no-relative-import-paths:
+        specifier: ^1.6.1
+        version: 1.6.1
       eslint-plugin-node:
         specifier: ^11.1.0
         version: 11.1.0(eslint@9.26.0(jiti@2.4.2))
@@ -2980,6 +2983,9 @@ packages:
 
   eslint-plugin-next@0.0.0:
     resolution: {integrity: sha512-IldNDVb6WNduggwRbYzSGZhaskUwVecJ6fhmqwX01+S1aohwAWNzU4me6y47DDzpD/g0fdayNBGxEdt9vKkUtg==}
+
+  eslint-plugin-no-relative-import-paths@1.6.1:
+    resolution: {integrity: sha512-YZNeOnsOrJcwhFw0X29MXjIzu2P/f5X2BZDPWw1R3VUYBRFxNIh77lyoL/XrMU9ewZNQPcEvAgL/cBOT1P330A==}
 
   eslint-plugin-node@11.1.0:
     resolution: {integrity: sha512-oUwtPJ1W0SKD0Tr+wqu92c5xuCeQqB3hSCHasn/ZgjFdA9iDGNkNf2Zi9ztY7X+hNuMib23LNGRm6+uN+KLE3g==}
@@ -8939,6 +8945,8 @@ snapshots:
       semver: 7.7.1
 
   eslint-plugin-next@0.0.0: {}
+
+  eslint-plugin-no-relative-import-paths@1.6.1: {}
 
   eslint-plugin-node@11.1.0(eslint@9.26.0(jiti@2.4.2)):
     dependencies:
