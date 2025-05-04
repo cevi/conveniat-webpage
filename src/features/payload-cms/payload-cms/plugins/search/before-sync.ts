@@ -44,6 +44,21 @@ interface SearchDocument {
   [key: string]: unknown; // Allow other dynamic keys
 }
 
+const extractRichTextContent = (mainContent: ContentBlock[]): string => {
+  let searchContent = '';
+  for (const block of mainContent) {
+    if (block.blockType === 'richTextSection' && block.richTextSection) {
+      const richTextSection = block.richTextSection;
+      const text = richTextSection.root.children.map((paragraph) => {
+        const paragraphText = paragraph.children.map((child) => child.text || '');
+        return paragraphText.join(' ');
+      });
+      searchContent += text.join(' ');
+    }
+  }
+  return searchContent;
+};
+
 export const beforeSyncWithSearch: BeforeSync = async ({ originalDoc, searchDoc }) => {
   const typedDocument = originalDoc as OriginalDocument;
   const typedSearchDocument = searchDoc as SearchDocument;
@@ -51,40 +66,17 @@ export const beforeSyncWithSearch: BeforeSync = async ({ originalDoc, searchDoc 
   typedSearchDocument.search_content = '';
 
   // check if typedDocument is a blog or a generic page
-  if (searchDoc.doc.relationTo !== 'blog') {
-    const content = typedDocument.content as PageContent;
-    typedSearchDocument.search_title = content.pageTitle || '';
-
-    for (const block of content.mainContent) {
-      if (block.blockType === 'richTextSection' && block.richTextSection) {
-        const richTextSection = block.richTextSection;
-        const text = richTextSection.root.children.map((paragraph) => {
-          const paragraphText = paragraph.children.map((child) => child.text || '');
-          return paragraphText.join(' ');
-        });
-        typedSearchDocument.search_content += text.join(' ');
-      }
-    }
-  } else {
+  if (searchDoc.doc.relationTo === 'blog') {
     const content = typedDocument.content as BlogContent;
     const blogH1 = content.blogH1;
     const shortTitle = content.blogShortTitle;
 
-    console.log(originalDoc);
-    console.log(typedDocument);
-
     typedSearchDocument.search_title = blogH1 || shortTitle || '';
-
-    for (const block of content.mainContent) {
-      if (block.blockType === 'richTextSection' && block.richTextSection) {
-        const richTextSection = block.richTextSection;
-        const text = richTextSection.root.children.map((paragraph) => {
-          const paragraphText = paragraph.children.map((child) => child.text || '');
-          return paragraphText.join(' ');
-        });
-        typedSearchDocument.search_content += text.join(' ');
-      }
-    }
+    typedSearchDocument.search_content = extractRichTextContent(content.mainContent);
+  } else {
+    const content = typedDocument.content as PageContent;
+    typedSearchDocument.search_title = content.pageTitle || '';
+    typedSearchDocument.search_content = extractRichTextContent(content.mainContent);
   }
 
   typedSearchDocument.title = typedSearchDocument.search_title;
