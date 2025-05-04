@@ -1,4 +1,4 @@
-import { youtubeLinkValidation } from '@/features/payload-cms/payload-cms/collections/youtube-validation';
+import { youtubeLinkValidation } from '@/features/payload-cms/payload-cms/utils/youtube-validation';
 import type { Block } from 'payload';
 
 export const youtubeEmbedBlock: Block = {

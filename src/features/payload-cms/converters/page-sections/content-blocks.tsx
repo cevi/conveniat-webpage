@@ -6,6 +6,10 @@ import type { HeroSectionType } from '@/features/payload-cms/components/content-
 import { HeroSection } from '@/features/payload-cms/components/content-blocks/hero-section';
 import type { InlineSwisstopoMapEmbedType } from '@/features/payload-cms/components/content-blocks/inline-swisstopo-map-embed';
 import InlineSwisstopoMapEmbed from '@/features/payload-cms/components/content-blocks/inline-swisstopo-map-embed';
+import {
+  InstagramEmbed,
+  type InstagramEmbedType,
+} from '@/features/payload-cms/components/content-blocks/instagram-embed';
 import type { LexicalRichTextSectionType } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
 import { ListBlogPosts } from '@/features/payload-cms/components/content-blocks/list-blog-articles';
@@ -26,6 +30,7 @@ export type ContentBlockTypeNames =
   | 'formBlock'
   | 'photoCarousel'
   | 'youtubeEmbed'
+  | 'instagramEmbed'
   | 'singlePicture'
   | 'heroSection'
   | 'swisstopoEmbed'
@@ -144,6 +149,23 @@ export const RenderYoutubeEmbed: SectionRenderer<YoutubeEmbedType> = ({
       errorFallbackMessage="Failed to load youtube link. Reload the page to try again."
     >
       <YoutubeEmbed links={block.links} />
+    </SectionWrapper>
+  );
+};
+
+export const RenderInstagramEmbed: SectionRenderer<InstagramEmbedType> = ({
+  block,
+  sectionClassName,
+  sectionOverrides,
+}) => {
+  return (
+    <SectionWrapper
+      block={block}
+      sectionClassName={sectionClassName}
+      sectionOverrides={sectionOverrides}
+      errorFallbackMessage="Failed to load instagram link. Reload the page to try again."
+    >
+      <InstagramEmbed link={block.link} />
     </SectionWrapper>
   );
 };

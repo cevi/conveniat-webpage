@@ -8,6 +8,7 @@ import { singlePictureBlock } from '@/features/payload-cms/payload-cms/shared-bl
 import { swisstopoMapEmbedBlock } from '@/features/payload-cms/payload-cms/shared-blocks/swisstopo-embed-block';
 import { youtubeEmbedBlock } from '@/features/payload-cms/payload-cms/shared-blocks/youtube-embed-block';
 import type { Field } from 'payload';
+import { instagramEmbedBlock } from '../shared-blocks/instagram-embed-block';
 
 export const mainContentField: Field = {
   name: 'mainContent',
@@ -32,6 +33,7 @@ export const mainContentField: Field = {
     photoCarouselBlock,
     singlePictureBlock,
     youtubeEmbedBlock,
+    instagramEmbedBlock,
     swisstopoMapEmbedBlock,
     fileDownloadBlock,
     detailsTable,

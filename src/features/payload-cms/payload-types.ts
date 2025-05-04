@@ -271,6 +271,7 @@ export interface Blog {
           blockType: 'singlePicture';
         }
       | YoutubeEmbedding
+      | InstagramEmbedding
       | SwisstopoMapEmbedding
       | {
           file: string | Document;
@@ -562,6 +563,19 @@ export interface YoutubeEmbedding {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "InstagramEmbedding".
+ */
+export interface InstagramEmbedding {
+  /**
+   * Link to the Instagram post
+   */
+  link: string;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'instagramEmbed';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "SwisstopoMapEmbedding".
  */
 export interface SwisstopoMapEmbedding {
@@ -747,6 +761,7 @@ export interface GenericPage {
           blockType: 'singlePicture';
         }
       | YoutubeEmbedding
+      | InstagramEmbedding
       | SwisstopoMapEmbedding
       | {
           file: string | Document;
@@ -1104,6 +1119,7 @@ export interface BlogSelect<T extends boolean = true> {
                     blockName?: T;
                   };
               youtubeEmbed?: T | YoutubeEmbeddingSelect<T>;
+              instagramEmbed?: T | InstagramEmbeddingSelect<T>;
               swisstopoEmbed?: T | SwisstopoMapEmbeddingSelect<T>;
               fileDownload?:
                 | T
@@ -1148,6 +1164,15 @@ export interface YoutubeEmbeddingSelect<T extends boolean = true> {
         link?: T;
         id?: T;
       };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "InstagramEmbedding_select".
+ */
+export interface InstagramEmbeddingSelect<T extends boolean = true> {
+  link?: T;
   id?: T;
   blockName?: T;
 }
@@ -1253,6 +1278,7 @@ export interface GenericPageSelect<T extends boolean = true> {
                     blockName?: T;
                   };
               youtubeEmbed?: T | YoutubeEmbeddingSelect<T>;
+              instagramEmbed?: T | InstagramEmbeddingSelect<T>;
               swisstopoEmbed?: T | SwisstopoMapEmbeddingSelect<T>;
               fileDownload?:
                 | T
