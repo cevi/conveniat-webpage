@@ -1,9 +1,9 @@
+import type { CustomSlugComponentProperties } from '@/features/payload-cms/payload-cms/components/slug/types';
+import { SlugField } from '@/features/payload-cms/payload-cms/shared-fields/slug-field';
 import { metaDescription } from '@/features/payload-cms/payload-cms/shared-tabs/seo-tab/fields/meta-description';
 import { metaKeywords } from '@/features/payload-cms/payload-cms/shared-tabs/seo-tab/fields/meta-keywords';
 import { metaTitle } from '@/features/payload-cms/payload-cms/shared-tabs/seo-tab/fields/meta-title';
 import type { Tab } from 'payload';
-import type { CustomSlugComponentProperties } from '../../components/slug/types';
-import { SlugField } from '../../shared-fields/slug-field';
 
 /**
  *

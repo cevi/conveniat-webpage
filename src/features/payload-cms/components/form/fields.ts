@@ -1,11 +1,11 @@
+import { Checkbox } from '@/features/payload-cms/components/form/checkbox';
+import { Country } from '@/features/payload-cms/components/form/country';
+import { Email } from '@/features/payload-cms/components/form/email';
+import { Number } from '@/features/payload-cms/components/form/number';
+import { Select } from '@/features/payload-cms/components/form/select';
+import { Text } from '@/features/payload-cms/components/form/text';
+import { TextArea } from '@/features/payload-cms/components/form/textarea';
 import type React from 'react';
-import { Checkbox } from './checkbox';
-import { Country } from './country';
-import { Email } from './email';
-import { Number } from './number';
-import { Select } from './select';
-import { Text } from './text';
-import { TextArea } from './textarea';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const fields: Record<string, React.FC<any>> = {

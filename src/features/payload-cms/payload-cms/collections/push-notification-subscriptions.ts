@@ -1,6 +1,6 @@
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
+import { asPushNotificationCollection } from '@/features/payload-cms/payload-cms/utils/push-notification-collection';
 import type { CollectionConfig } from 'payload';
-import { asPushNotificationCollection } from '../utils/push-notification-collection';
 
 export const PushNotificationSubscriptions: CollectionConfig = asPushNotificationCollection({
   slug: 'push-notification-subscriptions',

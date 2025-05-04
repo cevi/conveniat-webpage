@@ -2,13 +2,13 @@ import type { ReactNode } from 'react';
 import React from 'react';
 
 // These styles apply to every route in the application
+import '@/app/globals.scss';
 import { HeaderComponent } from '@/components/header/header-component';
 import { CeviLogo } from '@/components/svg-logos/cevi-logo';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { renderInAppDesign } from '@/utils/render-in-app-design';
 import { cn } from '@/utils/tailwindcss-override';
 import { Inter, Montserrat } from 'next/font/google';
-import '../globals.scss';
 
 interface LayoutProperties {
   children: ReactNode;

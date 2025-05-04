@@ -1,6 +1,6 @@
+import { SlugField } from '@/features/payload-cms/payload-cms/shared-fields/slug-field';
 import { redirectsPlugin } from '@payloadcms/plugin-redirects';
 import type { TextField } from 'payload';
-import { SlugField } from '../../shared-fields/slug-field';
 
 export const redirectsPluginConfiguration = redirectsPlugin({
   overrides: {

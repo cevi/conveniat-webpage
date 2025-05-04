@@ -1,3 +1,4 @@
+import { FooterBuildInfoText } from '@/components/footer/footer-copyright-area';
 import { LanguageSwitcher } from '@/components/menu/language-switcher';
 import { SearchComponent } from '@/components/menu/search';
 import { getBuildInfo } from '@/utils/get-build-info';
@@ -9,7 +10,6 @@ import { CircleX, Menu as MenuIcon } from 'lucide-react';
 import Link from 'next/link';
 import { getPayload } from 'payload';
 import React from 'react';
-import { FooterBuildInfoText } from '../footer/footer-copyright-area';
 
 export const NavComponent: React.FC = async () => {
   const payload = await getPayload({ config });

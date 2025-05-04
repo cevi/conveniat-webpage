@@ -1,16 +1,16 @@
 import { environmentVariables } from '@/config/environment-variables';
-import { generateRichTextSection } from '@/features/payload-cms/payload-cms/initialization/seeding/placeholder-lexical';
-import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
-import { fakerDE as faker } from '@faker-js/faker';
-import type { Payload, RequiredDataFromCollectionSlug } from 'payload';
-import { basicForm } from './all-types-form';
-import { basicBlog } from './blog-post';
+import { basicForm } from '@/features/payload-cms/payload-cms/initialization/seeding/all-types-form';
+import { basicBlog } from '@/features/payload-cms/payload-cms/initialization/seeding/blog-post';
 import {
   seedPermissionAdminsOnly,
   seedPermissionLoggedIn,
   seedPermissionPublic,
-} from './permissions';
-import { basicTimelineObject } from './timeline';
+} from '@/features/payload-cms/payload-cms/initialization/seeding/permissions';
+import { generateRichTextSection } from '@/features/payload-cms/payload-cms/initialization/seeding/placeholder-lexical';
+import { basicTimelineObject } from '@/features/payload-cms/payload-cms/initialization/seeding/timeline';
+import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
+import { fakerDE as faker } from '@faker-js/faker';
+import type { Payload, RequiredDataFromCollectionSlug } from 'payload';
 
 /**
  * Seed the database with some initial data.

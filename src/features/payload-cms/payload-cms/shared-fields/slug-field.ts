@@ -1,6 +1,6 @@
+import type { CustomSlugComponentProperties } from '@/features/payload-cms/payload-cms/components/slug/types';
+import { slugValidation } from '@/features/payload-cms/payload-cms/utils/slug-validation';
 import type { TextField } from 'payload';
-import type { CustomSlugComponentProperties } from '../components/slug/types';
-import { slugValidation } from '../utils/slug-validation';
 
 export const SlugField = (collectionName: CustomSlugComponentProperties): TextField => ({
   name: 'urlSlug',

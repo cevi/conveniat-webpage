@@ -1,5 +1,7 @@
 'use client';
 
+import { buildInitialFormState } from '@/features/payload-cms/components/form/build-initial-form-state';
+import { fields } from '@/features/payload-cms/components/form/fields';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import type { Form as FormType } from '@payloadcms/plugin-form-builder/types';
@@ -9,8 +11,6 @@ import { useCurrentLocale } from 'next-i18n-router/client';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { buildInitialFormState } from './build-initial-form-state';
-import { fields } from './fields';
 
 export type Value = unknown;
 

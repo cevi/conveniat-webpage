@@ -1,13 +1,13 @@
 'use client';
 
+import { formatSlug } from '@/features/payload-cms/payload-cms/components/slug/format-slug';
+import type { CustomSlugComponentProperties } from '@/features/payload-cms/payload-cms/components/slug/types';
 import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import type { Locale } from '@/types/types';
 import { FieldLabel, TextInput, useField, useFormFields, useLocale } from '@payloadcms/ui';
 import { Lock, Unlock } from 'lucide-react'; // Import icons from Lucide
 import type { TextFieldClientProps } from 'payload';
 import React, { useCallback, useEffect, useState } from 'react';
-import { formatSlug } from './format-slug';
-import type { CustomSlugComponentProperties } from './types';
 
 export const SlugComponent: React.FC<
   TextFieldClientProps & { collectionName: CustomSlugComponentProperties }
