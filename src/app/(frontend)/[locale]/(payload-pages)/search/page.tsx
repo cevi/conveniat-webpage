@@ -143,11 +143,13 @@ const SearchPage: React.FC<{
             );
           })}
         </div>
-        <h2 className="col-span-2 text-2xl font-bold">Blogs</h2>
-        {blogs.length === 0 && <p>No blogs found</p>}
-        {blogs.map((blog) => {
-          return <BlogDisplay blog={blog} key={blog.seo.urlSlug} />;
-        })}
+        <div className="col-span-2">
+          <h2 className="text-2xl font-bold">Blogs</h2>
+          {blogs.length === 0 && <p>No blogs found</p>}
+          {blogs.map((blog) => {
+            return <BlogDisplay blog={blog} key={blog.seo.urlSlug} />;
+          })}
+        </div>
       </div>
     </article>
   );
