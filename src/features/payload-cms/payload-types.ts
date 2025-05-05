@@ -848,6 +848,7 @@ export interface Timeline {
             blockName?: string | null;
             blockType: 'singlePicture';
           }
+        | InstagramEmbedding
       )[]
     | null;
   updatedAt: string;
@@ -1331,6 +1332,7 @@ export interface TimelineSelect<T extends boolean = true> {
               id?: T;
               blockName?: T;
             };
+        instagramEmbed?: T | InstagramEmbeddingSelect<T>;
       };
   updatedAt?: T;
   createdAt?: T;

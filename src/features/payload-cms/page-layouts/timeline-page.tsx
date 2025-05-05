@@ -66,7 +66,10 @@ export const TimeLinePage: React.FC<LocalizedCollectionPage> = async ({
                 locale={locale}
                 searchParams={searchParams}
                 sectionClassName="mt-2"
-                sectionOverrides={{ photoCarousel: 'lg:mx-[60px]' }}
+                sectionOverrides={{
+                  photoCarousel: 'lg:mx-[60px]',
+                  instagramEmbed: 'first:my-6 flex',
+                }}
               />
             </div>
           </div>
