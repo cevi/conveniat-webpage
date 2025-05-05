@@ -1,12 +1,17 @@
 import { NewsCard } from '@/components/news-card';
-import { ParagraphText } from '@/components/ui/typography/paragraph-text';
 import type { Blog } from '@/features/payload-cms/payload-types';
-import type { LocalizedPageType } from '@/types/types';
+import type { LocalizedPageType, StaticTranslationString } from '@/types/types';
 import config from '@payload-config';
 import Image from 'next/image';
 import Link from 'next/link';
 import { getPayload } from 'payload';
 import React from 'react';
+
+const resentBlogsText: StaticTranslationString = {
+  en: 'Recent Blog Posts',
+  de: 'Aktuelle Blog Artikel',
+  fr: 'Articles de blog récents',
+};
 
 export const BlogDisplay: React.FC<{ blog: Blog }> = ({ blog }) => {
   if (typeof blog.content.bannerImage === 'string') {
@@ -22,13 +27,12 @@ export const BlogDisplay: React.FC<{ blog: Blog }> = ({ blog }) => {
       <Link href={`/blog/${blog.seo.urlSlug}`} key={blog.id}>
         <NewsCard date={blog.updatedAt} headline={blog.content.blogH1}>
           <Image
-            className="w-full rounded-lg object-cover"
+            className="w-full object-cover"
             src={source}
             alt={altText ?? 'Blog post banner image'}
             width={1200}
             height={800}
           />
-          <ParagraphText> {blog.content.blogShortTitle} </ParagraphText>
         </NewsCard>
       </Link>
     </React.Fragment>
@@ -63,10 +67,18 @@ export const ListBlogPosts: React.FC<LocalizedPageType> = async ({ locale }) => 
   const blogs = blogsPaged.docs as Blog[];
 
   return (
-    <div className="mx-auto my-8 grid gap-y-6 min-[1200px]:grid-cols-2">
-      {blogs.map((blog) => {
-        return <BlogDisplay blog={blog} key={blog.seo.urlSlug} />;
-      })}
+    <div className="mx-auto flex flex-col my-8 xl:my-16 2xl:my-20xl:mx-[-10rem] 2xl:mx-[-20rem]">
+      <h2
+        id="voluptatibus-odit-quam-nam-placeat-sed"
+        className="mb-2 mt-8 max-w-4xl text-balance font-heading text-lg font-extrabold text-conveniat-green"
+      >
+        {resentBlogsText[locale]}
+      </h2>
+      <div className="grid gap-6 min-[800px]:grid-cols-2 2xl:grid-cols-4">
+        {blogs.map((blog) => {
+          return <BlogDisplay blog={blog} key={blog.seo.urlSlug} />;
+        })}
+      </div>
     </div>
   );
 };
