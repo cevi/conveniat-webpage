@@ -63,6 +63,7 @@
     "react-hook-form": "^7.56.2",
     "react-i18next": "^15.5.1",
     "react-select": "^5.10.1",
+    "react-social-media-embed": "^2.5.18",
     "server-only": "^0.0.1",
     "serwist": "^9.0.14",
     "sharp": "0.32.6",
