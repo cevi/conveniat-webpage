@@ -2,11 +2,42 @@
 
 import { environmentVariables } from '@/config/environment-variables';
 import { subscribeUser, unsubscribeUser } from '@/features/onboarding/api/push-notification';
+import type { StaticTranslationString } from '@/types/types';
 import { urlBase64ToUint8Array } from '@/utils/url-base64-to-uint8-array';
 import React, { useEffect, useState } from 'react';
 import type webpush from 'web-push';
 
 const vapidPublicKey: string | undefined = environmentVariables.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+
+const notSupportedText: StaticTranslationString = {
+  en: 'Push notifications are not supported in this browser.',
+  de: 'Push-Benachrichtigungen werden in diesem Browser nicht unterstützt.',
+  fr: 'Les notifications push ne sont pas prises en charge dans ce navigateur.',
+};
+
+const notYetSubscribed: StaticTranslationString = {
+  en: 'You are not subscribed to push notifications.',
+  de: 'Du bist nicht für Push-Benachrichtigungen angemeldet.',
+  fr: "Vous n'êtes pas abonné aux notifications push.",
+};
+
+const subscribedText: StaticTranslationString = {
+  en: 'You are subscribed to push notifications.',
+  de: 'Du bist für Push-Benachrichtigungen angemeldet.',
+  fr: 'Vous êtes abonné aux notifications push.',
+};
+
+const subscribeAcceptedText: StaticTranslationString = {
+  en: 'Enable Notifications',
+  de: 'Benachrichtigungen aktivieren',
+  fr: 'Activer les notifications',
+};
+
+const unsubscribeAcceptedText: StaticTranslationString = {
+  en: 'Disable Notifications',
+  de: 'Benachrichtigungen deaktivieren',
+  fr: 'Désactiver les notifications',
+};
 
 /**
  * PushNotificationManager is a React component that manages push notifications.
@@ -66,9 +97,7 @@ export const PushNotificationSubscriptionManager: React.FC<{
   if (!isSupported) {
     return (
       <>
-        <p className="mb-4 text-balance text-gray-700">
-          Push notifications are not supported in this browser.
-        </p>
+        <p className="mb-4 text-balance text-gray-700">{notSupportedText[locale]}</p>
       </>
     );
   }
@@ -77,26 +106,22 @@ export const PushNotificationSubscriptionManager: React.FC<{
     <div className="mb-8">
       {subscription ? (
         <>
-          <p className="mb-4 text-balance text-gray-700">
-            You are subscribed to push notifications.
-          </p>
+          <p className="mb-4 text-balance text-gray-700">{subscribedText[locale]}</p>
           <button
             className="rounded-[8px] bg-gray-200 px-8 py-3 text-center font-heading text-lg font-bold leading-normal text-gray-600 hover:bg-gray-300"
             onClick={unsubscribeFromPush}
           >
-            Unsubscribe
+            {unsubscribeAcceptedText[locale]}
           </button>
         </>
       ) : (
         <>
-          <p className="mb-4 text-balance text-gray-700">
-            You are not subscribed to push notifications.
-          </p>
+          <p className="mb-4 text-balance text-gray-700">{notYetSubscribed[locale]}</p>
           <button
             className="rounded-[8px] bg-red-700 px-8 py-3 text-center font-heading text-lg font-bold leading-normal text-red-100 hover:bg-red-800"
             onClick={subscribeToPush}
           >
-            Subscribe
+            {subscribeAcceptedText[locale]}
           </button>
         </>
       )}

@@ -11,10 +11,10 @@ import { useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 
 enum OnboardingStep {
-  Initial = 'initial',
-  Login = 'login',
-  PushNotifications = 'push-notifications',
-  Loading = 'loading',
+  Initial = 0,
+  Login = 1,
+  PushNotifications = 2,
+  Loading = 3,
 }
 
 const languageOptions = [
@@ -46,16 +46,36 @@ const LanguageSwitcher: React.FC<{
 
 export const OnboardingProcess: React.FC = () => {
   const [onboardingStep, setOnboardingStep] = useState<OnboardingStep | undefined>();
-  const [locale, setLocale] = useState<keyof typeof cookieInfoText>('en');
+  const [locale, setLocale] = useState<keyof typeof cookieInfoText>(
+    (Cookies.get('NEXT_LOCALE') ?? 'en') as 'en' | 'de' | 'fr',
+  );
   const router = useRouter();
 
+  const [hasManuallyChangedLanguage, setHasManuallyChangedLanguage] = useState(false);
+
   useEffect(() => {
-    // at this point we do not yet use the locale of the user
-    // thus we use the default locale of the OS / browser
+    // check if NEXT_LOCALE is set in the cookie
+    const cookieLocale = Cookies.get('NEXT_LOCALE');
+    if (cookieLocale) {
+      setLocale(cookieLocale as keyof typeof cookieInfoText);
+      return;
+    }
+
+    // else use the default locale of the OS / browser
     let locale = navigator.language.split('-')[0] as keyof typeof cookieInfoText;
     if (!(locale in ['en', 'de', 'fr'])) locale = 'en'; // fallback to english if locale is not supported
     setLocale(locale);
+
+    setHasManuallyChangedLanguage(true);
   }, []);
+
+  // Set the cookie only if the user has manually changed the language
+  // this prevents that the user needs to select the language again
+  useEffect(() => {
+    if (hasManuallyChangedLanguage && (onboardingStep ?? 0) >= OnboardingStep.Login) {
+      Cookies.set('NEXT_LOCALE', locale, { expires: 730 });
+    }
+  }, [onboardingStep]);
 
   const handleLanguageChange = (newLocale: string): void => {
     setLocale(newLocale as keyof typeof cookieInfoText);
