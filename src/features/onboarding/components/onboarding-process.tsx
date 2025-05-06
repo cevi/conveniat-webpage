@@ -12,18 +12,50 @@ import React, { useEffect, useState } from 'react';
 
 type OnboardingStep = 'initial' | 'login' | 'push-notifications' | 'loading' | undefined;
 
+const languageOptions = [
+  { value: 'en', label: 'English' },
+  { value: 'de', label: 'Deutsch' },
+  { value: 'fr', label: 'Français' },
+];
+
+const LanguageSwitcher: React.FC<{
+  onLanguageChange: (lang: string) => void;
+  currentLocale: string;
+}> = ({ onLanguageChange, currentLocale }) => {
+  return (
+    <div className="fixed top-4 right-4 z-50">
+      <select
+        className="bg-gray-50 border border-gray-300 pa-4 rounded-md shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        value={currentLocale}
+        onChange={(e) => onLanguageChange(e.target.value)}
+      >
+        {languageOptions.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+};
+
 export const OnboardingProcess: React.FC = () => {
   const [onboardingStep, setOnboardingStep] = useState<OnboardingStep>();
+  const [locale, setLocale] = useState<keyof typeof cookieInfoText>('en');
   const router = useRouter();
 
-  // at this point we do not yet use the locale of the user
-  // thus we use the default locale of the OS / browser
-  let locale = navigator.language.split('-')[0] as keyof typeof cookieInfoText;
-  if (!(locale in ['en', 'de', 'fr'])) locale = 'en'; // fallback to english if locale is not supported
+  useEffect(() => {
+    // at this point we do not yet use the locale of the user
+    // thus we use the default locale of the OS / browser
+    let locale = navigator.language.split('-')[0] as keyof typeof cookieInfoText;
+    if (!(locale in ['en', 'de', 'fr'])) locale = 'en'; // fallback to english if locale is not supported
+  }, []);
+
+  const handleLanguageChange = (newLocale: string): void => {
+    setLocale(newLocale as keyof typeof cookieInfoText);
+  };
 
   const acceptCookiesCallback = (): void => {
-    // we prefetch the home page after the cookies
-    // are accepted and correctly set
     router.prefetch('/');
     setOnboardingStep('login');
   };
@@ -49,22 +81,20 @@ export const OnboardingProcess: React.FC = () => {
       setOnboardingStep('login');
     }
 
-    // initialize
     if (onboardingStep === undefined) setOnboardingStep('initial');
 
-    // Cleanup function: clear the timer if the component unmounts
-    // or if the onboardingStep changes before the timer finishes.
     return (): void => clearTimeout(navigationTimer);
   }, [onboardingStep, router]);
 
   return (
-    <div className="flex h-screen items-center justify-center">
+    <div className="relative flex h-screen items-center justify-center max-w-96 mx-auto">
+      <LanguageSwitcher onLanguageChange={handleLanguageChange} currentLocale={locale} />
       {onboardingStep === 'initial' && (
         <AcceptCookieEntrypointComponent locale={locale} callback={acceptCookiesCallback} />
       )}
 
       {onboardingStep === 'login' && (
-        <LoginScreen onClick={() => setOnboardingStep('push-notifications')} />
+        <LoginScreen locale={locale} onClick={() => setOnboardingStep('push-notifications')} />
       )}
 
       {onboardingStep === 'push-notifications' && (
@@ -74,7 +104,7 @@ export const OnboardingProcess: React.FC = () => {
         />
       )}
 
-      {onboardingStep === 'loading' && <GettingReadyEntrypointComponent />}
+      {onboardingStep === 'loading' && <GettingReadyEntrypointComponent locale={locale} />}
     </div>
   );
 };

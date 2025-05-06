@@ -1,11 +1,20 @@
 import { CenteredConveniatLogo } from '@/features/onboarding/components/centered-conveniat-logo';
+import { StaticTranslationString } from '@/types/types';
 import React from 'react';
 
-export const GettingReadyEntrypointComponent: React.FC = () => {
+const gettingReadyText: StaticTranslationString = {
+  en: 'Getting the application ready for you.',
+  de: 'Das App wird für dich vorbereitet.',
+  fr: 'Préparation de l’application pour vous.',
+};
+
+export const GettingReadyEntrypointComponent: React.FC<{
+  locale: 'de' | 'fr' | 'en';
+}> = () => {
   return (
     <div className="rounded-lg p-8 text-center">
       <CenteredConveniatLogo />
-      <p className="mb-4 text-balance text-gray-700">Getting the application ready for you.</p>
+      <p className="mb-4 text-balance text-gray-700">{gettingReadyText[locale]}</p>
     </div>
   );
 };
