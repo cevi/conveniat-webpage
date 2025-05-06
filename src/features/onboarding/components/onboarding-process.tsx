@@ -10,7 +10,12 @@ import Cookies from 'js-cookie';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 
-type OnboardingStep = 'initial' | 'login' | 'push-notifications' | 'loading' | undefined;
+enum OnboardingStep {
+  Initial = 'initial',
+  Login = 'login',
+  PushNotifications = 'push-notifications',
+  Loading = 'loading',
+}
 
 const languageOptions = [
   { value: 'en', label: 'English' },
@@ -40,7 +45,7 @@ const LanguageSwitcher: React.FC<{
 };
 
 export const OnboardingProcess: React.FC = () => {
-  const [onboardingStep, setOnboardingStep] = useState<OnboardingStep>();
+  const [onboardingStep, setOnboardingStep] = useState<OnboardingStep | undefined>();
   const [locale, setLocale] = useState<keyof typeof cookieInfoText>('en');
   const router = useRouter();
 
@@ -58,11 +63,11 @@ export const OnboardingProcess: React.FC = () => {
 
   const acceptCookiesCallback = (): void => {
     router.prefetch('/');
-    setOnboardingStep('login');
+    setOnboardingStep(OnboardingStep.Login);
   };
 
   const handlePushNotification = (): void => {
-    setOnboardingStep('loading');
+    setOnboardingStep(OnboardingStep.Loading);
     Cookies.set(Cookie.APP_DESIGN, 'true', { expires: 730 });
     Cookies.remove(Cookie.HAS_LOGGED_IN);
   };
@@ -70,19 +75,22 @@ export const OnboardingProcess: React.FC = () => {
   useEffect(() => {
     let navigationTimer: NodeJS.Timeout;
 
-    if (onboardingStep === 'loading') {
+    if (onboardingStep === OnboardingStep.Loading) {
       console.log('Redirect to Homepage');
       router.push('/');
-    } else if (onboardingStep === 'login' && Cookies.get(Cookie.HAS_LOGGED_IN) === 'true') {
-      setOnboardingStep('push-notifications');
     } else if (
-      onboardingStep === 'initial' &&
+      onboardingStep === OnboardingStep.Login &&
+      Cookies.get(Cookie.HAS_LOGGED_IN) === 'true'
+    ) {
+      setOnboardingStep(OnboardingStep.PushNotifications);
+    } else if (
+      onboardingStep === OnboardingStep.Initial &&
       Cookies.get(Cookie.CONVENIAT_COOKIE_BANNER) === 'true'
     ) {
-      setOnboardingStep('login');
+      setOnboardingStep(OnboardingStep.Login);
     }
 
-    if (onboardingStep === undefined) setOnboardingStep('initial');
+    if (onboardingStep === undefined) setOnboardingStep(OnboardingStep.Initial);
 
     return (): void => clearTimeout(navigationTimer);
   }, [onboardingStep, router]);
@@ -90,22 +98,27 @@ export const OnboardingProcess: React.FC = () => {
   return (
     <div className="relative flex h-screen items-center justify-center max-w-96 mx-auto">
       <LanguageSwitcher onLanguageChange={handleLanguageChange} currentLocale={locale} />
-      {onboardingStep === 'initial' && (
+      {onboardingStep === OnboardingStep.Initial && (
         <AcceptCookieEntrypointComponent locale={locale} callback={acceptCookiesCallback} />
       )}
 
-      {onboardingStep === 'login' && (
-        <LoginScreen locale={locale} onClick={() => setOnboardingStep('push-notifications')} />
+      {onboardingStep === OnboardingStep.Login && (
+        <LoginScreen
+          locale={locale}
+          onClick={() => setOnboardingStep(OnboardingStep.PushNotifications)}
+        />
       )}
 
-      {onboardingStep === 'push-notifications' && (
+      {onboardingStep === OnboardingStep.PushNotifications && (
         <PushNotificationManagerEntrypointComponent
           callback={handlePushNotification}
           locale={locale}
         />
       )}
 
-      {onboardingStep === 'loading' && <GettingReadyEntrypointComponent locale={locale} />}
+      {onboardingStep === OnboardingStep.Loading && (
+        <GettingReadyEntrypointComponent locale={locale} />
+      )}
     </div>
   );
 };
