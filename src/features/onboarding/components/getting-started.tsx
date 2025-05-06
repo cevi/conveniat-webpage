@@ -10,7 +10,7 @@ const gettingReadyText: StaticTranslationString = {
 
 export const GettingReadyEntrypointComponent: React.FC<{
   locale: 'de' | 'fr' | 'en';
-}> = () => {
+}> = ({ locale }) => {
   return (
     <div className="rounded-lg p-8 text-center">
       <CenteredConveniatLogo />
