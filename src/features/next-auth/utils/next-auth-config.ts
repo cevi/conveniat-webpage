@@ -8,12 +8,6 @@ const HITOBITO_FORWARD_URL = environmentVariables.HITOBITO_FORWARD_URL;
 const CEVI_DB_CLIENT_ID = environmentVariables.CEVI_DB_CLIENT_ID;
 const CEVI_DB_CLIENT_SECRET = environmentVariables.CEVI_DB_CLIENT_SECRET;
 
-/*
-if (HITOBITO_BASE_URL === undefined) throw new Error('HITOBITO_BASE_URL is not set');
-if (CEVI_DB_CLIENT_ID === undefined) throw new Error('CEVI_DB_CLIENT_ID is not set');
-if (CEVI_DB_CLIENT_SECRET === undefined) throw new Error('CEVI_DB_CLIENT_SECRET is not set');
-*/
-
 export const authOptions: NextAuthConfig = {
   providers: [
     {
