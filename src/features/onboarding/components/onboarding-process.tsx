@@ -49,6 +49,7 @@ export const OnboardingProcess: React.FC = () => {
     // thus we use the default locale of the OS / browser
     let locale = navigator.language.split('-')[0] as keyof typeof cookieInfoText;
     if (!(locale in ['en', 'de', 'fr'])) locale = 'en'; // fallback to english if locale is not supported
+    setLocale(locale);
   }, []);
 
   const handleLanguageChange = (newLocale: string): void => {
