@@ -1,5 +1,5 @@
 import { CenteredConveniatLogo } from '@/features/onboarding/components/centered-conveniat-logo';
-import { StaticTranslationString } from '@/types/types';
+import type { StaticTranslationString } from '@/types/types';
 import React from 'react';
 
 const gettingReadyText: StaticTranslationString = {

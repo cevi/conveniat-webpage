@@ -8,6 +8,7 @@ import { PushNotificationManagerEntrypointComponent } from '@/features/onboardin
 import { Cookie } from '@/types/types';
 import Cookies from 'js-cookie';
 import { useRouter } from 'next/navigation';
+import type { ChangeEvent } from 'react';
 import React, { useEffect, useState } from 'react';
 
 enum OnboardingStep {
@@ -32,7 +33,7 @@ const LanguageSwitcher: React.FC<{
       <select
         className="bg-gray-50 border border-gray-300 pa-4 rounded-md shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
         value={currentLocale}
-        onChange={(e) => onLanguageChange(e.target.value)}
+        onChange={(event: ChangeEvent<HTMLSelectElement>) => onLanguageChange(event.target.value)}
       >
         {languageOptions.map((option) => (
           <option key={option.value} value={option.value}>
@@ -56,15 +57,15 @@ export const OnboardingProcess: React.FC = () => {
   useEffect(() => {
     // check if NEXT_LOCALE is set in the cookie
     const cookieLocale = Cookies.get('NEXT_LOCALE');
-    if (cookieLocale) {
+    if (cookieLocale !== undefined) {
       setLocale(cookieLocale as keyof typeof cookieInfoText);
       return;
     }
 
     // else use the default locale of the OS / browser
-    let locale = navigator.language.split('-')[0] as keyof typeof cookieInfoText;
-    if (!(locale in ['en', 'de', 'fr'])) locale = 'en'; // fallback to english if locale is not supported
-    setLocale(locale);
+    let _locale = navigator.language.split('-')[0] as keyof typeof cookieInfoText;
+    if (!(_locale in ['en', 'de', 'fr'])) _locale = 'en'; // fallback to english if locale is not supported
+    setLocale(_locale);
 
     setHasManuallyChangedLanguage(true);
   }, []);
@@ -75,7 +76,7 @@ export const OnboardingProcess: React.FC = () => {
     if (hasManuallyChangedLanguage && (onboardingStep ?? 0) >= OnboardingStep.Login) {
       Cookies.set('NEXT_LOCALE', locale, { expires: 730 });
     }
-  }, [onboardingStep]);
+  }, [hasManuallyChangedLanguage, locale, onboardingStep]);
 
   const handleLanguageChange = (newLocale: string): void => {
     setLocale(newLocale as keyof typeof cookieInfoText);

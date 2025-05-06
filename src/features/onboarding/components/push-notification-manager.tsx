@@ -1,6 +1,6 @@
 import { CenteredConveniatLogo } from '@/features/onboarding/components/centered-conveniat-logo';
 import { PushNotificationSubscriptionManager } from '@/features/onboarding/components/push-notification-subscription-manager';
-import { StaticTranslationString } from '@/types/types';
+import type { StaticTranslationString } from '@/types/types';
 import React from 'react';
 
 const skipPushNotificationText: StaticTranslationString = {
