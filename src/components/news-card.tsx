@@ -8,7 +8,7 @@ export const NewsCard: React.FC<{
   headline: string;
 }> = ({ children, date, headline }) => {
   return (
-    <div className="flex max-h-96 basis-1 flex-col border-2 border-gray-200 bg-white p-6 lg:max-w-96">
+    <div className="flex max-h-96 basis-1 flex-col border-2 border-gray-200 bg-white hover:shadow-md transition duration-200 rounded-md p-6 lg:max-w-96">
       <div>
         <span className="font-body text-[12px] font-bold text-gray-500">
           {new Date(date).toLocaleDateString(LOCALE.DE, {
