@@ -1,9 +1,9 @@
-import React from 'react';
-import { getPayload } from 'payload';
+import type { Footer } from '@/features/payload-cms/payload-types';
+import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import config from '@payload-config';
 import Link from 'next/link';
-import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
-import { Footer } from '@/payload-types';
+import { getPayload } from 'payload';
+import React from 'react';
 
 type FooterMenuSection = NonNullable<Footer['footerMenu']>[number];
 type FooterMenuItem = NonNullable<FooterMenuSection['menuItem']>[number];

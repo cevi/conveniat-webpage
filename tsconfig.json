@@ -37,10 +37,10 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "@payload-config": ["./src/payload.config.ts"]
+      "@payload-config": ["./src/features/payload-cms/payload.config.ts"]
     },
     "target": "es2021"
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", ".next", "src/app/(payload)/layout.tsx"]
+  "exclude": ["public/sw.js", "node_modules", ".next", "src/app/(payload)/layout.tsx"]
 }

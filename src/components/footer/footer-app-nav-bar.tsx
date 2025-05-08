@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useEffect } from 'react';
-import Link from 'next/link';
-import { Calendar, Map as MapIcon, MessageCircle, Newspaper, Siren } from 'lucide-react';
+import type { Config } from '@/features/payload-cms/payload-types';
 import { cn } from '@/utils/tailwindcss-override';
+import { Calendar, Map as MapIcon, MessageCircle, Newspaper, Siren } from 'lucide-react';
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Config } from '@/payload-types';
+import React, { useEffect } from 'react';
 
 const navItems = [
   {
@@ -52,7 +52,7 @@ const navItems = [
       en: 'Program',
       fr: 'Programme',
     },
-    href: '/app/program',
+    href: '/app/schedule',
   },
 ];
 

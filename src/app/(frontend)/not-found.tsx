@@ -1,10 +1,10 @@
-import React from 'react';
-import { HeadlineH1 } from '@/components/typography/headline-h1';
-import { TeaserText } from '@/components/typography/teaser-text';
-import Link from 'next/link';
-import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
-import { Locale, StaticTranslationString } from '@/types';
 import { FooterComponent } from '@/components/footer/footer-component';
+import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
+import { TeaserText } from '@/components/ui/typography/teaser-text';
+import type { Locale, StaticTranslationString } from '@/types/types';
+import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
+import Link from 'next/link';
+import React from 'react';
 
 const error404: StaticTranslationString = {
   de: '404 - Seite nicht gefunden',

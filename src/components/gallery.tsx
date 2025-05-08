@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   Carousel,
   CarouselContent,
@@ -6,17 +5,18 @@ import {
   CarouselItem,
   CarouselNext,
   CarouselPrevious,
-} from '@/components/ui/carousel';
+} from '@/components/carousel';
 import Image from 'next/image';
+import React from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 
-export type PhotoCarouselBlock = {
+export interface PhotoCarouselBlock {
   images: {
     url: string;
     alt: string;
     imageCaption?: string;
   }[];
-};
+}
 
 export const PhotoCarousel: React.FC<PhotoCarouselBlock> = ({ images }) => {
   const length = images.length;
@@ -37,7 +37,7 @@ export const PhotoCarousel: React.FC<PhotoCarouselBlock> = ({ images }) => {
 
   return (
     <ErrorBoundary fallback={<></>}>
-      <div className="mb-8 w-full select-none max-lg:overflow-hidden">
+      <div className="mb-8 w-full select-none max-lg:overflow-hidden xl:w-[1200px] xl:my-16 xl:ml-[-220px]">
         <Carousel
           opts={{ align: 'center', loop: true }}
           className="w-full max-lg:w-[200%] max-lg:translate-x-[-25%] max-lg:transform"
@@ -47,7 +47,7 @@ export const PhotoCarousel: React.FC<PhotoCarouselBlock> = ({ images }) => {
               <CarouselItem key={index} index={index} className="basis-1/3 lg:basis-1/2">
                 <div className="p-1">
                   <Image
-                    className="h-[240px] rounded-md bg-white object-cover max-md:aspect-square"
+                    className="h-[240px] xl:h-[400px] rounded-md bg-white object-cover max-md:aspect-square"
                     src={images[index % images.length]?.url ?? ''}
                     alt={images[index % images.length]?.alt ?? ''}
                     placeholder="blur"

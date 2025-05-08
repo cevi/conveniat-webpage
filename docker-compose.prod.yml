@@ -5,6 +5,7 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
+        - NEXT_PUBLIC_VAPID_PUBLIC_KEY=BGXpnSSQfJS84zCk6qka6-3qC_bTK6feOUaLz6ZJY6ThmdcY-h20V0QB8P8nq84Pb6vpbZLvYwISwlSmH9aZwjU
         - NEXT_PUBLIC_APP_HOST_URL=https://conveniat27.ch
 
     deploy:

@@ -1,16 +1,17 @@
 import 'server-only';
 
-import React from 'react';
-import { notFound, redirect } from 'next/navigation';
-import { routeResolutionTable } from '@/route-resolution-table';
-import { Locale, SearchParameters } from '@/types';
-import { cookies } from 'next/headers';
-import { auth } from '@/auth/auth';
-import { canAccessAdminPanel } from '@/payload-cms/access-rules/can-access-admin-panel';
-import { PayloadRequest } from 'payload';
-import { RefreshRouteOnSave } from '@/components/refresh-preview';
-import { isPreviewTokenValid } from '@/utils/preview-token';
 import { CookieBanner } from '@/components/utils/cookie-banner';
+import { RefreshRouteOnSave } from '@/components/utils/refresh-preview';
+import { environmentVariables } from '@/config/environment-variables';
+import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
+import { routeResolutionTable } from '@/features/payload-cms/route-resolution-table';
+import type { Locale, SearchParameters } from '@/types/types';
+import { auth } from '@/utils/auth-helpers';
+import { isPreviewTokenValid } from '@/utils/preview-token';
+import { cookies } from 'next/headers';
+import { notFound, redirect } from 'next/navigation';
+import { type PayloadRequest } from 'payload';
+import type React from 'react';
 
 /**
  * Checks if the preview token is valid.
@@ -141,7 +142,7 @@ const CMSPage: React.FC<{
         return (
           <>
             {previewModeAllowed && hasPreviewSearchParameter && (
-              <RefreshRouteOnSave serverURL={process.env['APP_HOST_URL'] ?? ''} />
+              <RefreshRouteOnSave serverURL={environmentVariables.APP_HOST_URL} />
             )}
 
             <collectionPage.component

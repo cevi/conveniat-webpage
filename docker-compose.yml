@@ -8,16 +8,33 @@ services:
     volumes:
       - .:/home/node/app
       - next-cache:/home/node/app/.next
+      - node-cache:/nodecache
       - node_modules:/home/node/app/node_modules
     working_dir: /home/node/app/
     command: >
       sh -c "corepack enable pnpm && pnpm i --frozen-lockfile &&
       sh /home/node/app/create_build_info.sh &&
-      pnpm dev"
+      if [ \"$ENABLE_SERVICE_WORKER_LOCALLY\" = \"true\" ]; then
+        echo '' &&
+        echo '**************************************************' &&
+        echo '*   WARNING: SERVICE WORKER ENABLED              *' &&
+        echo '*   Turbopack is DISABLED. Dev server will be    *' &&
+        echo '*   significantly SLOWER.                        *' &&
+        echo '**************************************************' &&
+        echo '' &&
+        pnpm devsafe
+      else
+        echo 'Service worker disabled' &&
+        pnpm dev
+      fi"
+    dns:
+      - 8.8.8.8
     depends_on:
       - mongo
     env_file:
       - .env
+    environment:
+      - NODE_COMPILE_CACHE=/nodecache # see https://nodejs.org/en/blog/release/v22.1.0
 
   mongo:
     image: mongo:latest
@@ -63,7 +80,7 @@ services:
       - '9001:9001'
 
     volumes:
-      - miniodata:/data
+      - minio-data:/data
 
   fake-oauth:
     build: dev-oauth
@@ -75,4 +92,5 @@ volumes:
   data:
   node_modules:
   next-cache:
-  miniodata:
+  minio-data:
+  node-cache:

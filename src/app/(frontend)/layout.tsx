@@ -1,17 +1,18 @@
-import React, { ReactNode } from 'react';
+import type { ReactNode } from 'react';
+import React from 'react';
 
 // These styles apply to every route in the application
-import './globals.scss';
+import '@/app/globals.scss';
 import { HeaderComponent } from '@/components/header/header-component';
-import { Inter, Montserrat } from 'next/font/google';
-import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { CeviLogo } from '@/components/svg-logos/cevi-logo';
+import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { renderInAppDesign } from '@/utils/render-in-app-design';
 import { cn } from '@/utils/tailwindcss-override';
+import { Inter, Montserrat } from 'next/font/google';
 
-type LayoutProperties = {
+interface LayoutProperties {
   children: ReactNode;
-};
+}
 
 const montserrat = Montserrat({
   subsets: ['latin'],
@@ -51,5 +52,5 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children }) => {
 export default RootLayout;
 
 // configure the viewport and metadata
-export { generateViewport } from '@/utils/generate-viewport';
 export { generateMetadata } from '@/utils/generate-metadata';
+export { generateViewport } from '@/utils/generate-viewport';

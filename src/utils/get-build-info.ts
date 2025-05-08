@@ -1,4 +1,4 @@
-import { LOCALE } from '@/payload-cms/locales';
+import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 
 interface BuildInfo {
   version: string;
@@ -17,14 +17,16 @@ interface BuildInfo {
  */
 export const getBuildInfo = async (): Promise<BuildInfo | undefined> => {
   try {
+    // eslint-disable-next-line import/no-restricted-paths
     const { default: rawBuildInfo } = (await import('@/build')) as {
       default: BuildInfo;
     };
 
+    const locale = await getLocaleFromCookies();
+
     // parse the timestamp from the build info
-    // TODO: make localized..
     const buildInfo = structuredClone(rawBuildInfo);
-    buildInfo.timestamp = new Date(buildInfo.timestamp).toLocaleDateString(LOCALE.DE, {
+    buildInfo.timestamp = new Date(buildInfo.timestamp).toLocaleDateString(locale, {
       year: 'numeric',
       month: 'short',
       day: 'numeric',

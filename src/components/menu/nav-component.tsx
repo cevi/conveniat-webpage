@@ -1,15 +1,15 @@
-import React from 'react';
-import { Popover, PopoverBackdrop, PopoverButton, PopoverPanel } from '@headlessui/react';
-import { CircleX, Menu as MenuIcon } from 'lucide-react';
-import { getPayload } from 'payload';
-import config from '@payload-config';
-import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
-import Link from 'next/link';
+import { FooterBuildInfoText } from '@/components/footer/footer-copyright-area';
 import { LanguageSwitcher } from '@/components/menu/language-switcher';
 import { SearchComponent } from '@/components/menu/search';
-import { renderInAppDesign } from '@/utils/render-in-app-design';
 import { getBuildInfo } from '@/utils/get-build-info';
-import { FooterBuildInfoText } from '../footer/footer-copyright-area';
+import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
+import { renderInAppDesign } from '@/utils/render-in-app-design';
+import { Popover, PopoverBackdrop, PopoverButton, PopoverPanel } from '@headlessui/react';
+import config from '@payload-config';
+import { CircleX, Menu as MenuIcon } from 'lucide-react';
+import Link from 'next/link';
+import { getPayload } from 'payload';
+import React from 'react';
 
 export const NavComponent: React.FC = async () => {
   const payload = await getPayload({ config });
@@ -22,8 +22,13 @@ export const NavComponent: React.FC = async () => {
 
   return (
     <Popover>
-      <PopoverButton className="relative top-[18px] outline-none">
-        <MenuIcon aria-hidden="true" aria-label="Main Menu" tabIndex={1} />
+      <PopoverButton
+        className="relative top-[18px] outline-none"
+        aria-label="Open main menu"
+        tabIndex={1}
+        aria-hidden="true"
+      >
+        <MenuIcon />
       </PopoverButton>
 
       <PopoverPanel
@@ -32,7 +37,7 @@ export const NavComponent: React.FC = async () => {
       >
         <div className="mx-auto h-full w-full max-w-2xl shrink rounded-2xl border-2 border-gray-200 bg-white p-4 text-sm/6 font-semibold text-gray-900 shadow-lg ring-1 ring-gray-900/5">
           <div className="flex justify-end">
-            <PopoverBackdrop>
+            <PopoverBackdrop aria-label="Close main menu">
               <CircleX />
             </PopoverBackdrop>
           </div>

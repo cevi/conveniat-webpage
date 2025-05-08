@@ -1,5 +1,6 @@
-import { default as default_0ab278369767a73bfbc2c2f4a007b998 } from '@/payload-cms/components/multi-lang-publishing/publishing-status'
-import { default as default_3c9ca46507dfbdb2d0020bf71080bda1 } from '@/payload-cms/components/qr-code/qr-code'
+import { default as default_a7ff98973d56a39b3183d8ad49f7b649 } from '@/features/payload-cms/payload-cms/components/multi-lang-publishing/publishing-status'
+import { default as default_bfb7b08888889fc5b15d089d71fdfbc6 } from '@/features/payload-cms/payload-cms/components/multi-lang-publishing/publishing-status-client'
+import { default as default_a4ebed491f9244748218c109a1d489e3 } from '@/features/payload-cms/payload-cms/components/qr-code/qr-code'
 import { RscEntryLexicalCell as RscEntryLexicalCell_44fe37237e0ebf4470c9990d8cb7b07e } from '@payloadcms/richtext-lexical/rsc'
 import { RscEntryLexicalField as RscEntryLexicalField_44fe37237e0ebf4470c9990d8cb7b07e } from '@payloadcms/richtext-lexical/rsc'
 import { LexicalDiffComponent as LexicalDiffComponent_44fe37237e0ebf4470c9990d8cb7b07e } from '@payloadcms/richtext-lexical/rsc'
@@ -11,19 +12,21 @@ import { LinkFeatureClient as LinkFeatureClient_e70f5e05f09f93e00b997edb1ef0c864
 import { HeadingFeatureClient as HeadingFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { BlockquoteFeatureClient as BlockquoteFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { UnorderedListFeatureClient as UnorderedListFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
-import { default as default_bbae86ba8a00b783ed258b779fb3642a } from '@/payload-cms/components/url-field/url-input-field'
-import { default as default_c11185631465f95aa3fa15783b994e98 } from '@/payload-cms/components/disable-actions/disable-many-actions'
-import { default as default_04fa20694178abb35147c42812b162ee } from '@/payload-cms/components/multi-lang-publishing/publish-localized'
+import { SlugComponent as SlugComponent_f8d18e9ffd9ba326b0ef9eec14d7ac57 } from '@/features/payload-cms/payload-cms/components/slug/slug-component'
+import { default as default_b8a91c281781c959c4c68385023a0bcf } from '@/features/payload-cms/payload-cms/components/disable-actions/disable-many-actions'
+import { default as default_ad2ab9e4ee1f1c863c85f67238030f8f } from '@/features/payload-cms/payload-cms/components/multi-lang-publishing/publish-localized'
+import { default as default_c9f917d9608a57eb8358fce7a7898bd3 } from '@/features/payload-cms/payload-cms/components/push-notification/push-notification'
 import { LinkToDoc as LinkToDoc_aead06e4cbf6b2620c5c51c9ab283634 } from '@payloadcms/plugin-search/client'
 import { ReindexButton as ReindexButton_aead06e4cbf6b2620c5c51c9ab283634 } from '@payloadcms/plugin-search/client'
 import { ConveniatLogo as ConveniatLogo_1dcd95bfbb6787f73675c94df91c942d } from '@/components/svg-logos/conveniat-logo.tsx'
-import { default as default_17d63aa389bc01a392997a5c43778dff } from '@/payload-cms/components/login-page/admin-panel-login-page'
-import { default as default_c3cc3b6e219a6fc03e424c337d312b51 } from '@/payload-cms/components/dashboard-welcome-banner'
+import { default as default_d432a7de1921f0e10a01eefbe71b022a } from '@/features/payload-cms/payload-cms/components/login-page/admin-panel-login-page'
+import { default as default_a79319ae20aa3b9aa7415044aaf68603 } from '@/features/payload-cms/payload-cms/components/dashboard-welcome-banner'
 import { S3ClientUploadHandler as S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24 } from '@payloadcms/storage-s3/client'
 
 export const importMap = {
-  "@/payload-cms/components/multi-lang-publishing/publishing-status#default": default_0ab278369767a73bfbc2c2f4a007b998,
-  "@/payload-cms/components/qr-code/qr-code#default": default_3c9ca46507dfbdb2d0020bf71080bda1,
+  "@/features/payload-cms/payload-cms/components/multi-lang-publishing/publishing-status#default": default_a7ff98973d56a39b3183d8ad49f7b649,
+  "@/features/payload-cms/payload-cms/components/multi-lang-publishing/publishing-status-client#default": default_bfb7b08888889fc5b15d089d71fdfbc6,
+  "@/features/payload-cms/payload-cms/components/qr-code/qr-code#default": default_a4ebed491f9244748218c109a1d489e3,
   "@payloadcms/richtext-lexical/rsc#RscEntryLexicalCell": RscEntryLexicalCell_44fe37237e0ebf4470c9990d8cb7b07e,
   "@payloadcms/richtext-lexical/rsc#RscEntryLexicalField": RscEntryLexicalField_44fe37237e0ebf4470c9990d8cb7b07e,
   "@payloadcms/richtext-lexical/rsc#LexicalDiffComponent": LexicalDiffComponent_44fe37237e0ebf4470c9990d8cb7b07e,
@@ -35,13 +38,14 @@ export const importMap = {
   "@payloadcms/richtext-lexical/client#HeadingFeatureClient": HeadingFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#BlockquoteFeatureClient": BlockquoteFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#UnorderedListFeatureClient": UnorderedListFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
-  "@/payload-cms/components/url-field/url-input-field#default": default_bbae86ba8a00b783ed258b779fb3642a,
-  "@/payload-cms/components/disable-actions/disable-many-actions#default": default_c11185631465f95aa3fa15783b994e98,
-  "@/payload-cms/components/multi-lang-publishing/publish-localized#default": default_04fa20694178abb35147c42812b162ee,
+  "@/features/payload-cms/payload-cms/components/slug/slug-component#SlugComponent": SlugComponent_f8d18e9ffd9ba326b0ef9eec14d7ac57,
+  "@/features/payload-cms/payload-cms/components/disable-actions/disable-many-actions#default": default_b8a91c281781c959c4c68385023a0bcf,
+  "@/features/payload-cms/payload-cms/components/multi-lang-publishing/publish-localized#default": default_ad2ab9e4ee1f1c863c85f67238030f8f,
+  "@/features/payload-cms/payload-cms/components/push-notification/push-notification#default": default_c9f917d9608a57eb8358fce7a7898bd3,
   "@payloadcms/plugin-search/client#LinkToDoc": LinkToDoc_aead06e4cbf6b2620c5c51c9ab283634,
   "@payloadcms/plugin-search/client#ReindexButton": ReindexButton_aead06e4cbf6b2620c5c51c9ab283634,
   "@/components/svg-logos/conveniat-logo.tsx#ConveniatLogo": ConveniatLogo_1dcd95bfbb6787f73675c94df91c942d,
-  "@/payload-cms/components/login-page/admin-panel-login-page#default": default_17d63aa389bc01a392997a5c43778dff,
-  "@/payload-cms/components/dashboard-welcome-banner#default": default_c3cc3b6e219a6fc03e424c337d312b51,
+  "@/features/payload-cms/payload-cms/components/login-page/admin-panel-login-page#default": default_d432a7de1921f0e10a01eefbe71b022a,
+  "@/features/payload-cms/payload-cms/components/dashboard-welcome-banner#default": default_a79319ae20aa3b9aa7415044aaf68603,
   "@payloadcms/storage-s3/client#S3ClientUploadHandler": S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24
 }

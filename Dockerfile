@@ -6,6 +6,8 @@ FROM node:22.14-alpine AS base
 FROM base AS deps
 WORKDIR /app
 
+ENV BUILD_TARGET=production
+ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
@@ -29,11 +31,24 @@ RUN \
 FROM base AS builder
 WORKDIR /app
 
+ENV BUILD_TARGET=production
+ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ARG NEXT_PUBLIC_APP_HOST_URL=https://conveniat27.ch
 
+# set vapid public key, this must be available at build time
+ARG NEXT_PUBLIC_VAPID_PUBLIC_KEY
+ENV NEXT_PUBLIC_VAPID_PUBLIC_KEY=${NEXT_PUBLIC_VAPID_PUBLIC_KEY}
+
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+
+# Copy the dev icons for the dev build
+# if NEXT_PUBLIC_APP_HOST_URL is not set to conveniat27.ch
+RUN \
+  if [ "${NEXT_PUBLIC_APP_HOST_URL}" != "https://conveniat27.ch" ]; then \
+    cp /app/public/dev-icons/* /app/public/; \
+  fi
 
 # Install build dependencies for sharp again in builder stage
 RUN apk add --no-cache vips vips-dev fftw-dev gcc g++ make python3

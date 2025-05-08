@@ -1,12 +1,12 @@
 name: Content
 description: There is content missing
-title: "[Content]: "
-labels: ["content"]
+title: '[Content]: '
+labels: ['content']
 body:
   - type: textarea
     id: content-report
     attributes:
-      label: Content Missing
+      label: Content is missing
       description: Where is the content missing? What should be shown?
       placeholder:
       value:
