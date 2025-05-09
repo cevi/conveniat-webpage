@@ -49,13 +49,13 @@ export const MessageComponent: React.FC<MessageProperties> = ({ message, isCurre
   const renderedContent = formatMessageContent(message.content);
 
   return (
-    <div className={cn('flex items-end gap-2', isCurrentUser ? 'justify-end' : 'justify-start')}>
+    <div className={cn('flex items-end', isCurrentUser ? 'justify-end' : 'justify-start')}>
       {!isCurrentUser && <UserCircle />}
 
-      <div className="flex flex-col">
+      <div className="w-[80%] overflow-x-hidden">
         <div
           className={cn(
-            'rounded-2xl px-4 py-2',
+            'rounded-2xl px-4 py-2 wrap-anywhere',
             isCurrentUser
               ? 'text-primary-foreground rounded-br-none bg-green-300 text-gray-950'
               : 'rounded-bl-none bg-gray-200 text-gray-800',
