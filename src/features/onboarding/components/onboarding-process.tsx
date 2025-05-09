@@ -66,20 +66,23 @@ export const OnboardingProcess: React.FC = () => {
     let _locale = navigator.language.split('-')[0] as keyof typeof cookieInfoText;
     if (!(_locale in ['en', 'de', 'fr'])) _locale = 'en'; // fallback to english if locale is not supported
     setLocale(_locale);
-
     setHasManuallyChangedLanguage(true);
   }, []);
 
   // Set the cookie only if the user has manually changed the language
   // this prevents that the user needs to select the language again
   useEffect(() => {
-    if (hasManuallyChangedLanguage && (onboardingStep ?? 0) >= OnboardingStep.Login) {
+    if (
+      hasManuallyChangedLanguage &&
+      (onboardingStep ?? OnboardingStep.Initial) >= OnboardingStep.Login
+    ) {
       Cookies.set('NEXT_LOCALE', locale, { expires: 730 });
     }
   }, [hasManuallyChangedLanguage, locale, onboardingStep]);
 
   const handleLanguageChange = (newLocale: string): void => {
     setLocale(newLocale as keyof typeof cookieInfoText);
+    setHasManuallyChangedLanguage(true);
   };
 
   const acceptCookiesCallback = (): void => {
