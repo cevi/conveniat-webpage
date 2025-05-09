@@ -1,5 +1,6 @@
 import type { NextMiddlewareResult } from 'next/dist/server/web/types';
-import type { NextFetchEvent, NextRequest, NextResponse } from 'next/server';
+import type { NextFetchEvent, NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 
 export type ChainedMiddleware = (
   request: NextRequest,
@@ -22,7 +23,7 @@ export function middlewareChain(functions: MiddlewareFactory[], index = 0): Chai
     return current(next);
   }
 
-  return (_request: NextRequest, _event: NextFetchEvent, response: NextResponse) => {
-    return response;
+  return (_request: NextRequest, _event: NextFetchEvent, response: NextResponse | undefined) => {
+    return response ?? NextResponse.next();
   };
 }
