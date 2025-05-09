@@ -58,17 +58,14 @@ const applyMiddlewareForDisabledAppFeatures = (
 export const withAppFeatureMiddleware = (nextMiddleware: ChainedMiddleware): ChainedMiddleware => {
   return (request, event, response) => {
     const areAppFeaturesEnabled = environmentVariables.FEATURE_ENABLE_APP_FEATURE === true;
-    const isInAppDesign = request.cookies.has(Cookie.APP_DESIGN);
 
     // initialize response if not already set
     response ??= NextResponse.next();
 
     if (areAppFeaturesEnabled) {
       return applyMiddlewareForAppFeatures(request, event, response, nextMiddleware);
-    } else if (isInAppDesign) {
-      return applyMiddlewareForDisabledAppFeatures(request, event, response, nextMiddleware);
     }
 
-    return nextMiddleware(request, event, response);
+    return applyMiddlewareForDisabledAppFeatures(request, event, response, nextMiddleware);
   };
 };
