@@ -1,9 +1,12 @@
 'use client';
+import { Button } from '@/components/ui/buttons/button';
 import { sendMessage } from '@/features/chat/api/send-message';
 import { ChatHeader } from '@/features/chat/components/chat-header';
 import { MessageInput } from '@/features/chat/components/message-input';
 import { MessageList } from '@/features/chat/components/message-list';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
+import { ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
 import React, { useState } from 'react';
 
 export interface ChatInterface {
@@ -32,9 +35,9 @@ export const ChatInterface: React.FC<ChatInterface> = ({ chatId }) => {
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex flex-col bg-white z-[500] h-dvh fixed top-0 w-screen overflow-y-hidden">
       <ChatHeader name={chatDetail.name} />
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto">
         <MessageList chatDetails={chatDetail} />
       </div>
       <div className="border-t border-gray-200 p-4">
@@ -45,8 +48,13 @@ export const ChatInterface: React.FC<ChatInterface> = ({ chatId }) => {
 };
 
 const ChatSkeleton: React.FC = () => (
-  <div className="flex h-full flex-col">
-    <div className="border-b border-gray-200 p-4">
+  <div className="flex flex-col bg-white z-[500] h-dvh fixed top-0 w-screen">
+    <div className="flex items-center gap-2 border-b-2 border-gray-200  h-[62px] px-4 dark:border-gray-700">
+      <Link href="/app/chat">
+        <Button variant="ghost" size="icon" className="mr-2">
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+      </Link>
       <div className="h-8 w-48 bg-gray-50" />
     </div>
     <div className="flex-1 space-y-4 overflow-y-auto p-4">

@@ -77,30 +77,6 @@ export const sendMessage = async (message: SendMessage): Promise<void> => {
     },
   });
 
-  // mock a response message after 10 seconds
-  setTimeout(() => {
-    prisma.message
-      .create({
-        data: {
-          timestamp: new Date().toISOString(),
-          content: 'This is a response message',
-          sender: {
-            create: {
-              ceviDbID: `${Math.random()}`,
-              name: user.name,
-            },
-          },
-          chat: {
-            connect: {
-              uuid: message.chatId,
-            },
-          },
-        },
-      })
-      .then(() => sendNotification('This is a response message'))
-      .catch(console.error);
-  }, 5000);
-
   // TODO: send push notification to all users in the chat
   sendNotification(message.content).catch(() => {
     console.error('Error sending notification:');

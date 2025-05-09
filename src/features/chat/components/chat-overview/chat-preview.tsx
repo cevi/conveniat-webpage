@@ -16,7 +16,7 @@ export const ChatPreview: React.FC<{
         </div>
         <Link className="min-w-0 flex-1" href={chatDetailLink}>
           <p className="truncate text-sm font-medium text-gray-900">{chat.name}</p>
-          <p className="truncate text-sm text-gray-500">{chat.lastMessage.content}</p>
+          <p className="truncate text-sm text-gray-500">{chat.lastMessage?.content}</p>
         </Link>
         <div className="flex-shrink-0">
           <MessageSquare size={20} className="text-gray-400" />

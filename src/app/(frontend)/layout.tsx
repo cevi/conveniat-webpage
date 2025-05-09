@@ -33,7 +33,7 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children }) => {
       lang={locale}
     >
       <body
-        className={cn('flex h-screen w-screen flex-col overflow-x-hidden bg-[#f8fafc]', {
+        className={cn('flex h-dvh w-dvw flex-col overflow-x-hidden bg-[#f8fafc]', {
           'overscroll-y-none': isInAppDesign,
         })}
       >
