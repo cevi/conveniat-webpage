@@ -51,10 +51,15 @@ export const NavComponent: React.FC = async () => {
             ))}
           </nav>
 
-          <hr className="my-6" />
+          <hr className="my-6 border border-gray-100" />
 
           <LanguageSwitcher locale={locale} />
+
+          <hr className="my-6 border border-gray-100" />
+
           <SearchComponent locale={locale} />
+
+          <hr className="my-6 border border-gray-100" />
 
           {isInAppDesign && build && (
             <>

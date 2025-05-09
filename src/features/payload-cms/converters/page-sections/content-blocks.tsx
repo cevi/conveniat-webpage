@@ -59,7 +59,7 @@ export const DetailsTable: SectionRenderer<{
       <LexicalRichTextSection richTextSection={block.introduction} />
 
       <div className="mt-4">
-        <hr className="border-b-2 border-gray-100" />
+        <hr className=" border border-gray-100" />
         {block.detailsTableBlocks.map((detailsTableEntry, index) => (
           <React.Fragment key={index}>
             <div className="grid gap-x-2 hyphens-auto p-2 md:grid-cols-[1fr_2fr]">
@@ -68,7 +68,7 @@ export const DetailsTable: SectionRenderer<{
               </div>
               <LexicalRichTextSection richTextSection={detailsTableEntry.value} />
             </div>
-            <hr className="grid-cols-2 border-b-2 border-gray-100" />
+            <hr className="grid-cols-2  border border-gray-100" />
           </React.Fragment>
         ))}
       </div>
