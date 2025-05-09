@@ -13,11 +13,15 @@ const errorMessage: StaticTranslationString = {
   fr: "Une erreur s'est produite",
 };
 
+const backToHomeHandler = (): void => {
+  globalThis.location.href = '/';
+};
+
 const errorDescription: Record<Locale, React.JSX.Element> = {
   en: (
     <>
       The page failed to load. Please check the URL or go back to the{' '}
-      <Link href="/" className="font-bold text-red-600">
+      <Link onClick={backToHomeHandler} className="font-bold text-red-600" href={''}>
         home page
       </Link>
       .
@@ -27,7 +31,7 @@ const errorDescription: Record<Locale, React.JSX.Element> = {
   de: (
     <>
       Die Seite konnte nicht geladen werden. Bitte überprüfen Sie die URL oder gehen Sie zur{' '}
-      <Link href="/" className="font-bold text-red-600">
+      <Link onClick={backToHomeHandler} className="font-bold text-red-600" href={''}>
         Startseite
       </Link>
       .
@@ -37,7 +41,7 @@ const errorDescription: Record<Locale, React.JSX.Element> = {
   fr: (
     <>
       La page n&#39;a pas pu être chargée. Veuillez vérifier l&#39;URL ou revenir à la{' '}
-      <Link href="/" className="font-bold text-red-600">
+      <Link onClick={backToHomeHandler} className="font-bold text-red-600" href={''}>
         page d&#39;accueil
       </Link>
       .
