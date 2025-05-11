@@ -108,7 +108,7 @@
     "prettier": "^3.5.3",
     "prettier-plugin-organize-imports": "^4.1.0",
     "prettier-plugin-tailwindcss": "^0.6.11",
-    "prisma": "^6.6.0",
+    "prisma": "^6.7.0",
     "tailwindcss": "^4.1.6",
     "typescript": "5.5.4",
     "typescript-eslint": "^8.31.1",
@@ -124,7 +124,9 @@
       ]
     },
     "onlyBuiltDependencies": [
+      "@prisma/client",
       "@prisma/engines",
+      "@tailwindcss/oxide",
       "esbuild",
       "prisma",
       "sharp"
