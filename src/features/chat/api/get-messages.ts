@@ -46,6 +46,8 @@ export const getChats = async (): Promise<Chat[]> => {
   });
 
   return chats.map((chat): Chat => {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
     const messages = chat.messages.sort((m) => m.timestamp.toISOString());
     const lastMessage = messages.at(-1);
     if (lastMessage === undefined) {

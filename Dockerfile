@@ -59,6 +59,10 @@ RUN npm rebuild sharp --platform=linuxmusl --arch=x64
 
 RUN sh create_build_info.sh
 
+# generate prisma client
+ENV PRISMA_OUTPUT='src/lib/prisma/client/'
+RUN npx prisma generate
+
 RUN \
   if [ -f yarn.lock ]; then yarn run build; \
   elif [ -f package-lock.json ]; then npm run build; \
