@@ -1,12 +1,3 @@
-/***************************************************/
-/* We use the @tailwind directive to inject Tailwind's base, component, and utility styles. */
-/* According to the official docs Payload we must omit the @tailwind base import. */
-/* More infos can be found here: https://payloadcms.com/blog/how-to-setup-tailwindcss-and-shadcn-ui-in-payload */
-/***************************************************/
-@import "tailwindcss";
-@config "../../../tailwind.config.ts";
-/***************************************************/
-
 // increase the space after the collection / globals description
 .view-description {
   margin-bottom: 60px;
