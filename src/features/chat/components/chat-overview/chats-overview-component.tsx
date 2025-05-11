@@ -1,7 +1,7 @@
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { ChatsOverviewClientComponent } from '@/features/chat/components/chat-overview/chats-overview-client-component';
 import { CreateNewChatClientComponent } from '@/features/chat/components/chat-overview/new-chat-client-component';
-import React from 'react';
+import React, { Suspense } from 'react';
 
 export const ChatsOverviewComponent: React.FC = async () => {
   return (
@@ -9,11 +9,19 @@ export const ChatsOverviewComponent: React.FC = async () => {
       <HeadlineH1 className="text-center">Chats</HeadlineH1>
 
       <div className="flex-grow overflow-y-auto">
-        <ChatsOverviewClientComponent />
+        <Suspense
+          fallback={<div className="flex h-full items-center justify-center">Loading...</div>}
+        >
+          <ChatsOverviewClientComponent />
+        </Suspense>
       </div>
 
       <div>
-        <CreateNewChatClientComponent />
+        <Suspense
+          fallback={<div className="flex h-full items-center justify-center">Loading...</div>}
+        >
+          <CreateNewChatClientComponent />
+        </Suspense>
       </div>
     </div>
   );
