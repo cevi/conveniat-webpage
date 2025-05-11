@@ -18,6 +18,7 @@ export const i18nExcludedRoutes: string[] = [
   '_next',
   'api',
   'admin',
+  '.well-known',
 
   // map styles
   'vector-map',
