@@ -14,7 +14,7 @@ export interface ChatInterface {
 }
 
 export const ChatInterface: React.FC<ChatInterface> = ({ chatId }) => {
-  const { chatDetail, loading: isLoading } = useChatDetail(chatId);
+  const { data: chatDetail, isLoading } = useChatDetail(chatId);
   const [newMessage, setNewMessage] = useState('');
 
   const handleSendMessage = async (message: string): Promise<void> => {

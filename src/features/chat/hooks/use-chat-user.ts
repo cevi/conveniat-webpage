@@ -1,26 +1,12 @@
 import { fetchChatUser } from '@/features/chat/api/get-chat-user';
-import { useEffect, useState } from 'react';
+import type { UseQueryResult } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 
-export const useChatUser = (): {
-  user: string | undefined;
-  loading: boolean;
-  error: string | undefined;
-} => {
-  const [user, setUser] = useState<string | undefined>();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | undefined>();
+export const CHAT_USER_QUERY_KEY = ['chatUser']; // Define a unique query key
 
-  useEffect(() => {
-    fetchChatUser()
-      .then((_user) => {
-        setLoading(false);
-        setUser(_user);
-      })
-      .catch(() => {
-        setError('Failed to fetch chats.');
-        setLoading(false);
-      });
-  }, []);
-
-  return { user, loading, error };
+export const useChatUser = (): UseQueryResult<string> => {
+  return useQuery({
+    queryKey: CHAT_USER_QUERY_KEY,
+    queryFn: fetchChatUser,
+  });
 };

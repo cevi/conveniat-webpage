@@ -11,7 +11,7 @@ export const MessageList: React.FC<{ chatDetails: ChatDetail }> = ({ chatDetails
     (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
   );
 
-  const { user: currentUser } = useChatUser();
+  const { data: currentUser } = useChatUser();
   const messagesEndReference = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

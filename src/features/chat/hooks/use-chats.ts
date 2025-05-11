@@ -2,140 +2,81 @@ import type { Contact } from '@/features/chat/api/get-contacts';
 import { fetchAllContacts } from '@/features/chat/api/get-contacts';
 import { getChatDetail, getChats } from '@/features/chat/api/get-messages';
 import type { Chat, ChatDetail } from '@/features/chat/types/chat';
-import { useEffect, useState } from 'react';
 
-export const useChats = (): {
-  chats: Chat[];
-  loading: boolean;
-  error: string | undefined;
-} => {
-  const [chats, setChats] = useState<Chat[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | undefined>();
+import type { UseQueryResult } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 
-  useEffect(() => {
-    const fetchChats = (): void => {
-      getChats()
-        .then((fetchedChats) => {
-          // debounce if object has not changed
-          if (JSON.stringify(chats) === JSON.stringify(fetchedChats)) {
-            setLoading(false);
-            return;
-          }
+// --- Define Query Keys ---
+export const CHATS_QUERY_KEY = ['chats'];
+export const CHAT_DETAIL_QUERY_KEY = (chatId: string): string[] => ['chatDetail', chatId];
+export const ALL_CONTACTS_QUERY_KEY = ['allContacts'];
 
-          setChats(fetchedChats);
-          setLoading(false);
-        })
-        .catch(() => {
-          setError('Failed to fetch chats.');
-          setLoading(false);
-        });
-    };
+// --- useChats Hook ---
+export const useChats = (): UseQueryResult<Chat[]> => {
+  const queryClient = useQueryClient();
 
-    setLoading(true);
-    fetchChats();
-
-    const handleMessage = (): void => {
-      console.log('Received message via push notification, start fetching chats');
-      fetchChats();
-      setLoading(false);
-    };
-
-    navigator.serviceWorker.addEventListener('message', handleMessage);
-
-    return (): void => {
-      navigator.serviceWorker.removeEventListener('message', handleMessage);
-    };
-  }, [chats]);
-
-  return { chats, loading, error };
-};
-export const useChatDetail = (
-  chatId: string,
-): {
-  chatDetail: ChatDetail | undefined;
-  loading: boolean;
-  error: string | undefined;
-} => {
-  const [chatDetail, setChatDetail] = useState<ChatDetail>();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | undefined>();
+  const query = useQuery({
+    queryKey: CHATS_QUERY_KEY,
+    queryFn: getChats,
+  });
 
   useEffect(() => {
-    setError(undefined);
-
-    const fetchChatDetails = (): void => {
-      getChatDetail(chatId)
-        .then((fetchedChatDetail) => {
-          // debounce if object has not changed
-          if (JSON.stringify(chatDetail) === JSON.stringify(fetchedChatDetail)) {
-            setLoading(false);
-            return;
-          }
-
-          setChatDetail(fetchedChatDetail);
-          setLoading(false);
-        })
-        .catch(() => {
-          setError('Failed to fetch chat detail.');
-          setLoading(false);
-        });
-    };
-
-    fetchChatDetails();
-
     const handleMessage = (): void => {
-      console.log('Received message via push notification, start fetching chats');
-      fetchChatDetails();
-      setLoading(false);
+      console.log('Received message via push notification, invalidating chats query');
+      queryClient.invalidateQueries({ queryKey: CHATS_QUERY_KEY }).catch(console.error);
     };
 
-    navigator.serviceWorker.addEventListener('message', handleMessage);
+    if (typeof navigator !== 'undefined') {
+      navigator.serviceWorker.addEventListener('message', handleMessage);
+    }
 
     return (): void => {
-      navigator.serviceWorker.removeEventListener('message', handleMessage);
+      if (typeof navigator !== 'undefined') {
+        navigator.serviceWorker.removeEventListener('message', handleMessage);
+      }
     };
-  }, [chatDetail, chatId]);
+  }, [queryClient]);
 
-  return { chatDetail, loading, error };
+  return query;
 };
 
-export const useAllContacts = (): {
-  allContacts: Contact[];
-  loading: boolean;
-  error: string | undefined;
-} => {
-  const [allContacts, setAllContacts] = useState<Contact[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | undefined>();
+// --- useChatDetail Hook ---
+export const useChatDetail = (chatId: string): UseQueryResult<ChatDetail> => {
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
+    queryKey: CHAT_DETAIL_QUERY_KEY(chatId),
+    queryFn: () => getChatDetail(chatId),
+    enabled: chatId !== '',
+  });
 
   useEffect(() => {
-    setError(undefined);
-
-    const getAllContacts = (): void => {
-      fetchAllContacts()
-        .then((fetchedAllContacts) => {
-          // debounce if object has not changed
-          if (JSON.stringify(allContacts) === JSON.stringify(fetchedAllContacts)) {
-            setLoading(false);
-            return;
-          }
-
-          setAllContacts(fetchedAllContacts);
-          setLoading(false);
-        })
-        .catch(() => {
-          setError('Failed to fetch chat detail.');
-          setLoading(false);
-        });
+    const handleMessage = (): void => {
+      console.log('Received message via push notification, invalidating chat detail query');
+      queryClient
+        .invalidateQueries({ queryKey: CHAT_DETAIL_QUERY_KEY(chatId) })
+        .catch(console.error);
     };
 
-    getAllContacts();
+    if (typeof navigator !== 'undefined') {
+      navigator.serviceWorker.addEventListener('message', handleMessage);
+    }
 
     return (): void => {
-      // Cleanup if necessary
+      if (typeof navigator !== 'undefined') {
+        navigator.serviceWorker.removeEventListener('message', handleMessage);
+      }
     };
-  }, [allContacts]);
+  }, [queryClient, chatId]);
 
-  return { allContacts, loading, error };
+  return query;
+};
+
+// --- useAllContacts Hook ---
+export const useAllContacts = (): UseQueryResult<Contact[]> => {
+  return useQuery({
+    queryKey: ALL_CONTACTS_QUERY_KEY,
+    queryFn: fetchAllContacts,
+  });
 };

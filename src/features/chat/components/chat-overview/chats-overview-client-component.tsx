@@ -4,13 +4,11 @@ import { useChats } from '@/features/chat/hooks/use-chats';
 import React from 'react';
 
 export const ChatsOverviewClientComponent: React.FC = () => {
-  const { chats } = useChats();
+  const { data: chats } = useChats();
 
   return (
     <ul className="divide-y divide-gray-200">
-      {chats.map((chat) => (
-        <ChatPreview key={chat.id} chat={chat} />
-      ))}
+      {chats?.map((chat) => <ChatPreview key={chat.id} chat={chat} />)}
     </ul>
   );
 };
