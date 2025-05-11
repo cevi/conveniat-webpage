@@ -1,5 +1,6 @@
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { ChatsOverviewClientComponent } from '@/features/chat/components/chat-overview/chats-overview-client-component';
+import { CreateNewChatClientComponent } from '@/features/chat/components/chat-overview/new-chat-client-component';
 import React from 'react';
 
 export const ChatsOverviewComponent: React.FC = async () => {
@@ -9,6 +10,10 @@ export const ChatsOverviewComponent: React.FC = async () => {
 
       <div className="flex-grow overflow-y-auto">
         <ChatsOverviewClientComponent />
+      </div>
+
+      <div>
+        <CreateNewChatClientComponent />
       </div>
     </div>
   );

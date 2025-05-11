@@ -1,3 +1,5 @@
+import type { Contact } from '@/features/chat/api/get-contacts';
+import { fetchAllContacts } from '@/features/chat/api/get-contacts';
 import { getChatDetail, getChats } from '@/features/chat/api/get-messages';
 import type { Chat, ChatDetail } from '@/features/chat/types/chat';
 import { useEffect, useState } from 'react';
@@ -96,4 +98,44 @@ export const useChatDetail = (
   }, [chatDetail, chatId]);
 
   return { chatDetail, loading, error };
+};
+
+export const useAllContacts = (): {
+  allContacts: Contact[];
+  loading: boolean;
+  error: string | undefined;
+} => {
+  const [allContacts, setAllContacts] = useState<Contact[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | undefined>();
+
+  useEffect(() => {
+    setError(undefined);
+
+    const getAllContacts = (): void => {
+      fetchAllContacts()
+        .then((fetchedAllContacts) => {
+          // debounce if object has not changed
+          if (JSON.stringify(allContacts) === JSON.stringify(fetchedAllContacts)) {
+            setLoading(false);
+            return;
+          }
+
+          setAllContacts(fetchedAllContacts);
+          setLoading(false);
+        })
+        .catch(() => {
+          setError('Failed to fetch chat detail.');
+          setLoading(false);
+        });
+    };
+
+    getAllContacts();
+
+    return (): void => {
+      // Cleanup if necessary
+    };
+  }, [allContacts]);
+
+  return { allContacts, loading, error };
 };
