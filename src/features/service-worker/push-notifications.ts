@@ -22,14 +22,14 @@ export const pushNotificationHandler =
     const options: NotificationOptions = {
       body: data.body,
       icon: '/favicon.svg',
-      badge: '/favicon.svg',
+      badge: '/notification-icon.png',
       requireInteraction: true,
       tag: 'conveniat27',
       data: {},
     };
 
     event.waitUntil(
-      (async () => {
+      (async (): Promise<void> => {
         const clientList = await serviceWorkerScope.clients.matchAll({
           type: 'window',
           includeUncontrolled: true,

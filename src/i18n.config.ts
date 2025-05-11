@@ -10,6 +10,7 @@ export const i18nExcludedRoutes: string[] = [
   'web-app-manifest-192x192.png',
   'web-app-manifest-512x512.png',
   'favicon.svg',
+  'notification-icon.png',
 
   // app landing page (is localized manually)
   'entrypoint',
