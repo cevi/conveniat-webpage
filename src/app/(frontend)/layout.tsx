@@ -37,7 +37,7 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children }) => {
           'overscroll-y-none': isInAppDesign,
         })}
       >
-        <HeaderComponent />
+        <HeaderComponent locale={locale} />
 
         <div className="absolute top-0 z-[-999] h-screen w-full p-[56px]">
           <CeviLogo className="mx-auto h-full max-h-[60vh] w-full max-w-[384px] opacity-10 blur-md" />
