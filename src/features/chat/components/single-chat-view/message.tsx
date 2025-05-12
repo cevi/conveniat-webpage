@@ -1,7 +1,7 @@
 import { useFormatDate } from '@/features/chat/hooks/use-format-date';
 import type { Message, OptimisticMessage } from '@/features/chat/types/chat';
 import { cn } from '@/utils/tailwindcss-override';
-import { UserCircle } from 'lucide-react';
+import { Check, UserCircle } from 'lucide-react';
 import type React from 'react';
 
 interface MessageProperties {
@@ -45,17 +45,49 @@ const formatMessageContent = (text: string): React.ReactNode[] => {
 
 export const MessageComponent: React.FC<MessageProperties> = ({ message, isCurrentUser }) => {
   const formattedTime = useFormatDate().formatMessageTime(message.timestamp);
-
   const renderedContent = formatMessageContent(message.content);
+
+  // Message status indicators
+  const renderMessageStatus = (): React.JSX.Element => {
+    if (!isCurrentUser) return <></>;
+
+    if ('isOptimistic' in message && message.isOptimistic) {
+      return <div className="text-gray-400 ml-1">Sending...</div>;
+    }
+
+    const status = message.status ?? 'sent';
+
+    switch (status) {
+      case 'sent': {
+        return <Check className="h-3.5 w-3.5 text-gray-200 ml-1" />;
+      }
+      case 'delivered': {
+        return (
+          <div className="flex ml-1">
+            <Check className="h-3.5 w-3.5 text-gray-200" />
+            <Check className="h-3.5 w-3.5 text-gray-200 -ml-2" />
+          </div>
+        );
+      }
+      case 'read': {
+        return (
+          <div className="flex ml-1">
+            <Check className="h-3.5 w-3.5 text-gray-700" />
+            <Check className="h-3.5 w-3.5 text-gray-700 -ml-2" />
+          </div>
+        );
+      }
+    }
+  };
 
   return (
     <div className={cn('flex items-end', isCurrentUser ? 'justify-end' : 'justify-start')}>
-      {!isCurrentUser && <UserCircle />}
+      {!isCurrentUser && <UserCircle className="h-8 w-8 mr-2 flex-shrink-0" />}
 
-      <div className="w-[80%] overflow-x-hidden">
+      <div className="max-w-[80%] overflow-x-hidden">
         <div
           className={cn(
-            'rounded-2xl px-4 py-2 wrap-anywhere',
+            'rounded-lg px-4 py-2 wrap-anywhere',
             isCurrentUser
               ? 'text-primary-foreground rounded-br-none bg-green-300 text-gray-950'
               : 'rounded-bl-none bg-gray-200 text-gray-800',
@@ -64,10 +96,13 @@ export const MessageComponent: React.FC<MessageProperties> = ({ message, isCurre
         >
           {renderedContent}
         </div>
-        <span className="text-muted-foreground mt-1 text-xs">{formattedTime}</span>
+        <div className="mt-1 text-xs flex items-center">
+          <span className="text-muted-foreground">{formattedTime}</span>
+          {renderMessageStatus()}
+        </div>
       </div>
 
-      {isCurrentUser && <UserCircle />}
+      {isCurrentUser && <UserCircle className="h-8 w-8 ml-2 flex-shrink-0" />}
     </div>
   );
 };

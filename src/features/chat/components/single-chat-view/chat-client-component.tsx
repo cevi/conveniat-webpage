@@ -6,7 +6,7 @@ import { MessageList } from '@/features/chat/components/single-chat-view/message
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import React from 'react';
+import type React from 'react';
 
 export interface ChatInterface {
   chatId: string;
@@ -25,7 +25,7 @@ export const ChatClientComponent: React.FC<ChatInterface> = ({ chatId }) => {
 
   return (
     <div className="flex flex-col bg-white z-[500] h-dvh fixed top-0 w-screen overflow-y-hidden">
-      <ChatHeader name={chatDetail.name} />
+      <ChatHeader chatDetails={chatDetail} />
       <div className="flex-1 overflow-y-auto">
         <MessageList chatDetails={chatDetail} />
       </div>
@@ -38,13 +38,16 @@ export const ChatClientComponent: React.FC<ChatInterface> = ({ chatId }) => {
 
 const ChatSkeleton: React.FC = () => (
   <div className="flex flex-col bg-white z-[500] h-dvh fixed top-0 w-screen">
-    <div className="flex items-center gap-2 border-b-2 border-gray-200  h-[62px] px-4 dark:border-gray-700">
+    <div className="flex items-center gap-2 border-b-2 border-gray-200 h-[62px] px-4 dark:border-gray-700">
       <Link href="/app/chat">
         <Button variant="ghost" size="icon" className="mr-2">
           <ArrowLeft className="h-5 w-5" />
         </Button>
       </Link>
       <div className="h-8 w-48 bg-gray-50" />
+      <div className="ml-auto">
+        <div className="h-8 w-8 rounded-full bg-gray-50" />
+      </div>
     </div>
     <div className="flex-1 space-y-4 overflow-y-auto p-4">
       {Array.from({ length: 5 })

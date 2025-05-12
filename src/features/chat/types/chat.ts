@@ -3,6 +3,7 @@ export interface Message {
   senderId: string;
   content: string;
   timestamp: Date;
+  status?: 'sent' | 'delivered' | 'read';
 }
 
 export interface Chat {
@@ -24,4 +25,20 @@ export interface SendMessage {
 
 export interface OptimisticMessage extends Message {
   isOptimistic?: boolean;
+}
+
+export interface Participant {
+  id: string;
+  name: string;
+  isOnline: boolean;
+  lastSeen?: string;
+}
+
+export interface ChatDetail {
+  id: string;
+  name: string;
+  messages: Message[];
+  participants: Participant[];
+  isGroupChat?: boolean;
+  lastActivity?: string;
 }

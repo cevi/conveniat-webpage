@@ -108,6 +108,16 @@ export const getChatDetail = async (chatID: string): Promise<ChatDetail> => {
       timestamp: message.timestamp,
       content: message.content,
       senderId: message.senderId,
+      // eslint-disable-next-line no-nested-ternary
+      status: Math.random() >= 0.5 ? (Math.random() < 0.5 ? 'delivered' : 'read') : 'sent',
+      isOptimistic: false,
     })),
+    participants: [
+      {
+        id: user.cevi_db_uuid.toString(),
+        name: user.name,
+        isOnline: Math.random() >= 0.5,
+      },
+    ],
   };
 };
