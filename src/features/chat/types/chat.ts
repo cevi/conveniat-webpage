@@ -11,6 +11,7 @@ export interface Chat {
   name: string;
   lastMessage?: Message;
   lastUpdate: Date;
+  unreadCount?: number;
 }
 
 export interface ChatDetail extends Chat {

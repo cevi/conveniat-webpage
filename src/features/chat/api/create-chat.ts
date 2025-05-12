@@ -7,7 +7,7 @@ import { auth } from '@/utils/auth-helpers';
 
 const prisma = new PrismaClient();
 
-export const createChat = async (members: Contact[]): Promise<void> => {
+export const createChat = async (members: Contact[], chatName: string): Promise<void> => {
   const session = await auth();
   const user = session?.user as unknown as HitobitoNextAuthUser | undefined;
   if (user === undefined) {
@@ -16,7 +16,7 @@ export const createChat = async (members: Contact[]): Promise<void> => {
 
   await prisma.chat.create({
     data: {
-      name: 'New Chat',
+      name: chatName,
       messages: {
         create: {
           content: 'New chat created',
