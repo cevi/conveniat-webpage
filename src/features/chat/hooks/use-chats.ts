@@ -19,6 +19,7 @@ export const useChats = (): UseQueryResult<Chat[]> => {
   const query = useQuery({
     queryKey: CHATS_QUERY_KEY,
     queryFn: getChats,
+    refetchInterval: 30_000, // 30 seconds
   });
 
   useEffect(() => {
@@ -49,6 +50,7 @@ export const useChatDetail = (chatId: string): UseQueryResult<ChatDetail> => {
     queryKey: CHAT_DETAIL_QUERY_KEY(chatId),
     queryFn: () => getChatDetail(chatId),
     enabled: chatId !== '',
+    refetchInterval: 30_000, // 30 seconds
   });
 
   useEffect(() => {

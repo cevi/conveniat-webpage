@@ -1,30 +1,19 @@
 'use client';
 import { Button } from '@/components/ui/buttons/button';
-import { sendMessage } from '@/features/chat/api/send-message';
-import { ChatHeader } from '@/features/chat/components/chat-header';
-import { MessageInput } from '@/features/chat/components/message-input';
-import { MessageList } from '@/features/chat/components/message-list';
+import { ChatHeader } from '@/features/chat/components/single-chat-view/chat-header';
+import { MessageInput } from '@/features/chat/components/single-chat-view/message-input';
+import { MessageList } from '@/features/chat/components/single-chat-view/message-list';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import React, { useState } from 'react';
+import React from 'react';
 
 export interface ChatInterface {
   chatId: string;
 }
 
-export const ChatInterface: React.FC<ChatInterface> = ({ chatId }) => {
+export const ChatClientComponent: React.FC<ChatInterface> = ({ chatId }) => {
   const { data: chatDetail, isLoading } = useChatDetail(chatId);
-  const [newMessage, setNewMessage] = useState('');
-
-  const handleSendMessage = async (message: string): Promise<void> => {
-    setNewMessage('');
-    await sendMessage({
-      chatId: chatId,
-      content: message,
-      timestamp: new Date(),
-    });
-  };
 
   if (isLoading) {
     return <ChatSkeleton />;
@@ -41,7 +30,7 @@ export const ChatInterface: React.FC<ChatInterface> = ({ chatId }) => {
         <MessageList chatDetails={chatDetail} />
       </div>
       <div className="border-t border-gray-200 p-4">
-        <MessageInput value={newMessage} onChange={setNewMessage} onSend={handleSendMessage} />
+        <MessageInput chatId={chatId} />
       </div>
     </div>
   );

@@ -1,11 +1,11 @@
 import { useFormatDate } from '@/features/chat/hooks/use-format-date';
-import type { Message } from '@/features/chat/types/chat';
+import type { Message, OptimisticMessage } from '@/features/chat/types/chat';
 import { cn } from '@/utils/tailwindcss-override';
 import { UserCircle } from 'lucide-react';
 import type React from 'react';
 
 interface MessageProperties {
-  message: Message;
+  message: Message | OptimisticMessage;
   isCurrentUser: boolean;
 }
 
@@ -59,6 +59,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({ message, isCurre
             isCurrentUser
               ? 'text-primary-foreground rounded-br-none bg-green-300 text-gray-950'
               : 'rounded-bl-none bg-gray-200 text-gray-800',
+            'isOptimistic' in message && message.isOptimistic && 'opacity-50',
           )}
         >
           {renderedContent}

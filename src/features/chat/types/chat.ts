@@ -21,3 +21,7 @@ export interface SendMessage {
   content: string;
   timestamp: Date;
 }
+
+export interface OptimisticMessage extends Message {
+  isOptimistic?: boolean;
+}

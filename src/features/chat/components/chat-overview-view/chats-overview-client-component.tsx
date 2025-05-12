@@ -1,5 +1,5 @@
 'use client';
-import { ChatPreview } from '@/features/chat/components/chat-overview/chat-preview';
+import { ChatPreview } from '@/features/chat/components/chat-overview-view/chat-preview';
 import { useChats } from '@/features/chat/hooks/use-chats';
 import React from 'react';
 

@@ -1,5 +1,5 @@
 'use client';
-import { MessageComponent } from '@/features/chat/components/message';
+import { MessageComponent } from '@/features/chat/components/single-chat-view/message';
 import { useChatUser } from '@/features/chat/hooks/use-chat-user';
 import type { ChatDetail } from '@/features/chat/types/chat';
 import type React from 'react';

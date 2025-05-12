@@ -1,4 +1,4 @@
-import { ChatComponent } from '@/features/chat/components/chat-component';
+import { ChatClientComponent } from '@/features/chat/components/single-chat-view/chat-client-component';
 import type React from 'react';
 
 interface ChatPageProperties {
@@ -9,7 +9,7 @@ interface ChatPageProperties {
 
 const ChatPage: React.FC<ChatPageProperties> = async ({ params }) => {
   const { chatId } = await params;
-  return <ChatComponent chatId={chatId} />;
+  return <ChatClientComponent chatId={chatId} />;
 };
 
 export default ChatPage;

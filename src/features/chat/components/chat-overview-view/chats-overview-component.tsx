@@ -1,6 +1,6 @@
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
-import { ChatsOverviewClientComponent } from '@/features/chat/components/chat-overview/chats-overview-client-component';
-import { CreateNewChatClientComponent } from '@/features/chat/components/chat-overview/new-chat-client-component';
+import { ChatsOverviewClientComponent } from '@/features/chat/components/chat-overview-view/chats-overview-client-component';
+import { CreateNewChatClientComponent } from '@/features/chat/components/chat-overview-view/new-chat-client-component';
 import React, { Suspense } from 'react';
 
 export const ChatsOverviewComponent: React.FC = async () => {
