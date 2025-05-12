@@ -6,7 +6,7 @@ interface TypingIndicatorProperties {
 }
 
 export const TypingIndicator: React.FC<TypingIndicatorProperties> = ({ userName }) => {
-  if (userName !== undefined && userName !== '') return <></>;
+  if (userName === undefined || userName === '') return <></>;
 
   return (
     <div className="flex items-center gap-2 px-4 py-2">

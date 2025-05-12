@@ -15,7 +15,7 @@ export const MessageList: React.FC<{ chatDetails: ChatDetail }> = ({ chatDetails
   const { data: currentUser } = useChatUser();
   const messagesEndReference = useRef<HTMLDivElement>(null);
 
-  const [typingUser, setTypingUser] = useState<string | undefined>('123');
+  const [typingUser, setTypingUser] = useState<string | undefined>('Some Random User');
 
   useEffect(() => {
     messagesEndReference.current?.scrollIntoView({ behavior: 'instant' });
