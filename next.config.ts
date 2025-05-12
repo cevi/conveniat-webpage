@@ -32,6 +32,7 @@ const nextConfig: NextConfig = {
   productionBrowserSourceMaps: process.env['INCLUDE_SOURCE_MAP'] === 'true',
   serverExternalPackages: ['mongodb', 'mongoose'],
   transpilePackages: ['@t3-oss/env-nextjs', '@t3-oss/env-core'],
+  poweredByHeader: false,
   reactStrictMode: true,
   turbopack: {
     moduleIds: 'named',
