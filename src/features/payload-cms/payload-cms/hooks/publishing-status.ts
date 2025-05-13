@@ -177,8 +177,26 @@ const hasDiffs = (
       case 'collapsible':
       case 'array': {
         if (fields === undefined) throw new Error('Fields are undefined');
-        if (hasDiffs(locale, fields, value1 as PayloadDocument, value2 as PayloadDocument))
-          return true;
+
+        for (const _value1 of value1 as { id: string }[]) {
+          const idV1 = _value1.id;
+
+          // @ts-ignore
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
+          const _value2 = value2.find((v) => v.id === idV1);
+          if (_value2 === undefined) return true; // value isn't found in document2
+          if (
+            hasDiffs(
+              locale,
+              fields,
+              _value1 as unknown as PayloadDocument,
+              _value2 as PayloadDocument,
+            )
+          ) {
+            return true;
+          }
+        }
+
         break; // no diff found, continue with the next field
       }
 
@@ -263,6 +281,7 @@ export const getPublishingStatus =
       id,
       // avoid infinite recursion
       select: { publishingStatus: false },
+      depth: 0,
       locale: 'all',
       draft: false,
     })) as unknown as PayloadDocument;
@@ -273,6 +292,7 @@ export const getPublishingStatus =
       // avoid infinite recursion
       select: { publishingStatus: false },
       locale: 'all',
+      depth: 0,
       draft: true,
     })) as unknown as PayloadDocument;
 
