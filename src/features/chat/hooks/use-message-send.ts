@@ -27,7 +27,6 @@ export const useMessageSend = (
       const messagePayload = {
         chatId: chatId,
         content: content.trim(),
-        timestamp: new Date(),
       };
       return sendMessage(messagePayload);
     },

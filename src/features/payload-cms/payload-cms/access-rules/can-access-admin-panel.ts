@@ -17,7 +17,10 @@ export const canAccessAdminPanel: ({
   req: PayloadRequest;
 }) => boolean | Promise<boolean> = ({ req: { user } }) => {
   if (!user) return false;
-  return user.groups.some((group) => GROUPS_WITH_API_ACCESS.has(group.id));
+
+  // @ts-ignore
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return,@typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
+  return user.group_ids?.some((id: number) => GROUPS_WITH_API_ACCESS.has(id));
 };
 
 /**
@@ -28,5 +31,8 @@ export const canAccessAdminPanel: ({
  */
 export const canAccessAPI: Access = ({ req: { user } }) => {
   if (!user) return false;
-  return user.groups.some((group) => GROUPS_WITH_API_ACCESS.has(group.id));
+
+  // @ts-ignore
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return,@typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
+  return user.group_ids?.some((id: number) => GROUPS_WITH_API_ACCESS.has(id));
 };

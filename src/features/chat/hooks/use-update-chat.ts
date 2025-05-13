@@ -1,3 +1,5 @@
+import { renameChat } from '@/features/chat/api/rename-chat';
+import { CHAT_DETAIL_QUERY_KEY } from '@/features/chat/hooks/use-chats';
 import { useMutation, type UseMutationResult, useQueryClient } from '@tanstack/react-query';
 
 interface UpdateChatParameters {
@@ -9,19 +11,18 @@ export const useUpdateChat = (): UseMutationResult<
   { success: boolean },
   Error,
   UpdateChatParameters,
-  { success: boolean }
+  void
 > => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ chatId, name }: UpdateChatParameters) => {
-      // In a real app, this would be an API call
-      // For demo purposes, we'll just simulate a successful update
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      return { success: true };
+      return renameChat(chatId, name);
     },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['chat', variables.chatId] }).catch(console.error);
+    onSuccess: (_, { chatId }) => {
+      queryClient
+        .invalidateQueries({ queryKey: CHAT_DETAIL_QUERY_KEY(chatId) })
+        .catch(console.error);
     },
   });
 };

@@ -9,27 +9,47 @@ datasource db {
 }
 
 model User {
-  uuid     String    @id @default(uuid())
-  name     String
-  ceviDbID String    @unique
-  chats    Chat[]    @relation("UserChats")
-  Message  Message[]
+  /**
+   * The unique identifier for the user as generated as id by payload.
+   */
+  uuid     String   @id
+  lastSeen DateTime @default(now())
+
+  /**
+   * The nickname of the user. Defaults to the user's nickname resp. name defined in payload.
+   */
+  name            String
+  messages        Message[]
+  chatMemberships ChatMembership[]
 }
 
 model Chat {
-  uuid       String    @id @default(uuid())
+  uuid       String   @id @default(uuid())
   name       String
-  lastUpdate DateTime  @default(now())
-  messages   Message[]
-  users      User[]    @relation("UserChats")
+  lastUpdate DateTime @default(now())
+
+  messages        Message[]
+  chatMemberships ChatMembership[]
+}
+
+model ChatMembership {
+  userId String
+  user   User   @relation(fields: [userId], references: [uuid])
+
+  chatId String
+  chat   Chat   @relation(fields: [chatId], references: [uuid])
+
+  @@id([userId, chatId])
 }
 
 model Message {
   uuid      String   @id @default(uuid())
   content   String
   timestamp DateTime @default(now())
-  chatId    String
-  chat      Chat     @relation(fields: [chatId], references: [uuid])
-  senderId  String
-  sender    User     @relation(fields: [senderId], references: [uuid])
+
+  chatId String
+  chat   Chat   @relation(fields: [chatId], references: [uuid])
+
+  senderId String
+  sender   User   @relation(fields: [senderId], references: [uuid])
 }

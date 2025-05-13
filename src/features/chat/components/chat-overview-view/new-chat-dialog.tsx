@@ -13,7 +13,6 @@ import { Input } from '@/components/ui/input';
 import { createChat } from '@/features/chat/api/create-chat';
 import type { Contact } from '@/features/chat/api/get-contacts';
 import { CHATS_QUERY_KEY, useAllContacts } from '@/features/chat/hooks/use-chats';
-import { Checkbox } from '@headlessui/react';
 import { useQueryClient } from '@tanstack/react-query';
 import { MessageSquarePlus, Search, Users } from 'lucide-react';
 import type React from 'react';
@@ -41,24 +40,24 @@ export const NewChatDialog: React.FC = () => {
     }
   }, [open]);
 
-  const handleContactToggle = (contact: Contact) => {
+  const handleContactToggle = (contact: Contact): void => {
     setSelectedContacts((previous) => {
       const isSelected = previous.some((c) => c.uuid === contact.uuid);
       return isSelected ? previous.filter((c) => c.uuid !== contact.uuid) : [...previous, contact];
     });
   };
 
-  const handleCreateChat = async () => {
+  const handleCreateChat = async (): Promise<void> => {
     if (selectedContacts.length === 0) {
       // TODO handle error
     }
 
     try {
       // If it's a group chat and has a name, pass it to the createChat function
-      const chatName =
-        selectedContacts.length > 1 && groupChatName.trim()
+      const chatName: string | undefined =
+        selectedContacts.length > 1 && groupChatName.trim() !== ''
           ? groupChatName.trim()
-          : 'Freshly Created Chat';
+          : undefined;
 
       await createChat(selectedContacts, chatName);
       await queryClient.invalidateQueries({ queryKey: CHATS_QUERY_KEY });
@@ -95,7 +94,7 @@ export const NewChatDialog: React.FC = () => {
               id="group-name"
               placeholder="Enter group name (optional)"
               value={groupChatName}
-              onChange={(e) => setGroupChatName(e.target.value)}
+              onChange={(changeEvent) => setGroupChatName(changeEvent.target.value)}
             />
           </div>
         )}
@@ -106,7 +105,7 @@ export const NewChatDialog: React.FC = () => {
             placeholder="Search contacts..."
             className="pl-10"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(changeEvent) => setSearchQuery(changeEvent.target.value)}
           />
         </div>
 
@@ -136,24 +135,23 @@ export const NewChatDialog: React.FC = () => {
         )}
 
         <div className="h-[300px] pr-4">
-          {isLoading ? (
+          {isLoading && (
             <div className="flex items-center justify-center py-8">
               <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-blue-500"></div>
             </div>
-          ) : filteredContacts?.length === 0 ? (
+          )}
+          {!isLoading && filteredContacts?.length === 0 && (
             <p className="py-4 text-center text-sm text-gray-500">No contacts found</p>
-          ) : (
-            <div className="space-y-2">
+          )}
+
+          {!isLoading && (filteredContacts?.length ?? 0) > 0 && (
+            <div className="space-y-2 overflow-y-scroll h-full">
               {filteredContacts?.map((contact) => (
                 <div
                   key={contact.uuid}
                   className="flex items-center space-x-2 rounded-md p-2 hover:bg-gray-100 dark:hover:bg-gray-800"
                   onClick={() => handleContactToggle(contact)}
                 >
-                  <Checkbox
-                    id={contact.uuid}
-                    checked={selectedContacts.some((c) => c.uuid === contact.uuid)}
-                  />
                   <div className="flex flex-1 cursor-pointer items-center justify-between">
                     <div>
                       <p className="text-sm font-medium">{contact.name}</p>
@@ -169,7 +167,12 @@ export const NewChatDialog: React.FC = () => {
           <Button variant="outline" onClick={() => setOpen(false)}>
             Cancel
           </Button>
-          <Button onClick={handleCreateChat} disabled={selectedContacts.length === 0}>
+          <Button
+            onClick={(): void => {
+              handleCreateChat().catch(console.error);
+            }}
+            disabled={selectedContacts.length === 0}
+          >
             Create Chat
           </Button>
         </DialogFooter>

@@ -21,7 +21,6 @@ export interface ChatDetail extends Chat {
 export interface SendMessage {
   chatId: string;
   content: string;
-  timestamp: Date;
 }
 
 export interface OptimisticMessage extends Message {

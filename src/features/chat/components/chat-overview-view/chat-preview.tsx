@@ -1,3 +1,5 @@
+'use client';
+import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import type { Chat } from '@/features/chat/types/chat';
 import { cn } from '@/utils/tailwindcss-override';
 import { formatDistanceToNow } from 'date-fns';
@@ -14,9 +16,11 @@ export const ChatPreview: React.FC<{
     ? formatDistanceToNow(new Date(chat.lastMessage.timestamp), { addSuffix: true })
     : '';
 
+  const { data: chatDetails } = useChatDetail(chat.id);
+
   // Determine participant count for group chats
-  const participantCount = 2; // TODO: fetch this from the chat data
-  const isGroupChat = participantCount > 1;
+  const participantCount = chatDetails?.participants.length ?? 0;
+  const isGroupChat = participantCount > 2;
 
   return (
     <Link href={chatDetailLink} className="block w-full">

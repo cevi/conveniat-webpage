@@ -1,10 +1,8 @@
 'use server';
 
-import { PrismaClient } from '@/lib/prisma';
+import prisma from '@/features/chat/database';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import { auth } from '@/utils/auth-helpers';
-
-const prisma = new PrismaClient();
 
 export interface Contact {
   uuid: string;
@@ -21,8 +19,8 @@ export const fetchAllContacts = async (): Promise<Contact[]> => {
 
   const contacts = await prisma.user.findMany({
     where: {
-      ceviDbID: {
-        not: user.cevi_db_uuid.toString(),
+      uuid: {
+        not: user.uuid,
       },
     },
     select: {

@@ -1,10 +1,8 @@
 'use server';
 
-import { PrismaClient } from '@/lib/prisma';
+import prisma from '@/features/chat/database';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import { auth } from '@/utils/auth-helpers';
-
-const prisma = new PrismaClient();
 
 export const fetchChatUser = async (): Promise<string> => {
   const session = await auth();
@@ -14,9 +12,7 @@ export const fetchChatUser = async (): Promise<string> => {
   }
 
   const prismaUser = await prisma.user.findUniqueOrThrow({
-    where: {
-      ceviDbID: user.cevi_db_uuid.toString(),
-    },
+    where: { uuid: user.uuid },
   });
 
   return prismaUser.uuid;

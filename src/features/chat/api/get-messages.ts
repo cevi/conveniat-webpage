@@ -1,11 +1,30 @@
 'use server';
 
+import prisma from '@/features/chat/database';
 import type { Chat, ChatDetail } from '@/features/chat/types/chat';
-import { PrismaClient } from '@/lib/prisma/client';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import { auth } from '@/utils/auth-helpers';
 
-const prisma = new PrismaClient();
+const resolveChatName = (
+  chatName: string,
+  users: {
+    name: string;
+    uuid: string;
+  }[],
+  currentUer: HitobitoNextAuthUser,
+): string => {
+  if (users.length > 2) {
+    return chatName;
+  }
+
+  const otherUser = users.find((user) => user.uuid !== currentUer.uuid.toString());
+  if (otherUser) {
+    return otherUser.name;
+  }
+
+  // fallback
+  return chatName;
+};
 
 export const getChats = async (): Promise<Chat[]> => {
   const session = await auth();
@@ -17,28 +36,33 @@ export const getChats = async (): Promise<Chat[]> => {
 
   let prismaUser = await prisma.user.findUnique({
     where: {
-      ceviDbID: user.cevi_db_uuid.toString(),
+      uuid: user.uuid,
     },
   });
 
   // create user if not exists
   prismaUser ??= await prisma.user.create({
     data: {
-      ceviDbID: user.cevi_db_uuid.toString(),
+      uuid: user.uuid,
       name: user.name,
     },
   });
 
   const chats = await prisma.chat.findMany({
     where: {
-      users: {
+      chatMemberships: {
         some: {
-          uuid: prismaUser.uuid,
+          userId: prismaUser.uuid,
         },
       },
     },
     include: {
       messages: true,
+      chatMemberships: {
+        include: {
+          user: true,
+        },
+      },
     },
     orderBy: {
       lastUpdate: 'desc',
@@ -56,7 +80,14 @@ export const getChats = async (): Promise<Chat[]> => {
 
     return {
       lastUpdate: chat.lastUpdate,
-      name: chat.name,
+      name: resolveChatName(
+        chat.name,
+        chat.chatMemberships.map((membership) => ({
+          name: membership.user.name,
+          uuid: membership.user.uuid,
+        })),
+        user,
+      ),
       id: chat.uuid,
       lastMessage: {
         id: lastMessage.uuid,
@@ -82,6 +113,11 @@ export const getChatDetail = async (chatID: string): Promise<ChatDetail> => {
     },
     include: {
       messages: true,
+      chatMemberships: {
+        select: {
+          user: true,
+        },
+      },
     },
   });
 
@@ -101,7 +137,11 @@ export const getChatDetail = async (chatID: string): Promise<ChatDetail> => {
 
   return {
     lastUpdate: chat.lastUpdate,
-    name: chat.name,
+    name: resolveChatName(
+      chat.name,
+      chat.chatMemberships.map((membership) => membership.user),
+      user,
+    ),
     id: chat.uuid,
     messages: messages.map((message) => ({
       id: message.uuid,
@@ -112,12 +152,10 @@ export const getChatDetail = async (chatID: string): Promise<ChatDetail> => {
       status: Math.random() >= 0.5 ? (Math.random() < 0.5 ? 'delivered' : 'read') : 'sent',
       isOptimistic: false,
     })),
-    participants: [
-      {
-        id: user.cevi_db_uuid.toString(),
-        name: user.name,
-        isOnline: Math.random() >= 0.5,
-      },
-    ],
+    participants: chat.chatMemberships.map((membership) => ({
+      id: membership.user.uuid,
+      name: membership.user.name,
+      isOnline: Math.random() >= 0.5,
+    })),
   };
 };

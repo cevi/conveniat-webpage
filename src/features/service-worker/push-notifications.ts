@@ -36,10 +36,7 @@ export const pushNotificationHandler =
         });
 
         const isAppInFocus = clientList.some((client) => {
-          return (
-            (client as WindowClient).visibilityState === 'visible' &&
-            (client as WindowClient).focused
-          );
+          return (client as WindowClient).visibilityState === 'visible';
         });
 
         if (isAppInFocus) {
@@ -66,7 +63,6 @@ export const notificationClickHandler =
     event.notification.close();
     event.waitUntil(
       serviceWorkerScope.clients.openWindow(
-        // eslint-disable-next-line n/no-process-env
         process.env['NEXT_PUBLIC_APP_HOST_URL'] ?? 'https://conveniat27.ch',
       ),
     );
