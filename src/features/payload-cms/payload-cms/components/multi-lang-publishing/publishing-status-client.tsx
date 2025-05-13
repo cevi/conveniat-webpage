@@ -5,8 +5,12 @@ import { useAllFormFields, useDocumentInfo } from '@payloadcms/ui';
 import React, { useEffect, useRef, useState } from 'react';
 
 export const PublishingStatusBadges: React.FC<{
-  publishingStatus: PublishingStatusType;
+  publishingStatus: PublishingStatusType | undefined;
 }> = ({ publishingStatus }) => {
+  if (publishingStatus === undefined) {
+    return <></>;
+  }
+
   return (
     <span>
       {Object.entries(publishingStatus).map(([locale, status]) => (

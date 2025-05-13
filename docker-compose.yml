@@ -5,6 +5,7 @@ services:
       dockerfile: dev.Dockerfile
     ports:
       - '3000:3000'
+      - '5555:5555'
     volumes:
       - .:/home/node/app
       - next-cache:/home/node/app/.next
@@ -12,7 +13,11 @@ services:
       - node_modules:/home/node/app/node_modules
     working_dir: /home/node/app/
     command: >
-      sh -c "corepack enable pnpm && pnpm i --frozen-lockfile &&
+      sh -c "export PRISMA_OUTPUT='src/lib/prisma/client/' &&
+      npx prisma generate &&
+      npx prisma db push &&
+      npx prisma studio &
+      corepack enable pnpm && pnpm i --frozen-lockfile &&
       sh /home/node/app/create_build_info.sh &&
       if [ \"$ENABLE_SERVICE_WORKER_LOCALLY\" = \"true\" ]; then
         echo '' &&
@@ -88,9 +93,22 @@ services:
       - '3001:5000'
     restart: always
 
+  postgres:
+    image: postgres:latest
+
+    ports:
+      - '5432:5432'
+
+    env_file:
+      - .env
+
+    volumes:
+      - postgress-data:/var/lib/postgresql/data
+
 volumes:
   data:
   node_modules:
   next-cache:
   minio-data:
   node-cache:
+  postgress-data:

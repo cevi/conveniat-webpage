@@ -1,5 +1,6 @@
 import type { PhotoCarouselBlock } from '@/components/gallery';
 import { PhotoCarousel } from '@/components/gallery';
+import { Accordion } from '@/features/payload-cms/components/accordion/accordion';
 import type { FileDownloadType } from '@/features/payload-cms/components/content-blocks/file-download';
 import { FileDownload } from '@/features/payload-cms/components/content-blocks/file-download';
 import type { HeroSectionType } from '@/features/payload-cms/components/content-blocks/hero-section';
@@ -19,10 +20,12 @@ import { YoutubeEmbed } from '@/features/payload-cms/components/content-blocks/y
 import type { FormBlockType } from '@/features/payload-cms/components/form';
 import type { ContentBlock } from '@/features/payload-cms/converters/page-sections/section-wrapper';
 import SectionWrapper from '@/features/payload-cms/converters/page-sections/section-wrapper';
+import type { Accordion as AccordionType } from '@/features/payload-cms/payload-types';
 import type { LocalizedPageType } from '@/types/types';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import Image from 'next/image';
-import React from 'react';
+import type React from 'react';
+import { Fragment } from 'react';
 
 export type ContentBlockTypeNames =
   | 'blogPostsOverview'
@@ -35,7 +38,8 @@ export type ContentBlockTypeNames =
   | 'heroSection'
   | 'swisstopoEmbed'
   | 'fileDownload'
-  | 'detailsTable';
+  | 'detailsTable'
+  | 'accordion';
 
 export type SectionRenderer<T = object> = React.FC<
   LocalizedPageType & {
@@ -44,6 +48,27 @@ export type SectionRenderer<T = object> = React.FC<
     sectionOverrides?: { [key in ContentBlockTypeNames]?: string };
   }
 >;
+
+export const AccordionBlock: SectionRenderer<AccordionType> = ({
+  block,
+  sectionClassName,
+  sectionOverrides,
+}) => {
+  return (
+    <SectionWrapper
+      block={block}
+      sectionClassName={sectionClassName}
+      sectionOverrides={sectionOverrides}
+      errorFallbackMessage="Failed to load details table. Reload the page to try again."
+    >
+      <LexicalRichTextSection richTextSection={block.introduction} />
+
+      <div className="mt-4">
+        <Accordion block={block} />
+      </div>
+    </SectionWrapper>
+  );
+};
 
 export const DetailsTable: SectionRenderer<{
   introduction: SerializedEditorState;
@@ -59,17 +84,17 @@ export const DetailsTable: SectionRenderer<{
       <LexicalRichTextSection richTextSection={block.introduction} />
 
       <div className="mt-4">
-        <hr className="border-b-2 border-gray-100" />
+        <hr className=" border border-gray-100" />
         {block.detailsTableBlocks.map((detailsTableEntry, index) => (
-          <React.Fragment key={index}>
+          <Fragment key={index}>
             <div className="grid gap-x-2 hyphens-auto p-2 md:grid-cols-[1fr_2fr]">
               <div className="my-2 font-semibold text-conveniat-green">
                 {detailsTableEntry.label}
               </div>
               <LexicalRichTextSection richTextSection={detailsTableEntry.value} />
             </div>
-            <hr className="grid-cols-2 border-b-2 border-gray-100" />
-          </React.Fragment>
+            <hr className="grid-cols-2  border border-gray-100" />
+          </Fragment>
         ))}
       </div>
     </SectionWrapper>

@@ -1,5 +1,6 @@
 export interface HitobitoProfile {
-  id: string;
+  id: number;
+  payloadUuid: string;
   email: string;
   first_name: string;
   last_name: string;

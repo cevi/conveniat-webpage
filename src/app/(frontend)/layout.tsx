@@ -33,11 +33,11 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children }) => {
       lang={locale}
     >
       <body
-        className={cn('flex h-screen w-screen flex-col overflow-x-hidden bg-[#f8fafc]', {
+        className={cn('flex h-dvh w-dvw flex-col overflow-x-hidden bg-[#f8fafc]', {
           'overscroll-y-none': isInAppDesign,
         })}
       >
-        <HeaderComponent />
+        <HeaderComponent locale={locale} />
 
         <div className="absolute top-0 z-[-999] h-screen w-full p-[56px]">
           <CeviLogo className="mx-auto h-full max-h-[60vh] w-full max-w-[384px] opacity-10 blur-md" />

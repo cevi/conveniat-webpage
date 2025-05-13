@@ -14,57 +14,14 @@ export const { handlers, auth } = NextAuth(authOptions);
  * 1. The user object itself is not `undefined`.
  * 2. The `name` property is not an empty string.
  * 3. The `email` property is not an empty string.
- * 4. The `cevi_db_uuid` property is a number greater than 0.
+ * 4. The `uuid` property is set (not an empty string).
  *
  * @param {HitobitoNextAuthUser} user - The NextAuth user object to validate. Might be `undefined`.
  * @returns {boolean} `true` if the user meets all validity criteria, `false` otherwise.
  */
 export const isValidNextAuthUser = (user?: HitobitoNextAuthUser): boolean => {
-  return user !== undefined && user.name !== '' && user.email !== '' && user.cevi_db_uuid > 0;
+  return user !== undefined && user.name !== '' && user.email !== '' && user.uuid !== '';
 };
-
-async function saveUserToDB(
-  payload: BasePayload,
-  nextAuthUser: HitobitoNextAuthUser,
-): Promise<void> {
-  const userExists = await payload
-    .count({
-      collection: 'users',
-      where: { cevi_db_uuid: { equals: nextAuthUser.cevi_db_uuid } },
-    })
-    .then((response) => response.totalDocs == 1);
-
-  // abort if the user already exists but still update user data
-  if (userExists) {
-    await payload.update({
-      collection: 'users',
-      where: { cevi_db_uuid: { equals: nextAuthUser.cevi_db_uuid } },
-      data: {
-        groups: nextAuthUser.groups,
-        email: nextAuthUser.email,
-        fullName: nextAuthUser.name,
-        nickname: nextAuthUser.nickname,
-      },
-    });
-    return; // bail out and do not create user
-  }
-
-  // save the new user to the database
-  try {
-    await payload.create({
-      collection: 'users',
-      data: {
-        cevi_db_uuid: nextAuthUser.cevi_db_uuid,
-        groups: nextAuthUser.groups,
-        email: nextAuthUser.email,
-        fullName: nextAuthUser.name,
-        nickname: nextAuthUser.nickname,
-      },
-    });
-  } catch {
-    // Catch Race Condition
-  }
-}
 
 /**
  * Fetches the session from the CeviDB API
@@ -100,7 +57,7 @@ export async function getPayloadUserFromNextAuthUser(
   return await payload
     .find({
       collection: 'users',
-      where: { cevi_db_uuid: { equals: nextAuthUser.cevi_db_uuid } },
+      where: { id: { equals: nextAuthUser.uuid } },
     })
     .then((response) => response.docs[0]);
 }
@@ -117,8 +74,6 @@ export const getAuthenticateUsingCeviDB: AuthStrategyFunction = async ({ headers
   }
 
   const nextAuthUser = session.user;
-  await saveUserToDB(payload, nextAuthUser);
-
   const user = await getPayloadUserFromNextAuthUser(payload, nextAuthUser);
 
   return {

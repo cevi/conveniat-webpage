@@ -13,7 +13,7 @@ export const releaseDate: Field = {
     position: 'sidebar',
     date: {
       pickerAppearance: 'dayAndTime',
-      displayFormat: 'YYYY-MM-DD HH:mm',
+      displayFormat: 'YYYY-MM-dd HH:mm',
       timeIntervals: 15,
     },
   },

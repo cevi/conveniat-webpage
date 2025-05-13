@@ -1,4 +1,5 @@
 import { environmentVariables } from '@/config/environment-variables';
+import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { Access, PayloadRequest } from 'payload';
 
 const GROUPS_WITH_API_ACCESS = new Set(environmentVariables.GROUPS_WITH_API_ACCESS);
@@ -17,7 +18,18 @@ export const canAccessAdminPanel: ({
   req: PayloadRequest;
 }) => boolean | Promise<boolean> = ({ req: { user } }) => {
   if (!user) return false;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (user.groups === undefined) return false;
   return user.groups.some((group) => GROUPS_WITH_API_ACCESS.has(group.id));
+};
+
+export const canUserAccessAdminPanel: ({
+  user,
+}: {
+  user: HitobitoNextAuthUser | undefined;
+}) => boolean | Promise<boolean> = ({ user }) => {
+  if (user === undefined) return false;
+  return user.group_ids.some((id) => GROUPS_WITH_API_ACCESS.has(id));
 };
 
 /**
@@ -28,5 +40,7 @@ export const canAccessAdminPanel: ({
  */
 export const canAccessAPI: Access = ({ req: { user } }) => {
   if (!user) return false;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (user.groups === undefined) return false;
   return user.groups.some((group) => GROUPS_WITH_API_ACCESS.has(group.id));
 };

@@ -22,7 +22,7 @@ export const UserCollection: CollectionConfig = {
       'Represents a Hitobito user. These information get automatically synced whenever the user logs in.',
     useAsTitle: 'email',
     group: AdminPanelDashboardGroups.InternalCollections,
-    defaultColumns: ['email', 'fullName', 'nickname', 'cevi_db_uuid'],
+    defaultColumns: ['id', 'email', 'fullName', 'nickname', 'cevi_db_uuid'],
   },
   auth: {
     disableLocalStrategy: true,

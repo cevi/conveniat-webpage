@@ -210,4 +210,4 @@ used for cleaner imports.
 
 ## License
 
-This project is licensed under the ??? License - see the `LICENSE` file for details.
+This project is licensed under the [MIT](LICENSE.md) License - see the `LICENSE` file for details.

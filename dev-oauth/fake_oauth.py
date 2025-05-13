@@ -18,8 +18,19 @@ FAKE_USERS = [
     },
     {
         "id": "2",
-        "email": "benutzer@conveniat27.ch",
-        "first_name": "Benutzer",
+        "email": "benutzer2@conveniat27.ch",
+        "first_name": "Benutzer Nr. 2",
+        "last_name": "Conveniat",
+        "nickname": "NoAccess",
+        "roles": [
+            {"group_id": 102, "group_name": "Editors", "role_name": "Editor", "role_class": "editor"}
+        ],
+        "comment": "Dieser Benutzer hat aktuell keinen Zugriff auf das conveniat27.ch-Backend."
+    },
+    {
+        "id": "3",
+        "email": "benutzer3@conveniat27.ch",
+        "first_name": "Benutzer Nr. 3",
         "last_name": "Conveniat",
         "nickname": "NoAccess",
         "roles": [

@@ -3,6 +3,7 @@ import type {
   SectionRenderer,
 } from '@/features/payload-cms/converters/page-sections/content-blocks';
 import {
+  AccordionBlock,
   DetailsTable,
   RenderBlogPostsOverview,
   RenderFileDownload,
@@ -46,6 +47,7 @@ export const PageSectionsConverter: React.FC<
     swisstopoEmbed: SwisstopoInlineMapSection,
     fileDownload: RenderFileDownload,
     detailsTable: DetailsTable,
+    accordion: AccordionBlock,
   };
 
   return (

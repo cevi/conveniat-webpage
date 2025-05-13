@@ -100,49 +100,6 @@ export async function unsubscribeUser(
   return { success: true };
 }
 
-/**
- * Sends a push notification to the user.
- * @param message
- */
-export async function sendNotification(message: string): Promise<{
-  success: boolean;
-  error?: string;
-}> {
-  const payload = await getPayload({ config });
-
-  const { totalDocs } = await payload.count({ collection: 'push-notification-subscriptions' });
-  if (totalDocs === 0) {
-    throw new Error('No subscription available');
-  }
-
-  const { docs: subscriptions } = await payload.find({
-    collection: 'push-notification-subscriptions',
-    depth: 0,
-  });
-
-  console.log(`Sending notification to ${subscriptions.length} subscriptions`);
-
-  try {
-    const webPushPromises = subscriptions.map((subscription) => {
-      return sendNotificationToSubscription(
-        subscription as webpush.PushSubscription,
-        message,
-      ).catch((error: unknown) => {
-        console.error(`Error sending notification to subscription ${subscription.id}:`, error);
-        throw new Error(`Failed to send notification to subscription ${subscription.id}`); // Rethrow the error to be caught in the outer catch block
-      });
-    });
-    await Promise.all(webPushPromises);
-
-    console.log('Push notifications sent successfully');
-
-    return { success: true };
-  } catch (error) {
-    console.error('Error sending push notification:', error);
-    return { success: false, error: 'Failed to send notification' };
-  }
-}
-
 export async function sendNotificationToSubscription(
   subscription: webpush.PushSubscription,
   message: string,

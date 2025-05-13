@@ -281,6 +281,7 @@ export interface Blog {
           blockType: 'fileDownload';
         }
       | DetailsTable
+      | Accordion
     )[];
   };
   seo: {
@@ -672,6 +673,83 @@ export interface DetailsTable {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "Accordion".
+ */
+export interface Accordion {
+  introduction: {
+    root: {
+      type: string;
+      children: {
+        type: string;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  accordionBlocks?:
+    | {
+        title: string;
+        valueBlocks: (PlainTextBlock | TeamMembersBlock)[];
+        id?: string | null;
+      }[]
+    | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'accordion';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "PlainTextBlock".
+ */
+export interface PlainTextBlock {
+  value: {
+    root: {
+      type: string;
+      children: {
+        type: string;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'accordionPlainTextBlock';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TeamMembersBlock".
+ */
+export interface TeamMembersBlock {
+  teamLeaderGroup: {
+    name: string;
+    ceviname?: string | null;
+    portrait?: (string | null) | Image;
+  };
+  teamMembers?:
+    | {
+        name: string;
+        ceviname?: string | null;
+        function: string;
+        id?: string | null;
+      }[]
+    | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'accordionTeamMembersBlock';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "generic-page".
  */
 export interface GenericPage {
@@ -771,6 +849,7 @@ export interface GenericPage {
           blockType: 'fileDownload';
         }
       | DetailsTable
+      | Accordion
     )[];
   };
   seo: {
@@ -1131,6 +1210,7 @@ export interface BlogSelect<T extends boolean = true> {
                     blockName?: T;
                   };
               detailsTable?: T | DetailsTableSelect<T>;
+              accordion?: T | AccordionSelect<T>;
             };
       };
   seo?:
@@ -1220,6 +1300,59 @@ export interface DetailsTableSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "Accordion_select".
+ */
+export interface AccordionSelect<T extends boolean = true> {
+  introduction?: T;
+  accordionBlocks?:
+    | T
+    | {
+        title?: T;
+        valueBlocks?:
+          | T
+          | {
+              accordionPlainTextBlock?: T | PlainTextBlockSelect<T>;
+              accordionTeamMembersBlock?: T | TeamMembersBlockSelect<T>;
+            };
+        id?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "PlainTextBlock_select".
+ */
+export interface PlainTextBlockSelect<T extends boolean = true> {
+  value?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TeamMembersBlock_select".
+ */
+export interface TeamMembersBlockSelect<T extends boolean = true> {
+  teamLeaderGroup?:
+    | T
+    | {
+        name?: T;
+        ceviname?: T;
+        portrait?: T;
+      };
+  teamMembers?:
+    | T
+    | {
+        name?: T;
+        ceviname?: T;
+        function?: T;
+        id?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "generic-page_select".
  */
 export interface GenericPageSelect<T extends boolean = true> {
@@ -1290,6 +1423,7 @@ export interface GenericPageSelect<T extends boolean = true> {
                     blockName?: T;
                   };
               detailsTable?: T | DetailsTableSelect<T>;
+              accordion?: T | AccordionSelect<T>;
             };
       };
   seo?:

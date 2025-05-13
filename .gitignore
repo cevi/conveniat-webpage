@@ -53,3 +53,6 @@ src/build.ts
 # Serwist
 public/sw*
 public/swe-worker*
+
+# prisma generated files
+src/lib/prisma

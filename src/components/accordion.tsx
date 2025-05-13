@@ -1,5 +1,3 @@
-'use client';
-
 import { cn } from '@/utils/tailwindcss-override';
 import * as AccordionPrimitive from '@radix-ui/react-accordion';
 import { ChevronDown } from 'lucide-react';
