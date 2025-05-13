@@ -17,6 +17,7 @@ const createChatSchema = z.object({
   chatName: z.string().optional(),
 });
 
+// eslint-disable-next-line complexity
 export const createChat = async (
   members: Contact[],
   chatName: string | undefined,

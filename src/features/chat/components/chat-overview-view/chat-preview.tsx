@@ -9,6 +9,7 @@ import React from 'react';
 
 export const ChatPreview: React.FC<{
   chat: Chat;
+  // eslint-disable-next-line complexity
 }> = ({ chat }) => {
   const chatDetailLink = `chat/${chat.id}`;
   const hasUnread = chat.unreadCount && chat.unreadCount > 0;

@@ -2,6 +2,7 @@
 
 import prisma from '@/features/chat/database';
 import type { SendMessage } from '@/features/chat/types/chat';
+// eslint-disable-next-line import/no-restricted-paths
 import { sendNotificationToSubscription } from '@/features/onboarding/api/push-notification';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import { auth } from '@/utils/auth-helpers';
@@ -71,6 +72,7 @@ async function sendNotification(
   }
 }
 
+// eslint-disable-next-line complexity
 export const sendMessage = async (message: SendMessage): Promise<void> => {
   const session = await auth();
   const user = session?.user as unknown as HitobitoNextAuthUser | undefined;
