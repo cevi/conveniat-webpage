@@ -14,9 +14,9 @@ const TeamLeaderPortrait: React.FC<{
       <Image
         src={portrait}
         alt={`Portrait of ${name}`}
-        width={48}
-        height={48}
-        className="object-cover group-hover:scale-105 transition-transform"
+        width={60}
+        height={60}
+        className="object-cover h-full group-hover:scale-105 transition-transform"
       />
     );
   } else if (typeof portrait === 'object' && portrait?.url !== undefined && portrait.url !== null) {
@@ -24,9 +24,9 @@ const TeamLeaderPortrait: React.FC<{
       <Image
         src={portrait.url}
         alt={`Portrait of ${name}`}
-        width={48}
-        height={48}
-        className="object-cover group-hover:scale-105 transition-transform"
+        width={60}
+        height={60}
+        className="object-cover h-full group-hover:scale-105 transition-transform"
       />
     );
   }
