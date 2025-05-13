@@ -18,6 +18,8 @@ export const canAccessAdminPanel: ({
   req: PayloadRequest;
 }) => boolean | Promise<boolean> = ({ req: { user } }) => {
   if (!user) return false;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (user.groups === undefined) return false;
   return user.groups.some((group) => GROUPS_WITH_API_ACCESS.has(group.id));
 };
 
@@ -38,5 +40,7 @@ export const canUserAccessAdminPanel: ({
  */
 export const canAccessAPI: Access = ({ req: { user } }) => {
   if (!user) return false;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (user.groups === undefined) return false;
   return user.groups.some((group) => GROUPS_WITH_API_ACCESS.has(group.id));
 };
