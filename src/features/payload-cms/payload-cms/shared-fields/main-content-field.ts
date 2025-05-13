@@ -1,3 +1,4 @@
+import { accordion } from '@/features/payload-cms/payload-cms/shared-blocks/accordion';
 import { detailsTable } from '@/features/payload-cms/payload-cms/shared-blocks/details-table';
 import { fileDownloadBlock } from '@/features/payload-cms/payload-cms/shared-blocks/file-download-block';
 import { formBlock } from '@/features/payload-cms/payload-cms/shared-blocks/form-block';
@@ -37,5 +38,6 @@ export const mainContentField: Field = {
     swisstopoMapEmbedBlock,
     fileDownloadBlock,
     detailsTable,
+    accordion,
   ],
 };

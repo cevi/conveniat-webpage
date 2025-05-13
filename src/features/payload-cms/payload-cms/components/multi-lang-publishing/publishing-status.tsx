@@ -60,8 +60,12 @@ export const LanguageStatus: React.FC<{
 };
 
 export const PublishingStatusBadges: React.FC<{
-  publishingStatus: PublishingStatusType;
+  publishingStatus: PublishingStatusType | undefined;
 }> = ({ publishingStatus }) => {
+  if (publishingStatus === undefined) {
+    return <></>;
+  }
+
   return (
     <span>
       {Object.entries(publishingStatus).map(([locale, status]) => (

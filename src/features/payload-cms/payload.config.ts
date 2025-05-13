@@ -20,6 +20,7 @@ import type { CollectionConfig, Locale } from 'payload';
 import { de } from 'payload/i18n/de';
 import { en } from 'payload/i18n/en';
 import { fr } from 'payload/i18n/fr';
+import 'server-only'; // some features such as the node mailer are server-only
 import sharp from 'sharp';
 
 const filename = fileURLToPath(import.meta.url);

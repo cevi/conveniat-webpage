@@ -23,7 +23,7 @@
     "start": "cross-env NODE_OPTIONS=--no-deprecation next start"
   },
   "dependencies": {
-    "@headlessui/react": "^2.2.2",
+    "@headlessui/react": "^2.2.3",
     "@payloadcms/db-mongodb": "^3.37.0",
     "@payloadcms/email-nodemailer": "^3.37.0",
     "@payloadcms/live-preview-react": "^3.37.0",
@@ -114,7 +114,7 @@
     "prisma": "6.7.0",
     "tailwindcss": "^4.1.6",
     "typescript": "5.5.4",
-    "typescript-eslint": "^8.32.0",
+    "typescript-eslint": "^8.32.1",
     "unrs-resolver": "^1.7.2"
   },
   "engines": {
