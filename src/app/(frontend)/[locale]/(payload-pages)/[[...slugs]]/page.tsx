@@ -3,14 +3,14 @@ import 'server-only';
 import { CookieBanner } from '@/components/utils/cookie-banner';
 import { RefreshRouteOnSave } from '@/components/utils/refresh-preview';
 import { environmentVariables } from '@/config/environment-variables';
-import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
+import { canUserAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import { routeResolutionTable } from '@/features/payload-cms/route-resolution-table';
+import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { Locale, SearchParameters } from '@/types/types';
 import { auth } from '@/utils/auth-helpers';
 import { isPreviewTokenValid } from '@/utils/preview-token';
 import { cookies } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
-import { type PayloadRequest } from 'payload';
 import type React from 'react';
 
 /**
@@ -69,7 +69,7 @@ const canAccessPreviewOfCurrentPage = async (
   const user = session.user;
   if (user === undefined) return false;
 
-  return canAccessAdminPanel({ req: { user } as unknown as PayloadRequest });
+  return canUserAccessAdminPanel({ user: user as HitobitoNextAuthUser });
 };
 
 const PreviewWarning: React.FC<{

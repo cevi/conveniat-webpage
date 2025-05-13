@@ -1,12 +1,12 @@
 import { PreviewModeBanner } from '@/components/header/preview-mode-banner';
 import { NavComponent } from '@/components/menu/nav-component';
 import { ConveniatLogo } from '@/components/svg-logos/conveniat-logo';
-import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
+import { canUserAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import type { Config } from '@/features/payload-cms/payload-types';
+import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { StaticTranslationString } from '@/types/types';
 import { auth } from '@/utils/auth-helpers';
 import Link from 'next/link';
-import type { PayloadRequest } from 'payload';
 import React from 'react';
 
 export const HeaderComponent: React.FC<{
@@ -14,8 +14,8 @@ export const HeaderComponent: React.FC<{
 }> = async ({ locale }) => {
   const session = await auth();
 
-  const canAccessAdminDashboard = await canAccessAdminPanel({
-    req: { user: session?.user } as unknown as PayloadRequest,
+  const canAccessAdminDashboard = await canUserAccessAdminPanel({
+    user: session?.user as HitobitoNextAuthUser,
   });
 
   const landingPageAreaLinktText: StaticTranslationString = {
