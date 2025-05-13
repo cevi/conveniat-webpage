@@ -1,6 +1,6 @@
 /* We use the @tailwind directive to inject Tailwind's base, component, and utility styles. */
 /***************************************************/
-@import "tailwindcss";
+@import 'tailwindcss';
 @config "../../tailwind.config.ts";
 /***************************************************/
 
