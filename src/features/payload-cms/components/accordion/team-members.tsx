@@ -83,16 +83,13 @@ const TeamHelpersList: React.FC<{
 };
 export const TeamMembers: React.FC<{
   block: TeamMembersBlock;
-  key: number;
-}> = ({ block, key }) => {
+}> = ({ block }) => {
   const teamLeader = block.teamLeaderGroup;
   const teamMembers = block.teamMembers;
 
   return (
     <Fragment>
-      <hr className="my-6 border border-gray-100" />
-
-      <div key={key}>
+      <div>
         <div>
           <button className="flex items-center group w-full text-left hover:bg-gray-50 p-2 rounded-md transition-colors">
             <div className="h-12 w-12 relative overflow-hidden rounded-full">
