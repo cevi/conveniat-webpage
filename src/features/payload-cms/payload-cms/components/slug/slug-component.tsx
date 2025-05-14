@@ -80,7 +80,7 @@ export const SlugComponent: React.FC<
         <FieldLabel htmlFor={`field-${path}`} label={label ?? ''} />
 
         <button
-          className="ml-2 p-1 text-gray-500 hover:text-gray-700 focus:outline-none"
+          className="ml-2 p-1 text-gray-500 hover:text-gray-700 focus:outline-hidden"
           onClick={handleLock}
           aria-label={checkboxValue ? 'Unlock' : 'Lock'}
         >

@@ -11,8 +11,8 @@ const LanguageSelectionModal: React.FC<{
   const [targetLanguage, setTargetLanguage] = useState('');
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-600 bg-opacity-50">
-      <div className="text-black rounded bg-white p-6 shadow-lg">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-600/50">
+      <div className="text-black rounded-sm bg-white p-6 shadow-lg">
         <h2 className="mb-4 text-lg font-medium">Select Source and Target Languages</h2>
 
         <label className="mb-2 block">
@@ -44,11 +44,11 @@ const LanguageSelectionModal: React.FC<{
         </label>
 
         <div className="flex justify-end">
-          <button className="mr-2 rounded bg-gray-500 px-4 py-2 text-white" onClick={onClose}>
+          <button className="mr-2 rounded-sm bg-gray-500 px-4 py-2 text-white" onClick={onClose}>
             Cancel
           </button>
           <button
-            className="rounded bg-blue-500 px-4 py-2 text-white"
+            className="rounded-sm bg-blue-500 px-4 py-2 text-white"
             onClick={() => onTranslate(sourceLanguage, targetLanguage)}
           >
             Translate

@@ -176,7 +176,7 @@ export const ScheduleComponent: React.FC = () => {
       </div>
 
       {selectedEntry && (
-        <div className="bg-black fixed inset-0 flex items-center justify-center bg-opacity-50">
+        <div className="bg-black/50 fixed inset-0 flex items-center justify-center">
           <div className="mx-4 w-full max-w-md rounded-lg border-2 border-gray-100 bg-white p-6 shadow-lg">
             <h2 className="mb-2 text-2xl font-semibold">{selectedEntry.title}</h2>
             <p className="mb-2 text-sm text-gray-600">

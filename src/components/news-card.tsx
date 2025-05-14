@@ -25,7 +25,7 @@ export const NewsCard: React.FC<{
           {headline}
         </h4>
       </div>
-      <div className="flex-grow overflow-hidden">{children}</div>
+      <div className="grow overflow-hidden">{children}</div>
     </div>
   );
 };

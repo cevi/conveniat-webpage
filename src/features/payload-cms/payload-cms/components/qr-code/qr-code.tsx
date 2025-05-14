@@ -109,7 +109,7 @@ const QRCode: React.FC = () => {
 
           <div className="relative mb-4 w-full max-w-[200px]">
             <input
-              className="w-full rounded-md border border-solid border-gray-300 p-[4px] pr-10 text-sm shadow-none outline-none focus:ring-1"
+              className="w-full rounded-md border border-solid border-gray-300 p-[4px] pr-10 text-sm shadow-none outline-hidden focus:ring-1"
               readOnly
               value={fullURL}
             />

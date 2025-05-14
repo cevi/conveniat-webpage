@@ -32,7 +32,7 @@ export const ChatPreview: React.FC<{
           hasUnread ? 'bg-gray-50 dark:bg-gray-900' : '',
         )}
       >
-        <div className="flex-shrink-0">
+        <div className="shrink-0">
           {isGroupChat ? (
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200 dark:bg-gray-700">
               <Users size={20} className="text-gray-600 dark:text-gray-300" />

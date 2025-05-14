@@ -21,7 +21,7 @@ export const Checkbox: React.FC<
     <div className="mb-4 flex items-center space-x-2">
       <input
         id={name}
-        className="h-5 w-5 rounded border-2 border-[#47564c] bg-[#e1e6e2] text-[#47564c] focus:outline-none focus:ring-2 focus:ring-[#47564c]"
+        className="h-5 w-5 rounded-sm border-2 border-[#47564c] bg-[#e1e6e2] text-[#47564c] focus:outline-hidden focus:ring-2 focus:ring-[#47564c]"
         type="checkbox"
         {...registerAction(name, { required: requiredFromProperties })}
       />

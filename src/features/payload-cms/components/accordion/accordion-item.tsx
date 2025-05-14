@@ -24,7 +24,7 @@ const AccordionItem: React.FC<AccordionItemProperties> = ({
   return (
     <div
       className={cn(
-        'bg-white rounded-lg shadow-sm border-2 border-gray-200 overflow-hidden',
+        'bg-white rounded-lg shadow-xs border-2 border-gray-200 overflow-hidden',
         'transition-transform duration-300',
         {
           'hover:scale-[1.01]': !isExpanded,
@@ -34,7 +34,7 @@ const AccordionItem: React.FC<AccordionItemProperties> = ({
     >
       <button
         onClick={onToggle}
-        className="w-full px-6 py-4 flex justify-between items-center text-left focus:outline-none cursor-pointer"
+        className="w-full px-6 py-4 flex justify-between items-center text-left focus:outline-hidden cursor-pointer"
         aria-expanded={isExpanded}
         aria-controls={`content-${blockId}`}
       >

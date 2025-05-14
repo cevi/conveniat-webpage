@@ -8,7 +8,7 @@ export const ChatsOverviewComponent: React.FC = async () => {
     <div className="flex h-full flex-col">
       <HeadlineH1 className="mb-6 text-center">Chats</HeadlineH1>
 
-      <div className="flex-grow overflow-y-auto px-4">
+      <div className="grow overflow-y-auto px-4">
         <Suspense
           fallback={
             <div className="flex h-full items-center justify-center">

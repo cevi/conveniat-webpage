@@ -1,0 +1,63 @@
+@layer theme, base, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+
+@theme {
+    --color-gray-50: #F5F5F6;
+    --color-gray-100: #E6E6E7;
+    --color-gray-200: #CFD0D2;
+    --color-gray-300: #ADAEB3;
+    --color-gray-400: #84858C;
+    --color-gray-500: #6D6E76;
+    --color-gray-600: #595961;
+    --color-gray-700: #4C4D52;
+    --color-gray-800: #434347;
+    --color-gray-900: #3B3B3E;
+    --color-gray-950: #252627;
+
+    --color-green-50: #F6F7F6;
+    --color-green-100: #E1E6E2;
+    --color-green-200: #C2CDC5;
+    --color-green-300: #9CACA0;
+    --color-green-400: #778a7d;
+    --color-green-500: #5D6F63;
+    --color-green-600: #47564C;
+    --color-green-700: #3D4841;
+    --color-green-800: #3D4841;
+    --color-green-900: #2D342F;
+    --color-green-950: #171C19;
+
+    --color-conveniat-green: #47564C;
+
+    --color-red-50: #FFF1F1;
+    --color-red-100: #FFE4E4;
+    --color-red-200: #FECDD0;
+    --color-red-300: #FDA4A9;
+    --color-red-400: #FB717C;
+    --color-red-500: #F43F53;
+    --color-red-600: #E11D3C;
+    --color-red-700: #C41333;
+    --color-red-800: #9F1230;
+    --color-red-900: #881330;
+    --color-red-950: #4C0514;
+
+    --color-cevi-red: #C41333;
+
+    --color-blue-50: #EFF3FE;
+    --color-blue-100: #E1EAFE;
+    --color-blue-200: #CAD7FB;
+    --color-blue-300: #A9BDF8;
+    --color-blue-400: #8698F3;
+    --color-blue-500: #6A75EA;
+    --color-blue-600: #4D4FDE;
+    --color-blue-700: #403FC3;
+    --color-blue-800: #323394;
+    --color-blue-900: #32347D;
+    --color-blue-950: #1D1D49;
+
+    --color-cevi-blue: #323394;
+
+    --color-white: #FFFFFF;
+
+    --color-orange-500: #FFA500;
+}

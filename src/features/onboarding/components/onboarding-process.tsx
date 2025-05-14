@@ -31,7 +31,7 @@ const LanguageSwitcher: React.FC<{
   return (
     <div className="fixed top-4 right-4 z-50">
       <select
-        className="bg-gray-50 border border-gray-300 pa-4 rounded-md shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        className="bg-gray-50 border border-gray-300 pa-4 rounded-md shadow-md focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
         value={currentLocale}
         onChange={(event: ChangeEvent<HTMLSelectElement>) => onLanguageChange(event.target.value)}
       >
