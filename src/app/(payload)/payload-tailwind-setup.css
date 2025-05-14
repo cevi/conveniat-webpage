@@ -1,3 +1,15 @@
+/**
+ * This file is used as the tailwind setup for the Payload CMS admin panel.
+ *
+ * It is important to not import the full tailwindcss library here (@import 'tailwindcss';)
+ * as this will break the Payload CMS admin panel design. Therefore, we only import
+ * the theme, utilities and base layers.
+ *
+ * We also redefine the colors used in the Payload CMS admin panel to match the
+ * colors used in the conveniat27 design system.
+ *
+ */
+
 @layer theme, base, components, utilities;
 @import 'tailwindcss/theme.css' layer(theme);
 @import 'tailwindcss/utilities.css' layer(utilities);
@@ -61,3 +73,5 @@
 
     --color-orange-500: #FFA500;
 }
+
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
