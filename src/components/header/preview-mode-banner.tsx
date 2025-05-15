@@ -2,7 +2,7 @@
 import { PreviewModeToggle } from '@/components/header/preview-mode-toggler';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, X } from 'lucide-react';
 import type { User } from 'next-auth';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import { useSearchParams } from 'next/navigation';
@@ -12,6 +12,12 @@ interface PreviewModeBannerProperties {
   user: User | undefined;
   canAccessAdmin: boolean;
 }
+
+const removePreviewCookie = (): void => {
+  // eslint-disable-next-line unicorn/no-document-cookie
+  document.cookie = 'preview=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+  globalThis.location.reload();
+};
 
 /**
  *
@@ -91,10 +97,15 @@ export const PreviewModeBanner: React.FC<PreviewModeBannerProperties> = ({
         </span>
         <PreviewModeToggle />
       </div>
-      <RefreshCw
-        className="h-4 w-4 cursor-pointer text-gray-300"
-        onClick={() => globalThis.location.reload()}
-      />
+
+      <div className="flex flex-row gap-x-2">
+        <RefreshCw
+          className="h-4 w-4 cursor-pointer text-gray-300"
+          onClick={() => globalThis.location.reload()}
+        />
+
+        <X className="h-4 w-4 cursor-pointer text-gray-300" onClick={() => removePreviewCookie()} />
+      </div>
     </div>
   );
 };
