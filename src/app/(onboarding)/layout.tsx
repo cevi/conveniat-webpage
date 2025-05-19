@@ -4,6 +4,7 @@ import React from 'react';
 // These styles apply to every route in the application
 import '@/app/globals.scss';
 import { CeviLogo } from '@/components/svg-logos/cevi-logo';
+import { PostHogProvider } from '@/providers/post-hog-provider';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { Inter, Montserrat } from 'next/font/google';
 
@@ -27,10 +28,12 @@ const AppEntrypointRootLayout: React.FC<LayoutProperties> = async ({ children })
   return (
     <html className={`${montserrat.className} ${inter.className} overscroll-y-none`} lang={locale}>
       <body className="flex h-screen w-screen flex-col overflow-x-hidden overscroll-y-none bg-[#f8fafc]">
-        <div className="absolute top-0 z-[-999] h-screen w-full p-[56px]">
-          <CeviLogo className="mx-auto h-full w-full max-w-[384px] opacity-10 blur-md" />
-        </div>
-        {children}
+        <PostHogProvider>
+          <div className="absolute top-0 z-[-999] h-screen w-full p-[56px]">
+            <CeviLogo className="mx-auto h-full w-full max-w-[384px] opacity-10 blur-md" />
+          </div>
+          {children}
+        </PostHogProvider>
       </body>
     </html>
   );

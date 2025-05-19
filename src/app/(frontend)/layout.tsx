@@ -5,6 +5,7 @@ import React from 'react';
 import '@/app/globals.scss';
 import { HeaderComponent } from '@/components/header/header-component';
 import { CeviLogo } from '@/components/svg-logos/cevi-logo';
+import { PostHogProvider } from '@/providers/post-hog-provider';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { renderInAppDesign } from '@/utils/render-in-app-design';
 import { cn } from '@/utils/tailwindcss-override';
@@ -37,13 +38,15 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children }) => {
           'overscroll-y-none': isInAppDesign,
         })}
       >
-        <HeaderComponent locale={locale} />
+        <PostHogProvider>
+          <HeaderComponent locale={locale} />
 
-        <div className="absolute top-0 z-[-999] h-screen w-full p-[56px]">
-          <CeviLogo className="mx-auto h-full max-h-[60vh] w-full max-w-[384px] opacity-10 blur-md" />
-        </div>
+          <div className="absolute top-0 z-[-999] h-screen w-full p-[56px]">
+            <CeviLogo className="mx-auto h-full max-h-[60vh] w-full max-w-[384px] opacity-10 blur-md" />
+          </div>
 
-        {children}
+          {children}
+        </PostHogProvider>
       </body>
     </html>
   );

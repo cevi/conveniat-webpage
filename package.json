@@ -61,6 +61,8 @@
     "next-auth": "5.0.0-beta.25",
     "next-i18n-router": "^5.5.1",
     "payload": "^3.36.0",
+    "posthog-js": "^1.242.2",
+    "posthog-node": "^4.17.1",
     "qs-esm": "^7.0.2",
     "react": "19.0.0",
     "react-dialog": "^1.0.2",

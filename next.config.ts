@@ -29,7 +29,7 @@ const withSerwist = withSerwistInit({
 
 const nextConfig: NextConfig = {
   output: 'standalone',
-  productionBrowserSourceMaps: process.env['INCLUDE_SOURCE_MAP'] === 'true',
+  productionBrowserSourceMaps: true,
   serverExternalPackages: ['mongodb', 'mongoose'],
   transpilePackages: ['@t3-oss/env-nextjs', '@t3-oss/env-core'],
   poweredByHeader: false,
@@ -49,6 +49,25 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // PostHog rewrites
+  async rewrites() {
+    return [
+      {
+        source: '/ingest/static/:path*',
+        destination: 'https://eu-assets.i.posthog.com/static/:path*',
+      },
+      {
+        source: '/ingest/:path*',
+        destination: 'https://eu.i.posthog.com/:path*',
+      },
+      {
+        source: '/ingest/decide',
+        destination: 'https://eu.i.posthog.com/decide',
+      },
+    ];
+  },
+  // Support PostHog trailing slash API requests
+  skipTrailingSlashRedirect: true,
 };
 
 export default withSerwist(withPayload(nextConfig, { devBundleServerPackages: false }));

@@ -5,6 +5,7 @@ import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
+import posthog from 'posthog-js';
 import React, { useEffect } from 'react';
 
 const errorMessage: StaticTranslationString = {
@@ -60,6 +61,7 @@ const ErrorPage: React.FC<{
   useEffect(() => {
     console.error(error);
     console.error(error.stack);
+    posthog.captureException(error);
   }, [error]);
 
   return (

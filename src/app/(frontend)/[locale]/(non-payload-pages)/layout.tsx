@@ -1,7 +1,5 @@
-import ErrorPage from '@/app/(frontend)/error';
 import type { ReactNode } from 'react';
 import React from 'react';
-import { ErrorBoundary } from 'react-error-boundary';
 
 import { FooterAppNavBar } from '@/components/footer/footer-app-nav-bar';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
@@ -18,15 +16,9 @@ const Layout: React.FC<LayoutProperties> = async ({ children }) => {
 
   return (
     <>
-      <ErrorBoundary
-        fallback={
-          <ErrorPage error={new Error('main content failed to render at non payload page')} />
-        }
-      >
-        <SessionProvider>
-          <main className="mt-[60px] grow pb-20">{children}</main>
-        </SessionProvider>
-      </ErrorBoundary>
+      <SessionProvider>
+        <main className="mt-[60px] grow pb-20">{children}</main>
+      </SessionProvider>
 
       {isInAppDesign && <FooterAppNavBar locale={locale} />}
     </>
