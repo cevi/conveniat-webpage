@@ -49,7 +49,7 @@ export const environmentVariables = createEnv({
     NEXT_PUBLIC_APP_HOST_URL: z.string().url(),
     NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string(),
     NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
-    NEXT_PUBLIC_POSTHOG_HOST: z.string(),
+    NEXT_PUBLIC_POSTHOG_HOST: z.string().url(),
   },
 
   experimental__runtimeEnv: {
