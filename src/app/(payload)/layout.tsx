@@ -1,10 +1,9 @@
+import { PostHogProvider } from '@/providers/post-hog-provider';
 import config from '@payload-config';
 import '@payloadcms/next/css';
 import { handleServerFunctions, RootLayout } from '@payloadcms/next/layouts';
 import type { ServerFunctionClient } from 'payload';
 import React from 'react';
-
-import { PostHogProvider } from '@/providers/PostHogProvider';
 import { importMap } from './admin/importMap.js';
 import './custom.scss';
 import './payload-tailwind-setup.css';
