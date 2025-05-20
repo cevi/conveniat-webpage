@@ -1,7 +1,7 @@
 'use client';
 
 import { environmentVariables } from '@/config/environment-variables';
-import type { Locale } from '@/types/types';
+import type { Locale, StaticTranslationString } from '@/types/types';
 import { serverSideSlugToUrlResolution } from '@/utils/find-url-prefix';
 import { generatePreviewToken } from '@/utils/preview-token';
 import { FormSubmit, useDocumentInfo, useLocale, useTheme } from '@payloadcms/ui';
@@ -87,6 +87,12 @@ const QRCode: React.FC = () => {
     event.preventDefault();
   };
 
+  const previewLinkText: StaticTranslationString = {
+    de: 'Vorschau-Link für',
+    fr: 'Lien de prévisualisation pour',
+    en: 'Preview link for',
+  };
+
   return (
     <div>
       <div>
@@ -100,7 +106,7 @@ const QRCode: React.FC = () => {
           size="medium"
           type="button"
         >
-          Generate QR Code for {locale}
+          {previewLinkText[locale as Locale]} {locale}
         </FormSubmit>
       </div>
       {imageData !== '' && (
@@ -109,7 +115,7 @@ const QRCode: React.FC = () => {
 
           <div className="relative mb-4 w-full max-w-[200px]">
             <input
-              className="w-full rounded-md border border-solid border-gray-300 p-[4px] pr-10 text-sm shadow-none outline-none focus:ring-1"
+              className="w-full rounded-md border border-solid border-gray-300 p-[4px] pr-10 text-sm shadow-none outline-hidden focus:ring-1"
               readOnly
               value={fullURL}
             />

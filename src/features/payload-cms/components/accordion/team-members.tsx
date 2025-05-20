@@ -14,8 +14,8 @@ const TeamLeaderPortrait: React.FC<{
       <Image
         src={portrait}
         alt={`Portrait of ${name}`}
-        width={60}
-        height={60}
+        width={84}
+        height={84}
         className="object-cover h-full group-hover:scale-105 transition-transform"
       />
     );
@@ -24,8 +24,8 @@ const TeamLeaderPortrait: React.FC<{
       <Image
         src={portrait.url}
         alt={`Portrait of ${name}`}
-        width={60}
-        height={60}
+        width={84}
+        height={84}
         className="object-cover h-full group-hover:scale-105 transition-transform"
       />
     );
@@ -83,22 +83,19 @@ const TeamHelpersList: React.FC<{
 };
 export const TeamMembers: React.FC<{
   block: TeamMembersBlock;
-  key: number;
-}> = ({ block, key }) => {
+}> = ({ block }) => {
   const teamLeader = block.teamLeaderGroup;
   const teamMembers = block.teamMembers;
 
   return (
     <Fragment>
-      <hr className="my-6 border border-gray-100" />
-
-      <div key={key}>
+      <div>
         <div>
-          <button className="flex items-center group w-full text-left hover:bg-gray-50 p-2 rounded-md transition-colors">
-            <div className="h-12 w-12 relative overflow-hidden rounded-full">
+          <button className="flex items-center group w-full flex-col md:flex-row text-center md:text-left hover:bg-gray-50 py-4 px-2 md:py-2 rounded-md transition-colors gap-4">
+            <div className="h-20 w-20 md:h-16 md:w-16 relative overflow-hidden rounded-full">
               {<TeamLeaderPortrait name={teamLeader.name} portrait={teamLeader.portrait} />}
             </div>
-            <div className="ml-4">
+            <div>
               <p className="font-medium text-gray-900">{teamLeader.name}</p>
               <p className="text-sm text-gray-500">v/o {teamLeader.ceviname}</p>
             </div>

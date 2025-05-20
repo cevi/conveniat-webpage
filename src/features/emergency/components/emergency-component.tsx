@@ -91,7 +91,7 @@ export const EmergencyComponent: React.FC = () => {
       <HeadlineH1 className="text-center">Notfall und Alarmierung</HeadlineH1>
 
       <div className="sticky top-[80px] z-20 bg-[#f8fafc] pb-4">
-        <div className="my-8 rounded-lg border-2 border-red-500 bg-red-50 p-6 shadow-sm">
+        <div className="my-8 rounded-lg border-2 border-red-500 bg-red-50 p-6 shadow-xs">
           <h2 className="mb-4 flex items-center justify-center text-2xl font-bold text-red-500">
             <AlertCircle className="mr-2" /> Notfall Melden
           </h2>

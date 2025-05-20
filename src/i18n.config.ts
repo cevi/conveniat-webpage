@@ -21,6 +21,9 @@ export const i18nExcludedRoutes: string[] = [
   'admin',
   '.well-known',
 
+  // posthog analytics
+  'ingest',
+
   // map styles
   'vector-map',
 

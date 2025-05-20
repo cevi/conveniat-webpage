@@ -30,14 +30,14 @@ export const SearchComponent: React.FC<{ locale: Locale }> = ({ locale }) => {
   return (
     <div className="w-full max-w-md mx-auto">
       <form
-        className="flex overflow-hidden rounded-lg border border-[#cbd5d1] bg-white shadow-sm focus-within:ring-2 focus-within:ring-[#47564c]"
+        className="flex overflow-hidden rounded-lg border border-[#cbd5d1] bg-white shadow-xs focus-within:ring-2 focus-within:ring-[#47564c]"
         id="search-form"
         onSubmit={onSubmit}
       >
         <input
           id="search-input"
           name="searchInput"
-          className="flex-grow h-12 px-4 font-['Inter'] text-sm text-[#333] placeholder-[#999] focus:outline-none"
+          className="grow h-12 px-4 font-['Inter'] text-sm text-[#333] placeholder-[#999] focus:outline-hidden"
           type="text"
           placeholder={searchButtonText[locale as Locale]}
         />

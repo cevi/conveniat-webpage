@@ -7,7 +7,7 @@ interface AvatarPlaceholderProperties {
 
 export const AvatarPlaceholder: React.FC<{
   className?: string;
-}> = ({ className = 'h-12 w-12' }: AvatarPlaceholderProperties) => {
+}> = ({ className = 'h-full w-full' }: AvatarPlaceholderProperties) => {
   return (
     <div
       className={`${className} rounded-full bg-green-200 text-white flex items-center justify-center font-medium relative overflow-hidden`}

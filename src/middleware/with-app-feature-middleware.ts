@@ -41,7 +41,10 @@ const applyMiddlewareForDisabledAppFeatures = (
     pathname.startsWith(`/${locale}/app`),
   );
 
-  response.cookies.delete(Cookie.APP_DESIGN);
+  // clear cookie if set
+  const isInAppDesign = request.cookies.has(Cookie.APP_DESIGN);
+  if (isInAppDesign) response.cookies.delete(Cookie.APP_DESIGN);
+
   const shouldRewrite = isAppPath || isEntrypoint;
   if (shouldRewrite) {
     return NextResponse.redirect(new URL('/', request.url));

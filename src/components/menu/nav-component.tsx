@@ -23,7 +23,7 @@ export const NavComponent: React.FC = async () => {
   return (
     <Popover>
       <PopoverButton
-        className="relative top-[18px] outline-none"
+        className="relative top-[18px] outline-hidden"
         aria-label="Open main menu"
         tabIndex={1}
         aria-hidden="true"

@@ -6,6 +6,14 @@ import { ErrorBoundary } from 'react-error-boundary';
 export type ContentBlock<T = object> = { blockType: ContentBlockTypeNames; id: string } & T;
 
 const ErrorFallback: React.FC<{ error: Error }> = ({ error }) => {
+  import('@/lib/posthog-server')
+    .then(({ getPostHogServer }): void => {
+      const posthog = getPostHogServer();
+      if (!posthog) return; // throw away if posthog is not available
+      posthog.captureException(error);
+    })
+    .catch(() => {});
+
   return (
     <div className="rounded-2xl bg-gray-100 px-16 py-4 text-center text-red-700">
       <b>Failed to load content block.</b> <br />

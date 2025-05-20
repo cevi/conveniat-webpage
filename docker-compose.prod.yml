@@ -7,6 +7,8 @@ services:
       args:
         - NEXT_PUBLIC_VAPID_PUBLIC_KEY=BGXpnSSQfJS84zCk6qka6-3qC_bTK6feOUaLz6ZJY6ThmdcY-h20V0QB8P8nq84Pb6vpbZLvYwISwlSmH9aZwjU
         - NEXT_PUBLIC_APP_HOST_URL=https://conveniat27.ch
+        - NEXT_PUBLIC_POSTHOG_KEY=phc_QXeG5AHoyxCVCcIse8a2rriQKZgAwkk3vO15Zz0aDud
+        - NEXT_PUBLIC_POSTHOG_HOST=https://eu.i.posthog.com
 
     deploy:
       labels:
@@ -42,8 +44,6 @@ services:
     dns:
       - 8.8.8.8 # Replace with your desired DNS server
 
-    ports:
-      - '3000:3000'
     depends_on:
       - mongo
     env_file:
@@ -55,8 +55,6 @@ services:
 
   mongo:
     image: mongo:latest
-    ports:
-      - '27017:27017'
     command:
       - --storageEngine=wiredTiger
     volumes:
@@ -105,6 +103,35 @@ services:
     networks:
       - traefik-net
       - backend-net
+
+  postgres:
+    image: postgres:17
+
+    deploy:
+      labels:
+        - swarmpit.service.deployment.autoredeploy=true
+
+        # expose the DB via tcp on port 443
+        - traefik.enable=true
+        - traefik.tcp.routers.conveniat27-database.entrypoints=websecure
+        - traefik.tcp.routers.conveniat27-database.rule=HostSNI(`db.conveniat27.ch`)
+
+        # define TLS
+        - traefik.tcp.routers.conveniat27-database.tls=true
+        - traefik.tcp.routers.conveniat27-database.tls.certresolver=myresolver
+        - traefik.tcp.routers.conveniat27-database.middlewares=vpn-whitelist@file
+
+        - traefik.tcp.services.conveniat27-database.loadbalancer.server.port=5432
+
+    env_file:
+      - .env
+
+    volumes:
+      - /cluster/swarm/data/conveniat-prod/postgres:/var/lib/postgresql/data
+
+    networks:
+      - backend-net
+      - traefik-net
 
 networks:
   traefik-net:

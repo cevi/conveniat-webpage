@@ -1,0 +1,77 @@
+/**
+ * This file is used as the tailwind setup for the Payload CMS admin panel.
+ *
+ * It is important to not import the full tailwindcss library here (@import 'tailwindcss';)
+ * as this will break the Payload CMS admin panel design. Therefore, we only import
+ * the theme, utilities and base layers.
+ *
+ * We also redefine the colors used in the Payload CMS admin panel to match the
+ * colors used in the conveniat27 design system.
+ *
+ */
+
+@layer theme, base, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+
+@theme {
+  --color-gray-50: #f5f5f6;
+  --color-gray-100: #e6e6e7;
+  --color-gray-200: #cfd0d2;
+  --color-gray-300: #adaeb3;
+  --color-gray-400: #84858c;
+  --color-gray-500: #6d6e76;
+  --color-gray-600: #595961;
+  --color-gray-700: #4c4d52;
+  --color-gray-800: #434347;
+  --color-gray-900: #3b3b3e;
+  --color-gray-950: #252627;
+
+  --color-green-50: #f6f7f6;
+  --color-green-100: #e1e6e2;
+  --color-green-200: #c2cdc5;
+  --color-green-300: #9caca0;
+  --color-green-400: #778a7d;
+  --color-green-500: #5d6f63;
+  --color-green-600: #47564c;
+  --color-green-700: #3d4841;
+  --color-green-800: #3d4841;
+  --color-green-900: #2d342f;
+  --color-green-950: #171c19;
+
+  --color-conveniat-green: #47564c;
+
+  --color-red-50: #fff1f1;
+  --color-red-100: #ffe4e4;
+  --color-red-200: #fecdd0;
+  --color-red-300: #fda4a9;
+  --color-red-400: #fb717c;
+  --color-red-500: #f43f53;
+  --color-red-600: #e11d3c;
+  --color-red-700: #c41333;
+  --color-red-800: #9f1230;
+  --color-red-900: #881330;
+  --color-red-950: #4c0514;
+
+  --color-cevi-red: #c41333;
+
+  --color-blue-50: #eff3fe;
+  --color-blue-100: #e1eafe;
+  --color-blue-200: #cad7fb;
+  --color-blue-300: #a9bdf8;
+  --color-blue-400: #8698f3;
+  --color-blue-500: #6a75ea;
+  --color-blue-600: #4d4fde;
+  --color-blue-700: #403fc3;
+  --color-blue-800: #323394;
+  --color-blue-900: #32347d;
+  --color-blue-950: #1d1d49;
+
+  --color-cevi-blue: #323394;
+
+  --color-white: #ffffff;
+
+  --color-orange-500: #ffa500;
+}
+
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));

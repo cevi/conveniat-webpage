@@ -4,7 +4,7 @@ import type { PublishingStatusType } from '@/features/payload-cms/payload-cms/co
 import { cva } from 'class-variance-authority';
 
 export const languageStatusClasses = cva(
-  'text-sm font-medium me-2 px-2.5 py-0.5 rounded relative group',
+  'text-sm font-medium me-2 px-2.5 py-0.5 rounded-sm relative group',
   {
     variants: {
       pendingChanges: {
@@ -52,7 +52,7 @@ export const LanguageStatus: React.FC<{
   return (
     <span className={languageStatusClasses({ published, pendingChanges })}>
       {label}
-      <span className="absolute bottom-full left-1/2 mb-1 w-max -translate-x-1/2 transform rounded bg-gray-700 px-2 py-1 text-xs text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+      <span className="absolute bottom-full left-1/2 mb-1 w-max -translate-x-1/2 transform rounded-sm bg-gray-700 px-2 py-1 text-xs text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
         {tooltip}
       </span>
     </span>

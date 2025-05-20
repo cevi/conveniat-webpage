@@ -82,7 +82,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({ message, isCurre
 
   return (
     <div className={cn('flex items-end', isCurrentUser ? 'justify-end' : 'justify-start')}>
-      {!isCurrentUser && <UserCircle className="h-8 w-8 mr-2 flex-shrink-0" />}
+      {!isCurrentUser && <UserCircle className="h-8 w-8 mr-2 shrink-0" />}
 
       <div className="max-w-[80%] overflow-x-hidden">
         <div
@@ -102,7 +102,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({ message, isCurre
         </div>
       </div>
 
-      {isCurrentUser && <UserCircle className="h-8 w-8 ml-2 flex-shrink-0" />}
+      {isCurrentUser && <UserCircle className="h-8 w-8 ml-2 shrink-0" />}
     </div>
   );
 };

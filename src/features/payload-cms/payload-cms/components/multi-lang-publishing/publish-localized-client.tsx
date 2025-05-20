@@ -27,6 +27,12 @@ const unpublishingActionString: StaticTranslationString = {
   fr: 'Dépublier en',
 };
 
+const minimalPublishingConfirmationString: StaticTranslationString = {
+  en: 'Are you sure you want to publish this document?',
+  de: 'Sind Sie sicher, dass Sie dieses Dokument veröffentlichen möchten?',
+  fr: 'Êtes-vous sûr de vouloir publier ce document?',
+};
+
 /**
  * Default Publish button for localized collections or globals.
  *
@@ -132,6 +138,9 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
 
   const publishSpecificLocale = useCallback(
     (_locale: string) => {
+      const confirmation = globalThis.confirm(minimalPublishingConfirmationString[code]);
+      if (!confirmation) return;
+
       const parameters = qs.stringify({
         publishSpecificLocale: _locale,
       });

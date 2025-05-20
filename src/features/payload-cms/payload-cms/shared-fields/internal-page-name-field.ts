@@ -17,9 +17,9 @@ export const internalPageNameField: Field = {
   name: 'internalPageName',
   type: 'text',
   label: {
-    en: 'Page Name',
-    de: 'Seitenname',
-    fr: 'Nom de la page',
+    en: 'Internal Page Name',
+    de: 'Interner Seitenname',
+    fr: 'Nom de la page interne',
   },
   required: true,
   // the internal page name should not be localized,
@@ -27,6 +27,7 @@ export const internalPageNameField: Field = {
   // to uniquely identify the page within a collection
   localized: false,
   admin: {
+    position: 'sidebar',
     description: {
       de: 'Bezeichnung der Seite für interne Zwecke.',
       en: 'Name of the page for internal purposes.',

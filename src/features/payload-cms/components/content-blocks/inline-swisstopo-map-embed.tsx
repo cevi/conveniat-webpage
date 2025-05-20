@@ -15,7 +15,7 @@ const InlineSwisstopoMapEmbed: React.FC<InlineSwisstopoMapEmbedType> = ({
   ceviLogoMarkers,
 }) => {
   return (
-    <div className="h-[400px] w-full overflow-hidden rounded">
+    <div className="h-[400px] w-full overflow-hidden rounded-sm">
       <MapLibreRenderer
         initialMapPose={initialMapPose}
         ceviLogoMarkers={ceviLogoMarkers}
