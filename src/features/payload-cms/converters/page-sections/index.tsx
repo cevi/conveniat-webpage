@@ -14,6 +14,7 @@ import {
   RenderRichTextSection,
   RenderSinglePicture,
   RenderYoutubeEmbed,
+  SummaryBlock,
   SwisstopoInlineMapSection,
 } from '@/features/payload-cms/converters/page-sections/content-blocks';
 import type { ContentBlock } from '@/features/payload-cms/converters/page-sections/section-wrapper';
@@ -48,6 +49,7 @@ export const PageSectionsConverter: React.FC<
     fileDownload: RenderFileDownload,
     detailsTable: DetailsTable,
     accordion: AccordionBlock,
+    summaryBox: SummaryBlock,
   };
 
   return (

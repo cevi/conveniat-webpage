@@ -39,7 +39,8 @@ export type ContentBlockTypeNames =
   | 'swisstopoEmbed'
   | 'fileDownload'
   | 'detailsTable'
-  | 'accordion';
+  | 'accordion'
+  | 'summaryBox';
 
 export type SectionRenderer<T = object> = React.FC<
   LocalizedPageType & {
@@ -65,6 +66,25 @@ export const AccordionBlock: SectionRenderer<AccordionType> = ({
 
       <div className="mt-4">
         <Accordion block={block} />
+      </div>
+    </SectionWrapper>
+  );
+};
+
+export const SummaryBlock: SectionRenderer<LexicalRichTextSectionType> = ({
+  block,
+  sectionClassName,
+  sectionOverrides,
+}) => {
+  return (
+    <SectionWrapper
+      block={block}
+      sectionClassName={sectionClassName}
+      sectionOverrides={sectionOverrides}
+      errorFallbackMessage="Failed to load rich text section. Reload the page to try again."
+    >
+      <div className="my-8 mx-0 md:mx-12 border-t-[4px] border-t-conveniat-green bg-green-100 p-6">
+        <LexicalRichTextSection richTextSection={block.richTextSection} />
       </div>
     </SectionWrapper>
   );
