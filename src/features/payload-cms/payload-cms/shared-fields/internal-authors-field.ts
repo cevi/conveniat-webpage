@@ -9,9 +9,9 @@ export const internalAuthorsField: Field = {
   },
   admin: {
     description: {
-      en: 'Authors of the Page (internal use)',
-      de: 'Autoren der Seite (intern)',
-      fr: 'Auteurs de la page (interne)',
+      en: 'Authors of the Page (internal use only)',
+      de: 'Autoren der Seite (nur intern)',
+      fr: 'Auteurs de la page (seulement pour un usage interne)',
     },
     position: 'sidebar',
   },
