@@ -14,6 +14,24 @@ const searchResultHeader: StaticTranslationString = {
   fr: 'Résultats de la recherche pour ',
 };
 
+const searchResultNoResults: StaticTranslationString = {
+  de: 'Keine Resultate gefunden.',
+  en: 'No results found.',
+  fr: 'Aucun résultat trouvé.',
+};
+
+const searchResultsTitleBlog: StaticTranslationString = {
+  de: 'Blog-Beiträge',
+  en: 'Blog-Posts',
+  fr: 'Articles de blog',
+};
+
+const searchResultsTitlePages: StaticTranslationString = {
+  de: 'Seiten',
+  en: 'Pages',
+  fr: 'Pages',
+};
+
 const SearchPage: React.FC<{
   searchParams: Promise<{
     q: string;
@@ -142,8 +160,8 @@ const SearchPage: React.FC<{
       </HeadlineH1>
       <div className="mx-auto my-8 grid gap-y-6 min-[1200px]:grid-cols-2">
         <div className="col-span-2">
-          <h2 className="text-2xl font-bold">Pages</h2>
-          {permittedPages.length === 0 && <p>No pages found</p>}
+          <h2 className="text-2xl font-bold">{searchResultsTitlePages[locale]}</h2>
+          {permittedPages.length === 0 && <p>{searchResultNoResults[locale]}</p>}
           {permittedPages.map((page) => {
             return (
               <div key={page.seo.urlSlug} className="my-4">
@@ -154,8 +172,8 @@ const SearchPage: React.FC<{
           })}
         </div>
         <div className="col-span-2">
-          <h2 className="text-2xl font-bold">Blogs</h2>
-          {permittedBlogs.length === 0 && <p>No blogs found</p>}
+          <h2 className="text-2xl font-bold">{searchResultsTitleBlog[locale]}</h2>
+          {permittedBlogs.length === 0 && <p>{searchResultNoResults[locale]}</p>}
           {permittedBlogs.map((blog) => {
             return <BlogDisplay blog={blog} key={blog.seo.urlSlug} />;
           })}
