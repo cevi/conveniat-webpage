@@ -32,6 +32,13 @@ export const TimelineCollection: CollectionConfig = asLocalizedCollection({
         de: 'Datum',
         fr: 'Date',
       },
+      admin: {
+        date: {
+          pickerAppearance: 'dayAndTime',
+          displayFormat: 'YYYY-MM-dd HH:mm',
+          timeIntervals: 15,
+        },
+      },
       required: true,
     },
     {
