@@ -4,7 +4,9 @@ import {
   blogArticleTitleField,
   blogTeaserText,
 } from '@/features/payload-cms/payload-cms/collections/blog-article/fields';
+import { internalAuthorsField } from '@/features/payload-cms/payload-cms/shared-fields/internal-authors-field';
 import { internalPageNameField } from '@/features/payload-cms/payload-cms/shared-fields/internal-page-name-field';
+import { internalStatusField } from '@/features/payload-cms/payload-cms/shared-fields/internal-status-field';
 import { mainContentField } from '@/features/payload-cms/payload-cms/shared-fields/main-content-field';
 import { permissionsField } from '@/features/payload-cms/payload-cms/shared-fields/permissions-field';
 import { releaseDate } from '@/features/payload-cms/payload-cms/shared-fields/release-date-field';
@@ -24,7 +26,19 @@ export const BlogArticleCollection: CollectionConfig = asLocalizedCollection({
       fr: 'Représente un article de blog qui peut être publié sur le site Web.',
     },
     useAsTitle: 'internalPageName',
-    defaultColumns: ['internalPageName', 'id', 'blogShortTitle', 'releaseDate'],
+    defaultColumns: [
+      'internalPageName',
+      'internalStatus',
+      'authors',
+      'releaseDate',
+      'publishingStatus',
+      'updatedAt',
+    ],
+    listSearchableFields: ['internalPageName', 'seo.metaTitle', 'seo.urlSlug'],
+    pagination: {
+      defaultLimit: 10,
+      limits: [10, 20, 50],
+    },
   },
   defaultSort: 'releaseDate',
   labels: {
@@ -34,6 +48,8 @@ export const BlogArticleCollection: CollectionConfig = asLocalizedCollection({
 
   fields: [
     internalPageNameField,
+    internalAuthorsField,
+    internalStatusField,
     {
       type: 'tabs',
       tabs: [
