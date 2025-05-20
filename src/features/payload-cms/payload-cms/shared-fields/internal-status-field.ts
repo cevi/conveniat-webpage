@@ -25,9 +25,9 @@ export const internalStatusField: Field = {
     },
     {
       label: {
-        en: 'Approved',
-        de: 'Genehmigt',
-        fr: 'Approuvé',
+        en: 'Approved & Proofread',
+        de: 'Genehmigt & Korrekturgelesen',
+        fr: 'Approuvé & règles de correction',
       },
       value: 'approved',
     },
