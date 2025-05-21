@@ -32,10 +32,75 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Generate Payload Types and Importmap
+      - name: Verify that Payload Types and Importmaps are up to date
         env:
           CHECK_ENV_VARIABLES: 'false'
-        run: pnpm run generate:types && pnpm run generate:importmap
+        run: |
+          # Define file paths for clarity and reusability
+          PAYLOAD_TYPES_FILE="./src/features/payload-cms/payload-types.ts"
+          IMPORTMAP_FILE="./src/app/(payload)/admin/importMap.js"
+          
+          echo "--- Pre-check: Verifying file existence and capturing initial file hashes ---"
+          
+          # Assert that ./src/features/payload-cms/payload-types.ts exists
+          if [ ! -f "$PAYLOAD_TYPES_FILE" ]; then
+          echo "Error: The file '$PAYLOAD_TYPES_FILE' does not exist before running the generation command."
+          exit 1
+          fi
+          
+          # Capture the initial MD5 hash of payload-types.ts to detect modifications later
+          INITIAL_PAYLOAD_TYPES_HASH=$(md5sum "$PAYLOAD_TYPES_FILE" | awk '{print $1}')
+          echo "Initial hash of '$PAYLOAD_TYPES_FILE': $INITIAL_PAYLOAD_TYPES_HASH"
+          
+          # Assert that src/app/(payload)/admin/importMap.js exists
+          if [ ! -f "$IMPORTMAP_FILE" ]; then
+          echo "Error: The file '$IMPORTMAP_FILE' does not exist before running the generation command."
+          exit 1
+          fi
+          
+          # Capture the initial MD5 hash of importMap.js to detect modifications later
+          INITIAL_IMPORTMAP_HASH=$(md5sum "$IMPORTMAP_FILE" | awk '{print $1}')
+          echo "Initial hash of '$IMPORTMAP_FILE': $INITIAL_IMPORTMAP_HASH"
+          
+          echo "--- Executing generation commands ---"
+          
+          # Run the generation commands as specified
+          set -o pipefail
+          pnpm run generate:types && pnpm run generate:importmap
+          COMMAND_EXIT_CODE=$? # Capture the exit code of the last command
+          
+          # Assert that the command did not exit with an error
+          if [ $COMMAND_EXIT_CODE -ne 0 ]; then
+          echo "Error: The command 'pnpm run generate:types && pnpm run generate:importmap' failed with exit code $COMMAND_EXIT_CODE."
+          exit 1
+          fi
+          echo "Generation commands completed successfully without errors."
+          
+          echo "--- Post-check: Asserting no file modifications ---"
+          
+          # Recalculate the current MD5 hash of payload-types.ts
+          CURRENT_PAYLOAD_TYPES_HASH=$(md5sum "$PAYLOAD_TYPES_FILE" | awk '{print $1}')
+          
+          # Assert that payload-types.ts was not modified
+          if [ "$INITIAL_PAYLOAD_TYPES_HASH" != "$CURRENT_PAYLOAD_TYPES_HASH" ]; then
+          echo "Error: The file '$PAYLOAD_TYPES_FILE' was unexpectedly modified by the generation command."
+          echo "Initial hash: $INITIAL_PAYLOAD_TYPES_HASH, Current hash: $CURRENT_PAYLOAD_TYPES_HASH"
+          exit 1
+          fi
+          echo "'$PAYLOAD_TYPES_FILE' was not modified, as expected."
+          
+          # Recalculate the current MD5 hash of importMap.js
+          CURRENT_IMPORTMAP_HASH=$(md5sum "$IMPORTMAP_FILE" | awk '{print $1}')
+          
+          # Assert that importMap.js was not modified
+          if [ "$INITIAL_IMPORTMAP_HASH" != "$CURRENT_IMPORTMAP_HASH" ]; then
+          echo "Error: The file '$IMPORTMAP_FILE' was unexpectedly modified by the generation command."
+          echo "Initial hash: $INITIAL_IMPORTMAP_HASH, Current hash: $CURRENT_IMPORTMAP_HASH"
+          exit 1
+          fi
+          echo "'$IMPORTMAP_FILE' was not modified, as expected."
+          
+          echo "All assertions passed successfully. The job step completed as required."
 
-      - name: Run ESLint
+      - name: Check Code Style and Linting using ESLint
         run: pnpm lint:check
