@@ -85,6 +85,23 @@ const stripInternalLinks = (value: unknown): unknown => {
 };
 
 /**
+ *
+ * A list of fields that should be ignored when checking for unpublished changes.
+ * The ignore list contains meta-data fields that are not relevant for rendering
+ * the page, e.g., internal state fields.
+ *
+ */
+const ignoredFields = new Set([
+  'Versions',
+  'updatedAt',
+  'createdAt',
+  '_status',
+  'internalPageName',
+  'internalStatus',
+  'authors',
+]);
+
+/**
  * Recursively checks if two documents have differences.
  *
  * If the document is invalid, i.e. it contains undefined values,
@@ -103,8 +120,6 @@ const hasDiffs = (
   document2: PayloadDocument | undefined,
 ): boolean => {
   if (document1 === undefined || document2 === undefined) return false;
-
-  const ignoredFields = new Set(['Versions', 'updatedAt', 'createdAt', '_status']);
 
   for (const field of fieldDefs) {
     if (ignoredFields.has(field.name)) continue; // skip ignored fields
