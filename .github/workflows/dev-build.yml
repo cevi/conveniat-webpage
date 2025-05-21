@@ -3,6 +3,8 @@ on:
     branches:
       - dev
 
+name: Build Dev Deployment Image
+
 jobs:
   build-dev-image:
     runs-on: ubuntu-latest
