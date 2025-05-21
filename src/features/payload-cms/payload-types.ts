@@ -289,7 +289,7 @@ export interface Blog {
           blockType: 'fileDownload';
         }
       | DetailsTable
-      | Accordion
+      | AccordionBlocks
       | SummaryBox
     )[];
   };
@@ -711,9 +711,9 @@ export interface DetailsTable {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "Accordion".
+ * via the `definition` "Accordion Blocks".
  */
-export interface Accordion {
+export interface AccordionBlocks {
   introduction: {
     root: {
       type: string;
@@ -731,7 +731,13 @@ export interface Accordion {
   };
   accordionBlocks?:
     | {
+        /**
+         * This is the title of the accordion block. It will be displayed in the overview, and when clicked, the block will expand.
+         */
         title: string;
+        /**
+         * This is the content of the accordion block. It will be displayed when the block is expanded.
+         */
         valueBlocks: (PlainTextBlock | TeamMembersBlock)[];
         id?: string | null;
       }[]
@@ -919,7 +925,7 @@ export interface GenericPage {
           blockType: 'fileDownload';
         }
       | DetailsTable
-      | Accordion
+      | AccordionBlocks
       | SummaryBox
     )[];
   };
@@ -1258,7 +1264,7 @@ export interface BlogSelect<T extends boolean = true> {
                     blockName?: T;
                   };
               detailsTable?: T | DetailsTableSelect<T>;
-              accordion?: T | AccordionSelect<T>;
+              accordion?: T | AccordionBlocksSelect<T>;
               summaryBox?: T | SummaryBoxSelect<T>;
             };
       };
@@ -1349,24 +1355,24 @@ export interface DetailsTableSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "Accordion_select".
+ * via the `definition` "Accordion Blocks_select".
  */
-export interface AccordionSelect<T extends boolean = true> {
-  introduction?: T;
+export interface AccordionBlocksSelect {
+  introduction?: boolean;
   accordionBlocks?:
-    | T
+    | boolean
     | {
-        title?: T;
+        title?: boolean;
         valueBlocks?:
-          | T
+          | boolean
           | {
-              accordionPlainTextBlock?: T | PlainTextBlockSelect<T>;
-              accordionTeamMembersBlock?: T | TeamMembersBlockSelect<T>;
+              accordionPlainTextBlock?: boolean | PlainTextBlockSelect;
+              accordionTeamMembersBlock?: boolean | TeamMembersBlockSelect;
             };
-        id?: T;
+        id?: boolean;
       };
-  id?: T;
-  blockName?: T;
+  id?: boolean;
+  blockName?: boolean;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1483,7 +1489,7 @@ export interface GenericPageSelect<T extends boolean = true> {
                     blockName?: T;
                   };
               detailsTable?: T | DetailsTableSelect<T>;
-              accordion?: T | AccordionSelect<T>;
+              accordion?: T | AccordionBlocksSelect<T>;
               summaryBox?: T | SummaryBoxSelect<T>;
             };
       };
