@@ -167,6 +167,13 @@ const hasDiffs = (
             return true;
         }
 
+        // verify that the blocks are in the same order
+        if (blocks1.length !== blocks2.length) return true;
+        for (const [index, element] of blocks1.entries()) {
+          // @ts-ignore
+          if (element['id'] !== blocks2[index]['id']) return true;
+        }
+
         break; // no diff found, continue with the next field
       }
 
@@ -211,6 +218,15 @@ const hasDiffs = (
             ) {
               return true;
             }
+          }
+
+          // verify that the array elements are in the same order
+          // @ts-ignore
+          if (value1.length !== value2.length) return true;
+          for (const [index, element] of value1.entries()) {
+            // @ts-ignore
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            if (element.id !== value2[index].id) return true;
           }
         } else {
           if (hasDiffs(locale, fields, value1 as PayloadDocument, value2 as PayloadDocument))
