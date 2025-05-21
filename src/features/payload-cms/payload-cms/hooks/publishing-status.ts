@@ -6,6 +6,7 @@ import type { Block, CollectionConfig, CollectionSlug, FieldHookArgs, Tab } from
 interface Field {
   name: string;
   type: string;
+  hasMany?: boolean;
   localized: boolean;
   presentational: boolean;
   fields?: Field[];
@@ -264,7 +265,41 @@ const hasDiffs = (
       case 'join':
       case 'relationship':
       case 'upload': {
+        if (field.name === 'images') console.log(value1, value2, '\n\n');
+
         type UploadRecord = Record<Config['locale'], { id: string } | undefined>;
+        type UploadRecordMany = Record<Config['locale'], { id: string }[] | undefined>;
+
+        if (field.presentational) break;
+
+        if (field.localized && field.hasMany === true) {
+          const v1 = value1 as UploadRecordMany;
+          const v2 = value2 as UploadRecordMany;
+          if (v1[locale] === undefined || v2[locale] === undefined) continue;
+
+          if (v1[locale].length !== v2[locale].length) return true; // different number of items
+
+          for (const [index, element] of v1[locale].entries()) {
+            // @ts-ignore
+            if (element.id !== v2[locale][index].id) return true; // different id
+          }
+          break; // no diff found, continue with the next field
+        }
+
+        if (!field.localized && field.hasMany === true) {
+          const v1 = value1 as { id: string }[] | undefined;
+          const v2 = value2 as { id: string }[] | undefined;
+          if (v1 === undefined || v2 === undefined) continue;
+
+          if (v1.length !== v2.length) return true; // different number of items
+
+          for (const [index, element] of v1.entries()) {
+            // @ts-ignore
+            if (element.id !== v2[index].id) return true; // different id
+          }
+          break; // no diff found, continue with the next field
+        }
+
         if (field.localized) {
           const v1 = value1 as UploadRecord;
           const v2 = value2 as UploadRecord;
@@ -277,7 +312,7 @@ const hasDiffs = (
         if (value1 === undefined || value2 === undefined) continue;
         const v1 = value1 as { id: string } | undefined;
         const v2 = value2 as { id: string } | undefined;
-        if (!field.presentational && v1?.id !== v2?.id) return true;
+        if (v1?.id !== v2?.id) return true;
         break; // no diff found, continue with the next field
       }
 
