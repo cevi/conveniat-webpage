@@ -84,7 +84,7 @@ const teamMembersBlock: Block = {
 
 export const accordion: Block = {
   slug: 'accordion',
-  interfaceName: 'Accordion Blocks',
+  interfaceName: 'AccordionBlocks',
 
   imageURL: '/admin-block-images/accordion-block.png',
   imageAltText: 'Details Table block',

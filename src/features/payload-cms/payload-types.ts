@@ -711,7 +711,7 @@ export interface DetailsTable {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "Accordion Blocks".
+ * via the `definition` "AccordionBlocks".
  */
 export interface AccordionBlocks {
   introduction: {
@@ -1358,24 +1358,24 @@ export interface DetailsTableSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "Accordion Blocks_select".
+ * via the `definition` "AccordionBlocks_select".
  */
-export interface AccordionBlocksSelect {
-  introduction?: boolean;
+export interface AccordionBlocksSelect<T extends boolean = true> {
+  introduction?: T;
   accordionBlocks?:
-    | boolean
+    | T
     | {
-        title?: boolean;
+        title?: T;
         valueBlocks?:
-          | boolean
+          | T
           | {
-              accordionPlainTextBlock?: boolean | PlainTextBlockSelect;
-              accordionTeamMembersBlock?: boolean | TeamMembersBlockSelect;
+              accordionPlainTextBlock?: T | PlainTextBlockSelect<T>;
+              accordionTeamMembersBlock?: T | TeamMembersBlockSelect<T>;
             };
-        id?: boolean;
+        id?: T;
       };
-  id?: boolean;
-  blockName?: boolean;
+  id?: T;
+  blockName?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

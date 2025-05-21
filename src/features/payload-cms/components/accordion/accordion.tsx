@@ -1,10 +1,10 @@
 import AccordionClientContainer from '@/features/payload-cms/components/accordion/accordion-client-container';
 import AccordionContent from '@/features/payload-cms/components/accordion/accordion-content';
-import type { Accordion as AccordionType } from '@/features/payload-cms/payload-types';
+import type { AccordionBlocks } from '@/features/payload-cms/payload-types';
 import type React from 'react';
 
 export const Accordion: React.FC<{
-  block: AccordionType;
+  block: AccordionBlocks;
 }> = ({ block }) => {
   if (block.accordionBlocks === undefined || block.accordionBlocks === null) {
     return <></>;
