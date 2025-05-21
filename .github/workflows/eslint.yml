@@ -32,6 +32,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: generate prisma client
+        run: npx prisma generate
+
       - name: Verify that Payload Types and Importmaps are up to date
         env:
           CHECK_ENV_VARIABLES: 'false'
