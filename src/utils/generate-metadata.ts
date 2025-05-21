@@ -58,15 +58,6 @@ export const generateMetadata = async (): Promise<Metadata> => {
       },
     },
 
-    robots: {
-      index: true,
-      follow: true,
-      googleBot: {
-        index: true,
-        follow: true,
-      },
-    },
-
     icons: metadataIconDefinitions,
     manifest: '/manifest.webmanifest',
 
