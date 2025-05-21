@@ -237,13 +237,13 @@ const hasDiffs = (
         if (field.localized) {
           const v1 = value1 as UploadRecord;
           const v2 = value2 as UploadRecord;
-          if (v1[locale] === undefined || v2[locale] === undefined) return false;
+          if (v1[locale] === undefined || v2[locale] === undefined) continue;
 
           if (v1[locale].id !== v2[locale].id) return true;
           break; // no diff found, continue with the next field
         }
 
-        if (value1 === undefined || value2 === undefined) return false;
+        if (value1 === undefined || value2 === undefined) continue;
         const v1 = value1 as { id: string } | undefined;
         const v2 = value2 as { id: string } | undefined;
         if (!field.presentational && v1?.id !== v2?.id) return true;
