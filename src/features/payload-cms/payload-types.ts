@@ -197,6 +197,14 @@ export interface Blog {
    * Name of the page for internal purposes.
    */
   internalPageName: string;
+  /**
+   * Authors of the Page (internal use only)
+   */
+  authors: (string | User)[];
+  /**
+   * Status of the page (internal use)
+   */
+  internalStatus: 'draft' | 'review' | 'approved' | 'archived';
   content: {
     /**
      * This is the title that will be displayed on the page.
@@ -282,6 +290,7 @@ export interface Blog {
         }
       | DetailsTable
       | Accordion
+      | SummaryBox
     )[];
   };
   seo: {
@@ -309,6 +318,35 @@ export interface Blog {
 export interface LocalizedPublishingStatus {
   published: IsPublishedInCorrespondingLocale;
   [k: string]: unknown;
+}
+/**
+ * Represents a Hitobito user. These information get automatically synced whenever the user logs in.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "users".
+ */
+export interface User {
+  id: string;
+  /**
+   * The ID of the user in the CeviDB.
+   */
+  cevi_db_uuid: number;
+  /**
+   * Whether the user has access to the admin panel. This is set automatically based on the user groups.
+   */
+  adminPanelAccess?: boolean | null;
+  email: string;
+  /**
+   * The full name of the user, as it will be displayed publicly.
+   */
+  fullName: string;
+  /**
+   * The Ceviname of the user.
+   */
+  nickname?: string | null;
+  groups: GroupsOfTheUser;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -750,6 +788,30 @@ export interface TeamMembersBlock {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "summaryBox".
+ */
+export interface SummaryBox {
+  richTextSection: {
+    root: {
+      type: string;
+      children: {
+        type: string;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'summaryBox';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "generic-page".
  */
 export interface GenericPage {
@@ -770,6 +832,14 @@ export interface GenericPage {
    * Name of the page for internal purposes.
    */
   internalPageName: string;
+  /**
+   * Authors of the Page (internal use only)
+   */
+  authors: (string | User)[];
+  /**
+   * Status of the page (internal use)
+   */
+  internalStatus: 'draft' | 'review' | 'approved' | 'archived';
   content: {
     /**
      * This is the title that will be displayed on the page.
@@ -850,6 +920,7 @@ export interface GenericPage {
         }
       | DetailsTable
       | Accordion
+      | SummaryBox
     )[];
   };
   seo: {
@@ -933,31 +1004,6 @@ export interface Timeline {
   updatedAt: string;
   createdAt: string;
   _status?: ('draft' | 'published') | null;
-}
-/**
- * Represents a Hitobito user. These information get automatically synced whenever the user logs in.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users".
- */
-export interface User {
-  id: string;
-  /**
-   * The ID of the user in the CeviDB.
-   */
-  cevi_db_uuid: number;
-  email: string;
-  /**
-   * The full name of the user, as it will be displayed publicly.
-   */
-  fullName: string;
-  /**
-   * The Ceviname of the user.
-   */
-  nickname?: string | null;
-  groups: GroupsOfTheUser;
-  updatedAt: string;
-  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1146,6 +1192,8 @@ export interface BlogSelect<T extends boolean = true> {
   _disable_unpublishing?: T;
   _locale?: T;
   internalPageName?: T;
+  authors?: T;
+  internalStatus?: T;
   content?:
     | T
     | {
@@ -1211,6 +1259,7 @@ export interface BlogSelect<T extends boolean = true> {
                   };
               detailsTable?: T | DetailsTableSelect<T>;
               accordion?: T | AccordionSelect<T>;
+              summaryBox?: T | SummaryBoxSelect<T>;
             };
       };
   seo?:
@@ -1353,6 +1402,15 @@ export interface TeamMembersBlockSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "summaryBox_select".
+ */
+export interface SummaryBoxSelect<T extends boolean = true> {
+  richTextSection?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "generic-page_select".
  */
 export interface GenericPageSelect<T extends boolean = true> {
@@ -1361,6 +1419,8 @@ export interface GenericPageSelect<T extends boolean = true> {
   _disable_unpublishing?: T;
   _locale?: T;
   internalPageName?: T;
+  authors?: T;
+  internalStatus?: T;
   content?:
     | T
     | {
@@ -1424,6 +1484,7 @@ export interface GenericPageSelect<T extends boolean = true> {
                   };
               detailsTable?: T | DetailsTableSelect<T>;
               accordion?: T | AccordionSelect<T>;
+              summaryBox?: T | SummaryBoxSelect<T>;
             };
       };
   seo?:
@@ -1514,6 +1575,7 @@ export interface DocumentsSelect<T extends boolean = true> {
  */
 export interface UsersSelect<T extends boolean = true> {
   cevi_db_uuid?: T;
+  adminPanelAccess?: T;
   email?: T;
   fullName?: T;
   nickname?: T;
