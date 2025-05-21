@@ -1063,6 +1063,9 @@ export interface SearchCollection {
         relationTo: 'generic-page';
         value: string | GenericPage;
       };
+  /**
+   * This field is used for search indexing. It is automatically filled and not editable.
+   */
   search_content?: string | null;
   search_title?: string | null;
   updatedAt: string;
