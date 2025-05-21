@@ -76,5 +76,6 @@ export const environmentVariables = createEnv({
 
   // we don't want to validate the env variables during a production build
   // env variables for production are not available during the build time
-  skipValidation: process.env['BUILD_TARGET'] === 'production',
+  skipValidation:
+    process.env['BUILD_TARGET'] === 'production' || process.env['CHECK_ENV_VARIABLES'] === 'false',
 });

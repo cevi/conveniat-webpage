@@ -1,10 +1,10 @@
-import type { Accordion } from '@/features/payload-cms/payload-types';
+import type { AccordionBlocks } from '@/features/payload-cms/payload-types';
 import { cn } from '@/utils/tailwindcss-override';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import React from 'react';
 
 interface AccordionItemProperties {
-  accordionBlock: Exclude<Exclude<Accordion['accordionBlocks'], undefined>, null>[0];
+  accordionBlock: Exclude<Exclude<AccordionBlocks['accordionBlocks'], undefined>, null>[0];
   isExpanded: boolean;
   children: React.ReactNode;
   onToggle: () => void;

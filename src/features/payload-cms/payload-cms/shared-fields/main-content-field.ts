@@ -18,6 +18,7 @@ export const mainContentField: Field = {
   required: true,
   localized: true,
   admin: {
+    initCollapsed: true,
     description: {
       en: 'The main content of the page',
       de: 'Der Hauptinhalt der Seite',

@@ -84,7 +84,7 @@ const teamMembersBlock: Block = {
 
 export const accordion: Block = {
   slug: 'accordion',
-  interfaceName: 'Accordion',
+  interfaceName: 'AccordionBlocks',
 
   imageURL: '/admin-block-images/accordion-block.png',
   imageAltText: 'Details Table block',
@@ -92,7 +92,7 @@ export const accordion: Block = {
   fields: [
     {
       name: 'introduction',
-      label: 'Introduction',
+      label: 'Introduction Text',
       type: 'richText',
       required: true,
       editor: lexicalEditor({
@@ -109,18 +109,40 @@ export const accordion: Block = {
     {
       type: 'array',
       name: 'accordionBlocks',
-      label: 'Accordion Blocks',
+      admin: {
+        initCollapsed: true,
+        components: {
+          RowLabel: {
+            path: '@/features/payload-cms/payload-cms/components/accordion-row-label#AccordionArrayRowLabel',
+          },
+        },
+      },
+      minRows: 1,
       fields: [
         {
           name: 'title',
           label: 'Accordion Block Title',
+          admin: {
+            description: {
+              de: 'Dies ist der Titel des Akkordeonblocks. Er wird in der Übersicht angezeigt, und wenn er angeklickt wird, wird der Block erweitert.',
+              en: 'This is the title of the accordion block. It will be displayed in the overview, and when clicked, the block will expand.',
+              fr: "Ceci est le titre du bloc accordéon. Il sera affiché dans l'aperçu, et lorsqu'il est cliqué, le bloc se développera.",
+            },
+          },
           type: 'text',
           required: true,
         },
-
         {
           name: 'valueBlocks',
           label: 'Value Blocks',
+          admin: {
+            initCollapsed: true,
+            description: {
+              de: 'Dies ist der Inhalt des Akkordeonblocks. Er wird angezeigt, wenn der Block erweitert wird.',
+              en: 'This is the content of the accordion block. It will be displayed when the block is expanded.',
+              fr: 'Ceci est le contenu du bloc accordéon. Il sera affiché lorsque le bloc sera développé.',
+            },
+          },
           type: 'blocks',
           required: true,
           blocks: [plainTextBlock, teamMembersBlock],

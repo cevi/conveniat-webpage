@@ -124,6 +124,8 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
 
   const landingPageContent: RequiredDataFromCollectionSlug<'generic-page'> = {
     internalPageName: 'startseite',
+    authors: [],
+    internalStatus: 'approved',
     _disable_unpublishing: true,
     _status: 'published',
     content: {

@@ -1,12 +1,12 @@
 'use client';
 
 import AccordionItem from '@/features/payload-cms/components/accordion/accordion-item';
-import type { Accordion } from '@/features/payload-cms/payload-types';
+import type { AccordionBlocks } from '@/features/payload-cms/payload-types';
 import React, { useState } from 'react';
 
 // This component manages the expanded state for all items
 const AccordionClientContainer: React.FC<{
-  accordionBlocks: Accordion['accordionBlocks'];
+  accordionBlocks: AccordionBlocks['accordionBlocks'];
   childs: {
     [key: string]: React.ReactNode;
   };

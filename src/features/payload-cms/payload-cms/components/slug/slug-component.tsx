@@ -5,7 +5,7 @@ import type { CustomSlugComponentProperties } from '@/features/payload-cms/paylo
 import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import type { Locale } from '@/types/types';
 import { FieldLabel, TextInput, useField, useFormFields, useLocale } from '@payloadcms/ui';
-import { Lock, Unlock } from 'lucide-react'; // Import icons from Lucide
+import { Lock, Unlock } from 'lucide-react';
 import type { TextFieldClientProps } from 'payload';
 import React, { useCallback, useEffect, useState } from 'react';
 
@@ -58,11 +58,20 @@ export const SlugComponent: React.FC<
 
   const handleLock = useCallback(
     (event: { preventDefault: () => void }) => {
+      if (
+        checkboxValue &&
+        !globalThis.confirm(
+          'Changing the slug will change the URL. Do you want to continue? This will break all links to that page.',
+        )
+      ) {
+        return; // do not change the state
+      }
+
       event.preventDefault();
 
       setCheckboxValue((previous) => !previous); // Update state instead of local variable
     },
-    [setCheckboxValue],
+    [checkboxValue],
   );
 
   const readOnly = checkboxValue;
@@ -80,7 +89,7 @@ export const SlugComponent: React.FC<
         <FieldLabel htmlFor={`field-${path}`} label={label ?? ''} />
 
         <button
-          className="ml-2 p-1 text-gray-500 hover:text-gray-700 focus:outline-hidden"
+          className="ml-2 p-1 text-gray-500 dark:text-gray-200 dark:hover:text-gray-50 hover:text-gray-700 focus:outline-hidden"
           onClick={handleLock}
           aria-label={checkboxValue ? 'Unlock' : 'Lock'}
         >

@@ -14,6 +14,12 @@ export const basicBlog = (
     id: '6783df844eb8bebdce04d1b8',
     _locale: LOCALE.DE,
     internalPageName: slug,
+    authors: [],
+    internalStatus: faker.helpers.arrayElement(['draft', 'review', 'approved', 'archived']) as
+      | 'draft'
+      | 'review'
+      | 'approved'
+      | 'archived',
     content: {
       releaseDate: '2025-01-01T01:00:00.000Z',
       blogH1: faker.lorem.sentence(),

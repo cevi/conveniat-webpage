@@ -18,5 +18,5 @@ export const internalAuthorsField: Field = {
   type: 'relationship',
   relationTo: 'users',
   hasMany: true,
-  required: true,
+  required: false,
 };

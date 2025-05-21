@@ -11,6 +11,11 @@ export const photoCarouselBlock: Block = {
     {
       name: 'images',
       label: 'Images',
+
+      admin: {
+        isSortable: true,
+        appearance: 'drawer',
+      },
       type: 'relationship',
       relationTo: 'images',
       hasMany: true,

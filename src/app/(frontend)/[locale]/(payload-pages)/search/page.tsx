@@ -1,8 +1,9 @@
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { BlogDisplay } from '@/features/payload-cms/components/content-blocks/list-blog-articles';
-import type { Blog, GenericPage } from '@/features/payload-cms/payload-types';
+import type { Blog, GenericPage, Permission } from '@/features/payload-cms/payload-types';
 import type { StaticTranslationString } from '@/types/types';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
+import { hasPermissions } from '@/utils/has-permissions';
 import config from '@payload-config';
 import { getPayload } from 'payload';
 import React from 'react';
@@ -11,6 +12,24 @@ const searchResultHeader: StaticTranslationString = {
   de: 'Suchresultate für ',
   en: 'Search results for ',
   fr: 'Résultats de la recherche pour ',
+};
+
+const searchResultNoResults: StaticTranslationString = {
+  de: 'Keine Resultate gefunden.',
+  en: 'No results found.',
+  fr: 'Aucun résultat trouvé.',
+};
+
+const searchResultsTitleBlog: StaticTranslationString = {
+  de: 'Blog-Beiträge',
+  en: 'Blog-Posts',
+  fr: 'Articles de blog',
+};
+
+const searchResultsTitlePages: StaticTranslationString = {
+  de: 'Seiten',
+  en: 'Pages',
+  fr: 'Pages',
 };
 
 const SearchPage: React.FC<{
@@ -86,7 +105,12 @@ const SearchPage: React.FC<{
       return;
     }),
   );
+
   const blogs = blogsPublished.filter((blog) => blog !== undefined) as Blog[];
+  const blogsPermissions = await Promise.all(
+    blogs.map((blog) => hasPermissions(blog.content.permissions as Permission)),
+  );
+  const permittedBlogs = blogs.filter((_, index) => blogsPermissions[index]);
 
   const pagesPublished = await Promise.all(
     searchCollectionEntries.map(async (entry) => {
@@ -124,6 +148,10 @@ const SearchPage: React.FC<{
     }),
   );
   const pages = pagesPublished.filter((page) => page !== undefined) as GenericPage[];
+  const pagesPermissions = await Promise.all(
+    pages.map((page) => hasPermissions(page.content.permissions as Permission)),
+  );
+  const permittedPages = pages.filter((_, index) => pagesPermissions[index]);
 
   return (
     <article className="mx-auto my-8 max-w-2xl px-8">
@@ -132,9 +160,9 @@ const SearchPage: React.FC<{
       </HeadlineH1>
       <div className="mx-auto my-8 grid gap-y-6 min-[1200px]:grid-cols-2">
         <div className="col-span-2">
-          <h2 className="text-2xl font-bold">Pages</h2>
-          {pages.length === 0 && <p>No pages found</p>}
-          {pages.map((page) => {
+          <h2 className="text-2xl font-bold">{searchResultsTitlePages[locale]}</h2>
+          {permittedPages.length === 0 && <p>{searchResultNoResults[locale]}</p>}
+          {permittedPages.map((page) => {
             return (
               <div key={page.seo.urlSlug} className="my-4">
                 <h3 className="text-xl font-bold">{page.content.pageTitle}</h3>
@@ -144,9 +172,9 @@ const SearchPage: React.FC<{
           })}
         </div>
         <div className="col-span-2">
-          <h2 className="text-2xl font-bold">Blogs</h2>
-          {blogs.length === 0 && <p>No blogs found</p>}
-          {blogs.map((blog) => {
+          <h2 className="text-2xl font-bold">{searchResultsTitleBlog[locale]}</h2>
+          {permittedBlogs.length === 0 && <p>{searchResultNoResults[locale]}</p>}
+          {permittedBlogs.map((blog) => {
             return <BlogDisplay blog={blog} key={blog.seo.urlSlug} />;
           })}
         </div>

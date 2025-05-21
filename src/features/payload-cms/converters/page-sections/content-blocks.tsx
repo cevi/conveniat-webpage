@@ -20,7 +20,7 @@ import { YoutubeEmbed } from '@/features/payload-cms/components/content-blocks/y
 import type { FormBlockType } from '@/features/payload-cms/components/form';
 import type { ContentBlock } from '@/features/payload-cms/converters/page-sections/section-wrapper';
 import SectionWrapper from '@/features/payload-cms/converters/page-sections/section-wrapper';
-import type { Accordion as AccordionType } from '@/features/payload-cms/payload-types';
+import type { AccordionBlocks } from '@/features/payload-cms/payload-types';
 import type { LocalizedPageType } from '@/types/types';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import Image from 'next/image';
@@ -50,7 +50,7 @@ export type SectionRenderer<T = object> = React.FC<
   }
 >;
 
-export const AccordionBlock: SectionRenderer<AccordionType> = ({
+export const AccordionBlock: SectionRenderer<AccordionBlocks> = ({
   block,
   sectionClassName,
   sectionOverrides,

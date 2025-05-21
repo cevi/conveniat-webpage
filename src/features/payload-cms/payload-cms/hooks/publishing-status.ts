@@ -6,6 +6,7 @@ import type { Block, CollectionConfig, CollectionSlug, FieldHookArgs, Tab } from
 interface Field {
   name: string;
   type: string;
+  hasMany?: boolean;
   localized: boolean;
   presentational: boolean;
   fields?: Field[];
@@ -85,6 +86,23 @@ const stripInternalLinks = (value: unknown): unknown => {
 };
 
 /**
+ *
+ * A list of fields that should be ignored when checking for unpublished changes.
+ * The ignore list contains meta-data fields that are not relevant for rendering
+ * the page, e.g., internal state fields.
+ *
+ */
+const ignoredFields = new Set([
+  'Versions',
+  'updatedAt',
+  'createdAt',
+  '_status',
+  'internalPageName',
+  'internalStatus',
+  'authors',
+]);
+
+/**
  * Recursively checks if two documents have differences.
  *
  * If the document is invalid, i.e. it contains undefined values,
@@ -103,8 +121,6 @@ const hasDiffs = (
   document2: PayloadDocument | undefined,
 ): boolean => {
   if (document1 === undefined || document2 === undefined) return false;
-
-  const ignoredFields = new Set(['Versions', 'updatedAt', 'createdAt', '_status']);
 
   for (const field of fieldDefs) {
     if (ignoredFields.has(field.name)) continue; // skip ignored fields
@@ -152,6 +168,13 @@ const hasDiffs = (
             return true;
         }
 
+        // verify that the blocks are in the same order
+        if (blocks1.length !== blocks2.length) return true;
+        for (const [index, element] of blocks1.entries()) {
+          // @ts-ignore
+          if (element['id'] !== blocks2[index]['id']) return true;
+        }
+
         break; // no diff found, continue with the next field
       }
 
@@ -197,6 +220,15 @@ const hasDiffs = (
               return true;
             }
           }
+
+          // verify that the array elements are in the same order
+          // @ts-ignore
+          if (value1.length !== value2.length) return true;
+          for (const [index, element] of value1.entries()) {
+            // @ts-ignore
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            if (element.id !== value2[index].id) return true;
+          }
         } else {
           if (hasDiffs(locale, fields, value1 as PayloadDocument, value2 as PayloadDocument))
             return true;
@@ -233,20 +265,54 @@ const hasDiffs = (
       case 'join':
       case 'relationship':
       case 'upload': {
+        if (field.name === 'images') console.log(value1, value2, '\n\n');
+
         type UploadRecord = Record<Config['locale'], { id: string } | undefined>;
+        type UploadRecordMany = Record<Config['locale'], { id: string }[] | undefined>;
+
+        if (field.presentational) break;
+
+        if (field.localized && field.hasMany === true) {
+          const v1 = value1 as UploadRecordMany;
+          const v2 = value2 as UploadRecordMany;
+          if (v1[locale] === undefined || v2[locale] === undefined) continue;
+
+          if (v1[locale].length !== v2[locale].length) return true; // different number of items
+
+          for (const [index, element] of v1[locale].entries()) {
+            // @ts-ignore
+            if (element.id !== v2[locale][index].id) return true; // different id
+          }
+          break; // no diff found, continue with the next field
+        }
+
+        if (!field.localized && field.hasMany === true) {
+          const v1 = value1 as { id: string }[] | undefined;
+          const v2 = value2 as { id: string }[] | undefined;
+          if (v1 === undefined || v2 === undefined) continue;
+
+          if (v1.length !== v2.length) return true; // different number of items
+
+          for (const [index, element] of v1.entries()) {
+            // @ts-ignore
+            if (element.id !== v2[index].id) return true; // different id
+          }
+          break; // no diff found, continue with the next field
+        }
+
         if (field.localized) {
           const v1 = value1 as UploadRecord;
           const v2 = value2 as UploadRecord;
-          if (v1[locale] === undefined || v2[locale] === undefined) return false;
+          if (v1[locale] === undefined || v2[locale] === undefined) continue;
 
           if (v1[locale].id !== v2[locale].id) return true;
           break; // no diff found, continue with the next field
         }
 
-        if (value1 === undefined || value2 === undefined) return false;
+        if (value1 === undefined || value2 === undefined) continue;
         const v1 = value1 as { id: string } | undefined;
         const v2 = value2 as { id: string } | undefined;
-        if (!field.presentational && v1?.id !== v2?.id) return true;
+        if (v1?.id !== v2?.id) return true;
         break; // no diff found, continue with the next field
       }
 

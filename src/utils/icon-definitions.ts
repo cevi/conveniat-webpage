@@ -1,6 +1,6 @@
 import type { Metadata, MetadataRoute } from 'next';
 
-const iconsDefinitions: { src: string; sizes: string; type: string }[] = [
+const iconsDefinitions: { src: string; sizes: string; type: string; rel?: string }[] = [
   {
     src: '/favicon.ico',
     sizes: '48x48',
@@ -25,6 +25,7 @@ const iconsDefinitions: { src: string; sizes: string; type: string }[] = [
     src: '/apple-touch-icon.png',
     sizes: '180x180',
     type: 'image/png',
+    rel: 'apple-touch-icon',
   },
 ];
 
