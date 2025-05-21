@@ -200,7 +200,7 @@ export interface Blog {
   /**
    * Authors of the Page (internal use only)
    */
-  authors: (string | User)[];
+  authors?: (string | User)[] | null;
   /**
    * Status of the page (internal use)
    */
@@ -835,7 +835,7 @@ export interface GenericPage {
   /**
    * Authors of the Page (internal use only)
    */
-  authors: (string | User)[];
+  authors?: (string | User)[] | null;
   /**
    * Status of the page (internal use)
    */
