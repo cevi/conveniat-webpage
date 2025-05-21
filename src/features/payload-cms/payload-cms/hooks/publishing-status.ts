@@ -265,8 +265,6 @@ const hasDiffs = (
       case 'join':
       case 'relationship':
       case 'upload': {
-        if (field.name === 'images') console.log(value1, value2, '\n\n');
-
         type UploadRecord = Record<Config['locale'], { id: string } | undefined>;
         type UploadRecordMany = Record<Config['locale'], { id: string }[] | undefined>;
 
