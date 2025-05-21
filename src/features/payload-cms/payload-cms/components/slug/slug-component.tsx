@@ -58,11 +58,20 @@ export const SlugComponent: React.FC<
 
   const handleLock = useCallback(
     (event: { preventDefault: () => void }) => {
+      if (
+        checkboxValue &&
+        !globalThis.confirm(
+          'Changing the slug will change the URL. Do you want to continue? This will break all links to that page.',
+        )
+      ) {
+        return; // do not change the state
+      }
+
       event.preventDefault();
 
       setCheckboxValue((previous) => !previous); // Update state instead of local variable
     },
-    [setCheckboxValue],
+    [checkboxValue],
   );
 
   const readOnly = checkboxValue;
