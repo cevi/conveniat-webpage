@@ -14,8 +14,8 @@ const TeamLeaderPortrait: React.FC<{
       <Image
         src={portrait}
         alt={`Portrait of ${name}`}
-        width={84}
-        height={84}
+        width={200}
+        height={200}
         className="object-cover h-full group-hover:scale-105 transition-transform"
       />
     );
@@ -24,8 +24,8 @@ const TeamLeaderPortrait: React.FC<{
       <Image
         src={portrait.url}
         alt={`Portrait of ${name}`}
-        width={84}
-        height={84}
+        width={200}
+        height={200}
         className="object-cover h-full group-hover:scale-105 transition-transform"
       />
     );
@@ -92,7 +92,7 @@ export const TeamMembers: React.FC<{
       <div>
         <div>
           <button className="flex items-center group w-full flex-col md:flex-row text-center md:text-left hover:bg-gray-50 py-4 px-2 md:py-2 rounded-md transition-colors gap-4">
-            <div className="h-20 w-20 md:h-16 md:w-16 relative overflow-hidden rounded-full">
+            <div className="h-48 w-48 md:h-24 md:w-24 relative overflow-hidden rounded-full">
               {<TeamLeaderPortrait name={teamLeader.name} portrait={teamLeader.portrait} />}
             </div>
             <div>
