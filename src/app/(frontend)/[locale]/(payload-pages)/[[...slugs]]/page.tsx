@@ -1,5 +1,7 @@
 import 'server-only';
 
+import { PreviewError } from '@/app/(frontend)/[locale]/(payload-pages)/[[...slugs]]/preview-error';
+import { NotFound } from '@/app/(frontend)/not-found';
 import { CookieBanner } from '@/components/utils/cookie-banner';
 import { RefreshRouteOnSave } from '@/components/utils/refresh-preview';
 import { environmentVariables } from '@/config/environment-variables';
@@ -12,6 +14,7 @@ import { isPreviewTokenValid } from '@/utils/preview-token';
 import { cookies } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import type React from 'react';
+import { ErrorBoundary } from 'react-error-boundary';
 
 /**
  * Checks if the preview token is valid.
@@ -145,12 +148,20 @@ const CMSPage: React.FC<{
               <RefreshRouteOnSave serverURL={environmentVariables.APP_HOST_URL} />
             )}
 
-            <collectionPage.component
-              locale={locale}
-              slugs={remainingSlugs}
-              searchParams={searchParameters}
-              renderInPreviewMode={previewModeAllowed && hasPreviewSearchParameter}
-            />
+            <ErrorBoundary
+              fallback={
+                <PreviewError>
+                  <NotFound />
+                </PreviewError>
+              }
+            >
+              <collectionPage.component
+                locale={locale}
+                slugs={remainingSlugs}
+                searchParams={searchParameters}
+                renderInPreviewMode={previewModeAllowed && hasPreviewSearchParameter}
+              />
+            </ErrorBoundary>
 
             {previewModeAllowed && hasPreviewSearchParameter && <PreviewWarning params={params} />}
 
