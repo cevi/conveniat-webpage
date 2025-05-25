@@ -7,7 +7,7 @@ interface AccessArguments {
   id?: string | number;
 }
 
-export const canAccessIdInCollection = (collection: 'images' | 'documents'): Access => {
+export const canAccessIdInCollection = (collection: 'documents'): Access => {
   return async ({ req: { user, payload }, id }: AccessArguments) => {
     if (user?.adminPanelAccess) return true;
 

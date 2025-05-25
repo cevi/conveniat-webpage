@@ -362,7 +362,6 @@ export interface Image {
    * Optional text to display below the image (e.g. image source, copyright information, explanatory text)
    */
   imageCaption?: string | null;
-  permissions?: (string | null) | Permission;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -1551,7 +1550,6 @@ export interface TimelineSelect<T extends boolean = true> {
 export interface ImagesSelect<T extends boolean = true> {
   alt?: T;
   imageCaption?: T;
-  permissions?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
