@@ -3,10 +3,13 @@
 import { environmentVariables } from '@/config/environment-variables';
 import * as jwt from 'jsonwebtoken';
 
-export const generatePreviewToken = async (url: string): Promise<string> => {
+export const generatePreviewToken = async (
+  url: string,
+  expiresIn: number = 86400,
+): Promise<string> => {
   const JWT_SECRET_KEY = environmentVariables.JWT_SECRET;
 
-  return jwt.sign({ url }, JWT_SECRET_KEY, { expiresIn: '24h' });
+  return jwt.sign({ url }, JWT_SECRET_KEY, { expiresIn: expiresIn });
 };
 
 export const isPreviewTokenValid = async (url: string, token: string): Promise<boolean> => {
