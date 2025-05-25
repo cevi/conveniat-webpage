@@ -29,6 +29,8 @@ export const mainContentField: Field = {
     richTextArticleBlock,
     {
       slug: 'blogPostsOverview',
+      imageURL: '/admin-block-images/block-post-overview.png',
+      imageAltText: 'Blog Posts Overview Block',
       fields: [],
     },
     heroSection,
