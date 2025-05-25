@@ -41,8 +41,6 @@ export const GenericPage: React.FC<LocalizedCollectionPage> = async ({
 
   const articleInPrimaryLanguage = articlesInPrimaryLanguage.docs[0];
 
-  console.log(renderInPreviewMode);
-
   // article found in current locale --> render
   if (articleInPrimaryLanguage !== undefined) {
     if (
