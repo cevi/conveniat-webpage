@@ -21,6 +21,7 @@ import { de } from 'payload/i18n/de';
 import { en } from 'payload/i18n/en';
 import { fr } from 'payload/i18n/fr';
 import sharp from 'sharp';
+import { canAccessAdminPanel } from './payload-cms/access-rules/can-access-admin-panel';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -194,6 +195,11 @@ export const payloadConfig: RoutableConfig = {
     formBuilderPlugin({
       fields: {
         state: false, // we do not use states in CH
+      },
+      formOverrides: {
+        access: {
+          read: canAccessAdminPanel,
+        },
       },
     }),
     s3StorageConfiguration,
