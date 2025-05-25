@@ -6,6 +6,8 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from '@/components/carousel';
+import type { Permission } from '@/features/payload-cms/payload-types';
+import { hasPermissions } from '@/utils/has-permissions';
 import Image from 'next/image';
 import React from 'react';
 
@@ -14,15 +16,24 @@ export interface PhotoCarouselBlock {
     url: string;
     alt: string;
     imageCaption?: string;
+    permissions: Permission | undefined;
   }[];
 }
 
-export const PhotoCarousel: React.FC<PhotoCarouselBlock> = ({ images }) => {
-  const length = images.length;
-
-  if (length === 0) {
+export const PhotoCarousel: React.FC<PhotoCarouselBlock> = async ({ images }) => {
+  if (images.length === 0) {
     throw new Error('No images provided');
   }
+
+  // check await hasPermissions(img.permission) for each image
+  images = await Promise.all(
+    images.map(async (img) => {
+      const hasPermission = await hasPermissions(img.permissions);
+      return hasPermission ? img : undefined;
+    }),
+  ).then((filteredImages) => filteredImages.filter((img) => img !== undefined));
+
+  const length = images.length;
 
   // If there are less than 4 images, duplicate the images to fill the carousel
   if (length < 4) {
