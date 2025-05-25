@@ -73,7 +73,7 @@ const requestingPreviewModeText: StaticTranslationString = {
 
 const pageNotAvailableP1Text: StaticTranslationString = {
   en: 'Go back to the ',
-  de: 'Gehen Sie zurück zur ',
+  de: 'Geh zurück zur ',
   fr: 'Retournez à la ',
 };
 
@@ -85,7 +85,7 @@ const homePageLinkText: StaticTranslationString = {
 
 const pageNotAvailableP2Text: StaticTranslationString = {
   en: ' or request a new preview token.',
-  de: ' oder fordern Sie ein neues Vorschau-Token an.',
+  de: ' oder forder ein neues Vorschau-Token an.',
   fr: " ou demandez un nouveau jeton d'aperçu.",
 };
 
