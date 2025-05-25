@@ -1,5 +1,6 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { buildSecureConfig } from '@/features/payload-cms/payload-cms/access-rules/build-secure-config';
+import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import { collectionsConfig } from '@/features/payload-cms/payload-cms/collections';
 import { UserCollection } from '@/features/payload-cms/payload-cms/collections/user-collection';
 import { emailSettings } from '@/features/payload-cms/payload-cms/email-settings';
@@ -21,7 +22,6 @@ import { de } from 'payload/i18n/de';
 import { en } from 'payload/i18n/en';
 import { fr } from 'payload/i18n/fr';
 import sharp from 'sharp';
-import { canAccessAdminPanel } from './payload-cms/access-rules/can-access-admin-panel';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
