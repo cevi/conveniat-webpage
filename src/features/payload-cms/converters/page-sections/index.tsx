@@ -13,6 +13,7 @@ import {
   RenderPhotoCarousel,
   RenderRichTextSection,
   RenderSinglePicture,
+  RenderTimelineEntries,
   RenderYoutubeEmbed,
   SummaryBlock,
   SwisstopoInlineMapSection,
@@ -50,6 +51,7 @@ export const PageSectionsConverter: React.FC<
     detailsTable: DetailsTable,
     accordion: AccordionBlock,
     summaryBox: SummaryBlock,
+    timelineEntries: RenderTimelineEntries,
   };
 
   return (

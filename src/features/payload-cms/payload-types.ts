@@ -291,6 +291,7 @@ export interface Blog {
       | DetailsTable
       | AccordionBlocks
       | SummaryBox
+      | TimelineEntries
     )[];
   };
   seo: {
@@ -819,6 +820,15 @@ export interface SummaryBox {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "timelineEntries".
+ */
+export interface TimelineEntries {
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'timelineEntries';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "generic-page".
  */
 export interface GenericPage {
@@ -928,6 +938,7 @@ export interface GenericPage {
       | DetailsTable
       | AccordionBlocks
       | SummaryBox
+      | TimelineEntries
     )[];
   };
   seo: {
@@ -1270,6 +1281,7 @@ export interface BlogSelect<T extends boolean = true> {
               detailsTable?: T | DetailsTableSelect<T>;
               accordion?: T | AccordionBlocksSelect<T>;
               summaryBox?: T | SummaryBoxSelect<T>;
+              timelineEntries?: T | TimelineEntriesSelect<T>;
             };
       };
   seo?:
@@ -1421,6 +1433,14 @@ export interface SummaryBoxSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "timelineEntries_select".
+ */
+export interface TimelineEntriesSelect<T extends boolean = true> {
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "generic-page_select".
  */
 export interface GenericPageSelect<T extends boolean = true> {
@@ -1495,6 +1515,7 @@ export interface GenericPageSelect<T extends boolean = true> {
               detailsTable?: T | DetailsTableSelect<T>;
               accordion?: T | AccordionBlocksSelect<T>;
               summaryBox?: T | SummaryBoxSelect<T>;
+              timelineEntries?: T | TimelineEntriesSelect<T>;
             };
       };
   seo?:

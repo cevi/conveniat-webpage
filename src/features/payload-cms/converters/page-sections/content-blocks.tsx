@@ -15,15 +15,18 @@ import type { LexicalRichTextSectionType } from '@/features/payload-cms/componen
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
 import { ListBlogPosts } from '@/features/payload-cms/components/content-blocks/list-blog-articles';
 import { ShowForm } from '@/features/payload-cms/components/content-blocks/show-form';
+import { TimelineEntry } from '@/features/payload-cms/components/content-blocks/timeline-entry';
 import type { YoutubeEmbedType } from '@/features/payload-cms/components/content-blocks/youtube-embed';
 import { YoutubeEmbed } from '@/features/payload-cms/components/content-blocks/youtube-embed';
 import type { FormBlockType } from '@/features/payload-cms/components/form';
 import type { ContentBlock } from '@/features/payload-cms/converters/page-sections/section-wrapper';
 import SectionWrapper from '@/features/payload-cms/converters/page-sections/section-wrapper';
-import type { AccordionBlocks } from '@/features/payload-cms/payload-types';
+import type { AccordionBlocks, Timeline } from '@/features/payload-cms/payload-types';
 import type { LocalizedPageType } from '@/types/types';
+import config from '@payload-config';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import Image from 'next/image';
+import { getPayload } from 'payload';
 import type React from 'react';
 import { Fragment } from 'react';
 
@@ -40,7 +43,8 @@ export type ContentBlockTypeNames =
   | 'fileDownload'
   | 'detailsTable'
   | 'accordion'
-  | 'summaryBox';
+  | 'summaryBox'
+  | 'timelineEntries';
 
 export type SectionRenderer<T = object> = React.FC<
   LocalizedPageType & {
@@ -49,6 +53,45 @@ export type SectionRenderer<T = object> = React.FC<
     sectionOverrides?: { [key in ContentBlockTypeNames]?: string };
   }
 >;
+
+export const RenderTimelineEntries: SectionRenderer<
+  {
+    timelineEntries: Timeline[];
+  } & { locale: string; searchParams: Record<string, string> }
+> = async ({ block, locale, searchParams, sectionClassName, sectionOverrides }) => {
+  const payload = await getPayload({ config });
+
+  const timelineQuery = await payload.find({
+    collection: 'timeline',
+    locale: locale,
+    pagination: false,
+    sort: '-date',
+    draft: false, // assuming we want only published entries
+    where: {
+      _localized_status: {
+        equals: {
+          published: true,
+        },
+      },
+    },
+  });
+  const timelineEntries = timelineQuery.docs;
+
+  return (
+    <SectionWrapper
+      block={block}
+      sectionClassName={sectionClassName}
+      sectionOverrides={sectionOverrides}
+      errorFallbackMessage="Failed to load timeline entries. Reload the page to try again."
+    >
+      {timelineEntries.map((timelineEntry, index) => (
+        <Fragment key={index}>
+          <TimelineEntry timeline={timelineEntry} locale={locale} searchParams={searchParams} />
+        </Fragment>
+      ))}
+    </SectionWrapper>
+  );
+};
 
 export const AccordionBlock: SectionRenderer<AccordionBlocks> = ({
   block,
