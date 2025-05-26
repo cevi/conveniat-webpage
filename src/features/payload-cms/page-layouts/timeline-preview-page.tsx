@@ -8,9 +8,9 @@ import { getPayload } from 'payload';
 import React from 'react';
 
 const pageTitle: StaticTranslationString = {
-  en: 'Timeline',
-  de: 'Zeitstrahl',
-  fr: 'Chronologie',
+  en: 'Preview of a timeline entry',
+  de: 'Vorschau eines Zeitstrahl-Eintrags',
+  fr: 'Aperçu d’une entrée de la chronologie',
 };
 
 export const TimelinePreviewPage: React.FC<LocalizedCollectionPage> = async ({
