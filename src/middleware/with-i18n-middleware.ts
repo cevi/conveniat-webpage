@@ -19,10 +19,26 @@ const isExcludedFromI18n = (request: NextRequest): boolean => {
  */
 export const withI18nMiddleware = (): ChainedMiddleware => {
   return (request, _event, response): NextResponse => {
+    response ??= NextResponse.next();
     if (isExcludedFromI18n(request)) {
-      // initialize response if not already set
-      response ??= NextResponse.next();
+      // initialize response if isn't already set
       return response;
+    }
+
+    if (!request.cookies.get('NEXT_LOCALE')) {
+      const pathname = request.nextUrl.pathname;
+      const firstSegment = pathname
+        // split the pathname into segments
+        .split('/')
+        // drop empty segments
+        .find((segment) => segment.length > 0);
+
+      // if the first segment of the path is not a locale (from all configured locales),
+      // we set the locale to the default local
+      if (firstSegment !== undefined && !i18nConfig.locales.includes(firstSegment)) {
+        response.cookies.set('NEXT_LOCALE', i18nConfig.defaultLocale, { path: '/' });
+        return response;
+      }
     }
 
     return i18nRouter(request, i18nConfig);
