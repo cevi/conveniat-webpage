@@ -1964,6 +1964,10 @@ export interface Footer {
         id?: string | null;
       }[]
     | null;
+  socialLinks?: {
+    instagram?: string | null;
+    youtube?: string | null;
+  };
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -2064,6 +2068,12 @@ export interface FooterSelect<T extends boolean = true> {
               id?: T;
             };
         id?: T;
+      };
+  socialLinks?:
+    | T
+    | {
+        instagram?: T;
+        youtube?: T;
       };
   updatedAt?: T;
   createdAt?: T;

@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "@headlessui/react": "^2.2.4",
+    "@icons-pack/react-simple-icons": "^12.9.0",
     "@payloadcms/db-mongodb": "^3.39.1",
     "@payloadcms/email-nodemailer": "^3.39.1",
     "@payloadcms/live-preview-react": "^3.39.1",
