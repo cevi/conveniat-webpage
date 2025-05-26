@@ -40,12 +40,11 @@ export const LanguageSwitcher: React.FC<{ locale: Locale }> = ({ locale }) => {
       route.refresh();
       close(); // close nav
     } else {
-      route.push(
-        `/${lang}/${pathname.replace(/\/(de|en|fr)\/?$/, '')}?${searchParameters.toString()}`,
-        {
-          scroll: false,
-        },
-      );
+      const path = pathname.replace(/\/(de|en|fr)\/?$/, '');
+      const cleanPath = path.startsWith('//') ? path.slice(1) : path;
+      route.push(`/${lang}${cleanPath}?${searchParameters.toString()}`, {
+        scroll: false,
+      });
       route.refresh();
       close(); // close nav
     }
