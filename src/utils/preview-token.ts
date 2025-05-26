@@ -5,7 +5,7 @@ import * as jwt from 'jsonwebtoken';
 
 export const generatePreviewToken = async (
   url: string,
-  expiresIn: number = 86400,
+  expiresIn: number = 86_400,
 ): Promise<string> => {
   const JWT_SECRET_KEY = environmentVariables.JWT_SECRET;
 

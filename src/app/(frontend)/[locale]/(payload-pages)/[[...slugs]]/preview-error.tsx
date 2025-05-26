@@ -114,6 +114,7 @@ interface PreviewTokenAnalysisProperties {
   decoded: DecodedToken | null;
 }
 
+// eslint-disable-next-line complexity
 const PreviewTokenAnalysis: React.FC<PreviewTokenAnalysisProperties> = ({
   validPreviewToken,
   previewTokenExpired,
