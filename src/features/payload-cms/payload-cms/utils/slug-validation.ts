@@ -7,7 +7,7 @@ const slugMaxLength = 100;
 
 const checkForbiddenRegexes = (value: string): { error: boolean; message: string } => {
   // slug can only contain lowercase letters, numbers, and hyphens
-  if (!/^[a-z0-9-]+$/.test(value)) {
+  if (!/^[a-z0-9-/]+$/.test(value)) {
     return {
       error: true,
       message: 'Slug can only contain lowercase letters, numbers, and hyphens',
@@ -23,8 +23,11 @@ const checkForbiddenRegexes = (value: string): { error: boolean; message: string
   }
 
   // slug cannot be one of the reserved words
-  if (/^(api|admin|app|timeline-preview)$/.test(value)) {
-    return { error: true, message: 'Slug cannot be api, admin or app' };
+  const reservedWords = ['api', 'admin', 'app', 'blog', 'timeline-preview'];
+  for (const word of reservedWords) {
+    if (value.startsWith(word)) {
+      return { error: true, message: `Slug cannot start with reserved word "${word}"` };
+    }
   }
 
   // if no errors, return a success object
