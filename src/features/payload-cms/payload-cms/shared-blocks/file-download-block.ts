@@ -2,6 +2,8 @@ import type { Block } from 'payload';
 
 export const fileDownloadBlock: Block = {
   slug: 'fileDownload',
+  imageURL: '/admin-block-images/file-download-block.png',
+  imageAltText: 'File Download Block',
   fields: [
     {
       name: 'file',

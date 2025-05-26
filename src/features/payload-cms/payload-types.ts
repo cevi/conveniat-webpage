@@ -105,6 +105,7 @@ export interface Config {
     users: User;
     permissions: Permission;
     'push-notification-subscriptions': PushNotificationSubscription;
+    timelineCategory: TimelineCategory;
     forms: Form;
     'form-submissions': FormSubmission;
     'search-collection': SearchCollection;
@@ -113,7 +114,11 @@ export interface Config {
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
   };
-  collectionsJoins: {};
+  collectionsJoins: {
+    timelineCategory: {
+      relatedTimelineEntries: 'timeline';
+    };
+  };
   collectionsSelect: {
     blog: BlogSelect<false> | BlogSelect<true>;
     'generic-page': GenericPageSelect<false> | GenericPageSelect<true>;
@@ -123,6 +128,7 @@ export interface Config {
     users: UsersSelect<false> | UsersSelect<true>;
     permissions: PermissionsSelect<false> | PermissionsSelect<true>;
     'push-notification-subscriptions': PushNotificationSubscriptionsSelect<false> | PushNotificationSubscriptionsSelect<true>;
+    timelineCategory: TimelineCategorySelect<false> | TimelineCategorySelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     'search-collection': SearchCollectionSelect<false> | SearchCollectionSelect<true>;
@@ -291,6 +297,7 @@ export interface Blog {
       | DetailsTable
       | AccordionBlocks
       | SummaryBox
+      | TimelineEntries
     )[];
   };
   seo: {
@@ -652,6 +659,7 @@ export interface SwisstopoMapEmbedding {
  */
 export interface Document {
   id: string;
+  permissions?: (string | null) | Permission;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -818,6 +826,108 @@ export interface SummaryBox {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "timelineEntries".
+ */
+export interface TimelineEntries {
+  timelineEntryCategories?: (string | TimelineCategory)[] | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'timelineEntries';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "timelineCategory".
+ */
+export interface TimelineCategory {
+  id: string;
+  name: string;
+  description?: string | null;
+  relatedTimelineEntries?: {
+    docs?: (string | Timeline)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Represents a timeline that can be published on the website.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "timeline".
+ */
+export interface Timeline {
+  id: string;
+  publishingStatus?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  _localized_status: LocalizedPublishingStatus;
+  _disable_unpublishing?: boolean | null;
+  _locale: string;
+  /**
+   * Name of the page for internal purposes.
+   */
+  internalPageName: string;
+  /**
+   * Authors of the Page (internal use only)
+   */
+  authors?: (string | User)[] | null;
+  /**
+   * Status of the page (internal use)
+   */
+  internalStatus: 'draft' | 'review' | 'approved' | 'archived';
+  date: string;
+  /**
+   * This is the title that will be displayed on the page.
+   */
+  title: string;
+  /**
+   * The main content of the page
+   */
+  mainContent?:
+    | (
+        | {
+            richTextSection: {
+              root: {
+                type: string;
+                children: {
+                  type: string;
+                  version: number;
+                  [k: string]: unknown;
+                }[];
+                direction: ('ltr' | 'rtl') | null;
+                format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                indent: number;
+                version: number;
+              };
+              [k: string]: unknown;
+            };
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'richTextSection';
+          }
+        | {
+            image: string | Image;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'singlePicture';
+          }
+        | InstagramEmbedding
+      )[]
+    | null;
+  categories?: (string | TimelineCategory)[] | null;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "generic-page".
  */
 export interface GenericPage {
@@ -927,6 +1037,7 @@ export interface GenericPage {
       | DetailsTable
       | AccordionBlocks
       | SummaryBox
+      | TimelineEntries
     )[];
   };
   seo: {
@@ -944,69 +1055,6 @@ export interface GenericPage {
      */
     keywords?: string | null;
   };
-  updatedAt: string;
-  createdAt: string;
-  _status?: ('draft' | 'published') | null;
-}
-/**
- * Represents a timeline that can be published on the website.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "timeline".
- */
-export interface Timeline {
-  id: string;
-  publishingStatus?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  _localized_status: LocalizedPublishingStatus;
-  _disable_unpublishing?: boolean | null;
-  _locale: string;
-  date: string;
-  /**
-   * This is the title that will be displayed on the page.
-   */
-  title: string;
-  /**
-   * The main content of the page
-   */
-  mainContent?:
-    | (
-        | {
-            richTextSection: {
-              root: {
-                type: string;
-                children: {
-                  type: string;
-                  version: number;
-                  [k: string]: unknown;
-                }[];
-                direction: ('ltr' | 'rtl') | null;
-                format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-                indent: number;
-                version: number;
-              };
-              [k: string]: unknown;
-            };
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'richTextSection';
-          }
-        | {
-            image: string | Image;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'singlePicture';
-          }
-        | InstagramEmbedding
-      )[]
-    | null;
   updatedAt: string;
   createdAt: string;
   _status?: ('draft' | 'published') | null;
@@ -1132,6 +1180,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'push-notification-subscriptions';
         value: string | PushNotificationSubscription;
+      } | null)
+    | ({
+        relationTo: 'timelineCategory';
+        value: string | TimelineCategory;
       } | null)
     | ({
         relationTo: 'forms';
@@ -1269,6 +1321,7 @@ export interface BlogSelect<T extends boolean = true> {
               detailsTable?: T | DetailsTableSelect<T>;
               accordion?: T | AccordionBlocksSelect<T>;
               summaryBox?: T | SummaryBoxSelect<T>;
+              timelineEntries?: T | TimelineEntriesSelect<T>;
             };
       };
   seo?:
@@ -1420,6 +1473,15 @@ export interface SummaryBoxSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "timelineEntries_select".
+ */
+export interface TimelineEntriesSelect<T extends boolean = true> {
+  timelineEntryCategories?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "generic-page_select".
  */
 export interface GenericPageSelect<T extends boolean = true> {
@@ -1494,6 +1556,7 @@ export interface GenericPageSelect<T extends boolean = true> {
               detailsTable?: T | DetailsTableSelect<T>;
               accordion?: T | AccordionBlocksSelect<T>;
               summaryBox?: T | SummaryBoxSelect<T>;
+              timelineEntries?: T | TimelineEntriesSelect<T>;
             };
       };
   seo?:
@@ -1517,6 +1580,9 @@ export interface TimelineSelect<T extends boolean = true> {
   _localized_status?: T;
   _disable_unpublishing?: T;
   _locale?: T;
+  internalPageName?: T;
+  authors?: T;
+  internalStatus?: T;
   date?: T;
   title?: T;
   mainContent?:
@@ -1538,6 +1604,7 @@ export interface TimelineSelect<T extends boolean = true> {
             };
         instagramEmbed?: T | InstagramEmbeddingSelect<T>;
       };
+  categories?: T;
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
@@ -1566,6 +1633,7 @@ export interface ImagesSelect<T extends boolean = true> {
  * via the `definition` "documents_select".
  */
 export interface DocumentsSelect<T extends boolean = true> {
+  permissions?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -1628,6 +1696,17 @@ export interface PushNotificationSubscriptionsSelect<T extends boolean = true> {
         p256dh?: T;
         auth?: T;
       };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "timelineCategory_select".
+ */
+export interface TimelineCategorySelect<T extends boolean = true> {
+  name?: T;
+  description?: T;
+  relatedTimelineEntries?: T;
   updatedAt?: T;
   createdAt?: T;
 }

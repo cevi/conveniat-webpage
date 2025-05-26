@@ -1,5 +1,6 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { buildSecureConfig } from '@/features/payload-cms/payload-cms/access-rules/build-secure-config';
+import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import { collectionsConfig } from '@/features/payload-cms/payload-cms/collections';
 import { UserCollection } from '@/features/payload-cms/payload-cms/collections/user-collection';
 import { emailSettings } from '@/features/payload-cms/payload-cms/email-settings';
@@ -93,18 +94,18 @@ const generatePreviewUrl = ({
   collectionConfig,
   locale,
 }: {
-  data: { seo?: { urlSlug?: string } };
+  data: { seo?: { urlSlug?: string }; id?: string };
   collectionConfig?: CollectionConfig;
   locale: Locale;
 }): string => {
+  if (collectionConfig && collectionConfig.slug === 'timeline' && data.id !== undefined) {
+    return `${environmentVariables.APP_HOST_URL}/${locale.code}/timeline-preview/${data.id}?preview=true`;
+  }
+
   if (!data.seo) return '';
   const urlSlug: string | undefined = data.seo.urlSlug;
   if (urlSlug == undefined) return '';
-  console.log(
-    `${environmentVariables.APP_HOST_URL}/${locale.code}${
-      collectionConfig && collectionConfig.slug === 'blog' ? `/blog/${urlSlug}` : ''
-    }?preview=true`,
-  );
+
   return `${environmentVariables.APP_HOST_URL}/${locale.code}/${
     collectionConfig && collectionConfig.slug === 'blog' ? `blog/` : ''
   }${urlSlug}?preview=true`;
@@ -162,7 +163,7 @@ export const payloadConfig: RoutableConfig = {
     livePreview: {
       url: generatePreviewUrl,
       breakpoints: smartphoneBreakpoints,
-      collections: ['blog', 'generic-page'],
+      collections: ['blog', 'generic-page', 'timeline'],
     },
   },
   collections: collectionsConfig,
@@ -194,6 +195,11 @@ export const payloadConfig: RoutableConfig = {
     formBuilderPlugin({
       fields: {
         state: false, // we do not use states in CH
+      },
+      formOverrides: {
+        access: {
+          read: canAccessAdminPanel,
+        },
       },
     }),
     s3StorageConfiguration,

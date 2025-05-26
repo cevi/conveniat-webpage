@@ -5,14 +5,11 @@ import { ImageCollection } from '@/features/payload-cms/payload-cms/collections/
 import { PermissionsCollection } from '@/features/payload-cms/payload-cms/collections/permission-collection';
 import { PushNotificationSubscriptions } from '@/features/payload-cms/payload-cms/collections/push-notification-subscriptions';
 import { TimelineCollection } from '@/features/payload-cms/payload-cms/collections/timeline';
+import { TimelineEntryCategory } from '@/features/payload-cms/payload-cms/collections/timeline/timeline-entry-categoriy';
 import { UserCollection } from '@/features/payload-cms/payload-cms/collections/user-collection';
 import type { RoutableCollectionConfigs } from '@/types/types';
 
-// TODO: based on the definition here, pattern for invalid URLs slugs should be generated
-//   and used in the slug validation. E.g. is should be forbidden to create a slug in the
-//   generic page collection starting with /blog/*** or /zeitstrahl/***.
 // TODO: add slug validation enforcing uniqueness of slugs
-// TODO: add option to disable unpublishing of a page
 
 /**
  * The configuration for the routable collections.
@@ -31,7 +28,7 @@ export const collectionsConfig: RoutableCollectionConfigs = [
     payloadCollection: GenericPageCollection,
   },
   {
-    urlPrefix: { de: 'zeitstrahl', en: 'timeline', fr: 'chronologie' },
+    urlPrefix: { de: 'timeline-preview', en: 'timeline-preview', fr: 'timeline-preview' },
     payloadCollection: TimelineCollection,
   },
 
@@ -41,4 +38,5 @@ export const collectionsConfig: RoutableCollectionConfigs = [
   UserCollection,
   PermissionsCollection,
   PushNotificationSubscriptions,
+  TimelineEntryCategory,
 ];

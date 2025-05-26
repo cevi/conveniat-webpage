@@ -48,7 +48,7 @@ const AccordionItem: React.FC<AccordionItemProperties> = ({
         id={`content-${blockId}`}
         className={cn(
           'overflow-hidden transition-all duration-300 ease-in-out',
-          isExpanded ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0',
+          isExpanded ? 'opacity-100' : 'max-h-0 opacity-0',
         )}
       >
         <div className="px-6 pb-6 border-t border-gray-100 pt-4">{children}</div>

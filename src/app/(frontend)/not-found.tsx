@@ -15,7 +15,7 @@ const error404: StaticTranslationString = {
 /**
  * This file is responsible for converters a general 404 error page.
  */
-const NotFoundPage: React.FC = async () => {
+export const NotFound: React.FC = async () => {
   const locale = await getLocaleFromCookies();
 
   const error404Description: Record<Locale, React.JSX.Element> = {
@@ -56,7 +56,14 @@ const NotFoundPage: React.FC = async () => {
           <TeaserText>{error404Description[locale]}</TeaserText>
         </article>
       </main>
+    </>
+  );
+};
 
+export const NotFoundPage: React.FC = () => {
+  return (
+    <>
+      <NotFound />
       <FooterComponent />
     </>
   );

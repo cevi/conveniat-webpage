@@ -43,7 +43,10 @@ export const GenericPage: React.FC<LocalizedCollectionPage> = async ({
 
   // article found in current locale --> render
   if (articleInPrimaryLanguage !== undefined) {
-    if (await hasPermissions(articleInPrimaryLanguage.content.permissions as Permission)) {
+    if (
+      renderInPreviewMode ||
+      (await hasPermissions(articleInPrimaryLanguage.content.permissions as Permission))
+    ) {
       return (
         <GenericPageConverter
           page={articleInPrimaryLanguage}

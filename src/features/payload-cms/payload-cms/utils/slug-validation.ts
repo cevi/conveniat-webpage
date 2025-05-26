@@ -23,7 +23,7 @@ const checkForbiddenRegexes = (value: string): { error: boolean; message: string
   }
 
   // slug cannot be one of the reserved words
-  if (/^(api|admin|app)$/.test(value)) {
+  if (/^(api|admin|app|timeline-preview)$/.test(value)) {
     return { error: true, message: 'Slug cannot be api, admin or app' };
   }
 

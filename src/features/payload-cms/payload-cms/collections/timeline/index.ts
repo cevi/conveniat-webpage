@@ -2,6 +2,9 @@ import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/ad
 import { instagramEmbedBlock } from '@/features/payload-cms/payload-cms/shared-blocks/instagram-embed-block';
 import { richTextArticleBlock } from '@/features/payload-cms/payload-cms/shared-blocks/rich-text-article-block';
 import { singlePictureBlock } from '@/features/payload-cms/payload-cms/shared-blocks/single-picture-block';
+import { internalAuthorsField } from '@/features/payload-cms/payload-cms/shared-fields/internal-authors-field';
+import { internalPageNameField } from '@/features/payload-cms/payload-cms/shared-fields/internal-page-name-field';
+import { internalStatusField } from '@/features/payload-cms/payload-cms/shared-fields/internal-status-field';
 import { asLocalizedCollection } from '@/features/payload-cms/payload-cms/utils/localized-collection';
 import type { CollectionConfig } from 'payload';
 
@@ -15,7 +18,14 @@ export const TimelineCollection: CollectionConfig = asLocalizedCollection({
       de: 'Stellt eine Timeline dar, die auf der Website veröffentlicht werden kann.',
       fr: 'Représente une chronologie qui peut être publiée sur le site Web.',
     },
-    defaultColumns: ['id', 'title', 'releaseDate'],
+    defaultColumns: [
+      'internalPageName',
+      'internalStatus',
+      'authors',
+      'publishingStatus',
+      'releaseDate',
+      'updatedAt',
+    ],
   },
 
   labels: {
@@ -24,6 +34,9 @@ export const TimelineCollection: CollectionConfig = asLocalizedCollection({
   },
 
   fields: [
+    internalPageNameField,
+    internalAuthorsField,
+    internalStatusField,
     {
       name: 'date',
       type: 'date',
@@ -72,6 +85,20 @@ export const TimelineCollection: CollectionConfig = asLocalizedCollection({
         },
       },
       blocks: [richTextArticleBlock, singlePictureBlock, instagramEmbedBlock],
+    },
+    {
+      name: 'categories',
+      relationTo: 'timelineCategory',
+      label: {
+        de: 'News Kategorien',
+        en: 'News Category',
+        fr: 'Catégorie de Nouvelles',
+      },
+      admin: {
+        appearance: 'select',
+      },
+      type: 'relationship',
+      hasMany: true,
     },
   ],
 });

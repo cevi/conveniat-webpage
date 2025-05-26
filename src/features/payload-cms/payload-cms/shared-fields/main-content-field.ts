@@ -9,6 +9,7 @@ import { richTextArticleBlock } from '@/features/payload-cms/payload-cms/shared-
 import { singlePictureBlock } from '@/features/payload-cms/payload-cms/shared-blocks/single-picture-block';
 import { summaryBoxBlock } from '@/features/payload-cms/payload-cms/shared-blocks/summary-box-block';
 import { swisstopoMapEmbedBlock } from '@/features/payload-cms/payload-cms/shared-blocks/swisstopo-embed-block';
+import { timelineEntries } from '@/features/payload-cms/payload-cms/shared-blocks/timeline-entries';
 import { youtubeEmbedBlock } from '@/features/payload-cms/payload-cms/shared-blocks/youtube-embed-block';
 import type { Field } from 'payload';
 
@@ -29,6 +30,8 @@ export const mainContentField: Field = {
     richTextArticleBlock,
     {
       slug: 'blogPostsOverview',
+      imageURL: '/admin-block-images/block-post-overview.png',
+      imageAltText: 'Blog Posts Overview Block',
       fields: [],
     },
     heroSection,
@@ -42,5 +45,6 @@ export const mainContentField: Field = {
     detailsTable,
     accordion,
     summaryBoxBlock,
+    timelineEntries,
   ],
 };

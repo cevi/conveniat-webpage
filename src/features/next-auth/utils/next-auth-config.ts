@@ -102,7 +102,6 @@ export const authOptions: NextAuthConfig = {
             },
           });
 
-          console.log('userinfo response', response);
           return (await response.json()) as HitobitoProfile;
         },
       },

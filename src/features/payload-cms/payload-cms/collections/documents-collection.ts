@@ -1,4 +1,6 @@
+import { canAccessIdInCollection } from '@/features/payload-cms/payload-cms/access-rules/can-access-id-in-collection';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
+import { permissionsField } from '@/features/payload-cms/payload-cms/shared-fields/permissions-field';
 import type { CollectionConfig } from 'payload';
 
 export const DocumentsCollection: CollectionConfig = {
@@ -11,8 +13,8 @@ export const DocumentsCollection: CollectionConfig = {
     group: AdminPanelDashboardGroups.InternalCollections,
   },
   access: {
-    read: () => true,
+    read: canAccessIdInCollection('documents'),
   },
-  fields: [],
+  fields: [permissionsField],
   upload: true,
 };

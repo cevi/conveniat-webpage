@@ -17,7 +17,7 @@ export interface PhotoCarouselBlock {
   }[];
 }
 
-export const PhotoCarousel: React.FC<PhotoCarouselBlock> = ({ images }) => {
+export const PhotoCarousel: React.FC<PhotoCarouselBlock> = async ({ images }) => {
   const length = images.length;
 
   if (length === 0) {
