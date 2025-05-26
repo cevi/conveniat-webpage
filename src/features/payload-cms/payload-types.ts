@@ -883,6 +883,7 @@ export interface Timeline {
    */
   internalStatus: 'draft' | 'translation' | 'review' | 'approved' | 'archived';
   date: string;
+  dateFormat?: ('fullDateAndTime' | 'fullDate' | 'yearAndMonth') | null;
   /**
    * This is the title that will be displayed on the page.
    */
@@ -1584,6 +1585,7 @@ export interface TimelineSelect<T extends boolean = true> {
   authors?: T;
   internalStatus?: T;
   date?: T;
+  dateFormat?: T;
   title?: T;
   mainContent?:
     | T
