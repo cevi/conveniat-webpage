@@ -61,9 +61,7 @@ export const GenericPage: React.FC<LocalizedCollectionPage> = async ({
         error: 'permission',
       };
       const searchParametersString = new URLSearchParams(searchParametersWithError).toString();
-      // add error=permission to the URL, to not use a redirect
-      location.href = `/${locale}/${slug}?${searchParametersString}`;
-      notFound();
+      redirect(`/${locale}/${articleInPrimaryLanguage.seo.urlSlug}?${searchParametersString}`);
     }
   }
 

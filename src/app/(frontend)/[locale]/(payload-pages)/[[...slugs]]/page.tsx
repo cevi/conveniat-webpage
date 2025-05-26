@@ -119,6 +119,15 @@ const CMSPage: React.FC<{
     const { locale, slugs } = await params;
     const searchParameters = await searchParametersPromise;
 
+    // check if error parameter is set
+    if (searchParameters['error']) {
+      return (
+        <CustomErrorBoundaryFallback>
+          <NotFound />
+        </CustomErrorBoundaryFallback>
+      );
+    }
+
     const searchParametersString = Object.entries(searchParameters)
       .map(([key, value]) => {
         return Array.isArray(value) ? value.map((v) => `${key}=${v}`).join('&') : `${key}=${value}`;
