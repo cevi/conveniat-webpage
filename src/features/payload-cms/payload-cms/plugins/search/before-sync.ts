@@ -1,3 +1,4 @@
+import { extractRichTextContent } from '@/features/payload-cms/payload-cms/utils/extract-rich-text-content';
 import type { BeforeSync } from '@payloadcms/plugin-search/types';
 
 interface RichTextChild {
@@ -43,21 +44,6 @@ interface SearchDocument {
   doc: { relationTo: string; value: string };
   [key: string]: unknown; // Allow other dynamic keys
 }
-
-const extractRichTextContent = (mainContent: ContentBlock[]): string => {
-  let searchContent = '';
-  for (const block of mainContent) {
-    if (block.blockType === 'richTextSection' && block.richTextSection) {
-      const richTextSection = block.richTextSection;
-      const text = richTextSection.root.children.map((paragraph) => {
-        const paragraphText = paragraph.children.map((child) => child.text || '');
-        return paragraphText.join(' ');
-      });
-      searchContent += text.join(' ');
-    }
-  }
-  return searchContent;
-};
 
 export const beforeSyncWithSearch: BeforeSync = async ({ originalDoc, searchDoc }) => {
   const typedDocument = originalDoc as OriginalDocument;
