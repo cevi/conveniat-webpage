@@ -210,7 +210,7 @@ export interface Blog {
   /**
    * Status of the page (internal use)
    */
-  internalStatus: 'draft' | 'review' | 'approved' | 'archived';
+  internalStatus: 'draft' | 'translation' | 'review' | 'approved' | 'archived';
   content: {
     /**
      * This is the title that will be displayed on the page.
@@ -881,7 +881,7 @@ export interface Timeline {
   /**
    * Status of the page (internal use)
    */
-  internalStatus: 'draft' | 'review' | 'approved' | 'archived';
+  internalStatus: 'draft' | 'translation' | 'review' | 'approved' | 'archived';
   date: string;
   /**
    * This is the title that will be displayed on the page.
@@ -955,7 +955,7 @@ export interface GenericPage {
   /**
    * Status of the page (internal use)
    */
-  internalStatus: 'draft' | 'review' | 'approved' | 'archived';
+  internalStatus: 'draft' | 'translation' | 'review' | 'approved' | 'archived';
   content: {
     /**
      * This is the title that will be displayed on the page.

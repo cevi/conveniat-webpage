@@ -17,6 +17,14 @@ export const internalStatusField: Field = {
     },
     {
       label: {
+        en: 'Ready for Translation',
+        de: 'Bereit zur Übersetzung',
+        fr: 'Prêt pour la traduction',
+      },
+      value: 'translation',
+    },
+    {
+      label: {
         en: 'Ready for Review',
         de: 'Bereit zur Überprüfung',
         fr: 'Prêt pour la révision',
