@@ -18,7 +18,14 @@ export const TimelineCollection: CollectionConfig = asLocalizedCollection({
       de: 'Stellt eine Timeline dar, die auf der Website veröffentlicht werden kann.',
       fr: 'Représente une chronologie qui peut être publiée sur le site Web.',
     },
-    defaultColumns: ['id', 'title', 'releaseDate'],
+    defaultColumns: [
+      'internalPageName',
+      'internalStatus',
+      'authors',
+      'publishingStatus',
+      'releaseDate',
+      'updatedAt',
+    ],
   },
 
   labels: {
