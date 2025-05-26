@@ -5,6 +5,7 @@ import { ImageCollection } from '@/features/payload-cms/payload-cms/collections/
 import { PermissionsCollection } from '@/features/payload-cms/payload-cms/collections/permission-collection';
 import { PushNotificationSubscriptions } from '@/features/payload-cms/payload-cms/collections/push-notification-subscriptions';
 import { TimelineCollection } from '@/features/payload-cms/payload-cms/collections/timeline';
+import { TimelineEntryCategory } from '@/features/payload-cms/payload-cms/collections/timeline-entry-categoriy';
 import { UserCollection } from '@/features/payload-cms/payload-cms/collections/user-collection';
 import type { RoutableCollectionConfigs } from '@/types/types';
 
@@ -27,7 +28,7 @@ export const collectionsConfig: RoutableCollectionConfigs = [
     payloadCollection: GenericPageCollection,
   },
   {
-    urlPrefix: { de: 'zeitstrahl', en: 'timeline', fr: 'chronologie' },
+    urlPrefix: { de: 'timeline-preview', en: 'timeline-preview', fr: 'timeline-preview' },
     payloadCollection: TimelineCollection,
   },
 
@@ -37,4 +38,5 @@ export const collectionsConfig: RoutableCollectionConfigs = [
   UserCollection,
   PermissionsCollection,
   PushNotificationSubscriptions,
+  TimelineEntryCategory,
 ];

@@ -21,7 +21,12 @@ import { YoutubeEmbed } from '@/features/payload-cms/components/content-blocks/y
 import type { FormBlockType } from '@/features/payload-cms/components/form';
 import type { ContentBlock } from '@/features/payload-cms/converters/page-sections/section-wrapper';
 import SectionWrapper from '@/features/payload-cms/converters/page-sections/section-wrapper';
-import type { AccordionBlocks, Timeline } from '@/features/payload-cms/payload-types';
+import type {
+  AccordionBlocks,
+  Timeline,
+  TimelineCategory,
+  TimelineEntries,
+} from '@/features/payload-cms/payload-types';
 import type { LocalizedPageType } from '@/types/types';
 import config from '@payload-config';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
@@ -54,28 +59,43 @@ export type SectionRenderer<T = object> = React.FC<
   }
 >;
 
-export const RenderTimelineEntries: SectionRenderer<
-  {
-    timelineEntries: Timeline[];
-  } & { locale: string; searchParams: Record<string, string> }
-> = async ({ block, locale, searchParams, sectionClassName, sectionOverrides }) => {
-  const payload = await getPayload({ config });
+export const RenderTimelineEntries: SectionRenderer<TimelineEntries> = async ({
+  block,
+  locale,
+  searchParams,
+  sectionClassName,
+  sectionOverrides,
+}) => {
+  const timelineEntryCategories: (string | TimelineCategory)[] =
+    block.timelineEntryCategories ?? [];
 
-  const timelineQuery = await payload.find({
-    collection: 'timeline',
-    locale: locale,
-    pagination: false,
-    sort: '-date',
-    draft: false, // assuming we want only published entries
-    where: {
-      _localized_status: {
-        equals: {
-          published: true,
-        },
+  const timelineEntryUuids: string[] = timelineEntryCategories
+    .filter((entry: string | TimelineCategory) => typeof entry === 'object')
+    .flatMap((entry: TimelineCategory) => entry.relatedTimelineEntries?.docs ?? [])
+    .flat()
+    .filter((entry: string | Timeline) => typeof entry === 'string');
+
+  const payload = await getPayload({ config });
+  const now = new Date();
+  const timelineQueryResult = timelineEntryUuids.map((uuid) =>
+    payload.find({
+      collection: 'timeline',
+      locale: locale, // current locale
+      where: {
+        id: { equals: uuid },
+        // only show news entries that are published in the current locale
+        _localized_status: { equals: { published: true } },
+        // only show news entries that lay in the past
+        date: { less_than_equal: now },
       },
-    },
-  });
-  const timelineEntries = timelineQuery.docs;
+    }),
+  );
+
+  const timelineEntriesPaginated = await Promise.all(timelineQueryResult);
+  const timelineEntries = timelineEntriesPaginated
+    .flatMap((element) => element.docs)
+    // order timeline entries by date
+    .sort((entry1: Timeline, entry2: Timeline) => entry2.date.localeCompare(entry1.date));
 
   return (
     <SectionWrapper

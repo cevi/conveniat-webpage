@@ -94,18 +94,18 @@ const generatePreviewUrl = ({
   collectionConfig,
   locale,
 }: {
-  data: { seo?: { urlSlug?: string } };
+  data: { seo?: { urlSlug?: string }; id?: string };
   collectionConfig?: CollectionConfig;
   locale: Locale;
 }): string => {
+  if (collectionConfig && collectionConfig.slug === 'timeline' && data.id !== undefined) {
+    return `${environmentVariables.APP_HOST_URL}/${locale.code}/timeline-preview/${data.id}?preview=true`;
+  }
+
   if (!data.seo) return '';
   const urlSlug: string | undefined = data.seo.urlSlug;
   if (urlSlug == undefined) return '';
-  console.log(
-    `${environmentVariables.APP_HOST_URL}/${locale.code}${
-      collectionConfig && collectionConfig.slug === 'blog' ? `/blog/${urlSlug}` : ''
-    }?preview=true`,
-  );
+
   return `${environmentVariables.APP_HOST_URL}/${locale.code}/${
     collectionConfig && collectionConfig.slug === 'blog' ? `blog/` : ''
   }${urlSlug}?preview=true`;
@@ -163,7 +163,7 @@ export const payloadConfig: RoutableConfig = {
     livePreview: {
       url: generatePreviewUrl,
       breakpoints: smartphoneBreakpoints,
-      collections: ['blog', 'generic-page'],
+      collections: ['blog', 'generic-page', 'timeline'],
     },
   },
   collections: collectionsConfig,

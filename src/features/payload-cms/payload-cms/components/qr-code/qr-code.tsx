@@ -56,7 +56,9 @@ const QRCode: React.FC = () => {
         locale as Locale,
       );
 
-      const urlSlug: string = savedDocumentData?.['seo']?.['urlSlug'] ?? '';
+      let urlSlug: string = savedDocumentData?.['seo']?.['urlSlug'] ?? '';
+      if (collectionSlug === 'timeline') urlSlug = savedDocumentData?.['id'] ?? '';
+
       const finalCollectionSlug: string = path === '' ? '' : `/${path}`;
       const finalUrlSlug: string = urlSlug.startsWith('/') ? urlSlug : `/${urlSlug}`;
       const domain = environmentVariables.NEXT_PUBLIC_APP_HOST_URL;

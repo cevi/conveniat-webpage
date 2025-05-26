@@ -1,6 +1,6 @@
 import { BlogPostPage } from '@/features/payload-cms/page-layouts/blog-posts';
 import { GenericPage } from '@/features/payload-cms/page-layouts/generic-page';
-import { TimeLinePage } from '@/features/payload-cms/page-layouts/timeline-page';
+import { TimelinePreviewPage } from '@/features/payload-cms/page-layouts/timeline-preview-page';
 import type {
   Locale,
   LocalizedCollectionPage,
@@ -40,7 +40,7 @@ const slugLookup: Record<
   React.FC<LocalizedCollectionPage> | React.FC<LocalizedPageType>
 > = {
   blog: BlogPostPage,
-  timeline: TimeLinePage,
+  timeline: TimelinePreviewPage,
   'generic-page': GenericPage,
 };
 

@@ -3,6 +3,7 @@ import { TimelineEntry } from '@/features/payload-cms/components/content-blocks/
 import type { Timeline } from '@/features/payload-cms/payload-types';
 import type { LocalizedCollectionPage, StaticTranslationString } from '@/types/types';
 import config from '@payload-config';
+import { notFound } from 'next/navigation';
 import { getPayload } from 'payload';
 import React from 'react';
 
@@ -12,11 +13,17 @@ const pageTitle: StaticTranslationString = {
   fr: 'Chronologie',
 };
 
-export const TimeLinePage: React.FC<LocalizedCollectionPage> = async ({
+export const TimelinePreviewPage: React.FC<LocalizedCollectionPage> = async ({
+  slugs,
   locale,
   searchParams,
   renderInPreviewMode,
 }) => {
+  // we use this page only for a preview of the news entry
+  if (!renderInPreviewMode) notFound();
+  if (slugs.length === 0) return notFound();
+
+  const uuid = slugs[0];
   const payload = await getPayload({ config });
   const timeLineItems = await payload.find({
     collection: 'timeline',
@@ -25,6 +32,7 @@ export const TimeLinePage: React.FC<LocalizedCollectionPage> = async ({
     sort: '-date',
     draft: renderInPreviewMode,
     where: {
+      id: { equals: uuid },
       _localized_status: {
         equals: {
           published: true,

@@ -7,5 +7,15 @@ export const timelineEntries: Block = {
   imageURL: '/admin-block-images/timeline-entries-block.png',
   imageAltText: 'Timeline Entries Block Post',
 
-  fields: [],
+  fields: [
+    {
+      name: 'timelineEntryCategories',
+      relationTo: 'timelineCategory',
+      admin: {
+        appearance: 'select',
+      },
+      type: 'relationship',
+      hasMany: true,
+    },
+  ],
 };
