@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { PreviewError } from '@/app/(frontend)/[locale]/(payload-pages)/[[...slugs]]/preview-error';
+import { CustomErrorBoundaryFallback } from '@/app/(frontend)/[locale]/(payload-pages)/[[...slugs]]/custom-error-boundary-fallback';
 import { NotFound } from '@/app/(frontend)/not-found';
 import { CookieBanner } from '@/components/utils/cookie-banner';
 import { RefreshRouteOnSave } from '@/components/utils/refresh-preview';
@@ -150,9 +150,9 @@ const CMSPage: React.FC<{
 
             <ErrorBoundary
               fallback={
-                <PreviewError>
+                <CustomErrorBoundaryFallback>
                   <NotFound />
-                </PreviewError>
+                </CustomErrorBoundaryFallback>
               }
             >
               <collectionPage.component

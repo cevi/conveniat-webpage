@@ -183,7 +183,7 @@ const PreviewTokenAnalysis: React.FC<PreviewTokenAnalysisProperties> = ({
   );
 };
 
-const PreviewErrorMessage: React.FC = () => {
+export const PreviewError: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const searchParameters = useSearchParams();
 
@@ -221,18 +221,4 @@ const PreviewErrorMessage: React.FC = () => {
       </article>
     </main>
   );
-};
-
-export const PreviewError: React.FC<{
-  children: React.ReactNode;
-}> = ({ children }) => {
-  const searchParameters = useSearchParams();
-
-  const requestedAsPreview = searchParameters.get('preview') === 'true';
-  if (requestedAsPreview) {
-    return <PreviewErrorMessage />;
-  }
-
-  // it's a 404 error
-  return <>{children}</>;
 };
