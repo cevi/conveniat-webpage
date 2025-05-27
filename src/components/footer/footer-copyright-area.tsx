@@ -24,7 +24,7 @@ const FooterMinimalMenu: React.FC = async () => {
   if (minimalFooterMenu.length === 0) return <></>;
 
   return (
-    <div className="mb-6 flex justify-center gap-x-4 text-xs">
+    <div className="mb-2 flex justify-center gap-x-4 text-xs">
       {minimalFooterMenu.map((footerMenuElement) => (
         <Fragment key={footerMenuElement.id}>
           <Link href={footerMenuElement.link ?? ''}>{footerMenuElement.label}</Link>
