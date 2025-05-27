@@ -2,10 +2,14 @@ import { environmentVariables } from '@/config/environment-variables';
 import { PostHog } from 'posthog-node';
 
 let posthogInstance: PostHog | undefined;
+let hasWarned = false;
 
 export const getPostHogServer = (): PostHog | undefined => {
   if (environmentVariables.NEXT_PUBLIC_POSTHOG_KEY === undefined) {
-    console.warn('PostHog key is not set. PostHog will not be initialized.');
+    if (!hasWarned) {
+      hasWarned = true;
+      console.warn('PostHog key is not set. PostHog will not be initialized.');
+    }
     return undefined;
   }
 

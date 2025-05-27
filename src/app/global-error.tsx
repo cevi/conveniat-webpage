@@ -12,8 +12,7 @@ import { ConveniatLogo } from '@/components/svg-logos/conveniat-logo';
  * This file is responsible for converting a general runtime error page.
  *
  * If this page happens, there was an uncaught error in the root layout of the app;
- * normally this should never happen. To recover from this error, we clear all cookies
- * and reload the page.
+ * normally this should never happen.
  *
  * @param error
  * @constructor
@@ -23,18 +22,6 @@ const GlobalError: React.FC<{
 }> = ({ error }) => {
   useEffect(() => {
     console.error('Something went terribly wrong, we are sorry for that.');
-    console.log('All cookies are cleared!');
-
-    // clear all cookies, as we are not sure if the error is related to cookies
-    for (const c of document.cookie.split(';')) {
-      // eslint-disable-next-line unicorn/no-document-cookie
-      document.cookie = c
-        .replace(/^ +/, '')
-        .replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
-    }
-
-    console.log('All cookies are cleared!');
-    console.log(document.cookie);
 
     // make sure to report the error to posthog
     initPostHog(posthog); // here we need re-initialize posthog, as we are out of the app context

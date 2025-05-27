@@ -6,7 +6,7 @@ import { i18nConfig } from '@/types/types';
 import { hasPermissions } from '@/utils/has-permissions';
 import config from '@payload-config';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { getPayload } from 'payload';
 import React from 'react';
 
@@ -74,7 +74,13 @@ export const BlogPostPage: React.FC<LocalizedCollectionPage> = async ({
         />
       );
     } else {
-      notFound();
+      // set error=permission in search parameters
+      const searchParametersWithError: { [key: string]: string } = {
+        ...searchParams,
+        error: 'permission',
+      };
+      const searchParametersString = new URLSearchParams(searchParametersWithError).toString();
+      redirect(`/${locale}/${articleInPrimaryLanguage.seo.urlSlug}?${searchParametersString}`);
     }
   }
 

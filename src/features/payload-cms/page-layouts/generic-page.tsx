@@ -55,7 +55,13 @@ export const GenericPage: React.FC<LocalizedCollectionPage> = async ({
         />
       );
     } else {
-      notFound();
+      // set error=permission in search parameters
+      const searchParametersWithError: { [key: string]: string } = {
+        ...searchParams,
+        error: 'permission',
+      };
+      const searchParametersString = new URLSearchParams(searchParametersWithError).toString();
+      redirect(`/${locale}/${articleInPrimaryLanguage.seo.urlSlug}?${searchParametersString}`);
     }
   }
 

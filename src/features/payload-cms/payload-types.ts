@@ -210,7 +210,7 @@ export interface Blog {
   /**
    * Status of the page (internal use)
    */
-  internalStatus: 'draft' | 'review' | 'approved' | 'archived';
+  internalStatus: 'draft' | 'translation' | 'review' | 'approved' | 'archived';
   content: {
     /**
      * This is the title that will be displayed on the page.
@@ -881,8 +881,9 @@ export interface Timeline {
   /**
    * Status of the page (internal use)
    */
-  internalStatus: 'draft' | 'review' | 'approved' | 'archived';
+  internalStatus: 'draft' | 'translation' | 'review' | 'approved' | 'archived';
   date: string;
+  dateFormat?: ('fullDateAndTime' | 'fullDate' | 'yearAndMonth') | null;
   /**
    * This is the title that will be displayed on the page.
    */
@@ -955,7 +956,7 @@ export interface GenericPage {
   /**
    * Status of the page (internal use)
    */
-  internalStatus: 'draft' | 'review' | 'approved' | 'archived';
+  internalStatus: 'draft' | 'translation' | 'review' | 'approved' | 'archived';
   content: {
     /**
      * This is the title that will be displayed on the page.
@@ -1584,6 +1585,7 @@ export interface TimelineSelect<T extends boolean = true> {
   authors?: T;
   internalStatus?: T;
   date?: T;
+  dateFormat?: T;
   title?: T;
   mainContent?:
     | T
@@ -1962,6 +1964,10 @@ export interface Footer {
         id?: string | null;
       }[]
     | null;
+  socialLinks?: {
+    instagram?: string | null;
+    youtube?: string | null;
+  };
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -2062,6 +2068,12 @@ export interface FooterSelect<T extends boolean = true> {
               id?: T;
             };
         id?: T;
+      };
+  socialLinks?:
+    | T
+    | {
+        instagram?: T;
+        youtube?: T;
       };
   updatedAt?: T;
   createdAt?: T;

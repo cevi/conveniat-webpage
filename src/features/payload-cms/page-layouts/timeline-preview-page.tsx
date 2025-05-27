@@ -33,11 +33,6 @@ export const TimelinePreviewPage: React.FC<LocalizedCollectionPage> = async ({
     draft: renderInPreviewMode,
     where: {
       id: { equals: uuid },
-      _localized_status: {
-        equals: {
-          published: true,
-        },
-      },
     },
   });
 

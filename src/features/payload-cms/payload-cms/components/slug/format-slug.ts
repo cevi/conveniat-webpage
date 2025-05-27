@@ -3,7 +3,7 @@ import type { FieldHook } from 'payload';
 export const formatSlug = (value: string): string =>
   value
     .replaceAll(' ', '-')
-    .replaceAll(/[^\w-]+/g, '')
+    .replaceAll(/[^\w-/]+/g, '')
     .toLowerCase();
 
 export const formatSlugHook =
@@ -13,11 +13,11 @@ export const formatSlugHook =
       return formatSlug(value);
     }
 
-    if (operation === 'create' || !data?.['slug']) {
+    if (operation === 'create' || !Boolean(data?.['slug'])) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const fallbackData = data?.[fallback] || data?.[fallback];
+      const fallbackData = data?.[fallback] ?? data?.[fallback];
 
-      if (fallbackData && typeof fallbackData === 'string') {
+      if (Boolean(fallbackData) && typeof fallbackData === 'string') {
         return formatSlug(fallbackData);
       }
     }

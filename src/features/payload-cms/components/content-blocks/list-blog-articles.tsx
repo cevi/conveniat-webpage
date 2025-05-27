@@ -25,7 +25,7 @@ export const BlogDisplay: React.FC<{ blog: Blog }> = ({ blog }) => {
   return (
     <React.Fragment key={blog.seo.urlSlug}>
       <Link href={`/blog/${blog.seo.urlSlug}`} key={blog.id}>
-        <NewsCard date={blog.updatedAt} headline={blog.content.blogH1}>
+        <NewsCard date={blog.content.releaseDate} headline={blog.content.blogH1}>
           <Image
             className="w-full object-cover"
             src={source}

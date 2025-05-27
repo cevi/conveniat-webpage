@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { PreviewError } from '@/app/(frontend)/[locale]/(payload-pages)/[[...slugs]]/preview-error';
+import { CustomErrorBoundaryFallback } from '@/app/(frontend)/[locale]/(payload-pages)/[[...slugs]]/custom-error-boundary-fallback';
 import { NotFound } from '@/app/(frontend)/not-found';
 import { CookieBanner } from '@/components/utils/cookie-banner';
 import { RefreshRouteOnSave } from '@/components/utils/refresh-preview';
@@ -14,7 +14,6 @@ import { isPreviewTokenValid } from '@/utils/preview-token';
 import { cookies } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import type React from 'react';
-import { ErrorBoundary } from 'react-error-boundary';
 
 /**
  * Checks if the preview token is valid.
@@ -119,6 +118,15 @@ const CMSPage: React.FC<{
     const { locale, slugs } = await params;
     const searchParameters = await searchParametersPromise;
 
+    // check if error parameter is set
+    if (searchParameters['error']) {
+      return (
+        <CustomErrorBoundaryFallback>
+          <NotFound />
+        </CustomErrorBoundaryFallback>
+      );
+    }
+
     const searchParametersString = Object.entries(searchParameters)
       .map(([key, value]) => {
         return Array.isArray(value) ? value.map((v) => `${key}=${v}`).join('&') : `${key}=${value}`;
@@ -140,6 +148,10 @@ const CMSPage: React.FC<{
     const previewModeAllowed = await canAccessPreviewOfCurrentPage(searchParameters, url);
     const hasPreviewSearchParameter = searchParameters['preview'] === 'true';
 
+    if (!previewModeAllowed && hasPreviewSearchParameter) {
+      throw new Error(`Preview mode is not allowed for this page.`);
+    }
+
     if (collectionPage !== undefined) {
       if (collectionPage.locales.includes(locale)) {
         return (
@@ -148,20 +160,12 @@ const CMSPage: React.FC<{
               <RefreshRouteOnSave serverURL={environmentVariables.APP_HOST_URL} />
             )}
 
-            <ErrorBoundary
-              fallback={
-                <PreviewError>
-                  <NotFound />
-                </PreviewError>
-              }
-            >
-              <collectionPage.component
-                locale={locale}
-                slugs={remainingSlugs}
-                searchParams={searchParameters}
-                renderInPreviewMode={previewModeAllowed && hasPreviewSearchParameter}
-              />
-            </ErrorBoundary>
+            <collectionPage.component
+              locale={locale}
+              slugs={remainingSlugs}
+              searchParams={searchParameters}
+              renderInPreviewMode={previewModeAllowed && hasPreviewSearchParameter}
+            />
 
             {previewModeAllowed && hasPreviewSearchParameter && <PreviewWarning params={params} />}
 

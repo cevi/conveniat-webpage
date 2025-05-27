@@ -1,5 +1,6 @@
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { BlogDisplay } from '@/features/payload-cms/components/content-blocks/list-blog-articles';
+import { PageDisplay } from '@/features/payload-cms/components/content-blocks/page-display';
 import type { Blog, GenericPage, Permission } from '@/features/payload-cms/payload-types';
 import type { StaticTranslationString } from '@/types/types';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
@@ -163,12 +164,7 @@ const SearchPage: React.FC<{
           <h2 className="text-2xl font-bold">{searchResultsTitlePages[locale]}</h2>
           {permittedPages.length === 0 && <p>{searchResultNoResults[locale]}</p>}
           {permittedPages.map((page) => {
-            return (
-              <div key={page.seo.urlSlug} className="my-4">
-                <h3 className="text-xl font-bold">{page.content.pageTitle}</h3>
-                <p>{page.seo.metaDescription}</p>
-              </div>
-            );
+            return <PageDisplay page={page} key={page.seo.urlSlug} />;
           })}
         </div>
         <div className="col-span-2">

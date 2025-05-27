@@ -37,22 +37,69 @@ export const TimelineCollection: CollectionConfig = asLocalizedCollection({
     internalPageNameField,
     internalAuthorsField,
     internalStatusField,
+
     {
-      name: 'date',
-      type: 'date',
       label: {
-        en: 'Date',
-        de: 'Datum',
-        fr: 'Date',
+        en: 'Release Date',
+        de: 'Veröffentlichungsdatum',
+        fr: 'Date de publication',
       },
-      admin: {
-        date: {
-          pickerAppearance: 'dayAndTime',
-          displayFormat: 'YYYY-MM-dd HH:mm',
-          timeIntervals: 15,
+      type: 'group',
+      fields: [
+        {
+          name: 'date',
+          type: 'date',
+          label: {
+            en: 'Date',
+            de: 'Datum',
+            fr: 'Date',
+          },
+          admin: {
+            date: {
+              pickerAppearance: 'dayAndTime',
+              displayFormat: 'YYYY-MM-dd HH:mm',
+              timeIntervals: 15,
+            },
+          },
+          required: true,
         },
-      },
-      required: true,
+        {
+          name: 'dateFormat',
+          type: 'select',
+          label: {
+            en: 'Date Format',
+            de: 'Datumsformat',
+            fr: 'Format de la date',
+          },
+          defaultValue: 'fullDateAndTime',
+          options: [
+            {
+              label: {
+                en: 'Full Date including Time',
+                de: 'Vollständiges Datum inkl. Zeit',
+                fr: "Date complète y compris l'heure",
+              },
+              value: 'fullDateAndTime',
+            },
+            {
+              label: {
+                en: 'Full Date (Without Time)',
+                de: 'Vollständiges Datum (ohne Zeit)',
+                fr: 'Date complète (sans heure)',
+              },
+              value: 'fullDate',
+            },
+            {
+              label: {
+                en: 'Year and Month',
+                de: 'Jahr und Monat',
+                fr: 'Année et mois',
+              },
+              value: 'yearAndMonth',
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'title',

@@ -110,6 +110,29 @@ export const FooterGlobal: GlobalConfig = {
         },
       ],
     },
+    {
+      name: 'socialLinks',
+      type: 'group',
+      label: {
+        en: 'Social Links',
+        de: 'Soziale Links',
+        fr: 'Liens sociaux',
+      },
+      fields: [
+        {
+          name: 'instagram',
+          type: 'text',
+          label: 'Instagram',
+          required: false,
+        },
+        {
+          name: 'youtube',
+          type: 'text',
+          label: 'YouTube',
+          required: false,
+        },
+      ],
+    },
   ],
   admin: {
     group: AdminPanelDashboardGroups.GlobalSettings,

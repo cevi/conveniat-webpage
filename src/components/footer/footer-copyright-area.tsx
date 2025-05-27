@@ -1,3 +1,4 @@
+import { SocialMediaLinks } from '@/components/footer/social-media-links';
 import { CeviSchweiz } from '@/components/svg-logos/cevi-schweiz';
 import type { StaticTranslationString } from '@/types/types';
 import { getBuildInfo } from '@/utils/get-build-info';
@@ -80,6 +81,8 @@ export const FooterCopyrightArea: React.FC = async () => {
         build !== undefined && (
           <div className="mb-[16px] flex flex-col text-center">
             <FooterMinimalMenu />
+            <SocialMediaLinks />
+
             {!isInAppDesign && (
               <>
                 <FooterBuildInfoText>Version {build.version} </FooterBuildInfoText>

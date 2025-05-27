@@ -1,7 +1,7 @@
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { PageSectionsConverter } from '@/features/payload-cms/converters/page-sections';
 import type { ContentBlock } from '@/features/payload-cms/converters/page-sections/section-wrapper';
-import type { Blog } from '@/features/payload-cms/payload-types';
+import type { Blog, Image as PayloadImage } from '@/features/payload-cms/payload-types';
 import type { Locale, SearchParameters } from '@/types/types';
 import Image from 'next/image';
 import React from 'react';
@@ -17,7 +17,15 @@ export const BlogArticleConverter: React.FC<{
     );
   }
 
-  const source = article.content.bannerImage.url ?? '/images/placeholder.png';
+  if ((article.content.bannerImage as PayloadImage | undefined) === undefined) {
+    article.content.bannerImage = {
+      ...article.content.bannerImage,
+      url: '/admin-block-images/single-picture-block.png',
+      alt: 'Placeholder image',
+    };
+  }
+
+  const source = article.content.bannerImage.url ?? '';
   const altText = article.content.bannerImage.alt;
   return (
     <>
