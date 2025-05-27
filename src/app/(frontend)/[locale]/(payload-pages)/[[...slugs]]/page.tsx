@@ -14,7 +14,6 @@ import { isPreviewTokenValid } from '@/utils/preview-token';
 import { cookies } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import type React from 'react';
-import { ErrorBoundary } from 'react-error-boundary';
 
 /**
  * Checks if the preview token is valid.
@@ -149,6 +148,10 @@ const CMSPage: React.FC<{
     const previewModeAllowed = await canAccessPreviewOfCurrentPage(searchParameters, url);
     const hasPreviewSearchParameter = searchParameters['preview'] === 'true';
 
+    if (!previewModeAllowed && hasPreviewSearchParameter) {
+      throw new Error(`Preview mode is not allowed for this page.`);
+    }
+
     if (collectionPage !== undefined) {
       if (collectionPage.locales.includes(locale)) {
         return (
@@ -157,20 +160,12 @@ const CMSPage: React.FC<{
               <RefreshRouteOnSave serverURL={environmentVariables.APP_HOST_URL} />
             )}
 
-            <ErrorBoundary
-              fallback={
-                <CustomErrorBoundaryFallback>
-                  <NotFound />
-                </CustomErrorBoundaryFallback>
-              }
-            >
-              <collectionPage.component
-                locale={locale}
-                slugs={remainingSlugs}
-                searchParams={searchParameters}
-                renderInPreviewMode={previewModeAllowed && hasPreviewSearchParameter}
-              />
-            </ErrorBoundary>
+            <collectionPage.component
+              locale={locale}
+              slugs={remainingSlugs}
+              searchParams={searchParameters}
+              renderInPreviewMode={previewModeAllowed && hasPreviewSearchParameter}
+            />
 
             {previewModeAllowed && hasPreviewSearchParameter && <PreviewWarning params={params} />}
 
