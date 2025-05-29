@@ -1,3 +1,4 @@
+import { SearchBar } from '@/components/ui/search-bar';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { BlogDisplay } from '@/features/payload-cms/components/content-blocks/list-blog-articles';
 import { PageDisplay } from '@/features/payload-cms/components/content-blocks/page-display';
@@ -159,6 +160,9 @@ const SearchPage: React.FC<{
       <HeadlineH1>
         {searchResultHeader[locale]} &#39;{searchQuery}&#39;
       </HeadlineH1>
+
+      <SearchBar initialQuery={searchQuery} />
+
       <div className="mx-auto my-8 grid gap-y-6 min-[1200px]:grid-cols-2">
         <div className="col-span-2">
           <h2 className="text-2xl font-bold">{searchResultsTitlePages[locale]}</h2>
