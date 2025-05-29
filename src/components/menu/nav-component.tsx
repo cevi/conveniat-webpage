@@ -23,7 +23,7 @@ export const NavComponent: React.FC = async () => {
   return (
     <Popover>
       <PopoverButton
-        className="relative top-[18px] outline-hidden"
+        className="cursor-pointer relative top-[18px] outline-hidden"
         aria-label="Open main menu"
         tabIndex={1}
         aria-hidden="true"
@@ -37,7 +37,7 @@ export const NavComponent: React.FC = async () => {
       >
         <div className="mx-auto h-full w-full max-w-2xl shrink rounded-2xl border-2 border-gray-200 bg-white p-4 text-sm/6 font-semibold text-gray-900 shadow-lg ring-1 ring-gray-900/5">
           <div className="flex justify-end">
-            <PopoverBackdrop aria-label="Close main menu">
+            <PopoverBackdrop aria-label="Close main menu" className="cursor-pointer">
               <CircleX />
             </PopoverBackdrop>
           </div>
