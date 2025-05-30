@@ -34,6 +34,12 @@ const searchResultsTitlePages: StaticTranslationString = {
   fr: 'Pages',
 };
 
+const searchNoSearchQuery: StaticTranslationString = {
+  de: 'Gib einen Suchbegriff ein',
+  en: 'Please enter a search term',
+  fr: 'Veuillez entrer un terme de recherche',
+};
+
 const SearchPage: React.FC<{
   searchParams: Promise<{
     q: string;
@@ -46,6 +52,15 @@ const SearchPage: React.FC<{
   const payload = await getPayload({ config });
   const searchParameters = await searchParametersPromise;
   const searchQuery = searchParameters['q'];
+
+  if (searchQuery === undefined || searchQuery.trim() === '') {
+    return (
+      <article className="mx-auto my-8 max-w-2xl px-8">
+        <HeadlineH1>{searchNoSearchQuery[locale]}</HeadlineH1>
+        <SearchBar initialQuery={searchQuery} />
+      </article>
+    );
+  }
 
   const currentDate = new Date().toISOString();
 

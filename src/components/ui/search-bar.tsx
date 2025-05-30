@@ -29,7 +29,7 @@ export const SearchBar: React.FC<{ initialQuery: string }> = ({ initialQuery }) 
         value={query}
         onChange={(event) => setQuery(event.target.value)}
         className="w-full rounded border border-gray-300 px-4 py-2"
-        placeholder="Search..."
+        placeholder={searchText[locale as Locale]}
       />
       <button
         type="submit"
