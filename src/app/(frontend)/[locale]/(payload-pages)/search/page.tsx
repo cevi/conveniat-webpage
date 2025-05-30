@@ -42,7 +42,7 @@ const searchNoSearchQuery: StaticTranslationString = {
 
 const SearchPage: React.FC<{
   searchParams: Promise<{
-    q: string;
+    q?: string;
   }>;
 }> = async (properties) => {
   const { searchParams: searchParametersPromise } = properties;
@@ -53,11 +53,11 @@ const SearchPage: React.FC<{
   const searchParameters = await searchParametersPromise;
   const searchQuery = searchParameters['q'];
 
-  if (searchQuery.trim() === '') {
+  if (!searchQuery || searchQuery.trim() === '') {
     return (
       <article className="mx-auto my-8 max-w-2xl px-8">
         <HeadlineH1>{searchNoSearchQuery[locale]}</HeadlineH1>
-        <SearchBar initialQuery={searchQuery} />
+        <SearchBar initialQuery={''} />
       </article>
     );
   }
