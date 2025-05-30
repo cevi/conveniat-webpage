@@ -7,6 +7,7 @@ import { RefreshRouteOnSave } from '@/components/utils/refresh-preview';
 import { environmentVariables } from '@/config/environment-variables';
 import { canUserAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import { routeResolutionTable } from '@/features/payload-cms/route-resolution-table';
+import { getSpecialPage, isSpecialPage } from '@/features/payload-cms/special-pages-table';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { Locale, SearchParameters } from '@/types/types';
 import { auth } from '@/utils/auth-helpers';
@@ -136,6 +137,29 @@ const CMSPage: React.FC<{
     // check if part of a routable collection of the form [collection]/[slug]
     const collection = (slugs?.[0] ?? '') as string;
     const remainingSlugs = slugs?.slice(1) ?? [];
+
+    // check if the collection is in the special page table
+    if (isSpecialPage(collection)) {
+      const specialPage = getSpecialPage(collection);
+      if (specialPage === undefined) {
+        notFound();
+      }
+
+      const foundLocale = specialPage.locale;
+
+      if (foundLocale === locale) {
+        // locale matches --> render the page
+        return (
+          <>
+            <specialPage.component locale={locale} searchParams={searchParameters} />
+            <CookieBanner />
+          </>
+        );
+      } else {
+        // redirect to the alternative locale
+        redirect(`/${locale}${specialPage.alternatives[locale]}?${searchParametersString}`);
+      }
+    }
 
     let collectionPage = routeResolutionTable[collection];
     if (collectionPage === undefined && routeResolutionTable[''] !== undefined) {

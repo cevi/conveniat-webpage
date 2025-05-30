@@ -3,7 +3,8 @@ import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { BlogDisplay } from '@/features/payload-cms/components/content-blocks/list-blog-articles';
 import { PageDisplay } from '@/features/payload-cms/components/content-blocks/page-display';
 import type { Blog, GenericPage, Permission } from '@/features/payload-cms/payload-types';
-import type { StaticTranslationString } from '@/types/types';
+import { specialPagesTable } from '@/features/payload-cms/special-pages-table';
+import type { LocalizedPageType, StaticTranslationString } from '@/types/types';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { hasPermissions } from '@/utils/has-permissions';
 import config from '@payload-config';
@@ -40,24 +41,24 @@ const searchNoSearchQuery: StaticTranslationString = {
   fr: 'Veuillez entrer un terme de recherche',
 };
 
-const SearchPage: React.FC<{
-  searchParams: Promise<{
-    q?: string;
-  }>;
-}> = async (properties) => {
+const SearchPage: React.FC<LocalizedPageType> = async (properties) => {
   const { searchParams: searchParametersPromise } = properties;
 
   const locale = await getLocaleFromCookies();
 
   const payload = await getPayload({ config });
   const searchParameters = await searchParametersPromise;
-  const searchQuery = searchParameters['q'];
+  const searchQueryQ = searchParameters['q'];
+
+  const actionURL = specialPagesTable['search']?.alternatives[locale] || '/search';
+
+  const searchQuery = Array.isArray(searchQueryQ) ? searchQueryQ[0] || '' : searchQueryQ || '';
 
   if (!searchQuery || searchQuery.trim() === '') {
     return (
       <article className="mx-auto my-8 max-w-2xl px-8">
         <HeadlineH1>{searchNoSearchQuery[locale]}</HeadlineH1>
-        <SearchBar initialQuery={''} />
+        <SearchBar initialQuery={''} actionURL={actionURL} />
       </article>
     );
   }
@@ -176,7 +177,7 @@ const SearchPage: React.FC<{
         {searchResultHeader[locale]} &#39;{searchQuery}&#39;
       </HeadlineH1>
 
-      <SearchBar initialQuery={searchQuery} />
+      <SearchBar initialQuery={searchQuery} actionURL={actionURL} />
 
       <div className="mx-auto my-8 grid gap-y-6 min-[1200px]:grid-cols-2">
         <div className="col-span-2">

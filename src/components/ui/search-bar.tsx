@@ -12,14 +12,17 @@ const searchText: StaticTranslationString = {
   fr: 'Recherche',
 };
 
-export const SearchBar: React.FC<{ initialQuery: string }> = ({ initialQuery }) => {
+export const SearchBar: React.FC<{ initialQuery: string; actionURL: string }> = ({
+  initialQuery,
+  actionURL,
+}) => {
   const router = useRouter();
   const locale = useCurrentLocale(i18nConfig);
   const [query, setQuery] = useState(initialQuery);
 
   const handleSubmit = (event: React.FormEvent): void => {
     event.preventDefault();
-    router.push(`/search?q=${encodeURIComponent(query)}`);
+    router.push(`${actionURL}?q=${encodeURIComponent(query)}`);
   };
 
   return (
