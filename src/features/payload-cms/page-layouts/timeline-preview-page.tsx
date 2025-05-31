@@ -37,7 +37,7 @@ export const TimelinePreviewPage: React.FC<LocalizedCollectionPage> = async ({
   });
 
   return (
-    <article className="mx-auto my-8 max-w-2xl px-8">
+    <article className="mx-auto w-full my-8 max-w-2xl px-8">
       <HeadlineH1>{pageTitle[locale]}</HeadlineH1>
       {timeLineItems.docs.map((item: Timeline) => {
         return (

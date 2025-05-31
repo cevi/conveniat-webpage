@@ -16,9 +16,7 @@ const Layout: React.FC<LayoutProperties> = async ({ children }) => {
 
   return (
     <>
-      <SessionProvider>
-        <main className="mt-[60px] grow pb-20">{children}</main>
-      </SessionProvider>
+      <SessionProvider>{children}</SessionProvider>
 
       {isInAppDesign && <FooterAppNavBar locale={locale} />}
     </>
