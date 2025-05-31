@@ -55,21 +55,21 @@ export const LanguageSwitcher: React.FC<{ locale: Locale }> = ({ locale }) => {
           <DisclosureButton
             as="button"
             onClick={() => handleLanguageChange('de')}
-            className="cursor-pointer block text-left rounded-lg w-full py-2 pr-3 pl-6 text-sm/7 font-semibold text-gray-500 hover:bg-gray-50 cursor-pointer"
+            className="cursor-pointer block text-left rounded-lg w-full py-2 pr-3 pl-6 text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
           >
             Deutsch
           </DisclosureButton>
           <DisclosureButton
             as="button"
             onClick={() => handleLanguageChange('en')}
-            className="cursor-pointer block text-left rounded-lg w-full py-2 pr-3 pl-6 text-sm/7 font-semibold text-gray-500 hover:bg-gray-50 cursor-pointer"
+            className="cursor-pointer block text-left rounded-lg w-full py-2 pr-3 pl-6 text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
           >
             English
           </DisclosureButton>
           <DisclosureButton
             as="button"
             onClick={() => handleLanguageChange('fr')}
-            className="cursor-pointer block text-left rounded-lg w-full py-2 pr-3 pl-6 text-sm/7 font-semibold text-gray-500 hover:bg-gray-50 cursor-pointer"
+            className="cursor-pointer block text-left rounded-lg w-full py-2 pr-3 pl-6 text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
           >
             Français
           </DisclosureButton>
