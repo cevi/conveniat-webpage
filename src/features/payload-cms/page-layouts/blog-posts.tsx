@@ -131,7 +131,7 @@ export const BlogPostPage: React.FC<LocalizedCollectionPage> = async ({
 
   // list options for user to choose from
   return (
-    <article className="max-xl:mx-auto -auto w-full my-8 max-w-2xl px-8">
+    <article className="-auto my-8 w-full max-w-2xl px-8 max-xl:mx-auto">
       <HeadlineH1>{languageChooseText[locale]}</HeadlineH1>
       <ul>
         {articles.map((article) => (

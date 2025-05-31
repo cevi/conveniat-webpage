@@ -21,7 +21,7 @@ export const MainMenu: React.FC = async () => {
   if (mainMenu === undefined || mainMenu === null) return;
 
   return (
-    <div className="mt-8 flow-root mx-auto max-w-md">
+    <div className="mx-auto mt-8 flow-root max-w-md">
       <div className="-my-6 divide-y-2 divide-gray-100">
         <SearchComponent locale={locale} />
 
@@ -30,7 +30,7 @@ export const MainMenu: React.FC = async () => {
             if (item.subMenu && item.subMenu.length > 0) {
               return (
                 <Disclosure key={item.id} as="div" className="-mx-3">
-                  <DisclosureButton className="group flex w-full items-center justify-between rounded-lg py-2 pr-3.5 pl-3 text-base/7 font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer">
+                  <DisclosureButton className="group flex w-full cursor-pointer items-center justify-between rounded-lg py-2 pr-3.5 pl-3 text-base/7 font-semibold text-gray-700 hover:bg-gray-50">
                     {item.label}
                     <ChevronDown
                       aria-hidden="true"
@@ -69,7 +69,7 @@ export const MainMenu: React.FC = async () => {
 
         {isInAppDesign && build && (
           <>
-            <div className="py-6 flex flex-col text-center ">
+            <div className="flex flex-col py-6 text-center">
               <FooterBuildInfoText>Version {build.version} </FooterBuildInfoText>
               <FooterBuildInfoText>
                 Build {build.git.hash} vom {build.timestamp}

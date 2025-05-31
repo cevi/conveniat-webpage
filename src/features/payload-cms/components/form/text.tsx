@@ -28,7 +28,7 @@ export const Text: React.FC<
       </label>
       <input
         id={name}
-        className="border-transparent h-10 w-full rounded-sm border bg-[#e1e6e2] px-4 font-['Inter'] text-sm font-normal text-[#595961] focus:outline-hidden focus:ring-2 focus:ring-[#47564c]"
+        className="h-10 w-full rounded-sm border border-transparent bg-[#e1e6e2] px-4 font-['Inter'] text-sm font-normal text-[#595961] focus:ring-2 focus:ring-[#47564c] focus:outline-hidden"
         type="text"
         {...registerAction(name, { required: requiredFromProperties })}
       />

@@ -13,7 +13,7 @@ const renderMenuItem = (menuItem: FooterMenuItem): React.JSX.Element => {
     return (
       <span
         key={menuItem.id}
-        className="font-inter text-[14px] font-normal leading-[24px] text-green-600"
+        className="font-inter text-[14px] leading-[24px] font-normal text-green-600"
       >
         {menuItem.label}
       </span>
@@ -21,7 +21,7 @@ const renderMenuItem = (menuItem: FooterMenuItem): React.JSX.Element => {
 
   return (
     <Link href={menuItem.link} className="leading-[24px]">
-      <span className="font-inter text-[14px] font-normal leading-[24px] text-green-600">
+      <span className="font-inter text-[14px] leading-[24px] font-normal text-green-600">
         {menuItem.label}
       </span>
     </Link>

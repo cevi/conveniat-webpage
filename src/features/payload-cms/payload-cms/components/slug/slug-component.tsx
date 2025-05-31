@@ -89,15 +89,15 @@ export const SlugComponent: React.FC<
         <FieldLabel htmlFor={`field-${path}`} label={label ?? ''} />
 
         <button
-          className="ml-2 p-1 text-gray-500 dark:text-gray-200 dark:hover:text-gray-50 hover:text-gray-700 focus:outline-hidden"
+          className="ml-2 p-1 text-gray-500 hover:text-gray-700 focus:outline-hidden dark:text-gray-200 dark:hover:text-gray-50"
           onClick={handleLock}
           aria-label={checkboxValue ? 'Unlock' : 'Lock'}
         >
-          {checkboxValue ? <Lock className="w-5 h-5" /> : <Unlock className="w-5 h-5" />}
+          {checkboxValue ? <Lock className="h-5 w-5" /> : <Unlock className="h-5 w-5" />}
         </button>
       </div>
 
-      <div className="text-sm text-gray-500 mb-2">
+      <div className="mb-2 text-sm text-gray-500">
         {prefix}
         <span className="text-gray-700">{value}</span>
       </div>

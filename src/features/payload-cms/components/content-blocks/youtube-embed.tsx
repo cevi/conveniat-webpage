@@ -49,7 +49,7 @@ export const YoutubeEmbed: React.FC<YoutubeEmbedType> = ({ links }) => {
   const allShorts = links.every((link) => link.link.includes('shorts/'));
 
   return (
-    <div className={allShorts ? 'flex overflow-x-auto gap-4' : 'flex flex-col gap-4'}>
+    <div className={allShorts ? 'flex gap-4 overflow-x-auto' : 'flex flex-col gap-4'}>
       {links.map((link, index) => (
         <div key={index} className={allShorts ? 'shrink-0' : 'w-full'}>
           {renderYoutubeEmbed(link.link)}

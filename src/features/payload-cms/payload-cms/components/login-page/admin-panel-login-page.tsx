@@ -39,7 +39,7 @@ const AdminPanelLoginPage: React.FC = () => {
       {/* login button */}
       <div>
         <div className="mt-2 flex justify-center">
-          <h1 className="mb-16 text-3xl font-extrabold text-conveniat-green">conveniat27</h1>
+          <h1 className="text-conveniat-green mb-16 text-3xl font-extrabold">conveniat27</h1>
         </div>
         <div className="flex justify-center">
           <Button variant="secondary" onClick={handleLoginClick}>

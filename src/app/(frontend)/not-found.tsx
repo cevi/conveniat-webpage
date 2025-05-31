@@ -49,7 +49,7 @@ export const NotFound: React.FC = async () => {
   };
   return (
     <>
-      <article className="max-xl:mx-auto w-full my-8 max-w-2xl px-8">
+      <article className="my-8 w-full max-w-2xl px-8 max-xl:mx-auto">
         <HeadlineH1>{error404[locale]}</HeadlineH1>
         <TeaserText>{error404Description[locale]}</TeaserText>
       </article>

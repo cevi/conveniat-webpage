@@ -9,7 +9,7 @@ interface LayoutProperties {
 const Layout: React.FC<LayoutProperties> = async ({ children }) => {
   return (
     <>
-      <div className="xl:px-12 overflow-x-hidden min-h-full min-w-full">{children}</div>
+      <div className="min-h-full min-w-full overflow-x-hidden xl:px-12">{children}</div>
       <div></div>
       <FooterComponent />
     </>

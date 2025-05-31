@@ -82,7 +82,7 @@ export const NewChatDialog: React.FC = () => {
           <span>New Chat</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md bg-white">
+      <DialogContent className="bg-white sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Create New Chat</DialogTitle>
           <DialogDescription>Select contacts to start a new conversation.</DialogDescription>
@@ -101,7 +101,7 @@ export const NewChatDialog: React.FC = () => {
         )}
 
         <div className="relative mb-4">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <Input
             placeholder="Search contacts..."
             className="pl-10"
@@ -138,7 +138,7 @@ export const NewChatDialog: React.FC = () => {
         <div className="h-[300px] pr-4">
           {isLoading && (
             <div className="flex items-center justify-center py-8">
-              <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-blue-500"></div>
+              <div className="h-8 w-8 animate-spin rounded-full border-t-2 border-b-2 border-blue-500"></div>
             </div>
           )}
           {!isLoading && filteredContacts?.length === 0 && (
@@ -146,7 +146,7 @@ export const NewChatDialog: React.FC = () => {
           )}
 
           {!isLoading && (filteredContacts?.length ?? 0) > 0 && (
-            <div className="space-y-2 overflow-y-scroll h-full">
+            <div className="h-full space-y-2 overflow-y-scroll">
               {filteredContacts?.map((contact) => (
                 <div
                   key={contact.uuid}

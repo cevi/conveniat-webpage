@@ -46,7 +46,7 @@ export const PermissionError: React.FC = () => {
   return (
     <>
       <main>
-        <article className="max-xl:mx-auto-auto w-full my-8 max-w-2xl px-8">
+        <article className="max-xl:mx-auto-auto my-8 w-full max-w-2xl px-8">
           <HeadlineH1>{error401TitleText[locale]}</HeadlineH1>
           <TeaserText>{requestingPageText[locale]}</TeaserText>
 

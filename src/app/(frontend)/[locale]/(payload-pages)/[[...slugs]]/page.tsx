@@ -87,7 +87,7 @@ const PreviewWarning: React.FC<{
     fr: 'CECI EST UNE PRÉVISUALISATION',
   };
   return (
-    <div className="fixed bottom-0 right-0 z-50 p-4">
+    <div className="fixed right-0 bottom-0 z-50 p-4">
       <div className="rounded-lg bg-orange-500 px-4 py-2 font-bold text-white shadow-lg">
         {StatisPreviewString[locale]}
       </div>

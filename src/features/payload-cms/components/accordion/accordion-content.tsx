@@ -16,7 +16,7 @@ const AccordionContent: React.FC<AccordionContentProperties> = ({ valueBlocks })
           if (_block.blockType === 'accordionPlainTextBlock') {
             return (
               <Fragment key={index}>
-                <div className="mb-4 hyphens-auto sm:hyphens-none ">
+                <div className="mb-4 hyphens-auto sm:hyphens-none">
                   <LexicalRichTextSection richTextSection={_block.value} />
                 </div>
                 {index !== valueBlocks.length - 1 && <hr className="my-6 border border-gray-100" />}

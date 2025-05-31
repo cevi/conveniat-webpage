@@ -37,17 +37,17 @@ const GlobalError: React.FC<{
   return (
     <html>
       <body>
-        <div className="flex flex-col items-center justify-center h-dvh w-dvw p-8">
+        <div className="flex h-dvh w-dvw flex-col items-center justify-center p-8">
           <ConveniatLogo />
 
-          <h1 className="text-4xl font-bold  text-conveniat-green pt-8 md:pt-20">
+          <h1 className="text-conveniat-green pt-8 text-4xl font-bold md:pt-20">
             Es ist ein Fehler aufgetreten!
           </h1>
           <p className="mt-4 text-lg">
             Es tut uns leid, aber es ist ein Fehler aufgetreten. Bitte versuche es erneut.
           </p>
           <button
-            className="mt-8 px-4 py-2 bg-blue-600 text-white rounded"
+            className="mt-8 rounded bg-blue-600 px-4 py-2 text-white"
             onClick={() => globalThis.location.reload()}
           >
             Nochmals versuchen

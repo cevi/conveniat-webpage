@@ -4,7 +4,7 @@ export const TeaserText: React.FC<{
   children?: React.ReactNode;
 }> = ({ children }) => {
   return (
-    <p className="mb-3 mt-4 max-w-2xl hyphens-auto font-body text-lg font-normal text-gray-500">
+    <p className="font-body mt-4 mb-3 max-w-2xl text-lg font-normal hyphens-auto text-gray-500">
       {children}
     </p>
   );

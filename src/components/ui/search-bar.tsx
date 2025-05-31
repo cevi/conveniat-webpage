@@ -36,7 +36,7 @@ export const SearchBar: React.FC<{ initialQuery: string; actionURL: string }> = 
       />
       <button
         type="submit"
-        className="cursor-pointer rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700 hover:icon:search hover:text-white"
+        className="hover:icon:search cursor-pointer rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700 hover:text-white"
       >
         {searchText[locale as Locale]}
       </button>

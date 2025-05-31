@@ -67,10 +67,10 @@ export const ListBlogPosts: React.FC<LocalizedPageType> = async ({ locale }) => 
   const blogs = blogsPaged.docs as Blog[];
 
   return (
-    <div className="mx-auto flex flex-col my-8 xl:my-16 2xl:my-20 2xl:mr-[-11rem] 2xl:px-8">
+    <div className="mx-auto my-8 flex flex-col xl:my-16 2xl:my-20 2xl:mr-[-11rem] 2xl:px-8">
       <h2
         id="voluptatibus-odit-quam-nam-placeat-sed"
-        className="mb-2 mt-8 max-w-4xl text-balance font-heading text-lg font-extrabold text-conveniat-green"
+        className="font-heading text-conveniat-green mt-8 mb-2 max-w-4xl text-lg font-extrabold text-balance"
       >
         {resentBlogsText[locale]}
       </h2>

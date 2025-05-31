@@ -8,7 +8,7 @@ export const ListItemJSXConverter: JSXConverters<SerializedListItemNode> = {
     });
 
     return (
-      <li className="max-w-2xl text-left font-body text-base font-normal text-gray-500 bg-(image:/favicon.svg)">
+      <li className="font-body bg-(image:/favicon.svg) max-w-2xl text-left text-base font-normal text-gray-500">
         {children}
       </li>
     );

@@ -4,7 +4,7 @@ const Loading: React.FC = () => {
   return (
     <>
       <div className="flex h-[50dvh] w-full items-center justify-center">
-        <div className="animate-spin rounded-full border-3 border-solid border-conveniat-green border-t-transparent h-12 w-12"></div>
+        <div className="border-conveniat-green h-12 w-12 animate-spin rounded-full border-3 border-solid border-t-transparent"></div>
       </div>
     </>
   );

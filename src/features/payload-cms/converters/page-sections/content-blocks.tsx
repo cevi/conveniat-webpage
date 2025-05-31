@@ -146,7 +146,7 @@ export const SummaryBlock: SectionRenderer<LexicalRichTextSectionType> = ({
       sectionOverrides={sectionOverrides}
       errorFallbackMessage="Failed to load rich text section. Reload the page to try again."
     >
-      <div className="my-8 mx-0 md:mx-12 border-t-[4px] border-t-conveniat-green bg-green-100 p-6">
+      <div className="border-t-conveniat-green mx-0 my-8 border-t-[4px] bg-green-100 p-6 md:mx-12">
         <LexicalRichTextSection richTextSection={block.richTextSection} />
       </div>
     </SectionWrapper>
@@ -167,16 +167,16 @@ export const DetailsTable: SectionRenderer<{
       <LexicalRichTextSection richTextSection={block.introduction} />
 
       <div className="mt-4">
-        <hr className=" border border-gray-100" />
+        <hr className="border border-gray-100" />
         {block.detailsTableBlocks.map((detailsTableEntry, index) => (
           <Fragment key={index}>
-            <div className="grid gap-x-2 hyphens-auto p-2 md:grid-cols-[1fr_2fr]">
-              <div className="my-2 font-semibold text-conveniat-green">
+            <div className="grid gap-x-2 p-2 hyphens-auto md:grid-cols-[1fr_2fr]">
+              <div className="text-conveniat-green my-2 font-semibold">
                 {detailsTableEntry.label}
               </div>
               <LexicalRichTextSection richTextSection={detailsTableEntry.value} />
             </div>
-            <hr className="grid-cols-2  border border-gray-100" />
+            <hr className="grid-cols-2 border border-gray-100" />
           </Fragment>
         ))}
       </div>
@@ -215,7 +215,7 @@ export const RenderSinglePicture: SectionRenderer<{
       sectionOverrides={sectionOverrides}
       errorFallbackMessage="Failed to load single picture. Reload the page to try again."
     >
-      <div className="relative mt-10 aspect-[16/9] w-[calc(100%+32px)] text-lg text-conveniat-green max-md:mx-[-16px]">
+      <div className="text-conveniat-green relative mt-10 aspect-[16/9] w-[calc(100%+32px)] text-lg max-md:mx-[-16px]">
         <Image
           src={block.image.url}
           alt={block.image.alt}

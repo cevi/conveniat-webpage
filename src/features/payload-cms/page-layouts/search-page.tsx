@@ -56,7 +56,7 @@ const SearchPage: React.FC<LocalizedPageType> = async (properties) => {
 
   if (!searchQuery || searchQuery.trim() === '') {
     return (
-      <article className="max-xl:mx-auto w-full my-8 max-w-2xl px-8">
+      <article className="my-8 w-full max-w-2xl px-8 max-xl:mx-auto">
         <HeadlineH1>{searchNoSearchQuery[locale]}</HeadlineH1>
         <SearchBar initialQuery={''} actionURL={actionURL} />
       </article>
@@ -184,7 +184,7 @@ const SearchPage: React.FC<LocalizedPageType> = async (properties) => {
   const permittedPages = pages.filter((_, index) => pagesPermissions[index]);
 
   return (
-    <article className="max-xl:mx-auto w-full my-8 max-w-2xl px-8">
+    <article className="my-8 w-full max-w-2xl px-8 max-xl:mx-auto">
       <HeadlineH1>
         {searchResultHeader[locale]} &#39;{searchQuery}&#39;
       </HeadlineH1>

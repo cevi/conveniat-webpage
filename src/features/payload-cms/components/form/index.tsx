@@ -142,7 +142,7 @@ export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties)
     <div>
       {error && <div>{`${error.status ?? 500}: ${error.message}`}</div>}
       <form
-        className="relative mx-auto h-auto max-w-xl border-2 rounded-md border-gray-200 bg-white p-6 "
+        className="relative mx-auto h-auto max-w-xl rounded-md border-2 border-gray-200 bg-white p-6"
         id={formID}
         onSubmit={(event?: React.BaseSyntheticEvent) => {
           handleSubmit(onSubmit)(event).catch((error_: unknown) => console.warn(error_));

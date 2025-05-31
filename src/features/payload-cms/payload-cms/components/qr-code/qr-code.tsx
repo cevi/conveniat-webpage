@@ -157,7 +157,7 @@ const QRCodeImage: React.FC<QRCodeImageProperties> = ({
           <Button
             variant="ghost"
             size="sm"
-            className="absolute right-1 top-1/2 -translate-y-1/2 transform" // Ensure correct centering
+            className="absolute top-1/2 right-1 -translate-y-1/2 transform" // Ensure correct centering
             onClick={handleCopy}
             aria-label="Copy link"
           >
@@ -206,7 +206,7 @@ const ExpiryDropdown: React.FC<ExpiryDropdownProperties> = ({
     </label>
     <select
       id="expiry"
-      className="flex h-9 w-full rounded-md border bg-background px-3 py-1 text-sm shadow-sm disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+      className="bg-background flex h-9 w-full rounded-md border px-3 py-1 text-sm shadow-sm disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
       value={expirySeconds}
       onChange={handleExpiryChange}
     >
@@ -343,7 +343,7 @@ const QRCode: React.FC<QRCodeProperties> = () => {
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <FormSubmit
-          icon={<Eye className="w-6 h-6" />}
+          icon={<Eye className="h-6 w-6" />}
           iconPosition="left"
           buttonStyle="tab"
           onClick={() => {
@@ -353,7 +353,7 @@ const QRCode: React.FC<QRCodeProperties> = () => {
           {previewLinkText[locale as Locale]} ({locale.toUpperCase()})
         </FormSubmit>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-96 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700 shadow-lg rounded-md">
+      <DropdownMenuContent className="w-96 rounded-md border-gray-200 bg-white text-gray-900 shadow-lg dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100">
         <DropdownMenuLabel className="px-2 py-1.5 font-semibold">
           {previewLinkTextLong[locale as Locale]} {locale.toUpperCase()}
         </DropdownMenuLabel>
@@ -367,7 +367,7 @@ const QRCode: React.FC<QRCodeProperties> = () => {
             locale={locale as Locale}
           />
           {isErrorQRCodeImage && !isLoading && (
-            <p className="text-xs text-red-500 dark:text-red-400 px-2 text-center">
+            <p className="px-2 text-center text-xs text-red-500 dark:text-red-400">
               Fehler beim Laden des QR-Codes. Bitte versuchen Sie es später erneut.
             </p>
           )}

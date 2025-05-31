@@ -66,7 +66,7 @@ const ErrorPage: React.FC<{
 
   return (
     <>
-      <article className="max-xl:mx-auto w-full my-8 max-w-2xl px-8">
+      <article className="my-8 w-full max-w-2xl px-8 max-xl:mx-auto">
         <HeadlineH1>{errorMessage[locale as Locale]}</HeadlineH1>
         <TeaserText>{errorDescription[locale as Locale]}</TeaserText>
       </article>

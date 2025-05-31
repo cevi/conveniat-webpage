@@ -10,7 +10,7 @@ export const NewsCard: React.FC<{
   const locale = await getLocaleFromCookies();
 
   return (
-    <div className="flex max-h-96 basis-1 flex-col border-2 border-gray-200 bg-white hover:shadow-md transition duration-200 rounded-md p-6 lg:max-w-96">
+    <div className="flex max-h-96 basis-1 flex-col rounded-md border-2 border-gray-200 bg-white p-6 transition duration-200 hover:shadow-md lg:max-w-96">
       <div>
         <span className="font-body text-[12px] font-bold text-gray-500">
           {new Date(date).toLocaleDateString(locale, {
@@ -23,7 +23,7 @@ export const NewsCard: React.FC<{
             timeZone: 'Europe/Zurich',
           })}
         </span>
-        <h4 className="mb-6 font-heading text-base font-extrabold text-conveniat-green text-ellipsis line-clamp-3 min-h-[4.5rem]">
+        <h4 className="font-heading text-conveniat-green mb-6 line-clamp-3 min-h-[4.5rem] text-base font-extrabold text-ellipsis">
           {headline}
         </h4>
       </div>

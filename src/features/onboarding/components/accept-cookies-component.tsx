@@ -35,7 +35,7 @@ export const AcceptCookieEntrypointComponent: React.FC<{
           handleAcceptCookies();
           callback();
         }}
-        className="rounded-[8px] bg-red-700 px-8 py-3 text-center font-heading text-lg font-bold leading-normal text-red-100 hover:bg-red-800"
+        className="font-heading rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg leading-normal font-bold text-red-100 hover:bg-red-800"
       >
         {acceptCookiesText[locale]}
       </button>

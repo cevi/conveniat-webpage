@@ -36,7 +36,7 @@ const FooterMinimalMenu: React.FC = async () => {
 
 const FooterCopyrightText: React.FC<Arguments> = ({ children }) => {
   return (
-    <span className="mt-[32px] font-heading text-[12px] font-bold leading-[16px]">{children}</span>
+    <span className="font-heading mt-[32px] text-[12px] leading-[16px] font-bold">{children}</span>
   );
 };
 
@@ -47,7 +47,7 @@ const footerCopyrightText: StaticTranslationString = {
 };
 
 export const FooterBuildInfoText: React.FC<Arguments> = ({ children }: Arguments) => {
-  return <span className="text-[8px] font-light leading-[10px]">{children}</span>;
+  return <span className="text-[8px] leading-[10px] font-light">{children}</span>;
 };
 
 export const FooterCopyrightArea: React.FC = async () => {

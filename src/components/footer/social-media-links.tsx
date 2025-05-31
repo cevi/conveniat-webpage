@@ -14,16 +14,16 @@ export const SocialMediaLinks: React.FC = async () => {
   const youTubeLink = socialLinks?.youtube;
 
   return (
-    <div className="flex items-center justify-center gap-2 mb-2">
+    <div className="mb-2 flex items-center justify-center gap-2">
       {instagramLink !== null && instagramLink !== undefined && (
         <Link
           href={instagramLink}
           target="_blank"
           rel="noopener noreferrer"
-          className="p-2 rounded-full transition-colors duration-200"
+          className="rounded-full p-2 transition-colors duration-200"
           aria-label="Follow us on Instagram"
         >
-          <SiInstagram className="w-5 h-5" />
+          <SiInstagram className="h-5 w-5" />
         </Link>
       )}
 
@@ -32,10 +32,10 @@ export const SocialMediaLinks: React.FC = async () => {
           href={youTubeLink}
           target="_blank"
           rel="noopener noreferrer"
-          className="p-2 rounded-full transition-colors duration-200"
+          className="rounded-full p-2 transition-colors duration-200"
           aria-label="Subscribe to our YouTube channel"
         >
-          <SiYoutube className="w-5 h-5" />
+          <SiYoutube className="h-5 w-5" />
         </Link>
       )}
     </div>

@@ -38,7 +38,7 @@ export const NavComponent: React.FC<{
           <button
             type="button"
             onClick={() => setMobileMenuOpen(true)}
-            className="cursor-pointer relative top-[18px] outline-hidden"
+            className="relative top-[18px] cursor-pointer outline-hidden"
           >
             <span className="sr-only">Open main menu</span>
             <MenuIcon aria-hidden="true" className="size-6" />
@@ -46,21 +46,21 @@ export const NavComponent: React.FC<{
         )}
 
         {mobileMenuOpen && (
-          <button type="button" className=" relative top-[18px] outline-hidden">
+          <button type="button" className="relative top-[18px] outline-hidden">
             <span className="sr-only">Close menu</span>
             <X aria-hidden="true" className="size-6" />
           </button>
         )}
 
         <Dialog open={mobileMenuOpen} onClose={setMobileMenuOpen}>
-          <div className="cursor-pointer fixed inset-0 z-10" />
-          <DialogPanel className="fixed inset-y-0 right-0 z-[40] w-full bg-white px-6 mt-[62px] py-6 overflow-y-scroll">
+          <div className="fixed inset-0 z-10 cursor-pointer" />
+          <DialogPanel className="fixed inset-y-0 right-0 z-[40] mt-[62px] w-full overflow-y-scroll bg-white px-6 py-6">
             <div onClick={checkClickEvent}>{children}</div>
           </DialogPanel>
         </Dialog>
       </div>
 
-      <div className="hidden xl:block left-0 top-[62px] height-[calc(100&-62px)] p-8 fixed h-full bg-white border-r-2 w-96 border-gray-200  ">
+      <div className="height-[calc(100&-62px)] fixed top-[62px] left-0 hidden h-full w-96 border-r-2 border-gray-200 bg-white p-8 xl:block">
         {children}
       </div>
     </>

@@ -25,7 +25,7 @@ export const InstagramEmbed: React.FC<InstagramEmbedType> = ({ link }) => {
       <ClientOnly
         fallback={
           <PlaceholderEmbed
-            className="w-[328px] h-[625px]"
+            className="h-[625px] w-[328px]"
             url={`https://www.instagram.com/p/${postId}/`}
           />
         }

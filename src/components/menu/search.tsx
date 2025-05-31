@@ -28,7 +28,7 @@ export const SearchComponent: React.FC<{ locale: Locale }> = ({ locale }) => {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto py-6">
+    <div className="mx-auto w-full max-w-md py-6">
       <form
         className="flex overflow-hidden rounded-lg border border-[#cbd5d1] bg-white shadow-xs focus-within:ring-2 focus-within:ring-[#47564c]"
         id="search-form"
@@ -37,14 +37,14 @@ export const SearchComponent: React.FC<{ locale: Locale }> = ({ locale }) => {
         <input
           id="search-input"
           name="searchInput"
-          className="grow h-12 px-4 font-['Inter'] text-sm text-[#333] placeholder-[#999] focus:outline-hidden"
+          className="h-12 grow px-4 font-['Inter'] text-sm text-[#333] placeholder-[#999] focus:outline-hidden"
           type="text"
           placeholder={searchButtonText[locale as Locale]}
         />
         <button
           type="submit"
           form="search-form"
-          className="cursor-pointer flex items-center justify-center h-12 px-4 bg-[#47564c] text-white transition-colors duration-300 hover:bg-[#3b4a3f]"
+          className="flex h-12 cursor-pointer items-center justify-center bg-[#47564c] px-4 text-white transition-colors duration-300 hover:bg-[#3b4a3f]"
         >
           <Search className="text-lg" aria-hidden="true" />
         </button>

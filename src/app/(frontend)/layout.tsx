@@ -35,7 +35,7 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children }) => {
     >
       <body
         className={cn(
-          'flex h-dvh w-dvw flex-col overflow-x-hidden bg-[#f8fafc] overflow-y-hidden',
+          'flex h-dvh w-dvw flex-col overflow-x-hidden overflow-y-hidden bg-[#f8fafc]',
           {
             'overscroll-y-none': isInAppDesign,
           },
@@ -48,8 +48,8 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children }) => {
             <CeviLogo className="mx-auto h-full max-h-[60vh] w-full max-w-[384px] opacity-10 blur-md" />
           </div>
 
-          <div className="mt-[62px] xl:ml-[480px] h-[calc(100dvh-62px)] overflow-y-scroll">
-            <main className="flex flex-col justify-between min-h-full">{children}</main>
+          <div className="mt-[62px] h-[calc(100dvh-62px)] overflow-y-scroll xl:ml-[480px]">
+            <main className="flex min-h-full flex-col justify-between">{children}</main>
           </div>
         </PostHogProvider>
       </body>

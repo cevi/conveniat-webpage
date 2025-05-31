@@ -31,7 +31,7 @@ const LanguageSwitcher: React.FC<{
   return (
     <div className="fixed top-4 right-4 z-50">
       <select
-        className="bg-gray-50 border border-gray-300 pa-4 rounded-md shadow-md focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+        className="pa-4 rounded-md border border-gray-300 bg-gray-50 shadow-md focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
         value={currentLocale}
         onChange={(event: ChangeEvent<HTMLSelectElement>) => onLanguageChange(event.target.value)}
       >
@@ -120,7 +120,7 @@ export const OnboardingProcess: React.FC = () => {
   }, [onboardingStep, router]);
 
   return (
-    <div className="relative flex h-screen items-center justify-center max-w-96 mx-auto">
+    <div className="relative mx-auto flex h-screen max-w-96 items-center justify-center">
       <LanguageSwitcher onLanguageChange={handleLanguageChange} currentLocale={locale} />
       {onboardingStep === OnboardingStep.Initial && (
         <AcceptCookieEntrypointComponent locale={locale} callback={acceptCookiesCallback} />

@@ -3,7 +3,7 @@ import type React from 'react';
 
 const LoadingPage: React.FC = () => {
   return (
-    <div className="flex items-center justify-center bg-[#f8fafc]/80 backdrop-blur-xs h-full">
+    <div className="flex h-full items-center justify-center bg-[#f8fafc]/80 backdrop-blur-xs">
       <Loader2 className="animate-spin" />
     </div>
   );

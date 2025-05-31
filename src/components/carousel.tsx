@@ -226,7 +226,7 @@ const CarouselPrevious = React.forwardRef<HTMLButtonElement, React.ComponentProp
         className={cn(
           'absolute h-8 w-8 rounded-full',
           orientation === 'horizontal'
-            ? '-left-12 top-[140px] xl:top-[200px] -translate-y-1/2'
+            ? 'top-[140px] -left-12 -translate-y-1/2 xl:top-[200px]'
             : '-top-12 left-1/2 -translate-x-1/2 rotate-90',
           className,
         )}
@@ -234,7 +234,7 @@ const CarouselPrevious = React.forwardRef<HTMLButtonElement, React.ComponentProp
         onClick={scrollPrev}
         {...properties}
       >
-        <ArrowLeft className="h-4 w-4 text-conveniat-green" />
+        <ArrowLeft className="text-conveniat-green h-4 w-4" />
         <span className="sr-only">Previous slide</span>
       </Button>
     );
@@ -254,7 +254,7 @@ const CarouselNext = React.forwardRef<HTMLButtonElement, React.ComponentProps<ty
         className={cn(
           'absolute h-8 w-8 rounded-full',
           orientation === 'horizontal'
-            ? '-right-12 top-[140px] xl:top-[200px] -translate-y-1/2'
+            ? 'top-[140px] -right-12 -translate-y-1/2 xl:top-[200px]'
             : '-bottom-12 left-1/2 -translate-x-1/2 rotate-90',
           className,
         )}
@@ -262,7 +262,7 @@ const CarouselNext = React.forwardRef<HTMLButtonElement, React.ComponentProps<ty
         onClick={scrollNext}
         {...properties}
       >
-        <ArrowRight className="h-4 w-4 text-conveniat-green" />
+        <ArrowRight className="text-conveniat-green h-4 w-4" />
         <span className="sr-only">Next slide</span>
       </Button>
     );
@@ -286,7 +286,7 @@ const CarouselDescription = React.forwardRef<
     <div
       ref={reference}
       className={cn(
-        'mx-auto w-full text-balance py-2 text-center text-xs text-gray-300 transition-opacity duration-300 lg:max-w-[75%]',
+        'mx-auto w-full py-2 text-center text-xs text-balance text-gray-300 transition-opacity duration-300 lg:max-w-[75%]',
         className,
       )}
       style={{ opacity: isVisible ? 1 : 0 }}

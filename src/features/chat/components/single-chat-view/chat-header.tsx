@@ -22,7 +22,7 @@ export const ChatHeader: React.FC<ChatHeaderProperties> = ({ chatDetails }) => {
 
   return (
     <>
-      <div className="flex items-center justify-between border-b-2 border-gray-200 px-4 h-[62px] dark:border-gray-700">
+      <div className="flex h-[62px] items-center justify-between border-b-2 border-gray-200 px-4 dark:border-gray-700">
         <div className="flex items-center gap-3">
           <Link href="/app/chat">
             <Button variant="ghost" size="icon" className="mr-1">
