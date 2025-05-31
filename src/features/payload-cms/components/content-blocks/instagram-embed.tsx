@@ -1,5 +1,5 @@
 'use client';
-import { ClientOnly } from '@/features/payload-cms/components/form/client-only';
+import { ClientOnly } from '@/components/client-only';
 import type React from 'react';
 import { PlaceholderEmbed, InstagramEmbed as ReactInstagramEmbed } from 'react-social-media-embed';
 

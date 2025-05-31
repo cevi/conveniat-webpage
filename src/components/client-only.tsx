@@ -3,7 +3,7 @@
 import React from 'react';
 
 /**
- * ClientOnly component (the form is only shown on the client side).
+ * ClientOnly component
  * See https://stackoverflow.com/questions/72499480/using-react-select-with-nextjs-causes-hydration-error-when-select-element
  *
  * @param children
