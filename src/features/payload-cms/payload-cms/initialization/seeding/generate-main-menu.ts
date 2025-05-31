@@ -1,6 +1,13 @@
 import { fakerDE as faker } from '@faker-js/faker';
 
-export const generateMainMenu = (count: number = 3) => {
+export const generateMainMenu = (
+  count: number = 3,
+): {
+  label: string;
+  link: string;
+  isExternal: boolean;
+  subMenu: { label: string; link: string; isExternal: boolean }[];
+}[] => {
   const menuItems = [];
   for (let index = 0; index < count; index++) {
     const hasSubMenu = faker.datatype.boolean();
