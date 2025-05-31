@@ -4,7 +4,7 @@ import { SearchComponent } from '@/components/menu/search';
 import { getBuildInfo } from '@/utils/get-build-info';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { renderInAppDesign } from '@/utils/render-in-app-design';
-import { DialogBackdrop, Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/react';
+import { Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/react';
 import config from '@payload-config';
 import { ChevronDown } from 'lucide-react';
 import Link from 'next/link';
@@ -30,7 +30,7 @@ export const MainMenu: React.FC = async () => {
             if (item.subMenu && item.subMenu.length > 0) {
               return (
                 <Disclosure key={item.id} as="div" className="-mx-3">
-                  <DisclosureButton className="group flex w-full items-center justify-between rounded-lg py-2 pr-3.5 pl-3 text-base/7 font-semibold text-gray-700 hover:bg-gray-50">
+                  <DisclosureButton className="group flex w-full items-center justify-between rounded-lg py-2 pr-3.5 pl-3 text-base/7 font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer">
                     {item.label}
                     <ChevronDown
                       aria-hidden="true"
@@ -43,7 +43,7 @@ export const MainMenu: React.FC = async () => {
                         key={subItem.id}
                         as="a"
                         href={subItem.link}
-                        className="block rounded-lg py-2 pr-3 pl-6 text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
+                        className="closeNavOnClick block rounded-lg py-2 pr-3 pl-6 text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
                       >
                         {subItem.label}
                       </DisclosureButton>
@@ -58,12 +58,9 @@ export const MainMenu: React.FC = async () => {
             // If the item has no sub-menu, render a simple link
             return (
               <Link key={item.id} href={item.link}>
-                <DialogBackdrop
-                  as="span"
-                  className="-mx-3 block rounded-lg px-3 py-2 text-base/7 font-semibold text-gray-700 hover:bg-gray-50"
-                >
+                <span className="closeNavOnClick -mx-3 block rounded-lg px-3 py-2 text-base/7 font-semibold text-gray-700 hover:bg-gray-50">
                   {item.label}
-                </DialogBackdrop>
+                </span>
               </Link>
             );
           })}
