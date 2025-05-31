@@ -47,7 +47,7 @@ export async function subscribeUser(
   const payloadUser = (await getPayloadUserFromNextAuthUser(payload, hitobito_user)) ?? null;
 
   const isProductionDeployment =
-    environmentVariables.NEXT_PUBLIC_APP_HOST_URL.includes('conveniat27.cevi.tools');
+    environmentVariables.NEXT_PUBLIC_APP_HOST_URL.includes('conveniat27.ch');
 
   if (payloadUser) {
     // check if the user already has a subscription
