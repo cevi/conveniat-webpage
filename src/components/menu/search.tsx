@@ -28,7 +28,7 @@ export const SearchComponent: React.FC<{ locale: Locale }> = ({ locale }) => {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto">
+    <div className="w-full max-w-md mx-auto py-6">
       <form
         className="flex overflow-hidden rounded-lg border border-[#cbd5d1] bg-white shadow-xs focus-within:ring-2 focus-within:ring-[#47564c]"
         id="search-form"

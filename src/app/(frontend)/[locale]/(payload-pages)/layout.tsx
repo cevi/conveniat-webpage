@@ -9,7 +9,7 @@ interface LayoutProperties {
 const Layout: React.FC<LayoutProperties> = async ({ children }) => {
   return (
     <>
-      <main className="mt-[96px] grow">{children}</main>
+      {children}
       <FooterComponent />
     </>
   );

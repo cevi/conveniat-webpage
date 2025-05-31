@@ -1941,7 +1941,16 @@ export interface Header {
   mainMenu?:
     | {
         label: string;
-        link: string;
+        link?: string | null;
+        isExternal?: boolean | null;
+        subMenu?:
+          | {
+              label: string;
+              link: string;
+              isExternal?: boolean | null;
+              id?: string | null;
+            }[]
+          | null;
         id?: string | null;
       }[]
     | null;
@@ -2056,6 +2065,15 @@ export interface HeaderSelect<T extends boolean = true> {
     | {
         label?: T;
         link?: T;
+        isExternal?: T;
+        subMenu?:
+          | T
+          | {
+              label?: T;
+              link?: T;
+              isExternal?: T;
+              id?: T;
+            };
         id?: T;
       };
   updatedAt?: T;

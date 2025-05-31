@@ -134,7 +134,7 @@ export const ScheduleComponent: React.FC = () => {
   };
 
   return (
-    <article className="mx-auto my-8 max-w-2xl px-4 sm:px-8">
+    <article className="mx-auto w-full my-8 max-w-2xl px-4 sm:px-8">
       <div className="mb-4 flex items-center justify-center">
         <button
           onClick={handlePreviousDay}

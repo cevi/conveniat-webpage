@@ -51,7 +51,7 @@ export const NotFound: React.FC = async () => {
   return (
     <>
       <main className="mt-[96px] grow">
-        <article className="mx-auto my-8 max-w-2xl px-8">
+        <article className="mx-auto w-full my-8 max-w-2xl px-8">
           <HeadlineH1>{error404[locale]}</HeadlineH1>
           <TeaserText>{error404Description[locale]}</TeaserText>
         </article>

@@ -1,6 +1,7 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { basicForm } from '@/features/payload-cms/payload-cms/initialization/seeding/all-types-form';
 import { basicBlog } from '@/features/payload-cms/payload-cms/initialization/seeding/blog-post';
+import { generateMainMenu } from '@/features/payload-cms/payload-cms/initialization/seeding/generate-main-menu';
 import {
   seedPermissionAdminsOnly,
   seedPermissionLoggedIn,
@@ -109,17 +110,11 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     });
   }
 
+  const mainMenu = generateMainMenu(5);
   await payload.updateGlobal({
     slug: 'header',
     locale: LOCALE.DE,
-    data: {
-      mainMenu: [
-        {
-          label: 'Zeitstrahl',
-          link: '/zeitstrahl',
-        },
-      ],
-    },
+    data: { mainMenu: mainMenu },
   });
 
   const landingPageContent: RequiredDataFromCollectionSlug<'generic-page'> = {
@@ -215,4 +210,58 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
       _locale: LOCALE.FR,
     },
   });
+
+  const flattenedMainMenu = mainMenu.flatMap((item) => {
+    if (item.subMenu.length > 0) {
+      return item.subMenu.map((subItem) => ({
+        label: subItem.label,
+        link: subItem.link,
+      }));
+    }
+    return [{ label: item.label, link: item.link }];
+  });
+
+  for (const menuItem of flattenedMainMenu) {
+    if (menuItem.link === '') {
+      continue;
+    }
+
+    const pageData: RequiredDataFromCollectionSlug<'generic-page'> = {
+      internalPageName: menuItem.link.replace(/^\//, ''), // Remove leading slash
+      authors: [],
+      internalStatus: 'approved',
+      _disable_unpublishing: true,
+      _status: 'published',
+      content: {
+        pageTitle: menuItem.label,
+        releaseDate: '2025-01-01T01:00:00.000Z',
+        permissions: public_permission.id,
+        mainContent: [
+          {
+            blockType: 'richTextSection' as const,
+            richTextSection: generateRichTextSection(),
+          },
+        ],
+      },
+      seo: {
+        urlSlug: menuItem.link.replace(/^\//, ''), // Remove leading slash
+        metaTitle: menuItem.label,
+        metaDescription: `This is the page for ${menuItem.label}`,
+        keywords: '',
+      },
+      _localized_status: {
+        published: true,
+      },
+      _locale: LOCALE.DE,
+    };
+
+    await payload.create({
+      collection: 'generic-page',
+      locale: LOCALE.DE,
+      data: {
+        ...pageData,
+        _locale: LOCALE.DE,
+      },
+    });
+  }
 };

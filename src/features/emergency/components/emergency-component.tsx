@@ -87,7 +87,7 @@ export const EmergencyComponent: React.FC = () => {
   };
 
   return (
-    <article className="mx-auto mt-16 max-w-3xl px-4">
+    <article className="mx-auto w-full mt-16 max-w-3xl px-4">
       <HeadlineH1 className="text-center">Notfall und Alarmierung</HeadlineH1>
 
       <div className="sticky top-[80px] z-20 bg-[#f8fafc] pb-4">

@@ -1,4 +1,5 @@
 import { PreviewModeBanner } from '@/components/header/preview-mode-banner';
+import { MainMenu } from '@/components/menu/main-menu';
 import { NavComponent } from '@/components/menu/nav-component';
 import { ConveniatLogo } from '@/components/svg-logos/conveniat-logo';
 import { canUserAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
@@ -40,7 +41,9 @@ export const HeaderComponent: React.FC<{
             <span className="absolute left-0 top-[16px] flex w-full items-center justify-center font-['Montserrat'] text-[24px] font-extrabold leading-normal sm:hidden">
               conveniat27
             </span>
-            <NavComponent />
+            <NavComponent>
+              <MainMenu />
+            </NavComponent>
           </div>
         </div>
       </div>

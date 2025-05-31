@@ -1,78 +1,52 @@
-import { FooterBuildInfoText } from '@/components/footer/footer-copyright-area';
-import { LanguageSwitcher } from '@/components/menu/language-switcher';
-import { SearchComponent } from '@/components/menu/search';
-import { getBuildInfo } from '@/utils/get-build-info';
-import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
-import { renderInAppDesign } from '@/utils/render-in-app-design';
-import { Popover, PopoverBackdrop, PopoverButton, PopoverPanel } from '@headlessui/react';
-import config from '@payload-config';
-import { CircleX, Menu as MenuIcon } from 'lucide-react';
-import Link from 'next/link';
-import { getPayload } from 'payload';
-import React from 'react';
+'use client';
 
-export const NavComponent: React.FC = async () => {
-  const payload = await getPayload({ config });
-  const locale = await getLocaleFromCookies();
-  const isInAppDesign = await renderInAppDesign();
-  const build = await getBuildInfo();
+import { Dialog, DialogPanel } from '@headlessui/react';
+import { Menu as MenuIcon, X } from 'lucide-react';
 
-  const { mainMenu } = await payload.findGlobal({ slug: 'header', locale });
-  if (mainMenu === undefined || mainMenu === null) return;
+import type React from 'react';
+import { useCallback, useState } from 'react';
+
+export const NavComponent: React.FC<{
+  children?: React.ReactNode;
+}> = ({ children }) => {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const checkClickEvent = useCallback(
+    (event: React.MouseEvent<HTMLDivElement, MouseEvent>): void => {
+      // check if the event target has the class 'closeNavOnClick'
+      if ((event.target as HTMLElement).classList.contains('closeNavOnClick')) {
+        setMobileMenuOpen(false);
+      }
+    },
+    [setMobileMenuOpen],
+  );
 
   return (
-    <Popover>
-      <PopoverButton
-        className="cursor-pointer relative top-[18px] outline-hidden"
-        aria-label="Open main menu"
-        tabIndex={1}
-        aria-hidden="true"
-      >
-        <MenuIcon />
-      </PopoverButton>
+    <>
+      {!mobileMenuOpen && (
+        <button
+          type="button"
+          onClick={() => setMobileMenuOpen(true)}
+          className="cursor-pointer relative top-[18px] outline-hidden"
+        >
+          <span className="sr-only">Open main menu</span>
+          <MenuIcon aria-hidden="true" className="size-6" />
+        </button>
+      )}
 
-      <PopoverPanel
-        transition
-        className="fixed left-0 top-0 z-[120] h-dvh w-svw bg-[#F8FAFF80] p-8"
-      >
-        <div className="mx-auto h-full w-full max-w-2xl shrink rounded-2xl border-2 border-gray-200 bg-white p-4 text-sm/6 font-semibold text-gray-900 shadow-lg ring-1 ring-gray-900/5">
-          <div className="flex justify-end">
-            <PopoverBackdrop aria-label="Close main menu" className="cursor-pointer">
-              <CircleX />
-            </PopoverBackdrop>
-          </div>
-          <nav>
-            {mainMenu.map((item) => (
-              <Link key={item.id} href={item.link}>
-                <PopoverBackdrop className="hover:text-indigo-600 block p-2">
-                  {item.label}
-                </PopoverBackdrop>
-              </Link>
-            ))}
-          </nav>
+      {mobileMenuOpen && (
+        <button type="button" className=" relative top-[18px] outline-hidden">
+          <span className="sr-only">Close menu</span>
+          <X aria-hidden="true" className="size-6" />
+        </button>
+      )}
 
-          <hr className="my-6 border border-gray-100" />
-
-          <LanguageSwitcher locale={locale} />
-
-          <hr className="my-6 border border-gray-100" />
-
-          <SearchComponent locale={locale} />
-
-          <hr className="my-6 border border-gray-100" />
-
-          {isInAppDesign && build && (
-            <>
-              <div className="my-2 mb-[16px] flex flex-col text-center">
-                <FooterBuildInfoText>Version {build.version} </FooterBuildInfoText>
-                <FooterBuildInfoText>
-                  Build {build.git.hash} vom {build.timestamp}
-                </FooterBuildInfoText>
-              </div>
-            </>
-          )}
-        </div>
-      </PopoverPanel>
-    </Popover>
+      <Dialog open={mobileMenuOpen} onClose={setMobileMenuOpen}>
+        <div className="cursor-pointer fixed inset-0 z-10" />
+        <DialogPanel className="fixed inset-y-0 right-0 z-[40] w-full bg-white px-6 mt-[62px] py-6 overflow-y-scroll">
+          <div onClick={checkClickEvent}>{children}</div>
+        </DialogPanel>
+      </Dialog>
+    </>
   );
 };
