@@ -1,3 +1,4 @@
+import { ClientOnly } from '@/components/client-only';
 import { PreviewModeBanner } from '@/components/header/preview-mode-banner';
 import { MainMenu } from '@/components/menu/main-menu';
 import { NavComponent } from '@/components/menu/nav-component';
@@ -7,6 +8,7 @@ import type { Config } from '@/features/payload-cms/payload-types';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { StaticTranslationString } from '@/types/types';
 import { auth } from '@/utils/auth-helpers';
+import { Menu as MenuIcon } from 'lucide-react';
 import Link from 'next/link';
 import React from 'react';
 
@@ -41,9 +43,13 @@ export const HeaderComponent: React.FC<{
             <span className="absolute top-[16px] left-0 flex w-full items-center justify-center font-['Montserrat'] text-[24px] leading-normal font-extrabold sm:hidden">
               conveniat27
             </span>
-            <NavComponent>
-              <MainMenu />
-            </NavComponent>
+            <ClientOnly
+              fallback={<MenuIcon aria-hidden="true" className="relative top-[18px] size-6" />}
+            >
+              <NavComponent>
+                <MainMenu />
+              </NavComponent>
+            </ClientOnly>
           </div>
         </div>
       </div>
