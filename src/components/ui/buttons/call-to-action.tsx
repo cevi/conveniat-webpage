@@ -10,7 +10,7 @@ export const CallToAction: React.FC<{
   return (
     <div className="mb-[24px] mt-[16px] flex h-fit min-h-full justify-end">
       <Link href={href}>
-        <button className="rounded-[8px] bg-red-700 px-8 py-3 text-center font-heading text-lg font-bold leading-normal text-red-100 hover:bg-red-800">
+        <button className="rounded-[8px] bg-red-700 px-8 py-3 text-center font-heading text-lg font-bold leading-normal text-red-100 hover:bg-red-800 cursor-pointer">
           {children}
         </button>
       </Link>
