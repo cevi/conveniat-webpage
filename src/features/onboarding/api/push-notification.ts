@@ -45,10 +45,42 @@ export async function subscribeUser(
 
   // eslint-disable-next-line unicorn/no-null
   const payloadUser = (await getPayloadUserFromNextAuthUser(payload, hitobito_user)) ?? null;
-  await payload.create({
-    collection: 'push-notification-subscriptions',
-    data: { ...sub, user: payloadUser },
-  });
+
+  const isProdDeployment =
+    environmentVariables.NEXT_PUBLIC_APP_HOST_URL?.includes('conveniat27.cevi.tools'); // TODO: change when tested to prod instance
+
+  if (!payloadUser) {
+    // create a new one
+    await payload.create({
+      collection: 'push-notification-subscriptions',
+      data: { ...sub, user: null },
+    });
+  } else {
+    // check if the user already has a subscription
+    const existingSubscription = await payload.find({
+      collection: 'push-notification-subscriptions',
+      where: {
+        user: {
+          equals: payloadUser?.id,
+        },
+      },
+    });
+
+    if (isProdDeployment && existingSubscription.totalDocs > 0) {
+      // if the user already has a subscription, we update it
+      await payload.update({
+        collection: 'push-notification-subscriptions',
+        id: existingSubscription.docs[0]?.id ?? '',
+        data: { ...sub, user: payloadUser },
+      });
+      return { success: true };
+    } else {
+      await payload.create({
+        collection: 'push-notification-subscriptions',
+        data: { ...sub, user: payloadUser },
+      });
+    }
+  }
 
   // send a test notification to the user
   try {
