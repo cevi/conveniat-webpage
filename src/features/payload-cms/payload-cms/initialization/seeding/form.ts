@@ -104,4 +104,5 @@ export const basicForm: Form = {
     published: true,
   },
   _locale: 'de',
+  _status: 'published',
 };

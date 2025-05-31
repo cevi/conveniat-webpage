@@ -19,6 +19,7 @@ const findQuery: ({ req, relationTo }: FilterOptionsProps<unknown>) => Promise<W
         },
       },
     },
+    req,
   });
   const allIds = allItems.docs.map((item) => item.id);
   return {
@@ -43,6 +44,7 @@ export const formBlock: Block = {
       required: true,
       hasMany: false,
       filterOptions: findQuery,
+      validate: () => true,
     },
   ],
 };
