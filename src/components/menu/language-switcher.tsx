@@ -52,27 +52,24 @@ export const LanguageSwitcher: React.FC<{ locale: Locale }> = ({ locale }) => {
           <ChevronDown aria-hidden="true" className="size-5 flex-none group-data-open:rotate-180" />
         </DisclosureButton>
         <DisclosurePanel className="mt-2 space-y-2">
-          <DisclosureButton
-            as="button"
+          <button
             onClick={() => handleLanguageChange('de')}
             className="block w-full cursor-pointer rounded-lg py-2 pr-3 pl-6 text-left text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
           >
             Deutsch
-          </DisclosureButton>
-          <DisclosureButton
-            as="button"
+          </button>
+          <button
             onClick={() => handleLanguageChange('en')}
             className="block w-full cursor-pointer rounded-lg py-2 pr-3 pl-6 text-left text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
           >
             English
-          </DisclosureButton>
-          <DisclosureButton
-            as="button"
+          </button>
+          <button
             onClick={() => handleLanguageChange('fr')}
             className="block w-full cursor-pointer rounded-lg py-2 pr-3 pl-6 text-left text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
           >
             Français
-          </DisclosureButton>
+          </button>
         </DisclosurePanel>
       </Disclosure>
     </div>

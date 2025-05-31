@@ -4,7 +4,7 @@ import { Dialog, DialogPanel } from '@headlessui/react';
 import { Menu as MenuIcon, X } from 'lucide-react';
 
 import type React from 'react';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 export const NavComponent: React.FC<{
   children?: React.ReactNode;
@@ -23,13 +23,16 @@ export const NavComponent: React.FC<{
 
   // close menu if page gets resized to desktop view (tailwind xl breakpoint)
   const handleResize = useCallback(() => {
-    if (window.innerWidth >= 1280) {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    if (window?.innerWidth >= 1280) {
       setMobileMenuOpen(false);
     }
   }, []);
 
   // add event listener for resize
-  window.addEventListener('resize', handleResize);
+  useEffect(() => {
+    window.addEventListener('resize', handleResize);
+  }, [handleResize]);
 
   return (
     <>

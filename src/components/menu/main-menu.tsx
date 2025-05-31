@@ -39,14 +39,13 @@ export const MainMenu: React.FC = async () => {
                   </DisclosureButton>
                   <DisclosurePanel className="mt-2 space-y-2">
                     {item.subMenu.map((subItem) => (
-                      <DisclosureButton
+                      <Link
                         key={subItem.id}
-                        as="a"
                         href={subItem.link}
                         className="closeNavOnClick block rounded-lg py-2 pr-3 pl-6 text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
                       >
                         {subItem.label}
-                      </DisclosureButton>
+                      </Link>
                     ))}
                   </DisclosurePanel>
                 </Disclosure>
