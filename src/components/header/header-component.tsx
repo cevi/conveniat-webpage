@@ -44,7 +44,9 @@ export const HeaderComponent: React.FC<{
               conveniat27
             </span>
             <ClientOnly
-              fallback={<MenuIcon aria-hidden="true" className="relative top-[18px] size-6" />}
+              fallback={
+                <MenuIcon aria-hidden="true" className="relative top-[18px] size-6 xl:hidden" />
+              }
             >
               <NavComponent>
                 <MainMenu />
