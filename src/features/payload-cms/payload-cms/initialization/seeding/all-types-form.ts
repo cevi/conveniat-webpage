@@ -100,4 +100,8 @@ export const basicForm: Form = {
   submitButtonLabel: 'Submit',
   title: 'Basic Form',
   updatedAt: '2023-01-12T21:25:41.113Z',
+  _localized_status: {
+    published: true,
+  },
+  _locale: 'de',
 };
