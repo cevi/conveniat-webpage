@@ -47,7 +47,7 @@ export const LanguageSwitcher: React.FC<{ locale: Locale }> = ({ locale }) => {
   return (
     <div className="space-y-2 py-6 mx-auto max-w-md">
       <Disclosure as="div" className="-mx-3">
-        <DisclosureButton className="cursor-pointer group flex w-full items-center justify-between rounded-lg py-2 pr-3.5 pl-3 text-base/7 font-semibold text-gray-700 hover:bg-gray-50">
+        <DisclosureButton className="cursor-pointer group flex w-full items-center justify-between rounded-lg py-2 pr-3.5 pl-3 text-base/7 font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer">
           {language[locale]}
           <ChevronDown aria-hidden="true" className="size-5 flex-none group-data-open:rotate-180" />
         </DisclosureButton>
@@ -55,21 +55,21 @@ export const LanguageSwitcher: React.FC<{ locale: Locale }> = ({ locale }) => {
           <DisclosureButton
             as="button"
             onClick={() => handleLanguageChange('de')}
-            className="cursor-pointer block text-left rounded-lg w-full py-2 pr-3 pl-6 text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
+            className="cursor-pointer block text-left rounded-lg w-full py-2 pr-3 pl-6 text-sm/7 font-semibold text-gray-500 hover:bg-gray-50 cursor-pointer"
           >
             Deutsch
           </DisclosureButton>
           <DisclosureButton
             as="button"
             onClick={() => handleLanguageChange('en')}
-            className="cursor-pointer block text-left rounded-lg w-full py-2 pr-3 pl-6 text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
+            className="cursor-pointer block text-left rounded-lg w-full py-2 pr-3 pl-6 text-sm/7 font-semibold text-gray-500 hover:bg-gray-50 cursor-pointer"
           >
             English
           </DisclosureButton>
           <DisclosureButton
             as="button"
             onClick={() => handleLanguageChange('fr')}
-            className="cursor-pointer block text-left rounded-lg w-full py-2 pr-3 pl-6 text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
+            className="cursor-pointer block text-left rounded-lg w-full py-2 pr-3 pl-6 text-sm/7 font-semibold text-gray-500 hover:bg-gray-50 cursor-pointer"
           >
             Français
           </DisclosureButton>
