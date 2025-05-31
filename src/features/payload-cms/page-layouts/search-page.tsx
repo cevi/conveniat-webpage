@@ -91,7 +91,6 @@ const SearchPage: React.FC<LocalizedPageType> = async (properties) => {
   const blogsPublished = await Promise.all(
     searchCollectionEntries.map(async (entry) => {
       if (entry.doc.relationTo !== 'blog') {
-        // for now, only blogs give a result
         return;
       }
 
@@ -111,6 +110,13 @@ const SearchPage: React.FC<LocalizedPageType> = async (properties) => {
             {
               'content.releaseDate': {
                 less_than_equal: currentDate,
+              },
+            },
+            {
+              _localized_status: {
+                equals: {
+                  published: true,
+                },
               },
             },
           ],
@@ -133,7 +139,6 @@ const SearchPage: React.FC<LocalizedPageType> = async (properties) => {
   const pagesPublished = await Promise.all(
     searchCollectionEntries.map(async (entry) => {
       if (entry.doc.relationTo !== 'generic-page') {
-        // for now, only blogs give a result
         return;
       }
 
@@ -153,6 +158,13 @@ const SearchPage: React.FC<LocalizedPageType> = async (properties) => {
             {
               'content.releaseDate': {
                 less_than_equal: currentDate,
+              },
+            },
+            {
+              _localized_status: {
+                equals: {
+                  published: true,
+                },
               },
             },
           ],
