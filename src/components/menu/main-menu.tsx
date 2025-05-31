@@ -11,34 +11,6 @@ import Link from 'next/link';
 import { getPayload } from 'payload';
 import type React from 'react';
 
-const products = [
-  {
-    name: 'Analytics',
-    description: 'Get a better understanding of your traffic',
-    href: '#',
-  },
-  {
-    name: 'Engagement',
-    description: 'Speak directly to your customers',
-    href: '#',
-  },
-  {
-    name: 'Security',
-    description: 'Your customers’ data will be safe and secure',
-    href: '#',
-  },
-  {
-    name: 'Integrations',
-    description: 'Connect with third-party tools',
-    href: '#',
-  },
-  {
-    name: 'Automations',
-    description: 'Build strategic funnels that will convert',
-    href: '#',
-  },
-];
-
 export const MainMenu: React.FC = async () => {
   const payload = await getPayload({ config });
   const locale = await getLocaleFromCookies();
@@ -54,38 +26,47 @@ export const MainMenu: React.FC = async () => {
         <SearchComponent locale={locale} />
 
         <div className="space-y-2 py-6">
-          {mainMenu.map((item) => (
-            <Link key={item.id} href={item.link}>
-              <DialogBackdrop
-                as="span"
-                className="-mx-3 block rounded-lg px-3 py-2 text-base/7 font-semibold text-gray-700 hover:bg-gray-50"
-              >
-                {item.label}
-              </DialogBackdrop>
-            </Link>
-          ))}
+          {mainMenu.map((item) => {
+            if (item.subMenu && item.subMenu.length > 0) {
+              return (
+                <Disclosure key={item.id} as="div" className="-mx-3">
+                  <DisclosureButton className="group flex w-full items-center justify-between rounded-lg py-2 pr-3.5 pl-3 text-base/7 font-semibold text-gray-700 hover:bg-gray-50">
+                    {item.label}
+                    <ChevronDown
+                      aria-hidden="true"
+                      className="size-5 flex-none group-data-open:rotate-180"
+                    />
+                  </DisclosureButton>
+                  <DisclosurePanel className="mt-2 space-y-2">
+                    {item.subMenu.map((subItem) => (
+                      <DisclosureButton
+                        key={subItem.id}
+                        as="a"
+                        href={subItem.link}
+                        className="block rounded-lg py-2 pr-3 pl-6 text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
+                      >
+                        {subItem.label}
+                      </DisclosureButton>
+                    ))}
+                  </DisclosurePanel>
+                </Disclosure>
+              );
+            }
 
-          <Disclosure as="div" className="-mx-3">
-            <DisclosureButton className="group flex w-full items-center justify-between rounded-lg py-2 pr-3.5 pl-3 text-base/7 font-semibold text-gray-700 hover:bg-gray-50">
-              Product
-              <ChevronDown
-                aria-hidden="true"
-                className="size-5 flex-none group-data-open:rotate-180"
-              />
-            </DisclosureButton>
-            <DisclosurePanel className="mt-2 space-y-2">
-              {[...products, ...callsToAction].map((item) => (
-                <DisclosureButton
-                  key={item.name}
-                  as="a"
-                  href={item.href}
-                  className="block rounded-lg py-2 pr-3 pl-6 text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
+            if (item.link === undefined || item.link === null) return <></>;
+
+            // If the item has no sub-menu, render a simple link
+            return (
+              <Link key={item.id} href={item.link}>
+                <DialogBackdrop
+                  as="span"
+                  className="-mx-3 block rounded-lg px-3 py-2 text-base/7 font-semibold text-gray-700 hover:bg-gray-50"
                 >
-                  {item.name}
-                </DisclosureButton>
-              ))}
-            </DisclosurePanel>
-          </Disclosure>
+                  {item.label}
+                </DialogBackdrop>
+              </Link>
+            );
+          })}
         </div>
         <LanguageSwitcher locale={locale} />
 
