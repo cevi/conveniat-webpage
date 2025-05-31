@@ -12,7 +12,7 @@ export const PublishingStatusBadges: React.FC<{
   }
 
   return (
-    <span>
+    <div className="w-[110px]">
       {Object.entries(publishingStatus).map(([locale, status]) => (
         <LanguageStatus
           key={locale}
@@ -21,7 +21,7 @@ export const PublishingStatusBadges: React.FC<{
           label={locale}
         />
       ))}
-    </span>
+    </div>
   );
 };
 
