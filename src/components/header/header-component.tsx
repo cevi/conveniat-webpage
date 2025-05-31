@@ -30,12 +30,12 @@ export const HeaderComponent: React.FC<{
       <PreviewModeBanner user={session?.user} canAccessAdmin={canAccessAdminDashboard} />
 
       <div className="mb-[32px] border-b-2 border-gray-200 bg-white">
-        <div className="relative mx-auto h-[60px] w-full max-w-2xl text-conveniat-green">
+        <div className="relative mx-auto h-[60px] w-full max-w-2xl xl:ml-4 text-conveniat-green">
           <div className="flex items-center justify-between px-6">
             <Link href="/" aria-label={landingPageAreaLinktText[locale]}>
               <ConveniatLogo className="absolute left-[24px] top-[12px] z-[100]" />
             </Link>
-            <span className="absolute left-0 top-[16px] hidden w-full items-center justify-center font-['Montserrat'] text-[24px] font-extrabold leading-normal opacity-0 sm:flex sm:opacity-100">
+            <span className="absolute left-0 top-[16px] hidden w-full items-center justify-center font-['Montserrat'] text-[24px] font-extrabold leading-normal opacity-0 sm:flex sm:opacity-100 xl:w-auto xl:ml-[560px]">
               conveniat27
             </span>
             <span className="absolute left-0 top-[16px] flex w-full items-center justify-center font-['Montserrat'] text-[24px] font-extrabold leading-normal sm:hidden">

@@ -47,9 +47,6 @@ export const SearchComponent: React.FC<{ locale: Locale }> = ({ locale }) => {
           className="cursor-pointer flex items-center justify-center h-12 px-4 bg-[#47564c] text-white transition-colors duration-300 hover:bg-[#3b4a3f]"
         >
           <Search className="text-lg" aria-hidden="true" />
-          <span className="ml-2 hidden font-['Montserrat'] text-sm font-semibold sm:inline">
-            {searchButtonText[locale as Locale]}
-          </span>
         </button>
       </form>
     </div>

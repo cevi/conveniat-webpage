@@ -35,7 +35,7 @@ export const PhotoCarousel: React.FC<PhotoCarouselBlock> = async ({ images }) =>
   }
 
   return (
-    <div className="mb-8 w-screen mx-[-32px] md:mx-0 md:w-full select-none max-lg:overflow-hidden xl:w-[1200px] xl:my-16 xl:ml-[-220px]">
+    <div className="mb-8 w-screen mx-[-32px] md:mx-0 md:w-full select-none max-lg:overflow-hidden">
       <Carousel
         opts={{ align: 'center', loop: true }}
         className="w-full max-lg:w-[200%] max-lg:translate-x-[-25%] max-lg:transform"

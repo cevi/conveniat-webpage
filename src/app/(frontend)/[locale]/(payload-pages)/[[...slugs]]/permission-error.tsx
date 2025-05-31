@@ -44,20 +44,22 @@ export const PermissionError: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
   return (
-    <main className="mt-[96px] grow">
-      <article className="mx-auto w-full my-8 max-w-2xl px-8">
-        <HeadlineH1>{error401TitleText[locale]}</HeadlineH1>
-        <TeaserText>{requestingPageText[locale]}</TeaserText>
+    <>
+      <main>
+        <article className="max-xl:mx-auto-auto w-full my-8 max-w-2xl px-8">
+          <HeadlineH1>{error401TitleText[locale]}</HeadlineH1>
+          <TeaserText>{requestingPageText[locale]}</TeaserText>
 
-        <TeaserText>
-          {pageNotAvailableP1Text[locale]}
-          <Link onClick={backToHomeHandler} className="font-bold text-red-600" href={''}>
-            {' '}
-            {homePageLinkText[locale]}
-          </Link>
-          {'.'}
-        </TeaserText>
-      </article>
-    </main>
+          <TeaserText>
+            {pageNotAvailableP1Text[locale]}
+            <Link onClick={backToHomeHandler} className="font-bold text-red-600" href={''}>
+              {' '}
+              {homePageLinkText[locale]}
+            </Link>
+            {'.'}
+          </TeaserText>
+        </article>
+      </main>
+    </>
   );
 };

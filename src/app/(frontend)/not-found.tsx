@@ -1,4 +1,3 @@
-import { FooterComponent } from '@/components/footer/footer-component';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { TeaserText } from '@/components/ui/typography/teaser-text';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -50,12 +49,10 @@ export const NotFound: React.FC = async () => {
   };
   return (
     <>
-      <main className="mt-[96px] grow">
-        <article className="mx-auto w-full my-8 max-w-2xl px-8">
-          <HeadlineH1>{error404[locale]}</HeadlineH1>
-          <TeaserText>{error404Description[locale]}</TeaserText>
-        </article>
-      </main>
+      <article className="max-xl:mx-auto w-full my-8 max-w-2xl px-8">
+        <HeadlineH1>{error404[locale]}</HeadlineH1>
+        <TeaserText>{error404Description[locale]}</TeaserText>
+      </article>
     </>
   );
 };
@@ -64,7 +61,6 @@ export const NotFoundPage: React.FC = () => {
   return (
     <>
       <NotFound />
-      <FooterComponent />
     </>
   );
 };

@@ -199,26 +199,28 @@ export const PreviewError: React.FC = () => {
     decoded?.exp !== undefined && new Date() > new Date(Number(decoded.exp) * 1000);
 
   return (
-    <main className="mt-[96px] grow">
-      <article className="mx-auto w-full my-8 max-w-2xl px-8">
-        <HeadlineH1>{error403TitleText[locale]}</HeadlineH1>
-        <TeaserText>{requestingPreviewModeText[locale]}</TeaserText>
+    <>
+      <main>
+        <article className="max-xl:mx-auto w-full my-8 max-w-2xl px-8">
+          <HeadlineH1>{error403TitleText[locale]}</HeadlineH1>
+          <TeaserText>{requestingPreviewModeText[locale]}</TeaserText>
 
-        <TeaserText>
-          {pageNotAvailableP1Text[locale]}
-          <Link onClick={backToHomeHandler} className="font-bold text-red-600" href={''}>
-            {' '}
-            {homePageLinkText[locale]}
-          </Link>
-          {pageNotAvailableP2Text[locale]}
-        </TeaserText>
+          <TeaserText>
+            {pageNotAvailableP1Text[locale]}
+            <Link onClick={backToHomeHandler} className="font-bold text-red-600" href={''}>
+              {' '}
+              {homePageLinkText[locale]}
+            </Link>
+            {pageNotAvailableP2Text[locale]}
+          </TeaserText>
 
-        <PreviewTokenAnalysis
-          validPreviewToken={isValidPreviewToken}
-          previewTokenExpired={isPreviewTokenExpired}
-          decoded={decoded}
-        />
-      </article>
-    </main>
+          <PreviewTokenAnalysis
+            validPreviewToken={isValidPreviewToken}
+            previewTokenExpired={isPreviewTokenExpired}
+            decoded={decoded}
+          />
+        </article>
+      </main>
+    </>
   );
 };

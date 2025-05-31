@@ -44,8 +44,7 @@ export const FooterMenuArea: React.FC = async () => {
   const locale = await getLocaleFromCookies();
 
   const { footerMenu } = await payload.findGlobal({ slug: 'footer', locale });
-  if (footerMenu === undefined || footerMenu === null) return;
-  if (footerMenu.length === 0) return <div className="block h-32" />;
+  if (footerMenu === undefined || footerMenu === null || footerMenu.length === 0) return;
 
   return (
     <div className="flex h-[260px] w-full flex-col items-center justify-center space-y-8 border-t-2 border-gray-200 bg-white">

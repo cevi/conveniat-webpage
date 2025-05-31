@@ -17,7 +17,7 @@ const Layout: React.FC<LayoutProperties> = async ({ children }) => {
   return (
     <>
       <SessionProvider>{children}</SessionProvider>
-
+      <div></div>
       {isInAppDesign && <FooterAppNavBar locale={locale} />}
     </>
   );

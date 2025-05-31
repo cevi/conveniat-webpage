@@ -40,7 +40,7 @@ const GlobalError: React.FC<{
         <div className="flex flex-col items-center justify-center h-dvh w-dvw p-8">
           <ConveniatLogo />
 
-          <h1 className="text-4xl font-bold  text-conveniat-green md:pt-20">
+          <h1 className="text-4xl font-bold  text-conveniat-green pt-8 md:pt-20">
             Es ist ein Fehler aufgetreten!
           </h1>
           <p className="mt-4 text-lg">

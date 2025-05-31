@@ -44,14 +44,13 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children }) => {
         <PostHogProvider>
           <HeaderComponent locale={locale} />
 
-          <div className="absolute top-0 z-[-999] h-screen w-full p-[56px]">
+          <div className="absolute top-0 z-[-999] h-screen w-full p-[56px] xl:pl-[480px]">
             <CeviLogo className="mx-auto h-full max-h-[60vh] w-full max-w-[384px] opacity-10 blur-md" />
           </div>
 
-          <main className="flex flex-col h-full justify-between overflow-y-auto mt-[62px] pt-4">
-            <div></div>
-            {children}
-          </main>
+          <div className="mt-[62px] xl:ml-[480px] h-[calc(100dvh-62px)] overflow-y-scroll">
+            <main className="flex flex-col justify-between min-h-full">{children}</main>
+          </div>
         </PostHogProvider>
       </body>
     </html>
