@@ -1,6 +1,6 @@
 import { environmentVariables } from '@/config/environment-variables';
-import { basicForm } from '@/features/payload-cms/payload-cms/initialization/seeding/all-types-form';
 import { basicBlog } from '@/features/payload-cms/payload-cms/initialization/seeding/blog-post';
+import { basicForm } from '@/features/payload-cms/payload-cms/initialization/seeding/form';
 import { generateMainMenu } from '@/features/payload-cms/payload-cms/initialization/seeding/generate-main-menu';
 import {
   seedPermissionAdminsOnly,
