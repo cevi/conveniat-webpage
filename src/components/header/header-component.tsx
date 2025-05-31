@@ -1,4 +1,5 @@
 import { PreviewModeBanner } from '@/components/header/preview-mode-banner';
+import { MainMenu } from '@/components/menu/main-menu';
 import { NavComponent } from '@/components/menu/nav-component';
 import { ConveniatLogo } from '@/components/svg-logos/conveniat-logo';
 import { canUserAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
@@ -25,22 +26,24 @@ export const HeaderComponent: React.FC<{
   };
 
   return (
-    <header className="fixed left-0 top-0 z-50 h-[60px] w-full">
+    <header className="fixed top-0 left-0 z-50 h-[60px] w-full">
       <PreviewModeBanner user={session?.user} canAccessAdmin={canAccessAdminDashboard} />
 
       <div className="mb-[32px] border-b-2 border-gray-200 bg-white">
-        <div className="relative mx-auto h-[60px] w-full max-w-2xl text-conveniat-green">
+        <div className="text-conveniat-green relative mx-auto h-[60px] w-full max-w-2xl xl:ml-4">
           <div className="flex items-center justify-between px-6">
             <Link href="/" aria-label={landingPageAreaLinktText[locale]}>
-              <ConveniatLogo className="absolute left-[24px] top-[12px] z-[100]" />
+              <ConveniatLogo className="absolute top-[12px] left-[24px] z-[100]" />
             </Link>
-            <span className="absolute left-0 top-[16px] hidden w-full items-center justify-center font-['Montserrat'] text-[24px] font-extrabold leading-normal opacity-0 sm:flex sm:opacity-100">
+            <span className="absolute top-[16px] left-0 hidden w-full items-center justify-center font-['Montserrat'] text-[24px] leading-normal font-extrabold opacity-0 sm:flex sm:opacity-100 xl:ml-[560px] xl:w-auto">
               conveniat27
             </span>
-            <span className="absolute left-0 top-[16px] flex w-full items-center justify-center font-['Montserrat'] text-[24px] font-extrabold leading-normal sm:hidden">
+            <span className="absolute top-[16px] left-0 flex w-full items-center justify-center font-['Montserrat'] text-[24px] leading-normal font-extrabold sm:hidden">
               conveniat27
             </span>
-            <NavComponent />
+            <NavComponent>
+              <MainMenu />
+            </NavComponent>
           </div>
         </div>
       </div>

@@ -45,10 +45,45 @@ export async function subscribeUser(
 
   // eslint-disable-next-line unicorn/no-null
   const payloadUser = (await getPayloadUserFromNextAuthUser(payload, hitobito_user)) ?? null;
-  await payload.create({
-    collection: 'push-notification-subscriptions',
-    data: { ...sub, user: payloadUser },
-  });
+
+  const isProductionDeployment =
+    environmentVariables.NEXT_PUBLIC_APP_HOST_URL.includes('conveniat27');
+
+  if (payloadUser) {
+    // check if the user already has a subscription
+    const existingSubscription = await payload.find({
+      collection: 'push-notification-subscriptions',
+      where: {
+        user: {
+          equals: payloadUser.id,
+        },
+      },
+    });
+
+    if (isProductionDeployment && existingSubscription.totalDocs > 0) {
+      // if the user already has a subscription, we update it
+      const existingSubscriptionId = existingSubscription.docs[0]?.id as string;
+      await payload.update({
+        collection: 'push-notification-subscriptions',
+        id: existingSubscriptionId,
+        data: {
+          ...sub,
+          user: payloadUser,
+        },
+      });
+    } else {
+      await payload.create({
+        collection: 'push-notification-subscriptions',
+        data: { ...sub, user: payloadUser },
+      });
+    }
+  } else {
+    // create a new one
+    await payload.create({
+      collection: 'push-notification-subscriptions',
+      data: { ...sub },
+    });
+  }
 
   // send a test notification to the user
   try {

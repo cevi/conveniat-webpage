@@ -13,6 +13,7 @@ export const searchOverrides: { fields?: FieldsOverride } & Partial<
     {
       name: 'search_content',
       type: 'text',
+      localized: true,
       admin: {
         readOnly: true,
         description: {
@@ -25,6 +26,7 @@ export const searchOverrides: { fields?: FieldsOverride } & Partial<
     {
       name: 'search_title',
       type: 'text',
+      localized: true,
     },
   ],
 };

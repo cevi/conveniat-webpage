@@ -1,6 +1,5 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { buildSecureConfig } from '@/features/payload-cms/payload-cms/access-rules/build-secure-config';
-import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import { collectionsConfig } from '@/features/payload-cms/payload-cms/collections';
 import { UserCollection } from '@/features/payload-cms/payload-cms/collections/user-collection';
 import { emailSettings } from '@/features/payload-cms/payload-cms/email-settings';
@@ -8,13 +7,13 @@ import { dropRouteInfo } from '@/features/payload-cms/payload-cms/global-routes'
 import { globalConfig } from '@/features/payload-cms/payload-cms/globals';
 import { onPayloadInit } from '@/features/payload-cms/payload-cms/initialization';
 import { LOCALE, locales } from '@/features/payload-cms/payload-cms/locales';
+import { formPluginConfiguration } from '@/features/payload-cms/payload-cms/plugins/form/form-plugin-configuration';
 import { lexicalEditor } from '@/features/payload-cms/payload-cms/plugins/lexical-editor';
 import { redirectsPluginConfiguration } from '@/features/payload-cms/payload-cms/plugins/redirects/redirects-plugin-configuration';
 import { s3StorageConfiguration } from '@/features/payload-cms/payload-cms/plugins/s3-storage-plugin-configuration';
 import { searchPluginConfiguration } from '@/features/payload-cms/payload-cms/plugins/search/search-plugin-configuration';
 import type { RoutableConfig } from '@/types/types';
 import { mongooseAdapter } from '@payloadcms/db-mongodb';
-import { formBuilderPlugin } from '@payloadcms/plugin-form-builder';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { CollectionConfig, Locale } from 'payload';
@@ -192,16 +191,7 @@ export const payloadConfig: RoutableConfig = {
   sharp: sharp,
   telemetry: false,
   plugins: [
-    formBuilderPlugin({
-      fields: {
-        state: false, // we do not use states in CH
-      },
-      formOverrides: {
-        access: {
-          read: canAccessAdminPanel,
-        },
-      },
-    }),
+    formPluginConfiguration,
     s3StorageConfiguration,
     searchPluginConfiguration,
     redirectsPluginConfiguration,

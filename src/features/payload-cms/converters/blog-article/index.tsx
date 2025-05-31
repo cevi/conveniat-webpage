@@ -29,10 +29,10 @@ export const BlogArticleConverter: React.FC<{
   const altText = article.content.bannerImage.alt;
   return (
     <>
-      <article className="mx-auto my-8 max-w-2xl px-8">
+      <article className="my-8 w-full max-w-2xl px-8 max-xl:mx-auto">
         <HeadlineH1>{article.content.blogH1}</HeadlineH1>
 
-        <div className="relative mt-10 aspect-[16/9] w-full text-lg text-conveniat-green">
+        <div className="text-conveniat-green relative mt-10 aspect-[16/9] w-full text-lg">
           <Image src={source} alt={altText} className="block rounded-2xl object-cover" fill />
         </div>
 

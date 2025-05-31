@@ -21,7 +21,9 @@ export interface Property {
 export interface FormBlockType {
   blockName?: string;
   blockType?: 'formBlock';
-  form: FormType;
+  form: FormType & {
+    _localized_status: { published: boolean };
+  };
 }
 
 export interface Data {
@@ -132,11 +134,15 @@ export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties)
     void submitForm();
   };
 
+  if (!formFromProperties._localized_status.published) {
+    return <></>;
+  }
+
   return (
     <div>
       {error && <div>{`${error.status ?? 500}: ${error.message}`}</div>}
       <form
-        className="relative mx-auto h-auto max-w-xl border-2 rounded-md border-gray-200 bg-white p-6 "
+        className="relative mx-auto h-auto max-w-xl rounded-md border-2 border-gray-200 bg-white p-6"
         id={formID}
         onSubmit={(event?: React.BaseSyntheticEvent) => {
           handleSubmit(onSubmit)(event).catch((error_: unknown) => console.warn(error_));
@@ -196,7 +202,7 @@ export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties)
         <button
           type="submit"
           form={formID}
-          className="h-10 w-full rounded-lg bg-[#47564c] font-['Montserrat'] text-base font-bold text-[#e1e6e2] transition duration-300 hover:bg-[#3b4a3f]"
+          className="h-10 w-full cursor-pointer rounded-lg bg-[#47564c] font-['Montserrat'] text-base font-bold text-[#e1e6e2] transition duration-300 hover:bg-[#3b4a3f]"
         >
           {submitButtonLabel}
         </button>

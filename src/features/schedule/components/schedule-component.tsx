@@ -134,7 +134,7 @@ export const ScheduleComponent: React.FC = () => {
   };
 
   return (
-    <article className="mx-auto my-8 max-w-2xl px-4 sm:px-8">
+    <article className="my-8 w-full max-w-2xl px-8 max-xl:mx-auto">
       <div className="mb-4 flex items-center justify-center">
         <button
           onClick={handlePreviousDay}
@@ -176,7 +176,7 @@ export const ScheduleComponent: React.FC = () => {
       </div>
 
       {selectedEntry && (
-        <div className="bg-black/50 fixed inset-0 flex items-center justify-center">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50">
           <div className="mx-4 w-full max-w-md rounded-lg border-2 border-gray-100 bg-white p-6 shadow-lg">
             <h2 className="mb-2 text-2xl font-semibold">{selectedEntry.title}</h2>
             <p className="mb-2 text-sm text-gray-600">

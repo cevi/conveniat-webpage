@@ -12,7 +12,7 @@ const LanguageSelectionModal: React.FC<{
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-600/50">
-      <div className="text-black rounded-sm bg-white p-6 shadow-lg">
+      <div className="rounded-sm bg-white p-6 text-black shadow-lg">
         <h2 className="mb-4 text-lg font-medium">Select Source and Target Languages</h2>
 
         <label className="mb-2 block">
@@ -75,7 +75,7 @@ const AutoTranslate: React.FC = () => {
   };
 
   return (
-    <div className="divide-slate-600 mb-8">
+    <div className="mb-8 divide-slate-600">
       <div className="my-3">
         <p className="max-w-prose text-sm font-medium text-gray-600">
           We allow for automatic translation of content. Click on auto-translate to translate your

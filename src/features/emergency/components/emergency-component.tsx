@@ -87,7 +87,7 @@ export const EmergencyComponent: React.FC = () => {
   };
 
   return (
-    <article className="mx-auto mt-16 max-w-3xl px-4">
+    <article className="mx-auto mt-16 w-full max-w-3xl px-4">
       <HeadlineH1 className="text-center">Notfall und Alarmierung</HeadlineH1>
 
       <div className="sticky top-[80px] z-20 bg-[#f8fafc] pb-4">
@@ -95,7 +95,7 @@ export const EmergencyComponent: React.FC = () => {
           <h2 className="mb-4 flex items-center justify-center text-2xl font-bold text-red-500">
             <AlertCircle className="mr-2" /> Notfall Melden
           </h2>
-          <p className="mb-4 text-balance text-center text-red-500">
+          <p className="mb-4 text-center text-balance text-red-500">
             In dringenden Notfällen, bitte sofort 1414 anrufen and anschliessend hier alarmieren.
           </p>
           <div className="flex justify-center">
@@ -120,14 +120,14 @@ export const EmergencyComponent: React.FC = () => {
               className="pl-10"
             />
             <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 transform text-gray-400"
+              className="absolute top-1/2 left-3 -translate-y-1/2 transform text-gray-400"
               size={20}
             />
             {searchTerm !== '' && (
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute right-2 top-1/2 -translate-y-1/2 transform"
+                className="absolute top-1/2 right-2 -translate-y-1/2 transform"
                 onClick={clearSearch}
               >
                 <X size={16} />

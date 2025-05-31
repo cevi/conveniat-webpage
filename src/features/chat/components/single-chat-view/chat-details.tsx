@@ -46,14 +46,14 @@ export const ChatDetails: React.FC<ChatDetailsProperties> = ({ chatDetails, isOp
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-md z-[999] bg-white">
+      <DialogContent className="z-[999] bg-white sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Chat Details</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="font-medium text-sm text-gray-500">Chat Name</div>
+            <div className="text-sm font-medium text-gray-500">Chat Name</div>
             {isGroupChat && (
               <Button
                 variant="ghost"
@@ -90,10 +90,10 @@ export const ChatDetails: React.FC<ChatDetailsProperties> = ({ chatDetails, isOp
           <Separator />
 
           <div>
-            <div className="font-medium text-sm text-gray-500 mb-2">
+            <div className="mb-2 text-sm font-medium text-gray-500">
               {chatDetails.participants.length} Participants
             </div>
-            <div className="space-y-3 max-h-60 overflow-y-auto">
+            <div className="max-h-60 space-y-3 overflow-y-auto">
               {chatDetails.participants.map((participant) => (
                 <div key={participant.id} className="flex items-center gap-3">
                   <UserCircle className="h-8 w-8 text-gray-400" />

@@ -13,7 +13,7 @@ const renderMenuItem = (menuItem: FooterMenuItem): React.JSX.Element => {
     return (
       <span
         key={menuItem.id}
-        className="font-inter text-[14px] font-normal leading-[24px] text-green-600"
+        className="font-inter text-[14px] leading-[24px] font-normal text-green-600"
       >
         {menuItem.label}
       </span>
@@ -21,7 +21,7 @@ const renderMenuItem = (menuItem: FooterMenuItem): React.JSX.Element => {
 
   return (
     <Link href={menuItem.link} className="leading-[24px]">
-      <span className="font-inter text-[14px] font-normal leading-[24px] text-green-600">
+      <span className="font-inter text-[14px] leading-[24px] font-normal text-green-600">
         {menuItem.label}
       </span>
     </Link>
@@ -44,8 +44,7 @@ export const FooterMenuArea: React.FC = async () => {
   const locale = await getLocaleFromCookies();
 
   const { footerMenu } = await payload.findGlobal({ slug: 'footer', locale });
-  if (footerMenu === undefined || footerMenu === null) return;
-  if (footerMenu.length === 0) return <div className="block h-32" />;
+  if (footerMenu === undefined || footerMenu === null || footerMenu.length === 0) return;
 
   return (
     <div className="flex h-[260px] w-full flex-col items-center justify-center space-y-8 border-t-2 border-gray-200 bg-white">

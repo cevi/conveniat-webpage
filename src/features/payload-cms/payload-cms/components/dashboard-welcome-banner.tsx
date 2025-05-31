@@ -19,7 +19,7 @@ const DashboardWelcomeBanner: React.FC = async () => {
 
   return (
     <div>
-      <h1 className="text-3xl font-extrabold text-conveniat-green">
+      <h1 className="text-conveniat-green text-3xl font-extrabold">
         {welcomeMessageTitle[locale]}
       </h1>
       <p className="mt-2 text-lg">{welcomeMessage[locale]}</p>

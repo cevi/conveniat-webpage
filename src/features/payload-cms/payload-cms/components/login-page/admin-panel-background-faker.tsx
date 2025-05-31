@@ -6,7 +6,7 @@ import React from 'react';
  */
 export const AdminPanelBackgroundFaker = (): React.JSX.Element => {
   return (
-    <div className="fixed left-0 top-0 z-[-999] h-screen w-full bg-[#f8fafc] p-[56px]">
+    <div className="fixed top-0 left-0 z-[-999] h-screen w-full bg-[#f8fafc] p-[56px]">
       <CeviLogo className="admin-panel-blur mx-auto h-full max-h-[60vh] w-full max-w-[384px] opacity-10" />
     </div>
   );

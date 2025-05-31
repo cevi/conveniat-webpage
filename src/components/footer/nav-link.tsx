@@ -29,9 +29,9 @@ export const NavLink: React.FC<{
         {isCurrentlyLoading ? (
           <div
             className={cn('h-9 w-12 rounded-xl px-3 py-1.5', {
-              'bg-green-200 text-conveniat-green': isActive,
+              'text-conveniat-green bg-green-200': isActive,
               'text-cevi-red': color === 'red',
-              'bg-red-200 text-cevi-red': isActive && color === 'red',
+              'text-cevi-red bg-red-200': isActive && color === 'red',
             })}
           >
             <Loader2
@@ -44,16 +44,16 @@ export const NavLink: React.FC<{
         ) : (
           <Icon
             className={cn('h-9 w-12 rounded-xl px-3 py-1 text-gray-300', {
-              'bg-green-200 text-conveniat-green': isActive,
+              'text-conveniat-green bg-green-200': isActive,
               'text-cevi-red': color === 'red',
-              'bg-red-200 text-cevi-red': isActive && color === 'red',
+              'text-cevi-red bg-red-200': isActive && color === 'red',
             })}
           />
         )}
       </div>
       <span
         className={cn('mt-1 text-xs font-semibold text-gray-400', {
-          'font-bold text-conveniat-green': isActive,
+          'text-conveniat-green font-bold': isActive,
           'text-cevi-red': color === 'red',
         })}
       >

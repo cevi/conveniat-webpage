@@ -36,7 +36,7 @@ export const Select: React.FC<
           defaultValue=""
           render={({ field: { onChange, value } }) => (
             <ReactSelect
-              className="h-10 w-full rounded-sm font-['Inter'] text-sm font-normal text-[#595961] focus:border-[#47564c] focus:outline-hidden focus:ring-2 focus:ring-[#47564c]"
+              className="h-10 w-full rounded-sm font-['Inter'] text-sm font-normal text-[#595961] focus:border-[#47564c] focus:ring-2 focus:ring-[#47564c] focus:outline-hidden"
               inputId={name}
               instanceId={name}
               onChange={(value_) => onChange(value_ ? value_.value : '')}

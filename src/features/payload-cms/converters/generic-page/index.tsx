@@ -12,7 +12,7 @@ export const GenericPageConverter: React.FC<{
 }> = ({ page, locale, searchParams }) => {
   return (
     <>
-      <article className="mx-auto my-8 max-w-2xl px-8">
+      <article className="my-8 w-full max-w-2xl px-8 max-xl:mx-auto">
         <HeadlineH1>{page.content.pageTitle}</HeadlineH1>
         <PageSectionsConverter
           blocks={page.content.mainContent as ContentBlock[]}

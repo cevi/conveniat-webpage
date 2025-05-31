@@ -140,7 +140,7 @@ const PreviewTokenAnalysis: React.FC<PreviewTokenAnalysisProperties> = ({
 
   if (!validPreviewToken) {
     return (
-      <div className="my-8 mx-0 border-t-[4px] border-t-red-800 bg-red-100 p-6 md:mx-12">
+      <div className="mx-0 my-8 border-t-[4px] border-t-red-800 bg-red-100 p-6 md:mx-12">
         <ParagraphText className="text-red-700">{previewTokenInvalidText[locale]}</ParagraphText>
       </div>
     );
@@ -150,7 +150,7 @@ const PreviewTokenAnalysis: React.FC<PreviewTokenAnalysisProperties> = ({
   const doesUrlMatch = decoded?.url === undefined || url === decoded.url;
 
   return (
-    <div className="my-8 mx-0 border-t-[4px] border-t-red-800 bg-red-100 p-6 md:mx-12">
+    <div className="mx-0 my-8 border-t-[4px] border-t-red-800 bg-red-100 p-6 md:mx-12">
       {decoded && (
         <ul className="mt-4 list-disc pl-5">
           <li>
@@ -199,26 +199,28 @@ export const PreviewError: React.FC = () => {
     decoded?.exp !== undefined && new Date() > new Date(Number(decoded.exp) * 1000);
 
   return (
-    <main className="mt-[96px] grow">
-      <article className="mx-auto my-8 max-w-2xl px-8">
-        <HeadlineH1>{error403TitleText[locale]}</HeadlineH1>
-        <TeaserText>{requestingPreviewModeText[locale]}</TeaserText>
+    <>
+      <main>
+        <article className="my-8 w-full max-w-2xl px-8 max-xl:mx-auto">
+          <HeadlineH1>{error403TitleText[locale]}</HeadlineH1>
+          <TeaserText>{requestingPreviewModeText[locale]}</TeaserText>
 
-        <TeaserText>
-          {pageNotAvailableP1Text[locale]}
-          <Link onClick={backToHomeHandler} className="font-bold text-red-600" href={''}>
-            {' '}
-            {homePageLinkText[locale]}
-          </Link>
-          {pageNotAvailableP2Text[locale]}
-        </TeaserText>
+          <TeaserText>
+            {pageNotAvailableP1Text[locale]}
+            <Link onClick={backToHomeHandler} className="font-bold text-red-600" href={''}>
+              {' '}
+              {homePageLinkText[locale]}
+            </Link>
+            {pageNotAvailableP2Text[locale]}
+          </TeaserText>
 
-        <PreviewTokenAnalysis
-          validPreviewToken={isValidPreviewToken}
-          previewTokenExpired={isPreviewTokenExpired}
-          decoded={decoded}
-        />
-      </article>
-    </main>
+          <PreviewTokenAnalysis
+            validPreviewToken={isValidPreviewToken}
+            previewTokenExpired={isPreviewTokenExpired}
+            decoded={decoded}
+          />
+        </article>
+      </main>
+    </>
   );
 };

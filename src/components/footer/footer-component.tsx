@@ -11,7 +11,7 @@ export const FooterComponent: React.FC = async () => {
 
   return (
     <>
-      <footer className="h-24 w-full">
+      <footer className="w-full">
         <FooterMenuArea />
         <FooterCopyrightArea />
       </footer>

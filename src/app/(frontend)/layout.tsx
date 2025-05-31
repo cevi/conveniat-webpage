@@ -28,24 +28,29 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children }) => {
 
   return (
     <html
-      className={cn(`${montserrat.className} ${inter.className}`, {
+      className={cn(`${montserrat.className} ${inter.className} overflow-y-hidden`, {
         'overscroll-y-none': isInAppDesign,
       })}
       lang={locale}
     >
       <body
-        className={cn('flex h-dvh w-dvw flex-col overflow-x-hidden bg-[#f8fafc]', {
-          'overscroll-y-none': isInAppDesign,
-        })}
+        className={cn(
+          'flex h-dvh w-dvw flex-col overflow-x-hidden overflow-y-hidden bg-[#f8fafc]',
+          {
+            'overscroll-y-none': isInAppDesign,
+          },
+        )}
       >
         <PostHogProvider>
           <HeaderComponent locale={locale} />
 
-          <div className="absolute top-0 z-[-999] h-screen w-full p-[56px]">
+          <div className="absolute top-0 z-[-999] h-screen w-full p-[56px] xl:pl-[480px]">
             <CeviLogo className="mx-auto h-full max-h-[60vh] w-full max-w-[384px] opacity-10 blur-md" />
           </div>
 
-          {children}
+          <div className="mt-[62px] h-[calc(100dvh-62px)] overflow-y-scroll xl:ml-[480px]">
+            <main className="flex min-h-full flex-col justify-between">{children}</main>
+          </div>
         </PostHogProvider>
       </body>
     </html>

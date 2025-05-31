@@ -10,7 +10,7 @@ const initialMapPoseObergoms: InitialMapPose = {
 
 export const MapComponent: React.FC = async () => {
   return (
-    <div className="fixed left-0 top-[60px] h-[calc(100dvh-60px)] w-screen pb-20">
+    <div className="fixed top-[60px] left-0 h-[calc(100dvh-60px)] w-screen pb-20">
       <MapLibreRenderer
         initialMapPose={initialMapPoseObergoms}
         ceviLogoMarkers={[]}

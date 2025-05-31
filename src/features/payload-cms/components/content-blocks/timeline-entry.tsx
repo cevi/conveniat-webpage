@@ -41,9 +41,9 @@ export const TimelineEntry: React.FC<{
 
   return (
     <div>
-      <div className="mb-[-14px] mt-[-6px] flex items-center">
+      <div className="mt-[-6px] mb-[-14px] flex items-center">
         <div className="mx-[6px] mr-2 h-2 w-2 rounded-full bg-gray-500"></div>
-        <span className="my-2 ml-[6px] max-w-2xl text-left font-body text-xs font-bold text-gray-500">
+        <span className="font-body my-2 ml-[6px] max-w-2xl text-left text-xs font-bold text-gray-500">
           {convertDate(timeline.date, timeline.dateFormat)}
         </span>
       </div>

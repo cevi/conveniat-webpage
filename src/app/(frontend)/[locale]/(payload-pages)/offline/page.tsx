@@ -45,12 +45,12 @@ const OfflinePage: React.FC<Properties> = async ({ params }) => {
   const { locale } = await params;
 
   return (
-    <div className="from-slate-900 to-slate-800 bg-gradient-to-b">
+    <div className="bg-gradient-to-b from-slate-900 to-slate-800">
       <div className="container mx-auto px-4 py-12">
         <div className="mx-auto mb-12 max-w-2xl text-center">
           <div className="mb-16">
             <svg
-              className="text-slate-400 mx-auto h-24 w-24"
+              className="mx-auto h-24 w-24 text-slate-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -68,7 +68,7 @@ const OfflinePage: React.FC<Properties> = async ({ params }) => {
 
           <HeadlineH1>{offlineHeadline[locale]}</HeadlineH1>
 
-          <div className="mb-8 mt-4">
+          <div className="mt-4 mb-8">
             <ParagraphText className="text-center">{offlineLongText[locale]}</ParagraphText>
           </div>
         </div>

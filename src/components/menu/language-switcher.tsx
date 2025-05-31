@@ -1,11 +1,10 @@
 'use client';
 
-import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import type { Locale, StaticTranslationString } from '@/types/types';
-import { useClose } from '@headlessui/react';
-import { Languages } from 'lucide-react';
+import { Disclosure, DisclosureButton, DisclosurePanel, useClose } from '@headlessui/react';
+import { ChevronDown } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import React, { useState } from 'react';
+import React from 'react';
 
 const language: StaticTranslationString = {
   de: 'Sprache',
@@ -20,9 +19,6 @@ const language: StaticTranslationString = {
  *
  */
 export const LanguageSwitcher: React.FC<{ locale: Locale }> = ({ locale }) => {
-  // State to toggle the visibility of the language buttons
-  const [showLanguageOptions, setShowLanguageOptions] = useState(false);
-
   const route = useRouter();
   const pathname = usePathname();
   const searchParameters = useSearchParams();
@@ -30,8 +26,6 @@ export const LanguageSwitcher: React.FC<{ locale: Locale }> = ({ locale }) => {
   const close = useClose();
 
   const handleLanguageChange = (lang: string): void => {
-    setShowLanguageOptions(false);
-
     const langRegex = /^\/(de|en|fr)\//;
     if (langRegex.test(pathname)) {
       route.push(pathname.replace(langRegex, `/${lang}/`) + '?' + searchParameters.toString(), {
@@ -51,38 +45,36 @@ export const LanguageSwitcher: React.FC<{ locale: Locale }> = ({ locale }) => {
   };
 
   return (
-    <>
-      <button
-        className="group flex w-full items-center gap-2 rounded-lg px-3 py-1.5 data-[focus]:bg-white/10"
-        onClick={() => setShowLanguageOptions(!showLanguageOptions)}
-      >
-        <Languages className="cursor-pointer" />
-        {language[locale]}
-      </button>
-
-      {/* Show language options when `showLanguageOptions` is true */}
-      {showLanguageOptions && (
-        <div className="flex flex-col gap-2 rounded-xl border-2 border-gray-200 bg-white p-3">
-          <button
-            className="px-4 py-2 hover:bg-gray-200"
-            onClick={() => handleLanguageChange(LOCALE.DE)}
+    <div className="mx-auto max-w-md space-y-2 py-6">
+      <Disclosure as="div" className="-mx-3">
+        <DisclosureButton className="group flex w-full cursor-pointer items-center justify-between rounded-lg py-2 pr-3.5 pl-3 text-base/7 font-semibold text-gray-700 hover:bg-gray-50">
+          {language[locale]}
+          <ChevronDown aria-hidden="true" className="size-5 flex-none group-data-open:rotate-180" />
+        </DisclosureButton>
+        <DisclosurePanel className="mt-2 space-y-2">
+          <DisclosureButton
+            as="button"
+            onClick={() => handleLanguageChange('de')}
+            className="block w-full cursor-pointer rounded-lg py-2 pr-3 pl-6 text-left text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
           >
             Deutsch
-          </button>
-          <button
-            className="px-4 py-2 hover:bg-gray-200"
-            onClick={() => handleLanguageChange(LOCALE.EN)}
+          </DisclosureButton>
+          <DisclosureButton
+            as="button"
+            onClick={() => handleLanguageChange('en')}
+            className="block w-full cursor-pointer rounded-lg py-2 pr-3 pl-6 text-left text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
           >
             English
-          </button>
-          <button
-            className="px-4 py-2 hover:bg-gray-200"
-            onClick={() => handleLanguageChange(LOCALE.FR)}
+          </DisclosureButton>
+          <DisclosureButton
+            as="button"
+            onClick={() => handleLanguageChange('fr')}
+            className="block w-full cursor-pointer rounded-lg py-2 pr-3 pl-6 text-left text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
           >
             Français
-          </button>
-        </div>
-      )}
-    </>
+          </DisclosureButton>
+        </DisclosurePanel>
+      </Disclosure>
+    </div>
   );
 };

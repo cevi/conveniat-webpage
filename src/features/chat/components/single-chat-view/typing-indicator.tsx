@@ -12,13 +12,13 @@ export const TypingIndicator: React.FC<TypingIndicatorProperties> = ({ userName 
     <div className="flex items-center gap-2 px-4 py-2">
       <div className="flex space-x-1">
         <div
-          className={cn('h-2 w-2 rounded-full bg-gray-400 animate-bounce', 'animation-delay-0')}
+          className={cn('h-2 w-2 animate-bounce rounded-full bg-gray-400', 'animation-delay-0')}
         />
         <div
-          className={cn('h-2 w-2 rounded-full bg-gray-400 animate-bounce', 'animation-delay-150')}
+          className={cn('h-2 w-2 animate-bounce rounded-full bg-gray-400', 'animation-delay-150')}
         />
         <div
-          className={cn('h-2 w-2 rounded-full bg-gray-400 animate-bounce', 'animation-delay-300')}
+          className={cn('h-2 w-2 animate-bounce rounded-full bg-gray-400', 'animation-delay-300')}
         />
       </div>
       <span className="text-xs text-gray-500">{userName} is typing...</span>

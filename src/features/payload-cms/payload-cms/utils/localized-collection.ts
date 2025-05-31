@@ -30,6 +30,14 @@ export const asLocalizedCollection = (config: CollectionConfig): CollectionConfi
         ],
         edit: {
           ...config.admin?.components?.edit,
+          beforeDocumentControls: [
+            {
+              path: '@/features/payload-cms/payload-cms/components/multi-lang-publishing/publishing-status-client',
+            },
+            {
+              path: '@/features/payload-cms/payload-cms/components/qr-code/qr-code',
+            },
+          ],
           // modify the Publish button to publish only the current locale
           PublishButton:
             '@/features/payload-cms/payload-cms/components/multi-lang-publishing/publish-localized',
@@ -42,9 +50,8 @@ export const asLocalizedCollection = (config: CollectionConfig): CollectionConfi
         type: 'json',
         admin: {
           readOnly: true,
+          hidden: true,
           components: {
-            Field:
-              '@/features/payload-cms/payload-cms/components/multi-lang-publishing/publishing-status-client',
             Cell: '@/features/payload-cms/payload-cms/components/multi-lang-publishing/publishing-status',
           },
         },
@@ -108,17 +115,6 @@ export const asLocalizedCollection = (config: CollectionConfig): CollectionConfi
         localized: true,
         admin: {
           disabled: true,
-        },
-      },
-
-      {
-        name: '_qr_code',
-        type: 'ui',
-        admin: {
-          components: {
-            Field: '@/features/payload-cms/payload-cms/components/qr-code/qr-code',
-          },
-          disableListColumn: true,
         },
       },
 

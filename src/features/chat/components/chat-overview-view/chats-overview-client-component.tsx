@@ -12,7 +12,7 @@ import { useState } from 'react';
 const ChatsOverviewLoadingPlaceholder: React.FC = () => {
   return (
     <div className="flex items-center justify-center py-8">
-      <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-blue-500"></div>
+      <div className="h-8 w-8 animate-spin rounded-full border-t-2 border-b-2 border-blue-500"></div>
     </div>
   );
 };
@@ -32,7 +32,7 @@ export const ChatsOverviewClientComponent: React.FC = () => {
   return (
     <div className="flex flex-col space-y-4">
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+        <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
         <Input
           placeholder="Search chats..."
           className="pl-10"
@@ -62,7 +62,7 @@ export const ChatsOverviewClientComponent: React.FC = () => {
       )}
 
       {!isLoading && filteredChats.length > 0 && (
-        <ul className="divide-y divide-gray-200 dark:divide-gray-800 rounded-md border border-gray-200 dark:border-gray-800">
+        <ul className="divide-y divide-gray-200 rounded-md border border-gray-200 dark:divide-gray-800 dark:border-gray-800">
           {filteredChats.map((chat) => (
             <ChatPreview key={chat.id} chat={chat} />
           ))}

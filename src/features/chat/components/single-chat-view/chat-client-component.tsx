@@ -24,7 +24,7 @@ export const ChatClientComponent: React.FC<ChatInterface> = ({ chatId }) => {
   }
 
   return (
-    <div className="flex flex-col bg-white z-[500] h-dvh fixed top-0 w-screen overflow-y-hidden">
+    <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col overflow-y-hidden bg-white">
       <ChatHeader chatDetails={chatDetail} />
       <div className="flex-1 overflow-y-auto">
         <MessageList chatDetails={chatDetail} />
@@ -37,8 +37,8 @@ export const ChatClientComponent: React.FC<ChatInterface> = ({ chatId }) => {
 };
 
 const ChatSkeleton: React.FC = () => (
-  <div className="flex flex-col bg-white z-[500] h-dvh fixed top-0 w-screen">
-    <div className="flex items-center gap-2 border-b-2 border-gray-200 h-[62px] px-4 dark:border-gray-700">
+  <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col bg-white">
+    <div className="flex h-[62px] items-center gap-2 border-b-2 border-gray-200 px-4 dark:border-gray-700">
       <Link href="/app/chat">
         <Button variant="ghost" size="icon" className="mr-2">
           <ArrowLeft className="h-5 w-5" />

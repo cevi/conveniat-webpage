@@ -52,28 +52,28 @@ export const MessageComponent: React.FC<MessageProperties> = ({ message, isCurre
     if (!isCurrentUser) return <></>;
 
     if ('isOptimistic' in message && message.isOptimistic) {
-      return <div className="text-gray-400 ml-1">Sending...</div>;
+      return <div className="ml-1 text-gray-400">Sending...</div>;
     }
 
     const status = message.status ?? 'sent';
 
     switch (status) {
       case 'sent': {
-        return <Check className="h-3.5 w-3.5 text-gray-200 ml-1" />;
+        return <Check className="ml-1 h-3.5 w-3.5 text-gray-200" />;
       }
       case 'delivered': {
         return (
-          <div className="flex ml-1">
+          <div className="ml-1 flex">
             <Check className="h-3.5 w-3.5 text-gray-200" />
-            <Check className="h-3.5 w-3.5 text-gray-200 -ml-2" />
+            <Check className="-ml-2 h-3.5 w-3.5 text-gray-200" />
           </div>
         );
       }
       case 'read': {
         return (
-          <div className="flex ml-1">
+          <div className="ml-1 flex">
             <Check className="h-3.5 w-3.5 text-gray-700" />
-            <Check className="h-3.5 w-3.5 text-gray-700 -ml-2" />
+            <Check className="-ml-2 h-3.5 w-3.5 text-gray-700" />
           </div>
         );
       }
@@ -82,7 +82,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({ message, isCurre
 
   return (
     <div className={cn('flex items-end', isCurrentUser ? 'justify-end' : 'justify-start')}>
-      {!isCurrentUser && <UserCircle className="h-8 w-8 mr-2 shrink-0" />}
+      {!isCurrentUser && <UserCircle className="mr-2 h-8 w-8 shrink-0" />}
 
       <div className="max-w-[80%] overflow-x-hidden">
         <div
@@ -96,13 +96,13 @@ export const MessageComponent: React.FC<MessageProperties> = ({ message, isCurre
         >
           {renderedContent}
         </div>
-        <div className="mt-1 text-xs flex items-center">
+        <div className="mt-1 flex items-center text-xs">
           <span className="text-muted-foreground">{formattedTime}</span>
           {renderMessageStatus()}
         </div>
       </div>
 
-      {isCurrentUser && <UserCircle className="h-8 w-8 ml-2 shrink-0" />}
+      {isCurrentUser && <UserCircle className="ml-2 h-8 w-8 shrink-0" />}
     </div>
   );
 };

@@ -35,26 +35,26 @@ const dateStringToFormatedDate = (dateString: string): string => {
 
 export const FileDownload: React.FC<FileDownloadType> = ({ ...block }) => {
   return (
-    <div className="border-2 border-gray-200 bg-white rounded-md hover:shadow-md transition duration-200 sm:m-8">
+    <div className="rounded-md border-2 border-gray-200 bg-white transition duration-200 hover:shadow-md sm:m-8">
       <Link
         href={block.file.url}
         target={block.openInNewTab ? '_blank' : undefined}
         className="block p-2"
       >
-        <div className="grid grid-cols-[auto_1fr_auto] gap-2 items-center">
+        <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2">
           <Paperclip className="mx-2 h-4 w-4 text-green-400" />
-          <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2 overflow-hidden">
+          <div className="flex flex-col overflow-hidden sm:flex-row sm:items-center sm:space-x-2">
             <div className="flex flex-col">
-              <span className="font-extrabold text-conveniat-green truncate">
+              <span className="text-conveniat-green truncate font-extrabold">
                 {block.file.filename}
               </span>
             </div>
-            <span className="text-xs text-conveniat-green sm:ml-2 sm:hidden">
+            <span className="text-conveniat-green text-xs sm:ml-2 sm:hidden">
               ({formatBytes(block.file.filesize)}, {dateStringToFormatedDate(block.file.updatedAt)})
             </span>
           </div>
           <div className="hidden sm:flex sm:flex-col sm:items-end">
-            <span className="text-xs text-conveniat-green">
+            <span className="text-conveniat-green text-xs">
               {formatBytes(block.file.filesize)}, {dateStringToFormatedDate(block.file.updatedAt)}
             </span>
           </div>

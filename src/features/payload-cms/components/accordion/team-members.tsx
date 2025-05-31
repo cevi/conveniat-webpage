@@ -16,7 +16,7 @@ const TeamLeaderPortrait: React.FC<{
         alt={`Portrait of ${name}`}
         width={200}
         height={200}
-        className="object-cover h-full group-hover:scale-105 transition-transform"
+        className="h-full object-cover transition-transform group-hover:scale-105"
       />
     );
   } else if (typeof portrait === 'object' && portrait?.url !== undefined && portrait.url !== null) {
@@ -26,7 +26,7 @@ const TeamLeaderPortrait: React.FC<{
         alt={`Portrait of ${name}`}
         width={200}
         height={200}
-        className="object-cover h-full group-hover:scale-105 transition-transform"
+        className="h-full object-cover transition-transform group-hover:scale-105"
       />
     );
   }
@@ -52,27 +52,27 @@ const TeamHelpersList: React.FC<{
     <Fragment>
       <hr className="my-6 border border-gray-100" />
       <div className="mt-6">
-        <h4 className="text-sm font-medium text-gray-900 mb-2 text-center sm:text-left">Team</h4>
+        <h4 className="mb-2 text-center text-sm font-medium text-gray-900 sm:text-left">Team</h4>
         <ul className="space-y-2">
           {teamMembers.map((helper, index) => (
             <li
               key={index}
-              className="flex items-center text-sm flex-col sm:flex-row sm:items-center"
+              className="flex flex-col items-center text-sm sm:flex-row sm:items-center"
             >
-              <div className="hidden sm:flex h-6 w-6 rounded-full bg-gray-100 items-center justify-center text-gray-500 text-xs mr-2">
+              <div className="mr-2 hidden h-6 w-6 items-center justify-center rounded-full bg-gray-100 text-xs text-gray-500 sm:flex">
                 {helper.name
                   .split(' ')
                   .map((n) => n[0])
                   .join('')}
               </div>
-              <div className="flex flex-col sm:flex-row sm:items-center text-center sm:text-left">
-                <span className="text-gray-800 mr-1">
+              <div className="flex flex-col text-center sm:flex-row sm:items-center sm:text-left">
+                <span className="mr-1 text-gray-800">
                   {helper.name}
                   {helper.ceviname && (
-                    <span className="text-gray-800 ml-1">v/o {helper.ceviname}</span>
+                    <span className="ml-1 text-gray-800">v/o {helper.ceviname}</span>
                   )}
                 </span>
-                <span className="text-gray-400 text-xs sm:ml-1">({helper.function})</span>
+                <span className="text-xs text-gray-400 sm:ml-1">({helper.function})</span>
               </div>
             </li>
           ))}
@@ -91,8 +91,8 @@ export const TeamMembers: React.FC<{
     <Fragment>
       <div>
         <div>
-          <button className="flex items-center group w-full flex-col md:flex-row text-center md:text-left hover:bg-gray-50 py-4 px-2 md:py-2 rounded-md transition-colors gap-4">
-            <div className="h-48 w-48 md:h-24 md:w-24 relative overflow-hidden rounded-full">
+          <button className="group flex w-full flex-col items-center gap-4 rounded-md px-2 py-4 text-center transition-colors hover:bg-gray-50 md:flex-row md:py-2 md:text-left">
+            <div className="relative h-48 w-48 overflow-hidden rounded-full md:h-24 md:w-24">
               {<TeamLeaderPortrait name={teamLeader.name} portrait={teamLeader.portrait} />}
             </div>
             <div>

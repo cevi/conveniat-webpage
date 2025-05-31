@@ -583,8 +583,21 @@ export interface Form {
         id?: string | null;
       }[]
     | null;
+  publishingStatus?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  _localized_status: LocalizedPublishingStatus;
+  _disable_unpublishing?: boolean | null;
+  _locale: string;
   updatedAt: string;
   createdAt: string;
+  _status?: ('draft' | 'published') | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1832,8 +1845,13 @@ export interface FormsSelect<T extends boolean = true> {
         message?: T;
         id?: T;
       };
+  publishingStatus?: T;
+  _localized_status?: T;
+  _disable_unpublishing?: T;
+  _locale?: T;
   updatedAt?: T;
   createdAt?: T;
+  _status?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1923,7 +1941,16 @@ export interface Header {
   mainMenu?:
     | {
         label: string;
-        link: string;
+        link?: string | null;
+        isExternal?: boolean | null;
+        subMenu?:
+          | {
+              label: string;
+              link: string;
+              isExternal?: boolean | null;
+              id?: string | null;
+            }[]
+          | null;
         id?: string | null;
       }[]
     | null;
@@ -2038,6 +2065,15 @@ export interface HeaderSelect<T extends boolean = true> {
     | {
         label?: T;
         link?: T;
+        isExternal?: T;
+        subMenu?:
+          | T
+          | {
+              label?: T;
+              link?: T;
+              isExternal?: T;
+              id?: T;
+            };
         id?: T;
       };
   updatedAt?: T;
