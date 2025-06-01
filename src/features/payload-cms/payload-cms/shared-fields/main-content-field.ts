@@ -1,4 +1,5 @@
 import { accordion } from '@/features/payload-cms/payload-cms/shared-blocks/accordion';
+import { countdownBlock } from '@/features/payload-cms/payload-cms/shared-blocks/countdown-block';
 import { detailsTable } from '@/features/payload-cms/payload-cms/shared-blocks/details-table';
 import { fileDownloadBlock } from '@/features/payload-cms/payload-cms/shared-blocks/file-download-block';
 import { formBlock } from '@/features/payload-cms/payload-cms/shared-blocks/form-block';
@@ -46,5 +47,6 @@ export const mainContentField: Field = {
     accordion,
     summaryBoxBlock,
     timelineEntries,
+    countdownBlock,
   ],
 };

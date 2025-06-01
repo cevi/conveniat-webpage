@@ -12,6 +12,7 @@ import { lexicalEditor } from '@/features/payload-cms/payload-cms/plugins/lexica
 import { redirectsPluginConfiguration } from '@/features/payload-cms/payload-cms/plugins/redirects/redirects-plugin-configuration';
 import { s3StorageConfiguration } from '@/features/payload-cms/payload-cms/plugins/s3-storage-plugin-configuration';
 import { searchPluginConfiguration } from '@/features/payload-cms/payload-cms/plugins/search/search-plugin-configuration';
+import { smartphoneBreakpoints } from '@/features/payload-cms/utils/smartphone-breakpoints';
 import type { RoutableConfig } from '@/types/types';
 import { mongooseAdapter } from '@payloadcms/db-mongodb';
 import path from 'node:path';
@@ -24,62 +25,6 @@ import sharp from 'sharp';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
-
-const smartphoneBreakpoints: {
-  height: number | string;
-  label: string;
-  name: string;
-  width: number | string;
-}[] = [
-  {
-    name: 'iphone-se',
-    label: 'iPhone SE (375x667)',
-    width: 375,
-    height: 667,
-  },
-  {
-    name: 'iphone-xr',
-    label: 'iPhone XR (414x896)',
-    width: 414,
-    height: 896,
-  },
-  {
-    name: 'iphone-14',
-    label: 'iPhone 14 (390x844)',
-    width: 390,
-    height: 844,
-  },
-  {
-    name: 'iphone-14-pro',
-    label: 'iPhone 14 Pro (393x852)',
-    width: 393,
-    height: 852,
-  },
-  {
-    name: 'iphone-14-pro-max',
-    label: 'iPhone 14 Pro Max (430x932)',
-    width: 430,
-    height: 932,
-  },
-  {
-    name: 'google-pixel-6',
-    label: 'Google Pixel 6 (393x851)',
-    width: 393,
-    height: 851,
-  },
-  {
-    name: 'google-pixel-7',
-    label: 'Google Pixel 7 (412x870)',
-    width: 412,
-    height: 870,
-  },
-  {
-    name: 'google-pixel-7-pro',
-    label: 'Google Pixel 7 Pro (412x892)',
-    width: 412,
-    height: 892,
-  },
-];
 
 /**
  * Generates the preview URL for the live preview feature.

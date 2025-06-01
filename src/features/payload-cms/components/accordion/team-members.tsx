@@ -1,6 +1,11 @@
 import { AvatarPlaceholder } from '@/features/payload-cms/components/accordion/avatar-placeholder';
+import {
+  getURLForLinkField,
+  openURLInNewTab,
+} from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import type { Image as ImageType, TeamMembersBlock } from '@/features/payload-cms/payload-types';
 import Image from 'next/image';
+import Link from 'next/link';
 import type React from 'react';
 import { Fragment } from 'react';
 
@@ -81,29 +86,45 @@ const TeamHelpersList: React.FC<{
     </Fragment>
   );
 };
-export const TeamMembers: React.FC<{
+
+export const TeamLeaderInternal: React.FC<{
   block: TeamMembersBlock;
 }> = ({ block }) => {
   const teamLeader = block.teamLeaderGroup;
-  const teamMembers = block.teamMembers;
 
   return (
-    <Fragment>
-      <div>
-        <div>
-          <button className="group flex w-full flex-col items-center gap-4 rounded-md px-2 py-4 text-center transition-colors hover:bg-gray-50 md:flex-row md:py-2 md:text-left">
-            <div className="relative h-48 w-48 overflow-hidden rounded-full md:h-24 md:w-24">
-              {<TeamLeaderPortrait name={teamLeader.name} portrait={teamLeader.portrait} />}
-            </div>
-            <div>
-              <p className="font-medium text-gray-900">{teamLeader.name}</p>
-              <p className="text-sm text-gray-500">v/o {teamLeader.ceviname}</p>
-            </div>
-          </button>
+    <div>
+      <button className="group flex w-full flex-col items-center gap-4 rounded-md px-2 py-4 text-center transition-colors hover:bg-gray-50 md:flex-row md:py-2 md:text-left">
+        <div className="relative h-48 w-48 overflow-hidden rounded-full md:h-24 md:w-24">
+          {<TeamLeaderPortrait name={teamLeader.name} portrait={teamLeader.portrait} />}
         </div>
+        <div>
+          <p className="font-medium text-gray-900">{teamLeader.name}</p>
+          <p className="text-sm text-gray-500">v/o {teamLeader.ceviname}</p>
+        </div>
+      </button>
+    </div>
+  );
+};
 
-        <TeamHelpersList teamMembers={teamMembers} />
-      </div>
+export const TeamMembers: React.FC<{
+  block: TeamMembersBlock;
+}> = ({ block }) => {
+  const teamMembers = block.teamMembers;
+  const linkField = block.linkField;
+  const link = getURLForLinkField(linkField) || '';
+  const inNewTab = openURLInNewTab(linkField) ? '_blank' : undefined;
+  return link === '' ? (
+    <Fragment>
+      <TeamLeaderInternal block={block} />
+      <TeamHelpersList teamMembers={teamMembers} />
+    </Fragment>
+  ) : (
+    <Fragment>
+      <Link href={link} target={inNewTab}>
+        <TeamLeaderInternal block={block} />
+      </Link>
+      <TeamHelpersList teamMembers={teamMembers} />
     </Fragment>
   );
 };

@@ -118,6 +118,9 @@ export interface Config {
     timelineCategory: {
       relatedTimelineEntries: 'timeline';
     };
+    forms: {
+      submissions: 'form-submissions';
+    };
   };
   collectionsSelect: {
     blog: BlogSelect<false> | BlogSelect<true>;
@@ -298,6 +301,7 @@ export interface Blog {
       | AccordionBlocks
       | SummaryBox
       | TimelineEntries
+      | Countdown
     )[];
   };
   seo: {
@@ -526,6 +530,112 @@ export interface Form {
             blockName?: string | null;
             blockType: 'textarea';
           }
+        | {
+            pageTitle: string;
+            fields?:
+              | (
+                  | {
+                      name: string;
+                      label?: string | null;
+                      width?: number | null;
+                      required?: boolean | null;
+                      defaultValue?: boolean | null;
+                      id?: string | null;
+                      blockName?: string | null;
+                      blockType: 'checkbox';
+                    }
+                  | {
+                      name: string;
+                      label?: string | null;
+                      width?: number | null;
+                      required?: boolean | null;
+                      id?: string | null;
+                      blockName?: string | null;
+                      blockType: 'country';
+                    }
+                  | {
+                      name: string;
+                      label?: string | null;
+                      width?: number | null;
+                      required?: boolean | null;
+                      id?: string | null;
+                      blockName?: string | null;
+                      blockType: 'email';
+                    }
+                  | {
+                      message?: {
+                        root: {
+                          type: string;
+                          children: {
+                            type: string;
+                            version: number;
+                            [k: string]: unknown;
+                          }[];
+                          direction: ('ltr' | 'rtl') | null;
+                          format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                          indent: number;
+                          version: number;
+                        };
+                        [k: string]: unknown;
+                      } | null;
+                      id?: string | null;
+                      blockName?: string | null;
+                      blockType: 'message';
+                    }
+                  | {
+                      name: string;
+                      label?: string | null;
+                      width?: number | null;
+                      defaultValue?: number | null;
+                      required?: boolean | null;
+                      id?: string | null;
+                      blockName?: string | null;
+                      blockType: 'number';
+                    }
+                  | {
+                      name: string;
+                      label?: string | null;
+                      width?: number | null;
+                      defaultValue?: string | null;
+                      placeholder?: string | null;
+                      options?:
+                        | {
+                            label: string;
+                            value: string;
+                            id?: string | null;
+                          }[]
+                        | null;
+                      required?: boolean | null;
+                      id?: string | null;
+                      blockName?: string | null;
+                      blockType: 'select';
+                    }
+                  | {
+                      name: string;
+                      label?: string | null;
+                      width?: number | null;
+                      defaultValue?: string | null;
+                      required?: boolean | null;
+                      id?: string | null;
+                      blockName?: string | null;
+                      blockType: 'text';
+                    }
+                  | {
+                      name: string;
+                      label?: string | null;
+                      width?: number | null;
+                      defaultValue?: string | null;
+                      required?: boolean | null;
+                      id?: string | null;
+                      blockName?: string | null;
+                      blockType: 'textarea';
+                    }
+                )[]
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'formPage';
+          }
       )[]
     | null;
   submitButtonLabel?: string | null;
@@ -583,6 +693,11 @@ export interface Form {
         id?: string | null;
       }[]
     | null;
+  submissions?: {
+    docs?: (string | FormSubmission)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
   publishingStatus?:
     | {
         [k: string]: unknown;
@@ -598,6 +713,23 @@ export interface Form {
   updatedAt: string;
   createdAt: string;
   _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "form-submissions".
+ */
+export interface FormSubmission {
+  id: string;
+  form: string | Form;
+  submissionData?:
+    | {
+        field: string;
+        value: string;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -796,6 +928,20 @@ export interface PlainTextBlock {
  * via the `definition` "TeamMembersBlock".
  */
 export interface TeamMembersBlock {
+  linkField?: {
+    type?: ('reference' | 'custom') | null;
+    reference?:
+      | ({
+          relationTo: 'blog';
+          value: string | Blog;
+        } | null)
+      | ({
+          relationTo: 'generic-page';
+          value: string | GenericPage;
+        } | null);
+    url?: string | null;
+    openInNewTab?: boolean | null;
+  };
   teamLeaderGroup: {
     name: string;
     ceviname?: string | null;
@@ -812,6 +958,140 @@ export interface TeamMembersBlock {
   id?: string | null;
   blockName?: string | null;
   blockType: 'accordionTeamMembersBlock';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "generic-page".
+ */
+export interface GenericPage {
+  id: string;
+  publishingStatus?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  _localized_status: LocalizedPublishingStatus;
+  _disable_unpublishing?: boolean | null;
+  _locale: string;
+  /**
+   * Name of the page for internal purposes.
+   */
+  internalPageName: string;
+  /**
+   * Authors of the Page (internal use only)
+   */
+  authors?: (string | User)[] | null;
+  /**
+   * Status of the page (internal use)
+   */
+  internalStatus: 'draft' | 'translation' | 'review' | 'approved' | 'archived';
+  content: {
+    /**
+     * This is the title that will be displayed on the page.
+     */
+    pageTitle: string;
+    permissions?: (string | null) | Permission;
+    releaseDate: string;
+    /**
+     * The main content of the page
+     */
+    mainContent: (
+      | {
+          richTextSection: {
+            root: {
+              type: string;
+              children: {
+                type: string;
+                version: number;
+                [k: string]: unknown;
+              }[];
+              direction: ('ltr' | 'rtl') | null;
+              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+              indent: number;
+              version: number;
+            };
+            [k: string]: unknown;
+          };
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'richTextSection';
+        }
+      | {
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'blogPostsOverview';
+        }
+      | {
+          /**
+           * This is the teaser that will be displayed on the page.
+           */
+          pageTeaser: string;
+          callToAction: {
+            /**
+             * This is the call to action that will be displayed on the page.
+             */
+            linkLabel: string;
+            /**
+             * This is the link that the call to action will point to.
+             */
+            link: string;
+          };
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'heroSection';
+        }
+      | FormBlock
+      | {
+          images: (string | Image)[];
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'photoCarousel';
+        }
+      | {
+          image: string | Image;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'singlePicture';
+        }
+      | YoutubeEmbedding
+      | InstagramEmbedding
+      | SwisstopoMapEmbedding
+      | {
+          file: string | Document;
+          openInNewTab?: boolean | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'fileDownload';
+        }
+      | DetailsTable
+      | AccordionBlocks
+      | SummaryBox
+      | TimelineEntries
+      | Countdown
+    )[];
+  };
+  seo: {
+    urlSlug: string;
+    /**
+     * This is the title that will be displayed in the browser tab.
+     */
+    metaTitle?: string | null;
+    /**
+     * This is the description that will be displayed in search engine results.
+     */
+    metaDescription?: string | null;
+    /**
+     * These are the keywords that will be used to improve the visibility of the page in search engines.
+     */
+    keywords?: string | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -942,136 +1222,25 @@ export interface Timeline {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "generic-page".
+ * via the `definition` "countdown".
  */
-export interface GenericPage {
-  id: string;
-  publishingStatus?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  _localized_status: LocalizedPublishingStatus;
-  _disable_unpublishing?: boolean | null;
-  _locale: string;
+export interface Countdown {
+  endDate: string;
   /**
-   * Name of the page for internal purposes.
+   * Optional title for the countdown block.
    */
-  internalPageName: string;
+  title?: string | null;
   /**
-   * Authors of the Page (internal use only)
+   * Optional description for the countdown block.
    */
-  authors?: (string | User)[] | null;
+  descriptionAbove?: string | null;
   /**
-   * Status of the page (internal use)
+   * Optional description for the countdown block.
    */
-  internalStatus: 'draft' | 'translation' | 'review' | 'approved' | 'archived';
-  content: {
-    /**
-     * This is the title that will be displayed on the page.
-     */
-    pageTitle: string;
-    permissions?: (string | null) | Permission;
-    releaseDate: string;
-    /**
-     * The main content of the page
-     */
-    mainContent: (
-      | {
-          richTextSection: {
-            root: {
-              type: string;
-              children: {
-                type: string;
-                version: number;
-                [k: string]: unknown;
-              }[];
-              direction: ('ltr' | 'rtl') | null;
-              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-              indent: number;
-              version: number;
-            };
-            [k: string]: unknown;
-          };
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'richTextSection';
-        }
-      | {
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'blogPostsOverview';
-        }
-      | {
-          /**
-           * This is the teaser that will be displayed on the page.
-           */
-          pageTeaser: string;
-          callToAction: {
-            /**
-             * This is the call to action that will be displayed on the page.
-             */
-            linkLabel: string;
-            /**
-             * This is the link that the call to action will point to.
-             */
-            link: string;
-          };
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'heroSection';
-        }
-      | FormBlock
-      | {
-          images: (string | Image)[];
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'photoCarousel';
-        }
-      | {
-          image: string | Image;
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'singlePicture';
-        }
-      | YoutubeEmbedding
-      | InstagramEmbedding
-      | SwisstopoMapEmbedding
-      | {
-          file: string | Document;
-          openInNewTab?: boolean | null;
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'fileDownload';
-        }
-      | DetailsTable
-      | AccordionBlocks
-      | SummaryBox
-      | TimelineEntries
-    )[];
-  };
-  seo: {
-    urlSlug: string;
-    /**
-     * This is the title that will be displayed in the browser tab.
-     */
-    metaTitle?: string | null;
-    /**
-     * This is the description that will be displayed in search engine results.
-     */
-    metaDescription?: string | null;
-    /**
-     * These are the keywords that will be used to improve the visibility of the page in search engines.
-     */
-    keywords?: string | null;
-  };
-  updatedAt: string;
-  createdAt: string;
-  _status?: ('draft' | 'published') | null;
+  descriptionBelow?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'countdown';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1086,23 +1255,6 @@ export interface PushNotificationSubscription {
     p256dh: string;
     auth: string;
   };
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "form-submissions".
- */
-export interface FormSubmission {
-  id: string;
-  form: string | Form;
-  submissionData?:
-    | {
-        field: string;
-        value: string;
-        id?: string | null;
-      }[]
-    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1336,6 +1488,7 @@ export interface BlogSelect<T extends boolean = true> {
               accordion?: T | AccordionBlocksSelect<T>;
               summaryBox?: T | SummaryBoxSelect<T>;
               timelineEntries?: T | TimelineEntriesSelect<T>;
+              countdown?: T | CountdownSelect<T>;
             };
       };
   seo?:
@@ -1458,6 +1611,14 @@ export interface PlainTextBlockSelect<T extends boolean = true> {
  * via the `definition` "TeamMembersBlock_select".
  */
 export interface TeamMembersBlockSelect<T extends boolean = true> {
+  linkField?:
+    | T
+    | {
+        type?: T;
+        reference?: T;
+        url?: T;
+        openInNewTab?: T;
+      };
   teamLeaderGroup?:
     | T
     | {
@@ -1491,6 +1652,18 @@ export interface SummaryBoxSelect<T extends boolean = true> {
  */
 export interface TimelineEntriesSelect<T extends boolean = true> {
   timelineEntryCategories?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "countdown_select".
+ */
+export interface CountdownSelect<T extends boolean = true> {
+  endDate?: T;
+  title?: T;
+  descriptionAbove?: T;
+  descriptionBelow?: T;
   id?: T;
   blockName?: T;
 }
@@ -1571,6 +1744,7 @@ export interface GenericPageSelect<T extends boolean = true> {
               accordion?: T | AccordionBlocksSelect<T>;
               summaryBox?: T | SummaryBoxSelect<T>;
               timelineEntries?: T | TimelineEntriesSelect<T>;
+              countdown?: T | CountdownSelect<T>;
             };
       };
   seo?:
@@ -1824,6 +1998,107 @@ export interface FormsSelect<T extends boolean = true> {
               id?: T;
               blockName?: T;
             };
+        formPage?:
+          | T
+          | {
+              pageTitle?: T;
+              fields?:
+                | T
+                | {
+                    checkbox?:
+                      | T
+                      | {
+                          name?: T;
+                          label?: T;
+                          width?: T;
+                          required?: T;
+                          defaultValue?: T;
+                          id?: T;
+                          blockName?: T;
+                        };
+                    country?:
+                      | T
+                      | {
+                          name?: T;
+                          label?: T;
+                          width?: T;
+                          required?: T;
+                          id?: T;
+                          blockName?: T;
+                        };
+                    email?:
+                      | T
+                      | {
+                          name?: T;
+                          label?: T;
+                          width?: T;
+                          required?: T;
+                          id?: T;
+                          blockName?: T;
+                        };
+                    message?:
+                      | T
+                      | {
+                          message?: T;
+                          id?: T;
+                          blockName?: T;
+                        };
+                    number?:
+                      | T
+                      | {
+                          name?: T;
+                          label?: T;
+                          width?: T;
+                          defaultValue?: T;
+                          required?: T;
+                          id?: T;
+                          blockName?: T;
+                        };
+                    select?:
+                      | T
+                      | {
+                          name?: T;
+                          label?: T;
+                          width?: T;
+                          defaultValue?: T;
+                          placeholder?: T;
+                          options?:
+                            | T
+                            | {
+                                label?: T;
+                                value?: T;
+                                id?: T;
+                              };
+                          required?: T;
+                          id?: T;
+                          blockName?: T;
+                        };
+                    text?:
+                      | T
+                      | {
+                          name?: T;
+                          label?: T;
+                          width?: T;
+                          defaultValue?: T;
+                          required?: T;
+                          id?: T;
+                          blockName?: T;
+                        };
+                    textarea?:
+                      | T
+                      | {
+                          name?: T;
+                          label?: T;
+                          width?: T;
+                          defaultValue?: T;
+                          required?: T;
+                          id?: T;
+                          blockName?: T;
+                        };
+                  };
+              id?: T;
+              blockName?: T;
+            };
       };
   submitButtonLabel?: T;
   confirmationType?: T;
@@ -1845,6 +2120,7 @@ export interface FormsSelect<T extends boolean = true> {
         message?: T;
         id?: T;
       };
+  submissions?: T;
   publishingStatus?: T;
   _localized_status?: T;
   _disable_unpublishing?: T;
@@ -1941,13 +2217,37 @@ export interface Header {
   mainMenu?:
     | {
         label: string;
-        link?: string | null;
-        isExternal?: boolean | null;
+        linkField?: {
+          type?: ('reference' | 'custom') | null;
+          reference?:
+            | ({
+                relationTo: 'blog';
+                value: string | Blog;
+              } | null)
+            | ({
+                relationTo: 'generic-page';
+                value: string | GenericPage;
+              } | null);
+          url?: string | null;
+          openInNewTab?: boolean | null;
+        };
         subMenu?:
           | {
               label: string;
-              link: string;
-              isExternal?: boolean | null;
+              linkField?: {
+                type?: ('reference' | 'custom') | null;
+                reference?:
+                  | ({
+                      relationTo: 'blog';
+                      value: string | Blog;
+                    } | null)
+                  | ({
+                      relationTo: 'generic-page';
+                      value: string | GenericPage;
+                    } | null);
+                url?: string | null;
+                openInNewTab?: boolean | null;
+              };
               id?: string | null;
             }[]
           | null;
@@ -2064,14 +2364,26 @@ export interface HeaderSelect<T extends boolean = true> {
     | T
     | {
         label?: T;
-        link?: T;
-        isExternal?: T;
+        linkField?:
+          | T
+          | {
+              type?: T;
+              reference?: T;
+              url?: T;
+              openInNewTab?: T;
+            };
         subMenu?:
           | T
           | {
               label?: T;
-              link?: T;
-              isExternal?: T;
+              linkField?:
+                | T
+                | {
+                    type?: T;
+                    reference?: T;
+                    url?: T;
+                    openInNewTab?: T;
+                  };
               id?: T;
             };
         id?: T;

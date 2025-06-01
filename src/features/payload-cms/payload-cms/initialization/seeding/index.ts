@@ -98,19 +98,21 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
   await seedPermissionLoggedIn(payload);
 
   const blockCount = 20;
+  const blogIds: string[] = [];
   for (let index = 0; index < blockCount; index++) {
     const imageId = imageIds[index % imageIds.length];
     if (imageId === undefined) {
       throw new Error('Could not find image ID');
     }
 
-    await payload.create({
+    const blogId = await payload.create({
       collection: 'blog',
       data: structuredClone(basicBlog(imageId, imageIds, public_permission.id)),
     });
+    blogIds.push(blogId.id);
   }
 
-  const mainMenu = generateMainMenu(5);
+  const mainMenu = generateMainMenu(5, blogIds);
   await payload.updateGlobal({
     slug: 'header',
     locale: LOCALE.DE,
@@ -140,6 +142,14 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
             linkLabel: 'Mehr erfahren',
             link: '/zeitstrahl',
           },
+        },
+        {
+          blockType: 'countdown' as const,
+          endDate: '2027-07-27T10:00:00.000Z',
+          title: 'Bereit für conveniat27?',
+          descriptionAbove:
+            'Stattfinden wird das Lager vom Samstag, 24. Juli 2027 bis Montag, 2. August 2027 in Obergoms (VS).',
+          descriptionBelow: 'Wir erwarten etwa 5000 Teilnehmende für dieses einmalige Erlebnis!',
         },
         {
           blockType: 'richTextSection' as const,
@@ -210,58 +220,4 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
       _locale: LOCALE.FR,
     },
   });
-
-  const flattenedMainMenu = mainMenu.flatMap((item) => {
-    if (item.subMenu.length > 0) {
-      return item.subMenu.map((subItem) => ({
-        label: subItem.label,
-        link: subItem.link,
-      }));
-    }
-    return [{ label: item.label, link: item.link }];
-  });
-
-  for (const menuItem of flattenedMainMenu) {
-    if (menuItem.link === '') {
-      continue;
-    }
-
-    const pageData: RequiredDataFromCollectionSlug<'generic-page'> = {
-      internalPageName: menuItem.link.replace(/^\//, ''), // Remove leading slash
-      authors: [],
-      internalStatus: 'approved',
-      _disable_unpublishing: true,
-      _status: 'published',
-      content: {
-        pageTitle: menuItem.label,
-        releaseDate: '2025-01-01T01:00:00.000Z',
-        permissions: public_permission.id,
-        mainContent: [
-          {
-            blockType: 'richTextSection' as const,
-            richTextSection: generateRichTextSection(),
-          },
-        ],
-      },
-      seo: {
-        urlSlug: menuItem.link.replace(/^\//, ''), // Remove leading slash
-        metaTitle: menuItem.label,
-        metaDescription: `This is the page for ${menuItem.label}`,
-        keywords: '',
-      },
-      _localized_status: {
-        published: true,
-      },
-      _locale: LOCALE.DE,
-    };
-
-    await payload.create({
-      collection: 'generic-page',
-      locale: LOCALE.DE,
-      data: {
-        ...pageData,
-        _locale: LOCALE.DE,
-      },
-    });
-  }
 };

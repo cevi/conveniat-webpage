@@ -192,14 +192,14 @@ const SearchPage: React.FC<LocalizedPageType> = async (properties) => {
       <SearchBar initialQuery={searchQuery} actionURL={actionURL} />
 
       <div className="mx-auto my-8 grid gap-y-6 min-[1200px]:grid-cols-2">
-        <div className="col-span-2">
+        <div className="col-span-2 flex flex-col gap-y-4">
           <h2 className="text-2xl font-bold">{searchResultsTitlePages[locale]}</h2>
           {permittedPages.length === 0 && <p>{searchResultNoResults[locale]}</p>}
           {permittedPages.map((page) => {
             return <PageDisplay page={page} key={page.seo.urlSlug} />;
           })}
         </div>
-        <div className="col-span-2">
+        <div className="col-span-2 flex flex-col gap-y-4">
           <h2 className="text-2xl font-bold">{searchResultsTitleBlog[locale]}</h2>
           {permittedBlogs.length === 0 && <p>{searchResultNoResults[locale]}</p>}
           {permittedBlogs.map((blog) => {

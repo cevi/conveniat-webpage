@@ -26,6 +26,7 @@ export const GenericPage: CollectionConfig = asLocalizedCollection({
       'authors',
       'publishingStatus',
       'updatedAt',
+      'seo-urlSlug',
     ],
     listSearchableFields: ['internalPageName', 'seo.metaTitle', 'seo.urlSlug'],
     pagination: {

@@ -4,7 +4,7 @@ import { buildInitialFormState } from '@/features/payload-cms/components/form/bu
 import { fields } from '@/features/payload-cms/components/form/fields';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import type { Form as FormType } from '@payloadcms/plugin-form-builder/types';
+import type { FormFieldBlock, Form as FormType } from '@payloadcms/plugin-form-builder/types';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import { RichText } from '@payloadcms/richtext-lexical/react';
 import { useCurrentLocale } from 'next-i18n-router/client';
@@ -42,6 +42,75 @@ const pleaseWaitText: StaticTranslationString = {
   fr: 'Chargement, veuillez patient',
 };
 
+interface FormFieldRendererProperties {
+  field:
+    | FormFieldBlock
+    | {
+        id: string;
+        blockType: 'formPage';
+        pageTitle: string;
+        fields: FormFieldBlock[];
+      };
+  form: FormType & {
+    _localized_status: { published: boolean };
+  };
+  formMethods: ReturnType<typeof useForm>;
+}
+
+const FormFieldRenderer: React.FC<FormFieldRendererProperties> = ({ field, form, formMethods }) => {
+  const { control, register } = formMethods;
+  const FieldComponent = fields[field.blockType as keyof typeof fields];
+
+  if (field.blockType === 'formPage') {
+    return (
+      <>
+        <h3>{field.pageTitle}</h3>
+        {field.fields.map((fieldChild, indexChild) => {
+          const FieldChildComponent = fields[fieldChild.blockType as keyof typeof fields];
+          if (!FieldChildComponent) {
+            console.error(`Field type ${fieldChild.blockType} is not supported`);
+            return <></>;
+          }
+          return (
+            <React.Fragment
+              key={
+                'id' in fieldChild
+                  ? (fieldChild.id as string)
+                  : `field-${fieldChild.blockType}-${indexChild}`
+              }
+            >
+              <FieldChildComponent
+                form={form}
+                {...fieldChild}
+                {...formMethods}
+                control={control}
+                registerAction={register}
+              />
+            </React.Fragment>
+          );
+        })}
+      </>
+    );
+  }
+
+  if (!FieldComponent) {
+    console.error(`Field type ${field.blockType} is not supported`);
+    return <></>;
+  }
+
+  return (
+    <React.Fragment key={'id' in field ? (field.id as string) : `field-${field.blockType}`}>
+      <FieldComponent
+        form={form}
+        {...field}
+        {...formMethods}
+        control={control}
+        registerAction={register}
+      />
+    </React.Fragment>
+  );
+};
+
 export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties) => {
   const {
     form: formFromProperties,
@@ -60,13 +129,7 @@ export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties)
     defaultValues: buildInitialFormState(formFromProperties.fields),
   });
 
-  const {
-    control,
-    formState: { errors },
-    handleSubmit,
-    register,
-  } = formMethods;
-
+  const { handleSubmit } = formMethods;
   const [isLoading, setIsLoading] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState<boolean>();
   const [error, setError] = useState<{ message: string; status?: string } | undefined>();
@@ -150,8 +213,8 @@ export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties)
       >
         {!isLoading && hasSubmitted === true && confirmationType === 'message' && (
           <div
-            className="absolute z-10 bg-white text-center"
-            style={{ height: 'calc(100% - 4rem)', width: 'calc(100% - 4rem)' }}
+            className="absolute z-10 bg-white p-6 text-center"
+            style={{ height: 'calc(100% - 3rem)', width: 'calc(100% - 3rem)' }}
           >
             <RichText data={confirmationMessage as SerializedEditorState} />
 
@@ -181,23 +244,14 @@ export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties)
           <h2 className="mb-4 font-['Montserrat'] text-lg font-extrabold text-[#47564c]">
             {title}
           </h2>
-          {formFromProperties.fields.map((field, index) => {
-            const Field = fields[field.blockType as keyof typeof fields];
-            if (!Field) throw new Error(`Field type ${field.blockType} is not supported`);
-
-            return (
-              <React.Fragment key={'id' in field ? (field.id as string) : `field-${index}`}>
-                <Field
-                  form={formFromProperties}
-                  {...field}
-                  {...formMethods}
-                  control={control}
-                  errors={errors}
-                  registerAction={register}
-                />
-              </React.Fragment>
-            );
-          })}
+          {formFromProperties.fields.map((field, index) => (
+            <FormFieldRenderer
+              key={'id' in field ? (field.id as string) : `field-${index}`}
+              field={field}
+              form={formFromProperties}
+              formMethods={formMethods}
+            />
+          ))}
         </div>
         <button
           type="submit"

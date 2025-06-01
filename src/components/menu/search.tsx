@@ -12,7 +12,10 @@ const searchButtonText: StaticTranslationString = {
   fr: 'Chercher',
 };
 
-export const SearchComponent: React.FC<{ locale: Locale }> = ({ locale }) => {
+export const SearchComponent: React.FC<{ locale: Locale; actionURL: string }> = ({
+  locale,
+  actionURL,
+}) => {
   const router = useRouter();
   const close = useClose();
 
@@ -21,7 +24,7 @@ export const SearchComponent: React.FC<{ locale: Locale }> = ({ locale }) => {
     const searchData = new FormData(event.currentTarget);
     const searchInput = searchData.get('searchInput') as string;
     if (searchInput !== '') {
-      router.push(`/${locale as Locale}/search?q=${searchInput}`);
+      router.push(`/${locale as Locale}${actionURL}?q=${searchInput}`);
       router.refresh();
       close(); // close nav
     }
@@ -43,7 +46,6 @@ export const SearchComponent: React.FC<{ locale: Locale }> = ({ locale }) => {
         />
         <button
           type="submit"
-          form="search-form"
           className="flex h-12 cursor-pointer items-center justify-center bg-[#47564c] px-4 text-white transition-colors duration-300 hover:bg-[#3b4a3f]"
         >
           <Search className="text-lg" aria-hidden="true" />
