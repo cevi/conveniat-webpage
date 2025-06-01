@@ -801,6 +801,7 @@ export interface TeamMembersBlock {
     name: string;
     ceviname?: string | null;
     portrait?: (string | null) | Image;
+    link?: string | null;
   };
   teamMembers?:
     | {
@@ -1489,6 +1490,7 @@ export interface TeamMembersBlockSelect<T extends boolean = true> {
         name?: T;
         ceviname?: T;
         portrait?: T;
+        link?: T;
       };
   teamMembers?:
     | T

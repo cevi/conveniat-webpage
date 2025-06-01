@@ -51,6 +51,12 @@ const teamMembersBlock: Block = {
           relationTo: 'images',
           required: false,
         },
+        {
+          name: 'link',
+          label: 'Link',
+          type: 'text',
+          required: false,
+        },
       ],
     },
     {

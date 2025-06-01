@@ -1,6 +1,7 @@
 import { AvatarPlaceholder } from '@/features/payload-cms/components/accordion/avatar-placeholder';
 import type { Image as ImageType, TeamMembersBlock } from '@/features/payload-cms/payload-types';
 import Image from 'next/image';
+import Link from 'next/link';
 import type React from 'react';
 import { Fragment } from 'react';
 
@@ -81,29 +82,49 @@ const TeamHelpersList: React.FC<{
     </Fragment>
   );
 };
+
+export const TeamLeaderInternal: React.FC<{
+  block: TeamMembersBlock;
+}> = ({ block }) => {
+  const teamLeader = block.teamLeaderGroup;
+
+  return (
+    <div>
+      <button className="group flex w-full flex-col items-center gap-4 rounded-md px-2 py-4 text-center transition-colors hover:bg-gray-50 md:flex-row md:py-2 md:text-left">
+        <div className="relative h-48 w-48 overflow-hidden rounded-full md:h-24 md:w-24">
+          {<TeamLeaderPortrait name={teamLeader.name} portrait={teamLeader.portrait} />}
+        </div>
+        <div>
+          <p className="font-medium text-gray-900">{teamLeader.name}</p>
+          <p className="text-sm text-gray-500">v/o {teamLeader.ceviname}</p>
+        </div>
+      </button>
+    </div>
+  );
+};
+
 export const TeamMembers: React.FC<{
   block: TeamMembersBlock;
 }> = ({ block }) => {
   const teamLeader = block.teamLeaderGroup;
   const teamMembers = block.teamMembers;
+  const link = teamLeader.link ?? '';
 
-  return (
-    <Fragment>
-      <div>
-        <div>
-          <button className="group flex w-full flex-col items-center gap-4 rounded-md px-2 py-4 text-center transition-colors hover:bg-gray-50 md:flex-row md:py-2 md:text-left">
-            <div className="relative h-48 w-48 overflow-hidden rounded-full md:h-24 md:w-24">
-              {<TeamLeaderPortrait name={teamLeader.name} portrait={teamLeader.portrait} />}
-            </div>
-            <div>
-              <p className="font-medium text-gray-900">{teamLeader.name}</p>
-              <p className="text-sm text-gray-500">v/o {teamLeader.ceviname}</p>
-            </div>
-          </button>
-        </div>
-
+  if (link === '') {
+    return (
+      <Fragment>
+        <TeamLeaderInternal block={block} />
         <TeamHelpersList teamMembers={teamMembers} />
-      </div>
-    </Fragment>
-  );
+      </Fragment>
+    );
+  } else {
+    return (
+      <Fragment>
+        <Link href={link}>
+          <TeamLeaderInternal block={block} />
+        </Link>
+        <TeamHelpersList teamMembers={teamMembers} />
+      </Fragment>
+    );
+  }
 };
