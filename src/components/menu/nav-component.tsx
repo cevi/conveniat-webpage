@@ -63,7 +63,7 @@ export const NavComponent: React.FC<{
         </Dialog>
       </div>
 
-      <div className="height-[calc(100&-62px)] fixed top-[62px] left-0 hidden h-full w-96 border-r-2 border-gray-200 bg-white p-8 xl:block">
+      <div className="fixed top-[62px] left-0 hidden h-full w-96 border-r-2 border-gray-200 bg-white py-8 xl:block">
         {children}
       </div>
     </>
