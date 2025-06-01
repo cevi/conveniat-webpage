@@ -1,6 +1,7 @@
 import { FooterBuildInfoText } from '@/components/footer/footer-copyright-area';
 import { MainMenuLanguageSwitcher } from '@/components/menu/main-menu-language-switcher';
 import { SearchComponent } from '@/components/menu/search';
+import { specialPagesTable } from '@/features/payload-cms/special-pages-table';
 import { getBuildInfo } from '@/utils/get-build-info';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { renderInAppDesign } from '@/utils/render-in-app-design';
@@ -16,6 +17,8 @@ export const MainMenu: React.FC = async () => {
   const locale = await getLocaleFromCookies();
   const isInAppDesign = await renderInAppDesign();
   const build = await getBuildInfo();
+
+  const actionURL = specialPagesTable['search']?.alternatives[locale] || '/search';
 
   const { mainMenu } = await payload.findGlobal({ slug: 'header', locale });
   if (mainMenu === undefined || mainMenu === null) return;
@@ -72,7 +75,7 @@ export const MainMenu: React.FC = async () => {
       <div className="divide-y-2 divide-gray-100">
         <MainMenuLanguageSwitcher locale={locale} />
 
-        <SearchComponent locale={locale} />
+        <SearchComponent locale={locale} actionURL={actionURL} />
 
         {isInAppDesign && build && (
           <>
