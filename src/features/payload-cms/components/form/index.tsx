@@ -56,6 +56,18 @@ const previousStepText: StaticTranslationString = {
   fr: 'Précédent',
 };
 
+const stepOfText: StaticTranslationString = {
+  en: 'of',
+  de: 'von',
+  fr: 'de',
+};
+
+const stepText: StaticTranslationString = {
+  en: 'Step',
+  de: 'Schritt',
+  fr: 'Étape',
+};
+
 interface FormPageBlock {
   id: string;
   blockType: 'formPage';
@@ -323,6 +335,26 @@ export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties)
           <h2 className="mb-4 font-['Montserrat'] text-lg font-extrabold text-[#47564c]">
             {mainFormTitle}
           </h2>
+        )}
+
+        {/* Progress Bar */}
+        {definedSteps.length > 1 && (
+          <div className="mb-6">
+            <div className="h-2 w-full rounded-full bg-gray-200">
+              <div
+                className="h-2 rounded-full bg-[#47564c] transition-all duration-300 ease-in-out"
+                style={{ width: `${((currentStepIndex + 1) / definedSteps.length) * 100}%` }}
+              />
+            </div>
+
+            <div className="mt-2 flex justify-between text-sm font-medium text-gray-600">
+              <span>
+                {stepText[locale as Locale]} {currentStepIndex + 1} {stepOfText[locale as Locale]}{' '}
+                {definedSteps.length}
+              </span>
+              <span>{Math.round(((currentStepIndex + 1) / definedSteps.length) * 100)}%</span>
+            </div>
+          </div>
         )}
 
         <div
