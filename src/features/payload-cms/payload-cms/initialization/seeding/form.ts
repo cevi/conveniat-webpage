@@ -97,7 +97,7 @@ export const basicForm: Form = {
       ],
     },
   ],
-  submitButtonLabel: 'Absende',
+  submitButtonLabel: 'Absenden',
   title: 'Beispiel Formular',
   updatedAt: '2023-01-12T21:25:41.113Z',
   _localized_status: {
