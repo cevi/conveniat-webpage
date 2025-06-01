@@ -2,6 +2,7 @@ import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-r
 import { getPublishingStatus } from '@/features/payload-cms/payload-cms/hooks/publishing-status';
 import { localizedStatusSchema } from '@/features/payload-cms/payload-cms/utils/localized-status-schema';
 import { formBuilderPlugin } from '@payloadcms/plugin-form-builder';
+import type { BlocksField, Field, TextField } from 'payload';
 
 export const formPluginConfiguration = formBuilderPlugin({
   fields: {
@@ -41,8 +42,80 @@ export const formPluginConfiguration = formBuilderPlugin({
       },
     },
     fields: ({ defaultFields }) => {
+      const reactionFieldNames = new Set([
+        'emails',
+        'redirect',
+        'confirmationMessage',
+        'confirmationType',
+      ]);
+      const reactionFields = defaultFields.filter(
+        (field: Field) =>
+          'name' in field && reactionFieldNames.has(field.name) && field.name !== 'title',
+      );
+
+      const formFields = defaultFields.filter(
+        (field: Field) =>
+          'name' in field && !reactionFieldNames.has(field.name) && field.name !== 'title',
+      );
+
+      const titleField = defaultFields.find(
+        (field: Field) => 'name' in field && field.name === 'title',
+      ) as TextField;
+
+      titleField.label = {
+        en: 'Form Title',
+        de: 'Formular Titel',
+        fr: 'Titre du formulaire',
+      };
+
+      // render form fields with initCollapsed
+      const fields = formFields.find(
+        (field: Field) => 'name' in field && field.name === 'fields',
+      ) as BlocksField;
+      fields.admin ??= {};
+      fields.admin.initCollapsed = true;
+
       return [
-        ...defaultFields,
+        titleField,
+        {
+          type: 'tabs',
+          tabs: [
+            {
+              label: {
+                en: 'Form Fields',
+                de: 'Formularfelder',
+                fr: 'Champs du formulaire',
+              },
+              fields: formFields,
+            },
+            {
+              label: {
+                en: 'Confirmation / Submission Settings',
+                de: 'Bestätigungs- / Einreichungseinstellungen',
+                fr: 'Paramètres de confirmation / soumission',
+              },
+              fields: reactionFields,
+            },
+            {
+              label: {
+                en: 'Submissions',
+                de: 'Ergebnisse',
+                fr: 'Soumissions',
+              },
+              fields: [
+                {
+                  name: 'submissions',
+                  type: 'join',
+                  collection: 'form-submissions',
+                  on: 'form',
+                  admin: {
+                    allowCreate: false,
+                  },
+                },
+              ],
+            },
+          ],
+        },
         {
           name: 'publishingStatus',
           type: 'json',

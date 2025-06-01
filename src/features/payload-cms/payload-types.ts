@@ -118,6 +118,9 @@ export interface Config {
     timelineCategory: {
       relatedTimelineEntries: 'timeline';
     };
+    forms: {
+      submissions: 'form-submissions';
+    };
   };
   collectionsSelect: {
     blog: BlogSelect<false> | BlogSelect<true>;
@@ -584,6 +587,11 @@ export interface Form {
         id?: string | null;
       }[]
     | null;
+  submissions?: {
+    docs?: (string | FormSubmission)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
   publishingStatus?:
     | {
         [k: string]: unknown;
@@ -599,6 +607,23 @@ export interface Form {
   updatedAt: string;
   createdAt: string;
   _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "form-submissions".
+ */
+export interface FormSubmission {
+  id: string;
+  form: string | Form;
+  submissionData?:
+    | {
+        field: string;
+        value: string;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1111,23 +1136,6 @@ export interface PushNotificationSubscription {
     p256dh: string;
     auth: string;
   };
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "form-submissions".
- */
-export interface FormSubmission {
-  id: string;
-  form: string | Form;
-  submissionData?:
-    | {
-        field: string;
-        value: string;
-        id?: string | null;
-      }[]
-    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1885,6 +1893,7 @@ export interface FormsSelect<T extends boolean = true> {
         message?: T;
         id?: T;
       };
+  submissions?: T;
   publishingStatus?: T;
   _localized_status?: T;
   _disable_unpublishing?: T;
