@@ -2,7 +2,7 @@ import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-r
 import { getPublishingStatus } from '@/features/payload-cms/payload-cms/hooks/publishing-status';
 import { localizedStatusSchema } from '@/features/payload-cms/payload-cms/utils/localized-status-schema';
 import { formBuilderPlugin } from '@payloadcms/plugin-form-builder';
-import type { BlocksField, Field, TextField } from 'payload';
+import type { Block, BlocksField, Field, TextField } from 'payload';
 
 export const formPluginConfiguration = formBuilderPlugin({
   fields: {
@@ -74,6 +74,33 @@ export const formPluginConfiguration = formBuilderPlugin({
       ) as BlocksField;
       fields.admin ??= {};
       fields.admin.initCollapsed = true;
+
+      const formPage: Block = {
+        slug: 'formPage',
+        fields: [
+          {
+            type: 'text',
+            name: 'pageTitle',
+            label: {
+              en: 'Page Title',
+              de: 'Seitentitel',
+              fr: 'Titre de la page',
+            },
+            required: true,
+          },
+          {
+            type: 'blocks',
+            name: 'fields',
+            label: {
+              en: 'Form Fields',
+              de: 'Formularfelder',
+              fr: 'Champs du formulaire',
+            },
+            blocks: fields.blocks,
+          },
+        ],
+      };
+      fields.blocks = [...fields.blocks, formPage];
 
       return [
         titleField,

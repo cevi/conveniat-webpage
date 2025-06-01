@@ -530,6 +530,112 @@ export interface Form {
             blockName?: string | null;
             blockType: 'textarea';
           }
+        | {
+            pageTitle: string;
+            fields?:
+              | (
+                  | {
+                      name: string;
+                      label?: string | null;
+                      width?: number | null;
+                      required?: boolean | null;
+                      defaultValue?: boolean | null;
+                      id?: string | null;
+                      blockName?: string | null;
+                      blockType: 'checkbox';
+                    }
+                  | {
+                      name: string;
+                      label?: string | null;
+                      width?: number | null;
+                      required?: boolean | null;
+                      id?: string | null;
+                      blockName?: string | null;
+                      blockType: 'country';
+                    }
+                  | {
+                      name: string;
+                      label?: string | null;
+                      width?: number | null;
+                      required?: boolean | null;
+                      id?: string | null;
+                      blockName?: string | null;
+                      blockType: 'email';
+                    }
+                  | {
+                      message?: {
+                        root: {
+                          type: string;
+                          children: {
+                            type: string;
+                            version: number;
+                            [k: string]: unknown;
+                          }[];
+                          direction: ('ltr' | 'rtl') | null;
+                          format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                          indent: number;
+                          version: number;
+                        };
+                        [k: string]: unknown;
+                      } | null;
+                      id?: string | null;
+                      blockName?: string | null;
+                      blockType: 'message';
+                    }
+                  | {
+                      name: string;
+                      label?: string | null;
+                      width?: number | null;
+                      defaultValue?: number | null;
+                      required?: boolean | null;
+                      id?: string | null;
+                      blockName?: string | null;
+                      blockType: 'number';
+                    }
+                  | {
+                      name: string;
+                      label?: string | null;
+                      width?: number | null;
+                      defaultValue?: string | null;
+                      placeholder?: string | null;
+                      options?:
+                        | {
+                            label: string;
+                            value: string;
+                            id?: string | null;
+                          }[]
+                        | null;
+                      required?: boolean | null;
+                      id?: string | null;
+                      blockName?: string | null;
+                      blockType: 'select';
+                    }
+                  | {
+                      name: string;
+                      label?: string | null;
+                      width?: number | null;
+                      defaultValue?: string | null;
+                      required?: boolean | null;
+                      id?: string | null;
+                      blockName?: string | null;
+                      blockType: 'text';
+                    }
+                  | {
+                      name: string;
+                      label?: string | null;
+                      width?: number | null;
+                      defaultValue?: string | null;
+                      required?: boolean | null;
+                      id?: string | null;
+                      blockName?: string | null;
+                      blockType: 'textarea';
+                    }
+                )[]
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'formPage';
+          }
       )[]
     | null;
   submitButtonLabel?: string | null;
@@ -1889,6 +1995,107 @@ export interface FormsSelect<T extends boolean = true> {
               width?: T;
               defaultValue?: T;
               required?: T;
+              id?: T;
+              blockName?: T;
+            };
+        formPage?:
+          | T
+          | {
+              pageTitle?: T;
+              fields?:
+                | T
+                | {
+                    checkbox?:
+                      | T
+                      | {
+                          name?: T;
+                          label?: T;
+                          width?: T;
+                          required?: T;
+                          defaultValue?: T;
+                          id?: T;
+                          blockName?: T;
+                        };
+                    country?:
+                      | T
+                      | {
+                          name?: T;
+                          label?: T;
+                          width?: T;
+                          required?: T;
+                          id?: T;
+                          blockName?: T;
+                        };
+                    email?:
+                      | T
+                      | {
+                          name?: T;
+                          label?: T;
+                          width?: T;
+                          required?: T;
+                          id?: T;
+                          blockName?: T;
+                        };
+                    message?:
+                      | T
+                      | {
+                          message?: T;
+                          id?: T;
+                          blockName?: T;
+                        };
+                    number?:
+                      | T
+                      | {
+                          name?: T;
+                          label?: T;
+                          width?: T;
+                          defaultValue?: T;
+                          required?: T;
+                          id?: T;
+                          blockName?: T;
+                        };
+                    select?:
+                      | T
+                      | {
+                          name?: T;
+                          label?: T;
+                          width?: T;
+                          defaultValue?: T;
+                          placeholder?: T;
+                          options?:
+                            | T
+                            | {
+                                label?: T;
+                                value?: T;
+                                id?: T;
+                              };
+                          required?: T;
+                          id?: T;
+                          blockName?: T;
+                        };
+                    text?:
+                      | T
+                      | {
+                          name?: T;
+                          label?: T;
+                          width?: T;
+                          defaultValue?: T;
+                          required?: T;
+                          id?: T;
+                          blockName?: T;
+                        };
+                    textarea?:
+                      | T
+                      | {
+                          name?: T;
+                          label?: T;
+                          width?: T;
+                          defaultValue?: T;
+                          required?: T;
+                          id?: T;
+                          blockName?: T;
+                        };
+                  };
               id?: T;
               blockName?: T;
             };
