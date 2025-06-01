@@ -27,7 +27,9 @@ export const MainMenu: React.FC = async () => {
     <div className="mx-auto mt-8 flex h-[calc(100%-100px)] max-w-md flex-col justify-between divide-gray-100">
       <div>
         <span className="text-conveniat-green hidden w-full font-['Montserrat'] text-[24px] leading-normal font-extrabold xl:block">
-          conveniat27
+          <Link key="home" href="/">
+            conveniat27
+          </Link>
         </span>
         <div className="space-y-2 py-6">
           {mainMenu.map((item) => {
