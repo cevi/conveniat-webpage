@@ -33,6 +33,7 @@ export const BlogArticleCollection: CollectionConfig = asLocalizedCollection({
       'releaseDate',
       'publishingStatus',
       'updatedAt',
+      'seo-urlSlug',
     ],
     listSearchableFields: ['internalPageName', 'seo.metaTitle', 'seo.urlSlug'],
     pagination: {
