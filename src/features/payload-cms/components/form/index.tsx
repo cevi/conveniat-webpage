@@ -56,16 +56,10 @@ const previousStepText: StaticTranslationString = {
   fr: 'Précédent',
 };
 
-const stepOfText: StaticTranslationString = {
-  en: 'of',
-  de: 'von',
-  fr: 'de',
-};
-
-const stepText: StaticTranslationString = {
-  en: 'Step',
-  de: 'Schritt',
-  fr: 'Étape',
+const validationErrorText: StaticTranslationString = {
+  en: 'Please fill out all required fields',
+  de: 'Bitte füllen Sie alle erforderlichen Felder aus',
+  fr: 'Veuillez remplir tous les champs obligatoires',
 };
 
 interface FormPageBlock {
@@ -84,11 +78,15 @@ interface FormFieldRendererProperties {
 }
 
 const FormFieldRenderer: React.FC<FormFieldRendererProperties> = ({ field, form, formMethods }) => {
-  const { control, register } = formMethods;
+  const {
+    control,
+    register,
+    formState: { errors },
+  } = formMethods;
 
   return (
     <>
-      <h3 className="text-md mb-3 font-['Montserrat'] font-bold text-[#47564c]">
+      <h3 className="text-md text-conveniat-green mb-3 font-['Montserrat'] font-bold">
         {'pageTitle' in field ? field.pageTitle : ''}
       </h3>
 
@@ -99,6 +97,10 @@ const FormFieldRenderer: React.FC<FormFieldRendererProperties> = ({ field, form,
             console.error(`Field type ${fieldChild.blockType} is not supported`);
             return <React.Fragment key={`unsupported-${indexChild}`}></React.Fragment>;
           }
+
+          // Extract the required property from the field
+          const isRequired = 'required' in fieldChild ? Boolean(fieldChild.required) : false;
+
           return (
             <React.Fragment
               key={
@@ -113,6 +115,8 @@ const FormFieldRenderer: React.FC<FormFieldRendererProperties> = ({ field, form,
                 {...formMethods}
                 control={control}
                 registerAction={register}
+                errors={errors}
+                required={isRequired}
               />
             </React.Fragment>
           );
@@ -138,19 +142,20 @@ export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties)
   const locale = useCurrentLocale(i18nConfig);
   const formMethods = useForm({
     defaultValues: buildInitialFormState(formFromProperties.fields as FormFieldBlock[]),
-    resolver: async (data) => {
-      return {
-        values: data,
-        errors: {},
-      };
-    },
     mode: 'onChange',
+    reValidateMode: 'onBlur',
   });
 
-  const { handleSubmit, trigger } = formMethods;
+  const {
+    handleSubmit,
+    trigger,
+    formState: { isSubmitting },
+  } = formMethods;
+
   const [isLoading, setIsLoading] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState<boolean>(false);
   const [error, setError] = useState<{ message: string; status?: string } | undefined>();
+  const [validationError, setValidationError] = useState<string | undefined>();
   const router = useRouter();
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
@@ -172,21 +177,41 @@ export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties)
       {
         id: 'mainFormAsSinglePage-0',
         blockType: 'formPage' as const,
-        pageTitle: '',
+        pageTitle: mainFormTitle ?? '',
         fields: allFieldsInForm,
       },
     ];
-  }, [formFromProperties.fields]);
+  }, [formFromProperties.fields, mainFormTitle]);
 
   const currentActualStep = definedSteps[currentStepIndex];
   const isFirstStep = currentStepIndex === 0;
   const isLastStep = currentStepIndex === definedSteps.length - 1;
+
+  // Get all field names for the current step
+  const getCurrentStepFieldNames = (): FieldName<Data>[] => {
+    let formFields: FormFieldBlock[] = [];
+    if (currentActualStep === undefined) formFields = [];
+    else if ('fields' in currentActualStep) formFields = currentActualStep.fields;
+
+    return formFields
+      .map((field) => ('name' in field && field.name ? field.name : ''))
+      .filter(Boolean) as FieldName<Data>[];
+  };
 
   const handleFinalFormSubmit = (data: Data): void => {
     let loadingTimerID: ReturnType<typeof setTimeout>;
     // eslint-disable-next-line complexity
     const submitForm = async (): Promise<void> => {
       setError(undefined);
+      setValidationError(undefined);
+
+      // Validate all fields before submission
+      const isValid = await trigger();
+      if (!isValid) {
+        setValidationError(validationErrorText[locale as Locale]);
+        return;
+      }
+
       const dataToSend = Object.entries(data).map(([name, value]) => ({
         field: name,
         value,
@@ -244,24 +269,24 @@ export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties)
   const goToNextStep = async (
     event: React.MouseEvent<HTMLButtonElement, MouseEvent>,
   ): Promise<void> => {
-    let formFields: FormFieldBlock[] = [];
-    if (currentActualStep === undefined) formFields = [];
-    else if ('fields' in currentActualStep) formFields = currentActualStep.fields;
+    event.preventDefault(); // prevent form from submitting
+    setValidationError(undefined);
 
-    const fieldNamesInCurrentStep = formFields
-      .map((field) => ('name' in field && field.name ? field.name : ''))
-      .filter(Boolean) as FieldName<Data>[];
+    const fieldNamesInCurrentStep = getCurrentStepFieldNames();
 
     if (fieldNamesInCurrentStep.length > 0) {
-      const isValid = await trigger(fieldNamesInCurrentStep);
-      if (!isValid) return;
+      // Explicitly trigger validation for all fields in the current step
+      const isValid = await trigger(fieldNamesInCurrentStep, { shouldFocus: true });
+
+      if (!isValid) {
+        setValidationError(validationErrorText[locale as Locale]);
+        return;
+      }
     }
 
     if (!isLastStep) {
       setCurrentStepIndex(currentStepIndex + 1);
     }
-
-    event.preventDefault(); // prevent form from submitting
   };
 
   const goToNextStepHandler: MouseEventHandler<HTMLButtonElement> = (event): void => {
@@ -275,11 +300,12 @@ export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties)
   };
 
   const goToPreviousStep: MouseEventHandler<HTMLButtonElement> = (event): void => {
+    event.preventDefault(); // prevent form from submitting
+    setValidationError(undefined);
+
     if (!isFirstStep) {
       setCurrentStepIndex(currentStepIndex - 1);
     }
-
-    event.preventDefault(); // prevent form from submitting
   };
 
   if (!formFromProperties._localized_status.published) {
@@ -305,6 +331,7 @@ export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties)
             });
           }
         }}
+        noValidate
       >
         {!isLoading && hasSubmitted && confirmationType === 'message' && (
           <div className="bg-opacity-95 absolute inset-0 z-10 flex flex-col items-center justify-center bg-white p-6 text-center">
@@ -316,6 +343,7 @@ export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties)
                   setHasSubmitted(false);
                   formMethods.reset();
                   setCurrentStepIndex(0);
+                  setValidationError(undefined);
                 }}
                 className="mt-4 h-10 w-full rounded-lg bg-[#47564c] px-4 font-['Montserrat'] text-base font-bold text-[#e1e6e2] transition duration-300 hover:bg-[#3b4a3f] sm:w-auto"
               >
@@ -331,26 +359,36 @@ export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties)
           </div>
         )}
 
-        <h2 className="mb-4 font-['Montserrat'] text-lg font-extrabold text-[#47564c]">
-          {mainFormTitle}
-        </h2>
+        {mainFormTitle !== undefined && definedSteps.length > 1 && (
+          <h2 className="text-conveniat-green mb-4 font-['Montserrat'] text-lg font-extrabold">
+            {mainFormTitle}
+          </h2>
+        )}
+
+        {/* Validation error message */}
+        {validationError != undefined && (
+          <div className="mb-4 rounded-md border border-red-400 bg-red-50 p-3 text-sm text-red-700">
+            {validationError}
+          </div>
+        )}
 
         {/* Progress Bar */}
         {definedSteps.length > 1 && (
           <div className="mb-6">
+            <div className="text-conveniat-green mb-2 flex justify-between text-sm font-medium">
+              <span>
+                Step {currentStepIndex + 1} of {definedSteps.length}
+              </span>
+              <span>{Math.round(((currentStepIndex + 1) / definedSteps.length) * 100)}%</span>
+            </div>
             <div className="h-2 w-full rounded-full bg-gray-200">
               <div
                 className="h-2 rounded-full bg-[#47564c] transition-all duration-300 ease-in-out"
                 style={{ width: `${((currentStepIndex + 1) / definedSteps.length) * 100}%` }}
               />
             </div>
-
-            <div className="mt-2 flex justify-between text-sm font-medium text-gray-600">
-              <span>
-                {stepText[locale as Locale]} {currentStepIndex + 1} {stepOfText[locale as Locale]}{' '}
-                {definedSteps.length}
-              </span>
-              <span>{Math.round(((currentStepIndex + 1) / definedSteps.length) * 100)}%</span>
+            <div className="mt-2 text-xs text-gray-600">
+              {'pageTitle' in currentActualStep && currentActualStep.pageTitle}
             </div>
           </div>
         )}
@@ -373,11 +411,11 @@ export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties)
           {definedSteps.length === 1 && !isLoading && !hasSubmitted ? (
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isSubmitting}
               form={formID}
               className="mt-6 h-10 w-full cursor-pointer rounded-lg bg-[#47564c] font-['Montserrat'] text-base font-bold text-[#e1e6e2] transition duration-300 hover:bg-[#3b4a3f] disabled:opacity-50"
             >
-              {submitButtonLabel}
+              {isSubmitting ? pleaseWaitText[locale as Locale] : submitButtonLabel}
             </button>
           ) : (
             definedSteps.length > 1 &&
@@ -390,7 +428,7 @@ export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties)
                   <button
                     type="button"
                     onClick={goToPreviousStep}
-                    disabled={isLoading}
+                    disabled={isSubmitting}
                     className="h-10 w-full rounded-lg bg-gray-300 px-5 py-2 font-['Montserrat'] text-base font-semibold text-gray-700 transition duration-300 hover:bg-gray-400 disabled:opacity-50 sm:w-auto"
                   >
                     {previousStepText[locale as Locale]}
@@ -400,17 +438,17 @@ export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties)
                 {isLastStep ? (
                   <button
                     type="submit"
-                    disabled={isLoading}
+                    disabled={isSubmitting}
                     form={formID}
                     className="h-10 w-full rounded-lg bg-[#47564c] px-5 py-2 font-['Montserrat'] text-base font-bold text-[#e1e6e2] transition duration-300 hover:bg-[#3b4a3f] disabled:opacity-50 sm:w-auto"
                   >
-                    {submitButtonLabel}
+                    {isSubmitting ? pleaseWaitText[locale as Locale] : submitButtonLabel}
                   </button>
                 ) : (
                   <button
                     type="button"
                     onClick={goToNextStepHandler}
-                    disabled={isLoading}
+                    disabled={isSubmitting}
                     className="h-10 w-full rounded-lg bg-[#47564c] px-5 py-2 font-['Montserrat'] text-base font-bold text-[#e1e6e2] transition duration-300 hover:bg-[#3b4a3f] disabled:opacity-50 sm:w-auto"
                   >
                     {nextStepText[locale as Locale]}

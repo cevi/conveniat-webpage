@@ -2,6 +2,7 @@
 
 import { countryOptions } from '@/features/payload-cms/components/form/country-options';
 import { Required } from '@/features/payload-cms/components/form/required';
+import { cn } from '@/utils/tailwindcss-override';
 import type { CountryField } from '@payloadcms/plugin-form-builder/types';
 import type React from 'react';
 import type { Control } from 'react-hook-form';
@@ -23,108 +24,98 @@ export const Country: React.FC<
     >;
     registerAction: UseFormRegister<string & FieldValues>;
   } & CountryField
-> = ({ name, control, label, registerAction, required: requiredFromProperties }) => {
-  // set default values
+> = ({ name, control, label, required: requiredFromProperties, errors }) => {
   requiredFromProperties ??= false;
+  const hasError = !!errors[name];
 
   return (
     <div className="mb-4">
-      <label
-        className="mb-1 block font-['Inter'] text-xs font-medium text-[#6d6e76]"
-        htmlFor={name}
-      >
+      <label className="font-body mb-1 block text-xs font-medium text-gray-500" htmlFor={name}>
         {label}
         {requiredFromProperties && <Required />}
       </label>
       <Controller
-        defaultValue="CH"
         control={control}
-        render={({ field: { onChange, value } }) => (
+        name={name}
+        defaultValue="CH"
+        rules={{
+          required: requiredFromProperties ? 'This field is required' : false,
+        }}
+        render={({ field: { onChange, value, ref } }) => (
           <ReactSelect
             inputId={name}
             onChange={(value_) => onChange(value_ ? value_.value : '')}
             options={countryOptions}
             value={countryOptions.find((c) => c.value === value)}
+            ref={ref}
             classNamePrefix="react-select"
+            unstyled
+            classNames={{
+              control: (state) =>
+                cn(
+                  'min-h-10 w-full rounded-md border-0 px-3 py-2 font-body text-sm transition-all duration-200 cursor-pointer shadow-sm ring-1 ring-inset',
+                  {
+                    'bg-red-50 ring-red-500 text-gray-600': hasError,
+                    'bg-green-100 ring-2 ring-green-600 text-gray-600':
+                      !hasError && state.isFocused,
+                    'bg-green-100 ring-transparent text-gray-600 hover:ring-green-600':
+                      !hasError && !state.isFocused,
+                  },
+                ),
+              valueContainer: () => 'px-0 py-0',
+              input: () => 'font-body text-sm text-gray-600 m-0 p-0',
+              singleValue: () => 'font-body text-sm text-gray-600 m-0',
+              placeholder: () => 'font-body text-sm text-gray-400 m-0',
+              indicatorsContainer: () => 'flex items-center',
+              dropdownIndicator: () => 'flex items-center justify-center w-5 h-5 text-gray-500',
+              indicatorSeparator: () => 'hidden',
+              menu: () =>
+                'mt-1 rounded-md overflow-hidden shadow-lg bg-white border border-gray-200 z-50',
+              menuList: () => 'py-1',
+              option: (state) =>
+                cn('font-body text-sm px-3 py-2 cursor-pointer transition-colors', {
+                  'bg-green-600 text-white': state.isSelected,
+                  'bg-green-50 text-gray-600': state.isFocused && !state.isSelected,
+                  'bg-white text-gray-600 hover:bg-green-50': !state.isSelected && !state.isFocused,
+                }),
+              noOptionsMessage: () => 'font-body text-sm text-gray-500 px-3 py-2',
+              loadingMessage: () => 'font-body text-sm text-gray-500 px-3 py-2',
+            }}
             styles={{
-              control: (provided, state) => ({
-                ...provided,
-                minHeight: '2.5rem',
-                backgroundColor: state.isFocused ? 'white' : '#e1e6e2',
-                border: 'none',
-                borderRadius: '0.375rem',
-                boxShadow: state.isFocused
-                  ? '0 0 0 2px #47564c'
-                  : '0 1px 2px 0 rgb(0 0 0 / 0.05), inset 0 0 0 1px transparent',
+              control: (base) => ({
+                ...base,
+                minHeight: '40px',
+                boxShadow: 'none',
                 '&:hover': {
-                  backgroundColor: state.isFocused ? 'white' : '#e1e6e2',
-                  boxShadow: state.isFocused
-                    ? '0 0 0 2px #47564c'
-                    : '0 1px 2px 0 rgb(0 0 0 / 0.05), inset 0 0 0 1px transparent',
-                  borderColor: 'transparent',
+                  boxShadow: 'none',
                 },
-                transition: 'all 200ms',
-                cursor: 'pointer',
               }),
-              valueContainer: (provided) => ({
-                ...provided,
-                padding: '2px 12px',
+              valueContainer: (base) => ({
+                ...base,
+                padding: '0',
               }),
-              input: (provided) => ({
-                ...provided,
-                fontFamily: 'Inter, sans-serif',
-                fontSize: '0.875rem',
-                color: '#595961',
+              input: (base) => ({
+                ...base,
+                margin: '0',
+                padding: '0',
               }),
-              singleValue: (provided) => ({
-                ...provided,
-                fontFamily: 'Inter, sans-serif',
-                fontSize: '0.875rem',
-                color: '#595961',
+              singleValue: (base) => ({
+                ...base,
+                margin: '0',
               }),
-              dropdownIndicator: (provided) => ({
-                ...provided,
-                color: '#595961',
-                '&:hover': {
-                  color: '#595961',
-                },
-                transition: 'none',
+              placeholder: (base) => ({
+                ...base,
+                margin: '0',
               }),
-              indicatorSeparator: () => ({
-                display: 'none',
-              }),
-              menu: (provided) => ({
-                ...provided,
-                borderRadius: '0.375rem',
-                overflow: 'hidden',
-                boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
-              }),
-              menuList: (provided) => ({
-                ...provided,
-                padding: '4px',
-              }),
-              option: (provided, state) => ({
-                ...provided,
-                fontFamily: 'Inter, sans-serif',
-                fontSize: '0.875rem',
-                padding: '8px 12px',
-                borderRadius: '0.25rem',
-                backgroundColor: state.isSelected
-                  ? '#47564c'
-                  : state.isFocused
-                    ? '#f4f8f3'
-                    : 'transparent',
-                color: state.isSelected ? 'white' : '#595961',
-                cursor: 'pointer',
-                '&:active': {
-                  backgroundColor: state.isSelected ? '#47564c' : '#e1e6e2',
-                },
+              menu: (base) => ({
+                ...base,
+                zIndex: 50,
               }),
             }}
           />
         )}
-        {...registerAction(name, { required: requiredFromProperties })}
       />
+      {hasError && <p className="mt-1 text-xs text-red-600">{errors[name]?.message as string}</p>}
     </div>
   );
 };
