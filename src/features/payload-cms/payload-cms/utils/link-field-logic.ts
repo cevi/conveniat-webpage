@@ -19,8 +19,7 @@ export const getURLForLinkField = (linkFieldData?: LinkFieldDataType): string | 
     }
 
     // always generic-page then
-    const urlSlug = (value as GenericPage).seo.urlSlug;
-    return urlSlug ? `/${urlSlug}` : undefined;
+    return (value as GenericPage).seo.urlSlug;
   }
 
   return undefined;
