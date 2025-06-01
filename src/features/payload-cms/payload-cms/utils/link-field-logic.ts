@@ -17,9 +17,11 @@ export const getURLForLinkField = (linkFieldData?: LinkFieldDataType): string | 
       const urlSlug = (value as Blog).seo.urlSlug;
       return urlSlug ? `/blog/${urlSlug}` : undefined;
     }
-
-    // always generic-page then
-    return (value as GenericPage).seo.urlSlug;
+    const urlSlug = (value as GenericPage).seo.urlSlug;
+    if (urlSlug === '') {
+      return '/';
+    }
+    return urlSlug;
   }
 
   return undefined;
