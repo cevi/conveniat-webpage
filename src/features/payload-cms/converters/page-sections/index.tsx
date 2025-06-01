@@ -6,6 +6,7 @@ import {
   AccordionBlock,
   DetailsTable,
   RenderBlogPostsOverview,
+  RenderCountdown,
   RenderFileDownload,
   RenderFormBlock,
   RenderHeroSection,
@@ -52,6 +53,7 @@ export const PageSectionsConverter: React.FC<
     accordion: AccordionBlock,
     summaryBox: SummaryBlock,
     timelineEntries: RenderTimelineEntries,
+    countdown: RenderCountdown,
   };
 
   return (

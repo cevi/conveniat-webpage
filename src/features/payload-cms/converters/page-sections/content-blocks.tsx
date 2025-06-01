@@ -1,6 +1,8 @@
 import type { PhotoCarouselBlock } from '@/components/gallery';
 import { PhotoCarousel } from '@/components/gallery';
 import { Accordion } from '@/features/payload-cms/components/accordion/accordion';
+import type { CountdownType } from '@/features/payload-cms/components/content-blocks/countdown';
+import { Countdown } from '@/features/payload-cms/components/content-blocks/countdown';
 import type { FileDownloadType } from '@/features/payload-cms/components/content-blocks/file-download';
 import { FileDownload } from '@/features/payload-cms/components/content-blocks/file-download';
 import type { HeroSectionType } from '@/features/payload-cms/components/content-blocks/hero-section';
@@ -49,7 +51,8 @@ export type ContentBlockTypeNames =
   | 'detailsTable'
   | 'accordion'
   | 'summaryBox'
-  | 'timelineEntries';
+  | 'timelineEntries'
+  | 'countdown';
 
 export type SectionRenderer<T = object> = React.FC<
   LocalizedPageType & {
@@ -361,6 +364,23 @@ export const RenderFileDownload: SectionRenderer<FileDownloadType> = ({
       errorFallbackMessage="Failed to load file download. Reload the page to try again."
     >
       <FileDownload {...block} />
+    </SectionWrapper>
+  );
+};
+
+export const RenderCountdown: SectionRenderer<CountdownType> = ({
+  block,
+  sectionClassName,
+  sectionOverrides,
+}) => {
+  return (
+    <SectionWrapper
+      block={block}
+      sectionClassName={sectionClassName}
+      sectionOverrides={sectionOverrides}
+      errorFallbackMessage="Failed to load countdown. Reload the page to try again."
+    >
+      <Countdown {...block} />
     </SectionWrapper>
   );
 };

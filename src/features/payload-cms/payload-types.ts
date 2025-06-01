@@ -298,6 +298,7 @@ export interface Blog {
       | AccordionBlocks
       | SummaryBox
       | TimelineEntries
+      | Countdown
     )[];
   };
   seo: {
@@ -942,6 +943,28 @@ export interface Timeline {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "countdown".
+ */
+export interface Countdown {
+  endDate: string;
+  /**
+   * Optional title for the countdown block.
+   */
+  title?: string | null;
+  /**
+   * Optional description for the countdown block.
+   */
+  descriptionAbove?: string | null;
+  /**
+   * Optional description for the countdown block.
+   */
+  descriptionBelow?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'countdown';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "generic-page".
  */
 export interface GenericPage {
@@ -1052,6 +1075,7 @@ export interface GenericPage {
       | AccordionBlocks
       | SummaryBox
       | TimelineEntries
+      | Countdown
     )[];
   };
   seo: {
@@ -1336,6 +1360,7 @@ export interface BlogSelect<T extends boolean = true> {
               accordion?: T | AccordionBlocksSelect<T>;
               summaryBox?: T | SummaryBoxSelect<T>;
               timelineEntries?: T | TimelineEntriesSelect<T>;
+              countdown?: T | CountdownSelect<T>;
             };
       };
   seo?:
@@ -1496,6 +1521,18 @@ export interface TimelineEntriesSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "countdown_select".
+ */
+export interface CountdownSelect<T extends boolean = true> {
+  endDate?: T;
+  title?: T;
+  descriptionAbove?: T;
+  descriptionBelow?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "generic-page_select".
  */
 export interface GenericPageSelect<T extends boolean = true> {
@@ -1571,6 +1608,7 @@ export interface GenericPageSelect<T extends boolean = true> {
               accordion?: T | AccordionBlocksSelect<T>;
               summaryBox?: T | SummaryBoxSelect<T>;
               timelineEntries?: T | TimelineEntriesSelect<T>;
+              countdown?: T | CountdownSelect<T>;
             };
       };
   seo?:

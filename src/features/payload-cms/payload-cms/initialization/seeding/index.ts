@@ -142,6 +142,14 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
           },
         },
         {
+          blockType: 'countdown' as const,
+          endDate: '2027-07-27T10:00:00.000Z',
+          title: 'Bereit für conveniat27?',
+          descriptionAbove:
+            'Stattfinden wird das Lager vom Samstag, 24. Juli 2027 bis Montag, 2. August 2027 in Obergoms (VS).',
+          descriptionBelow: 'Wir erwarten etwa 5000 Teilnehmende für dieses einmalige Erlebnis!',
+        },
+        {
           blockType: 'richTextSection' as const,
           richTextSection: generateRichTextSection(),
         },
