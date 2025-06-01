@@ -1,7 +1,7 @@
 import type { Blog, GenericPage } from '@/features/payload-cms/payload-types';
 import type { NamedGroupField, TextFieldSingleValidation } from 'payload';
 
-export interface LinkFieldData {
+export interface LinkFieldDataType {
   type?: 'reference' | 'custom' | null;
   reference?:
     | ({

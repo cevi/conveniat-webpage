@@ -2010,13 +2010,37 @@ export interface Header {
   mainMenu?:
     | {
         label: string;
-        link?: string | null;
-        isExternal?: boolean | null;
+        linkField?: {
+          type?: ('reference' | 'custom') | null;
+          reference?:
+            | ({
+                relationTo: 'blog';
+                value: string | Blog;
+              } | null)
+            | ({
+                relationTo: 'generic-page';
+                value: string | GenericPage;
+              } | null);
+          url?: string | null;
+          openInNewTab?: boolean | null;
+        };
         subMenu?:
           | {
               label: string;
-              link: string;
-              isExternal?: boolean | null;
+              linkField?: {
+                type?: ('reference' | 'custom') | null;
+                reference?:
+                  | ({
+                      relationTo: 'blog';
+                      value: string | Blog;
+                    } | null)
+                  | ({
+                      relationTo: 'generic-page';
+                      value: string | GenericPage;
+                    } | null);
+                url?: string | null;
+                openInNewTab?: boolean | null;
+              };
               id?: string | null;
             }[]
           | null;
@@ -2133,14 +2157,26 @@ export interface HeaderSelect<T extends boolean = true> {
     | T
     | {
         label?: T;
-        link?: T;
-        isExternal?: T;
+        linkField?:
+          | T
+          | {
+              type?: T;
+              reference?: T;
+              url?: T;
+              openInNewTab?: T;
+            };
         subMenu?:
           | T
           | {
               label?: T;
-              link?: T;
-              isExternal?: T;
+              linkField?:
+                | T
+                | {
+                    type?: T;
+                    reference?: T;
+                    url?: T;
+                    openInNewTab?: T;
+                  };
               id?: T;
             };
         id?: T;

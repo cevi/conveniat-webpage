@@ -1,7 +1,7 @@
-import type { LinkFieldData } from '@/features/payload-cms/payload-cms/shared-fields/link-field';
+import type { LinkFieldDataType } from '@/features/payload-cms/payload-cms/shared-fields/link-field';
 import type { Blog, GenericPage } from '@/features/payload-cms/payload-types';
 
-export const getURLForLinkField = (linkFieldData?: LinkFieldData): string | undefined => {
+export const getURLForLinkField = (linkFieldData?: LinkFieldDataType): string | undefined => {
   if (!linkFieldData) return undefined;
 
   const { type } = linkFieldData;
@@ -26,7 +26,7 @@ export const getURLForLinkField = (linkFieldData?: LinkFieldData): string | unde
   return undefined;
 };
 
-export const openURLInNewTab = (linkFieldData?: LinkFieldData): boolean => {
+export const openURLInNewTab = (linkFieldData?: LinkFieldDataType): boolean => {
   if (!linkFieldData) return false;
 
   const { type } = linkFieldData;

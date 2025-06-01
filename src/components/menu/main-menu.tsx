@@ -1,6 +1,10 @@
 import { FooterBuildInfoText } from '@/components/footer/footer-copyright-area';
 import { MainMenuLanguageSwitcher } from '@/components/menu/main-menu-language-switcher';
 import { SearchComponent } from '@/components/menu/search';
+import {
+  getURLForLinkField,
+  openURLInNewTab,
+} from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import { specialPagesTable } from '@/features/payload-cms/special-pages-table';
 import { getBuildInfo } from '@/utils/get-build-info';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
@@ -53,7 +57,8 @@ export const MainMenu: React.FC = async () => {
                     {item.subMenu.map((subItem) => (
                       <Link
                         key={subItem.id}
-                        href={subItem.link}
+                        href={getURLForLinkField(subItem.linkField) ?? '#'}
+                        target={openURLInNewTab(subItem.linkField) ? '_blank' : undefined}
                         className="closeNavOnClick block rounded-lg py-2 pr-3 pl-6 text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
                       >
                         {subItem.label}
@@ -64,10 +69,12 @@ export const MainMenu: React.FC = async () => {
               );
             }
 
-            if (item.link === undefined || item.link === null) return <></>;
+            const itemLink = getURLForLinkField(item.linkField);
+            const itemInNewTab = openURLInNewTab(item.linkField) ? '_blank' : undefined;
+            if (itemLink === undefined) return <></>;
 
             return (
-              <Link key={item.id} href={item.link}>
+              <Link key={item.id} href={itemLink} target={itemInNewTab}>
                 <span className="closeNavOnClick -mx-3 block rounded-lg px-3 py-2 text-base/7 font-semibold text-gray-700 hover:bg-gray-50">
                   {item.label}
                 </span>
