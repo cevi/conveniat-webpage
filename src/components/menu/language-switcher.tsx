@@ -2,7 +2,7 @@
 
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { Disclosure, DisclosureButton, DisclosurePanel, useClose } from '@headlessui/react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Languages } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import React from 'react';
 
@@ -48,7 +48,10 @@ export const LanguageSwitcher: React.FC<{ locale: Locale }> = ({ locale }) => {
     <div className="mx-auto max-w-md space-y-2 py-6">
       <Disclosure as="div" className="-mx-3">
         <DisclosureButton className="group flex w-full cursor-pointer items-center justify-between rounded-lg py-2 pr-3.5 pl-3 text-base/7 font-semibold text-gray-700 hover:bg-gray-50">
-          {language[locale]}
+          <div className="flex items-center gap-2">
+            <Languages aria-hidden="true" className="size-5" />
+            {language[locale]}
+          </div>
           <ChevronDown aria-hidden="true" className="size-5 flex-none group-data-open:rotate-180" />
         </DisclosureButton>
         <DisclosurePanel className="mt-2 space-y-2">
