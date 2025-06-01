@@ -18,17 +18,19 @@ export const Checkbox: React.FC<
   requiredFromProperties ??= false;
 
   return (
-    <div className="mb-4 flex items-center space-x-2">
-      <input
-        id={name}
-        className="h-5 w-5 rounded-sm border-2 border-[#47564c] bg-[#e1e6e2] text-[#47564c] focus:ring-2 focus:ring-[#47564c] focus:outline-hidden"
-        type="checkbox"
-        {...registerAction(name, { required: requiredFromProperties })}
-      />
-      <label className="font-['Inter'] text-sm font-normal text-[#6d6e76]" htmlFor={name}>
-        {label}
-        {requiredFromProperties && <Required />}
-      </label>
+    <div className="mb-4">
+      <div className="flex items-center">
+        <input
+          id={name}
+          className="h-4 w-4 rounded border-0 bg-[#e1e6e2] text-[#47564c] shadow-sm ring-1 ring-transparent transition-all duration-200 ring-inset focus:ring-2 focus:ring-[#47564c] focus:ring-offset-0 focus:outline-none"
+          type="checkbox"
+          {...registerAction(name, { required: requiredFromProperties })}
+        />
+        <label className="ml-2 block font-['Inter'] text-sm text-[#6d6e76]" htmlFor={name}>
+          {label}
+          {requiredFromProperties && <Required />}
+        </label>
+      </div>
     </div>
   );
 };

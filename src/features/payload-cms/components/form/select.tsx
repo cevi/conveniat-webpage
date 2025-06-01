@@ -1,8 +1,10 @@
+'use client';
+
 import type { SelectField } from '@payloadcms/plugin-form-builder/types';
 import type { Control, FieldErrorsImpl, FieldValues, UseFormRegister } from 'react-hook-form';
 import { Controller } from 'react-hook-form';
 
-import React from 'react';
+import type React from 'react';
 import ReactSelect from 'react-select';
 
 import { Required } from '@/features/payload-cms/components/form/required';
@@ -25,7 +27,7 @@ export const Select: React.FC<
     <div className="mb-4">
       <div>
         <label
-          className="mb-1 block font-['Inter'] text-xs font-normal text-[#6d6e76]"
+          className="mb-1 block font-['Inter'] text-xs font-medium text-[#6d6e76]"
           htmlFor={name}
         >
           {label}
@@ -36,55 +38,84 @@ export const Select: React.FC<
           defaultValue=""
           render={({ field: { onChange, value } }) => (
             <ReactSelect
-              className="h-10 w-full rounded-sm font-['Inter'] text-sm font-normal text-[#595961] focus:border-[#47564c] focus:ring-2 focus:ring-[#47564c] focus:outline-hidden"
               inputId={name}
               instanceId={name}
               onChange={(value_) => onChange(value_ ? value_.value : '')}
               options={options}
               value={options.find((s) => s.value === value)}
+              classNamePrefix="react-select"
               styles={{
-                control: (provided) => ({
+                control: (provided, state) => ({
                   ...provided,
-                  width: '100%',
-                  height: '2.5rem', // Match h-10
-                  padding: '0 1rem', // Adjusted padding to remove left/right gaps
-                  backgroundColor: '#e1e6e2',
-                  border: '1px solid transparent',
-                  borderRadius: '0.375rem', // Rounded corners
-                  fontFamily: 'Inter, sans-serif',
-                  fontSize: '0.875rem', // Match text-sm
-                  color: '#595961',
-                  boxShadow: 'none',
+                  minHeight: '2.5rem',
+                  backgroundColor: state.isFocused ? 'white' : '#e1e6e2',
+                  border: 'none',
+                  borderRadius: '0.375rem',
+                  boxShadow: state.isFocused
+                    ? '0 0 0 2px #47564c'
+                    : '0 1px 2px 0 rgb(0 0 0 / 0.05), inset 0 0 0 1px transparent',
                   '&:hover': {
-                    borderColor: '#47564c',
+                    backgroundColor: state.isFocused ? 'white' : '#e1e6e2',
+                    boxShadow: state.isFocused
+                      ? '0 0 0 2px #47564c'
+                      : '0 1px 2px 0 rgb(0 0 0 / 0.05), inset 0 0 0 1px transparent',
+                    borderColor: 'transparent',
                   },
-                  '&:focus': {
-                    outline: 'none',
-                    ringColor: '#47564c',
-                    borderColor: '#47564c',
-                  },
+                  transition: 'all 200ms',
+                  cursor: 'pointer',
+                }),
+                valueContainer: (provided) => ({
+                  ...provided,
+                  padding: '2px 12px',
+                }),
+                input: (provided) => ({
+                  ...provided,
+                  fontFamily: 'Inter, sans-serif',
+                  fontSize: '0.875rem',
+                  color: '#595961',
+                }),
+                singleValue: (provided) => ({
+                  ...provided,
+                  fontFamily: 'Inter, sans-serif',
+                  fontSize: '0.875rem',
+                  color: '#595961',
                 }),
                 dropdownIndicator: (provided) => ({
                   ...provided,
                   color: '#595961',
+                  '&:hover': {
+                    color: '#595961',
+                  },
+                  transition: 'none',
                 }),
-                indicatorSeparator: (provided) => ({
-                  ...provided,
-                  backgroundColor: 'transparent',
+                indicatorSeparator: () => ({
+                  display: 'none',
                 }),
                 menu: (provided) => ({
                   ...provided,
-                  backgroundColor: '#fff',
                   borderRadius: '0.375rem',
-                  boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)',
+                  overflow: 'hidden',
+                  boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+                }),
+                menuList: (provided) => ({
+                  ...provided,
+                  padding: '4px',
                 }),
                 option: (provided, state) => ({
                   ...provided,
-                  backgroundColor: state.isSelected ? '#47564c' : 'transparent',
-                  color: state.isSelected ? '#fff' : '#595961',
-                  '&:hover': {
-                    backgroundColor: '#f4f8f3',
-                    color: '#595961',
+                  fontFamily: 'Inter, sans-serif',
+                  fontSize: '0.875rem',
+                  padding: '8px 12px',
+                  borderRadius: '0.25rem',
+                  backgroundColor: state.isSelected
+                    ? '#47564c'
+                    : state.isFocused
+                      ? '#f4f8f3'
+                      : 'transparent',
+                  color: state.isSelected ? 'white' : '#595961',
+                  cursor: 'pointer',
+                  '&:active': {
+                    backgroundColor: state.isSelected ? '#47564c' : '#e1e6e2',
                   },
                 }),
               }}

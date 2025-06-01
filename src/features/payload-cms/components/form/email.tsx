@@ -22,16 +22,16 @@ export const Email: React.FC<
   return (
     <div className="mb-4">
       <label
-        className="mb-1 block font-['Inter'] text-xs font-normal text-[#6d6e76]"
+        className="mb-1 block font-['Inter'] text-xs font-medium text-[#6d6e76]"
         htmlFor={name}
       >
         {label}
         {requiredFromProperties && <Required />}
       </label>
       <input
-        className="h-10 w-full rounded-sm border border-transparent bg-[#e1e6e2] px-4 font-['Inter'] text-sm font-normal text-[#595961] focus:ring-2 focus:ring-[#47564c] focus:outline-hidden"
+        className="h-10 w-full rounded-md border-0 bg-[#e1e6e2] px-4 py-2 font-['Inter'] text-sm text-[#595961] shadow-sm ring-1 ring-transparent transition-all duration-200 ring-inset placeholder:text-gray-400 focus:bg-white focus:ring-2 focus:ring-[#47564c] focus:outline-none focus:ring-inset"
         id={name}
-        type="text"
+        type="email"
         {...registerAction(name, { pattern: /^\S[^\s@]*@\S+$/, required: requiredFromProperties })}
       />
     </div>
