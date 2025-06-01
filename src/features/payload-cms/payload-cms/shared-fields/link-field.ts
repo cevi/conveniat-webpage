@@ -1,3 +1,4 @@
+import { filterOptionsOnlyPublished } from '@/features/payload-cms/payload-cms/utils/filter-options-only-published';
 import type { Blog, GenericPage } from '@/features/payload-cms/payload-types';
 import type { NamedGroupField, TextFieldSingleValidation } from 'payload';
 
@@ -61,6 +62,9 @@ export const LinkField: NamedGroupField = {
       label: 'Document to redirect to',
       relationTo: ['blog', 'generic-page'],
       required: true,
+      hasMany: false,
+      filterOptions: filterOptionsOnlyPublished,
+      validate: () => true,
     },
     {
       name: 'url',
