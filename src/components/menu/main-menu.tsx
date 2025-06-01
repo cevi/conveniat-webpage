@@ -57,7 +57,7 @@ export const MainMenu: React.FC = async () => {
                     {item.subMenu.map((subItem) => (
                       <Link
                         key={subItem.id}
-                        href={getURLForLinkField(subItem.linkField) ?? '#'}
+                        href={getURLForLinkField(subItem.linkField) ?? '/'}
                         target={openURLInNewTab(subItem.linkField) ? '_blank' : undefined}
                         className="closeNavOnClick block rounded-lg py-2 pr-3 pl-6 text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
                       >
@@ -69,9 +69,8 @@ export const MainMenu: React.FC = async () => {
               );
             }
 
-            const itemLink = getURLForLinkField(item.linkField);
+            const itemLink = getURLForLinkField(item.linkField) ?? '/';
             const itemInNewTab = openURLInNewTab(item.linkField) ? '_blank' : undefined;
-            if (itemLink === undefined) return <></>;
 
             return (
               <Link key={item.id} href={itemLink} target={itemInNewTab}>
