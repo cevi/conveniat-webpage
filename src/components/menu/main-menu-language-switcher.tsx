@@ -18,7 +18,7 @@ const language: StaticTranslationString = {
  * This is a client component.
  *
  */
-export const LanguageSwitcher: React.FC<{ locale: Locale }> = ({ locale }) => {
+export const MainMenuLanguageSwitcher: React.FC<{ locale: Locale }> = ({ locale }) => {
   const route = useRouter();
   const pathname = usePathname();
   const searchParameters = useSearchParams();

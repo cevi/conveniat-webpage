@@ -1,5 +1,5 @@
 import { FooterBuildInfoText } from '@/components/footer/footer-copyright-area';
-import { LanguageSwitcher } from '@/components/menu/language-switcher';
+import { MainMenuLanguageSwitcher } from '@/components/menu/main-menu-language-switcher';
 import { SearchComponent } from '@/components/menu/search';
 import { getBuildInfo } from '@/utils/get-build-info';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
@@ -21,10 +21,11 @@ export const MainMenu: React.FC = async () => {
   if (mainMenu === undefined || mainMenu === null) return;
 
   return (
-    <div className="mx-auto mt-8 flow-root max-w-md">
-      <div className="-my-6 divide-y-2 divide-gray-100">
-        <SearchComponent locale={locale} />
-
+    <div className="mx-auto mt-8 flex h-[calc(100%-100px)] max-w-md flex-col justify-between divide-gray-100">
+      <div>
+        <span className="text-conveniat-green hidden w-full font-['Montserrat'] text-[24px] leading-normal font-extrabold xl:block">
+          conveniat27
+        </span>
         <div className="space-y-2 py-6">
           {mainMenu.map((item) => {
             if (item.subMenu && item.subMenu.length > 0) {
@@ -64,7 +65,14 @@ export const MainMenu: React.FC = async () => {
             );
           })}
         </div>
-        <LanguageSwitcher locale={locale} />
+      </div>
+
+      <hr className="divide-y-2 divide-gray-100 xl:hidden" />
+
+      <div className="divide-y-2 divide-gray-100">
+        <MainMenuLanguageSwitcher locale={locale} />
+
+        <SearchComponent locale={locale} />
 
         {isInAppDesign && build && (
           <>

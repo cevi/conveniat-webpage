@@ -35,10 +35,7 @@ export const HeaderComponent: React.FC<{
             <Link href="/" aria-label={landingPageAreaLinktText[locale]}>
               <ConveniatLogo className="absolute top-[12px] left-[24px] z-[100]" />
             </Link>
-            <span className="absolute top-[16px] left-0 hidden w-full items-center justify-center font-['Montserrat'] text-[24px] leading-normal font-extrabold opacity-0 sm:flex sm:opacity-100 xl:ml-[560px] xl:w-auto">
-              conveniat27
-            </span>
-            <span className="absolute top-[16px] left-0 flex w-full items-center justify-center font-['Montserrat'] text-[24px] leading-normal font-extrabold sm:hidden">
+            <span className="absolute top-[16px] left-0 flex w-full items-center justify-center font-['Montserrat'] text-[24px] leading-normal font-extrabold xl:hidden">
               conveniat27
             </span>
             <NavComponent>
