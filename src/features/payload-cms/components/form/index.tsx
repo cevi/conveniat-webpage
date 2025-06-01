@@ -9,7 +9,9 @@ import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical
 import { RichText } from '@payloadcms/richtext-lexical/react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import { useRouter } from 'next/navigation';
-import React, { useState } from 'react';
+import type { MouseEventHandler } from 'react';
+import React, { useMemo, useState } from 'react';
+import type { FieldName } from 'react-hook-form';
 import { useForm } from 'react-hook-form';
 
 export type Value = unknown;
@@ -39,42 +41,56 @@ const resetFormText: StaticTranslationString = {
 const pleaseWaitText: StaticTranslationString = {
   en: 'Loading, please wait...',
   de: 'Laden, bitte warten...',
-  fr: 'Chargement, veuillez patient',
+  fr: 'Chargement, veuillez patienter',
 };
 
+const nextStepText: StaticTranslationString = {
+  en: 'Next',
+  de: 'Weiter',
+  fr: 'Suivant',
+};
+
+const previousStepText: StaticTranslationString = {
+  en: 'Previous',
+  de: 'Zurück',
+  fr: 'Précédent',
+};
+
+interface FormPageBlock {
+  id: string;
+  blockType: 'formPage';
+  pageTitle: string;
+  fields: FormFieldBlock[];
+}
+
+type FormPageBlockType = FormFieldBlock | FormPageBlock;
+
 interface FormFieldRendererProperties {
-  field:
-    | FormFieldBlock
-    | {
-        id: string;
-        blockType: 'formPage';
-        pageTitle: string;
-        fields: FormFieldBlock[];
-      };
-  form: FormType & {
-    _localized_status: { published: boolean };
-  };
+  field: FormPageBlockType;
+  form: FormType & { _localized_status: { published: boolean } };
   formMethods: ReturnType<typeof useForm>;
 }
 
 const FormFieldRenderer: React.FC<FormFieldRendererProperties> = ({ field, form, formMethods }) => {
   const { control, register } = formMethods;
-  const FieldComponent = fields[field.blockType as keyof typeof fields];
 
-  if (field.blockType === 'formPage') {
-    return (
-      <>
-        <h3>{field.pageTitle}</h3>
-        {field.fields.map((fieldChild, indexChild) => {
+  return (
+    <>
+      <h3 className="text-md mb-3 font-['Montserrat'] font-bold text-[#47564c]">
+        {'pageTitle' in field ? field.pageTitle : ''}
+      </h3>
+
+      {'fields' in field &&
+        field.fields.map((fieldChild, indexChild) => {
           const FieldChildComponent = fields[fieldChild.blockType as keyof typeof fields];
           if (!FieldChildComponent) {
             console.error(`Field type ${fieldChild.blockType} is not supported`);
-            return <></>;
+            return <React.Fragment key={`unsupported-${indexChild}`}></React.Fragment>;
           }
           return (
             <React.Fragment
               key={
-                'id' in fieldChild
+                'id' in fieldChild && Boolean(fieldChild.id)
                   ? (fieldChild.id as string)
                   : `field-${fieldChild.blockType}-${indexChild}`
               }
@@ -89,34 +105,17 @@ const FormFieldRenderer: React.FC<FormFieldRendererProperties> = ({ field, form,
             </React.Fragment>
           );
         })}
-      </>
-    );
-  }
-
-  if (!FieldComponent) {
-    console.error(`Field type ${field.blockType} is not supported`);
-    return <></>;
-  }
-
-  return (
-    <React.Fragment key={'id' in field ? (field.id as string) : `field-${field.blockType}`}>
-      <FieldComponent
-        form={form}
-        {...field}
-        {...formMethods}
-        control={control}
-        registerAction={register}
-      />
-    </React.Fragment>
+    </>
   );
 };
 
+// eslint-disable-next-line complexity
 export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties) => {
   const {
     form: formFromProperties,
     form: {
       id: formID,
-      title,
+      title: mainFormTitle,
       confirmationMessage,
       confirmationType,
       redirect,
@@ -126,20 +125,56 @@ export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties)
 
   const locale = useCurrentLocale(i18nConfig);
   const formMethods = useForm({
-    defaultValues: buildInitialFormState(formFromProperties.fields),
+    defaultValues: buildInitialFormState(formFromProperties.fields as FormFieldBlock[]),
+    resolver: async (data) => {
+      return {
+        values: data,
+        errors: {},
+      };
+    },
+    mode: 'onChange',
   });
 
-  const { handleSubmit } = formMethods;
+  const { handleSubmit, trigger } = formMethods;
   const [isLoading, setIsLoading] = useState(false);
-  const [hasSubmitted, setHasSubmitted] = useState<boolean>();
+  const [hasSubmitted, setHasSubmitted] = useState<boolean>(false);
   const [error, setError] = useState<{ message: string; status?: string } | undefined>();
   const router = useRouter();
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
-  const onSubmit = (data: Data): void => {
+  const definedSteps = useMemo((): FormPageBlockType[] => {
+    const allFieldsInForm = formFromProperties.fields as (FormFieldBlock & {
+      name?: string;
+    })[];
+
+    const formPageFields = allFieldsInForm.filter(
+      (field: FormPageBlockType) => field.blockType === 'formPage',
+    );
+
+    if (formPageFields.length > 0) {
+      return formPageFields.map((page) => ({
+        ...page,
+      }));
+    }
+    return [
+      {
+        id: 'mainFormAsSinglePage-0',
+        blockType: 'formPage' as const,
+        pageTitle: mainFormTitle ?? '',
+        fields: allFieldsInForm,
+      },
+    ];
+  }, [formFromProperties.fields, mainFormTitle]);
+
+  const currentActualStep = definedSteps[currentStepIndex];
+  const isFirstStep = currentStepIndex === 0;
+  const isLastStep = currentStepIndex === definedSteps.length - 1;
+
+  const handleFinalFormSubmit = (data: Data): void => {
     let loadingTimerID: ReturnType<typeof setTimeout>;
+    // eslint-disable-next-line complexity
     const submitForm = async (): Promise<void> => {
       setError(undefined);
-
       const dataToSend = Object.entries(data).map(([name, value]) => ({
         field: name,
         value,
@@ -154,112 +189,207 @@ export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties)
             form: formID,
             submissionData: dataToSend,
           }),
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           method: 'POST',
         });
 
-        const response = request.json();
-        clearTimeout(loadingTimerID);
-        if (request.status >= 400) {
-          setIsLoading(false);
-
+        if (!request.ok) {
           setError({
-            // @ts-ignore
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
-            message: response.errors?.[0].message ?? 'Internal Server Error',
-            // @ts-ignore
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-            status: response.status,
+            message: 'Failed to submit form. Please try again later.',
+            status: String(request.status),
           });
+        }
 
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const responseData = await request.json();
+        clearTimeout(loadingTimerID);
+        setIsLoading(false);
+        if (request.status >= 400) {
+          setError({
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            message:
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+              responseData.errors?.[0]?.message ?? responseData.message ?? 'Internal Server Error',
+            status: String(request.status),
+          });
           return;
         }
-
-        setIsLoading(false);
         setHasSubmitted(true);
-
         if (confirmationType === 'redirect' && redirect) {
           const { url } = redirect;
-          const redirectURL = url;
-          if (redirectURL !== '') router.push(redirectURL);
+          if (url !== '') router.push(url);
         }
       } catch (error_) {
-        console.warn(error_);
+        console.warn('Submission error:', error_);
+        clearTimeout(loadingTimerID);
         setIsLoading(false);
-        setError({
-          message: 'Something went wrong.',
-        });
+        setError({ message: error_ instanceof Error ? error_.message : 'Something went wrong.' });
       }
     };
-
     void submitForm();
+  };
+
+  const goToNextStep = async (
+    event: React.MouseEvent<HTMLButtonElement, MouseEvent>,
+  ): Promise<void> => {
+    let formFields: FormFieldBlock[] = [];
+    if (currentActualStep === undefined) formFields = [];
+    else if ('fields' in currentActualStep) formFields = currentActualStep.fields;
+
+    const fieldNamesInCurrentStep = formFields
+      .map((field) => ('name' in field && field.name ? field.name : ''))
+      .filter(Boolean) as FieldName<Data>[];
+
+    if (fieldNamesInCurrentStep.length > 0) {
+      const isValid = await trigger(fieldNamesInCurrentStep);
+      if (!isValid) return;
+    }
+
+    if (!isLastStep) {
+      setCurrentStepIndex(currentStepIndex + 1);
+    }
+
+    event.preventDefault(); // prevent form from submitting
+  };
+
+  const goToNextStepHandler: MouseEventHandler<HTMLButtonElement> = (event): void => {
+    goToNextStep(event).catch((error_: unknown): void => {
+      console.warn('Error while going to next step:', error_);
+      setError({
+        message: 'An error occurred while navigating to the next step.',
+        status: '500',
+      });
+    });
+  };
+
+  const goToPreviousStep: MouseEventHandler<HTMLButtonElement> = (event): void => {
+    if (!isFirstStep) {
+      setCurrentStepIndex(currentStepIndex - 1);
+    }
+
+    event.preventDefault(); // prevent form from submitting
   };
 
   if (!formFromProperties._localized_status.published) {
     return <></>;
   }
+  if (definedSteps.length === 0 || currentActualStep === undefined) {
+    return <div>Form configuration error or no fields to display.</div>;
+  }
 
   return (
     <div>
-      {error && <div>{`${error.status ?? 500}: ${error.message}`}</div>}
+      {error && (
+        <div className="mb-4 rounded-md border border-red-400 bg-red-100 p-4 text-red-700">{`Error ${error.status ?? ''}: ${error.message}`}</div>
+      )}
       <form
         className="relative mx-auto h-auto max-w-xl rounded-md border-2 border-gray-200 bg-white p-6"
         id={formID}
-        onSubmit={(event?: React.BaseSyntheticEvent) => {
-          handleSubmit(onSubmit)(event).catch((error_: unknown) => console.warn(error_));
+        onSubmit={(event?: React.BaseSyntheticEvent): void => {
+          event?.preventDefault();
+          if (isLastStep) {
+            handleSubmit(handleFinalFormSubmit)(event).catch((error_: unknown) => {
+              console.warn('Form submission validation error:', error_);
+            });
+          }
         }}
       >
-        {!isLoading && hasSubmitted === true && confirmationType === 'message' && (
-          <div
-            className="absolute z-10 bg-white p-6 text-center"
-            style={{ height: 'calc(100% - 3rem)', width: 'calc(100% - 3rem)' }}
-          >
-            <RichText data={confirmationMessage as SerializedEditorState} />
-
-            <button
-              type="button"
-              onClick={() => {
-                setHasSubmitted(false);
-                formMethods.reset();
-              }}
-              className="mt-4 h-10 w-full rounded-lg bg-[#47564c] font-['Montserrat'] text-base font-bold text-[#e1e6e2] transition duration-300 hover:bg-[#3b4a3f]"
-            >
-              {resetFormText[locale as Locale]}
-            </button>
+        {!isLoading && hasSubmitted && confirmationType === 'message' && (
+          <div className="bg-opacity-95 absolute inset-0 z-10 flex flex-col items-center justify-center bg-white p-6 text-center">
+            <div className="max-w-md">
+              <RichText data={confirmationMessage as SerializedEditorState} />
+              <button
+                type="button"
+                onClick={() => {
+                  setHasSubmitted(false);
+                  formMethods.reset();
+                  setCurrentStepIndex(0);
+                }}
+                className="mt-4 h-10 w-full rounded-lg bg-[#47564c] px-4 font-['Montserrat'] text-base font-bold text-[#e1e6e2] transition duration-300 hover:bg-[#3b4a3f] sm:w-auto"
+              >
+                {resetFormText[locale as Locale]}
+              </button>
+            </div>
           </div>
         )}
 
-        {isLoading && hasSubmitted === false && (
-          <div
-            className="absolute bg-white text-center"
-            style={{ height: 'calc(100% - 4rem)', width: 'calc(100% - 4rem)' }}
-          >
+        {isLoading && (
+          <div className="bg-opacity-95 absolute inset-0 z-10 flex items-center justify-center bg-white p-6 text-center">
             <p>{pleaseWaitText[locale as Locale]}</p>
           </div>
         )}
 
-        <div>
+        {mainFormTitle !== undefined && definedSteps.length > 1 && (
           <h2 className="mb-4 font-['Montserrat'] text-lg font-extrabold text-[#47564c]">
-            {title}
+            {mainFormTitle}
           </h2>
-          {formFromProperties.fields.map((field, index) => (
+        )}
+
+        <div
+          className={
+            isLoading || (hasSubmitted && confirmationType === 'message')
+              ? 'opacity-0'
+              : 'opacity-100 transition-opacity duration-300'
+          }
+        >
+          <React.Fragment key={formID}>
             <FormFieldRenderer
-              key={'id' in field ? (field.id as string) : `field-${index}`}
-              field={field}
+              field={currentActualStep}
               form={formFromProperties}
               formMethods={formMethods}
             />
-          ))}
+          </React.Fragment>
+
+          {definedSteps.length === 1 && !isLoading && !hasSubmitted ? (
+            <button
+              type="submit"
+              disabled={isLoading}
+              form={formID}
+              className="mt-6 h-10 w-full cursor-pointer rounded-lg bg-[#47564c] font-['Montserrat'] text-base font-bold text-[#e1e6e2] transition duration-300 hover:bg-[#3b4a3f] disabled:opacity-50"
+            >
+              {submitButtonLabel}
+            </button>
+          ) : (
+            definedSteps.length > 1 &&
+            !isLoading &&
+            !hasSubmitted && (
+              <div className="mt-6 flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+                {isFirstStep ? (
+                  <span className="hidden sm:block sm:w-1/3" />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={goToPreviousStep}
+                    disabled={isLoading}
+                    className="h-10 w-full rounded-lg bg-gray-300 px-5 py-2 font-['Montserrat'] text-base font-semibold text-gray-700 transition duration-300 hover:bg-gray-400 disabled:opacity-50 sm:w-auto"
+                  >
+                    {previousStepText[locale as Locale]}
+                  </button>
+                )}
+
+                {isLastStep ? (
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    form={formID}
+                    className="h-10 w-full rounded-lg bg-[#47564c] px-5 py-2 font-['Montserrat'] text-base font-bold text-[#e1e6e2] transition duration-300 hover:bg-[#3b4a3f] disabled:opacity-50 sm:w-auto"
+                  >
+                    {submitButtonLabel}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={goToNextStepHandler}
+                    disabled={isLoading}
+                    className="h-10 w-full rounded-lg bg-[#47564c] px-5 py-2 font-['Montserrat'] text-base font-bold text-[#e1e6e2] transition duration-300 hover:bg-[#3b4a3f] disabled:opacity-50 sm:w-auto"
+                  >
+                    {nextStepText[locale as Locale]}
+                  </button>
+                )}
+              </div>
+            )
+          )}
         </div>
-        <button
-          type="submit"
-          form={formID}
-          className="h-10 w-full cursor-pointer rounded-lg bg-[#47564c] font-['Montserrat'] text-base font-bold text-[#e1e6e2] transition duration-300 hover:bg-[#3b4a3f]"
-        >
-          {submitButtonLabel}
-        </button>
       </form>
     </div>
   );
