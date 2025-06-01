@@ -25,3 +25,19 @@ export const getURLForLinkField = (linkFieldData?: LinkFieldData): string | unde
 
   return undefined;
 };
+
+export const openURLInNewTab = (linkFieldData?: LinkFieldData): boolean => {
+  if (!linkFieldData) return false;
+
+  const { type } = linkFieldData;
+
+  if (type === 'reference') {
+    return false;
+  }
+
+  if (type === 'custom') {
+    return linkFieldData.openInNewTab || false;
+  }
+
+  return false;
+};

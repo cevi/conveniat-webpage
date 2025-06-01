@@ -13,6 +13,7 @@ export interface LinkFieldData {
         value: string | GenericPage;
       } | null);
   url?: string | null;
+  openInNewTab?: boolean | null;
 }
 
 const validateURL: TextFieldSingleValidation = (url) => {
@@ -70,6 +71,15 @@ export const LinkField: NamedGroupField = {
       label: 'Custom URL',
       required: true,
       validate: validateURL,
+    },
+    {
+      name: 'openInNewTab',
+      type: 'checkbox',
+      label: 'Open in new tab',
+      defaultValue: false,
+      admin: {
+        condition: (_, siblingData) => siblingData['type'] === 'custom',
+      },
     },
   ],
 };

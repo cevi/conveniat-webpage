@@ -834,6 +834,7 @@ export interface TeamMembersBlock {
           value: string | GenericPage;
         } | null);
     url?: string | null;
+    openInNewTab?: boolean | null;
   };
   teamLeaderGroup: {
     name: string;
@@ -1510,6 +1511,7 @@ export interface TeamMembersBlockSelect<T extends boolean = true> {
         type?: T;
         reference?: T;
         url?: T;
+        openInNewTab?: T;
       };
   teamLeaderGroup?:
     | T
