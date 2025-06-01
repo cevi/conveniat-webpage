@@ -172,11 +172,11 @@ export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties)
       {
         id: 'mainFormAsSinglePage-0',
         blockType: 'formPage' as const,
-        pageTitle: mainFormTitle ?? '',
+        pageTitle: '',
         fields: allFieldsInForm,
       },
     ];
-  }, [formFromProperties.fields, mainFormTitle]);
+  }, [formFromProperties.fields]);
 
   const currentActualStep = definedSteps[currentStepIndex];
   const isFirstStep = currentStepIndex === 0;
@@ -331,11 +331,9 @@ export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties)
           </div>
         )}
 
-        {mainFormTitle !== undefined && definedSteps.length > 1 && (
-          <h2 className="mb-4 font-['Montserrat'] text-lg font-extrabold text-[#47564c]">
-            {mainFormTitle}
-          </h2>
-        )}
+        <h2 className="mb-4 font-['Montserrat'] text-lg font-extrabold text-[#47564c]">
+          {mainFormTitle}
+        </h2>
 
         {/* Progress Bar */}
         {definedSteps.length > 1 && (
