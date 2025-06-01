@@ -1,4 +1,5 @@
 import { minimalEditorFeatures } from '@/features/payload-cms/payload-cms/plugins/lexical-editor';
+import { LinkField } from '@/features/payload-cms/payload-cms/shared-fields/link-field';
 import {
   defaultEditorLexicalConfig,
   HeadingFeature,
@@ -27,6 +28,7 @@ const teamMembersBlock: Block = {
   slug: 'accordionTeamMembersBlock',
   interfaceName: 'TeamMembersBlock',
   fields: [
+    LinkField,
     {
       name: 'teamLeaderGroup',
       label: 'Team Leader Group',
@@ -49,12 +51,6 @@ const teamMembersBlock: Block = {
           label: 'Portrait',
           type: 'upload',
           relationTo: 'images',
-          required: false,
-        },
-        {
-          name: 'link',
-          label: 'Link',
-          type: 'text',
           required: false,
         },
       ],

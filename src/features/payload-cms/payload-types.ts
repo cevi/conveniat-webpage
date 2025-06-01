@@ -822,11 +822,23 @@ export interface PlainTextBlock {
  * via the `definition` "TeamMembersBlock".
  */
 export interface TeamMembersBlock {
+  linkField?: {
+    type?: ('reference' | 'custom') | null;
+    reference?:
+      | ({
+          relationTo: 'blog';
+          value: string | Blog;
+        } | null)
+      | ({
+          relationTo: 'generic-page';
+          value: string | GenericPage;
+        } | null);
+    url?: string | null;
+  };
   teamLeaderGroup: {
     name: string;
     ceviname?: string | null;
     portrait?: (string | null) | Image;
-    link?: string | null;
   };
   teamMembers?:
     | {
@@ -839,6 +851,140 @@ export interface TeamMembersBlock {
   id?: string | null;
   blockName?: string | null;
   blockType: 'accordionTeamMembersBlock';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "generic-page".
+ */
+export interface GenericPage {
+  id: string;
+  publishingStatus?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  _localized_status: LocalizedPublishingStatus;
+  _disable_unpublishing?: boolean | null;
+  _locale: string;
+  /**
+   * Name of the page for internal purposes.
+   */
+  internalPageName: string;
+  /**
+   * Authors of the Page (internal use only)
+   */
+  authors?: (string | User)[] | null;
+  /**
+   * Status of the page (internal use)
+   */
+  internalStatus: 'draft' | 'translation' | 'review' | 'approved' | 'archived';
+  content: {
+    /**
+     * This is the title that will be displayed on the page.
+     */
+    pageTitle: string;
+    permissions?: (string | null) | Permission;
+    releaseDate: string;
+    /**
+     * The main content of the page
+     */
+    mainContent: (
+      | {
+          richTextSection: {
+            root: {
+              type: string;
+              children: {
+                type: string;
+                version: number;
+                [k: string]: unknown;
+              }[];
+              direction: ('ltr' | 'rtl') | null;
+              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+              indent: number;
+              version: number;
+            };
+            [k: string]: unknown;
+          };
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'richTextSection';
+        }
+      | {
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'blogPostsOverview';
+        }
+      | {
+          /**
+           * This is the teaser that will be displayed on the page.
+           */
+          pageTeaser: string;
+          callToAction: {
+            /**
+             * This is the call to action that will be displayed on the page.
+             */
+            linkLabel: string;
+            /**
+             * This is the link that the call to action will point to.
+             */
+            link: string;
+          };
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'heroSection';
+        }
+      | FormBlock
+      | {
+          images: (string | Image)[];
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'photoCarousel';
+        }
+      | {
+          image: string | Image;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'singlePicture';
+        }
+      | YoutubeEmbedding
+      | InstagramEmbedding
+      | SwisstopoMapEmbedding
+      | {
+          file: string | Document;
+          openInNewTab?: boolean | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'fileDownload';
+        }
+      | DetailsTable
+      | AccordionBlocks
+      | SummaryBox
+      | TimelineEntries
+      | Countdown
+    )[];
+  };
+  seo: {
+    urlSlug: string;
+    /**
+     * This is the title that will be displayed in the browser tab.
+     */
+    metaTitle?: string | null;
+    /**
+     * This is the description that will be displayed in search engine results.
+     */
+    metaDescription?: string | null;
+    /**
+     * These are the keywords that will be used to improve the visibility of the page in search engines.
+     */
+    keywords?: string | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -988,140 +1134,6 @@ export interface Countdown {
   id?: string | null;
   blockName?: string | null;
   blockType: 'countdown';
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "generic-page".
- */
-export interface GenericPage {
-  id: string;
-  publishingStatus?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  _localized_status: LocalizedPublishingStatus;
-  _disable_unpublishing?: boolean | null;
-  _locale: string;
-  /**
-   * Name of the page for internal purposes.
-   */
-  internalPageName: string;
-  /**
-   * Authors of the Page (internal use only)
-   */
-  authors?: (string | User)[] | null;
-  /**
-   * Status of the page (internal use)
-   */
-  internalStatus: 'draft' | 'translation' | 'review' | 'approved' | 'archived';
-  content: {
-    /**
-     * This is the title that will be displayed on the page.
-     */
-    pageTitle: string;
-    permissions?: (string | null) | Permission;
-    releaseDate: string;
-    /**
-     * The main content of the page
-     */
-    mainContent: (
-      | {
-          richTextSection: {
-            root: {
-              type: string;
-              children: {
-                type: string;
-                version: number;
-                [k: string]: unknown;
-              }[];
-              direction: ('ltr' | 'rtl') | null;
-              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-              indent: number;
-              version: number;
-            };
-            [k: string]: unknown;
-          };
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'richTextSection';
-        }
-      | {
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'blogPostsOverview';
-        }
-      | {
-          /**
-           * This is the teaser that will be displayed on the page.
-           */
-          pageTeaser: string;
-          callToAction: {
-            /**
-             * This is the call to action that will be displayed on the page.
-             */
-            linkLabel: string;
-            /**
-             * This is the link that the call to action will point to.
-             */
-            link: string;
-          };
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'heroSection';
-        }
-      | FormBlock
-      | {
-          images: (string | Image)[];
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'photoCarousel';
-        }
-      | {
-          image: string | Image;
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'singlePicture';
-        }
-      | YoutubeEmbedding
-      | InstagramEmbedding
-      | SwisstopoMapEmbedding
-      | {
-          file: string | Document;
-          openInNewTab?: boolean | null;
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'fileDownload';
-        }
-      | DetailsTable
-      | AccordionBlocks
-      | SummaryBox
-      | TimelineEntries
-      | Countdown
-    )[];
-  };
-  seo: {
-    urlSlug: string;
-    /**
-     * This is the title that will be displayed in the browser tab.
-     */
-    metaTitle?: string | null;
-    /**
-     * This is the description that will be displayed in search engine results.
-     */
-    metaDescription?: string | null;
-    /**
-     * These are the keywords that will be used to improve the visibility of the page in search engines.
-     */
-    keywords?: string | null;
-  };
-  updatedAt: string;
-  createdAt: string;
-  _status?: ('draft' | 'published') | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1492,13 +1504,19 @@ export interface PlainTextBlockSelect<T extends boolean = true> {
  * via the `definition` "TeamMembersBlock_select".
  */
 export interface TeamMembersBlockSelect<T extends boolean = true> {
+  linkField?:
+    | T
+    | {
+        type?: T;
+        reference?: T;
+        url?: T;
+      };
   teamLeaderGroup?:
     | T
     | {
         name?: T;
         ceviname?: T;
         portrait?: T;
-        link?: T;
       };
   teamMembers?:
     | T

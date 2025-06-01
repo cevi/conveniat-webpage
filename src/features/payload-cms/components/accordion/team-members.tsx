@@ -1,4 +1,5 @@
 import { AvatarPlaceholder } from '@/features/payload-cms/components/accordion/avatar-placeholder';
+import { getURLForLinkField } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import type { Image as ImageType, TeamMembersBlock } from '@/features/payload-cms/payload-types';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -106,25 +107,20 @@ export const TeamLeaderInternal: React.FC<{
 export const TeamMembers: React.FC<{
   block: TeamMembersBlock;
 }> = ({ block }) => {
-  const teamLeader = block.teamLeaderGroup;
   const teamMembers = block.teamMembers;
-  const link = teamLeader.link ?? '';
-
-  if (link === '') {
-    return (
-      <Fragment>
+  const linkField = block.linkField;
+  const link = getURLForLinkField(linkField) || '';
+  return link === '' ? (
+    <Fragment>
+      <TeamLeaderInternal block={block} />
+      <TeamHelpersList teamMembers={teamMembers} />
+    </Fragment>
+  ) : (
+    <Fragment>
+      <Link href={link}>
         <TeamLeaderInternal block={block} />
-        <TeamHelpersList teamMembers={teamMembers} />
-      </Fragment>
-    );
-  } else {
-    return (
-      <Fragment>
-        <Link href={link}>
-          <TeamLeaderInternal block={block} />
-        </Link>
-        <TeamHelpersList teamMembers={teamMembers} />
-      </Fragment>
-    );
-  }
+      </Link>
+      <TeamHelpersList teamMembers={teamMembers} />
+    </Fragment>
+  );
 };
