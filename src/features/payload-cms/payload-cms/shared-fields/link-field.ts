@@ -1,5 +1,5 @@
 import type { Blog, GenericPage } from '@/features/payload-cms/payload-types';
-import type { NamedGroupField } from 'payload';
+import type { NamedGroupField, TextFieldSingleValidation } from 'payload';
 
 export interface LinkFieldData {
   type?: 'reference' | 'custom' | null;
@@ -14,6 +14,19 @@ export interface LinkFieldData {
       } | null);
   url?: string | null;
 }
+
+const validateURL: TextFieldSingleValidation = (url) => {
+  // Check if the URL is provided
+  if (url === undefined || url === null || url.trim() === '') {
+    return 'URL is required';
+  }
+  // Validate the URL format, starting with / or https://
+  const urlPattern = /^(https?:\/\/|\/)[^\s/$.?#].[^\s]*$/;
+  if (!urlPattern.test(url)) {
+    return 'URL must be a valid URL starting with https:// or /';
+  }
+  return true; // Valid URL
+};
 
 export const LinkField: NamedGroupField = {
   name: 'linkField',
@@ -56,6 +69,7 @@ export const LinkField: NamedGroupField = {
       },
       label: 'Custom URL',
       required: true,
+      validate: validateURL,
     },
   ],
 };
