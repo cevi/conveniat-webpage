@@ -443,7 +443,6 @@ export interface Form {
               | {
                   name: string;
                   label?: string | null;
-                  width?: number | null;
                   required?: boolean | null;
                   defaultValue?: boolean | null;
                   id?: string | null;
@@ -453,7 +452,6 @@ export interface Form {
               | {
                   name: string;
                   label?: string | null;
-                  width?: number | null;
                   required?: boolean | null;
                   id?: string | null;
                   blockName?: string | null;
@@ -462,7 +460,7 @@ export interface Form {
               | {
                   name: string;
                   label?: string | null;
-                  width?: number | null;
+                  placeholder?: string | null;
                   required?: boolean | null;
                   id?: string | null;
                   blockName?: string | null;
@@ -491,7 +489,6 @@ export interface Form {
               | {
                   name: string;
                   label?: string | null;
-                  width?: number | null;
                   defaultValue?: number | null;
                   required?: boolean | null;
                   id?: string | null;
@@ -501,7 +498,6 @@ export interface Form {
               | {
                   name: string;
                   label?: string | null;
-                  width?: number | null;
                   defaultValue?: string | null;
                   placeholder?: string | null;
                   options?:
@@ -519,7 +515,7 @@ export interface Form {
               | {
                   name: string;
                   label?: string | null;
-                  width?: number | null;
+                  placeholder?: string | null;
                   defaultValue?: string | null;
                   required?: boolean | null;
                   id?: string | null;
@@ -529,7 +525,7 @@ export interface Form {
               | {
                   name: string;
                   label?: string | null;
-                  width?: number | null;
+                  placeholder?: string | null;
                   defaultValue?: string | null;
                   required?: boolean | null;
                   id?: string | null;
@@ -545,7 +541,6 @@ export interface Form {
     | {
         name: string;
         label?: string | null;
-        width?: number | null;
         required?: boolean | null;
         defaultValue?: boolean | null;
         id?: string | null;
@@ -555,7 +550,6 @@ export interface Form {
     | {
         name: string;
         label?: string | null;
-        width?: number | null;
         required?: boolean | null;
         id?: string | null;
         blockName?: string | null;
@@ -564,7 +558,7 @@ export interface Form {
     | {
         name: string;
         label?: string | null;
-        width?: number | null;
+        placeholder?: string | null;
         required?: boolean | null;
         id?: string | null;
         blockName?: string | null;
@@ -593,7 +587,6 @@ export interface Form {
     | {
         name: string;
         label?: string | null;
-        width?: number | null;
         defaultValue?: number | null;
         required?: boolean | null;
         id?: string | null;
@@ -603,7 +596,6 @@ export interface Form {
     | {
         name: string;
         label?: string | null;
-        width?: number | null;
         defaultValue?: string | null;
         placeholder?: string | null;
         options?:
@@ -621,7 +613,7 @@ export interface Form {
     | {
         name: string;
         label?: string | null;
-        width?: number | null;
+        placeholder?: string | null;
         defaultValue?: string | null;
         required?: boolean | null;
         id?: string | null;
@@ -631,7 +623,7 @@ export interface Form {
     | {
         name: string;
         label?: string | null;
-        width?: number | null;
+        placeholder?: string | null;
         defaultValue?: string | null;
         required?: boolean | null;
         id?: string | null;
@@ -1921,7 +1913,6 @@ export interface FormsSelect<T extends boolean = true> {
                       | {
                           name?: T;
                           label?: T;
-                          width?: T;
                           required?: T;
                           defaultValue?: T;
                           id?: T;
@@ -1932,7 +1923,6 @@ export interface FormsSelect<T extends boolean = true> {
                       | {
                           name?: T;
                           label?: T;
-                          width?: T;
                           required?: T;
                           id?: T;
                           blockName?: T;
@@ -1942,7 +1932,7 @@ export interface FormsSelect<T extends boolean = true> {
                       | {
                           name?: T;
                           label?: T;
-                          width?: T;
+                          placeholder?: T;
                           required?: T;
                           id?: T;
                           blockName?: T;
@@ -1959,7 +1949,6 @@ export interface FormsSelect<T extends boolean = true> {
                       | {
                           name?: T;
                           label?: T;
-                          width?: T;
                           defaultValue?: T;
                           required?: T;
                           id?: T;
@@ -1970,7 +1959,6 @@ export interface FormsSelect<T extends boolean = true> {
                       | {
                           name?: T;
                           label?: T;
-                          width?: T;
                           defaultValue?: T;
                           placeholder?: T;
                           options?:
@@ -1989,7 +1977,7 @@ export interface FormsSelect<T extends boolean = true> {
                       | {
                           name?: T;
                           label?: T;
-                          width?: T;
+                          placeholder?: T;
                           defaultValue?: T;
                           required?: T;
                           id?: T;
@@ -2000,7 +1988,7 @@ export interface FormsSelect<T extends boolean = true> {
                       | {
                           name?: T;
                           label?: T;
-                          width?: T;
+                          placeholder?: T;
                           defaultValue?: T;
                           required?: T;
                           id?: T;
@@ -2015,7 +2003,6 @@ export interface FormsSelect<T extends boolean = true> {
           | {
               name?: T;
               label?: T;
-              width?: T;
               required?: T;
               defaultValue?: T;
               id?: T;
@@ -2026,7 +2013,6 @@ export interface FormsSelect<T extends boolean = true> {
           | {
               name?: T;
               label?: T;
-              width?: T;
               required?: T;
               id?: T;
               blockName?: T;
@@ -2036,7 +2022,7 @@ export interface FormsSelect<T extends boolean = true> {
           | {
               name?: T;
               label?: T;
-              width?: T;
+              placeholder?: T;
               required?: T;
               id?: T;
               blockName?: T;
@@ -2053,7 +2039,6 @@ export interface FormsSelect<T extends boolean = true> {
           | {
               name?: T;
               label?: T;
-              width?: T;
               defaultValue?: T;
               required?: T;
               id?: T;
@@ -2064,7 +2049,6 @@ export interface FormsSelect<T extends boolean = true> {
           | {
               name?: T;
               label?: T;
-              width?: T;
               defaultValue?: T;
               placeholder?: T;
               options?:
@@ -2083,7 +2067,7 @@ export interface FormsSelect<T extends boolean = true> {
           | {
               name?: T;
               label?: T;
-              width?: T;
+              placeholder?: T;
               defaultValue?: T;
               required?: T;
               id?: T;
@@ -2094,7 +2078,7 @@ export interface FormsSelect<T extends boolean = true> {
           | {
               name?: T;
               label?: T;
-              width?: T;
+              placeholder?: T;
               defaultValue?: T;
               required?: T;
               id?: T;

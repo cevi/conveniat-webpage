@@ -12,8 +12,9 @@ export const TextArea: React.FC<
       }>
     >;
     registerAction: UseFormRegister<string & FieldValues>;
+    placeholder?: string;
   } & TextAreaField
-> = ({ name, label, registerAction, required: requiredFromProperties, errors }) => {
+> = ({ name, label, registerAction, required: requiredFromProperties, errors, placeholder }) => {
   // set default values
   requiredFromProperties ??= false;
   const hasError = errors[name];
@@ -28,6 +29,7 @@ export const TextArea: React.FC<
         id={name}
         className={`min-h-[100px] w-full rounded-md border-0 bg-green-100 px-4 py-2 font-['Inter'] text-sm text-gray-600 shadow-sm ring-1 ring-inset ${hasError ? 'bg-red-50 ring-red-500' : 'ring-transparent'} transition-all duration-200 placeholder:text-gray-400 focus:bg-white focus:ring-2 focus:ring-[#47564c] focus:outline-none focus:ring-inset`}
         rows={4}
+        placeholder={placeholder}
         {...registerAction(name, {
           required: requiredFromProperties ? 'This field is required' : false,
         })}

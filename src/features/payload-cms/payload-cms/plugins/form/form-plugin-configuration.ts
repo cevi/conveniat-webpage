@@ -155,18 +155,7 @@ const formCheckboxBlock: Block = {
         },
       ],
     },
-    {
-      type: 'row',
-      fields: [
-        {
-          name: 'width',
-          type: 'number',
-          label: 'Field Width (percentage)',
-          admin: { width: '50%' },
-        },
-        { name: 'required', type: 'checkbox', label: 'Required', admin: { width: '50%' } },
-      ],
-    },
+    { name: 'required', type: 'checkbox', label: 'Required', admin: { width: '50%' } },
     { name: 'defaultValue', type: 'checkbox', label: 'Default Value' },
   ],
   labels: { plural: 'Checkbox Fields', singular: 'Checkbox' },
@@ -194,7 +183,6 @@ const formCountryBlock: Block = {
         },
       ],
     },
-    { name: 'width', type: 'number', label: 'Field Width (percentage)' },
     {
       name: 'required',
       type: 'checkbox',
@@ -226,7 +214,7 @@ const formEmailBlock: Block = {
         },
       ],
     },
-    { name: 'width', type: 'number', label: 'Field Width (percentage)' },
+    { name: 'placeholder', type: 'text', label: 'Placeholder' },
     {
       name: 'required',
       type: 'checkbox',
@@ -265,21 +253,10 @@ const formNumberBlock: Block = {
       ],
     },
     {
-      type: 'row',
-      fields: [
-        {
-          name: 'width',
-          type: 'number',
-          label: 'Field Width (percentage)',
-          admin: { width: '50%' },
-        },
-        {
-          name: 'defaultValue',
-          type: 'number',
-          admin: { width: '50%' },
-          label: 'Default Value',
-        },
-      ],
+      name: 'defaultValue',
+      type: 'number',
+      admin: { width: '50%' },
+      label: 'Default Value',
     },
     { name: 'required', type: 'checkbox', label: 'Required' },
   ],
@@ -309,22 +286,11 @@ const formSelectBlock: Block = {
       ],
     },
     {
-      type: 'row',
-      fields: [
-        {
-          name: 'width',
-          type: 'number',
-          label: 'Field Width (percentage)',
-          admin: { width: '50%' },
-        },
-        {
-          name: 'defaultValue',
-          type: 'text',
-          admin: { width: '50%' },
-          label: 'Default Value',
-          localized: true,
-        },
-      ],
+      name: 'defaultValue',
+      type: 'text',
+      admin: { width: '50%' },
+      label: 'Default Value',
+      localized: true,
     },
     {
       type: 'row',
@@ -388,12 +354,7 @@ const formTextBlock: Block = {
     {
       type: 'row',
       fields: [
-        {
-          name: 'width',
-          type: 'number',
-          label: 'Field Width (percentage)',
-          admin: { width: '50%' },
-        },
+        { name: 'placeholder', type: 'text', label: 'Placeholder' },
         {
           name: 'defaultValue',
           type: 'text',
@@ -433,12 +394,7 @@ const formTextareaBlock: Block = {
     {
       type: 'row',
       fields: [
-        {
-          name: 'width',
-          type: 'number',
-          label: 'Field Width (percentage)',
-          admin: { width: '50%' },
-        },
+        { name: 'placeholder', type: 'text', label: 'Placeholder' },
         {
           name: 'defaultValue',
           type: 'text',

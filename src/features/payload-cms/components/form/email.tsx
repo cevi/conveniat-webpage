@@ -14,8 +14,9 @@ export const Email: React.FC<
       }>
     >;
     registerAction: UseFormRegister<string & FieldValues>;
+    placeholder?: string;
   } & EmailField
-> = ({ name, label, registerAction, required: requiredFromProperties, errors }) => {
+> = ({ name, label, registerAction, required: requiredFromProperties, errors, placeholder }) => {
   // set default values
   requiredFromProperties ??= false;
   const hasError = errors[name];
@@ -30,6 +31,7 @@ export const Email: React.FC<
         className={`h-10 w-full rounded-md border-0 bg-green-100 px-4 py-2 font-['Inter'] text-sm text-gray-600 shadow-sm ring-1 ring-inset ${hasError ? 'bg-red-50 ring-red-500' : 'ring-transparent'} transition-all duration-200 placeholder:text-gray-400 focus:bg-white focus:ring-2 focus:ring-[#47564c] focus:outline-none focus:ring-inset`}
         id={name}
         type="email"
+        placeholder={placeholder}
         {...registerAction(name, {
           required: requiredFromProperties ? 'This field is required' : false,
           pattern: {
