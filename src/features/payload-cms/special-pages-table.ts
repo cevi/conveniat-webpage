@@ -1,5 +1,6 @@
+import { FormsPreviewPage } from '@/features/payload-cms/page-layouts/forms-preview-page';
 import SearchPage from '@/features/payload-cms/page-layouts/search-page';
-import type { Locale, LocalizedPageType } from '@/types/types';
+import type { Locale, LocalizedCollectionPage, LocalizedPageType } from '@/types/types';
 import type React from 'react';
 
 export interface SpecialRouteResolutionEntry {
@@ -7,7 +8,7 @@ export interface SpecialRouteResolutionEntry {
   alternatives: {
     [locale in Locale]: string;
   };
-  component: React.FC<LocalizedPageType>;
+  component: React.FC<LocalizedPageType> | React.ComponentType<LocalizedCollectionPage>;
 }
 
 export interface SpecialRouteResolutionTable {
@@ -23,6 +24,15 @@ export const specialPagesTable: SpecialRouteResolutionTable = {
       fr: '/recherche',
     },
     component: SearchPage,
+  },
+  'forms-preview': {
+    locales: ['en', 'de', 'fr'],
+    alternatives: {
+      en: '/form-preview',
+      de: '/formular-vorschau',
+      fr: '/apercu-du-formulaire',
+    },
+    component: FormsPreviewPage,
   },
 };
 

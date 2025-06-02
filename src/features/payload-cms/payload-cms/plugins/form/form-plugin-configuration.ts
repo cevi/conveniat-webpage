@@ -26,6 +26,9 @@ export const formPluginConfiguration = formBuilderPlugin({
             {
               path: '@/features/payload-cms/payload-cms/components/multi-lang-publishing/publishing-status-client',
             },
+            {
+              path: '@/features/payload-cms/payload-cms/components/qr-code/qr-code',
+            },
           ],
           PublishButton:
             '@/features/payload-cms/payload-cms/components/multi-lang-publishing/publish-localized',

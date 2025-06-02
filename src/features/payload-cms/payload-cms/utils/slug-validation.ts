@@ -23,7 +23,7 @@ const checkForbiddenRegexes = (value: string): { error: boolean; message: string
   }
 
   // slug cannot be one of the reserved words
-  const reservedWords = ['api', 'admin', 'app', 'blog', 'timeline-preview'];
+  const reservedWords = ['api', 'admin', 'app', 'blog', 'timeline-preview', 'forms-preview'];
   for (const word of reservedWords) {
     if (value.startsWith(word)) {
       return { error: true, message: `Slug cannot start with reserved word "${word}"` };

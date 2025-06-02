@@ -42,8 +42,14 @@ const generatePreviewUrl = ({
   collectionConfig?: CollectionConfig;
   locale: Locale;
 }): string => {
-  if (collectionConfig && collectionConfig.slug === 'timeline' && data.id !== undefined) {
-    return `${environmentVariables.APP_HOST_URL}/${locale.code}/timeline-preview/${data.id}?preview=true`;
+  if (collectionConfig) {
+    if (collectionConfig.slug === 'timeline' && data.id !== undefined) {
+      return `${environmentVariables.APP_HOST_URL}/${locale.code}/timeline-preview/${data.id}?preview=true`;
+    }
+
+    if (collectionConfig.slug === 'forms' && data.id !== undefined) {
+      return `${environmentVariables.APP_HOST_URL}/${locale.code}/form-preview/${data.id}?preview=true`;
+    }
   }
 
   if (!data.seo) return '';
