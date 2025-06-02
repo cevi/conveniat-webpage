@@ -4,6 +4,10 @@ import type { FieldErrorsImpl, FieldValues, UseFormRegister } from 'react-hook-f
 import type React from 'react';
 
 import { Required } from '@/features/payload-cms/components/form/required';
+import { fieldIsRequiredText } from '@/features/payload-cms/components/form/static-form-texts';
+import type { Locale } from '@/types/types';
+import { i18nConfig } from '@/types/types';
+import { useCurrentLocale } from 'next-i18n-router/client';
 
 export const Number: React.FC<
   {
@@ -18,6 +22,7 @@ export const Number: React.FC<
   // set default values
   requiredFromProperties ??= false;
   const hasError = errors[name];
+  const locale = useCurrentLocale(i18nConfig);
 
   return (
     <div className="mb-4">
@@ -30,7 +35,7 @@ export const Number: React.FC<
         id={name}
         type="number"
         {...registerAction(name, {
-          required: requiredFromProperties ? 'This field is required' : false,
+          required: requiredFromProperties ? fieldIsRequiredText[locale as Locale] : false,
         })}
       />
       {hasError && <p className="mt-1 text-xs text-red-600">{hasError.message as string}</p>}

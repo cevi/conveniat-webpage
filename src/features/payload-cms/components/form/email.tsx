@@ -4,7 +4,17 @@ import type { EmailField } from '@payloadcms/plugin-form-builder/types';
 import type { FieldErrorsImpl, FieldValues, UseFormRegister } from 'react-hook-form';
 
 import { Required } from '@/features/payload-cms/components/form/required';
+import { fieldIsRequiredText } from '@/features/payload-cms/components/form/static-form-texts';
+import type { Locale, StaticTranslationString } from '@/types/types';
+import { i18nConfig } from '@/types/types';
+import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
+
+const isNotAValidEmailText: StaticTranslationString = {
+  en: 'Please enter a valid email address',
+  de: 'Bitte geben Sie eine gültige E-Mail-Adresse ein',
+  fr: 'Veuillez saisir une adresse e-mail valide',
+};
 
 export const Email: React.FC<
   {
@@ -21,6 +31,8 @@ export const Email: React.FC<
   requiredFromProperties ??= false;
   const hasError = errors[name];
 
+  const locale = useCurrentLocale(i18nConfig);
+
   return (
     <div className="mb-4">
       <label className="mb-1 block font-['Inter'] text-xs font-medium text-gray-500" htmlFor={name}>
@@ -33,10 +45,10 @@ export const Email: React.FC<
         type="email"
         placeholder={placeholder}
         {...registerAction(name, {
-          required: requiredFromProperties ? 'This field is required' : false,
+          required: requiredFromProperties ? fieldIsRequiredText[locale as Locale] : false,
           pattern: {
             value: /^\S[^\s@]*@\S+$/,
-            message: 'Please enter a valid email address',
+            message: isNotAValidEmailText[locale as Locale],
           },
         })}
       />

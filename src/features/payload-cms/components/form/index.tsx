@@ -62,6 +62,36 @@ const validationErrorText: StaticTranslationString = {
   fr: 'Veuillez remplir tous les champs obligatoires',
 };
 
+const allGoodPreviewText: StaticTranslationString = {
+  en: 'All good - but this is just a preview.',
+  de: 'Alles gut - aber das ist nur eine Vorschau.',
+  fr: "Tout va bien - mais ceci n'est qu'un aperçu.",
+};
+
+const failedToSubmitText: StaticTranslationString = {
+  en: 'Failed to submit form. Please try again later.',
+  de: 'Formularübermittlung fehlgeschlagen. Bitte versuchen Sie es später erneut.',
+  fr: "Échec de l'envoi du formulaire. Veuillez réessayer plus tard.",
+};
+
+const pageNaviationErrorText: StaticTranslationString = {
+  en: 'An error occurred while navigating to the next step.',
+  de: 'Ein Fehler ist beim Navigieren zum nächsten Schritt aufgetreten.',
+  fr: "Une erreur s'est produite lors de la navigation vers l'étape suivante.",
+};
+
+const stepText: StaticTranslationString = {
+  en: 'Step',
+  de: 'Schritt',
+  fr: 'Étape',
+};
+
+const ofText: StaticTranslationString = {
+  en: 'of',
+  de: 'von',
+  fr: 'de',
+};
+
 interface FormPageBlock {
   id: string;
   blockType: 'formPage';
@@ -228,7 +258,7 @@ export const FormBlock: React.FC<
         setIsLoading(false);
         setHasSubmitted(true);
         setError({
-          message: 'All good - but this is just a preview.',
+          message: allGoodPreviewText[locale as Locale],
           status: String(200),
         });
         return;
@@ -246,7 +276,7 @@ export const FormBlock: React.FC<
 
         if (!request.ok) {
           setError({
-            message: 'Failed to submit form. Please try again later.',
+            message: failedToSubmitText[locale as Locale],
             status: String(request.status),
           });
         }
@@ -307,7 +337,7 @@ export const FormBlock: React.FC<
     goToNextStep(event).catch((error_: unknown): void => {
       console.warn('Error while going to next step:', error_);
       setError({
-        message: 'An error occurred while navigating to the next step.',
+        message: pageNaviationErrorText[locale as Locale],
         status: '500',
       });
     });
@@ -391,7 +421,8 @@ export const FormBlock: React.FC<
           <div className="mb-6">
             <div className="text-conveniat-green mb-2 flex justify-between text-sm font-medium">
               <span>
-                Step {currentStepIndex + 1} of {definedSteps.length}
+                {stepText[locale as Locale]} {currentStepIndex + 1} {ofText[locale as Locale]}{' '}
+                {definedSteps.length}
               </span>
               <span>{Math.round(((currentStepIndex + 1) / definedSteps.length) * 100)}%</span>
             </div>

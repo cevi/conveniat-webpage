@@ -1,4 +1,8 @@
 import { Required } from '@/features/payload-cms/components/form/required';
+import { fieldIsRequiredText } from '@/features/payload-cms/components/form/static-form-texts';
+import type { Locale } from '@/types/types';
+import { i18nConfig } from '@/types/types';
+import { useCurrentLocale } from 'next-i18n-router/client';
 import type { CheckboxField } from 'payload';
 import type React from 'react';
 import type { FieldErrorsImpl, FieldValues, UseFormRegister } from 'react-hook-form';
@@ -17,6 +21,7 @@ export const Checkbox: React.FC<
   // set default values
   requiredFromProperties ??= false;
   const hasError = errors[name];
+  const locale = useCurrentLocale(i18nConfig);
 
   return (
     <div className="mb-4">
@@ -26,7 +31,7 @@ export const Checkbox: React.FC<
           className={`text-conveniat-green h-4 w-4 rounded border-0 bg-green-100 shadow-sm ring-1 ring-inset ${hasError ? 'ring-red-500' : 'ring-transparent'} transition-all duration-200 focus:ring-2 focus:ring-[#47564c] focus:ring-offset-0 focus:outline-none`}
           type="checkbox"
           {...registerAction(name, {
-            required: requiredFromProperties ? 'This field is required' : false,
+            required: requiredFromProperties ? fieldIsRequiredText[locale as Locale] : false,
           })}
         />
         <label className="ml-2 block font-['Inter'] text-sm text-gray-500" htmlFor={name}>

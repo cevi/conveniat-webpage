@@ -2,8 +2,12 @@
 
 import { countryOptions } from '@/features/payload-cms/components/form/country-options';
 import { Required } from '@/features/payload-cms/components/form/required';
+import { fieldIsRequiredText } from '@/features/payload-cms/components/form/static-form-texts';
+import type { Locale } from '@/types/types';
+import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import type { CountryField } from '@payloadcms/plugin-form-builder/types';
+import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 import type { Control } from 'react-hook-form';
 import {
@@ -27,6 +31,7 @@ export const Country: React.FC<
 > = ({ name, control, label, required: requiredFromProperties, errors }) => {
   requiredFromProperties ??= false;
   const hasError = !!errors[name];
+  const locale = useCurrentLocale(i18nConfig);
 
   return (
     <div className="mb-4">
@@ -39,7 +44,7 @@ export const Country: React.FC<
         name={name}
         defaultValue="CH"
         rules={{
-          required: requiredFromProperties ? 'This field is required' : false,
+          required: requiredFromProperties ? fieldIsRequiredText[locale as Locale] : false,
         }}
         render={({ field: { onChange, value, ref } }) => (
           <ReactSelect

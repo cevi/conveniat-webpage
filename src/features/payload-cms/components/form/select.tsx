@@ -1,8 +1,12 @@
 'use client';
 
 import { Required } from '@/features/payload-cms/components/form/required';
+import { fieldIsRequiredText } from '@/features/payload-cms/components/form/static-form-texts';
+import type { Locale } from '@/types/types';
+import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import type { SelectField } from '@payloadcms/plugin-form-builder/types';
+import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 import type { Control, FieldErrorsImpl, FieldValues, UseFormRegister } from 'react-hook-form';
 import { Controller } from 'react-hook-form';
@@ -22,6 +26,8 @@ export const Select: React.FC<
   requiredFromProperties ??= false;
   const hasError = errors[name];
 
+  const locale = useCurrentLocale(i18nConfig);
+
   return (
     <div className="mb-4">
       <div>
@@ -34,7 +40,7 @@ export const Select: React.FC<
           name={name}
           defaultValue=""
           rules={{
-            required: requiredFromProperties ? 'This field is required' : false,
+            required: requiredFromProperties ? fieldIsRequiredText[locale as Locale] : false,
           }}
           render={({ field: { onChange, value, ref } }) => (
             <ReactSelect

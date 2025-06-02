@@ -2,6 +2,10 @@ import type { TextAreaField } from '@payloadcms/plugin-form-builder/types';
 import type { FieldErrorsImpl, FieldValues, UseFormRegister } from 'react-hook-form';
 
 import { Required } from '@/features/payload-cms/components/form/required';
+import { fieldIsRequiredText } from '@/features/payload-cms/components/form/static-form-texts';
+import type { Locale } from '@/types/types';
+import { i18nConfig } from '@/types/types';
+import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 
 export const TextArea: React.FC<
@@ -18,6 +22,7 @@ export const TextArea: React.FC<
   // set default values
   requiredFromProperties ??= false;
   const hasError = errors[name];
+  const locale = useCurrentLocale(i18nConfig);
 
   return (
     <div className="mb-4">
@@ -31,7 +36,7 @@ export const TextArea: React.FC<
         rows={4}
         placeholder={placeholder}
         {...registerAction(name, {
-          required: requiredFromProperties ? 'This field is required' : false,
+          required: requiredFromProperties ? fieldIsRequiredText[locale as Locale] : false,
         })}
       />
       {hasError && <p className="mt-1 text-xs text-red-600">{hasError.message as string}</p>}
