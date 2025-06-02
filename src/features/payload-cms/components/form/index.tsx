@@ -429,7 +429,7 @@ export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties)
                     type="button"
                     onClick={goToPreviousStep}
                     disabled={isSubmitting}
-                    className="h-10 w-full rounded-lg bg-gray-300 px-5 py-2 font-['Montserrat'] text-base font-semibold text-gray-700 transition duration-300 hover:bg-gray-400 disabled:opacity-50 sm:w-auto"
+                    className="h-10 w-full cursor-pointer rounded-lg bg-gray-300 px-5 py-2 font-['Montserrat'] text-base font-semibold text-gray-700 transition duration-300 hover:bg-gray-400 disabled:opacity-50 sm:w-auto"
                   >
                     {previousStepText[locale as Locale]}
                   </button>
@@ -440,7 +440,7 @@ export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties)
                     type="submit"
                     disabled={isSubmitting}
                     form={formID}
-                    className="h-10 w-full rounded-lg bg-[#47564c] px-5 py-2 font-['Montserrat'] text-base font-bold text-[#e1e6e2] transition duration-300 hover:bg-[#3b4a3f] disabled:opacity-50 sm:w-auto"
+                    className="h-10 w-full cursor-pointer rounded-lg bg-[#47564c] px-5 py-2 font-['Montserrat'] text-base font-bold text-[#e1e6e2] transition duration-300 hover:bg-[#3b4a3f] disabled:opacity-50 sm:w-auto"
                   >
                     {isSubmitting ? pleaseWaitText[locale as Locale] : submitButtonLabel}
                   </button>
@@ -449,7 +449,7 @@ export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties)
                     type="button"
                     onClick={goToNextStepHandler}
                     disabled={isSubmitting}
-                    className="h-10 w-full rounded-lg bg-[#47564c] px-5 py-2 font-['Montserrat'] text-base font-bold text-[#e1e6e2] transition duration-300 hover:bg-[#3b4a3f] disabled:opacity-50 sm:w-auto"
+                    className="h-10 w-full cursor-pointer rounded-lg bg-[#47564c] px-5 py-2 font-['Montserrat'] text-base font-bold text-[#e1e6e2] transition duration-300 hover:bg-[#3b4a3f] disabled:opacity-50 sm:w-auto"
                   >
                     {nextStepText[locale as Locale]}
                   </button>
