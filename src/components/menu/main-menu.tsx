@@ -67,7 +67,7 @@ export const MainMenu: React.FC = async () => {
                       className="size-5 flex-none group-data-open:rotate-180"
                     />
                   </DisclosureButton>
-                  <DisclosurePanel className="mt-2 space-y-2">
+                  <DisclosurePanel className="mt-2 mb-4 space-y-2">
                     {subMenuItemsWherePermitted.map(
                       (subItem) =>
                         subItem && (
