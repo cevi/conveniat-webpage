@@ -431,6 +431,9 @@ export interface FormBlock {
  */
 export interface Form {
   id: string;
+  /**
+   * This title will be displayed at the top of the form. It also serves as an internal identifier for the form.
+   */
   title: string;
   fields: (
     | {

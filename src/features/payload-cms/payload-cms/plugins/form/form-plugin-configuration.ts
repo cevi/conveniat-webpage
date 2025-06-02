@@ -13,6 +13,13 @@ const formTitleField: Field = {
     de: 'Formular Titel',
     fr: 'Titre du formulaire',
   },
+  admin: {
+    description: {
+      de: 'Dieser Titel wird ganz oben beim Formular angezeigt. Gleichzeitig dient er als interne Bezeichnung für das Formular.',
+      en: 'This title will be displayed at the top of the form. It also serves as an internal identifier for the form.',
+      fr: 'Ce titre sera affiché en haut du formulaire. Il sert également d’identifiant interne pour le formulaire.',
+    },
+  },
 };
 
 const formSubmitButtonLabelField: Field = {
