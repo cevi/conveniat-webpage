@@ -126,8 +126,11 @@ const FormFieldRenderer: React.FC<FormFieldRendererProperties> = ({ field, form,
 };
 
 // eslint-disable-next-line complexity
-export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties) => {
+export const FormBlock: React.FC<
+  FormBlockType & { id?: string; isPreviewMode?: boolean | undefined }
+> = (properties) => {
   const {
+    isPreviewMode,
     form: formFromProperties,
     form: {
       id: formID,
@@ -219,6 +222,17 @@ export const FormBlock: React.FC<FormBlockType & { id?: string }> = (properties)
       loadingTimerID = setTimeout(() => {
         setIsLoading(true);
       }, 1000);
+
+      if (isPreviewMode ?? false) {
+        clearTimeout(loadingTimerID);
+        setIsLoading(false);
+        setHasSubmitted(true);
+        setError({
+          message: 'All good - but this is just a preview.',
+          status: String(200),
+        });
+        return;
+      }
 
       try {
         const request = await fetch(`/api/form-submissions`, {
