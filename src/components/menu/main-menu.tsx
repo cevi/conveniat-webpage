@@ -32,7 +32,7 @@ export const MainMenu: React.FC = async () => {
   return (
     <div
       className={cn(
-        'mx-auto mt-8 flex h-[calc(100%-100px)] max-w-md flex-col justify-between divide-gray-100 overflow-x-hidden overflow-y-auto xl:px-8',
+        'mx-auto mt-8 flex h-[calc(100%-100px)] max-w-md flex-col justify-between divide-gray-100 overflow-x-hidden overflow-y-auto px-4 xl:px-8',
         { 'pb-16': isInAppDesign },
       )}
     >
@@ -42,7 +42,7 @@ export const MainMenu: React.FC = async () => {
             conveniat27
           </Link>
         </span>
-        <div className="space-y-2 py-6">
+        <div className="py-6">
           {mainMenu.map(async (item) => {
             if (item.subMenu && item.subMenu.length > 0) {
               const subMenuItemsWherePermitted = await Promise.all(
