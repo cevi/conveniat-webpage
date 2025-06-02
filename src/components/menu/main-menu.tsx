@@ -3,6 +3,7 @@ import { MainMenuLanguageSwitcher } from '@/components/menu/main-menu-language-s
 import { SearchComponent } from '@/components/menu/search';
 import {
   getURLForLinkField,
+  hasPermissionsForLinkField,
   openURLInNewTab,
 } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import { specialPagesTable } from '@/features/payload-cms/special-pages-table';
@@ -42,8 +43,21 @@ export const MainMenu: React.FC = async () => {
           </Link>
         </span>
         <div className="space-y-2 py-6">
-          {mainMenu.map((item) => {
+          {mainMenu.map(async (item) => {
             if (item.subMenu && item.subMenu.length > 0) {
+              const subMenuItemsWherePermitted = await Promise.all(
+                item.subMenu.map(async (subItem) => {
+                  const hasPermission = await hasPermissionsForLinkField(subItem.linkField);
+                  return hasPermission ? subItem : undefined;
+                }),
+              );
+
+              const allNull = subMenuItemsWherePermitted.every((subItem) => subItem === undefined);
+
+              if (allNull) {
+                return <></>;
+              }
+
               return (
                 <Disclosure key={item.id} as="div" className="-mx-3">
                   <DisclosureButton className="group flex w-full cursor-pointer items-center justify-between rounded-lg py-2 pr-3.5 pl-3 text-base/7 font-semibold text-gray-700 hover:bg-gray-50">
@@ -54,16 +68,19 @@ export const MainMenu: React.FC = async () => {
                     />
                   </DisclosureButton>
                   <DisclosurePanel className="mt-2 space-y-2">
-                    {item.subMenu.map((subItem) => (
-                      <Link
-                        key={subItem.id}
-                        href={getURLForLinkField(subItem.linkField) ?? '/'}
-                        target={openURLInNewTab(subItem.linkField) ? '_blank' : undefined}
-                        className="closeNavOnClick block rounded-lg py-2 pr-3 pl-6 text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
-                      >
-                        {subItem.label}
-                      </Link>
-                    ))}
+                    {subMenuItemsWherePermitted.map(
+                      (subItem) =>
+                        subItem && (
+                          <Link
+                            key={subItem.id}
+                            href={getURLForLinkField(subItem.linkField) ?? '/'}
+                            target={openURLInNewTab(subItem.linkField) ? '_blank' : undefined}
+                            className="closeNavOnClick block rounded-lg py-2 pr-3 pl-6 text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
+                          >
+                            {subItem.label}
+                          </Link>
+                        ),
+                    )}
                   </DisclosurePanel>
                 </Disclosure>
               );
@@ -71,6 +88,12 @@ export const MainMenu: React.FC = async () => {
 
             const itemLink = getURLForLinkField(item.linkField) ?? '/';
             const itemInNewTab = openURLInNewTab(item.linkField) ? '_blank' : undefined;
+
+            const hasPermission = await hasPermissionsForLinkField(item.linkField);
+
+            if (!hasPermission) {
+              return <></>;
+            }
 
             return (
               <Link key={item.id} href={itemLink} target={itemInNewTab}>
