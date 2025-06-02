@@ -155,6 +155,103 @@ const FormFieldRenderer: React.FC<FormFieldRendererProperties> = ({ field, form,
   );
 };
 
+const NextPageButton: React.FC<{
+  onClick: React.MouseEventHandler<HTMLButtonElement>;
+  disabled: boolean;
+  locale: string | undefined;
+}> = ({ onClick, disabled, locale }) => {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="h-10 w-full cursor-pointer rounded-lg bg-[#47564c] px-5 py-2 font-['Montserrat'] text-base font-bold text-[#e1e6e2] transition duration-300 hover:bg-[#3b4a3f] disabled:opacity-50 sm:w-auto"
+    >
+      {nextStepText[locale as Locale]}
+    </button>
+  );
+};
+
+const SubmitButton: React.FC<{
+  disabled: boolean;
+  form: string | undefined;
+  locale: string | undefined;
+  submitButtonLabel: string;
+}> = ({ disabled, form, locale, submitButtonLabel }) => {
+  return (
+    <button
+      type="submit"
+      disabled={disabled}
+      form={form}
+      className="h-10 w-full cursor-pointer rounded-lg bg-[#47564c] px-5 py-2 font-['Montserrat'] text-base font-bold text-[#e1e6e2] transition duration-300 hover:bg-[#3b4a3f] disabled:opacity-50 sm:w-auto"
+    >
+      {disabled ? pleaseWaitText[locale as Locale] : submitButtonLabel}
+    </button>
+  );
+};
+
+const PreviousPageButton: React.FC<{
+  onClick: React.MouseEventHandler<HTMLButtonElement>;
+  disabled: boolean;
+  locale: string | undefined;
+}> = ({ onClick, disabled, locale }) => {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="h-10 w-full cursor-pointer rounded-lg bg-gray-300 px-5 py-2 font-['Montserrat'] text-base font-semibold text-gray-700 transition duration-300 hover:bg-gray-400 disabled:opacity-50 sm:w-auto"
+    >
+      {previousStepText[locale as Locale]}
+    </button>
+  );
+};
+
+const ProgressBar: React.FC<{
+  locale: string | undefined;
+  currentStepIndex: number;
+  definedSteps: FormPageBlockType[];
+  currentActualStep: FormPageBlock;
+}> = ({ locale, currentStepIndex, definedSteps, currentActualStep }) => {
+  return (
+    <div className="mb-6">
+      <div className="text-conveniat-green mb-2 flex justify-between text-sm font-medium">
+        <span>
+          {stepText[locale as Locale]} {currentStepIndex + 1} {ofText[locale as Locale]}{' '}
+          {definedSteps.length}
+        </span>
+        <span>{Math.round(((currentStepIndex + 1) / definedSteps.length) * 100)}%</span>
+      </div>
+      <div className="h-2 w-full rounded-full bg-gray-200">
+        <div
+          className="h-2 rounded-full bg-[#47564c] transition-all duration-300 ease-in-out"
+          style={{
+            width: `${((currentStepIndex + 1) / definedSteps.length) * 100}%`,
+          }}
+        />
+      </div>
+      <div className="mt-2 text-xs text-gray-600">
+        {'pageTitle' in currentActualStep && currentActualStep.pageTitle}
+      </div>
+    </div>
+  );
+};
+
+const ResetFormButton: React.FC<{
+  onClick: () => void;
+  locale: string | undefined;
+}> = ({ onClick, locale }) => {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="mt-4 h-10 w-full rounded-lg bg-[#47564c] px-4 font-['Montserrat'] text-base font-bold text-[#e1e6e2] transition duration-300 hover:bg-[#3b4a3f] sm:w-auto"
+    >
+      {resetFormText[locale as Locale]}
+    </button>
+  );
+};
+
 export const FormBlock: React.FC<
   FormBlockType & { id?: string; isPreviewMode?: boolean | undefined }
   // eslint-disable-next-line complexity
@@ -227,7 +324,7 @@ export const FormBlock: React.FC<
     else if ('fields' in currentActualStep) formFields = currentActualStep.fields;
 
     return formFields
-      .map((field) => ('name' in field && field.name ? field.name : ''))
+      .map((field) => ('name' in field && field.name !== '' ? field.name : ''))
       .filter(Boolean) as FieldName<Data>[];
   };
 
@@ -381,18 +478,15 @@ export const FormBlock: React.FC<
           <div className="bg-opacity-95 absolute inset-0 z-10 flex flex-col items-center justify-center bg-white p-6 text-center">
             <div className="max-w-md">
               <RichText data={confirmationMessage as SerializedEditorState} />
-              <button
-                type="button"
+              <ResetFormButton
                 onClick={() => {
                   setHasSubmitted(false);
                   formMethods.reset();
                   setCurrentStepIndex(0);
                   setValidationError(undefined);
                 }}
-                className="mt-4 h-10 w-full rounded-lg bg-[#47564c] px-4 font-['Montserrat'] text-base font-bold text-[#e1e6e2] transition duration-300 hover:bg-[#3b4a3f] sm:w-auto"
-              >
-                {resetFormText[locale as Locale]}
-              </button>
+                locale={locale}
+              />
             </div>
           </div>
         )}
@@ -416,26 +510,13 @@ export const FormBlock: React.FC<
           </div>
         )}
 
-        {/* Progress Bar */}
         {definedSteps.length > 1 && (
-          <div className="mb-6">
-            <div className="text-conveniat-green mb-2 flex justify-between text-sm font-medium">
-              <span>
-                {stepText[locale as Locale]} {currentStepIndex + 1} {ofText[locale as Locale]}{' '}
-                {definedSteps.length}
-              </span>
-              <span>{Math.round(((currentStepIndex + 1) / definedSteps.length) * 100)}%</span>
-            </div>
-            <div className="h-2 w-full rounded-full bg-gray-200">
-              <div
-                className="h-2 rounded-full bg-[#47564c] transition-all duration-300 ease-in-out"
-                style={{ width: `${((currentStepIndex + 1) / definedSteps.length) * 100}%` }}
-              />
-            </div>
-            <div className="mt-2 text-xs text-gray-600">
-              {'pageTitle' in currentActualStep && currentActualStep.pageTitle}
-            </div>
-          </div>
+          <ProgressBar
+            locale={locale}
+            currentStepIndex={currentStepIndex}
+            definedSteps={definedSteps}
+            currentActualStep={currentActualStep as FormPageBlock}
+          />
         )}
 
         <div
@@ -470,34 +551,26 @@ export const FormBlock: React.FC<
                 {isFirstStep ? (
                   <span className="hidden sm:block sm:w-1/3" />
                 ) : (
-                  <button
-                    type="button"
+                  <PreviousPageButton
                     onClick={goToPreviousStep}
                     disabled={isSubmitting}
-                    className="h-10 w-full cursor-pointer rounded-lg bg-gray-300 px-5 py-2 font-['Montserrat'] text-base font-semibold text-gray-700 transition duration-300 hover:bg-gray-400 disabled:opacity-50 sm:w-auto"
-                  >
-                    {previousStepText[locale as Locale]}
-                  </button>
+                    locale={locale}
+                  />
                 )}
 
                 {isLastStep ? (
-                  <button
-                    type="submit"
+                  <SubmitButton
                     disabled={isSubmitting}
                     form={formID}
-                    className="h-10 w-full cursor-pointer rounded-lg bg-[#47564c] px-5 py-2 font-['Montserrat'] text-base font-bold text-[#e1e6e2] transition duration-300 hover:bg-[#3b4a3f] disabled:opacity-50 sm:w-auto"
-                  >
-                    {isSubmitting ? pleaseWaitText[locale as Locale] : submitButtonLabel}
-                  </button>
+                    locale={locale}
+                    submitButtonLabel={submitButtonLabel as string}
+                  />
                 ) : (
-                  <button
-                    type="button"
+                  <NextPageButton
                     onClick={goToNextStepHandler}
                     disabled={isSubmitting}
-                    className="h-10 w-full cursor-pointer rounded-lg bg-[#47564c] px-5 py-2 font-['Montserrat'] text-base font-bold text-[#e1e6e2] transition duration-300 hover:bg-[#3b4a3f] disabled:opacity-50 sm:w-auto"
-                  >
-                    {nextStepText[locale as Locale]}
-                  </button>
+                    locale={locale}
+                  />
                 )}
               </div>
             )
