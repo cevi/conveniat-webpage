@@ -138,6 +138,10 @@ const CMSPage: React.FC<{
     const collection = (slugs?.[0] ?? '') as string;
     const remainingSlugs = slugs?.slice(1) ?? [];
 
+    const url = `/${locale}/${slugs?.join('/') ?? ''}`;
+    const previewModeAllowed = await canAccessPreviewOfCurrentPage(searchParameters, url);
+    const hasPreviewSearchParameter = searchParameters['preview'] === 'true';
+
     // check if the collection is in the special page table
     if (isSpecialPage(collection)) {
       const specialPage = getSpecialPage(collection);
@@ -151,7 +155,14 @@ const CMSPage: React.FC<{
         // locale matches --> render the page
         return (
           <>
-            <specialPage.component locale={locale} searchParams={searchParameters} />
+            <specialPage.component
+              slugs={remainingSlugs}
+              renderInPreviewMode={previewModeAllowed && hasPreviewSearchParameter}
+              locale={locale}
+              searchParams={searchParameters}
+            />
+            {previewModeAllowed && hasPreviewSearchParameter && <PreviewWarning params={params} />}
+
             <CookieBanner />
           </>
         );
@@ -167,10 +178,6 @@ const CMSPage: React.FC<{
       collectionPage = routeResolutionTable[''];
       remainingSlugs.unshift(collection);
     }
-
-    const url = `/${locale}/${slugs?.join('/') ?? ''}`;
-    const previewModeAllowed = await canAccessPreviewOfCurrentPage(searchParameters, url);
-    const hasPreviewSearchParameter = searchParameters['preview'] === 'true';
 
     if (!previewModeAllowed && hasPreviewSearchParameter) {
       throw new Error(`Preview mode is not allowed for this page.`);

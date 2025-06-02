@@ -1,7 +1,14 @@
+'use client';
+
 import { countryOptions } from '@/features/payload-cms/components/form/country-options';
 import { Required } from '@/features/payload-cms/components/form/required';
+import { fieldIsRequiredText } from '@/features/payload-cms/components/form/static-form-texts';
+import type { Locale } from '@/types/types';
+import { i18nConfig } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
 import type { CountryField } from '@payloadcms/plugin-form-builder/types';
-import React from 'react';
+import { useCurrentLocale } from 'next-i18n-router/client';
+import type React from 'react';
 import type { Control } from 'react-hook-form';
 import {
   Controller,
@@ -21,79 +28,99 @@ export const Country: React.FC<
     >;
     registerAction: UseFormRegister<string & FieldValues>;
   } & CountryField
-> = ({ name, control, label, registerAction, required: requiredFromProperties }) => {
-  // set default values
+> = ({ name, control, label, required: requiredFromProperties, errors }) => {
   requiredFromProperties ??= false;
+  const hasError = !!errors[name];
+  const locale = useCurrentLocale(i18nConfig);
 
   return (
     <div className="mb-4">
-      <label
-        className="mb-1 block font-['Inter'] text-xs font-normal text-[#6d6e76]"
-        htmlFor={name}
-      >
+      <label className="font-body mb-1 block text-xs font-medium text-gray-500" htmlFor={name}>
         {label}
         {requiredFromProperties && <Required />}
       </label>
       <Controller
-        defaultValue="CH"
         control={control}
-        render={({ field: { onChange, value } }) => (
+        name={name}
+        defaultValue="CH"
+        rules={{
+          required: requiredFromProperties ? fieldIsRequiredText[locale as Locale] : false,
+        }}
+        render={({ field: { onChange, value, ref } }) => (
           <ReactSelect
-            className="h-10 w-full rounded-sm font-['Inter'] text-sm font-normal text-[#595961] focus:border-[#47564c] focus:ring-2 focus:ring-[#47564c] focus:outline-hidden"
             inputId={name}
             onChange={(value_) => onChange(value_ ? value_.value : '')}
             options={countryOptions}
             value={countryOptions.find((c) => c.value === value)}
+            ref={ref}
+            classNamePrefix="react-select"
+            unstyled
+            classNames={{
+              control: (state) =>
+                cn(
+                  'min-h-10 w-full rounded-md border-0 px-3 py-2 font-body text-sm transition-all duration-200 cursor-pointer shadow-sm ring-1 ring-inset',
+                  {
+                    'bg-red-50 ring-red-500 text-gray-600': hasError,
+                    'bg-green-100 ring-2 ring-green-600 text-gray-600':
+                      !hasError && state.isFocused,
+                    'bg-green-100 ring-transparent text-gray-600 hover:ring-green-600':
+                      !hasError && !state.isFocused,
+                  },
+                ),
+              valueContainer: () => 'px-0 py-0',
+              input: () => 'font-body text-sm text-gray-600 m-0 p-0',
+              singleValue: () => 'font-body text-sm text-gray-600 m-0',
+              placeholder: () => 'font-body text-sm text-gray-400 m-0',
+              indicatorsContainer: () => 'flex items-center',
+              dropdownIndicator: () => 'flex items-center justify-center w-5 h-5 text-gray-500',
+              indicatorSeparator: () => 'hidden',
+              menu: () =>
+                'mt-1 rounded-md overflow-hidden shadow-lg bg-white border border-gray-200 z-50',
+              menuList: () => 'py-1',
+              option: (state) =>
+                cn('font-body text-sm px-3 py-2 cursor-pointer transition-colors', {
+                  'bg-green-600 text-white': state.isSelected,
+                  'bg-green-50 text-gray-600': state.isFocused && !state.isSelected,
+                  'bg-white text-gray-600 hover:bg-green-50': !state.isSelected && !state.isFocused,
+                }),
+              noOptionsMessage: () => 'font-body text-sm text-gray-500 px-3 py-2',
+              loadingMessage: () => 'font-body text-sm text-gray-500 px-3 py-2',
+            }}
             styles={{
-              control: (provided) => ({
-                ...provided,
-                width: '100%',
-                height: '2.5rem', // Match h-10
-                padding: '0 1rem', // Adjusted padding to remove left/right gaps
-                backgroundColor: '#e1e6e2',
-                border: '1px solid transparent',
-                borderRadius: '0.375rem', // Rounded corners
-                fontFamily: 'Inter, sans-serif',
-                fontSize: '0.875rem', // Match text-sm
-                color: '#595961',
+              control: (base) => ({
+                ...base,
+                minHeight: '40px',
                 boxShadow: 'none',
                 '&:hover': {
-                  borderColor: '#47564c',
-                },
-                '&:focus': {
-                  outline: 'none',
-                  ringColor: '#47564c',
-                  borderColor: '#47564c',
+                  boxShadow: 'none',
                 },
               }),
-              dropdownIndicator: (provided) => ({
-                ...provided,
-                color: '#595961',
+              valueContainer: (base) => ({
+                ...base,
+                padding: '0',
               }),
-              indicatorSeparator: (provided) => ({
-                ...provided,
-                backgroundColor: 'transparent',
+              input: (base) => ({
+                ...base,
+                margin: '0',
+                padding: '0',
               }),
-              menu: (provided) => ({
-                ...provided,
-                backgroundColor: '#fff',
-                borderRadius: '0.375rem',
-                boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)',
+              singleValue: (base) => ({
+                ...base,
+                margin: '0',
               }),
-              option: (provided, state) => ({
-                ...provided,
-                backgroundColor: state.isSelected ? '#47564c' : 'transparent',
-                color: state.isSelected ? '#fff' : '#595961',
-                '&:hover': {
-                  backgroundColor: '#f4f8f3',
-                  color: '#595961',
-                },
+              placeholder: (base) => ({
+                ...base,
+                margin: '0',
+              }),
+              menu: (base) => ({
+                ...base,
+                zIndex: 50,
               }),
             }}
           />
         )}
-        {...registerAction(name, { required: requiredFromProperties })}
       />
+      {hasError && <p className="mt-1 text-xs text-red-600">{errors[name]?.message as string}</p>}
     </div>
   );
 };

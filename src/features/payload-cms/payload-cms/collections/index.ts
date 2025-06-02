@@ -5,7 +5,7 @@ import { ImageCollection } from '@/features/payload-cms/payload-cms/collections/
 import { PermissionsCollection } from '@/features/payload-cms/payload-cms/collections/permission-collection';
 import { PushNotificationSubscriptions } from '@/features/payload-cms/payload-cms/collections/push-notification-subscriptions';
 import { TimelineCollection } from '@/features/payload-cms/payload-cms/collections/timeline';
-import { TimelineEntryCategory } from '@/features/payload-cms/payload-cms/collections/timeline/timeline-entry-categoriy';
+import { TimelineEntryCategory } from '@/features/payload-cms/payload-cms/collections/timeline/timeline-entry-category';
 import { UserCollection } from '@/features/payload-cms/payload-cms/collections/user-collection';
 import type { RoutableCollectionConfigs } from '@/types/types';
 

@@ -54,7 +54,7 @@ export const MainMenuLanguageSwitcher: React.FC<{ locale: Locale }> = ({ locale 
           </div>
           <ChevronDown aria-hidden="true" className="size-5 flex-none group-data-open:rotate-180" />
         </DisclosureButton>
-        <DisclosurePanel className="mt-2 space-y-2">
+        <DisclosurePanel className="mt-2 mb-4 space-y-2">
           <button
             onClick={() => handleLanguageChange('de')}
             className="block w-full cursor-pointer rounded-lg py-2 pr-3 pl-6 text-left text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"

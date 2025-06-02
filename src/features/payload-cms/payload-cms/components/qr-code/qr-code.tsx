@@ -15,6 +15,7 @@ import { FormSubmit, useDocumentInfo, useLocale, useTheme } from '@payloadcms/ui
 import { useQuery } from '@tanstack/react-query'; // Added for TanStack Query
 import { Check, Copy, Eye } from 'lucide-react';
 import Image from 'next/image';
+import { notFound } from 'next/navigation';
 import type { CollectionSlug } from 'payload';
 import type { ChangeEvent, MouseEventHandler } from 'react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -88,6 +89,18 @@ const prepareQRCodeData = async (
   let urlSlug: string = savedDocumentData?.seo?.urlSlug ?? '';
 
   if (collectionSlug === 'timeline') urlSlug = savedDocumentData?.id ?? '';
+  if (collectionSlug === 'forms') {
+    let prefix = 'form-preview/';
+    if (locale == 'de') {
+      prefix = 'formular-vorschau/';
+    } else if (locale == 'fr') {
+      prefix = 'apercu-du-formulaire/';
+    }
+    if (savedDocumentData?.id == undefined) {
+      notFound();
+    }
+    urlSlug = prefix + savedDocumentData.id;
+  }
 
   const finalCollectionSlug: string = path === '' ? '' : `/${path}`;
   const finalUrlSlug: string = urlSlug.startsWith('/') ? urlSlug : `/${urlSlug}`;
