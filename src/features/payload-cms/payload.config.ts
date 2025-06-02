@@ -13,11 +13,12 @@ import { redirectsPluginConfiguration } from '@/features/payload-cms/payload-cms
 import { s3StorageConfiguration } from '@/features/payload-cms/payload-cms/plugins/s3-storage-plugin-configuration';
 import { searchPluginConfiguration } from '@/features/payload-cms/payload-cms/plugins/search/search-plugin-configuration';
 import { smartphoneBreakpoints } from '@/features/payload-cms/utils/smartphone-breakpoints';
-import type { RoutableConfig } from '@/types/types';
+import type { Locale as LocaleType, RoutableConfig, StaticTranslationString } from '@/types/types';
 import { mongooseAdapter } from '@payloadcms/db-mongodb';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { CollectionConfig, Locale } from 'payload';
+
 import { de } from 'payload/i18n/de';
 import { en } from 'payload/i18n/en';
 import { fr } from 'payload/i18n/fr';
@@ -48,7 +49,13 @@ const generatePreviewUrl = ({
     }
 
     if (collectionConfig.slug === 'forms' && data.id !== undefined) {
-      return `${environmentVariables.APP_HOST_URL}/${locale.code}/form-preview/${data.id}?preview=true`;
+      const urlSlugs: StaticTranslationString = {
+        en: 'form-preview',
+        de: 'formular-vorschau',
+        fr: 'apercu-du-formulaire',
+      };
+
+      return `${environmentVariables.APP_HOST_URL}/${locale.code}/${urlSlugs[locale.code as LocaleType]}/${data.id}?preview=true`;
     }
   }
 
@@ -113,7 +120,7 @@ export const payloadConfig: RoutableConfig = {
     livePreview: {
       url: generatePreviewUrl,
       breakpoints: smartphoneBreakpoints,
-      collections: ['blog', 'generic-page', 'timeline'],
+      collections: ['blog', 'generic-page', 'timeline', 'forms'],
     },
   },
   collections: collectionsConfig,
