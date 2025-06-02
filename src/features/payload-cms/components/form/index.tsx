@@ -125,9 +125,9 @@ const FormFieldRenderer: React.FC<FormFieldRendererProperties> = ({ field, form,
   );
 };
 
-// eslint-disable-next-line complexity
 export const FormBlock: React.FC<
   FormBlockType & { id?: string; isPreviewMode?: boolean | undefined }
+  // eslint-disable-next-line complexity
 > = (properties) => {
   const {
     isPreviewMode,
