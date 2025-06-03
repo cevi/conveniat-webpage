@@ -506,6 +506,7 @@ export interface Form {
                   label: string;
                   defaultValue?: string | null;
                   placeholder?: string | null;
+                  allowMultiple?: boolean | null;
                   /**
                    * Choose whether the options should be displayed as a dropdown, cards boxes, or radio buttons.
                    */
@@ -620,6 +621,7 @@ export interface Form {
         label: string;
         defaultValue?: string | null;
         placeholder?: string | null;
+        allowMultiple?: boolean | null;
         /**
          * Choose whether the options should be displayed as a dropdown, cards boxes, or radio buttons.
          */
@@ -2016,6 +2018,7 @@ export interface FormsSelect<T extends boolean = true> {
                           label?: T;
                           defaultValue?: T;
                           placeholder?: T;
+                          allowMultiple?: T;
                           optionType?: T;
                           options?:
                             | T
@@ -2110,6 +2113,7 @@ export interface FormsSelect<T extends boolean = true> {
               label?: T;
               defaultValue?: T;
               placeholder?: T;
+              allowMultiple?: T;
               optionType?: T;
               options?:
                 | T

@@ -361,6 +361,16 @@ export const FormBlock: React.FC<
         return;
       }
 
+      // convert multi-select values to comma-separated strings
+      for (const [index, fieldData] of Object.entries(dataToSend)) {
+        if (Array.isArray(fieldData.value)) {
+          dataToSend[index as unknown as number] = {
+            ...fieldData,
+            value: fieldData.value.join(', '),
+          };
+        }
+      }
+
       try {
         const request = await fetch(`/api/form-submissions`, {
           body: JSON.stringify({

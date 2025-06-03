@@ -422,6 +422,11 @@ const formSelectBlock: Block = {
       fields: [{ name: 'placeholder', type: 'text', label: 'Placeholder' }],
     },
     {
+      type: 'checkbox',
+      name: 'allowMultiple',
+      label: 'Allow Multiple Selection',
+    },
+    {
       name: 'optionType',
       type: 'radio',
       options: [
