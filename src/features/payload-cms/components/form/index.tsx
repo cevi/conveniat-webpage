@@ -10,7 +10,7 @@ import { RichText } from '@payloadcms/richtext-lexical/react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import { useRouter } from 'next/navigation';
 import type { MouseEventHandler } from 'react';
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import type { FieldName } from 'react-hook-form';
 import { useForm } from 'react-hook-form';
 
@@ -92,65 +92,101 @@ const ofText: StaticTranslationString = {
   fr: 'de',
 };
 
-interface FormPageBlock {
+interface FormSection {
   id: string;
-  blockType: 'formPage';
-  pageTitle: string;
+  sectionTitle: string;
   fields: FormFieldBlock[];
 }
 
-type FormPageBlockType = FormFieldBlock | FormPageBlock;
-
 interface FormFieldRendererProperties {
-  field: FormPageBlockType;
+  section: FormSection;
   form: FormType & { _localized_status: { published: boolean } };
   formMethods: ReturnType<typeof useForm>;
 }
 
-const FormFieldRenderer: React.FC<FormFieldRendererProperties> = ({ field, form, formMethods }) => {
+const FormFieldRenderer: React.FC<FormFieldRendererProperties> = ({
+  section,
+  form,
+  formMethods,
+}) => {
   const {
     control,
     register,
     formState: { errors },
+    watch,
   } = formMethods;
 
   return (
     <>
       <h3 className="text-md text-conveniat-green mb-3 font-['Montserrat'] font-bold">
-        {'pageTitle' in field ? field.pageTitle : ''}
+        {'sectionTitle' in section ? section.sectionTitle : ''}
       </h3>
 
-      {'fields' in field &&
-        field.fields.map((fieldChild, indexChild) => {
-          const FieldChildComponent = fields[fieldChild.blockType as keyof typeof fields];
-          if (!FieldChildComponent) {
-            console.error(`Field type ${fieldChild.blockType} is not supported`);
-            return <React.Fragment key={`unsupported-${indexChild}`}></React.Fragment>;
+      {section.fields.map((fieldChild, indexChild) => {
+        // render conditioned blocks
+        if (fieldChild.blockType == 'conditionedBlock') {
+          // If the field is a conditioned block, we need to render it conditionally
+          const { field: conditionField, value: targetValue } = fieldChild.displayCondition;
+
+          // Get the condition function from the form methods
+          const condition = watch(conditionField).toString() === targetValue;
+
+          if (!condition) {
+            // If the condition is not met, we skip rendering this block
+            return (
+              <React.Fragment
+                key={`conditioned-${fieldChild.blockType}-${indexChild}`}
+              ></React.Fragment>
+            );
           }
 
-          // Extract the required property from the field
-          const isRequired = 'required' in fieldChild ? Boolean(fieldChild.required) : false;
-
+          // If the condition is met, we render the conditioned block
           return (
             <React.Fragment
               key={
                 'id' in fieldChild && Boolean(fieldChild.id)
                   ? (fieldChild.id as string)
-                  : `field-${fieldChild.blockType}-${indexChild}`
+                  : `conditioned-${fieldChild.blockType}-${indexChild}`
               }
             >
-              <FieldChildComponent
+              <FormFieldRenderer
+                section={{ id: fieldChild.id, sectionTitle: '', fields: fieldChild.fields }}
                 form={form}
-                {...fieldChild}
-                {...formMethods}
-                control={control}
-                registerAction={register}
-                errors={errors}
-                required={isRequired}
+                formMethods={formMethods}
               />
             </React.Fragment>
           );
-        })}
+        }
+
+        const FieldChildComponent = fields[fieldChild.blockType as keyof typeof fields];
+        if (!FieldChildComponent) {
+          console.error(`Field type ${fieldChild.blockType} is not supported`);
+          return <React.Fragment key={`unsupported-${indexChild}`}></React.Fragment>;
+        }
+
+        // Extract the required property from the field
+        const isRequired = 'required' in fieldChild ? Boolean(fieldChild.required) : false;
+
+        return (
+          <React.Fragment
+            key={
+              'id' in fieldChild && Boolean(fieldChild.id)
+                ? (fieldChild.id as string)
+                : `field-${fieldChild.blockType}-${indexChild}`
+            }
+          >
+            <FieldChildComponent
+              form={form}
+              {...fieldChild}
+              {...formMethods}
+              control={control}
+              registerAction={register}
+              errors={errors}
+              required={isRequired}
+            />
+          </React.Fragment>
+        );
+      })}
     </>
   );
 };
@@ -210,8 +246,8 @@ const PreviousPageButton: React.FC<{
 const ProgressBar: React.FC<{
   locale: string | undefined;
   currentStepIndex: number;
-  definedSteps: FormPageBlockType[];
-  currentActualStep: FormPageBlock;
+  definedSteps: FormSection[];
+  currentActualStep: FormSection;
 }> = ({ locale, currentStepIndex, definedSteps, currentActualStep }) => {
   return (
     <div className="mb-6">
@@ -231,7 +267,7 @@ const ProgressBar: React.FC<{
         />
       </div>
       <div className="mt-2 text-xs text-gray-600">
-        {'pageTitle' in currentActualStep && currentActualStep.pageTitle}
+        {'sectionTitle' in currentActualStep && currentActualStep.sectionTitle}
       </div>
     </div>
   );
@@ -271,7 +307,11 @@ export const FormBlock: React.FC<
 
   const locale = useCurrentLocale(i18nConfig);
   const formMethods = useForm({
-    defaultValues: buildInitialFormState(formFromProperties.fields as FormFieldBlock[]),
+    defaultValues: buildInitialFormState(
+      formFromProperties.sections.flatMap(
+        (section) => section.formSection.fields,
+      ) as FormFieldBlock[],
+    ),
     mode: 'onChange',
     reValidateMode: 'onBlur',
   });
@@ -289,30 +329,7 @@ export const FormBlock: React.FC<
   const router = useRouter();
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
-  const definedSteps = useMemo((): FormPageBlockType[] => {
-    const allFieldsInForm = formFromProperties.fields as (FormFieldBlock & {
-      name?: string;
-    })[];
-
-    const formPageFields = allFieldsInForm.filter(
-      (field: FormPageBlockType) => field.blockType === 'formPage',
-    );
-
-    if (formPageFields.length > 0) {
-      return formPageFields.map((page) => ({
-        ...page,
-      }));
-    }
-    return [
-      {
-        id: 'mainFormAsSinglePage-0',
-        blockType: 'formPage' as const,
-        pageTitle: mainFormTitle ?? '',
-        fields: allFieldsInForm,
-      },
-    ];
-  }, [formFromProperties.fields, mainFormTitle]);
-
+  const definedSteps = formFromProperties.sections.flatMap((section) => section.formSection);
   const currentActualStep = definedSteps[currentStepIndex];
   const isFirstStep = currentStepIndex === 0;
   const isLastStep = currentStepIndex === definedSteps.length - 1;
@@ -321,7 +338,8 @@ export const FormBlock: React.FC<
   const getCurrentStepFieldNames = (): FieldName<Data>[] => {
     let formFields: FormFieldBlock[] = [];
     if (currentActualStep === undefined) formFields = [];
-    else if ('fields' in currentActualStep) formFields = currentActualStep.fields;
+    else if ('fields' in currentActualStep)
+      formFields = currentActualStep.fields as FormFieldBlock[];
 
     return formFields
       .map((field) => ('name' in field && field.name !== '' ? field.name : ''))
@@ -507,7 +525,7 @@ export const FormBlock: React.FC<
           </div>
         )}
 
-        {mainFormTitle !== undefined && definedSteps.length > 1 && (
+        {mainFormTitle !== undefined && (
           <h2 className="text-conveniat-green mb-4 font-['Montserrat'] text-lg font-extrabold">
             {mainFormTitle}
           </h2>
@@ -525,7 +543,7 @@ export const FormBlock: React.FC<
             locale={locale}
             currentStepIndex={currentStepIndex}
             definedSteps={definedSteps}
-            currentActualStep={currentActualStep as FormPageBlock}
+            currentActualStep={currentActualStep as FormSection}
           />
         )}
 
@@ -538,7 +556,7 @@ export const FormBlock: React.FC<
         >
           <React.Fragment key={formID}>
             <FormFieldRenderer
-              field={currentActualStep}
+              section={currentActualStep}
               form={formFromProperties}
               formMethods={formMethods}
             />

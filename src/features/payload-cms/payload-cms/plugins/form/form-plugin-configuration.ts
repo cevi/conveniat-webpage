@@ -15,16 +15,9 @@ const formTitleField: Field = {
   type: 'text',
   required: true,
   label: {
-    en: 'Form Title',
-    de: 'Formular Titel',
-    fr: 'Titre du formulaire',
-  },
-  admin: {
-    description: {
-      de: 'Dieser Titel wird ganz oben beim Formular angezeigt. Gleichzeitig dient er als interne Bezeichnung für das Formular.',
-      en: 'This title will be displayed at the top of the form. It also serves as an internal identifier for the form.',
-      fr: 'Ce titre sera affiché en haut du formulaire. Il sert également d’identifiant interne pour le formulaire.',
-    },
+    en: 'Internal Form Title',
+    de: 'Interner Formular Titel',
+    fr: 'Titre du formulaire interne',
   },
 };
 
@@ -633,6 +626,43 @@ const formBlocks: Block[] = [
   formTextareaBlock,
 ];
 
+const conditionedBlock: Block = {
+  slug: 'conditionedBlock',
+  fields: [
+    {
+      name: 'displayCondition',
+      label: 'Display Condition',
+      type: 'group',
+      fields: [
+        {
+          name: 'field',
+          label: 'Field to check',
+          type: 'text',
+          admin: { placeholder: 'e.g. confirmationType' },
+        },
+        {
+          name: 'value',
+          label: 'Value to match',
+          type: 'text',
+          admin: { placeholder: 'e.g. message' },
+        },
+      ],
+    },
+    {
+      type: 'blocks',
+      name: 'fields',
+      label: {
+        en: 'Form Fields',
+        de: 'Formularfelder',
+        fr: 'Champs du formulaire',
+      },
+      blocks: formBlocks,
+    },
+  ],
+};
+
+const formBlocksAndConditionedBlock: Block[] = [...formBlocks, conditionedBlock];
+
 export const formPluginConfiguration = formBuilderPlugin({
   fields: {
     state: false, // we do not use states in CH
@@ -674,16 +704,17 @@ export const formPluginConfiguration = formBuilderPlugin({
       },
     },
     fields: () => {
-      const formPage: Block = {
-        slug: 'formPage',
+      const formSection: Field = {
+        type: 'group',
+        name: 'formSection',
         fields: [
           {
             type: 'text',
-            name: 'pageTitle',
+            name: 'sectionTitle',
             label: {
-              en: 'Page Title',
-              de: 'Seitentitel',
-              fr: 'Titre de la page',
+              en: 'Section Title',
+              de: 'Abschnitts Titel',
+              fr: 'Titre de la section',
             },
             required: true,
           },
@@ -695,7 +726,7 @@ export const formPluginConfiguration = formBuilderPlugin({
               de: 'Formularfelder',
               fr: 'Champs du formulaire',
             },
-            blocks: formBlocks,
+            blocks: formBlocksAndConditionedBlock,
           },
         ],
       };
@@ -711,12 +742,12 @@ export const formPluginConfiguration = formBuilderPlugin({
             },
             fields: [
               {
-                name: 'fields',
-                type: 'blocks',
+                name: 'sections',
+                type: 'array',
                 admin: {
                   initCollapsed: true,
                 },
-                blocks: [formPage, ...formBlocks],
+                fields: [formSection],
                 required: true,
               },
             ],
