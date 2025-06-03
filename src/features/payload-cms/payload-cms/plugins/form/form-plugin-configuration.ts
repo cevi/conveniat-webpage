@@ -8,7 +8,7 @@ import {
   HeadingFeature,
   lexicalEditor,
 } from '@payloadcms/richtext-lexical';
-import type { Block, Field, TabsField } from 'payload';
+import type { Block, Field, TabsField, TextFieldSingleValidation } from 'payload';
 
 const formTitleField: Field = {
   name: 'title',
@@ -69,6 +69,22 @@ const formConfirmationMessageField: Field = {
   localized: true,
   required: true,
   editor: formLexicalEditorSettings,
+};
+
+/**
+ * validate that the field name is lowercase, no special characters, and not empty
+ */
+const formNameValidation: TextFieldSingleValidation = (value) => {
+  if (value === null || value === undefined || value.trim() === '') {
+    return 'Name is required';
+  }
+  if (value !== value.toLowerCase()) {
+    return 'Name must be lowercase';
+  }
+  if (/[^a-z0-9_]/.test(value)) {
+    return 'Name can only contain lowercase letters, numbers, and underscores';
+  }
+  return true;
 };
 
 const formRedirectField: Field = {
@@ -161,6 +177,7 @@ const formCheckboxBlock: Block = {
           name: 'name',
           type: 'text',
           label: 'Name (lowercase, no special characters)',
+          validate: formNameValidation,
           required: true,
           admin: { width: '50%' },
         },
@@ -189,6 +206,7 @@ const formCountryBlock: Block = {
           name: 'name',
           type: 'text',
           label: 'Name (lowercase, no special characters)',
+          validate: formNameValidation,
           required: true,
           admin: { width: '50%' },
         },
@@ -220,6 +238,7 @@ const formEmailBlock: Block = {
           name: 'name',
           type: 'text',
           label: 'Name (lowercase, no special characters)',
+          validate: formNameValidation,
           required: true,
           admin: { width: '50%' },
         },
@@ -258,6 +277,7 @@ const formNumberBlock: Block = {
           name: 'name',
           type: 'text',
           label: 'Name (lowercase, no special characters)',
+          validate: formNameValidation,
           required: true,
           admin: { width: '50%' },
         },
@@ -291,6 +311,7 @@ const formSelectBlock: Block = {
           name: 'name',
           type: 'text',
           label: 'Name (lowercase, no special characters)',
+          validate: formNameValidation,
           required: true,
           admin: { width: '50%' },
         },
@@ -357,6 +378,7 @@ const formTextBlock: Block = {
           name: 'name',
           type: 'text',
           label: 'Name (lowercase, no special characters)',
+          validate: formNameValidation,
           required: true,
           admin: { width: '50%' },
         },
@@ -397,6 +419,7 @@ const formTextareaBlock: Block = {
           name: 'name',
           type: 'text',
           label: 'Name (lowercase, no special characters)',
+          validate: formNameValidation,
           required: true,
           admin: { width: '50%' },
         },
