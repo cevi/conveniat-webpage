@@ -447,7 +447,7 @@ export interface Form {
           | (
               | {
                   name: string;
-                  label?: string | null;
+                  label: string;
                   required?: boolean | null;
                   defaultValue?: boolean | null;
                   id?: string | null;
@@ -456,7 +456,7 @@ export interface Form {
                 }
               | {
                   name: string;
-                  label?: string | null;
+                  label: string;
                   required?: boolean | null;
                   id?: string | null;
                   blockName?: string | null;
@@ -464,7 +464,7 @@ export interface Form {
                 }
               | {
                   name: string;
-                  label?: string | null;
+                  label: string;
                   placeholder?: string | null;
                   required?: boolean | null;
                   id?: string | null;
@@ -493,7 +493,7 @@ export interface Form {
                 }
               | {
                   name: string;
-                  label?: string | null;
+                  label: string;
                   defaultValue?: number | null;
                   placeholder?: string | null;
                   required?: boolean | null;
@@ -503,7 +503,7 @@ export interface Form {
                 }
               | {
                   name: string;
-                  label?: string | null;
+                  label: string;
                   defaultValue?: string | null;
                   placeholder?: string | null;
                   options?:
@@ -520,7 +520,7 @@ export interface Form {
                 }
               | {
                   name: string;
-                  label?: string | null;
+                  label: string;
                   placeholder?: string | null;
                   defaultValue?: string | null;
                   /**
@@ -541,7 +541,7 @@ export interface Form {
                 }
               | {
                   name: string;
-                  label?: string | null;
+                  label: string;
                   placeholder?: string | null;
                   defaultValue?: string | null;
                   required?: boolean | null;
@@ -557,7 +557,7 @@ export interface Form {
       }
     | {
         name: string;
-        label?: string | null;
+        label: string;
         required?: boolean | null;
         defaultValue?: boolean | null;
         id?: string | null;
@@ -566,7 +566,7 @@ export interface Form {
       }
     | {
         name: string;
-        label?: string | null;
+        label: string;
         required?: boolean | null;
         id?: string | null;
         blockName?: string | null;
@@ -574,7 +574,7 @@ export interface Form {
       }
     | {
         name: string;
-        label?: string | null;
+        label: string;
         placeholder?: string | null;
         required?: boolean | null;
         id?: string | null;
@@ -603,7 +603,7 @@ export interface Form {
       }
     | {
         name: string;
-        label?: string | null;
+        label: string;
         defaultValue?: number | null;
         placeholder?: string | null;
         required?: boolean | null;
@@ -613,7 +613,7 @@ export interface Form {
       }
     | {
         name: string;
-        label?: string | null;
+        label: string;
         defaultValue?: string | null;
         placeholder?: string | null;
         options?:
@@ -630,7 +630,7 @@ export interface Form {
       }
     | {
         name: string;
-        label?: string | null;
+        label: string;
         placeholder?: string | null;
         defaultValue?: string | null;
         /**
@@ -651,7 +651,7 @@ export interface Form {
       }
     | {
         name: string;
-        label?: string | null;
+        label: string;
         placeholder?: string | null;
         defaultValue?: string | null;
         required?: boolean | null;

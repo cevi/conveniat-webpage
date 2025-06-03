@@ -38,7 +38,7 @@ export const basicForm: Form = {
   fields: [
     {
       id: '63adaaba5236fe69ca8973f8',
-      name: 'my-name',
+      name: 'my_name',
       blockName: 'my-name',
       blockType: 'text',
       label: 'Mein Name',
@@ -52,14 +52,14 @@ export const basicForm: Form = {
       required: true,
     },
     {
-      name: 'coolest-project',
+      name: 'coolest_project',
       blockName: 'coolest-project',
       blockType: 'textarea',
       label: 'Was ist das beste Projekt, welches auf Github existiert?',
       required: false,
     },
     {
-      blockName: 'agree-box',
+      blockName: 'agree_box',
       blockType: 'checkbox',
       name: 'checkbox',
       label: 'Da bin ich dabei!',

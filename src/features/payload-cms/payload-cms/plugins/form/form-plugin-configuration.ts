@@ -495,7 +495,7 @@ const formTextBlock: Block = {
     {
       type: 'row',
       fields: [
-        { name: 'placeholder', type: 'text', label: 'Placeholder' },
+        { name: 'placeholder', type: 'text', label: 'Placeholder', localized: true },
         {
           name: 'defaultValue',
           type: 'text',
@@ -532,6 +532,7 @@ const formTextBlock: Block = {
           name: 'inputValidationErrorMessage',
           type: 'text',
           label: 'Input Validation Error Message',
+          localized: true,
           admin: {
             description:
               'Custom error message to display when the input does not match the validation regex.',
@@ -584,7 +585,7 @@ const formTextareaBlock: Block = {
     {
       type: 'row',
       fields: [
-        { name: 'placeholder', type: 'text', label: 'Placeholder' },
+        { name: 'placeholder', type: 'text', label: 'Placeholder', localized: true },
         {
           name: 'defaultValue',
           type: 'text',
@@ -694,7 +695,6 @@ export const formPluginConfiguration = formBuilderPlugin({
                   initCollapsed: true,
                 },
                 blocks: [formPage, ...formBlocks],
-                localized: true,
                 required: true,
               },
             ],
