@@ -1,7 +1,13 @@
 import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import { getPublishingStatus } from '@/features/payload-cms/payload-cms/hooks/publishing-status';
+import { minimalEditorFeatures } from '@/features/payload-cms/payload-cms/plugins/lexical-editor';
 import { localizedStatusSchema } from '@/features/payload-cms/payload-cms/utils/localized-status-schema';
 import { formBuilderPlugin } from '@payloadcms/plugin-form-builder';
+import {
+  defaultEditorLexicalConfig,
+  HeadingFeature,
+  lexicalEditor,
+} from '@payloadcms/richtext-lexical';
 import type { Block, Field, TabsField } from 'payload';
 
 const formTitleField: Field = {
@@ -21,6 +27,16 @@ const formTitleField: Field = {
     },
   },
 };
+
+const formLexicalEditorSettings = lexicalEditor({
+  features: [
+    ...minimalEditorFeatures,
+    HeadingFeature({
+      enabledHeadingSizes: ['h3'],
+    }),
+  ],
+  lexical: defaultEditorLexicalConfig,
+});
 
 const formSubmitButtonLabelField: Field = {
   name: 'submitButtonLabel',
@@ -52,6 +68,7 @@ const formConfirmationMessageField: Field = {
   },
   localized: true,
   required: true,
+  editor: formLexicalEditorSettings,
 };
 
 const formRedirectField: Field = {
@@ -129,6 +146,7 @@ const formEmailField: Field = {
       admin: { description: 'Enter the message that should be sent in this email.' },
       label: 'Message',
       localized: true,
+      editor: formLexicalEditorSettings,
     },
   ],
 };

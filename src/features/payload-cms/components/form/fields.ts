@@ -1,6 +1,7 @@
 import { Checkbox } from '@/features/payload-cms/components/form/checkbox';
 import { Country } from '@/features/payload-cms/components/form/country';
 import { Email } from '@/features/payload-cms/components/form/email';
+import { Message } from '@/features/payload-cms/components/form/message';
 import { Number } from '@/features/payload-cms/components/form/number';
 import { Select } from '@/features/payload-cms/components/form/select';
 import { Text } from '@/features/payload-cms/components/form/text';
@@ -16,4 +17,5 @@ export const fields: Record<string, React.FC<any>> = {
   number: Number,
   select: Select,
   textarea: TextArea,
+  message: Message,
 };

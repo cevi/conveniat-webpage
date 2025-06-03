@@ -22,7 +22,7 @@ export const basicForm: Form = {
           direction: 'ltr',
           format: '',
           indent: 0,
-          tag: 'h2',
+          tag: 'h3',
           version: 1,
         },
       ],
