@@ -302,6 +302,11 @@ export interface Blog {
       | SummaryBox
       | TimelineEntries
       | Countdown
+      | {
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'whiteSpace';
+        }
     )[];
   };
   seo: {
@@ -1065,6 +1070,11 @@ export interface GenericPage {
       | SummaryBox
       | TimelineEntries
       | Countdown
+      | {
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'whiteSpace';
+        }
     )[];
   };
   seo: {
@@ -1482,6 +1492,12 @@ export interface BlogSelect<T extends boolean = true> {
               summaryBox?: T | SummaryBoxSelect<T>;
               timelineEntries?: T | TimelineEntriesSelect<T>;
               countdown?: T | CountdownSelect<T>;
+              whiteSpace?:
+                | T
+                | {
+                    id?: T;
+                    blockName?: T;
+                  };
             };
       };
   seo?:
@@ -1738,6 +1754,12 @@ export interface GenericPageSelect<T extends boolean = true> {
               summaryBox?: T | SummaryBoxSelect<T>;
               timelineEntries?: T | TimelineEntriesSelect<T>;
               countdown?: T | CountdownSelect<T>;
+              whiteSpace?:
+                | T
+                | {
+                    id?: T;
+                    blockName?: T;
+                  };
             };
       };
   seo?:

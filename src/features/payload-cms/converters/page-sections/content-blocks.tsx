@@ -52,7 +52,8 @@ export type ContentBlockTypeNames =
   | 'accordion'
   | 'summaryBox'
   | 'timelineEntries'
-  | 'countdown';
+  | 'countdown'
+  | 'whiteSpace';
 
 export type SectionRenderer<T = object> = React.FC<
   LocalizedPageType & {
@@ -381,6 +382,23 @@ export const RenderCountdown: SectionRenderer<CountdownType> = ({
       errorFallbackMessage="Failed to load countdown. Reload the page to try again."
     >
       <Countdown {...block} />
+    </SectionWrapper>
+  );
+};
+
+export const RenderWhiteSpace: SectionRenderer = ({
+  block,
+  sectionClassName,
+  sectionOverrides,
+}) => {
+  return (
+    <SectionWrapper
+      block={block}
+      sectionClassName={sectionClassName}
+      sectionOverrides={sectionOverrides}
+      errorFallbackMessage="Failed to load countdown. Reload the page to try again."
+    >
+      <div className="h-3 w-full" />
     </SectionWrapper>
   );
 };
