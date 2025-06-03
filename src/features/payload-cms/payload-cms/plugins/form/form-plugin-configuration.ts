@@ -207,6 +207,7 @@ const formCheckboxBlock: Block = {
         },
         {
           name: 'label',
+          required: true,
           type: 'text',
           label: 'Label',
           localized: true,
@@ -250,6 +251,7 @@ const formCountryBlock: Block = {
         },
         {
           name: 'label',
+          required: true,
           type: 'text',
           label: 'Label',
           localized: true,
@@ -296,6 +298,7 @@ const formEmailBlock: Block = {
         },
         {
           name: 'label',
+          required: true,
           type: 'text',
           label: 'Label',
           localized: true,
@@ -349,6 +352,7 @@ const formNumberBlock: Block = {
         },
         {
           name: 'label',
+          required: true,
           type: 'text',
           label: 'Label',
           localized: true,
@@ -398,6 +402,7 @@ const formSelectBlock: Block = {
         },
         {
           name: 'label',
+          required: true,
           type: 'text',
           label: 'Label',
           localized: true,
@@ -479,6 +484,7 @@ const formTextBlock: Block = {
         },
         {
           name: 'label',
+          required: true,
           type: 'text',
           label: 'Label',
           localized: true,
@@ -567,6 +573,7 @@ const formTextareaBlock: Block = {
         },
         {
           name: 'label',
+          required: true,
           type: 'text',
           label: 'Label',
           localized: true,
