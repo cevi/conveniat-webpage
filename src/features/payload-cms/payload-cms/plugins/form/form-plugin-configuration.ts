@@ -352,6 +352,7 @@ const formNumberBlock: Block = {
       admin: { width: '50%' },
       label: 'Default Value',
     },
+    { name: 'placeholder', type: 'text', label: 'Placeholder' },
     { name: 'required', type: 'checkbox', label: 'Required' },
   ],
   labels: { plural: 'Number Fields', singular: 'Number' },
