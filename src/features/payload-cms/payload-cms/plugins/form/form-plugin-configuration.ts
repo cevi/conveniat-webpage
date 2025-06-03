@@ -422,6 +422,23 @@ const formSelectBlock: Block = {
       fields: [{ name: 'placeholder', type: 'text', label: 'Placeholder' }],
     },
     {
+      name: 'optionType',
+      type: 'radio',
+      options: [
+        { label: 'Select Dropdown', value: 'dropdown' },
+        { label: 'Select Cards', value: 'cards' },
+        { label: 'Radio Boxes', value: 'radio' },
+      ],
+      defaultValue: 'dropdown',
+      admin: {
+        description: {
+          de: 'Wählen Sie aus, ob die Optionen als Dropdown, Auswahlkästchen oder Radioknöpfe angezeigt werden sollen.',
+          en: 'Choose whether the options should be displayed as a dropdown, cards boxes, or radio buttons.',
+          fr: 'Choisissez si les options doivent être affichées sous forme de liste déroulante, de cases à cocher ou de boutons radio.',
+        },
+      },
+    },
+    {
       name: 'options',
       type: 'array',
       fields: [
