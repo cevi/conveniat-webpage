@@ -4,13 +4,13 @@ import type { Config } from '@/features/payload-cms/payload-types';
 import type { Block, CollectionConfig, CollectionSlug, FieldHookArgs, Tab } from 'payload';
 
 interface Field {
-  name: string;
+  name?: string;
   type: string;
   hasMany?: boolean;
   localized: boolean;
   presentational: boolean;
   fields?: Field[];
-  tabs?: (Tab & { name: string })[];
+  tabs?: (Tab & { name?: string })[];
   blocks?: (Block & { slug: string })[];
 }
 
@@ -123,11 +123,18 @@ const hasDiffs = (
   if (document1 === undefined || document2 === undefined) return false;
 
   for (const field of fieldDefs) {
-    if (ignoredFields.has(field.name)) continue; // skip ignored fields
+    if (ignoredFields.has(field.name ?? '')) continue; // skip ignored fields
 
     const { name, type, fields, tabs, blocks } = field;
-    const value1 = document1[name] as unknown;
-    const value2 = document2[name] as unknown;
+    let value1 = document1 as unknown;
+    let value2 = document2 as unknown;
+
+    // unnamed fields which are not part of the data structure
+
+    if (name !== undefined) {
+      value1 = document1[name] as unknown;
+      value2 = document2[name] as unknown;
+    }
 
     switch (type) {
       case 'blocks': {
@@ -171,7 +178,8 @@ const hasDiffs = (
         // verify that the blocks are in the same order
         if (blocks1.length !== blocks2.length) return true;
         for (const [index, element] of blocks1.entries()) {
-          // @ts-ignore
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-expect-error
           if (element['id'] !== blocks2[index]['id']) return true;
         }
 
@@ -183,8 +191,14 @@ const hasDiffs = (
 
         for (const tab of tabs) {
           const tabName = tab.name;
-          const tabValue1 = document1[tabName] as unknown as PayloadDocument;
-          const tabValue2 = document2[tabName] as unknown as PayloadDocument;
+          let tabValue1 = document1 as PayloadDocument;
+          let tabValue2 = document2 as PayloadDocument;
+
+          if (tabName !== undefined) {
+            tabValue1 = document1[tabName] as unknown as PayloadDocument;
+            tabValue2 = document2[tabName] as unknown as PayloadDocument;
+          }
+
           const tabFields = tab.fields as Field[];
           if (hasDiffs(locale, tabFields, tabValue1, tabValue2)) {
             return true;
@@ -205,7 +219,8 @@ const hasDiffs = (
           for (const _value1 of value1 as { id: string }[]) {
             const idV1 = _value1.id;
 
-            // @ts-ignore
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-expect-error
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
             const _value2 = value2.find((v) => v.id === idV1);
             if (_value2 === undefined) return true; // value isn't found in document2
@@ -222,10 +237,15 @@ const hasDiffs = (
           }
 
           // verify that the array elements are in the same order
-          // @ts-ignore
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-expect-error
           if (value1.length !== value2.length) return true;
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-expect-error
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call
           for (const [index, element] of value1.entries()) {
-            // @ts-ignore
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-expect-error
             // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             if (element.id !== value2[index].id) return true;
           }
@@ -278,7 +298,8 @@ const hasDiffs = (
           if (v1[locale].length !== v2[locale].length) return true; // different number of items
 
           for (const [index, element] of v1[locale].entries()) {
-            // @ts-ignore
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-expect-error
             if (element.id !== v2[locale][index].id) return true; // different id
           }
           break; // no diff found, continue with the next field
@@ -292,7 +313,8 @@ const hasDiffs = (
           if (v1.length !== v2.length) return true; // different number of items
 
           for (const [index, element] of v1.entries()) {
-            // @ts-ignore
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-expect-error
             if (element.id !== v2[index].id) return true; // different id
           }
           break; // no diff found, continue with the next field
