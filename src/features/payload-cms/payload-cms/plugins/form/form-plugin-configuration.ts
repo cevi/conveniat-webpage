@@ -169,6 +169,20 @@ const formEmailField: Field = {
 
 const formCheckboxBlock: Block = {
   slug: 'checkbox',
+  admin: {
+    components: {
+      Label: {
+        path: '@/features/payload-cms/payload-cms/components/form-block-label#FormBlockLabel',
+        clientProps: {
+          label: {
+            en: 'Checkbox Field',
+            de: 'Checkbox Feld',
+            fr: 'Champ Checkbox',
+          },
+        },
+      },
+    },
+  },
   fields: [
     {
       type: 'row',
@@ -198,6 +212,20 @@ const formCheckboxBlock: Block = {
 
 const formCountryBlock: Block = {
   slug: 'country',
+  admin: {
+    components: {
+      Label: {
+        path: '@/features/payload-cms/payload-cms/components/form-block-label#FormBlockLabel',
+        clientProps: {
+          label: {
+            en: 'Country Field',
+            de: 'Länderfeld',
+            fr: 'Champ Pays',
+          },
+        },
+      },
+    },
+  },
   fields: [
     {
       type: 'row',
@@ -230,6 +258,20 @@ const formCountryBlock: Block = {
 
 const formEmailBlock: Block = {
   slug: 'email',
+  admin: {
+    components: {
+      Label: {
+        path: '@/features/payload-cms/payload-cms/components/form-block-label#FormBlockLabel',
+        clientProps: {
+          label: {
+            en: 'Email Field',
+            de: 'E-Mail Feld',
+            fr: 'Champ Email',
+          },
+        },
+      },
+    },
+  },
   fields: [
     {
       type: 'row',
@@ -269,6 +311,20 @@ const formRichTextBlock: Block = {
 
 const formNumberBlock: Block = {
   slug: 'number',
+  admin: {
+    components: {
+      Label: {
+        path: '@/features/payload-cms/payload-cms/components/form-block-label#FormBlockLabel',
+        clientProps: {
+          label: {
+            en: 'Number Field',
+            de: 'Zahlenfeld',
+            fr: 'Champ Numérique',
+          },
+        },
+      },
+    },
+  },
   fields: [
     {
       type: 'row',
@@ -303,6 +359,20 @@ const formNumberBlock: Block = {
 
 const formSelectBlock: Block = {
   slug: 'select',
+  admin: {
+    components: {
+      Label: {
+        path: '@/features/payload-cms/payload-cms/components/form-block-label#FormBlockLabel',
+        clientProps: {
+          label: {
+            en: 'Select Field',
+            de: 'Auswahlfeld',
+            fr: 'Champ Sélection',
+          },
+        },
+      },
+    },
+  },
   fields: [
     {
       type: 'row',
@@ -370,6 +440,20 @@ const formSelectBlock: Block = {
 
 const formTextBlock: Block = {
   slug: 'text',
+  admin: {
+    components: {
+      Label: {
+        path: '@/features/payload-cms/payload-cms/components/form-block-label#FormBlockLabel',
+        clientProps: {
+          label: {
+            en: 'Text Field',
+            de: 'Textfeld',
+            fr: 'Champ Texte',
+          },
+        },
+      },
+    },
+  },
   fields: [
     {
       type: 'row',
@@ -411,6 +495,20 @@ const formTextBlock: Block = {
 
 const formTextareaBlock: Block = {
   slug: 'textarea',
+  admin: {
+    components: {
+      Label: {
+        path: '@/features/payload-cms/payload-cms/components/form-block-label#FormBlockLabel',
+        clientProps: {
+          label: {
+            en: 'Text Area Field',
+            de: 'Textbereich Feld',
+            fr: 'Champ Zone de Texte',
+          },
+        },
+      },
+    },
+  },
   fields: [
     {
       type: 'row',
