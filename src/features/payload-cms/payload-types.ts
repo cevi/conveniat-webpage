@@ -523,7 +523,18 @@ export interface Form {
                   label?: string | null;
                   placeholder?: string | null;
                   defaultValue?: string | null;
+                  /**
+                   * Required field
+                   */
                   required?: boolean | null;
+                  /**
+                   * Use a regular expression to validate the input. For example, "^[a-zA-Z0-9]+$" will only allow alphanumeric characters.
+                   */
+                  inputValidation?: string | null;
+                  /**
+                   * Custom error message to display when the input does not match the validation regex.
+                   */
+                  inputValidationErrorMessage?: string | null;
                   id?: string | null;
                   blockName?: string | null;
                   blockType: 'text';
@@ -622,7 +633,18 @@ export interface Form {
         label?: string | null;
         placeholder?: string | null;
         defaultValue?: string | null;
+        /**
+         * Required field
+         */
         required?: boolean | null;
+        /**
+         * Use a regular expression to validate the input. For example, "^[a-zA-Z0-9]+$" will only allow alphanumeric characters.
+         */
+        inputValidation?: string | null;
+        /**
+         * Custom error message to display when the input does not match the validation regex.
+         */
+        inputValidationErrorMessage?: string | null;
         id?: string | null;
         blockName?: string | null;
         blockType: 'text';
@@ -2005,6 +2027,8 @@ export interface FormsSelect<T extends boolean = true> {
                           placeholder?: T;
                           defaultValue?: T;
                           required?: T;
+                          inputValidation?: T;
+                          inputValidationErrorMessage?: T;
                           id?: T;
                           blockName?: T;
                         };
@@ -2096,6 +2120,8 @@ export interface FormsSelect<T extends boolean = true> {
               placeholder?: T;
               defaultValue?: T;
               required?: T;
+              inputValidation?: T;
+              inputValidationErrorMessage?: T;
               id?: T;
               blockName?: T;
             };

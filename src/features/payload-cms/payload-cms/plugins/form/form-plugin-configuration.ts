@@ -87,6 +87,16 @@ const formNameValidation: TextFieldSingleValidation = (value) => {
   return true;
 };
 
+const validateRegex: TextFieldSingleValidation = (value) => {
+  if (!value) return true; // allow empty values
+  try {
+    new RegExp(value);
+    return true;
+  } catch {
+    return 'Invalid regular expression';
+  }
+};
+
 const formRedirectField: Field = {
   name: 'redirect',
   type: 'group',
@@ -489,7 +499,40 @@ const formTextBlock: Block = {
         },
       ],
     },
-    { name: 'required', type: 'checkbox', label: 'Required' },
+
+    {
+      type: 'group',
+      label: 'Input Validation',
+      fields: [
+        {
+          name: 'required',
+          type: 'checkbox',
+          label: 'Required',
+          admin: {
+            description: 'Required field',
+          },
+        },
+        {
+          name: 'inputValidation',
+          type: 'text',
+          label: 'Input Validation (Regex)',
+          admin: {
+            description:
+              'Use a regular expression to validate the input. For example, "^[a-zA-Z0-9]+$" will only allow alphanumeric characters.',
+          },
+          validate: validateRegex,
+        },
+        {
+          name: 'inputValidationErrorMessage',
+          type: 'text',
+          label: 'Input Validation Error Message',
+          admin: {
+            description:
+              'Custom error message to display when the input does not match the validation regex.',
+          },
+        },
+      ],
+    },
   ],
   labels: { plural: 'Text Fields', singular: 'Text' },
 };
@@ -640,6 +683,9 @@ export const formPluginConfiguration = formBuilderPlugin({
               {
                 name: 'fields',
                 type: 'blocks',
+                admin: {
+                  initCollapsed: true,
+                },
                 blocks: [formPage, ...formBlocks],
                 localized: true,
                 required: true,
