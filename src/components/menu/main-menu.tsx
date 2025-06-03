@@ -106,9 +106,9 @@ export const MainMenu: React.FC = async () => {
         </div>
       </div>
 
-      <hr className="bg-gray-100 xl:hidden" />
+      <hr className="border-t-2 bg-gray-100 xl:hidden" />
 
-      <div className="divide-y-2 divide-gray-100 py-4">
+      <div className="divide-y-2 divide-gray-100 pb-4">
         <MainMenuLanguageSwitcher locale={locale} />
         <SearchComponent locale={locale} actionURL={actionURL} />
 
