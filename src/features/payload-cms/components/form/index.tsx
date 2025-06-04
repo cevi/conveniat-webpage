@@ -104,6 +104,7 @@ export interface FormBlockType {
   blockName?: string;
   blockType?: 'formBlock';
   form: FormType & {
+    autocomplete: boolean;
     sections: {
       id: string;
       formSection: FormSection;
@@ -517,7 +518,12 @@ export const FormBlock: React.FC<
           }
         }}
         noValidate
+        autoComplete={formFromProperties.autocomplete ? 'on' : 'off'}
+        aria-autocomplete={formFromProperties.autocomplete ? 'none': 'list' }
       >
+        {formFromProperties.autocomplete && (
+          <input autoComplete="false" name="hidden" type="text" className="hidden"></input>
+        )}
         {!isLoading && hasSubmitted && confirmationType === 'message' && (
           <div className="bg-opacity-95 absolute inset-0 z-10 flex flex-col items-center justify-center bg-white p-6 text-center">
             <div className="max-w-md">

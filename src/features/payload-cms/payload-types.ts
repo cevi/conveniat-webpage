@@ -437,6 +437,7 @@ export interface FormBlock {
 export interface Form {
   id: string;
   title: string;
+  autocomplete?: boolean | null;
   sections: {
     formSection: {
       sectionTitle: string;
@@ -1962,6 +1963,7 @@ export interface TimelineCategorySelect<T extends boolean = true> {
  */
 export interface FormsSelect<T extends boolean = true> {
   title?: T;
+  autocomplete?: T;
   sections?:
     | T
     | {

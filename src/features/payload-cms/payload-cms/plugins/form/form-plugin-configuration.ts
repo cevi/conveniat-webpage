@@ -21,6 +21,18 @@ const formTitleField: Field = {
   },
 };
 
+const formAllowAutocompleteField: Field = {
+  name: 'autocomplete',
+  type: 'checkbox',
+  required: false,
+  defaultValue: true,
+  label: {
+    en: 'Allow Browser Autocompletion',
+    de: 'Browser Autovervollständigung erlauben',
+    fr: 'Autoriser la saisie automatique du navigateur',
+  },
+};
+
 const formLexicalEditorSettings = lexicalEditor({
   features: [
     ...minimalEditorFeatures,
@@ -787,7 +799,7 @@ export const formPluginConfiguration = formBuilderPlugin({
         ],
       };
 
-      const fields: Field[] = [formTitleField, tabs];
+      const fields: Field[] = [formTitleField, formAllowAutocompleteField, tabs];
 
       return [
         ...fields,
