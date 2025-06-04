@@ -1,26 +1,35 @@
 import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import { getPublishingStatus } from '@/features/payload-cms/payload-cms/hooks/publishing-status';
+import { minimalEditorFeatures } from '@/features/payload-cms/payload-cms/plugins/lexical-editor';
 import { localizedStatusSchema } from '@/features/payload-cms/payload-cms/utils/localized-status-schema';
 import { formBuilderPlugin } from '@payloadcms/plugin-form-builder';
-import type { Block, Field, TabsField } from 'payload';
+import {
+  defaultEditorLexicalConfig,
+  HeadingFeature,
+  lexicalEditor,
+} from '@payloadcms/richtext-lexical';
+import type { Block, Field, TabsField, TextFieldSingleValidation } from 'payload';
 
 const formTitleField: Field = {
   name: 'title',
   type: 'text',
   required: true,
   label: {
-    en: 'Form Title',
-    de: 'Formular Titel',
-    fr: 'Titre du formulaire',
-  },
-  admin: {
-    description: {
-      de: 'Dieser Titel wird ganz oben beim Formular angezeigt. Gleichzeitig dient er als interne Bezeichnung für das Formular.',
-      en: 'This title will be displayed at the top of the form. It also serves as an internal identifier for the form.',
-      fr: 'Ce titre sera affiché en haut du formulaire. Il sert également d’identifiant interne pour le formulaire.',
-    },
+    en: 'Internal Form Title',
+    de: 'Interner Formular Titel',
+    fr: 'Titre du formulaire interne',
   },
 };
+
+const formLexicalEditorSettings = lexicalEditor({
+  features: [
+    ...minimalEditorFeatures,
+    HeadingFeature({
+      enabledHeadingSizes: ['h3'],
+    }),
+  ],
+  lexical: defaultEditorLexicalConfig,
+});
 
 const formSubmitButtonLabelField: Field = {
   name: 'submitButtonLabel',
@@ -52,6 +61,33 @@ const formConfirmationMessageField: Field = {
   },
   localized: true,
   required: true,
+  editor: formLexicalEditorSettings,
+};
+
+/**
+ * validate that the field name is lowercase, no special characters, and not empty
+ */
+const formNameValidation: TextFieldSingleValidation = (value) => {
+  if (value === null || value === undefined || value.trim() === '') {
+    return 'Name is required';
+  }
+  if (value !== value.toLowerCase()) {
+    return 'Name must be lowercase';
+  }
+  if (/[^a-z0-9_]/.test(value)) {
+    return 'Name can only contain lowercase letters, numbers, and underscores';
+  }
+  return true;
+};
+
+const validateRegex: TextFieldSingleValidation = (value) => {
+  if (!value) return true; // allow empty values
+  try {
+    new RegExp(value);
+    return true;
+  } catch {
+    return 'Invalid regular expression';
+  }
 };
 
 const formRedirectField: Field = {
@@ -129,12 +165,27 @@ const formEmailField: Field = {
       admin: { description: 'Enter the message that should be sent in this email.' },
       label: 'Message',
       localized: true,
+      editor: formLexicalEditorSettings,
     },
   ],
 };
 
 const formCheckboxBlock: Block = {
   slug: 'checkbox',
+  admin: {
+    components: {
+      Label: {
+        path: '@/features/payload-cms/payload-cms/components/form-block-label#FormBlockLabel',
+        clientProps: {
+          label: {
+            en: 'Checkbox Field',
+            de: 'Checkbox Feld',
+            fr: 'Champ Checkbox',
+          },
+        },
+      },
+    },
+  },
   fields: [
     {
       type: 'row',
@@ -143,11 +194,13 @@ const formCheckboxBlock: Block = {
           name: 'name',
           type: 'text',
           label: 'Name (lowercase, no special characters)',
+          validate: formNameValidation,
           required: true,
           admin: { width: '50%' },
         },
         {
           name: 'label',
+          required: true,
           type: 'text',
           label: 'Label',
           localized: true,
@@ -163,6 +216,20 @@ const formCheckboxBlock: Block = {
 
 const formCountryBlock: Block = {
   slug: 'country',
+  admin: {
+    components: {
+      Label: {
+        path: '@/features/payload-cms/payload-cms/components/form-block-label#FormBlockLabel',
+        clientProps: {
+          label: {
+            en: 'Country Field',
+            de: 'Länderfeld',
+            fr: 'Champ Pays',
+          },
+        },
+      },
+    },
+  },
   fields: [
     {
       type: 'row',
@@ -171,11 +238,13 @@ const formCountryBlock: Block = {
           name: 'name',
           type: 'text',
           label: 'Name (lowercase, no special characters)',
+          validate: formNameValidation,
           required: true,
           admin: { width: '50%' },
         },
         {
           name: 'label',
+          required: true,
           type: 'text',
           label: 'Label',
           localized: true,
@@ -194,6 +263,20 @@ const formCountryBlock: Block = {
 
 const formEmailBlock: Block = {
   slug: 'email',
+  admin: {
+    components: {
+      Label: {
+        path: '@/features/payload-cms/payload-cms/components/form-block-label#FormBlockLabel',
+        clientProps: {
+          label: {
+            en: 'Email Field',
+            de: 'E-Mail Feld',
+            fr: 'Champ Email',
+          },
+        },
+      },
+    },
+  },
   fields: [
     {
       type: 'row',
@@ -202,11 +285,13 @@ const formEmailBlock: Block = {
           name: 'name',
           type: 'text',
           label: 'Name (lowercase, no special characters)',
+          validate: formNameValidation,
           required: true,
           admin: { width: '50%' },
         },
         {
           name: 'label',
+          required: true,
           type: 'text',
           label: 'Label',
           localized: true,
@@ -232,6 +317,20 @@ const formRichTextBlock: Block = {
 
 const formNumberBlock: Block = {
   slug: 'number',
+  admin: {
+    components: {
+      Label: {
+        path: '@/features/payload-cms/payload-cms/components/form-block-label#FormBlockLabel',
+        clientProps: {
+          label: {
+            en: 'Number Field',
+            de: 'Zahlenfeld',
+            fr: 'Champ Numérique',
+          },
+        },
+      },
+    },
+  },
   fields: [
     {
       type: 'row',
@@ -240,11 +339,13 @@ const formNumberBlock: Block = {
           name: 'name',
           type: 'text',
           label: 'Name (lowercase, no special characters)',
+          validate: formNameValidation,
           required: true,
           admin: { width: '50%' },
         },
         {
           name: 'label',
+          required: true,
           type: 'text',
           label: 'Label',
           localized: true,
@@ -258,6 +359,7 @@ const formNumberBlock: Block = {
       admin: { width: '50%' },
       label: 'Default Value',
     },
+    { name: 'placeholder', type: 'text', label: 'Placeholder' },
     { name: 'required', type: 'checkbox', label: 'Required' },
   ],
   labels: { plural: 'Number Fields', singular: 'Number' },
@@ -265,6 +367,20 @@ const formNumberBlock: Block = {
 
 const formSelectBlock: Block = {
   slug: 'select',
+  admin: {
+    components: {
+      Label: {
+        path: '@/features/payload-cms/payload-cms/components/form-block-label#FormBlockLabel',
+        clientProps: {
+          label: {
+            en: 'Select Field',
+            de: 'Auswahlfeld',
+            fr: 'Champ Sélection',
+          },
+        },
+      },
+    },
+  },
   fields: [
     {
       type: 'row',
@@ -273,11 +389,13 @@ const formSelectBlock: Block = {
           name: 'name',
           type: 'text',
           label: 'Name (lowercase, no special characters)',
+          validate: formNameValidation,
           required: true,
           admin: { width: '50%' },
         },
         {
           name: 'label',
+          required: true,
           type: 'text',
           label: 'Label',
           localized: true,
@@ -295,6 +413,28 @@ const formSelectBlock: Block = {
     {
       type: 'row',
       fields: [{ name: 'placeholder', type: 'text', label: 'Placeholder' }],
+    },
+    {
+      type: 'checkbox',
+      name: 'allowMultiple',
+      label: 'Allow Multiple Selection',
+    },
+    {
+      name: 'optionType',
+      type: 'radio',
+      options: [
+        { label: 'Select Dropdown', value: 'dropdown' },
+        { label: 'Select Cards', value: 'cards' },
+        { label: 'Radio Boxes', value: 'radio' },
+      ],
+      defaultValue: 'dropdown',
+      admin: {
+        description: {
+          de: 'Wählen Sie aus, ob die Optionen als Dropdown, Auswahlkästchen oder Radioknöpfe angezeigt werden sollen.',
+          en: 'Choose whether the options should be displayed as a dropdown, cards boxes, or radio buttons.',
+          fr: 'Choisissez si les options doivent être affichées sous forme de liste déroulante, de cases à cocher ou de boutons radio.',
+        },
+      },
     },
     {
       name: 'options',
@@ -331,6 +471,20 @@ const formSelectBlock: Block = {
 
 const formTextBlock: Block = {
   slug: 'text',
+  admin: {
+    components: {
+      Label: {
+        path: '@/features/payload-cms/payload-cms/components/form-block-label#FormBlockLabel',
+        clientProps: {
+          label: {
+            en: 'Text Field',
+            de: 'Textfeld',
+            fr: 'Champ Texte',
+          },
+        },
+      },
+    },
+  },
   fields: [
     {
       type: 'row',
@@ -339,11 +493,13 @@ const formTextBlock: Block = {
           name: 'name',
           type: 'text',
           label: 'Name (lowercase, no special characters)',
+          validate: formNameValidation,
           required: true,
           admin: { width: '50%' },
         },
         {
           name: 'label',
+          required: true,
           type: 'text',
           label: 'Label',
           localized: true,
@@ -354,7 +510,7 @@ const formTextBlock: Block = {
     {
       type: 'row',
       fields: [
-        { name: 'placeholder', type: 'text', label: 'Placeholder' },
+        { name: 'placeholder', type: 'text', label: 'Placeholder', localized: true },
         {
           name: 'defaultValue',
           type: 'text',
@@ -364,13 +520,61 @@ const formTextBlock: Block = {
         },
       ],
     },
-    { name: 'required', type: 'checkbox', label: 'Required' },
+
+    {
+      type: 'group',
+      label: 'Input Validation',
+      fields: [
+        {
+          name: 'required',
+          type: 'checkbox',
+          label: 'Required',
+          admin: {
+            description: 'Required field',
+          },
+        },
+        {
+          name: 'inputValidation',
+          type: 'text',
+          label: 'Input Validation (Regex)',
+          admin: {
+            description:
+              'Use a regular expression to validate the input. For example, "^[a-zA-Z0-9]+$" will only allow alphanumeric characters.',
+          },
+          validate: validateRegex,
+        },
+        {
+          name: 'inputValidationErrorMessage',
+          type: 'text',
+          label: 'Input Validation Error Message',
+          localized: true,
+          admin: {
+            description:
+              'Custom error message to display when the input does not match the validation regex.',
+          },
+        },
+      ],
+    },
   ],
   labels: { plural: 'Text Fields', singular: 'Text' },
 };
 
 const formTextareaBlock: Block = {
   slug: 'textarea',
+  admin: {
+    components: {
+      Label: {
+        path: '@/features/payload-cms/payload-cms/components/form-block-label#FormBlockLabel',
+        clientProps: {
+          label: {
+            en: 'Text Area Field',
+            de: 'Textbereich Feld',
+            fr: 'Champ Zone de Texte',
+          },
+        },
+      },
+    },
+  },
   fields: [
     {
       type: 'row',
@@ -379,11 +583,13 @@ const formTextareaBlock: Block = {
           name: 'name',
           type: 'text',
           label: 'Name (lowercase, no special characters)',
+          validate: formNameValidation,
           required: true,
           admin: { width: '50%' },
         },
         {
           name: 'label',
+          required: true,
           type: 'text',
           label: 'Label',
           localized: true,
@@ -394,7 +600,7 @@ const formTextareaBlock: Block = {
     {
       type: 'row',
       fields: [
-        { name: 'placeholder', type: 'text', label: 'Placeholder' },
+        { name: 'placeholder', type: 'text', label: 'Placeholder', localized: true },
         {
           name: 'defaultValue',
           type: 'text',
@@ -419,6 +625,43 @@ const formBlocks: Block[] = [
   formTextBlock,
   formTextareaBlock,
 ];
+
+const conditionedBlock: Block = {
+  slug: 'conditionedBlock',
+  fields: [
+    {
+      name: 'displayCondition',
+      label: 'Display Condition',
+      type: 'group',
+      fields: [
+        {
+          name: 'field',
+          label: 'Field to check',
+          type: 'text',
+          admin: { placeholder: 'e.g. confirmationType' },
+        },
+        {
+          name: 'value',
+          label: 'Value to match',
+          type: 'text',
+          admin: { placeholder: 'e.g. message' },
+        },
+      ],
+    },
+    {
+      type: 'blocks',
+      name: 'fields',
+      label: {
+        en: 'Form Fields',
+        de: 'Formularfelder',
+        fr: 'Champs du formulaire',
+      },
+      blocks: formBlocks,
+    },
+  ],
+};
+
+const formBlocksAndConditionedBlock: Block[] = [...formBlocks, conditionedBlock];
 
 export const formPluginConfiguration = formBuilderPlugin({
   fields: {
@@ -461,16 +704,17 @@ export const formPluginConfiguration = formBuilderPlugin({
       },
     },
     fields: () => {
-      const formPage: Block = {
-        slug: 'formPage',
+      const formSection: Field = {
+        type: 'group',
+        name: 'formSection',
         fields: [
           {
             type: 'text',
-            name: 'pageTitle',
+            name: 'sectionTitle',
             label: {
-              en: 'Page Title',
-              de: 'Seitentitel',
-              fr: 'Titre de la page',
+              en: 'Section Title',
+              de: 'Abschnitts Titel',
+              fr: 'Titre de la section',
             },
             required: true,
           },
@@ -482,7 +726,7 @@ export const formPluginConfiguration = formBuilderPlugin({
               de: 'Formularfelder',
               fr: 'Champs du formulaire',
             },
-            blocks: formBlocks,
+            blocks: formBlocksAndConditionedBlock,
           },
         ],
       };
@@ -498,10 +742,12 @@ export const formPluginConfiguration = formBuilderPlugin({
             },
             fields: [
               {
-                name: 'fields',
-                type: 'blocks',
-                blocks: [formPage, ...formBlocks],
-                localized: true,
+                name: 'sections',
+                type: 'array',
+                admin: {
+                  initCollapsed: true,
+                },
+                fields: [formSection],
                 required: true,
               },
             ],

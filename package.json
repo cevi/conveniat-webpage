@@ -1,6 +1,6 @@
 {
   "name": "conveniat27",
-  "version": "0.14.0",
+  "version": "0.15.0",
   "author": "Cyrill Püntener v/o JPG (cyrill.puentener@cevi.ch)",
   "maintainers": [
     "Cyrill Püntener v/o JPG (cyrill.puentener@cevi.ch)",
@@ -43,7 +43,7 @@
     "@radix-ui/react-select": "^2.2.5",
     "@radix-ui/react-slot": "^1.2.3",
     "@t3-oss/env-nextjs": "^0.12.0",
-    "@tanstack/react-query": "^5.79.0",
+    "@tanstack/react-query": "^5.79.2",
     "@types/js-cookie": "^3.0.6",
     "@types/jsonwebtoken": "^9.0.9",
     "class-variance-authority": "^0.7.1",
@@ -62,14 +62,14 @@
     "next-auth": "5.0.0-beta.25",
     "next-i18n-router": "^5.5.2",
     "payload": "^3.40.0",
-    "posthog-js": "^1.249.0",
+    "posthog-js": "^1.249.1",
     "posthog-node": "^4.18.0",
     "qs-esm": "^7.0.2",
     "react": "19.0.0",
     "react-dialog": "^1.0.2",
     "react-dom": "19.0.0",
     "react-error-boundary": "^4.1.2",
-    "react-hook-form": "^7.56.4",
+    "react-hook-form": "^7.57.0",
     "react-i18next": "^15.5.2",
     "react-select": "^5.10.1",
     "react-social-media-embed": "^2.5.18",
@@ -79,7 +79,7 @@
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
     "web-push": "^3.6.7",
-    "zod": "^3.25.42"
+    "zod": "^3.25.48"
   },
   "devDependencies": {
     "@eslint/compat": "^1.2.9",
@@ -99,7 +99,7 @@
     "eslint-config-next": "15.2.0",
     "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-file-progress": "^3.0.2",
-    "eslint-plugin-n": "^17.18.0",
+    "eslint-plugin-n": "^17.19.0",
     "eslint-plugin-next": "^0.0.0",
     "eslint-plugin-no-relative-import-paths": "^1.6.1",
     "eslint-plugin-node": "^11.1.0",
@@ -117,7 +117,7 @@
     "prisma": "6.8.2",
     "tailwindcss": "^4.1.8",
     "typescript": "5.5.4",
-    "typescript-eslint": "^8.33.0",
+    "typescript-eslint": "^8.33.1",
     "unrs-resolver": "^1.7.8"
   },
   "engines": {

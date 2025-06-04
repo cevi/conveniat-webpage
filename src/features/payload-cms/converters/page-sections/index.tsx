@@ -15,6 +15,7 @@ import {
   RenderRichTextSection,
   RenderSinglePicture,
   RenderTimelineEntries,
+  RenderWhiteSpace,
   RenderYoutubeEmbed,
   SummaryBlock,
   SwisstopoInlineMapSection,
@@ -54,6 +55,7 @@ export const PageSectionsConverter: React.FC<
     summaryBox: SummaryBlock,
     timelineEntries: RenderTimelineEntries,
     countdown: RenderCountdown,
+    whiteSpace: RenderWhiteSpace,
   };
 
   return (

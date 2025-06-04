@@ -5,3 +5,9 @@ export const fieldIsRequiredText: StaticTranslationString = {
   de: 'Dieses Feld ist erforderlich',
   fr: 'Ce champ est obligatoire',
 };
+
+export const fieldIsNotValidText: StaticTranslationString = {
+  en: 'The format is not valid.',
+  de: 'Das Format ist ungültig.',
+  fr: 'Le format n’est pas valide.',
+};

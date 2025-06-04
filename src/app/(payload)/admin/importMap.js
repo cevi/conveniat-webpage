@@ -17,6 +17,7 @@ import { default as default_bfb7b08888889fc5b15d089d71fdfbc6 } from '@/features/
 import { default as default_a4ebed491f9244748218c109a1d489e3 } from '@/features/payload-cms/payload-cms/components/qr-code/qr-code'
 import { default as default_ad2ab9e4ee1f1c863c85f67238030f8f } from '@/features/payload-cms/payload-cms/components/multi-lang-publishing/publish-localized'
 import { default as default_c9f917d9608a57eb8358fce7a7898bd3 } from '@/features/payload-cms/payload-cms/components/push-notification/push-notification'
+import { FormBlockLabel as FormBlockLabel_38d14c2698379009ac744a1a2c27c19b } from '@/features/payload-cms/payload-cms/components/form-block-label'
 import { LinkToDoc as LinkToDoc_aead06e4cbf6b2620c5c51c9ab283634 } from '@payloadcms/plugin-search/client'
 import { ReindexButton as ReindexButton_aead06e4cbf6b2620c5c51c9ab283634 } from '@payloadcms/plugin-search/client'
 import { ConveniatLogo as ConveniatLogo_1dcd95bfbb6787f73675c94df91c942d } from '@/components/svg-logos/conveniat-logo.tsx'
@@ -44,6 +45,7 @@ export const importMap = {
   "@/features/payload-cms/payload-cms/components/qr-code/qr-code#default": default_a4ebed491f9244748218c109a1d489e3,
   "@/features/payload-cms/payload-cms/components/multi-lang-publishing/publish-localized#default": default_ad2ab9e4ee1f1c863c85f67238030f8f,
   "@/features/payload-cms/payload-cms/components/push-notification/push-notification#default": default_c9f917d9608a57eb8358fce7a7898bd3,
+  "@/features/payload-cms/payload-cms/components/form-block-label#FormBlockLabel": FormBlockLabel_38d14c2698379009ac744a1a2c27c19b,
   "@payloadcms/plugin-search/client#LinkToDoc": LinkToDoc_aead06e4cbf6b2620c5c51c9ab283634,
   "@payloadcms/plugin-search/client#ReindexButton": ReindexButton_aead06e4cbf6b2620c5c51c9ab283634,
   "@/components/svg-logos/conveniat-logo.tsx#ConveniatLogo": ConveniatLogo_1dcd95bfbb6787f73675c94df91c942d,

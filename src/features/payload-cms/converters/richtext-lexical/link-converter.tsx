@@ -1,4 +1,4 @@
-import { routeResolutionTable } from '@/features/payload-cms/route-resolution-table';
+import { slugToUrlMapping } from '@/features/payload-cms/slug-to-url-mapping';
 import type { SerializedParagraphNode } from '@payloadcms/richtext-lexical';
 import type { JSXConverters } from '@payloadcms/richtext-lexical/react';
 import Link from 'next/link';
@@ -34,15 +34,15 @@ const resolveInternalLink = (fields: LinkFields): string => {
     const urlSlug = `/${fields.doc.value.seo.urlSlug}`;
     const collectionName = fields.doc.relationTo as string;
 
-    for (const [key, value] of Object.entries(routeResolutionTable)) {
-      if (value.collectionSlug === collectionName) {
+    for (const [key, value] of Object.entries(slugToUrlMapping)) {
+      if (value.slug === collectionName) {
         url = key === '' ? urlSlug : collectionName + urlSlug;
         break;
       }
     }
   }
 
-  return url;
+  return `/${url}`;
 };
 
 const linkConverter: JSXConverters<SerializedParagraphNode>['link'] = ({ node, nodesToJSX }) => {
