@@ -58,9 +58,9 @@ const validationErrorText: StaticTranslationString = {
 };
 
 const allGoodPreviewText: StaticTranslationString = {
-  en: 'All good - but this is just a preview.',
-  de: 'Alles gut - aber das ist nur eine Vorschau.',
-  fr: "Tout va bien - mais ceci n'est qu'un aperçu.",
+  en: 'All good – but this is just a preview. No data has been submitted. The following data would be submitted:',
+  de: 'Alles gut - aber das ist nur eine Vorschau. Keine Daten wurden übermittelt. Folgende Daten würden übermittelt werden:',
+  fr: "Tout va bien – mais ceci n'est qu'un aperçu. Aucune donnée n'a été transmise. Les données suivantes seraient transmises :",
 };
 
 const failedToSubmitText: StaticTranslationString = {
@@ -345,6 +345,9 @@ export const FormBlock: React.FC<
   const [isLoading, setIsLoading] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState<boolean>(false);
   const [error, setError] = useState<{ message: string; status?: string } | undefined>();
+  const [previewSuccessMessage, setPreviewSuccessMessage] = useState<
+    { message: string; data: { field: string; value: unknown }[] } | undefined
+  >();
   const [validationError, setValidationError] = useState<string | undefined>();
   const router = useRouter();
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
@@ -408,13 +411,10 @@ export const FormBlock: React.FC<
         clearTimeout(loadingTimerID);
         setIsLoading(false);
         setHasSubmitted(true);
-        setError({
-          message: `${allGoodPreviewText[locale as Locale]} -- ${JSON.stringify(
-            dataToSend,
-            undefined,
-            2,
-          )}`,
-          status: String(200),
+
+        setPreviewSuccessMessage({
+          message: `${allGoodPreviewText[locale as Locale]}`,
+          data: dataToSend,
         });
         return;
       }
@@ -531,6 +531,19 @@ export const FormBlock: React.FC<
     <div>
       {error && (
         <div className="mb-4 rounded-md border border-red-400 bg-red-100 p-4 text-red-700">{`Error ${error.status ?? ''}: ${error.message}`}</div>
+      )}
+
+      {previewSuccessMessage && (
+        <div className="mb-4 rounded-md border border-gray-400 bg-gray-100 p-4 text-gray-700">
+          {previewSuccessMessage.message ?? ''}
+          <ul className="mt-2 list-inside list-disc">
+            {previewSuccessMessage.data.map(({ field, value }, index) => (
+              <li key={index}>
+                <strong>{field}:</strong> {String(value)}
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
       <form
         className={cn(
