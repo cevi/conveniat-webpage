@@ -34,7 +34,11 @@ export const Checkbox: React.FC<
             required: requiredFromProperties ? fieldIsRequiredText[locale as Locale] : false,
           })}
         />
-        <label className="ml-2 block font-['Inter'] text-sm text-gray-500" htmlFor={name}>
+
+        <label
+          className="ml-2 block font-['Inter'] text-sm font-medium text-gray-500 hover:text-gray-900"
+          htmlFor={name}
+        >
           {label}
           {requiredFromProperties && <Required />}
         </label>

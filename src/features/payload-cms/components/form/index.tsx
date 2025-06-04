@@ -1,5 +1,7 @@
 'use client';
 
+import { SubheadingH2 } from '@/components/ui/typography/subheading-h2';
+import { SubheadingH3 } from '@/components/ui/typography/subheading-h3';
 import { buildInitialFormState } from '@/features/payload-cms/components/form/build-initial-form-state';
 import { fields } from '@/features/payload-cms/components/form/fields';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -133,9 +135,7 @@ const FormFieldRenderer: React.FC<FormFieldRendererProperties> = ({
 
   return (
     <>
-      <h3 className="text-md text-conveniat-green mb-3 font-['Montserrat'] font-bold">
-        {'sectionTitle' in section ? section.sectionTitle : ''}
-      </h3>
+      <SubheadingH3>{'sectionTitle' in section ? section.sectionTitle : ''}</SubheadingH3>
 
       {section.fields.map((fieldChild, indexChild) => {
         // render conditioned blocks
@@ -572,9 +572,7 @@ export const FormBlock: React.FC<
         )}
 
         {mainFormTitle !== undefined && (
-          <h2 className="text-conveniat-green mb-4 font-['Montserrat'] text-lg font-extrabold">
-            {mainFormTitle}
-          </h2>
+          <SubheadingH2 className="mt-0">{mainFormTitle}</SubheadingH2>
         )}
 
         {/* Validation error message */}

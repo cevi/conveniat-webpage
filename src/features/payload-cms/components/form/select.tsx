@@ -46,7 +46,7 @@ export const Select: React.FC<
     return (
       <div className="mb-4">
         <div>
-          <label className="font-body mb-1 block text-xs font-medium text-gray-500" htmlFor={name}>
+          <label className="font-body mb-1 block text-sm font-medium text-gray-500" htmlFor={name}>
             {label}
             {requiredFromProperties && <Required />}
           </label>
@@ -177,7 +177,7 @@ export const Select: React.FC<
     return (
       <div className="mb-4">
         <fieldset>
-          <legend className="font-body mb-3 block text-xs font-medium text-gray-500">
+          <legend className="font-body mb-1 block text-sm font-medium text-gray-500">
             {label}
             {requiredFromProperties && <Required />}
           </legend>
@@ -233,7 +233,7 @@ export const Select: React.FC<
                         'font-body ml-3 block cursor-pointer text-sm font-medium transition-colors',
                         {
                           'text-red-600': hasError,
-                          'text-gray-700 hover:text-gray-900': !hasError,
+                          'text-gray-500 hover:text-gray-900': !hasError,
                         },
                       )}
                     >
@@ -312,7 +312,9 @@ export const Select: React.FC<
                       },
                     )}
                   >
-                    <span className="text-center">{option.label}</span>
+                    <span className="font-body text-center text-sm font-medium text-gray-500">
+                      {option.label}
+                    </span>
                     {isSelected && (
                       <div
                         className={cn(
