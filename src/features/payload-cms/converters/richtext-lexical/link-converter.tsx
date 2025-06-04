@@ -65,7 +65,7 @@ const linkConverter: JSXConverters<SerializedParagraphNode>['link'] = ({ node, n
 
   return (
     <Link href={url} className="text-cevi-red font-extrabold">
-      <span className={fields.linkType === 'internal' ? '' : 'flex items-center gap-2'}>
+      <span className={fields.linkType === 'internal' ? '' : 'inline-flex items-center gap-2'}>
         {children}
         {fields.linkType === 'internal' ? (
           <></>
