@@ -299,7 +299,7 @@ export const Select: React.FC<
                       }
                     }}
                     className={cn(
-                      'font-body relative flex items-center justify-center rounded-lg border-2 px-4 py-3 text-sm font-medium transition-all duration-200 focus:ring-2 focus:ring-offset-2 focus:outline-none',
+                      'font-body relative flex cursor-pointer items-center justify-center rounded-lg border-2 px-4 py-3 text-sm font-medium transition-all duration-200 focus:ring-2 focus:ring-offset-2 focus:outline-none',
                       {
                         'border-green-600 bg-green-50 text-green-700 ring-green-600':
                           isSelected && !hasError,
