@@ -39,7 +39,7 @@ export const FormsPreviewPage: React.FC<LocalizedCollectionPage> = async ({
     blockType: 'formBlock',
     blockName: 'Form Block',
     form: { ...formData, _localized_status: { published: true } },
-  };
+  } as FormBlockType;
 
   return (
     <article className="my-8 w-full max-w-2xl px-8 max-xl:mx-auto">
