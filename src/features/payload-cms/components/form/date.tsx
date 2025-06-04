@@ -1,6 +1,5 @@
 'use client';
 
-import type { DateField } from '@payloadcms/plugin-form-builder/types';
 import type { FieldErrorsImpl, FieldValues, UseFormRegister } from 'react-hook-form';
 
 import { Required } from '@/features/payload-cms/components/form/required';
@@ -8,6 +7,7 @@ import { fieldIsRequiredText } from '@/features/payload-cms/components/form/stat
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { useCurrentLocale } from 'next-i18n-router/client';
+import type { DateField } from 'node_modules/@payloadcms/plugin-form-builder/dist/types';
 import type React from 'react';
 
 export const Date: React.FC<

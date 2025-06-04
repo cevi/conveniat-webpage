@@ -264,7 +264,11 @@ const formDateBlock: Block = {
         },
       ],
     },
-    { name: 'placeholder', type: 'text', label: 'Placeholder' },
+    {
+      name: 'defaultValue',
+      type: 'date',
+      label: 'Default Value',
+    },
     {
       name: 'required',
       type: 'checkbox',
