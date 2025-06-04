@@ -2,6 +2,7 @@ import { slugToUrlMapping } from '@/features/payload-cms/slug-to-url-mapping';
 import type { Locale } from '@/types/types';
 import type { SerializedParagraphNode } from '@payloadcms/richtext-lexical';
 import type { JSXConverters } from '@payloadcms/richtext-lexical/react';
+import { ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 
 /**
@@ -64,7 +65,14 @@ const linkConverter: JSXConverters<SerializedParagraphNode>['link'] = ({ node, n
 
   return (
     <Link href={url} className="text-cevi-red font-extrabold">
-      {children}
+      <span className={fields.linkType === 'internal' ? '' : 'flex items-center gap-2'}>
+        {children}
+        {fields.linkType === 'internal' ? (
+          <></>
+        ) : (
+          <ExternalLink aria-hidden="true" className="size-5" />
+        )}
+      </span>
     </Link>
   );
 };
