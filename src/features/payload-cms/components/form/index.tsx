@@ -519,7 +519,7 @@ export const FormBlock: React.FC<
         }}
         noValidate
         autoComplete={formFromProperties.autocomplete ? 'on' : 'off'}
-        aria-autocomplete={formFromProperties.autocomplete ? 'none': 'list' }
+        aria-autocomplete={formFromProperties.autocomplete ? 'none' : 'list'}
       >
         {formFromProperties.autocomplete && (
           <input autoComplete="false" name="hidden" type="text" className="hidden"></input>
