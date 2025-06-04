@@ -29,7 +29,8 @@ import type {
   TimelineCategory,
   TimelineEntries,
 } from '@/features/payload-cms/payload-types';
-import type { LocalizedPageType } from '@/types/types';
+import type { LocalizedPageType, StaticTranslationString } from '@/types/types';
+import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import config from '@payload-config';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import Image from 'next/image';
@@ -62,6 +63,31 @@ export type SectionRenderer<T = object> = React.FC<
     sectionOverrides?: { [key in ContentBlockTypeNames]?: string };
   }
 >;
+
+const errorMessageForType = async (type: StaticTranslationString): Promise<string> => {
+  const locale = await getLocaleFromCookies();
+
+  const part1: StaticTranslationString = {
+    de: '',
+    en: 'Failed to load ',
+    fr: 'Échec du chargement de ',
+  };
+
+  const part2: StaticTranslationString = {
+    de: ' konnte nicht geladen werden. Lade die Seite neu, um es erneut zu versuchen.',
+    en: '. Please reload the page to try again.',
+    fr: '. Veuillez recharger la page pour réessayer.',
+  };
+
+  // combine part1, type, part2
+  const combined: StaticTranslationString = {
+    de: part1.de + type.de + part2.de,
+    en: part1.en + type.en + part2.en,
+    fr: part1.fr + type.fr + part2.fr,
+  };
+
+  return combined[locale];
+};
 
 export const RenderTimelineEntries: SectionRenderer<TimelineEntries> = async ({
   block,
@@ -106,7 +132,11 @@ export const RenderTimelineEntries: SectionRenderer<TimelineEntries> = async ({
       block={block}
       sectionClassName={sectionClassName}
       sectionOverrides={sectionOverrides}
-      errorFallbackMessage="Failed to load timeline entries. Reload the page to try again."
+      errorFallbackMessage={await errorMessageForType({
+        de: 'der Zeitstrahl-Eintrag',
+        en: 'timeline entry',
+        fr: "l'entrée de la chronologie",
+      })}
     >
       {timelineEntries.map((timelineEntry, index) => (
         <Fragment key={index}>
@@ -117,7 +147,7 @@ export const RenderTimelineEntries: SectionRenderer<TimelineEntries> = async ({
   );
 };
 
-export const AccordionBlock: SectionRenderer<AccordionBlocks> = ({
+export const AccordionBlock: SectionRenderer<AccordionBlocks> = async ({
   block,
   sectionClassName,
   sectionOverrides,
@@ -127,7 +157,11 @@ export const AccordionBlock: SectionRenderer<AccordionBlocks> = ({
       block={block}
       sectionClassName={sectionClassName}
       sectionOverrides={sectionOverrides}
-      errorFallbackMessage="Failed to load details table. Reload the page to try again."
+      errorFallbackMessage={await errorMessageForType({
+        de: 'Der Akkordeonblock',
+        en: 'accordion block',
+        fr: 'le bloc accordéon',
+      })}
     >
       <LexicalRichTextSection richTextSection={block.introduction} />
 
@@ -138,7 +172,7 @@ export const AccordionBlock: SectionRenderer<AccordionBlocks> = ({
   );
 };
 
-export const SummaryBlock: SectionRenderer<LexicalRichTextSectionType> = ({
+export const SummaryBlock: SectionRenderer<LexicalRichTextSectionType> = async ({
   block,
   sectionClassName,
   sectionOverrides,
@@ -148,7 +182,11 @@ export const SummaryBlock: SectionRenderer<LexicalRichTextSectionType> = ({
       block={block}
       sectionClassName={sectionClassName}
       sectionOverrides={sectionOverrides}
-      errorFallbackMessage="Failed to load rich text section. Reload the page to try again."
+      errorFallbackMessage={await errorMessageForType({
+        de: 'Der Zusammenfassungsblock',
+        en: 'summary block',
+        fr: 'le bloc de résumé',
+      })}
     >
       <div className="border-t-conveniat-green mx-0 my-8 border-t-[4px] bg-green-100 p-6 md:mx-12">
         <LexicalRichTextSection richTextSection={block.richTextSection} />
@@ -160,13 +198,17 @@ export const SummaryBlock: SectionRenderer<LexicalRichTextSectionType> = ({
 export const DetailsTable: SectionRenderer<{
   introduction: SerializedEditorState;
   detailsTableBlocks: { label: string; value: SerializedEditorState }[];
-}> = ({ block, sectionClassName, sectionOverrides }) => {
+}> = async ({ block, sectionClassName, sectionOverrides }) => {
   return (
     <SectionWrapper
       block={block}
       sectionClassName={sectionClassName}
       sectionOverrides={sectionOverrides}
-      errorFallbackMessage="Failed to load details table. Reload the page to try again."
+      errorFallbackMessage={await errorMessageForType({
+        de: 'Die Detailtabelle',
+        en: 'details table',
+        fr: 'le tableau de détails',
+      })}
     >
       <LexicalRichTextSection richTextSection={block.introduction} />
 
@@ -188,7 +230,7 @@ export const DetailsTable: SectionRenderer<{
   );
 };
 
-export const SwisstopoInlineMapSection: SectionRenderer<InlineSwisstopoMapEmbedType> = ({
+export const SwisstopoInlineMapSection: SectionRenderer<InlineSwisstopoMapEmbedType> = async ({
   block,
   sectionClassName,
   sectionOverrides,
@@ -198,7 +240,11 @@ export const SwisstopoInlineMapSection: SectionRenderer<InlineSwisstopoMapEmbedT
       block={block}
       sectionClassName={sectionClassName}
       sectionOverrides={sectionOverrides}
-      errorFallbackMessage="Failed to load swisstopo inline map. Reload the page to try again."
+      errorFallbackMessage={await errorMessageForType({
+        de: 'Die Swisstopo-Karte',
+        en: 'Swisstopo inline map',
+        fr: 'la carte Swisstopo intégrée',
+      })}
     >
       <InlineSwisstopoMapEmbed {...block} />
     </SectionWrapper>
@@ -211,13 +257,17 @@ export const RenderSinglePicture: SectionRenderer<{
     alt: string;
     imageCaption?: string;
   };
-}> = ({ block, sectionClassName, sectionOverrides }) => {
+}> = async ({ block, sectionClassName, sectionOverrides }) => {
   return (
     <SectionWrapper
       block={block}
       sectionClassName={sectionClassName}
       sectionOverrides={sectionOverrides}
-      errorFallbackMessage="Failed to load single picture. Reload the page to try again."
+      errorFallbackMessage={await errorMessageForType({
+        de: 'Das Einzelbild',
+        en: 'single picture',
+        fr: 'l’image unique',
+      })}
     >
       <div className="text-conveniat-green relative mt-10 aspect-[16/9] w-[calc(100%+32px)] text-lg max-md:mx-[-16px]">
         <Image
@@ -231,7 +281,7 @@ export const RenderSinglePicture: SectionRenderer<{
   );
 };
 
-export const RenderHeroSection: SectionRenderer<HeroSectionType> = ({
+export const RenderHeroSection: SectionRenderer<HeroSectionType> = async ({
   block,
   sectionClassName,
   sectionOverrides,
@@ -241,14 +291,18 @@ export const RenderHeroSection: SectionRenderer<HeroSectionType> = ({
       block={block}
       sectionClassName={sectionClassName}
       sectionOverrides={sectionOverrides}
-      errorFallbackMessage="Failed to load hero section. Reload the page to try again."
+      errorFallbackMessage={await errorMessageForType({
+        de: 'Der Hero-Abschnitt',
+        en: 'hero section',
+        fr: 'la section héros',
+      })}
     >
       <HeroSection {...block} />
     </SectionWrapper>
   );
 };
 
-export const RenderYoutubeEmbed: SectionRenderer<YoutubeEmbedType> = ({
+export const RenderYoutubeEmbed: SectionRenderer<YoutubeEmbedType> = async ({
   block,
   sectionClassName,
   sectionOverrides,
@@ -258,14 +312,18 @@ export const RenderYoutubeEmbed: SectionRenderer<YoutubeEmbedType> = ({
       block={block}
       sectionClassName={sectionClassName}
       sectionOverrides={sectionOverrides}
-      errorFallbackMessage="Failed to load youtube link. Reload the page to try again."
+      errorFallbackMessage={await errorMessageForType({
+        de: 'Der YouTube-Link',
+        en: 'YouTube link',
+        fr: 'le lien YouTube',
+      })}
     >
       <YoutubeEmbed links={block.links} />
     </SectionWrapper>
   );
 };
 
-export const RenderInstagramEmbed: SectionRenderer<InstagramEmbedType> = ({
+export const RenderInstagramEmbed: SectionRenderer<InstagramEmbedType> = async ({
   block,
   sectionClassName,
   sectionOverrides,
@@ -275,14 +333,18 @@ export const RenderInstagramEmbed: SectionRenderer<InstagramEmbedType> = ({
       block={block}
       sectionClassName={sectionClassName}
       sectionOverrides={sectionOverrides}
-      errorFallbackMessage="Failed to load instagram link. Reload the page to try again."
+      errorFallbackMessage={await errorMessageForType({
+        de: 'Der Instagram-Link',
+        en: 'Instagram link',
+        fr: 'le lien Instagram',
+      })}
     >
       <InstagramEmbed link={block.link} />
     </SectionWrapper>
   );
 };
 
-export const RenderPhotoCarousel: SectionRenderer<PhotoCarouselBlock> = ({
+export const RenderPhotoCarousel: SectionRenderer<PhotoCarouselBlock> = async ({
   block,
   sectionClassName,
   sectionOverrides,
@@ -292,14 +354,18 @@ export const RenderPhotoCarousel: SectionRenderer<PhotoCarouselBlock> = ({
       block={block}
       sectionClassName={sectionClassName}
       sectionOverrides={sectionOverrides}
-      errorFallbackMessage="Failed to load photo carousel. Reload the page to try again."
+      errorFallbackMessage={await errorMessageForType({
+        de: 'Das Fotokarussell',
+        en: 'photo carousel',
+        fr: 'le carrousel de photos',
+      })}
     >
       <PhotoCarousel images={block.images} />
     </SectionWrapper>
   );
 };
 
-export const RenderFormBlock: SectionRenderer<FormBlockType> = ({
+export const RenderFormBlock: SectionRenderer<FormBlockType> = async ({
   block,
   sectionClassName,
   sectionOverrides,
@@ -309,14 +375,18 @@ export const RenderFormBlock: SectionRenderer<FormBlockType> = ({
       block={block}
       sectionClassName={sectionClassName}
       sectionOverrides={sectionOverrides}
-      errorFallbackMessage="Failed to load form block. Reload the page to try again."
+      errorFallbackMessage={await errorMessageForType({
+        de: 'der Formularblock',
+        en: 'form block',
+        fr: 'le bloc de formulaire',
+      })}
     >
       <ShowForm {...block} />
     </SectionWrapper>
   );
 };
 
-export const RenderBlogPostsOverview: SectionRenderer = ({
+export const RenderBlogPostsOverview: SectionRenderer = async ({
   locale,
   searchParams,
   block,
@@ -328,14 +398,18 @@ export const RenderBlogPostsOverview: SectionRenderer = ({
       block={block}
       sectionClassName={sectionClassName}
       sectionOverrides={sectionOverrides}
-      errorFallbackMessage="Failed to load blog posts overview. Reload the page to try again."
+      errorFallbackMessage={await errorMessageForType({
+        de: 'Die Blogbeitragsübersicht',
+        en: 'blog posts overview',
+        fr: 'l’aperçu des articles de blog',
+      })}
     >
       <ListBlogPosts locale={locale} searchParams={searchParams} />
     </SectionWrapper>
   );
 };
 
-export const RenderRichTextSection: SectionRenderer<LexicalRichTextSectionType> = ({
+export const RenderRichTextSection: SectionRenderer<LexicalRichTextSectionType> = async ({
   block,
   sectionClassName,
   sectionOverrides,
@@ -345,14 +419,18 @@ export const RenderRichTextSection: SectionRenderer<LexicalRichTextSectionType> 
       block={block}
       sectionClassName={sectionClassName}
       sectionOverrides={sectionOverrides}
-      errorFallbackMessage="Failed to load rich text section. Reload the page to try again."
+      errorFallbackMessage={await errorMessageForType({
+        de: 'Der Rich-Text-Abschnitt',
+        en: 'rich text section',
+        fr: 'la section de texte enrichi',
+      })}
     >
       <LexicalRichTextSection richTextSection={block.richTextSection} />
     </SectionWrapper>
   );
 };
 
-export const RenderFileDownload: SectionRenderer<FileDownloadType> = ({
+export const RenderFileDownload: SectionRenderer<FileDownloadType> = async ({
   block,
   sectionClassName,
   sectionOverrides,
@@ -362,14 +440,18 @@ export const RenderFileDownload: SectionRenderer<FileDownloadType> = ({
       block={block}
       sectionClassName={sectionClassName}
       sectionOverrides={sectionOverrides}
-      errorFallbackMessage="Failed to load file download. Reload the page to try again."
+      errorFallbackMessage={await errorMessageForType({
+        de: 'Der Datei-Download',
+        en: 'file download',
+        fr: 'le téléchargement de fichier',
+      })}
     >
       <FileDownload {...block} />
     </SectionWrapper>
   );
 };
 
-export const RenderCountdown: SectionRenderer<CountdownType> = ({
+export const RenderCountdown: SectionRenderer<CountdownType> = async ({
   block,
   sectionClassName,
   sectionOverrides,
@@ -379,14 +461,18 @@ export const RenderCountdown: SectionRenderer<CountdownType> = ({
       block={block}
       sectionClassName={sectionClassName}
       sectionOverrides={sectionOverrides}
-      errorFallbackMessage="Failed to load countdown. Reload the page to try again."
+      errorFallbackMessage={await errorMessageForType({
+        de: 'Der Countdown',
+        en: 'countdown',
+        fr: 'le compte à rebours',
+      })}
     >
       <Countdown {...block} />
     </SectionWrapper>
   );
 };
 
-export const RenderWhiteSpace: SectionRenderer = ({
+export const RenderWhiteSpace: SectionRenderer = async ({
   block,
   sectionClassName,
   sectionOverrides,
@@ -396,7 +482,11 @@ export const RenderWhiteSpace: SectionRenderer = ({
       block={block}
       sectionClassName={sectionClassName}
       sectionOverrides={sectionOverrides}
-      errorFallbackMessage="Failed to load countdown. Reload the page to try again."
+      errorFallbackMessage={await errorMessageForType({
+        de: 'Der Leerraum',
+        en: 'whitespace',
+        fr: "l'espace vide",
+      })}
     >
       <div className="h-3 w-full" />
     </SectionWrapper>

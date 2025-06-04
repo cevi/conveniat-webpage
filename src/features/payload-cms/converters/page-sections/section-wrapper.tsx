@@ -1,11 +1,19 @@
 import type { ContentBlockTypeNames } from '@/features/payload-cms/converters/page-sections/content-blocks';
+import type { StaticTranslationString } from '@/types/types';
+import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { cn } from '@/utils/tailwindcss-override';
 import React from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 
 export type ContentBlock<T = object> = { blockType: ContentBlockTypeNames; id: string } & T;
 
-const ErrorFallback: React.FC<{ error: Error }> = ({ error }) => {
+const errorMessageText: StaticTranslationString = {
+  de: 'Der Inhalt konnte nicht geladen werden.',
+  en: 'Failed to load content block.',
+  fr: 'Échec du chargement du bloc de contenu.',
+};
+
+const ErrorFallback: React.FC<{ error: Error }> = async ({ error }) => {
   import('@/lib/posthog-server')
     .then(({ getPostHogServer }): void => {
       const posthog = getPostHogServer();
@@ -14,9 +22,11 @@ const ErrorFallback: React.FC<{ error: Error }> = ({ error }) => {
     })
     .catch(() => {});
 
+  const locale = await getLocaleFromCookies();
+
   return (
     <div className="rounded-2xl bg-gray-100 px-16 py-4 text-center text-red-700">
-      <b>Failed to load content block.</b> <br />
+      <b>{errorMessageText[locale]}</b> <br />
       {error.message}
     </div>
   );
