@@ -15,7 +15,7 @@ export const ShowForm: React.FC<FormBlockType & { isPreviewMode?: boolean | unde
       }
     >
       <ErrorBoundary fallback={<div className="text-red-500">Error loading form</div>}>
-        <FormBlock {...block} isPreviewMode={isPreviewMode} />
+        <FormBlock {...block} isPreviewMode={isPreviewMode} withBorder={false} />
       </ErrorBoundary>
     </ClientOnly>
   );

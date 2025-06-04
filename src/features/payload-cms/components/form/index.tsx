@@ -6,6 +6,7 @@ import { buildInitialFormState } from '@/features/payload-cms/components/form/bu
 import { fields } from '@/features/payload-cms/components/form/fields';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
 import type { FormFieldBlock, Form as FormType } from '@payloadcms/plugin-form-builder/types';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import { RichText } from '@payloadcms/richtext-lexical/react';
@@ -306,12 +307,13 @@ const ResetFormButton: React.FC<{
 };
 
 export const FormBlock: React.FC<
-  FormBlockType & { id?: string; isPreviewMode?: boolean | undefined }
+  FormBlockType & { id?: string; isPreviewMode?: boolean | undefined; withBorder?: boolean }
   // eslint-disable-next-line complexity
 > = (properties) => {
   const {
     isPreviewMode,
     form: formFromProperties,
+    withBorder,
     form: {
       id: formID,
       title: mainFormTitle,
@@ -531,7 +533,10 @@ export const FormBlock: React.FC<
         <div className="mb-4 rounded-md border border-red-400 bg-red-100 p-4 text-red-700">{`Error ${error.status ?? ''}: ${error.message}`}</div>
       )}
       <form
-        className="relative mx-auto h-auto max-w-xl rounded-md border-2 border-gray-200 bg-white p-6"
+        className={cn(
+          'relative mx-auto h-auto max-w-xl rounded-md bg-white',
+          withBorder === undefined || Boolean(withBorder) ? 'border-2 border-gray-200 p-6' : '',
+        )}
         id={formID}
         onSubmit={(event?: React.BaseSyntheticEvent): void => {
           event?.preventDefault();

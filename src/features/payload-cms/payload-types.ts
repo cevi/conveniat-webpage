@@ -950,7 +950,7 @@ export interface AccordionBlocks {
         /**
          * This is the content of the accordion block. It will be displayed when the block is expanded.
          */
-        valueBlocks: (PlainTextBlock | TeamMembersBlock)[];
+        valueBlocks: (PlainTextBlock | TeamMembersBlock | FormBlock)[];
         id?: string | null;
       }[]
     | null;
@@ -1661,6 +1661,7 @@ export interface AccordionBlocksSelect<T extends boolean = true> {
           | {
               accordionPlainTextBlock?: T | PlainTextBlockSelect<T>;
               accordionTeamMembersBlock?: T | TeamMembersBlockSelect<T>;
+              formBlock?: T | FormBlockSelect<T>;
             };
         id?: T;
       };
