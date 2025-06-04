@@ -553,6 +553,15 @@ export interface Form {
                 blockType: 'textarea';
               }
             | {
+                name: string;
+                label: string;
+                placeholder?: string | null;
+                required?: boolean | null;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'date';
+              }
+            | {
                 displayCondition?: {
                   field?: string | null;
                   value?: string | null;
@@ -667,6 +676,15 @@ export interface Form {
                           id?: string | null;
                           blockName?: string | null;
                           blockType: 'textarea';
+                        }
+                      | {
+                          name: string;
+                          label: string;
+                          placeholder?: string | null;
+                          required?: boolean | null;
+                          id?: string | null;
+                          blockName?: string | null;
+                          blockType: 'date';
                         }
                     )[]
                   | null;
@@ -2065,6 +2083,16 @@ export interface FormsSelect<T extends boolean = true> {
                           id?: T;
                           blockName?: T;
                         };
+                    date?:
+                      | T
+                      | {
+                          name?: T;
+                          label?: T;
+                          placeholder?: T;
+                          required?: T;
+                          id?: T;
+                          blockName?: T;
+                        };
                     conditionedBlock?:
                       | T
                       | {
@@ -2164,6 +2192,16 @@ export interface FormsSelect<T extends boolean = true> {
                                       label?: T;
                                       placeholder?: T;
                                       defaultValue?: T;
+                                      required?: T;
+                                      id?: T;
+                                      blockName?: T;
+                                    };
+                                date?:
+                                  | T
+                                  | {
+                                      name?: T;
+                                      label?: T;
+                                      placeholder?: T;
                                       required?: T;
                                       id?: T;
                                       blockName?: T;

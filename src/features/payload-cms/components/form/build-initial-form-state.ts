@@ -46,6 +46,12 @@ export const buildInitialFormState = (fields: FormFieldBlock[]): DefaultValues<F
         [field.name]: field.defaultValue ?? '',
       };
     }
+    if (field.blockType === 'date') {
+      return {
+        ...initialSchema,
+        [field.name]: field.defaultValue ?? '',
+      };
+    }
 
     return initialSchema;
   }, {} as DefaultValues<FieldValues>);

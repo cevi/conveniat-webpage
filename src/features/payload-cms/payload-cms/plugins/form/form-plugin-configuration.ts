@@ -226,6 +226,53 @@ const formCheckboxBlock: Block = {
   labels: { plural: 'Checkbox Fields', singular: 'Checkbox' },
 };
 
+const formDateBlock: Block = {
+  slug: 'date',
+  admin: {
+    components: {
+      Label: {
+        path: '@/features/payload-cms/payload-cms/components/form-block-label#FormBlockLabel',
+        clientProps: {
+          label: {
+            en: 'Date Field',
+            de: 'Datum Feld',
+            fr: 'Champ Date',
+          },
+        },
+      },
+    },
+  },
+  fields: [
+    {
+      type: 'row',
+      fields: [
+        {
+          name: 'name',
+          type: 'text',
+          label: 'Name (lowercase, no special characters)',
+          validate: formNameValidation,
+          required: true,
+          admin: { width: '50%' },
+        },
+        {
+          name: 'label',
+          required: true,
+          type: 'text',
+          label: 'Label',
+          localized: true,
+          admin: { width: '50%' },
+        },
+      ],
+    },
+    { name: 'placeholder', type: 'text', label: 'Placeholder' },
+    {
+      name: 'required',
+      type: 'checkbox',
+      label: 'Required',
+    },
+  ],
+};
+
 const formCountryBlock: Block = {
   slug: 'country',
   admin: {
@@ -636,6 +683,7 @@ const formBlocks: Block[] = [
   formSelectBlock,
   formTextBlock,
   formTextareaBlock,
+  formDateBlock,
 ];
 
 const conditionedBlock: Block = {
@@ -678,6 +726,7 @@ const formBlocksAndConditionedBlock: Block[] = [...formBlocks, conditionedBlock]
 export const formPluginConfiguration = formBuilderPlugin({
   fields: {
     state: false, // we do not use states in CH
+    date: true,
   },
   formOverrides: {
     access: {
