@@ -54,8 +54,6 @@ const linkConverter: JSXConverters<SerializedParagraphNode>['link'] = ({ node, n
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access
   const children = nodesToJSX({ nodes: node.children });
 
-  console.log(node.fields);
-
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const fields = node.fields as unknown as LinkFields;
 

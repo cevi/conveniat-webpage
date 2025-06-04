@@ -535,7 +535,7 @@ export const FormBlock: React.FC<
 
       {previewSuccessMessage && (
         <div className="mb-4 rounded-md border border-gray-400 bg-gray-100 p-4 text-gray-700">
-          {previewSuccessMessage.message ?? ''}
+          {previewSuccessMessage.message}
           <ul className="mt-2 list-inside list-disc">
             {previewSuccessMessage.data.map(({ field, value }, index) => (
               <li key={index}>
