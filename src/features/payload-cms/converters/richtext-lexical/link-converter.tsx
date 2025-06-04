@@ -63,7 +63,7 @@ const linkConverter: JSXConverters<SerializedParagraphNode>['link'] = ({ node, n
   }
 
   return (
-    <LinkComponent href={url} className="text-cevi-red font-extrabold">
+    <LinkComponent href={url} className="text-red-600 font-extrabold">
       {children}
     </LinkComponent>
   );
