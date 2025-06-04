@@ -337,6 +337,7 @@ export const FormBlock: React.FC<
     handleSubmit,
     trigger,
     formState: { isSubmitting },
+    watch, // Add watch to formMethods
   } = formMethods;
 
   const [isLoading, setIsLoading] = useState(false);
@@ -351,16 +352,32 @@ export const FormBlock: React.FC<
   const isFirstStep = currentStepIndex === 0;
   const isLastStep = currentStepIndex === definedSteps.length - 1;
 
-  // Get all field names for the current step
+  // Get all field names for the current step, including those in conditioned blocks if their condition is met
   const getCurrentStepFieldNames = (): FieldName<Data>[] => {
-    let formFields: FormFieldBlock[] = [];
-    if (currentActualStep === undefined) formFields = [];
-    else if ('fields' in currentActualStep)
-      formFields = currentActualStep.fields as FormFieldBlock[];
+    const fieldNames: FieldName<Data>[] = [];
+    if (!currentActualStep || !('fields' in currentActualStep)) {
+      return [];
+    }
 
-    return formFields
-      .map((field) => ('name' in field && field.name !== '' ? field.name : ''))
-      .filter(Boolean) as FieldName<Data>[];
+    const processFields = (fieldsToProcess: (FormFieldBlock | ConditionedBlock)[]): void => {
+      for (const field of fieldsToProcess) {
+        if (field.blockType === 'conditionedBlock') {
+          const { field: conditionField, value: targetValue } = field.displayCondition;
+          const watchValue = watch(conditionField, '') as string | boolean | number | undefined;
+          const condition = (watchValue ?? '').toString() === targetValue;
+
+          if (condition) {
+            // If the condition is met, recursively process fields within the conditioned block
+            processFields(field.fields);
+          }
+        } else if ('name' in field && field.name !== '') {
+          fieldNames.push(field.name as FieldName<Data>);
+        }
+      }
+    };
+
+    processFields(currentActualStep.fields);
+    return fieldNames.filter(Boolean);
   };
 
   const handleFinalFormSubmit = (data: Data): void => {
@@ -461,6 +478,9 @@ export const FormBlock: React.FC<
   ): Promise<void> => {
     event.preventDefault(); // prevent form from submitting
     setValidationError(undefined);
+
+    // Ensure all watch values are updated before getting field names
+    await formMethods.trigger(); // Trigger validation to update watch values
 
     const fieldNamesInCurrentStep = getCurrentStepFieldNames();
 
