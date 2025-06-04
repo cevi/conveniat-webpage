@@ -1,10 +1,10 @@
 'use client';
+import { LinkComponent } from '@/components/ui/Link';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { TeaserText } from '@/components/ui/typography/teaser-text';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { useCurrentLocale } from 'next-i18n-router/client';
-import Link from 'next/link';
 import posthog from 'posthog-js';
 import React, { useEffect } from 'react';
 
@@ -22,9 +22,9 @@ const errorDescription: Record<Locale, React.JSX.Element> = {
   en: (
     <>
       The page failed to load. Please check the URL or go back to the{' '}
-      <Link onClick={backToHomeHandler} className="font-bold text-red-600" href={''}>
+      <LinkComponent onClick={backToHomeHandler} className="font-bold text-red-600" href="">
         home page
-      </Link>
+      </LinkComponent>
       .
     </>
   ),
@@ -32,9 +32,9 @@ const errorDescription: Record<Locale, React.JSX.Element> = {
   de: (
     <>
       Die Seite konnte nicht geladen werden. Bitte überprüfen Sie die URL oder gehen Sie zur{' '}
-      <Link onClick={backToHomeHandler} className="font-bold text-red-600" href={''}>
+      <LinkComponent onClick={backToHomeHandler} className="font-bold text-red-600" href="">
         Startseite
-      </Link>
+      </LinkComponent>
       .
     </>
   ),
@@ -42,9 +42,9 @@ const errorDescription: Record<Locale, React.JSX.Element> = {
   fr: (
     <>
       La page n&#39;a pas pu être chargée. Veuillez vérifier l&#39;URL ou revenir à la{' '}
-      <Link onClick={backToHomeHandler} className="font-bold text-red-600" href={''}>
+      <LinkComponent onClick={backToHomeHandler} className="font-bold text-red-600" href="">
         page d&#39;accueil
-      </Link>
+      </LinkComponent>
       .
     </>
   ),

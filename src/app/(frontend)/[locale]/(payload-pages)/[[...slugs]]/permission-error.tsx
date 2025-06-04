@@ -1,10 +1,10 @@
 'use client';
+import { LinkComponent } from '@/components/ui/Link';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { TeaserText } from '@/components/ui/typography/teaser-text';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { useCurrentLocale } from 'next-i18n-router/client';
-import Link from 'next/link';
 import type React from 'react';
 
 interface StaticTranslationString {
@@ -52,10 +52,10 @@ export const PermissionError: React.FC = () => {
 
           <TeaserText>
             {pageNotAvailableP1Text[locale]}
-            <Link onClick={backToHomeHandler} className="font-bold text-red-600" href={''}>
+            <LinkComponent onClick={backToHomeHandler} className="font-bold text-red-600" href={''}>
               {' '}
               {homePageLinkText[locale]}
-            </Link>
+            </LinkComponent>
             {'.'}
           </TeaserText>
         </article>

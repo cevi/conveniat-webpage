@@ -1,9 +1,8 @@
+import { LinkComponent } from '@/components/ui/Link';
 import { slugToUrlMapping } from '@/features/payload-cms/slug-to-url-mapping';
 import type { Locale } from '@/types/types';
 import type { SerializedParagraphNode } from '@payloadcms/richtext-lexical';
 import type { JSXConverters } from '@payloadcms/richtext-lexical/react';
-import { ExternalLink } from 'lucide-react';
-import Link from 'next/link';
 
 /**
  * The fields of a link node.
@@ -42,7 +41,7 @@ const resolveInternalLink = (fields: LinkFields): string => {
     for (const value of Object.values(slugToUrlMapping)) {
       if (value.slug === collectionName) {
         const urlPrefix = value.urlPrefix[locale as Locale];
-        return `${urlPrefix}${urlSlug}`;
+        return `/${urlPrefix}${urlSlug}`;
       }
     }
   }
@@ -64,16 +63,9 @@ const linkConverter: JSXConverters<SerializedParagraphNode>['link'] = ({ node, n
   }
 
   return (
-    <Link href={url} className="text-cevi-red font-extrabold">
-      <span className={fields.linkType === 'internal' ? '' : 'inline-flex items-center gap-2'}>
-        {children}
-        {fields.linkType === 'internal' ? (
-          <></>
-        ) : (
-          <ExternalLink aria-hidden="true" className="size-5" />
-        )}
-      </span>
-    </Link>
+    <LinkComponent href={url} className="text-cevi-red font-extrabold">
+      {children}
+    </LinkComponent>
   );
 };
 

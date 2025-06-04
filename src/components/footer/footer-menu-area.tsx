@@ -1,7 +1,7 @@
+import { LinkComponent } from '@/components/ui/Link';
 import type { Footer } from '@/features/payload-cms/payload-types';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import config from '@payload-config';
-import Link from 'next/link';
 import { getPayload } from 'payload';
 import React from 'react';
 
@@ -20,11 +20,11 @@ const renderMenuItem = (menuItem: FooterMenuItem): React.JSX.Element => {
     );
 
   return (
-    <Link href={menuItem.link} className="leading-[24px]">
+    <LinkComponent href={menuItem.link} className="leading-[24px]">
       <span className="font-inter text-[14px] leading-[24px] font-normal text-green-600">
         {menuItem.label}
       </span>
-    </Link>
+    </LinkComponent>
   );
 };
 
