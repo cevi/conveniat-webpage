@@ -1,6 +1,5 @@
 name: Create Release
 
-# See docu/Continuous Integration And_General_Tests.md for detailed information-module.
 on:
   push:
     branches:
@@ -20,7 +19,7 @@ jobs:
           node-version: '16'
 
       - name: Load Version of Latest Release
-        id: check # This will be the reference for getting the outputs.
+        id: check
         uses: EndBug/version-check@v2
         with:
           file-name: ./package.json
@@ -31,7 +30,7 @@ jobs:
         id: create_release
         uses: actions/create-release@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: v${{ steps.check.outputs.version }}
           release_name: Version ${{ steps.check.outputs.version }}
