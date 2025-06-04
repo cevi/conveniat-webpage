@@ -10,6 +10,7 @@ import type { JSXConverters } from '@payloadcms/richtext-lexical/react';
 interface LinkFields {
   url: string | unknown;
   linkType: string;
+  newTab?: boolean;
   doc: {
     value: {
       seo: {
@@ -53,6 +54,8 @@ const linkConverter: JSXConverters<SerializedParagraphNode>['link'] = ({ node, n
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access
   const children = nodesToJSX({ nodes: node.children });
 
+  console.log(node.fields);
+
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const fields = node.fields as unknown as LinkFields;
 
@@ -63,7 +66,7 @@ const linkConverter: JSXConverters<SerializedParagraphNode>['link'] = ({ node, n
   }
 
   return (
-    <LinkComponent href={url} className="font-extrabold text-red-600">
+    <LinkComponent href={url} className="font-extrabold text-red-600" openInNewTab={fields.newTab ?? false}>
       {children}
     </LinkComponent>
   );
