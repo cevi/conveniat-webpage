@@ -102,17 +102,18 @@ export const MainMenu: React.FC = async () => {
               return <></>;
             }
 
+            const isExternal = item.linkField?.type === 'custom';
+
             return (
               <Link key={item.id} href={itemLink} target={itemInNewTab}>
                 <span className="closeNavOnClick -mx-3 block rounded-lg px-3 py-2 text-base/7 font-semibold text-gray-700 hover:bg-gray-50">
-                  <div className="inline-flex items-center gap-2">
-                    {item.label}
-                    {item.linkField?.type === 'custom' ? (
-                      <ExternalLink aria-hidden="true" className="size-5" />
-                    ) : (
-                      <></>
-                    )}
-                  </div>
+                  {isExternal && (
+                    <span className="inline-flex items-center gap-2">
+                      {item.label}
+                      {<ExternalLink aria-hidden="true" className="size-5" />}
+                    </span>
+                  )}
+                  {!isExternal && <>{item.label}</>}
                 </span>
               </Link>
             );
