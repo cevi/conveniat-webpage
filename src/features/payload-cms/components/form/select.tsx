@@ -101,7 +101,7 @@ export const Select: React.FC<
                 classNames={{
                   control: (state) =>
                     cn(
-                      'min-h-10 w-full rounded-md border-0 px-3 py-2 font-body text-sm transition-all duration-200 cursor-pointer shadow-sm ring-1 ring-inset',
+                      'min-h-10 w-full rounded-md border-0 px-3 py-2 font-body text-base transition-all duration-200 cursor-pointer shadow-sm ring-1 ring-inset',
                       {
                         'bg-red-50 ring-red-500 text-gray-600': hasError,
                         'bg-green-100 ring-2 ring-green-600 text-gray-600':
@@ -111,12 +111,12 @@ export const Select: React.FC<
                       },
                     ),
                   valueContainer: () => 'px-0 py-0',
-                  input: () => 'font-body text-sm text-gray-600 m-0 p-0',
-                  singleValue: () => 'font-body text-sm text-gray-600 m-0',
+                  input: () => 'font-body text-base text-gray-600 m-0 p-0',
+                  singleValue: () => 'font-body text-base text-gray-600 m-0',
                   multiValue: () => 'bg-green-100 text-green-800 rounded px-2 py-1 m-1 text-xs',
                   multiValueLabel: () => 'font-medium',
                   multiValueRemove: () => 'ml-1 hover:bg-green-200 rounded',
-                  placeholder: () => 'font-body text-sm text-gray-400 m-0',
+                  placeholder: () => 'font-body text-base text-gray-400 m-0',
                   indicatorsContainer: () => 'flex items-center',
                   dropdownIndicator: () => 'flex items-center justify-center w-5 h-5 text-gray-500',
                   indicatorSeparator: () => 'hidden',
@@ -124,14 +124,14 @@ export const Select: React.FC<
                     'mt-1 rounded-md overflow-hidden shadow-lg bg-white border border-gray-200 z-50',
                   menuList: () => 'py-1',
                   option: (state) =>
-                    cn('font-body text-sm px-3 py-2 cursor-pointer transition-colors', {
+                    cn('font-body text-base px-3 py-2 cursor-pointer transition-colors', {
                       'bg-green-600 text-white': state.isSelected,
                       'bg-green-50 text-gray-600': state.isFocused && !state.isSelected,
                       'bg-white text-gray-600 hover:bg-green-50':
                         !state.isSelected && !state.isFocused,
                     }),
-                  noOptionsMessage: () => 'font-body text-sm text-gray-500 px-3 py-2',
-                  loadingMessage: () => 'font-body text-sm text-gray-500 px-3 py-2',
+                  noOptionsMessage: () => 'font-body text-base text-gray-500 px-3 py-2',
+                  loadingMessage: () => 'font-body text-base text-gray-500 px-3 py-2',
                 }}
                 styles={{
                   control: (base) => ({
@@ -259,7 +259,7 @@ export const Select: React.FC<
   return (
     <div className="mb-4">
       <div>
-        <label className="font-body mb-3 block text-xs font-medium text-gray-500">
+        <label className="font-body mb-3 block text-sm font-medium text-gray-500">
           {label}
           {requiredFromProperties && <Required />}
         </label>
