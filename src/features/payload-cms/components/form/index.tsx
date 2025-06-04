@@ -20,14 +20,6 @@ export interface Property {
   [key: string]: Value;
 }
 
-export interface FormBlockType {
-  blockName?: string;
-  blockType?: 'formBlock';
-  form: FormType & {
-    _localized_status: { published: boolean };
-  };
-}
-
 export interface Data {
   [key: string]: Property | Property[] | Value;
 }
@@ -92,10 +84,32 @@ const ofText: StaticTranslationString = {
   fr: 'de',
 };
 
+interface ConditionedBlock {
+  blockType: 'conditionedBlock';
+  id?: string;
+  displayCondition: {
+    field: string; // The name of the field to check
+    value: string; // The value to match
+  };
+  fields: FormFieldBlock[];
+}
+
 interface FormSection {
   id: string;
   sectionTitle: string;
-  fields: FormFieldBlock[];
+  fields: (FormFieldBlock | ConditionedBlock)[];
+}
+
+export interface FormBlockType {
+  blockName?: string;
+  blockType?: 'formBlock';
+  form: FormType & {
+    sections: {
+      id: string;
+      formSection: FormSection;
+    }[];
+    _localized_status: { published: boolean };
+  };
 }
 
 interface FormFieldRendererProperties {
@@ -129,7 +143,10 @@ const FormFieldRenderer: React.FC<FormFieldRendererProperties> = ({
           const { field: conditionField, value: targetValue } = fieldChild.displayCondition;
 
           // Get the condition function from the form methods
-          const condition = watch(conditionField).toString() === targetValue;
+          // we need to convert to string as checkbox values are boolean,
+          // but the targetValue is always a string
+          const watchValue = watch(conditionField, '') as string | boolean | number | undefined;
+          const condition = (watchValue ?? '').toString() === targetValue;
 
           if (!condition) {
             // If the condition is not met, we skip rendering this block
@@ -140,17 +157,16 @@ const FormFieldRenderer: React.FC<FormFieldRendererProperties> = ({
             );
           }
 
+          const fieldID =
+            'id' in fieldChild && Boolean(fieldChild.id)
+              ? (fieldChild.id as string)
+              : `conditioned-${fieldChild.blockType}-${indexChild}`;
+
           // If the condition is met, we render the conditioned block
           return (
-            <React.Fragment
-              key={
-                'id' in fieldChild && Boolean(fieldChild.id)
-                  ? (fieldChild.id as string)
-                  : `conditioned-${fieldChild.blockType}-${indexChild}`
-              }
-            >
+            <React.Fragment key={fieldID}>
               <FormFieldRenderer
-                section={{ id: fieldChild.id, sectionTitle: '', fields: fieldChild.fields }}
+                section={{ id: fieldID, sectionTitle: '', fields: fieldChild.fields }}
                 form={form}
                 formMethods={formMethods}
               />
