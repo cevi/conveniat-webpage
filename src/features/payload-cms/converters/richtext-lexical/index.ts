@@ -8,7 +8,7 @@ import { ParagraphJSXConverter } from '@/features/payload-cms/converters/richtex
 import { QuoteJSXConverter } from '@/features/payload-cms/converters/richtext-lexical/quote-converter';
 import type { SerializedHeadingNode } from '@payloadcms/richtext-lexical';
 import type { JSXConverters } from '@payloadcms/richtext-lexical/react';
-import { TextJSXConverter } from '@payloadcms/richtext-lexical/react';
+import { LinebreakJSXConverter, TextJSXConverter } from '@payloadcms/richtext-lexical/react';
 
 /**
  * The JSX converters for the rich text editor.
@@ -24,4 +24,5 @@ export const jsxConverters: JSXConverters<SerializedHeadingNode> = {
   ...ListJSXConverter,
   ...ListItemJSXConverter,
   ...QuoteJSXConverter,
+  ...LinebreakJSXConverter,
 };

@@ -1,3 +1,4 @@
+import { ClientOnly } from '@/components/client-only';
 import type { PhotoCarouselBlock } from '@/components/gallery';
 import { PhotoCarousel } from '@/components/gallery';
 import { Accordion } from '@/features/payload-cms/components/accordion/accordion';
@@ -381,7 +382,7 @@ export const RenderFormBlock: SectionRenderer<FormBlockType> = async ({
         fr: 'le bloc de formulaire',
       })}
     >
-      <ShowForm {...block} />
+      <ShowForm {...block} withBorder />
     </SectionWrapper>
   );
 };
@@ -467,7 +468,14 @@ export const RenderCountdown: SectionRenderer<CountdownType> = async ({
         fr: 'le compte à rebours',
       })}
     >
-      <Countdown {...block} />
+      <ClientOnly
+        blended
+        fallback={
+          <div className="bg-conveniat-green/10 border-conveniat-green/20 my-6 h-[327px] w-full rounded-lg border p-6"></div>
+        }
+      >
+        <Countdown {...block} />
+      </ClientOnly>
     </SectionWrapper>
   );
 };

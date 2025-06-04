@@ -1,16 +1,19 @@
 'use client';
 
+import { SubheadingH2 } from '@/components/ui/typography/subheading-h2';
+import { SubheadingH3 } from '@/components/ui/typography/subheading-h3';
 import { buildInitialFormState } from '@/features/payload-cms/components/form/build-initial-form-state';
 import { fields } from '@/features/payload-cms/components/form/fields';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
 import type { FormFieldBlock, Form as FormType } from '@payloadcms/plugin-form-builder/types';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import { RichText } from '@payloadcms/richtext-lexical/react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import { useRouter } from 'next/navigation';
 import type { MouseEventHandler } from 'react';
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import type { FieldName } from 'react-hook-form';
 import { useForm } from 'react-hook-form';
 
@@ -55,9 +58,9 @@ const validationErrorText: StaticTranslationString = {
 };
 
 const allGoodPreviewText: StaticTranslationString = {
-  en: 'All good - but this is just a preview.',
-  de: 'Alles gut - aber das ist nur eine Vorschau.',
-  fr: "Tout va bien - mais ceci n'est qu'un aperçu.",
+  en: 'All good – but this is just a preview. No data has been submitted. The following data would be submitted:',
+  de: 'Alles gut - aber das ist nur eine Vorschau. Keine Daten wurden übermittelt. Folgende Daten würden übermittelt werden:',
+  fr: "Tout va bien – mais ceci n'est qu'un aperçu. Aucune donnée n'a été transmise. Les données suivantes seraient transmises :",
 };
 
 const failedToSubmitText: StaticTranslationString = {
@@ -131,11 +134,52 @@ const FormFieldRenderer: React.FC<FormFieldRendererProperties> = ({
     watch,
   } = formMethods;
 
+  ///
+  // reset fields in conditioned blocks when the condition is not met
+  //
+  const conditionFieldNames = useMemo(() => {
+    return [
+      ...new Set(
+        section.fields
+          .filter((fieldChild) => fieldChild.blockType === 'conditionedBlock')
+          .map((fieldChild) => fieldChild.displayCondition.field),
+      ),
+    ];
+  }, [section.fields]);
+
+  const watchedValuesByName = watch(conditionFieldNames);
+  const watchedValuesByNameJSON = JSON.stringify(watchedValuesByName);
+
+  useEffect(() => {
+    for (const fieldChild of section.fields) {
+      if (fieldChild.blockType === 'conditionedBlock') {
+        const { field: conditionField, value: targetValue } = fieldChild.displayCondition;
+
+        const index = conditionFieldNames.indexOf(conditionField);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access
+        const currentConditionValue = JSON.parse(watchedValuesByNameJSON)[index];
+
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
+        const conditionMet = (currentConditionValue ?? '').toString() === targetValue;
+
+        if (!conditionMet) {
+          for (const field of fieldChild.fields) {
+            if ('name' in field && field.name) {
+              formMethods.resetField(field.name as FieldName<Data>);
+            }
+          }
+        }
+      }
+    }
+  }, [formMethods, section.fields, section.id, watchedValuesByNameJSON, conditionFieldNames]);
+
+  ///
+  // end of reset fields in conditioned blocks
+  //
+
   return (
     <>
-      <h3 className="text-md text-conveniat-green mb-3 font-['Montserrat'] font-bold">
-        {'sectionTitle' in section ? section.sectionTitle : ''}
-      </h3>
+      <SubheadingH3>{'sectionTitle' in section ? section.sectionTitle : ''}</SubheadingH3>
 
       {section.fields.map((fieldChild, indexChild) => {
         // render conditioned blocks
@@ -218,7 +262,7 @@ const NextPageButton: React.FC<{
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="h-10 w-full cursor-pointer rounded-lg bg-[#47564c] px-5 py-2 font-['Montserrat'] text-base font-bold text-[#e1e6e2] transition duration-300 hover:bg-[#3b4a3f] disabled:opacity-50 sm:w-auto"
+      className="bg-conveniat-green h-10 w-full cursor-pointer rounded-lg px-5 py-2 text-base font-bold text-gray-100 transition duration-100 hover:bg-green-800 disabled:opacity-50 sm:w-auto"
     >
       {nextStepText[locale as Locale]}
     </button>
@@ -236,7 +280,7 @@ const SubmitButton: React.FC<{
       type="submit"
       disabled={disabled}
       form={form}
-      className="h-10 w-full cursor-pointer rounded-lg bg-[#47564c] px-5 py-2 font-['Montserrat'] text-base font-bold text-[#e1e6e2] transition duration-300 hover:bg-[#3b4a3f] disabled:opacity-50 sm:w-auto"
+      className="h-10 w-full cursor-pointer rounded-lg bg-red-700 px-5 py-2 text-base font-bold text-red-100 transition duration-100 hover:bg-red-800 disabled:opacity-50 sm:w-auto"
     >
       {disabled ? pleaseWaitText[locale as Locale] : submitButtonLabel}
     </button>
@@ -253,7 +297,7 @@ const PreviousPageButton: React.FC<{
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="h-10 w-full cursor-pointer rounded-lg bg-gray-300 px-5 py-2 font-['Montserrat'] text-base font-semibold text-gray-700 transition duration-300 hover:bg-gray-400 disabled:opacity-50 sm:w-auto"
+      className="h-10 w-full cursor-pointer rounded-lg border-2 border-gray-500 px-5 py-2 text-base font-semibold text-gray-500 transition duration-100 hover:bg-gray-100 disabled:opacity-50 sm:w-auto"
     >
       {previousStepText[locale as Locale]}
     </button>
@@ -306,12 +350,17 @@ const ResetFormButton: React.FC<{
 };
 
 export const FormBlock: React.FC<
-  FormBlockType & { id?: string; isPreviewMode?: boolean | undefined }
+  FormBlockType & {
+    id?: string;
+    isPreviewMode?: boolean | undefined;
+    withBorder?: boolean | undefined;
+  }
   // eslint-disable-next-line complexity
 > = (properties) => {
   const {
     isPreviewMode,
     form: formFromProperties,
+    withBorder,
     form: {
       id: formID,
       title: mainFormTitle,
@@ -343,6 +392,9 @@ export const FormBlock: React.FC<
   const [isLoading, setIsLoading] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState<boolean>(false);
   const [error, setError] = useState<{ message: string; status?: string } | undefined>();
+  const [previewSuccessMessage, setPreviewSuccessMessage] = useState<
+    { message: string; data: { field: string; value: unknown }[] } | undefined
+  >();
   const [validationError, setValidationError] = useState<string | undefined>();
   const router = useRouter();
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
@@ -406,13 +458,10 @@ export const FormBlock: React.FC<
         clearTimeout(loadingTimerID);
         setIsLoading(false);
         setHasSubmitted(true);
-        setError({
-          message: `${allGoodPreviewText[locale as Locale]} -- ${JSON.stringify(
-            dataToSend,
-            undefined,
-            2,
-          )}`,
-          status: String(200),
+
+        setPreviewSuccessMessage({
+          message: `${allGoodPreviewText[locale as Locale]}`,
+          data: dataToSend,
         });
         return;
       }
@@ -530,8 +579,24 @@ export const FormBlock: React.FC<
       {error && (
         <div className="mb-4 rounded-md border border-red-400 bg-red-100 p-4 text-red-700">{`Error ${error.status ?? ''}: ${error.message}`}</div>
       )}
+
+      {previewSuccessMessage && (
+        <div className="mb-4 rounded-md border border-gray-400 bg-gray-100 p-4 text-gray-700">
+          {previewSuccessMessage.message}
+          <ul className="mt-2 list-inside list-disc">
+            {previewSuccessMessage.data.map(({ field, value }, index) => (
+              <li key={index}>
+                <strong>{field}:</strong> {String(value)}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <form
-        className="relative mx-auto h-auto max-w-xl rounded-md border-2 border-gray-200 bg-white p-6"
+        className={cn(
+          'relative mx-auto h-auto max-w-xl rounded-md bg-white',
+          withBorder === undefined || Boolean(withBorder) ? 'border-2 border-gray-200 p-6' : '',
+        )}
         id={formID}
         onSubmit={(event?: React.BaseSyntheticEvent): void => {
           event?.preventDefault();
@@ -572,9 +637,7 @@ export const FormBlock: React.FC<
         )}
 
         {mainFormTitle !== undefined && (
-          <h2 className="text-conveniat-green mb-4 font-['Montserrat'] text-lg font-extrabold">
-            {mainFormTitle}
-          </h2>
+          <SubheadingH2 className="mt-0">{mainFormTitle}</SubheadingH2>
         )}
 
         {/* Validation error message */}

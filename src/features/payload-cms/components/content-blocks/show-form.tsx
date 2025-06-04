@@ -4,10 +4,12 @@ import { ErrorBoundary } from 'react-error-boundary';
 import type { FormBlockType } from 'src/features/payload-cms/components/form';
 import { FormBlock } from 'src/features/payload-cms/components/form';
 
-export const ShowForm: React.FC<FormBlockType & { isPreviewMode?: boolean | undefined }> = async ({
-  isPreviewMode,
-  ...block
-}) => {
+export const ShowForm: React.FC<
+  FormBlockType & {
+    isPreviewMode?: boolean | undefined;
+    withBorder?: boolean | undefined;
+  }
+> = async ({ isPreviewMode, withBorder, ...block }) => {
   return (
     <ClientOnly
       fallback={
@@ -15,7 +17,7 @@ export const ShowForm: React.FC<FormBlockType & { isPreviewMode?: boolean | unde
       }
     >
       <ErrorBoundary fallback={<div className="text-red-500">Error loading form</div>}>
-        <FormBlock {...block} isPreviewMode={isPreviewMode} />
+        <FormBlock {...block} isPreviewMode={isPreviewMode} withBorder={withBorder} />
       </ErrorBoundary>
     </ClientOnly>
   );

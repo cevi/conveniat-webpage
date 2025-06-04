@@ -1,6 +1,7 @@
 import { FooterBuildInfoText } from '@/components/footer/footer-copyright-area';
 import { MainMenuLanguageSwitcher } from '@/components/menu/main-menu-language-switcher';
 import { SearchComponent } from '@/components/menu/search';
+import { LinkComponent } from '@/components/ui/link-component';
 import {
   getURLForLinkField,
   hasPermissionsForLinkField,
@@ -14,7 +15,6 @@ import { cn } from '@/utils/tailwindcss-override';
 import { Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/react';
 import config from '@payload-config';
 import { ChevronDown } from 'lucide-react';
-import Link from 'next/link';
 import { getPayload } from 'payload';
 import type React from 'react';
 
@@ -38,9 +38,9 @@ export const MainMenu: React.FC = async () => {
     >
       <div>
         <span className="text-conveniat-green hidden w-full font-['Montserrat'] text-[24px] leading-normal font-extrabold xl:block">
-          <Link key="home" href="/">
+          <LinkComponent key="home" href="/">
             conveniat27
-          </Link>
+          </LinkComponent>
         </span>
         <div className="py-6">
           {mainMenu.map(async (item) => {
@@ -71,14 +71,14 @@ export const MainMenu: React.FC = async () => {
                     {subMenuItemsWherePermitted.map(
                       (subItem) =>
                         subItem && (
-                          <Link
+                          <LinkComponent
                             key={subItem.id}
                             href={getURLForLinkField(subItem.linkField) ?? '/'}
-                            target={openURLInNewTab(subItem.linkField) ? '_blank' : undefined}
+                            openInNewTab={openURLInNewTab(subItem.linkField)}
                             className="closeNavOnClick block rounded-lg py-2 pr-3 pl-6 text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
                           >
                             {subItem.label}
-                          </Link>
+                          </LinkComponent>
                         ),
                     )}
                   </DisclosurePanel>
@@ -87,8 +87,6 @@ export const MainMenu: React.FC = async () => {
             }
 
             const itemLink = getURLForLinkField(item.linkField) ?? '/';
-            const itemInNewTab = openURLInNewTab(item.linkField) ? '_blank' : undefined;
-
             const hasPermission = await hasPermissionsForLinkField(item.linkField);
 
             if (!hasPermission) {
@@ -96,11 +94,15 @@ export const MainMenu: React.FC = async () => {
             }
 
             return (
-              <Link key={item.id} href={itemLink} target={itemInNewTab}>
+              <LinkComponent
+                key={item.id}
+                href={itemLink}
+                openInNewTab={openURLInNewTab(item.linkField)}
+              >
                 <span className="closeNavOnClick -mx-3 block rounded-lg px-3 py-2 text-base/7 font-semibold text-gray-700 hover:bg-gray-50">
                   {item.label}
                 </span>
-              </Link>
+              </LinkComponent>
             );
           })}
         </div>

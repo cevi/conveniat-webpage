@@ -1,8 +1,8 @@
+import { LinkComponent } from '@/components/ui/link-component';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { TeaserText } from '@/components/ui/typography/teaser-text';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
-import Link from 'next/link';
 import React from 'react';
 
 const error404: StaticTranslationString = {
@@ -21,9 +21,9 @@ export const NotFound: React.FC = async () => {
     en: (
       <>
         The page you are looking for does not exist. Please check the URL or go back to the{' '}
-        <Link href="/" className="font-bold text-red-600">
+        <LinkComponent href="/" className="font-bold text-red-600">
           home page
-        </Link>
+        </LinkComponent>
         .
       </>
     ),
@@ -31,18 +31,18 @@ export const NotFound: React.FC = async () => {
       <>
         Die Seite, die Sie suchen, existiert nicht. Bitte überprüfen Sie die URL oder gehen Sie
         zurück zur{' '}
-        <Link href="/" className="font-bold text-red-600">
+        <LinkComponent href="/" className="font-bold text-red-600">
           Startseite
-        </Link>
+        </LinkComponent>
         .
       </>
     ),
     fr: (
       <>
         La page que vous recherchez n&#39;existe pas. Veuillez vérifier l&#39;URL ou revenir à la{' '}
-        <Link href="/" className="font-bold text-red-600">
+        <LinkComponent href="/" className="font-bold text-red-600">
           page d&#39;accueil
-        </Link>
+        </LinkComponent>
         .
       </>
     ),

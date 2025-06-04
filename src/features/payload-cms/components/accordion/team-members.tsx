@@ -1,3 +1,4 @@
+import { LinkComponent } from '@/components/ui/link-component';
 import { AvatarPlaceholder } from '@/features/payload-cms/components/accordion/avatar-placeholder';
 import {
   getURLForLinkField,
@@ -5,7 +6,6 @@ import {
 } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import type { Image as ImageType, TeamMembersBlock } from '@/features/payload-cms/payload-types';
 import Image from 'next/image';
-import Link from 'next/link';
 import type React from 'react';
 import { Fragment } from 'react';
 
@@ -113,7 +113,6 @@ export const TeamMembers: React.FC<{
   const teamMembers = block.teamMembers;
   const linkField = block.linkField;
   const link = getURLForLinkField(linkField) || '';
-  const inNewTab = openURLInNewTab(linkField) ? '_blank' : undefined;
   return link === '' ? (
     <Fragment>
       <TeamLeaderInternal block={block} />
@@ -121,9 +120,9 @@ export const TeamMembers: React.FC<{
     </Fragment>
   ) : (
     <Fragment>
-      <Link href={link} target={inNewTab}>
+      <LinkComponent href={link} openInNewTab={openURLInNewTab(linkField)}>
         <TeamLeaderInternal block={block} />
-      </Link>
+      </LinkComponent>
       <TeamHelpersList teamMembers={teamMembers} />
     </Fragment>
   );

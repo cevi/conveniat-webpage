@@ -44,7 +44,7 @@ export const FormsPreviewPage: React.FC<LocalizedCollectionPage> = async ({
   return (
     <article className="my-8 w-full max-w-2xl px-8 max-xl:mx-auto">
       <HeadlineH1>{pageTitle[locale]}</HeadlineH1>
-      <ShowForm {...formBlock} isPreviewMode />
+      <ShowForm {...formBlock} isPreviewMode withBorder />
     </article>
   );
 };

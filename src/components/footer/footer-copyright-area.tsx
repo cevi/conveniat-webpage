@@ -1,12 +1,12 @@
 import { SocialMediaLinks } from '@/components/footer/social-media-links';
 import { CeviSchweiz } from '@/components/svg-logos/cevi-schweiz';
+import { LinkComponent } from '@/components/ui/link-component';
 import type { StaticTranslationString } from '@/types/types';
 import { getBuildInfo } from '@/utils/get-build-info';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { renderInAppDesign } from '@/utils/render-in-app-design';
 import { cn } from '@/utils/tailwindcss-override';
 import config from '@payload-config';
-import Link from 'next/link';
 import { getPayload } from 'payload';
 import React, { Fragment } from 'react';
 
@@ -27,7 +27,9 @@ const FooterMinimalMenu: React.FC = async () => {
     <div className="mb-2 flex justify-center gap-x-4 text-xs">
       {minimalFooterMenu.map((footerMenuElement) => (
         <Fragment key={footerMenuElement.id}>
-          <Link href={footerMenuElement.link ?? ''}>{footerMenuElement.label}</Link>
+          <LinkComponent href={footerMenuElement.link ?? ''}>
+            {footerMenuElement.label}
+          </LinkComponent>
         </Fragment>
       ))}
     </div>

@@ -1,3 +1,4 @@
+import build from '@/build';
 import type { StaticTranslationString } from '@/types/types';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import React from 'react';
@@ -20,7 +21,7 @@ const DashboardWelcomeBanner: React.FC = async () => {
   return (
     <div>
       <h1 className="text-conveniat-green text-3xl font-extrabold">
-        {welcomeMessageTitle[locale]}
+        {welcomeMessageTitle[locale]} - Version {build.version}
       </h1>
       <p className="mt-2 text-lg">{welcomeMessage[locale]}</p>
     </div>

@@ -553,6 +553,15 @@ export interface Form {
                 blockType: 'textarea';
               }
             | {
+                name: string;
+                label: string;
+                defaultValue?: string | null;
+                required?: boolean | null;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'date';
+              }
+            | {
                 displayCondition?: {
                   field?: string | null;
                   value?: string | null;
@@ -667,6 +676,15 @@ export interface Form {
                           id?: string | null;
                           blockName?: string | null;
                           blockType: 'textarea';
+                        }
+                      | {
+                          name: string;
+                          label: string;
+                          defaultValue?: string | null;
+                          required?: boolean | null;
+                          id?: string | null;
+                          blockName?: string | null;
+                          blockType: 'date';
                         }
                     )[]
                   | null;
@@ -932,7 +950,7 @@ export interface AccordionBlocks {
         /**
          * This is the content of the accordion block. It will be displayed when the block is expanded.
          */
-        valueBlocks: (PlainTextBlock | TeamMembersBlock)[];
+        valueBlocks: (PlainTextBlock | TeamMembersBlock | FormBlock)[];
         id?: string | null;
       }[]
     | null;
@@ -1643,6 +1661,7 @@ export interface AccordionBlocksSelect<T extends boolean = true> {
           | {
               accordionPlainTextBlock?: T | PlainTextBlockSelect<T>;
               accordionTeamMembersBlock?: T | TeamMembersBlockSelect<T>;
+              formBlock?: T | FormBlockSelect<T>;
             };
         id?: T;
       };
@@ -2065,6 +2084,16 @@ export interface FormsSelect<T extends boolean = true> {
                           id?: T;
                           blockName?: T;
                         };
+                    date?:
+                      | T
+                      | {
+                          name?: T;
+                          label?: T;
+                          defaultValue?: T;
+                          required?: T;
+                          id?: T;
+                          blockName?: T;
+                        };
                     conditionedBlock?:
                       | T
                       | {
@@ -2163,6 +2192,16 @@ export interface FormsSelect<T extends boolean = true> {
                                       name?: T;
                                       label?: T;
                                       placeholder?: T;
+                                      defaultValue?: T;
+                                      required?: T;
+                                      id?: T;
+                                      blockName?: T;
+                                    };
+                                date?:
+                                  | T
+                                  | {
+                                      name?: T;
+                                      label?: T;
                                       defaultValue?: T;
                                       required?: T;
                                       id?: T;
