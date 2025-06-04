@@ -218,7 +218,7 @@ const NextPageButton: React.FC<{
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="h-10 w-full cursor-pointer rounded-lg bg-[#47564c] px-5 py-2 font-['Montserrat'] text-base font-bold text-[#e1e6e2] transition duration-300 hover:bg-[#3b4a3f] disabled:opacity-50 sm:w-auto"
+      className="bg-conveniat-green h-10 w-full cursor-pointer rounded-lg px-5 py-2 text-base font-bold text-gray-100 transition duration-100 hover:bg-green-800 disabled:opacity-50 sm:w-auto"
     >
       {nextStepText[locale as Locale]}
     </button>
@@ -236,7 +236,7 @@ const SubmitButton: React.FC<{
       type="submit"
       disabled={disabled}
       form={form}
-      className="h-10 w-full cursor-pointer rounded-lg bg-[#47564c] px-5 py-2 font-['Montserrat'] text-base font-bold text-[#e1e6e2] transition duration-300 hover:bg-[#3b4a3f] disabled:opacity-50 sm:w-auto"
+      className="h-10 w-full cursor-pointer rounded-lg bg-red-700 px-5 py-2 text-base font-bold text-red-100 transition duration-100 hover:bg-red-800 disabled:opacity-50 sm:w-auto"
     >
       {disabled ? pleaseWaitText[locale as Locale] : submitButtonLabel}
     </button>
@@ -253,7 +253,7 @@ const PreviousPageButton: React.FC<{
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="h-10 w-full cursor-pointer rounded-lg bg-gray-300 px-5 py-2 font-['Montserrat'] text-base font-semibold text-gray-700 transition duration-300 hover:bg-gray-400 disabled:opacity-50 sm:w-auto"
+      className="h-10 w-full cursor-pointer rounded-lg border-2 border-gray-500 px-5 py-2 text-base font-semibold text-gray-500 transition duration-100 hover:bg-gray-100 disabled:opacity-50 sm:w-auto"
     >
       {previousStepText[locale as Locale]}
     </button>

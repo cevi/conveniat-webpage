@@ -118,7 +118,7 @@ export const PushNotificationSubscriptionManager: React.FC<{
         <>
           <p className="mb-4 text-balance text-gray-700">{notYetSubscribed[locale]}</p>
           <button
-            className="font-heading rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg leading-normal font-bold text-red-100 hover:bg-red-800"
+            className="font-heading rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg leading-normal font-bold text-red-100 duration-100 hover:bg-red-800"
             onClick={subscribeToPush}
           >
             {subscribeAcceptedText[locale]}
