@@ -41,7 +41,7 @@ const resolveInternalLink = (fields: LinkFields): string => {
     for (const value of Object.values(slugToUrlMapping)) {
       if (value.slug === collectionName) {
         const urlPrefix = value.urlPrefix[locale as Locale];
-        return `/${urlPrefix}${urlSlug}`;
+        return urlPrefix === '' ? `${urlSlug}` : `/${urlPrefix}${urlSlug}`;
       }
     }
   }
