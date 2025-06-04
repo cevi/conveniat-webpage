@@ -1,4 +1,4 @@
-import { LinkComponent } from '@/components/ui/Link';
+import { LinkComponent } from '@/components/ui/link-component';
 import React from 'react';
 
 export const CallToAction: React.FC<{

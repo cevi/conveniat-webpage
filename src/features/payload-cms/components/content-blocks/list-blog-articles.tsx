@@ -1,5 +1,5 @@
 import { NewsCard } from '@/components/news-card';
-import { LinkComponent } from '@/components/ui/Link';
+import { LinkComponent } from '@/components/ui/link-component';
 import type { Blog } from '@/features/payload-cms/payload-types';
 import type { LocalizedPageType, StaticTranslationString } from '@/types/types';
 import config from '@payload-config';

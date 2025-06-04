@@ -1,5 +1,5 @@
 'use client';
-import { LinkComponent } from '@/components/ui/Link';
+import { LinkComponent } from '@/components/ui/link-component';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { TeaserText } from '@/components/ui/typography/teaser-text';
 import type { Locale } from '@/types/types';

@@ -1,4 +1,4 @@
-import { LinkComponent } from '@/components/ui/Link';
+import { LinkComponent } from '@/components/ui/link-component';
 import type { Footer } from '@/features/payload-cms/payload-types';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import config from '@payload-config';

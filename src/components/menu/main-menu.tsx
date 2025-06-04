@@ -1,7 +1,7 @@
 import { FooterBuildInfoText } from '@/components/footer/footer-copyright-area';
 import { MainMenuLanguageSwitcher } from '@/components/menu/main-menu-language-switcher';
 import { SearchComponent } from '@/components/menu/search';
-import { LinkComponent } from '@/components/ui/Link';
+import { LinkComponent } from '@/components/ui/link-component';
 import {
   getURLForLinkField,
   hasPermissionsForLinkField,

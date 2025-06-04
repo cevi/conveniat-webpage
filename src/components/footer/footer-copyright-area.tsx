@@ -1,6 +1,6 @@
 import { SocialMediaLinks } from '@/components/footer/social-media-links';
 import { CeviSchweiz } from '@/components/svg-logos/cevi-schweiz';
-import { LinkComponent } from '@/components/ui/Link';
+import { LinkComponent } from '@/components/ui/link-component';
 import type { StaticTranslationString } from '@/types/types';
 import { getBuildInfo } from '@/utils/get-build-info';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';

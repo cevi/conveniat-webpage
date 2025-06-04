@@ -1,4 +1,4 @@
-import { LinkComponent } from '@/components/ui/Link';
+import { LinkComponent } from '@/components/ui/link-component';
 import { AvatarPlaceholder } from '@/features/payload-cms/components/accordion/avatar-placeholder';
 import {
   getURLForLinkField,

@@ -1,4 +1,4 @@
-import { LinkComponent } from '@/components/ui/Link';
+import { LinkComponent } from '@/components/ui/link-component';
 import { slugToUrlMapping } from '@/features/payload-cms/slug-to-url-mapping';
 import type { Locale } from '@/types/types';
 import type { SerializedParagraphNode } from '@payloadcms/richtext-lexical';
@@ -63,7 +63,7 @@ const linkConverter: JSXConverters<SerializedParagraphNode>['link'] = ({ node, n
   }
 
   return (
-    <LinkComponent href={url} className="text-red-600 font-extrabold">
+    <LinkComponent href={url} className="font-extrabold text-red-600">
       {children}
     </LinkComponent>
   );

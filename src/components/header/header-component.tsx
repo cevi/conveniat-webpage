@@ -2,7 +2,7 @@ import { PreviewModeBanner } from '@/components/header/preview-mode-banner';
 import { MainMenu } from '@/components/menu/main-menu';
 import { NavComponent } from '@/components/menu/nav-component';
 import { ConveniatLogo } from '@/components/svg-logos/conveniat-logo';
-import { LinkComponent } from '@/components/ui/Link';
+import { LinkComponent } from '@/components/ui/link-component';
 import { canUserAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import type { Config } from '@/features/payload-cms/payload-types';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';

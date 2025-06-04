@@ -1,5 +1,5 @@
 import { NewsCard } from '@/components/news-card';
-import { LinkComponent } from '@/components/ui/Link';
+import { LinkComponent } from '@/components/ui/link-component';
 import type { RichTextSection } from '@/features/payload-cms/payload-cms/utils/extract-rich-text-content';
 import { extractRichTextContent } from '@/features/payload-cms/payload-cms/utils/extract-rich-text-content';
 import type { GenericPage } from '@/features/payload-cms/payload-types';
