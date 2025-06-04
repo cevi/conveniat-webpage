@@ -1,4 +1,5 @@
 import { slugToUrlMapping } from '@/features/payload-cms/slug-to-url-mapping';
+import type { Locale } from '@/types/types';
 import type { SerializedParagraphNode } from '@payloadcms/richtext-lexical';
 import type { JSXConverters } from '@payloadcms/richtext-lexical/react';
 import Link from 'next/link';
@@ -14,6 +15,7 @@ interface LinkFields {
       seo: {
         urlSlug: string;
       };
+      _locale: Locale;
     };
     relationTo: string;
   };
@@ -28,16 +30,18 @@ interface LinkFields {
  *
  */
 const resolveInternalLink = (fields: LinkFields): string => {
-  let url = (fields.url ?? '') as string;
+  const url = (fields.url ?? '') as string;
+
+  const locale = fields.doc.value._locale;
 
   if (fields.linkType === 'internal') {
     const urlSlug = `/${fields.doc.value.seo.urlSlug}`;
     const collectionName = fields.doc.relationTo as string;
 
-    for (const [key, value] of Object.entries(slugToUrlMapping)) {
+    for (const value of Object.values(slugToUrlMapping)) {
       if (value.slug === collectionName) {
-        url = key === '' ? urlSlug : collectionName + urlSlug;
-        break;
+        const urlPrefix = value.urlPrefix[locale as Locale];
+        return `${urlPrefix}${urlSlug}`;
       }
     }
   }
