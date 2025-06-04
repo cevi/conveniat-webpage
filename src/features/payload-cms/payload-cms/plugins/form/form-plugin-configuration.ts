@@ -14,6 +14,7 @@ const formTitleField: Field = {
   name: 'title',
   type: 'text',
   required: true,
+  localized: true,
   label: {
     en: 'Internal Form Title',
     de: 'Interner Formular Titel',
