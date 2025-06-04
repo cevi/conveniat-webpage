@@ -33,7 +33,7 @@ const AccordionContent: React.FC<AccordionContentProperties> = ({ valueBlocks })
             return (
               <Fragment key={index}>
                 <div className="mb-4 hyphens-auto sm:hyphens-none">
-                  <ShowForm {...(_block as unknown as FormBlockType)} />
+                  <ShowForm {...(_block as unknown as FormBlockType)} withBorder={false} />
                 </div>
                 {index !== valueBlocks.length - 1 && <hr className="my-6 border border-gray-100" />}
               </Fragment>

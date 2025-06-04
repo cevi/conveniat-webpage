@@ -382,7 +382,7 @@ export const RenderFormBlock: SectionRenderer<FormBlockType> = async ({
         fr: 'le bloc de formulaire',
       })}
     >
-      <ShowForm {...block} />
+      <ShowForm {...block} withBorder />
     </SectionWrapper>
   );
 };
