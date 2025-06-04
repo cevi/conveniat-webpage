@@ -307,7 +307,11 @@ const ResetFormButton: React.FC<{
 };
 
 export const FormBlock: React.FC<
-  FormBlockType & { id?: string; isPreviewMode?: boolean | undefined; withBorder?: boolean }
+  FormBlockType & {
+    id?: string;
+    isPreviewMode?: boolean | undefined;
+    withBorder?: boolean | undefined;
+  }
   // eslint-disable-next-line complexity
 > = (properties) => {
   const {

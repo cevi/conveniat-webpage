@@ -6,7 +6,7 @@ import type { PlainTextBlock, TeamMembersBlock } from '@/features/payload-cms/pa
 import type React from 'react';
 import { Fragment } from 'react';
 
-interface AccordionContentProperties {
+export interface AccordionContentProperties {
   valueBlocks: Array<TeamMembersBlock | PlainTextBlock | FormBlockType>;
 }
 
