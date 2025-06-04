@@ -13,7 +13,7 @@ import { RichText } from '@payloadcms/richtext-lexical/react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import { useRouter } from 'next/navigation';
 import type { MouseEventHandler } from 'react';
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import type { FieldName } from 'react-hook-form';
 import { useForm } from 'react-hook-form';
 
@@ -133,6 +133,49 @@ const FormFieldRenderer: React.FC<FormFieldRendererProperties> = ({
     formState: { errors },
     watch,
   } = formMethods;
+
+  ///
+  // reset fields in conditioned blocks when the condition is not met
+  //
+  const conditionFieldNames = useMemo(() => {
+    return [
+      ...new Set(
+        section.fields
+          .filter((fieldChild) => fieldChild.blockType === 'conditionedBlock')
+          .map((fieldChild) => fieldChild.displayCondition.field),
+      ),
+    ];
+  }, [section.fields]);
+
+  const watchedValuesByName = watch(conditionFieldNames);
+  const watchedValuesByNameJSON = JSON.stringify(watchedValuesByName);
+
+  useEffect(() => {
+    for (const fieldChild of section.fields) {
+      if (fieldChild.blockType === 'conditionedBlock') {
+        const { field: conditionField, value: targetValue } = fieldChild.displayCondition;
+
+        const index = conditionFieldNames.indexOf(conditionField);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access
+        const currentConditionValue = JSON.parse(watchedValuesByNameJSON)[index];
+
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
+        const conditionMet = (currentConditionValue ?? '').toString() === targetValue;
+
+        if (!conditionMet) {
+          for (const field of fieldChild.fields) {
+            if ('name' in field && field.name) {
+              formMethods.resetField(field.name as FieldName<Data>);
+            }
+          }
+        }
+      }
+    }
+  }, [formMethods, section.fields, section.id, watchedValuesByNameJSON, conditionFieldNames]);
+
+  ///
+  // end of reset fields in conditioned blocks
+  //
 
   return (
     <>
