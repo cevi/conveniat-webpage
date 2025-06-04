@@ -390,7 +390,11 @@ export const FormBlock: React.FC<
         setIsLoading(false);
         setHasSubmitted(true);
         setError({
-          message: allGoodPreviewText[locale as Locale],
+          message: `${allGoodPreviewText[locale as Locale]} -- ${JSON.stringify(
+            dataToSend,
+            undefined,
+            2,
+          )}`,
           status: String(200),
         });
         return;
