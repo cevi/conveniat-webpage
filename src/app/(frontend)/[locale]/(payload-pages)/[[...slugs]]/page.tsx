@@ -1,5 +1,7 @@
 import 'server-only';
 
+import { PreviewWarningClient } from '@/app/(frontend)/[locale]/(payload-pages)/[[...slugs]]/preview-warning-client';
+
 import { CustomErrorBoundaryFallback } from '@/app/(frontend)/[locale]/(payload-pages)/[[...slugs]]/custom-error-boundary-fallback';
 import { NotFound } from '@/app/(frontend)/not-found';
 import { CookieBanner } from '@/components/utils/cookie-banner';
@@ -81,18 +83,8 @@ const PreviewWarning: React.FC<{
   }>;
 }> = async ({ params }) => {
   const { locale } = await params;
-  const StatisPreviewString = {
-    de: 'DIES IST EINE VORSCHAU',
-    en: 'THIS IS A PREVIEW',
-    fr: 'CECI EST UNE PRÉVISUALISATION',
-  };
-  return (
-    <div className="fixed right-0 bottom-0 z-50 p-4">
-      <div className="rounded-lg bg-orange-500 px-4 py-2 font-bold text-white shadow-lg">
-        {StatisPreviewString[locale]}
-      </div>
-    </div>
-  );
+
+  return <PreviewWarningClient locale={locale} />;
 };
 
 /**
