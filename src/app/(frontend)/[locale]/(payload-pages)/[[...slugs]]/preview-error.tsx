@@ -24,9 +24,9 @@ const previewTokenInvalidText: StaticTranslationString = {
 };
 
 const urlDoesNotMatchText: StaticTranslationString = {
-  en: 'URL does not match',
-  de: 'URL stimmt nicht überein',
-  fr: "l'URL ne correspond pas",
+  en: 'URL does not match, you are on',
+  de: 'URL stimmt nicht überein, du bist auf',
+  fr: "l'URL ne correspond pas, vous êtes sur",
 };
 
 const previewForUrlText: StaticTranslationString = {
@@ -122,6 +122,7 @@ const PreviewTokenAnalysis: React.FC<PreviewTokenAnalysisProperties> = ({
 }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const { slugs } = useParams();
+  const path = globalThis.location.pathname;
 
   const currentLocaleForDate = {
     en: 'en-US',
@@ -159,7 +160,7 @@ const PreviewTokenAnalysis: React.FC<PreviewTokenAnalysisProperties> = ({
               <>{decoded.url}</>
             ) : (
               <span className="text-red-700">
-                {decoded.url} ({urlDoesNotMatchText[locale]})
+                {decoded.url} ({urlDoesNotMatchText[locale]} {path})
               </span>
             )}
           </li>
