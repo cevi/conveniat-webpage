@@ -1,6 +1,6 @@
+import build from '@/build';
 import { environmentVariables } from '@/config/environment-variables';
 import { resetServerData } from '@/features/payload-cms/payload-cms/initialization/deleting/reset-api';
-import build from '@/build';
 import type { StaticTranslationString } from '@/types/types';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import type React from 'react';
