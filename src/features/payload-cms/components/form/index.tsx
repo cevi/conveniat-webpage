@@ -446,7 +446,7 @@ export const FormBlock: React.FC<
         return;
       }
 
-      const dataToSend = Object.entries(data).map(([name, value]) => ({
+      let dataToSend = Object.entries(data).map(([name, value]) => ({
         field: name,
         value,
       }));
@@ -475,6 +475,9 @@ export const FormBlock: React.FC<
           };
         }
       }
+
+      // remove all fields that have no value (but keep empty strings)
+      dataToSend = dataToSend.filter((fieldData) => fieldData.value !== undefined);
 
       try {
         const request = await fetch(`/api/form-submissions`, {
