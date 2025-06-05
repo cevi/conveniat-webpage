@@ -2,7 +2,7 @@
 
 [![Visit Live Site](https://img.shields.io/badge/Live%20Site-conveniat27.ch-blue)](https://conveniat27.ch)
 
-This repository contains the source code for the official website of conveniat27, built with Next.js and Payload CMS.
+This repository contains the source code for the official website as well as the official app of conveniat27, built with Next.js and Payload CMS.
 
 ## Table of Contents
 
@@ -35,7 +35,8 @@ This repository contains the source code for the official website of conveniat27
   [Tailwind CSS](https://tailwindcss.com/), [Headless UI](https://headlessui.com/)
 - **Icons:** [Lucide React](https://lucide.dev/)
 - **Database:** [MongoDB](https://www.mongodb.com/) (self-hosted),
-  [MinIO](https://min.io/) (S3-compatible object storage, self-hosted)
+  [MinIO](https://min.io/) (S3-compatible object storage, self-hosted),
+  [PostgreSQL](https://www.postgresql.org/) (self-hosted)
 - **PWA:** [Serwist](https://serwist.pages.dev/) (for Service Worker management)
 - **Code Quality:** [ESLint](https://eslint.org/), [Prettier](https://prettier.io/)
 - **Development Environment:** [Docker](https://www.docker.com/) (Devcontainer)
