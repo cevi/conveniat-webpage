@@ -1,3 +1,4 @@
+import { LinkComponent } from '@/components/ui/link-component';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { BlogArticleConverter } from '@/features/payload-cms/converters/blog-article';
 import type { Permission } from '@/features/payload-cms/payload-types';
@@ -5,7 +6,6 @@ import type { Locale, LocalizedCollectionPage, StaticTranslationString } from '@
 import { i18nConfig } from '@/types/types';
 import { hasPermissions } from '@/utils/has-permissions';
 import config from '@payload-config';
-import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { getPayload } from 'payload';
 import React from 'react';
@@ -136,12 +136,12 @@ export const BlogPostPage: React.FC<LocalizedCollectionPage> = async ({
       <ul>
         {articles.map((article) => (
           <li key={article.id}>
-            <Link
+            <LinkComponent
               href={`/${article._locale.split('-')[0]}/blog/${article.seo.urlSlug}`}
               className="font-bold text-red-600"
             >
               {article.content.blogH1} {languagePreposition[locale]} {article._locale}
-            </Link>
+            </LinkComponent>
           </li>
         ))}
       </ul>

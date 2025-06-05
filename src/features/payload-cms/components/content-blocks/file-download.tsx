@@ -1,5 +1,5 @@
+import { LinkComponent } from '@/components/ui/link-component';
 import { Paperclip } from 'lucide-react';
-import Link from 'next/link';
 import React from 'react';
 
 export interface FileDownloadType {
@@ -36,10 +36,11 @@ const dateStringToFormatedDate = (dateString: string): string => {
 export const FileDownload: React.FC<FileDownloadType> = ({ ...block }) => {
   return (
     <div className="rounded-md border-2 border-gray-200 bg-white transition duration-200 hover:shadow-md sm:m-8">
-      <Link
+      <LinkComponent
         href={block.file.url}
-        target={block.openInNewTab ? '_blank' : undefined}
+        openInNewTab={block.openInNewTab}
         className="block p-2"
+        hideExternalIcon
       >
         <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2">
           <Paperclip className="mx-2 h-4 w-4 text-green-400" />
@@ -59,7 +60,7 @@ export const FileDownload: React.FC<FileDownloadType> = ({ ...block }) => {
             </span>
           </div>
         </div>
-      </Link>
+      </LinkComponent>
     </div>
   );
 };

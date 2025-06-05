@@ -27,11 +27,19 @@ export const LinkComponent: React.FC<
     children?: React.ReactNode;
     openInNewTab?: boolean;
     className?: string;
-  } & LinkProps
-> = ({ children, className = '', openInNewTab = false, ...linkProperties }) => {
-  const { href } = linkProperties;
+    hideExternalIcon?: boolean;
+  } & React.AnchorHTMLAttributes<HTMLAnchorElement> &
+    LinkProps
+> = ({
+  children,
+  className = '',
+  openInNewTab = false,
+  hideExternalIcon = false,
+  ...properties
+}) => {
+  const { href } = properties;
   const defaultArguments = {
-    ...linkProperties,
+    ...properties,
     className: cn(
       '', // fill generic link classNames here.
       className,
@@ -41,12 +49,12 @@ export const LinkComponent: React.FC<
 
   const url = href.toString();
 
-  const isExternal = isExternalURL(url);
+  const isExternal = isExternalURL(url) && !hideExternalIcon;
 
   if (isExternal) {
     return (
       <Link {...defaultArguments}>
-        <span className="inline-flex items-center gap-2">
+        <span className="inline-flex items-center gap-1">
           {children}
           <ExternalLink aria-hidden="true" className="size-4" />
         </span>

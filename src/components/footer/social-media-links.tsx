@@ -1,7 +1,7 @@
+import { LinkComponent } from '@/components/ui/link-component';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { SiInstagram, SiYoutube } from '@icons-pack/react-simple-icons';
 import config from '@payload-config';
-import Link from 'next/link';
 import { getPayload } from 'payload';
 import React from 'react';
 
@@ -16,27 +16,27 @@ export const SocialMediaLinks: React.FC = async () => {
   return (
     <div className="mb-2 flex items-center justify-center gap-2">
       {instagramLink !== null && instagramLink !== undefined && (
-        <Link
+        <LinkComponent
           href={instagramLink}
-          target="_blank"
+          hideExternalIcon
           rel="noopener noreferrer"
           className="rounded-full p-2 transition-colors duration-200"
           aria-label="Follow us on Instagram"
         >
           <SiInstagram className="h-5 w-5" />
-        </Link>
+        </LinkComponent>
       )}
 
       {youTubeLink !== null && youTubeLink !== undefined && (
-        <Link
+        <LinkComponent
           href={youTubeLink}
-          target="_blank"
+          hideExternalIcon
           rel="noopener noreferrer"
           className="rounded-full p-2 transition-colors duration-200"
           aria-label="Subscribe to our YouTube channel"
         >
           <SiYoutube className="h-5 w-5" />
-        </Link>
+        </LinkComponent>
       )}
     </div>
   );
