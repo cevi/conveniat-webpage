@@ -8,7 +8,7 @@ export const ListItemJSXConverter: JSXConverters<SerializedListItemNode> = {
     });
 
     return (
-      <li className="font-body bg-(image:/favicon.svg) max-w-2xl text-left text-base font-normal text-gray-500">
+      <li className="font-body max-w-2xl text-left text-base font-normal text-gray-500">
         {children}
       </li>
     );
@@ -23,6 +23,6 @@ export const ListJSXConverter: JSXConverters<SerializedListNode> = {
 
     const NodeTag: 'ul' | 'ol' = node.tag;
 
-    return <NodeTag>{children}</NodeTag>;
+    return <NodeTag className="ml-6 list-disc">{children}</NodeTag>;
   },
 };

@@ -1,5 +1,6 @@
 'use client';
 
+import { LinkComponent } from '@/components/ui/link-component';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { ParagraphText } from '@/components/ui/typography/paragraph-text';
 import { TeaserText } from '@/components/ui/typography/teaser-text';
@@ -7,7 +8,6 @@ import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import * as jwt from 'jsonwebtoken';
 import { useCurrentLocale } from 'next-i18n-router/client';
-import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
 import type React from 'react';
 
@@ -207,10 +207,11 @@ export const PreviewError: React.FC = () => {
 
           <TeaserText>
             {pageNotAvailableP1Text[locale]}
-            <Link onClick={backToHomeHandler} className="font-bold text-red-600" href={''}>
+            <LinkComponent onClick={backToHomeHandler} className="font-bold text-red-600" href={''}>
               {' '}
               {homePageLinkText[locale]}
-            </Link>
+            </LinkComponent>
+
             {pageNotAvailableP2Text[locale]}
           </TeaserText>
 

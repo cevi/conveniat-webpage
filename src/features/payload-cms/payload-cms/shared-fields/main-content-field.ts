@@ -48,5 +48,11 @@ export const mainContentField: Field = {
     summaryBoxBlock,
     timelineEntries,
     countdownBlock,
+    {
+      slug: 'whiteSpace',
+      imageURL: '/admin-block-images/white-space-block.png',
+      imageAltText: 'White Space Block',
+      fields: [],
+    },
   ],
 };

@@ -33,7 +33,13 @@ export const BlogArticleConverter: React.FC<{
         <HeadlineH1>{article.content.blogH1}</HeadlineH1>
 
         <div className="text-conveniat-green relative mt-10 aspect-[16/9] w-full text-lg">
-          <Image src={source} alt={altText} className="block rounded-2xl object-cover" fill />
+          <Image
+            src={source}
+            alt={altText}
+            className="block rounded-2xl object-cover"
+            fill
+            priority
+          />
         </div>
 
         <PageSectionsConverter

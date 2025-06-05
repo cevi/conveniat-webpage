@@ -1,16 +1,19 @@
 'use client';
 
+import { SubheadingH2 } from '@/components/ui/typography/subheading-h2';
+import { SubheadingH3 } from '@/components/ui/typography/subheading-h3';
 import { buildInitialFormState } from '@/features/payload-cms/components/form/build-initial-form-state';
 import { fields } from '@/features/payload-cms/components/form/fields';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
 import type { FormFieldBlock, Form as FormType } from '@payloadcms/plugin-form-builder/types';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import { RichText } from '@payloadcms/richtext-lexical/react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import { useRouter } from 'next/navigation';
 import type { MouseEventHandler } from 'react';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import type { FieldName } from 'react-hook-form';
 import { useForm } from 'react-hook-form';
 
@@ -18,14 +21,6 @@ export type Value = unknown;
 
 export interface Property {
   [key: string]: Value;
-}
-
-export interface FormBlockType {
-  blockName?: string;
-  blockType?: 'formBlock';
-  form: FormType & {
-    _localized_status: { published: boolean };
-  };
 }
 
 export interface Data {
@@ -63,9 +58,9 @@ const validationErrorText: StaticTranslationString = {
 };
 
 const allGoodPreviewText: StaticTranslationString = {
-  en: 'All good - but this is just a preview.',
-  de: 'Alles gut - aber das ist nur eine Vorschau.',
-  fr: "Tout va bien - mais ceci n'est qu'un aperçu.",
+  en: 'All good – but this is just a preview. No data has been submitted. The following data would be submitted:',
+  de: 'Alles gut - aber das ist nur eine Vorschau. Keine Daten wurden übermittelt. Folgende Daten würden übermittelt werden:',
+  fr: "Tout va bien – mais ceci n'est qu'un aperçu. Aucune donnée n'a été transmise. Les données suivantes seraient transmises :",
 };
 
 const failedToSubmitText: StaticTranslationString = {
@@ -92,65 +87,167 @@ const ofText: StaticTranslationString = {
   fr: 'de',
 };
 
-interface FormPageBlock {
-  id: string;
-  blockType: 'formPage';
-  pageTitle: string;
+interface ConditionedBlock {
+  blockType: 'conditionedBlock';
+  id?: string;
+  displayCondition: {
+    field: string; // The name of the field to check
+    value: string; // The value to match
+  };
   fields: FormFieldBlock[];
 }
 
-type FormPageBlockType = FormFieldBlock | FormPageBlock;
+interface FormSection {
+  id: string;
+  sectionTitle: string;
+  fields: (FormFieldBlock | ConditionedBlock)[];
+}
+
+export interface FormBlockType {
+  blockName?: string;
+  blockType?: 'formBlock';
+  form: FormType & {
+    autocomplete: boolean;
+    sections: {
+      id: string;
+      formSection: FormSection;
+    }[];
+    _localized_status: { published: boolean };
+  };
+}
 
 interface FormFieldRendererProperties {
-  field: FormPageBlockType;
+  section: FormSection;
   form: FormType & { _localized_status: { published: boolean } };
   formMethods: ReturnType<typeof useForm>;
 }
 
-const FormFieldRenderer: React.FC<FormFieldRendererProperties> = ({ field, form, formMethods }) => {
+const FormFieldRenderer: React.FC<FormFieldRendererProperties> = ({
+  section,
+  form,
+  formMethods,
+}) => {
   const {
     control,
     register,
     formState: { errors },
+    watch,
   } = formMethods;
+
+  ///
+  // reset fields in conditioned blocks when the condition is not met
+  //
+  const conditionFieldNames = useMemo(() => {
+    return [
+      ...new Set(
+        section.fields
+          .filter((fieldChild) => fieldChild.blockType === 'conditionedBlock')
+          .map((fieldChild) => fieldChild.displayCondition.field),
+      ),
+    ];
+  }, [section.fields]);
+
+  const watchedValuesByName = watch(conditionFieldNames);
+  const watchedValuesByNameJSON = JSON.stringify(watchedValuesByName);
+
+  useEffect(() => {
+    for (const fieldChild of section.fields) {
+      if (fieldChild.blockType === 'conditionedBlock') {
+        const { field: conditionField, value: targetValue } = fieldChild.displayCondition;
+
+        const index = conditionFieldNames.indexOf(conditionField);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access
+        const currentConditionValue = JSON.parse(watchedValuesByNameJSON)[index];
+
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
+        const conditionMet = (currentConditionValue ?? '').toString() === targetValue;
+
+        if (!conditionMet) {
+          for (const field of fieldChild.fields) {
+            if ('name' in field && field.name) {
+              formMethods.resetField(field.name as FieldName<Data>);
+            }
+          }
+        }
+      }
+    }
+  }, [formMethods, section.fields, section.id, watchedValuesByNameJSON, conditionFieldNames]);
+
+  ///
+  // end of reset fields in conditioned blocks
+  //
 
   return (
     <>
-      <h3 className="text-md text-conveniat-green mb-3 font-['Montserrat'] font-bold">
-        {'pageTitle' in field ? field.pageTitle : ''}
-      </h3>
+      <SubheadingH3>{'sectionTitle' in section ? section.sectionTitle : ''}</SubheadingH3>
 
-      {'fields' in field &&
-        field.fields.map((fieldChild, indexChild) => {
-          const FieldChildComponent = fields[fieldChild.blockType as keyof typeof fields];
-          if (!FieldChildComponent) {
-            console.error(`Field type ${fieldChild.blockType} is not supported`);
-            return <React.Fragment key={`unsupported-${indexChild}`}></React.Fragment>;
+      {section.fields.map((fieldChild, indexChild) => {
+        // render conditioned blocks
+        if (fieldChild.blockType == 'conditionedBlock') {
+          // If the field is a conditioned block, we need to render it conditionally
+          const { field: conditionField, value: targetValue } = fieldChild.displayCondition;
+
+          // Get the condition function from the form methods
+          // we need to convert to string as checkbox values are boolean,
+          // but the targetValue is always a string
+          const watchValue = watch(conditionField, '') as string | boolean | number | undefined;
+          const condition = (watchValue ?? '').toString() === targetValue;
+
+          if (!condition) {
+            // If the condition is not met, we skip rendering this block
+            return (
+              <React.Fragment
+                key={`conditioned-${fieldChild.blockType}-${indexChild}`}
+              ></React.Fragment>
+            );
           }
 
-          // Extract the required property from the field
-          const isRequired = 'required' in fieldChild ? Boolean(fieldChild.required) : false;
+          const fieldID =
+            'id' in fieldChild && Boolean(fieldChild.id)
+              ? (fieldChild.id as string)
+              : `conditioned-${fieldChild.blockType}-${indexChild}`;
 
+          // If the condition is met, we render the conditioned block
           return (
-            <React.Fragment
-              key={
-                'id' in fieldChild && Boolean(fieldChild.id)
-                  ? (fieldChild.id as string)
-                  : `field-${fieldChild.blockType}-${indexChild}`
-              }
-            >
-              <FieldChildComponent
+            <React.Fragment key={fieldID}>
+              <FormFieldRenderer
+                section={{ id: fieldID, sectionTitle: '', fields: fieldChild.fields }}
                 form={form}
-                {...fieldChild}
-                {...formMethods}
-                control={control}
-                registerAction={register}
-                errors={errors}
-                required={isRequired}
+                formMethods={formMethods}
               />
             </React.Fragment>
           );
-        })}
+        }
+
+        const FieldChildComponent = fields[fieldChild.blockType as keyof typeof fields];
+        if (!FieldChildComponent) {
+          console.error(`Field type ${fieldChild.blockType} is not supported`);
+          return <React.Fragment key={`unsupported-${indexChild}`}></React.Fragment>;
+        }
+
+        // Extract the required property from the field
+        const isRequired = 'required' in fieldChild ? Boolean(fieldChild.required) : false;
+
+        return (
+          <React.Fragment
+            key={
+              'id' in fieldChild && Boolean(fieldChild.id)
+                ? (fieldChild.id as string)
+                : `field-${fieldChild.blockType}-${indexChild}`
+            }
+          >
+            <FieldChildComponent
+              form={form}
+              {...fieldChild}
+              {...formMethods}
+              control={control}
+              registerAction={register}
+              errors={errors}
+              required={isRequired}
+            />
+          </React.Fragment>
+        );
+      })}
     </>
   );
 };
@@ -165,7 +262,7 @@ const NextPageButton: React.FC<{
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="h-10 w-full cursor-pointer rounded-lg bg-[#47564c] px-5 py-2 font-['Montserrat'] text-base font-bold text-[#e1e6e2] transition duration-300 hover:bg-[#3b4a3f] disabled:opacity-50 sm:w-auto"
+      className="bg-conveniat-green h-10 w-full cursor-pointer rounded-lg px-5 py-2 text-base font-bold text-gray-100 transition duration-100 hover:bg-green-800 disabled:opacity-50 sm:w-auto"
     >
       {nextStepText[locale as Locale]}
     </button>
@@ -183,7 +280,7 @@ const SubmitButton: React.FC<{
       type="submit"
       disabled={disabled}
       form={form}
-      className="h-10 w-full cursor-pointer rounded-lg bg-[#47564c] px-5 py-2 font-['Montserrat'] text-base font-bold text-[#e1e6e2] transition duration-300 hover:bg-[#3b4a3f] disabled:opacity-50 sm:w-auto"
+      className="h-10 w-full cursor-pointer rounded-lg bg-red-700 px-5 py-2 text-base font-bold text-red-100 transition duration-100 hover:bg-red-800 disabled:opacity-50 sm:w-auto"
     >
       {disabled ? pleaseWaitText[locale as Locale] : submitButtonLabel}
     </button>
@@ -200,7 +297,7 @@ const PreviousPageButton: React.FC<{
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="h-10 w-full cursor-pointer rounded-lg bg-gray-300 px-5 py-2 font-['Montserrat'] text-base font-semibold text-gray-700 transition duration-300 hover:bg-gray-400 disabled:opacity-50 sm:w-auto"
+      className="h-10 w-full cursor-pointer rounded-lg border-2 border-gray-500 px-5 py-2 text-base font-semibold text-gray-500 transition duration-100 hover:bg-gray-100 disabled:opacity-50 sm:w-auto"
     >
       {previousStepText[locale as Locale]}
     </button>
@@ -210,8 +307,8 @@ const PreviousPageButton: React.FC<{
 const ProgressBar: React.FC<{
   locale: string | undefined;
   currentStepIndex: number;
-  definedSteps: FormPageBlockType[];
-  currentActualStep: FormPageBlock;
+  definedSteps: FormSection[];
+  currentActualStep: FormSection;
 }> = ({ locale, currentStepIndex, definedSteps, currentActualStep }) => {
   return (
     <div className="mb-6">
@@ -231,7 +328,7 @@ const ProgressBar: React.FC<{
         />
       </div>
       <div className="mt-2 text-xs text-gray-600">
-        {'pageTitle' in currentActualStep && currentActualStep.pageTitle}
+        {'sectionTitle' in currentActualStep && currentActualStep.sectionTitle}
       </div>
     </div>
   );
@@ -253,12 +350,17 @@ const ResetFormButton: React.FC<{
 };
 
 export const FormBlock: React.FC<
-  FormBlockType & { id?: string; isPreviewMode?: boolean | undefined }
+  FormBlockType & {
+    id?: string;
+    isPreviewMode?: boolean | undefined;
+    withBorder?: boolean | undefined;
+  }
   // eslint-disable-next-line complexity
 > = (properties) => {
   const {
     isPreviewMode,
     form: formFromProperties,
+    withBorder,
     form: {
       id: formID,
       title: mainFormTitle,
@@ -271,7 +373,11 @@ export const FormBlock: React.FC<
 
   const locale = useCurrentLocale(i18nConfig);
   const formMethods = useForm({
-    defaultValues: buildInitialFormState(formFromProperties.fields as FormFieldBlock[]),
+    defaultValues: buildInitialFormState(
+      formFromProperties.sections.flatMap(
+        (section) => section.formSection.fields,
+      ) as FormFieldBlock[],
+    ),
     mode: 'onChange',
     reValidateMode: 'onBlur',
   });
@@ -280,52 +386,50 @@ export const FormBlock: React.FC<
     handleSubmit,
     trigger,
     formState: { isSubmitting },
+    watch, // Add watch to formMethods
   } = formMethods;
 
   const [isLoading, setIsLoading] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState<boolean>(false);
   const [error, setError] = useState<{ message: string; status?: string } | undefined>();
+  const [previewSuccessMessage, setPreviewSuccessMessage] = useState<
+    { message: string; data: { field: string; value: unknown }[] } | undefined
+  >();
   const [validationError, setValidationError] = useState<string | undefined>();
   const router = useRouter();
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
-  const definedSteps = useMemo((): FormPageBlockType[] => {
-    const allFieldsInForm = formFromProperties.fields as (FormFieldBlock & {
-      name?: string;
-    })[];
-
-    const formPageFields = allFieldsInForm.filter(
-      (field: FormPageBlockType) => field.blockType === 'formPage',
-    );
-
-    if (formPageFields.length > 0) {
-      return formPageFields.map((page) => ({
-        ...page,
-      }));
-    }
-    return [
-      {
-        id: 'mainFormAsSinglePage-0',
-        blockType: 'formPage' as const,
-        pageTitle: mainFormTitle ?? '',
-        fields: allFieldsInForm,
-      },
-    ];
-  }, [formFromProperties.fields, mainFormTitle]);
-
+  const definedSteps = formFromProperties.sections.flatMap((section) => section.formSection);
   const currentActualStep = definedSteps[currentStepIndex];
   const isFirstStep = currentStepIndex === 0;
   const isLastStep = currentStepIndex === definedSteps.length - 1;
 
-  // Get all field names for the current step
+  // Get all field names for the current step, including those in conditioned blocks if their condition is met
   const getCurrentStepFieldNames = (): FieldName<Data>[] => {
-    let formFields: FormFieldBlock[] = [];
-    if (currentActualStep === undefined) formFields = [];
-    else if ('fields' in currentActualStep) formFields = currentActualStep.fields;
+    const fieldNames: FieldName<Data>[] = [];
+    if (!currentActualStep || !('fields' in currentActualStep)) {
+      return [];
+    }
 
-    return formFields
-      .map((field) => ('name' in field && field.name !== '' ? field.name : ''))
-      .filter(Boolean) as FieldName<Data>[];
+    const processFields = (fieldsToProcess: (FormFieldBlock | ConditionedBlock)[]): void => {
+      for (const field of fieldsToProcess) {
+        if (field.blockType === 'conditionedBlock') {
+          const { field: conditionField, value: targetValue } = field.displayCondition;
+          const watchValue = watch(conditionField, '') as string | boolean | number | undefined;
+          const condition = (watchValue ?? '').toString() === targetValue;
+
+          if (condition) {
+            // If the condition is met, recursively process fields within the conditioned block
+            processFields(field.fields);
+          }
+        } else if ('name' in field && field.name !== '') {
+          fieldNames.push(field.name as FieldName<Data>);
+        }
+      }
+    };
+
+    processFields(currentActualStep.fields);
+    return fieldNames.filter(Boolean);
   };
 
   const handleFinalFormSubmit = (data: Data): void => {
@@ -354,11 +458,22 @@ export const FormBlock: React.FC<
         clearTimeout(loadingTimerID);
         setIsLoading(false);
         setHasSubmitted(true);
-        setError({
-          message: allGoodPreviewText[locale as Locale],
-          status: String(200),
+
+        setPreviewSuccessMessage({
+          message: `${allGoodPreviewText[locale as Locale]}`,
+          data: dataToSend,
         });
         return;
+      }
+
+      // convert multi-select values to comma-separated strings
+      for (const [index, fieldData] of Object.entries(dataToSend)) {
+        if (Array.isArray(fieldData.value)) {
+          dataToSend[index as unknown as number] = {
+            ...fieldData,
+            value: fieldData.value.join(', '),
+          };
+        }
       }
 
       try {
@@ -413,6 +528,9 @@ export const FormBlock: React.FC<
     event.preventDefault(); // prevent form from submitting
     setValidationError(undefined);
 
+    // Ensure all watch values are updated before getting field names
+    await formMethods.trigger(); // Trigger validation to update watch values
+
     const fieldNamesInCurrentStep = getCurrentStepFieldNames();
 
     if (fieldNamesInCurrentStep.length > 0) {
@@ -461,8 +579,24 @@ export const FormBlock: React.FC<
       {error && (
         <div className="mb-4 rounded-md border border-red-400 bg-red-100 p-4 text-red-700">{`Error ${error.status ?? ''}: ${error.message}`}</div>
       )}
+
+      {previewSuccessMessage && (
+        <div className="mb-4 rounded-md border border-gray-400 bg-gray-100 p-4 text-gray-700">
+          {previewSuccessMessage.message}
+          <ul className="mt-2 list-inside list-disc">
+            {previewSuccessMessage.data.map(({ field, value }, index) => (
+              <li key={index}>
+                <strong>{field}:</strong> {String(value)}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <form
-        className="relative mx-auto h-auto max-w-xl rounded-md border-2 border-gray-200 bg-white p-6"
+        className={cn(
+          'relative mx-auto h-auto max-w-xl rounded-md bg-white',
+          withBorder === undefined || Boolean(withBorder) ? 'border-2 border-gray-200 p-6' : '',
+        )}
         id={formID}
         onSubmit={(event?: React.BaseSyntheticEvent): void => {
           event?.preventDefault();
@@ -473,7 +607,12 @@ export const FormBlock: React.FC<
           }
         }}
         noValidate
+        autoComplete={formFromProperties.autocomplete ? 'on' : 'off'}
+        aria-autocomplete={formFromProperties.autocomplete ? 'none' : 'list'}
       >
+        {formFromProperties.autocomplete && (
+          <input autoComplete="false" name="hidden" type="text" className="hidden"></input>
+        )}
         {!isLoading && hasSubmitted && confirmationType === 'message' && (
           <div className="bg-opacity-95 absolute inset-0 z-10 flex flex-col items-center justify-center bg-white p-6 text-center">
             <div className="max-w-md">
@@ -497,10 +636,8 @@ export const FormBlock: React.FC<
           </div>
         )}
 
-        {mainFormTitle !== undefined && definedSteps.length > 1 && (
-          <h2 className="text-conveniat-green mb-4 font-['Montserrat'] text-lg font-extrabold">
-            {mainFormTitle}
-          </h2>
+        {mainFormTitle !== undefined && (
+          <SubheadingH2 className="mt-0">{mainFormTitle}</SubheadingH2>
         )}
 
         {/* Validation error message */}
@@ -515,7 +652,7 @@ export const FormBlock: React.FC<
             locale={locale}
             currentStepIndex={currentStepIndex}
             definedSteps={definedSteps}
-            currentActualStep={currentActualStep as FormPageBlock}
+            currentActualStep={currentActualStep as FormSection}
           />
         )}
 
@@ -528,7 +665,7 @@ export const FormBlock: React.FC<
         >
           <React.Fragment key={formID}>
             <FormFieldRenderer
-              field={currentActualStep}
+              section={currentActualStep}
               form={formFromProperties}
               formMethods={formMethods}
             />

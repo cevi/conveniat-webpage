@@ -1,23 +1,29 @@
 import type { Permission } from '@/features/payload-cms/payload-types';
 import { hasPermissions } from '@/utils/has-permissions';
-import type { Access, PayloadRequest } from 'payload';
+import type { Access } from 'payload';
 
-interface AccessArguments {
-  req: PayloadRequest;
-  id?: string | number;
-}
+export const canAccessDocuments: Access = async ({ req }) => {
+  const { payload } = req;
+  const allDocuments = await payload.find({
+    collection: 'documents',
+    draft: false,
+    req,
+  });
 
-export const canAccessIdInCollection = (collection: 'documents'): Access => {
-  return async ({ req: { user, payload }, id }: AccessArguments) => {
-    if (user?.adminPanelAccess) return true;
+  const filteredArticles = await Promise.all(
+    allDocuments.docs.map(
+      async (document_) => await hasPermissions(document_.permissions as Permission),
+    ),
+  );
+  const permittedDocuments = allDocuments.docs.filter(
+    (_, index) => filteredArticles[index] ?? false,
+  );
 
-    if (!id) return false;
+  const allIds = permittedDocuments.map((item) => item.id);
 
-    const document = await payload.findByID({
-      collection,
-      id,
-    });
-
-    return await hasPermissions(document.permissions as Permission);
+  return {
+    id: {
+      in: allIds,
+    },
   };
 };

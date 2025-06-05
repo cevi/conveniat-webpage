@@ -302,6 +302,11 @@ export interface Blog {
       | SummaryBox
       | TimelineEntries
       | Countdown
+      | {
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'whiteSpace';
+        }
     )[];
   };
   seo: {
@@ -431,206 +436,295 @@ export interface FormBlock {
  */
 export interface Form {
   id: string;
-  /**
-   * This title will be displayed at the top of the form. It also serves as an internal identifier for the form.
-   */
   title: string;
-  fields: (
-    | {
-        pageTitle: string;
-        fields?:
-          | (
-              | {
-                  name: string;
-                  label?: string | null;
-                  required?: boolean | null;
-                  defaultValue?: boolean | null;
-                  id?: string | null;
-                  blockName?: string | null;
-                  blockType: 'checkbox';
-                }
-              | {
-                  name: string;
-                  label?: string | null;
-                  required?: boolean | null;
-                  id?: string | null;
-                  blockName?: string | null;
-                  blockType: 'country';
-                }
-              | {
-                  name: string;
-                  label?: string | null;
-                  placeholder?: string | null;
-                  required?: boolean | null;
-                  id?: string | null;
-                  blockName?: string | null;
-                  blockType: 'email';
-                }
-              | {
-                  message?: {
-                    root: {
+  autocomplete?: boolean | null;
+  sections: {
+    formSection: {
+      sectionTitle: string;
+      fields?:
+        | (
+            | {
+                name: string;
+                label: {
+                  root: {
+                    type: string;
+                    children: {
                       type: string;
-                      children: {
-                        type: string;
-                        version: number;
-                        [k: string]: unknown;
-                      }[];
-                      direction: ('ltr' | 'rtl') | null;
-                      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-                      indent: number;
                       version: number;
-                    };
-                    [k: string]: unknown;
-                  } | null;
-                  id?: string | null;
-                  blockName?: string | null;
-                  blockType: 'message';
-                }
-              | {
-                  name: string;
-                  label?: string | null;
-                  defaultValue?: number | null;
-                  required?: boolean | null;
-                  id?: string | null;
-                  blockName?: string | null;
-                  blockType: 'number';
-                }
-              | {
-                  name: string;
-                  label?: string | null;
-                  defaultValue?: string | null;
-                  placeholder?: string | null;
-                  options?:
-                    | {
-                        label: string;
-                        value: string;
-                        id?: string | null;
-                      }[]
-                    | null;
-                  required?: boolean | null;
-                  id?: string | null;
-                  blockName?: string | null;
-                  blockType: 'select';
-                }
-              | {
-                  name: string;
-                  label?: string | null;
-                  placeholder?: string | null;
-                  defaultValue?: string | null;
-                  required?: boolean | null;
-                  id?: string | null;
-                  blockName?: string | null;
-                  blockType: 'text';
-                }
-              | {
-                  name: string;
-                  label?: string | null;
-                  placeholder?: string | null;
-                  defaultValue?: string | null;
-                  required?: boolean | null;
-                  id?: string | null;
-                  blockName?: string | null;
-                  blockType: 'textarea';
-                }
-            )[]
-          | null;
-        id?: string | null;
-        blockName?: string | null;
-        blockType: 'formPage';
-      }
-    | {
-        name: string;
-        label?: string | null;
-        required?: boolean | null;
-        defaultValue?: boolean | null;
-        id?: string | null;
-        blockName?: string | null;
-        blockType: 'checkbox';
-      }
-    | {
-        name: string;
-        label?: string | null;
-        required?: boolean | null;
-        id?: string | null;
-        blockName?: string | null;
-        blockType: 'country';
-      }
-    | {
-        name: string;
-        label?: string | null;
-        placeholder?: string | null;
-        required?: boolean | null;
-        id?: string | null;
-        blockName?: string | null;
-        blockType: 'email';
-      }
-    | {
-        message?: {
-          root: {
-            type: string;
-            children: {
-              type: string;
-              version: number;
-              [k: string]: unknown;
-            }[];
-            direction: ('ltr' | 'rtl') | null;
-            format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-            indent: number;
-            version: number;
-          };
-          [k: string]: unknown;
-        } | null;
-        id?: string | null;
-        blockName?: string | null;
-        blockType: 'message';
-      }
-    | {
-        name: string;
-        label?: string | null;
-        defaultValue?: number | null;
-        required?: boolean | null;
-        id?: string | null;
-        blockName?: string | null;
-        blockType: 'number';
-      }
-    | {
-        name: string;
-        label?: string | null;
-        defaultValue?: string | null;
-        placeholder?: string | null;
-        options?:
-          | {
-              label: string;
-              value: string;
-              id?: string | null;
-            }[]
-          | null;
-        required?: boolean | null;
-        id?: string | null;
-        blockName?: string | null;
-        blockType: 'select';
-      }
-    | {
-        name: string;
-        label?: string | null;
-        placeholder?: string | null;
-        defaultValue?: string | null;
-        required?: boolean | null;
-        id?: string | null;
-        blockName?: string | null;
-        blockType: 'text';
-      }
-    | {
-        name: string;
-        label?: string | null;
-        placeholder?: string | null;
-        defaultValue?: string | null;
-        required?: boolean | null;
-        id?: string | null;
-        blockName?: string | null;
-        blockType: 'textarea';
-      }
-  )[];
+                      [k: string]: unknown;
+                    }[];
+                    direction: ('ltr' | 'rtl') | null;
+                    format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                    indent: number;
+                    version: number;
+                  };
+                  [k: string]: unknown;
+                };
+                required?: boolean | null;
+                defaultValue?: boolean | null;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'checkbox';
+              }
+            | {
+                name: string;
+                label: string;
+                required?: boolean | null;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'country';
+              }
+            | {
+                name: string;
+                label: string;
+                placeholder?: string | null;
+                required?: boolean | null;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'email';
+              }
+            | {
+                message?: {
+                  root: {
+                    type: string;
+                    children: {
+                      type: string;
+                      version: number;
+                      [k: string]: unknown;
+                    }[];
+                    direction: ('ltr' | 'rtl') | null;
+                    format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                    indent: number;
+                    version: number;
+                  };
+                  [k: string]: unknown;
+                } | null;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'message';
+              }
+            | {
+                name: string;
+                label: string;
+                defaultValue?: number | null;
+                placeholder?: string | null;
+                required?: boolean | null;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'number';
+              }
+            | {
+                name: string;
+                label: string;
+                defaultValue?: string | null;
+                placeholder?: string | null;
+                allowMultiple?: boolean | null;
+                /**
+                 * Choose whether the options should be displayed as a dropdown, cards boxes, or radio buttons.
+                 */
+                optionType?: ('dropdown' | 'cards' | 'radio') | null;
+                options?:
+                  | {
+                      label: string;
+                      value: string;
+                      id?: string | null;
+                    }[]
+                  | null;
+                required?: boolean | null;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'select';
+              }
+            | {
+                name: string;
+                label: string;
+                placeholder?: string | null;
+                defaultValue?: string | null;
+                /**
+                 * Required field
+                 */
+                required?: boolean | null;
+                /**
+                 * Use a regular expression to validate the input. For example, "^[a-zA-Z0-9]+$" will only allow alphanumeric characters.
+                 */
+                inputValidation?: string | null;
+                /**
+                 * Custom error message to display when the input does not match the validation regex.
+                 */
+                inputValidationErrorMessage?: string | null;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'text';
+              }
+            | {
+                name: string;
+                label: string;
+                placeholder?: string | null;
+                defaultValue?: string | null;
+                required?: boolean | null;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'textarea';
+              }
+            | {
+                name: string;
+                label: string;
+                defaultValue?: string | null;
+                required?: boolean | null;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'date';
+              }
+            | {
+                displayCondition?: {
+                  field?: string | null;
+                  value?: string | null;
+                };
+                fields?:
+                  | (
+                      | {
+                          name: string;
+                          label: {
+                            root: {
+                              type: string;
+                              children: {
+                                type: string;
+                                version: number;
+                                [k: string]: unknown;
+                              }[];
+                              direction: ('ltr' | 'rtl') | null;
+                              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                              indent: number;
+                              version: number;
+                            };
+                            [k: string]: unknown;
+                          };
+                          required?: boolean | null;
+                          defaultValue?: boolean | null;
+                          id?: string | null;
+                          blockName?: string | null;
+                          blockType: 'checkbox';
+                        }
+                      | {
+                          name: string;
+                          label: string;
+                          required?: boolean | null;
+                          id?: string | null;
+                          blockName?: string | null;
+                          blockType: 'country';
+                        }
+                      | {
+                          name: string;
+                          label: string;
+                          placeholder?: string | null;
+                          required?: boolean | null;
+                          id?: string | null;
+                          blockName?: string | null;
+                          blockType: 'email';
+                        }
+                      | {
+                          message?: {
+                            root: {
+                              type: string;
+                              children: {
+                                type: string;
+                                version: number;
+                                [k: string]: unknown;
+                              }[];
+                              direction: ('ltr' | 'rtl') | null;
+                              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                              indent: number;
+                              version: number;
+                            };
+                            [k: string]: unknown;
+                          } | null;
+                          id?: string | null;
+                          blockName?: string | null;
+                          blockType: 'message';
+                        }
+                      | {
+                          name: string;
+                          label: string;
+                          defaultValue?: number | null;
+                          placeholder?: string | null;
+                          required?: boolean | null;
+                          id?: string | null;
+                          blockName?: string | null;
+                          blockType: 'number';
+                        }
+                      | {
+                          name: string;
+                          label: string;
+                          defaultValue?: string | null;
+                          placeholder?: string | null;
+                          allowMultiple?: boolean | null;
+                          /**
+                           * Choose whether the options should be displayed as a dropdown, cards boxes, or radio buttons.
+                           */
+                          optionType?: ('dropdown' | 'cards' | 'radio') | null;
+                          options?:
+                            | {
+                                label: string;
+                                value: string;
+                                id?: string | null;
+                              }[]
+                            | null;
+                          required?: boolean | null;
+                          id?: string | null;
+                          blockName?: string | null;
+                          blockType: 'select';
+                        }
+                      | {
+                          name: string;
+                          label: string;
+                          placeholder?: string | null;
+                          defaultValue?: string | null;
+                          /**
+                           * Required field
+                           */
+                          required?: boolean | null;
+                          /**
+                           * Use a regular expression to validate the input. For example, "^[a-zA-Z0-9]+$" will only allow alphanumeric characters.
+                           */
+                          inputValidation?: string | null;
+                          /**
+                           * Custom error message to display when the input does not match the validation regex.
+                           */
+                          inputValidationErrorMessage?: string | null;
+                          id?: string | null;
+                          blockName?: string | null;
+                          blockType: 'text';
+                        }
+                      | {
+                          name: string;
+                          label: string;
+                          placeholder?: string | null;
+                          defaultValue?: string | null;
+                          required?: boolean | null;
+                          id?: string | null;
+                          blockName?: string | null;
+                          blockType: 'textarea';
+                        }
+                      | {
+                          name: string;
+                          label: string;
+                          defaultValue?: string | null;
+                          required?: boolean | null;
+                          id?: string | null;
+                          blockName?: string | null;
+                          blockType: 'date';
+                        }
+                    )[]
+                  | null;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'conditionedBlock';
+              }
+          )[]
+        | null;
+    };
+    id?: string | null;
+  }[];
   submitButtonLabel: string;
   /**
    * Choose whether to display an on-page message or redirect to a different page after they submit the form.
@@ -884,7 +978,7 @@ export interface AccordionBlocks {
         /**
          * This is the content of the accordion block. It will be displayed when the block is expanded.
          */
-        valueBlocks: (PlainTextBlock | TeamMembersBlock)[];
+        valueBlocks: (PlainTextBlock | TeamMembersBlock | FormBlock)[];
         id?: string | null;
       }[]
     | null;
@@ -1065,6 +1159,11 @@ export interface GenericPage {
       | SummaryBox
       | TimelineEntries
       | Countdown
+      | {
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'whiteSpace';
+        }
     )[];
   };
   seo: {
@@ -1482,6 +1581,12 @@ export interface BlogSelect<T extends boolean = true> {
               summaryBox?: T | SummaryBoxSelect<T>;
               timelineEntries?: T | TimelineEntriesSelect<T>;
               countdown?: T | CountdownSelect<T>;
+              whiteSpace?:
+                | T
+                | {
+                    id?: T;
+                    blockName?: T;
+                  };
             };
       };
   seo?:
@@ -1584,6 +1689,7 @@ export interface AccordionBlocksSelect<T extends boolean = true> {
           | {
               accordionPlainTextBlock?: T | PlainTextBlockSelect<T>;
               accordionTeamMembersBlock?: T | TeamMembersBlockSelect<T>;
+              formBlock?: T | FormBlockSelect<T>;
             };
         id?: T;
       };
@@ -1738,6 +1844,12 @@ export interface GenericPageSelect<T extends boolean = true> {
               summaryBox?: T | SummaryBoxSelect<T>;
               timelineEntries?: T | TimelineEntriesSelect<T>;
               countdown?: T | CountdownSelect<T>;
+              whiteSpace?:
+                | T
+                | {
+                    id?: T;
+                    blockName?: T;
+                  };
             };
       };
   seo?:
@@ -1898,13 +2010,14 @@ export interface TimelineCategorySelect<T extends boolean = true> {
  */
 export interface FormsSelect<T extends boolean = true> {
   title?: T;
-  fields?:
+  autocomplete?: T;
+  sections?:
     | T
     | {
-        formPage?:
+        formSection?:
           | T
           | {
-              pageTitle?: T;
+              sectionTitle?: T;
               fields?:
                 | T
                 | {
@@ -1950,6 +2063,7 @@ export interface FormsSelect<T extends boolean = true> {
                           name?: T;
                           label?: T;
                           defaultValue?: T;
+                          placeholder?: T;
                           required?: T;
                           id?: T;
                           blockName?: T;
@@ -1961,6 +2075,8 @@ export interface FormsSelect<T extends boolean = true> {
                           label?: T;
                           defaultValue?: T;
                           placeholder?: T;
+                          allowMultiple?: T;
+                          optionType?: T;
                           options?:
                             | T
                             | {
@@ -1980,6 +2096,8 @@ export interface FormsSelect<T extends boolean = true> {
                           placeholder?: T;
                           defaultValue?: T;
                           required?: T;
+                          inputValidation?: T;
+                          inputValidationErrorMessage?: T;
                           id?: T;
                           blockName?: T;
                         };
@@ -1994,96 +2112,136 @@ export interface FormsSelect<T extends boolean = true> {
                           id?: T;
                           blockName?: T;
                         };
+                    date?:
+                      | T
+                      | {
+                          name?: T;
+                          label?: T;
+                          defaultValue?: T;
+                          required?: T;
+                          id?: T;
+                          blockName?: T;
+                        };
+                    conditionedBlock?:
+                      | T
+                      | {
+                          displayCondition?:
+                            | T
+                            | {
+                                field?: T;
+                                value?: T;
+                              };
+                          fields?:
+                            | T
+                            | {
+                                checkbox?:
+                                  | T
+                                  | {
+                                      name?: T;
+                                      label?: T;
+                                      required?: T;
+                                      defaultValue?: T;
+                                      id?: T;
+                                      blockName?: T;
+                                    };
+                                country?:
+                                  | T
+                                  | {
+                                      name?: T;
+                                      label?: T;
+                                      required?: T;
+                                      id?: T;
+                                      blockName?: T;
+                                    };
+                                email?:
+                                  | T
+                                  | {
+                                      name?: T;
+                                      label?: T;
+                                      placeholder?: T;
+                                      required?: T;
+                                      id?: T;
+                                      blockName?: T;
+                                    };
+                                message?:
+                                  | T
+                                  | {
+                                      message?: T;
+                                      id?: T;
+                                      blockName?: T;
+                                    };
+                                number?:
+                                  | T
+                                  | {
+                                      name?: T;
+                                      label?: T;
+                                      defaultValue?: T;
+                                      placeholder?: T;
+                                      required?: T;
+                                      id?: T;
+                                      blockName?: T;
+                                    };
+                                select?:
+                                  | T
+                                  | {
+                                      name?: T;
+                                      label?: T;
+                                      defaultValue?: T;
+                                      placeholder?: T;
+                                      allowMultiple?: T;
+                                      optionType?: T;
+                                      options?:
+                                        | T
+                                        | {
+                                            label?: T;
+                                            value?: T;
+                                            id?: T;
+                                          };
+                                      required?: T;
+                                      id?: T;
+                                      blockName?: T;
+                                    };
+                                text?:
+                                  | T
+                                  | {
+                                      name?: T;
+                                      label?: T;
+                                      placeholder?: T;
+                                      defaultValue?: T;
+                                      required?: T;
+                                      inputValidation?: T;
+                                      inputValidationErrorMessage?: T;
+                                      id?: T;
+                                      blockName?: T;
+                                    };
+                                textarea?:
+                                  | T
+                                  | {
+                                      name?: T;
+                                      label?: T;
+                                      placeholder?: T;
+                                      defaultValue?: T;
+                                      required?: T;
+                                      id?: T;
+                                      blockName?: T;
+                                    };
+                                date?:
+                                  | T
+                                  | {
+                                      name?: T;
+                                      label?: T;
+                                      defaultValue?: T;
+                                      required?: T;
+                                      id?: T;
+                                      blockName?: T;
+                                    };
+                              };
+                          id?: T;
+                          blockName?: T;
+                        };
                   };
-              id?: T;
-              blockName?: T;
             };
-        checkbox?:
-          | T
-          | {
-              name?: T;
-              label?: T;
-              required?: T;
-              defaultValue?: T;
-              id?: T;
-              blockName?: T;
-            };
-        country?:
-          | T
-          | {
-              name?: T;
-              label?: T;
-              required?: T;
-              id?: T;
-              blockName?: T;
-            };
-        email?:
-          | T
-          | {
-              name?: T;
-              label?: T;
-              placeholder?: T;
-              required?: T;
-              id?: T;
-              blockName?: T;
-            };
-        message?:
-          | T
-          | {
-              message?: T;
-              id?: T;
-              blockName?: T;
-            };
-        number?:
-          | T
-          | {
-              name?: T;
-              label?: T;
-              defaultValue?: T;
-              required?: T;
-              id?: T;
-              blockName?: T;
-            };
-        select?:
-          | T
-          | {
-              name?: T;
-              label?: T;
-              defaultValue?: T;
-              placeholder?: T;
-              options?:
-                | T
-                | {
-                    label?: T;
-                    value?: T;
-                    id?: T;
-                  };
-              required?: T;
-              id?: T;
-              blockName?: T;
-            };
-        text?:
-          | T
-          | {
-              name?: T;
-              label?: T;
-              placeholder?: T;
-              defaultValue?: T;
-              required?: T;
-              id?: T;
-              blockName?: T;
-            };
-        textarea?:
-          | T
-          | {
-              name?: T;
-              label?: T;
-              placeholder?: T;
-              defaultValue?: T;
-              required?: T;
-              id?: T;
-              blockName?: T;
-            };
+        id?: T;
       };
   submitButtonLabel?: T;
   confirmationType?: T;
