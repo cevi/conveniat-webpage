@@ -14,7 +14,6 @@ export const InstagramEmbed: React.FC<InstagramEmbedType> = ({ link }) => {
 
   // split by /p/ or /reel/
   const postId = link.split(/\/(p|reel)\//)[2]?.split('/')[0];
-  console.log(`Instagram postId: ${postId}`);
 
   if (postId == undefined) {
     return <p>Invalid Instagram URL.</p>;
