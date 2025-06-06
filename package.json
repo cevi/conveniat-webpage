@@ -25,6 +25,7 @@
   "dependencies": {
     "@headlessui/react": "^2.2.4",
     "@icons-pack/react-simple-icons": "^12.9.0",
+    "@next/bundle-analyzer": "^15.3.3",
     "@payloadcms/db-mongodb": "^3.40.0",
     "@payloadcms/email-nodemailer": "^3.40.0",
     "@payloadcms/live-preview-react": "^3.40.0",

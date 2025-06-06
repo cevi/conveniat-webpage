@@ -2,26 +2,27 @@
 
 [![Visit Live Site](https://img.shields.io/badge/Live%20Site-conveniat27.ch-blue)](https://conveniat27.ch)
 
-This repository contains the source code for the official website as well as the official app of conveniat27, built with Next.js and Payload CMS.
+This repository contains the source code for the official website as well as the official app of conveniat27, built with
+Next.js and Payload CMS.
 
 ## Table of Contents
 
 - [Core Technologies](#core-technologies)
 - [Prerequisites](#prerequisites)
 - [Getting Started](#getting-started)
-  - [Launch Project Locally (Devcontainer Recommended)](#launch-project-locally-devcontainer-recommended)
-  - [Local Development Commands](#local-development-commands)
-  - [Accessing the Payload Admin Panel](#accessing-the-payload-admin-panel)
+    - [Launch Project Locally (Devcontainer Recommended)](#launch-project-locally-devcontainer-recommended)
+    - [Local Development Commands](#local-development-commands)
+    - [Accessing the Payload Admin Panel](#accessing-the-payload-admin-panel)
 - [Project Structure](#project-structure)
-  - [Folder Overview](#folder-overview)
-  - [Feature-Based Modularity](#feature-based-modularity)
+    - [Folder Overview](#folder-overview)
+    - [Feature-Based Modularity](#feature-based-modularity)
 - [Key Concepts](#key-concepts)
-  - [Dynamic Page Rendering](#dynamic-page-rendering)
-  - [Progressive Web App (PWA)](#progressive-web-app-pwa)
+    - [Dynamic Page Rendering](#dynamic-page-rendering)
+    - [Progressive Web App (PWA)](#progressive-web-app-pwa)
 - [Code Quality & Conventions](#code-quality--conventions)
-  - [TypeScript Strictness](#typescript-strictness)
-  - [Linting and Formatting](#linting-and-formatting)
-  - [Import Restrictions](#import-restrictions)
+    - [TypeScript Strictness](#typescript-strictness)
+    - [Linting and Formatting](#linting-and-formatting)
+    - [Import Restrictions](#import-restrictions)
 - [UI Component Library](#ui-component-library)
 - [Environment Variables](#environment-variables)
 - [License](#license)
@@ -124,11 +125,11 @@ src/
   subdirectories, scoped to that feature.
 - **Import Restrictions:** ESLint rules (`import/no-restricted-paths` in `eslint.config.mjs`) enforce unidirectional
   dependencies:
-  - `app` can import from `features` and shared directories (`components`, `hooks`, etc.).
-  - `features` _cannot_ import from `app` or shared directories.
-  - Features generally should _not_ import directly from other features, promoting loose coupling. Exceptions are
-    explicitly defined (e.g., `payload-cms` and `next-auth` can be imported more broadly).
-  - Shared directories (`components`, `hooks`, `lib`, `types`, `utils`) should not import from `app` or `features`.
+    - `app` can import from `features` and shared directories (`components`, `hooks`, etc.).
+    - `features` _cannot_ import from `app` or shared directories.
+    - Features generally should _not_ import directly from other features, promoting loose coupling. Exceptions are
+      explicitly defined (e.g., `payload-cms` and `next-auth` can be imported more broadly).
+    - Shared directories (`components`, `hooks`, `lib`, `types`, `utils`) should not import from `app` or `features`.
 - **Payload CMS Exception:** The `payload-cms` feature is central and can be imported by other parts of the application
   as it defines the core data structures / content types used throughout the app.
 
@@ -209,6 +210,53 @@ used for cleaner imports.
 - Create a `.env` file (copied from `.env.example`) for local development. **Never commit `.env` files to Git.**
 - Populate `.env` with necessary credentials (database URLs, API keys, secrets, etc.).
 
+## Build Production Bundle
+
+The easiest way to build the page into a production ready bundle is to use the provided Docker Compose file.
+This will build the Next.js application and Payload CMS, and prepare it for deployment.
+
+```bash
+docker compose -f docker-compose.prod.yml up --build
+```
+
+However, you can also build the application manually using the following commands.
+Please ensure that you have deleted `node_modules`, `src/lib/prisma/*`, and `.next`
+before running the commands to ensure a clean build.
+
+Also make sure that you DON'T have any `.env` file in the root of the project, as this will
+cause issues with the build process.
+
+```bash
+# Export environment variables
+export $(grep -v '^#' .env | grep '^NEXT_PUBLIC_' | xargs)
+export BUILD_TARGET="production"
+export NODE_ENV="production"
+export DISABLE_SERVICE_WORKER="true" # speeds up build process (optional)
+export PRISMA_OUTPUT="src/lib/prisma/client/"
+
+# Install dependencies
+pnpm install
+
+# Create build info file
+bash create_build_info.sh
+
+# Generate Prisma client
+npx prisma generate
+
+# Build the Next.js application
+pnpm next build
+```
+
+### Analyse Bundle Size
+
+To analyze the bundle size of the Next.js application, you can use the `next-bundle-analyzer` package.
+Xou can run the following command to analyze the bundle size. This will generate a report and open it in
+your default browser.
+
+```bash
+ANALYZE=true pnpm build
+```
+
 ## License
 
-This project is licensed under the [MIT](LICENSE.md) License - see the `LICENSE` file for details.
+This project is licensed under the [MIT](LICENSE.md) License — see the `LICENSE` file for details.
