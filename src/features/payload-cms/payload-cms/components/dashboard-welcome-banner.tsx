@@ -1,7 +1,9 @@
 import build from '@/build';
+import { environmentVariables } from '@/config/environment-variables';
+import { resetServerData } from '@/features/payload-cms/payload-cms/initialization/deleting/reset-api';
 import type { StaticTranslationString } from '@/types/types';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
-import React from 'react';
+import type React from 'react';
 
 const welcomeMessageTitle: StaticTranslationString = {
   de: 'conveniat27 CMS',
@@ -15,8 +17,14 @@ const welcomeMessage: StaticTranslationString = {
   fr: 'Ici, vous pouvez gérer et modifier tout le contenu du site web.',
 };
 
+const resetHandler = (): void => {
+  resetServerData().catch(console.error);
+};
+
 const DashboardWelcomeBanner: React.FC = async () => {
   const locale = await getLocaleFromCookies();
+
+  const isLocalhost = environmentVariables.APP_HOST_URL.includes('localhost');
 
   return (
     <div>
@@ -24,6 +32,11 @@ const DashboardWelcomeBanner: React.FC = async () => {
         {welcomeMessageTitle[locale]} - Version {build.version}
       </h1>
       <p className="mt-2 text-lg">{welcomeMessage[locale]}</p>
+      {isLocalhost && (
+        <button type="submit" onClick={resetHandler}>
+          RESET
+        </button>
+      )}
     </div>
   );
 };
