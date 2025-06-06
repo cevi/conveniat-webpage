@@ -472,7 +472,6 @@ export const RenderCountdown: SectionRenderer<CountdownType> = async ({
       })}
     >
       <ClientOnly
-        blended
         fallback={
           <div className="bg-conveniat-green/10 border-conveniat-green/20 my-6 h-[327px] w-full rounded-lg border p-6"></div>
         }
