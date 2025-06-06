@@ -2,6 +2,7 @@
 
 import { SubheadingH2 } from '@/components/ui/typography/subheading-h2';
 import { SubheadingH3 } from '@/components/ui/typography/subheading-h3';
+import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
 import { buildInitialFormState } from '@/features/payload-cms/components/form/build-initial-form-state';
 import { fields } from '@/features/payload-cms/components/form/fields';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -9,7 +10,6 @@ import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import type { FormFieldBlock, Form as FormType } from '@payloadcms/plugin-form-builder/types';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
-import { RichText } from '@payloadcms/richtext-lexical/react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import { useRouter } from 'next/navigation';
 import type { MouseEventHandler } from 'react';
@@ -619,7 +619,9 @@ export const FormBlock: React.FC<
         {!isLoading && hasSubmitted && confirmationType === 'message' && (
           <div className="bg-opacity-95 absolute inset-0 z-10 flex flex-col items-center justify-center bg-white p-6 text-center">
             <div className="max-w-md">
-              <RichText data={confirmationMessage as SerializedEditorState} />
+              <LexicalRichTextSection
+                richTextSection={confirmationMessage as SerializedEditorState}
+              />
               <ResetFormButton
                 onClick={() => {
                   setHasSubmitted(false);
