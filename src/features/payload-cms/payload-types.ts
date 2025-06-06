@@ -307,6 +307,29 @@ export interface Blog {
           blockName?: string | null;
           blockType: 'whiteSpace';
         }
+      | {
+          /**
+           * Label for the button
+           */
+          label?: string | null;
+          linkField?: {
+            type?: ('reference' | 'custom') | null;
+            reference?:
+              | ({
+                  relationTo: 'blog';
+                  value: string | Blog;
+                } | null)
+              | ({
+                  relationTo: 'generic-page';
+                  value: string | GenericPage;
+                } | null);
+            url?: string | null;
+            openInNewTab?: boolean | null;
+          };
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'callToAction';
+        }
     )[];
   };
   seo: {
@@ -1164,6 +1187,29 @@ export interface GenericPage {
           blockName?: string | null;
           blockType: 'whiteSpace';
         }
+      | {
+          /**
+           * Label for the button
+           */
+          label?: string | null;
+          linkField?: {
+            type?: ('reference' | 'custom') | null;
+            reference?:
+              | ({
+                  relationTo: 'blog';
+                  value: string | Blog;
+                } | null)
+              | ({
+                  relationTo: 'generic-page';
+                  value: string | GenericPage;
+                } | null);
+            url?: string | null;
+            openInNewTab?: boolean | null;
+          };
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'callToAction';
+        }
     )[];
   };
   seo: {
@@ -1587,6 +1633,21 @@ export interface BlogSelect<T extends boolean = true> {
                     id?: T;
                     blockName?: T;
                   };
+              callToAction?:
+                | T
+                | {
+                    label?: T;
+                    linkField?:
+                      | T
+                      | {
+                          type?: T;
+                          reference?: T;
+                          url?: T;
+                          openInNewTab?: T;
+                        };
+                    id?: T;
+                    blockName?: T;
+                  };
             };
       };
   seo?:
@@ -1847,6 +1908,21 @@ export interface GenericPageSelect<T extends boolean = true> {
               whiteSpace?:
                 | T
                 | {
+                    id?: T;
+                    blockName?: T;
+                  };
+              callToAction?:
+                | T
+                | {
+                    label?: T;
+                    linkField?:
+                      | T
+                      | {
+                          type?: T;
+                          reference?: T;
+                          url?: T;
+                          openInNewTab?: T;
+                        };
                     id?: T;
                     blockName?: T;
                   };
