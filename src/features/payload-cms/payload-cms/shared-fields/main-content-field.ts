@@ -1,4 +1,5 @@
 import { accordion } from '@/features/payload-cms/payload-cms/shared-blocks/accordion';
+import { callToActionBlock } from '@/features/payload-cms/payload-cms/shared-blocks/call-to-action-block';
 import { countdownBlock } from '@/features/payload-cms/payload-cms/shared-blocks/countdown-block';
 import { detailsTable } from '@/features/payload-cms/payload-cms/shared-blocks/details-table';
 import { fileDownloadBlock } from '@/features/payload-cms/payload-cms/shared-blocks/file-download-block';
@@ -54,5 +55,6 @@ export const mainContentField: Field = {
       imageAltText: 'White Space Block',
       fields: [],
     },
+    callToActionBlock,
   ],
 };

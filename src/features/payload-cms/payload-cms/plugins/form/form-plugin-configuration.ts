@@ -214,10 +214,14 @@ const formCheckboxBlock: Block = {
         {
           name: 'label',
           required: true,
-          type: 'text',
+          type: 'richText',
           label: 'Label',
           localized: true,
           admin: { width: '50%' },
+          editor: lexicalEditor({
+            features: [...minimalEditorFeatures],
+            lexical: defaultEditorLexicalConfig,
+          }),
         },
       ],
     },

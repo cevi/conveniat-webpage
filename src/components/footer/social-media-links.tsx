@@ -19,6 +19,7 @@ export const SocialMediaLinks: React.FC = async () => {
         <LinkComponent
           href={instagramLink}
           hideExternalIcon
+          openInNewTab
           rel="noopener noreferrer"
           className="rounded-full p-2 transition-colors duration-200"
           aria-label="Follow us on Instagram"
@@ -31,6 +32,7 @@ export const SocialMediaLinks: React.FC = async () => {
         <LinkComponent
           href={youTubeLink}
           hideExternalIcon
+          openInNewTab
           rel="noopener noreferrer"
           className="rounded-full p-2 transition-colors duration-200"
           aria-label="Subscribe to our YouTube channel"

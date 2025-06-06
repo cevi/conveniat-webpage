@@ -1,8 +1,8 @@
 import type React from 'react';
 
 import { environmentVariables } from '@/config/environment-variables';
-import type { CeviLogoMarker, InitialMapPose } from '@/features/map/components/map-renderer';
-import { MapLibreRenderer } from '@/features/map/components/map-renderer';
+import { MapLibreRenderer } from '@/features/map/components/map-renderer-wrapper';
+import type { CeviLogoMarker, InitialMapPose } from '@/features/map/components/types';
 
 export interface InlineSwisstopoMapEmbedType {
   blockName?: string;

@@ -66,7 +66,36 @@ export const basicForm: Form = {
             blockName: 'agree_box',
             blockType: 'checkbox',
             name: 'checkbox',
-            label: 'Da bin ich dabei!',
+            label: {
+              root: {
+                type: 'root',
+                children: [
+                  {
+                    type: 'paragraph',
+                    children: [
+                      {
+                        type: 'text',
+                        detail: 0,
+                        format: 0,
+                        mode: 'normal',
+                        style: '',
+                        text: 'Da bin ich dabei.',
+                        version: 1,
+                      },
+                    ],
+                    direction: 'ltr',
+                    format: '',
+                    indent: 0,
+                    tag: 'h3',
+                    version: 1,
+                  },
+                ],
+                direction: 'ltr',
+                format: '',
+                indent: 0,
+                version: 1,
+              },
+            },
             required: true,
           },
           {

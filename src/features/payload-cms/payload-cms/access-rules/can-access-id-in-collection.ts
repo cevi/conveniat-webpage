@@ -20,7 +20,6 @@ export const canAccessDocuments: Access = async ({ req }) => {
   );
 
   const allIds = permittedDocuments.map((item) => item.id);
-  console.log(allIds);
 
   return {
     id: {

@@ -1,30 +1,13 @@
 'use client';
 import { CeviLogo } from '@/components/svg-logos/cevi-logo';
+import type { CeviLogoMarker, InitialMapPose } from '@/features/map/components/types';
 import { reactToDomElement } from '@/utils/react-to-dom-element';
 import { Map as MapLibre, Marker, NavigationControl, ScaleControl } from 'maplibre-gl';
-import React, { useEffect, useRef } from 'react';
+import type React from 'react';
+import { useEffect, useRef } from 'react';
 
 // styles for the map viewer
 import 'maplibre-gl/dist/maplibre-gl.css';
-
-/**
- * Interface for the initial map pose.
- * This is used to define the initial center and zoom level of the map.
- */
-export interface InitialMapPose {
-  initialMapCenter: [number, number];
-  zoom: number;
-}
-
-/**
- * Interface for a Cevi Logo Marker.
- */
-export interface CeviLogoMarker {
-  geometry: {
-    coordinates: [number, number];
-  };
-  title: string;
-}
 
 /**
  * Factory function to create a DOM element with the Cevi Logo SVG.
@@ -96,3 +79,5 @@ export const MapLibreRenderer = ({
 
   return <div className="h-full w-full" ref={mapContainerReference} />;
 };
+
+export default MapLibreRenderer;

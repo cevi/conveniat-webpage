@@ -1,6 +1,6 @@
 {
   "name": "conveniat27",
-  "version": "0.17.1",
+  "version": "0.18.0",
   "author": "Cyrill Püntener v/o JPG (cyrill.puentener@cevi.ch)",
   "maintainers": [
     "Cyrill Püntener v/o JPG (cyrill.puentener@cevi.ch)",
@@ -25,6 +25,7 @@
   "dependencies": {
     "@headlessui/react": "^2.2.4",
     "@icons-pack/react-simple-icons": "^12.9.0",
+    "@next/bundle-analyzer": "^15.3.3",
     "@payloadcms/db-mongodb": "^3.40.0",
     "@payloadcms/email-nodemailer": "^3.40.0",
     "@payloadcms/live-preview-react": "^3.40.0",
@@ -43,7 +44,7 @@
     "@radix-ui/react-select": "^2.2.5",
     "@radix-ui/react-slot": "^1.2.3",
     "@t3-oss/env-nextjs": "^0.12.0",
-    "@tanstack/react-query": "^5.80.2",
+    "@tanstack/react-query": "^5.80.5",
     "@types/js-cookie": "^3.0.6",
     "@types/jsonwebtoken": "^9.0.9",
     "class-variance-authority": "^0.7.1",
@@ -62,7 +63,7 @@
     "next-auth": "5.0.0-beta.25",
     "next-i18n-router": "^5.5.2",
     "payload": "^3.40.0",
-    "posthog-js": "^1.249.2",
+    "posthog-js": "^1.249.3",
     "posthog-node": "^4.18.0",
     "qs-esm": "^7.0.2",
     "react": "19.0.0",
@@ -118,7 +119,7 @@
     "tailwindcss": "^4.1.8",
     "typescript": "5.5.4",
     "typescript-eslint": "^8.33.1",
-    "unrs-resolver": "^1.7.9"
+    "unrs-resolver": "^1.7.10"
   },
   "engines": {
     "node": ">=20.9.0"
@@ -142,5 +143,5 @@
       "unrs-resolver"
     ]
   },
-  "packageManager": "pnpm@10.11.0+sha512.6540583f41cc5f628eb3d9773ecee802f4f9ef9923cc45b69890fb47991d4b092964694ec3a4f738a420c918a333062c8b925d312f42e4f0c263eb603551f977"
+  "packageManager": "pnpm@10.11.1"
 }
