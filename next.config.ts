@@ -7,6 +7,7 @@ import { withPayload } from '@payloadcms/next/withPayload';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import build from '@/build';
+import { optimizedImageMinimumCacheTTL } from '@/cache-control';
 import withSerwistInit from '@serwist/next';
 
 const serviceWorkerRevision =
@@ -48,6 +49,8 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
+    minimumCacheTTL: optimizedImageMinimumCacheTTL,
+    formats: ['image/avif', 'image/webp'],
     remotePatterns: [
       {
         protocol: 'https',

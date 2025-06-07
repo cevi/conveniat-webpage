@@ -257,6 +257,11 @@ your default browser.
 ANALYZE=true pnpm build
 ```
 
+## Image Handling and Optimization
+
+We allow website administrators to upload images directly through the Payload CMS. Those images are unoptimized
+by default.
+
 ## License
 
 This project is licensed under the [MIT](LICENSE.md) License — see the `LICENSE` file for details.
