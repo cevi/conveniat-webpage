@@ -74,7 +74,7 @@ export const contactForm: Form = {
   sections: [
     {
       formSection: {
-        sectionTitle: 'Section 1',
+        sectionTitle: 'Persönliche Angaben',
         fields: [
           {
             id: '63adaaba5236fe69ca8973f8',
@@ -96,7 +96,7 @@ export const contactForm: Form = {
     },
     {
       formSection: {
-        sectionTitle: 'Agreeing',
+        sectionTitle: 'Zustimmung',
         fields: [
           {
             blockName: 'agree_box',

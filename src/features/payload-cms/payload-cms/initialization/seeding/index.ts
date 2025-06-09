@@ -53,15 +53,15 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     'https://www.cevi.ch/files/cevi/galerie/Konekta_2024/Konekta_5-min.jpg',
     'https://www.cevi.ch/files/cevi/galerie/Konekta_2024/Konekta_40-min.jpg',
     'https://www.cevi.ch/files/cevi/galerie/Konekta_2024/Konekta_11-min.jpg',
-    'https://www.cevi.ch/files/cevi/galerie/Konekta_2024/Konekta_1-min.jpg',
-    'https://www.cevi.ch/files/cevi/galerie/Konekta_2024/Konekta_17-min.jpg',
-    'https://www.cevi.ch/files/cevi/galerie/Konekta_2024/Konekta_23-min.jpg',
-    'https://www.cevi.ch/files/cevi/galerie/Konekta_2024/Konekta_18-min.jpg',
-    'https://www.cevi.ch/files/cevi/galerie/Konekta_2024/Konekta_22-min.jpg',
-    'https://www.cevi.ch/files/cevi/galerie/Konekta_2024/Konekta_25-min.jpg',
-    'https://www.cevi.ch/files/cevi/galerie/Konekta_2024/Konekta_26-min.jpg',
-    'https://www.cevi.ch/files/cevi/galerie/Konekta_2024/Konekta_14-min.jpg',
-    'https://www.cevi.ch/files/cevi/galerie/Konekta_2024/Konekta_21-min.jpg',
+    // 'https://www.cevi.ch/files/cevi/galerie/Konekta_2024/Konekta_1-min.jpg',
+    // 'https://www.cevi.ch/files/cevi/galerie/Konekta_2024/Konekta_17-min.jpg',
+    // 'https://www.cevi.ch/files/cevi/galerie/Konekta_2024/Konekta_23-min.jpg',
+    // 'https://www.cevi.ch/files/cevi/galerie/Konekta_2024/Konekta_18-min.jpg',
+    // 'https://www.cevi.ch/files/cevi/galerie/Konekta_2024/Konekta_22-min.jpg',
+    // 'https://www.cevi.ch/files/cevi/galerie/Konekta_2024/Konekta_25-min.jpg',
+    // 'https://www.cevi.ch/files/cevi/galerie/Konekta_2024/Konekta_26-min.jpg',
+    // 'https://www.cevi.ch/files/cevi/galerie/Konekta_2024/Konekta_14-min.jpg',
+    // 'https://www.cevi.ch/files/cevi/galerie/Konekta_2024/Konekta_21-min.jpg',
   ];
 
   const imageIds: string[] = [];
@@ -89,6 +89,10 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     imageIds.push(imageID);
   }
 
+  const publicPermission = await seedPermissionPublic(payload);
+  await seedPermissionAdminsOnly(payload);
+  const internalPermission = await seedPermissionLoggedIn(payload);
+
   const fileDownloadImageURL = listOfImageUrls[0] ?? '';
   const image = await fetch(fileDownloadImageURL);
   const imageBuffer = await image.arrayBuffer();
@@ -97,6 +101,7 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     data: {
       updatedAt: '2025-01-01T01:00:00.000Z',
       createdAt: '2025-01-01T01:00:00.000Z',
+      permissions: internalPermission,
     },
     file: {
       mimetype: 'image/jpeg',
@@ -105,10 +110,6 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
       data: Buffer.from(imageBuffer),
     },
   });
-
-  const publicPermission = await seedPermissionPublic(payload);
-  await seedPermissionAdminsOnly(payload);
-  const internalPermission = await seedPermissionLoggedIn(payload);
 
   const { id: landingPageId } = await payload.create({
     collection: 'generic-page',
