@@ -2,6 +2,8 @@ import { ClientOnly } from '@/components/client-only';
 import type { PhotoCarouselBlock } from '@/components/gallery';
 import { PhotoCarousel } from '@/components/gallery';
 import { Accordion } from '@/features/payload-cms/components/accordion/accordion';
+import type { CallToActionType } from '@/features/payload-cms/components/content-blocks/call-to-action';
+import { CallToActionBlock } from '@/features/payload-cms/components/content-blocks/call-to-action';
 import type { CountdownType } from '@/features/payload-cms/components/content-blocks/countdown';
 import { Countdown } from '@/features/payload-cms/components/content-blocks/countdown';
 import type { FileDownloadType } from '@/features/payload-cms/components/content-blocks/file-download';
@@ -55,7 +57,8 @@ export type ContentBlockTypeNames =
   | 'summaryBox'
   | 'timelineEntries'
   | 'countdown'
-  | 'whiteSpace';
+  | 'whiteSpace'
+  | 'callToAction';
 
 export type SectionRenderer<T = object> = React.FC<
   LocalizedPageType & {
@@ -469,7 +472,6 @@ export const RenderCountdown: SectionRenderer<CountdownType> = async ({
       })}
     >
       <ClientOnly
-        blended
         fallback={
           <div className="bg-conveniat-green/10 border-conveniat-green/20 my-6 h-[327px] w-full rounded-lg border p-6"></div>
         }
@@ -497,6 +499,27 @@ export const RenderWhiteSpace: SectionRenderer = async ({
       })}
     >
       <div className="h-3 w-full" />
+    </SectionWrapper>
+  );
+};
+
+export const RenderCallToAction: SectionRenderer<CallToActionType> = async ({
+  block,
+  sectionClassName,
+  sectionOverrides,
+}) => {
+  return (
+    <SectionWrapper
+      block={block}
+      sectionClassName={sectionClassName}
+      sectionOverrides={sectionOverrides}
+      errorFallbackMessage={await errorMessageForType({
+        de: 'Der Call-To-Action Button',
+        en: 'call-to-action button',
+        fr: 'le bouton call-to-action',
+      })}
+    >
+      <CallToActionBlock {...block} />
     </SectionWrapper>
   );
 };

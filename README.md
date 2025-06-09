@@ -2,7 +2,8 @@
 
 [![Visit Live Site](https://img.shields.io/badge/Live%20Site-conveniat27.ch-blue)](https://conveniat27.ch)
 
-This repository contains the source code for the official website of conveniat27, built with Next.js and Payload CMS.
+This repository contains the source code for the official website as well as the official app of conveniat27, built with
+Next.js and Payload CMS.
 
 ## Table of Contents
 
@@ -35,7 +36,8 @@ This repository contains the source code for the official website of conveniat27
   [Tailwind CSS](https://tailwindcss.com/), [Headless UI](https://headlessui.com/)
 - **Icons:** [Lucide React](https://lucide.dev/)
 - **Database:** [MongoDB](https://www.mongodb.com/) (self-hosted),
-  [MinIO](https://min.io/) (S3-compatible object storage, self-hosted)
+  [MinIO](https://min.io/) (S3-compatible object storage, self-hosted),
+  [PostgreSQL](https://www.postgresql.org/) (self-hosted)
 - **PWA:** [Serwist](https://serwist.pages.dev/) (for Service Worker management)
 - **Code Quality:** [ESLint](https://eslint.org/), [Prettier](https://prettier.io/)
 - **Development Environment:** [Docker](https://www.docker.com/) (Devcontainer)
@@ -208,6 +210,53 @@ used for cleaner imports.
 - Create a `.env` file (copied from `.env.example`) for local development. **Never commit `.env` files to Git.**
 - Populate `.env` with necessary credentials (database URLs, API keys, secrets, etc.).
 
+## Build Production Bundle
+
+The easiest way to build the page into a production ready bundle is to use the provided Docker Compose file.
+This will build the Next.js application and Payload CMS, and prepare it for deployment.
+
+```bash
+docker compose -f docker-compose.prod.yml up --build
+```
+
+However, you can also build the application manually using the following commands.
+Please ensure that you have deleted `node_modules`, `src/lib/prisma/*`, and `.next`
+before running the commands to ensure a clean build.
+
+Also make sure that you DON'T have any `.env` file in the root of the project, as this will
+cause issues with the build process.
+
+```bash
+# Export environment variables
+export $(grep -v '^#' .env | grep '^NEXT_PUBLIC_' | xargs)
+export BUILD_TARGET="production"
+export NODE_ENV="production"
+export DISABLE_SERVICE_WORKER="true" # speeds up build process (optional)
+export PRISMA_OUTPUT="src/lib/prisma/client/"
+
+# Install dependencies
+pnpm install
+
+# Create build info file
+bash create_build_info.sh
+
+# Generate Prisma client
+npx prisma generate
+
+# Build the Next.js application
+pnpm next build
+```
+
+### Analyse Bundle Size
+
+To analyze the bundle size of the Next.js application, you can use the `next-bundle-analyzer` package.
+Xou can run the following command to analyze the bundle size. This will generate a report and open it in
+your default browser.
+
+```bash
+ANALYZE=true pnpm build
+```
+
 ## License
 
-This project is licensed under the [MIT](LICENSE.md) License - see the `LICENSE` file for details.
+This project is licensed under the [MIT](LICENSE.md) License — see the `LICENSE` file for details.

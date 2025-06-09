@@ -1,7 +1,7 @@
 import { environmentVariables } from '@/config/environment-variables';
-import type { InitialMapPose } from '@/features/map/components/map-renderer';
-import { MapLibreRenderer } from '@/features/map/components/map-renderer';
-import React from 'react';
+import { MapLibreRenderer } from '@/features/map/components/map-renderer-wrapper';
+import type { InitialMapPose } from '@/features/map/components/types';
+import type React from 'react';
 
 const initialMapPoseObergoms: InitialMapPose = {
   initialMapCenter: [8.301_211, 46.502_822],

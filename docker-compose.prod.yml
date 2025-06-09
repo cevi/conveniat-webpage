@@ -41,6 +41,9 @@ services:
           cpus: '1.0'
           memory: 512M
 
+    volumes:
+      - /cluster/swarm/data/conveniat/next-cache:/app/.next/cache
+
     dns:
       - 8.8.8.8 # Replace with your desired DNS server
 

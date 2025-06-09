@@ -48,6 +48,7 @@ export const SearchComponent: React.FC<{ locale: Locale; actionURL: string }> = 
           type="submit"
           className="flex h-12 cursor-pointer items-center justify-center bg-[#47564c] px-4 text-white transition-colors duration-300 hover:bg-[#3b4a3f]"
         >
+          <span className="sr-only">{searchButtonText[locale as Locale]}</span>
           <Search className="text-lg" aria-hidden="true" />
         </button>
       </form>
