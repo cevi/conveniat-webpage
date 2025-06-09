@@ -1,6 +1,6 @@
 {
   "name": "conveniat27",
-  "version": "0.17.1",
+  "version": "0.18.0",
   "author": "Cyrill Püntener v/o JPG (cyrill.puentener@cevi.ch)",
   "maintainers": [
     "Cyrill Püntener v/o JPG (cyrill.puentener@cevi.ch)",
@@ -25,17 +25,18 @@
   "dependencies": {
     "@headlessui/react": "^2.2.4",
     "@icons-pack/react-simple-icons": "^12.9.0",
-    "@payloadcms/db-mongodb": "^3.40.0",
-    "@payloadcms/email-nodemailer": "^3.40.0",
-    "@payloadcms/live-preview-react": "^3.40.0",
-    "@payloadcms/next": "^3.40.0",
-    "@payloadcms/plugin-form-builder": "^3.40.0",
-    "@payloadcms/plugin-redirects": "^3.40.0",
-    "@payloadcms/plugin-search": "^3.40.0",
-    "@payloadcms/richtext-lexical": "^3.40.0",
-    "@payloadcms/richtext-slate": "^3.40.0",
-    "@payloadcms/storage-s3": "^3.40.0",
-    "@payloadcms/ui": "^3.40.0",
+    "@next/bundle-analyzer": "^15.3.3",
+    "@payloadcms/db-mongodb": "^3.41.0",
+    "@payloadcms/email-nodemailer": "^3.41.0",
+    "@payloadcms/live-preview-react": "^3.41.0",
+    "@payloadcms/next": "^3.41.0",
+    "@payloadcms/plugin-form-builder": "^3.41.0",
+    "@payloadcms/plugin-redirects": "^3.41.0",
+    "@payloadcms/plugin-search": "^3.41.0",
+    "@payloadcms/richtext-lexical": "^3.41.0",
+    "@payloadcms/richtext-slate": "^3.41.0",
+    "@payloadcms/storage-s3": "^3.41.0",
+    "@payloadcms/ui": "^3.41.0",
     "@prisma/client": "6.9.0",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-dialog": "^1.1.14",
@@ -43,7 +44,7 @@
     "@radix-ui/react-select": "^2.2.5",
     "@radix-ui/react-slot": "^1.2.3",
     "@t3-oss/env-nextjs": "^0.12.0",
-    "@tanstack/react-query": "^5.80.2",
+    "@tanstack/react-query": "^5.80.6",
     "@types/js-cookie": "^3.0.6",
     "@types/jsonwebtoken": "^9.0.9",
     "class-variance-authority": "^0.7.1",
@@ -61,8 +62,8 @@
     "next": "15.3.1",
     "next-auth": "5.0.0-beta.25",
     "next-i18n-router": "^5.5.2",
-    "payload": "^3.40.0",
-    "posthog-js": "^1.249.2",
+    "payload": "^3.41.0",
+    "posthog-js": "^1.249.4",
     "posthog-node": "^4.18.0",
     "qs-esm": "^7.0.2",
     "react": "19.0.0",
@@ -79,7 +80,7 @@
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
     "web-push": "^3.6.7",
-    "zod": "^3.25.51"
+    "zod": "^3.25.56"
   },
   "devDependencies": {
     "@eslint/compat": "^1.2.9",
@@ -91,7 +92,7 @@
     "@serwist/next": "^9.0.14",
     "@tailwindcss/postcss": "^4.1.8",
     "@types/json-schema": "^7.0.15",
-    "@types/node": "^22.15.29",
+    "@types/node": "^22.15.30",
     "@types/react": "19.0.10",
     "@types/react-dom": "19.0.4",
     "@types/web-push": "^3.6.4",
@@ -107,7 +108,7 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-compiler": "19.0.0-beta-df7b47d-20241124",
     "eslint-plugin-react-hooks": "^5.2.0",
-    "eslint-plugin-react-naming-convention": "^1.51.0",
+    "eslint-plugin-react-naming-convention": "^1.51.2",
     "eslint-plugin-unicorn": "^56.0.1",
     "globals": "^15.15.0",
     "postcss": "^8.5.4",
@@ -118,7 +119,7 @@
     "tailwindcss": "^4.1.8",
     "typescript": "5.5.4",
     "typescript-eslint": "^8.33.1",
-    "unrs-resolver": "^1.7.9"
+    "unrs-resolver": "^1.7.11"
   },
   "engines": {
     "node": ">=20.9.0"
@@ -142,5 +143,5 @@
       "unrs-resolver"
     ]
   },
-  "packageManager": "pnpm@10.11.0+sha512.6540583f41cc5f628eb3d9773ecee802f4f9ef9923cc45b69890fb47991d4b092964694ec3a4f738a420c918a333062c8b925d312f42e4f0c263eb603551f977"
+  "packageManager": "pnpm@10.11.1"
 }

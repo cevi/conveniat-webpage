@@ -1,3 +1,4 @@
+import bundleAnalyzer from '@next/bundle-analyzer';
 import type { NextConfig } from 'next';
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -15,6 +16,11 @@ if (process.env['ENABLE_SERVICE_WORKER_LOCALLY'] === 'true') {
   console.log(`serviceWorkerRevision: ${serviceWorkerRevision}`);
 }
 
+const withBundleAnalyzer = bundleAnalyzer({
+  enabled: process.env['ANALYZE'] === 'true',
+  openAnalyzer: true,
+});
+
 const withSerwist = withSerwistInit({
   cacheOnNavigation: true,
   swSrc: 'src/features/service-worker/index.ts',
@@ -23,8 +29,9 @@ const withSerwist = withSerwistInit({
   register: true,
   reloadOnOnline: true,
   disable:
-    process.env.NODE_ENV !== 'production' &&
-    process.env['ENABLE_SERVICE_WORKER_LOCALLY'] !== 'true',
+    (process.env.NODE_ENV !== 'production' &&
+      process.env['ENABLE_SERVICE_WORKER_LOCALLY'] !== 'true') ||
+    process.env['DISABLE_SERVICE_WORKER'] === 'true',
 });
 
 const nextConfig: NextConfig = {
@@ -70,4 +77,6 @@ const nextConfig: NextConfig = {
   skipTrailingSlashRedirect: true,
 };
 
-export default withSerwist(withPayload(nextConfig, { devBundleServerPackages: false }));
+export default withBundleAnalyzer(
+  withSerwist(withPayload(nextConfig, { devBundleServerPackages: false })),
+);

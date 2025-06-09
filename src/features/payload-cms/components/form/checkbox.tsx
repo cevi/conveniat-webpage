@@ -1,7 +1,9 @@
+import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
 import { Required } from '@/features/payload-cms/components/form/required';
 import { fieldIsRequiredText } from '@/features/payload-cms/components/form/static-form-texts';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import type { CheckboxField } from 'payload';
 import type React from 'react';
@@ -15,7 +17,7 @@ export const Checkbox: React.FC<
       }>
     >;
     registerAction: UseFormRegister<string & FieldValues>;
-    label?: string;
+    label: SerializedEditorState;
   } & CheckboxField
 > = ({ name, label, registerAction, required: requiredFromProperties, errors }) => {
   // set default values
@@ -36,10 +38,10 @@ export const Checkbox: React.FC<
         />
 
         <label
-          className="ml-2 block font-['Inter'] text-sm font-medium text-gray-500 hover:text-gray-900"
+          className="ml-2 block inline-flex items-center font-['Inter'] text-sm font-medium text-gray-500 hover:text-gray-900"
           htmlFor={name}
         >
-          {label}
+          <LexicalRichTextSection richTextSection={label} />
           {requiredFromProperties && <Required />}
         </label>
       </div>

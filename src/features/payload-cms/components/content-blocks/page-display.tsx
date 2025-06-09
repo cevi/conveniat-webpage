@@ -1,17 +1,12 @@
 import { NewsCard } from '@/components/news-card';
 import { LinkComponent } from '@/components/ui/link-component';
-import type { RichTextSection } from '@/features/payload-cms/payload-cms/utils/extract-rich-text-content';
-import { extractRichTextContent } from '@/features/payload-cms/payload-cms/utils/extract-rich-text-content';
+import type { ContentBlock } from '@/features/payload-cms/converters/page-sections/section-wrapper';
+import { extractTextContent } from '@/features/payload-cms/payload-cms/utils/extract-rich-text';
 import type { GenericPage } from '@/features/payload-cms/payload-types';
 import React from 'react';
 
-interface ContentBlock {
-  blockType: string;
-  richTextSection?: RichTextSection;
-}
-
 export const PageDisplay: React.FC<{ page: GenericPage }> = ({ page }) => {
-  const contentExcerpt = extractRichTextContent(page.content.mainContent as ContentBlock[]);
+  const contentExcerpt = extractTextContent(page.content.mainContent as ContentBlock[]);
   const contentExcerptTrimmed =
     contentExcerpt.length > 150 ? contentExcerpt.slice(0, 150) + '...' : contentExcerpt;
   return (
