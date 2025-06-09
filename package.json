@@ -14,6 +14,7 @@
     "dev": "cross-env NODE_OPTIONS=--no-deprecation next dev --turbopack",
     "devsafe": "rm -rf .next/* && cross-env NODE_OPTIONS=--no-deprecation next dev",
     "generate:importmap": "cross-env NODE_OPTIONS=--no-deprecation payload generate:importmap",
+    "migrate": "cross-env NODE_OPTIONS=--no-deprecation payload migrate",
     "generate:types": "cross-env NODE_OPTIONS=--no-deprecation payload generate:types",
     "lint": "(tsc --noemit --project ./tsconfig.json); eslint -c eslint.config.mjs --fix --quiet .",
     "lint:warnings": "(tsc --noemit --project ./tsconfig.json); eslint -c eslint.config.mjs  --fix .",
