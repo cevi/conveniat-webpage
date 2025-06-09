@@ -1,17 +1,18 @@
 import { environmentVariables } from '@/config/environment-variables';
-import { basicBlog } from '@/features/payload-cms/payload-cms/initialization/seeding/blog-post';
-import { basicForm } from '@/features/payload-cms/payload-cms/initialization/seeding/form';
+import { aboutUsContent } from '@/features/payload-cms/payload-cms/initialization/seeding/about-us';
+import { contactPageContent } from '@/features/payload-cms/payload-cms/initialization/seeding/contact-page';
+import { contactForm } from '@/features/payload-cms/payload-cms/initialization/seeding/form';
 import { generateMainMenu } from '@/features/payload-cms/payload-cms/initialization/seeding/generate-main-menu';
+import { internalPageContent } from '@/features/payload-cms/payload-cms/initialization/seeding/internal-page';
+import { landingPageContent } from '@/features/payload-cms/payload-cms/initialization/seeding/landing-page';
 import {
   seedPermissionAdminsOnly,
   seedPermissionLoggedIn,
   seedPermissionPublic,
 } from '@/features/payload-cms/payload-cms/initialization/seeding/permissions';
-import { generateRichTextSection } from '@/features/payload-cms/payload-cms/initialization/seeding/placeholder-lexical';
-import { basicTimelineObject } from '@/features/payload-cms/payload-cms/initialization/seeding/timeline';
 import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import { fakerDE as faker } from '@faker-js/faker';
-import type { Payload, RequiredDataFromCollectionSlug } from 'payload';
+import type { Payload } from 'payload';
 
 /**
  * Seed the database with some initial data.
@@ -42,9 +43,9 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     return;
   }
 
-  const { id: formID } = await payload.create({
+  const { id: contactFormID } = await payload.create({
     collection: 'forms',
-    data: structuredClone(basicForm),
+    data: structuredClone(contactForm),
   });
 
   // seed images
@@ -88,136 +89,87 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     imageIds.push(imageID);
   }
 
-  await payload.create({
-    collection: 'timeline',
-    data: structuredClone(basicTimelineObject),
+  const fileDownloadImageURL = listOfImageUrls[0] ?? '';
+  const image = await fetch(fileDownloadImageURL);
+  const imageBuffer = await image.arrayBuffer();
+  const { id: fileDownloadId } = await payload.create({
+    collection: 'documents',
+    data: {
+      updatedAt: '2025-01-01T01:00:00.000Z',
+      createdAt: '2025-01-01T01:00:00.000Z',
+    },
+    file: {
+      mimetype: 'image/jpeg',
+      name: 'Konekta.jpg',
+      size: imageBuffer.byteLength,
+      data: Buffer.from(imageBuffer),
+    },
   });
 
-  const public_permission = await seedPermissionPublic(payload);
+  const publicPermission = await seedPermissionPublic(payload);
   await seedPermissionAdminsOnly(payload);
-  await seedPermissionLoggedIn(payload);
+  const internalPermission = await seedPermissionLoggedIn(payload);
 
-  const blockCount = 20;
-  const blogIds: string[] = [];
-  for (let index = 0; index < blockCount; index++) {
-    const imageId = imageIds[index % imageIds.length];
-    if (imageId === undefined) {
-      throw new Error('Could not find image ID');
-    }
-
-    const blogId = await payload.create({
-      collection: 'blog',
-      data: structuredClone(basicBlog(imageId, imageIds, public_permission.id)),
-    });
-    blogIds.push(blogId.id);
-  }
-
-  const mainMenu = generateMainMenu(5, blogIds);
-  await payload.updateGlobal({
-    slug: 'header',
-    locale: LOCALE.DE,
-    data: { mainMenu: mainMenu },
-  });
-
-  const landingPageContent: RequiredDataFromCollectionSlug<'generic-page'> = {
-    internalPageName: 'startseite',
-    authors: [],
-    internalStatus: 'approved',
-    _disable_unpublishing: true,
-    _status: 'published',
-    content: {
-      pageTitle: 'conveniat27 - WIR SIND CEVI',
-      releaseDate: '2025-01-01T01:00:00.000Z',
-      permissions: public_permission.id,
-      mainContent: [
-        {
-          blockType: 'heroSection' as const,
-          pageTeaser:
-            'Im Jahr 2009 hat im Jura das erste und bisher einzige nationale Zeltlager des Cevi Schweiz stattgefunden. ' +
-            'Fast 4000 junge Menschen aus der gesamten Schweiz sind zusammengekommen, um die verschiedenen Facetten des ' +
-            'Cevi zu feiern und gemeinsam eine grossartige Zeit zu haben. Neben unvergänglichen Erinnerungen wurden viele ' +
-            'Freundschaften über alle Landesteile hinweg geschlossen und die nationale Identität des Cevi gestärkt sowie ' +
-            'die grundlegenden sozialen und christlich geprägten Werte gepflegt.',
-          callToAction: {
-            linkLabel: 'Mehr erfahren',
-            link: '/zeitstrahl',
-          },
-        },
-        {
-          blockType: 'countdown' as const,
-          endDate: '2027-07-27T10:00:00.000Z',
-          title: 'Bereit für conveniat27?',
-          descriptionAbove:
-            'Stattfinden wird das Lager vom Samstag, 24. Juli 2027 bis Montag, 2. August 2027 in Obergoms (VS).',
-          descriptionBelow: 'Wir erwarten etwa 5000 Teilnehmende für dieses einmalige Erlebnis!',
-        },
-        {
-          blockType: 'richTextSection' as const,
-          richTextSection: generateRichTextSection(),
-        },
-        {
-          blockType: 'photoCarousel',
-          images: faker.helpers.shuffle(imageIds).slice(0, faker.number.int({ min: 5, max: 8 })),
-        },
-        {
-          blockType: 'richTextSection' as const,
-          richTextSection: generateRichTextSection(),
-        },
-        {
-          blockType: 'formBlock' as const,
-          form: formID,
-        },
-        {
-          blockType: 'blogPostsOverview' as const,
-        },
-        {
-          blockType: 'youtubeEmbed' as const,
-          links: [
-            {
-              link: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-            },
-          ],
-        },
-      ],
-    },
-    seo: {
-      urlSlug: '',
-      metaTitle: 'conveniat27',
-      metaDescription: 'conveniat27',
-      keywords: '',
-    },
-    _localized_status: {
-      published: true,
-    },
-    _locale: LOCALE.DE,
-  };
-
-  const landingPage = await payload.create({
+  const { id: landingPageId } = await payload.create({
     collection: 'generic-page',
     locale: LOCALE.DE,
     data: {
-      ...landingPageContent,
+      ...landingPageContent(publicPermission),
       _locale: LOCALE.DE,
     },
   });
 
   await payload.update({
     collection: 'generic-page',
-    id: landingPage.id,
+    id: landingPageId,
     locale: LOCALE.EN,
     data: {
-      ...landingPageContent,
+      ...landingPageContent(publicPermission),
       _locale: LOCALE.EN,
     },
   });
 
   await payload.update({
     collection: 'generic-page',
-    id: landingPage.id,
+    id: landingPageId,
     locale: LOCALE.FR,
     data: {
-      ...landingPageContent,
+      ...landingPageContent(publicPermission),
       _locale: LOCALE.FR,
     },
+  });
+
+  const { id: contactPageId } = await payload.create({
+    collection: 'generic-page',
+    locale: LOCALE.DE,
+    data: {
+      ...contactPageContent(publicPermission, contactFormID),
+      _locale: LOCALE.DE,
+    },
+  });
+
+  const { id: aboutUsPageId } = await payload.create({
+    collection: 'generic-page',
+    locale: LOCALE.DE,
+    data: {
+      ...aboutUsContent(publicPermission, imageIds[0] ?? ''),
+      _locale: LOCALE.DE,
+    },
+  });
+
+  const { id: internalPageId } = await payload.create({
+    collection: 'generic-page',
+    locale: LOCALE.DE,
+    data: {
+      ...internalPageContent(internalPermission, fileDownloadId),
+      _locale: LOCALE.DE,
+    },
+  });
+
+  const mainMenu = generateMainMenu(contactPageId, aboutUsPageId, internalPageId);
+  await payload.updateGlobal({
+    slug: 'header',
+    locale: LOCALE.DE,
+    data: { mainMenu: mainMenu },
   });
 };

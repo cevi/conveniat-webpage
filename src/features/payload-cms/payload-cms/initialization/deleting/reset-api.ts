@@ -9,5 +9,5 @@ export const resetServerData = async (): Promise<void> => {
   await deleteEverything(payload);
   await onPayloadInit(payload);
 
-  redirect('/');
+  redirect('/admin/logout');
 };
