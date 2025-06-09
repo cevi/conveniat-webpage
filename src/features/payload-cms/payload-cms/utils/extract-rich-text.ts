@@ -10,7 +10,7 @@ import { convertLexicalToPlaintext } from '@payloadcms/richtext-lexical/plaintex
 
 const extractAccordionBlock = (accordion: AccordionBlocks): string => {
   let text = '';
-  text += convertLexicalToPlaintext({ data: accordion.introduction });
+  text += convertLexicalToPlaintext({ data: accordion.introduction }) + '\n';
   text +=
     accordion.accordionBlocks
       ?.map((accordionBlock) => {
@@ -27,7 +27,7 @@ const extractAccordionBlock = (accordion: AccordionBlocks): string => {
             .join(' ')
         );
       })
-      .join(' ') ?? '';
+      .join('\n') ?? '';
   return text;
 };
 
@@ -70,7 +70,7 @@ export const extractTextContent = (mainContent: ContentBlock[]): string => {
                 convertLexicalToPlaintext({ data: detailsTableBlock.value })
               );
             })
-            .join(' ') ?? '';
+            .join('\n') ?? '';
 
         break;
       }
