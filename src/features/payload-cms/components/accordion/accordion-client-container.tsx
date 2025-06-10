@@ -106,7 +106,7 @@ const AccordionClientContainer: React.FC<{
               isExpanded={expandedIds.includes(fragment)}
               onToggle={() => toggleExpand(accordionBlock)}
             >
-              {childs[accordionBlock.id ?? '']}
+              {expandedIds.includes(fragment) && childs[accordionBlock.id ?? '']}
             </AccordionItem>
           </div>
         );
