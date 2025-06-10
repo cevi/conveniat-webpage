@@ -5,6 +5,7 @@ import {
   defaultEditorLexicalConfig,
   HeadingFeature,
   lexicalEditor,
+  UnorderedListFeature,
 } from '@payloadcms/richtext-lexical';
 import type { Block } from 'payload';
 
@@ -103,6 +104,7 @@ export const accordion: Block = {
           HeadingFeature({
             enabledHeadingSizes: ['h2', 'h3'],
           }),
+          UnorderedListFeature(),
         ],
         lexical: defaultEditorLexicalConfig,
       }),
