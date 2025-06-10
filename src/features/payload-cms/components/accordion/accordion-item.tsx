@@ -24,7 +24,7 @@ const AccordionItem: React.FC<AccordionItemProperties> = ({
   return (
     <div
       className={cn(
-        'overflow-hidden rounded-lg border-2 border-gray-200 bg-white shadow-xs',
+        'rounded-lg border-2 border-gray-200 bg-white shadow-xs',
         'transition-transform duration-300',
         {
           'hover:scale-[1.01]': !isExpanded,
@@ -47,7 +47,7 @@ const AccordionItem: React.FC<AccordionItemProperties> = ({
       <div
         id={`content-${blockId}`}
         className={cn(
-          'overflow-hidden transition-all duration-300 ease-in-out',
+          'transition-all duration-300 ease-in-out',
           isExpanded ? 'opacity-100' : 'max-h-0 opacity-0',
         )}
       >
