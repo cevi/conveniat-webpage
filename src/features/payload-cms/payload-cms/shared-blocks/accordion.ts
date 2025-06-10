@@ -97,7 +97,6 @@ export const accordion: Block = {
       name: 'introduction',
       label: 'Introduction Text',
       type: 'richText',
-      required: true,
       editor: lexicalEditor({
         features: [
           ...minimalEditorFeatures,

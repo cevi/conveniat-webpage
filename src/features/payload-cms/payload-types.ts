@@ -977,7 +977,7 @@ export interface DetailsTable {
  * via the `definition` "AccordionBlocks".
  */
 export interface AccordionBlocks {
-  introduction: {
+  introduction?: {
     root: {
       type: string;
       children: {
@@ -991,7 +991,7 @@ export interface AccordionBlocks {
       version: number;
     };
     [k: string]: unknown;
-  };
+  } | null;
   accordionBlocks?:
     | {
         /**
