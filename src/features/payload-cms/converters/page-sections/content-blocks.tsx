@@ -167,7 +167,7 @@ export const AccordionBlock: SectionRenderer<AccordionBlocks> = async ({
         fr: 'le bloc accordéon',
       })}
     >
-      <LexicalRichTextSection richTextSection={block.introduction} />
+      {block.introduction && <LexicalRichTextSection richTextSection={block.introduction} />}
 
       <div className="mt-4">
         <Accordion block={block} />
