@@ -856,6 +856,10 @@ export const formPluginConfiguration = formBuilderPlugin({
                 type: 'array',
                 admin: {
                   initCollapsed: true,
+                  components: {
+                    RowLabel:
+                      '@/features/payload-cms/payload-cms/components/form-section-row-label#FormSectionRowLabel',
+                  },
                 },
                 fields: [formSection],
                 required: true,
