@@ -10,7 +10,8 @@ const AccordionClientContainer: React.FC<{
     [key: string]: React.ReactNode;
   };
 }> = ({ accordionBlocks, childs }) => {
-  const [expandedId, setExpandedId] = useState<string | undefined>();
+  // Change expandedId to an array to hold multiple expanded fragments
+  const [expandedIds, setExpandedIds] = useState<string[]>([]);
   const accordionItemReferences = useRef<Record<string, HTMLDivElement | null>>({});
 
   const sanitizeTitle = useCallback((title: string): string => {
@@ -30,6 +31,7 @@ const AccordionClientContainer: React.FC<{
         const newUrl = globalThis.location.pathname + globalThis.location.search;
         globalThis.history.replaceState(undefined, '', newUrl);
       } else {
+        // When multiple are open, only the latest clicked one updates the URL
         globalThis.history.replaceState(undefined, '', `#${fragment}`);
       }
     }
@@ -54,11 +56,18 @@ const AccordionClientContainer: React.FC<{
   const toggleExpand = useCallback(
     (accordionBlock: NonNullable<AccordionBlocks['accordionBlocks']>[number]): void => {
       const fragment = getFragmentFromBlock(accordionBlock);
-      const newExpandedId = expandedId === fragment ? undefined : fragment;
-      setExpandedId(newExpandedId);
-      updateURLFragment(newExpandedId);
+
+      setExpandedIds((previousExpandedIds) => {
+        // eslint-disable-next-line unicorn/prefer-ternary
+        if (previousExpandedIds.includes(fragment)) {
+          return previousExpandedIds.filter((id) => id !== fragment);
+        } else {
+          return [...previousExpandedIds, fragment];
+        }
+      });
+      updateURLFragment(fragment);
     },
-    [expandedId, updateURLFragment, getFragmentFromBlock],
+    [updateURLFragment, getFragmentFromBlock],
   );
 
   // Effect to check the URL fragment on an initial load
@@ -70,7 +79,8 @@ const AccordionClientContainer: React.FC<{
           (block) => getFragmentFromBlock(block) === hash,
         );
         if (isValidFragment === true) {
-          setExpandedId(hash);
+          // Initialize expandedIds with the fragment from the URL
+          setExpandedIds([hash]);
           setTimeout(() => {
             scrollToElement(hash);
           }, 150);
@@ -93,7 +103,7 @@ const AccordionClientContainer: React.FC<{
           >
             <AccordionItem
               accordionBlock={accordionBlock}
-              isExpanded={expandedId === fragment}
+              isExpanded={expandedIds.includes(fragment)}
               onToggle={() => toggleExpand(accordionBlock)}
             >
               {childs[accordionBlock.id ?? '']}
