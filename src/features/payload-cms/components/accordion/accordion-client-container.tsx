@@ -89,6 +89,7 @@ const AccordionClientContainer: React.FC<{
             ref={(element) => {
               accordionItemReferences.current[fragment] = element;
             }}
+            className="scroll-mt-10"
           >
             <AccordionItem
               accordionBlock={accordionBlock}
