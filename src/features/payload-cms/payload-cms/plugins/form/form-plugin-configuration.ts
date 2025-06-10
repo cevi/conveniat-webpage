@@ -737,9 +737,20 @@ export const formPluginConfiguration = formBuilderPlugin({
     state: false, // we do not use states in CH
     date: true,
   },
+  formSubmissionOverrides: {
+    access: {
+      read: canAccessAdminPanel,
+      create: () => true, // allow creating submissions
+      update: () => false, // disable update for submissions
+      delete: () => false, // disable delete for submissions
+    },
+  },
   formOverrides: {
     access: {
       read: canAccessAdminPanel,
+      create: canAccessAdminPanel,
+      update: canAccessAdminPanel,
+      delete: canAccessAdminPanel,
     },
     defaultPopulate: {
       versions: false,
