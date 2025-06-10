@@ -6,8 +6,16 @@ import type { CollectionConfig } from 'payload';
 export const DocumentsCollection: CollectionConfig = {
   slug: 'documents',
   labels: {
-    singular: 'Dokument',
-    plural: 'Dokumente',
+    singular: {
+      en: 'Document',
+      de: 'Dokument',
+      fr: 'Document',
+    },
+    plural: {
+      en: 'Documents',
+      de: 'Dokumente',
+      fr: 'Documents',
+    },
   },
   admin: {
     group: AdminPanelDashboardGroups.InternalCollections,

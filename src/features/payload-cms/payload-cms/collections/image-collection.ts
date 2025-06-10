@@ -4,8 +4,16 @@ import type { CollectionConfig } from 'payload';
 export const ImageCollection: CollectionConfig = {
   slug: 'images',
   labels: {
-    singular: 'Bild',
-    plural: 'Bilder',
+    singular: {
+      en: 'Image',
+      de: 'Bild',
+      fr: 'Image',
+    },
+    plural: {
+      en: 'Images',
+      de: 'Bilder',
+      fr: 'Images',
+    },
   },
   admin: {
     group: AdminPanelDashboardGroups.InternalCollections,

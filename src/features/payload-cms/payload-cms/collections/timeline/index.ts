@@ -11,8 +11,21 @@ import type { CollectionConfig } from 'payload';
 export const TimelineCollection: CollectionConfig = asLocalizedCollection({
   slug: 'timeline',
 
+  labels: {
+    singular: {
+      en: 'Timeline Item',
+      de: 'Timeline Eintrag',
+      fr: 'Élément de Chronologie',
+    },
+    plural: {
+      en: 'Timeline Items',
+      de: 'Timeline Einträge',
+      fr: 'Éléments de Chronologie',
+    },
+  },
+
   admin: {
-    group: AdminPanelDashboardGroups.Pages,
+    group: AdminPanelDashboardGroups.PagesAndContent,
     description: {
       en: 'Represents a timeline that can be published on the website.',
       de: 'Stellt eine Timeline dar, die auf der Website veröffentlicht werden kann.',
@@ -26,11 +39,6 @@ export const TimelineCollection: CollectionConfig = asLocalizedCollection({
       'releaseDate',
       'updatedAt',
     ],
-  },
-
-  labels: {
-    singular: 'Timeline Item',
-    plural: 'Timeline Items',
   },
 
   fields: [

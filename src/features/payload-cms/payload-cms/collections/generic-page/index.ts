@@ -13,12 +13,20 @@ import type { CollectionConfig } from 'payload';
 export const GenericPage: CollectionConfig = asLocalizedCollection({
   slug: 'generic-page',
   labels: {
-    singular: 'Page',
-    plural: 'Pages',
+    singular: {
+      en: 'Page',
+      de: 'Seite',
+      fr: 'Page',
+    },
+    plural: {
+      en: 'Pages',
+      de: 'Seiten',
+      fr: 'Pages',
+    },
   },
   defaultSort: 'internalPageName',
   admin: {
-    group: AdminPanelDashboardGroups.Pages,
+    group: AdminPanelDashboardGroups.PagesAndContent,
     useAsTitle: 'internalPageName',
     defaultColumns: [
       'internalPageName',

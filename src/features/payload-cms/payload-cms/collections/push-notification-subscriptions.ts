@@ -5,6 +5,19 @@ import type { CollectionConfig } from 'payload';
 export const PushNotificationSubscriptions: CollectionConfig = asPushNotificationCollection({
   slug: 'push-notification-subscriptions',
 
+  labels: {
+    singular: {
+      en: 'Push Notification Subscription',
+      de: 'Abonnement für Push-Benachrichtigungen',
+      fr: 'Abonnement de notification push',
+    },
+    plural: {
+      en: 'Push Notification Subscriptions',
+      de: 'Abonnements für Push-Benachrichtigungen',
+      fr: 'Abonnements de notification push',
+    },
+  },
+
   fields: [
     {
       name: 'user',
@@ -52,13 +65,8 @@ export const PushNotificationSubscriptions: CollectionConfig = asPushNotificatio
     },
   ],
 
-  labels: {
-    singular: 'Push Notification Subscription',
-    plural: 'Push Notification Subscriptions',
-  },
-
   // hidden from the admin panel
   admin: {
-    group: AdminPanelDashboardGroups.InternalCollections,
+    group: AdminPanelDashboardGroups.GlobalSettings,
   },
 });

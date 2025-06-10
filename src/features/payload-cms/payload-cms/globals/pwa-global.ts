@@ -4,7 +4,11 @@ import type { GlobalConfig } from 'payload';
 
 export const PWAGlobal: GlobalConfig = {
   slug: 'PWA',
-  label: 'PWA Settings',
+  label: {
+    en: 'Progressive Web App Settings',
+    de: 'Einstellungen für die Progressive Web App',
+    fr: 'Paramètres de l’application web progressive',
+  },
   admin: {
     group: AdminPanelDashboardGroups.GlobalSettings,
     description: {

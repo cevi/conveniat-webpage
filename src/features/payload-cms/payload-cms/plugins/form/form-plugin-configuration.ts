@@ -1,4 +1,5 @@
 import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
+import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { getPublishingStatus } from '@/features/payload-cms/payload-cms/hooks/publishing-status';
 import { minimalEditorFeatures } from '@/features/payload-cms/payload-cms/plugins/lexical-editor';
 import { localizedStatusSchema } from '@/features/payload-cms/payload-cms/utils/localized-status-schema';
@@ -738,6 +739,21 @@ export const formPluginConfiguration = formBuilderPlugin({
     date: true,
   },
   formSubmissionOverrides: {
+    labels: {
+      singular: {
+        en: 'Form Submission',
+        de: 'Formular Antwort',
+        fr: 'Soumission de Formulaire',
+      },
+      plural: {
+        en: 'Form Submissions',
+        de: 'Formular Antworten',
+        fr: 'Soumissions de Formulaires',
+      },
+    },
+    admin: {
+      group: AdminPanelDashboardGroups.GlobalSettings,
+    },
     access: {
       read: canAccessAdminPanel,
       create: () => true, // allow creating submissions
@@ -746,6 +762,18 @@ export const formPluginConfiguration = formBuilderPlugin({
     },
   },
   formOverrides: {
+    labels: {
+      singular: {
+        en: 'Form',
+        de: 'Formular',
+        fr: 'Formulaire',
+      },
+      plural: {
+        en: 'Forms',
+        de: 'Formulare',
+        fr: 'Formulaires',
+      },
+    },
     access: {
       read: canAccessAdminPanel,
       create: canAccessAdminPanel,
@@ -756,6 +784,7 @@ export const formPluginConfiguration = formBuilderPlugin({
       versions: false,
     },
     admin: {
+      group: AdminPanelDashboardGroups.PagesAndContent,
       defaultColumns: ['id', 'publishingStatus', 'title'],
       components: {
         beforeList: [
