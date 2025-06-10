@@ -90,7 +90,7 @@ export const accordion: Block = {
   interfaceName: 'AccordionBlocks',
 
   imageURL: '/admin-block-images/accordion-block.png',
-  imageAltText: 'Details Table block',
+  imageAltText: 'Accordion Block',
 
   fields: [
     {
