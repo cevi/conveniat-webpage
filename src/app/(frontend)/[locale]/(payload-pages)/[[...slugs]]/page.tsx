@@ -23,7 +23,7 @@ import type React from 'react';
  *
  * We do that using the same concept as for a JWT token validation.
  * The token has a signature and is a compressed object { url: string; expires: number }
- * This function verify the signature and check if the token is still valid.
+ * This function verifies the signature and checks if the token is still valid.
  *
  * @param previewToken
  * @param url the url of the current page (always include the locale,
