@@ -47,7 +47,7 @@ const AccordionItem: React.FC<AccordionItemProperties> = ({
       <div
         id={`content-${blockId}`}
         className={cn(
-          'transition-all duration-300 ease-in-out',
+          'transition-transform duration-300 ease-in-out',
           isExpanded ? 'opacity-100' : 'max-h-0 opacity-0',
         )}
       >
