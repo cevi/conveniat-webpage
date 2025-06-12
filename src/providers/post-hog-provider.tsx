@@ -3,22 +3,9 @@
 import { initPostHog } from '@/lib/posthog-client';
 import { usePathname, useSearchParams } from 'next/navigation';
 import posthog from 'posthog-js';
-import { PostHogProvider as PHProvider, usePostHog } from 'posthog-js/react';
+import { PostHogProvider as ReactPostHogProvider, usePostHog } from 'posthog-js/react';
 import type React from 'react';
 import { Suspense, useEffect } from 'react';
-
-export const PostHogProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  useEffect(() => {
-    initPostHog(posthog);
-  }, []);
-
-  return (
-    <PHProvider client={posthog}>
-      <SuspendedPostHogPageView />
-      {children}
-    </PHProvider>
-  );
-};
 
 const PostHogPageView: React.FC = () => {
   const pathname = usePathname();
@@ -44,5 +31,18 @@ const SuspendedPostHogPageView: React.FC = () => {
     <Suspense fallback={<></>}>
       <PostHogPageView />
     </Suspense>
+  );
+};
+
+export const PostHogProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  useEffect(() => {
+    initPostHog(posthog);
+  }, []);
+
+  return (
+    <ReactPostHogProvider client={posthog}>
+      <SuspendedPostHogPageView />
+      {children}
+    </ReactPostHogProvider>
   );
 };

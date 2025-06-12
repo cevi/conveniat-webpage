@@ -1,4 +1,4 @@
-import { ChatQueryClientProvider } from '@/features/chat/components/chat-query-client-provider';
+import { QueryClientProvider } from '@/providers/query-client-provider';
 import type { ReactNode } from 'react';
 import React from 'react';
 
@@ -7,7 +7,7 @@ interface LayoutProperties {
 }
 
 const Layout: React.FC<LayoutProperties> = async ({ children }) => {
-  return <ChatQueryClientProvider>{children}</ChatQueryClientProvider>;
+  return <QueryClientProvider>{children}</QueryClientProvider>;
 };
 
 export default Layout;

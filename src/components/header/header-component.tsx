@@ -4,16 +4,15 @@ import { NavComponent } from '@/components/menu/nav-component';
 import { ConveniatLogo } from '@/components/svg-logos/conveniat-logo';
 import { LinkComponent } from '@/components/ui/link-component';
 import { canUserAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
-import type { Config } from '@/features/payload-cms/payload-types';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { StaticTranslationString } from '@/types/types';
 import { auth } from '@/utils/auth-helpers';
+import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import React from 'react';
 
-export const HeaderComponent: React.FC<{
-  locale: Config['locale'];
-}> = async ({ locale }) => {
+export const HeaderComponent: React.FC = async () => {
   const session = await auth();
+  const locale = await getLocaleFromCookies();
 
   const canAccessAdminDashboard = await canUserAccessAdminPanel({
     user: session?.user as HitobitoNextAuthUser,
