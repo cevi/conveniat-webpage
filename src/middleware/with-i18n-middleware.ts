@@ -5,9 +5,22 @@ import { i18nRouter } from 'next-i18n-router';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
-// Helper function to check if the route is excluded from i18n
+/**
+ *  Helper function to check if the route is excluded from i18n
+ *
+ *  @param request
+ */
 const isExcludedFromI18n = (request: NextRequest): boolean => {
   return i18nExcludedRoutes.some((path) => request.nextUrl.pathname.startsWith(`/${path}`));
+};
+
+/**
+ * Helper function to get the first segment of the path from the request.
+ *
+ * @param request
+ */
+const getFirstSegment = (request: NextRequest): string | undefined => {
+  return request.nextUrl.pathname.split('/').find((segment) => segment.length > 0);
 };
 
 /**
@@ -19,24 +32,22 @@ const isExcludedFromI18n = (request: NextRequest): boolean => {
  */
 export const withI18nMiddleware = (): ChainedMiddleware => {
   return (request, _event, response): NextResponse => {
+    // initialize response if isn't already set
     response ??= NextResponse.next();
-    if (isExcludedFromI18n(request)) {
-      // initialize response if isn't already set
-      return response;
-    }
+
+    // if the request is for an excluded route, we skip the i18n routing
+    if (isExcludedFromI18n(request)) return response;
 
     if (!request.cookies.get('NEXT_LOCALE')) {
-      const pathname = request.nextUrl.pathname;
-      const firstSegment = pathname
-        // split the pathname into segments
-        .split('/')
-        // drop empty segments
-        .find((segment) => segment.length > 0);
+      const firstSegment = getFirstSegment(request);
 
       // if the first segment of the path is not a locale (from all configured locales),
-      // we set the locale to the default local
+      // we set the locale to the default locale
       if (firstSegment !== undefined && !i18nConfig.locales.includes(firstSegment)) {
-        response.cookies.set('NEXT_LOCALE', i18nConfig.defaultLocale, { path: '/' });
+        response.cookies.set('NEXT_LOCALE', i18nConfig.defaultLocale, {
+          path: '/',
+          maxAge: 60 * 60 * 24 * 365,
+        });
         return response;
       }
     }
