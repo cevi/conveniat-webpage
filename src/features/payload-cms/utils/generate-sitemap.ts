@@ -1,10 +1,6 @@
 import { environmentVariables } from '@/config/environment-variables';
-import type { Blog } from '@/features/payload-cms/payload-types';
-import {
-  routeResolutionTable,
-  urlPrefixToCollectionSlug,
-} from '@/features/payload-cms/route-resolution-table';
-import { i18nConfig } from '@/types/types';
+import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
+import { i18nConfig, type Locale } from '@/types/types';
 import config from '@payload-config';
 import type { MetadataRoute } from 'next';
 import { getPayload } from 'payload';
@@ -13,68 +9,66 @@ const toURL = (urlSegments: string[]): string => {
   return urlSegments.filter((seg) => seg !== '').join('/');
 };
 
-// eslint-disable-next-line complexity
 export const generateSitemap = async (): Promise<MetadataRoute.Sitemap> => {
   const sitemap: MetadataRoute.Sitemap = [];
   const APP_HOST_URL = environmentVariables.APP_HOST_URL;
 
   const payload = await getPayload({ config });
 
-  const defaultLocale = i18nConfig.defaultLocale;
+  const genericPages = await payload.find({
+    collection: 'generic-page',
+    depth: 0,
+    limit: 1000,
+    locale: 'all',
+  });
 
-  for (const [urlPrefix, collection] of Object.entries(routeResolutionTable)) {
-    // add urlPrefix as it's own page to the sitemap
-    for (const locale of collection.locales) {
-      const localePrefix = locale === defaultLocale ? '' : `${locale}`;
+  for (const page of genericPages.docs) {
+    const pageUrls: Partial<Record<Locale, string>> = {};
 
-      sitemap.push({
-        url: toURL([APP_HOST_URL, localePrefix, urlPrefix]),
-      });
+    for (const locale of Object.values(LOCALE)) {
+      if (page.publishingStatus === undefined || page.publishingStatus === null) continue;
+
+      const publishingStatus = page.publishingStatus as unknown as Record<
+        Locale,
+        { published: boolean }
+      >;
+      const isPublished = publishingStatus[locale]['published'];
+      if (!isPublished) continue;
+
+      const multiLangSlug = page.seo.urlSlug as unknown as Record<Locale, string | undefined>;
+      const urlSlug = multiLangSlug[locale] ?? '';
+      const localeInUrl = locale === (i18nConfig.defaultLocale as Locale) ? '' : locale;
+      const urlSegments = [APP_HOST_URL, localeInUrl, urlSlug];
+      pageUrls[locale] = toURL(urlSegments);
     }
 
-    if (collection.collectionSlug == 'timeline') continue; // skip timeline entries
+    const alternates = Object.fromEntries(
+      Object.entries(pageUrls).map(([locLocale, locUrl]) => [
+        locLocale,
+        {
+          url: locUrl,
+          hreflang: locLocale,
+        },
+      ]),
+    );
 
-    for (const locale of collection.locales) {
-      const localePrefix = locale === defaultLocale ? '' : `${locale}`;
+    const url = pageUrls[i18nConfig.defaultLocale as Locale];
+    if (url === undefined) continue;
 
-      const collectionSlug = urlPrefixToCollectionSlug(urlPrefix);
-      if (collectionSlug === undefined) {
-        throw new Error(`Collection slug not found for url prefix: ${urlPrefix}`);
-      }
-
-      const collectionPayloadElements = await payload.find({
-        collection: collectionSlug,
-        where: {
-          _localized_status: {
-            equals: {
-              published: true,
-            },
+    if (Boolean(url)) {
+      sitemap.push({
+        url,
+        lastModified: page.updatedAt,
+        alternates: {
+          languages: {
+            ...Object.fromEntries(
+              Object.entries(alternates)
+                .filter(([locLocale]) => locLocale !== i18nConfig.defaultLocale)
+                .map(([locLocale, { url: locUrl }]) => [locLocale, locUrl]),
+            ),
           },
         },
-        locale: locale,
       });
-
-      for (const element of collectionPayloadElements.docs) {
-        const elementURL =
-          collectionSlug == 'blog' ? (element as Blog).seo.urlSlug : 'does-not-exist';
-
-        if (collectionSlug === 'blog') {
-          const currentDate = new Date().toISOString();
-          if ((element as Blog).content.releaseDate > currentDate) {
-            continue;
-          }
-        }
-
-        sitemap.push({
-          url: toURL([APP_HOST_URL, localePrefix, urlPrefix, elementURL]),
-          lastModified: element.updatedAt,
-          alternates: {
-            // TODO: list alternatives, currently this needs another query to the CMS
-            //       we should consider returning the alternatives with the payload response
-            //       this would also be helpful for the collection resolver
-          },
-        } as MetadataRoute.Sitemap[0]);
-      }
     }
   }
 
