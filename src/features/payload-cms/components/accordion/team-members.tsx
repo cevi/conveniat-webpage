@@ -24,10 +24,15 @@ const TeamLeaderPortrait: React.FC<{
         className="h-full object-cover transition-transform group-hover:scale-105"
       />
     );
-  } else if (typeof portrait === 'object' && portrait?.url !== undefined && portrait.url !== null) {
+  } else if (
+    typeof portrait === 'object' &&
+    portrait !== null &&
+    portrait.sizes?.large?.url !== undefined &&
+    portrait.url !== null
+  ) {
     teamLeaderPortrait = (
       <Image
-        src={portrait.url}
+        src={portrait.sizes.large.url ?? ''}
         alt={`Portrait of ${name}`}
         width={200}
         height={200}

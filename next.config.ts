@@ -1,9 +1,10 @@
 import build from '@/build';
+import { cachingHeaders, optimizedImageMinimumCacheTTL } from '@/cache-control';
 import bundleAnalyzer from '@next/bundle-analyzer';
 import { withPayload } from '@payloadcms/next/withPayload';
 import withSerwistInit from '@serwist/next';
 import type { NextConfig } from 'next';
-import type { Header, Rewrite } from 'next/dist/lib/load-custom-routes';
+import type { Rewrite } from 'next/dist/lib/load-custom-routes';
 
 const withBundleAnalyzer = bundleAnalyzer({
   enabled: process.env['ANALYZE'] === 'true',
@@ -27,29 +28,6 @@ const postHogRewrites = async (): Promise<Rewrite[]> => {
   ];
 };
 
-const cachingHeaders = async (): Promise<Header[]> => {
-  return [
-    {
-      source: '/sitemap.xml',
-      headers: [
-        {
-          key: 'Cache-Control',
-          value: 'public, max-age=300', // Cache for 5 minutes
-        },
-      ],
-    },
-    {
-      source: '/manifest.webmanifest',
-      headers: [
-        {
-          key: 'Cache-Control',
-          value: 'public, max-age=300', // Cache for 5 minutes
-        },
-      ],
-    },
-  ];
-};
-
 const nextConfig: NextConfig = {
   output: 'standalone',
   productionBrowserSourceMaps: true,
@@ -65,6 +43,8 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
+    minimumCacheTTL: optimizedImageMinimumCacheTTL,
+    formats: ['image/avif', 'image/webp'],
     remotePatterns: [
       {
         protocol: 'https',

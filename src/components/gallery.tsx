@@ -11,7 +11,7 @@ import React from 'react';
 
 export interface PhotoCarouselBlock {
   images: {
-    url: string;
+    sizes?: { large?: { url: string } };
     alt: string;
     imageCaption?: string;
   }[];
@@ -46,7 +46,7 @@ export const PhotoCarousel: React.FC<PhotoCarouselBlock> = async ({ images }) =>
               <div className="p-1">
                 <Image
                   className="h-[240px] rounded-md bg-white object-cover max-md:aspect-square xl:h-[400px]"
-                  src={images[index % images.length]?.url ?? ''}
+                  src={images[index % images.length]?.sizes?.large?.url ?? ''}
                   alt={images[index % images.length]?.alt ?? ''}
                   placeholder="blur"
                   blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkAAIAAAoAAv/lxKUAAAAASUVORK5CYII="

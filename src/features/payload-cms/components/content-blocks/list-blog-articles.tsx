@@ -19,7 +19,9 @@ export const BlogDisplay: React.FC<{ blog: Blog }> = ({ blog }) => {
       'Expected bannerImage to be an object, you may got the ID instead of the object',
     );
   }
-  const source = blog.content.bannerImage.url ?? '/images/placeholder.png';
+
+  const source: string = blog.content.bannerImage.sizes?.large?.url ?? '/images/placeholder.png';
+
   // the alt text may be not defined in all locales
   const altText = blog.content.bannerImage.alt as string | undefined;
   return (

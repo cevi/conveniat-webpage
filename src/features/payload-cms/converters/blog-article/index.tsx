@@ -25,7 +25,7 @@ export const BlogArticleConverter: React.FC<{
     };
   }
 
-  const source = article.content.bannerImage.url ?? '';
+  const source = article.content.bannerImage.sizes?.large?.url ?? '';
   const altText = article.content.bannerImage.alt;
   return (
     <>
