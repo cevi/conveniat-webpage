@@ -412,6 +412,24 @@ export interface Image {
   height?: number | null;
   focalX?: number | null;
   focalY?: number | null;
+  sizes?: {
+    tiny?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+    large?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+  };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -977,7 +995,7 @@ export interface DetailsTable {
  * via the `definition` "AccordionBlocks".
  */
 export interface AccordionBlocks {
-  introduction: {
+  introduction?: {
     root: {
       type: string;
       children: {
@@ -991,7 +1009,7 @@ export interface AccordionBlocks {
       version: number;
     };
     [k: string]: unknown;
-  };
+  } | null;
   accordionBlocks?:
     | {
         /**
@@ -1997,6 +2015,30 @@ export interface ImagesSelect<T extends boolean = true> {
   height?: T;
   focalX?: T;
   focalY?: T;
+  sizes?:
+    | T
+    | {
+        tiny?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+        large?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+      };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

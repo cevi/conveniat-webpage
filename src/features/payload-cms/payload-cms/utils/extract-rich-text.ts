@@ -6,11 +6,14 @@ import type {
   DetailsTable,
   SummaryBox,
 } from '@/features/payload-cms/payload-types';
+import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import { convertLexicalToPlaintext } from '@payloadcms/richtext-lexical/plaintext';
 
 const extractAccordionBlock = (accordion: AccordionBlocks): string => {
   let text = '';
-  text += convertLexicalToPlaintext({ data: accordion.introduction }) + '\n';
+  text +=
+    convertLexicalToPlaintext({ data: accordion.introduction ?? ({} as SerializedEditorState) }) +
+    '\n';
   text +=
     accordion.accordionBlocks
       ?.map((accordionBlock) => {

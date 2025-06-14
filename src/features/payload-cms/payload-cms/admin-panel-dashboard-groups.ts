@@ -1,17 +1,17 @@
 export const AdminPanelDashboardGroups = {
-  Pages: {
-    en: 'Pages and Content',
-    de: 'Seiten und Inhalte',
-    fr: 'Pages et contenu',
-  },
-  GlobalSettings: {
-    en: 'Global Settings',
-    de: 'Globale Einstellungen',
-    fr: 'Paramètres globaux',
+  PagesAndContent: {
+    en: '1_Pages and Content',
+    de: '1_Seiten und Inhalte',
+    fr: '1_Pages et contenu',
   },
   InternalCollections: {
-    en: 'Collections',
-    de: 'Sammlungen',
-    fr: 'Collections',
+    en: '2_Collections',
+    de: '2_Sammlungen',
+    fr: '2_Collections',
+  },
+  GlobalSettings: {
+    en: '3_Global Settings',
+    de: '3_Globale Einstellungen',
+    fr: '3_Paramètres globaux',
   },
 };

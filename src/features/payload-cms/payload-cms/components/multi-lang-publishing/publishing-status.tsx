@@ -67,7 +67,7 @@ export const PublishingStatusBadges: React.FC<{
   }
 
   return (
-    <div className="w-[120px]">
+    <div className="w-[120px] min-w-[120px]">
       {Object.entries(publishingStatus).map(([locale, status]) => (
         <LanguageStatus
           key={locale}

@@ -167,7 +167,7 @@ export const AccordionBlock: SectionRenderer<AccordionBlocks> = async ({
         fr: 'le bloc accordéon',
       })}
     >
-      <LexicalRichTextSection richTextSection={block.introduction} />
+      {block.introduction && <LexicalRichTextSection richTextSection={block.introduction} />}
 
       <div className="mt-4">
         <Accordion block={block} />
@@ -258,6 +258,7 @@ export const SwisstopoInlineMapSection: SectionRenderer<InlineSwisstopoMapEmbedT
 export const RenderSinglePicture: SectionRenderer<{
   image: {
     url: string;
+    sizes?: { large?: { url: string } };
     alt: string;
     imageCaption?: string;
   };
@@ -275,7 +276,7 @@ export const RenderSinglePicture: SectionRenderer<{
     >
       <div className="text-conveniat-green relative mt-10 aspect-[16/9] w-[calc(100%+32px)] text-lg max-md:mx-[-16px]">
         <Image
-          src={block.image.url}
+          src={block.image.sizes?.large?.url ?? block.image.url}
           alt={block.image.alt}
           className="block rounded-2xl object-cover"
           fill

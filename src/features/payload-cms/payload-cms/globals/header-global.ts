@@ -7,9 +7,12 @@ const MainMenu: Field = {
   label: 'Main Menu',
   type: 'array',
   localized: true,
-  labels: {
-    singular: 'Menu Item',
-    plural: 'Menu Items',
+  admin: {
+    components: {
+      RowLabel: {
+        path: '@/features/payload-cms/payload-cms/components/main-menu-row-label#MainEntryRowLabel',
+      },
+    },
   },
   fields: [
     {
@@ -29,12 +32,15 @@ const MainMenu: Field = {
     {
       name: 'subMenu',
       label: 'Sub Menu Items',
+      admin: {
+        components: {
+          RowLabel: {
+            path: '@/features/payload-cms/payload-cms/components/main-menu-row-label#MainEntryRowLabel',
+          },
+        },
+      },
       type: 'array',
       localized: true,
-      labels: {
-        singular: 'Sub Menu Item',
-        plural: 'Sub Menu Items',
-      },
       fields: [
         {
           name: 'label',

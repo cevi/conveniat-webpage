@@ -18,8 +18,10 @@ import { default as default_a4ebed491f9244748218c109a1d489e3 } from '@/features/
 import { default as default_ad2ab9e4ee1f1c863c85f67238030f8f } from '@/features/payload-cms/payload-cms/components/multi-lang-publishing/publish-localized'
 import { default as default_c9f917d9608a57eb8358fce7a7898bd3 } from '@/features/payload-cms/payload-cms/components/push-notification/push-notification'
 import { FormBlockLabel as FormBlockLabel_38d14c2698379009ac744a1a2c27c19b } from '@/features/payload-cms/payload-cms/components/form-block-label'
+import { FormSectionRowLabel as FormSectionRowLabel_95958b8088bc2dff497e1d7f3b2a3955 } from '@/features/payload-cms/payload-cms/components/form-section-row-label'
 import { LinkToDoc as LinkToDoc_aead06e4cbf6b2620c5c51c9ab283634 } from '@payloadcms/plugin-search/client'
 import { ReindexButton as ReindexButton_aead06e4cbf6b2620c5c51c9ab283634 } from '@payloadcms/plugin-search/client'
+import { MainEntryRowLabel as MainEntryRowLabel_576220226adef27d36922a63f8de9abd } from '@/features/payload-cms/payload-cms/components/main-menu-row-label'
 import { ConveniatLogo as ConveniatLogo_1dcd95bfbb6787f73675c94df91c942d } from '@/components/svg-logos/conveniat-logo.tsx'
 import { default as default_d432a7de1921f0e10a01eefbe71b022a } from '@/features/payload-cms/payload-cms/components/login-page/admin-panel-login-page'
 import { default as default_a79319ae20aa3b9aa7415044aaf68603 } from '@/features/payload-cms/payload-cms/components/dashboard-welcome-banner'
@@ -46,8 +48,10 @@ export const importMap = {
   "@/features/payload-cms/payload-cms/components/multi-lang-publishing/publish-localized#default": default_ad2ab9e4ee1f1c863c85f67238030f8f,
   "@/features/payload-cms/payload-cms/components/push-notification/push-notification#default": default_c9f917d9608a57eb8358fce7a7898bd3,
   "@/features/payload-cms/payload-cms/components/form-block-label#FormBlockLabel": FormBlockLabel_38d14c2698379009ac744a1a2c27c19b,
+  "@/features/payload-cms/payload-cms/components/form-section-row-label#FormSectionRowLabel": FormSectionRowLabel_95958b8088bc2dff497e1d7f3b2a3955,
   "@payloadcms/plugin-search/client#LinkToDoc": LinkToDoc_aead06e4cbf6b2620c5c51c9ab283634,
   "@payloadcms/plugin-search/client#ReindexButton": ReindexButton_aead06e4cbf6b2620c5c51c9ab283634,
+  "@/features/payload-cms/payload-cms/components/main-menu-row-label#MainEntryRowLabel": MainEntryRowLabel_576220226adef27d36922a63f8de9abd,
   "@/components/svg-logos/conveniat-logo.tsx#ConveniatLogo": ConveniatLogo_1dcd95bfbb6787f73675c94df91c942d,
   "@/features/payload-cms/payload-cms/components/login-page/admin-panel-login-page#default": default_d432a7de1921f0e10a01eefbe71b022a,
   "@/features/payload-cms/payload-cms/components/dashboard-welcome-banner#default": default_a79319ae20aa3b9aa7415044aaf68603,

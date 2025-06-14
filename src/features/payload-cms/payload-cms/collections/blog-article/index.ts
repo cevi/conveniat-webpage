@@ -18,8 +18,21 @@ export const BlogArticleCollection: CollectionConfig = asLocalizedCollection({
   // Unique, URL-friendly string that will act as an identifier for this Collection.
   slug: 'blog',
 
+  labels: {
+    singular: {
+      en: 'Blog Article',
+      de: 'Blog Artikel',
+      fr: 'Article de Blog',
+    },
+    plural: {
+      en: 'Blog Articles',
+      de: 'Blog Artikel',
+      fr: 'Articles de Blog',
+    },
+  },
+
   admin: {
-    group: AdminPanelDashboardGroups.Pages,
+    group: AdminPanelDashboardGroups.PagesAndContent,
     description: {
       en: 'Represents a block article that can be published on the website.',
       de: 'Stellt einen Blog-Artikel dar, der auf der Website veröffentlicht werden kann.',
@@ -42,10 +55,6 @@ export const BlogArticleCollection: CollectionConfig = asLocalizedCollection({
     },
   },
   defaultSort: 'releaseDate',
-  labels: {
-    singular: 'Blog Article',
-    plural: 'Blog Articles',
-  },
 
   fields: [
     internalPageNameField,

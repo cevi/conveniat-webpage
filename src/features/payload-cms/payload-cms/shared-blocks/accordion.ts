@@ -5,6 +5,7 @@ import {
   defaultEditorLexicalConfig,
   HeadingFeature,
   lexicalEditor,
+  UnorderedListFeature,
 } from '@payloadcms/richtext-lexical';
 import type { Block } from 'payload';
 
@@ -90,20 +91,20 @@ export const accordion: Block = {
   interfaceName: 'AccordionBlocks',
 
   imageURL: '/admin-block-images/accordion-block.png',
-  imageAltText: 'Details Table block',
+  imageAltText: 'Accordion Block',
 
   fields: [
     {
       name: 'introduction',
       label: 'Introduction Text',
       type: 'richText',
-      required: true,
       editor: lexicalEditor({
         features: [
           ...minimalEditorFeatures,
           HeadingFeature({
             enabledHeadingSizes: ['h2', 'h3'],
           }),
+          UnorderedListFeature(),
         ],
         lexical: defaultEditorLexicalConfig,
       }),

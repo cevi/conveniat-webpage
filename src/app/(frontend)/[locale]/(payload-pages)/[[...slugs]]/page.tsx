@@ -8,10 +8,12 @@ import { CookieBanner } from '@/components/utils/cookie-banner';
 import { RefreshRouteOnSave } from '@/components/utils/refresh-preview';
 import { environmentVariables } from '@/config/environment-variables';
 import { canUserAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
+import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import { routeResolutionTable } from '@/features/payload-cms/route-resolution-table';
 import { getSpecialPage, isSpecialPage } from '@/features/payload-cms/special-pages-table';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { Locale, SearchParameters } from '@/types/types';
+import { i18nConfig } from '@/types/types';
 import { auth } from '@/utils/auth-helpers';
 import { isPreviewTokenValid } from '@/utils/preview-token';
 import { cookies } from 'next/headers';
@@ -23,7 +25,7 @@ import type React from 'react';
  *
  * We do that using the same concept as for a JWT token validation.
  * The token has a signature and is a compressed object { url: string; expires: number }
- * This function verify the signature and check if the token is still valid.
+ * This function verifies the signature and checks if the token is still valid.
  *
  * @param previewToken
  * @param url the url of the current page (always include the locale,
@@ -108,7 +110,17 @@ const CMSPage: React.FC<{
 }> =
   // eslint-disable-next-line complexity
   async ({ params, searchParams: searchParametersPromise }) => {
-    const { locale, slugs } = await params;
+    let { locale } = await params;
+    const { slugs } = await params;
+
+    // this logic is needed for the case the do not have set
+    // we only treat valid locales as a valid locale, otherwise we use the default locale
+    // and unshift the locale to the slugs array
+    if (!Object.values(LOCALE).includes(locale)) {
+      locale = i18nConfig.defaultLocale as Locale;
+      slugs?.unshift(locale);
+    }
+
     const searchParameters = await searchParametersPromise;
 
     // check if error parameter is set

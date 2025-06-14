@@ -17,8 +17,16 @@ interface ConditionType<> {
 export const PermissionsCollection: CollectionConfig = {
   slug: 'permissions',
   labels: {
-    singular: 'Permission',
-    plural: 'Permissions',
+    singular: {
+      en: 'Permission',
+      de: 'Berechtigung',
+      fr: 'Permission',
+    },
+    plural: {
+      en: 'Permissions',
+      de: 'Berechtigungen',
+      fr: 'Permissions',
+    },
   },
   admin: {
     group: AdminPanelDashboardGroups.InternalCollections,
