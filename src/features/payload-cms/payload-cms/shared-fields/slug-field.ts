@@ -1,5 +1,6 @@
 import type { CustomSlugComponentProperties } from '@/features/payload-cms/payload-cms/components/slug/types';
 import { slugValidation } from '@/features/payload-cms/payload-cms/utils/slug-validation';
+import { revalidateTag } from 'next/cache';
 import type { TextField } from 'payload';
 
 const generateRandomSlug = (): string => {
@@ -19,6 +20,16 @@ export const SlugField = (collectionName: CustomSlugComponentProperties): TextFi
   minRows: undefined, // for typing
   validate: slugValidation,
   defaultValue: generateRandomSlug,
+
+  hooks: {
+    afterChange: [
+      (): void => {
+        console.log('Slug changed, revalidating sitemap');
+        revalidateTag('sitemap');
+      },
+    ],
+  },
+
   admin: {
     components: {
       Field: {

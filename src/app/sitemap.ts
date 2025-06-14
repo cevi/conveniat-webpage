@@ -1,7 +1,17 @@
-export { generateSitemap as default } from '@/features/payload-cms/utils/generate-sitemap';
+import { sitemapGenerator } from '@/features/payload-cms/utils/generate-sitemap';
+import type { MetadataRoute } from 'next';
+import { unstable_cache } from 'next/cache';
+import { connection } from 'next/server';
 
-// TODO: bring back caching, e.g. to two hours
-//  currently the issue is that without 'force-dynamic' the page
-//  gets pre-rendered at build time which does not work as
-//  payload is not available at build time
-export const dynamic = 'force-dynamic';
+const generateSitemap = async (): Promise<MetadataRoute.Sitemap> => {
+  await connection(); // opt-out of static generation
+
+  // cache the sitemap generation to avoid unnecessary re-fetching
+  // we can revalidate the cache by using a key 'sitemap'
+  return unstable_cache(async () => sitemapGenerator(), [], {
+    revalidate: 7 * 24 * 60 * 60, // revalidate once a week
+    tags: ['sitemap'],
+  })();
+};
+
+export default generateSitemap;
