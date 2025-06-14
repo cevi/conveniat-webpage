@@ -13,7 +13,7 @@ import { getPayload } from 'payload';
  *
  * @see https://whatpwacando.today/ Capabilities of PWAs
  */
-export const generateManifest = async (): Promise<MetadataRoute.Manifest> => {
+export const manifestGenerator = async (): Promise<MetadataRoute.Manifest> => {
   const payload = await getPayload({ config });
 
   const { appName, appShortName, appDescription } = await payload.findGlobal({

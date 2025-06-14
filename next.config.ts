@@ -38,6 +38,15 @@ const cachingHeaders = async (): Promise<Header[]> => {
         },
       ],
     },
+    {
+      source: '/manifest.webmanifest',
+      headers: [
+        {
+          key: 'Cache-Control',
+          value: 'public, max-age=300', // Cache for 5 minutes
+        },
+      ],
+    },
   ];
 };
 
