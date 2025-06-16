@@ -74,6 +74,6 @@ export const PushNotificationSubscriptions: CollectionConfig = asPushNotificatio
     read: canAccessAdminPanel,
     create: () => false, // disable creating subscriptions
     update: () => false, // disable update for subscriptions
-    delete: () => false, // disable delete for subscriptions
+    delete: () => true, // disable delete for subscriptions
   },
 });
