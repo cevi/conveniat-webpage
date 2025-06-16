@@ -1,3 +1,4 @@
+import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { asPushNotificationCollection } from '@/features/payload-cms/payload-cms/utils/push-notification-collection';
 import type { CollectionConfig } from 'payload';
@@ -68,5 +69,11 @@ export const PushNotificationSubscriptions: CollectionConfig = asPushNotificatio
   // hidden from the admin panel
   admin: {
     group: AdminPanelDashboardGroups.GlobalSettings,
+  },
+  access: {
+    read: canAccessAdminPanel,
+    create: () => false, // disable creating subscriptions
+    update: () => false, // disable update for subscriptions
+    delete: () => false, // disable delete for subscriptions
   },
 });
