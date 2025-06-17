@@ -18,6 +18,7 @@ import { MessageSquarePlus, Search, Users, X } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useState } from 'react';
 
+// eslint-disable-next-line complexity
 export const NewChatDialog: React.FC = () => {
   const { data: allContacts, isLoading } = useAllContacts();
   const [open, setOpen] = useState(false);

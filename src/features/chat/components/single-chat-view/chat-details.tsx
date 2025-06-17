@@ -7,11 +7,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input';
 import { useChatUser } from '@/features/chat/hooks/use-chat-user';
 import { useUpdateChat } from '@/features/chat/hooks/use-update-chat';
-import type { ChatDetail } from '@/features/chat/types/chat';
+import type { ChatDetailDto } from '@/features/chat/types/api-dto-types';
 import { Check, Pencil, UserCircle, X } from 'lucide-react';
 
 interface ChatDetailsProperties {
-  chatDetails: ChatDetail;
+  chatDetails: ChatDetailDto;
   isOpen: boolean;
   onClose: () => void;
 }

@@ -1,7 +1,10 @@
 'use server';
 
 import prisma from '@/features/chat/database';
-import type { Chat, ChatDetail } from '@/features/chat/types/chat';
+import type { ChatDetailDto, ChatDto } from '@/features/chat/types/api-dto-types';
+import { MessageStatusDto } from '@/features/chat/types/api-dto-types';
+import type { MessageEvent } from '@/lib/prisma';
+import { MessageEventType } from '@/lib/prisma';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import { auth } from '@/utils/auth-helpers';
 
@@ -26,7 +29,26 @@ const resolveChatName = (
   return chatName;
 };
 
-export const getChats = async (): Promise<Chat[]> => {
+const getStatusFromMessageEvents = (messageEvents: MessageEvent[]): MessageStatusDto => {
+  if (messageEvents.some((event) => event.eventType === MessageEventType.USER_READ)) {
+    return MessageStatusDto.READ;
+  }
+
+  if (messageEvents.some((event) => event.eventType === MessageEventType.USER_RECEIVED)) {
+    return MessageStatusDto.DELIVERED;
+  }
+
+  if (
+    messageEvents.some((event) => event.eventType === MessageEventType.SERVER_RECEIVED) ||
+    messageEvents.some((event) => event.eventType === MessageEventType.SERVER_SENT)
+  ) {
+    return MessageStatusDto.SENT;
+  }
+
+  return MessageStatusDto.CREATED;
+};
+
+export const getChats = async (): Promise<ChatDto[]> => {
   const session = await auth();
   const user = session?.user as unknown as HitobitoNextAuthUser | undefined;
 
@@ -57,7 +79,18 @@ export const getChats = async (): Promise<Chat[]> => {
       },
     },
     include: {
-      messages: true,
+      messages: {
+        orderBy: {
+          timestamp: 'asc',
+        },
+        include: {
+          messageEvents: {
+            orderBy: {
+              timestamp: 'asc',
+            },
+          },
+        },
+      },
       chatMemberships: {
         include: {
           user: true,
@@ -69,7 +102,7 @@ export const getChats = async (): Promise<Chat[]> => {
     },
   });
 
-  return chats.map((chat): Chat => {
+  return chats.map((chat): ChatDto => {
     const messages = chat.messages.sort(
       (m1, m2) => m1.timestamp.getTime() - m2.timestamp.getTime(),
     );
@@ -79,6 +112,10 @@ export const getChats = async (): Promise<Chat[]> => {
     }
 
     return {
+      unreadCount: messages.filter(
+        (message) =>
+          !message.messageEvents.some((event) => event.eventType === MessageEventType.USER_READ),
+      ).length,
       lastUpdate: chat.lastUpdate,
       name: resolveChatName(
         chat.name,
@@ -93,13 +130,14 @@ export const getChats = async (): Promise<Chat[]> => {
         id: lastMessage.uuid,
         timestamp: chat.lastUpdate,
         content: lastMessage.content,
-        senderId: lastMessage.senderId,
+        senderId: lastMessage.senderId ?? undefined,
+        status: getStatusFromMessageEvents(lastMessage.messageEvents),
       },
     };
   });
 };
 
-export const getChatDetail = async (chatID: string): Promise<ChatDetail> => {
+export const getChatDetail = async (chatID: string): Promise<ChatDetailDto> => {
   const session = await auth();
   const user = session?.user as unknown as HitobitoNextAuthUser | undefined;
 
@@ -112,12 +150,19 @@ export const getChatDetail = async (chatID: string): Promise<ChatDetail> => {
       uuid: chatID,
     },
     include: {
-      messages: true,
-      chatMemberships: {
-        select: {
-          user: true,
+      messages: {
+        orderBy: {
+          timestamp: 'asc',
+        },
+        include: {
+          messageEvents: {
+            orderBy: {
+              timestamp: 'asc',
+            },
+          },
         },
       },
+      chatMemberships: { select: { user: true } },
     },
   });
 
@@ -136,7 +181,6 @@ export const getChatDetail = async (chatID: string): Promise<ChatDetail> => {
   }
 
   return {
-    lastUpdate: chat.lastUpdate,
     name: resolveChatName(
       chat.name,
       chat.chatMemberships.map((membership) => membership.user),
@@ -147,15 +191,13 @@ export const getChatDetail = async (chatID: string): Promise<ChatDetail> => {
       id: message.uuid,
       timestamp: message.timestamp,
       content: message.content,
-      senderId: message.senderId,
-      // eslint-disable-next-line no-nested-ternary
-      status: Math.random() >= 0.5 ? (Math.random() < 0.5 ? 'delivered' : 'read') : 'sent',
-      isOptimistic: false,
+      senderId: message.senderId ?? undefined,
+      status: getStatusFromMessageEvents(message.messageEvents),
     })),
     participants: chat.chatMemberships.map((membership) => ({
       id: membership.user.uuid,
       name: membership.user.name,
-      isOnline: Math.random() >= 0.5,
+      isOnline: membership.user.lastSeen > new Date(Date.now() - 30 * 1000),
     })),
   };
 };

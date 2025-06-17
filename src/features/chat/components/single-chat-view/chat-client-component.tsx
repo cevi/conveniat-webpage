@@ -4,9 +4,10 @@ import { ChatHeader } from '@/features/chat/components/single-chat-view/chat-hea
 import { MessageInput } from '@/features/chat/components/single-chat-view/message-input';
 import { MessageList } from '@/features/chat/components/single-chat-view/message-list';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
+import { useOnlinePing } from '@/features/chat/hooks/use-online-ping';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import type React from 'react';
+import React, { useEffect } from 'react';
 
 export interface ChatInterface {
   chatId: string;
@@ -14,6 +15,15 @@ export interface ChatInterface {
 
 export const ChatClientComponent: React.FC<ChatInterface> = ({ chatId }) => {
   const { data: chatDetail, isLoading } = useChatDetail(chatId);
+  const { mutate } = useOnlinePing();
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      mutate({});
+    }, 10_000);
+
+    return (): void => clearInterval(interval);
+  }, [mutate]);
 
   if (isLoading) {
     return <ChatSkeleton />;

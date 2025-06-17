@@ -1,11 +1,12 @@
 import { useFormatDate } from '@/features/chat/hooks/use-format-date';
-import type { Message, OptimisticMessage } from '@/features/chat/types/chat';
+import type { MessageDto } from '@/features/chat/types/api-dto-types';
+import { MessageStatusDto } from '@/features/chat/types/api-dto-types';
 import { cn } from '@/utils/tailwindcss-override';
 import { Check, UserCircle } from 'lucide-react';
 import type React from 'react';
 
 interface MessageProperties {
-  message: Message | OptimisticMessage;
+  message: MessageDto;
   isCurrentUser: boolean;
 }
 
@@ -43,6 +44,27 @@ const formatMessageContent = (text: string): React.ReactNode[] => {
   });
 };
 
+/**
+ * Renders a system message in the chat.
+ *
+ * @param content
+ * @constructor
+ */
+const RenderSystemMessage: React.FC<{ message: MessageDto }> = ({ message }) => {
+  return (
+    <div className="flex items-center justify-center p-4 text-gray-500">
+      <span className="font-body">{message.content}</span>
+    </div>
+  );
+};
+
+/**
+ * MessageComponent is a React component that displays a single chat message.
+ *
+ * @param message
+ * @param isCurrentUser
+ * @constructor
+ */
 export const MessageComponent: React.FC<MessageProperties> = ({ message, isCurrentUser }) => {
   const formattedTime = useFormatDate().formatMessageTime(message.timestamp);
   const renderedContent = formatMessageContent(message.content);
@@ -51,17 +73,15 @@ export const MessageComponent: React.FC<MessageProperties> = ({ message, isCurre
   const renderMessageStatus = (): React.JSX.Element => {
     if (!isCurrentUser) return <></>;
 
-    if ('isOptimistic' in message && message.isOptimistic) {
+    if (message.status === MessageStatusDto.CREATED) {
       return <div className="font-body ml-1 text-xs text-gray-400">Sending...</div>;
     }
 
-    const status = message.status ?? 'sent';
-
-    switch (status) {
-      case 'sent': {
+    switch (message.status) {
+      case MessageStatusDto.SENT: {
         return <Check className="ml-1 h-3.5 w-3.5 text-gray-400" />;
       }
-      case 'delivered': {
+      case MessageStatusDto.DELIVERED: {
         return (
           <div className="ml-1 flex">
             <Check className="h-3.5 w-3.5 text-gray-400" />
@@ -69,7 +89,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({ message, isCurre
           </div>
         );
       }
-      case 'read': {
+      case MessageStatusDto.READ: {
         return (
           <div className="ml-1 flex">
             <Check className="text-conveniat-green h-3.5 w-3.5" />
@@ -79,6 +99,11 @@ export const MessageComponent: React.FC<MessageProperties> = ({ message, isCurre
       }
     }
   };
+
+  // render system message
+  if (message.senderId === undefined) {
+    return <RenderSystemMessage message={message} />;
+  }
 
   return (
     <div className={cn('flex items-end gap-2', isCurrentUser ? 'justify-end' : 'justify-start')}>
@@ -95,7 +120,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({ message, isCurre
             isCurrentUser
               ? 'rounded-br-md bg-green-200 text-green-800'
               : 'rounded-bl-md border border-gray-200 bg-white text-gray-900',
-            'isOptimistic' in message && message.isOptimistic && 'opacity-60',
+            message.status === MessageStatusDto.CREATED && 'opacity-60',
           )}
         >
           {renderedContent}

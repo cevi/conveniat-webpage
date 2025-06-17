@@ -1,6 +1,6 @@
 'use client';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
-import type { Chat } from '@/features/chat/types/chat';
+import type { ChatDto } from '@/features/chat/types/api-dto-types';
 import { cn } from '@/utils/tailwindcss-override';
 import { formatDistanceToNow } from 'date-fns';
 import { Users } from 'lucide-react';
@@ -8,7 +8,8 @@ import Link from 'next/link';
 import type React from 'react';
 
 export const ChatPreview: React.FC<{
-  chat: Chat;
+  chat: ChatDto;
+  // eslint-disable-next-line complexity
 }> = ({ chat }) => {
   const chatDetailLink = `chat/${chat.id}`;
   const hasUnread = chat.unreadCount && chat.unreadCount > 0;

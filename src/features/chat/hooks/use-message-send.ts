@@ -1,13 +1,14 @@
 import { sendMessage } from '@/features/chat/api/send-message';
 import { useChatUser } from '@/features/chat/hooks/use-chat-user';
 import { CHAT_DETAIL_QUERY_KEY } from '@/features/chat/hooks/use-chats';
-import type { Message, OptimisticMessage } from '@/features/chat/types/chat';
+import type { MessageDto, SendMessageDto } from '@/features/chat/types/api-dto-types';
+import { MessageStatusDto } from '@/features/chat/types/api-dto-types';
 import type { UseMutationResult } from '@tanstack/react-query';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface ChatDetailData {
   id: string;
-  messages: Message[];
+  messages: MessageDto[];
 }
 
 /**
@@ -24,23 +25,30 @@ export const useMessageSend = (
   const { data: currentUser } = useChatUser();
   return useMutation({
     mutationFn: async (content: string) => {
-      const messagePayload = {
+      const messagePayload: SendMessageDto = {
         chatId: chatId,
         content: content.trim(),
+        timestamp: new Date(),
       };
       return sendMessage(messagePayload);
     },
 
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: chatQueryKey }),
+
     onMutate: async (content: string) => {
+      // we cannot send without a current user
+      if (currentUser === undefined) throw new Error('Current user is not defined');
+
       await queryClient.cancelQueries({ queryKey: chatQueryKey });
+
       const previousChatData = queryClient.getQueryData<ChatDetailData>(chatQueryKey);
       const temporaryId = `optimistic-${Date.now()}-${Math.random()}`;
-      const optimisticMessage: OptimisticMessage = {
+      const createdMessage: MessageDto = {
         id: temporaryId,
         content: content.trim(),
         timestamp: new Date(),
-        senderId: currentUser ?? '',
-        isOptimistic: true,
+        senderId: currentUser,
+        status: MessageStatusDto.CREATED,
       };
 
       queryClient.setQueryData<ChatDetailData>(chatQueryKey, (oldData) => {
@@ -49,14 +57,14 @@ export const useMessageSend = (
           return (
             previousChatData ?? {
               id: chatId,
-              messages: [optimisticMessage],
+              messages: [createdMessage],
             }
           );
         }
 
         return {
           ...oldData,
-          messages: [...oldData.messages, optimisticMessage],
+          messages: [...oldData.messages, createdMessage],
         };
       });
 

@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { ChatPreview } from '@/features/chat/components/chat-overview-view/chat-preview';
 import { NewChatDialog } from '@/features/chat/components/chat-overview-view/new-chat-dialog';
 import { useChats } from '@/features/chat/hooks/use-chats';
-import type { Chat } from '@/features/chat/types/chat';
+import type { ChatDto } from '@/features/chat/types/api-dto-types';
 import { MessageSquare, Search } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
@@ -20,12 +20,13 @@ const ChatsOverviewLoadingPlaceholder: React.FC = () => {
   );
 };
 
+// eslint-disable-next-line complexity
 export const ChatsOverviewClientComponent: React.FC = () => {
   const { data: chats, isLoading } = useChats();
   const [searchQuery, setSearchQuery] = useState('');
 
   // Filter chats based on search query
-  const filteredChats: Chat[] =
+  const filteredChats: ChatDto[] =
     chats?.filter(
       (chat) =>
         chat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||

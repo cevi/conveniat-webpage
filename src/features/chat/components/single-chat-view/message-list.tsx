@@ -1,12 +1,12 @@
 'use client';
+import { changeMessageStatus } from '@/features/chat/api/change-message-status';
 import { MessageComponent } from '@/features/chat/components/single-chat-view/message';
-import { TypingIndicator } from '@/features/chat/components/single-chat-view/typing-indicator';
 import { useChatUser } from '@/features/chat/hooks/use-chat-user';
-import type { ChatDetail } from '@/features/chat/types/chat';
-import type React from 'react';
-import { useEffect, useRef, useState } from 'react';
+import type { ChatDetailDto } from '@/features/chat/types/api-dto-types';
+import { MessageStatusDto } from '@/features/chat/types/api-dto-types';
+import React, { useEffect, useRef, useState } from 'react';
 
-export const MessageList: React.FC<{ chatDetails: ChatDetail }> = ({ chatDetails }) => {
+export const MessageList: React.FC<{ chatDetails: ChatDetailDto }> = ({ chatDetails }) => {
   const messages = chatDetails.messages;
   const sortedMessages = [...messages].sort(
     (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
@@ -20,6 +20,20 @@ export const MessageList: React.FC<{ chatDetails: ChatDetail }> = ({ chatDetails
   useEffect(() => {
     messagesEndReference.current?.scrollIntoView({ behavior: 'instant' });
   }, [sortedMessages, typingUser]);
+
+  // send status back to server
+  useEffect(() => {
+    // TODO: only send the status for the last message, server should handle this
+    for (const message of sortedMessages) {
+      if (message.senderId === currentUser) continue;
+      if (message.status !== MessageStatusDto.READ) {
+        changeMessageStatus({
+          messageId: message.id,
+          status: MessageStatusDto.READ,
+        }).catch(console.error);
+      }
+    }
+  }, [currentUser, sortedMessages]);
 
   if (currentUser === undefined) {
     return (
@@ -60,7 +74,7 @@ export const MessageList: React.FC<{ chatDetails: ChatDetail }> = ({ chatDetails
           </div>
         ))}
 
-        <TypingIndicator userName={typingUser} />
+        {/* <TypingIndicator userName={typingUser} /> */}
 
         <div ref={messagesEndReference} />
       </div>

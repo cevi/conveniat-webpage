@@ -5,12 +5,12 @@ import { useState } from 'react';
 
 import { Button } from '@/components/ui/buttons/button';
 import { ChatDetails } from '@/features/chat/components/single-chat-view/chat-details';
-import type { ChatDetail } from '@/features/chat/types/chat';
+import type { ChatDetailDto } from '@/features/chat/types/api-dto-types';
 import { ArrowLeft, Info } from 'lucide-react';
 import Link from 'next/link';
 
 interface ChatHeaderProperties {
-  chatDetails: ChatDetail;
+  chatDetails: ChatDetailDto;
 }
 
 export const ChatHeader: React.FC<ChatHeaderProperties> = ({ chatDetails }) => {
