@@ -570,8 +570,8 @@ export interface Form {
                 optionType?: ('dropdown' | 'cards' | 'radio') | null;
                 options?:
                   | {
-                      label: string;
                       value: string;
+                      label: string;
                       id?: string | null;
                     }[]
                   | null;
@@ -709,8 +709,8 @@ export interface Form {
                           optionType?: ('dropdown' | 'cards' | 'radio') | null;
                           options?:
                             | {
-                                label: string;
                                 value: string;
+                                label: string;
                                 id?: string | null;
                               }[]
                             | null;
@@ -2208,8 +2208,8 @@ export interface FormsSelect<T extends boolean = true> {
                           options?:
                             | T
                             | {
-                                label?: T;
                                 value?: T;
+                                label?: T;
                                 id?: T;
                               };
                           required?: T;
@@ -2321,8 +2321,8 @@ export interface FormsSelect<T extends boolean = true> {
                                       options?:
                                         | T
                                         | {
-                                            label?: T;
                                             value?: T;
+                                            label?: T;
                                             id?: T;
                                           };
                                       required?: T;
