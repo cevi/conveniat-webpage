@@ -14,7 +14,7 @@ import type { ReactNode } from 'react';
 import React from 'react';
 
 export interface NewsCardType {
-  children: ReactNode;
+  children?: ReactNode;
   date: string;
   headline: string;
   linkField?: LinkFieldDataType;
