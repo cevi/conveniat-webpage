@@ -5,14 +5,17 @@ import { ChatPreview } from '@/features/chat/components/chat-overview-view/chat-
 import { NewChatDialog } from '@/features/chat/components/chat-overview-view/new-chat-dialog';
 import { useChats } from '@/features/chat/hooks/use-chats';
 import type { Chat } from '@/features/chat/types/chat';
-import { Search } from 'lucide-react';
+import { MessageSquare, Search } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
 
 const ChatsOverviewLoadingPlaceholder: React.FC = () => {
   return (
-    <div className="flex items-center justify-center py-8">
-      <div className="h-8 w-8 animate-spin rounded-full border-t-2 border-b-2 border-blue-500"></div>
+    <div className="flex items-center justify-center py-12">
+      <div className="flex flex-col items-center gap-3">
+        <div className="border-t-conveniat-green h-8 w-8 animate-spin rounded-full border-2 border-gray-300"></div>
+        <p className="font-body text-sm text-gray-600">Loading your conversations...</p>
+      </div>
     </div>
   );
 };
@@ -30,43 +33,64 @@ export const ChatsOverviewClientComponent: React.FC = () => {
     ) ?? [];
 
   return (
-    <div className="flex flex-col space-y-4">
+    <div className="flex flex-col space-y-6">
+      {/* Search Bar */}
       <div className="relative">
         <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
         <Input
-          placeholder="Search chats..."
-          className="pl-10"
+          placeholder="Search conversations..."
+          className="font-body focus:border-conveniat-green focus:ring-conveniat-green border-gray-300 bg-white pl-10"
           value={searchQuery}
           onChange={(changeEvent) => setSearchQuery(changeEvent.target.value)}
         />
       </div>
 
+      {/* New Chat Button */}
       <div className="flex justify-end">
         <NewChatDialog />
       </div>
 
+      {/* Loading State */}
       {isLoading && <ChatsOverviewLoadingPlaceholder />}
 
+      {/* Empty State */}
       {!isLoading && filteredChats.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <p className="text-lg font-medium text-gray-700 dark:text-gray-300">No chats found</p>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {searchQuery === '' ? 'Start a new conversation' : 'Try a different search term'}
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-200">
+            <MessageSquare className="h-8 w-8 text-gray-500" />
+          </div>
+          <p className="font-heading text-lg font-semibold text-gray-700">
+            {searchQuery === '' ? 'No conversations yet' : 'No chats found'}
+          </p>
+          <p className="font-body mt-2 text-sm text-gray-500">
+            {searchQuery === ''
+              ? 'Start a new conversation to get chatting'
+              : 'Try adjusting your search terms'}
           </p>
           {searchQuery !== '' && (
-            <Button variant="outline" className="mt-4" onClick={() => setSearchQuery('')}>
+            <Button
+              variant="outline"
+              className="font-body mt-4 border-gray-300 hover:bg-gray-100"
+              onClick={() => setSearchQuery('')}
+            >
               Clear search
             </Button>
           )}
         </div>
       )}
 
+      {/* Chat List */}
       {!isLoading && filteredChats.length > 0 && (
-        <ul className="divide-y divide-gray-200 rounded-md border border-gray-200 dark:divide-gray-800 dark:border-gray-800">
+        <div className="space-y-2">
           {filteredChats.map((chat) => (
-            <ChatPreview key={chat.id} chat={chat} />
+            <div
+              key={chat.id}
+              className="rounded-lg border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md"
+            >
+              <ChatPreview chat={chat} />
+            </div>
           ))}
-        </ul>
+        </div>
       )}
     </div>
   );

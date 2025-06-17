@@ -22,7 +22,11 @@ export const MessageList: React.FC<{ chatDetails: ChatDetail }> = ({ chatDetails
   }, [sortedMessages, typingUser]);
 
   if (currentUser === undefined) {
-    return <div className="flex h-screen flex-row items-center justify-center">Loading...</div>;
+    return (
+      <div className="flex h-screen flex-row items-center justify-center bg-gray-50">
+        <div className="font-body text-gray-600">Loading...</div>
+      </div>
+    );
   }
 
   // Group messages by date
@@ -34,13 +38,13 @@ export const MessageList: React.FC<{ chatDetails: ChatDetail }> = ({ chatDetails
   }
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto">
+    <div className="flex h-full flex-col overflow-y-auto bg-gray-50">
       <div className="flex-1" />
-      <div className="space-y-4 px-4 py-3">
+      <div className="space-y-6 px-4 py-4">
         {Object.entries(messagesByDate).map(([date, messagesForDate]) => (
           <div key={date}>
-            <div className="my-4 flex justify-center">
-              <div className="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-500">
+            <div className="my-6 flex justify-center">
+              <div className="font-body rounded-full bg-gray-200 px-4 py-2 text-xs font-medium text-gray-600 shadow-sm">
                 {date === new Date().toLocaleDateString() ? 'Today' : date}
               </div>
             </div>

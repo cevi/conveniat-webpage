@@ -14,11 +14,10 @@ import { createChat } from '@/features/chat/api/create-chat';
 import type { Contact } from '@/features/chat/api/get-contacts';
 import { CHATS_QUERY_KEY, useAllContacts } from '@/features/chat/hooks/use-chats';
 import { useQueryClient } from '@tanstack/react-query';
-import { MessageSquarePlus, Search, Users } from 'lucide-react';
+import { MessageSquarePlus, Search, Users, X } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useState } from 'react';
 
-// eslint-disable-next-line complexity
 export const NewChatDialog: React.FC = () => {
   const { data: allContacts, isLoading } = useAllContacts();
   const [open, setOpen] = useState(false);
@@ -50,11 +49,10 @@ export const NewChatDialog: React.FC = () => {
 
   const handleCreateChat = async (): Promise<void> => {
     if (selectedContacts.length === 0) {
-      // TODO handle error
+      return;
     }
 
     try {
-      // If it's a group chat and has a name, pass it to the createChat function
       const chatName: string | undefined =
         selectedContacts.length > 1 && groupChatName.trim() !== ''
           ? groupChatName.trim()
@@ -63,12 +61,9 @@ export const NewChatDialog: React.FC = () => {
       await createChat(selectedContacts, chatName);
       await queryClient.invalidateQueries({ queryKey: CHATS_QUERY_KEY });
 
-      // TODO handle error
-
       setOpen(false);
     } catch (error) {
       console.error(error);
-      // TODO handle error
     }
   };
 
@@ -77,57 +72,64 @@ export const NewChatDialog: React.FC = () => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="flex items-center gap-2">
+        <Button variant="destructive">
           <MessageSquarePlus size={16} />
           <span>New Chat</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-white sm:max-w-md">
+      <DialogContent className="border border-gray-200 bg-white shadow-lg sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Create New Chat</DialogTitle>
-          <DialogDescription>Select contacts to start a new conversation.</DialogDescription>
+          <DialogTitle className="font-heading text-xl text-gray-900">Create New Chat</DialogTitle>
+          <DialogDescription className="font-body text-gray-600">
+            Select contacts to start a new conversation.
+          </DialogDescription>
         </DialogHeader>
 
+        {/* Group Chat Name Input */}
         {isGroupChat && (
-          <div className="mb-4">
-            <div>Group Chat Name</div>
+          <div className="space-y-2">
+            <label className="font-body text-sm font-medium text-gray-700">Group Chat Name</label>
             <Input
-              id="group-name"
               placeholder="Enter group name (optional)"
               value={groupChatName}
               onChange={(changeEvent) => setGroupChatName(changeEvent.target.value)}
+              className="font-body focus:border-conveniat-green focus:ring-conveniat-green border-gray-300"
             />
           </div>
         )}
 
-        <div className="relative mb-4">
+        {/* Search Input */}
+        <div className="relative">
           <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <Input
             placeholder="Search contacts..."
-            className="pl-10"
+            className="font-body focus:border-conveniat-green focus:ring-conveniat-green border-gray-300 pl-10"
             value={searchQuery}
             onChange={(changeEvent) => setSearchQuery(changeEvent.target.value)}
           />
         </div>
 
+        {/* Selected Contacts */}
         {selectedContacts.length > 0 && (
-          <div className="mb-4">
+          <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <Users size={16} className="text-gray-500" />
-              <span className="text-sm font-medium">Selected: {selectedContacts.length}</span>
+              <Users size={16} className="text-conveniat-green" />
+              <span className="font-body text-sm font-medium text-gray-700">
+                Selected: {selectedContacts.length}
+              </span>
             </div>
-            <div className="mt-2 flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2">
               {selectedContacts.map((contact) => (
                 <div
                   key={contact.uuid}
-                  className="flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-xs text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                  className="font-body text-conveniat-green flex items-center gap-2 rounded-full bg-green-100 px-3 py-1 text-sm"
                 >
                   <span>{contact.name}</span>
                   <button
                     onClick={() => handleContactToggle(contact)}
-                    className="ml-1 rounded-full p-0.5 hover:bg-blue-200 dark:hover:bg-blue-800"
+                    className="rounded-full p-0.5 hover:bg-green-200"
                   >
-                    ×
+                    <X size={12} />
                   </button>
                 </div>
               ))}
@@ -135,46 +137,75 @@ export const NewChatDialog: React.FC = () => {
           </div>
         )}
 
-        <div className="h-[300px] pr-4">
+        {/* Contacts List */}
+        <div className="h-[300px] overflow-hidden rounded-lg border border-gray-200">
           {isLoading && (
-            <div className="flex items-center justify-center py-8">
-              <div className="h-8 w-8 animate-spin rounded-full border-t-2 border-b-2 border-blue-500"></div>
+            <div className="flex items-center justify-center py-12">
+              <div className="flex flex-col items-center gap-3">
+                <div className="border-t-conveniat-green h-6 w-6 animate-spin rounded-full border-2 border-gray-300"></div>
+                <p className="font-body text-sm text-gray-600">Loading contacts...</p>
+              </div>
             </div>
           )}
+
           {!isLoading && filteredContacts?.length === 0 && (
-            <p className="py-4 text-center text-sm text-gray-500">No contacts found</p>
+            <div className="flex items-center justify-center py-12">
+              <p className="font-body text-sm text-gray-500">No contacts found</p>
+            </div>
           )}
 
           {!isLoading && (filteredContacts?.length ?? 0) > 0 && (
-            <div className="h-full space-y-2 overflow-y-scroll">
-              {filteredContacts?.map((contact) => (
-                <div
-                  key={contact.uuid}
-                  className="flex items-center space-x-2 rounded-md p-2 hover:bg-gray-100 dark:hover:bg-gray-800"
-                  onClick={() => handleContactToggle(contact)}
-                >
-                  <div className="flex flex-1 cursor-pointer items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium">{contact.name}</p>
+            <div className="h-full space-y-1 overflow-y-auto p-2">
+              {filteredContacts?.map((contact) => {
+                const isSelected = selectedContacts.some((c) => c.uuid === contact.uuid);
+                return (
+                  <div
+                    key={contact.uuid}
+                    className={`flex cursor-pointer items-center space-x-3 rounded-lg p-3 transition-colors ${
+                      isSelected ? 'text-conveniat-green bg-green-100' : 'hover:bg-gray-100'
+                    }`}
+                    onClick={() => handleContactToggle(contact)}
+                  >
+                    <div
+                      className={`flex h-8 w-8 items-center justify-center rounded-full ${
+                        isSelected ? 'bg-conveniat-green text-white' : 'bg-gray-200 text-gray-600'
+                      }`}
+                    >
+                      <span className="font-heading text-sm font-semibold">
+                        {contact.name.charAt(0).toUpperCase()}
+                      </span>
                     </div>
+                    <div className="flex-1">
+                      <p className="font-body text-sm font-medium">{contact.name}</p>
+                    </div>
+                    {isSelected && (
+                      <div className="bg-conveniat-green flex h-5 w-5 items-center justify-center rounded-full">
+                        <span className="text-xs text-white">✓</span>
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
 
-        <DialogFooter className="sm:justify-between">
-          <Button variant="outline" onClick={() => setOpen(false)}>
+        <DialogFooter className="flex gap-3 sm:justify-between">
+          <Button
+            variant="outline"
+            onClick={() => setOpen(false)}
+            className="font-body border-gray-300 hover:bg-gray-100"
+          >
             Cancel
           </Button>
           <Button
-            onClick={(): void => {
+            onClick={() => {
               handleCreateChat().catch(console.error);
             }}
             disabled={selectedContacts.length === 0}
+            className="bg-conveniat-green font-body hover:bg-green-600 disabled:bg-gray-300"
           >
-            Create Chat
+            Create Chat ({selectedContacts.length})
           </Button>
         </DialogFooter>
       </DialogContent>

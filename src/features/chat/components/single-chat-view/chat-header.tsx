@@ -22,19 +22,21 @@ export const ChatHeader: React.FC<ChatHeaderProperties> = ({ chatDetails }) => {
 
   return (
     <>
-      <div className="flex h-[62px] items-center justify-between border-b-2 border-gray-200 px-4 dark:border-gray-700">
+      <div className="flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 shadow-sm">
         <div className="flex items-center gap-3">
           <Link href="/app/chat">
-            <Button variant="ghost" size="icon" className="mr-1">
-              <ArrowLeft className="h-5 w-5" />
+            <Button variant="ghost" size="icon" className="mr-1 hover:bg-gray-100">
+              <ArrowLeft className="h-5 w-5 text-gray-700" />
             </Button>
           </Link>
 
           <div>
-            <h1 className="text-xl font-semibold">{chatDetails.name}</h1>
-            {!isGroupChat && onlineParticipant && <p className="text-xs text-green-500">Online</p>}
+            <h1 className="font-heading text-lg font-semibold text-gray-900">{chatDetails.name}</h1>
+            {!isGroupChat && onlineParticipant && (
+              <p className="font-body text-xs text-green-600">Online</p>
+            )}
             {isGroupChat && (
-              <p className="text-xs text-gray-500">
+              <p className="font-body text-xs text-gray-500">
                 {chatDetails.participants.length} participants
               </p>
             )}
@@ -42,8 +44,13 @@ export const ChatHeader: React.FC<ChatHeaderProperties> = ({ chatDetails }) => {
         </div>
 
         <div className="flex items-center">
-          <Button variant="ghost" size="icon" onClick={() => setShowDetails(true)}>
-            <Info className="h-5 w-5" />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setShowDetails(true)}
+            className="hover:bg-gray-100"
+          >
+            <Info className="h-5 w-5 text-gray-700" />
           </Button>
         </div>
       </div>

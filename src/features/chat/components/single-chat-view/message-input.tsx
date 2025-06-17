@@ -43,18 +43,18 @@ export const MessageInput: React.FC<MessageInputProperties> = ({ chatId }) => {
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-3 rounded-full border border-gray-200 bg-white p-2 shadow-sm">
       <Input
         value={newMessage}
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
         placeholder="Type a message..."
-        className="flex-1 rounded-full"
+        className="font-body flex-1 border-0 bg-transparent placeholder:text-gray-500 focus-visible:ring-0 focus-visible:ring-offset-0"
       />
       <Button
         onClick={handleSendClick}
         size="icon"
-        className="rounded-full"
+        className="bg-conveniat-green h-10 w-10 rounded-full hover:bg-green-600 disabled:bg-gray-300"
         disabled={newMessage.trim() === '' || sendMessageMutation.isPending}
       >
         <Send className="h-5 w-5" />

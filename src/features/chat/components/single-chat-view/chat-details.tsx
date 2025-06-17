@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input';
 import { useChatUser } from '@/features/chat/hooks/use-chat-user';
 import { useUpdateChat } from '@/features/chat/hooks/use-update-chat';
 import type { ChatDetail } from '@/features/chat/types/chat';
-import { Separator } from '@radix-ui/react-select';
 import { Check, Pencil, UserCircle, X } from 'lucide-react';
 
 interface ChatDetailsProperties {
@@ -46,22 +45,26 @@ export const ChatDetails: React.FC<ChatDetailsProperties> = ({ chatDetails, isOp
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="z-[999] bg-white sm:max-w-md">
+      <DialogContent className="z-[999] border border-gray-200 bg-white shadow-lg sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Chat Details</DialogTitle>
+          <DialogTitle className="font-heading text-xl text-gray-900">Chat Details</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="space-y-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="text-sm font-medium text-gray-500">Chat Name</div>
+            <div className="font-body text-sm font-medium text-gray-600">Chat Name</div>
             {isGroupChat && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsEditing(!isEditing)}
-                className="h-8 px-2"
+                className="h-8 px-2 hover:bg-gray-100"
               >
-                {isEditing ? <X className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
+                {isEditing ? (
+                  <X className="h-4 w-4 text-gray-600" />
+                ) : (
+                  <Pencil className="h-4 w-4 text-gray-600" />
+                )}
               </Button>
             )}
           </div>
@@ -73,40 +76,47 @@ export const ChatDetails: React.FC<ChatDetailsProperties> = ({ chatDetails, isOp
                 onChange={(event) => setChatName(event.target.value)}
                 onKeyDown={handleKeyDown}
                 autoFocus
-                className="flex-1"
+                className="font-body focus:border-conveniat-green focus:ring-conveniat-green flex-1 border-gray-300"
               />
               <Button
                 size="sm"
                 onClick={handleSaveName}
                 disabled={chatName.trim() === '' || chatName === chatDetails.name}
+                className="bg-conveniat-green hover:bg-green-600"
               >
                 <Check className="h-4 w-4" />
               </Button>
             </div>
           ) : (
-            <div className="text-lg font-semibold">{chatDetails.name}</div>
+            <div className="font-heading text-lg font-semibold text-gray-900">
+              {chatDetails.name}
+            </div>
           )}
 
-          <Separator />
+          <div className="h-px bg-gray-200" />
 
           <div>
-            <div className="mb-2 text-sm font-medium text-gray-500">
+            <div className="font-body mb-4 text-sm font-medium text-gray-600">
               {chatDetails.participants.length} Participants
             </div>
-            <div className="max-h-60 space-y-3 overflow-y-auto">
+            <div className="max-h-60 space-y-4 overflow-y-auto">
               {chatDetails.participants.map((participant) => (
                 <div key={participant.id} className="flex items-center gap-3">
-                  <UserCircle className="h-8 w-8 text-gray-400" />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200">
+                    <UserCircle className="h-8 w-8 text-gray-600" />
+                  </div>
                   <div>
-                    <div className="font-medium">
+                    <div className="font-body font-medium text-gray-900">
                       {participant.name}
-                      {participant.id === currentUser && ' (You)'}
+                      {participant.id === currentUser && (
+                        <span className="ml-1 text-sm text-gray-500">(You)</span>
+                      )}
                     </div>
-                    <div className="text-sm text-gray-500">
+                    <div className="font-body text-sm">
                       {participant.isOnline ? (
-                        <span className="text-green-500">Online</span>
+                        <span className="text-green-600">Online</span>
                       ) : (
-                        'Offline'
+                        <span className="text-gray-500">Offline</span>
                       )}
                     </div>
                   </div>

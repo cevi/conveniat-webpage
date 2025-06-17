@@ -52,28 +52,28 @@ export const MessageComponent: React.FC<MessageProperties> = ({ message, isCurre
     if (!isCurrentUser) return <></>;
 
     if ('isOptimistic' in message && message.isOptimistic) {
-      return <div className="ml-1 text-gray-400">Sending...</div>;
+      return <div className="font-body ml-1 text-xs text-gray-400">Sending...</div>;
     }
 
     const status = message.status ?? 'sent';
 
     switch (status) {
       case 'sent': {
-        return <Check className="ml-1 h-3.5 w-3.5 text-gray-200" />;
+        return <Check className="ml-1 h-3.5 w-3.5 text-gray-400" />;
       }
       case 'delivered': {
         return (
           <div className="ml-1 flex">
-            <Check className="h-3.5 w-3.5 text-gray-200" />
-            <Check className="-ml-2 h-3.5 w-3.5 text-gray-200" />
+            <Check className="h-3.5 w-3.5 text-gray-400" />
+            <Check className="-ml-2 h-3.5 w-3.5 text-gray-400" />
           </div>
         );
       }
       case 'read': {
         return (
           <div className="ml-1 flex">
-            <Check className="h-3.5 w-3.5 text-gray-700" />
-            <Check className="-ml-2 h-3.5 w-3.5 text-gray-700" />
+            <Check className="text-conveniat-green h-3.5 w-3.5" />
+            <Check className="text-conveniat-green -ml-2 h-3.5 w-3.5" />
           </div>
         );
       }
@@ -81,28 +81,36 @@ export const MessageComponent: React.FC<MessageProperties> = ({ message, isCurre
   };
 
   return (
-    <div className={cn('flex items-end', isCurrentUser ? 'justify-end' : 'justify-start')}>
-      {!isCurrentUser && <UserCircle className="mr-2 h-8 w-8 shrink-0" />}
+    <div className={cn('flex items-end gap-2', isCurrentUser ? 'justify-end' : 'justify-start')}>
+      {!isCurrentUser && (
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100">
+          <UserCircle className="h-6 w-6 text-gray-400" />
+        </div>
+      )}
 
-      <div className="max-w-[80%] overflow-x-hidden">
+      <div className="max-w-[75%] overflow-x-hidden">
         <div
           className={cn(
-            'rounded-lg px-4 py-2 wrap-anywhere',
+            'font-body rounded-2xl px-4 py-3 wrap-anywhere shadow-sm',
             isCurrentUser
-              ? 'text-primary-foreground rounded-br-none bg-green-300 text-gray-950'
-              : 'rounded-bl-none bg-gray-200 text-gray-800',
-            'isOptimistic' in message && message.isOptimistic && 'opacity-50',
+              ? 'rounded-br-md bg-green-200 text-green-800'
+              : 'rounded-bl-md border border-gray-200 bg-white text-gray-900',
+            'isOptimistic' in message && message.isOptimistic && 'opacity-60',
           )}
         >
           {renderedContent}
         </div>
-        <div className="mt-1 flex items-center text-xs">
-          <span className="text-muted-foreground">{formattedTime}</span>
+        <div className="mt-1 flex items-center justify-end text-xs">
+          <span className="font-body text-gray-500">{formattedTime}</span>
           {renderMessageStatus()}
         </div>
       </div>
 
-      {isCurrentUser && <UserCircle className="ml-2 h-8 w-8 shrink-0" />}
+      {isCurrentUser && (
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-green-200">
+          <UserCircle className="text-conveniat-green h-6 w-6" />
+        </div>
+      )}
     </div>
   );
 };

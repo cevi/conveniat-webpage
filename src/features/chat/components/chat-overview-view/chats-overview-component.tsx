@@ -6,13 +6,20 @@ import { Suspense } from 'react';
 export const ChatsOverviewComponent: React.FC = async () => {
   return (
     <div className="flex h-full flex-col">
-      <HeadlineH1 className="mb-6 text-center">Chats</HeadlineH1>
+      <div className="border-b border-gray-200 bg-white px-6 py-4 shadow-sm">
+        <HeadlineH1 className="font-heading text-center text-2xl font-bold text-gray-900">
+          Messages
+        </HeadlineH1>
+      </div>
 
-      <div className="grow overflow-y-auto px-4">
+      <div className="flex-1 overflow-y-auto px-4 py-4">
         <Suspense
           fallback={
             <div className="flex h-full items-center justify-center">
-              <div className="h-8 w-8 animate-spin rounded-full border-t-2 border-b-2 border-blue-500"></div>
+              <div className="flex flex-col items-center gap-3">
+                <div className="border-t-conveniat-green h-8 w-8 animate-spin rounded-full border-2 border-gray-300"></div>
+                <p className="font-body text-sm text-gray-600">Loading chats...</p>
+              </div>
             </div>
           }
         >

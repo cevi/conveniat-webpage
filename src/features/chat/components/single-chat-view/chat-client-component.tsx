@@ -20,16 +20,20 @@ export const ChatClientComponent: React.FC<ChatInterface> = ({ chatId }) => {
   }
 
   if (!chatDetail) {
-    return <div className="flex h-full items-center justify-center">Chat not found</div>;
+    return (
+      <div className="flex h-full items-center justify-center bg-gray-50">
+        <div className="font-body text-gray-600">Chat not found</div>
+      </div>
+    );
   }
 
   return (
-    <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col overflow-y-hidden bg-white">
+    <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50">
       <ChatHeader chatDetails={chatDetail} />
       <div className="flex-1 overflow-y-auto">
         <MessageList chatDetails={chatDetail} />
       </div>
-      <div className="border-t border-gray-200 p-4">
+      <div className="border-t border-gray-200 bg-white p-4">
         <MessageInput chatId={chatId} />
       </div>
     </div>
@@ -37,16 +41,16 @@ export const ChatClientComponent: React.FC<ChatInterface> = ({ chatId }) => {
 };
 
 const ChatSkeleton: React.FC = () => (
-  <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col bg-white">
-    <div className="flex h-[62px] items-center gap-2 border-b-2 border-gray-200 px-4 dark:border-gray-700">
+  <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col bg-gray-50">
+    <div className="flex h-16 items-center gap-3 border-b border-gray-200 bg-white px-4 shadow-sm">
       <Link href="/app/chat">
-        <Button variant="ghost" size="icon" className="mr-2">
-          <ArrowLeft className="h-5 w-5" />
+        <Button variant="ghost" size="icon" className="mr-2 hover:bg-gray-100">
+          <ArrowLeft className="h-5 w-5 text-gray-700" />
         </Button>
       </Link>
-      <div className="h-8 w-48 bg-gray-50" />
+      <div className="h-6 w-48 animate-pulse rounded bg-gray-200" />
       <div className="ml-auto">
-        <div className="h-8 w-8 rounded-full bg-gray-50" />
+        <div className="h-8 w-8 animate-pulse rounded-full bg-gray-200" />
       </div>
     </div>
     <div className="flex-1 space-y-4 overflow-y-auto p-4">
@@ -54,12 +58,14 @@ const ChatSkeleton: React.FC = () => (
         .fill(0)
         .map((_, index) => (
           <div key={index} className={`flex ${index % 2 === 0 ? 'justify-start' : 'justify-end'}`}>
-            <div className={`h-16 ${index % 2 === 0 ? 'w-64' : 'w-48'} rounded-lg bg-gray-50`} />
+            <div
+              className={`h-16 ${index % 2 === 0 ? 'w-64' : 'w-48'} animate-pulse rounded-2xl bg-gray-200`}
+            />
           </div>
         ))}
     </div>
-    <div className="border-t border-gray-200 p-4 dark:border-gray-700">
-      <div className="h-12 w-full rounded-full bg-gray-50" />
+    <div className="border-t border-gray-200 bg-white p-4">
+      <div className="h-12 w-full animate-pulse rounded-full bg-gray-200" />
     </div>
   </div>
 );

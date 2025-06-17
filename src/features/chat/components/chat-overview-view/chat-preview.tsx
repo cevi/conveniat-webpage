@@ -3,13 +3,12 @@ import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import type { Chat } from '@/features/chat/types/chat';
 import { cn } from '@/utils/tailwindcss-override';
 import { formatDistanceToNow } from 'date-fns';
-import { Badge, Users } from 'lucide-react';
+import { Users } from 'lucide-react';
 import Link from 'next/link';
-import React from 'react';
+import type React from 'react';
 
 export const ChatPreview: React.FC<{
   chat: Chat;
-  // eslint-disable-next-line complexity
 }> = ({ chat }) => {
   const chatDetailLink = `chat/${chat.id}`;
   const hasUnread = chat.unreadCount && chat.unreadCount > 0;
@@ -27,19 +26,19 @@ export const ChatPreview: React.FC<{
     <Link href={chatDetailLink} className="block w-full">
       <li
         className={cn(
-          'relative flex items-center space-x-4 rounded-md p-4 transition-colors',
-          'hover:bg-gray-100 dark:hover:bg-gray-800',
-          hasUnread ? 'bg-gray-50 dark:bg-gray-900' : '',
+          'relative flex items-center space-x-4 rounded-lg p-4 transition-all duration-200',
+          'hover:bg-gray-100 hover:shadow-sm',
+          hasUnread ? 'border-conveniat-green border-l-4 bg-green-50' : 'bg-white',
         )}
       >
         <div className="shrink-0">
           {isGroupChat ? (
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200 dark:bg-gray-700">
-              <Users size={20} className="text-gray-600 dark:text-gray-300" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-200 shadow-sm">
+              <Users size={20} className="text-gray-600" />
             </div>
           ) : (
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900">
-              <span className="text-sm font-medium text-blue-600 dark:text-blue-300">
+            <div className="bg-conveniat-green flex h-12 w-12 items-center justify-center rounded-full shadow-sm">
+              <span className="font-heading text-sm font-semibold text-white">
                 {chat.name.charAt(0).toUpperCase() || '?'}
               </span>
             </div>
@@ -48,24 +47,38 @@ export const ChatPreview: React.FC<{
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between">
-            <p className="truncate text-sm font-medium text-gray-900 dark:text-gray-100">
-              {chat.name}
+            <div className="flex items-center gap-2">
+              <p
+                className={cn(
+                  'font-heading truncate text-sm',
+                  hasUnread ? 'font-semibold text-gray-900' : 'font-medium text-gray-800',
+                )}
+              >
+                {chat.name}
+              </p>
               {isGroupChat && (
-                <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
-                  ({participantCount})
+                <span className="font-body rounded-full bg-gray-200 px-2 py-0.5 text-xs text-gray-600">
+                  {participantCount}
                 </span>
               )}
-            </p>
-            <span className="text-xs text-gray-500 dark:text-gray-400">{timestamp}</span>
+            </div>
+            <span className="font-body text-xs text-gray-500">{timestamp}</span>
           </div>
 
-          <p className="mt-1 truncate text-sm text-gray-500 dark:text-gray-400">
+          <p
+            className={cn(
+              'font-body mt-1 truncate text-sm',
+              hasUnread ? 'font-medium text-gray-700' : 'text-gray-500',
+            )}
+          >
             {chat.lastMessage?.content ?? 'No messages yet'}
           </p>
         </div>
 
         {hasUnread && (
-          <Badge className="ml-auto bg-blue-500 dark:bg-blue-600">{chat.unreadCount}</Badge>
+          <div className="bg-conveniat-green font-body flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold text-white shadow-sm">
+            {chat.unreadCount > 99 ? '99+' : chat.unreadCount}
+          </div>
         )}
       </li>
     </Link>
