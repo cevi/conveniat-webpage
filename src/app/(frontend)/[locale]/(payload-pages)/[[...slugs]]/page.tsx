@@ -111,14 +111,15 @@ const CMSPage: React.FC<{
   // eslint-disable-next-line complexity
   async ({ params, searchParams: searchParametersPromise }) => {
     let { locale } = await params;
-    const { slugs } = await params;
+    let { slugs } = await params;
 
     // this logic is needed for the case the do not have set
     // we only treat valid locales as a valid locale, otherwise we use the default locale
     // and unshift the locale to the slugs array
     if (!Object.values(LOCALE).includes(locale)) {
+      slugs ??= [];
+      slugs.unshift(locale);
       locale = i18nConfig.defaultLocale as Locale;
-      slugs?.unshift(locale);
     }
 
     const searchParameters = await searchParametersPromise;
