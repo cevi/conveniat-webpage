@@ -1,4 +1,5 @@
 import {
+  AlignFeature,
   BlockquoteFeature,
   BoldFeature,
   defaultEditorLexicalConfig,
@@ -34,9 +35,10 @@ export const defaultEditorFeatures = [
   }),
   BlockquoteFeature(),
   UnorderedListFeature(),
+  AlignFeature(),
 ];
 
-export const lexicalEditor = lexicalEditorGenerator({
+export const index = lexicalEditorGenerator({
   features: defaultEditorFeatures,
   lexical: defaultEditorLexicalConfig,
 });
