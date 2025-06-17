@@ -1,3 +1,9 @@
+import { LinkComponent } from '@/components/ui/link-component';
+import type { LinkFieldDataType } from '@/features/payload-cms/payload-cms/shared-fields/link-field';
+import {
+  getURLForLinkField,
+  openURLInNewTab,
+} from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import type { ReactNode } from 'react';
 import React from 'react';
@@ -6,10 +12,11 @@ export const NewsCard: React.FC<{
   children: ReactNode;
   date: string;
   headline: string;
-}> = async ({ children, date, headline }) => {
+  linkField?: LinkFieldDataType;
+}> = async ({ children, date, headline, linkField }) => {
   const locale = await getLocaleFromCookies();
 
-  return (
+  const newscardChildren = (
     <div className="flex max-h-96 basis-1 flex-col rounded-md border-2 border-gray-200 bg-white p-6 transition duration-200 hover:shadow-md lg:max-w-96">
       <div>
         <span className="font-body text-[12px] font-bold text-gray-500">
@@ -29,5 +36,15 @@ export const NewsCard: React.FC<{
       </div>
       <div className="grow overflow-hidden">{children}</div>
     </div>
+  );
+
+  const url = getURLForLinkField(linkField) ?? '';
+
+  return linkField ? (
+    <LinkComponent href={url} openInNewTab={openURLInNewTab(linkField)} hideExternalIcon>
+      {newscardChildren}
+    </LinkComponent>
+  ) : (
+    newscardChildren
   );
 };
