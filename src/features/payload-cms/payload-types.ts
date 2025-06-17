@@ -326,6 +326,10 @@ export interface Blog {
             url?: string | null;
             openInNewTab?: boolean | null;
           };
+          /**
+           * Show inverted colors
+           */
+          inverted?: boolean | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'callToAction';
@@ -1224,6 +1228,10 @@ export interface GenericPage {
             url?: string | null;
             openInNewTab?: boolean | null;
           };
+          /**
+           * Show inverted colors
+           */
+          inverted?: boolean | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'callToAction';
@@ -1663,6 +1671,7 @@ export interface BlogSelect<T extends boolean = true> {
                           url?: T;
                           openInNewTab?: T;
                         };
+                    inverted?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -1941,6 +1950,7 @@ export interface GenericPageSelect<T extends boolean = true> {
                           url?: T;
                           openInNewTab?: T;
                         };
+                    inverted?: T;
                     id?: T;
                     blockName?: T;
                   };

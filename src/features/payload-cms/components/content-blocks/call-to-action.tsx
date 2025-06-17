@@ -6,9 +6,14 @@ import React from 'react';
 export interface CallToActionType {
   label: string;
   linkField: LinkFieldDataType;
+  inverted: boolean;
 }
 
 export const CallToActionBlock: React.FC<CallToActionType> = ({ ...block }) => {
   const url = getURLForLinkField(block.linkField);
-  return <CallToAction href={url}>{block.label}</CallToAction>;
+  return (
+    <CallToAction href={url} inverted={block.inverted}>
+      {block.label}
+    </CallToAction>
+  );
 };
