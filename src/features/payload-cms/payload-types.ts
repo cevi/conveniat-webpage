@@ -334,6 +334,43 @@ export interface Blog {
           blockName?: string | null;
           blockType: 'callToAction';
         }
+      | {
+          linkField?: {
+            type?: ('reference' | 'custom') | null;
+            reference?:
+              | ({
+                  relationTo: 'blog';
+                  value: string | Blog;
+                } | null)
+              | ({
+                  relationTo: 'generic-page';
+                  value: string | GenericPage;
+                } | null);
+            url?: string | null;
+            openInNewTab?: boolean | null;
+          };
+          headline: string;
+          date: string;
+          image?: (string | null) | Image;
+          paragraph?: {
+            root: {
+              type: string;
+              children: {
+                type: string;
+                version: number;
+                [k: string]: unknown;
+              }[];
+              direction: ('ltr' | 'rtl') | null;
+              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+              indent: number;
+              version: number;
+            };
+            [k: string]: unknown;
+          } | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'newsCard';
+        }
     )[];
   };
   seo: {
@@ -1236,6 +1273,43 @@ export interface GenericPage {
           blockName?: string | null;
           blockType: 'callToAction';
         }
+      | {
+          linkField?: {
+            type?: ('reference' | 'custom') | null;
+            reference?:
+              | ({
+                  relationTo: 'blog';
+                  value: string | Blog;
+                } | null)
+              | ({
+                  relationTo: 'generic-page';
+                  value: string | GenericPage;
+                } | null);
+            url?: string | null;
+            openInNewTab?: boolean | null;
+          };
+          headline: string;
+          date: string;
+          image?: (string | null) | Image;
+          paragraph?: {
+            root: {
+              type: string;
+              children: {
+                type: string;
+                version: number;
+                [k: string]: unknown;
+              }[];
+              direction: ('ltr' | 'rtl') | null;
+              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+              indent: number;
+              version: number;
+            };
+            [k: string]: unknown;
+          } | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'newsCard';
+        }
     )[];
   };
   seo: {
@@ -1675,6 +1749,24 @@ export interface BlogSelect<T extends boolean = true> {
                     id?: T;
                     blockName?: T;
                   };
+              newsCard?:
+                | T
+                | {
+                    linkField?:
+                      | T
+                      | {
+                          type?: T;
+                          reference?: T;
+                          url?: T;
+                          openInNewTab?: T;
+                        };
+                    headline?: T;
+                    date?: T;
+                    image?: T;
+                    paragraph?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
             };
       };
   seo?:
@@ -1951,6 +2043,24 @@ export interface GenericPageSelect<T extends boolean = true> {
                           openInNewTab?: T;
                         };
                     inverted?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              newsCard?:
+                | T
+                | {
+                    linkField?:
+                      | T
+                      | {
+                          type?: T;
+                          reference?: T;
+                          url?: T;
+                          openInNewTab?: T;
+                        };
+                    headline?: T;
+                    date?: T;
+                    image?: T;
+                    paragraph?: T;
                     id?: T;
                     blockName?: T;
                   };

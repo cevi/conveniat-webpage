@@ -1,4 +1,4 @@
-import { NewsCard } from '@/components/news-card';
+import { NewsCardBlock } from '@/components/news-card';
 import type { ContentBlock } from '@/features/payload-cms/converters/page-sections/section-wrapper';
 import type { LinkFieldDataType } from '@/features/payload-cms/payload-cms/shared-fields/link-field';
 import { extractTextContent } from '@/features/payload-cms/payload-cms/utils/extract-rich-text';
@@ -20,13 +20,13 @@ export const PageDisplay: React.FC<{ page: GenericPage }> = ({ page }) => {
 
   return (
     <React.Fragment key={page.seo.urlSlug}>
-      <NewsCard
+      <NewsCardBlock
         date={page.content.releaseDate}
         headline={page.content.pageTitle}
         linkField={linkField}
       >
         <p className="text-sm text-gray-500">{contentExcerptTrimmed}</p>
-      </NewsCard>
+      </NewsCardBlock>
     </React.Fragment>
   );
 };

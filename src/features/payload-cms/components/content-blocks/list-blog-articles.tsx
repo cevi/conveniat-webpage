@@ -1,4 +1,4 @@
-import { NewsCard } from '@/components/news-card';
+import { NewsCardBlock } from '@/components/news-card';
 import type { LinkFieldDataType } from '@/features/payload-cms/payload-cms/shared-fields/link-field';
 import type { Blog } from '@/features/payload-cms/payload-types';
 import type { LocalizedPageType, StaticTranslationString } from '@/types/types';
@@ -35,10 +35,11 @@ export const BlogDisplay: React.FC<{ blog: Blog }> = ({ blog }) => {
 
   return (
     <React.Fragment key={blog.seo.urlSlug}>
-      <NewsCard
+      <NewsCardBlock
         date={blog.content.releaseDate}
         headline={blog.content.blogH1}
         linkField={linkField}
+        image={blog.content.bannerImage}
       >
         <Image
           className="w-full object-cover"
@@ -47,7 +48,7 @@ export const BlogDisplay: React.FC<{ blog: Blog }> = ({ blog }) => {
           width={1200}
           height={800}
         />
-      </NewsCard>{' '}
+      </NewsCardBlock>{' '}
     </React.Fragment>
   );
 };
