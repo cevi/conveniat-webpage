@@ -9,15 +9,15 @@ datasource db {
 }
 
 model User {
-  /**
-  * The unique identifier for the user as generated as id by payload.
-  */
+  //
+  // The unique identifier for the user as generated as id by payload.
+  //
   uuid     String   @id
   lastSeen DateTime @default(now())
 
-  /**
-  * The nickname of the user. Defaults to the user's nickname resp. name defined in payload.
-  */
+  //
+  // The nickname of the user. Defaults to the user's nickname resp. name defined in payload.
+  //
   name            String
   messages        Message[]
   chatMemberships ChatMembership[]
@@ -86,5 +86,4 @@ model MessageEvent {
 
   // add unique constraint
   @@unique([messageId, userId, eventType], name: "unique_message_event")
-
 }
