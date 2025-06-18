@@ -142,7 +142,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({ message, isCurre
   const formattedTime = useFormatDate().formatMessageTime(message.timestamp);
   const renderedContent = formatMessageContent(message.content);
 
-  const handleInteraction = (event: React.MouseEvent | React.TouchEvent) => {
+  const handleInteraction = (event: React.MouseEvent | React.TouchEvent): void => {
     event.preventDefault();
     setShowInfo((previous) => !previous);
   };

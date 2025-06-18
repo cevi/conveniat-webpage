@@ -73,6 +73,21 @@ const ChatDetailsError: React.FC = () => (
   </div>
 );
 
+// Validate chat name
+const validateChatName = (name: string): string => {
+  if (name.trim().length === 0) {
+    return 'Chat name cannot be empty';
+  }
+  if (name.trim().length < 2) {
+    return 'Chat name must be at least 2 characters';
+  }
+  if (name.trim().length > 50) {
+    return 'Chat name must be less than 50 characters';
+  }
+  return '';
+};
+
+// eslint-disable-next-line complexity
 export const ChatDetails: React.FC = () => {
   const chatId = useChatId();
   const { data: chatDetails, isLoading, isError } = useChatDetail(chatId);
@@ -119,20 +134,6 @@ export const ChatDetails: React.FC = () => {
   if (isError || !chatDetails) return <ChatDetailsError />;
 
   const isGroupChat = chatDetails.participants.length > 2;
-
-  // Validate chat name
-  const validateChatName = (name: string): string => {
-    if (name.trim().length === 0) {
-      return 'Chat name cannot be empty';
-    }
-    if (name.trim().length < 2) {
-      return 'Chat name must be at least 2 characters';
-    }
-    if (name.trim().length > 50) {
-      return 'Chat name must be less than 50 characters';
-    }
-    return '';
-  };
 
   // --- Handlers for chat name editing ---
   const handleSaveName = (): void => {
@@ -370,7 +371,7 @@ export const ChatDetails: React.FC = () => {
                   placeholder="Search contacts to add..."
                   className="font-body focus:border-conveniat-green focus:ring-conveniat-green border-gray-300 pl-10"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(changeEvent) => setSearchQuery(changeEvent.target.value)}
                 />
               </div>
 
