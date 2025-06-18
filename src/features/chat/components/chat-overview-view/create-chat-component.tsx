@@ -116,7 +116,7 @@ export const CreateNewChatPage: React.FC = () => {
               handleCreateChat().catch(console.error);
             }}
             disabled={!isFormValid || isCreating}
-            className="bg-conveniat-green font-body hover:bg-green-600 disabled:bg-gray-300"
+            className="bg-conveniat-green font-body text-green-100 hover:bg-green-800 disabled:bg-gray-300"
           >
             {isCreating ? 'Creating...' : `Create (${selectedContacts.length})`}
           </Button>
