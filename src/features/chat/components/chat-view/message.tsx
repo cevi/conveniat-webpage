@@ -12,35 +12,44 @@ interface MessageProperties {
 
 const formatMessageContent = (text: string): React.ReactNode[] => {
   // Regex to split the string by WhatsApp-style formatting delimiters, keeping the delimiters.
-  // It looks for *non-greedy* content between matching pairs of *, _, or ~.
-  const splitRegex = /(\*.*?\*|_.*?_|~.*?~)/g;
+  const splitFormattingRegex = /(\*.*?\*|_.*?_|~.*?~)/g;
 
   // Regexes to identify the type of formatting in a matched part
   const boldRegex = /^\*(.+)\*$/; // Matches *content*
   const italicRegex = /^_(.+)_$/; // Matches _content_
   const strikethroughRegex = /^~(.+)~$/; // Matches ~content~
 
-  const parts = text.split(splitRegex).filter(Boolean);
+  // Split the text by newlines first
+  const lines = text.split('\n');
 
-  return parts.map((part, index) => {
-    let match;
+  return lines.flatMap((line, lineIndex) => {
+    const parts = line.split(splitFormattingRegex).filter(Boolean);
 
-    match = part.match(boldRegex);
-    if (match?.[1] != undefined) {
-      return <strong key={index}>{match[1]}</strong>;
+    const formattedParts = parts.map((part, partIndex) => {
+      let match;
+
+      match = part.match(boldRegex);
+      if (match?.[1] != undefined) {
+        return <strong key={`${lineIndex}-${partIndex}-bold`}>{match[1]}</strong>;
+      }
+
+      match = part.match(italicRegex);
+      if (match?.[1] != undefined) {
+        return <em key={`${lineIndex}-${partIndex}-italic`}>{match[1]}</em>;
+      }
+
+      match = part.match(strikethroughRegex);
+      if (match?.[1] != undefined) {
+        return <s key={`${lineIndex}-${partIndex}-strikethrough`}>{match[1]}</s>;
+      }
+
+      return part;
+    });
+
+    if (lineIndex < lines.length - 1) {
+      return [...formattedParts, <br key={`br-${lineIndex}`} />];
     }
-
-    match = part.match(italicRegex);
-    if (match?.[1] != undefined) {
-      return <em key={index}>{match[1]}</em>; // <em> for italics
-    }
-
-    match = part.match(strikethroughRegex);
-    if (match?.[1] != undefined) {
-      return <s key={index}>{match[1]}</s>; // <s> for strikethrough
-    }
-
-    return part;
+    return formattedParts;
   });
 };
 
@@ -51,9 +60,12 @@ const formatMessageContent = (text: string): React.ReactNode[] => {
  * @constructor
  */
 const RenderSystemMessage: React.FC<{ message: MessageDto }> = ({ message }) => {
+  const renderedContent = formatMessageContent(message.content);
   return (
     <div className="flex items-center justify-center p-4 text-gray-500">
-      <span className="font-body">{message.content}</span>
+      <span className="font-body" style={{ whiteSpace: 'pre-wrap' }}>
+        {renderedContent}
+      </span>
     </div>
   );
 };
@@ -98,9 +110,9 @@ export const MessageComponent: React.FC<MessageProperties> = ({ message, isCurre
         );
       }
     }
+    return <></>;
   };
 
-  // render system message
   if (message.senderId === undefined) {
     return <RenderSystemMessage message={message} />;
   }
@@ -116,12 +128,16 @@ export const MessageComponent: React.FC<MessageProperties> = ({ message, isCurre
       <div className="max-w-[75%] overflow-x-hidden">
         <div
           className={cn(
-            'font-body rounded-2xl px-4 py-3 wrap-anywhere shadow-sm',
+            'font-body rounded-2xl px-4 py-3 shadow-sm',
             isCurrentUser
               ? 'rounded-br-md bg-green-200 text-green-800'
               : 'rounded-bl-md border border-gray-200 bg-white text-gray-900',
             message.status === MessageStatusDto.CREATED && 'opacity-60',
           )}
+          style={{
+            whiteSpace: 'pre-wrap',
+            overflowWrap: 'break-word',
+          }}
         >
           {renderedContent}
         </div>

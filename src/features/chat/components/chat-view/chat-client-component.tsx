@@ -1,50 +1,38 @@
 'use client';
 import { Button } from '@/components/ui/buttons/button';
-import { ChatHeader } from '@/features/chat/components/single-chat-view/chat-header';
-import { MessageInput } from '@/features/chat/components/single-chat-view/message-input';
-import { MessageList } from '@/features/chat/components/single-chat-view/message-list';
+import { ChatHeader } from '@/features/chat/components/chat-view/chat-header';
+import { MessageInput } from '@/features/chat/components/chat-view/message-input';
+import { MessageList } from '@/features/chat/components/chat-view/message-list';
+import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
-import { useOnlinePing } from '@/features/chat/hooks/use-online-ping';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import React, { useEffect } from 'react';
+import React from 'react';
 
-export interface ChatInterface {
-  chatId: string;
-}
-
-export const ChatClientComponent: React.FC<ChatInterface> = ({ chatId }) => {
-  const { data: chatDetail, isLoading } = useChatDetail(chatId);
-  const { mutate } = useOnlinePing();
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      mutate({});
-    }, 10_000);
-
-    return (): void => clearInterval(interval);
-  }, [mutate]);
+export const ChatClientComponent: React.FC = () => {
+  const chatId = useChatId();
+  const { data: chatDetail, isLoading, isPaused, isPending } = useChatDetail(chatId);
 
   if (isLoading) {
     return <ChatSkeleton />;
   }
 
+  if (isPaused || isPending) {
+    return <span>Offline, you need internet connection to load this chat.</span>;
+  }
+
   if (!chatDetail) {
-    return (
-      <div className="flex h-full items-center justify-center bg-gray-50">
-        <div className="font-body text-gray-600">Chat not found</div>
-      </div>
-    );
+    return <span>Chat not found</span>;
   }
 
   return (
     <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50">
-      <ChatHeader chatDetails={chatDetail} />
+      <ChatHeader />
       <div className="flex-1 overflow-y-auto">
-        <MessageList chatDetails={chatDetail} />
+        <MessageList />
       </div>
       <div className="border-t border-gray-200 bg-white p-4">
-        <MessageInput chatId={chatId} />
+        <MessageInput />
       </div>
     </div>
   );

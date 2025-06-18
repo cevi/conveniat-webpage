@@ -56,7 +56,13 @@ export const useChatDetail = (chatId: string): UseQueryResult<ChatDetailDto> => 
     queryKey: CHAT_DETAIL_QUERY_KEY(chatId),
     queryFn: () => getChatDetail(chatId),
     enabled: chatId !== '',
-    refetchInterval: 30_000, // 30 seconds
+    refetchInterval: 5000, // 5 seconds
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+
+    // for that we have push notifications
+    refetchIntervalInBackground: false,
   });
 
   useEffect(() => {

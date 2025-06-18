@@ -1,4 +1,5 @@
 import { sendMessage } from '@/features/chat/api/send-message';
+import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useChatUser } from '@/features/chat/hooks/use-chat-user';
 import { CHAT_DETAIL_QUERY_KEY } from '@/features/chat/hooks/use-chats';
 import type { MessageDto, SendMessageDto } from '@/features/chat/types/api-dto-types';
@@ -15,14 +16,18 @@ interface ChatDetailData {
  * Custom hook to send a message in a chat.
  * It uses optimistic updates to provide immediate feedback to the user.
  *
- * @param chatId
  */
-export const useMessageSend = (
-  chatId: string,
-): UseMutationResult<void, Error, string, { previousChatData: ChatDetailData | undefined }> => {
+export const useMessageSend = (): UseMutationResult<
+  void,
+  Error,
+  string,
+  { previousChatData: ChatDetailData | undefined }
+> => {
   const queryClient = useQueryClient();
+  const chatId = useChatId();
   const chatQueryKey = CHAT_DETAIL_QUERY_KEY(chatId);
   const { data: currentUser } = useChatUser();
+
   return useMutation({
     mutationFn: async (content: string) => {
       const messagePayload: SendMessageDto = {

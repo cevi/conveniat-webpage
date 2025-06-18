@@ -46,7 +46,6 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children }) => {
       >
         <PostHogProvider>
           <HeaderComponent />
-
           <div className="absolute top-0 z-[-999] h-screen w-full p-[56px] xl:pl-[480px]">
             <CeviLogo className="mx-auto h-full max-h-[60vh] w-full max-w-[384px] opacity-10 blur-md" />
           </div>

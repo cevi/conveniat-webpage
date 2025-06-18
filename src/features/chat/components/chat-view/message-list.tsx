@@ -1,49 +1,52 @@
 'use client';
 import { changeMessageStatus } from '@/features/chat/api/change-message-status';
-import { MessageComponent } from '@/features/chat/components/single-chat-view/message';
+import { MessageComponent } from '@/features/chat/components/chat-view/message';
+import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useChatUser } from '@/features/chat/hooks/use-chat-user';
-import type { ChatDetailDto } from '@/features/chat/types/api-dto-types';
+import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import { MessageStatusDto } from '@/features/chat/types/api-dto-types';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 
-export const MessageList: React.FC<{ chatDetails: ChatDetailDto }> = ({ chatDetails }) => {
-  const messages = chatDetails.messages;
+export const MessageList: React.FC = () => {
+  const chatId = useChatId();
+  const { data: chatDetails, isLoading } = useChatDetail(chatId);
+  const { data: currentUser } = useChatUser();
+  const messagesEndReference = useRef<HTMLDivElement>(null);
+
+  const messages = chatDetails?.messages ?? [];
   const sortedMessages = [...messages].sort(
     (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
   );
 
-  const { data: currentUser } = useChatUser();
-  const messagesEndReference = useRef<HTMLDivElement>(null);
-
-  const [typingUser] = useState<string | undefined>('Some Random User');
-
   useEffect(() => {
     messagesEndReference.current?.scrollIntoView({ behavior: 'instant' });
-  }, [sortedMessages, typingUser]);
+  }, [sortedMessages]);
 
-  // send status back to server
   useEffect(() => {
-    // TODO: only send the status for the last message, server should handle this
-    for (const message of sortedMessages) {
-      if (message.senderId === currentUser) continue;
-      if (message.status !== MessageStatusDto.READ) {
-        changeMessageStatus({
-          messageId: message.id,
-          status: MessageStatusDto.READ,
-        }).catch(console.error);
+    if (currentUser !== undefined && sortedMessages.length > 0) {
+      for (const message of sortedMessages) {
+        if (message.senderId === currentUser) continue;
+        if (message.status !== MessageStatusDto.READ) {
+          changeMessageStatus({
+            messageId: message.id,
+            status: MessageStatusDto.READ,
+          }).catch(console.error);
+        }
       }
     }
   }, [currentUser, sortedMessages]);
 
-  if (currentUser === undefined) {
+  // Handle loading states for both chatDetails and currentUser
+  // This early return is fine because all hooks above it are called unconditionally.
+  if (isLoading || currentUser === undefined || chatDetails === undefined) {
     return (
       <div className="flex h-screen flex-row items-center justify-center bg-gray-50">
-        <div className="font-body text-gray-600">Loading...</div>
+        <div className="font-body text-gray-600">Loading messages...</div>
       </div>
     );
   }
 
-  // Group messages by date
+  // Group messages by date - This logic can now safely access chatDetails.messages
   const messagesByDate: { [date: string]: typeof sortedMessages } = {};
   for (const message of sortedMessages) {
     const date = new Date(message.timestamp).toLocaleDateString();
@@ -73,8 +76,6 @@ export const MessageList: React.FC<{ chatDetails: ChatDetailDto }> = ({ chatDeta
             </div>
           </div>
         ))}
-
-        {/* <TypingIndicator userName={typingUser} /> */}
 
         <div ref={messagesEndReference} />
       </div>
