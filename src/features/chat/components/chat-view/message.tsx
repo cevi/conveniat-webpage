@@ -2,8 +2,8 @@ import { useFormatDate } from '@/features/chat/hooks/use-format-date';
 import type { MessageDto } from '@/features/chat/types/api-dto-types';
 import { MessageStatusDto } from '@/features/chat/types/api-dto-types';
 import { cn } from '@/utils/tailwindcss-override';
-import { Check, UserCircle } from 'lucide-react';
-import type React from 'react';
+import { Check, MoreHorizontal, UserCircle } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
 
 interface MessageProperties {
   message: MessageDto;
@@ -71,6 +71,66 @@ const RenderSystemMessage: React.FC<{ message: MessageDto }> = ({ message }) => 
 };
 
 /**
+ * A dropdown component that displays message event timestamps.
+ * (e.g., Sent, Delivered, Read)
+ */
+const MessageInfoDropdown: React.FC<{
+  message: MessageDto;
+  isCurrentUser: boolean;
+  onClose: () => void;
+}> = ({ message, isCurrentUser, onClose }) => {
+  const { formatMessageTime } = useFormatDate();
+  const dropdownReference = useRef<HTMLDivElement>(null);
+
+  // Effect to handle clicks outside the dropdown to close it
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent): void => {
+      if (dropdownReference.current && !dropdownReference.current.contains(event.target as Node)) {
+        onClose();
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return (): void => document.removeEventListener('mousedown', handleClickOutside);
+  }, [onClose]);
+
+  // TODO: set correct dates based on message events
+  const sentDate: Date = new Date(message.timestamp);
+  const deliveredDate = new Date(message.timestamp) as Date | undefined;
+  const readDate = new Date(message.timestamp) as Date | undefined;
+
+  return (
+    <div
+      ref={dropdownReference}
+      className={cn(
+        'ring-opacity-5 absolute top-8 z-10 mt-1 w-56 rounded-lg bg-white p-3 shadow-xl ring-1 ring-black focus:outline-none',
+        isCurrentUser ? 'right-0' : 'left-0',
+      )}
+      role="menu"
+      aria-orientation="vertical"
+    >
+      <ul>
+        <li className="flex justify-between py-1 text-sm text-gray-800">
+          <span className="font-semibold">Sent</span>
+          <span className="text-gray-600">{formatMessageTime(sentDate)}</span>
+        </li>
+        {deliveredDate !== undefined && (
+          <li className="flex justify-between border-t border-gray-100 py-1 pt-2 text-sm text-gray-800">
+            <span className="font-semibold">Delivered</span>
+            <span className="text-gray-600">{formatMessageTime(deliveredDate)}</span>
+          </li>
+        )}
+        {readDate !== undefined && (
+          <li className="flex justify-between border-t border-gray-100 py-1 pt-2 text-sm text-gray-800">
+            <span className="font-semibold">Read</span>
+            <span className="text-gray-600">{formatMessageTime(readDate)}</span>
+          </li>
+        )}
+      </ul>
+    </div>
+  );
+};
+
+/**
  * MessageComponent is a React component that displays a single chat message.
  *
  * @param message
@@ -78,17 +138,20 @@ const RenderSystemMessage: React.FC<{ message: MessageDto }> = ({ message }) => 
  * @constructor
  */
 export const MessageComponent: React.FC<MessageProperties> = ({ message, isCurrentUser }) => {
+  const [showInfo, setShowInfo] = useState(false);
   const formattedTime = useFormatDate().formatMessageTime(message.timestamp);
   const renderedContent = formatMessageContent(message.content);
 
-  // Message status indicators
+  const handleInteraction = (event: React.MouseEvent | React.TouchEvent) => {
+    event.preventDefault();
+    setShowInfo((previous) => !previous);
+  };
+
   const renderMessageStatus = (): React.JSX.Element => {
     if (!isCurrentUser) return <></>;
-
     if (message.status === MessageStatusDto.CREATED) {
       return <div className="font-body ml-1 text-xs text-gray-400">Sending...</div>;
     }
-
     switch (message.status) {
       case MessageStatusDto.SENT: {
         return <Check className="ml-1 h-3.5 w-3.5 text-gray-400" />;
@@ -110,7 +173,6 @@ export const MessageComponent: React.FC<MessageProperties> = ({ message, isCurre
         );
       }
     }
-    return <></>;
   };
 
   if (message.senderId === undefined) {
@@ -118,32 +180,59 @@ export const MessageComponent: React.FC<MessageProperties> = ({ message, isCurre
   }
 
   return (
-    <div className={cn('flex items-end gap-2', isCurrentUser ? 'justify-end' : 'justify-start')}>
+    <div
+      className={cn('group flex items-end gap-2', isCurrentUser ? 'justify-end' : 'justify-start')}
+    >
       {!isCurrentUser && (
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100">
           <UserCircle className="h-6 w-6 text-gray-400" />
         </div>
       )}
 
-      <div className="max-w-[75%] overflow-x-hidden">
-        <div
-          className={cn(
-            'font-body rounded-2xl px-4 py-3 shadow-sm',
-            isCurrentUser
-              ? 'rounded-br-md bg-green-200 text-green-800'
-              : 'rounded-bl-md border border-gray-200 bg-white text-gray-900',
-            message.status === MessageStatusDto.CREATED && 'opacity-60',
+      <div
+        className={cn('flex items-center gap-2', isCurrentUser ? 'flex-row-reverse' : 'flex-row')}
+        onContextMenu={handleInteraction}
+      >
+        <div className="relative">
+          <button
+            onClick={handleInteraction}
+            className={cn(
+              'rounded-full p-1 transition-opacity duration-200 md:opacity-0 md:group-hover:opacity-100',
+              { 'opacity-100': showInfo },
+            )}
+            aria-label="Message options"
+          >
+            <MoreHorizontal className="h-5 w-5 text-gray-500" />
+          </button>
+          {showInfo && (
+            <MessageInfoDropdown
+              message={message}
+              isCurrentUser={isCurrentUser}
+              onClose={() => setShowInfo(false)}
+            />
           )}
-          style={{
-            whiteSpace: 'pre-wrap',
-            overflowWrap: 'break-word',
-          }}
-        >
-          {renderedContent}
         </div>
-        <div className="mt-1 flex items-center justify-end text-xs">
-          <span className="font-body text-gray-500">{formattedTime}</span>
-          {renderMessageStatus()}
+
+        <div>
+          <div
+            className={cn(
+              'font-body rounded-2xl px-4 py-3 shadow-sm',
+              isCurrentUser
+                ? 'rounded-br-md bg-green-200 text-green-800'
+                : 'rounded-bl-md border border-gray-200 bg-white text-gray-900',
+              message.status === MessageStatusDto.CREATED && 'opacity-60',
+            )}
+            style={{
+              whiteSpace: 'pre-wrap',
+              overflowWrap: 'break-word',
+            }}
+          >
+            {renderedContent}
+          </div>
+          <div className="mt-1 flex items-center justify-end text-xs">
+            <span className="font-body text-gray-500">{formattedTime}</span>
+            {renderMessageStatus()}
+          </div>
         </div>
       </div>
 
