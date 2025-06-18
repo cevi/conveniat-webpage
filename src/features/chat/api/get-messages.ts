@@ -112,10 +112,12 @@ export const getChats = async (): Promise<ChatDto[]> => {
     }
 
     return {
-      unreadCount: messages.filter(
-        (message) =>
-          !message.messageEvents.some((event) => event.eventType === MessageEventType.USER_READ),
-      ).length,
+      unreadCount: messages
+        .filter((message) => message.senderId !== prismaUser.uuid)
+        .filter(
+          (message) =>
+            !message.messageEvents.some((event) => event.eventType === MessageEventType.USER_READ),
+        ).length,
       lastUpdate: chat.lastUpdate,
       name: resolveChatName(
         chat.name,

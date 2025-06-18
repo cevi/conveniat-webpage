@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/buttons/button';
 import { ChatDetails } from '@/features/chat/components/chat-view/chat-details';
 import { useChatId } from '@/features/chat/context/chat-id-context';
+import { useChatUser } from '@/features/chat/hooks/use-chat-user';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import { ArrowLeft, Info } from 'lucide-react';
 import Link from 'next/link';
@@ -23,6 +24,7 @@ export const ChatHeaderSkeleton: React.FC = () => (
 
 export const ChatHeader: React.FC = () => {
   const chatId = useChatId();
+  const { data: user } = useChatUser();
   const { data: chatDetails } = useChatDetail(chatId);
   const [showDetails, setShowDetails] = useState(false);
 
@@ -31,7 +33,9 @@ export const ChatHeader: React.FC = () => {
   }
 
   // Find the first online participant for status display
-  const onlineParticipant = chatDetails.participants.find((p) => p.isOnline);
+  const onlineParticipant = chatDetails.participants
+    .filter((p) => p.id !== user) // Exclude the current user
+    .find((p) => p.isOnline);
   const isGroupChat = chatDetails.participants.length > 2;
 
   return (

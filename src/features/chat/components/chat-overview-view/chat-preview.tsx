@@ -12,7 +12,7 @@ export const ChatPreview: React.FC<{
   // eslint-disable-next-line complexity
 }> = ({ chat }) => {
   const chatDetailLink = `chat/${chat.id}`;
-  const hasUnread = chat.unreadCount && chat.unreadCount > 0;
+  const hasUnread = chat.unreadCount > 0;
   const timestamp = chat.lastMessage?.timestamp
     ? formatDistanceToNow(new Date(chat.lastMessage.timestamp), { addSuffix: true })
     : '';
