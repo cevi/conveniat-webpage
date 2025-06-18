@@ -18,14 +18,34 @@ const sendMessageSchema = z.object({
     .string()
     .min(1, 'Message content cannot be empty.')
     .max(2000, 'Message content is too long.'),
-  timestamp: z.date().refine((date) => date <= new Date(), {
-    message: 'Timestamp cannot be in the future.',
-  }),
+  timestamp: z.preprocess(
+    (argument) => {
+      if (argument instanceof Date) {
+        if (argument > new Date()) return new Date();
+        return argument;
+      }
+
+      if (typeof argument === 'string' || typeof argument === 'number') {
+        const date = new Date(argument);
+        if (!Number.isNaN(date.getTime()) && date > new Date()) return new Date();
+        return date;
+      }
+
+      // If it's neither a Date, string, nor number, return it as is.
+      // z.date() will then handle the final validation
+      // (e.g., throwing an error if it's not a valid date).
+      return argument;
+    },
+    z.date({
+      invalid_type_error: 'Timestamp must be a valid date.',
+    }),
+  ),
 });
 
 /**
  * Sends a push notification to the user.
  * @param message
+ * @param recipientUserIds
  */
 async function sendNotification(
   message: string,
