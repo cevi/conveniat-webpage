@@ -2,10 +2,10 @@
 import { Button } from '@/components/ui/buttons/button';
 import { Input } from '@/components/ui/input';
 import { ChatPreview } from '@/features/chat/components/chat-overview-view/chat-preview';
-import { NewChatDialog } from '@/features/chat/components/chat-overview-view/new-chat-dialog';
 import { useChats } from '@/features/chat/hooks/use-chats';
 import type { ChatDto } from '@/features/chat/types/api-dto-types';
 import { MessageSquare, Search } from 'lucide-react';
+import Link from 'next/link';
 import type React from 'react';
 import { useState } from 'react';
 
@@ -47,9 +47,9 @@ export const ChatsOverviewClientComponent: React.FC = () => {
       </div>
 
       {/* New Chat Button */}
-      <div className="flex justify-end">
-        <NewChatDialog />
-      </div>
+      <Link className="flex justify-end" href="/app/chat/new">
+        New Chat
+      </Link>
 
       {/* Loading State */}
       {isLoading && <ChatsOverviewLoadingPlaceholder />}

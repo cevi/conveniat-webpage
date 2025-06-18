@@ -1,40 +1,85 @@
 'use client';
 
 import type React from 'react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { Button } from '@/components/ui/buttons/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import type { Contact } from '@/features/chat/api/get-contacts';
+import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useAddParticipants } from '@/features/chat/hooks/use-add-participants';
 import { useChatUser } from '@/features/chat/hooks/use-chat-user';
-import { CHATS_QUERY_KEY, useAllContacts } from '@/features/chat/hooks/use-chats';
+import { CHATS_QUERY_KEY, useAllContacts, useChatDetail } from '@/features/chat/hooks/use-chats';
 import { useRemoveParticipants } from '@/features/chat/hooks/use-remove-participant';
 import { useUpdateChat } from '@/features/chat/hooks/use-update-chat';
-import type { ChatDetailDto } from '@/features/chat/types/api-dto-types';
 import { useQueryClient } from '@tanstack/react-query';
 import {
+  ArrowLeft,
   Check,
   Loader2,
   Pencil,
   Search,
+  Settings,
   UserCircle,
   UserPlus,
   Users,
   UserX,
   X,
 } from 'lucide-react';
+import Link from 'next/link';
 
-interface ChatDetailsProperties {
-  chatDetails: ChatDetailDto;
-  isOpen: boolean;
-  onClose: () => void;
-}
+const ChatDetailsPageSkeleton: React.FC = () => (
+  <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col bg-gray-50">
+    <div className="flex h-16 items-center gap-3 border-b border-gray-200 bg-white px-4 shadow-sm">
+      <div className="h-8 w-8 animate-pulse rounded bg-gray-200" />
+      <div className="h-6 w-32 animate-pulse rounded bg-gray-200" />
+    </div>
+    <div className="flex-1 space-y-6 overflow-y-auto p-4">
+      <div className="mx-auto max-w-2xl space-y-6">
+        <div className="h-8 w-48 animate-pulse rounded bg-gray-200" />
+        <div className="space-y-4">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <div key={index} className="flex items-center gap-3">
+              <div className="h-10 w-10 animate-pulse rounded-full bg-gray-200" />
+              <div className="h-4 w-32 animate-pulse rounded bg-gray-200" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+);
 
-export const ChatDetails: React.FC<ChatDetailsProperties> = ({ chatDetails, isOpen, onClose }) => {
+const ChatDetailsError: React.FC = () => (
+  <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col bg-gray-50">
+    <div className="flex h-16 items-center gap-3 border-b border-gray-200 bg-white px-4 shadow-sm">
+      <Link href="/app/chat">
+        <Button variant="ghost" size="icon" className="mr-2 hover:bg-gray-100">
+          <ArrowLeft className="h-5 w-5 text-gray-700" />
+        </Button>
+      </Link>
+      <div className="flex items-center gap-2">
+        <Settings className="h-5 w-5 text-gray-700" />
+        <h1 className="font-heading text-lg font-semibold text-gray-900">Chat Details</h1>
+      </div>
+    </div>
+    <div className="flex flex-1 items-center justify-center p-4 text-center text-red-500">
+      <span>
+        <b>Error loading chat details.</b>
+        <br />
+        Please try again later.
+      </span>
+    </div>
+  </div>
+);
+
+export const ChatDetails: React.FC = () => {
+  const chatId = useChatId();
+  const { data: chatDetails, isLoading, isError } = useChatDetail(chatId);
+
   const [isEditingName, setIsEditingName] = useState(false);
-  const [chatName, setChatName] = useState(chatDetails.name);
+  const [chatName, setChatName] = useState('');
+  const [chatNameError, setChatNameError] = useState('');
 
   // --- Start of new state and hooks ---
   const [isManagingParticipants, setIsManagingParticipants] = useState(false);
@@ -49,40 +94,86 @@ export const ChatDetails: React.FC<ChatDetailsProperties> = ({ chatDetails, isOp
   const { data: currentUser } = useChatUser();
   // --- End of new state and hooks ---
 
-  const isGroupChat = chatDetails.participants.length > 2;
-
   // Memoize the list of contacts that can be added (not already in the chat)
   const addableContacts = useMemo(() => {
     if (!allContacts) return [];
-    const participantIds = new Set(chatDetails.participants.map((p) => p.id));
+    const participantIds = new Set(chatDetails?.participants.map((p) => p.id) || []);
     return allContacts.filter(
       (contact) =>
         !participantIds.has(contact.uuid) &&
         contact.name.toLowerCase().includes(searchQuery.toLowerCase()),
     );
-  }, [allContacts, chatDetails.participants, searchQuery]);
+  }, [allContacts, chatDetails, searchQuery]);
+
+  // Initialize chat name when chatDetails loads
+  useEffect(() => {
+    if (chatDetails?.name) {
+      setChatName(chatDetails.name);
+    }
+  }, [chatDetails?.name]);
+
+  // Show loading state
+  if (isLoading) return <ChatDetailsPageSkeleton />;
+
+  // Show error state
+  if (isError || !chatDetails) return <ChatDetailsError />;
+
+  const isGroupChat = chatDetails.participants.length > 2;
+
+  // Validate chat name
+  const validateChatName = (name: string): string => {
+    if (name.trim().length === 0) {
+      return 'Chat name cannot be empty';
+    }
+    if (name.trim().length < 2) {
+      return 'Chat name must be at least 2 characters';
+    }
+    if (name.trim().length > 50) {
+      return 'Chat name must be less than 50 characters';
+    }
+    return '';
+  };
 
   // --- Handlers for chat name editing ---
   const handleSaveName = (): void => {
+    const error = validateChatName(chatName);
+    if (error) {
+      setChatNameError(error);
+      return;
+    }
+
     if (chatName.trim() !== '' && chatName !== chatDetails.name) {
       updateChatMutation.mutate(
         { chatId: chatDetails.id, name: chatName.trim() },
         {
           onSuccess: () => {
             void queryClient.invalidateQueries({ queryKey: [CHATS_QUERY_KEY] });
+            setIsEditingName(false);
+            setChatNameError('');
           },
         },
       );
+    } else {
+      setIsEditingName(false);
     }
+  };
+
+  const handleCancelEdit = (): void => {
+    setChatName(chatDetails.name);
     setIsEditingName(false);
+    setChatNameError('');
+  };
+
+  const handleChatNameChange = (value: string): void => {
+    setChatName(value);
+    if (chatNameError) {
+      setChatNameError('');
+    }
   };
 
   const handleKeyDown = (event: React.KeyboardEvent): void => {
     if (event.key === 'Enter') handleSaveName();
-    else if (event.key === 'Escape') {
-      setChatName(chatDetails.name);
-      setIsEditingName(false);
-    }
+    else if (event.key === 'Escape') handleCancelEdit();
   };
 
   // --- Start of new handlers for participant management ---
@@ -122,63 +213,91 @@ export const ChatDetails: React.FC<ChatDetailsProperties> = ({ chatDetails, isOp
     );
   };
 
-  const handleCloseDialog = (): void => {
-    setIsManagingParticipants(false);
-    setIsEditingName(false);
-    setSearchQuery('');
-    setSelectedContactsToAdd([]);
-    onClose();
-  };
+  const isFormValid = !chatNameError && chatName.trim().length >= 2 && chatName.trim().length <= 50;
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && handleCloseDialog()}>
-      <DialogContent className="z-[999] border border-gray-200 bg-white shadow-lg sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="font-heading text-xl text-gray-900">Chat Details</DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-6 py-4">
-          {/* --- Chat Name Section --- */}
-          <div className="flex items-center justify-between">
-            <div className="font-body text-sm font-medium text-gray-600">Chat Name</div>
-            {isGroupChat && (
+    <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50">
+      {/* Header */}
+      <div className="flex h-16 items-center gap-3 border-b border-gray-200 bg-white px-4 shadow-sm">
+        <Link href={`/app/chat/${chatId}`}>
+          <Button variant="ghost" size="icon" className="mr-2 hover:bg-gray-100">
+            <ArrowLeft className="h-5 w-5 text-gray-700" />
+          </Button>
+        </Link>
+        <div className="flex items-center gap-2">
+          <Settings className="h-5 w-5 text-gray-700" />
+          <h1 className="font-heading text-lg font-semibold text-gray-900">Chat Details</h1>
+        </div>
+        <div className="ml-auto">
+          {isEditingName && (
+            <div className="flex gap-2">
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
-                onClick={() => setIsEditingName(!isEditingName)}
-                className="h-8 px-2 hover:bg-gray-100"
+                onClick={handleCancelEdit}
+                className="font-body border-gray-300 hover:bg-gray-100"
               >
-                {isEditingName ? (
-                  <X className="h-4 w-4 text-gray-600" />
-                ) : (
-                  <Pencil className="h-4 w-4 text-gray-600" />
-                )}
+                Cancel
               </Button>
-            )}
-          </div>
-          {isEditingName ? (
-            <div className="flex items-center gap-2">
-              <Input
-                value={chatName}
-                onChange={(event) => setChatName(event.target.value)}
-                onKeyDown={handleKeyDown}
-                autoFocus
-                className="font-body focus:border-conveniat-green focus:ring-conveniat-green flex-1 border-gray-300"
-              />
-              <Button size="sm" onClick={handleSaveName} disabled={chatName.trim() === ''}>
-                <Check className="h-4 w-4" />
+              <Button
+                size="sm"
+                onClick={handleSaveName}
+                disabled={!isFormValid || updateChatMutation.isPending}
+                className="bg-conveniat-green font-body hover:bg-green-600 disabled:bg-gray-300"
+              >
+                {updateChatMutation.isPending ? 'Saving...' : 'Save'}
               </Button>
-            </div>
-          ) : (
-            <div className="font-heading text-lg font-semibold text-gray-900">
-              {chatDetails.name}
             </div>
           )}
+        </div>
+      </div>
 
-          <div className="h-px bg-gray-200" />
+      {/* Main Content */}
+      <div className="flex-1 overflow-y-auto p-4">
+        <div className="mx-auto max-w-2xl space-y-6">
+          {/* --- Chat Name Section --- */}
+          <div className="rounded-lg border border-gray-200 bg-white p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <div className="font-body text-sm font-medium text-gray-600">Chat Name</div>
+              {isGroupChat && !isEditingName && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsEditingName(true)}
+                  className="h-8 px-2 hover:bg-gray-100"
+                >
+                  <Pencil className="h-4 w-4 text-gray-600" />
+                </Button>
+              )}
+            </div>
+            {isEditingName ? (
+              <div className="space-y-2">
+                <Input
+                  value={chatName}
+                  onChange={(event) => handleChatNameChange(event.target.value)}
+                  onKeyDown={handleKeyDown}
+                  autoFocus
+                  className={`font-body focus:ring-conveniat-green ${
+                    chatNameError
+                      ? 'border-red-300 focus:border-red-500'
+                      : 'focus:border-conveniat-green border-gray-300'
+                  }`}
+                  placeholder="Enter chat name"
+                />
+                {chatNameError && <p className="font-body text-sm text-red-600">{chatNameError}</p>}
+                <p className="font-body text-xs text-gray-500">
+                  Chat name must be between 2-50 characters
+                </p>
+              </div>
+            ) : (
+              <div className="font-heading text-lg font-semibold text-gray-900">
+                {chatDetails.name}
+              </div>
+            )}
+          </div>
 
           {/* --- Participants Section --- */}
-          <div>
+          <div className="rounded-lg border border-gray-200 bg-white p-6">
             <div className="mb-4 flex items-center justify-between">
               <div className="font-body text-sm font-medium text-gray-600">
                 {chatDetails.participants.length} Participants
@@ -225,7 +344,11 @@ export const ChatDetails: React.FC<ChatDetailsProperties> = ({ chatDetails, isOp
                       disabled={removeParticipantMutation.isPending}
                       className="h-8 w-8 rounded-full text-red-500 hover:bg-red-50 hover:text-red-600"
                     >
-                      <UserX className="h-4 w-4" />
+                      {removeParticipantMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <UserX className="h-4 w-4" />
+                      )}
                     </Button>
                   )}
                 </div>
@@ -235,12 +358,13 @@ export const ChatDetails: React.FC<ChatDetailsProperties> = ({ chatDetails, isOp
 
           {/* --- Add Participants Section (Visible only when managing) --- */}
           {isManagingParticipants && (
-            <div className="space-y-4 pt-4">
-              <div className="h-px bg-gray-200" />
-              <h3 className="font-heading text-lg font-semibold text-gray-900">Add Participants</h3>
+            <div className="rounded-lg border border-gray-200 bg-white p-6">
+              <h3 className="font-heading mb-4 text-lg font-semibold text-gray-900">
+                Add Participants
+              </h3>
 
               {/* Search Input for adding contacts */}
-              <div className="relative">
+              <div className="relative mb-4">
                 <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <Input
                   placeholder="Search contacts to add..."
@@ -250,15 +374,40 @@ export const ChatDetails: React.FC<ChatDetailsProperties> = ({ chatDetails, isOp
                 />
               </div>
 
+              {/* Selected contacts to add */}
+              {selectedContactsToAdd.length > 0 && (
+                <div className="mb-4 space-y-2">
+                  <div className="font-body text-sm font-medium text-gray-700">
+                    Selected: {selectedContactsToAdd.length}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedContactsToAdd.map((contact) => (
+                      <div
+                        key={contact.uuid}
+                        className="font-body text-conveniat-green flex items-center gap-2 rounded-full bg-green-100 px-3 py-1 text-sm"
+                      >
+                        <span>{contact.name}</span>
+                        <button
+                          onClick={() => handleToggleContactSelection(contact)}
+                          className="rounded-full p-0.5 hover:bg-green-200"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* List of addable contacts */}
-              <div className="h-[200px] space-y-1 overflow-y-auto rounded-md border p-1">
+              <div className="mb-4 h-[200px] space-y-1 overflow-y-auto rounded-md border p-2">
                 {isLoadingContacts ? (
                   <div className="flex h-full items-center justify-center text-sm text-gray-500">
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading contacts...
                   </div>
                 ) : addableContacts.length === 0 ? (
                   <div className="flex h-full items-center justify-center text-sm text-gray-500">
-                    No contacts to add.
+                    {searchQuery ? 'No contacts found matching your search' : 'No contacts to add.'}
                   </div>
                 ) : (
                   addableContacts.map((contact) => {
@@ -266,13 +415,30 @@ export const ChatDetails: React.FC<ChatDetailsProperties> = ({ chatDetails, isOp
                     return (
                       <div
                         key={contact.uuid}
-                        className={`flex cursor-pointer items-center justify-between space-x-3 rounded-lg p-2 transition-colors ${
-                          isSelected ? 'bg-green-100' : 'hover:bg-gray-100'
+                        className={`flex cursor-pointer items-center justify-between space-x-3 rounded-lg p-3 transition-colors ${
+                          isSelected ? 'text-conveniat-green bg-green-100' : 'hover:bg-gray-100'
                         }`}
                         onClick={() => handleToggleContactSelection(contact)}
                       >
-                        <span className="font-body text-sm font-medium">{contact.name}</span>
-                        {isSelected && <Check className="h-5 w-5 text-green-600" />}
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`flex h-8 w-8 items-center justify-center rounded-full ${
+                              isSelected
+                                ? 'bg-conveniat-green text-white'
+                                : 'bg-gray-200 text-gray-600'
+                            }`}
+                          >
+                            <span className="font-heading text-sm font-semibold">
+                              {contact.name.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                          <span className="font-body text-sm font-medium">{contact.name}</span>
+                        </div>
+                        {isSelected && (
+                          <div className="bg-conveniat-green flex h-5 w-5 items-center justify-center rounded-full">
+                            <Check className="h-3 w-3 text-white" />
+                          </div>
+                        )}
                       </div>
                     );
                   })
@@ -283,15 +449,17 @@ export const ChatDetails: React.FC<ChatDetailsProperties> = ({ chatDetails, isOp
               <Button
                 onClick={handleAddParticipants}
                 disabled={selectedContactsToAdd.length === 0 || addParticipantsMutation.isPending}
-                className="w-full"
+                className="bg-conveniat-green font-body w-full hover:bg-green-600 disabled:bg-gray-300"
               >
                 <UserPlus className="mr-2 h-4 w-4" />
-                Add Selected ({selectedContactsToAdd.length})
+                {addParticipantsMutation.isPending
+                  ? 'Adding...'
+                  : `Add Selected (${selectedContactsToAdd.length})`}
               </Button>
             </div>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   );
 };

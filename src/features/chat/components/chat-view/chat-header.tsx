@@ -1,10 +1,8 @@
 'use client';
 
 import type React from 'react';
-import { useState } from 'react';
 
 import { Button } from '@/components/ui/buttons/button';
-import { ChatDetails } from '@/features/chat/components/chat-view/chat-details';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useChatUser } from '@/features/chat/hooks/use-chat-user';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
@@ -26,7 +24,6 @@ export const ChatHeader: React.FC = () => {
   const chatId = useChatId();
   const { data: user } = useChatUser();
   const { data: chatDetails } = useChatDetail(chatId);
-  const [showDetails, setShowDetails] = useState(false);
 
   if (!chatDetails) {
     return <ChatHeaderSkeleton />;
@@ -62,22 +59,11 @@ export const ChatHeader: React.FC = () => {
         </div>
 
         <div className="flex items-center">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setShowDetails(true)}
-            className="hover:bg-gray-100"
-          >
+          <Link href={`/app/chat/${chatId}/details`} className="hover:bg-gray-100">
             <Info className="h-5 w-5 text-gray-700" />
-          </Button>
+          </Link>
         </div>
       </div>
-
-      <ChatDetails
-        chatDetails={chatDetails}
-        isOpen={showDetails}
-        onClose={() => setShowDetails(false)}
-      />
     </>
   );
 };
