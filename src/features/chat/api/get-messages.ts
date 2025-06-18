@@ -137,12 +137,19 @@ export const getChats = async (): Promise<ChatDto[]> => {
   });
 };
 
-export const getChatDetail = async (chatID: string): Promise<ChatDetailDto> => {
+export const getChatDetail = async (
+  chatID: string,
+): Promise<
+  | ChatDetailDto
+  | {
+      error: string;
+    }
+> => {
   const session = await auth();
   const user = session?.user as unknown as HitobitoNextAuthUser | undefined;
 
   if (user === undefined) {
-    throw new Error('User not authenticated');
+    return { error: 'User not authenticated' };
   }
 
   const chat = await prisma.chat.findUnique({
@@ -167,17 +174,17 @@ export const getChatDetail = async (chatID: string): Promise<ChatDetailDto> => {
   });
 
   if (chat === null) {
-    throw new Error('Chat not found');
+    return { error: 'Chat not found' };
   }
 
   const messages = chat.messages;
   if (messages.length === 0) {
-    throw new Error('No messages found in chat');
+    return { error: 'No messages found in chat' };
   }
 
   const lastMessage = messages.at(-1);
   if (lastMessage === undefined) {
-    throw new Error('No messages found in chat');
+    return { error: 'No messages found in chat' };
   }
 
   return {

@@ -52,19 +52,6 @@ export const useChats = (): UseQueryResult<ChatDto[]> => {
 export const useChatDetail = (chatId: string): UseQueryResult<ChatDetailDto> => {
   const queryClient = useQueryClient();
 
-  const query = useQuery({
-    queryKey: CHAT_DETAIL_QUERY_KEY(chatId),
-    queryFn: () => getChatDetail(chatId),
-    enabled: chatId !== '',
-    refetchInterval: 5000, // 5 seconds
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
-    refetchOnReconnect: true,
-
-    // for that we have push notifications
-    refetchIntervalInBackground: false,
-  });
-
   useEffect(() => {
     const handleMessage = (): void => {
       console.log('Received message via push notification, invalidating chat detail query');
@@ -84,7 +71,25 @@ export const useChatDetail = (chatId: string): UseQueryResult<ChatDetailDto> => 
     };
   }, [queryClient, chatId]);
 
-  return query;
+  return useQuery({
+    queryKey: CHAT_DETAIL_QUERY_KEY(chatId),
+    queryFn: () =>
+      getChatDetail(chatId).then((data) => {
+        if ('error' in data) throw new Error('Failed to fetch chat detail');
+        return data;
+      }),
+    enabled: chatId !== '',
+
+    retry: 3, // Retry up to 3 times on failure
+
+    refetchInterval: 5000, // 5 seconds
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+
+    // for that we have push notifications
+    refetchIntervalInBackground: false,
+  });
 };
 
 // --- useAllContacts Hook ---

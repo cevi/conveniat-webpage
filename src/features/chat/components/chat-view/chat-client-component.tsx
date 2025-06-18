@@ -1,6 +1,6 @@
 'use client';
 import { Button } from '@/components/ui/buttons/button';
-import { ChatHeader } from '@/features/chat/components/chat-view/chat-header';
+import { ChatHeader, ChatHeaderSkeleton } from '@/features/chat/components/chat-view/chat-header';
 import { MessageInput } from '@/features/chat/components/chat-view/message-input';
 import { MessageList } from '@/features/chat/components/chat-view/message-list';
 import { useChatId } from '@/features/chat/context/chat-id-context';
@@ -9,25 +9,58 @@ import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import React from 'react';
 
+/**
+ * Message displayed if the user is offline and tries to access a chat.
+ * And the chat is not cached.
+ *
+ * @constructor
+ */
+const ChatOfflineMessage: React.FC = () => (
+  <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50">
+    <ChatHeaderSkeleton />
+    <div className="flex flex-1 items-center justify-center p-4 text-center text-gray-500">
+      <span>
+        <b>Your offline.</b>
+        <br />
+        You need to be online to view this chat.
+      </span>
+    </div>
+  </div>
+);
+
+export const ChatErrorMessage: React.FC = () => (
+  <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50">
+    <ChatHeaderSkeleton />
+    <div className="flex flex-1 items-center justify-center p-4 text-center text-red-500">
+      <span>
+        <b>Error loading chat.</b>
+        <br />
+        Please try again later.
+      </span>
+    </div>
+  </div>
+);
+
+const OfflineBanner: React.FC = () => (
+  <div className="z-[500] bg-red-100 p-4 text-center text-red-800">
+    <span className="font-semibold">
+      You are currently offline. Messages will be sent when you are back online.
+    </span>
+  </div>
+);
+
 export const ChatClientComponent: React.FC = () => {
   const chatId = useChatId();
-  const { data: chatDetail, isLoading, isPaused, isPending } = useChatDetail(chatId);
+  const { isLoading, isPaused, isPending, isError, errorUpdateCount } = useChatDetail(chatId);
 
-  if (isLoading) {
-    return <ChatSkeleton />;
-  }
-
-  if (isPaused || isPending) {
-    return <span>Offline, you need internet connection to load this chat.</span>;
-  }
-
-  if (!chatDetail) {
-    return <span>Chat not found</span>;
-  }
+  if (isLoading && errorUpdateCount === 0) return <ChatSkeleton />;
+  if (isPaused && isPending) return <ChatOfflineMessage />;
+  if (isError || (isLoading && errorUpdateCount !== 0)) return <ChatErrorMessage />;
 
   return (
     <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50">
       <ChatHeader />
+      {isPaused && <OfflineBanner />}
       <div className="flex-1 overflow-y-auto">
         <MessageList />
       </div>
