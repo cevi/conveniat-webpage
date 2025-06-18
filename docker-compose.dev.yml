@@ -7,6 +7,7 @@ services:
       args:
         - NEXT_PUBLIC_VAPID_PUBLIC_KEY=BLXA-pUY_vYom2sNw8BGmZHgJGUJvyNwwJ6ZomTm3Liv0Gs7rGrqlGMEwBobN9pVwb-OhJFAlxy-UwHI3fCQ250
         - NEXT_PUBLIC_APP_HOST_URL=https://conveniat27.cevi.tools
+        - NEXT_PUBLIC_ENABLE_OFFLINE_SUPPORT=true
 
     deploy:
       labels:
