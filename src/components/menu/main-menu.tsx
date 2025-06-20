@@ -46,7 +46,7 @@ export const MainMenu: React.FC = async () => {
         {isInAppDesign && (
           <>
             <div className="py-6">
-              <h3 className="text-conveniat-green mb-2 font-semibold">App Funktionen</h3>
+              <h3 className="text-conveniat-green mb-2 font-bold">App Funktionen</h3>
 
               <LinkComponent href="/app/reservations" openInNewTab={false}>
                 <span className="closeNavOnClick -mx-3 flex items-center gap-2 rounded-lg px-3 py-2 text-base/7 font-semibold text-gray-700 hover:bg-gray-50">
@@ -74,9 +74,7 @@ export const MainMenu: React.FC = async () => {
         )}
 
         <div className="py-6">
-          {isInAppDesign && (
-            <h3 className="text-conveniat-green mb-2 font-semibold">Web Inhalte</h3>
-          )}
+          {isInAppDesign && <h3 className="text-conveniat-green mb-2 font-bold">Web Inhalte</h3>}
 
           {mainMenu.map(async (item) => {
             if (item.subMenu && item.subMenu.length > 0) {
