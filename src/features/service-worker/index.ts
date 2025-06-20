@@ -1,4 +1,4 @@
-import { offlineSupportInstallHandler } from '@/features/service-worker/offline-support';
+import { serwistFactory } from '@/features/service-worker/offline-support';
 import {
   notificationClickHandler,
   pushNotificationHandler,
@@ -29,13 +29,28 @@ declare global {
 // Ensures the global `self` variable is correctly typed as `ServiceWorkerGlobalScope`.
 declare const self: ServiceWorkerGlobalScope;
 
-// offline support
-//  » handled by serwist
-self.addEventListener('install', offlineSupportInstallHandler(self.__SW_MANIFEST));
+// offline support » handled by serwist
+const serwist = serwistFactory(
+  self.__SW_MANIFEST ?? [],
+  process.env['NEXT_PUBLIC_ENABLE_OFFLINE_SUPPORT'] === 'true',
+);
 
-// push notifications
-//  » has nothing to do with serwist
+// push notifications » has nothing to do with serwist
 self.addEventListener('push', pushNotificationHandler(self));
 self.addEventListener('pushsubscriptionchange', () => {});
 self.addEventListener('notificationclick', notificationClickHandler(self));
 self.addEventListener('notificationclose', () => {});
+
+// additional event listeners
+self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim());
+  console.log('Service Worker: Activated and ready to handle requests.');
+});
+
+self.addEventListener('fetch', (event) => {
+  // Log fetch events for debugging purposes
+  console.log(`Service Worker: Fetching ${event.request.url}`);
+});
+
+// this should be called after all custom event listeners are registered
+serwist.addEventListeners();

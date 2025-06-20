@@ -2,6 +2,7 @@
 
 import type { Contact } from '@/features/chat/api/get-contacts';
 import prisma from '@/features/chat/database';
+import { MessageEventType, MessageType } from '@/lib/prisma/client';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import { auth } from '@/utils/auth-helpers';
 import { z } from 'zod';
@@ -75,18 +76,17 @@ export const createChat = async (
         messages: {
           create: {
             content: 'New chat created',
-            sender: {
-              connect: {
-                uuid: user.uuid,
+            type: MessageType.SYSTEM,
+            messageEvents: {
+              create: {
+                eventType: MessageEventType.CREATED,
               },
             },
           },
         },
         chatMemberships: {
           create: [
-            {
-              user: { connect: { uuid: user.uuid } },
-            },
+            { user: { connect: { uuid: user.uuid } } },
             ...validatedMembers.map((member) => ({
               user: { connect: { uuid: member.uuid } },
             })),

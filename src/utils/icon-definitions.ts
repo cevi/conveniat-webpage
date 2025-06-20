@@ -3,7 +3,7 @@ import type { Metadata, MetadataRoute } from 'next';
 const iconsDefinitions: { src: string; sizes: string; type: string; rel?: string }[] = [
   {
     src: '/favicon.ico',
-    sizes: '48x48',
+    sizes: '32x32',
     type: 'image/x-icon',
   },
   {

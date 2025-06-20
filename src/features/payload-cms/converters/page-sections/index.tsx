@@ -12,6 +12,7 @@ import {
   RenderFormBlock,
   RenderHeroSection,
   RenderInstagramEmbed,
+  RenderNewsCard,
   RenderPhotoCarousel,
   RenderRichTextSection,
   RenderSinglePicture,
@@ -58,6 +59,7 @@ export const PageSectionsConverter: React.FC<
     countdown: RenderCountdown,
     whiteSpace: RenderWhiteSpace,
     callToAction: RenderCallToAction,
+    newsCard: RenderNewsCard,
   };
 
   return (

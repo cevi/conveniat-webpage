@@ -6,6 +6,7 @@ import { fileDownloadBlock } from '@/features/payload-cms/payload-cms/shared-blo
 import { formBlock } from '@/features/payload-cms/payload-cms/shared-blocks/form-block';
 import { heroSection } from '@/features/payload-cms/payload-cms/shared-blocks/hero-section-block';
 import { instagramEmbedBlock } from '@/features/payload-cms/payload-cms/shared-blocks/instagram-embed-block';
+import { newsCardBlock } from '@/features/payload-cms/payload-cms/shared-blocks/news-card-block';
 import { photoCarouselBlock } from '@/features/payload-cms/payload-cms/shared-blocks/photo-carousel-block';
 import { richTextArticleBlock } from '@/features/payload-cms/payload-cms/shared-blocks/rich-text-article-block';
 import { singlePictureBlock } from '@/features/payload-cms/payload-cms/shared-blocks/single-picture-block';
@@ -56,5 +57,6 @@ export const mainContentField: Field = {
       fields: [],
     },
     callToActionBlock,
+    newsCardBlock,
   ],
 };

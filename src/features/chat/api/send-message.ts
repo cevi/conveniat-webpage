@@ -1,9 +1,10 @@
 'use server';
 
 import prisma from '@/features/chat/database';
-import type { SendMessage } from '@/features/chat/types/chat';
+import type { SendMessageDto } from '@/features/chat/types/api-dto-types';
 // eslint-disable-next-line import/no-restricted-paths
 import { sendNotificationToSubscription } from '@/features/onboarding/api/push-notification';
+import { MessageEventType } from '@/lib/prisma';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import { auth } from '@/utils/auth-helpers';
 import config from '@payload-config';
@@ -17,11 +18,34 @@ const sendMessageSchema = z.object({
     .string()
     .min(1, 'Message content cannot be empty.')
     .max(2000, 'Message content is too long.'),
+  timestamp: z.preprocess(
+    (argument) => {
+      if (argument instanceof Date) {
+        if (argument > new Date()) return new Date();
+        return argument;
+      }
+
+      if (typeof argument === 'string' || typeof argument === 'number') {
+        const date = new Date(argument);
+        if (!Number.isNaN(date.getTime()) && date > new Date()) return new Date();
+        return date;
+      }
+
+      // If it's neither a Date, string, nor number, return it as is.
+      // z.date() will then handle the final validation
+      // (e.g., throwing an error if it's not a valid date).
+      return argument;
+    },
+    z.date({
+      invalid_type_error: 'Timestamp must be a valid date.',
+    }),
+  ),
 });
 
 /**
  * Sends a push notification to the user.
  * @param message
+ * @param recipientUserIds
  */
 async function sendNotification(
   message: string,
@@ -36,8 +60,6 @@ async function sendNotification(
   if (totalDocs === 0) {
     throw new Error('No subscription available');
   }
-
-  console.log(recipientUserIds);
 
   const { docs: subscriptions } = await payload.find({
     collection: 'push-notification-subscriptions',
@@ -73,7 +95,7 @@ async function sendNotification(
 }
 
 // eslint-disable-next-line complexity
-export const sendMessage = async (message: SendMessage): Promise<void> => {
+export const sendMessage = async (message: SendMessageDto): Promise<void> => {
   const session = await auth();
   const user = session?.user as unknown as HitobitoNextAuthUser | undefined;
   if (user === undefined) {
@@ -99,7 +121,6 @@ export const sendMessage = async (message: SendMessage): Promise<void> => {
         chatMemberships: true,
       },
     });
-    console.log(chat);
 
     if (
       !chat ||
@@ -121,7 +142,7 @@ export const sendMessage = async (message: SendMessage): Promise<void> => {
       .filter((membership) => membership.userId !== user.uuid)
       .map((membership) => membership.userId);
 
-    await prisma.message.create({
+    const createdMessage = await prisma.message.create({
       data: {
         content: validatedMessage.content,
         sender: {
@@ -134,13 +155,49 @@ export const sendMessage = async (message: SendMessage): Promise<void> => {
             uuid: validatedMessage.chatId,
           },
         },
+        messageEvents: {
+          create: [
+            {
+              eventType: MessageEventType.CREATED,
+              timestamp: validatedMessage.timestamp,
+              userId: user.uuid,
+            },
+            {
+              eventType: MessageEventType.SERVER_RECEIVED,
+              timestamp: new Date(),
+            },
+          ],
+        },
       },
     });
 
-    // 4. Send push notification (fire-and-forget, but with better error logging)
-    sendNotification(validatedMessage.content, recipientUserIds).catch((error: unknown) => {
-      console.error(`Error sending notification for chat ${validatedMessage.chatId}:`, error);
+    // TODO: set change lastUpdate of chat (this should be a transaction with the above)
+    await prisma.chat.update({
+      where: {
+        uuid: validatedMessage.chatId,
+      },
+      data: {
+        lastUpdate: new Date(),
+      },
     });
+
+    console.log(`Message created with ID: ${createdMessage.uuid}`);
+
+    // 4. Send push notification (fire-and-forget, but with better error logging)
+    sendNotification(validatedMessage.content, recipientUserIds)
+      .then(async () => {
+        await prisma.messageEvent.createMany({
+          data: recipientUserIds.map((userId) => ({
+            userId: userId,
+            messageId: createdMessage.uuid,
+            eventType: MessageEventType.SERVER_SENT,
+            timestamp: new Date(),
+          })),
+        });
+      })
+      .catch((error: unknown) => {
+        console.error(`Error sending notification for chat ${validatedMessage.chatId}:`, error);
+      });
   } catch (error) {
     console.error('Error sending message:', error);
     throw error instanceof Error &&

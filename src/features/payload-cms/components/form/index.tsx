@@ -321,7 +321,7 @@ const ProgressBar: React.FC<{
       </div>
       <div className="h-2 w-full rounded-full bg-gray-200">
         <div
-          className="h-2 rounded-full bg-[#47564c] transition-all duration-300 ease-in-out"
+          className="bg-conveniat-green h-2 rounded-full transition-all duration-300 ease-in-out"
           style={{
             width: `${((currentStepIndex + 1) / definedSteps.length) * 100}%`,
           }}
@@ -342,7 +342,7 @@ const ResetFormButton: React.FC<{
     <button
       type="button"
       onClick={onClick}
-      className="mt-4 h-10 w-full rounded-lg bg-[#47564c] px-4 font-['Montserrat'] text-base font-bold text-[#e1e6e2] transition duration-300 hover:bg-[#3b4a3f] sm:w-auto"
+      className="bg-conveniat-green mt-4 h-10 w-full rounded-lg px-4 font-['Montserrat'] text-base font-bold text-[#e1e6e2] transition duration-300 hover:bg-[#3b4a3f] sm:w-auto"
     >
       {resetFormText[locale as Locale]}
     </button>
@@ -681,7 +681,7 @@ export const FormBlock: React.FC<
               type="submit"
               disabled={isSubmitting}
               form={formID}
-              className="mt-6 h-10 w-full cursor-pointer rounded-lg bg-[#47564c] font-['Montserrat'] text-base font-bold text-[#e1e6e2] transition duration-300 hover:bg-[#3b4a3f] disabled:opacity-50"
+              className="bg-conveniat-green mt-6 h-10 w-full cursor-pointer rounded-lg font-['Montserrat'] text-base font-bold text-[#e1e6e2] transition duration-300 hover:bg-[#3b4a3f] disabled:opacity-50"
             >
               {isSubmitting ? pleaseWaitText[locale as Locale] : submitButtonLabel}
             </button>

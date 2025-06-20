@@ -10,19 +10,19 @@ Next.js and Payload CMS.
 - [Core Technologies](#core-technologies)
 - [Prerequisites](#prerequisites)
 - [Getting Started](#getting-started)
-  - [Launch Project Locally (Devcontainer Recommended)](#launch-project-locally-devcontainer-recommended)
-  - [Local Development Commands](#local-development-commands)
-  - [Accessing the Payload Admin Panel](#accessing-the-payload-admin-panel)
+    - [Launch Project Locally (Devcontainer Recommended)](#launch-project-locally-devcontainer-recommended)
+    - [Local Development Commands](#local-development-commands)
+    - [Accessing the Payload Admin Panel](#accessing-the-payload-admin-panel)
 - [Project Structure](#project-structure)
-  - [Folder Overview](#folder-overview)
-  - [Feature-Based Modularity](#feature-based-modularity)
+    - [Folder Overview](#folder-overview)
+    - [Feature-Based Modularity](#feature-based-modularity)
 - [Key Concepts](#key-concepts)
-  - [Dynamic Page Rendering](#dynamic-page-rendering)
-  - [Progressive Web App (PWA)](#progressive-web-app-pwa)
+    - [Dynamic Page Rendering](#dynamic-page-rendering)
+    - [Progressive Web App (PWA)](#progressive-web-app-pwa)
 - [Code Quality & Conventions](#code-quality--conventions)
-  - [TypeScript Strictness](#typescript-strictness)
-  - [Linting and Formatting](#linting-and-formatting)
-  - [Import Restrictions](#import-restrictions)
+    - [TypeScript Strictness](#typescript-strictness)
+    - [Linting and Formatting](#linting-and-formatting)
+    - [Import Restrictions](#import-restrictions)
 - [UI Component Library](#ui-component-library)
 - [Environment Variables](#environment-variables)
 - [License](#license)
@@ -125,11 +125,11 @@ src/
   subdirectories, scoped to that feature.
 - **Import Restrictions:** ESLint rules (`import/no-restricted-paths` in `eslint.config.mjs`) enforce unidirectional
   dependencies:
-  - `app` can import from `features` and shared directories (`components`, `hooks`, etc.).
-  - `features` _cannot_ import from `app` or shared directories.
-  - Features generally should _not_ import directly from other features, promoting loose coupling. Exceptions are
-    explicitly defined (e.g., `payload-cms` and `next-auth` can be imported more broadly).
-  - Shared directories (`components`, `hooks`, `lib`, `types`, `utils`) should not import from `app` or `features`.
+    - `app` can import from `features` and shared directories (`components`, `hooks`, etc.).
+    - `features` _cannot_ import from `app` or shared directories.
+    - Features generally should _not_ import directly from other features, promoting loose coupling. Exceptions are
+      explicitly defined (e.g., `payload-cms` and `next-auth` can be imported more broadly).
+    - Shared directories (`components`, `hooks`, `lib`, `types`, `utils`) should not import from `app` or `features`.
 - **Payload CMS Exception:** The `payload-cms` feature is central and can be imported by other parts of the application
   as it defines the core data structures / content types used throughout the app.
 
@@ -255,6 +255,31 @@ your default browser.
 
 ```bash
 ANALYZE=true pnpm build
+```
+
+## Migrate Production Database
+
+The following commands are used to generate and apply migrations to the postgreSQL database.
+
+```bash
+###############################################
+# Generate and apply migrations to conveniat27.cevi.tools
+###############################################
+export DB_PASSWORD= # dev deployment database password
+export CHAT_DATABASE_URL="postgres://conveniat27:$DB_PASSWORD@db.conveniat27.cevi.tools:443/conveniat27"
+
+# check status (this will show the current migration status)
+npx prisma migrate diff --from-url $CHAT_DATABASE_URL --to-schema-datamodel prisma/schema.prisma
+
+# create a new migration
+npx prisma migrate dev --schema prisma/schema.prisma
+
+#############################################
+# Apply migrations to conveniat27.ch
+#############################################
+export DB_PASSWORD= # prod deployment database password
+export CHAT_DATABASE_URL="postgres://conveniat27:$DB_PASSWORD@conveniat27.ch:443/conveniat27"
+npx prisma migrate deploy --schema prisma/schema.prisma
 ```
 
 ## License
