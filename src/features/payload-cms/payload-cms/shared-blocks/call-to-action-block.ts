@@ -18,5 +18,16 @@ export const callToActionBlock: Block = {
       },
     },
     LinkField,
+    {
+      name: 'inverted',
+      type: 'checkbox',
+      admin: {
+        description: {
+          en: 'Show inverted colors',
+          de: 'Zeige umgekehrte Farben',
+          fr: 'Afficher les couleurs inversées',
+        },
+      },
+    },
   ],
 };

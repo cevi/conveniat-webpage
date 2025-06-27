@@ -1,6 +1,7 @@
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { SubheadingH2 } from '@/components/ui/typography/subheading-h2';
 import { SubheadingH3 } from '@/components/ui/typography/subheading-h3';
+import { cn } from '@/utils/tailwindcss-override';
 import type { SerializedHeadingNode } from '@payloadcms/richtext-lexical';
 import type { JSXConverters } from '@payloadcms/richtext-lexical/react';
 import type { ReactNode } from 'react';
@@ -39,6 +40,18 @@ export const HeadingJSXConverter: JSXConverters<SerializedHeadingNode> = {
       }
     }
 
-    return <NodeTag>{children}</NodeTag>;
+    const format = node.format;
+    return (
+      <NodeTag
+        className={cn(
+          format === 'left' && 'text-left',
+          format === 'center' && 'text-center',
+          format === 'right' && 'text-right',
+          format === 'justify' && 'text-justify',
+        )}
+      >
+        {children}
+      </NodeTag>
+    );
   },
 };

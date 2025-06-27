@@ -72,9 +72,8 @@ export const withSerwist = withSerwistInit({
   cacheOnNavigation: true,
   swSrc: 'src/features/service-worker/index.ts',
   swDest: 'public/sw.js',
-  additionalPrecacheEntries: [{ url: '/offline', revision: serviceWorkerRevision }],
   register: true,
-  reloadOnOnline: true,
+  reloadOnOnline: false, // don't reload the page when going online
   disable:
     (process.env.NODE_ENV !== 'production' &&
       process.env['ENABLE_SERVICE_WORKER_LOCALLY'] !== 'true') ||

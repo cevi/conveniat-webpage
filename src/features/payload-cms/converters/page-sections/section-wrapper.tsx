@@ -14,14 +14,6 @@ const errorMessageText: StaticTranslationString = {
 };
 
 const ErrorFallback: React.FC<{ error: Error }> = async ({ error }) => {
-  import('@/lib/posthog-server')
-    .then(({ getPostHogServer }): void => {
-      const posthog = getPostHogServer();
-      if (!posthog) return; // throw away if posthog is not available
-      posthog.captureException(error);
-    })
-    .catch(() => {});
-
   const locale = await getLocaleFromCookies();
 
   return (

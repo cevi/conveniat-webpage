@@ -257,6 +257,31 @@ your default browser.
 ANALYZE=true pnpm build
 ```
 
+## Migrate Production Database
+
+The following commands are used to generate and apply migrations to the postgreSQL database.
+
+```bash
+###############################################
+# Generate and apply migrations to conveniat27.cevi.tools
+###############################################
+export DB_PASSWORD= # dev deployment database password
+export CHAT_DATABASE_URL="postgres://conveniat27:$DB_PASSWORD@db.conveniat27.cevi.tools:443/conveniat27"
+
+# check status (this will show the current migration status)
+npx prisma migrate diff --from-url $CHAT_DATABASE_URL --to-schema-datamodel prisma/schema.prisma
+
+# create a new migration
+npx prisma migrate dev --schema prisma/schema.prisma
+
+#############################################
+# Apply migrations to conveniat27.ch
+#############################################
+export DB_PASSWORD= # prod deployment database password
+export CHAT_DATABASE_URL="postgres://conveniat27:$DB_PASSWORD@conveniat27.ch:443/conveniat27"
+npx prisma migrate deploy --schema prisma/schema.prisma
+```
+
 ## License
 
 This project is licensed under the [MIT](LICENSE.md) License — see the `LICENSE` file for details.

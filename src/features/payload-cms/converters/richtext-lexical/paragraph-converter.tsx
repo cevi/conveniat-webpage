@@ -1,4 +1,5 @@
 import { ParagraphText } from '@/components/ui/typography/paragraph-text';
+import { cn } from '@/utils/tailwindcss-override';
 import type { SerializedParagraphNode } from '@payloadcms/richtext-lexical';
 import type { JSXConverters } from '@payloadcms/richtext-lexical/react';
 
@@ -15,6 +16,19 @@ export const ParagraphJSXConverter: JSXConverters<SerializedParagraphNode> = {
       return <></>;
     }
 
-    return <ParagraphText>{children}</ParagraphText>;
+    const format = node.format;
+
+    return (
+      <ParagraphText
+        className={cn(
+          format === 'left' && 'text-left',
+          format === 'center' && 'text-center text-balance',
+          format === 'right' && 'text-right',
+          format === 'justify' && 'text-justify',
+        )}
+      >
+        {children}
+      </ParagraphText>
+    );
   },
 };

@@ -1,9 +1,8 @@
-import { NewsCard } from '@/components/news-card';
-import { LinkComponent } from '@/components/ui/link-component';
+import { NewsCardBlock } from '@/components/news-card';
+import type { LinkFieldDataType } from '@/features/payload-cms/payload-cms/shared-fields/link-field';
 import type { Blog } from '@/features/payload-cms/payload-types';
 import type { LocalizedPageType, StaticTranslationString } from '@/types/types';
 import config from '@payload-config';
-import Image from 'next/image';
 import { getPayload } from 'payload';
 import React from 'react';
 
@@ -20,23 +19,22 @@ export const BlogDisplay: React.FC<{ blog: Blog }> = ({ blog }) => {
     );
   }
 
-  const source: string = blog.content.bannerImage.sizes?.large?.url ?? '/images/placeholder.png';
+  const linkField: LinkFieldDataType = {
+    type: 'reference',
+    reference: {
+      relationTo: 'blog',
+      value: blog,
+    },
+  };
 
-  // the alt text may be not defined in all locales
-  const altText = blog.content.bannerImage.alt as string | undefined;
   return (
     <React.Fragment key={blog.seo.urlSlug}>
-      <LinkComponent href={`/blog/${blog.seo.urlSlug}`} key={blog.id}>
-        <NewsCard date={blog.content.releaseDate} headline={blog.content.blogH1}>
-          <Image
-            className="w-full object-cover"
-            src={source}
-            alt={altText ?? 'Blog post banner image'}
-            width={1200}
-            height={800}
-          />
-        </NewsCard>
-      </LinkComponent>{' '}
+      <NewsCardBlock
+        date={blog.content.releaseDate}
+        headline={blog.content.blogH1}
+        linkField={linkField}
+        image={blog.content.bannerImage}
+      />{' '}
     </React.Fragment>
   );
 };

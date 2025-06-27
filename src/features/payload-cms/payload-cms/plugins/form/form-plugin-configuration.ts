@@ -513,18 +513,18 @@ const formSelectBlock: Block = {
           type: 'row',
           fields: [
             {
+              name: 'value',
+              type: 'text',
+              admin: { width: '50%' },
+              label: 'Name (lowercase, no special characters)',
+              required: true,
+            },
+            {
               name: 'label',
               type: 'text',
               admin: { width: '50%' },
               label: 'Label',
               localized: true,
-              required: true,
-            },
-            {
-              name: 'value',
-              type: 'text',
-              admin: { width: '50%' },
-              label: 'Value',
               required: true,
             },
           ],

@@ -33,7 +33,7 @@ export const SearchComponent: React.FC<{ locale: Locale; actionURL: string }> = 
   return (
     <div className="mx-auto w-full max-w-md py-6">
       <form
-        className="mx-2 flex overflow-hidden rounded-lg border border-[#cbd5d1] bg-white shadow-xs focus-within:ring-2 focus-within:ring-[#47564c]"
+        className="focus-within:ring-conveniat-green mx-2 flex overflow-hidden rounded-lg border border-[#cbd5d1] bg-white shadow-xs focus-within:ring-2"
         id="search-form"
         onSubmit={onSubmit}
       >
@@ -46,7 +46,7 @@ export const SearchComponent: React.FC<{ locale: Locale; actionURL: string }> = 
         />
         <button
           type="submit"
-          className="flex h-12 cursor-pointer items-center justify-center bg-[#47564c] px-4 text-white transition-colors duration-300 hover:bg-[#3b4a3f]"
+          className="bg-conveniat-green flex h-12 cursor-pointer items-center justify-center px-4 text-white transition-colors duration-300 hover:bg-[#3b4a3f]"
         >
           <span className="sr-only">{searchButtonText[locale as Locale]}</span>
           <Search className="text-lg" aria-hidden="true" />

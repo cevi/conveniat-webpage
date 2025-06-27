@@ -30,7 +30,7 @@ export const Checkbox: React.FC<
       <div className="flex items-center">
         <input
           id={name}
-          className={`text-conveniat-green h-4 w-4 rounded border-0 bg-green-100 shadow-sm ring-1 ring-inset ${hasError ? 'ring-red-500' : 'ring-transparent'} transition-all duration-200 focus:ring-2 focus:ring-[#47564c] focus:ring-offset-0 focus:outline-none`}
+          className={`text-conveniat-green h-4 w-4 rounded border-0 bg-green-100 shadow-sm ring-1 ring-inset ${hasError ? 'ring-red-500' : 'ring-transparent'} focus:ring-conveniat-green transition-all duration-200 focus:ring-2 focus:ring-offset-0 focus:outline-none`}
           type="checkbox"
           {...registerAction(name, {
             required: requiredFromProperties ? fieldIsRequiredText[locale as Locale] : false,
