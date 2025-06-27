@@ -402,48 +402,52 @@ export const ChatDetails: React.FC = () => {
 
               {/* List of addable contacts */}
               <div className="mb-4 h-[200px] space-y-1 overflow-y-auto rounded-md border p-2">
-                {isLoadingContacts ? (
+                {isLoadingContacts && (
                   <div className="flex h-full items-center justify-center text-sm text-gray-500">
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading contacts...
                   </div>
-                ) : addableContacts.length === 0 ? (
-                  <div className="flex h-full items-center justify-center text-sm text-gray-500">
-                    {searchQuery ? 'No contacts found matching your search' : 'No contacts to add.'}
-                  </div>
-                ) : (
-                  addableContacts.map((contact) => {
-                    const isSelected = selectedContactsToAdd.some((c) => c.uuid === contact.uuid);
-                    return (
-                      <div
-                        key={contact.uuid}
-                        className={`flex cursor-pointer items-center justify-between space-x-3 rounded-lg p-3 transition-colors ${
-                          isSelected ? 'text-conveniat-green bg-green-100' : 'hover:bg-gray-100'
-                        }`}
-                        onClick={() => handleToggleContactSelection(contact)}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`flex h-8 w-8 items-center justify-center rounded-full ${
-                              isSelected
-                                ? 'bg-conveniat-green text-white'
-                                : 'bg-gray-200 text-gray-600'
-                            }`}
-                          >
-                            <span className="font-heading text-sm font-semibold">
-                              {contact.name.charAt(0).toUpperCase()}
-                            </span>
-                          </div>
-                          <span className="font-body text-sm font-medium">{contact.name}</span>
-                        </div>
-                        {isSelected && (
-                          <div className="bg-conveniat-green flex h-5 w-5 items-center justify-center rounded-full">
-                            <Check className="h-3 w-3 text-white" />
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })
                 )}
+                {!isLoadingContacts &&
+                  (addableContacts.length === 0 ? (
+                    <div className="flex h-full items-center justify-center text-sm text-gray-500">
+                      {searchQuery === ''
+                        ? 'No contacts to add.'
+                        : 'No contacts found matching your search'}
+                    </div>
+                  ) : (
+                    addableContacts.map((contact) => {
+                      const isSelected = selectedContactsToAdd.some((c) => c.uuid === contact.uuid);
+                      return (
+                        <div
+                          key={contact.uuid}
+                          className={`flex cursor-pointer items-center justify-between space-x-3 rounded-lg p-3 transition-colors ${
+                            isSelected ? 'text-conveniat-green bg-green-100' : 'hover:bg-gray-100'
+                          }`}
+                          onClick={() => handleToggleContactSelection(contact)}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`flex h-8 w-8 items-center justify-center rounded-full ${
+                                isSelected
+                                  ? 'bg-conveniat-green text-white'
+                                  : 'bg-gray-200 text-gray-600'
+                              }`}
+                            >
+                              <span className="font-heading text-sm font-semibold">
+                                {contact.name.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                            <span className="font-body text-sm font-medium">{contact.name}</span>
+                          </div>
+                          {isSelected && (
+                            <div className="bg-conveniat-green flex h-5 w-5 items-center justify-center rounded-full">
+                              <Check className="h-3 w-3 text-white" />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  ))}
               </div>
 
               {/* Add Button */}
