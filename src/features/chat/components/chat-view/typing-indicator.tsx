@@ -21,7 +21,7 @@ export const TypingIndicator: React.FC<TypingIndicatorProperties> = ({ userName 
           className={cn('h-2 w-2 animate-bounce rounded-full bg-gray-400', 'animation-delay-300')}
         />
       </div>
-      <span className="text-xs text-gray-500">{userName} is typing...</span>
+      <span className="font-body text-xs text-gray-500">{userName} is typing...</span>
     </div>
   );
 };

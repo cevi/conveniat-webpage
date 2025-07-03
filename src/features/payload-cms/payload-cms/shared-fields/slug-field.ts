@@ -24,8 +24,10 @@ export const SlugField = (collectionName: CustomSlugComponentProperties): TextFi
   hooks: {
     afterChange: [
       (): void => {
-        console.log('Slug changed, revalidating sitemap');
-        revalidateTag('sitemap');
+        try {
+          revalidateTag('sitemap');
+          console.log('Slug changed, revalidating sitemap');
+        } catch {}
       },
     ],
   },

@@ -14,7 +14,7 @@ import { renderInAppDesign } from '@/utils/render-in-app-design';
 import { cn } from '@/utils/tailwindcss-override';
 import { Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/react';
 import config from '@payload-config';
-import { ChevronDown } from 'lucide-react';
+import { CalendarCheck2, ChevronDown, ImageUp, Truck } from 'lucide-react';
 import { getPayload } from 'payload';
 import type React from 'react';
 
@@ -24,7 +24,7 @@ export const MainMenu: React.FC = async () => {
   const isInAppDesign = await renderInAppDesign();
   const build = await getBuildInfo();
 
-  const actionURL = specialPagesTable['search']?.alternatives[locale] || '/search';
+  const actionURL = specialPagesTable['search']?.alternatives[locale] ?? '/search';
 
   const { mainMenu } = await payload.findGlobal({ slug: 'header', locale });
   if (mainMenu === undefined || mainMenu === null) return;
@@ -42,7 +42,40 @@ export const MainMenu: React.FC = async () => {
             conveniat27
           </LinkComponent>
         </span>
+
+        {isInAppDesign && (
+          <>
+            <div className="py-6">
+              <h3 className="text-conveniat-green mb-2 font-bold">App Funktionen</h3>
+
+              <LinkComponent href="/app/reservations" openInNewTab={false}>
+                <span className="closeNavOnClick -mx-3 flex items-center gap-2 rounded-lg px-3 py-2 text-base/7 font-semibold text-gray-700 hover:bg-gray-50">
+                  <Truck aria-hidden="true" className="size-5" />
+                  Fahrzeug Reservieren
+                </span>
+              </LinkComponent>
+
+              <LinkComponent href="/app/helper-portal" openInNewTab={false}>
+                <span className="closeNavOnClick -mx-3 flex items-center gap-2 rounded-lg px-3 py-2 text-base/7 font-semibold text-gray-700 hover:bg-gray-50">
+                  <CalendarCheck2 aria-hidden="true" className="size-5" />
+                  Helfer Schichten
+                </span>
+              </LinkComponent>
+
+              <LinkComponent href="/app/upload-picture" openInNewTab={false}>
+                <span className="closeNavOnClick -mx-3 flex items-center gap-2 rounded-lg px-3 py-2 text-base/7 font-semibold text-gray-700 hover:bg-gray-50">
+                  <ImageUp aria-hidden="true" className="size-5" />
+                  Bilder hochladen
+                </span>
+              </LinkComponent>
+            </div>
+            <hr className="border-t-2 text-gray-100" />
+          </>
+        )}
+
         <div className="py-6">
+          {isInAppDesign && <h3 className="text-conveniat-green mb-2 font-bold">Web Inhalte</h3>}
+
           {mainMenu.map(async (item) => {
             if (item.subMenu && item.subMenu.length > 0) {
               const subMenuItemsWherePermitted = await Promise.all(

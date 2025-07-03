@@ -309,14 +309,8 @@ const hasDiffs = (
           const v1 = value1 as { id: string }[] | undefined;
           const v2 = value2 as { id: string }[] | undefined;
           if (v1 === undefined || v2 === undefined) continue;
-
           if (v1.length !== v2.length) return true; // different number of items
-
-          for (const [index, element] of v1.entries()) {
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-expect-error
-            if (element.id !== v2[index].id) return true; // different id
-          }
+          if (v1.toString() !== v2.toString()) return true; // different ids
           break; // no diff found, continue with the next field
         }
 

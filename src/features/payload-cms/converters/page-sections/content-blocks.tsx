@@ -1,6 +1,8 @@
 import { ClientOnly } from '@/components/client-only';
 import type { PhotoCarouselBlock } from '@/components/gallery';
 import { PhotoCarousel } from '@/components/gallery';
+import type { NewsCardType } from '@/components/news-card';
+import { NewsCardBlock } from '@/components/news-card';
 import { Accordion } from '@/features/payload-cms/components/accordion/accordion';
 import type { CallToActionType } from '@/features/payload-cms/components/content-blocks/call-to-action';
 import { CallToActionBlock } from '@/features/payload-cms/components/content-blocks/call-to-action';
@@ -58,7 +60,8 @@ export type ContentBlockTypeNames =
   | 'timelineEntries'
   | 'countdown'
   | 'whiteSpace'
-  | 'callToAction';
+  | 'callToAction'
+  | 'newsCard';
 
 export type SectionRenderer<T = object> = React.FC<
   LocalizedPageType & {
@@ -521,6 +524,27 @@ export const RenderCallToAction: SectionRenderer<CallToActionType> = async ({
       })}
     >
       <CallToActionBlock {...block} />
+    </SectionWrapper>
+  );
+};
+
+export const RenderNewsCard: SectionRenderer<NewsCardType> = async ({
+  block,
+  sectionClassName,
+  sectionOverrides,
+}) => {
+  return (
+    <SectionWrapper
+      block={block}
+      sectionClassName={sectionClassName}
+      sectionOverrides={sectionOverrides}
+      errorFallbackMessage={await errorMessageForType({
+        de: 'Die News-Card',
+        en: 'news-card',
+        fr: 'la news-card',
+      })}
+    >
+      <NewsCardBlock {...block} />
     </SectionWrapper>
   );
 };

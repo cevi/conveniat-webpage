@@ -10,6 +10,7 @@ import React from 'react';
 
 // These styles apply to every route in the application
 import '@/app/globals.scss';
+import { DynamicAppTitleProvider } from '@/components/header/dynamic-app-title-name';
 
 interface LayoutProperties {
   children: ReactNode;
@@ -45,15 +46,16 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children }) => {
         )}
       >
         <PostHogProvider>
-          <HeaderComponent />
+          <DynamicAppTitleProvider>
+            <HeaderComponent />
+            <div className="absolute top-0 z-[-999] h-screen w-full p-[56px] xl:pl-[480px]">
+              <CeviLogo className="mx-auto h-full max-h-[60vh] w-full max-w-[384px] opacity-10 blur-md" />
+            </div>
 
-          <div className="absolute top-0 z-[-999] h-screen w-full p-[56px] xl:pl-[480px]">
-            <CeviLogo className="mx-auto h-full max-h-[60vh] w-full max-w-[384px] opacity-10 blur-md" />
-          </div>
-
-          <div className="mt-[62px] h-[calc(100dvh-62px)] overflow-y-scroll xl:ml-[480px]">
-            <main className="flex min-h-full flex-col justify-between">{children}</main>
-          </div>
+            <div className="mt-[62px] h-[calc(100dvh-62px)] overflow-y-scroll xl:ml-[480px]">
+              <main className="flex min-h-full flex-col justify-between">{children}</main>
+            </div>
+          </DynamicAppTitleProvider>
         </PostHogProvider>
       </body>
     </html>
