@@ -6,6 +6,7 @@ import type {
   InitialMapPose,
 } from '@/features/map/components/types';
 import { reactToDomElement } from '@/utils/react-to-dom-element';
+import type { LucideProps } from 'lucide-react';
 import { MapPin, Tent, X } from 'lucide-react';
 import { Map as MapLibre, Marker, NavigationControl, Popup, ScaleControl } from 'maplibre-gl';
 import type React from 'react';
@@ -26,38 +27,39 @@ const ceviLogoMarkerElementFactory = (): HTMLElement =>
 
 const minZoomLevelForSwitzerland = 4;
 
-const DynamicLucidIconRenderer = ({
-  icon,
-  color = '#000000',
-}: {
+const CirclePin: React.FC<{ color: string; children: React.ReactNode }> = ({ color, children }) => (
+  <div className="relative h-12 w-9">
+    <div
+      className="absolute top-0 left-0 flex h-9 w-9 items-center justify-center rounded-full border-2 border-white p-1"
+      style={{ backgroundColor: color }}
+    >
+      {children}
+    </div>
+
+    {/* This is your small dot. Its center needs to be on the coordinate. */}
+    <div
+      className="absolute bottom-[-2px] left-1/2 h-2 w-2 -translate-x-1/2 rounded-full border border-white" // 'border' class provides a 1px border
+      style={{ backgroundColor: color }}
+    />
+  </div>
+);
+
+const DynamicLucidIconRenderer: React.FC<{
   icon: CampMapAnnotation['icon'];
   color?: string;
-}): React.JSX.Element => {
-  switch (icon) {
-    case 'MapPin': {
-      return (
-        <MapPin
-          className="h-10 w-10 rounded-full bg-white p-1 shadow-xl"
-          fill="#fff"
-          color={color}
-        />
-      );
-    }
-    case 'Tent': {
-      return (
-        <Tent className="h-10 w-10 rounded-full bg-white p-1 shadow-xl" fill="#fff" color={color} />
-      );
-    }
-    default: {
-      return (
-        <MapPin
-          className="h-10 w-10 rounded-full bg-white p-1 shadow-xl"
-          fill="#fff"
-          color={color}
-        />
-      );
-    }
-  }
+}> = ({ icon, color = '#000000' }): React.JSX.Element => {
+  const iconMap: Record<typeof icon, React.ElementType<LucideProps>> = {
+    MapPin: MapPin,
+    Tent: Tent,
+  };
+
+  const IconComponent = iconMap[icon];
+
+  return (
+    <CirclePin color={color}>
+      <IconComponent color="white" size={20} />
+    </CirclePin>
+  );
 };
 
 export const MapLibreRenderer = ({
@@ -158,11 +160,15 @@ export const MapLibreRenderer = ({
         globalThis.history.pushState({}, '', url.toString());
       });
 
+      const markerOffset: [number, number] = [0, -1];
+
       const marker = new Marker({
         scale: 1.5,
         element: reactToDomElement(
           <DynamicLucidIconRenderer icon={annotation.icon} color={annotation.color} />,
         ),
+        anchor: 'bottom', // Set the anchor to the bottom of the custom element
+        offset: markerOffset, // Apply the offset
       })
         .setLngLat(annotation.geometry.coordinates)
         .setPopup(popup)
