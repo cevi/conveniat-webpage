@@ -1,12 +1,13 @@
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { minimalEditorFeatures } from '@/features/payload-cms/payload-cms/plugins/lexical-editor';
 import { MapCoordinates } from '@/features/payload-cms/payload-cms/shared-fields/map-coordinates';
+import type { CampMapAnnotation } from '@/features/payload-cms/payload-types';
 import {
   defaultEditorLexicalConfig,
   HeadingFeature,
   lexicalEditor,
 } from '@payloadcms/richtext-lexical';
-import type { CollectionConfig } from 'payload';
+import type { CollectionConfig, Field } from 'payload';
 
 const mapAnnotationDescriptionLexicalEditorSettings = lexicalEditor({
   features: [
@@ -17,6 +18,13 @@ const mapAnnotationDescriptionLexicalEditorSettings = lexicalEditor({
   ],
   lexical: defaultEditorLexicalConfig,
 });
+
+const AnnotationPointField: Field = MapCoordinates;
+AnnotationPointField.admin = {
+  ...MapCoordinates.admin,
+  condition: (_, siblingData: Partial<CampMapAnnotation>): boolean =>
+    siblingData.annotationType === 'marker',
+};
 
 export const CampMapAnnotationsCollection: CollectionConfig = {
   slug: 'camp-map-annotations',
@@ -60,7 +68,7 @@ export const CampMapAnnotationsCollection: CollectionConfig = {
           name: 'icon',
           label: 'Icon',
           type: 'select',
-          required: false,
+          required: true,
           localized: true,
           options: [
             {
@@ -72,6 +80,10 @@ export const CampMapAnnotationsCollection: CollectionConfig = {
               value: 'Tent',
             },
           ],
+          admin: {
+            condition: (_, siblingData: Partial<CampMapAnnotation>) =>
+              siblingData.annotationType === 'marker',
+          },
         },
       ],
     },
@@ -90,6 +102,55 @@ export const CampMapAnnotationsCollection: CollectionConfig = {
       },
       editor: mapAnnotationDescriptionLexicalEditorSettings,
     },
-    MapCoordinates,
+    {
+      name: 'annotationType',
+      label: 'Annotation Type',
+      type: 'select',
+      required: true,
+      options: [
+        {
+          label: 'Marker',
+          value: 'marker',
+        },
+        {
+          label: 'Closed Polygon',
+          value: 'polygon',
+        },
+      ],
+      defaultValue: 'marker',
+    },
+
+    AnnotationPointField,
+
+    {
+      name: 'polygonCoordinates',
+      label: 'Polygon Coordinates',
+      type: 'array',
+      minRows: 3,
+      fields: [
+        {
+          name: 'latitude',
+          label: 'Latitude',
+          type: 'number',
+          required: true,
+        },
+        {
+          name: 'longitude',
+          label: 'Longitude',
+          type: 'number',
+          required: true,
+        },
+      ],
+      admin: {
+        description: {
+          en: 'Enter the coordinates for the polygon. A closed polygon requires at least 3 points.',
+          de: 'Geben Sie die Koordinaten für das Polygon ein. Ein geschlossenes Polygon benötigt mindestens 3 Punkte.',
+          fr: 'Saisissez les coordonnées du polygone. Un polygone fermé nécessite au moins 3 points.',
+        },
+        condition: (_, siblingData: Partial<CampMapAnnotation>) =>
+          siblingData.annotationType === 'polygon',
+      },
+      required: false,
+    },
   ],
 };

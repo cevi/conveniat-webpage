@@ -19,13 +19,20 @@ export interface CeviLogoMarker {
   title: string;
 }
 
-export interface CampMapAnnotation {
+export interface CampMapAnnotationPoint {
   id: string;
   title: string;
   description: CampMapAnnotationPayloadDocumentType['description'];
-  geometry: {
-    coordinates: [number, number];
-  };
+  geometry: { coordinates: [number, number] };
+  icon: 'MapPin' | 'Tent';
+  color: string;
+}
+
+export interface CampMapAnnotationPolygon {
+  id: string;
+  title: string;
+  description: CampMapAnnotationPayloadDocumentType['description'];
+  geometry: { coordinates: [number, number][] };
   icon: 'MapPin' | 'Tent';
   color: string;
 }

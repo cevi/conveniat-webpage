@@ -1511,6 +1511,7 @@ export interface CampMapAnnotation {
     };
     [k: string]: unknown;
   };
+  annotationType: 'marker' | 'polygon';
   geometry?: {
     /**
      * @minItems 2
@@ -1518,6 +1519,16 @@ export interface CampMapAnnotation {
      */
     coordinates?: [number, number] | null;
   };
+  /**
+   * Enter the coordinates for the polygon. A closed polygon requires at least 3 points.
+   */
+  polygonCoordinates?:
+    | {
+        latitude: number;
+        longitude: number;
+        id?: string | null;
+      }[]
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -2170,10 +2181,18 @@ export interface CampMapAnnotationsSelect<T extends boolean = true> {
   title?: T;
   icon?: T;
   description?: T;
+  annotationType?: T;
   geometry?:
     | T
     | {
         coordinates?: T;
+      };
+  polygonCoordinates?:
+    | T
+    | {
+        latitude?: T;
+        longitude?: T;
+        id?: T;
       };
   updatedAt?: T;
   createdAt?: T;

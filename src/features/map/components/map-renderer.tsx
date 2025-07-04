@@ -1,21 +1,21 @@
 'use client';
 import { CeviLogo } from '@/components/svg-logos/cevi-logo';
 import type {
-  CampMapAnnotation,
+  CampMapAnnotationPoint,
+  CampMapAnnotationPolygon,
   CeviLogoMarker,
   InitialMapPose,
 } from '@/features/map/components/types';
+import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
+import type { CampMapAnnotation } from '@/features/payload-cms/payload-types';
 import { reactToDomElement } from '@/utils/react-to-dom-element';
+import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import type { LucideProps } from 'lucide-react';
 import { MapPin, Tent, X } from 'lucide-react';
 import { Map as MapLibre, Marker, NavigationControl, Popup, ScaleControl } from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css'; // styles for the map viewer
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-
-// styles for the map viewer
-import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
-import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
-import 'maplibre-gl/dist/maplibre-gl.css';
 import { ErrorBoundary } from 'react-error-boundary';
 
 /**
@@ -65,20 +65,24 @@ const DynamicLucidIconRenderer: React.FC<{
 export const MapLibreRenderer = ({
   initialMapPose,
   ceviLogoMarkers,
-  campMapAnnotation,
+  campMapAnnotationPoints,
+  campMapAnnotationPolygons,
   limitUsage = true,
   validateStyle = true,
 }: {
   initialMapPose: InitialMapPose;
   ceviLogoMarkers: CeviLogoMarker[];
-  campMapAnnotation: CampMapAnnotation[];
+  campMapAnnotationPoints: CampMapAnnotationPoint[];
+  campMapAnnotationPolygons: CampMapAnnotationPolygon[];
   limitUsage?: boolean;
   validateStyle?: boolean;
 }): React.JSX.Element => {
   const mapContainerReference = useRef<HTMLDivElement>(null);
   const mapReference = useRef<MapLibre | null>(null);
 
-  const [openAnnotation, setOpenAnnotation] = useState<CampMapAnnotation | undefined>();
+  const [openAnnotation, setOpenAnnotation] = useState<
+    CampMapAnnotationPoint | CampMapAnnotationPolygon | undefined
+  >();
 
   const closeDrawer = useCallback(() => {
     setOpenAnnotation(undefined);
@@ -93,26 +97,55 @@ export const MapLibreRenderer = ({
     const url = new URL(globalThis.location.href);
     const annotationId = url.searchParams.get('annotationId');
 
-    if (annotationId) {
-      const annotation = campMapAnnotation.find((a) => a.id === annotationId);
+    if (annotationId !== null) {
+      const annotation =
+        campMapAnnotationPoints.find((a) => a.id === annotationId) ??
+        campMapAnnotationPolygons.find((a) => a.id === annotationId);
       if (annotation) {
         setOpenAnnotation(annotation);
       }
     }
-  }, [campMapAnnotation]);
+  }, [campMapAnnotationPoints, campMapAnnotationPolygons]);
 
-  // center map to marker on annotation click
   useEffect(() => {
     if (openAnnotation && mapReference.current) {
-      // add a small offset to the coordinates to avoid the marker being
-      // hidden behind the popup
-      const coordinatesWithOffset: [number, number] = [
-        openAnnotation.geometry.coordinates[0],
-        openAnnotation.geometry.coordinates[1] - 0.0005,
-      ];
+      let coordinatesToFlyTo: [number, number];
+
+      if (
+        'coordinates' in openAnnotation.geometry &&
+        Array.isArray(openAnnotation.geometry.coordinates[0])
+      ) {
+        let sumX = 0;
+        let sumY = 0;
+
+        // Calculate centroid for polygons
+        for (const coord of openAnnotation.geometry.coordinates) {
+          sumX += coord[0];
+          sumY += coord[1];
+        }
+
+        const centroidX = sumX / openAnnotation.geometry.coordinates.length;
+        const centroidY = sumY / openAnnotation.geometry.coordinates.length;
+
+        // If it's a polygon, calculate centroid
+        coordinatesToFlyTo = [
+          centroidX,
+          centroidY - 0.0005, // Small offset for polygons
+        ];
+      } else if (
+        'coordinates' in openAnnotation.geometry &&
+        Array.isArray(openAnnotation.geometry.coordinates)
+      ) {
+        coordinatesToFlyTo = [
+          openAnnotation.geometry.coordinates[0],
+          openAnnotation.geometry.coordinates[1] - 0.0005, // Small offset for points
+        ];
+      } else {
+        return; // Should not happen with current types, but for safety
+      }
 
       mapReference.current.flyTo({
-        center: coordinatesWithOffset,
+        center: coordinatesToFlyTo,
         zoom: 16.5,
         animate: true,
         duration: 500,
@@ -151,7 +184,8 @@ export const MapLibreRenderer = ({
         .setLngLat(marker.geometry.coordinates)
         .addTo(map_);
 
-    for (const annotation of campMapAnnotation) {
+    // Add Markers for points
+    for (const annotation of campMapAnnotationPoints) {
       const popup = new Popup();
       popup.on('open', () => {
         setOpenAnnotation(annotation);
@@ -178,7 +212,78 @@ export const MapLibreRenderer = ({
         marker.togglePopup();
       });
     }
-  }, [initialMapPose, ceviLogoMarkers, limitUsage, validateStyle, campMapAnnotation]);
+
+    // Create and add polygon layers
+    map_.on('load', () => {
+      for (const annotation of campMapAnnotationPolygons) {
+        const sourceId = `polygon-${annotation.id}`;
+        const layerId = `polygon-layer-${annotation.id}`;
+
+        map_.addSource(sourceId, {
+          type: 'geojson',
+          data: {
+            type: 'Feature',
+            properties: {
+              id: annotation.id,
+              title: annotation.title,
+              description: annotation.description,
+            }, // Store ID for lookup
+            geometry: {
+              type: 'Polygon',
+              // Ensure the polygon is closed by repeating the first coordinate
+              coordinates: [
+                [...annotation.geometry.coordinates, annotation.geometry.coordinates[0]],
+              ],
+            },
+          },
+        });
+
+        map_.addLayer({
+          id: layerId,
+          type: 'fill',
+          source: sourceId,
+          paint: {
+            'fill-color': annotation.color ?? '#088',
+            'fill-opacity': 0.4,
+          },
+        });
+
+        // Add a click listener for the polygon layer
+        map_.on('click', layerId, (e) => {
+          if (e.features && e.features.length > 0) {
+            const clickedFeatureId = e.features[0].properties?.id;
+            const clickedPolygonAnnotation = campMapAnnotationPolygons.find(
+              (poly) => poly.id === clickedFeatureId,
+            );
+
+            if (clickedPolygonAnnotation) {
+              setOpenAnnotation(clickedPolygonAnnotation);
+              const url = new URL(globalThis.location.href);
+              url.searchParams.set('annotationId', clickedPolygonAnnotation.id);
+              globalThis.history.pushState({}, '', url.toString());
+            }
+          }
+        });
+
+        // Change the cursor to a pointer when the mouse is over the polygon layer
+        map_.on('mouseenter', layerId, () => {
+          map_.getCanvas().style.cursor = 'pointer';
+        });
+
+        // Change it back to default when it leaves
+        map_.on('mouseleave', layerId, () => {
+          map_.getCanvas().style.cursor = '';
+        });
+      }
+    });
+  }, [
+    initialMapPose,
+    ceviLogoMarkers,
+    limitUsage,
+    validateStyle,
+    campMapAnnotationPoints,
+    campMapAnnotationPolygons,
+  ]);
 
   return (
     <>

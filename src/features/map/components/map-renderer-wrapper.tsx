@@ -1,7 +1,8 @@
 'use client';
 
 import type {
-  CampMapAnnotation,
+  CampMapAnnotationPoint,
+  CampMapAnnotationPolygon,
   CeviLogoMarker,
   InitialMapPose,
 } from '@/features/map/components/types';
@@ -29,24 +30,28 @@ const LazyMapLibreRenderer = dynamic(() => import('@/features/map/components/map
 export const MapLibreRenderer = ({
   initialMapPose,
   ceviLogoMarkers,
-  campMapAnnotation,
+  campMapAnnotationPoints,
+  campMapAnnotationPolygons,
   limitUsage = true,
   validateStyle = true,
 }: {
   initialMapPose: InitialMapPose;
   ceviLogoMarkers: CeviLogoMarker[];
-  campMapAnnotation?: CampMapAnnotation[] | undefined;
+  campMapAnnotationPoints?: CampMapAnnotationPoint[] | undefined;
+  campMapAnnotationPolygons?: CampMapAnnotationPolygon[] | undefined;
   limitUsage?: boolean;
   validateStyle?: boolean;
 }): React.JSX.Element => {
   // default values for optional parameters
-  campMapAnnotation ??= [];
+  campMapAnnotationPoints ??= [];
+  campMapAnnotationPolygons ??= [];
 
   return (
     <LazyMapLibreRenderer
       initialMapPose={initialMapPose}
       ceviLogoMarkers={ceviLogoMarkers}
-      campMapAnnotation={campMapAnnotation}
+      campMapAnnotationPoints={campMapAnnotationPoints}
+      campMapAnnotationPolygons={campMapAnnotationPolygons}
       limitUsage={limitUsage}
       validateStyle={validateStyle}
     />

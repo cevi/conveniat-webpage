@@ -1,6 +1,10 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { MapLibreRenderer } from '@/features/map/components/map-renderer-wrapper';
-import type { CampMapAnnotation, InitialMapPose } from '@/features/map/components/types';
+import type {
+  CampMapAnnotationPoint,
+  CampMapAnnotationPolygon,
+  InitialMapPose,
+} from '@/features/map/components/types';
 import type { CampMapAnnotation as CampMapAnnotationPayloadDocumentType } from '@/features/payload-cms/payload-types';
 import config from '@payload-config';
 import { getPayload, type PaginatedDocs } from 'payload';
@@ -23,28 +27,47 @@ export const CampMapComponent: React.FC = async () => {
     depth: 0,
   });
 
-  const campMapAnnotation: CampMapAnnotation[] = annotations.docs.map(
-    (document_) =>
-      ({
-        id: document_.id,
-        title: document_.title,
-        description: document_.description,
-        geometry: {
-          coordinates: document_.geometry?.coordinates,
-        },
-        icon: document_.icon ?? 'MapPin',
-        color: '#123dff',
-      }) as CampMapAnnotation,
-  );
+  const campMapAnnotationPoints: CampMapAnnotationPoint[] = annotations.docs
+    .filter((document_) => document_.annotationType === 'marker')
+    .map(
+      (document_) =>
+        ({
+          id: document_.id,
+          title: document_.title,
+          description: document_.description,
+          geometry: {
+            coordinates: document_.geometry?.coordinates,
+          },
+          icon: document_.icon ?? 'MapPin',
+          color: '#123dff',
+        }) as CampMapAnnotationPoint,
+    );
 
-  console.dir(annotations.docs);
+  const campMapAnnotationPolygons: CampMapAnnotationPolygon[] = annotations.docs
+    .filter((document_) => document_.annotationType === 'polygon')
+    .map(
+      (document_) =>
+        ({
+          id: document_.id,
+          title: document_.title,
+          description: document_.description,
+          geometry: {
+            coordinates: document_.polygonCoordinates?.map(
+              (coordinate) => [coordinate.longitude, coordinate.latitude] as [number, number],
+            ),
+          },
+          icon: document_.icon ?? 'Tent',
+          color: '#a41e5f',
+        }) as CampMapAnnotationPolygon,
+    );
 
   return (
     <div className="fixed top-[60px] left-0 h-[calc(100dvh-60px)] w-screen pb-20">
       <MapLibreRenderer
         initialMapPose={initialMapPoseObergoms}
         ceviLogoMarkers={[]}
-        campMapAnnotation={campMapAnnotation}
+        campMapAnnotationPoints={campMapAnnotationPoints}
+        campMapAnnotationPolygons={campMapAnnotationPolygons}
         validateStyle={environmentVariables.NODE_ENV !== 'production'}
       />
     </div>
