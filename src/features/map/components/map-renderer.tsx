@@ -13,7 +13,14 @@ import { reactToDomElement } from '@/utils/react-to-dom-element';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import type { LucideProps } from 'lucide-react';
 import { MapPin, Tent, X } from 'lucide-react';
-import { Map as MapLibre, Marker, NavigationControl, Popup, ScaleControl } from 'maplibre-gl';
+import {
+  GeolocateControl,
+  Map as MapLibre,
+  Marker,
+  NavigationControl,
+  Popup,
+  ScaleControl,
+} from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css'; // styles for the map viewer
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -158,6 +165,13 @@ export const MapLibreRenderer = ({
 
     const { initialMapCenter, zoom } = initialMapPose;
 
+    const geolocate = new GeolocateControl({
+      positionOptions: {
+        enableHighAccuracy: true,
+      },
+      trackUserLocation: true,
+    });
+
     const map_ = new MapLibre({
       container: mapContainerReference.current,
       validateStyle,
@@ -177,6 +191,7 @@ export const MapLibreRenderer = ({
     mapReference.current = map_;
     map_.addControl(new NavigationControl());
     map_.addControl(new ScaleControl({ maxWidth: 80, unit: 'metric' }));
+    map_.addControl(geolocate);
 
     for (const marker of ceviLogoMarkers)
       new Marker({ element: ceviLogoMarkerElementFactory() })
