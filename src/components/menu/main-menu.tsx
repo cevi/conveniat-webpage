@@ -129,7 +129,7 @@ const AppFeatures: React.FC = async () => {
           text={chatFeatureTranslation[locale]}
         />
         <AppFeatureMenuItem
-          href="/app/chat"
+          href="/app/forum"
           Icon={LucideMessageCircleQuestion}
           text={qaForumFeatureTranslation[locale]}
         />
