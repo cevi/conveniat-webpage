@@ -1492,7 +1492,9 @@ export interface CampMapAnnotation {
    * The title of the annotation.
    */
   title: string;
-  icon?: ('MapPin' | 'Tent') | null;
+  icon?:
+    | ('MapPin' | 'Tent' | 'Utensils' | 'Flag' | 'HelpCircle' | 'Recycle' | 'GlassWater' | 'BriefcaseMedical')
+    | null;
   /**
    * A detailed description of the annotation.
    */

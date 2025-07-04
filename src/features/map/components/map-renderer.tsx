@@ -12,7 +12,17 @@ import type { CampMapAnnotation } from '@/features/payload-cms/payload-types';
 import { reactToDomElement } from '@/utils/react-to-dom-element';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import type { LucideProps } from 'lucide-react';
-import { MapPin, Tent, X } from 'lucide-react';
+import {
+  BriefcaseMedical,
+  Flag,
+  GlassWater,
+  HelpCircle,
+  MapPin,
+  Recycle,
+  Tent,
+  Utensils,
+  X,
+} from 'lucide-react';
 import {
   GeolocateControl,
   Map as MapLibre,
@@ -59,6 +69,12 @@ const DynamicLucidIconRenderer: React.FC<{
   const iconMap: Record<string, React.ElementType<LucideProps>> = {
     MapPin: MapPin,
     Tent: Tent,
+    Utensils: Utensils,
+    Flag: Flag,
+    HelpCircle: HelpCircle,
+    Recycle: Recycle,
+    GlassWater: GlassWater,
+    BriefcaseMedical: BriefcaseMedical,
   };
 
   const IconComponent: React.ElementType<LucideProps> =
@@ -67,7 +83,7 @@ const DynamicLucidIconRenderer: React.FC<{
   // Fallback if the icon is not recognized
   return (
     <CirclePin color={color}>
-      <IconComponent size={24} />
+      <IconComponent size={24} className="text-white" />
     </CirclePin>
   );
 };

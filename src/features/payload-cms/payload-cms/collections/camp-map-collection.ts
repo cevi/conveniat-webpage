@@ -72,12 +72,68 @@ export const CampMapAnnotationsCollection: CollectionConfig = {
           localized: true,
           options: [
             {
-              label: 'MapPin',
+              label: {
+                en: 'Map Pin',
+                de: 'Kartenmarkierung',
+                fr: 'Épingle de carte',
+              },
               value: 'MapPin',
             },
             {
-              label: 'Tent',
+              label: {
+                en: 'Tent',
+                de: 'Zelt',
+                fr: 'Tente',
+              },
               value: 'Tent',
+            },
+            {
+              label: {
+                en: 'Restaurant',
+                de: 'Restaurant',
+                fr: 'Restauration',
+              },
+              value: 'Utensils',
+            },
+            {
+              label: {
+                en: 'Flag',
+                de: 'Flagge',
+                fr: 'Drapeau',
+              },
+              value: 'Flag',
+            },
+            {
+              label: {
+                en: 'Help',
+                de: 'Hilfe',
+                fr: 'Aide',
+              },
+              value: 'HelpCircle',
+            },
+            {
+              label: {
+                en: 'Recycle Station',
+                de: 'Recycling Station',
+                fr: 'Station de recyclage',
+              },
+              value: 'Recycle',
+            },
+            {
+              label: {
+                en: 'Faucet',
+                de: 'Wasserhahn',
+                fr: 'Robinet',
+              },
+              value: 'GlassWater',
+            },
+            {
+              label: {
+                en: 'Medical Assistance',
+                de: 'Medizinische Hilfe',
+                fr: 'Assistance médicale',
+              },
+              value: 'BriefcaseMedical',
             },
           ],
           admin: {

@@ -95,7 +95,16 @@ const generateRandomPolygonCoordinates = (
 
   return jaggedCorners;
 };
-const iconMarkerSelectOptions = ['MapPin' as const, 'Tent' as const];
+const iconMarkerSelectOptions = [
+  'MapPin' as const,
+  'Tent' as const,
+  'Utensils' as const,
+  'Flag' as const,
+  'HelpCircle' as const,
+  'Recycle' as const,
+  'GlassWater' as const,
+  'BriefcaseMedical' as const,
+];
 const annotationTypeOptions = ['marker' as const, 'polygon' as const];
 
 /**
