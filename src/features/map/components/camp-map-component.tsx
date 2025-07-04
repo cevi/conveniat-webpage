@@ -39,7 +39,7 @@ export const CampMapComponent: React.FC = async () => {
             coordinates: document_.geometry?.coordinates,
           },
           icon: document_.icon ?? 'MapPin',
-          color: '#123dff',
+          color: document_.color ?? '#47564c',
         }) as CampMapAnnotationPoint,
     );
 
@@ -57,7 +57,7 @@ export const CampMapComponent: React.FC = async () => {
             ),
           },
           icon: document_.icon ?? 'Tent',
-          color: '#a41e5f',
+          color: document_.color ?? '#47564c',
         }) as CampMapAnnotationPolygon,
     );
 

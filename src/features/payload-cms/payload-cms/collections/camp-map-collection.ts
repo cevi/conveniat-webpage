@@ -144,6 +144,45 @@ export const CampMapAnnotationsCollection: CollectionConfig = {
       ],
     },
     {
+      name: 'color',
+      label: 'color',
+      type: 'select',
+      options: [
+        {
+          label: {
+            en: 'Black',
+            de: 'Schwarz',
+            fr: 'Noir',
+          },
+          value: '#000000',
+        },
+        {
+          label: {
+            en: 'Red',
+            de: 'Rot',
+            fr: 'Rouge',
+          },
+          value: '#FF0000',
+        },
+        {
+          label: {
+            en: 'Green',
+            de: 'Grün',
+            fr: 'Vert',
+          },
+          value: '#47564c',
+        },
+        {
+          label: {
+            en: 'Blue',
+            de: 'Blau',
+            fr: 'Bleu',
+          },
+          value: '#0000FF',
+        },
+      ],
+    },
+    {
       name: 'description',
       label: 'Description',
       type: 'richText',

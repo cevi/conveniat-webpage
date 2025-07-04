@@ -1495,6 +1495,7 @@ export interface CampMapAnnotation {
   icon?:
     | ('MapPin' | 'Tent' | 'Utensils' | 'Flag' | 'HelpCircle' | 'Recycle' | 'GlassWater' | 'BriefcaseMedical')
     | null;
+  color?: ('#000000' | '#FF0000' | '#47564c' | '#0000FF') | null;
   /**
    * A detailed description of the annotation.
    */
@@ -2182,6 +2183,7 @@ export interface TimelineSelect<T extends boolean = true> {
 export interface CampMapAnnotationsSelect<T extends boolean = true> {
   title?: T;
   icon?: T;
+  color?: T;
   description?: T;
   annotationType?: T;
   geometry?:
