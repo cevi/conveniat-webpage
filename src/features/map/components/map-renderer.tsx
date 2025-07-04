@@ -1,13 +1,21 @@
 'use client';
 import { CeviLogo } from '@/components/svg-logos/cevi-logo';
-import type { CeviLogoMarker, InitialMapPose } from '@/features/map/components/types';
+import type {
+  CampMapAnnotation,
+  CeviLogoMarker,
+  InitialMapPose,
+} from '@/features/map/components/types';
 import { reactToDomElement } from '@/utils/react-to-dom-element';
-import { Map as MapLibre, Marker, NavigationControl, ScaleControl } from 'maplibre-gl';
+import { MapPin, Tent, X } from 'lucide-react';
+import { Map as MapLibre, Marker, NavigationControl, Popup, ScaleControl } from 'maplibre-gl';
 import type React from 'react';
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 // styles for the map viewer
+import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
+import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import { ErrorBoundary } from 'react-error-boundary';
 
 /**
  * Factory function to create a DOM element with the Cevi Logo SVG.
@@ -18,66 +26,186 @@ const ceviLogoMarkerElementFactory = (): HTMLElement =>
 
 const minZoomLevelForSwitzerland = 4;
 
+const DynamicLucidIconRenderer = ({
+  icon,
+  color = '#000000',
+}: {
+  icon: CampMapAnnotation['icon'];
+  color?: string;
+}): React.JSX.Element => {
+  switch (icon) {
+    case 'MapPin': {
+      return (
+        <MapPin
+          className="h-10 w-10 rounded-full bg-white p-1 shadow-xl"
+          fill="#fff"
+          color={color}
+        />
+      );
+    }
+    case 'Tent': {
+      return (
+        <Tent className="h-10 w-10 rounded-full bg-white p-1 shadow-xl" fill="#fff" color={color} />
+      );
+    }
+    default: {
+      return (
+        <MapPin
+          className="h-10 w-10 rounded-full bg-white p-1 shadow-xl"
+          fill="#fff"
+          color={color}
+        />
+      );
+    }
+  }
+};
+
 export const MapLibreRenderer = ({
   initialMapPose,
   ceviLogoMarkers,
+  campMapAnnotation,
   limitUsage = true,
   validateStyle = true,
 }: {
   initialMapPose: InitialMapPose;
   ceviLogoMarkers: CeviLogoMarker[];
+  campMapAnnotation: CampMapAnnotation[];
   limitUsage?: boolean;
   validateStyle?: boolean;
 }): React.JSX.Element => {
   const mapContainerReference = useRef<HTMLDivElement>(null);
+  const mapReference = useRef<MapLibre | null>(null);
+
+  const [openAnnotation, setOpenAnnotation] = useState<CampMapAnnotation | undefined>();
+
+  const closeDrawer = useCallback(() => {
+    setOpenAnnotation(undefined);
+    // remove query parameter from url
+    const url = new URL(globalThis.location.href);
+    url.searchParams.delete('annotationId');
+    globalThis.history.pushState({}, '', url.toString());
+  }, []);
+
+  // set default popup based on query parameter
+  useEffect(() => {
+    const url = new URL(globalThis.location.href);
+    const annotationId = url.searchParams.get('annotationId');
+
+    if (annotationId) {
+      const annotation = campMapAnnotation.find((a) => a.id === annotationId);
+      if (annotation) {
+        setOpenAnnotation(annotation);
+      }
+    }
+  }, [campMapAnnotation]);
+
+  // center map to marker on annotation click
+  useEffect(() => {
+    if (openAnnotation && mapReference.current) {
+      // add a small offset to the coordinates to avoid the marker being
+      // hidden behind the popup
+      const coordinatesWithOffset: [number, number] = [
+        openAnnotation.geometry.coordinates[0],
+        openAnnotation.geometry.coordinates[1] - 0.0005,
+      ];
+
+      mapReference.current.flyTo({
+        center: coordinatesWithOffset,
+        zoom: 16.5,
+        animate: true,
+        duration: 500,
+      });
+    }
+  }, [openAnnotation]);
 
   // this effect is called when the component is mounted
   useEffect(() => {
+    if (mapReference.current || !mapContainerReference.current) return;
+
     const { initialMapCenter, zoom } = initialMapPose;
 
-    // check if the map container reference
-    if (mapContainerReference.current === null) return;
-
-    const map = new MapLibre({
+    const map_ = new MapLibre({
       container: mapContainerReference.current,
-
-      validateStyle: validateStyle,
-
-      // this file defines the map style and layers
-      // custom style based on https://api3.geo.admin.ch/services/sdiservices.html#getstyle
+      validateStyle,
       style: '/vector-map/base_style.json',
-
-      // limit map usage
       ...(!limitUsage && {
         cooperativeGestures: true,
         touchZoomRotate: false,
       }),
-
       dragRotate: false,
       pitchWithRotate: false,
       touchPitch: false,
-
-      // define initial map pose
       center: initialMapCenter,
-      zoom: zoom,
-
-      // restrict map pose to Switzerland
+      zoom,
       minZoom: minZoomLevelForSwitzerland,
     });
 
-    map.addControl(new NavigationControl());
+    mapReference.current = map_;
+    map_.addControl(new NavigationControl());
+    map_.addControl(new ScaleControl({ maxWidth: 80, unit: 'metric' }));
 
-    const scale = new ScaleControl({ maxWidth: 80, unit: 'metric' });
-    map.addControl(scale);
-
-    ceviLogoMarkers.map((marker) =>
+    for (const marker of ceviLogoMarkers)
       new Marker({ element: ceviLogoMarkerElementFactory() })
         .setLngLat(marker.geometry.coordinates)
-        .addTo(map),
-    );
-  }, [initialMapPose, ceviLogoMarkers, limitUsage, validateStyle]);
+        .addTo(map_);
 
-  return <div className="h-full w-full" ref={mapContainerReference} />;
+    for (const annotation of campMapAnnotation) {
+      const popup = new Popup();
+      popup.on('open', () => {
+        setOpenAnnotation(annotation);
+        const url = new URL(globalThis.location.href);
+        url.searchParams.set('annotationId', annotation.id);
+        globalThis.history.pushState({}, '', url.toString());
+      });
+
+      const marker = new Marker({
+        scale: 1.5,
+        element: reactToDomElement(
+          <DynamicLucidIconRenderer icon={annotation.icon} color={annotation.color} />,
+        ),
+      })
+        .setLngLat(annotation.geometry.coordinates)
+        .setPopup(popup)
+        .addTo(map_);
+
+      marker.getElement().addEventListener('click', () => {
+        marker.togglePopup();
+      });
+    }
+  }, [initialMapPose, ceviLogoMarkers, limitUsage, validateStyle, campMapAnnotation]);
+
+  return (
+    <>
+      {openAnnotation && (
+        <>
+          {/* The fixed-height drawer */}
+          <div className="fixed right-0 bottom-0 left-0 z-[999] h-[40vh] overflow-hidden rounded-t-2xl bg-white shadow-2xl">
+            <div className="flex h-full flex-col">
+              <div className="relative p-4">
+                <button
+                  className="absolute top-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800"
+                  onClick={closeDrawer}
+                  aria-label="Close"
+                >
+                  <X size={20} />
+                </button>
+                <h2 className="pr-8 text-xl font-bold">{openAnnotation.title}</h2>
+              </div>
+
+              <div className="overflow-y-auto px-4 pb-4">
+                <ErrorBoundary fallback={<div>Error loading annotation</div>}>
+                  <LexicalRichTextSection
+                    richTextSection={openAnnotation.description as SerializedEditorState}
+                  />
+                </ErrorBoundary>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+      <div className="h-full w-full" ref={mapContainerReference} />
+    </>
+  );
 };
 
 export default MapLibreRenderer;

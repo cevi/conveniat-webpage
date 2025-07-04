@@ -1,6 +1,10 @@
 'use client';
 
-import type { CeviLogoMarker, InitialMapPose } from '@/features/map/components/types';
+import type {
+  CampMapAnnotation,
+  CeviLogoMarker,
+  InitialMapPose,
+} from '@/features/map/components/types';
 import dynamic from 'next/dynamic';
 import type React from 'react';
 
@@ -17,6 +21,7 @@ const LazyMapLibreRenderer = dynamic(() => import('@/features/map/components/map
  *
  * @param initialMapPose
  * @param ceviLogoMarkers
+ * @param campMapAnnotation
  * @param limitUsage
  * @param validateStyle
  * @constructor
@@ -24,18 +29,24 @@ const LazyMapLibreRenderer = dynamic(() => import('@/features/map/components/map
 export const MapLibreRenderer = ({
   initialMapPose,
   ceviLogoMarkers,
+  campMapAnnotation,
   limitUsage = true,
   validateStyle = true,
 }: {
   initialMapPose: InitialMapPose;
   ceviLogoMarkers: CeviLogoMarker[];
+  campMapAnnotation?: CampMapAnnotation[] | undefined;
   limitUsage?: boolean;
   validateStyle?: boolean;
 }): React.JSX.Element => {
+  // default values for optional parameters
+  campMapAnnotation ??= [];
+
   return (
     <LazyMapLibreRenderer
       initialMapPose={initialMapPose}
       ceviLogoMarkers={ceviLogoMarkers}
+      campMapAnnotation={campMapAnnotation}
       limitUsage={limitUsage}
       validateStyle={validateStyle}
     />
