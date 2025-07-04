@@ -1,8 +1,8 @@
-import { Calendar, MapIcon, MessageCircle, Newspaper, Siren } from 'lucide-react';
+import { Calendar, MapIcon, MessageSquare, Newspaper, Siren } from 'lucide-react';
 
 export const footerNavBarMenuEntries = [
   {
-    icon: MessageCircle,
+    icon: MessageSquare,
     label: {
       de: 'Chats',
       en: 'Chats',

@@ -1,3 +1,4 @@
+import { MapCoordinates } from '@/features/payload-cms/payload-cms/shared-fields/map-coordinates';
 import type { Block } from 'payload';
 
 export const swisstopoMapEmbedBlock: Block = {
@@ -39,17 +40,7 @@ export const swisstopoMapEmbedBlock: Block = {
           name: 'title',
           type: 'text',
         },
-        {
-          name: 'geometry',
-          type: 'group',
-          fields: [
-            {
-              name: 'coordinates',
-              type: 'point',
-              defaultValue: [8.303_628, 46.502_992],
-            },
-          ],
-        },
+        MapCoordinates,
       ],
     },
   ],

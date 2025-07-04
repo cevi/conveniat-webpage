@@ -100,6 +100,7 @@ export interface Config {
     blog: Blog;
     'generic-page': GenericPage;
     timeline: Timeline;
+    'camp-map-annotations': CampMapAnnotation;
     images: Image;
     documents: Document;
     users: User;
@@ -126,6 +127,7 @@ export interface Config {
     blog: BlogSelect<false> | BlogSelect<true>;
     'generic-page': GenericPageSelect<false> | GenericPageSelect<true>;
     timeline: TimelineSelect<false> | TimelineSelect<true>;
+    'camp-map-annotations': CampMapAnnotationsSelect<false> | CampMapAnnotationsSelect<true>;
     images: ImagesSelect<false> | ImagesSelect<true>;
     documents: DocumentsSelect<false> | DocumentsSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
@@ -1482,6 +1484,59 @@ export interface Countdown {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "camp-map-annotations".
+ */
+export interface CampMapAnnotation {
+  id: string;
+  /**
+   * The title of the annotation.
+   */
+  title: string;
+  icon?:
+    | ('MapPin' | 'Tent' | 'Utensils' | 'Flag' | 'HelpCircle' | 'Recycle' | 'GlassWater' | 'BriefcaseMedical')
+    | null;
+  color?: ('#000000' | '#FF0000' | '#47564c' | '#0000FF') | null;
+  /**
+   * A detailed description of the annotation.
+   */
+  description: {
+    root: {
+      type: string;
+      children: {
+        type: string;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  annotationType: 'marker' | 'polygon';
+  geometry?: {
+    /**
+     * @minItems 2
+     * @maxItems 2
+     */
+    coordinates?: [number, number] | null;
+  };
+  /**
+   * Enter the coordinates for the polygon. A closed polygon requires at least 3 points.
+   */
+  polygonCoordinates?:
+    | {
+        latitude: number;
+        longitude: number;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "push-notification-subscriptions".
  */
 export interface PushNotificationSubscription {
@@ -1564,6 +1619,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'timeline';
         value: string | Timeline;
+      } | null)
+    | ({
+        relationTo: 'camp-map-annotations';
+        value: string | CampMapAnnotation;
       } | null)
     | ({
         relationTo: 'images';
@@ -2116,6 +2175,31 @@ export interface TimelineSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "camp-map-annotations_select".
+ */
+export interface CampMapAnnotationsSelect<T extends boolean = true> {
+  title?: T;
+  icon?: T;
+  color?: T;
+  description?: T;
+  annotationType?: T;
+  geometry?:
+    | T
+    | {
+        coordinates?: T;
+      };
+  polygonCoordinates?:
+    | T
+    | {
+        latitude?: T;
+        longitude?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

@@ -10,6 +10,7 @@ export const deleteDatabase = async (payload: Payload): Promise<void> => {
     'images',
     'permissions',
     'push-notification-subscriptions',
+    'camp-map-annotations',
     'search-collection',
     'timeline',
     'timelineCategory',
