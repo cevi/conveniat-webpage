@@ -9,7 +9,7 @@ const helperShiftsFeatureTranslation: StaticTranslationString = {
   fr: "Postes d'aide",
 };
 
-const HelperPortalPage: React.FC = async () => {
+const DepartmentHelperPortalPage: React.FC = async () => {
   const locale = await getLocaleFromCookies();
 
   return (
@@ -19,4 +19,4 @@ const HelperPortalPage: React.FC = async () => {
   );
 };
 
-export default HelperPortalPage;
+export default DepartmentHelperPortalPage;
