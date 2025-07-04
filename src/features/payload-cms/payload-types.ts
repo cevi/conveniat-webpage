@@ -1492,7 +1492,7 @@ export interface CampMapAnnotation {
    * The title of the annotation.
    */
   title: string;
-  icon: 'info' | 'warning' | 'error' | 'success';
+  icon?: ('MapPin' | 'Tent') | null;
   /**
    * A detailed description of the annotation.
    */

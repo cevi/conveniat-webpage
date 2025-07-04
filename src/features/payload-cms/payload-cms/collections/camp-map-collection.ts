@@ -60,24 +60,16 @@ export const CampMapAnnotationsCollection: CollectionConfig = {
           name: 'icon',
           label: 'Icon',
           type: 'select',
-          required: true,
+          required: false,
           localized: true,
           options: [
             {
-              label: 'Info',
-              value: 'info',
+              label: 'MapPin',
+              value: 'MapPin',
             },
             {
-              label: 'Warning',
-              value: 'warning',
-            },
-            {
-              label: 'Error',
-              value: 'error',
-            },
-            {
-              label: 'Success',
-              value: 'success',
+              label: 'Tent',
+              value: 'Tent',
             },
           ],
         },

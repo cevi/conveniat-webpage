@@ -32,7 +32,7 @@ export const CampMapComponent: React.FC = async () => {
         geometry: {
           coordinates: document_.geometry?.coordinates,
         },
-        icon: 'MapPin',
+        icon: document_.icon ?? 'MapPin',
         color: '#123dff',
       }) as CampMapAnnotation,
   );
