@@ -27,7 +27,7 @@ export const useFlyToAnnotation = (
     const annotationX = projectedCoordinates.x;
 
     // check if the annotation is in the lower third of the map
-    const isInLowerThird = annotationY >= (mapHeight * 2) / 3;
+    const isInLowerThird = annotationY >= mapHeight / 2;
 
     // also check if the annotation is close to the top or bottom border of the map
     const isCloseToBorder =
@@ -38,7 +38,7 @@ export const useFlyToAnnotation = (
 
     if (!isInLowerThird && !isCloseToBorder) return;
     map.flyTo({
-      center: [annotation.geometry.coordinates[0], annotation.geometry.coordinates[1] - 0.0005],
+      center: [annotation.geometry.coordinates[0], annotation.geometry.coordinates[1] - 0.002],
       animate: true,
       duration: 1000,
     });

@@ -45,9 +45,9 @@ const chatFeatureTranslation: StaticTranslationString = {
 };
 
 const qaForumFeatureTranslation: StaticTranslationString = {
-  en: 'Q&A Forum',
-  de: 'Q&A-Forum',
-  fr: 'Forum de questions-réponses',
+  en: 'conveniat27 Forum',
+  de: 'conveniat27 Forum',
+  fr: 'Forum conveniat27',
 };
 
 const emergencyInfoFeatureTranslation: StaticTranslationString = {

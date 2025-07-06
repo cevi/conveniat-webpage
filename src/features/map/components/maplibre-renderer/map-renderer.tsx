@@ -1,7 +1,7 @@
 'use client';
 
 import { CeviLogo } from '@/components/svg-logos/cevi-logo';
-import { AnnotationDetailsDrawer } from '@/features/map/components/maplibre-renderer/annotation-details-drawer';
+import { AnnotationDetailsDrawer } from '@/features/map/components/map-annotations/annotation-details-drawer';
 import { MapContextProvider } from '@/features/map/components/maplibre-renderer/map-context-provider';
 import { MaplibreMap } from '@/features/map/components/maplibre-renderer/maplibre-map';
 import { useMapInitialization } from '@/features/map/hooks/use-map-initialization';
