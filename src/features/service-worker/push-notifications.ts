@@ -17,6 +17,9 @@ export const pushNotificationHandler =
     const data = event.data.json() as {
       title: string;
       body: string;
+      data: {
+        url?: string;
+      };
     };
 
     const options: NotificationOptions = {
@@ -25,7 +28,7 @@ export const pushNotificationHandler =
       badge: '/notification-icon.png',
       requireInteraction: true,
       tag: 'conveniat27',
-      data: {},
+      data: data.data,
     };
 
     event.waitUntil(
@@ -56,14 +59,20 @@ export const pushNotificationHandler =
     );
   };
 
+interface NotificationData {
+  url?: string;
+}
+
 export const notificationClickHandler =
   (serviceWorkerScope: ServiceWorkerGlobalScope) =>
   (event: NotificationEvent): void => {
     console.log('Notification click received.');
     event.notification.close();
-    event.waitUntil(
-      serviceWorkerScope.clients.openWindow(
-        process.env['NEXT_PUBLIC_APP_HOST_URL'] ?? 'https://conveniat27.ch',
-      ),
-    );
+
+    const notificationData = event.notification.data as NotificationData;
+
+    const urlToOpen =
+      notificationData.url || (process.env['NEXT_PUBLIC_APP_HOST_URL'] ?? 'https://conveniat27.ch');
+
+    event.waitUntil(serviceWorkerScope.clients.openWindow(urlToOpen));
   };
