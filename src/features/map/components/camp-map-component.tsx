@@ -28,6 +28,13 @@ export const CampMapComponent: React.FC = async () => {
 
   const campMapAnnotationPoints: CampMapAnnotationPoint[] = annotations.docs
     .filter((document_) => document_.annotationType === 'marker')
+    // order by latitude, to avoid overlapping markers
+    .sort((a, b) => {
+      if (!a.geometry?.coordinates || !b.geometry?.coordinates) return 0;
+      if (a.geometry.coordinates[1] < b.geometry.coordinates[1]) return 1;
+      if (a.geometry.coordinates[1] > b.geometry.coordinates[1]) return -1;
+      return 0;
+    })
     .map(
       (document_) =>
         ({
