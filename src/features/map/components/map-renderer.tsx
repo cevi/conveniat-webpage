@@ -68,9 +68,7 @@ export const MapLibreRenderer = ({
 
   useCeviLogoMarkers(map, ceviLogoMarkers, ceviLogoMarkerElementFactory);
 
-  useAnnotationPointMarkers(map, campMapAnnotationPoints, (annotation) => {
-    setOpenAnnotation(annotation);
-  });
+  useAnnotationPointMarkers(map, campMapAnnotationPoints, openAnnotation, setOpenAnnotation);
 
   useAnnotationPolygons(map, campMapAnnotationPolygons, (annotation) => {
     setOpenAnnotation(annotation);

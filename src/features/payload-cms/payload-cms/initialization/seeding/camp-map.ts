@@ -157,7 +157,7 @@ export const createRandomCampAnnotation =
         ...baseAnnotation,
         annotationType: 'marker',
         icon: faker.helpers.arrayElement(iconMarkerSelectOptions),
-        color: faker.helpers.arrayElement(['#000000', '#FF0000', '#47564c', '#0000FF']),
+        color: faker.helpers.arrayElement(['#fbc02d', '#ff8126', '#b56aff', '#f848c7']),
         geometry: { coordinates: randomCoordinates },
       };
     } else {
@@ -171,7 +171,7 @@ export const createRandomCampAnnotation =
         ...baseAnnotation,
         annotationType: 'polygon',
         icon: faker.helpers.arrayElement(iconMarkerSelectOptions),
-        color: faker.helpers.arrayElement(['#000000', '#FF0000', '#47564c', '#0000FF']),
+        color: faker.helpers.arrayElement(['#fbc02d', '#ff8126', '#b56aff', '#f848c7']),
         polygonCoordinates: randomPolygonCoords,
       };
     }

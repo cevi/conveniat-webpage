@@ -32,7 +32,7 @@ const CirclePin: React.FC<{ color: string; children: React.ReactNode }> = ({ col
 export const DynamicLucidIconRenderer: React.FC<{
   icon: CampMapAnnotation['icon'];
   color?: string;
-}> = ({ icon, color = '#000000' }): React.JSX.Element => {
+}> = ({ icon, color = '#78909c' }): React.JSX.Element => {
   const iconMap: Record<string, React.ElementType<LucideProps>> = {
     MapPin: MapPin,
     Tent: Tent,

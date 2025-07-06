@@ -1495,7 +1495,7 @@ export interface CampMapAnnotation {
   icon?:
     | ('MapPin' | 'Tent' | 'Utensils' | 'Flag' | 'HelpCircle' | 'Recycle' | 'GlassWater' | 'BriefcaseMedical')
     | null;
-  color?: ('#000000' | '#FF0000' | '#47564c' | '#0000FF') | null;
+  color?: ('#78909c' | '#fbc02d' | '#ff8126' | '#b56aff' | '#f848c7') | null;
   /**
    * A detailed description of the annotation.
    */

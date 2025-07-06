@@ -150,35 +150,43 @@ export const CampMapAnnotationsCollection: CollectionConfig = {
       options: [
         {
           label: {
-            en: 'Black',
-            de: 'Schwarz',
-            fr: 'Noir',
+            en: 'Gray',
+            de: 'Grau',
+            fr: 'Gris',
           },
-          value: '#000000',
+          value: '#78909c',
         },
         {
           label: {
-            en: 'Red',
-            de: 'Rot',
-            fr: 'Rouge',
+            en: 'Yellow',
+            de: 'Yellow',
+            fr: 'Yellow',
           },
-          value: '#FF0000',
+          value: '#fbc02d',
         },
         {
           label: {
-            en: 'Green',
-            de: 'Grün',
-            fr: 'Vert',
+            en: 'Orange',
+            de: 'Orange',
+            fr: 'Orange',
           },
-          value: '#47564c',
+          value: '#ff8126',
         },
         {
           label: {
-            en: 'Blue',
-            de: 'Blau',
-            fr: 'Bleu',
+            en: 'Violet',
+            de: 'Violett',
+            fr: 'Violet',
           },
-          value: '#0000FF',
+          value: '#b56aff',
+        },
+        {
+          label: {
+            en: 'Rose',
+            de: 'Rosa',
+            fr: 'Rose',
+          },
+          value: '#f848c7',
         },
       ],
     },

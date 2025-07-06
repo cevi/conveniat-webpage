@@ -1,6 +1,6 @@
 import { DynamicLucidIconRenderer } from '@/features/map/components/dynamic-lucid-icon-renderer';
 
-import type { CampMapAnnotationPoint } from '@/features/map/types/types';
+import type { CampMapAnnotationPoint, CampMapAnnotationPolygon } from '@/features/map/types/types';
 
 import { reactToDomElement } from '@/utils/react-to-dom-element';
 
@@ -8,15 +8,15 @@ import type { Map as MapLibre } from 'maplibre-gl';
 import { Marker, Popup } from 'maplibre-gl';
 
 import { MapPin } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
 export const useAnnotationPointMarkers = (
   map: MapLibre | null,
   annotations: CampMapAnnotationPoint[],
-  onAnnotationClick: (annotation: CampMapAnnotationPoint) => void,
+  currentAnnotation: CampMapAnnotationPoint | CampMapAnnotationPolygon | undefined,
+  setCurrentAnnotation: (annotation: CampMapAnnotationPoint | undefined) => void,
 ): void => {
   const activeMarkers = useRef<Marker[]>([]);
-  const [selectedAnnotationId, setSelectedAnnotationId] = useState<string | undefined>();
 
   useEffect(() => {
     if (!map) return;
@@ -27,10 +27,10 @@ export const useAnnotationPointMarkers = (
 
     for (const annotation of annotations) {
       const popup = new Popup();
-      popup.on('open', () => onAnnotationClick(annotation));
+      popup.on('open', () => setCurrentAnnotation(annotation));
 
       // Determine if this is the selected annotation
-      const isSelected = annotation.id === selectedAnnotationId;
+      const isSelected = annotation.id === currentAnnotation?.id;
       const markerElement = reactToDomElement(
         isSelected ? (
           <MapPin className="h-12 w-12 text-red-300" fill="#e11d3c" />
@@ -47,11 +47,10 @@ export const useAnnotationPointMarkers = (
       marker.getElement().addEventListener('click', (event) => {
         event.stopPropagation();
         marker.togglePopup();
-        setSelectedAnnotationId(annotation.id); // Set the clicked annotation as selected
       });
 
       activeMarkers.current.push(marker);
     }
     // Re-run effect when selectedAnnotationId changes to update markers
-  }, [map, annotations, onAnnotationClick, selectedAnnotationId]);
+  }, [map, annotations, setCurrentAnnotation, currentAnnotation]);
 };
