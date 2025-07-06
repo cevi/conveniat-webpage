@@ -188,6 +188,22 @@ export const CampMapAnnotationsCollection: CollectionConfig = {
           },
           value: '#f848c7',
         },
+        {
+          label: {
+            en: 'Green',
+            de: 'Grün',
+            fr: 'Vert',
+          },
+          value: '#16a672',
+        },
+        {
+          label: {
+            en: 'Red',
+            de: 'Rot',
+            fr: 'Rouge',
+          },
+          value: '#f64955',
+        },
       ],
     },
     {
