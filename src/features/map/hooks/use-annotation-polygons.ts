@@ -81,10 +81,15 @@ export const useAnnotationPolygons = (
         const sourceId = `polygon-${annotation.id}`;
         const layerId = `polygon-layer-${annotation.id}`;
 
-        if (map.getLayer(layerId)) {
+        // this is necessary during hot reloading
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        if (map?.getLayer(layerId)) {
           map.removeLayer(layerId);
         }
-        if (map.getSource(sourceId)) {
+
+        // this is necessary during hot reloading
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        if (map?.getSource(sourceId)) {
           map.removeSource(sourceId);
         }
       }
