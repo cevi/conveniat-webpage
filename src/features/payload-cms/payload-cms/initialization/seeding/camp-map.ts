@@ -1,6 +1,25 @@
 import { faker } from '@faker-js/faker';
 import type { RequiredDataFromCollectionSlug } from 'payload';
 
+const ceviAbteilungName = [
+  'Cevi Aatal',
+  'Cevi Wetzikon',
+  'Cevi Gossau',
+  'Cevi Uster',
+  'Cevi Altstetten-Albisrieden',
+  'Cevi Züri 11',
+  'Cevi Zürich 10',
+  'Cevi Zumikon-Neumünster',
+  'Cevi Niederhasli-Niederglatt',
+  'Cevi Oberrieden-Horgen',
+  'Cevi Wädenswil',
+  'Cevi Rapperswil-Jona',
+  'Cevi Illnau',
+  'Cevi Effretikon',
+  'Cevi Urdorf',
+  'Cevi Stäfa-Hombrechtikon',
+];
+
 const pois: [number, number][] = [
   [8.297_876_500_673_118, 46.500_531_597_975_8],
   [8.297_645_567_061_222, 46.500_421_921_620_074],
@@ -297,7 +316,7 @@ export const createRandomCampAnnotation =
 export const generateCampSides = (): RequiredDataFromCollectionSlug<'camp-map-annotations'>[] => {
   return campSides.map((coordinates, index) => {
     return {
-      title: `Camp Side ${index + 1}`,
+      title: `Quartier ${index + 1}`,
       description: {
         root: {
           type: 'root',
@@ -311,7 +330,9 @@ export const generateCampSides = (): RequiredDataFromCollectionSlug<'camp-map-an
                   format: 'left' as const,
                   mode: 'normal' as const,
                   style: '',
-                  text: faker.lorem.paragraph(),
+                  text: `Quartier der Abteilungen ${faker.helpers
+                    .arrayElements(ceviAbteilungName, { min: 1, max: 3 })
+                    .join(', ')}.`,
                   version: 1,
                 },
               ],
