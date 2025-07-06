@@ -6,20 +6,40 @@ export const useFlyToAnnotation = (
   map: MapLibre | null,
   annotation: CampMapAnnotationPoint | CampMapAnnotationPolygon | undefined,
 ): void => {
+  // eslint-disable-next-line complexity
   useEffect(() => {
     if (!map || !annotation) return;
 
+    // abort if the annotation does not have a valid geometry
     if (
-      'coordinates' in annotation.geometry &&
-      typeof annotation.geometry.coordinates[0] === 'number' &&
-      typeof annotation.geometry.coordinates[1] === 'number'
+      !('coordinates' in annotation.geometry) ||
+      typeof annotation.geometry.coordinates[0] !== 'number' ||
+      typeof annotation.geometry.coordinates[1] !== 'number'
     ) {
-      map.flyTo({
-        center: [annotation.geometry.coordinates[0], annotation.geometry.coordinates[1] - 0.0005],
-        zoom: 16.5,
-        animate: true,
-        duration: 500,
-      });
+      return;
     }
+
+    const mapHeight = map.getCanvas().height;
+    const projectedCoordinates = map.project(annotation.geometry.coordinates as [number, number]);
+
+    const annotationY = projectedCoordinates.y;
+    const annotationX = projectedCoordinates.x;
+
+    // check if the annotation is in the lower third of the map
+    const isInLowerThird = annotationY >= (mapHeight * 2) / 3;
+
+    // also check if the annotation is close to the top or bottom border of the map
+    const isCloseToBorder =
+      annotationY < 100 ||
+      annotationY > mapHeight - 100 ||
+      annotationX < 100 ||
+      annotationX > map.getCanvas().width - 100;
+
+    if (!isInLowerThird && !isCloseToBorder) return;
+    map.flyTo({
+      center: [annotation.geometry.coordinates[0], annotation.geometry.coordinates[1] - 0.0005],
+      animate: true,
+      duration: 1000,
+    });
   }, [map, annotation]);
 };
