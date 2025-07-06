@@ -37,45 +37,12 @@ export const ScheduleComponent: React.FC = () => {
   }, []);
 
   const maxVisibleDays = 5;
-  const currentDateIndex = allDates.findIndex((date) => formatDate(date) === formattedDate);
 
   // Calculate visible dates for carousel
   const visibleDates = useMemo(() => {
     const startIndex = Math.max(0, Math.min(carouselStartIndex, allDates.length - maxVisibleDays));
     return allDates.slice(startIndex, startIndex + maxVisibleDays);
   }, [allDates, carouselStartIndex]);
-
-  const handlePreviousDay = (): void => {
-    const currentIndex = allDates.findIndex((date) => formatDate(date) === formattedDate);
-    if (currentIndex > 0) {
-      const newDate = allDates[currentIndex - 1];
-      if (!newDate) return;
-
-      setCurrentDate(newDate);
-      setExpandedEntries(new Set());
-
-      // Adjust carousel if needed
-      if (currentIndex - 1 < carouselStartIndex) {
-        setCarouselStartIndex(Math.max(0, carouselStartIndex - 1));
-      }
-    }
-  };
-
-  const handleNextDay = (): void => {
-    const currentIndex = allDates.findIndex((date) => formatDate(date) === formattedDate);
-    if (currentIndex < allDates.length - 1) {
-      const newDate = allDates[currentIndex + 1];
-      if (!newDate) return;
-
-      setCurrentDate(newDate);
-      setExpandedEntries(new Set());
-
-      // Adjust carousel if needed
-      if (currentIndex + 1 >= carouselStartIndex + maxVisibleDays) {
-        setCarouselStartIndex(Math.min(allDates.length - maxVisibleDays, carouselStartIndex + 1));
-      }
-    }
-  };
 
   const handleCarouselPrevious = (): void => {
     if (carouselStartIndex > 0) {
@@ -114,7 +81,7 @@ export const ScheduleComponent: React.FC = () => {
     }
   };
 
-  const currentProgram = dailyPrograms[formattedDate] || [];
+  const currentProgram = dailyPrograms[formattedDate] ?? [];
   const hasProgram = currentProgram.length > 0;
 
   return (
