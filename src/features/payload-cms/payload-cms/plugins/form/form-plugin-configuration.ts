@@ -888,6 +888,17 @@ export const formPluginConfiguration = formBuilderPlugin({
             },
             fields: [
               {
+                name: 'exportAsCSV',
+                type: 'ui',
+                admin: {
+                  components: {
+                    Field: {
+                      path: '@/features/payload-cms/payload-cms/components/form-export-button#FormExportButton',
+                    },
+                  },
+                },
+              },
+              {
                 name: 'submissions',
                 type: 'join',
                 collection: 'form-submissions',
