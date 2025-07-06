@@ -90,7 +90,6 @@ export const ScheduleComponent: React.FC = () => {
         <div className="mb-4 flex items-center justify-between">
           <div className="flex-1 text-center">
             <HeadlineH1 className="mb-2">
-              Program for{' '}
               {currentDate.toLocaleDateString('de-CH', {
                 weekday: 'long',
                 month: 'numeric',
