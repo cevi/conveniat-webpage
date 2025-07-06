@@ -34,6 +34,7 @@ const dirname = path.dirname(filename);
  * @param collectionConfig
  * @param locale
  */
+// eslint-disable-next-line complexity
 const generatePreviewUrl = ({
   data,
   collectionConfig,
