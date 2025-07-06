@@ -5,7 +5,7 @@ import { X } from 'lucide-react';
 import type React from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 
-export const MapAnnotationDetailsDrawer: React.FC<{
+export const AnnotationDetailsDrawer: React.FC<{
   closeDrawer: () => void;
   annotation: CampMapAnnotationPoint | CampMapAnnotationPolygon;
 }> = ({ closeDrawer, annotation }) => {

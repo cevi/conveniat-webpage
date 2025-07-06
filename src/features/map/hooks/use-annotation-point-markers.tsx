@@ -1,22 +1,22 @@
-import { DynamicLucidIconRenderer } from '@/features/map/components/dynamic-lucid-icon-renderer';
+import { DynamicLucidIconRenderer } from '@/features/map/components/maplibre-renderer/dynamic-lucid-icon-renderer';
 
 import type { CampMapAnnotationPoint, CampMapAnnotationPolygon } from '@/features/map/types/types';
 
 import { reactToDomElement } from '@/utils/react-to-dom-element';
 
-import type { Map as MapLibre } from 'maplibre-gl';
 import { Marker, Popup } from 'maplibre-gl';
 
+import { useMap } from '@/features/map/components/maplibre-renderer/map-context-provider';
 import { MapPin } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 
 export const useAnnotationPointMarkers = (
-  map: MapLibre | null,
   annotations: CampMapAnnotationPoint[],
   currentAnnotation: CampMapAnnotationPoint | CampMapAnnotationPolygon | undefined,
   setCurrentAnnotation: (annotation: CampMapAnnotationPoint | undefined) => void,
 ): void => {
   const activeMarkers = useRef<Marker[]>([]);
+  const map = useMap();
 
   useEffect(() => {
     if (!map) return;

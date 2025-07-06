@@ -1,14 +1,15 @@
+import { useMap } from '@/features/map/components/maplibre-renderer/map-context-provider';
 import type { CeviLogoMarker } from '@/features/map/types/types';
-import type { Map as MapLibre } from 'maplibre-gl';
 import { Marker } from 'maplibre-gl';
 import { useEffect, useRef } from 'react';
 
 export const useCeviLogoMarkers = (
-  map: MapLibre | null,
   markersData: CeviLogoMarker[],
   elementFactory: () => HTMLElement,
 ): void => {
   const activeMarkers = useRef<Marker[]>([]);
+
+  const map = useMap();
 
   useEffect(() => {
     if (!map) return;

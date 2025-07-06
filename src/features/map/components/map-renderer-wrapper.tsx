@@ -9,9 +9,12 @@ import type {
 import dynamic from 'next/dynamic';
 import type React from 'react';
 
-const LazyMapLibreRenderer = dynamic(() => import('@/features/map/components/map-renderer'), {
-  ssr: false,
-});
+const LazyMapLibreRenderer = dynamic(
+  () => import('@/features/map/components/maplibre-renderer/map-renderer'),
+  {
+    ssr: false,
+  },
+);
 
 /***
  * This component is a wrapper for the MapLibreRenderer that allows for dynamic loading. This

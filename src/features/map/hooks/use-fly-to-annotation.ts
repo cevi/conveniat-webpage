@@ -1,11 +1,12 @@
+import { useMap } from '@/features/map/components/maplibre-renderer/map-context-provider';
 import type { CampMapAnnotationPoint, CampMapAnnotationPolygon } from '@/features/map/types/types';
-import type { Map as MapLibre } from 'maplibre-gl';
 import { useEffect } from 'react';
 
 export const useFlyToAnnotation = (
-  map: MapLibre | null,
   annotation: CampMapAnnotationPoint | CampMapAnnotationPolygon | undefined,
 ): void => {
+  const map = useMap();
+
   // eslint-disable-next-line complexity
   useEffect(() => {
     if (!map || !annotation) return;

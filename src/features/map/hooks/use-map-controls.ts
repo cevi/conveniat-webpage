@@ -1,8 +1,10 @@
-import type { Map as MapLibre } from 'maplibre-gl';
+import { useMap } from '@/features/map/components/maplibre-renderer/map-context-provider';
 import { GeolocateControl, NavigationControl, ScaleControl } from 'maplibre-gl';
 import { useEffect } from 'react';
 
-export function useMapControls(map: MapLibre | null) {
+export const useMapControls = (): void => {
+  const map = useMap();
+
   useEffect(() => {
     if (!map) return;
 
@@ -15,4 +17,4 @@ export function useMapControls(map: MapLibre | null) {
       }),
     );
   }, [map]);
-}
+};

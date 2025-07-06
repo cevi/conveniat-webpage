@@ -1,13 +1,13 @@
 import type { CampMapAnnotationPoint, CampMapAnnotationPolygon } from '@/features/map/types/types';
 import { useEffect } from 'react';
 
-export function useMapUrlSync(
+export const useMapUrlSync = (
   openAnnotation: CampMapAnnotationPoint | CampMapAnnotationPolygon | undefined,
   setOpenAnnotation: (anno: CampMapAnnotationPoint | CampMapAnnotationPolygon) => void,
   closeDrawer: () => void,
   points: CampMapAnnotationPoint[],
   polygons: CampMapAnnotationPolygon[],
-) {
+): void => {
   // Effect 1: Read initial annotation ID from URL on mount
   useEffect(() => {
     const annotationId = new URL(globalThis.location.href).searchParams.get('annotationId');
@@ -34,7 +34,7 @@ export function useMapUrlSync(
 
   // Effect 3: Handle browser back/forward navigation
   useEffect(() => {
-    const handlePopState = () => {
+    const handlePopState = (): void => {
       const annotationId = new URL(globalThis.location.href).searchParams.get('annotationId');
       if (!annotationId) {
         closeDrawer();
@@ -42,6 +42,6 @@ export function useMapUrlSync(
     };
 
     globalThis.addEventListener('popstate', handlePopState);
-    return () => globalThis.removeEventListener('popstate', handlePopState);
+    return (): void => globalThis.removeEventListener('popstate', handlePopState);
   }, [closeDrawer]);
-}
+};

@@ -1,14 +1,11 @@
 'use client';
 
 import { CeviLogo } from '@/components/svg-logos/cevi-logo';
-import { MapAnnotationDetailsDrawer } from '@/features/map/components/map-annotation-details-drawer';
-import { useAnnotationPointMarkers } from '@/features/map/hooks/use-annotation-point-markers';
-import { useAnnotationPolygons } from '@/features/map/hooks/use-annotation-polygons';
-import { useCeviLogoMarkers } from '@/features/map/hooks/use-cevi-logo-markers';
-import { useFlyToAnnotation } from '@/features/map/hooks/use-fly-to-annotation';
+import { AnnotationDetailsDrawer } from '@/features/map/components/maplibre-renderer/annotation-details-drawer';
+import { MapContextProvider } from '@/features/map/components/maplibre-renderer/map-context-provider';
+import { MaplibreMap } from '@/features/map/components/maplibre-renderer/maplibre-map';
 import { useMapInitialization } from '@/features/map/hooks/use-map-initialization';
-import { useMapControls } from '@/features/map/hooks/useMapControls';
-import { useMapUrlSync } from '@/features/map/hooks/useMapUrlSync';
+import { useMapUrlSync } from '@/features/map/hooks/use-map-url-sync';
 import type {
   CampMapAnnotationPoint,
   CampMapAnnotationPolygon,
@@ -64,25 +61,20 @@ export const MapLibreRenderer = ({
     campMapAnnotationPolygons,
   );
 
-  useMapControls(map);
-
-  useCeviLogoMarkers(map, ceviLogoMarkers, ceviLogoMarkerElementFactory);
-
-  useAnnotationPointMarkers(map, campMapAnnotationPoints, openAnnotation, setOpenAnnotation);
-
-  useAnnotationPolygons(map, campMapAnnotationPolygons, (annotation) => {
-    setOpenAnnotation(annotation);
-  });
-
-  useFlyToAnnotation(map, openAnnotation);
-
   return (
-    <>
+    <MapContextProvider map={map}>
       {openAnnotation && (
-        <MapAnnotationDetailsDrawer closeDrawer={closeDrawer} annotation={openAnnotation} />
+        <AnnotationDetailsDrawer closeDrawer={closeDrawer} annotation={openAnnotation} />
       )}
       <div className="h-full w-full" ref={mapContainerReference} />
-    </>
+      <MaplibreMap
+        openAnnotation={openAnnotation}
+        setOpenAnnotation={setOpenAnnotation}
+        campMapAnnotationPoints={campMapAnnotationPoints}
+        campMapAnnotationPolygons={campMapAnnotationPolygons}
+        ceviLogoMarkers={ceviLogoMarkers}
+      />
+    </MapContextProvider>
   );
 };
 

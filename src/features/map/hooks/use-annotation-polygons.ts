@@ -1,3 +1,4 @@
+import { useMap } from '@/features/map/components/maplibre-renderer/map-context-provider';
 import type { CampMapAnnotationPolygon } from '@/features/map/types/types';
 import type { Map as MapLibre } from 'maplibre-gl';
 import { useEffect, useRef, useState } from 'react';
@@ -8,16 +9,17 @@ interface ClickedFeaturesState {
 }
 
 export const useAnnotationPolygons = (
-  map: MapLibre | null,
   annotations: CampMapAnnotationPolygon[],
   onAnnotationClick: (annotation: CampMapAnnotationPolygon) => void,
 ): void => {
+  const map = useMap();
+
   // eslint-disable-next-line react-naming-convention/use-state
   const [, setClickedPolygonState] = useState<ClickedFeaturesState | undefined>();
 
   // Use a ref to hold the mutable map instance and event handlers to avoid re-creating them
   // and issues with stale closures inside event listeners.
-  const mapReference = useRef<MapLibre | null>(null);
+  const mapReference = useRef<MapLibre | undefined>(undefined);
   mapReference.current = map;
 
   const onAnnotationClickReference = useRef(onAnnotationClick);
