@@ -84,14 +84,12 @@ export const useAnnotationPolygons = (
         const layerId = `polygon-layer-${annotation.id}`;
 
         // this is necessary during hot reloading
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        if (map?.getLayer(layerId)) {
+        if (map.getLayer(layerId)) {
           map.removeLayer(layerId);
         }
 
         // this is necessary during hot reloading
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        if (map?.getSource(sourceId)) {
+        if (map.getSource(sourceId)) {
           map.removeSource(sourceId);
         }
       }
@@ -106,7 +104,11 @@ export const useAnnotationPolygons = (
 
     // Cleanup when component unmounts or annotations change
     return (): void => {
-      cleanupLayers();
+      try {
+        cleanupLayers();
+      } catch (error) {
+        console.error('Error during cleanup of polygon layers:', error);
+      }
       map.off('load', setupLayers);
     };
   }, [map, annotations]);
@@ -129,9 +131,9 @@ export const useAnnotationPolygons = (
 
       if (clickedPolygons.length === 0) {
         setClickedPolygonState(undefined);
-        // Clear annotationId from URL if no polygon is clicked
+        // Clear location from URL if no polygon is clicked
         const url = new URL(globalThis.location.href);
-        url.searchParams.delete('annotationId');
+        url.searchParams.delete('locationId');
         globalThis.history.pushState({}, '', url.toString());
         return;
       }
@@ -167,7 +169,7 @@ export const useAnnotationPolygons = (
         if (selectedPolygon) {
           onAnnotationClickReference.current(selectedPolygon);
           const url = new URL(globalThis.location.href);
-          url.searchParams.set('annotationId', selectedPolygon.id);
+          url.searchParams.set('locationId', selectedPolygon.id);
           globalThis.history.pushState({}, '', url.toString());
         }
 

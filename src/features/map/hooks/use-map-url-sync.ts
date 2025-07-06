@@ -10,7 +10,7 @@ export const useMapUrlSync = (
 ): void => {
   // Effect 1: Read initial annotation ID from URL on mount
   useEffect(() => {
-    const annotationId = new URL(globalThis.location.href).searchParams.get('annotationId');
+    const annotationId = new URL(globalThis.location.href).searchParams.get('locationId');
     if (annotationId) {
       const initialAnnotation =
         points.find((a) => a.id === annotationId) ?? polygons.find((a) => a.id === annotationId);
@@ -25,9 +25,9 @@ export const useMapUrlSync = (
   useEffect(() => {
     const url = new URL(globalThis.location.href);
     if (openAnnotation) {
-      url.searchParams.set('annotationId', openAnnotation.id);
+      url.searchParams.set('locationId', openAnnotation.id);
     } else {
-      url.searchParams.delete('annotationId');
+      url.searchParams.delete('locationId');
     }
     globalThis.history.pushState({}, '', url.toString());
   }, [openAnnotation]);
@@ -35,7 +35,7 @@ export const useMapUrlSync = (
   // Effect 3: Handle browser back/forward navigation
   useEffect(() => {
     const handlePopState = (): void => {
-      const annotationId = new URL(globalThis.location.href).searchParams.get('annotationId');
+      const annotationId = new URL(globalThis.location.href).searchParams.get('locationId');
       if (!annotationId) {
         closeDrawer();
       }
