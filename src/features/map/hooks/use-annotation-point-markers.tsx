@@ -51,6 +51,7 @@ export const useAnnotationPointMarkers = (
 
       activeMarkers.current.push(marker);
     }
+
     // Re-run effect when selectedAnnotationId changes to update markers
   }, [map, annotations, setCurrentAnnotation, currentAnnotation]);
 };

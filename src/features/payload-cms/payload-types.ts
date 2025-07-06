@@ -1514,6 +1514,17 @@ export interface CampMapAnnotation {
     };
     [k: string]: unknown;
   };
+  openingHours?:
+    | {
+        day?: ('monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday') | null;
+        /**
+         * Opening hours in HH:mm format (e.g., 08:00 - 18:00)
+         */
+        time: string;
+        id?: string | null;
+      }[]
+    | null;
+  images?: (string | Image)[] | null;
   annotationType: 'marker' | 'polygon';
   geometry?: {
     /**
@@ -2185,6 +2196,14 @@ export interface CampMapAnnotationsSelect<T extends boolean = true> {
   icon?: T;
   color?: T;
   description?: T;
+  openingHours?:
+    | T
+    | {
+        day?: T;
+        time?: T;
+        id?: T;
+      };
+  images?: T;
   annotationType?: T;
   geometry?:
     | T

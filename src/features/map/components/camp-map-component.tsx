@@ -20,11 +20,10 @@ export const CampMapComponent: React.FC = async () => {
   // load annotations from payload-cms
   const payload = await getPayload({ config });
 
-  // TODO: do we need any filtering based on an R-Tree?
   const annotations: PaginatedDocs<CampMapAnnotationPayloadDocumentType> = await payload.find({
     collection: 'camp-map-annotations',
     limit: 100,
-    depth: 0,
+    depth: 1,
   });
 
   const campMapAnnotationPoints: CampMapAnnotationPoint[] = annotations.docs
@@ -39,6 +38,8 @@ export const CampMapComponent: React.FC = async () => {
             coordinates: document_.geometry?.coordinates,
           },
           icon: document_.icon ?? 'MapPin',
+          openingHours: document_.openingHours,
+          images: document_.images ?? [],
           color: document_.color ?? '#47564c',
         }) as CampMapAnnotationPoint,
     );
@@ -57,6 +58,8 @@ export const CampMapComponent: React.FC = async () => {
             ),
           },
           icon: document_.icon ?? 'Tent',
+          openingHours: document_.openingHours,
+          images: document_.images ?? [],
           color: document_.color ?? '#47564c',
         }) as CampMapAnnotationPolygon,
     );

@@ -1,10 +1,9 @@
-'use client';
-
 import type { CampMapAnnotationPoint, CampMapAnnotationPolygon } from '@/features/map/types/types';
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import { Clock, Flag, MessageCircleQuestion, MessageSquare, X } from 'lucide-react';
-import type React from 'react';
+import Image from 'next/image';
+import React, { Suspense } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 
 // Define a type for your camp program entries
@@ -19,15 +18,6 @@ export const AnnotationDetailsDrawer: React.FC<{
   closeDrawer: () => void;
   annotation: CampMapAnnotationPoint | CampMapAnnotationPolygon;
 }> = ({ closeDrawer, annotation }) => {
-  // Placeholder data - not modifying the annotation object
-  const placeholderOpeningHours = '08:00 - 22:00';
-
-  const placeholderImages = [
-    '/placeholder.svg?height=120&width=120',
-    '/placeholder.svg?height=120&width=120',
-    '/placeholder.svg?height=120&width=120',
-  ];
-
   // Placeholder for related camp programs at this location
   const relatedPrograms: CampProgramEntry[] = [
     {
@@ -76,29 +66,44 @@ export const AnnotationDetailsDrawer: React.FC<{
           </div>
 
           {/* Opening Hours */}
-          <div className="border-b border-gray-50 p-4">
-            <div className="mb-3 flex items-center gap-2">
-              <Clock size={18} className="text-gray-600" />
-              <h3 className="font-semibold text-gray-900">Opening Hours</h3>
-            </div>
-            <div className="space-y-1">
-              <div className="flex justify-between text-sm">
-                <span>{placeholderOpeningHours}</span>
+          {annotation.openingHours && annotation.openingHours.length > 0 && (
+            <div className="border-b border-gray-50 p-4">
+              <div className="mb-3 flex items-center gap-2">
+                <Clock size={18} className="text-gray-600" />
+                <h3 className="font-semibold text-gray-900">Opening Hours</h3>
               </div>
+              <ul className="list-disc pl-5">
+                {annotation.openingHours.map((entry, index) => (
+                  <li key={index} className="text-gray-700">
+                    {/* eslint-disable-next-line @typescript-eslint/strict-boolean-expressions */}
+                    {entry.day
+                      ? `${entry.day.charAt(0).toUpperCase() + entry.day.slice(1)}: `
+                      : 'Daily: '}
+                    {entry.time}
+                  </li>
+                ))}
+              </ul>
             </div>
-          </div>
+          )}
 
           {/* Images */}
           <div className="border-b border-gray-50 p-4">
             <div className="flex gap-2 overflow-x-auto pb-2">
-              {placeholderImages.map((source, index) => (
-                <img
-                  key={index}
-                  src={source}
-                  alt={`Photo ${index + 1}`}
-                  className="h-20 w-20 flex-shrink-0 rounded-lg border border-gray-200 object-cover"
-                />
-              ))}
+              {annotation.images.length > 0 &&
+                annotation.images.map((image, index) => (
+                  <Suspense
+                    key={index}
+                    fallback={<div className="h-24 w-24 rounded-lg bg-gray-200" />}
+                  >
+                    <Image
+                      src={image.url ?? ''}
+                      alt={image.alt}
+                      width={96}
+                      height={96}
+                      className="h-24 w-24 rounded-lg object-cover"
+                    />
+                  </Suspense>
+                ))}
             </div>
           </div>
 

@@ -352,63 +352,89 @@ const iconMarkerSelectOptions = [
   'BriefcaseMedical' as const,
 ];
 
+const getRandomTime = (): string => {
+  const hours = faker.number.int({ min: 0, max: 23 });
+  const minutes = faker.number.int({ min: 0, max: 59 });
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+};
+
 /**
  * Creates a single random camp annotation, which can be either a 'marker' or a 'polygon'.
  * The data is generated using Faker.js for realistic-looking mock data.
  * @returns A RequiredDataFromCollectionSlug<'camp-map-annotations'> object.
  */
-export const createRandomCampAnnotation =
-  (): RequiredDataFromCollectionSlug<'camp-map-annotations'> => {
-    // Base annotation structure
-    const baseAnnotation = {
-      title: faker.lorem.words({ min: 2, max: 4 }),
-      description: {
-        root: {
-          type: 'root',
-          children: [
-            {
-              type: 'paragraph',
-              children: [
-                {
-                  type: 'text',
-                  detail: 0,
-                  format: 'left' as const,
-                  mode: 'normal' as const,
-                  style: '',
-                  text: faker.lorem.paragraph(),
-                  version: 1,
-                },
-              ],
-              direction: 'ltr' as const,
-              format: 'left' as const,
-              indent: 0,
-              version: 1,
-            },
-          ],
-          direction: 'ltr' as const,
-          format: 'left' as const,
-          indent: 0,
-          version: 1,
-        },
+export const createRandomCampAnnotation = (
+  imageIds: string[],
+): RequiredDataFromCollectionSlug<'camp-map-annotations'> => {
+  // Base annotation structure
+  const baseAnnotation = {
+    title: faker.lorem.words({ min: 2, max: 4 }),
+    description: {
+      root: {
+        type: 'root',
+        children: [
+          {
+            type: 'paragraph',
+            children: [
+              {
+                type: 'text',
+                detail: 0,
+                format: 'left' as const,
+                mode: 'normal' as const,
+                style: '',
+                text: faker.lorem.paragraph(),
+                version: 1,
+              },
+            ],
+            direction: 'ltr' as const,
+            format: 'left' as const,
+            indent: 0,
+            version: 1,
+          },
+        ],
+        direction: 'ltr' as const,
+        format: 'left' as const,
+        indent: 0,
+        version: 1,
       },
-    };
-
-    const randomCoordinates = faker.helpers.arrayElement(pois);
-    return {
-      ...baseAnnotation,
-      annotationType: 'marker',
-      icon: faker.helpers.arrayElement(iconMarkerSelectOptions),
-      color: faker.helpers.arrayElement([
-        '#fbc02d',
-        '#ff8126',
-        '#f64955',
-        '#f848c7',
-        '#b56aff',
-        '#16a672',
-      ]),
-      geometry: { coordinates: randomCoordinates },
-    };
+    },
   };
+
+  const randomCoordinates = faker.helpers.arrayElement(pois);
+  const randomDayOrUndefined = faker.helpers.arrayElement([
+    'monday',
+    'tuesday',
+    'wednesday',
+    'thursday',
+    'friday',
+    'saturday',
+    'sunday',
+    undefined,
+  ]);
+
+  return {
+    ...baseAnnotation,
+    annotationType: 'marker',
+    icon: faker.helpers.arrayElement(iconMarkerSelectOptions),
+    color: faker.helpers.arrayElement([
+      '#78909c',
+      '#fbc02d',
+      '#ff8126',
+      '#f64955',
+      '#f848c7',
+      '#b56aff',
+      '#16a672',
+    ]),
+    geometry: { coordinates: randomCoordinates },
+    openingHours: [
+      {
+        ...(randomDayOrUndefined === undefined ? {} : { day: randomDayOrUndefined }),
+        time: `${getRandomTime()} - ${getRandomTime()}`,
+      },
+    ],
+    images: imageIds.length > 0 ? faker.helpers.arrayElements(imageIds, { min: 1, max: 3 }) : [],
+  };
+};
 
 export const generateCampSides = (): RequiredDataFromCollectionSlug<'camp-map-annotations'>[] => {
   return campSides.map((coordinates, index) => {
@@ -448,9 +474,9 @@ export const generateCampSides = (): RequiredDataFromCollectionSlug<'camp-map-an
       annotationType: 'polygon',
       icon: faker.helpers.arrayElement(iconMarkerSelectOptions),
       color: faker.helpers.arrayElement(['#f848c7', '#b56aff']),
-      polygonCoordinates: coordinates.map((coord) => ({
-        longitude: coord[0],
-        latitude: coord[1],
+      polygonCoordinates: coordinates.map((coordinate) => ({
+        longitude: coordinate[0],
+        latitude: coordinate[1],
       })),
     };
   });
@@ -493,9 +519,9 @@ export const generatePlaygroundPolygons =
         annotationType: 'polygon',
         icon: faker.helpers.arrayElement(iconMarkerSelectOptions),
         color: '#16a672',
-        polygonCoordinates: coordinates.map((coord) => ({
-          longitude: coord[0],
-          latitude: coord[1],
+        polygonCoordinates: coordinates.map((coordinate) => ({
+          longitude: coordinate[0],
+          latitude: coordinate[1],
         })),
       };
     });

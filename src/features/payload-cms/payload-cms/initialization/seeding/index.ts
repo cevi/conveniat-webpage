@@ -183,7 +183,7 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
   for (let index = 0; index < 10; index++) {
     await payload.create({
       collection: 'camp-map-annotations',
-      data: createRandomCampAnnotation(),
+      data: createRandomCampAnnotation(imageIds),
     });
   }
 

@@ -222,6 +222,60 @@ export const CampMapAnnotationsCollection: CollectionConfig = {
       editor: mapAnnotationDescriptionLexicalEditorSettings,
     },
     {
+      name: 'openingHours',
+      label: 'Opening Hours',
+      type: 'array',
+      fields: [
+        {
+          name: 'day',
+          label: 'Day',
+          type: 'select',
+          options: [
+            { label: 'Monday', value: 'monday' },
+            { label: 'Tuesday', value: 'tuesday' },
+            { label: 'Wednesday', value: 'wednesday' },
+            { label: 'Thursday', value: 'thursday' },
+            { label: 'Friday', value: 'friday' },
+            { label: 'Saturday', value: 'saturday' },
+            { label: 'Sunday', value: 'sunday' },
+          ],
+          required: false,
+        },
+        {
+          name: 'time',
+          label: 'Time',
+          type: 'text',
+          required: true,
+          admin: {
+            description: {
+              en: 'Opening hours in HH:mm format (e.g., 08:00 - 18:00)',
+              de: 'Öffnungszeiten im Format HH:mm (z.B. 08:00 - 18:00)',
+              fr: "Heures d'ouverture au format HH:mm (par exemple, 08h00 - 18h00)",
+            },
+          },
+          validate: (value: string | string[] | undefined | null): true | string => {
+            if (typeof value !== 'string') {
+              return 'Invalid time format. Use HH:mm - HH:mm.';
+            }
+            const timePattern = /^([01]\d|2[0-3]):([0-5]\d) - ([01]\d|2[0-3]):([0-5]\d)$/;
+            return timePattern.test(value) || 'Invalid time format. Use HH:mm - HH:mm.';
+          },
+        },
+      ],
+    },
+    {
+      name: 'images',
+      label: 'Images',
+      admin: {
+        isSortable: true,
+        appearance: 'drawer',
+      },
+      type: 'relationship',
+      relationTo: 'images',
+      hasMany: true,
+      required: false,
+    },
+    {
       name: 'annotationType',
       label: 'Annotation Type',
       type: 'select',
