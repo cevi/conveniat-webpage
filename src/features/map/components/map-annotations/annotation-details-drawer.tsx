@@ -7,6 +7,14 @@ import { Clock, Flag, MessageCircleQuestion, MessageSquare, X } from 'lucide-rea
 import type React from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 
+// Define a type for your camp program entries
+interface CampProgramEntry {
+  id: string;
+  title: string;
+  time: string;
+  description: string;
+}
+
 export const AnnotationDetailsDrawer: React.FC<{
   closeDrawer: () => void;
   annotation: CampMapAnnotationPoint | CampMapAnnotationPolygon;
@@ -18,6 +26,31 @@ export const AnnotationDetailsDrawer: React.FC<{
     '/placeholder.svg?height=120&width=120',
     '/placeholder.svg?height=120&width=120',
     '/placeholder.svg?height=120&width=120',
+  ];
+
+  // Placeholder for related camp programs at this location
+  const relatedPrograms: CampProgramEntry[] = [
+    {
+      id: 'yoga-session-1',
+      title: 'Morning Yoga Flow',
+      time: '09:00 - 10:00',
+      description:
+        'Start your day with an invigorating yoga session suitable for all levels, focusing on breath and movement to awaken your body and mind.',
+    },
+    {
+      id: 'meditation-workshop',
+      title: 'Mindfulness Meditation',
+      time: '11:00 - 12:00',
+      description:
+        'A guided meditation to calm your mind and reduce stress. Learn simple techniques to bring mindfulness into your daily life and find inner peace.',
+    },
+    {
+      id: 'evening-stretch',
+      title: 'Evening Stretch & Relax',
+      time: '18:00 - 19:00',
+      description:
+        'Unwind with gentle stretches before dinner. This session focuses on flexibility and relaxation, perfect for releasing tension after a day of activities.',
+    },
   ];
 
   return (
@@ -68,6 +101,47 @@ export const AnnotationDetailsDrawer: React.FC<{
               ))}
             </div>
           </div>
+
+          {/* Related Programs Section */}
+          {relatedPrograms.length > 0 && (
+            <div className="border-b border-gray-50 p-4">
+              <div className="mb-3 flex items-center gap-2">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="text-gray-600"
+                >
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+                <h3 className="font-semibold text-gray-900">Programs at this Location</h3>
+              </div>
+              <div className="space-y-3">
+                {relatedPrograms.map((program) => (
+                  <div key={program.id} className="rounded-lg border border-gray-200 p-3">
+                    <h4 className="font-medium text-gray-900">{program.title}</h4>
+                    <p className="text-sm text-gray-600">{program.time}</p>
+                    <p className="mt-1 text-sm text-gray-700">{program.description}</p>
+                    <a
+                      href={`/app/schedule/${program.id}`}
+                      className="mt-3 inline-flex items-center rounded-md border border-transparent bg-blue-100 px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-blue-200 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
+                    >
+                      Read More
+                    </a>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Forum Post / Report Issues */}
           <div className="p-4">
