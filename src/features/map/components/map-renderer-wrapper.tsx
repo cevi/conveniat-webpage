@@ -5,7 +5,7 @@ import type {
   CampMapAnnotationPolygon,
   CeviLogoMarker,
   InitialMapPose,
-} from '@/features/map/components/types';
+} from '@/features/map/types/types';
 import dynamic from 'next/dynamic';
 import type React from 'react';
 

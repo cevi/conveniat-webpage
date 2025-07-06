@@ -4,7 +4,7 @@ import type {
   CampMapAnnotationPoint,
   CampMapAnnotationPolygon,
   InitialMapPose,
-} from '@/features/map/components/types';
+} from '@/features/map/types/types';
 import type { CampMapAnnotation as CampMapAnnotationPayloadDocumentType } from '@/features/payload-cms/payload-types';
 import config from '@payload-config';
 import { getPayload, type PaginatedDocs } from 'payload';
