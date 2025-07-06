@@ -3,21 +3,105 @@ import type { RequiredDataFromCollectionSlug } from 'payload';
 
 const ceviAbteilungName = [
   'Cevi Aatal',
-  'Cevi Wetzikon',
-  'Cevi Gossau',
-  'Cevi Uster',
+  'Cevi Aarburg',
+  'Cevi Affeltrangen-Braunau-Märwil',
   'Cevi Altstetten-Albisrieden',
-  'Cevi Züri 11',
-  'Cevi Zürich 10',
-  'Cevi Zumikon-Neumünster',
-  'Cevi Niederhasli-Niederglatt',
-  'Cevi Oberrieden-Horgen',
-  'Cevi Wädenswil',
-  'Cevi Rapperswil-Jona',
-  'Cevi Illnau',
+  'Cevi Amriswil',
+  'Cevi Andelfingen',
+  'Cevi Baar Ten Sing',
+  'Cevi Basel-Stadt',
+  'Cevi Bonstetten-Hedingen',
+  'Cevi Bremgarten',
+  'Cevi Brittnau',
+  'Cevi Bubikon-Wolfhausen',
+  'Cevi Buchs-Rohr Aarau',
+  'Cevi Bülach',
+  'Cevi Bussnang',
+  'Cevi Dägerlen',
+  'Cevi Davos',
+  'Cevi Derendingen',
+  'Cevi Dinhard',
+  'Cevi Dübendorf',
+  'Cevi Dürnten',
   'Cevi Effretikon',
-  'Cevi Urdorf',
+  'Cevi Egg',
+  'Cevi Entfelden',
+  'Cevi Erlinsbach',
+  'Cevi Fislisbach',
+  'Cevi Fislisbach-Mellingen-Rohrdorf',
+  'Cevi Flaachtal',
+  'Cevi Frauenfeld',
+  'Cevi Fraubrunnen',
+  'Cevi Gebenstorf',
+  'Cevi Gossau',
+  'Cevi Gotthelf-Neubad',
+  'Cevi Gränichen',
+  'Cevi Gretzenbach',
+  'Cevi Herblingen',
+  'Cevi Herisau',
+  'Cevi Herrliberg Erlenbach',
+  'Cevi Hettlingen-Henggart',
+  'Cevi Hilterfingen Sigriswil',
+  'Cevi Hinterthurgau',
+  'Cevi Hirzel-Schönenberg-Hütten',
+  'Cevi Horw',
+  'Cevi Illnau',
+  'Cevi Kerzers',
+  'Cevi Klingnau - Döttingen - Kleindöttingen',
+  'Cevi Konolfingen',
+  'Cevi Männedorf-Uetikon-Oetwil',
+  'Cevi Mönchaltorf',
+  'Cevi Möriken',
+  'Cevi Mörschwil',
+  'Cevi Murgenthal',
+  'Cevi Niederhasli-Niederglatt',
+  'Cevi Nussbaumen',
+  'Cevi Oberrieden-Horgen',
+  'Cevi Obertoggenburg',
+  'Cevi Oberwinterthur',
+  'Cevi Oftringen-Rothrist',
+  'Cevi Olten',
+  'Cevi Pfäffikon-Fehraltorf-Hittnau-Russikon',
+  'Cevi Rapperswil-Jona',
+  'Cevi Reinach AG',
+  'Cevi Rheinfelden',
+  'Cevi Rorschach',
+  'Cevi Rüti',
+  'Cevi Samedan-Oberengadin',
+  'Cevi Schaffhausen-Breite',
+  'Cevi Scharans',
+  'Cevi Schlatt',
+  'Cevi Schönenwerd-Niedergösgen',
+  'Cevi Schwamendingen',
+  'Cevi Seen',
+  'Cevi Seengen',
+  'Cevi Seuzach',
   'Cevi Stäfa-Hombrechtikon',
+  'Cevi Staufen',
+  'Cevi Steffisburg',
+  'Cevi Stettfurt',
+  'Cevi Stammertal',
+  'Cevi Strengelbach',
+  'Cevi Suhr-Hunzenschwil',
+  'Cevi Teufen AR',
+  'Cevi Thalwil-Gattikon-Langnau',
+  'Cevi Titus',
+  'Cevi Töss',
+  'Cevi Trimbach',
+  'Cevi Urdorf',
+  'Cevi Uster',
+  'Cevi Veltheim',
+  'Cevi Volketswil-Schwerzenbach',
+  'Cevi Wädenswil',
+  'Cevi Wädenswil-Au',
+  'Cevi Weinfelden',
+  'Cevi Weiningen-Geroldswil',
+  'Cevi Werdenberg',
+  'Cevi Wetzikon',
+  'Cevi Wiesendangen-Elsau-Hegi',
+  'Cevi Wil',
+  'Cevi Windisch',
+  'Cevi Wülflingen',
 ];
 
 const pois: [number, number][] = [
@@ -244,6 +328,19 @@ const campSides: [number, number][][] = [
   ],
 ];
 
+// Helper function to join names with 'and' before the last one
+const joinWithAnd = (names: string[]): string => {
+  if (names.length === 0) {
+    return '';
+  }
+  if (names.length === 1) {
+    return names[0] ?? '';
+  }
+  const last = names.at(-1);
+  const others = names.slice(0, -1);
+  return `${others.join(', ')} and ${last}`;
+};
+
 const iconMarkerSelectOptions = [
   'MapPin' as const,
   'Tent' as const,
@@ -315,6 +412,8 @@ export const createRandomCampAnnotation =
 
 export const generateCampSides = (): RequiredDataFromCollectionSlug<'camp-map-annotations'>[] => {
   return campSides.map((coordinates, index) => {
+    const selectedAbteilungen = faker.helpers.arrayElements(ceviAbteilungName, { min: 3, max: 5 });
+    const abteilungenText = joinWithAnd(selectedAbteilungen);
     return {
       title: `Quartier ${index + 1}`,
       description: {
@@ -330,9 +429,7 @@ export const generateCampSides = (): RequiredDataFromCollectionSlug<'camp-map-an
                   format: 'left' as const,
                   mode: 'normal' as const,
                   style: '',
-                  text: `Quartier der Abteilungen ${faker.helpers
-                    .arrayElements(ceviAbteilungName, { min: 1, max: 3 })
-                    .join(', ')}.`,
+                  text: `Quartier der Abteilungen ${abteilungenText}.`,
                   version: 1,
                 },
               ],
