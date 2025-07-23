@@ -1,5 +1,10 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { aboutUsContent } from '@/features/payload-cms/payload-cms/initialization/seeding/about-us';
+import {
+  createRandomCampAnnotation,
+  generateCampSides,
+  generatePlaygroundPolygons,
+} from '@/features/payload-cms/payload-cms/initialization/seeding/camp-map';
 import { contactPageContent } from '@/features/payload-cms/payload-cms/initialization/seeding/contact-page';
 import { contactForm } from '@/features/payload-cms/payload-cms/initialization/seeding/form';
 import { generateMainMenu } from '@/features/payload-cms/payload-cms/initialization/seeding/generate-main-menu';
@@ -173,4 +178,28 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     locale: LOCALE.DE,
     data: { mainMenu: mainMenu },
   });
+
+  // seed app content
+  for (let index = 0; index < 10; index++) {
+    await payload.create({
+      collection: 'camp-map-annotations',
+      data: createRandomCampAnnotation(imageIds),
+    });
+  }
+
+  const campSides = generateCampSides();
+  for (const side of campSides) {
+    await payload.create({
+      collection: 'camp-map-annotations',
+      data: side,
+    });
+  }
+
+  const playGrounds = generatePlaygroundPolygons();
+  for (const playground of playGrounds) {
+    await payload.create({
+      collection: 'camp-map-annotations',
+      data: playground,
+    });
+  }
 };

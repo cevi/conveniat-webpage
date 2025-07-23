@@ -41,6 +41,13 @@ services:
     environment:
       - NODE_COMPILE_CACHE=/nodecache # see https://nodejs.org/en/blog/release/v22.1.0
 
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:3000/status | grep -q ''"status":"ok"''']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
   mongo:
     image: mongo:latest
     ports:

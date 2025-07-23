@@ -19,6 +19,7 @@ const SendPushNotification: React.FC = () => {
         <div>
           <h5>Send Push Notification</h5>
           <input type="text" placeholder="Push Notification Content" id="send-push-content" />
+          <input type="text" placeholder="URL to open" id="send-push-url" />
           <button
             onClick={(event) => {
               event.preventDefault(); // prevent default form submission
@@ -29,9 +30,11 @@ const SendPushNotification: React.FC = () => {
                 const success = await sendNotificationToSubscription(
                   subscription,
                   (document.querySelector('#send-push-content') as HTMLInputElement).value,
+                  (document.querySelector('#send-push-url') as HTMLInputElement).value,
                 );
                 if (success.success) {
                   (document.querySelector('#send-push-content') as HTMLInputElement).value = '';
+                  (document.querySelector('#send-push-url') as HTMLInputElement).value = '';
                   alert('Push notification sent successfully');
                 } else {
                   alert('Failed to send push notification');

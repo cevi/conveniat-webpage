@@ -14,8 +14,33 @@ services:
       labels:
         - swarmpit.service.deployment.autoredeploy=true
 
-        # Enable Traefik for this service, to make it available in the public network
         - traefik.enable=true
+
+        # redirect conveniat.ch (HTTPS)
+        - traefik.http.routers.conveniat-redirect-secure.rule=Host(`conveniat.ch`)
+        - traefik.http.routers.conveniat-redirect-secure.entrypoints=websecure
+        - traefik.http.routers.conveniat-redirect-secure.middlewares=redirect-to-conveniat27-from-conveniat
+
+        - traefik.http.middlewares.redirect-to-conveniat27-from-conveniat.redirectregex.regex=^https?://conveniat.ch/(.*)
+        - traefik.http.middlewares.redirect-to-conveniat27-from-conveniat.redirectregex.replacement=https://conveniat27.ch/$$$${1}
+        - traefik.http.middlewares.redirect-to-conveniat27-from-conveniat.redirectregex.permanent=true
+
+        # redirect conveniat.ch (HTTP to HTTPS for redirect)
+        - traefik.http.routers.conveniat-redirect-http.rule=Host(`conveniat.ch`)
+        - traefik.http.routers.conveniat-redirect-http.entrypoints=web
+        - traefik.http.routers.conveniat-redirect-http.middlewares=redirect-to-https@file
+
+        # short url
+        - traefik.http.routers.short-con27-router.rule=Host(`con27.ch`)
+        - traefik.http.routers.short-con27-router.entrypoints=websecure
+        - traefik.http.routers.short-con27-router.middlewares=redirect-to-conveniat27
+        - traefik.http.middlewares.redirect-to-conveniat27.redirectregex.regex=^https?://con27.ch/(.*)
+        - traefik.http.middlewares.redirect-to-conveniat27.redirectregex.replacement=https://conveniat27.ch/go/$$$${1}
+        - traefik.http.middlewares.redirect-to-conveniat27.redirectregex.permanent=true
+
+        - traefik.http.routers.con27-router-http.rule=Host(`con27.ch`)
+        - traefik.http.routers.con27-router-http.entrypoints=web
+        - traefik.http.routers.con27-router-http.middlewares=redirect-to-https@file
 
         # HTTP gets redirected to HTTPS
         - traefik.http.routers.conveniat27-router-http.rule=Host(`conveniat27.ch`) || Host(`www.conveniat27.ch`)
@@ -55,6 +80,13 @@ services:
     networks:
       - traefik-net
       - backend-net
+
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f https://conveniat27.ch/status | grep -q ''"status":"ok"''']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   mongo:
     image: mongo:latest

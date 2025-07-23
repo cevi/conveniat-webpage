@@ -34,15 +34,18 @@ const dirname = path.dirname(filename);
  * @param collectionConfig
  * @param locale
  */
+// eslint-disable-next-line complexity
 const generatePreviewUrl = ({
   data,
   collectionConfig,
   locale,
 }: {
-  data: { seo?: { urlSlug?: string }; id?: string };
+  data: { seo?: { urlSlug?: string }; id?: string } | null | undefined;
   collectionConfig?: CollectionConfig;
   locale: Locale;
 }): string => {
+  if (data === undefined || data === null) return '';
+
   if (collectionConfig) {
     if (collectionConfig.slug === 'timeline' && data.id !== undefined) {
       return `${environmentVariables.APP_HOST_URL}/${locale.code}/timeline-preview/${data.id}?preview=true`;

@@ -12,6 +12,9 @@ export const i18nExcludedRoutes: string[] = [
   'favicon.svg',
   'notification-icon.png',
 
+  // system endpoints
+  'status',
+
   // app landing page (is localized manually)
   'entrypoint',
 

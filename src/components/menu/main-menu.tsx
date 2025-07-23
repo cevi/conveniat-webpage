@@ -8,15 +8,167 @@ import {
   openURLInNewTab,
 } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import { specialPagesTable } from '@/features/payload-cms/special-pages-table';
+import type { StaticTranslationString } from '@/types/types';
 import { getBuildInfo } from '@/utils/get-build-info';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { renderInAppDesign } from '@/utils/render-in-app-design';
 import { cn } from '@/utils/tailwindcss-override';
 import { Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/react';
 import config from '@payload-config';
-import { CalendarCheck2, ChevronDown, ImageUp, Truck } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import {
+  Calendar,
+  CalendarCheck2,
+  ChevronDown,
+  ImageUp,
+  LayoutList,
+  LucideMessageCircleQuestion,
+  Map,
+  MessageSquare,
+  Siren,
+  Truck,
+} from 'lucide-react';
 import { getPayload } from 'payload';
 import type React from 'react';
+
+const appFeaturesTitle: StaticTranslationString = {
+  en: 'App Features',
+  de: 'App Funktionen',
+  fr: "Fonctions de l'application",
+};
+
+// Define each feature's translation as a separate StaticTranslationString constant
+const chatFeatureTranslation: StaticTranslationString = {
+  en: 'Chat',
+  de: 'Chat',
+  fr: 'Chat',
+};
+
+const qaForumFeatureTranslation: StaticTranslationString = {
+  en: 'conveniat27 Forum',
+  de: 'conveniat27 Forum',
+  fr: 'Forum conveniat27',
+};
+
+const emergencyInfoFeatureTranslation: StaticTranslationString = {
+  en: 'Alerts and Emergency Information',
+  de: 'Alarmierung und Notfallinformationen',
+  fr: "Alertes et informations d'urgence",
+};
+
+const campMapFeatureTranslation: StaticTranslationString = {
+  en: 'Campsite Map',
+  de: 'Lagerplatz Karte',
+  fr: 'Carte du terrain de camp',
+};
+
+const campProgramFeatureTranslation: StaticTranslationString = {
+  en: 'Camp Program and Events',
+  de: 'Lager-Programm und Veranstaltungen',
+  fr: 'Programme du camp et événements',
+};
+
+const helperShiftsFeatureTranslation: StaticTranslationString = {
+  en: 'Helper Shifts',
+  de: 'Schichteinsätze von Helfenden',
+  fr: 'Services des aides',
+};
+
+const departmentShiftsFeatureTranslation: StaticTranslationString = {
+  en: 'Department Shifts',
+  de: 'Schichteinsätze von Abteilungen',
+  fr: 'Services des départements',
+};
+
+const uploadPicturesFeatureTranslation: StaticTranslationString = {
+  en: 'Upload Pictures',
+  de: 'Bilder hochladen',
+  fr: 'Télécharger des photos',
+};
+
+const vehiclesReservationsFeatureTranslation: StaticTranslationString = {
+  en: 'Vehicles and Reservations',
+  de: 'Fahrzeuge und Reservationen',
+  fr: 'Véhicules et réservations',
+};
+
+interface AppFeatureMenuItemProperties {
+  href: string;
+  Icon: LucideIcon;
+  text: string;
+  openInNewTab?: boolean;
+}
+
+const AppFeatureMenuItem: React.FC<AppFeatureMenuItemProperties> = ({
+  href,
+  Icon,
+  text,
+  openInNewTab = false,
+}) => {
+  return (
+    <LinkComponent href={href} openInNewTab={openInNewTab}>
+      <span className="closeNavOnClick -mx-3 flex items-center gap-2 rounded-lg px-3 py-2 text-base/7 font-semibold text-gray-700 hover:bg-gray-50">
+        <Icon aria-hidden="true" className="size-5" />
+        {text}
+      </span>
+    </LinkComponent>
+  );
+};
+
+const AppFeatures: React.FC = async () => {
+  const locale = await getLocaleFromCookies();
+
+  return (
+    <>
+      <div className="py-6">
+        <h3 className="text-conveniat-green mb-2 font-bold">{appFeaturesTitle[locale]}</h3>
+
+        <AppFeatureMenuItem
+          href="/app/chat"
+          Icon={MessageSquare}
+          text={chatFeatureTranslation[locale]}
+        />
+        <AppFeatureMenuItem
+          href="/app/forum"
+          Icon={LucideMessageCircleQuestion}
+          text={qaForumFeatureTranslation[locale]}
+        />
+        <AppFeatureMenuItem
+          href="/app/emergency"
+          Icon={Siren}
+          text={emergencyInfoFeatureTranslation[locale]}
+        />
+        <AppFeatureMenuItem href="/app/map" Icon={Map} text={campMapFeatureTranslation[locale]} />
+        <AppFeatureMenuItem
+          href="/app/schedule"
+          Icon={Calendar}
+          text={campProgramFeatureTranslation[locale]}
+        />
+        <AppFeatureMenuItem
+          href="/app/helper-portal"
+          Icon={CalendarCheck2}
+          text={helperShiftsFeatureTranslation[locale]}
+        />
+        <AppFeatureMenuItem
+          href="/app/helper-portal"
+          Icon={LayoutList}
+          text={departmentShiftsFeatureTranslation[locale]}
+        />
+        <AppFeatureMenuItem
+          href="/app/upload-picture"
+          Icon={ImageUp}
+          text={uploadPicturesFeatureTranslation[locale]}
+        />
+        <AppFeatureMenuItem
+          href="/app/reservations"
+          Icon={Truck}
+          text={vehiclesReservationsFeatureTranslation[locale]}
+        />
+      </div>
+      <hr className="border-t-2 text-gray-100" />
+    </>
+  );
+};
 
 export const MainMenu: React.FC = async () => {
   const payload = await getPayload({ config });
@@ -43,35 +195,7 @@ export const MainMenu: React.FC = async () => {
           </LinkComponent>
         </span>
 
-        {isInAppDesign && (
-          <>
-            <div className="py-6">
-              <h3 className="text-conveniat-green mb-2 font-bold">App Funktionen</h3>
-
-              <LinkComponent href="/app/reservations" openInNewTab={false}>
-                <span className="closeNavOnClick -mx-3 flex items-center gap-2 rounded-lg px-3 py-2 text-base/7 font-semibold text-gray-700 hover:bg-gray-50">
-                  <Truck aria-hidden="true" className="size-5" />
-                  Fahrzeug Reservieren
-                </span>
-              </LinkComponent>
-
-              <LinkComponent href="/app/helper-portal" openInNewTab={false}>
-                <span className="closeNavOnClick -mx-3 flex items-center gap-2 rounded-lg px-3 py-2 text-base/7 font-semibold text-gray-700 hover:bg-gray-50">
-                  <CalendarCheck2 aria-hidden="true" className="size-5" />
-                  Helfer Schichten
-                </span>
-              </LinkComponent>
-
-              <LinkComponent href="/app/upload-picture" openInNewTab={false}>
-                <span className="closeNavOnClick -mx-3 flex items-center gap-2 rounded-lg px-3 py-2 text-base/7 font-semibold text-gray-700 hover:bg-gray-50">
-                  <ImageUp aria-hidden="true" className="size-5" />
-                  Bilder hochladen
-                </span>
-              </LinkComponent>
-            </div>
-            <hr className="border-t-2 text-gray-100" />
-          </>
-        )}
+        {isInAppDesign && <AppFeatures />}
 
         <div className="py-6">
           {isInAppDesign && <h3 className="text-conveniat-green mb-2 font-bold">Web Inhalte</h3>}

@@ -50,6 +50,14 @@ services:
       - traefik-net
       - backend-net
 
+    healthcheck:
+      test:
+        ['CMD-SHELL', 'curl -f https://conveniat27.cevi.tools/status | grep -q ''"status":"ok"''']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
   mongo:
     image: mongo:latest
     command:

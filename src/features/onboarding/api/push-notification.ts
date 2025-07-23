@@ -138,13 +138,18 @@ export async function unsubscribeUser(
 export async function sendNotificationToSubscription(
   subscription: webpush.PushSubscription,
   message: string,
+  url?: string,
 ): Promise<{ success: boolean; error?: string }> {
+  const urlToSend = url && url == '' ? undefined : url; // empty url is undefined
   try {
     await webpush.sendNotification(
       subscription,
       JSON.stringify({
         title: 'conveniat27',
         body: message,
+        data: {
+          url: urlToSend,
+        },
       }),
     );
 

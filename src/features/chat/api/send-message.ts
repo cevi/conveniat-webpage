@@ -1,5 +1,6 @@
 'use server';
 
+import { environmentVariables } from '@/config/environment-variables';
 import prisma from '@/features/chat/database';
 import type { SendMessageDto } from '@/features/chat/types/api-dto-types';
 // eslint-disable-next-line import/no-restricted-paths
@@ -50,6 +51,7 @@ const sendMessageSchema = z.object({
 async function sendNotification(
   message: string,
   recipientUserIds: string[],
+  chatId: string,
 ): Promise<{
   success: boolean;
   error?: string;
@@ -71,6 +73,8 @@ async function sendNotification(
     depth: 0,
   });
 
+  const chatURL = environmentVariables.APP_HOST_URL + '/app/chat/' + chatId;
+
   console.log(`Sending notification to ${subscriptions.length} subscriptions`);
 
   try {
@@ -78,6 +82,7 @@ async function sendNotification(
       return sendNotificationToSubscription(
         subscription as webpush.PushSubscription,
         message,
+        chatURL,
       ).catch((error: unknown) => {
         console.error(`Error sending notification to subscription ${subscription.id}:`, error);
         throw new Error(`Failed to send notification to subscription ${subscription.id}`);
@@ -184,7 +189,7 @@ export const sendMessage = async (message: SendMessageDto): Promise<void> => {
     console.log(`Message created with ID: ${createdMessage.uuid}`);
 
     // 4. Send push notification (fire-and-forget, but with better error logging)
-    sendNotification(validatedMessage.content, recipientUserIds)
+    sendNotification(validatedMessage.content, recipientUserIds, validatedMessage.chatId)
       .then(async () => {
         await prisma.messageEvent.createMany({
           data: recipientUserIds.map((userId) => ({

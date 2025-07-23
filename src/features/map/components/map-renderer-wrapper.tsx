@@ -1,12 +1,20 @@
 'use client';
 
-import type { CeviLogoMarker, InitialMapPose } from '@/features/map/components/types';
+import type {
+  CampMapAnnotationPoint,
+  CampMapAnnotationPolygon,
+  CeviLogoMarker,
+  InitialMapPose,
+} from '@/features/map/types/types';
 import dynamic from 'next/dynamic';
 import type React from 'react';
 
-const LazyMapLibreRenderer = dynamic(() => import('@/features/map/components/map-renderer'), {
-  ssr: false,
-});
+const LazyMapLibreRenderer = dynamic(
+  () => import('@/features/map/components/maplibre-renderer/map-renderer'),
+  {
+    ssr: false,
+  },
+);
 
 /***
  * This component is a wrapper for the MapLibreRenderer that allows for dynamic loading. This
@@ -17,6 +25,7 @@ const LazyMapLibreRenderer = dynamic(() => import('@/features/map/components/map
  *
  * @param initialMapPose
  * @param ceviLogoMarkers
+ * @param campMapAnnotation
  * @param limitUsage
  * @param validateStyle
  * @constructor
@@ -24,18 +33,28 @@ const LazyMapLibreRenderer = dynamic(() => import('@/features/map/components/map
 export const MapLibreRenderer = ({
   initialMapPose,
   ceviLogoMarkers,
+  campMapAnnotationPoints,
+  campMapAnnotationPolygons,
   limitUsage = true,
   validateStyle = true,
 }: {
   initialMapPose: InitialMapPose;
   ceviLogoMarkers: CeviLogoMarker[];
+  campMapAnnotationPoints?: CampMapAnnotationPoint[] | undefined;
+  campMapAnnotationPolygons?: CampMapAnnotationPolygon[] | undefined;
   limitUsage?: boolean;
   validateStyle?: boolean;
 }): React.JSX.Element => {
+  // default values for optional parameters
+  campMapAnnotationPoints ??= [];
+  campMapAnnotationPolygons ??= [];
+
   return (
     <LazyMapLibreRenderer
       initialMapPose={initialMapPose}
       ceviLogoMarkers={ceviLogoMarkers}
+      campMapAnnotationPoints={campMapAnnotationPoints}
+      campMapAnnotationPolygons={campMapAnnotationPolygons}
       limitUsage={limitUsage}
       validateStyle={validateStyle}
     />
