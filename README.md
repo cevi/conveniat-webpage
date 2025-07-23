@@ -60,7 +60,7 @@ Ensure you have the following installed on your system:
 3. Open the project using the provided devconatiner inside your IDE (VSCode or Webstorm are tested).
 4. Start Developing using the following commands:
    ```bash
-   docker compose up --build --watch
+   docker compose up --build
    ```
    The above command launches a local development server with hot-reloading enabled.
    You can open the website on `http://localhost:3000`.
@@ -68,13 +68,13 @@ Ensure you have the following installed on your system:
 ### Local Development Commands
 
 - **Install Dependencies:** `pnpm install`
-- **Start Development Server:** `docker compose up --build --watch`
+- **Start Development Server:** `docker compose up --build`
 - **Stop Development Server:** `docker compose down`
 - **Clear Database & Volumes:** To completely reset the database and remove Docker volumes (useful for reseeding):
   ```bash
   docker compose down --volumes
   ```
-  After running this, you'll need to restart the server with `docker compose up --build --watch` to re-initialize and
+  After running this, you'll need to restart the server with `docker compose up --build` to re-initialize and
   potentially re-seed the database based on Payload's configuration.
 
 ### Accessing the Payload Admin Panel
