@@ -51,7 +51,8 @@ services:
       - backend-net
 
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/status"]
+      test:
+        ['CMD-SHELL', 'curl -f https://conveniat27.cevi.tools/status | grep -q ''"status":"ok"''']
       interval: 30s
       timeout: 10s
       retries: 3
