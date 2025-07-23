@@ -2,8 +2,8 @@
 # From https://github.com/vercel/next.js/blob/canary/examples/with-docker/Dockerfile
 FROM node:22.14-alpine AS base
 
-# Install build dependencies for sharp, rebuild sharp, and then uninstall build dependencies
-RUN apk add --no-cache vips vips-dev fftw-dev gcc g++ make python3 && \
+# Install curl for healthcheck and build dependencies for sharp, rebuild sharp, and then uninstall build dependencies
+RUN apk add --no-cache curl vips vips-dev fftw-dev gcc g++ make python3 && \
     npm rebuild sharp --platform=linuxmusl --arch=x64 && \
     apk del vips-dev fftw-dev gcc g++ make python3
 
