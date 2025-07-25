@@ -5,6 +5,7 @@ import type { CollectionConfig } from 'payload';
 
 export const DocumentsCollection: CollectionConfig = {
   slug: 'documents',
+
   labels: {
     singular: {
       en: 'Document',
@@ -19,6 +20,7 @@ export const DocumentsCollection: CollectionConfig = {
   },
   admin: {
     group: AdminPanelDashboardGroups.InternalCollections,
+    groupBy: true,
   },
   access: {
     read: canAccessDocuments,
