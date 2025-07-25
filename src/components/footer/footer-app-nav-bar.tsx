@@ -40,7 +40,7 @@ export const FooterAppNavBar: React.FC<{
 
   return (
     <>
-      <div className="sticky bottom-0 z-50 flex h-20 w-full border-t-2 border-gray-200 bg-[#f8fafc]">
+      <div className="sticky bottom-0 z-40 flex h-20 w-full border-t-2 border-gray-200 bg-[#f8fafc]">
         <nav className="flex w-full items-center justify-around px-4">
           {footerNavBarMenuEntries.map((item) => {
             const isActive = longestMatch === item.href || (isLoading && loadingHref === item.href);
