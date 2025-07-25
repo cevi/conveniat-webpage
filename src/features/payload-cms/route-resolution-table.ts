@@ -1,8 +1,9 @@
-import { BlogPostPage } from '@/features/payload-cms/page-layouts/blog-posts';
-import { GenericPage } from '@/features/payload-cms/page-layouts/generic-page';
+import BlogPostPage from '@/features/payload-cms/page-layouts/blog-posts';
+import GenericPage from '@/features/payload-cms/page-layouts/generic-page';
 import { TimelinePreviewPage } from '@/features/payload-cms/page-layouts/timeline-preview-page';
 import type {
   Locale,
+  LocalizedCollectionComponent,
   LocalizedCollectionPage,
   LocalizedPageType,
   RoutableCollectionConfig,
@@ -17,7 +18,7 @@ interface RouteResolutionTable {
     alternatives: {
       [locale in Locale]: string;
     };
-    component: React.FC<LocalizedCollectionPage>;
+    component: LocalizedCollectionComponent;
     collectionSlug: CollectionSlug;
   };
 }

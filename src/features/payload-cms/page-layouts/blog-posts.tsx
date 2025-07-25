@@ -2,13 +2,13 @@ import { LinkComponent } from '@/components/ui/link-component';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { BlogArticleConverter } from '@/features/payload-cms/converters/blog-article';
 import type { Permission } from '@/features/payload-cms/payload-types';
-import type { Locale, LocalizedCollectionPage, StaticTranslationString } from '@/types/types';
+import type { Locale, LocalizedCollectionComponent, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { hasPermissions } from '@/utils/has-permissions';
 import config from '@payload-config';
+import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 import { getPayload } from 'payload';
-import React from 'react';
 
 const languageChooseText: StaticTranslationString = {
   en: 'Choose the correct article',
@@ -22,7 +22,7 @@ const languagePreposition: StaticTranslationString = {
   fr: 'en',
 };
 
-export const BlogPostPage: React.FC<LocalizedCollectionPage> = async ({
+const BlogPostPage: LocalizedCollectionComponent = async ({
   slugs,
   locale,
   searchParams,
@@ -148,3 +148,94 @@ export const BlogPostPage: React.FC<LocalizedCollectionPage> = async ({
     </article>
   );
 };
+
+BlogPostPage.generateMetadata = async ({
+  locale,
+  slugs,
+}: {
+  locale: Locale;
+  slugs: string[] | undefined;
+}): Promise<Metadata> => {
+  const payload = await getPayload({ config });
+  const slug = slugs?.join('/') ?? '';
+
+  const currentDate = new Date().toISOString();
+
+  const result = await payload.find({
+    collection: 'blog',
+    pagination: false,
+    fallbackLocale: false,
+    locale: locale,
+    draft: false,
+    where: {
+      and: [
+        { 'seo.urlSlug': { equals: slug } },
+        { _localized_status: { equals: { published: true } } },
+        {
+          'content.releaseDate': {
+            less_than_equal: currentDate,
+          },
+        },
+      ],
+    },
+  });
+
+  const article = result.docs[0];
+
+  if (!article) return {};
+
+  const internalPageName = article.internalPageName;
+
+  // find alternatives by the interalPageName
+
+  const blogAlternatives = await Promise.all(
+    i18nConfig.locales.map((l) =>
+      payload.find({
+        collection: 'blog',
+        pagination: false,
+        fallbackLocale: false,
+        locale: l as Locale,
+        draft: false,
+        where: {
+          and: [
+            { internalPageName: { equals: internalPageName } },
+            { _localized_status: { equals: { published: true } } },
+            {
+              'content.releaseDate': {
+                less_than_equal: currentDate,
+              },
+            },
+          ],
+        },
+      }),
+    ),
+  ).then((results) =>
+    results
+      .filter((r) => r.docs.length === 1)
+      .flatMap((r) => r.docs[0])
+      .filter((a) => a !== undefined),
+  );
+
+  const germanAlternative = blogAlternatives.find((a) => a._locale.startsWith('de'));
+
+  const canonicalLocale = germanAlternative?._locale || locale;
+  const canonicalSlug = germanAlternative?.seo.urlSlug || slug;
+
+  const alternates = Object.fromEntries(
+    blogAlternatives
+      .filter((alt) => alt._locale !== canonicalLocale)
+      .map((alt) => [alt._locale, `/${alt._locale}/blog/${alt.seo.urlSlug}`]),
+  );
+
+  return {
+    title: article.seo.metaTitle,
+    description: article.seo.metaDescription,
+    keywords: article.seo.keywords,
+    alternates: {
+      canonical: `/${canonicalLocale}/blog/${canonicalSlug}`,
+      languages: alternates,
+    },
+  };
+};
+
+export default BlogPostPage;

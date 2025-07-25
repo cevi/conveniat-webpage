@@ -1,14 +1,14 @@
 import { GenericPageConverter } from '@/features/payload-cms/converters/generic-page';
 import type { Permission } from '@/features/payload-cms/payload-types';
-import type { Locale, LocalizedCollectionPage } from '@/types/types';
+import type { Locale, LocalizedCollectionComponent } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { hasPermissions } from '@/utils/has-permissions';
 import config from '@payload-config';
+import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 import { getPayload } from 'payload';
-import React from 'react';
 
-export const GenericPage: React.FC<LocalizedCollectionPage> = async ({
+const GenericPage: LocalizedCollectionComponent = async ({
   slugs,
   locale,
   searchParams,
@@ -126,3 +126,82 @@ export const GenericPage: React.FC<LocalizedCollectionPage> = async ({
 
   notFound();
 };
+
+GenericPage.generateMetadata = async ({
+  locale,
+  slugs,
+}: {
+  locale: Locale;
+  slugs: string[] | undefined;
+}): Promise<Metadata> => {
+  const payload = await getPayload({ config });
+  const slug = slugs?.join('/') ?? '';
+
+  const result = await payload.find({
+    collection: 'generic-page',
+    pagination: false,
+    locale,
+    fallbackLocale: false,
+    draft: false,
+    where: {
+      and: [
+        { 'seo.urlSlug': { equals: slug } },
+        {
+          _localized_status: { equals: { published: true } },
+        },
+      ],
+    },
+  });
+
+  const page = result.docs[0];
+
+  if (!page) return {};
+
+  const internalPageName = page.internalPageName;
+
+  const pageAlternatives = await Promise.all(
+    i18nConfig.locales.map((l) =>
+      payload.find({
+        collection: 'generic-page',
+        pagination: false,
+        fallbackLocale: false,
+        locale: l as Locale,
+        draft: false,
+        where: {
+          and: [
+            { internalPageName: { equals: internalPageName } },
+            { _localized_status: { equals: { published: true } } },
+          ],
+        },
+      }),
+    ),
+  ).then((results) =>
+    results
+      .filter((r) => r.docs.length === 1)
+      .flatMap((r) => r.docs[0])
+      .filter((a) => a !== undefined),
+  );
+
+  const germanAlternative = pageAlternatives.find((a) => a._locale.startsWith('de'));
+
+  const canonicalLocale = germanAlternative?._locale || locale;
+  const canonicalSlug = germanAlternative?.seo.urlSlug || slug;
+
+  const alternates = Object.fromEntries(
+    pageAlternatives
+      .filter((alt) => alt._locale !== canonicalLocale)
+      .map((alt) => [alt._locale, `/${alt._locale}/${alt.seo.urlSlug}`]),
+  );
+
+  return {
+    title: page.seo.metaTitle,
+    description: page.seo.metaDescription,
+    keywords: page.seo.keywords,
+    alternates: {
+      canonical: `/${canonicalLocale}/${canonicalSlug}`,
+      languages: alternates,
+    },
+  };
+};
+
+export default GenericPage;
