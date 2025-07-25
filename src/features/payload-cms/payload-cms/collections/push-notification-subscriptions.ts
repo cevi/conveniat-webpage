@@ -70,6 +70,8 @@ export const PushNotificationSubscriptions: CollectionConfig = asPushNotificatio
   admin: {
     group: AdminPanelDashboardGroups.GlobalSettings,
     groupBy: true,
+    /** this is broken with our localized versions */
+    disableCopyToLocale: true,
   },
   access: {
     read: canAccessAdminPanel,

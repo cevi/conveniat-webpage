@@ -1,4 +1,3 @@
-import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import type { GlobalConfig } from 'payload';
 
 export const FooterGlobal: GlobalConfig = {
@@ -135,7 +134,6 @@ export const FooterGlobal: GlobalConfig = {
     },
   ],
   admin: {
-    group: AdminPanelDashboardGroups.GlobalSettings,
     description: {
       en: 'Settings for the footer',
       de: 'Einstellungen für die Fusszeile',

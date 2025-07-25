@@ -40,6 +40,8 @@ export const UserCollection: CollectionConfig = {
     useAsTitle: 'email',
     group: AdminPanelDashboardGroups.InternalCollections,
     groupBy: true,
+    /** this is broken with our localized versions */
+    disableCopyToLocale: true,
     defaultColumns: ['nickname', 'fullName', 'adminPanelAccess'],
     listSearchableFields: ['nickname', 'fullName', 'email'],
     baseListFilter,
