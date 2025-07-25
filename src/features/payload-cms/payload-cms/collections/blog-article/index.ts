@@ -17,6 +17,7 @@ import type { CollectionConfig } from 'payload';
 export const BlogArticleCollection: CollectionConfig = asLocalizedCollection({
   // Unique, URL-friendly string that will act as an identifier for this Collection.
   slug: 'blog',
+  trash: true,
 
   labels: {
     singular: {
@@ -33,6 +34,7 @@ export const BlogArticleCollection: CollectionConfig = asLocalizedCollection({
 
   admin: {
     group: AdminPanelDashboardGroups.PagesAndContent,
+    groupBy: true,
     description: {
       en: 'Represents a block article that can be published on the website.',
       de: 'Stellt einen Blog-Artikel dar, der auf der Website veröffentlicht werden kann.',

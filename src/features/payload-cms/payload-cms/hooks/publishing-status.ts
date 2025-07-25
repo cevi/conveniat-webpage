@@ -368,6 +368,7 @@ export const getPublishingStatus =
       select: { publishingStatus: false },
       depth: 0,
       locale: 'all',
+      trash: true, // include trashed documents
       draft: false,
     })) as unknown as PayloadDocument;
 
@@ -378,6 +379,7 @@ export const getPublishingStatus =
       select: { publishingStatus: false },
       locale: 'all',
       depth: 0,
+      trash: true, // include trashed documents
       draft: true,
     })) as unknown as PayloadDocument;
 

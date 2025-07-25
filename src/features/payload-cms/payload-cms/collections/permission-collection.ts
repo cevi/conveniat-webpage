@@ -30,6 +30,7 @@ export const PermissionsCollection: CollectionConfig = {
   },
   admin: {
     group: AdminPanelDashboardGroups.InternalCollections,
+    groupBy: true,
     defaultColumns: ['permissionName', 'permissions'],
     useAsTitle: 'permissionName',
   },
