@@ -899,6 +899,7 @@ export const formPluginConfiguration = formBuilderPlugin({
                 name: 'exportAsCSV',
                 type: 'ui',
                 admin: {
+                  disableListColumn: true,
                   components: {
                     Field: {
                       path: '@/features/payload-cms/payload-cms/components/form-export-button#FormExportButton',
