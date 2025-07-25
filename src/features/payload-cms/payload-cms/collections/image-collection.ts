@@ -37,6 +37,8 @@ export const ImageCollection: CollectionConfig = {
   admin: {
     group: AdminPanelDashboardGroups.InternalCollections,
     groupBy: true,
+    /** this is broken with our localized versions */
+    disableCopyToLocale: true,
   },
   access: {
     read: () => true,

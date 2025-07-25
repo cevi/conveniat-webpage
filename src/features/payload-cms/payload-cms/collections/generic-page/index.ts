@@ -29,6 +29,8 @@ export const GenericPage: CollectionConfig = asLocalizedCollection({
   admin: {
     group: AdminPanelDashboardGroups.PagesAndContent,
     groupBy: true,
+    /** this is broken with our localized versions */
+    disableCopyToLocale: true,
     useAsTitle: 'internalPageName',
     defaultColumns: [
       'internalPageName',
