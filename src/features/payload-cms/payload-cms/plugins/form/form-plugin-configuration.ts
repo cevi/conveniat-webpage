@@ -787,6 +787,12 @@ export const formPluginConfiguration = formBuilderPlugin({
     admin: {
       group: AdminPanelDashboardGroups.PagesAndContent,
       defaultColumns: ['id', 'publishingStatus', 'title'],
+      /**
+       * As we are localizing only the label fields but not the values, enabling copy
+       * to locale would not make sense and lead to data loss, as the labels in other
+       * locales would be deleted.
+       */
+      disableCopyToLocale: true,
       components: {
         beforeList: [
           '@/features/payload-cms/payload-cms/components/disable-actions/disable-many-actions',
