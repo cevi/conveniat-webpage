@@ -35,6 +35,8 @@ export const BlogArticleCollection: CollectionConfig = asLocalizedCollection({
   admin: {
     group: AdminPanelDashboardGroups.PagesAndContent,
     groupBy: true,
+    /** this is broken with our localized versions */
+    disableCopyToLocale: true,
     description: {
       en: 'Represents a block article that can be published on the website.',
       de: 'Stellt einen Blog-Artikel dar, der auf der Website veröffentlicht werden kann.',
