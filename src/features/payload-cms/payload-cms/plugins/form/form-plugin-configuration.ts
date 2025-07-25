@@ -834,6 +834,7 @@ export const formPluginConfiguration = formBuilderPlugin({
               fr: 'Titre de la section',
             },
             required: true,
+            localized: true,
           },
           {
             type: 'blocks',
