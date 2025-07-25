@@ -36,6 +36,7 @@ export const ImageCollection: CollectionConfig = {
   },
   admin: {
     group: AdminPanelDashboardGroups.InternalCollections,
+    groupBy: true,
   },
   access: {
     read: () => true,

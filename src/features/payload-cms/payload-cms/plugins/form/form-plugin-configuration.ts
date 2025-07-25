@@ -753,6 +753,7 @@ export const formPluginConfiguration = formBuilderPlugin({
     },
     admin: {
       group: AdminPanelDashboardGroups.GlobalSettings,
+      groupBy: true,
     },
     access: {
       read: canAccessAdminPanel,
