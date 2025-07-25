@@ -25,6 +25,21 @@ export const Number: React.FC<
   const hasError = errors[name];
   const locale = useCurrentLocale(i18nConfig);
 
+  ///////////////////////////////////////
+  // render error messages in preview mode
+  ///////////////////////////////////////
+  const isInPreview =
+    typeof globalThis !== 'undefined' && globalThis.location.href.includes('preview=true');
+  if (typeof label !== 'string') {
+    return isInPreview ? <p className="text-sm text-red-800">Label must be a string!</p> : <></>;
+  }
+  if (typeof name !== 'string') {
+    return isInPreview ? <p className="text-sm text-red-800">Name must be a string!</p> : <></>;
+  }
+
+  ////////////////////////////////////////
+  // render the number input field
+  ////////////////////////////////////////
   return (
     <div className="mb-4">
       <label className="mb-1 block font-['Inter'] text-sm font-medium text-gray-500" htmlFor={name}>
