@@ -132,11 +132,18 @@ export const sitemapGenerator = async (): Promise<MetadataRoute.Sitemap> => {
 
   const payload = await getPayload({ config });
 
+  const currentDate = new Date().toISOString();
+
   const { docs: genericPages } = await payload.find({
     collection: 'generic-page',
     depth: 1,
     limit: 1000,
     locale: 'all',
+    where: {
+      'content.releaseDate': {
+        less_than_equal: currentDate,
+      },
+    },
   });
 
   // defines the order of locales to use for canonical URLs
@@ -168,6 +175,11 @@ export const sitemapGenerator = async (): Promise<MetadataRoute.Sitemap> => {
     depth: 1,
     limit: 1000,
     locale: 'all',
+    where: {
+      'content.releaseDate': {
+        less_than_equal: currentDate,
+      },
+    },
   });
 
   for (const blog of blogPosts) {
