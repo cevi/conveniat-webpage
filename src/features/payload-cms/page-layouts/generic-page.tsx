@@ -194,13 +194,16 @@ GenericPage.generateMetadata = async ({
   );
 
   return {
-    title: page.seo.metaTitle,
-    description: page.seo.metaDescription,
-    keywords: page.seo.keywords,
-    alternates: {
-      canonical: `/${canonicalLocale}/${canonicalSlug}`,
-      languages: alternates,
-    },
+    ...(page.seo.metaTitle && { title: page.seo.metaTitle }),
+    ...(page.seo.metaDescription && { description: page.seo.metaDescription }),
+    ...(page.seo.keywords && { keywords: page.seo.keywords }),
+    ...(canonicalLocale &&
+      canonicalSlug && {
+        alternates: {
+          canonical: `/${canonicalLocale}/${canonicalSlug}`,
+          ...(alternates && { languages: alternates }),
+        },
+      }),
   };
 };
 

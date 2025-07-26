@@ -228,13 +228,16 @@ BlogPostPage.generateMetadata = async ({
   );
 
   return {
-    title: article.seo.metaTitle,
-    description: article.seo.metaDescription,
-    keywords: article.seo.keywords,
-    alternates: {
-      canonical: `/${canonicalLocale}/blog/${canonicalSlug}`,
-      languages: alternates,
-    },
+    ...(article.seo.metaTitle && { title: article.seo.metaTitle }),
+    ...(article.seo.metaDescription && { description: article.seo.metaDescription }),
+    ...(article.seo.keywords && { keywords: article.seo.keywords }),
+    ...(canonicalLocale &&
+      canonicalSlug && {
+        alternates: {
+          canonical: `/${canonicalLocale}/blog/${canonicalSlug}`,
+          ...(alternates && { languages: alternates }),
+        },
+      }),
   };
 };
 
