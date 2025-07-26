@@ -9,11 +9,10 @@ import type React from 'react';
 const RedirectPage: React.FC<{
   params: Promise<{
     slugs: string[] | undefined;
-    locale: Locale;
   }>;
 }> = async ({ params }) => {
   const payload = await getPayload({ config });
-  const { slugs, locale } = await params;
+  const { slugs } = await params;
 
   const slug = slugs?.join('/') ?? '';
 
