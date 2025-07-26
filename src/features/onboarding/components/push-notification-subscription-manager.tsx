@@ -81,7 +81,12 @@ export const PushNotificationSubscriptionManager: React.FC<{
   };
 
   const subscribeToPush = (): void => {
-    _subscribeToPush().then(callback).catch(console.error);
+    _subscribeToPush()
+      .then(callback)
+      .catch((error: unknown) => {
+        console.error('Failed to subscribe to push notifications:', error);
+        setIsSupported(false);
+      });
   };
 
   const _unsubscribeFromPush = async (): Promise<void> => {
