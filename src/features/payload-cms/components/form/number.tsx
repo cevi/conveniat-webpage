@@ -1,21 +1,27 @@
 import type { TextField } from '@payloadcms/plugin-form-builder/types';
-import type { FieldErrorsImpl, FieldValues, UseFormRegister } from 'react-hook-form';
-
 import type React from 'react';
+import type { FieldErrorsImpl, FieldValues, UseFormRegister } from 'react-hook-form';
 
 import { Required } from '@/features/payload-cms/components/form/required';
 import { fieldIsRequiredText } from '@/features/payload-cms/components/form/static-form-texts';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { useCurrentLocale } from 'next-i18n-router/client';
+import type { JSX } from 'react';
 
-type NumberInputProps = {
+type NumberInputProperties = {
   errors: Partial<FieldErrorsImpl<Record<string, unknown>>>;
   placeholder?: string;
   registerAction: UseFormRegister<string & FieldValues>;
 } & TextField;
 
-export const Number: React.FC<NumberInputProps> = ({
+const isPreviewMode = (): boolean =>
+  typeof globalThis !== 'undefined' && globalThis.location.href.includes('preview=true');
+
+const renderPreviewError = (message: string): JSX.Element | null =>
+  isPreviewMode() ? <p className="text-sm text-red-800">{message}</p> : <></>;
+
+export const Number: React.FC<NumberInputProperties> = ({
   name,
   label,
   registerAction,
@@ -23,19 +29,21 @@ export const Number: React.FC<NumberInputProps> = ({
   errors,
   placeholder,
 }) => {
-  const hasError = errors[name];
   const locale = useCurrentLocale(i18nConfig);
+  const hasError = errors[name];
 
-  const isInPreview =
-    typeof globalThis !== 'undefined' && globalThis.location.href.includes('preview=true');
+  if (typeof label !== 'string') return renderPreviewError('Label must be a string!');
+  if (typeof name !== 'string') return renderPreviewError('Name must be a string!');
 
-  if (typeof label !== 'string') {
-    return isInPreview ? <p className="text-sm text-red-800">Label must be a string!</p> : <></>;
-  }
+  const inputClassNames = [
+    "h-10 w-full rounded-md border-0 bg-green-100 px-4 py-2 font-['Inter'] text-base text-gray-600 shadow-sm ring-1 ring-inset",
+    hasError ? 'bg-red-50 ring-red-500' : 'ring-transparent',
+    'focus:ring-conveniat-green transition-all duration-200 placeholder:text-gray-400 focus:bg-white focus:ring-2 focus:outline-none focus:ring-inset',
+  ].join(' ');
 
-  if (typeof name !== 'string') {
-    return isInPreview ? <p className="text-sm text-red-800">Name must be a string!</p> : <></>;
-  }
+  const registerOptions = {
+    required: requiredFromProperties ? fieldIsRequiredText[locale as Locale] : false,
+  };
 
   return (
     <div className="mb-4">
@@ -44,15 +52,11 @@ export const Number: React.FC<NumberInputProps> = ({
         {requiredFromProperties && <Required />}
       </label>
       <input
-        className={`h-10 w-full rounded-md border-0 bg-green-100 px-4 py-2 font-['Inter'] text-base text-gray-600 shadow-sm ring-1 ring-inset ${
-          hasError ? 'bg-red-50 ring-red-500' : 'ring-transparent'
-        } focus:ring-conveniat-green transition-all duration-200 placeholder:text-gray-400 focus:bg-white focus:ring-2 focus:outline-none focus:ring-inset`}
         id={name}
         type="number"
+        className={inputClassNames}
         placeholder={placeholder}
-        {...registerAction(name, {
-          required: requiredFromProperties ? fieldIsRequiredText[locale as Locale] : false,
-        })}
+        {...registerAction(name, registerOptions)}
       />
       {hasError && <p className="mt-1 text-xs text-red-600">{hasError.message as string}</p>}
     </div>
