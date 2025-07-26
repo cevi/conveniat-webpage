@@ -763,6 +763,7 @@ export const formPluginConfiguration = formBuilderPlugin({
     },
   },
   formOverrides: {
+    trash: true,
     labels: {
       singular: {
         en: 'Form',

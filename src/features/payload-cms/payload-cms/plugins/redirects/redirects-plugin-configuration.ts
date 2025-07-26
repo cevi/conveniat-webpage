@@ -6,6 +6,7 @@ import type { TextField } from 'payload';
 export const redirectsPluginConfiguration = redirectsPlugin({
   overrides: {
     slug: 'go',
+    trash: true,
     admin: {
       useAsTitle: 'urlSlug',
       defaultColumns: ['urlSlug'],
