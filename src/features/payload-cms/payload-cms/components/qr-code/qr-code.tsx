@@ -113,7 +113,7 @@ const prepareQRCodeData = async (
   const basePreviewURL = `/${locale}${finalCollectionSlug}${finalUrlSlug}`;
 
   if (isRedirectQR) {
-    let redirectURL = 'https://con27.ch' + basePreviewURL;
+    let redirectURL = 'https://con27.ch' + finalCollectionSlug + finalUrlSlug;
     if (domain !== 'https://conveniat27.ch') {
       redirectURL = domain + `/${locale}/go` + finalUrlSlug;
     }
