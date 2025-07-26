@@ -16,6 +16,7 @@ interface ConditionType<> {
 
 export const PermissionsCollection: CollectionConfig = {
   slug: 'permissions',
+  trash: true,
   labels: {
     singular: {
       en: 'Permission',

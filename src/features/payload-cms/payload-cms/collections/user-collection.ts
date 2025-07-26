@@ -15,6 +15,7 @@ const baseListFilter: BaseListFilter = () => ({
 
 export const UserCollection: CollectionConfig = {
   slug: 'users',
+  trash: true,
   labels: {
     singular: {
       en: 'User',

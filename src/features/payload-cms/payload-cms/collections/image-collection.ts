@@ -22,6 +22,7 @@ const generateImageName: GenerateImageName = ({ height, sizeName, extension, wid
 
 export const ImageCollection: CollectionConfig = {
   slug: 'images',
+  trash: true,
   labels: {
     singular: {
       en: 'Image',
