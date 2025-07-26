@@ -1,21 +1,26 @@
+import type { Locale } from '@/types/types';
+import { serverSideSlugToUrlResolution } from '@/utils/find-url-prefix';
 import config from '@payload-config';
 import { redirect } from 'next/navigation';
+import type { CollectionSlug } from 'payload';
 import { getPayload } from 'payload';
 import type React from 'react';
 
 const RedirectPage: React.FC<{
   params: Promise<{
     slugs: string[] | undefined;
+    locale: Locale;
   }>;
 }> = async ({ params }) => {
   const payload = await getPayload({ config });
-  const { slugs } = await params;
+  const { slugs, locale } = await params;
 
   const slug = slugs?.join('/') ?? '';
 
   const redirectPages = await payload.find({
     collection: 'go',
     pagination: false,
+    locale,
     depth: 1,
     limit: 1,
     where: {
@@ -60,9 +65,11 @@ const RedirectPage: React.FC<{
           };
         };
       };
-      redirect(
-        `/${redirectPageToReference.reference.relationTo}/${redirectPageToReference.reference.value.seo.urlSlug}`,
+      const path = await serverSideSlugToUrlResolution(
+        redirectPageToReference.reference.relationTo as CollectionSlug,
+        locale,
       );
+      redirect(`/${locale}/${path}/${redirectPageToReference.reference.value.seo.urlSlug}`);
     }
   }
 
