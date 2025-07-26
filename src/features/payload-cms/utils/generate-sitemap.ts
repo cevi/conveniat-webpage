@@ -1,7 +1,8 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
-import type { GenericPage } from '@/features/payload-cms/payload-types';
+import type { Blog, GenericPage, Permission } from '@/features/payload-cms/payload-types';
 import { i18nConfig, type Locale } from '@/types/types';
+import { isPermissionPublic } from '@/utils/has-permissions';
 import config from '@payload-config';
 import type { MetadataRoute } from 'next';
 import { getPayload } from 'payload';
@@ -37,7 +38,7 @@ const combineUrlSegments = (urlSegments: string[]): string => {
  */
 const createSitemapEntry = (
   url: string,
-  page: GenericPage,
+  page: GenericPage | Blog,
   alternates: SitemapAlternates,
 ): MetadataRoute.Sitemap[0] => {
   return {
@@ -91,9 +92,10 @@ const buildLocalizedAlternates = (
  * @returns A partial record mapping each locale to its corresponding published URL, if available.
  */
 const getPublishedLocalizedPageUrls = (
-  page: GenericPage,
+  page: GenericPage | Blog,
   appHostUrl: string,
   defaultLocale: Locale,
+  collectionSlug: string,
 ): Partial<Record<Locale, string>> => {
   const localizedUrls: Partial<Record<Locale, string>> = {};
 
@@ -111,7 +113,7 @@ const getPublishedLocalizedPageUrls = (
     const urlSlug = multiLangSlug[locale];
     const localeInUrl = locale === defaultLocale ? '' : locale;
 
-    localizedUrls[locale] = combineUrlSegments([appHostUrl, localeInUrl, urlSlug]);
+    localizedUrls[locale] = combineUrlSegments([appHostUrl, collectionSlug, localeInUrl, urlSlug]);
   }
 
   return localizedUrls;
@@ -132,7 +134,7 @@ export const sitemapGenerator = async (): Promise<MetadataRoute.Sitemap> => {
 
   const { docs: genericPages } = await payload.find({
     collection: 'generic-page',
-    depth: 0,
+    depth: 1,
     limit: 1000,
     locale: 'all',
   });
@@ -141,7 +143,7 @@ export const sitemapGenerator = async (): Promise<MetadataRoute.Sitemap> => {
   const canonicalURLPriorityList: Locale[] = [LOCALE.DE, LOCALE.FR, LOCALE.EN];
 
   for (const page of genericPages) {
-    const pageUrlsByLocale = getPublishedLocalizedPageUrls(page, APP_HOST_URL, defaultLocale);
+    const pageUrlsByLocale = getPublishedLocalizedPageUrls(page, APP_HOST_URL, defaultLocale, '');
 
     let canonicalUrl: string | undefined;
     let canonicalLocale: Locale | undefined;
@@ -156,7 +158,41 @@ export const sitemapGenerator = async (): Promise<MetadataRoute.Sitemap> => {
 
     if (canonicalUrl !== undefined && canonicalLocale !== undefined) {
       const alternates = buildLocalizedAlternates(pageUrlsByLocale, canonicalLocale);
-      sitemap.push(createSitemapEntry(canonicalUrl, page, alternates));
+      if (isPermissionPublic(page.content.permissions as Permission))
+        sitemap.push(createSitemapEntry(canonicalUrl, page, alternates));
+    }
+  }
+
+  const { docs: blogPosts } = await payload.find({
+    collection: 'blog',
+    depth: 1,
+    limit: 1000,
+    locale: 'all',
+  });
+
+  for (const blog of blogPosts) {
+    const pageUrlsByLocale = getPublishedLocalizedPageUrls(
+      blog,
+      APP_HOST_URL,
+      defaultLocale,
+      'blog',
+    );
+
+    let canonicalUrl: string | undefined;
+    let canonicalLocale: Locale | undefined;
+
+    for (const locale of canonicalURLPriorityList) {
+      if (pageUrlsByLocale[locale] !== undefined) {
+        canonicalUrl = pageUrlsByLocale[locale];
+        canonicalLocale = locale;
+        break; // Found a suitable URL, stop checking other fallbacks
+      }
+    }
+
+    if (canonicalUrl !== undefined && canonicalLocale !== undefined) {
+      const alternates = buildLocalizedAlternates(pageUrlsByLocale, canonicalLocale);
+      if (isPermissionPublic(blog.content.permissions as Permission))
+        sitemap.push(createSitemapEntry(canonicalUrl, blog, alternates));
     }
   }
 
