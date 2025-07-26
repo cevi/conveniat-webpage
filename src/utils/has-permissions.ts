@@ -10,7 +10,7 @@ interface UserWithGroup {
     | undefined;
 }
 
-const isPermissionPublic = (permission: Permission | null | undefined): boolean => {
+export const isPermissionPublic = (permission: Permission | null | undefined): boolean => {
   return permission?.special_permissions?.public === true;
 };
 

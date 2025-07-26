@@ -6,10 +6,20 @@ import type { TextField } from 'payload';
 export const redirectsPluginConfiguration = redirectsPlugin({
   overrides: {
     slug: 'go',
+    trash: true,
     admin: {
       useAsTitle: 'urlSlug',
       defaultColumns: ['urlSlug'],
       group: AdminPanelDashboardGroups.InternalCollections,
+      components: {
+        edit: {
+          beforeDocumentControls: [
+            {
+              path: '@/features/payload-cms/payload-cms/components/qr-code/qr-code',
+            },
+          ],
+        },
+      },
     },
     labels: {
       singular: 'Redirect',

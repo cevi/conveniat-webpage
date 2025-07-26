@@ -28,6 +28,8 @@ AnnotationPointField.admin = {
 
 export const CampMapAnnotationsCollection: CollectionConfig = {
   slug: 'camp-map-annotations',
+  trash: true,
+
   labels: {
     singular: {
       en: 'Camp Map Annotation',
@@ -42,6 +44,9 @@ export const CampMapAnnotationsCollection: CollectionConfig = {
   },
   admin: {
     group: AdminPanelDashboardGroups.AppContent,
+    groupBy: true,
+    /** this is broken with our localized versions */
+    disableCopyToLocale: true,
   },
   access: {
     read: () => true,

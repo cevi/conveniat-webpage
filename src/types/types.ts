@@ -1,4 +1,5 @@
 import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
+import type { Metadata } from 'next';
 import type { Config } from 'next-i18n-router/dist/types';
 import type { CollectionConfig, Config as PayloadConfig } from 'payload';
 
@@ -25,6 +26,13 @@ export interface LocalizedPageType {
 export type LocalizedCollectionPage = LocalizedPageType & {
   slugs: string[];
   renderInPreviewMode: boolean;
+};
+
+export type LocalizedCollectionComponent = React.FC<LocalizedCollectionPage> & {
+  generateMetadata?: (parameters: {
+    locale: Locale;
+    slugs: string[] | undefined;
+  }) => Promise<Metadata>;
 };
 
 export interface RoutableCollectionConfig {
