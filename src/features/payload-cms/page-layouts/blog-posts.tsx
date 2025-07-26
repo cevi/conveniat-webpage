@@ -235,7 +235,7 @@ BlogPostPage.generateMetadata = async ({
       canonicalSlug && {
         alternates: {
           canonical: `/${canonicalLocale}/blog/${canonicalSlug}`,
-          ...(alternates && { languages: alternates }),
+          languages: alternates,
         },
       }),
   };

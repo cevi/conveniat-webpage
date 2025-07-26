@@ -201,7 +201,7 @@ GenericPage.generateMetadata = async ({
       canonicalSlug && {
         alternates: {
           canonical: `/${canonicalLocale}/${canonicalSlug}`,
-          ...(alternates && { languages: alternates }),
+          languages: alternates,
         },
       }),
   };

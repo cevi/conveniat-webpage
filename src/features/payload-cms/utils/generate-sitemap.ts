@@ -1,13 +1,13 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import type { Blog, GenericPage, Permission } from '@/features/payload-cms/payload-types';
+import { specialPagesTable } from '@/features/payload-cms/special-pages-table';
 import { i18nConfig, type Locale } from '@/types/types';
 import { isPermissionPublic } from '@/utils/has-permissions';
 import config from '@payload-config';
 import type { MetadataRoute } from 'next';
 import type { CollectionSlug } from 'payload';
 import { getPayload } from 'payload';
-import { specialPagesTable } from '../special-pages-table';
 
 /**
  * Interface representing a collection of alternate language URLs for a sitemap entry.
@@ -217,7 +217,7 @@ export const sitemapGenerator = async (): Promise<MetadataRoute.Sitemap> => {
   // add special pages
   // --> search
   const searchPage = specialPagesTable['search'];
-  if (searchPage && searchPage.alternatives) {
+  if (searchPage?.alternatives) {
     const pageUrlsByLocale: SitemapAlternates = {
       fr: {
         url: combineUrlSegments([APP_HOST_URL, 'fr', searchPage.alternatives.fr.replace('/', '')]),
