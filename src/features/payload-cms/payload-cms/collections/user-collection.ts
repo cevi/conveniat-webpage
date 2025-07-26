@@ -32,7 +32,7 @@ export const UserCollection: CollectionConfig = {
     admin: canAccessAdminPanel,
     create: () => false,
     delete: () => false,
-    update: () => false,
+    update: canAccessAdminPanel,
   },
   admin: {
     description:
@@ -91,7 +91,7 @@ export const UserCollection: CollectionConfig = {
       type: 'email',
       required: true,
       admin: {
-        readOnly: true,
+        readOnly: false,
       },
       unique: true,
     },
@@ -101,7 +101,7 @@ export const UserCollection: CollectionConfig = {
       type: 'text',
       required: true,
       admin: {
-        readOnly: true,
+        readOnly: false,
         description: 'The full name of the user, as it will be displayed publicly.',
       },
     },
@@ -111,7 +111,7 @@ export const UserCollection: CollectionConfig = {
       type: 'text',
       required: false,
       admin: {
-        readOnly: true,
+        readOnly: false,
         description: 'The Ceviname of the user.',
       },
     },
