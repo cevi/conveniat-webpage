@@ -120,7 +120,7 @@ export const FooterCopyrightArea: React.FC = async () => {
 
   return (
     <>
-      <div className="mb-[-8px] w-full max-sm:mr-[-32px] max-sm:ml-[-32px] max-sm:w-[calc(100%+64px)]">
+      <div className="mb-[-8px] w-full">
         <FooterGraphic />
       </div>
       <div
