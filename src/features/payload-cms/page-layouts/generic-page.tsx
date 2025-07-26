@@ -1,5 +1,6 @@
 import { GenericPageConverter } from '@/features/payload-cms/converters/generic-page';
 import type { Permission } from '@/features/payload-cms/payload-types';
+import { buildMetadata, findAlternatives } from '@/features/payload-cms/utils/metadata-helper';
 import type { Locale, LocalizedCollectionComponent } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { hasPermissions } from '@/utils/has-permissions';
@@ -127,13 +128,7 @@ const GenericPage: LocalizedCollectionComponent = async ({
   notFound();
 };
 
-GenericPage.generateMetadata = async ({
-  locale,
-  slugs,
-}: {
-  locale: Locale;
-  slugs: string[] | undefined;
-}): Promise<Metadata> => {
+GenericPage.generateMetadata = async ({ locale, slugs }): Promise<Metadata> => {
   const payload = await getPayload({ config });
   const slug = slugs?.join('/') ?? '';
 
@@ -146,44 +141,21 @@ GenericPage.generateMetadata = async ({
     where: {
       and: [
         { 'seo.urlSlug': { equals: slug } },
-        {
-          _localized_status: { equals: { published: true } },
-        },
+        { _localized_status: { equals: { published: true } } },
       ],
     },
   });
 
   const page = result.docs[0];
-
   if (!page) return {};
 
-  const internalPageName = page.internalPageName;
-
-  const pageAlternatives = await Promise.all(
-    i18nConfig.locales.map((l) =>
-      payload.find({
-        collection: 'generic-page',
-        pagination: false,
-        fallbackLocale: false,
-        locale: l as Locale,
-        draft: false,
-        where: {
-          and: [
-            { internalPageName: { equals: internalPageName } },
-            { _localized_status: { equals: { published: true } } },
-          ],
-        },
-      }),
-    ),
-  ).then((results) =>
-    results
-      .filter((r) => r.docs.length === 1)
-      .flatMap((r) => r.docs[0])
-      .filter((a) => a !== undefined),
-  );
+  const pageAlternatives = await findAlternatives({
+    payload,
+    collection: 'generic-page',
+    internalPageName: page.internalPageName,
+  });
 
   const germanAlternative = pageAlternatives.find((a) => a._locale.startsWith('de'));
-
   const canonicalLocale = germanAlternative?._locale || locale;
   const canonicalSlug = germanAlternative?.seo.urlSlug || slug;
 
@@ -193,18 +165,12 @@ GenericPage.generateMetadata = async ({
       .map((alt) => [alt._locale, `/${alt._locale}/${alt.seo.urlSlug}`]),
   );
 
-  return {
-    ...(page.seo.metaTitle && { title: page.seo.metaTitle }),
-    ...(page.seo.metaDescription && { description: page.seo.metaDescription }),
-    ...(page.seo.keywords && { keywords: page.seo.keywords }),
-    ...(canonicalLocale &&
-      canonicalSlug && {
-        alternates: {
-          canonical: `/${canonicalLocale}/${canonicalSlug}`,
-          languages: alternates,
-        },
-      }),
-  };
+  return buildMetadata({
+    seo: page.seo,
+    canonicalLocale,
+    canonicalSlug,
+    alternates,
+  });
 };
 
 export default GenericPage;
