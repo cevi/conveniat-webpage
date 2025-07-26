@@ -79,14 +79,20 @@ const prepareQRCodeData = async (
         seo?: { urlSlug?: string };
         id?: string;
         _localized_status?: Record<Locale, { status: string }>;
+        urlSlug?: string; // redirects have urlSlug on root
       }
     | undefined,
   expirySeconds: number,
   domain: string,
+  isRedirectQR: boolean = false,
 ): Promise<{ qrCodeContent: string; displayURL: string }> => {
   const path = await serverSideSlugToUrlResolution(collectionSlug, locale);
 
   let urlSlug: string = savedDocumentData?.seo?.urlSlug ?? '';
+
+  if (isRedirectQR) {
+    urlSlug = savedDocumentData?.urlSlug ?? '';
+  }
 
   if (collectionSlug === 'timeline') urlSlug = savedDocumentData?.id ?? '';
   if (collectionSlug === 'forms') {
@@ -105,6 +111,17 @@ const prepareQRCodeData = async (
   const finalCollectionSlug: string = path === '' ? '' : `/${path}`;
   const finalUrlSlug: string = urlSlug.startsWith('/') ? urlSlug : `/${urlSlug}`;
   const basePreviewURL = `/${locale}${finalCollectionSlug}${finalUrlSlug}`;
+
+  if (isRedirectQR) {
+    let redirectURL = 'https://con27.ch' + basePreviewURL;
+    if (domain !== 'https://conveniat27.ch') {
+      redirectURL = domain + `/${locale}/go` + finalUrlSlug;
+    }
+    return {
+      qrCodeContent: redirectURL,
+      displayURL: redirectURL,
+    };
+  }
 
   const fullURLForToken = domain + basePreviewURL;
 
@@ -254,6 +271,8 @@ const QRCode: React.FC<QRCodeProperties> = () => {
   >();
   const [isPreparingQrData, setIsPreparingQrData] = useState(false);
 
+  const createRedirectQR = (collectionSlug && collectionSlug === 'go') ?? false;
+
   useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
     if (open && collectionSlug && locale && savedDocumentData) {
@@ -267,6 +286,7 @@ const QRCode: React.FC<QRCodeProperties> = () => {
             savedDocumentData,
             expirySeconds,
             environmentVariables.NEXT_PUBLIC_APP_HOST_URL,
+            createRedirectQR,
           );
           setQrInputDataSource(data);
         } catch (error) {
@@ -278,7 +298,7 @@ const QRCode: React.FC<QRCodeProperties> = () => {
       };
       prepare().catch(console.error);
     }
-  }, [open, collectionSlug, locale, savedDocumentData, expirySeconds]);
+  }, [open, collectionSlug, locale, savedDocumentData, expirySeconds, createRedirectQR]);
 
   const {
     data: qrImageData,
@@ -363,12 +383,24 @@ const QRCode: React.FC<QRCodeProperties> = () => {
             if (!open) setOpen(true);
           }}
         >
-          {previewLinkText[locale as Locale]} ({locale.toUpperCase()})
+          {createRedirectQR ? (
+            <>{qrCodeLoadingText[locale as Locale]}</>
+          ) : (
+            <>
+              {previewLinkText[locale as Locale]}({locale.toUpperCase()})
+            </>
+          )}
         </FormSubmit>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-96 rounded-md border-gray-200 bg-white text-gray-900 shadow-lg dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100">
         <DropdownMenuLabel className="px-2 py-1.5 font-semibold">
-          {previewLinkTextLong[locale as Locale]} {locale.toUpperCase()}
+          {createRedirectQR ? (
+            <>{qrCodeLoadingText[locale as Locale]}</>
+          ) : (
+            <>
+              {previewLinkTextLong[locale as Locale]}({locale.toUpperCase()})
+            </>
+          )}
         </DropdownMenuLabel>
         <div className="flex flex-col items-center gap-3 p-2">
           <QRCodeImage
@@ -384,11 +416,13 @@ const QRCode: React.FC<QRCodeProperties> = () => {
               Fehler beim Laden des QR-Codes. Bitte versuchen Sie es später erneut.
             </p>
           )}
-          <ExpiryDropdown
-            locale={locale as Locale}
-            expirySeconds={expirySeconds}
-            handleExpiryChange={handleExpiryChange}
-          />
+          {!createRedirectQR && (
+            <ExpiryDropdown
+              locale={locale as Locale}
+              expirySeconds={expirySeconds}
+              handleExpiryChange={handleExpiryChange}
+            />
+          )}
         </div>
       </DropdownMenuContent>
     </DropdownMenu>

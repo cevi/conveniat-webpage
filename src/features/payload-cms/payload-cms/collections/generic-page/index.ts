@@ -12,6 +12,7 @@ import type { CollectionConfig } from 'payload';
 
 export const GenericPage: CollectionConfig = asLocalizedCollection({
   slug: 'generic-page',
+  trash: true,
   labels: {
     singular: {
       en: 'Page',
@@ -27,6 +28,9 @@ export const GenericPage: CollectionConfig = asLocalizedCollection({
   defaultSort: 'internalPageName',
   admin: {
     group: AdminPanelDashboardGroups.PagesAndContent,
+    groupBy: true,
+    /** this is broken with our localized versions */
+    disableCopyToLocale: true,
     useAsTitle: 'internalPageName',
     defaultColumns: [
       'internalPageName',

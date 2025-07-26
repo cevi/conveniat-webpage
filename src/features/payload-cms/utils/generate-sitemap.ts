@@ -1,9 +1,12 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
-import type { GenericPage } from '@/features/payload-cms/payload-types';
+import type { Blog, GenericPage, Permission } from '@/features/payload-cms/payload-types';
+import { specialPagesTable } from '@/features/payload-cms/special-pages-table';
 import { i18nConfig, type Locale } from '@/types/types';
+import { isPermissionPublic } from '@/utils/has-permissions';
 import config from '@payload-config';
 import type { MetadataRoute } from 'next';
+import type { CollectionSlug } from 'payload';
 import { getPayload } from 'payload';
 
 /**
@@ -35,9 +38,13 @@ const combineUrlSegments = (urlSegments: string[]): string => {
  * @param alternates - An object containing alternate language URLs for this page.
  * @returns A sitemap entry object.
  */
+interface SpecialPage {
+  updatedAt?: undefined;
+}
+
 const createSitemapEntry = (
   url: string,
-  page: GenericPage,
+  page: GenericPage | Blog | SpecialPage,
   alternates: SitemapAlternates,
 ): MetadataRoute.Sitemap[0] => {
   return {
@@ -91,9 +98,10 @@ const buildLocalizedAlternates = (
  * @returns A partial record mapping each locale to its corresponding published URL, if available.
  */
 const getPublishedLocalizedPageUrls = (
-  page: GenericPage,
+  page: GenericPage | Blog,
   appHostUrl: string,
   defaultLocale: Locale,
+  collectionSlug: string,
 ): Partial<Record<Locale, string>> => {
   const localizedUrls: Partial<Record<Locale, string>> = {};
 
@@ -111,15 +119,64 @@ const getPublishedLocalizedPageUrls = (
     const urlSlug = multiLangSlug[locale];
     const localeInUrl = locale === defaultLocale ? '' : locale;
 
-    localizedUrls[locale] = combineUrlSegments([appHostUrl, localeInUrl, urlSlug]);
+    localizedUrls[locale] = combineUrlSegments([appHostUrl, collectionSlug, localeInUrl, urlSlug]);
   }
 
   return localizedUrls;
 };
 
+function getCanonicalUrl(
+  pageUrlsByLocale: Partial<Record<Locale, string>>,
+  priorityLocales: Locale[],
+): { canonicalUrl?: string; canonicalLocale?: Locale } {
+  for (const locale of priorityLocales) {
+    const url = pageUrlsByLocale[locale];
+    if (url) return { canonicalUrl: url, canonicalLocale: locale };
+  }
+  return {};
+}
+
+function processDocumentsForSitemap(
+  documents: GenericPage[] | Blog[],
+  basePath: string,
+  sitemap: MetadataRoute.Sitemap,
+  {
+    APP_HOST_URL,
+    defaultLocale,
+    canonicalURLPriorityList,
+  }: {
+    APP_HOST_URL: string;
+    defaultLocale: Locale;
+    canonicalURLPriorityList: Locale[];
+  },
+): void {
+  for (const document_ of documents) {
+    const pageUrlsByLocale = getPublishedLocalizedPageUrls(
+      document_,
+      APP_HOST_URL,
+      defaultLocale,
+      basePath,
+    );
+
+    const { canonicalUrl, canonicalLocale } = getCanonicalUrl(
+      pageUrlsByLocale,
+      canonicalURLPriorityList,
+    );
+
+    if (
+      canonicalUrl &&
+      canonicalLocale &&
+      isPermissionPublic(document_.content.permissions as Permission)
+    ) {
+      const alternates = buildLocalizedAlternates(pageUrlsByLocale, canonicalLocale);
+      sitemap.push(createSitemapEntry(canonicalUrl, document_, alternates));
+    }
+  }
+}
+
 /**
  * Generates a sitemap for Next.js applications by fetching generic pages from Payload CMS.
- * It includes all published pages with their localized alternate URLs.
+ * It includes all published pages/blog posts with their localized alternate URLs.
  *
  * @returns A promise that resolves to an array of sitemap entries.
  */
@@ -127,39 +184,54 @@ export const sitemapGenerator = async (): Promise<MetadataRoute.Sitemap> => {
   const sitemap: MetadataRoute.Sitemap = [];
   const APP_HOST_URL = environmentVariables.APP_HOST_URL;
   const defaultLocale = i18nConfig.defaultLocale as Locale;
-
   const payload = await getPayload({ config });
+  const currentDate = new Date().toISOString();
 
-  const { docs: genericPages } = await payload.find({
-    collection: 'generic-page',
-    depth: 0,
-    limit: 1000,
-    locale: 'all',
-  });
-
-  // defines the order of locales to use for canonical URLs
   const canonicalURLPriorityList: Locale[] = [LOCALE.DE, LOCALE.FR, LOCALE.EN];
 
-  for (const page of genericPages) {
-    const pageUrlsByLocale = getPublishedLocalizedPageUrls(page, APP_HOST_URL, defaultLocale);
+  const collectionsToProcess = [
+    { name: 'generic-page', basePath: '' },
+    { name: 'blog', basePath: 'blog' },
+  ];
 
-    let canonicalUrl: string | undefined;
-    let canonicalLocale: Locale | undefined;
+  for (const { name, basePath } of collectionsToProcess) {
+    const { docs } = await payload.find({
+      collection: name as CollectionSlug,
+      depth: 1,
+      limit: 1000,
+      locale: 'all',
+      where: {
+        'content.releaseDate': {
+          less_than_equal: currentDate,
+        },
+      },
+    });
 
-    for (const locale of canonicalURLPriorityList) {
-      if (pageUrlsByLocale[locale] !== undefined) {
-        canonicalUrl = pageUrlsByLocale[locale];
-        canonicalLocale = locale;
-        break; // Found a suitable URL, stop checking other fallbacks
-      }
-    }
-
-    if (canonicalUrl !== undefined && canonicalLocale !== undefined) {
-      const alternates = buildLocalizedAlternates(pageUrlsByLocale, canonicalLocale);
-      sitemap.push(createSitemapEntry(canonicalUrl, page, alternates));
-    }
+    processDocumentsForSitemap(docs as Blog[] | GenericPage[], basePath, sitemap, {
+      APP_HOST_URL,
+      defaultLocale,
+      canonicalURLPriorityList,
+    });
   }
 
-  console.log(`Generated sitemap with ${sitemap.length} entries.`);
+  // add special pages
+  // --> search
+  const searchPage = specialPagesTable['search'];
+  if (searchPage?.alternatives) {
+    const pageUrlsByLocale: SitemapAlternates = {
+      fr: {
+        url: combineUrlSegments([APP_HOST_URL, 'fr', searchPage.alternatives.fr.replace('/', '')]),
+        hreflang: 'fr',
+      },
+      en: {
+        url: combineUrlSegments([APP_HOST_URL, 'en', searchPage.alternatives.en.replace('/', '')]),
+        hreflang: 'en',
+      },
+    };
+    sitemap.push(
+      createSitemapEntry(combineUrlSegments([APP_HOST_URL, 'suche']), {}, pageUrlsByLocale),
+    );
+  }
+
   return sitemap;
 };

@@ -753,6 +753,7 @@ export const formPluginConfiguration = formBuilderPlugin({
     },
     admin: {
       group: AdminPanelDashboardGroups.GlobalSettings,
+      groupBy: true,
     },
     access: {
       read: canAccessAdminPanel,
@@ -762,6 +763,7 @@ export const formPluginConfiguration = formBuilderPlugin({
     },
   },
   formOverrides: {
+    trash: true,
     labels: {
       singular: {
         en: 'Form',
@@ -786,6 +788,12 @@ export const formPluginConfiguration = formBuilderPlugin({
     admin: {
       group: AdminPanelDashboardGroups.PagesAndContent,
       defaultColumns: ['id', 'publishingStatus', 'title'],
+      /**
+       * As we are localizing only the label fields but not the values, enabling copy
+       * to locale would not make sense and lead to data loss, as the labels in other
+       * locales would be deleted.
+       */
+      disableCopyToLocale: true,
       components: {
         beforeList: [
           '@/features/payload-cms/payload-cms/components/disable-actions/disable-many-actions',
@@ -827,6 +835,7 @@ export const formPluginConfiguration = formBuilderPlugin({
               fr: 'Titre de la section',
             },
             required: true,
+            localized: true,
           },
           {
             type: 'blocks',
@@ -891,6 +900,7 @@ export const formPluginConfiguration = formBuilderPlugin({
                 name: 'exportAsCSV',
                 type: 'ui',
                 admin: {
+                  disableListColumn: true,
                   components: {
                     Field: {
                       path: '@/features/payload-cms/payload-cms/components/form-export-button#FormExportButton',

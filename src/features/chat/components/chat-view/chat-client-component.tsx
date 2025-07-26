@@ -16,7 +16,7 @@ import React from 'react';
  * @constructor
  */
 const ChatOfflineMessage: React.FC = () => (
-  <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50">
+  <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50 xl:top-[62px] xl:left-[480px] xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
     <ChatHeaderSkeleton />
     <div className="flex flex-1 items-center justify-center p-4 text-center text-gray-500">
       <span>
@@ -29,7 +29,7 @@ const ChatOfflineMessage: React.FC = () => (
 );
 
 export const ChatErrorMessage: React.FC = () => (
-  <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50">
+  <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50 xl:top-[62px] xl:left-[480px] xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
     <ChatHeaderSkeleton />
     <div className="flex flex-1 items-center justify-center p-4 text-center text-red-500">
       <span>
@@ -58,7 +58,7 @@ export const ChatClientComponent: React.FC = () => {
   if (isError || (isLoading && errorUpdateCount !== 0)) return <ChatErrorMessage />;
 
   return (
-    <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50">
+    <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50 xl:top-[62px] xl:left-[480px] xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
       <ChatHeader />
       {isPaused && <OfflineBanner />}
       <div className="flex-1 overflow-y-auto">
@@ -72,7 +72,7 @@ export const ChatClientComponent: React.FC = () => {
 };
 
 const ChatSkeleton: React.FC = () => (
-  <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col bg-gray-50">
+  <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col bg-gray-50 xl:top-[62px] xl:left-[480px] xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
     <div className="flex h-16 items-center gap-3 border-b border-gray-200 bg-white px-4 shadow-sm">
       <Link href="/app/chat">
         <Button variant="ghost" size="icon" className="mr-2 hover:bg-gray-100">

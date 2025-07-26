@@ -1,14 +1,15 @@
 import { GenericPageConverter } from '@/features/payload-cms/converters/generic-page';
 import type { Permission } from '@/features/payload-cms/payload-types';
-import type { Locale, LocalizedCollectionPage } from '@/types/types';
+import { buildMetadata, findAlternatives } from '@/features/payload-cms/utils/metadata-helper';
+import type { Locale, LocalizedCollectionComponent } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { hasPermissions } from '@/utils/has-permissions';
 import config from '@payload-config';
+import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 import { getPayload } from 'payload';
-import React from 'react';
 
-export const GenericPage: React.FC<LocalizedCollectionPage> = async ({
+const GenericPage: LocalizedCollectionComponent = async ({
   slugs,
   locale,
   searchParams,
@@ -126,3 +127,50 @@ export const GenericPage: React.FC<LocalizedCollectionPage> = async ({
 
   notFound();
 };
+
+GenericPage.generateMetadata = async ({ locale, slugs }): Promise<Metadata> => {
+  const payload = await getPayload({ config });
+  const slug = slugs?.join('/') ?? '';
+
+  const result = await payload.find({
+    collection: 'generic-page',
+    pagination: false,
+    locale,
+    fallbackLocale: false,
+    draft: false,
+    where: {
+      and: [
+        { 'seo.urlSlug': { equals: slug } },
+        { _localized_status: { equals: { published: true } } },
+      ],
+    },
+  });
+
+  const page = result.docs[0];
+  if (!page) return {};
+
+  const pageAlternatives = await findAlternatives({
+    payload,
+    collection: 'generic-page',
+    internalPageName: page.internalPageName,
+  });
+
+  const germanAlternative = pageAlternatives.find((a) => a._locale.startsWith('de'));
+  const canonicalLocale = germanAlternative?._locale || locale;
+  const canonicalSlug = germanAlternative?.seo.urlSlug || slug;
+
+  const alternates = Object.fromEntries(
+    pageAlternatives
+      .filter((alt) => alt._locale !== canonicalLocale)
+      .map((alt) => [alt._locale, `/${alt._locale}/${alt.seo.urlSlug}`]),
+  );
+
+  return buildMetadata({
+    seo: page.seo,
+    canonicalLocale,
+    canonicalSlug,
+    alternates,
+  });
+};
+
+export default GenericPage;

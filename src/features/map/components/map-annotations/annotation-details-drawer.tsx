@@ -44,7 +44,7 @@ export const AnnotationDetailsDrawer: React.FC<{
   ];
 
   return (
-    <div className="fixed right-0 bottom-[90px] left-0 z-[999] h-[50vh] overflow-hidden rounded-t-2xl bg-white shadow-[0px_-4px_38px_-19px_rgba(0,_0,_0,_0.1)]">
+    <div className="fixed right-0 bottom-[80px] left-0 z-[999] h-[50vh] overflow-hidden rounded-t-2xl bg-white shadow-[0px_-4px_38px_-19px_rgba(0,_0,_0,_0.1)] xl:left-[480px]">
       <div className="flex h-full flex-col overflow-y-auto px-4 pt-6">
         <div className="relative">
           <button

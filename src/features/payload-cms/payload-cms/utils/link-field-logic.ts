@@ -21,17 +21,19 @@ export const hasPermissionsForLinkField = async (
   }
 
   const page = value as GenericPage;
+  if (typeof page !== 'object') return false; // abort
   const permission = page.content.permissions as Permission;
   return await hasPermissions(permission);
 };
 
+// eslint-disable-next-line complexity
 export const getURLForLinkField = (linkFieldData?: LinkFieldDataType): string | undefined => {
   if (!linkFieldData) return undefined;
 
   const { type } = linkFieldData;
 
   if (type === 'custom') {
-    return linkFieldData.url || undefined;
+    return linkFieldData.url ?? undefined;
   }
 
   if (type === 'reference' && linkFieldData.reference?.value) {
@@ -41,6 +43,12 @@ export const getURLForLinkField = (linkFieldData?: LinkFieldDataType): string | 
       const urlSlug = (value as Blog).seo.urlSlug;
       return urlSlug ? `/blog/${urlSlug}` : undefined;
     }
+
+    // if the reference is not of type GenericPage
+    if (typeof value === 'string') {
+      return undefined; // abort
+    }
+
     const urlSlug = (value as GenericPage).seo.urlSlug;
     if (urlSlug === '') {
       return '/';
@@ -61,7 +69,7 @@ export const openURLInNewTab = (linkFieldData?: LinkFieldDataType): boolean => {
   }
 
   if (type === 'custom') {
-    return linkFieldData.openInNewTab || false;
+    return linkFieldData.openInNewTab ?? false;
   }
 
   return false;

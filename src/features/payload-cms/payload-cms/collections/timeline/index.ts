@@ -10,6 +10,7 @@ import type { CollectionConfig } from 'payload';
 
 export const TimelineCollection: CollectionConfig = asLocalizedCollection({
   slug: 'timeline',
+  trash: true,
 
   labels: {
     singular: {
@@ -26,6 +27,9 @@ export const TimelineCollection: CollectionConfig = asLocalizedCollection({
 
   admin: {
     group: AdminPanelDashboardGroups.PagesAndContent,
+    groupBy: true,
+    /** this is broken with our localized versions */
+    disableCopyToLocale: true,
     description: {
       en: 'Represents a timeline that can be published on the website.',
       de: 'Stellt eine Timeline dar, die auf der Website veröffentlicht werden kann.',

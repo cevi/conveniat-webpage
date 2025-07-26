@@ -10,15 +10,89 @@ import { environmentVariables } from '@/config/environment-variables';
 import { canUserAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import { routeResolutionTable } from '@/features/payload-cms/route-resolution-table';
+import type { SpecialRouteResolutionEntry } from '@/features/payload-cms/special-pages-table';
 import { getSpecialPage, isSpecialPage } from '@/features/payload-cms/special-pages-table';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { Locale, SearchParameters } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { auth } from '@/utils/auth-helpers';
 import { isPreviewTokenValid } from '@/utils/preview-token';
+import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import type React from 'react';
+
+const getCanonicalData = (
+  specialPage: SpecialRouteResolutionEntry,
+  locale: Locale,
+): { canonical: string; languages: { [k: string]: string } } => {
+  const availableLocales: Locale[] = ['de', 'fr', 'en'];
+  const canonicalLocale = specialPage.alternatives['de'] ? 'de' : locale;
+  const canonicalPath = specialPage.alternatives[canonicalLocale];
+
+  const alternates = Object.fromEntries(
+    availableLocales
+      .filter((lang) => lang !== canonicalLocale && specialPage.alternatives[lang])
+      .map((lang) => [lang, `/${lang}${specialPage.alternatives[lang]}`]),
+  );
+
+  return {
+    canonical: `/${canonicalLocale}${canonicalPath}`,
+    languages: alternates,
+  };
+};
+
+const handleSpecialPage = (collection: string, locale: Locale): Metadata => {
+  const specialPage = getSpecialPage(collection);
+  if (!specialPage) return {};
+
+  const foundLocale = specialPage.locale;
+
+  if (foundLocale === locale) {
+    const { canonical, languages } = getCanonicalData(specialPage, locale);
+    return {
+      title: specialPage.title[locale],
+      alternates: {
+        canonical,
+        languages,
+      },
+    };
+  }
+
+  return {
+    title: specialPage.title[locale],
+  };
+};
+
+export const generateMetadata = async ({
+  params,
+}: {
+  params: {
+    locale: Locale;
+    slugs: string[] | undefined;
+  };
+}): Promise<Metadata> => {
+  const { slugs, locale } = await params;
+  const collection = (slugs?.[0] ?? '') as string;
+  const remainingSlugs = slugs?.slice(1) ?? [];
+
+  if (isSpecialPage(collection)) {
+    return handleSpecialPage(collection, locale);
+  }
+
+  let collectionPage = routeResolutionTable[collection];
+
+  if (!collectionPage && routeResolutionTable['']) {
+    collectionPage = routeResolutionTable[''];
+    remainingSlugs.unshift(collection);
+  }
+
+  if (collectionPage?.component.generateMetadata) {
+    return await collectionPage.component.generateMetadata({ locale, slugs: remainingSlugs });
+  }
+
+  return {};
+};
 
 /**
  * Checks if the preview token is valid.

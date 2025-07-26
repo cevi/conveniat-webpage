@@ -29,7 +29,7 @@ import {
 import Link from 'next/link';
 
 const ChatDetailsPageSkeleton: React.FC = () => (
-  <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col bg-gray-50">
+  <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col bg-gray-50 xl:top-[62px] xl:left-[480px] xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
     <div className="flex h-16 items-center gap-3 border-b border-gray-200 bg-white px-4 shadow-sm">
       <div className="h-8 w-8 animate-pulse rounded bg-gray-200" />
       <div className="h-6 w-32 animate-pulse rounded bg-gray-200" />
@@ -51,7 +51,7 @@ const ChatDetailsPageSkeleton: React.FC = () => (
 );
 
 const ChatDetailsError: React.FC = () => (
-  <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col bg-gray-50">
+  <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col bg-gray-50 xl:top-[62px] xl:left-[480px] xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
     <div className="flex h-16 items-center gap-3 border-b border-gray-200 bg-white px-4 shadow-sm">
       <Link href="/app/chat">
         <Button variant="ghost" size="icon" className="mr-2 hover:bg-gray-100">
@@ -217,7 +217,7 @@ export const ChatDetails: React.FC = () => {
   const isFormValid = !chatNameError && chatName.trim().length >= 2 && chatName.trim().length <= 50;
 
   return (
-    <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50">
+    <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50 xl:top-[62px] xl:left-[480px] xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
       {/* Header */}
       <div className="flex h-16 items-center gap-3 border-b border-gray-200 bg-white px-4 shadow-sm">
         <Link href={`/app/chat/${chatId}`}>

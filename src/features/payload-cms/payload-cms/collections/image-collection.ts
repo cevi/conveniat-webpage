@@ -22,6 +22,7 @@ const generateImageName: GenerateImageName = ({ height, sizeName, extension, wid
 
 export const ImageCollection: CollectionConfig = {
   slug: 'images',
+  trash: true,
   labels: {
     singular: {
       en: 'Image',
@@ -36,6 +37,9 @@ export const ImageCollection: CollectionConfig = {
   },
   admin: {
     group: AdminPanelDashboardGroups.InternalCollections,
+    groupBy: true,
+    /** this is broken with our localized versions */
+    disableCopyToLocale: true,
   },
   access: {
     read: () => true,

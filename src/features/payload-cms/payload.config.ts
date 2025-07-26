@@ -119,7 +119,10 @@ export const payloadConfig: RoutableConfig = {
       baseDir: path.resolve(dirname),
     },
     dateFormat: 'yyyy-MM-dd HH:mm',
-
+    timezones: {
+      supportedTimezones: [{ label: 'Europe/Zurich', value: 'Europe/Zurich' }],
+      defaultTimezone: 'Europe/Zurich',
+    },
     livePreview: {
       url: generatePreviewUrl,
       breakpoints: smartphoneBreakpoints,

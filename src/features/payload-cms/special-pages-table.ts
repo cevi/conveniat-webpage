@@ -9,6 +9,9 @@ export interface SpecialRouteResolutionEntry {
     [locale in Locale]: string;
   };
   component: React.FC<LocalizedPageType> | React.ComponentType<LocalizedCollectionPage>;
+  title: {
+    [locale in Locale]: string;
+  };
 }
 
 export interface SpecialRouteResolutionTable {
@@ -24,6 +27,11 @@ export const specialPagesTable: SpecialRouteResolutionTable = {
       fr: '/recherche',
     },
     component: SearchPage,
+    title: {
+      en: 'Search',
+      de: 'Suche',
+      fr: 'Recherche',
+    },
   },
   'forms-preview': {
     locales: ['en', 'de', 'fr'],
@@ -33,6 +41,11 @@ export const specialPagesTable: SpecialRouteResolutionTable = {
       fr: '/apercu-du-formulaire',
     },
     component: FormsPreviewPage,
+    title: {
+      en: 'Form Preview',
+      de: 'Formularvorschau',
+      fr: 'Apercu du Formulaire',
+    },
   },
 };
 
