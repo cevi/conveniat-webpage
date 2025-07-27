@@ -46,6 +46,16 @@ export const beforeEmailChangeHook: BeforeEmail = async (
           // Replace the href in the HTML
           updatedHtml = updatedHtml.replace(`href="${id}"`, `href="${finalURL}"`);
         }
+
+        if (environmentVariables.FEATURE_ENABLE_APP_FEATURE) {
+          const campAnnotation = await payload
+            .findByID({ collection: 'camp-map-annotations', id })
+            .catch(() => {});
+          if (campAnnotation) {
+            const finalURL = `${environmentVariables.APP_HOST_URL}/app/map?locationId=${campAnnotation.id}`;
+            updatedHtml = updatedHtml.replace(`href="${id}"`, `href="${finalURL}"`);
+          }
+        }
       }
 
       return {
