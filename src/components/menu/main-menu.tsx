@@ -217,8 +217,8 @@ export const MainMenu: React.FC = async () => {
               }
 
               return (
-                <ErrorBoundary fallback={<></>}>
-                  <Disclosure key={item.id} as="div" className="-mx-3">
+                <ErrorBoundary fallback={<></>} key={item.id}>
+                  <Disclosure as="div" className="-mx-3">
                     <DisclosureButton className="group flex w-full cursor-pointer items-center justify-between rounded-lg py-2 pr-3.5 pl-3 text-base/7 font-semibold text-gray-700 hover:bg-gray-50">
                       {item.label}
                       <ChevronDown
