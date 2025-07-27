@@ -53,7 +53,7 @@ export const getURLForLinkField = (linkFieldData?: LinkFieldDataType): string | 
     if (urlSlug === '') {
       return '/';
     }
-    return urlSlug;
+    return '/' + urlSlug;
   }
 
   return undefined;
