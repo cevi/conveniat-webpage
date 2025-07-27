@@ -34,14 +34,14 @@ export const beforeEmailChangeHook: BeforeEmail = async (
 
         // If a document was found, construct the URL
         const document_ = genericDocument || blogDocument;
-
         if (document_) {
           const slug = document_.seo.urlSlug;
           const collectionPath = genericDocument ? '' : 'blog';
-          const finalURL = `${environmentVariables.APP_HOST_URL}/${collectionPath}/${slug}`.replace(
-            '//',
-            '/',
-          );
+          const finalURL =
+            `${environmentVariables.APP_HOST_URL}/${document_._locale}/${collectionPath}/${slug}`.replace(
+              '//',
+              '/',
+            );
 
           // Replace the href in the HTML
           updatedHtml = updatedHtml.replace(`href="${id}"`, `href="${finalURL}"`);
