@@ -7,9 +7,9 @@ import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useEffect, useState } from 'react';
 
 const staticCookieString: StaticTranslationString = {
-  de: 'Bitte akzeptiere die Cookies.',
-  en: 'Please accept the cookies.',
-  fr: 'Veuillez accepter les cookies.',
+  de: 'conveniat27 speichert Cookies, um richtig zu funktionieren.',
+  en: 'conveniat27 saves cookies in order to function properly.',
+  fr: 'conveniat27 utilise des cookies pour fonctionner correctement.',
 };
 
 const staticCookieAcceptString: StaticTranslationString = {
