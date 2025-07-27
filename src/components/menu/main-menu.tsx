@@ -28,9 +28,9 @@ import {
   Siren,
   Truck,
 } from 'lucide-react';
-import { ErrorBoundary } from 'next/dist/client/components/error-boundary';
 import { getPayload } from 'payload';
 import type React from 'react';
+import { ErrorBoundary } from 'react-error-boundary';
 
 const appFeaturesTitle: StaticTranslationString = {
   en: 'App Features',
@@ -217,7 +217,7 @@ export const MainMenu: React.FC = async () => {
               }
 
               return (
-                <ErrorBoundary>
+                <ErrorBoundary fallback={<></>}>
                   <Disclosure key={item.id} as="div" className="-mx-3">
                     <DisclosureButton className="group flex w-full cursor-pointer items-center justify-between rounded-lg py-2 pr-3.5 pl-3 text-base/7 font-semibold text-gray-700 hover:bg-gray-50">
                       {item.label}
