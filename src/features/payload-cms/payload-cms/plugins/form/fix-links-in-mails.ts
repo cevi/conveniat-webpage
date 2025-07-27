@@ -1,5 +1,4 @@
 import { environmentVariables } from '@/config/environment-variables';
-import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import config from '@payload-config';
 import type { BeforeEmail, FormattedEmail } from '@payloadcms/plugin-form-builder/types';
 import { getPayload } from 'payload';
@@ -8,8 +7,6 @@ export const beforeEmailChangeHook: BeforeEmail = async (
   emailsToSend,
 ): Promise<FormattedEmail[]> => {
   const payload = await getPayload({ config });
-
-  const locale = await getLocaleFromCookies();
 
   const finalEmails = await Promise.all(
     emailsToSend.map(async (email) => {
@@ -41,8 +38,7 @@ export const beforeEmailChangeHook: BeforeEmail = async (
         if (document_) {
           const slug = document_.seo.urlSlug;
           const collectionPath = genericDocument ? '' : 'blog';
-          const url = `${collectionPath}/${slug}`;
-          const finalURL = `${environmentVariables.APP_HOST_URL}/${locale}/${url}`.replace(
+          const finalURL = `${environmentVariables.APP_HOST_URL}/${collectionPath}/${slug}`.replace(
             '//',
             '/',
           );
