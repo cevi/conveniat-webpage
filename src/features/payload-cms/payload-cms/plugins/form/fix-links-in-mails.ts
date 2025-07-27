@@ -40,7 +40,7 @@ export const beforeEmailChangeHook: BeforeEmail = async (
 
         if (document_) {
           const slug = document_.seo.urlSlug;
-          const collectionPath = genericDocument ? 'generic-page' : 'blog';
+          const collectionPath = genericDocument ? '' : 'blog';
           const url = `${collectionPath}/${slug}`;
           const finalURL = `${environmentVariables.APP_HOST_URL}/${locale}/${url}`.replace(
             '//',
