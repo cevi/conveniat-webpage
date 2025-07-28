@@ -4,17 +4,64 @@ import { Input } from '@/components/ui/input';
 import { ChatPreview } from '@/features/chat/components/chat-overview-view/chat-preview';
 import { useChats } from '@/features/chat/hooks/use-chats';
 import type { ChatDto } from '@/features/chat/types/api-dto-types';
+import type { Locale, StaticTranslationString } from '@/types/types';
+import { i18nConfig } from '@/types/types';
 import { MessageSquare, Search } from 'lucide-react';
+import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
 import type React from 'react';
 import { useState } from 'react';
 
+const newChatText: StaticTranslationString = {
+  en: 'New Chat',
+  de: 'Neuer Chat',
+  fr: 'Nouveau chat',
+};
+
+const searchPlaceholderText: StaticTranslationString = {
+  en: 'Search conversations...',
+  de: 'Gespräche durchsuchen...',
+  fr: 'Rechercher des conversations...',
+};
+
+const noChatsFoundText: StaticTranslationString = {
+  en: 'No chats found',
+  de: 'Keine Chats gefunden',
+  fr: 'Aucun chat trouvé',
+};
+
+const noChatsYetText: StaticTranslationString = {
+  en: 'No conversations yet',
+  de: 'Noch keine Unterhaltungen',
+  fr: 'Aucune conversation pour le moment',
+};
+
+const newConversationText: StaticTranslationString = {
+  en: 'Start a new conversation to get chatting',
+  de: 'Starte eine neue Unterhaltung, um zu chatten',
+  fr: 'Commencez une nouvelle conversation pour discuter',
+};
+
+const adjustingSearchTermsText: StaticTranslationString = {
+  en: 'Try adjusting your search terms',
+  de: 'Versuche, deine Suchbegriffe anzupassen',
+  fr: "Essayez d'ajuster vos termes de recherche",
+};
+
+const loadingPlaceholderText: StaticTranslationString = {
+  en: 'Loading your conversations...',
+  de: 'Lade deine Unterhaltung..en.',
+  fr: 'Chargement de vos conversations...',
+};
+
 const ChatsOverviewLoadingPlaceholder: React.FC = () => {
+  const locale = useCurrentLocale(i18nConfig) as Locale;
+
   return (
     <div className="flex items-center justify-center py-12">
       <div className="flex flex-col items-center gap-3">
         <div className="border-t-conveniat-green h-8 w-8 animate-spin rounded-full border-2 border-gray-300"></div>
-        <p className="font-body text-sm text-gray-600">Loading your conversations...</p>
+        <p className="font-body text-sm text-gray-600">{loadingPlaceholderText[locale]}</p>
       </div>
     </div>
   );
@@ -24,8 +71,9 @@ const ChatsOverviewLoadingPlaceholder: React.FC = () => {
 export const ChatsOverviewClientComponent: React.FC = () => {
   const { data: chats, isLoading } = useChats();
   const [searchQuery, setSearchQuery] = useState('');
+  const locale = useCurrentLocale(i18nConfig) as Locale;
 
-  // Filter chats based on search query
+  // Filter chats based on a search query
   const filteredChats: ChatDto[] =
     chats?.filter(
       (chat) =>
@@ -39,7 +87,7 @@ export const ChatsOverviewClientComponent: React.FC = () => {
       <div className="relative">
         <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
         <Input
-          placeholder="Search conversations..."
+          placeholder={searchPlaceholderText[locale]}
           className="font-body focus:border-conveniat-green focus:ring-conveniat-green border-gray-300 bg-white pl-10"
           value={searchQuery}
           onChange={(changeEvent) => setSearchQuery(changeEvent.target.value)}
@@ -48,7 +96,7 @@ export const ChatsOverviewClientComponent: React.FC = () => {
 
       {/* New Chat Button */}
       <Link className="flex justify-end" href="/app/chat/new">
-        New Chat
+        {newChatText[locale]}
       </Link>
 
       {/* Loading State */}
@@ -61,12 +109,10 @@ export const ChatsOverviewClientComponent: React.FC = () => {
             <MessageSquare className="h-8 w-8 text-gray-500" />
           </div>
           <p className="font-heading text-lg font-semibold text-gray-700">
-            {searchQuery === '' ? 'No conversations yet' : 'No chats found'}
+            {searchQuery === '' ? noChatsYetText[locale] : noChatsFoundText[locale]}
           </p>
           <p className="font-body mt-2 text-sm text-gray-500">
-            {searchQuery === ''
-              ? 'Start a new conversation to get chatting'
-              : 'Try adjusting your search terms'}
+            {searchQuery === '' ? newConversationText[locale] : adjustingSearchTermsText[locale]}
           </p>
           {searchQuery !== '' && (
             <Button
