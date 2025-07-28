@@ -32,18 +32,15 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children }) => {
 
   return (
     <html
-      className={cn(`${montserrat.className} ${inter.className} overflow-y-hidden`, {
+      className={cn(`${montserrat.className} ${inter.className}`, {
         'overscroll-y-none': isInAppDesign,
       })}
       lang={locale}
     >
       <body
-        className={cn(
-          'flex h-dvh w-dvw flex-col overflow-x-hidden overflow-y-hidden bg-[#f8fafc]',
-          {
-            'overscroll-y-none': isInAppDesign,
-          },
-        )}
+        className={cn('flex h-dvh w-dvw flex-col overflow-x-hidden bg-[#f8fafc]', {
+          'overscroll-y-none': isInAppDesign,
+        })}
       >
         <PostHogProvider>
           <DynamicAppTitleProvider>
@@ -52,7 +49,7 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children }) => {
               <CeviLogo className="mx-auto h-full max-h-[60vh] w-full max-w-[384px] opacity-10 blur-md" />
             </div>
 
-            <div className="mt-[62px] h-[calc(100dvh-62px)] overflow-y-scroll xl:ml-[480px]">
+            <div className="mt-[62px] h-[calc(100dvh-62px)] xl:ml-[480px]">
               <main className="flex min-h-full flex-col justify-between">{children}</main>
             </div>
           </DynamicAppTitleProvider>
