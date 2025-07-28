@@ -43,6 +43,7 @@ export const CampMapAnnotationsCollection: CollectionConfig = {
     },
   },
   admin: {
+    useAsTitle: 'title',
     group: AdminPanelDashboardGroups.AppContent,
     groupBy: true,
     /** this is broken with our localized versions */
