@@ -20,7 +20,7 @@ const newChatText: StaticTranslationString = {
 
 const searchPlaceholderText: StaticTranslationString = {
   en: 'Search conversations...',
-  de: 'Gespräche durchsuchen...',
+  de: 'Unterhaltungen durchsuchen...',
   fr: 'Rechercher des conversations...',
 };
 
