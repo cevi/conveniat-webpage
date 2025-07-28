@@ -1,4 +1,5 @@
 import { environmentVariables } from '@/config/environment-variables';
+import prisma from '@/features/chat/database';
 import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import type { User } from '@/features/payload-cms/payload-types';
@@ -12,6 +13,32 @@ const baseListFilter: BaseListFilter = () => ({
     in: [...GROUPS_WITH_API_ACCESS],
   },
 });
+
+const syncUserToPostgres: NonNullable<
+  NonNullable<CollectionConfig['hooks']>['afterChange']
+>[number] = async ({ doc }): Promise<void> => {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  const uuid = doc.id as string | undefined | null;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  const name = doc.fullName as string;
+
+  if (uuid === undefined || uuid === null || uuid === '') {
+    throw new Error('UUID is required to update the user in the database.');
+  }
+
+  await prisma.user.upsert({
+    where: { uuid },
+    update: {
+      name: name,
+    },
+    create: {
+      uuid: uuid,
+      name: name,
+      // set date to 1970-01-01 to avoid null values
+      lastSeen: new Date('1970-01-01T00:00:00Z'),
+    },
+  });
+};
 
 export const UserCollection: CollectionConfig = {
   slug: 'users',
@@ -27,6 +54,10 @@ export const UserCollection: CollectionConfig = {
       de: 'Benutzer',
       fr: 'Utilisateurs',
     },
+  },
+
+  hooks: {
+    afterChange: [syncUserToPostgres],
   },
 
   access: {

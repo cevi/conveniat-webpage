@@ -60,7 +60,11 @@ async function sendNotification(
 
   const { totalDocs } = await payload.count({ collection: 'push-notification-subscriptions' });
   if (totalDocs === 0) {
-    throw new Error('No subscription available');
+    // abort early if there are no subscriptions
+    return {
+      success: true,
+      error: 'No push notification subscriptions found.',
+    };
   }
 
   const { docs: subscriptions } = await payload.find({

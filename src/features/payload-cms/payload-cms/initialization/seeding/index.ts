@@ -15,6 +15,7 @@ import {
   seedPermissionLoggedIn,
   seedPermissionPublic,
 } from '@/features/payload-cms/payload-cms/initialization/seeding/permissions';
+import { createRandomUser } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-users';
 import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import { fakerDE as faker } from '@faker-js/faker';
 import type { Payload } from 'payload';
@@ -25,6 +26,7 @@ import type { Payload } from 'payload';
  *
  * @param payload The Payload instance
  */
+// eslint-disable-next-line complexity
 export const seedDatabase = async (payload: Payload): Promise<void> => {
   // we only seed for the dev instance
   if (environmentVariables.NODE_ENV !== 'development') {
@@ -201,5 +203,10 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
       collection: 'camp-map-annotations',
       data: playground,
     });
+  }
+
+  // seed users
+  for (let index = 0; index < 10; index++) {
+    await createRandomUser(payload);
   }
 };
