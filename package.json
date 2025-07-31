@@ -127,11 +127,6 @@
     "node": ">=20.9.0"
   },
   "pnpm": {
-    "supportedArchitectures": {
-      "libc": [
-        "musl"
-      ]
-    },
     "onlyBuiltDependencies": [
       "@prisma/client",
       "@prisma/engines",
