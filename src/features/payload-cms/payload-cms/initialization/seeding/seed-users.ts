@@ -1,5 +1,5 @@
-import type { Payload } from 'payload';
 import { fakerDE as faker } from '@faker-js/faker';
+import type { Payload } from 'payload';
 
 export const createRandomUser = async (payload: Payload): Promise<void> => {
   await payload.create({
