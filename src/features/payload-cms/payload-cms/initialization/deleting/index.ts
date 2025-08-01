@@ -22,6 +22,7 @@ export const deleteDatabase = async (payload: Payload): Promise<void> => {
   for (const slug of slugs_to_delete) {
     await payload.delete({
       collection: slug,
+      trash: true,
       where: { _id: { exists: true } },
     });
   }
