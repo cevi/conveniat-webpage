@@ -36,7 +36,7 @@ export const ImageCollection: CollectionConfig = {
   },
   admin: {
     group: AdminPanelDashboardGroups.InternalCollections,
-    groupBy: true,
+    groupBy: false,
     /** this is broken with our localized versions */
     disableCopyToLocale: true,
   },

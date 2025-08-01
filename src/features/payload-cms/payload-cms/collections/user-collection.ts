@@ -71,7 +71,7 @@ export const UserCollection: CollectionConfig = {
       'Represents a Hitobito user. These information get automatically synced whenever the user logs in.',
     useAsTitle: 'email',
     group: AdminPanelDashboardGroups.InternalCollections,
-    groupBy: true,
+    groupBy: false,
     /** this is broken with our localized versions */
     disableCopyToLocale: true,
     defaultColumns: ['nickname', 'fullName', 'adminPanelAccess'],
