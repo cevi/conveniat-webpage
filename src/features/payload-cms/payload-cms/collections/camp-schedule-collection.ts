@@ -60,7 +60,7 @@ export const CampScheduleEntryCollection: CollectionConfig = {
           name: 'date',
           label: 'Date',
           type: 'date',
-          required: false,
+          required: true,
           admin: {
             date: {
               pickerAppearance: 'dayOnly',

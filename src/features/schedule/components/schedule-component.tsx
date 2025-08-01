@@ -2,8 +2,9 @@
 
 import { Button } from '@/components/ui/buttons/button';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
-import { dailyPrograms } from '@/features/schedule/data/daily-programs';
-import type { ProgramEntry } from '@/features/schedule/types/program';
+import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
+import type { CampMapAnnotation } from '@/features/payload-cms/payload-types';
+import type { CampScheduleEntryFrontendType } from '@/features/schedule/components/schedule-component-server';
 import {
   Calendar,
   ChevronDown,
@@ -15,9 +16,11 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type React from 'react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
-export const ScheduleComponent: React.FC = () => {
+export const ScheduleComponent: React.FC<{ scheduleEntries: CampScheduleEntryFrontendType[] }> = ({
+  scheduleEntries,
+}) => {
   const router = useRouter();
   const [currentDate, setCurrentDate] = useState(new Date('2025-02-23'));
   const [expandedEntries, setExpandedEntries] = useState<Set<string>>(new Set());
@@ -31,10 +34,39 @@ export const ScheduleComponent: React.FC = () => {
 
   // Get all available dates and sort them
   const allDates = useMemo(() => {
-    return Object.keys(dailyPrograms)
-      .map((dateString) => new Date(dateString))
-      .sort((a, b) => a.getTime() - b.getTime());
-  }, []);
+    return scheduleEntries
+      .flatMap((entry) => entry.timeslots)
+      .map((timeslot) => new Date(timeslot.date))
+      .sort((a, b) => a.getTime() - b.getTime())
+      .filter(
+        (date, index, self) =>
+          index === self.findIndex((d) => d.toDateString() === date.toDateString()),
+      );
+  }, [scheduleEntries]);
+
+  const dailyPrograms: { [id: string]: CampScheduleEntryFrontendType[] } = {};
+
+  for (const date of allDates) {
+    const dateString = formatDate(date);
+    dailyPrograms[dateString] = scheduleEntries.filter((entry) =>
+      entry.timeslots.some((timeslot) => formatDate(new Date(timeslot.date)) === dateString),
+    );
+  }
+
+  useEffect(() => {
+    if (allDates.length === 0) return;
+
+    const today = new Date();
+    const todayString = today.toDateString();
+
+    const match = allDates.find((d) => d.toDateString() === todayString);
+
+    if (match) {
+      setCurrentDate(match);
+    } else {
+      if (allDates[0]) setCurrentDate(allDates[0]);
+    }
+  }, [allDates]);
 
   const maxVisibleDays = 5;
 
@@ -75,9 +107,9 @@ export const ScheduleComponent: React.FC = () => {
     router.push(`/app/schedule/${entryId}`);
   };
 
-  const handleMapClick = (entry: ProgramEntry): void => {
-    if (entry.locationId) {
-      router.push(`/app/map?locationId=${entry.locationId}`);
+  const handleMapClick = (entry: CampMapAnnotation): void => {
+    if (entry.id) {
+      router.push(`/app/map?locationId=${entry.id}`);
     }
   };
 
@@ -156,6 +188,7 @@ export const ScheduleComponent: React.FC = () => {
         <div className="space-y-4">
           {currentProgram.map((entry) => {
             const isExpanded = expandedEntries.has(entry.id);
+            const location = entry.location as CampMapAnnotation;
             return (
               <div
                 key={entry.id}
@@ -166,14 +199,18 @@ export const ScheduleComponent: React.FC = () => {
                     <div className="flex-1">
                       <h3 className="mb-2 text-lg font-semibold">{entry.title}</h3>
                       <div className="mb-3 flex flex-wrap gap-4 text-sm text-gray-600">
-                        <span>{entry.time}</span>
+                        {entry.timeslots.map((slot) => (
+                          <span key={slot.id}>
+                            {formatDate(new Date(slot.date))} {slot.time}
+                          </span>
+                        ))}
                         <div className="flex items-center">
                           <MapPin className="mr-1 h-3 w-3" />
                           <button
-                            onClick={() => handleMapClick(entry)}
+                            onClick={() => handleMapClick(location)}
                             className="text-blue-600 underline hover:text-blue-800"
                           >
-                            {entry.location}
+                            {location.title}
                           </button>
                         </div>
                       </div>
@@ -193,7 +230,9 @@ export const ScheduleComponent: React.FC = () => {
                   </div>
                   {isExpanded && (
                     <div className="mt-4 border-t border-gray-100 pt-4">
-                      <p className="mb-4 text-gray-700">{entry.details}</p>
+                      <p className="mb-4 text-gray-700">
+                        <LexicalRichTextSection richTextSection={entry.description} />
+                      </p>
                       <div className="flex gap-2">
                         <Button
                           onClick={() => handleReadMore(entry.id)}
@@ -203,17 +242,15 @@ export const ScheduleComponent: React.FC = () => {
                           <ExternalLink className="mr-1 h-3 w-3" />
                           Read More
                         </Button>
-                        {entry.locationId && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleMapClick(entry)}
-                            className="flex items-center"
-                          >
-                            <MapPin className="mr-1 h-3 w-3" />
-                            View on Map
-                          </Button>
-                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleMapClick(location)}
+                          className="flex items-center"
+                        >
+                          <MapPin className="mr-1 h-3 w-3" />
+                          View on Map
+                        </Button>
                       </div>
                     </div>
                   )}

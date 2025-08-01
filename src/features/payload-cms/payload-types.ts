@@ -1556,7 +1556,7 @@ export interface CampScheduleEntry {
    * Time slots
    */
   timeslots: {
-    date?: string | null;
+    date: string;
     /**
      * Time slots in HH:mm format (e.g., 08:00 - 18:00)
      */

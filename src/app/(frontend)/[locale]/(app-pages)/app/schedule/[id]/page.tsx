@@ -1,11 +1,15 @@
 import { LinkComponent } from '@/components/ui/link-component';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
-import { CampScheduleEntry, User } from '@/features/payload-cms/payload-types';
+import type { CampScheduleEntry, User } from '@/features/payload-cms/payload-types';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import config from '@payload-config';
 import { getPayload } from 'payload';
 import type React from 'react';
+
+const formatDate = (date: Date): string => {
+  return date.toISOString().split('T')[0] ?? '';
+};
 
 const ScheduleDetailPage: React.FC<{
   params: Promise<{
@@ -39,10 +43,6 @@ const ScheduleDetailPage: React.FC<{
 
   const organiser = entry.organiser as User;
 
-  const formatDate = (date: Date): string => {
-    return date.toISOString().split('T')[0] ?? '';
-  };
-
   return (
     <>
       <HeadlineH1>Programm-Punkt: {entry.title}</HeadlineH1>
@@ -55,23 +55,13 @@ const ScheduleDetailPage: React.FC<{
           </LinkComponent>
           .
         </p>
-        {entry.timeslots.map((timeslot) => {
-          if (!timeslot.date)
-            return (
-              <>
-                <p>
-                  Alle Tage: <span>{timeslot.time}</span>
-                </p>
-              </>
-            );
-          return (
-            <>
-              <p>
-                {formatDate(new Date(timeslot.date))}: <span>{timeslot.time}</span>
-              </p>
-            </>
-          );
-        })}
+        {entry.timeslots.map((timeslot) => (
+          <>
+            <p key={timeslot.id}>
+              {formatDate(new Date(timeslot.date))}: <span>{timeslot.time}</span>
+            </p>
+          </>
+        ))}
       </div>
     </>
   );

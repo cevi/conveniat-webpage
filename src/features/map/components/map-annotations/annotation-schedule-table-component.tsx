@@ -15,8 +15,6 @@ export const AnnotationScheduleTableComponent: React.FC<{
   schedule: CampScheduleEntry[] | undefined;
   locale: Locale;
 }> = ({ schedule, locale }) => {
-  console.log(schedule);
-
   if (!schedule || schedule.length === 0) return <></>;
 
   return (
