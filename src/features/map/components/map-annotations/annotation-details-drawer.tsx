@@ -1,7 +1,12 @@
+'use client';
+
+import { LinkComponent } from '@/components/ui/link-component';
+import { environmentVariables } from '@/config/environment-variables';
 import type { CampMapAnnotationPoint, CampMapAnnotationPolygon } from '@/features/map/types/types';
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
+import type { Locale, StaticTranslationString } from '@/types/types';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
-import { Clock, Flag, MessageCircleQuestion, MessageSquare, X } from 'lucide-react';
+import { Clock, ExternalLink, Flag, MessageCircleQuestion, MessageSquare, X } from 'lucide-react';
 import Image from 'next/image';
 import React, { Suspense } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
@@ -14,10 +19,31 @@ interface CampProgramEntry {
   description: string;
 }
 
+const shareLocationError: StaticTranslationString = {
+  de: 'Dein Gerät unterstützt die Web Share API nicht.',
+  en: 'Your device does not support the web share api.',
+  fr: "Votre appareil ne prend pas en charge l'API de partage web.",
+};
+
+const shareLocationCallback = async (
+  locale: Locale,
+  annotation: CampMapAnnotationPoint | CampMapAnnotationPolygon,
+): Promise<void> => {
+  if (!navigator.canShare()) {
+    alert(shareLocationError[locale]);
+  }
+  await navigator.share({
+    url: environmentVariables.NEXT_PUBLIC_APP_HOST_URL + '/app/map?locationId=' + annotation.id,
+    title: 'conveniat27',
+    text: annotation.title,
+  });
+};
+
 export const AnnotationDetailsDrawer: React.FC<{
   closeDrawer: () => void;
   annotation: CampMapAnnotationPoint | CampMapAnnotationPolygon;
-}> = ({ closeDrawer, annotation }) => {
+  locale: Locale;
+}> = ({ closeDrawer, annotation, locale }) => {
   // Placeholder for related camp programs at this location
   const relatedPrograms: CampProgramEntry[] = [
     {
@@ -55,6 +81,23 @@ export const AnnotationDetailsDrawer: React.FC<{
             <X size={20} />
           </button>
           <h2 className="p-4 pr-8 text-xl font-bold">{annotation.title}</h2>
+
+          {/* share button */}
+          <div className="border-b border-gray-50 p-4">
+            <LinkComponent
+              href=""
+              hideExternalIcon={false}
+              onClick={(event) => {
+                event.preventDefault(); // prevent navigation if needed
+                void shareLocationCallback(locale, annotation);
+              }}
+            >
+              <span className="inline-flex items-center gap-1">
+                Share this location
+                <ExternalLink aria-hidden="true" className="size-4" />
+              </span>
+            </LinkComponent>
+          </div>
 
           {/* Description */}
           <div className="border-b border-gray-50 p-4">
