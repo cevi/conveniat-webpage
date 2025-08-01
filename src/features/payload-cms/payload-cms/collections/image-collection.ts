@@ -28,11 +28,10 @@ const altField = (locale: string): Field => {
     required: true,
     localized: false,
     admin: {
-      position: 'sidebar',
       description: {
-        en: 'Describe the image for screen readers.',
-        de: 'Beschreibe das Bild für Screenreader.',
-        fr: "Décrivez l'image pour les lecteurs d'écran.",
+        en: `Describe the image for screen readers. (${locale})`,
+        de: `Beschreibe das Bild für Screenreader. (${locale})`,
+        fr: `Décrivez l'image pour les lecteurs d'écran. (${locale})`,
       },
     },
   };
@@ -42,18 +41,18 @@ const imageCaption = (locale: string): Field => {
   return {
     name: `imageCaption_${locale}`,
     label: {
-      en: 'Image Caption',
-      de: 'Bildunterschrift',
-      fr: 'Légende de l’image',
+      en: `Image Caption (${locale})`,
+      de: `Bildunterschrift (${locale})`,
+      fr: `Légende de l’image (${locale})`,
     },
     type: 'text',
     required: false,
     localized: false,
     admin: {
       description: {
-        en: 'Optional text to display below the image (e.g. image source, copyright information, explanatory text)',
-        de: 'Optionaler Text, der unter dem Bild angezeigt wird (z.B. Bildquelle, Urheberrechtsinformationen, erläuternder Text)',
-        fr: 'Texte facultatif à afficher sous l’image (par exemple, source de l’image, informations de droits d’auteur, texte explicatif)',
+        en: `Optional text to display below the image (e.g. image source, copyright information, explanatory text) (${locale})`,
+        de: `Optionaler Text, der unter dem Bild angezeigt wird (z.B. Bildquelle, Urheberrechtsinformationen, erläuternder Text) (${locale})`,
+        fr: `Texte facultatif à afficher sous l’image (par exemple, source de l’image, informations de droits d’auteur, texte explicatif) (${locale})`,
       },
     },
   };
@@ -85,10 +84,10 @@ export const ImageCollection: CollectionConfig = {
   },
   fields: [
     { ...altField('de') },
-    { ...imageCaption('de') },
     { ...altField('en') },
-    { ...imageCaption('en') },
     { ...altField('fr') },
+    { ...imageCaption('de') },
+    { ...imageCaption('en') },
     { ...imageCaption('fr') },
   ],
   upload: {

@@ -392,27 +392,27 @@ export interface User {
 export interface Image {
   id: string;
   /**
-   * Describe the image for screen readers.
+   * Describe the image for screen readers. (de)
    */
   alt_de: string;
   /**
-   * Optional text to display below the image (e.g. image source, copyright information, explanatory text)
-   */
-  imageCaption_de?: string | null;
-  /**
-   * Describe the image for screen readers.
+   * Describe the image for screen readers. (en)
    */
   alt_en: string;
   /**
-   * Optional text to display below the image (e.g. image source, copyright information, explanatory text)
-   */
-  imageCaption_en?: string | null;
-  /**
-   * Describe the image for screen readers.
+   * Describe the image for screen readers. (fr)
    */
   alt_fr: string;
   /**
-   * Optional text to display below the image (e.g. image source, copyright information, explanatory text)
+   * Optional text to display below the image (e.g. image source, copyright information, explanatory text) (de)
+   */
+  imageCaption_de?: string | null;
+  /**
+   * Optional text to display below the image (e.g. image source, copyright information, explanatory text) (en)
+   */
+  imageCaption_en?: string | null;
+  /**
+   * Optional text to display below the image (e.g. image source, copyright information, explanatory text) (fr)
    */
   imageCaption_fr?: string | null;
   updatedAt: string;
@@ -2207,10 +2207,10 @@ export interface CampMapAnnotationsSelect<T extends boolean = true> {
  */
 export interface ImagesSelect<T extends boolean = true> {
   alt_de?: T;
-  imageCaption_de?: T;
   alt_en?: T;
-  imageCaption_en?: T;
   alt_fr?: T;
+  imageCaption_de?: T;
+  imageCaption_en?: T;
   imageCaption_fr?: T;
   updatedAt?: T;
   createdAt?: T;
