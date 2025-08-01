@@ -12,8 +12,11 @@ import type {
   CeviLogoMarker,
   InitialMapPose,
 } from '@/features/map/types/types';
+import type { Locale } from '@/types/types';
+import { i18nConfig } from '@/types/types';
 import { reactToDomElement } from '@/utils/react-to-dom-element';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 import { useCallback, useRef, useState } from 'react';
 
@@ -46,6 +49,7 @@ export const MapLibreRenderer = ({
   >();
 
   const closeDrawer = useCallback(() => setOpenAnnotation(undefined), []);
+  const locale = useCurrentLocale(i18nConfig) as Locale;
 
   const map = useMapInitialization(mapContainerReference, {
     initialMapPose,
@@ -64,7 +68,11 @@ export const MapLibreRenderer = ({
   return (
     <MapContextProvider map={map}>
       {openAnnotation && (
-        <AnnotationDetailsDrawer closeDrawer={closeDrawer} annotation={openAnnotation} />
+        <AnnotationDetailsDrawer
+          closeDrawer={closeDrawer}
+          annotation={openAnnotation}
+          locale={locale}
+        />
       )}
       <div className="h-full w-full" ref={mapContainerReference} />
       <MaplibreMap
