@@ -3,7 +3,7 @@ import type { ProgramEntry } from '@/features/schedule/types/program';
 export const dailyPrograms: { [key: string]: ProgramEntry[] } = {
   '2025-02-22': [
     {
-      id: 1,
+      id: '1',
       title: 'Arrival & Check-in',
       time: '14:00 - 16:00',
       location: 'Main Hall',
@@ -14,7 +14,7 @@ export const dailyPrograms: { [key: string]: ProgramEntry[] } = {
       locationId: '686a5386f498347875c3556e',
     },
     {
-      id: 2,
+      id: '2',
       title: 'Welcome Dinner',
       time: '18:00 - 20:00',
       location: 'Dining Hall',
@@ -27,7 +27,7 @@ export const dailyPrograms: { [key: string]: ProgramEntry[] } = {
   ],
   '2025-02-23': [
     {
-      id: 3,
+      id: '3',
       title: 'Morning Yoga',
       time: '08:00 - 09:00',
       location: 'Yoga Studio',
@@ -38,7 +38,7 @@ export const dailyPrograms: { [key: string]: ProgramEntry[] } = {
       locationId: '686a5386f498347875c3556e',
     },
     {
-      id: 4,
+      id: '4',
       title: 'Workshop: Coding Basics',
       time: '10:00 - 12:00',
       location: 'Classroom 1',
@@ -49,7 +49,7 @@ export const dailyPrograms: { [key: string]: ProgramEntry[] } = {
       locationId: '686a5386f498347875c3556e',
     },
     {
-      id: 5,
+      id: '5',
       title: 'Lunch Break',
       time: '12:00 - 13:00',
       location: 'Dining Hall',
@@ -60,7 +60,7 @@ export const dailyPrograms: { [key: string]: ProgramEntry[] } = {
       locationId: '686a5386f498347875c3556e',
     },
     {
-      id: 6,
+      id: '6',
       title: 'Workshop: Advanced React',
       time: '13:00 - 15:00',
       location: 'Classroom 2',
@@ -71,7 +71,7 @@ export const dailyPrograms: { [key: string]: ProgramEntry[] } = {
       locationId: '686a5386f498347875c3556e',
     },
     {
-      id: 7,
+      id: '7',
       title: 'Free Time / Networking',
       time: '15:00 - 17:00',
       location: 'Common Area',
@@ -82,7 +82,7 @@ export const dailyPrograms: { [key: string]: ProgramEntry[] } = {
       locationId: '686a5386f498347875c3556e',
     },
     {
-      id: 8,
+      id: '8',
       title: 'Evening Presentation',
       time: '19:00 - 20:30',
       location: 'Main Hall',
@@ -95,7 +95,7 @@ export const dailyPrograms: { [key: string]: ProgramEntry[] } = {
   ],
   '2025-02-24': [
     {
-      id: 9,
+      id: '9',
       title: 'Breakfast',
       time: '08:00 - 09:00',
       location: 'Dining Hall',
@@ -106,7 +106,7 @@ export const dailyPrograms: { [key: string]: ProgramEntry[] } = {
       locationId: '686a5386f498347875c3556e',
     },
     {
-      id: 10,
+      id: '1',
       title: 'Workshop: TypeScript Fundamentals',
       time: '10:00 - 12:00',
       location: 'Classroom 1',
@@ -117,7 +117,7 @@ export const dailyPrograms: { [key: string]: ProgramEntry[] } = {
       locationId: '686a5386f498347875c3556e',
     },
     {
-      id: 11,
+      id: '1',
       title: 'Lunch & Networking',
       time: '12:00 - 13:30',
       location: 'Dining Hall',
@@ -128,7 +128,7 @@ export const dailyPrograms: { [key: string]: ProgramEntry[] } = {
       locationId: '686a5386f498347875c3556e',
     },
     {
-      id: 12,
+      id: '1',
       title: 'Workshop: Next.js Deep Dive',
       time: '13:30 - 15:30',
       location: 'Classroom 2',
@@ -141,7 +141,7 @@ export const dailyPrograms: { [key: string]: ProgramEntry[] } = {
   ],
   '2025-02-25': [
     {
-      id: 13,
+      id: '1',
       title: 'Morning Meditation',
       time: '08:00 - 08:30',
       location: 'Yoga Studio',
@@ -152,7 +152,7 @@ export const dailyPrograms: { [key: string]: ProgramEntry[] } = {
       locationId: '686a5386f498347875c3556e',
     },
     {
-      id: 14,
+      id: '1',
       title: 'Workshop: Database Design',
       time: '09:00 - 11:00',
       location: 'Classroom 1',
@@ -163,7 +163,7 @@ export const dailyPrograms: { [key: string]: ProgramEntry[] } = {
       locationId: '686a5386f498347875c3556e',
     },
     {
-      id: 15,
+      id: '1',
       title: 'Team Project Work',
       time: '11:30 - 15:00',
       location: 'Common Area',
@@ -176,7 +176,7 @@ export const dailyPrograms: { [key: string]: ProgramEntry[] } = {
   ],
   '2025-02-26': [
     {
-      id: 16,
+      id: '1',
       title: 'Workshop: API Development',
       time: '09:00 - 11:00',
       location: 'Classroom 2',
@@ -187,7 +187,7 @@ export const dailyPrograms: { [key: string]: ProgramEntry[] } = {
       locationId: '686a5386f498347875c3556e',
     },
     {
-      id: 17,
+      id: '1',
       title: 'Code Review Session',
       time: '11:30 - 12:30',
       location: 'Classroom 1',
@@ -198,7 +198,7 @@ export const dailyPrograms: { [key: string]: ProgramEntry[] } = {
       locationId: '686a5386f498347875c3556e',
     },
     {
-      id: 18,
+      id: '1',
       title: 'Afternoon Hike',
       time: '14:00 - 17:00',
       location: 'Local Trails',
@@ -211,7 +211,7 @@ export const dailyPrograms: { [key: string]: ProgramEntry[] } = {
   ],
   '2025-02-27': [
     {
-      id: 19,
+      id: '1',
       title: 'Workshop: Testing Strategies',
       time: '09:00 - 11:00',
       location: 'Classroom 1',
@@ -222,7 +222,7 @@ export const dailyPrograms: { [key: string]: ProgramEntry[] } = {
       locationId: '686a5386f498347875c3556e',
     },
     {
-      id: 20,
+      id: '2',
       title: 'Workshop: Performance Optimization',
       time: '11:30 - 13:30',
       location: 'Classroom 2',
@@ -233,7 +233,7 @@ export const dailyPrograms: { [key: string]: ProgramEntry[] } = {
       locationId: '686a5386f498347875c3556e',
     },
     {
-      id: 21,
+      id: '2',
       title: 'Project Presentations',
       time: '15:00 - 17:00',
       location: 'Main Hall',
@@ -248,7 +248,7 @@ export const dailyPrograms: { [key: string]: ProgramEntry[] } = {
   '2025-03-01': [], // Free day
   '2025-03-02': [
     {
-      id: 22,
+      id: '2',
       title: 'Workshop: DevOps Basics',
       time: '09:00 - 11:00',
       location: 'Classroom 1',
@@ -259,7 +259,7 @@ export const dailyPrograms: { [key: string]: ProgramEntry[] } = {
       locationId: '686a5386f498347875c3556e',
     },
     {
-      id: 23,
+      id: '2',
       title: 'Workshop: Security Best Practices',
       time: '11:30 - 13:30',
       location: 'Classroom 2',
@@ -272,7 +272,7 @@ export const dailyPrograms: { [key: string]: ProgramEntry[] } = {
   ],
   '2025-03-03': [
     {
-      id: 24,
+      id: '2',
       title: 'Final Project Work',
       time: '09:00 - 15:00',
       location: 'Common Area',
@@ -285,7 +285,7 @@ export const dailyPrograms: { [key: string]: ProgramEntry[] } = {
   ],
   '2025-03-04': [
     {
-      id: 25,
+      id: '2',
       title: 'Final Presentations',
       time: '10:00 - 12:00',
       location: 'Main Hall',
@@ -296,7 +296,7 @@ export const dailyPrograms: { [key: string]: ProgramEntry[] } = {
       locationId: '686a5386f498347875c3556e',
     },
     {
-      id: 26,
+      id: '2',
       title: 'Closing Ceremony',
       time: '14:00 - 15:00',
       location: 'Main Hall',
@@ -309,7 +309,7 @@ export const dailyPrograms: { [key: string]: ProgramEntry[] } = {
   ],
   '2025-03-05': [
     {
-      id: 27,
+      id: '2',
       title: 'Departure',
       time: '10:00 - 12:00',
       location: 'Main Hall',

@@ -20,7 +20,7 @@ import { useMemo, useState } from 'react';
 export const ScheduleComponent: React.FC = () => {
   const router = useRouter();
   const [currentDate, setCurrentDate] = useState(new Date('2025-02-23'));
-  const [expandedEntries, setExpandedEntries] = useState<Set<number>>(new Set());
+  const [expandedEntries, setExpandedEntries] = useState<Set<string>>(new Set());
   const [carouselStartIndex, setCarouselStartIndex] = useState(0);
 
   const formatDate = (date: Date): string => {
@@ -61,7 +61,7 @@ export const ScheduleComponent: React.FC = () => {
     setExpandedEntries(new Set());
   };
 
-  const toggleExpanded = (entryId: number): void => {
+  const toggleExpanded = (entryId: string): void => {
     const newExpanded = new Set(expandedEntries);
     if (newExpanded.has(entryId)) {
       newExpanded.delete(entryId);
@@ -71,7 +71,7 @@ export const ScheduleComponent: React.FC = () => {
     setExpandedEntries(newExpanded);
   };
 
-  const handleReadMore = (entryId: number): void => {
+  const handleReadMore = (entryId: string): void => {
     router.push(`/app/schedule/${entryId}`);
   };
 
