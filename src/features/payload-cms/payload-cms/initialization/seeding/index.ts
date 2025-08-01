@@ -15,11 +15,11 @@ import {
   seedPermissionLoggedIn,
   seedPermissionPublic,
 } from '@/features/payload-cms/payload-cms/initialization/seeding/permissions';
+import { generateScheduleEntries } from '@/features/payload-cms/payload-cms/initialization/seeding/schedule-entries';
 import { createRandomUser } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-users';
 import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import { fakerDE as faker } from '@faker-js/faker';
 import type { Payload } from 'payload';
-import { generateScheduleEntries } from './schedule-entries';
 
 /**
  * Seed the database with some initial data.
@@ -199,6 +199,7 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
 
   const campSites = generateCampSites();
   const campSitesIds = [];
+
   for (const side of campSites) {
     const { id: campSiteId } = await payload.create({
       collection: 'camp-map-annotations',
@@ -215,17 +216,18 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     });
   }
 
+  // seed users
+  const userIds = [];
+  for (let index = 0; index < 10; index++) {
+    userIds.push(await createRandomUser(payload));
+  }
+
   // schedule entries
-  const scheduleEntries = generateScheduleEntries(campSitesIds);
+  const scheduleEntries = generateScheduleEntries(campSitesIds, userIds);
   for (const scheduleEntry of scheduleEntries) {
     await payload.create({
       collection: 'camp-schedule-entry',
       data: scheduleEntry,
     });
-  }
-
-  // seed users
-  for (let index = 0; index < 10; index++) {
-    await createRandomUser(payload);
   }
 };

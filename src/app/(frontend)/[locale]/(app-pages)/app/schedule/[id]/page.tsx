@@ -41,20 +41,22 @@ const ScheduleDetailPage: React.FC<{
 
   const entry = scheduleEntries.docs[0] as CampScheduleEntry;
 
-  const organiser = entry.organiser as User;
+  const organiser = entry.organiser ? (entry.organiser as User) : undefined;
 
   return (
     <>
       <HeadlineH1>Programm-Punkt: {entry.title}</HeadlineH1>
       <div>
         <LexicalRichTextSection richTextSection={entry.description} />
-        <p>
-          Schreibe eine Mail an{' '}
-          <LinkComponent className="font-bold text-red-600" href={`mailto:${organiser.email}`}>
-            {organiser.fullName}
-          </LinkComponent>
-          .
-        </p>
+        {organiser && (
+          <p>
+            Schreibe eine Mail an{' '}
+            <LinkComponent className="font-bold text-red-600" href={`mailto:${organiser.email}`}>
+              {organiser.fullName}
+            </LinkComponent>
+            .
+          </p>
+        )}
         {entry.timeslots.map((timeslot) => (
           <>
             <p key={timeslot.id}>

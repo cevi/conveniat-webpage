@@ -1,8 +1,8 @@
 import { fakerDE as faker } from '@faker-js/faker';
 import type { Payload } from 'payload';
 
-export const createRandomUser = async (payload: Payload): Promise<void> => {
-  await payload.create({
+export const createRandomUser = async (payload: Payload): Promise<string> => {
+  const { id: userId } = await payload.create({
     collection: 'users',
     data: {
       fullName: faker.person.fullName(),
@@ -13,4 +13,5 @@ export const createRandomUser = async (payload: Payload): Promise<void> => {
       cevi_db_uuid: faker.number.int({ min: 100_000, max: 999_999 }),
     },
   });
+  return userId;
 };

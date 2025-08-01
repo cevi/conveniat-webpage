@@ -23,6 +23,7 @@ export interface CampScheduleEntryFrontendType {
     | null
     | {
         fullName: string;
+        email: string;
       };
 }
 

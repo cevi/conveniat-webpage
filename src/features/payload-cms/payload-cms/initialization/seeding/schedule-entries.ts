@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker';
-import { RequiredDataFromCollectionSlug } from 'payload';
+import type { RequiredDataFromCollectionSlug } from 'payload';
 
 // these entries are polaced at all campsites
 const scheduleEntriesEverywhere: [string, [string, string][]][] = [
@@ -18,7 +18,7 @@ const scheduleEntriesEverywhere: [string, [string, string][]][] = [
       ['2027-08-02', '07:00 - 08:00'],
     ],
   ],
-  ['Hike', [['2027-07-31', '08:00-23:59']]],
+  ['Hike', [['2027-07-31', '08:00 - 23:59']]],
   ['Abbau', [['2027-08-02', '12:00 - 18:00']]],
 ];
 
@@ -33,6 +33,7 @@ const scheduleEntriesProgram: [string, [string, string][]][] = [
 
 const generateEverywhereEvents = (
   campSitesId: string[],
+  userIds: string[],
 ): RequiredDataFromCollectionSlug<'camp-schedule-entry'>[] => {
   return campSitesId.flatMap((campSiteId) => {
     return scheduleEntriesEverywhere.map((entry) => {
@@ -45,6 +46,7 @@ const generateEverywhereEvents = (
           };
         }),
         location: campSiteId,
+        organiser: faker.helpers.arrayElement(userIds),
         description: {
           root: {
             type: 'root',
@@ -79,7 +81,10 @@ const generateEverywhereEvents = (
   });
 };
 
-const generateProgramEvents = (campSitesId: string[]) => {
+const generateProgramEvents = (
+  campSitesId: string[],
+  userIds: string[],
+): RequiredDataFromCollectionSlug<'camp-schedule-entry'>[] => {
   return scheduleEntriesProgram.map((entry) => {
     return {
       title: entry[0],
@@ -90,6 +95,7 @@ const generateProgramEvents = (campSitesId: string[]) => {
         };
       }),
       location: faker.helpers.arrayElement(campSitesId),
+      organiser: faker.helpers.arrayElement(userIds),
       description: {
         root: {
           type: 'root',
@@ -125,6 +131,10 @@ const generateProgramEvents = (campSitesId: string[]) => {
 
 export const generateScheduleEntries = (
   campSitesId: string[],
+  userIds: string[],
 ): RequiredDataFromCollectionSlug<'camp-schedule-entry'>[] => {
-  return [...generateEverywhereEvents(campSitesId), ...generateProgramEvents(campSitesId)];
+  return [
+    ...generateEverywhereEvents(campSitesId, userIds),
+    ...generateProgramEvents(campSitesId, userIds),
+  ];
 };
