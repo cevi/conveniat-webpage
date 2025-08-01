@@ -35,11 +35,11 @@ const shareLocationCallback = async (
     title: 'conveniat27',
     text: annotation.title,
   };
-  if (navigator.canShare(data)) {
+  try {
     await navigator.share(data);
-    return;
+  } catch {
+    alert(shareLocationError[locale]);
   }
-  alert(shareLocationError[locale]);
 };
 
 export const AnnotationDetailsDrawer: React.FC<{
@@ -84,24 +84,24 @@ export const AnnotationDetailsDrawer: React.FC<{
             <X size={20} />
           </button>
           <h2 className="p-4 pr-8 text-xl font-bold">{annotation.title}</h2>
-
           {/* share button */}
-          <div className="border-b border-gray-50 p-4">
-            <LinkComponent
-              href=""
-              hideExternalIcon={false}
-              onClick={(event) => {
-                event.preventDefault(); // prevent navigation if needed
-                void shareLocationCallback(locale, annotation);
-              }}
-            >
-              <span className="inline-flex items-center gap-1">
-                Share this location
-                <ExternalLink aria-hidden="true" className="size-4" />
-              </span>
-            </LinkComponent>
-          </div>
-
+          {typeof navigator.share === 'function' && (
+            <div className="border-b border-gray-50 p-4">
+              <LinkComponent
+                href=""
+                hideExternalIcon={false}
+                onClick={(event) => {
+                  event.preventDefault(); // prevent navigation if needed
+                  void shareLocationCallback(locale, annotation);
+                }}
+              >
+                <span className="inline-flex items-center gap-1">
+                  Share this location
+                  <ExternalLink aria-hidden="true" className="size-4" />
+                </span>
+              </LinkComponent>
+            </div>
+          )}
           {/* Description */}
           <div className="border-b border-gray-50 p-4">
             <ErrorBoundary fallback={<div>Error loading annotation</div>}>
@@ -110,7 +110,6 @@ export const AnnotationDetailsDrawer: React.FC<{
               />
             </ErrorBoundary>
           </div>
-
           {/* Opening Hours */}
           {annotation.openingHours && annotation.openingHours.length > 0 && (
             <div className="border-b border-gray-50 p-4">
@@ -131,7 +130,6 @@ export const AnnotationDetailsDrawer: React.FC<{
               </ul>
             </div>
           )}
-
           {/* Images */}
           <div className="border-b border-gray-50 p-4">
             <div className="flex gap-2 overflow-x-auto pb-2">
@@ -152,7 +150,6 @@ export const AnnotationDetailsDrawer: React.FC<{
                 ))}
             </div>
           </div>
-
           {/* Related Programs Section */}
           {relatedPrograms.length > 0 && (
             <div className="border-b border-gray-50 p-4">
@@ -193,7 +190,6 @@ export const AnnotationDetailsDrawer: React.FC<{
               </div>
             </div>
           )}
-
           {/* Forum Post / Report Issues */}
           <div className="p-4">
             <div className="mb-3 flex items-center gap-2">
