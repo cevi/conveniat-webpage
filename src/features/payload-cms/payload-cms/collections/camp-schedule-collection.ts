@@ -57,19 +57,16 @@ export const CampScheduleEntryCollection: CollectionConfig = {
       required: true,
       fields: [
         {
-          name: 'day',
-          label: 'Day',
-          type: 'select',
-          options: [
-            { label: 'Monday', value: 'monday' },
-            { label: 'Tuesday', value: 'tuesday' },
-            { label: 'Wednesday', value: 'wednesday' },
-            { label: 'Thursday', value: 'thursday' },
-            { label: 'Friday', value: 'friday' },
-            { label: 'Saturday', value: 'saturday' },
-            { label: 'Sunday', value: 'sunday' },
-          ],
+          name: 'date',
+          label: 'Date',
+          type: 'date',
           required: false,
+          admin: {
+            date: {
+              pickerAppearance: 'dayOnly',
+              displayFormat: 'YYYY-MM-dd',
+            },
+          },
         },
         {
           name: 'time',

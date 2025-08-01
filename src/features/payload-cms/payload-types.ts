@@ -1556,7 +1556,7 @@ export interface CampScheduleEntry {
    * Time slots
    */
   timeslots: {
-    day?: ('monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday') | null;
+    date?: string | null;
     /**
      * Time slots in HH:mm format (e.g., 08:00 - 18:00)
      */
@@ -2270,7 +2270,7 @@ export interface CampScheduleEntrySelect<T extends boolean = true> {
   timeslots?:
     | T
     | {
-        day?: T;
+        date?: T;
         time?: T;
         id?: T;
       };
