@@ -9,7 +9,7 @@ import {
 } from '@payloadcms/richtext-lexical';
 import type { CollectionConfig, Field } from 'payload';
 
-const mapAnnotationDescriptionLexicalEditorSettings = lexicalEditor({
+export const mapAnnotationDescriptionLexicalEditorSettings = lexicalEditor({
   features: [
     ...minimalEditorFeatures,
     HeadingFeature({

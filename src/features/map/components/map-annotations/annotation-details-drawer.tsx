@@ -2,7 +2,12 @@
 
 import { LinkComponent } from '@/components/ui/link-component';
 import { environmentVariables } from '@/config/environment-variables';
-import type { CampMapAnnotationPoint, CampMapAnnotationPolygon } from '@/features/map/types/types';
+import { AnnotationScheduleTableComponent } from '@/features/map/components/map-annotations/annotation-schedule-table-component';
+import type {
+  CampMapAnnotationPoint,
+  CampMapAnnotationPolygon,
+  CampScheduleEntry,
+} from '@/features/map/types/types';
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
 import { getImageAltInLocale } from '@/features/payload-cms/payload-cms/utils/images-meta-fields';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -11,14 +16,6 @@ import { Clock, ExternalLink, Flag, MessageCircleQuestion, MessageSquare, X } fr
 import Image from 'next/image';
 import React, { Suspense } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
-
-// Define a type for your camp program entries
-interface CampProgramEntry {
-  id: string;
-  title: string;
-  time: string;
-  description: string;
-}
 
 const shareLocationError: StaticTranslationString = {
   de: 'Dein Gerät unterstützt die Web Share API nicht.',
@@ -45,33 +42,9 @@ const shareLocationCallback = async (
 export const AnnotationDetailsDrawer: React.FC<{
   closeDrawer: () => void;
   annotation: CampMapAnnotationPoint | CampMapAnnotationPolygon;
+  schedule: CampScheduleEntry[] | undefined;
   locale: Locale;
-}> = ({ closeDrawer, annotation, locale }) => {
-  // Placeholder for related camp programs at this location
-  const relatedPrograms: CampProgramEntry[] = [
-    {
-      id: 'yoga-session-1',
-      title: 'Morning Yoga Flow',
-      time: '09:00 - 10:00',
-      description:
-        'Start your day with an invigorating yoga session suitable for all levels, focusing on breath and movement to awaken your body and mind.',
-    },
-    {
-      id: 'meditation-workshop',
-      title: 'Mindfulness Meditation',
-      time: '11:00 - 12:00',
-      description:
-        'A guided meditation to calm your mind and reduce stress. Learn simple techniques to bring mindfulness into your daily life and find inner peace.',
-    },
-    {
-      id: 'evening-stretch',
-      title: 'Evening Stretch & Relax',
-      time: '18:00 - 19:00',
-      description:
-        'Unwind with gentle stretches before dinner. This session focuses on flexibility and relaxation, perfect for releasing tension after a day of activities.',
-    },
-  ];
-
+}> = ({ closeDrawer, annotation, schedule, locale }) => {
   return (
     <div className="fixed right-0 bottom-[80px] left-0 z-[999] h-[50vh] overflow-hidden rounded-t-2xl bg-white shadow-[0px_-4px_38px_-19px_rgba(0,_0,_0,_0.1)] xl:left-[480px]">
       <div className="flex h-full flex-col overflow-y-auto px-4 pt-6">
@@ -151,45 +124,8 @@ export const AnnotationDetailsDrawer: React.FC<{
             </div>
           </div>
           {/* Related Programs Section */}
-          {relatedPrograms.length > 0 && (
-            <div className="border-b border-gray-50 p-4">
-              <div className="mb-3 flex items-center gap-2">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="text-gray-600"
-                >
-                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                  <line x1="16" y1="2" x2="16" y2="6"></line>
-                  <line x1="8" y1="2" x2="8" y2="6"></line>
-                  <line x1="3" y1="10" x2="21" y2="10"></line>
-                </svg>
-                <h3 className="font-semibold text-gray-900">Programs at this Location</h3>
-              </div>
-              <div className="space-y-3">
-                {relatedPrograms.map((program) => (
-                  <div key={program.id} className="rounded-lg border border-gray-200 p-3">
-                    <h4 className="font-medium text-gray-900">{program.title}</h4>
-                    <p className="text-sm text-gray-600">{program.time}</p>
-                    <p className="mt-1 text-sm text-gray-700">{program.description}</p>
-                    <a
-                      href={`/app/schedule/${program.id}`}
-                      className="mt-3 inline-flex items-center rounded-md border border-transparent bg-blue-100 px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-blue-200 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
-                    >
-                      Read More
-                    </a>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          <AnnotationScheduleTableComponent locale={locale} schedule={schedule} />
+
           {/* Forum Post / Report Issues */}
           <div className="p-4">
             <div className="mb-3 flex items-center gap-2">

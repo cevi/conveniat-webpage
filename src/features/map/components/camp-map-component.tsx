@@ -3,6 +3,7 @@ import { MapLibreRenderer } from '@/features/map/components/map-renderer-wrapper
 import type {
   CampMapAnnotationPoint,
   CampMapAnnotationPolygon,
+  CampScheduleEntry,
   InitialMapPose,
 } from '@/features/map/types/types';
 import type { CampMapAnnotation as CampMapAnnotationPayloadDocumentType } from '@/features/payload-cms/payload-types';
@@ -25,6 +26,23 @@ export const CampMapComponent: React.FC = async () => {
     limit: 100,
     depth: 1,
   });
+
+  const scheduleEntries = await payload.find({
+    collection: 'camp-schedule-entry',
+    limit: 100,
+    depth: 1,
+  });
+
+  const simplifiedScheduleEntries = scheduleEntries.docs as CampScheduleEntry[];
+
+  const schedulesPerAnnotations: { [id: string]: CampScheduleEntry[] } = {};
+
+  for (const annotation of annotations.docs) {
+    const annotationID: string = annotation.id;
+    schedulesPerAnnotations[annotationID] = simplifiedScheduleEntries.filter(
+      (scheduleEntry: CampScheduleEntry) => scheduleEntry.location.id === annotation.id,
+    );
+  }
 
   const campMapAnnotationPoints: CampMapAnnotationPoint[] = annotations.docs
     .filter((document_) => document_.annotationType === 'marker')
@@ -79,6 +97,7 @@ export const CampMapComponent: React.FC = async () => {
         campMapAnnotationPoints={campMapAnnotationPoints}
         campMapAnnotationPolygons={campMapAnnotationPolygons}
         validateStyle={environmentVariables.NODE_ENV !== 'production'}
+        schedules={schedulesPerAnnotations}
       />
     </div>
   );

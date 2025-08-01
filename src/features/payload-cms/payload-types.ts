@@ -54,6 +54,7 @@ export interface Config {
     'generic-page': GenericPage;
     timeline: Timeline;
     'camp-map-annotations': CampMapAnnotation;
+    'camp-schedule-entry': CampScheduleEntry;
     images: Image;
     documents: Document;
     users: User;
@@ -81,6 +82,7 @@ export interface Config {
     'generic-page': GenericPageSelect<false> | GenericPageSelect<true>;
     timeline: TimelineSelect<false> | TimelineSelect<true>;
     'camp-map-annotations': CampMapAnnotationsSelect<false> | CampMapAnnotationsSelect<true>;
+    'camp-schedule-entry': CampScheduleEntrySelect<false> | CampScheduleEntrySelect<true>;
     images: ImagesSelect<false> | ImagesSelect<true>;
     documents: DocumentsSelect<false> | DocumentsSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
@@ -1524,6 +1526,59 @@ export interface CampMapAnnotation {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "camp-schedule-entry".
+ */
+export interface CampScheduleEntry {
+  id: string;
+  /**
+   * The title of the entry.
+   */
+  title: string;
+  /**
+   * The description of the entry
+   */
+  description: {
+    root: {
+      type: string;
+      children: {
+        type: string;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  /**
+   * Time slots
+   */
+  timeslots: {
+    day?: ('monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday') | null;
+    /**
+     * Time slots in HH:mm format (e.g., 08:00 - 18:00)
+     */
+    time: string;
+    id?: string | null;
+  }[];
+  /**
+   * Location of the Schedule Entry
+   */
+  location: string | CampMapAnnotation;
+  /**
+   * Organiser
+   */
+  organiser?: (string | null) | User;
+  participants_min?: number | null;
+  participants_max?: number | null;
+  updatedAt: string;
+  createdAt: string;
+  deletedAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "push-notification-subscriptions".
  */
 export interface PushNotificationSubscription {
@@ -1611,6 +1666,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'camp-map-annotations';
         value: string | CampMapAnnotation;
+      } | null)
+    | ({
+        relationTo: 'camp-schedule-entry';
+        value: string | CampScheduleEntry;
       } | null)
     | ({
         relationTo: 'images';
@@ -2197,6 +2256,28 @@ export interface CampMapAnnotationsSelect<T extends boolean = true> {
         longitude?: T;
         id?: T;
       };
+  updatedAt?: T;
+  createdAt?: T;
+  deletedAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "camp-schedule-entry_select".
+ */
+export interface CampScheduleEntrySelect<T extends boolean = true> {
+  title?: T;
+  description?: T;
+  timeslots?:
+    | T
+    | {
+        day?: T;
+        time?: T;
+        id?: T;
+      };
+  location?: T;
+  organiser?: T;
+  participants_min?: T;
+  participants_max?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;

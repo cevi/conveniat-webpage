@@ -9,6 +9,7 @@ import { useMapUrlSync } from '@/features/map/hooks/use-map-url-sync';
 import type {
   CampMapAnnotationPoint,
   CampMapAnnotationPolygon,
+  CampScheduleEntry,
   CeviLogoMarker,
   InitialMapPose,
 } from '@/features/map/types/types';
@@ -33,6 +34,7 @@ export const MapLibreRenderer = ({
   ceviLogoMarkers,
   campMapAnnotationPoints,
   campMapAnnotationPolygons,
+  schedules,
   limitUsage = true,
   validateStyle = true,
 }: {
@@ -40,6 +42,7 @@ export const MapLibreRenderer = ({
   ceviLogoMarkers: CeviLogoMarker[];
   campMapAnnotationPoints: CampMapAnnotationPoint[];
   campMapAnnotationPolygons: CampMapAnnotationPolygon[];
+  schedules: { [id: string]: CampScheduleEntry[] };
   limitUsage?: boolean;
   validateStyle?: boolean;
 }): React.JSX.Element => {
@@ -72,6 +75,7 @@ export const MapLibreRenderer = ({
           closeDrawer={closeDrawer}
           annotation={openAnnotation}
           locale={locale}
+          schedule={schedules[openAnnotation.id]}
         />
       )}
       <div className="h-full w-full" ref={mapContainerReference} />
