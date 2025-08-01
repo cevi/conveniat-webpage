@@ -35,7 +35,7 @@ const shareLocationCallback = async (
     text: annotation.title,
   };
   if (navigator.canShare(data)) {
-    await navigator.share();
+    await navigator.share(data);
     return;
   }
   alert(shareLocationError[locale]);
