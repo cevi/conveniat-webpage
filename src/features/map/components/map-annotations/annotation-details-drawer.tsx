@@ -4,6 +4,7 @@ import { LinkComponent } from '@/components/ui/link-component';
 import { environmentVariables } from '@/config/environment-variables';
 import type { CampMapAnnotationPoint, CampMapAnnotationPolygon } from '@/features/map/types/types';
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
+import { getImageAltInLocale } from '@/features/payload-cms/payload-cms/utils/images-meta-fields';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import { Clock, ExternalLink, Flag, MessageCircleQuestion, MessageSquare, X } from 'lucide-react';
@@ -142,7 +143,7 @@ export const AnnotationDetailsDrawer: React.FC<{
                   >
                     <Image
                       src={image.url ?? ''}
-                      alt={image.alt}
+                      alt={getImageAltInLocale(locale, image)}
                       width={96}
                       height={96}
                       className="h-24 w-24 rounded-lg object-cover"

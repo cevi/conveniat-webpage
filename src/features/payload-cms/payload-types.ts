@@ -394,11 +394,27 @@ export interface Image {
   /**
    * Describe the image for screen readers.
    */
-  alt: string;
+  alt_de: string;
   /**
    * Optional text to display below the image (e.g. image source, copyright information, explanatory text)
    */
-  imageCaption?: string | null;
+  imageCaption_de?: string | null;
+  /**
+   * Describe the image for screen readers.
+   */
+  alt_en: string;
+  /**
+   * Optional text to display below the image (e.g. image source, copyright information, explanatory text)
+   */
+  imageCaption_en?: string | null;
+  /**
+   * Describe the image for screen readers.
+   */
+  alt_fr: string;
+  /**
+   * Optional text to display below the image (e.g. image source, copyright information, explanatory text)
+   */
+  imageCaption_fr?: string | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -2190,8 +2206,12 @@ export interface CampMapAnnotationsSelect<T extends boolean = true> {
  * via the `definition` "images_select".
  */
 export interface ImagesSelect<T extends boolean = true> {
-  alt?: T;
-  imageCaption?: T;
+  alt_de?: T;
+  imageCaption_de?: T;
+  alt_en?: T;
+  imageCaption_en?: T;
+  alt_fr?: T;
+  imageCaption_fr?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;

@@ -356,6 +356,7 @@ export const RenderPhotoCarousel: SectionRenderer<PhotoCarouselBlock> = async ({
   block,
   sectionClassName,
   sectionOverrides,
+  locale,
 }) => {
   return (
     <SectionWrapper
@@ -368,7 +369,7 @@ export const RenderPhotoCarousel: SectionRenderer<PhotoCarouselBlock> = async ({
         fr: 'le carrousel de photos',
       })}
     >
-      <PhotoCarousel images={block.images} />
+      <PhotoCarousel images={block.images} locale={locale} />
     </SectionWrapper>
   );
 };

@@ -1,5 +1,5 @@
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
-import type { CollectionConfig, GenerateImageName } from 'payload';
+import type { CollectionConfig, Field, GenerateImageName } from 'payload';
 
 /**
  * Generates a unique image name based on the provided parameters.
@@ -15,9 +15,48 @@ import type { CollectionConfig, GenerateImageName } from 'payload';
  * @param width
  * @param originalName
  */
-const generateImageName: GenerateImageName = ({ height, sizeName, extension, width }) => {
+const generateImageName: GenerateImageName = ({ height, sizeName, extension, width }): string => {
   const randomSuffix = Math.random().toString(36).slice(2, 8);
   return `${randomSuffix}-${sizeName}-${height}-${width}.${extension}`;
+};
+
+const altField = (locale: string): Field => {
+  return {
+    name: `alt_${locale}`,
+    label: `Alt Text (${locale})`,
+    type: 'text',
+    required: true,
+    localized: false,
+    admin: {
+      position: 'sidebar',
+      description: {
+        en: 'Describe the image for screen readers.',
+        de: 'Beschreibe das Bild für Screenreader.',
+        fr: "Décrivez l'image pour les lecteurs d'écran.",
+      },
+    },
+  };
+};
+
+const imageCaption = (locale: string): Field => {
+  return {
+    name: `imageCaption_${locale}`,
+    label: {
+      en: 'Image Caption',
+      de: 'Bildunterschrift',
+      fr: 'Légende de l’image',
+    },
+    type: 'text',
+    required: false,
+    localized: false,
+    admin: {
+      description: {
+        en: 'Optional text to display below the image (e.g. image source, copyright information, explanatory text)',
+        de: 'Optionaler Text, der unter dem Bild angezeigt wird (z.B. Bildquelle, Urheberrechtsinformationen, erläuternder Text)',
+        fr: 'Texte facultatif à afficher sous l’image (par exemple, source de l’image, informations de droits d’auteur, texte explicatif)',
+      },
+    },
+  };
 };
 
 export const ImageCollection: CollectionConfig = {
@@ -39,44 +78,18 @@ export const ImageCollection: CollectionConfig = {
     groupBy: false,
     /** this is broken with our localized versions */
     disableCopyToLocale: true,
+    defaultColumns: ['filename', 'alt_de', 'caption_de', 'updatedAt'],
   },
   access: {
     read: () => true,
   },
   fields: [
-    {
-      name: 'alt',
-      label: 'Alt Text',
-      type: 'text',
-      required: true,
-      localized: true,
-      admin: {
-        position: 'sidebar',
-        description: {
-          en: 'Describe the image for screen readers.',
-          de: 'Beschreiben Sie das Bild für Screenreader.',
-          fr: "Décrivez l'image pour les lecteurs d'écran.",
-        },
-      },
-    },
-    {
-      name: 'imageCaption',
-      label: {
-        en: 'Image Caption',
-        de: 'Bildunterschrift',
-        fr: 'Légende de l’image',
-      },
-      type: 'text',
-      required: false,
-      localized: true,
-      admin: {
-        description: {
-          en: 'Optional text to display below the image (e.g. image source, copyright information, explanatory text)',
-          de: 'Optionaler Text, der unter dem Bild angezeigt wird (z.B. Bildquelle, Urheberrechtsinformationen, erläuternder Text)',
-          fr: 'Texte facultatif à afficher sous l’image (par exemple, source de l’image, informations de droits d’auteur, texte explicatif)',
-        },
-      },
-    },
+    { ...altField('de') },
+    { ...imageCaption('de') },
+    { ...altField('en') },
+    { ...imageCaption('en') },
+    { ...altField('fr') },
+    { ...imageCaption('fr') },
   ],
   upload: {
     mimeTypes: ['image/*'],

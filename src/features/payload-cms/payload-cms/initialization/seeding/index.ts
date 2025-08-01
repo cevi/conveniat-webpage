@@ -76,14 +76,21 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
   for (const imageUrl of listOfImageUrls) {
     const image = await fetch(imageUrl);
 
+    const alt = faker.lorem.sentence({ min: 5, max: 8 });
+    const caption = faker.lorem.sentence({ min: 5, max: 8 });
+
     const { id: imageID } = await payload.create({
       collection: 'images',
       data: {
-        alt: faker.lorem.sentence({ min: 5, max: 8 }),
+        alt_de: alt,
+        alt_en: alt,
+        alt_fr: alt,
         updatedAt: '2025-01-01T01:00:00.000Z',
         createdAt: '2025-01-01T01:00:00.000Z',
         url: imageUrl,
-        imageCaption: faker.lorem.sentence({ min: 4, max: 6 }),
+        imageCaption_de: caption,
+        imageCaption_en: caption,
+        imageCaption_fr: caption,
       },
       file: {
         data: Buffer.from(await image.arrayBuffer()),

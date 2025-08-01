@@ -6,18 +6,29 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from '@/components/carousel';
+import type { SimplifiedImageType } from '@/features/payload-cms/payload-cms/utils/images-meta-fields';
+import {
+  getImageAltInLocale,
+  getImageCaptionInLocale,
+} from '@/features/payload-cms/payload-cms/utils/images-meta-fields';
+import type { Locale } from '@/types/types';
 import Image from 'next/image';
 import React from 'react';
 
 export interface PhotoCarouselBlock {
   images: {
     sizes?: { large?: { url: string } };
-    alt: string;
-    imageCaption?: string;
+    alt_de: string;
+    alt_en: string;
+    alt_fr: string;
+    imageCaption_de?: string;
+    imageCaption_en?: string;
+    imageCaption_fr?: string;
   }[];
+  locale: Locale;
 }
 
-export const PhotoCarousel: React.FC<PhotoCarouselBlock> = async ({ images }) => {
+export const PhotoCarousel: React.FC<PhotoCarouselBlock> = async ({ images, locale }) => {
   const length = images.length;
 
   if (length === 0) {
@@ -47,7 +58,10 @@ export const PhotoCarousel: React.FC<PhotoCarouselBlock> = async ({ images }) =>
                 <Image
                   className="h-[240px] rounded-md bg-white object-cover max-md:aspect-square xl:h-[400px]"
                   src={images[index % images.length]?.sizes?.large?.url ?? ''}
-                  alt={images[index % images.length]?.alt ?? ''}
+                  alt={getImageAltInLocale(
+                    locale,
+                    images[index % images.length] as SimplifiedImageType,
+                  )}
                   placeholder="blur"
                   blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkAAIAAAoAAv/lxKUAAAAASUVORK5CYII="
                   width={600}
@@ -55,7 +69,7 @@ export const PhotoCarousel: React.FC<PhotoCarouselBlock> = async ({ images }) =>
                 />
               </div>
               <CarouselDescription index={index} className="flex flex-col">
-                {images[index % images.length]?.imageCaption}
+                {getImageCaptionInLocale(locale, images[index % images.length])}
                 <span className="mt-2">
                   {index + 1} / {length}
                 </span>
