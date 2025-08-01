@@ -2,7 +2,7 @@ import { environmentVariables } from '@/config/environment-variables';
 import { aboutUsContent } from '@/features/payload-cms/payload-cms/initialization/seeding/about-us';
 import {
   createRandomCampAnnotation,
-  generateCampSides,
+  generateCampSites,
   generatePlaygroundPolygons,
 } from '@/features/payload-cms/payload-cms/initialization/seeding/camp-map';
 import { contactPageContent } from '@/features/payload-cms/payload-cms/initialization/seeding/contact-page';
@@ -19,6 +19,7 @@ import { createRandomUser } from '@/features/payload-cms/payload-cms/initializat
 import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import { fakerDE as faker } from '@faker-js/faker';
 import type { Payload } from 'payload';
+import { generateScheduleEntries } from './schedule-entries';
 
 /**
  * Seed the database with some initial data.
@@ -196,12 +197,14 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     });
   }
 
-  const campSides = generateCampSides();
-  for (const side of campSides) {
-    await payload.create({
+  const campSites = generateCampSites();
+  const campSitesIds = [];
+  for (const side of campSites) {
+    const { id: campSiteId } = await payload.create({
       collection: 'camp-map-annotations',
       data: side,
     });
+    campSitesIds.push(campSiteId);
   }
 
   const playGrounds = generatePlaygroundPolygons();
@@ -209,6 +212,15 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     await payload.create({
       collection: 'camp-map-annotations',
       data: playground,
+    });
+  }
+
+  // schedule entries
+  const scheduleEntries = generateScheduleEntries(campSitesIds);
+  for (const scheduleEntry of scheduleEntries) {
+    await payload.create({
+      collection: 'camp-schedule-entry',
+      data: scheduleEntry,
     });
   }
 
