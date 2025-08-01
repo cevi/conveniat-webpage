@@ -29,14 +29,16 @@ const shareLocationCallback = async (
   locale: Locale,
   annotation: CampMapAnnotationPoint | CampMapAnnotationPolygon,
 ): Promise<void> => {
-  if (!navigator.canShare()) {
-    alert(shareLocationError[locale]);
-  }
-  await navigator.share({
+  const data = {
     url: environmentVariables.NEXT_PUBLIC_APP_HOST_URL + '/app/map?locationId=' + annotation.id,
     title: 'conveniat27',
     text: annotation.title,
-  });
+  };
+  if (navigator.canShare(data)) {
+    await navigator.share();
+    return;
+  }
+  alert(shareLocationError[locale]);
 };
 
 export const AnnotationDetailsDrawer: React.FC<{
