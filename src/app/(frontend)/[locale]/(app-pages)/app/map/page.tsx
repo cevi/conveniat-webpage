@@ -19,14 +19,16 @@ const description: StaticTranslationString = {
 export const generateMetadata = async ({
   params,
 }: {
-  params: {
+  params: Promise<{
     locale: Locale;
     slugs: string[] | undefined;
-  };
+  }>;
 }): Promise<Metadata> => {
+  const { locale } = await params;
+
   return {
-    title: `${tabTitle[params.locale]}`,
-    description: `${description[params.locale]} conveniat27`,
+    title: `${tabTitle[locale]}`,
+    description: `${description[locale]} conveniat27`,
   };
 };
 
