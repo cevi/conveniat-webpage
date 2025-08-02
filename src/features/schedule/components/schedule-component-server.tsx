@@ -4,6 +4,7 @@ import type { CampMapAnnotation } from '@/features/payload-cms/payload-types';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import config from '@payload-config';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
+import type { Where } from 'payload';
 import { getPayload } from 'payload';
 
 export interface CampScheduleEntryFrontendType {
@@ -27,7 +28,9 @@ export interface CampScheduleEntryFrontendType {
       };
 }
 
-export const getScheduleEntries = async (): Promise<CampScheduleEntryFrontendType[]> => {
+export const getScheduleEntries = async (
+  where: Where = {},
+): Promise<CampScheduleEntryFrontendType[]> => {
   const payload = await getPayload({ config });
   const locale = await getLocaleFromCookies();
 
@@ -35,6 +38,7 @@ export const getScheduleEntries = async (): Promise<CampScheduleEntryFrontendTyp
     collection: 'camp-schedule-entry',
     locale: locale,
     depth: 1,
+    where: where,
   });
 
   return scheduleEntries.docs;

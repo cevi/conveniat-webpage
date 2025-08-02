@@ -328,6 +328,13 @@ export interface Blog {
           blockName?: string | null;
           blockType: 'newsCard';
         }
+      | {
+          date: string;
+          location?: (string | null) | CampMapAnnotation;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'campScheduleEntryBlock';
+        }
     )[];
   };
   seo: {
@@ -1292,6 +1299,13 @@ export interface GenericPage {
           blockName?: string | null;
           blockType: 'newsCard';
         }
+      | {
+          date: string;
+          location?: (string | null) | CampMapAnnotation;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'campScheduleEntryBlock';
+        }
     )[];
   };
   seo: {
@@ -1883,6 +1897,14 @@ export interface BlogSelect<T extends boolean = true> {
                     id?: T;
                     blockName?: T;
                   };
+              campScheduleEntryBlock?:
+                | T
+                | {
+                    date?: T;
+                    location?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
             };
       };
   seo?:
@@ -2178,6 +2200,14 @@ export interface GenericPageSelect<T extends boolean = true> {
                     date?: T;
                     image?: T;
                     paragraph?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              campScheduleEntryBlock?:
+                | T
+                | {
+                    date?: T;
+                    location?: T;
                     id?: T;
                     blockName?: T;
                   };
