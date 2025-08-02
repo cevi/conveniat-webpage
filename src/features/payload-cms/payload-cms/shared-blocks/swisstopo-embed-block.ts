@@ -1,4 +1,4 @@
-import { MapCoordinates } from '@/features/payload-cms/payload-cms/shared-fields/map-coordinates';
+import { MapCoordinates } from '@/features/payload-cms/payload-cms/shared-fields/map-coordinates/map-coordinates';
 import type { Block } from 'payload';
 
 export const swisstopoMapEmbedBlock: Block = {

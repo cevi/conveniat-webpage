@@ -930,8 +930,13 @@ export interface SwisstopoMapEmbedding {
   ceviLogoMarkers?:
     | {
         title?: string | null;
+        /**
+         * Coordinates of the annotation on the map.
+         */
         geometry?: {
           /**
+           * Coordinates of the annotation on the map.
+           *
            * @minItems 2
            * @maxItems 2
            */
@@ -1503,8 +1508,13 @@ export interface CampMapAnnotation {
     | null;
   images?: (string | Image)[] | null;
   annotationType: 'marker' | 'polygon';
+  /**
+   * Coordinates of the annotation on the map.
+   */
   geometry?: {
     /**
+     * Coordinates of the annotation on the map.
+     *
      * @minItems 2
      * @maxItems 2
      */
