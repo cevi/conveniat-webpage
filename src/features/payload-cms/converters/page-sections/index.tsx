@@ -7,6 +7,7 @@ import {
   DetailsTable,
   RenderBlogPostsOverview,
   RenderCallToAction,
+  RenderCampScheduleEntry,
   RenderCountdown,
   RenderFileDownload,
   RenderFormBlock,
@@ -60,6 +61,7 @@ export const PageSectionsConverter: React.FC<
     whiteSpace: RenderWhiteSpace,
     callToAction: RenderCallToAction,
     newsCard: RenderNewsCard,
+    campScheduleEntryBlock: RenderCampScheduleEntry,
   };
 
   return (

@@ -1,6 +1,7 @@
 import { LinkComponent } from '@/components/ui/link-component';
 import { jsxConverters } from '@/features/payload-cms/converters/richtext-lexical';
 import type { LinkFieldDataType } from '@/features/payload-cms/payload-cms/shared-fields/link-field';
+import { getImageAltInLocale } from '@/features/payload-cms/payload-cms/utils/images-meta-fields';
 import {
   getURLForLinkField,
   openURLInNewTab,
@@ -56,7 +57,7 @@ export const NewsCardBlock: React.FC<NewsCardType> = async ({
             <ImageNode
               className=""
               src={image.url ?? ''}
-              alt={image.alt}
+              alt={getImageAltInLocale(locale, image)}
               width={1200}
               height={800}
             />

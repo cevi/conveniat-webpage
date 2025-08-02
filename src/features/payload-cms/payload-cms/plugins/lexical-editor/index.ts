@@ -1,3 +1,4 @@
+import { environmentVariables } from '@/config/environment-variables';
 import {
   AlignFeature,
   BlockquoteFeature,
@@ -11,6 +12,7 @@ import {
   ParagraphFeature,
   UnorderedListFeature,
 } from '@payloadcms/richtext-lexical';
+import type { CollectionSlug } from 'payload';
 
 export const minimalEditorFeatures = [
   // a fixed toolbar that is always visible
@@ -24,7 +26,18 @@ export const minimalEditorFeatures = [
     fields: ({ defaultFields }) => [...defaultFields],
     // we only allow links to pages or blog posts
     // TODO: we should list the title or slug instead of the ID in the overview
-    enabledCollections: ['generic-page', 'blog'],
+    /* ATTENTION: if a collection was added here:
+      make sure to:
+      - update /src/features/payload-cms/converters/richtext-lexical/link-converter.tsx
+      - update /src/features/payload-cms/payload-cms/plugins/form/fix-links-in-mails.ts
+      */
+    enabledCollections: [
+      'generic-page',
+      'blog',
+      ...(environmentVariables.FEATURE_ENABLE_APP_FEATURE
+        ? ['camp-map-annotations' as CollectionSlug]
+        : []),
+    ],
   }),
 ];
 

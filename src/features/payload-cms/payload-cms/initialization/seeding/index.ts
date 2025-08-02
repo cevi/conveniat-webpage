@@ -2,7 +2,7 @@ import { environmentVariables } from '@/config/environment-variables';
 import { aboutUsContent } from '@/features/payload-cms/payload-cms/initialization/seeding/about-us';
 import {
   createRandomCampAnnotation,
-  generateCampSides,
+  generateCampSites,
   generatePlaygroundPolygons,
 } from '@/features/payload-cms/payload-cms/initialization/seeding/camp-map';
 import { contactPageContent } from '@/features/payload-cms/payload-cms/initialization/seeding/contact-page';
@@ -15,6 +15,8 @@ import {
   seedPermissionLoggedIn,
   seedPermissionPublic,
 } from '@/features/payload-cms/payload-cms/initialization/seeding/permissions';
+import { generateScheduleEntries } from '@/features/payload-cms/payload-cms/initialization/seeding/schedule-entries';
+import { createRandomUser } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-users';
 import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import { fakerDE as faker } from '@faker-js/faker';
 import type { Payload } from 'payload';
@@ -25,6 +27,7 @@ import type { Payload } from 'payload';
  *
  * @param payload The Payload instance
  */
+// eslint-disable-next-line complexity
 export const seedDatabase = async (payload: Payload): Promise<void> => {
   // we only seed for the dev instance
   if (environmentVariables.NODE_ENV !== 'development') {
@@ -74,14 +77,21 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
   for (const imageUrl of listOfImageUrls) {
     const image = await fetch(imageUrl);
 
+    const alt = faker.lorem.sentence({ min: 5, max: 8 });
+    const caption = faker.lorem.sentence({ min: 5, max: 8 });
+
     const { id: imageID } = await payload.create({
       collection: 'images',
       data: {
-        alt: faker.lorem.sentence({ min: 5, max: 8 }),
+        alt_de: alt,
+        alt_en: alt,
+        alt_fr: alt,
         updatedAt: '2025-01-01T01:00:00.000Z',
         createdAt: '2025-01-01T01:00:00.000Z',
         url: imageUrl,
-        imageCaption: faker.lorem.sentence({ min: 4, max: 6 }),
+        imageCaption_de: caption,
+        imageCaption_en: caption,
+        imageCaption_fr: caption,
       },
       file: {
         data: Buffer.from(await image.arrayBuffer()),
@@ -187,12 +197,15 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     });
   }
 
-  const campSides = generateCampSides();
-  for (const side of campSides) {
-    await payload.create({
+  const campSites = generateCampSites();
+  const campSitesIds = [];
+
+  for (const side of campSites) {
+    const { id: campSiteId } = await payload.create({
       collection: 'camp-map-annotations',
       data: side,
     });
+    campSitesIds.push(campSiteId);
   }
 
   const playGrounds = generatePlaygroundPolygons();
@@ -200,6 +213,21 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     await payload.create({
       collection: 'camp-map-annotations',
       data: playground,
+    });
+  }
+
+  // seed users
+  const userIds = [];
+  for (let index = 0; index < 10; index++) {
+    userIds.push(await createRandomUser(payload));
+  }
+
+  // schedule entries
+  const scheduleEntries = generateScheduleEntries(campSitesIds, userIds);
+  for (const scheduleEntry of scheduleEntries) {
+    await payload.create({
+      collection: 'camp-schedule-entry',
+      data: scheduleEntry,
     });
   }
 };

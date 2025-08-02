@@ -11,6 +11,7 @@ export const deleteDatabase = async (payload: Payload): Promise<void> => {
     'permissions',
     'push-notification-subscriptions',
     'camp-map-annotations',
+    'camp-schedule-entry',
     'search-collection',
     'timeline',
     'timelineCategory',
@@ -21,7 +22,8 @@ export const deleteDatabase = async (payload: Payload): Promise<void> => {
   for (const slug of slugs_to_delete) {
     await payload.delete({
       collection: slug,
-      where: { id: { exists: true } },
+      trash: true,
+      where: { _id: { exists: true } },
     });
   }
 };

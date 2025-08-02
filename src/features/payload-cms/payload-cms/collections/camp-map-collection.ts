@@ -1,6 +1,6 @@
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { minimalEditorFeatures } from '@/features/payload-cms/payload-cms/plugins/lexical-editor';
-import { MapCoordinates } from '@/features/payload-cms/payload-cms/shared-fields/map-coordinates';
+import { MapCoordinates } from '@/features/payload-cms/payload-cms/shared-fields/map-coordinates/map-coordinates';
 import type { CampMapAnnotation } from '@/features/payload-cms/payload-types';
 import {
   defaultEditorLexicalConfig,
@@ -9,7 +9,7 @@ import {
 } from '@payloadcms/richtext-lexical';
 import type { CollectionConfig, Field } from 'payload';
 
-const mapAnnotationDescriptionLexicalEditorSettings = lexicalEditor({
+export const mapAnnotationDescriptionLexicalEditorSettings = lexicalEditor({
   features: [
     ...minimalEditorFeatures,
     HeadingFeature({
@@ -43,8 +43,9 @@ export const CampMapAnnotationsCollection: CollectionConfig = {
     },
   },
   admin: {
+    useAsTitle: 'title',
     group: AdminPanelDashboardGroups.AppContent,
-    groupBy: true,
+    groupBy: false,
     /** this is broken with our localized versions */
     disableCopyToLocale: true,
   },

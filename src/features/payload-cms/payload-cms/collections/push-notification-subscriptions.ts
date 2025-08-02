@@ -69,7 +69,7 @@ export const PushNotificationSubscriptions: CollectionConfig = asPushNotificatio
   // hidden from the admin panel
   admin: {
     group: AdminPanelDashboardGroups.GlobalSettings,
-    groupBy: true,
+    groupBy: false,
     /** this is broken with our localized versions */
     disableCopyToLocale: true,
   },

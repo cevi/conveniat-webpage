@@ -16,15 +16,20 @@ import {
   useHotkey,
   useLocale,
   useOperation,
-  useTranslation,
 } from '@payloadcms/ui';
 import { cva } from 'class-variance-authority';
 import React, { useCallback } from 'react';
 
 const unpublishingActionString: StaticTranslationString = {
   en: 'Unpublish in',
-  de: 'Deaktivieren in',
+  de: 'Unveröffentlichen in',
   fr: 'Dépublier en',
+};
+
+const publishActionAstring: StaticTranslationString = {
+  en: 'Publish in',
+  de: 'Veröffentlichen in',
+  fr: 'Publier en',
 };
 
 const minimalPublishingConfirmationString: StaticTranslationString = {
@@ -68,7 +73,6 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
     serverURL,
   } = config;
 
-  const { t } = useTranslation();
   const { code } = useLocale() as { code: Config['locale'] };
 
   const hasNewerVersions = unpublishedVersionCount > 0;
@@ -250,7 +254,7 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
         size="medium"
         type="button"
       >
-        {t('version:publishIn', { locale: code })}
+        {publishActionAstring[code]} {code}
       </FormSubmit>
     </div>
   );

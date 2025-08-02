@@ -1,6 +1,7 @@
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { PageSectionsConverter } from '@/features/payload-cms/converters/page-sections';
 import type { ContentBlock } from '@/features/payload-cms/converters/page-sections/section-wrapper';
+import { getImageAltInLocale } from '@/features/payload-cms/payload-cms/utils/images-meta-fields';
 import type { Blog, Image as PayloadImage } from '@/features/payload-cms/payload-types';
 import type { Locale, SearchParameters } from '@/types/types';
 import Image from 'next/image';
@@ -21,12 +22,14 @@ export const BlogArticleConverter: React.FC<{
     article.content.bannerImage = {
       ...article.content.bannerImage,
       url: '/admin-block-images/single-picture-block.png',
-      alt: 'Placeholder image',
+      alt_de: 'Platzhalter Bild',
+      alt_en: 'Placeholder image',
+      alt_fr: 'Image de remplacement',
     };
   }
 
   const source = article.content.bannerImage.sizes?.large?.url ?? '';
-  const altText = article.content.bannerImage.alt;
+  const altText = getImageAltInLocale(locale, article.content.bannerImage);
   return (
     <>
       <article className="my-8 w-full max-w-2xl px-8 max-xl:mx-auto">

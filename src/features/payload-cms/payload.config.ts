@@ -60,6 +60,10 @@ const generatePreviewUrl = ({
 
       return `${environmentVariables.APP_HOST_URL}/${locale.code}/${urlSlugs[locale.code as LocaleType]}/${data.id}?preview=true`;
     }
+
+    if (collectionConfig.slug === 'camp-map-annotations' && data.id !== undefined) {
+      return `${environmentVariables.APP_HOST_URL}/app/map?locationId=${data.id}&preview=true`;
+    }
   }
 
   if (!data.seo) return '';
@@ -126,7 +130,7 @@ export const payloadConfig: RoutableConfig = {
     livePreview: {
       url: generatePreviewUrl,
       breakpoints: smartphoneBreakpoints,
-      collections: ['blog', 'generic-page', 'timeline', 'forms'],
+      collections: ['blog', 'generic-page', 'timeline', 'forms', 'camp-map-annotations'],
     },
   },
   collections: collectionsConfig,

@@ -58,6 +58,9 @@ export const LinkField: NamedGroupField = {
       type: 'relationship',
       admin: {
         condition: (_, siblingData) => siblingData['type'] === 'reference',
+        allowCreate: false,
+        allowEdit: false,
+        placeholder: 'Select a document or blog post',
       },
       label: 'Document to redirect to',
       relationTo: ['blog', 'generic-page'],

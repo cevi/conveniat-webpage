@@ -34,7 +34,7 @@ export const BlogArticleCollection: CollectionConfig = asLocalizedCollection({
 
   admin: {
     group: AdminPanelDashboardGroups.PagesAndContent,
-    groupBy: true,
+    groupBy: false,
     /** this is broken with our localized versions */
     disableCopyToLocale: true,
     description: {

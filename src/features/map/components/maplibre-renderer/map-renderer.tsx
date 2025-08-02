@@ -4,18 +4,22 @@ import { CeviLogo } from '@/components/svg-logos/cevi-logo';
 import { AnnotationDetailsDrawer } from '@/features/map/components/map-annotations/annotation-details-drawer';
 import { MapContextProvider } from '@/features/map/components/maplibre-renderer/map-context-provider';
 import { MaplibreMap } from '@/features/map/components/maplibre-renderer/maplibre-map';
+import { SearchBar } from '@/features/map/components/search-bar';
 import { useMapInitialization } from '@/features/map/hooks/use-map-initialization';
 import { useMapUrlSync } from '@/features/map/hooks/use-map-url-sync';
 import type {
   CampMapAnnotationPoint,
   CampMapAnnotationPolygon,
+  CampScheduleEntry,
   CeviLogoMarker,
   InitialMapPose,
 } from '@/features/map/types/types';
+import type { Locale } from '@/types/types';
+import { i18nConfig } from '@/types/types';
 import { reactToDomElement } from '@/utils/react-to-dom-element';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import type React from 'react';
-import { useCallback, useRef, useState } from 'react';
+import { useCurrentLocale } from 'next-i18n-router/client';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 
 /**
  * Factory function to create a DOM element with the Cevi Logo SVG.
@@ -30,6 +34,7 @@ export const MapLibreRenderer = ({
   ceviLogoMarkers,
   campMapAnnotationPoints,
   campMapAnnotationPolygons,
+  schedules,
   limitUsage = true,
   validateStyle = true,
 }: {
@@ -37,6 +42,7 @@ export const MapLibreRenderer = ({
   ceviLogoMarkers: CeviLogoMarker[];
   campMapAnnotationPoints: CampMapAnnotationPoint[];
   campMapAnnotationPolygons: CampMapAnnotationPolygon[];
+  schedules: { [id: string]: CampScheduleEntry[] };
   limitUsage?: boolean;
   validateStyle?: boolean;
 }): React.JSX.Element => {
@@ -44,8 +50,10 @@ export const MapLibreRenderer = ({
   const [openAnnotation, setOpenAnnotation] = useState<
     CampMapAnnotationPoint | CampMapAnnotationPolygon | undefined
   >();
+  const [searchTerm, setSearchTerm] = useState<string>('');
 
   const closeDrawer = useCallback(() => setOpenAnnotation(undefined), []);
+  const locale = useCurrentLocale(i18nConfig) as Locale;
 
   const map = useMapInitialization(mapContainerReference, {
     initialMapPose,
@@ -61,17 +69,59 @@ export const MapLibreRenderer = ({
     campMapAnnotationPolygons,
   );
 
+  // Filter annotations based on search term
+  const filteredAnnotationPoints = useMemo(() => {
+    if (searchTerm === '') {
+      return campMapAnnotationPoints;
+    }
+    const lowerCaseSearchTerm = searchTerm.toLowerCase();
+    return campMapAnnotationPoints.filter((annotation) =>
+      annotation.title.toLowerCase().includes(lowerCaseSearchTerm),
+    );
+  }, [campMapAnnotationPoints, searchTerm]);
+
+  const filteredAnnotationPolygons = useMemo(() => {
+    if (searchTerm === '') {
+      return campMapAnnotationPolygons;
+    }
+    const lowerCaseSearchTerm = searchTerm.toLowerCase();
+    return campMapAnnotationPolygons.filter((annotation) =>
+      annotation.title.toLowerCase().includes(lowerCaseSearchTerm),
+    );
+  }, [campMapAnnotationPolygons, searchTerm]);
+
+  const handleSearch = useCallback(
+    (term: string) => {
+      setSearchTerm(term);
+      if (
+        openAnnotation &&
+        term !== '' &&
+        !filteredAnnotationPoints.some((a) => a.id === openAnnotation.id) &&
+        !filteredAnnotationPolygons.some((a) => a.id === openAnnotation.id)
+      ) {
+        setOpenAnnotation(undefined);
+      }
+    },
+    [openAnnotation, filteredAnnotationPoints, filteredAnnotationPolygons],
+  );
+
   return (
     <MapContextProvider map={map}>
       {openAnnotation && (
-        <AnnotationDetailsDrawer closeDrawer={closeDrawer} annotation={openAnnotation} />
+        <AnnotationDetailsDrawer
+          closeDrawer={closeDrawer}
+          annotation={openAnnotation}
+          locale={locale}
+          schedule={schedules[openAnnotation.id]}
+        />
       )}
       <div className="h-full w-full" ref={mapContainerReference} />
+      <SearchBar onSearch={handleSearch} />
       <MaplibreMap
         openAnnotation={openAnnotation}
         setOpenAnnotation={setOpenAnnotation}
-        campMapAnnotationPoints={campMapAnnotationPoints}
-        campMapAnnotationPolygons={campMapAnnotationPolygons}
+        campMapAnnotationPoints={filteredAnnotationPoints}
+        campMapAnnotationPolygons={filteredAnnotationPolygons}
         ceviLogoMarkers={ceviLogoMarkers}
       />
     </MapContextProvider>

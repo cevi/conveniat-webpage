@@ -3,6 +3,7 @@
 import type {
   CampMapAnnotationPoint,
   CampMapAnnotationPolygon,
+  CampScheduleEntry,
   CeviLogoMarker,
   InitialMapPose,
 } from '@/features/map/types/types';
@@ -35,6 +36,7 @@ export const MapLibreRenderer = ({
   ceviLogoMarkers,
   campMapAnnotationPoints,
   campMapAnnotationPolygons,
+  schedules,
   limitUsage = true,
   validateStyle = true,
 }: {
@@ -42,6 +44,7 @@ export const MapLibreRenderer = ({
   ceviLogoMarkers: CeviLogoMarker[];
   campMapAnnotationPoints?: CampMapAnnotationPoint[] | undefined;
   campMapAnnotationPolygons?: CampMapAnnotationPolygon[] | undefined;
+  schedules: { [id: string]: CampScheduleEntry[] };
   limitUsage?: boolean;
   validateStyle?: boolean;
 }): React.JSX.Element => {
@@ -55,6 +58,7 @@ export const MapLibreRenderer = ({
       ceviLogoMarkers={ceviLogoMarkers}
       campMapAnnotationPoints={campMapAnnotationPoints}
       campMapAnnotationPolygons={campMapAnnotationPolygons}
+      schedules={schedules}
       limitUsage={limitUsage}
       validateStyle={validateStyle}
     />

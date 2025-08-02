@@ -1,6 +1,6 @@
 # To use this Dockerfile, you have to set output: 'standalone' in your next.config.mjs file.
 # From https://github.com/vercel/next.js/blob/canary/examples/with-docker/Dockerfile
-FROM node:22.14-alpine AS base
+FROM node:24.4-alpine AS base
 
 # Install curl for healthcheck and build dependencies for sharp, rebuild sharp, and then uninstall build dependencies
 RUN apk add --no-cache curl vips vips-dev fftw-dev gcc g++ make python3 && \
