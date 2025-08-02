@@ -1,10 +1,10 @@
-import { ScheduleEntryForm } from '@/components/scheduleEntry';
+import { ScheduleEntryForm } from '@/components/schedule-entry';
 import { LinkComponent } from '@/components/ui/link-component';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
 import { canUserAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import type { CampScheduleEntry, User } from '@/features/payload-cms/payload-types';
-import { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
+import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import { auth } from '@/utils/auth-helpers';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import config from '@payload-config';
@@ -51,7 +51,7 @@ const ScheduleDetailPage: React.FC<{
 
   const organiser = entry.organiser ? (entry.organiser as User) : undefined;
 
-  const isUserOrganiser = user?.uuid === organiser?.id;
+  const isUserOrganiser = user.uuid === organiser?.id;
 
   const userCanEdit = isUserOrganiser || canUserAccessAdminPanel({ user });
 

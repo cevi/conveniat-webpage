@@ -28,7 +28,7 @@ export const CampScheduleEntryContentBlock: React.FC<CampScheduleEntryType> = as
         {showDate}
         {location ? <> - {location.title}</> : <></>}
       </h3>
-      {scheduleEntries?.map((entry) => {
+      {scheduleEntries.map((entry) => {
         return (
           <>
             <p key={entry.id}>{entry.title}</p>

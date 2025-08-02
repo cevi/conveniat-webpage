@@ -1,7 +1,7 @@
 'use client';
 
-import { Locale } from '@/types/types';
-import { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
+import type { Locale } from '@/types/types';
+import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import { Edit } from 'lucide-react';
 import React from 'react';
 
@@ -10,7 +10,7 @@ export interface ScheduleEntryData {
   locale: Locale;
 }
 
-const showEditForm = () => {
+const showEditForm = (): void => {
   // TODO.
   alert('Edit Form called.');
 };
