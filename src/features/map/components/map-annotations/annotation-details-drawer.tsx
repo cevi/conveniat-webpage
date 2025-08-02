@@ -10,7 +10,7 @@ import { LexicalRichTextSection } from '@/features/payload-cms/components/conten
 import { getImageAltInLocale } from '@/features/payload-cms/payload-cms/utils/images-meta-fields';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
-import { Clock, ExternalLink, Flag, MessageCircleQuestion, MessageSquare, X } from 'lucide-react';
+import { Clock, Flag, MessageCircleQuestion, MessageSquare, Share2, X } from 'lucide-react';
 import Image from 'next/image';
 import React, { Suspense } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
@@ -49,33 +49,28 @@ export const AnnotationDetailsDrawer: React.FC<{
         <div className="relative">
           <div className="sticky top-0 border-b-2 border-gray-100 bg-white pt-6">
             <button
-              className="absolute top-8 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800"
+              className="absolute top-8 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-red-100 text-red-600 hover:bg-gray-200 hover:text-gray-800"
               onClick={closeDrawer}
               aria-label="Close"
             >
               <X size={20} />
             </button>
-            <h2 className="p-4 pr-8 text-xl font-bold">{annotation.title}</h2>
+            {typeof navigator.share === 'function' && (
+              <div className="absolute top-8 right-12 flex h-8 w-8 items-center justify-center rounded-full bg-green-50 text-green-600 hover:bg-gray-200 hover:text-gray-800">
+                <LinkComponent
+                  href=""
+                  hideExternalIcon={false}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    void shareLocationCallback(locale, annotation);
+                  }}
+                >
+                  <Share2 aria-hidden="true" className="size-4" />
+                </LinkComponent>
+              </div>
+            )}
+            <h2 className="text-conveniat-green p-4 pr-8 text-xl font-bold">{annotation.title}</h2>
           </div>
-
-          {/* share button */}
-          {typeof navigator.share === 'function' && (
-            <div className="border-b-2 border-gray-100 p-4">
-              <LinkComponent
-                href=""
-                hideExternalIcon={false}
-                onClick={(event) => {
-                  event.preventDefault(); // prevent navigation if needed
-                  void shareLocationCallback(locale, annotation);
-                }}
-              >
-                <span className="inline-flex items-center gap-1">
-                  Share this location
-                  <ExternalLink aria-hidden="true" className="size-4" />
-                </span>
-              </LinkComponent>
-            </div>
-          )}
 
           {/* Description */}
           <div className="border-b-2 border-gray-100 p-4">
@@ -107,11 +102,11 @@ export const AnnotationDetailsDrawer: React.FC<{
             </div>
           )}
 
-          {/* Images */}
-          <div className="border-b-2 border-gray-100 p-4">
-            <div className="flex gap-2 overflow-x-auto pb-2">
-              {annotation.images.length > 0 &&
-                annotation.images.map((image, index) => (
+          {/* Render Related Images */}
+          {annotation.images.length > 0 && (
+            <div className="border-b-2 border-gray-100 p-4">
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                {annotation.images.map((image, index) => (
                   <Suspense
                     key={index}
                     fallback={<div className="h-24 w-24 rounded-lg bg-gray-200" />}
@@ -125,16 +120,18 @@ export const AnnotationDetailsDrawer: React.FC<{
                     />
                   </Suspense>
                 ))}
+              </div>
             </div>
-          </div>
+          )}
+
           {/* Related Programs Section */}
           <AnnotationScheduleTableComponent locale={locale} schedule={schedule} />
 
           {/* Forum Post / Report Issues */}
           <div className="p-4">
             <div className="mb-3 flex items-center gap-2">
-              <MessageCircleQuestion size={18} className="text-gray-600" />
-              <h3 className="font-semibold text-gray-900">conveniat27 Forum</h3>
+              <MessageCircleQuestion size={18} className="text-conveniat-green" />
+              <h3 className="text-conveniat-green font-semibold">conveniat27 Forum</h3>
             </div>
             <div className="space-y-2">
               <button className="flex w-full items-center gap-3 rounded-lg border border-gray-200 p-3 text-left hover:border-gray-300 hover:bg-gray-50">
