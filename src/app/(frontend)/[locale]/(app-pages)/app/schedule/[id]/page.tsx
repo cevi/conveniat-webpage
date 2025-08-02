@@ -44,7 +44,7 @@ const ScheduleDetailPage: React.FC<{
   const organiser = entry.organiser ? (entry.organiser as User) : undefined;
 
   return (
-    <>
+    <article className="my-8 w-full max-w-2xl px-8 max-xl:mx-auto">
       <HeadlineH1>Programm-Punkt: {entry.title}</HeadlineH1>
       <div>
         <LexicalRichTextSection richTextSection={entry.description} />
@@ -65,7 +65,7 @@ const ScheduleDetailPage: React.FC<{
           </>
         ))}
       </div>
-    </>
+    </article>
   );
 };
 
