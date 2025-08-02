@@ -10,12 +10,12 @@ export const CampScheduleEntryCollection: CollectionConfig = {
     singular: {
       en: 'Camp Schedule Entry',
       de: 'Lager-Programmblock',
-      fr: '',
+      fr: 'Entrée du programme du camp',
     },
     plural: {
       en: 'Camp Schedule Entries',
       de: 'Lager-Programmblöcke',
-      fr: '',
+      fr: 'Entrées du programme du camp',
     },
   },
   admin: {
@@ -30,35 +30,65 @@ export const CampScheduleEntryCollection: CollectionConfig = {
   fields: [
     {
       name: 'title',
-      label: 'Title',
+      label: {
+        en: 'Title',
+        de: 'Titel',
+        fr: 'Titre',
+      },
       type: 'text',
       required: true,
       localized: true,
       admin: {
-        description: 'The title of the entry.',
+        description: {
+          en: 'The title of the entry.',
+          de: 'Der Titel des Eintrags.',
+          fr: "Le titre de l'entrée.",
+        },
       },
     },
     {
       name: 'description',
-      label: 'Description',
+      label: {
+        en: 'Description',
+        de: 'Beschreibung',
+        fr: 'Description',
+      },
       type: 'richText',
       required: true,
       localized: true,
       admin: {
-        description: 'The description of the entry',
+        description: {
+          en: 'The description of the entry',
+          de: 'Die Beschreibung des Eintrags',
+          fr: "La description de l'entrée",
+        },
       },
       editor: mapAnnotationDescriptionLexicalEditorSettings,
     },
     {
       name: 'timeslots',
-      label: 'Time Slots',
+      label: {
+        en: 'Time Slots',
+        de: 'Zeitfenster',
+        fr: 'Créneaux horaires',
+      },
       type: 'array',
-      admin: { description: 'Time slots' },
+      admin: {
+        description: {
+          en: 'Time slots',
+          de: 'Zeitfenster',
+          fr: 'Créneaux horaires',
+        },
+      },
       required: true,
       fields: [
         {
           name: 'date',
-          label: 'Date',
+          label: {
+            en: 'Date',
+            de: 'Datum',
+            fr: 'Date',
+          },
           type: 'date',
           required: true,
           admin: {
@@ -70,11 +100,19 @@ export const CampScheduleEntryCollection: CollectionConfig = {
         },
         {
           name: 'time',
-          label: 'Time',
+          label: {
+            en: 'Time',
+            de: 'Zeit',
+            fr: 'Heure',
+          },
           type: 'text',
           required: true,
           admin: {
-            description: 'Time slots in HH:mm format (e.g., 08:00 - 18:00)',
+            description: {
+              en: 'Time slots in HH:mm format (e.g., 08:00 - 18:00)',
+              de: 'Zeitfenster im HH:mm-Format (z.B. 08:00 - 18:00)',
+              fr: 'Créneaux horaires au format HH:mm (ex : 08:00 - 18:00)',
+            },
           },
           validate: (value: string | string[] | undefined | null): true | string => {
             if (typeof value !== 'string') {
@@ -88,34 +126,61 @@ export const CampScheduleEntryCollection: CollectionConfig = {
     },
     {
       name: 'location',
-      label: 'Location',
+      label: {
+        en: 'Location',
+        de: 'Ort',
+        fr: 'Emplacement',
+      },
       type: 'relationship',
       relationTo: 'camp-map-annotations',
       hasMany: false,
       required: true,
       admin: {
-        description: 'Location of the Schedule Entry',
+        description: {
+          en: 'Location of the Schedule Entry',
+          de: 'Ort des Programmeintrags',
+          fr: "Emplacement de l'entrée du programme",
+        },
         position: 'sidebar',
       },
     },
     {
       name: 'organiser',
-      label: 'Organiser',
+      label: {
+        en: 'Organiser',
+        de: 'Organisator',
+        fr: 'Organisateur',
+      },
       type: 'relationship',
       relationTo: 'users',
       hasMany: false,
       required: false,
-      admin: { description: 'Organiser', position: 'sidebar' },
+      admin: {
+        description: {
+          en: 'Organiser',
+          de: 'Organisator',
+          fr: 'Organisateur',
+        },
+        position: 'sidebar',
+      },
     },
     {
       name: 'participants_min',
-      label: 'Minimum Participants',
+      label: {
+        en: 'Minimum Participants',
+        de: 'Minimale Teilnehmer',
+        fr: 'Participants minimum',
+      },
       required: false,
       type: 'number',
     },
     {
       name: 'participants_max',
-      label: 'Maximum Participants',
+      label: {
+        en: 'Maximum Participants',
+        de: 'Maximale Teilnehmer',
+        fr: 'Participants maximum',
+      },
       required: false,
       type: 'number',
     },
