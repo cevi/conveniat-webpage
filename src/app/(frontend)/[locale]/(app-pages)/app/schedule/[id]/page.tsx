@@ -2,6 +2,7 @@ import { ScheduleEntryForm } from '@/components/scheduleEntry';
 import { LinkComponent } from '@/components/ui/link-component';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
+import { canUserAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import type { CampScheduleEntry, User } from '@/features/payload-cms/payload-types';
 import { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import { auth } from '@/utils/auth-helpers';
@@ -52,10 +53,12 @@ const ScheduleDetailPage: React.FC<{
 
   const isUserOrganiser = user?.uuid === organiser?.id;
 
+  const userCanEdit = isUserOrganiser || canUserAccessAdminPanel({ user });
+
   return (
     <article className="my-8 w-full max-w-2xl px-8 max-xl:mx-auto">
       <HeadlineH1>Programm-Punkt: {entry.title}</HeadlineH1>
-      {isUserOrganiser && <ScheduleEntryForm description={entry.description} locale={locale} />}
+      {userCanEdit && <ScheduleEntryForm description={entry.description} locale={locale} />}
       <div>
         <LexicalRichTextSection richTextSection={entry.description} />
         {organiser && (
