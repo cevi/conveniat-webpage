@@ -1,3 +1,4 @@
+import { ScheduleEntryForm } from '@/components/scheduleEntry';
 import { LinkComponent } from '@/components/ui/link-component';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
@@ -6,17 +7,11 @@ import { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import { auth } from '@/utils/auth-helpers';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import config from '@payload-config';
-import { Edit } from 'lucide-react';
 import { getPayload } from 'payload';
 import type React from 'react';
 
 const formatDate = (date: Date): string => {
   return date.toISOString().split('T')[0] ?? '';
-};
-
-const showEditForm = () => {
-  // TODO.
-  alert('Edit Form called.');
 };
 
 const ScheduleDetailPage: React.FC<{
@@ -60,12 +55,7 @@ const ScheduleDetailPage: React.FC<{
   return (
     <article className="my-8 w-full max-w-2xl px-8 max-xl:mx-auto">
       <HeadlineH1>Programm-Punkt: {entry.title}</HeadlineH1>
-      {isUserOrganiser && (
-        <div className="inline-center flex" onClick={showEditForm}>
-          Programm Punkt bearbeiten
-          <Edit />
-        </div>
-      )}
+      {isUserOrganiser && <ScheduleEntryForm description={entry.description} locale={locale} />}
       <div>
         <LexicalRichTextSection richTextSection={entry.description} />
         {organiser && (
