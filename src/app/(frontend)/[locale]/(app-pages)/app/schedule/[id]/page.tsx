@@ -2,13 +2,21 @@ import { LinkComponent } from '@/components/ui/link-component';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
 import type { CampScheduleEntry, User } from '@/features/payload-cms/payload-types';
+import { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
+import { auth } from '@/utils/auth-helpers';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import config from '@payload-config';
+import { Edit } from 'lucide-react';
 import { getPayload } from 'payload';
 import type React from 'react';
 
 const formatDate = (date: Date): string => {
   return date.toISOString().split('T')[0] ?? '';
+};
+
+const showEditForm = () => {
+  // TODO.
+  alert('Edit Form called.');
 };
 
 const ScheduleDetailPage: React.FC<{
@@ -18,6 +26,10 @@ const ScheduleDetailPage: React.FC<{
 }> = async ({ params }) => {
   const { id: scheduleId } = await params;
   const payload = await getPayload({ config });
+
+  const session = await auth();
+  const user = session?.user as HitobitoNextAuthUser;
+
   const locale = await getLocaleFromCookies();
 
   const scheduleEntries = await payload.find({
@@ -43,9 +55,17 @@ const ScheduleDetailPage: React.FC<{
 
   const organiser = entry.organiser ? (entry.organiser as User) : undefined;
 
+  const isUserOrganiser = user?.uuid === organiser?.id;
+
   return (
     <article className="my-8 w-full max-w-2xl px-8 max-xl:mx-auto">
       <HeadlineH1>Programm-Punkt: {entry.title}</HeadlineH1>
+      {isUserOrganiser && (
+        <div className="inline-center flex" onClick={showEditForm}>
+          Programm Punkt bearbeiten
+          <Edit />
+        </div>
+      )}
       <div>
         <LexicalRichTextSection richTextSection={entry.description} />
         {organiser && (
@@ -58,11 +78,9 @@ const ScheduleDetailPage: React.FC<{
           </p>
         )}
         {entry.timeslots.map((timeslot) => (
-          <>
-            <p key={timeslot.id}>
-              {formatDate(new Date(timeslot.date))}: <span>{timeslot.time}</span>
-            </p>
-          </>
+          <p key={timeslot.id}>
+            {formatDate(new Date(timeslot.date))}: <span>{timeslot.time}</span>
+          </p>
         ))}
       </div>
     </article>
