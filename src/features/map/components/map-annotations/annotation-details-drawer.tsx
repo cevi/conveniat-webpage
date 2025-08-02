@@ -46,20 +46,23 @@ export const AnnotationDetailsDrawer: React.FC<{
   locale: Locale;
 }> = ({ closeDrawer, annotation, schedule, locale }) => {
   return (
-    <div className="fixed right-0 bottom-[80px] left-0 z-[999] h-[50vh] overflow-hidden rounded-t-2xl bg-white shadow-[0px_-4px_38px_-19px_rgba(0,_0,_0,_0.1)] xl:left-[480px]">
-      <div className="flex h-full flex-col overflow-y-auto px-4 pt-6">
+    <div className="fixed right-0 bottom-[80px] left-0 z-[999] h-[50vh] overflow-hidden rounded-t-2xl bg-white shadow-[0px_-4px_38px_-19px_rgba(1,1,1,0.5)] xl:left-[480px]">
+      <div className="flex h-full flex-col overflow-y-auto px-4">
         <div className="relative">
-          <button
-            className="absolute top-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800"
-            onClick={closeDrawer}
-            aria-label="Close"
-          >
-            <X size={20} />
-          </button>
-          <h2 className="p-4 pr-8 text-xl font-bold">{annotation.title}</h2>
+          <div className="sticky top-0 border-b-2 border-gray-100 bg-white pt-6">
+            <button
+              className="absolute top-8 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800"
+              onClick={closeDrawer}
+              aria-label="Close"
+            >
+              <X size={20} />
+            </button>
+            <h2 className="p-4 pr-8 text-xl font-bold">{annotation.title}</h2>
+          </div>
+
           {/* share button */}
           {typeof navigator.share === 'function' && (
-            <div className="border-b border-gray-50 p-4">
+            <div className="border-b-2 border-gray-100 p-4">
               <LinkComponent
                 href=""
                 hideExternalIcon={false}
@@ -75,17 +78,19 @@ export const AnnotationDetailsDrawer: React.FC<{
               </LinkComponent>
             </div>
           )}
+
           {/* Description */}
-          <div className="border-b border-gray-50 p-4">
+          <div className="border-b-2 border-gray-100 p-4">
             <ErrorBoundary fallback={<div>Error loading annotation</div>}>
               <LexicalRichTextSection
                 richTextSection={annotation.description as SerializedEditorState}
               />
             </ErrorBoundary>
           </div>
+
           {/* Opening Hours */}
           {annotation.openingHours && annotation.openingHours.length > 0 && (
-            <div className="border-b border-gray-50 p-4">
+            <div className="border-b-2 border-gray-100 p-4">
               <div className="mb-3 flex items-center gap-2">
                 <Clock size={18} className="text-gray-600" />
                 <h3 className="font-semibold text-gray-900">Opening Hours</h3>
@@ -103,8 +108,9 @@ export const AnnotationDetailsDrawer: React.FC<{
               </ul>
             </div>
           )}
+
           {/* Images */}
-          <div className="border-b border-gray-50 p-4">
+          <div className="border-b-2 border-gray-100 p-4">
             <div className="flex gap-2 overflow-x-auto pb-2">
               {annotation.images.length > 0 &&
                 annotation.images.map((image, index) => (
