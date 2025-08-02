@@ -1,3 +1,4 @@
+import { AppAdvertisement } from '@/components/app-advertisement';
 import { environmentVariables } from '@/config/environment-variables';
 import { MapLibreRenderer } from '@/features/map/components/map-renderer-wrapper';
 import type {
@@ -90,15 +91,20 @@ export const CampMapComponent: React.FC = async () => {
     );
 
   return (
-    <div className="fixed top-[60px] left-0 h-[calc(100dvh-60px)] w-screen pb-20">
-      <MapLibreRenderer
-        initialMapPose={initialMapPoseObergoms}
-        ceviLogoMarkers={[]}
-        campMapAnnotationPoints={campMapAnnotationPoints}
-        campMapAnnotationPolygons={campMapAnnotationPolygons}
-        validateStyle={environmentVariables.NODE_ENV !== 'production'}
-        schedules={schedulesPerAnnotations}
-      />
-    </div>
+    <>
+      <div className="fixed top-[60px] left-0 h-[calc(100dvh-60px)] w-screen pb-20">
+        <MapLibreRenderer
+          initialMapPose={initialMapPoseObergoms}
+          ceviLogoMarkers={[]}
+          campMapAnnotationPoints={campMapAnnotationPoints}
+          campMapAnnotationPolygons={campMapAnnotationPolygons}
+          validateStyle={environmentVariables.NODE_ENV !== 'production'}
+          schedules={schedulesPerAnnotations}
+        />
+      </div>
+
+      {/* advertisement for app, hidden if already in app mode */}
+      <AppAdvertisement />
+    </>
   );
 };
