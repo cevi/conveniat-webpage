@@ -25,9 +25,9 @@ const shareLocationCallback = async (
   locale: Locale,
   annotation: CampMapAnnotationPoint | CampMapAnnotationPolygon,
 ): Promise<void> => {
-  const data = {
+  const data: ShareData = {
     url: environmentVariables.NEXT_PUBLIC_APP_HOST_URL + '/app/map?locationId=' + annotation.id,
-    title: 'conveniat27',
+    title: 'conveniat27 - ' + annotation.title,
     text: annotation.title,
   };
   try {
