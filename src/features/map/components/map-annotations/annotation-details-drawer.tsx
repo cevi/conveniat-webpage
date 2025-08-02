@@ -33,7 +33,7 @@ const shareLocationCallback = async (
   try {
     await navigator.share(data);
   } catch {
-    alert(shareLocationError[locale]);
+    console.error(shareLocationError[locale]);
   }
 };
 
