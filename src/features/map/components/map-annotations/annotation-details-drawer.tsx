@@ -1,5 +1,3 @@
-'use client';
-
 import { LinkComponent } from '@/components/ui/link-component';
 import { environmentVariables } from '@/config/environment-variables';
 import { AnnotationScheduleTableComponent } from '@/features/map/components/map-annotations/annotation-schedule-table-component';
