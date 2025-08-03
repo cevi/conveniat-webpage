@@ -136,7 +136,10 @@ export const AnnotationDetailsDrawer: React.FC<{
         <div className="h-1 w-20 rounded-full bg-gray-300"></div>
       </div>
 
-      <div className="flex h-full flex-col overflow-y-auto px-4 pt-4 select-none">
+      <div
+        className="flex h-full flex-col overflow-y-auto px-4 pt-4 select-none"
+        onDragStart={(event) => event.preventDefault()}
+      >
         <div className="relative">
           <AnnotationDrawerHeader
             closeDrawer={closeDrawer}
