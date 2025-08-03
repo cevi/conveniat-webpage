@@ -3,6 +3,7 @@
 import type { CampMapAnnotation } from '@/features/payload-cms/payload-types';
 import type { FilterState } from '@/features/schedule/components/search-filter-bar';
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
+import { convertLexicalToPlaintext } from '@payloadcms/richtext-lexical/plaintext';
 import { useCallback, useMemo, useState } from 'react';
 
 export const useScheduleFilters = (
@@ -57,7 +58,9 @@ export const useScheduleFilters = (
         // Search in description (assuming it's a rich text object)
         let descriptionMatch = false;
         if (typeof entry.description === 'object') {
-          const descriptionText = JSON.stringify(entry.description).toLowerCase();
+          const descriptionText = convertLexicalToPlaintext({
+            data: entry.description,
+          }).toLowerCase();
           descriptionMatch = descriptionText.includes(searchLower);
         }
 

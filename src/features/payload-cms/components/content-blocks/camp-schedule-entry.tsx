@@ -29,11 +29,7 @@ export const CampScheduleEntryContentBlock: React.FC<CampScheduleEntryType> = as
         {location ? <> - {location.title}</> : <></>}
       </h3>
       {scheduleEntries.map((entry) => {
-        return (
-          <>
-            <p key={entry.id}>{entry.title}</p>
-          </>
-        );
+        return <p key={entry.id}>{entry.title}</p>;
       })}
     </div>
   );

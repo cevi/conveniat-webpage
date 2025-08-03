@@ -23,7 +23,7 @@ export const useSchedule = (
     toggleStarred: (entryId: string) => void;
   };
 } => {
-  const [currentDate, setCurrentDate] = useState(new Date('2025-02-23'));
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [expandedEntries, setExpandedEntries] = useState(new Set<string>());
   const [starredEntries, setStarredEntries] = useState(new Set<string>());
   const [carouselStartIndex, setCarouselStartIndex] = useState(0);
