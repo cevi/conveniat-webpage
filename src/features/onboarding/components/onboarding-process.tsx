@@ -86,7 +86,7 @@ export const OnboardingProcess: React.FC = () => {
   };
 
   const acceptCookiesCallback = (): void => {
-    router.prefetch('/');
+    router.prefetch('/app/dashboard');
     setOnboardingStep(OnboardingStep.Login);
   };
 
@@ -101,7 +101,7 @@ export const OnboardingProcess: React.FC = () => {
 
     if (onboardingStep === OnboardingStep.Loading) {
       console.log('Redirect to Homepage');
-      router.push('/');
+      router.push('/app/dashboard');
     } else if (
       onboardingStep === OnboardingStep.Login &&
       Cookies.get(Cookie.HAS_LOGGED_IN) === 'true'

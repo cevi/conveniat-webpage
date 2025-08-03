@@ -1,4 +1,4 @@
-import { Calendar, MapIcon, MessageSquare, Newspaper, Siren } from 'lucide-react';
+import { Calendar, House, MapIcon, MessageSquare, Siren } from 'lucide-react';
 
 export const footerNavBarMenuEntries = [
   {
@@ -21,13 +21,13 @@ export const footerNavBarMenuEntries = [
     color: 'red',
   },
   {
-    icon: Newspaper,
+    icon: House,
     label: {
-      de: 'Webseite',
-      en: 'Website',
-      fr: 'Site web',
+      de: 'Dashboard',
+      en: 'Dashboard',
+      fr: 'Dashboard',
     },
-    href: '/',
+    href: '/app/dashboard',
   },
   {
     icon: MapIcon,
