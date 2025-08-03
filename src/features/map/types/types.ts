@@ -27,7 +27,7 @@ export interface CampScheduleEntry {
   id: string;
   title: string;
   description: CampScheduleEntryPayloadDocumentType['description'];
-  timeslots: CampScheduleEntryPayloadDocumentType['timeslot'];
+  timeslot: CampScheduleEntryPayloadDocumentType['timeslot'];
   location: {
     id: string;
   };

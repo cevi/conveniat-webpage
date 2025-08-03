@@ -5,7 +5,17 @@ import type { FilterState } from '@/features/schedule/components/search-filter-b
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
 import { useCallback, useMemo, useState } from 'react';
 
-export const useScheduleFilters = (entries: CampScheduleEntryFrontendType[]) => {
+export const useScheduleFilters = (
+  entries: CampScheduleEntryFrontendType[],
+): {
+  filters: FilterState;
+  filteredEntries: CampScheduleEntryFrontendType[];
+  availableLocations: CampMapAnnotation[];
+  availableCategories: string[];
+  hasActiveFilters: boolean;
+  handleFiltersChange: (newFilters: FilterState) => void;
+  clearFilters: () => void;
+} => {
   const [filters, setFilters] = useState<FilterState>({
     searchText: '',
     selectedLocations: [],
@@ -20,12 +30,12 @@ export const useScheduleFilters = (entries: CampScheduleEntryFrontendType[]) => 
     for (const entry of entries) {
       // Extract location
       const location = entry.location as CampMapAnnotation;
-      if (location && location.id && location.title) {
+      if (location.id !== '' && location.title !== '') {
         locationMap.set(location.id, location);
       }
 
       // Extract category (prepare for future category field)
-      if (entry.category) {
+      if (entry.category != undefined) {
         categorySet.add(entry.category);
       }
     }
@@ -40,13 +50,13 @@ export const useScheduleFilters = (entries: CampScheduleEntryFrontendType[]) => 
   const filteredEntries = useMemo(() => {
     return entries.filter((entry) => {
       // Text search in title and description
-      if (filters.searchText) {
+      if (filters.searchText !== '') {
         const searchLower = filters.searchText.toLowerCase();
         const titleMatch = entry.title.toLowerCase().includes(searchLower);
 
         // Search in description (assuming it's a rich text object)
         let descriptionMatch = false;
-        if (entry.description && typeof entry.description === 'object') {
+        if (typeof entry.description === 'object') {
           const descriptionText = JSON.stringify(entry.description).toLowerCase();
           descriptionMatch = descriptionText.includes(searchLower);
         }
@@ -60,7 +70,7 @@ export const useScheduleFilters = (entries: CampScheduleEntryFrontendType[]) => 
       if (filters.selectedLocations.length > 0) {
         const entryLocation = entry.location as CampMapAnnotation;
         const locationMatch = filters.selectedLocations.some(
-          (selectedLocation) => selectedLocation.id === entryLocation?.id,
+          (selectedLocation) => selectedLocation.id === entryLocation.id,
         );
         if (!locationMatch) {
           return false;
@@ -68,14 +78,10 @@ export const useScheduleFilters = (entries: CampScheduleEntryFrontendType[]) => 
       }
 
       // Category filter (prepare for future category field)
-      if (
-        filters.selectedCategory &&
-        (!entry.category || entry.category !== filters.selectedCategory)
-      ) {
-        return false;
-      }
-
-      return true;
+      return !(
+        filters.selectedCategory !== '' &&
+        (entry.category == undefined || entry.category !== filters.selectedCategory)
+      );
     });
   }, [entries, filters]);
 
@@ -92,7 +98,11 @@ export const useScheduleFilters = (entries: CampScheduleEntryFrontendType[]) => 
   }, []);
 
   const hasActiveFilters = useMemo(() => {
-    return filters.searchText || filters.selectedLocations.length > 0 || filters.selectedCategory;
+    return (
+      filters.searchText !== '' ||
+      filters.selectedLocations.length > 0 ||
+      filters.selectedCategory !== ''
+    );
   }, [filters]);
 
   return {

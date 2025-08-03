@@ -54,7 +54,7 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
         <Input
           placeholder="Search by title or description..."
           value={filters.searchText}
-          onChange={(e) => handleSearchChange(e.target.value)}
+          onChange={(event) => handleSearchChange(event.target.value)}
           className="pl-10"
         />
       </div>
