@@ -50,7 +50,7 @@ const adjustingSearchTermsText: StaticTranslationString = {
 
 const loadingPlaceholderText: StaticTranslationString = {
   en: 'Loading your conversations...',
-  de: 'Lade deine Unterhaltung..en.',
+  de: 'Lade deine Unterhaltungen...',
   fr: 'Chargement de vos conversations...',
 };
 
