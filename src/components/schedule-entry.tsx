@@ -15,7 +15,7 @@ const showEditForm = (): void => {
   alert('Edit Form called.');
 };
 
-export const ScheduleEntryForm: React.FC<ScheduleEntryData> = async ({}) => {
+export const ScheduleEntryForm: React.FC<ScheduleEntryData> = () => {
   return (
     <>
       <div className="inline-center flex cursor-pointer" onClick={showEditForm}>
