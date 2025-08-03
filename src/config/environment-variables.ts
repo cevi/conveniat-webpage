@@ -8,6 +8,7 @@ export const environmentVariables = createEnv({
    */
   server: {
     DATABASE_URI: z.string().url(),
+    CHAT_DATABASE_URL: z.string().url(),
     PAYLOAD_SECRET: z.string().min(5),
     APP_HOST_URL: z.string().url(),
     NODE_ENV: z.string().default('development'),

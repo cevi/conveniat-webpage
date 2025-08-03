@@ -23,11 +23,13 @@ export const changeMessageStatus = async (message: ChangeMessageStatus): Promise
   }
 
   // Update the message event in the database
-  await prisma.messageEvent.create({
-    data: {
-      messageId: message.messageId,
-      eventType: eventType,
-      userId: user.uuid,
-    },
-  });
+  await prisma.messageEvent
+    .create({
+      data: {
+        messageId: message.messageId,
+        eventType: eventType,
+        userId: user.uuid,
+      },
+    })
+    .catch(() => ({}));
 };
