@@ -1,6 +1,8 @@
 import { ScheduleEntryForm } from '@/components/schedule-entry';
+import { Button } from '@/components/ui/buttons/button';
 import { LinkComponent } from '@/components/ui/link-component';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
+import { SubheadingH3 } from '@/components/ui/typography/subheading-h3';
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
 import { canUserAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import type { CampScheduleEntry, User } from '@/features/payload-cms/payload-types';
@@ -8,11 +10,16 @@ import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import { auth } from '@/utils/auth-helpers';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import config from '@payload-config';
+import Link from 'next/link';
 import { getPayload } from 'payload';
 import type React from 'react';
 
 const formatDate = (date: Date): string => {
   return date.toISOString().split('T')[0] ?? '';
+};
+
+const createChatWithOrganiser = (organiser: User): string => {
+  return `/app/chat/new-chat-with-user/${organiser.id}`;
 };
 
 const ScheduleDetailPage: React.FC<{
@@ -63,13 +70,20 @@ const ScheduleDetailPage: React.FC<{
       <div>
         <LexicalRichTextSection richTextSection={entry.description} />
         {organiser && (
-          <p>
-            Schreibe eine Mail an{' '}
-            <LinkComponent className="font-bold text-red-600" href={`mailto:${organiser.email}`}>
-              {organiser.fullName}
-            </LinkComponent>
-            .
-          </p>
+          <div className="my-8">
+            <SubheadingH3>Kontakt mit Organisier</SubheadingH3>
+            <Button className="bg-conveniat-green hover:bg-conveniat-green-dark text-white">
+              <Link href={createChatWithOrganiser(organiser)}>
+                Chat mit {organiser.fullName} starten
+              </Link>
+            </Button>
+            <p className="mt-2 text-gray-400">
+              Mailadresse:{' '}
+              <LinkComponent className="font-bold" href={`mailto:${organiser.email}`}>
+                {organiser.email}
+              </LinkComponent>
+            </p>
+          </div>
         )}
         <p>
           {formatDate(new Date(entry.timeslot.date))}: <span>{entry.timeslot.time}</span>
