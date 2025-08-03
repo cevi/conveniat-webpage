@@ -71,11 +71,9 @@ const ScheduleDetailPage: React.FC<{
             .
           </p>
         )}
-        {entry.timeslots.map((timeslot) => (
-          <p key={timeslot.id}>
-            {formatDate(new Date(timeslot.date))}: <span>{timeslot.time}</span>
-          </p>
-        ))}
+        <p>
+          {formatDate(new Date(entry.timeslot.date))}: <span>{entry.timeslot.time}</span>
+        </p>
       </div>
     </article>
   );

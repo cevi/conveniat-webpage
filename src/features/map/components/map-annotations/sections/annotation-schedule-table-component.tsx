@@ -27,21 +27,16 @@ export const AnnotationScheduleTableComponent: React.FC<{
       </div>
       <div className="space-y-3">
         {schedule.map((entry) => (
-          <div key={entry.id} className="rounded-lg border border-gray-200 p-3">
-            <h4 className="font-medium text-gray-900">{entry.title}</h4>
-            <div className="mt-1 text-sm text-gray-700">
-              <ErrorBoundary fallback={<span>Error loading schedule entry.</span>}>
-                <LexicalRichTextSection
-                  richTextSection={entry.description as SerializedEditorState}
-                />
-              </ErrorBoundary>
-            </div>
-            <p className="mt-1 text-sm text-gray-700">{entry.participants_min}</p>
-            <Link
-              href={`/app/schedule/${entry.id}`}
-              className="mt-3 inline-flex items-center rounded-md border border-transparent bg-blue-100 px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-blue-200 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
-            >
-              Read More
+          <div key={entry.id} className="cursor-pointer rounded-lg border border-gray-200 p-3">
+            <Link href={`/app/schedule/${entry.id}`}>
+              <h4 className="font-medium text-gray-900">{entry.title}</h4>
+              <div className="mt-1 text-sm text-gray-700">
+                <ErrorBoundary fallback={<span>Error loading schedule entry.</span>}>
+                  <LexicalRichTextSection
+                    richTextSection={entry.description as SerializedEditorState}
+                  />
+                </ErrorBoundary>
+              </div>
             </Link>
           </div>
         ))}
