@@ -29,9 +29,9 @@ export const AnnotationDrawerHeader: React.FC<AnnotationDrawerHeaderProperties> 
   };
 
   return (
-    <div className="sticky top-0 border-b-2 border-gray-100 bg-white pt-6">
+    <div className="sticky top-0 border-b-2 border-gray-100 bg-white pt-4">
       {/* Absolute positioned flex container for action icons */}
-      <div className="absolute top-6 right-2 flex items-center space-x-2">
+      <div className="absolute top-3 right-2 flex items-center space-x-2">
         {/* Heart Icon to star the annotation */}
         <StarButton id={''} toggleStar={toggleStar} isStared={isStared} />
 
