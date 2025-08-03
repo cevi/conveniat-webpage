@@ -2,6 +2,7 @@ import type { CampScheduleEntry } from '@/features/map/types/types';
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
+import Link from 'next/link';
 import React from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 
@@ -51,12 +52,12 @@ export const AnnotationScheduleTableComponent: React.FC<{
               </ErrorBoundary>
             </div>
             <p className="mt-1 text-sm text-gray-700">{entry.participants_min}</p>
-            <a
+            <Link
               href={`/app/schedule/${entry.id}`}
               className="mt-3 inline-flex items-center rounded-md border border-transparent bg-blue-100 px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-blue-200 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
             >
               Read More
-            </a>
+            </Link>
           </div>
         ))}
       </div>
