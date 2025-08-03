@@ -37,6 +37,8 @@ export const getScheduleEntries = async (
   const scheduleEntries = await payload.find({
     collection: 'camp-schedule-entry',
     locale: locale,
+    // here we explicitly set the fallback locale to 'de' (German)
+    fallbackLocale: 'de',
     depth: 1,
     where: where,
   });
