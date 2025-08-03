@@ -33,9 +33,7 @@ export const ScheduleComponent: React.FC<{
   // Apply date filter to the already filtered entries
   const currentProgram = useMemo(() => {
     const currentDateString = currentDate.toISOString().split('T')[0] ?? '';
-    return filteredEntries.filter((entry) =>
-      entry.timeslots.some((slot) => slot.date.startsWith(currentDateString)),
-    );
+    return filteredEntries.filter((entry) => entry.timeslot.date.startsWith(currentDateString));
   }, [filteredEntries, currentDate]);
 
   const hasProgram = currentProgram.length > 0;

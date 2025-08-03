@@ -17,7 +17,7 @@ export const campScheduleEntryBlock: Block = {
       admin: {
         date: {
           pickerAppearance: 'dayOnly',
-          displayFormat: 'YYYY-MM-dd',
+          displayFormat: 'yyyy-MM-dd',
         },
       },
     },

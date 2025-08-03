@@ -32,7 +32,7 @@ export const useSchedule = (
   const allDates = useMemo(() => {
     const uniqueDates = new Map<string, Date>();
     for (const date of scheduleEntries
-      .flatMap((entry) => entry.timeslots)
+      .flatMap((entry) => entry.timeslot)
       .map((timeslot) => new Date(timeslot.date))
       .sort((a, b) => a.getTime() - b.getTime())) {
       uniqueDates.set(date.toDateString(), date);
@@ -53,8 +53,8 @@ export const useSchedule = (
     const programs: { [id: string]: CampScheduleEntryFrontendType[] } = {};
     for (const date of allDates) {
       const dateString = formatDate(date);
-      programs[dateString] = scheduleEntries.filter((entry) =>
-        entry.timeslots.some((timeslot) => formatDate(new Date(timeslot.date)) === dateString),
+      programs[dateString] = scheduleEntries.filter(
+        (entry) => formatDate(new Date(entry.timeslot.date)) === dateString,
       );
     }
     return programs;

@@ -1577,16 +1577,15 @@ export interface CampScheduleEntry {
     [k: string]: unknown;
   };
   /**
-   * Time slots
+   * Time slots for the schedule entry
    */
-  timeslots: {
+  timeslot: {
     date: string;
     /**
      * Time slots in HH:mm format (e.g., 08:00 - 18:00)
      */
     time: string;
-    id?: string | null;
-  }[];
+  };
   /**
    * Location of the Schedule Entry
    */
@@ -2307,12 +2306,11 @@ export interface CampMapAnnotationsSelect<T extends boolean = true> {
 export interface CampScheduleEntrySelect<T extends boolean = true> {
   title?: T;
   description?: T;
-  timeslots?:
+  timeslot?:
     | T
     | {
         date?: T;
         time?: T;
-        id?: T;
       };
   location?: T;
   organiser?: T;

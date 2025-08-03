@@ -5,11 +5,10 @@ export interface CampScheduleEntryFrontendType {
   id: string;
   title: string;
   description: SerializedEditorState;
-  timeslots: {
+  timeslot: {
     date: string;
     time: string;
-    id: string;
-  }[];
+  };
   location: string | CampMapAnnotation;
   participants_min?: number | null;
   participants_max?: number | null;

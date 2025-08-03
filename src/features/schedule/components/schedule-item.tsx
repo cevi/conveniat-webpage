@@ -9,7 +9,7 @@ import type React from 'react';
 
 // Enhanced helper to format date and time more elegantly
 const formatDateTime = (
-  date: Date,
+  date: string,
   time: string,
 ): {
   formattedDate: string;
@@ -23,26 +23,6 @@ const formatDateTime = (
   });
 
   return { formattedDate, time };
-};
-
-// Group timeslots by date and sort times for better presentation
-const groupTimeslotsByDate = (
-  timeslots: Array<{ id: string; date: string; time: string }>,
-): Array<{ id: string; date: Date; time: string }>[] => {
-  const groups: Record<string, Array<{ id: string; date: Date; time: string }>> = {};
-
-  for (const slot of timeslots) {
-    const date = new Date(slot.date);
-    // Ensure we're using the correct date by normalizing to start of day
-    const normalizedDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    const dateKey = normalizedDate.toISOString().split('T')[0] ?? '';
-
-    groups[dateKey] ??= [];
-    groups[dateKey].push({ ...slot, date: normalizedDate });
-  }
-
-  // Sort each group by time and return
-  return Object.values(groups).map((group) => group.sort((a, b) => a.time.localeCompare(b.time)));
 };
 
 interface ScheduleItemProperties {
@@ -63,10 +43,6 @@ export const ScheduleItem: React.FC<ScheduleItemProperties> = ({
   const { isStarred, toggleStar } = useStar();
   const location = entry.location as CampMapAnnotation;
   const currentlyStarred = isStarred(entry.id);
-  const groupedTimeslots = groupTimeslotsByDate(entry.timeslots);
-
-  const timeslotsToShow = groupedTimeslots;
-  const showDates = isExpanded && groupedTimeslots.length > 1;
 
   return (
     <div
@@ -103,42 +79,29 @@ export const ScheduleItem: React.FC<ScheduleItemProperties> = ({
               )}
 
               {/* Time slots */}
-              {timeslotsToShow.map((dateGroup, index) => {
-                const firstSlot = dateGroup[0];
-                if (!firstSlot) return <></>;
 
-                const { formattedDate } = formatDateTime(firstSlot.date, firstSlot.time);
-
-                return (
-                  <div
-                    key={index}
-                    className={`flex items-center gap-3 text-sm ${isExpanded ? '' : 'flex-shrink-0'}`}
-                  >
-                    {/* Date Badge - only show if expanded and multiple dates */}
-                    {showDates && (
-                      <div className="flex flex-shrink-0 items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1 text-blue-700">
-                        <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
-                        <span className="font-medium whitespace-nowrap">{formattedDate}</span>
-                      </div>
-                    )}
-
-                    {/* Time Slots */}
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <Clock className="h-3.5 w-3.5 flex-shrink-0 text-gray-500" />
-                      <div className="flex flex-wrap gap-1.5">
-                        {dateGroup.map((slot) => (
-                          <span
-                            key={slot.id}
-                            className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium whitespace-nowrap text-gray-700"
-                          >
-                            {slot.time}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
+              <div
+                className={`flex items-center gap-3 text-sm ${isExpanded ? '' : 'flex-shrink-0'}`}
+              >
+                {
+                  <div className="flex flex-shrink-0 items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1 text-blue-700">
+                    <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
+                    <span className="font-medium whitespace-nowrap">
+                      {formatDateTime(entry.timeslot.date, entry.timeslot.time).formattedDate}
+                    </span>
                   </div>
-                );
-              })}
+                }
+
+                {/* Time Slots */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5 flex-shrink-0 text-gray-500" />
+                  <div className="flex flex-wrap gap-1.5">
+                    <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium whitespace-nowrap text-gray-700">
+                      {entry.timeslot.time}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Location in expanded view */}

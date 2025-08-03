@@ -66,18 +66,18 @@ export const CampScheduleEntryCollection: CollectionConfig = {
       editor: mapAnnotationDescriptionLexicalEditorSettings,
     },
     {
-      name: 'timeslots',
+      name: 'timeslot',
       label: {
-        en: 'Time Slots',
+        en: 'Time Slot',
         de: 'Zeitfenster',
-        fr: 'Créneaux horaires',
+        fr: 'Créneau horaire',
       },
-      type: 'array',
+      type: 'group',
       admin: {
         description: {
-          en: 'Time slots',
-          de: 'Zeitfenster',
-          fr: 'Créneaux horaires',
+          en: 'Time slots for the schedule entry',
+          de: 'Zeitfenster für den Programmeintrag',
+          fr: 'Créneaux horaires pour l’entrée du programme',
         },
       },
       required: true,
@@ -94,7 +94,7 @@ export const CampScheduleEntryCollection: CollectionConfig = {
           admin: {
             date: {
               pickerAppearance: 'dayOnly',
-              displayFormat: 'YYYY-MM-dd',
+              displayFormat: 'yyyy-MM-dd',
             },
           },
         },

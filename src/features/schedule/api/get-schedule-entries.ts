@@ -19,6 +19,8 @@ export const getScheduleEntries = async (
     fallbackLocale: 'de',
     depth: 1,
     where: where,
+    // TODO: can we do that better?
+    limit: 99_999, // Set a high limit to fetch all entries
   });
 
   return scheduleEntries.docs;
