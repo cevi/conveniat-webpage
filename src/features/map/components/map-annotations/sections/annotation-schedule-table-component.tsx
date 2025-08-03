@@ -20,7 +20,7 @@ export const AnnotationScheduleTableComponent: React.FC<{
   if (!schedule || schedule.length === 0) return <></>;
 
   return (
-    <div className="border-b border-gray-50 p-4">
+    <div className="border-b-2 border-gray-100 p-4">
       <div className="mb-3 flex items-center gap-2">
         <Calendar className="h-4 w-4 text-gray-500" />
         <h3 className="font-semibold text-gray-900">{scheduleTableTitle[locale]}</h3>

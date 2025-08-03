@@ -1,19 +1,18 @@
-import { LinkComponent } from '@/components/ui/link-component';
 import { environmentVariables } from '@/config/environment-variables';
-import { AnnotationScheduleTableComponent } from '@/features/map/components/map-annotations/annotation-schedule-table-component';
+import { AnnotationDrawerHeader } from '@/features/map/components/map-annotations/drawer-header';
+import { AnnotationScheduleTableComponent } from '@/features/map/components/map-annotations/sections/annotation-schedule-table-component';
+import { AnnotationDescriptionSection } from '@/features/map/components/map-annotations/sections/description-section';
+import { AnnotationForumAndReportSection } from '@/features/map/components/map-annotations/sections/forum-and-report-section';
+import { AnnotationImagesSection } from '@/features/map/components/map-annotations/sections/image-section';
+import { AnnotationOpeningHoursSection } from '@/features/map/components/map-annotations/sections/opening-hous-section';
 import type {
   CampMapAnnotationPoint,
   CampMapAnnotationPolygon,
   CampScheduleEntry,
 } from '@/features/map/types/types';
-import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
-import { getImageAltInLocale } from '@/features/payload-cms/payload-cms/utils/images-meta-fields';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
-import { Clock, Flag, MessageCircleQuestion, MessageSquare, Share2, X } from 'lucide-react';
-import Image from 'next/image';
-import React, { Suspense } from 'react';
-import { ErrorBoundary } from 'react-error-boundary';
+import type React from 'react';
 
 const shareLocationError: StaticTranslationString = {
   de: 'Dein Gerät unterstützt die Web Share API nicht.',
@@ -47,111 +46,24 @@ export const AnnotationDetailsDrawer: React.FC<{
     <div className="fixed right-0 bottom-[80px] left-0 z-[999] h-[50vh] overflow-hidden rounded-t-2xl bg-white shadow-[0px_-4px_38px_-19px_rgba(1,1,1,0.5)] xl:left-[480px]">
       <div className="flex h-full flex-col overflow-y-auto px-4">
         <div className="relative">
-          <div className="sticky top-0 border-b-2 border-gray-100 bg-white pt-6">
-            <button
-              className="absolute top-8 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-red-100 text-red-600 hover:bg-gray-200 hover:text-gray-800"
-              onClick={closeDrawer}
-              aria-label="Close"
-            >
-              <X size={20} />
-            </button>
-            {typeof navigator.share === 'function' && (
-              <div className="absolute top-8 right-12 flex h-8 w-8 items-center justify-center rounded-full bg-green-50 text-green-600 hover:bg-gray-200 hover:text-gray-800">
-                <LinkComponent
-                  href=""
-                  hideExternalIcon={false}
-                  onClick={(event) => {
-                    event.preventDefault();
-                    void shareLocationCallback(locale, annotation);
-                  }}
-                >
-                  <Share2 aria-hidden="true" className="size-4" />
-                </LinkComponent>
-              </div>
-            )}
-            <h2 className="text-conveniat-green p-4 pr-8 text-xl font-bold">{annotation.title}</h2>
-          </div>
+          <AnnotationDrawerHeader
+            closeDrawer={closeDrawer}
+            annotation={annotation}
+            locale={locale}
+            shareLocationCallback={shareLocationCallback}
+          />
 
-          {/* Description */}
-          <div className="border-b-2 border-gray-100 p-4">
-            <ErrorBoundary fallback={<div>Error loading annotation</div>}>
-              <LexicalRichTextSection
-                richTextSection={annotation.description as SerializedEditorState}
-              />
-            </ErrorBoundary>
-          </div>
+          <AnnotationDescriptionSection
+            description={annotation.description as SerializedEditorState}
+          />
 
-          {/* Opening Hours */}
-          {annotation.openingHours && annotation.openingHours.length > 0 && (
-            <div className="border-b-2 border-gray-100 p-4">
-              <div className="mb-3 flex items-center gap-2">
-                <Clock size={18} className="text-gray-600" />
-                <h3 className="font-semibold text-gray-900">Opening Hours</h3>
-              </div>
-              <ul className="list-disc pl-5">
-                {annotation.openingHours.map((entry, index) => (
-                  <li key={index} className="text-gray-700">
-                    {/* eslint-disable-next-line @typescript-eslint/strict-boolean-expressions */}
-                    {entry.day
-                      ? `${entry.day.charAt(0).toUpperCase() + entry.day.slice(1)}: `
-                      : 'Daily: '}
-                    {entry.time}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+          <AnnotationOpeningHoursSection openingHours={annotation.openingHours} />
 
-          {/* Render Related Images */}
-          {annotation.images.length > 0 && (
-            <div className="border-b-2 border-gray-100 p-4">
-              <div className="flex gap-2 overflow-x-auto pb-2">
-                {annotation.images.map((image, index) => (
-                  <Suspense
-                    key={index}
-                    fallback={<div className="h-24 w-24 rounded-lg bg-gray-200" />}
-                  >
-                    <Image
-                      src={image.url ?? ''}
-                      alt={getImageAltInLocale(locale, image)}
-                      width={96}
-                      height={96}
-                      className="h-24 w-24 rounded-lg object-cover"
-                    />
-                  </Suspense>
-                ))}
-              </div>
-            </div>
-          )}
+          <AnnotationImagesSection images={annotation.images} locale={locale} />
 
-          {/* Related Programs Section */}
-          <AnnotationScheduleTableComponent locale={locale} schedule={schedule} />
+          {schedule && <AnnotationScheduleTableComponent locale={locale} schedule={schedule} />}
 
-          {/* Forum Post / Report Issues */}
-          <div className="p-4">
-            <div className="mb-3 flex items-center gap-2">
-              <MessageCircleQuestion size={18} className="text-conveniat-green" />
-              <h3 className="text-conveniat-green font-semibold">conveniat27 Forum</h3>
-            </div>
-            <div className="space-y-2">
-              <button className="flex w-full items-center gap-3 rounded-lg border border-gray-200 p-3 text-left hover:border-gray-300 hover:bg-gray-50">
-                <MessageSquare size={16} className="text-blue-600" />
-                <div>
-                  <div className="font-medium text-gray-900">View Forum Posts</div>
-                  <div className="text-sm text-gray-600">See what others are saying</div>
-                </div>
-              </button>
-              <button className="flex w-full items-center gap-3 rounded-lg border border-gray-200 p-3 text-left hover:border-gray-300 hover:bg-gray-50">
-                <Flag size={16} className="text-orange-600" />
-                <div>
-                  <div className="font-medium text-gray-900">Report an Issue</div>
-                  <div className="text-sm text-gray-600">
-                    Broken toilet, maintenance needed, etc.
-                  </div>
-                </div>
-              </button>
-            </div>
-          </div>
+          <AnnotationForumAndReportSection />
         </div>
       </div>
     </div>
