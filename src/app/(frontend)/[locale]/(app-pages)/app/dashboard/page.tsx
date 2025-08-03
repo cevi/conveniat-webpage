@@ -110,7 +110,11 @@ const Dashboard: React.FC = async () => {
             <SubheadingH2>{upcomingProgramElementsTitle[locale]}</SubheadingH2>
             <div className="mt-4 grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
               {upcomingEvents.map((entry) => (
-                <div key={entry.id} className="flex flex-col rounded-md border p-4 shadow-sm">
+                <Link
+                  key={entry.id}
+                  href={`/app/schedule/${entry.id}`}
+                  className="flex flex-col rounded-md border p-4 shadow-sm"
+                >
                   <div className="mb-2">
                     <h3 className="font-heading text-conveniat-green text-base font-extrabold text-balance">
                       {entry.title}
@@ -122,7 +126,7 @@ const Dashboard: React.FC = async () => {
                   <div className="flex-1">
                     <LexicalRichTextSection richTextSection={entry.description} />
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </div>
