@@ -1,10 +1,10 @@
+import { StarButton } from '@/components/star/star';
 import { Button } from '@/components/ui/buttons/button';
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
 import type { CampMapAnnotation } from '@/features/payload-cms/payload-types';
 import { useStar } from '@/features/schedule/hooks/use-star';
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
-import { cn } from '@/utils/tailwindcss-override';
-import { Calendar, ChevronDown, ChevronUp, Clock, ExternalLink, MapPin, Star } from 'lucide-react';
+import { Calendar, ChevronDown, ChevronUp, Clock, ExternalLink, MapPin } from 'lucide-react';
 import type React from 'react';
 
 // Enhanced helper to format date and time more elegantly
@@ -160,25 +160,7 @@ export const ScheduleItem: React.FC<ScheduleItemProperties> = ({
 
           {/* Action buttons on the right */}
           <div className="flex flex-shrink-0 items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={(event) => {
-                event.stopPropagation();
-                toggleStar(entry.id);
-              }}
-              aria-label={currentlyStarred ? 'Remove from favorites' : 'Add to favorites'}
-              className="h-8 w-8 hover:bg-gray-100"
-            >
-              <Star
-                className={cn(
-                  'h-4 w-4 transition-all duration-200',
-                  currentlyStarred
-                    ? 'scale-110 fill-red-400 text-red-700'
-                    : 'text-gray-400 hover:scale-105',
-                )}
-              />
-            </Button>
+            <StarButton id={entry.id} isStared={currentlyStarred} toggleStar={toggleStar} />
             <Button
               variant="ghost"
               size="icon"
