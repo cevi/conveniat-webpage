@@ -23,8 +23,9 @@ const ScheduleDetailPage: React.FC<{
   const { id: scheduleId } = await params;
   const payload = await getPayload({ config });
 
+  // the user object is undefined if the user is not logged in
   const session = await auth();
-  const user = session?.user as HitobitoNextAuthUser;
+  const user = session?.user as HitobitoNextAuthUser | undefined;
 
   const locale = await getLocaleFromCookies();
 
@@ -51,7 +52,7 @@ const ScheduleDetailPage: React.FC<{
 
   const organiser = entry.organiser ? (entry.organiser as User) : undefined;
 
-  const isUserOrganiser = user.uuid === organiser?.id;
+  const isUserOrganiser = user?.uuid === organiser?.id;
 
   const userCanEdit = isUserOrganiser || canUserAccessAdminPanel({ user });
 
