@@ -8,7 +8,7 @@ export interface CampScheduleEntryFrontendType {
   timeslots: {
     date: string;
     time: string;
-    id?: string | null;
+    id: string;
   }[];
   location: string | CampMapAnnotation;
   participants_min?: number | null;
