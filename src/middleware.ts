@@ -1,5 +1,6 @@
 import { middlewareChain } from '@/middleware/middleware-chain';
 import { withAppFeatureMiddleware } from '@/middleware/with-app-feature-middleware';
+import { withAuthenticationRedirect } from '@/middleware/with-authentication-redirect';
 import { withI18nMiddleware } from '@/middleware/with-i18n-middleware';
 import { withPreviewMiddleware } from '@/middleware/with-preview-middleware';
 
@@ -13,6 +14,7 @@ import { withPreviewMiddleware } from '@/middleware/with-preview-middleware';
 export const middleware = middlewareChain([
   withAppFeatureMiddleware,
   withPreviewMiddleware,
+  withAuthenticationRedirect,
   withI18nMiddleware, // must be the last middleware in the chain
 ]);
 
