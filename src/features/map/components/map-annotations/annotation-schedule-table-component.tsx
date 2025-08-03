@@ -43,13 +43,13 @@ export const AnnotationScheduleTableComponent: React.FC<{
         {schedule.map((entry) => (
           <div key={entry.id} className="rounded-lg border border-gray-200 p-3">
             <h4 className="font-medium text-gray-900">{entry.title}</h4>
-            <p className="mt-1 text-sm text-gray-700">
+            <div className="mt-1 text-sm text-gray-700">
               <ErrorBoundary fallback={<span>Error loading schedule entry.</span>}>
                 <LexicalRichTextSection
                   richTextSection={entry.description as SerializedEditorState}
                 />
               </ErrorBoundary>
-            </p>
+            </div>
             <p className="mt-1 text-sm text-gray-700">{entry.participants_min}</p>
             <a
               href={`/app/schedule/${entry.id}`}

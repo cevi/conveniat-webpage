@@ -1,5 +1,5 @@
 import type { CampMapAnnotation } from '@/features/payload-cms/payload-types';
-import { getScheduleEntries } from '@/features/schedule/components/schedule-component-server';
+import { getScheduleEntries } from '@/features/schedule/api/get-schedule-entries';
 import React from 'react';
 
 export interface CampScheduleEntryType {
