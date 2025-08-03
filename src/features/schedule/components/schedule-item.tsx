@@ -37,6 +37,7 @@ export const ScheduleItem: React.FC<ScheduleItemProperties> = ({
   return (
     <div
       key={entry.id}
+      onClick={() => onToggleExpand(entry.id)}
       className="rounded-lg border border-gray-200 bg-white shadow-sm transition-shadow duration-300 hover:shadow-md"
     >
       <div className="p-4">
@@ -57,7 +58,10 @@ export const ScheduleItem: React.FC<ScheduleItemProperties> = ({
                 <div className="flex items-center">
                   <MapPin className="mr-1.5 h-3 w-3 flex-shrink-0" />
                   <button
-                    onClick={() => onMapClick(location)}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onMapClick(location);
+                    }}
                     className="text-left text-blue-600 underline hover:text-blue-800"
                   >
                     {location.title}
@@ -72,7 +76,10 @@ export const ScheduleItem: React.FC<ScheduleItemProperties> = ({
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => toggleStar(entry.id)}
+              onClick={(event) => {
+                event.stopPropagation();
+                toggleStar(entry.id);
+              }}
               aria-label={currentlyStarred ? 'Remove from favorites' : 'Add to favorites'}
               className="h-8 w-8"
             >
@@ -87,7 +94,10 @@ export const ScheduleItem: React.FC<ScheduleItemProperties> = ({
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => onToggleExpand(entry.id)}
+              onClick={(event) => {
+                event.stopPropagation();
+                onToggleExpand(entry.id);
+              }}
               aria-expanded={isExpanded}
               className="h-8 w-8"
             >
@@ -103,14 +113,24 @@ export const ScheduleItem: React.FC<ScheduleItemProperties> = ({
               <LexicalRichTextSection richTextSection={entry.description} />
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
-              <Button onClick={() => onReadMore(entry.id)} size="sm" className="flex items-center">
+              <Button
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onReadMore(entry.id);
+                }}
+                size="sm"
+                className="flex items-center"
+              >
                 <ExternalLink className="mr-1.5 h-3 w-3" />
                 Read More
               </Button>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => onMapClick(location)}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onMapClick(location);
+                }}
                 className="flex items-center"
               >
                 <MapPin className="mr-1.5 h-3 w-3" />
