@@ -1,4 +1,5 @@
 import { createChat } from '@/features/chat/api/create-chat';
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import type React from 'react';
 
@@ -23,7 +24,25 @@ const NewChatWithUserPage: React.FC<{
       name: '', // Name will be fetched from the user profile
     },
   ];
-  const chatId = await createChat(contacts, chatName);
+  const chatId = await createChat(contacts, chatName).catch((error: unknown) => {
+    console.error('Failed to create chat:', error);
+    return; // Return undefined if chat creation fails
+  });
+
+  if (chatId === undefined) {
+    return (
+      <div className="flex h-screen flex-row items-center justify-center bg-gray-50">
+        <div className="font-body text-center text-gray-600">
+          Failed to create chat.
+          <br />
+          <Link href="/app/chat" className="underline">
+            Please try again.
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   redirect(`/app/chat/${chatId}`);
 };
 
