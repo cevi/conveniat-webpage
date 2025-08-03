@@ -31,9 +31,7 @@ export const MaplibreMap: React.FC<{
   useMapControls();
   useCeviLogoMarkers(ceviLogoMarkers, ceviLogoMarkerElementFactory);
   useAnnotationPointMarkers(campMapAnnotationPoints, openAnnotation, setOpenAnnotation);
-  useAnnotationPolygons(campMapAnnotationPolygons, (annotation) => {
-    setOpenAnnotation(annotation);
-  });
+  useAnnotationPolygons(campMapAnnotationPolygons, openAnnotation, setOpenAnnotation);
 
   return <></>;
 };

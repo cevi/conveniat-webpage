@@ -1,5 +1,5 @@
 import { useMap } from '@/features/map/components/maplibre-renderer/map-context-provider';
-import type { CampMapAnnotationPolygon } from '@/features/map/types/types';
+import type { CampMapAnnotationPoint, CampMapAnnotationPolygon } from '@/features/map/types/types';
 import type { Map as MapLibre } from 'maplibre-gl';
 import { useEffect, useRef, useState } from 'react';
 
@@ -10,7 +10,10 @@ interface ClickedFeaturesState {
 
 export const useAnnotationPolygons = (
   annotations: CampMapAnnotationPolygon[],
-  onAnnotationClick: (annotation: CampMapAnnotationPolygon) => void,
+  currentAnnotation: CampMapAnnotationPoint | CampMapAnnotationPolygon | undefined,
+  setCurrentAnnotation: (
+    annotation: CampMapAnnotationPoint | CampMapAnnotationPolygon | undefined,
+  ) => void,
 ): void => {
   const map = useMap();
 
@@ -21,9 +24,6 @@ export const useAnnotationPolygons = (
   // and issues with stale closures inside event listeners.
   const mapReference = useRef<MapLibre | undefined>(undefined);
   mapReference.current = map;
-
-  const onAnnotationClickReference = useRef(onAnnotationClick);
-  onAnnotationClickReference.current = onAnnotationClick;
 
   // Effect for setting up and tearing down map sources and layers
   useEffect(() => {
@@ -167,7 +167,7 @@ export const useAnnotationPolygons = (
 
         const selectedPolygon = nextState.polygons[nextState.currentIndex];
         if (selectedPolygon) {
-          onAnnotationClickReference.current(selectedPolygon);
+          setCurrentAnnotation(selectedPolygon);
           const url = new URL(globalThis.location.href);
           url.searchParams.set('locationId', selectedPolygon.id);
           globalThis.history.pushState({}, '', url.toString());
@@ -183,5 +183,5 @@ export const useAnnotationPolygons = (
     return (): void => {
       map.off('click', handleClick);
     };
-  }, [map, annotations]);
+  }, [map, annotations, setCurrentAnnotation]);
 };
