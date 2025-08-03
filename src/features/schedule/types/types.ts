@@ -13,6 +13,7 @@ export interface CampScheduleEntryFrontendType {
   location: string | CampMapAnnotation;
   participants_min?: number | null;
   participants_max?: number | null;
+  category?: string;
   organiser?:
     | string
     | null
