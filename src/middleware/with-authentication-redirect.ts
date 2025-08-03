@@ -29,7 +29,10 @@ export const withAuthenticationRedirect = (
     // --- 1. Determine Authentication Status ---
     // This is an example. You need to replace this with your actual authentication check.
     // This could involve checking a cookie, a JWT, a session, etc.
-    const isAuthenticated = request.cookies.has('authjs.session-token');
+    // TODO: replace this with a proper authentication check using a NextAuth.js function
+    const isAuthenticated =
+      request.cookies.has('authjs.session-token') ||
+      request.cookies.has('__Secure-authjs.session-token');
 
     // --- 2. Handle redirection for authenticated users on /login page ---
     if (pathname === '/login' && isAuthenticated) {
