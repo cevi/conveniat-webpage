@@ -2,6 +2,7 @@ import type { CampScheduleEntry } from '@/features/map/types/types';
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
+import { Calendar } from 'lucide-react';
 import Link from 'next/link';
 import React from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
@@ -21,23 +22,7 @@ export const AnnotationScheduleTableComponent: React.FC<{
   return (
     <div className="border-b border-gray-50 p-4">
       <div className="mb-3 flex items-center gap-2">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="text-gray-600"
-        >
-          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-          <line x1="16" y1="2" x2="16" y2="6"></line>
-          <line x1="8" y1="2" x2="8" y2="6"></line>
-          <line x1="3" y1="10" x2="21" y2="10"></line>
-        </svg>
+        <Calendar className="h-4 w-4 text-gray-500" />
         <h3 className="font-semibold text-gray-900">{scheduleTableTitle[locale]}</h3>
       </div>
       <div className="space-y-3">
