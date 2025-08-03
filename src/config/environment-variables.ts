@@ -38,7 +38,6 @@ export const environmentVariables = createEnv({
     SMTP_PASS: z.string().optional(),
     VAPID_PRIVATE_KEY: z.string().min(5),
     FEATURE_ENABLE_APP_FEATURE: z.string().transform((value) => value === 'true'),
-    ENABLE_SERVICE_WORKER_LOCALLY: z.string().transform((value) => value === 'true'),
   },
   /*
    * Environment variables available on the client (and server).
@@ -50,6 +49,7 @@ export const environmentVariables = createEnv({
     NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string(),
     NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
     NEXT_PUBLIC_POSTHOG_HOST: z.string().url(),
+    NEXT_PUBLIC_ENABLE_OFFLINE_SUPPORT: z.boolean().default(false),
   },
 
   experimental__runtimeEnv: {
@@ -57,6 +57,7 @@ export const environmentVariables = createEnv({
     NEXT_PUBLIC_VAPID_PUBLIC_KEY: process.env['NEXT_PUBLIC_VAPID_PUBLIC_KEY'],
     NEXT_PUBLIC_POSTHOG_KEY: process.env['NEXT_PUBLIC_POSTHOG_KEY'],
     NEXT_PUBLIC_POSTHOG_HOST: process.env['NEXT_PUBLIC_POSTHOG_HOST'],
+    NEXT_PUBLIC_ENABLE_OFFLINE_SUPPORT: process.env['ENABLE_SERVICE_WORKER_LOCALLY'] === 'true',
   },
 
   /**
