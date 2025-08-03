@@ -1,6 +1,6 @@
 import { useMap } from '@/features/map/components/maplibre-renderer/map-context-provider';
 import type { CampMapAnnotationPoint, CampMapAnnotationPolygon } from '@/features/map/types/types';
-import type { Map as MapLibre } from 'maplibre-gl';
+import type { Map as MapLibre, MapMouseEvent } from 'maplibre-gl';
 import { useEffect, useRef, useState } from 'react';
 
 interface ClickedFeaturesState {
@@ -25,6 +25,14 @@ export const useAnnotationPolygons = (
   const mapReference = useRef<MapLibre | undefined>(undefined);
   mapReference.current = map;
 
+  // Ref to track the previously selected annotation ID for efficient outline toggling
+  const previousAnnotationId = useRef<string | undefined>(undefined);
+
+  // set initial previousAnnotationId to the current annotation ID
+  useEffect(() => {
+    previousAnnotationId.current = currentAnnotation?.id;
+  });
+
   // Effect for setting up and tearing down map sources and layers
   useEffect(() => {
     if (!map) return;
@@ -32,7 +40,8 @@ export const useAnnotationPolygons = (
     const setupLayers = (): void => {
       for (const annotation of annotations) {
         const sourceId = `polygon-${annotation.id}`;
-        const layerId = `polygon-layer-${annotation.id}`;
+        const fillLayerId = `polygon-layer-${annotation.id}`;
+        const outlineLayerId = `polygon-outline-layer-${annotation.id}`;
 
         // Skip if coordinates are empty
         if (annotation.geometry.coordinates.length === 0) continue;
@@ -57,67 +66,109 @@ export const useAnnotationPolygons = (
           });
         }
 
-        if (!map.getLayer(layerId)) {
+        // Add fill layer
+        if (!map.getLayer(fillLayerId)) {
           map.addLayer({
-            id: layerId,
+            id: fillLayerId,
             type: 'fill',
             source: sourceId,
-            paint: { 'fill-color': annotation.color, 'fill-opacity': 0.4 },
+            paint: {
+              'fill-color': annotation.color,
+              'fill-opacity': 0.4,
+            },
           });
         }
 
-        // Add mouseenter and mouseleave events
-        map.on('mouseenter', layerId, () => {
+        // Add outline layer (initially invisible)
+        if (!map.getLayer(outlineLayerId)) {
+          map.addLayer({
+            id: outlineLayerId,
+            type: 'line',
+            source: sourceId,
+            paint: {
+              'line-color': '#e11d3c',
+              'line-width': currentAnnotation?.id === annotation.id ? 4 : 0,
+              'line-opacity': 0.9,
+            },
+          });
+        }
+
+        // Add mouseenter and mouseleave events to the fill layer
+        map.on('mouseenter', fillLayerId, () => {
           if (mapReference.current) mapReference.current.getCanvas().style.cursor = 'pointer';
         });
 
-        map.on('mouseleave', layerId, () => {
+        map.on('mouseleave', fillLayerId, () => {
           if (mapReference.current) mapReference.current.getCanvas().style.cursor = '';
         });
       }
     };
 
-    // Clean up function for sources and layers
     const cleanupLayers = (): void => {
       for (const annotation of annotations) {
         const sourceId = `polygon-${annotation.id}`;
-        const layerId = `polygon-layer-${annotation.id}`;
+        const fillLayerId = `polygon-layer-${annotation.id}`;
+        const outlineLayerId = `polygon-outline-layer-${annotation.id}`;
 
         // this is necessary during hot reloading
-        if (map.getLayer(layerId)) {
-          map.removeLayer(layerId);
-        }
-
-        // this is necessary during hot reloading
-        if (map.getSource(sourceId)) {
-          map.removeSource(sourceId);
-        }
+        if (map.getLayer(outlineLayerId)) map.removeLayer(outlineLayerId);
+        if (map.getLayer(fillLayerId)) map.removeLayer(fillLayerId);
+        if (map.getSource(sourceId)) map.removeSource(sourceId);
       }
     };
 
-    // Listen for 'load' event if map is not already loaded
     if (map.isStyleLoaded() === true) {
       setupLayers();
     } else {
       map.on('load', setupLayers);
     }
 
-    // Cleanup when component unmounts or annotations change
     return (): void => {
       try {
-        cleanupLayers();
+        if (map.isStyleLoaded() === true) cleanupLayers();
       } catch (error) {
         console.error('Error during cleanup of polygon layers:', error);
       }
       map.off('load', setupLayers);
     };
-  }, [map, annotations]);
+  }, [map, annotations, currentAnnotation?.id]);
+
+  // Effect for updating the polygon outline based on selection
+  // eslint-disable-next-line complexity
+  useEffect(() => {
+    if (map?.isStyleLoaded() === false) return;
+
+    const currentId = currentAnnotation?.id;
+    const previousId = previousAnnotationId.current;
+
+    if (currentId === previousId) return; // No change in selection
+
+    // Hide the outline for the previously selected polygon
+    if (previousId != undefined) {
+      const previousLayerId = `polygon-outline-layer-${previousId}`;
+      if (map?.getLayer(previousLayerId)) {
+        map.setPaintProperty(previousLayerId, 'line-width', 0);
+      }
+    }
+
+    // Show the outline for the newly selected polygon, if it's managed by this hook
+    const isCurrentAnnotationAPolygon = annotations.some((a) => a.id === currentId);
+    if (currentId != undefined && isCurrentAnnotationAPolygon) {
+      const currentLayerId = `polygon-outline-layer-${currentId}`;
+      if (map?.getLayer(currentLayerId)) {
+        map.setPaintProperty(currentLayerId, 'line-width', 4);
+      }
+    }
+
+    // Update the ref for the next render
+    previousAnnotationId.current = currentId;
+  }, [map, annotations, currentAnnotation]);
 
   // Effect for handling map click events
   useEffect(() => {
     if (!map) return;
 
-    const handleClick = (event: maplibregl.MapMouseEvent): void => {
+    const handleClick = (event: MapMouseEvent): void => {
       const currentMap = mapReference.current;
       if (!currentMap) return;
 
@@ -131,7 +182,7 @@ export const useAnnotationPolygons = (
 
       if (clickedPolygons.length === 0) {
         setClickedPolygonState(undefined);
-        // Clear location from URL if no polygon is clicked
+        setCurrentAnnotation(undefined); // Also clear the current annotation
         const url = new URL(globalThis.location.href);
         url.searchParams.delete('locationId');
         globalThis.history.pushState({}, '', url.toString());
@@ -143,7 +194,6 @@ export const useAnnotationPolygons = (
         const currentIds = previousState?.polygons.map((p) => p.id).sort();
         const newIds = sortedClickedPolygons.map((p) => p.id).sort();
 
-        // Check if the new set of clicked polygons is the same as the previous one
         const isSameSetOfPolygons =
           currentIds &&
           newIds.length === currentIds.length &&
@@ -151,14 +201,12 @@ export const useAnnotationPolygons = (
 
         let nextState: ClickedFeaturesState;
         if (isSameSetOfPolygons === true && previousState && sortedClickedPolygons.length > 1) {
-          // If the same set of overlapping polygons, cycle through them
           const nextIndex = (previousState.currentIndex + 1) % sortedClickedPolygons.length;
           nextState = {
             polygons: sortedClickedPolygons,
             currentIndex: nextIndex,
           };
         } else {
-          // If a new set of polygons or only one polygon, start a new cycle
           nextState = {
             polygons: sortedClickedPolygons,
             currentIndex: 0,
@@ -179,7 +227,6 @@ export const useAnnotationPolygons = (
 
     map.on('click', handleClick);
 
-    // Cleanup map click listener
     return (): void => {
       map.off('click', handleClick);
     };
