@@ -129,7 +129,7 @@ export const AnnotationDetailsDrawer: React.FC<{
       style={{ height: `${drawerHeight}vh` }}
     >
       <div
-        className="absolute top-0 right-0 left-0 flex h-4 cursor-ns-resize items-center justify-center"
+        className="absolute top-0 right-0 left-0 z-30 flex h-4 cursor-ns-resize items-center justify-center bg-white"
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
       >
