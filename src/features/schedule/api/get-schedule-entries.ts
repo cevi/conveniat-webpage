@@ -23,5 +23,17 @@ export const getScheduleEntries = async (
     limit: 99_999, // Set a high limit to fetch all entries
   });
 
-  return scheduleEntries.docs;
+  // first sort by timeslot.date, then by timeslot.time (format "HH:mm - HH:mm")
+  return scheduleEntries.docs.sort((a, b) => {
+    const dateA = new Date(a.timeslot.date).getTime();
+    const dateB = new Date(b.timeslot.date).getTime();
+    if (dateA !== dateB) {
+      return dateA - dateB; // Sort by date first
+    }
+
+    // If dates are equal, sort by time
+    const timeA = a.timeslot.time.split(' - ')[0] ?? '00:00';
+    const timeB = b.timeslot.time.split(' - ')[0] ?? '00:00';
+    return timeA.localeCompare(timeB); // Sort by time
+  });
 };
