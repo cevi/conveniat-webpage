@@ -151,7 +151,7 @@ interface QRCodeImageProperties {
   locale?: Locale;
 }
 
-const QRCodeImage: React.FC<QRCodeImageProperties> = ({
+export const QRCodeImage: React.FC<QRCodeImageProperties> = ({
   qrImageSrc,
   fullURL,
   copied,

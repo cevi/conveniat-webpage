@@ -11,11 +11,18 @@ import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
 import type React from 'react';
 import { useState } from 'react';
+import { QRCodeClientComponent } from '../qr-component';
 
 const newChatText: StaticTranslationString = {
   en: 'New Chat',
   de: 'Neuer Chat',
   fr: 'Nouveau chat',
+};
+
+const showQRText: StaticTranslationString = {
+  en: 'Show QR',
+  de: 'QR anzeigen',
+  fr: 'QR code',
 };
 
 const searchPlaceholderText: StaticTranslationString = {
@@ -93,15 +100,13 @@ export const ChatsOverviewClientComponent: React.FC = () => {
           onChange={(changeEvent) => setSearchQuery(changeEvent.target.value)}
         />
       </div>
-
       {/* New Chat Button */}
       <Link className="flex justify-end" href="/app/chat/new">
         {newChatText[locale]}
       </Link>
-
+      <QRCodeClientComponent url={'me'} /> {/* TODO: fetch user id here. */}
       {/* Loading State */}
       {isLoading && <ChatsOverviewLoadingPlaceholder />}
-
       {/* Empty State */}
       {!isLoading && filteredChats.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -125,7 +130,6 @@ export const ChatsOverviewClientComponent: React.FC = () => {
           )}
         </div>
       )}
-
       {/* Chat List */}
       {!isLoading && filteredChats.length > 0 && (
         <div className="space-y-2">
