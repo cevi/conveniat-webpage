@@ -1497,7 +1497,18 @@ export interface CampMapAnnotation {
    */
   title: string;
   icon?:
-    | ('MapPin' | 'Tent' | 'Utensils' | 'Flag' | 'HelpCircle' | 'Recycle' | 'GlassWater' | 'BriefcaseMedical')
+    | (
+        | 'MapPin'
+        | 'Tent'
+        | 'Utensils'
+        | 'Flag'
+        | 'HelpCircle'
+        | 'Recycle'
+        | 'GlassWater'
+        | 'Stage'
+        | 'Toilet'
+        | 'BriefcaseMedical'
+      )
     | null;
   color?: ('#78909c' | '#fbc02d' | '#ff8126' | '#b56aff' | '#f848c7' | '#16a672' | '#f64955') | null;
   /**
