@@ -349,6 +349,7 @@ const iconMarkerSelectOptions = [
   'HelpCircle' as const,
   'Recycle' as const,
   'GlassWater' as const,
+  'Toilet' as const,
   'BriefcaseMedical' as const,
 ];
 

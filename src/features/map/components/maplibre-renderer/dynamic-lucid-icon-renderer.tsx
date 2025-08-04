@@ -8,6 +8,7 @@ import {
   MapPin,
   Recycle,
   Tent,
+  Toilet,
   Utensils,
 } from 'lucide-react';
 import type React from 'react';
@@ -41,6 +42,7 @@ export const DynamicLucidIconRenderer: React.FC<{
     HelpCircle: HelpCircle,
     Recycle: Recycle,
     GlassWater: GlassWater,
+    Toilet: Toilet,
     BriefcaseMedical: BriefcaseMedical,
   };
 

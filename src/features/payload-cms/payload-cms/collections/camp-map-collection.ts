@@ -135,6 +135,14 @@ export const CampMapAnnotationsCollection: CollectionConfig = {
             },
             {
               label: {
+                en: 'Toilet',
+                de: 'Toilette',
+                fr: 'Toilette',
+              },
+              value: 'Toilet',
+            },
+            {
+              label: {
                 en: 'Medical Assistance',
                 de: 'Medizinische Hilfe',
                 fr: 'Assistance médicale',
