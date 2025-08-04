@@ -390,6 +390,14 @@ export interface User {
    */
   nickname?: string | null;
   groups: GroupsOfTheUser;
+  /**
+   * The Hof of the user.
+   */
+  hof?: number | null;
+  /**
+   * The Quartier of the user.
+   */
+  quartier?: number | null;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -2396,6 +2404,8 @@ export interface UsersSelect<T extends boolean = true> {
   fullName?: T;
   nickname?: T;
   groups?: T;
+  hof?: T;
+  quartier?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;

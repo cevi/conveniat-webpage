@@ -196,5 +196,23 @@ export const UserCollection: CollectionConfig = {
         fileMatch: ['https://conveniat27.ch/hitobito-groups.schema.json'],
       },
     },
+    {
+      name: 'hof',
+      label: 'Hof of the user',
+      type: 'number',
+      required: false,
+      admin: {
+        description: 'The Hof of the user.',
+      }
+    },
+    {
+      name: 'quartier',
+      label: 'Quartier of the user',
+      type: 'number',
+      required: false,
+      admin: {
+        description: 'The Quartier of the user.',
+      }
+    }
   ],
 };
