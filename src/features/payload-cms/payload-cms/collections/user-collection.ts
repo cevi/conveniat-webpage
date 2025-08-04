@@ -203,7 +203,7 @@ export const UserCollection: CollectionConfig = {
       required: false,
       admin: {
         description: 'The Hof of the user.',
-      }
+      },
     },
     {
       name: 'quartier',
@@ -212,7 +212,7 @@ export const UserCollection: CollectionConfig = {
       required: false,
       admin: {
         description: 'The Quartier of the user.',
-      }
-    }
+      },
+    },
   ],
 };

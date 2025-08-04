@@ -89,6 +89,16 @@ const visitWebsiteButton: StaticTranslationString = {
   fr: 'Visitez le site web de conveniat27',
 };
 
+const settingsTitle: StaticTranslationString = {
+  en: 'App Settings',
+  de: 'App Einstellungen',
+  fr: 'Paramètres App',
+};
+const visitSettings: StaticTranslationString = {
+  de: 'Einstellungen besuchen',
+  en: 'Visit Settings',
+  fr: 'Ouvre Paramètres',
+};
 const Dashboard: React.FC = async () => {
   const locale = await getLocaleFromCookies();
   const scheduleEvents = await getScheduleEntries();
@@ -103,6 +113,20 @@ const Dashboard: React.FC = async () => {
           <div>
             <HeadlineH1>{dashboardTitle[locale]}</HeadlineH1>
             <p className="mt-2 text-gray-700">{welcomeParagraph[locale]}</p>
+          </div>
+
+          {/* Settings */}
+          <div>
+            <div className="mb-4">
+              <SubheadingH2>{settingsTitle[locale]}</SubheadingH2>
+            </div>
+            <div>
+              <Link href="/app/settings" passHref>
+                <Button className="bg-conveniat-green hover:bg-conveniat-green-dark text-white">
+                  {visitSettings[locale]}
+                </Button>
+              </Link>
+            </div>
           </div>
 
           {/* Upcoming Program Elements */}
