@@ -18,9 +18,9 @@ const settingsInfoText: StaticTranslationString = {
 };
 
 const notAvailable: StaticTranslationString = {
-    de: 'nicht verfügbar',
-    en: 'not available',
-    fr: '',
+  de: 'nicht verfügbar',
+  en: 'not available',
+  fr: '',
 };
 
 const Settings: React.FC = async () => {
