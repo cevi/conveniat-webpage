@@ -135,6 +135,14 @@ export const CampMapAnnotationsCollection: CollectionConfig = {
             },
             {
               label: {
+                en: 'Stage',
+                de: 'Bühne',
+                fr: 'Scène',
+              },
+              value: 'Stage',
+            },
+            {
+              label: {
                 en: 'Toilet',
                 de: 'Toilette',
                 fr: 'Toilette',
