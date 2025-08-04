@@ -565,8 +565,8 @@ export const RenderCampScheduleEntry: SectionRenderer<CampScheduleEntryType> = a
       sectionOverrides={sectionOverrides}
       errorFallbackMessage={await errorMessageForType({
         de: 'Das Programm',
-        en: 'prgram',
-        fr: 'le program',
+        en: 'program',
+        fr: 'le programme',
       })}
     >
       <CampScheduleEntryContentBlock {...block} />
