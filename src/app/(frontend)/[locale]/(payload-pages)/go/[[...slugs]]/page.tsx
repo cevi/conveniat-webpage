@@ -1,3 +1,4 @@
+import type { Go } from '@/features/payload-cms/payload-types';
 import { i18nConfig, type Locale } from '@/types/types';
 import { serverSideSlugToUrlResolution } from '@/utils/find-url-prefix';
 import config from '@payload-config';
@@ -6,19 +7,10 @@ import type { CollectionSlug } from 'payload';
 import { getPayload } from 'payload';
 import type React from 'react';
 
-const RedirectPage: React.FC<{
-  params: Promise<{
-    slugs: string[] | undefined;
-  }>;
-}> = async ({ params }) => {
-  const payload = await getPayload({ config });
-  const { slugs } = await params;
-
-  const slug = slugs?.join('/') ?? '';
-
+const fetchRedirectPages = async (slug: string): Promise<Go[]> => {
   const locales: Locale[] = i18nConfig.locales as Locale[];
-
-  const redirectPages = await Promise.all(
+  const payload = await getPayload({ config });
+  const results = await Promise.all(
     locales.map((l) =>
       payload.find({
         collection: 'go',
@@ -30,61 +22,72 @@ const RedirectPage: React.FC<{
         },
       }),
     ),
-  ).then((results) =>
-    results
-      .filter((r) => r.docs.length === 1)
-      .flatMap((r) => r.docs[0])
-      .filter((a) => a !== undefined),
   );
+  return results
+    .filter((r) => r.docs.length === 1)
+    .flatMap((r) => r.docs[0])
+    .filter((a) => a !== undefined);
+};
 
-  if (redirectPages.length > 0) {
-    const redirectPage = redirectPages[0];
-    if (redirectPage === undefined) {
-      redirect('/'); // redirect to home if no redirect page found
-    }
-    // check if redirectPage.to.type is "reference" or "custom"
-    const redirectPageTo = redirectPage.to as
-      | { type: 'custom'; url: string }
-      | {
-          type: 'reference';
-          reference: {
-            relationTo: string;
-            value: {
-              seo: {
-                urlSlug: string;
-              };
-              _locale: string;
-            };
-          };
-        };
+const handleReferenceRedirect = async (
+  relationTo: string,
+  locale: string,
+  urlSlug: string,
+): Promise<void> => {
+  const path = await serverSideSlugToUrlResolution(relationTo as CollectionSlug, locale as Locale);
+  redirect(`/${locale}/${path}/${urlSlug}`);
+};
 
-    if (redirectPageTo.type === 'custom') {
-      const redirectPageToCustom = redirectPageTo as { type: 'custom'; url: string };
-      redirect(redirectPageToCustom.url);
-    } else {
-      const redirectPageToReference = redirectPageTo as {
+const handleRedirect = async (redirectPage?: Go | undefined): Promise<void> => {
+  if (!redirectPage) {
+    return redirect('/');
+  }
+  const redirectPageTo = redirectPage.to as
+    | { type: 'custom'; url: string }
+    | {
         type: 'reference';
         reference: {
           relationTo: string;
           value: {
-            seo: {
-              urlSlug: string;
-            };
+            seo: { urlSlug: string };
             _locale: string;
           };
         };
       };
-      const path = await serverSideSlugToUrlResolution(
-        redirectPageToReference.reference.relationTo as CollectionSlug,
-        redirectPageToReference.reference.value._locale as Locale,
-      );
-      redirect(
-        `/${redirectPageToReference.reference.value._locale}/${path}/${redirectPageToReference.reference.value.seo.urlSlug}`,
-      );
-    }
+
+  if (redirectPageTo.type === 'custom') {
+    redirect(redirectPageTo.url);
+  } else {
+    const reference = redirectPageTo.reference;
+    await handleReferenceRedirect(
+      reference.relationTo,
+      reference.value._locale,
+      reference.value.seo.urlSlug,
+    );
+  }
+};
+
+const RedirectPage: React.FC<{
+  params: Promise<{
+    slugs: string[] | undefined;
+  }>;
+}> = async ({ params }) => {
+  const { slugs } = await params;
+  const slug = slugs?.join('/') ?? '';
+
+  // Handle app redirects specially, since this is no collection
+  if ((slugs?.length ?? 0) > 0 && slugs?.[0] === 'app') {
+    return redirect(`/${slug}`);
   }
 
-  redirect('/'); // redirect to home if no redirect page found
+  const redirectPages = await fetchRedirectPages(slug);
+
+  if (redirectPages.length > 0) {
+    await handleRedirect(redirectPages[0]);
+    return;
+  }
+
+  redirect('/');
 };
 
 export default RedirectPage;
