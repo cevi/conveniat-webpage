@@ -16,6 +16,11 @@ export const StarProvider: React.FC<StarProviderProperties> = ({ children }) => 
   const [starredEntries, setStarredEntries] = useState<Set<string>>(() => {
     // Initialize state from localStorage once during component mounting
     try {
+      if (typeof globalThis === 'undefined' || typeof localStorage === 'undefined') {
+        // If we're on the server, we can't access localStorage
+        return new Set();
+      }
+
       const storedItems = localStorage.getItem(STORAGE_KEY);
       if (storedItems != undefined) {
         return new Set(JSON.parse(storedItems) as string[]);
