@@ -92,6 +92,9 @@ export const CampMapComponent: React.FC = async () => {
 
   return (
     <>
+      <div // fixes https://github.com/cevi/conveniat-webpage/issues/481
+        className="h-dvh w-full overflow-hidden bg-white"
+      ></div>
       <div className="fixed top-[60px] left-0 h-[calc(100dvh-60px)] w-screen pb-20">
         <MapLibreRenderer
           initialMapPose={initialMapPoseObergoms}
