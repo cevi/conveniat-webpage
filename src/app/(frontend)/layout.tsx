@@ -11,6 +11,7 @@ import React from 'react';
 // These styles apply to every route in the application
 import '@/app/globals.scss';
 import { DynamicAppTitleProvider } from '@/components/header/dynamic-app-title-name';
+import NextTopLoader from 'nextjs-toploader';
 
 interface LayoutProperties {
   children: ReactNode;
@@ -42,6 +43,8 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children }) => {
           'overscroll-y-none': isInAppDesign,
         })}
       >
+        <NextTopLoader showSpinner={false} color="#47564c" zIndex={999} />
+
         <PostHogProvider>
           <DynamicAppTitleProvider>
             <HeaderComponent />
