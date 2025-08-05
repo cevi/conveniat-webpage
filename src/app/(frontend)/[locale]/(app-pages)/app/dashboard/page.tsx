@@ -4,10 +4,11 @@ import { LinkComponent } from '@/components/ui/link-component';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { SubheadingH2 } from '@/components/ui/typography/subheading-h2';
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
+import { CampMapAnnotation } from '@/features/payload-cms/payload-types';
 import { getScheduleEntries } from '@/features/schedule/api/get-schedule-entries';
 import type { StaticTranslationString } from '@/types/types';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Calendar, Clock, MapPin } from 'lucide-react';
 import Link from 'next/link';
 import type React from 'react';
 
@@ -99,10 +100,29 @@ const visitSettings: StaticTranslationString = {
   en: 'Visit Settings',
   fr: 'Ouvre Paramètres',
 };
+
+// Enhanced helper to format date and time more elegantly
+const formatDateTime = (
+  date: string,
+  time: string,
+): {
+  formattedDate: string;
+  time: string;
+} => {
+  const dateObject = new Date(date);
+  const formattedDate = dateObject.toLocaleDateString('de-CH', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  });
+
+  return { formattedDate, time };
+};
+
 const Dashboard: React.FC = async () => {
   const locale = await getLocaleFromCookies();
   const scheduleEvents = await getScheduleEntries();
-  const upcomingEvents = scheduleEvents.slice(0, 3); // Limit to 3 upcoming events
+  const upcomingEvents = scheduleEvents.slice(0, 4); // Limit to 4 upcoming events
 
   return (
     <>
@@ -132,26 +152,67 @@ const Dashboard: React.FC = async () => {
           {/* Upcoming Program Elements */}
           <div>
             <SubheadingH2>{upcomingProgramElementsTitle[locale]}</SubheadingH2>
-            <div className="mt-4 grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-              {upcomingEvents.map((entry) => (
-                <Link
-                  key={entry.id}
-                  href={`/app/schedule/${entry.id}`}
-                  className="flex flex-col rounded-md border p-4 shadow-sm"
-                >
-                  <div className="mb-2">
-                    <h3 className="font-heading text-conveniat-green text-base font-extrabold text-balance">
-                      {entry.title}
-                    </h3>
-                    <p className="text-sm text-gray-500">
-                      {new Date(entry.timeslot.date).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="flex-1">
-                    <LexicalRichTextSection richTextSection={entry.description} />
-                  </div>
-                </Link>
-              ))}
+            <div className="mt-4 grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2">
+              {upcomingEvents.map((entry) => {
+                const location = entry.location as CampMapAnnotation;
+                return (
+                  <Link
+                    key={entry.id}
+                    href={`/app/schedule/${entry.id}`}
+                    className="flex flex-col rounded-md border p-4 shadow-sm"
+                  >
+                    <div className="mb-2">
+                      <h3 className="font-heading text-conveniat-green flex-inline flex text-base font-extrabold text-balance">
+                        {entry.title}
+                        {/* Location - inline */}
+                        {location.title !== '' && (
+                          <div className="flex w-full justify-end">
+                            <div className="ml-auto flex items-center gap-1.5 text-sm text-gray-600">
+                              <MapPin className="h-3.5 w-3.5 flex-shrink-0 text-gray-500" />
+                              <Link
+                                href={`/app/map?locationId=${location.id}`}
+                                className="cursor-pointer font-medium text-blue-600 transition-colors hover:text-blue-800 hover:underline"
+                              >
+                                {location.title}
+                              </Link>
+                            </div>
+                          </div>
+                        )}
+                      </h3>
+                      <div className="mb-3 flex flex-wrap items-center gap-4">
+                        {/* Time slots */}
+
+                        <div className={'flex flex-shrink-0 items-center gap-3 text-sm'}>
+                          {
+                            <div className="flex flex-shrink-0 items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1 text-blue-700">
+                              <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
+                              <span className="font-medium whitespace-nowrap">
+                                {
+                                  formatDateTime(entry.timeslot.date, entry.timeslot.time)
+                                    .formattedDate
+                                }
+                              </span>
+                            </div>
+                          }
+
+                          {/* Time Slots */}
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <Clock className="h-3.5 w-3.5 flex-shrink-0 text-gray-500" />
+                            <div className="flex flex-wrap gap-1.5">
+                              <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium whitespace-nowrap text-gray-700">
+                                {entry.timeslot.time}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <LexicalRichTextSection richTextSection={entry.description} />
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           </div>
 
