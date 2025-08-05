@@ -48,8 +48,13 @@ export const QRCodeClientComponent: React.FC<{
         setIsPreparingQrData(true);
         setQrInputDataSource(undefined);
         try {
+          let fullURL = `${environmentVariables.NEXT_PUBLIC_APP_HOST_URL}/go/app/chat/new-chat-with-user/${url}`;
+          if (environmentVariables.NEXT_PUBLIC_APP_HOST_URL.includes('conveniat27.ch')) {
+            fullURL = `https://con27.ch/app/chat/new-chat-with-user/${url}`;
+          }
+
           const data = {
-            qrCodeContent: `${environmentVariables.NEXT_PUBLIC_APP_HOST_URL}/app/chat/new-chat-with-user/${url}`,
+            qrCodeContent: fullURL,
           };
 
           setQrInputDataSource(data);

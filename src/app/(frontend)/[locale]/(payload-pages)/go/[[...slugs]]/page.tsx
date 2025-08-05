@@ -18,6 +18,11 @@ const RedirectPage: React.FC<{
 
   const locales: Locale[] = i18nConfig.locales as Locale[];
 
+  // Special Pages
+  if ((slugs?.length ?? 0) > 0 && slugs?.[0] == 'app') {
+    return redirect(`/${slug}`);
+  }
+
   const redirectPages = await Promise.all(
     locales.map((l) =>
       payload.find({
