@@ -4,20 +4,13 @@ import { QRCodeImage } from '@/features/payload-cms/payload-cms/components/qr-co
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { useCurrentLocale } from 'next-i18n-router/client';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { environmentVariables } from '@/config/environment-variables';
 import { isProductionHosting } from '@/utils/is-production-hosting';
 import { FormSubmit, useTheme } from '@payloadcms/ui';
-import { useQuery } from '@tanstack/react-query'; // Added for TanStack Query
-import { QrCode } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { QrCode, X } from 'lucide-react';
 
 const qrCodeTitleText: StaticTranslationString = {
   de: 'Scannen lassen, um einen Chat zu starten.',
@@ -29,9 +22,7 @@ export const QRCodeClientComponent: React.FC<{
   url: string;
 }> = ({ url }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
-
   const { theme } = useTheme();
-
   const [open, setOpen] = useState(false);
 
   const [qrInputDataSource, setQrInputDataSource] = useState<
@@ -51,7 +42,6 @@ export const QRCodeClientComponent: React.FC<{
           const data = {
             qrCodeContent: `${isProductionHosting() ? 'https://con27.ch' : environmentVariables.NEXT_PUBLIC_APP_HOST_URL}/app/chat/new-chat-with-user/${url}`,
           };
-
           setQrInputDataSource(data);
         } catch (error) {
           console.error('Error preparing QR data:', error);
@@ -100,35 +90,48 @@ export const QRCodeClientComponent: React.FC<{
   const isLoading = isPreparingQrData || (isLoadingQRCodeImage && !isSuccessQRCodeImage);
 
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen}>
-      <DropdownMenuTrigger asChild>
-        <FormSubmit
-          icon={<QrCode className="h-6 w-6" />}
-          iconPosition="left"
-          buttonStyle="tab"
-          onClick={() => {
-            if (!open) setOpen(true);
-          }}
-        />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-96 rounded-md border-gray-200 bg-white text-gray-900 shadow-lg dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100">
-        <DropdownMenuLabel className="px-2 py-1.5 font-semibold">
-          {qrCodeTitleText[locale as Locale]}
-        </DropdownMenuLabel>
-        <div className="flex flex-col items-center gap-3 p-2">
-          <QRCodeImage
-            qrImageSrc={qrImageData}
-            copied={false}
-            isLoading={isLoading}
-            locale={locale as Locale}
-          />
-          {isErrorQRCodeImage && (
-            <p className="px-2 text-center text-xs text-red-500 dark:text-red-400">
-              Fehler beim Laden des QR-Codes. Bitte versuchen Sie es später erneut.
-            </p>
-          )}
+    <>
+      <FormSubmit
+        icon={<QrCode className="h-6 w-6" />}
+        iconPosition="left"
+        buttonStyle="tab"
+        onClick={() => setOpen(true)}
+      />
+
+      {open && (
+        <div
+          className="bg-opacity-75 fixed inset-0 z-50 flex items-center justify-center bg-black p-4 backdrop-blur-sm"
+          onClick={() => setOpen(false)}
+        >
+          <div className="relative w-full max-w-md rounded-lg border border-gray-200 bg-white p-6 text-gray-900 shadow-xl md:max-w-lg lg:max-w-xl dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100">
+            <button
+              onClick={() => setOpen(false)}
+              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              aria-label="Close"
+            >
+              <X className="h-6 w-6" />
+            </button>
+
+            <div className="flex flex-col items-center gap-3 p-2">
+              <QRCodeImage
+                qrImageSrc={qrImageData}
+                copied={false}
+                isLoading={isLoading}
+                locale={locale as Locale}
+              />
+              {isErrorQRCodeImage && (
+                <p className="px-2 text-center text-xs text-red-500 dark:text-red-400">
+                  Fehler beim Laden des QR-Codes. Bitte versuchen Sie es später erneut.
+                </p>
+              )}
+            </div>
+
+            <h2 className="text-md mb-4 text-center font-bold">
+              {qrCodeTitleText[locale as Locale]}
+            </h2>
+          </div>
         </div>
-      </DropdownMenuContent>
-    </DropdownMenu>
+      )}
+    </>
   );
 };
