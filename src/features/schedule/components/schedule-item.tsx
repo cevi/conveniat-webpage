@@ -58,12 +58,10 @@ export const ScheduleItem: React.FC<ScheduleItemProperties> = ({
               {entry.title}
             </h3>
 
-            {/* Location and Time Display - single line in collapsed view */}
-            <div
-              className={`mb-3 ${isExpanded ? 'space-y-2' : 'flex flex-wrap items-center gap-4'}`}
-            >
-              {/* Location - inline in collapsed view */}
-              {!isExpanded && location.title !== '' && (
+            {/* Location and Time Display - single line */}
+            <div className="mb-3 flex flex-wrap items-center gap-4">
+              {/* Location - inline */}
+              {location.title !== '' && (
                 <div className="flex items-center gap-1.5 text-sm text-gray-600">
                   <MapPin className="h-3.5 w-3.5 flex-shrink-0 text-gray-500" />
                   <button
@@ -71,7 +69,7 @@ export const ScheduleItem: React.FC<ScheduleItemProperties> = ({
                       event.stopPropagation();
                       onMapClick(location);
                     }}
-                    className="font-medium text-blue-600 transition-colors hover:text-blue-800 hover:underline"
+                    className="cursor-pointer font-medium text-blue-600 transition-colors hover:text-blue-800 hover:underline"
                   >
                     {location.title}
                   </button>
@@ -103,22 +101,6 @@ export const ScheduleItem: React.FC<ScheduleItemProperties> = ({
                 </div>
               </div>
             </div>
-
-            {/* Location in expanded view */}
-            {isExpanded && location.title !== '' && (
-              <div className="mb-3 flex items-center gap-1.5 text-sm text-gray-600">
-                <MapPin className="h-3.5 w-3.5 flex-shrink-0 text-gray-500" />
-                <button
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onMapClick(location);
-                  }}
-                  className="font-medium text-blue-600 transition-colors hover:text-blue-800 hover:underline"
-                >
-                  {location.title}
-                </button>
-              </div>
-            )}
           </div>
 
           {/* Action buttons on the right */}
