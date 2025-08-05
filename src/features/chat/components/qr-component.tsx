@@ -18,10 +18,10 @@ import { useQuery } from '@tanstack/react-query'; // Added for TanStack Query
 import { QrCode } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-const qrCodeLoadingText: StaticTranslationString = {
-  de: 'QR-Code',
-  fr: 'QR-Code',
-  en: 'QR Code',
+const qrCodeTitleText: StaticTranslationString = {
+  de: 'Scannen lassen, um einen Chat zu starten.',
+  fr: 'Faites-le scanner pour démarrer une discussion.',
+  en: 'Let it be scanned to start a chat.',
 };
 
 export const QRCodeClientComponent: React.FC<{
@@ -109,13 +109,11 @@ export const QRCodeClientComponent: React.FC<{
           onClick={() => {
             if (!open) setOpen(true);
           }}
-        >
-          {/*qrCodeLoadingText[locale as Locale]*/}
-        </FormSubmit>
+        />
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-96 rounded-md border-gray-200 bg-white text-gray-900 shadow-lg dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100">
         <DropdownMenuLabel className="px-2 py-1.5 font-semibold">
-          {qrCodeLoadingText[locale as Locale]}
+          {qrCodeTitleText[locale as Locale]}
         </DropdownMenuLabel>
         <div className="flex flex-col items-center gap-3 p-2">
           <QRCodeImage
