@@ -32,7 +32,6 @@ export const QRCodeClientComponent: React.FC<{
   const { theme } = useTheme();
 
   const [open, setOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
 
   const [qrInputDataSource, setQrInputDataSource] = useState<
     | {
@@ -130,7 +129,7 @@ export const QRCodeClientComponent: React.FC<{
             if (!open) setOpen(true);
           }}
         >
-          {qrCodeLoadingText[locale as Locale]}
+          {/*qrCodeLoadingText[locale as Locale]*/}
         </FormSubmit>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-96 rounded-md border-gray-200 bg-white text-gray-900 shadow-lg dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100">
@@ -140,7 +139,7 @@ export const QRCodeClientComponent: React.FC<{
         <div className="flex flex-col items-center gap-3 p-2">
           <QRCodeImage
             qrImageSrc={qrImageData}
-            copied={copied}
+            copied={false}
             isLoading={isLoading}
             locale={locale as Locale}
           />

@@ -13,12 +13,6 @@ import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 import { useState } from 'react';
 
-const newChatText: StaticTranslationString = {
-  en: 'New Chat',
-  de: 'Neuer Chat',
-  fr: 'Nouveau chat',
-};
-
 const searchPlaceholderText: StaticTranslationString = {
   en: 'Search conversations...',
   de: 'Unterhaltungen durchsuchen...',
