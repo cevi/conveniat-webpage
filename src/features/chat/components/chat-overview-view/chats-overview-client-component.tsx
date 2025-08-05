@@ -2,21 +2,17 @@
 import { Button } from '@/components/ui/buttons/button';
 import { Input } from '@/components/ui/input';
 import { ChatPreview } from '@/features/chat/components/chat-overview-view/chat-preview';
+import { QRCodeClientComponent } from '@/features/chat/components/qr-component';
 import { useChats } from '@/features/chat/hooks/use-chats';
 import type { ChatDto } from '@/features/chat/types/api-dto-types';
+import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { MessageSquare, Search } from 'lucide-react';
+import { MessageSquare, MessageSquarePlus, Search } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
 import type React from 'react';
 import { useState } from 'react';
-
-const newChatText: StaticTranslationString = {
-  en: 'New Chat',
-  de: 'Neuer Chat',
-  fr: 'Nouveau chat',
-};
 
 const searchPlaceholderText: StaticTranslationString = {
   en: 'Search conversations...',
@@ -37,9 +33,9 @@ const noChatsYetText: StaticTranslationString = {
 };
 
 const newConversationText: StaticTranslationString = {
-  en: 'Start a new conversation to get chatting',
-  de: 'Starte eine neue Unterhaltung, um zu chatten',
-  fr: 'Commencez une nouvelle conversation pour discuter',
+  en: 'Start a new conversation by showing the QR code to someone',
+  de: 'Starte eine neue Unterhaltung, indem du den QR Code jemandem zeigst.',
+  fr: "Commencez une nouvelle conversation en montrant le code QR à quelqu'un",
 };
 
 const adjustingSearchTermsText: StaticTranslationString = {
@@ -68,8 +64,11 @@ const ChatsOverviewLoadingPlaceholder: React.FC = () => {
 };
 
 // eslint-disable-next-line complexity
-export const ChatsOverviewClientComponent: React.FC = () => {
+export const ChatsOverviewClientComponent: React.FC<{ user: HitobitoNextAuthUser }> = ({
+  user,
+}) => {
   const { data: chats, isLoading } = useChats();
+
   const [searchQuery, setSearchQuery] = useState('');
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
@@ -95,13 +94,16 @@ export const ChatsOverviewClientComponent: React.FC = () => {
       </div>
 
       {/* New Chat Button */}
-      <Link className="flex justify-end" href="/app/chat/new">
-        {newChatText[locale]}
-      </Link>
+      <div className="flex justify-end gap-2">
+        <Link className="flex justify-end" href="/app/chat/new">
+          <MessageSquarePlus />
+        </Link>
+
+        <QRCodeClientComponent url={user.uuid} />
+      </div>
 
       {/* Loading State */}
       {isLoading && <ChatsOverviewLoadingPlaceholder />}
-
       {/* Empty State */}
       {!isLoading && filteredChats.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -125,7 +127,6 @@ export const ChatsOverviewClientComponent: React.FC = () => {
           )}
         </div>
       )}
-
       {/* Chat List */}
       {!isLoading && filteredChats.length > 0 && (
         <div className="space-y-2">

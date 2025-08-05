@@ -10,6 +10,7 @@ import {
 import { environmentVariables } from '@/config/environment-variables';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { serverSideSlugToUrlResolution } from '@/utils/find-url-prefix';
+import { isProductionHosting } from '@/utils/is-production-hosting';
 import { generatePreviewToken } from '@/utils/preview-token';
 import { FormSubmit, useDocumentInfo, useLocale, useTheme } from '@payloadcms/ui';
 import { useQuery } from '@tanstack/react-query'; // Added for TanStack Query
@@ -58,7 +59,9 @@ const qrCodeLoadingText: StaticTranslationString = {
   fr: 'QR-Code',
   en: 'QR Code',
 };
+
 const linkLoadingText: StaticTranslationString = { de: 'Link', fr: 'Lien', en: 'Link' };
+
 const qrNotAvailableText: StaticTranslationString = {
   de: 'QR-Code nicht verfügbar',
   fr: 'QR-Code non disponible',
@@ -113,10 +116,9 @@ const prepareQRCodeData = async (
   const basePreviewURL = `/${locale}${finalCollectionSlug}${finalUrlSlug}`;
 
   if (isRedirectQR) {
-    let redirectURL = 'https://con27.ch' + finalCollectionSlug + finalUrlSlug;
-    if (domain !== 'https://conveniat27.ch') {
-      redirectURL = domain + `/${locale}/go` + finalUrlSlug;
-    }
+    const redirectURL = isProductionHosting()
+      ? 'https://con27.ch' + finalCollectionSlug + finalUrlSlug
+      : domain + `/${locale}/go` + finalUrlSlug;
     return {
       qrCodeContent: redirectURL,
       displayURL: redirectURL,
@@ -144,14 +146,14 @@ const prepareQRCodeData = async (
 // --- QRCodeImage Component (Refined for loading states) ---
 interface QRCodeImageProperties {
   qrImageSrc: string | undefined;
-  fullURL: string;
+  fullURL?: string | undefined;
   copied: boolean;
-  handleCopy: MouseEventHandler<HTMLButtonElement>;
+  handleCopy?: MouseEventHandler<HTMLButtonElement> | undefined;
   isLoading: boolean;
   locale?: Locale;
 }
 
-const QRCodeImage: React.FC<QRCodeImageProperties> = ({
+export const QRCodeImage: React.FC<QRCodeImageProperties> = ({
   qrImageSrc,
   fullURL,
   copied,
@@ -165,11 +167,13 @@ const QRCodeImage: React.FC<QRCodeImageProperties> = ({
         <div className="flex h-[200px] w-[200px] animate-pulse items-center justify-center rounded-md bg-gray-100 dark:bg-gray-700">
           <span className="text-gray-500 dark:text-gray-300">{qrCodeLoadingText[locale]}</span>
         </div>
-        <div className="flex h-10 w-full animate-pulse items-center justify-center rounded-md bg-gray-100 dark:bg-gray-700">
-          <span className="font-semibold text-gray-500 dark:text-gray-300">
-            {linkLoadingText[locale]}
-          </span>
-        </div>
+        {fullURL != undefined && (
+          <div className="flex h-10 w-full animate-pulse items-center justify-center rounded-md bg-gray-100 dark:bg-gray-700">
+            <span className="font-semibold text-gray-500 dark:text-gray-300">
+              {linkLoadingText[locale]}
+            </span>
+          </div>
+        )}
       </>
     );
   }
@@ -178,26 +182,28 @@ const QRCodeImage: React.FC<QRCodeImageProperties> = ({
     return (
       <>
         <Image src={qrImageSrc} height="200" width="200" alt="link-qr-code" />
-        <div className="relative w-full">
-          <input
-            className="w-full rounded-md border border-solid border-gray-300 p-2 pr-10 text-sm shadow-none outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-            readOnly
-            value={fullURL}
-          />
-          <Button
-            variant="ghost"
-            size="sm"
-            className="absolute top-1/2 right-1 -translate-y-1/2 transform" // Ensure correct centering
-            onClick={handleCopy}
-            aria-label="Copy link"
-          >
-            {copied ? (
-              <Check className="h-4 w-4 text-green-500 dark:text-green-100" />
-            ) : (
-              <Copy className="h-4 w-4 text-gray-500 dark:text-gray-100" />
-            )}
-          </Button>
-        </div>
+        {fullURL != undefined && (
+          <div className="relative w-full">
+            <input
+              className="w-full rounded-md border border-solid border-gray-300 p-2 pr-10 text-sm shadow-none outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+              readOnly
+              value={fullURL}
+            />
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute top-1/2 right-1 -translate-y-1/2 transform" // Ensure correct centering
+              onClick={handleCopy}
+              aria-label="Copy link"
+            >
+              {copied ? (
+                <Check className="h-4 w-4 text-green-500 dark:text-green-100" />
+              ) : (
+                <Copy className="h-4 w-4 text-gray-500 dark:text-gray-100" />
+              )}
+            </Button>
+          </div>
+        )}
       </>
     );
   }

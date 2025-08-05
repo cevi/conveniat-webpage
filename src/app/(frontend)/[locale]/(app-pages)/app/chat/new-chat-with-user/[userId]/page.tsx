@@ -1,4 +1,6 @@
 import { createChat } from '@/features/chat/api/create-chat';
+import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
+import { auth } from '@/utils/auth-helpers';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import type React from 'react';
@@ -16,6 +18,13 @@ const NewChatWithUserPage: React.FC<{
   }>;
 }> = async ({ params }) => {
   const { userId } = await params;
+
+  const session = await auth();
+  const user = session?.user as HitobitoNextAuthUser;
+
+  if (user.uuid == userId) {
+    return redirect(`/app/chat`); // do not allow create self-chat.
+  }
 
   const chatName = ''; // Private chats do not require a name
   const contacts = [
