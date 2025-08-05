@@ -32,9 +32,9 @@ const noChatsYetText: StaticTranslationString = {
 };
 
 const newConversationText: StaticTranslationString = {
-  en: 'Start a new conversation to get chatting',
-  de: 'Starte eine neue Unterhaltung, um zu chatten',
-  fr: 'Commencez une nouvelle conversation pour discuter',
+  en: 'Start a new conversation by showing the QR code to someone',
+  de: 'Starte eine neue Unterhaltung, indem du den QR Code jemandem zeigst.',
+  fr: "Commencez une nouvelle conversation en montrant le code QR à quelqu'un",
 };
 
 const adjustingSearchTermsText: StaticTranslationString = {
