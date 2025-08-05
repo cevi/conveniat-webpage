@@ -8,8 +8,9 @@ import type { ChatDto } from '@/features/chat/types/api-dto-types';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { MessageSquare, Search } from 'lucide-react';
+import { MessageSquare, MessageSquarePlus, Search } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
+import Link from 'next/link';
 import type React from 'react';
 import { useState } from 'react';
 
@@ -91,10 +92,16 @@ export const ChatsOverviewClientComponent: React.FC<{ user: HitobitoNextAuthUser
           onChange={(changeEvent) => setSearchQuery(changeEvent.target.value)}
         />
       </div>
+
       {/* New Chat Button */}
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        <Link className="flex justify-end" href="/app/chat/new">
+          <MessageSquarePlus />
+        </Link>
+
         <QRCodeClientComponent url={user.uuid} />
       </div>
+
       {/* Loading State */}
       {isLoading && <ChatsOverviewLoadingPlaceholder />}
       {/* Empty State */}
