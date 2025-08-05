@@ -10,6 +10,7 @@ import {
 import { environmentVariables } from '@/config/environment-variables';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { serverSideSlugToUrlResolution } from '@/utils/find-url-prefix';
+import { isProductionHosting } from '@/utils/is-production-hosting';
 import { generatePreviewToken } from '@/utils/preview-token';
 import { FormSubmit, useDocumentInfo, useLocale, useTheme } from '@payloadcms/ui';
 import { useQuery } from '@tanstack/react-query'; // Added for TanStack Query
@@ -115,10 +116,9 @@ const prepareQRCodeData = async (
   const basePreviewURL = `/${locale}${finalCollectionSlug}${finalUrlSlug}`;
 
   if (isRedirectQR) {
-    let redirectURL = 'https://con27.ch' + finalCollectionSlug + finalUrlSlug;
-    if (domain !== 'https://conveniat27.ch') {
-      redirectURL = domain + `/${locale}/go` + finalUrlSlug;
-    }
+    const redirectURL = isProductionHosting()
+      ? 'https://con27.ch' + finalCollectionSlug + finalUrlSlug
+      : domain + `/${locale}/go` + finalUrlSlug;
     return {
       qrCodeContent: redirectURL,
       displayURL: redirectURL,
