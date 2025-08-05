@@ -114,10 +114,6 @@ export const QRCodeClientComponent: React.FC<{
 
   const isLoading = isPreparingQrData || (isLoadingQRCodeImage && !isSuccessQRCodeImage);
 
-  if (isLoading) {
-    return <></>;
-  }
-
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>

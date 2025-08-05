@@ -167,11 +167,13 @@ export const QRCodeImage: React.FC<QRCodeImageProperties> = ({
         <div className="flex h-[200px] w-[200px] animate-pulse items-center justify-center rounded-md bg-gray-100 dark:bg-gray-700">
           <span className="text-gray-500 dark:text-gray-300">{qrCodeLoadingText[locale]}</span>
         </div>
-        <div className="flex h-10 w-full animate-pulse items-center justify-center rounded-md bg-gray-100 dark:bg-gray-700">
-          <span className="font-semibold text-gray-500 dark:text-gray-300">
-            {linkLoadingText[locale]}
-          </span>
-        </div>
+        {fullURL != undefined && (
+          <div className="flex h-10 w-full animate-pulse items-center justify-center rounded-md bg-gray-100 dark:bg-gray-700">
+            <span className="font-semibold text-gray-500 dark:text-gray-300">
+              {linkLoadingText[locale]}
+            </span>
+          </div>
+        )}
       </>
     );
   }
