@@ -3,9 +3,7 @@ import Cookies from 'js-cookie';
 import { signIn } from 'next-auth/react';
 
 export const handleLogin = (): void => {
-  signIn('cevi-db', {
-    redirect: false,
-  })
+  signIn('cevi-db')
     .then(() => {
       console.log('Logged in successfully!');
       Cookies.set(Cookie.HAS_LOGGED_IN, 'true', {
