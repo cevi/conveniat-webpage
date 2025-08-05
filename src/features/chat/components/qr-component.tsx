@@ -42,7 +42,6 @@ export const QRCodeClientComponent: React.FC<{
   const [isPreparingQrData, setIsPreparingQrData] = useState(false);
 
   useEffect(() => {
-    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
     if (open) {
       const prepare = async (): Promise<void> => {
         setIsPreparingQrData(true);
