@@ -2,7 +2,7 @@ import { SetDynamicPageTitle } from '@/components/header/set-dynamic-app-title';
 import { CampMapComponent } from '@/features/map/components/camp-map-component';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import type { Metadata } from 'next';
-import type React from 'react';
+import React, { Suspense } from 'react';
 
 const tabTitle: StaticTranslationString = {
   en: 'Camp Map',
@@ -36,7 +36,9 @@ const MapPage: React.FC = () => {
   return (
     <>
       <SetDynamicPageTitle newTitle="Lagerplatz" />
-      <CampMapComponent />
+      <Suspense>
+        <CampMapComponent />
+      </Suspense>
     </>
   );
 };
