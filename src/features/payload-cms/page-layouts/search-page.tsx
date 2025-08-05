@@ -2,6 +2,7 @@ import { SearchBar } from '@/components/ui/search-bar';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { BlogDisplay } from '@/features/payload-cms/components/content-blocks/list-blog-articles';
 import { PageDisplay } from '@/features/payload-cms/components/content-blocks/page-display';
+import SearchOnlyPages from '@/features/payload-cms/components/search/search-page';
 import type { Blog, GenericPage, Permission } from '@/features/payload-cms/payload-types';
 import { specialPagesTable } from '@/features/payload-cms/special-pages-table';
 import type { LocalizedPageType, StaticTranslationString } from '@/types/types';
@@ -50,6 +51,8 @@ const SearchPage: React.FC<LocalizedPageType> = async (properties) => {
   const searchParameters = await searchParametersPromise;
   const searchQueryQ = searchParameters['q'];
 
+  const searchQueryOnly = searchParameters['only'];
+
   const actionURL = specialPagesTable['search']?.alternatives[locale] || '/search';
 
   const searchQuery = Array.isArray(searchQueryQ) ? searchQueryQ[0] || '' : searchQueryQ || '';
@@ -63,13 +66,19 @@ const SearchPage: React.FC<LocalizedPageType> = async (properties) => {
     );
   }
 
+  if (searchQueryOnly === 'pages') {
+    return <SearchOnlyPages searchParameters={searchParameters} />;
+  } else if (searchQueryOnly === 'blogs') {
+    return <></>;
+  }
+
   const currentDate = new Date().toISOString();
 
   // search for search_content and search_title
   const searchCollectionEntriesResult = await payload.find({
     collection: 'search-collection',
     depth: 1,
-    limit: 10,
+    limit: 1000,
     locale,
     where: {
       or: [
@@ -134,7 +143,7 @@ const SearchPage: React.FC<LocalizedPageType> = async (properties) => {
   const blogsPermissions = await Promise.all(
     blogs.map((blog) => hasPermissions(blog.content.permissions as Permission)),
   );
-  const permittedBlogs = blogs.filter((_, index) => blogsPermissions[index]);
+  const permittedBlogs = blogs.filter((_, index) => blogsPermissions[index]).slice(0, 5);
 
   const pagesPublished = await Promise.all(
     searchCollectionEntries.map(async (entry) => {
@@ -181,7 +190,7 @@ const SearchPage: React.FC<LocalizedPageType> = async (properties) => {
   const pagesPermissions = await Promise.all(
     pages.map((page) => hasPermissions(page.content.permissions as Permission)),
   );
-  const permittedPages = pages.filter((_, index) => pagesPermissions[index]);
+  const permittedPages = pages.filter((_, index) => pagesPermissions[index]).slice(0, 5);
 
   return (
     <article className="my-8 w-full max-w-2xl px-8 max-xl:mx-auto">
