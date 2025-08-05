@@ -4,7 +4,7 @@ import { LinkComponent } from '@/components/ui/link-component';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { SubheadingH2 } from '@/components/ui/typography/subheading-h2';
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
-import { CampMapAnnotation } from '@/features/payload-cms/payload-types';
+import type { CampMapAnnotation } from '@/features/payload-cms/payload-types';
 import { getScheduleEntries } from '@/features/schedule/api/get-schedule-entries';
 import type { StaticTranslationString } from '@/types/types';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
