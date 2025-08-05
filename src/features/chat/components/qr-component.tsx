@@ -16,7 +16,7 @@ import { environmentVariables } from '@/config/environment-variables';
 import { FormSubmit, useTheme } from '@payloadcms/ui';
 import { useQuery } from '@tanstack/react-query'; // Added for TanStack Query
 import { QrCode } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 const qrCodeLoadingText: StaticTranslationString = {
   de: 'QR-Code',
@@ -96,21 +96,6 @@ export const QRCodeClientComponent: React.FC<{
     refetchOnWindowFocus: false,
     retry: 1,
   });
-
-  const previousQrImageData = useRef<string | undefined>(undefined);
-  useEffect(() => {
-    if (previousQrImageData.current != undefined && previousQrImageData.current !== qrImageData) {
-      URL.revokeObjectURL(previousQrImageData.current);
-    }
-    previousQrImageData.current = qrImageData;
-
-    return (): void => {
-      if (previousQrImageData.current != undefined) {
-        URL.revokeObjectURL(previousQrImageData.current);
-        previousQrImageData.current = undefined;
-      }
-    };
-  }, [qrImageData]);
 
   const isLoading = isPreparingQrData || (isLoadingQRCodeImage && !isSuccessQRCodeImage);
 
