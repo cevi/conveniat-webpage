@@ -58,7 +58,9 @@ const qrCodeLoadingText: StaticTranslationString = {
   fr: 'QR-Code',
   en: 'QR Code',
 };
+
 const linkLoadingText: StaticTranslationString = { de: 'Link', fr: 'Lien', en: 'Link' };
+
 const qrNotAvailableText: StaticTranslationString = {
   de: 'QR-Code nicht verfügbar',
   fr: 'QR-Code non disponible',
@@ -144,9 +146,9 @@ const prepareQRCodeData = async (
 // --- QRCodeImage Component (Refined for loading states) ---
 interface QRCodeImageProperties {
   qrImageSrc: string | undefined;
-  fullURL: string;
+  fullURL?: string | undefined;
   copied: boolean;
-  handleCopy: MouseEventHandler<HTMLButtonElement>;
+  handleCopy?: MouseEventHandler<HTMLButtonElement> | undefined;
   isLoading: boolean;
   locale?: Locale;
 }
@@ -178,26 +180,28 @@ export const QRCodeImage: React.FC<QRCodeImageProperties> = ({
     return (
       <>
         <Image src={qrImageSrc} height="200" width="200" alt="link-qr-code" />
-        <div className="relative w-full">
-          <input
-            className="w-full rounded-md border border-solid border-gray-300 p-2 pr-10 text-sm shadow-none outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-            readOnly
-            value={fullURL}
-          />
-          <Button
-            variant="ghost"
-            size="sm"
-            className="absolute top-1/2 right-1 -translate-y-1/2 transform" // Ensure correct centering
-            onClick={handleCopy}
-            aria-label="Copy link"
-          >
-            {copied ? (
-              <Check className="h-4 w-4 text-green-500 dark:text-green-100" />
-            ) : (
-              <Copy className="h-4 w-4 text-gray-500 dark:text-gray-100" />
-            )}
-          </Button>
-        </div>
+        {fullURL != undefined && (
+          <div className="relative w-full">
+            <input
+              className="w-full rounded-md border border-solid border-gray-300 p-2 pr-10 text-sm shadow-none outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+              readOnly
+              value={fullURL}
+            />
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute top-1/2 right-1 -translate-y-1/2 transform" // Ensure correct centering
+              onClick={handleCopy}
+              aria-label="Copy link"
+            >
+              {copied ? (
+                <Check className="h-4 w-4 text-green-500 dark:text-green-100" />
+              ) : (
+                <Copy className="h-4 w-4 text-gray-500 dark:text-gray-100" />
+              )}
+            </Button>
+          </div>
+        )}
       </>
     );
   }

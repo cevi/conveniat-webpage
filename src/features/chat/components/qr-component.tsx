@@ -16,15 +16,13 @@ import { environmentVariables } from '@/config/environment-variables';
 import { FormSubmit, useTheme } from '@payloadcms/ui';
 import { useQuery } from '@tanstack/react-query'; // Added for TanStack Query
 import { QrCode } from 'lucide-react';
-import type { MouseEventHandler } from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const qrCodeLoadingText: StaticTranslationString = {
   de: 'QR-Code',
   fr: 'QR-Code',
   en: 'QR Code',
 };
-const linkLoadingText: StaticTranslationString = { de: 'Link', fr: 'Lien', en: 'Link' };
 
 export const QRCodeClientComponent: React.FC<{
   url: string;
@@ -39,7 +37,6 @@ export const QRCodeClientComponent: React.FC<{
   const [qrInputDataSource, setQrInputDataSource] = useState<
     | {
         qrCodeContent: string;
-        displayURL: string;
       }
     | undefined
   >();
@@ -54,7 +51,6 @@ export const QRCodeClientComponent: React.FC<{
         try {
           const data = {
             qrCodeContent: `${environmentVariables.NEXT_PUBLIC_APP_HOST_URL}/app/chat/new-chat-with-user/${url}`,
-            displayURL: `${environmentVariables.NEXT_PUBLIC_APP_HOST_URL}/app/chat/new-chat-with-user/${url}`,
           };
 
           setQrInputDataSource(data);
@@ -117,23 +113,6 @@ export const QRCodeClientComponent: React.FC<{
     };
   }, [qrImageData]);
 
-  const handleCopy: MouseEventHandler<HTMLButtonElement> = useCallback(
-    (event) => {
-      if (qrInputDataSource?.displayURL != undefined) {
-        navigator.clipboard
-          .writeText(qrInputDataSource.displayURL)
-          .then(() => {
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
-          })
-          .catch(console.error);
-      }
-      event.preventDefault();
-    },
-    [qrInputDataSource?.displayURL],
-  );
-
-  const displayUrl = qrInputDataSource?.displayURL ?? '';
   const isLoading = isPreparingQrData || (isLoadingQRCodeImage && !isSuccessQRCodeImage);
 
   if (isLoading) {
@@ -161,9 +140,7 @@ export const QRCodeClientComponent: React.FC<{
         <div className="flex flex-col items-center gap-3 p-2">
           <QRCodeImage
             qrImageSrc={qrImageData}
-            fullURL={displayUrl}
             copied={copied}
-            handleCopy={handleCopy}
             isLoading={isLoading}
             locale={locale as Locale}
           />
