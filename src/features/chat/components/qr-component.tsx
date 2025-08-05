@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { environmentVariables } from '@/config/environment-variables';
+import { isProductionHosting } from '@/utils/is-production-hosting';
 import { FormSubmit, useTheme } from '@payloadcms/ui';
 import { useQuery } from '@tanstack/react-query'; // Added for TanStack Query
 import { QrCode } from 'lucide-react';
@@ -47,13 +48,8 @@ export const QRCodeClientComponent: React.FC<{
         setIsPreparingQrData(true);
         setQrInputDataSource(undefined);
         try {
-          let fullURL = `${environmentVariables.NEXT_PUBLIC_APP_HOST_URL}/go/app/chat/new-chat-with-user/${url}`;
-          if (environmentVariables.NEXT_PUBLIC_APP_HOST_URL.includes('conveniat27.ch')) {
-            fullURL = `https://con27.ch/app/chat/new-chat-with-user/${url}`;
-          }
-
           const data = {
-            qrCodeContent: fullURL,
+            qrCodeContent: `${isProductionHosting() ? 'https://con27.ch' : environmentVariables.NEXT_PUBLIC_APP_HOST_URL}/app/chat/new-chat-with-user/${url}`,
           };
 
           setQrInputDataSource(data);
