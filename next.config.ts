@@ -44,6 +44,9 @@ const nextConfig: NextConfig = {
 
     // Explore route composition and segment overrides via DevTools
     devtoolSegmentExplorer: true,
+
+    // enable react compiler for better error messages and performance
+    reactCompiler: true,
   },
   logging: { fetches: { fullUrl: true } },
   eslint: {
