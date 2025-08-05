@@ -12,9 +12,10 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { environmentVariables } from '@/config/environment-variables';
 import { FormSubmit, useTheme } from '@payloadcms/ui';
 import { useQuery } from '@tanstack/react-query'; // Added for TanStack Query
-import { Eye } from 'lucide-react';
+import { QrCode } from 'lucide-react';
 import type { MouseEventHandler } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -52,8 +53,8 @@ export const QRCodeClientComponent: React.FC<{
         setQrInputDataSource(undefined);
         try {
           const data = {
-            qrCodeContent: `https://con27.ch/app/chat/new-chat-with-user/${url}`,
-            displayURL: `https://con27.ch/app/chat/new-chat-with-user/${url}`,
+            qrCodeContent: `${environmentVariables.NEXT_PUBLIC_APP_HOST_URL}/app/chat/new-chat-with-user/${url}`,
+            displayURL: `${environmentVariables.NEXT_PUBLIC_APP_HOST_URL}/app/chat/new-chat-with-user/${url}`,
           };
 
           setQrInputDataSource(data);
@@ -136,25 +137,14 @@ export const QRCodeClientComponent: React.FC<{
   const isLoading = isPreparingQrData || (isLoadingQRCodeImage && !isSuccessQRCodeImage);
 
   if (isLoading) {
-    return (
-      <>
-        <div className="flex h-[200px] w-[200px] animate-pulse items-center justify-center rounded-md bg-gray-100 dark:bg-gray-700">
-          <span className="text-gray-500 dark:text-gray-300">{qrCodeLoadingText[locale]}</span>
-        </div>
-        <div className="flex h-10 w-full animate-pulse items-center justify-center rounded-md bg-gray-100 dark:bg-gray-700">
-          <span className="font-semibold text-gray-500 dark:text-gray-300">
-            {linkLoadingText[locale]}
-          </span>
-        </div>
-      </>
-    );
+    return <></>;
   }
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <FormSubmit
-          icon={<Eye className="h-6 w-6" />}
+          icon={<QrCode className="h-6 w-6" />}
           iconPosition="left"
           buttonStyle="tab"
           onClick={() => {
