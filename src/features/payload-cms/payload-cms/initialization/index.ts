@@ -1,4 +1,5 @@
 import { environmentVariables } from '@/config/environment-variables';
+import prisma from '@/features/chat/database';
 import { deleteDatabase } from '@/features/payload-cms/payload-cms/initialization/deleting';
 import { seedDatabase } from '@/features/payload-cms/payload-cms/initialization/seeding';
 import type { Payload } from 'payload';
@@ -22,7 +23,15 @@ export const deleteEverything = async (payload: Payload): Promise<void> => {
 
   await deleteDatabase(payload).catch(console.error);
 
-  // TODO: delete prisma for chat DB
+  await prisma
+    .$transaction([
+      prisma.messageEvent.deleteMany(),
+      prisma.message.deleteMany(),
+      prisma.chatMembership.deleteMany(),
+      prisma.chat.deleteMany(),
+      prisma.user.deleteMany(),
+    ])
+    .catch(console.error);
 
   console.log('Done.');
 };
