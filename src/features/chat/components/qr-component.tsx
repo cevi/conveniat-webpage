@@ -8,7 +8,7 @@ import React, { useEffect, useState } from 'react';
 
 import { environmentVariables } from '@/config/environment-variables';
 import { isProductionHosting } from '@/utils/is-production-hosting';
-import { FormSubmit, useTheme } from '@payloadcms/ui';
+import { FormSubmit } from '@payloadcms/ui';
 import { useQuery } from '@tanstack/react-query';
 import { QrCode, X } from 'lucide-react';
 
@@ -22,7 +22,6 @@ export const QRCodeClientComponent: React.FC<{
   url: string;
 }> = ({ url }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
-  const { theme } = useTheme();
   const [open, setOpen] = useState(false);
 
   const [qrInputDataSource, setQrInputDataSource] = useState<
@@ -60,7 +59,7 @@ export const QRCodeClientComponent: React.FC<{
     isError: isErrorQRCodeImage,
     isSuccess: isSuccessQRCodeImage,
   } = useQuery<string, Error>({
-    queryKey: ['qrCodeImage', qrInputDataSource?.qrCodeContent, theme],
+    queryKey: ['qrCodeImage', qrInputDataSource?.qrCodeContent],
     queryFn: async () => {
       if (qrInputDataSource?.qrCodeContent == undefined) {
         throw new Error('QR code content not available for fetching.');
@@ -70,7 +69,7 @@ export const QRCodeClientComponent: React.FC<{
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           text: qrInputDataSource.qrCodeContent,
-          options: { color_scheme: theme === 'light' ? 'cevi' : 'white' },
+          options: { color_scheme: 'cevi' },
         }),
       });
       if (!response.ok) {
@@ -92,7 +91,7 @@ export const QRCodeClientComponent: React.FC<{
   return (
     <>
       <FormSubmit
-        icon={<QrCode className="h-6 w-6" />}
+        icon={<QrCode className="h-6 w-6 cursor-pointer" />}
         iconPosition="left"
         buttonStyle="tab"
         onClick={() => setOpen(true)}
@@ -103,10 +102,10 @@ export const QRCodeClientComponent: React.FC<{
           className="bg-opacity-75 fixed inset-0 z-50 flex items-center justify-center bg-black p-4 backdrop-blur-sm"
           onClick={() => setOpen(false)}
         >
-          <div className="relative w-full max-w-md rounded-lg border border-gray-200 bg-white p-6 text-gray-900 shadow-xl md:max-w-lg lg:max-w-xl dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100">
+          <div className="relative w-full max-w-md rounded-lg border border-gray-200 bg-white p-6 text-gray-900 shadow-xl md:max-w-lg lg:max-w-xl">
             <button
               onClick={() => setOpen(false)}
-              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              className="absolute top-4 right-4 cursor-pointer text-gray-500 hover:text-gray-700"
               aria-label="Close"
             >
               <X className="h-6 w-6" />
@@ -120,7 +119,7 @@ export const QRCodeClientComponent: React.FC<{
                 locale={locale as Locale}
               />
               {isErrorQRCodeImage && (
-                <p className="px-2 text-center text-xs text-red-500 dark:text-red-400">
+                <p className="px-2 text-center text-xs text-red-500">
                   Fehler beim Laden des QR-Codes. Bitte versuchen Sie es später erneut.
                 </p>
               )}
