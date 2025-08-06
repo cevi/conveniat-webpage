@@ -6,6 +6,7 @@ const routesWithAuth = [
   '/app/department-helper-portal',
   '/app/helper-portal',
   '/app/schedule',
+  '/app/settings',
 ];
 
 /**

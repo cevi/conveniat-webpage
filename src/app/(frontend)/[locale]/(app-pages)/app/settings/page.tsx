@@ -1,8 +1,10 @@
 import { SetDynamicPageTitle } from '@/components/header/set-dynamic-app-title';
+import { MainMenuLanguageSwitcher } from '@/components/menu/main-menu-language-switcher';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
-import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
+import { LogoutButton } from '@/features/settings/logout-button';
+import { ProfileDetails } from '@/features/settings/profile-details';
+import { PushNotificationSettings } from '@/features/settings/push-notification-settings';
 import type { StaticTranslationString } from '@/types/types';
-import { auth } from '@/utils/auth-helpers';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import React from 'react';
 
@@ -12,36 +14,30 @@ const settingsTitle: StaticTranslationString = {
   fr: 'Paramètres',
 };
 
-const settingsInfoText: StaticTranslationString = {
-  de: 'Einstellungen für die App',
-  en: 'Settings for the app',
-  fr: "Paramètres pour l'app",
-};
-
-const notAvailable: StaticTranslationString = {
-  de: 'nicht verfügbar',
-  en: 'not available',
-  fr: '',
-};
-
 const Settings: React.FC = async () => {
   const locale = await getLocaleFromCookies();
-  const session = await auth();
-  const user = session?.user as HitobitoNextAuthUser | undefined;
 
   return (
     <>
+      {/* Set the dynamic page title based on the locale */}
       <SetDynamicPageTitle newTitle={settingsTitle[locale]} />
+
+      {/* Main content section */}
       <section className="container mx-auto my-8 px-4 py-8 md:py-12">
         <article className="mx-auto w-full max-w-2xl space-y-10">
-          <div>
-            <HeadlineH1>{settingsTitle[locale]}</HeadlineH1>
-            <p className="mt-2 text-gray-700">{settingsInfoText[locale]}</p>
-          </div>
-          <div>
-            <p className="mt-2 text-gray-700">Hof: {user?.hof ?? notAvailable[locale]}</p>
-            <p className="mt-2 text-gray-700">Quartier: {user?.quartier ?? notAvailable[locale]}</p>
-          </div>
+          <HeadlineH1>{settingsTitle[locale]}</HeadlineH1>
+          <ProfileDetails />
+          <LogoutButton />
+        </article>
+
+        {/* Add Option to Change Language */}
+        <article className="mt-8 rounded-lg bg-white px-6 shadow-md">
+          <MainMenuLanguageSwitcher locale={locale} />
+        </article>
+
+        {/* Add Option to Configure Push Notifications */}
+        <article className="mt-8 rounded-lg bg-white p-6 px-6 shadow-md">
+          <PushNotificationSettings />
         </article>
       </section>
     </>
