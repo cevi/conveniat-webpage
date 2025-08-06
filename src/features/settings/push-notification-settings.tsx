@@ -1,5 +1,7 @@
 'use client';
 
+// TODO: use a proper shared component for push notification settings
+// eslint-disable-next-line import/no-restricted-paths
 import { PushNotificationManagerEntrypointComponent } from '@/features/onboarding/components/push-notification-manager';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';

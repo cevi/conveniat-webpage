@@ -31,6 +31,7 @@ const features_folder = [
   'service-worker',
   'emergency',
   'payload-cms',
+  'settings',
 ];
 
 // assert that all folders in src/features are in the features array
