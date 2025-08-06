@@ -1,9 +1,16 @@
+import { LinkComponent } from '@/components/ui/link-component';
 import { SearchBar } from '@/components/ui/search-bar';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { BlogDisplay } from '@/features/payload-cms/components/content-blocks/list-blog-articles';
 import { PageDisplay } from '@/features/payload-cms/components/content-blocks/page-display';
+import SearchOnlyBlog from '@/features/payload-cms/components/search/search-blog';
 import SearchOnlyPages from '@/features/payload-cms/components/search/search-page';
-import type { Blog, GenericPage, Permission } from '@/features/payload-cms/payload-types';
+import type {
+  Blog,
+  GenericPage,
+  Permission,
+  SearchCollection,
+} from '@/features/payload-cms/payload-types';
 import { specialPagesTable } from '@/features/payload-cms/special-pages-table';
 import type { LocalizedPageType, StaticTranslationString } from '@/types/types';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
@@ -42,6 +49,21 @@ const searchNoSearchQuery: StaticTranslationString = {
   fr: 'Veuillez entrer un terme de recherche',
 };
 
+const searchMoreButton: StaticTranslationString = {
+  de: 'Mehr',
+  en: 'More',
+  fr: 'Plus',
+};
+
+const renderPermittedPage = (page: GenericPage): React.JSX.Element => (
+  <PageDisplay page={page} key={page.seo.urlSlug} />
+);
+
+const renderPermittedBlog = (blog: Blog): React.JSX.Element => (
+  <BlogDisplay blog={blog} key={blog.seo.urlSlug} />
+);
+
+// eslint-disable-next-line complexity
 const SearchPage: React.FC<LocalizedPageType> = async (properties) => {
   const { searchParams: searchParametersPromise } = properties;
 
@@ -53,11 +75,11 @@ const SearchPage: React.FC<LocalizedPageType> = async (properties) => {
 
   const searchQueryOnly = searchParameters['only'];
 
-  const actionURL = specialPagesTable['search']?.alternatives[locale] || '/search';
+  const actionURL = specialPagesTable['search']?.alternatives[locale] ?? '/search';
 
-  const searchQuery = Array.isArray(searchQueryQ) ? searchQueryQ[0] || '' : searchQueryQ || '';
+  const searchQuery = Array.isArray(searchQueryQ) ? (searchQueryQ[0] ?? '') : (searchQueryQ ?? '');
 
-  if (!searchQuery || searchQuery.trim() === '') {
+  if (searchQuery.trim() === '') {
     return (
       <article className="my-8 w-full max-w-2xl px-8 max-xl:mx-auto">
         <HeadlineH1>{searchNoSearchQuery[locale]}</HeadlineH1>
@@ -69,128 +91,109 @@ const SearchPage: React.FC<LocalizedPageType> = async (properties) => {
   if (searchQueryOnly === 'pages') {
     return <SearchOnlyPages searchParameters={searchParameters} />;
   } else if (searchQueryOnly === 'blogs') {
-    return <></>;
+    return <SearchOnlyBlog searchParameters={searchParameters} />;
   }
+
+  const limitPerCategory = 5;
 
   const currentDate = new Date().toISOString();
 
-  // search for search_content and search_title
-  const searchCollectionEntriesResult = await payload.find({
+  const searchEntriesPages = await payload.find({
     collection: 'search-collection',
     depth: 1,
-    limit: 1000,
+    limit: limitPerCategory,
     locale,
     where: {
-      or: [
+      and: [
         {
-          search_content: {
-            like: searchQuery,
-          },
+          or: [
+            {
+              search_content: {
+                like: searchQuery,
+              },
+            },
+            {
+              search_title: {
+                like: searchQuery,
+              },
+            },
+          ],
         },
         {
-          search_title: {
-            like: searchQuery,
-          },
+          'doc.relationTo': { equals: 'generic-page' },
         },
       ],
     },
   });
-  const searchCollectionEntries = searchCollectionEntriesResult.docs;
+  const searchPageIDs = searchEntriesPages.docs.map(
+    (searchEntry: SearchCollection) => searchEntry.doc.value,
+  );
 
-  const blogsPublished = await Promise.all(
-    searchCollectionEntries.map(async (entry) => {
-      if (entry.doc.relationTo !== 'blog') {
-        return;
-      }
+  const pages = await payload.find({
+    collection: 'generic-page',
+    locale,
+    where: {
+      and: [
+        { id: { in: searchPageIDs } },
+        { 'content.releaseDate': { less_than_equal: currentDate } },
+        { _localized_status: { equals: { published: true } } },
+      ],
+    },
+  });
 
-      // fetch the blog article and check if the release date is in the past
-      const blogArticleResult = await payload.find({
-        collection: 'blog',
-        depth: 1,
-        limit: 1,
-        locale,
-        where: {
-          and: [
+  const searchEntriesBlogs = await payload.find({
+    collection: 'search-collection',
+    depth: 1,
+    limit: limitPerCategory,
+    locale,
+    where: {
+      and: [
+        {
+          or: [
             {
-              id: {
-                equals: entry.doc.value,
+              search_content: {
+                like: searchQuery,
               },
             },
             {
-              'content.releaseDate': {
-                less_than_equal: currentDate,
-              },
-            },
-            {
-              _localized_status: {
-                equals: {
-                  published: true,
-                },
+              search_title: {
+                like: searchQuery,
               },
             },
           ],
         },
-      });
-      if (blogArticleResult.docs.length > 0) {
-        return blogArticleResult.docs[0];
-      }
+        {
+          'doc.relationTo': { equals: 'blogs' },
+        },
+      ],
+    },
+  });
 
-      return;
-    }),
+  const searchBlogIDs = searchEntriesBlogs.docs.map(
+    (searchEntry: SearchCollection) => searchEntry.doc.value,
   );
 
-  const blogs = blogsPublished.filter((blog) => blog !== undefined) as Blog[];
+  const blogs = await payload.find({
+    collection: 'blog',
+    locale,
+    where: {
+      and: [
+        { id: { in: searchBlogIDs } },
+        { 'content.releaseDate': { less_than_equal: currentDate } },
+        { _localized_status: { equals: { published: true } } },
+      ],
+    },
+  });
+
   const blogsPermissions = await Promise.all(
-    blogs.map((blog) => hasPermissions(blog.content.permissions as Permission)),
+    blogs.docs.map((blog) => hasPermissions(blog.content.permissions as Permission)),
   );
-  const permittedBlogs = blogs.filter((_, index) => blogsPermissions[index]).slice(0, 5);
+  const permittedBlogs = blogs.docs.filter((_, index) => blogsPermissions[index] ?? false);
 
-  const pagesPublished = await Promise.all(
-    searchCollectionEntries.map(async (entry) => {
-      if (entry.doc.relationTo !== 'generic-page') {
-        return;
-      }
-
-      // fetch the blog article and check if the release date is in the past
-      const pagesResult = await payload.find({
-        collection: 'generic-page',
-        depth: 1,
-        limit: 1,
-        locale,
-        where: {
-          and: [
-            {
-              id: {
-                equals: entry.doc.value,
-              },
-            },
-            {
-              'content.releaseDate': {
-                less_than_equal: currentDate,
-              },
-            },
-            {
-              _localized_status: {
-                equals: {
-                  published: true,
-                },
-              },
-            },
-          ],
-        },
-      });
-      if (pagesResult.docs.length > 0) {
-        return pagesResult.docs[0];
-      }
-
-      return;
-    }),
-  );
-  const pages = pagesPublished.filter((page) => page !== undefined) as GenericPage[];
   const pagesPermissions = await Promise.all(
-    pages.map((page) => hasPermissions(page.content.permissions as Permission)),
+    pages.docs.map((page) => hasPermissions(page.content.permissions as Permission)),
   );
-  const permittedPages = pages.filter((_, index) => pagesPermissions[index]).slice(0, 5);
+  const permittedPages = pages.docs.filter((_, index) => pagesPermissions[index] ?? false);
 
   return (
     <article className="my-8 w-full max-w-2xl px-8 max-xl:mx-auto">
@@ -204,16 +207,28 @@ const SearchPage: React.FC<LocalizedPageType> = async (properties) => {
         <div className="col-span-2 flex flex-col gap-y-4">
           <h2 className="text-2xl font-bold">{searchResultsTitlePages[locale]}</h2>
           {permittedPages.length === 0 && <p>{searchResultNoResults[locale]}</p>}
-          {permittedPages.map((page) => {
-            return <PageDisplay page={page} key={page.seo.urlSlug} />;
-          })}
+          {permittedPages.map((element) => renderPermittedPage(element))}
+          {searchEntriesPages.totalPages > 1 && (
+            <LinkComponent
+              href={`?q=${searchQuery}&only=pages`}
+              className="rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700 hover:text-white"
+            >
+              {searchMoreButton[locale]}
+            </LinkComponent>
+          )}
         </div>
         <div className="col-span-2 flex flex-col gap-y-4">
           <h2 className="text-2xl font-bold">{searchResultsTitleBlog[locale]}</h2>
           {permittedBlogs.length === 0 && <p>{searchResultNoResults[locale]}</p>}
-          {permittedBlogs.map((blog) => {
-            return <BlogDisplay blog={blog} key={blog.seo.urlSlug} />;
-          })}
+          {permittedBlogs.map((element) => renderPermittedBlog(element))}
+          {searchEntriesBlogs.totalPages > 1 && (
+            <LinkComponent
+              href={`?q=${searchQuery}&only=blogs`}
+              className="rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700 hover:text-white"
+            >
+              {searchMoreButton[locale]}
+            </LinkComponent>
+          )}
         </div>
       </div>
     </article>

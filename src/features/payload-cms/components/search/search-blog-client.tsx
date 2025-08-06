@@ -3,8 +3,8 @@
 import { LinkComponent } from '@/components/ui/link-component';
 import { SearchBar } from '@/components/ui/search-bar';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
-import PageDisplayClient from '@/features/payload-cms/components/search/page-display-client';
-import type { GenericPage } from '@/features/payload-cms/payload-types';
+import BlogDisplayClient from '@/features/payload-cms/components/search/blog-display-client';
+import type { Blog } from '@/features/payload-cms/payload-types';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { MoveLeft, MoveRight } from 'lucide-react';
 import type { PaginatedDocs } from 'payload';
@@ -22,9 +22,9 @@ const searchResultNoResults: StaticTranslationString = {
 };
 
 const searchResultsTitlePages: StaticTranslationString = {
-  de: 'Alle Seiten',
-  en: 'All Pages',
-  fr: 'Touts Pages',
+  de: 'Alle Blogs',
+  en: 'All Blogs',
+  fr: 'Touts Blogs',
 };
 
 const nextButton: StaticTranslationString = {
@@ -39,14 +39,14 @@ const previousButton: StaticTranslationString = {
   fr: 'Page précédente',
 };
 
-const SearchOnlyPagesClient: React.FC<{
+const SearchOnlyBlogsClient: React.FC<{
   locale: Locale;
   page: number;
   searchQuery: string;
-  permittedPages: GenericPage[];
-  pages: PaginatedDocs<GenericPage>;
-}> = ({ locale, page, searchQuery, permittedPages, pages }): React.JSX.Element => {
-  const { totalPages, hasPrevPage, hasNextPage, prevPage, nextPage } = pages;
+  permittedBlogs: Blog[];
+  blogs: PaginatedDocs<Blog>;
+}> = ({ locale, page, searchQuery, permittedBlogs, blogs }): React.JSX.Element => {
+  const { totalPages, hasPrevPage, hasNextPage, prevPage, nextPage } = blogs;
 
   const searchAlternatives = {
     en: '/search',
@@ -71,9 +71,9 @@ const SearchOnlyPagesClient: React.FC<{
 
       <div className="my-8 flex flex-col gap-y-4">
         <h2 className="text-2xl font-bold">{searchResultsTitlePages[locale]}</h2>
-        {permittedPages.length === 0 && <p>{searchResultNoResults[locale]}</p>}
-        {permittedPages.map((permittedPage) => (
-          <PageDisplayClient key={permittedPage.id} page={permittedPage} locale={locale} />
+        {permittedBlogs.length === 0 && <p>{searchResultNoResults[locale]}</p>}
+        {permittedBlogs.map((permittedBlog) => (
+          <BlogDisplayClient key={permittedBlog.id} blog={permittedBlog} locale={locale} />
         ))}
       </div>
       <nav className="mt-8 flex justify-between">
@@ -105,4 +105,4 @@ const SearchOnlyPagesClient: React.FC<{
   );
 };
 
-export default SearchOnlyPagesClient;
+export default SearchOnlyBlogsClient;

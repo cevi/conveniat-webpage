@@ -1,4 +1,4 @@
-import SearchOnlyPagesClient from '@/features/payload-cms/components/search/search-page-client';
+import SearchOnlyBlogsClient from '@/features/payload-cms/components/search/search-blog-client';
 import type { Permission, SearchCollection } from '@/features/payload-cms/payload-types';
 import type { SearchParameters } from '@/types/types';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
@@ -7,7 +7,7 @@ import config from '@payload-config';
 import { getPayload } from 'payload';
 import React from 'react';
 
-const SearchOnlyPages: React.FC<{ searchParameters: SearchParameters }> = async ({
+const SearchOnlyBlog: React.FC<{ searchParameters: SearchParameters }> = async ({
   searchParameters,
 }): Promise<React.JSX.Element> => {
   const searchQueryQ = searchParameters['q'];
@@ -44,7 +44,7 @@ const SearchOnlyPages: React.FC<{ searchParameters: SearchParameters }> = async 
           ],
         },
         {
-          'doc.relationTo': { equals: 'generic-page' },
+          'doc.relationTo': { equals: 'blog' },
         },
       ],
     },
@@ -57,8 +57,8 @@ const SearchOnlyPages: React.FC<{ searchParameters: SearchParameters }> = async 
     (entry: SearchCollection) => entry.doc.value,
   );
 
-  const pages = await payload.find({
-    collection: 'generic-page',
+  const blogs = await payload.find({
+    collection: 'blog',
     depth: 1,
     limit: 3,
     locale,
@@ -72,22 +72,22 @@ const SearchOnlyPages: React.FC<{ searchParameters: SearchParameters }> = async 
     },
   });
 
-  const pagesPermissions = await Promise.all(
-    pages.docs.map((permissionPage) =>
-      hasPermissions(permissionPage.content.permissions as Permission),
+  const blogsPermissions = await Promise.all(
+    blogs.docs.map((permissionBlog) =>
+      hasPermissions(permissionBlog.content.permissions as Permission),
     ),
   );
-  const permittedPages = pages.docs.filter((_, index) => pagesPermissions[index] ?? false);
+  const permittedBlogs = blogs.docs.filter((_, index) => blogsPermissions[index] ?? false);
 
   return (
-    <SearchOnlyPagesClient
+    <SearchOnlyBlogsClient
       locale={locale}
       searchQuery={searchQuery}
       page={page}
-      permittedPages={permittedPages}
-      pages={pages}
+      permittedBlogs={permittedBlogs}
+      blogs={blogs}
     />
   );
 };
 
-export default SearchOnlyPages;
+export default SearchOnlyBlog;
