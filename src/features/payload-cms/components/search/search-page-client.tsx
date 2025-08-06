@@ -8,6 +8,7 @@ import type { GenericPage } from '@/features/payload-cms/payload-types';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { MoveLeft, MoveRight } from 'lucide-react';
 import type { PaginatedDocs } from 'payload';
+import React from 'react';
 
 const searchResultHeader: StaticTranslationString = {
   de: 'Suchresultate für ',
@@ -39,6 +40,12 @@ const previousButton: StaticTranslationString = {
   fr: 'Page précédente',
 };
 
+const searchAlternatives: StaticTranslationString = {
+  en: '/search',
+  de: '/suche',
+  fr: '/recherche',
+};
+
 const SearchOnlyPagesClient: React.FC<{
   locale: Locale;
   page: number;
@@ -47,12 +54,6 @@ const SearchOnlyPagesClient: React.FC<{
   pages: PaginatedDocs<GenericPage>;
 }> = ({ locale, page, searchQuery, permittedPages, pages }): React.JSX.Element => {
   const { totalPages, hasPrevPage, hasNextPage, prevPage, nextPage } = pages;
-
-  const searchAlternatives = {
-    en: '/search',
-    de: '/suche',
-    fr: '/recherche',
-  };
 
   const buildPageLink = (targetPage: number | undefined | null): string => {
     const newSearchParameters = new URLSearchParams();
@@ -79,23 +80,25 @@ const SearchOnlyPagesClient: React.FC<{
       <nav className="mt-8 flex justify-between">
         {hasPrevPage ? (
           <LinkComponent
-            className="flex-inline flex justify-center rounded bg-gray-200 px-4 py-2"
+            className="flex-inline bg-conveniat-green flex justify-center rounded px-4 py-2 text-white"
             href={buildPageLink(prevPage)}
           >
-            <MoveLeft /> {previousButton[locale]}
+            <MoveLeft className="mt-0.5 mr-2" />
+            {previousButton[locale]}
           </LinkComponent>
         ) : (
           <div></div>
         )}
-        <span>
+        <span className="mt-3 text-gray-500">
           {page} / {totalPages}
         </span>
         {hasNextPage ? (
           <LinkComponent
-            className="flex-inline flex justify-center rounded bg-gray-200 px-4 py-2"
+            className="flex-inline bg-conveniat-green flex justify-center rounded px-4 py-2 text-white"
             href={buildPageLink(nextPage)}
           >
-            {nextButton[locale]} <MoveRight />
+            {nextButton[locale]}
+            <MoveRight className="mt-0.5 ml-2" />
           </LinkComponent>
         ) : (
           <div></div>

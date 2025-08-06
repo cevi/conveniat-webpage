@@ -211,7 +211,7 @@ const SearchPage: React.FC<LocalizedPageType> = async (properties) => {
           {searchEntriesPages.totalPages > 1 && (
             <LinkComponent
               href={`?q=${searchQuery}&only=pages`}
-              className="rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700 hover:text-white"
+              className="rounded-[8px] bg-green-600 px-4 py-2 text-white hover:bg-green-700 hover:text-white"
             >
               {searchMoreButton[locale]}
             </LinkComponent>
@@ -224,7 +224,7 @@ const SearchPage: React.FC<LocalizedPageType> = async (properties) => {
           {searchEntriesBlogs.totalPages > 1 && (
             <LinkComponent
               href={`?q=${searchQuery}&only=blogs`}
-              className="rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700 hover:text-white"
+              className="rounded-[8px] bg-green-600 px-4 py-2 text-white hover:bg-green-700 hover:text-white"
             >
               {searchMoreButton[locale]}
             </LinkComponent>
