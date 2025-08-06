@@ -42,7 +42,7 @@ services:
       - NODE_COMPILE_CACHE=/nodecache # see https://nodejs.org/en/blog/release/v22.1.0
 
     healthcheck:
-      test: ['CMD-SHELL', 'curl -f http://localhost:3000/status | grep -q ''"status":"ok"''']
+      test: [ 'CMD-SHELL', 'curl -f http://localhost:3000/status | grep -q ''"status":"ok"''' ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -112,6 +112,51 @@ services:
     volumes:
       - postgress-data:/var/lib/postgresql/data
 
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - logging-prometheus-storage:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-remote-write-receiver'
+      - '--enable-feature=exemplar-storage'
+      - '--enable-feature=native-histograms'
+    ports:
+      - '9090:9090'
+
+  tempo:
+    user: '0:0'
+    image: grafana/tempo:latest
+    command: [ '-config.file=/etc/tempo/tempo.yml' ]
+    volumes:
+      - ./observability/tempo/tempo.yml:/etc/tempo/tempo.yml
+      - logging-tempo-data:/tmp/tempo
+    ports:
+      - '3200' # tempo
+      - '4317' # otlp grpc
+      - '4318' # otlp http
+
+  loki:
+    image: grafana/loki
+    ports:
+      - '3100:3100'
+    command:
+      - --config.file=/mnt/config/loki-config.yml
+    volumes:
+      - ./observability/loki/loki-config.yml:/mnt/config/loki-config.yml:ro
+
+  grafana:
+    image: grafana/grafana
+    volumes:
+      - logging-grafana-storage:/var/lib/grafana
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning
+    environment:
+      - GF_LOG_LEVEL=error
+    ports:
+      - '9050:3000' # localhost:9050 for accessing grafana
+
 volumes:
   data:
   node_modules:
@@ -119,3 +164,8 @@ volumes:
   minio-data:
   node-cache:
   postgress-data:
+
+  # Volumes for observability components
+  logging-prometheus-storage:
+  logging-grafana-storage:
+  logging-tempo-data:
