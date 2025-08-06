@@ -4,6 +4,7 @@ import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { StaticTranslationString } from '@/types/types';
 import { auth } from '@/utils/auth-helpers';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
+import React from 'react';
 
 const settingsTitle: StaticTranslationString = {
   de: 'Einstellungen',
