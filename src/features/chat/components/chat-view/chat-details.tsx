@@ -28,8 +28,8 @@ import {
   UserX,
   X,
 } from 'lucide-react';
-import Link from 'next/link';
 import { useCurrentLocale } from 'next-i18n-router/client';
+import Link from 'next/link';
 
 const chatNamePlaceholder: StaticTranslationString = {
   de: 'Chat-Namen eingeben',
@@ -54,7 +54,6 @@ const searchContactsPlaceholder: StaticTranslationString = {
   en: 'Search contacts to add...',
   fr: 'Rechercher des contacts à ajouter...',
 };
-import { useCurrentLocale } from 'next-i18n-router/client';
 
 const ChatDetailsPageSkeleton: React.FC = () => (
   <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col bg-gray-50 xl:top-[62px] xl:left-[480px] xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
@@ -315,9 +314,7 @@ export const ChatDetails: React.FC = () => {
                   placeholder={chatNamePlaceholder[locale]}
                 />
                 {chatNameError && <p className="font-body text-sm text-red-600">{chatNameError}</p>}
-                <p className="font-body text-xs text-gray-500">
-                  {chatNameLengthText[locale]}
-                </p>
+                <p className="font-body text-xs text-gray-500">{chatNameLengthText[locale]}</p>
               </div>
             ) : (
               <div className="font-heading text-lg font-semibold text-gray-900">

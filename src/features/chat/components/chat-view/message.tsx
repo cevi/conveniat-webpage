@@ -5,8 +5,8 @@ import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { Check, MoreHorizontal, UserCircle } from 'lucide-react';
-import Link from 'next/link';
 import { useCurrentLocale } from 'next-i18n-router/client';
+import Link from 'next/link';
 import React, { useEffect, useRef, useState } from 'react';
 
 const messageOptionsAriaLabel: StaticTranslationString = {

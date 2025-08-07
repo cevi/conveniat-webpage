@@ -16,7 +16,7 @@ const scheduleTableTitle: StaticTranslationString = {
 const errorLoadingEntry: StaticTranslationString = {
   de: 'Fehler beim Laden des Termineintrags.',
   en: 'Error loading schedule entry.',
-  fr: 'Erreur lors du chargement de l\'entrée du programme.',
+  fr: "Erreur lors du chargement de l'entrée du programme.",
 };
 
 export const AnnotationScheduleTableComponent: React.FC<{

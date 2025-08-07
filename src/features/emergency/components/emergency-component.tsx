@@ -18,9 +18,9 @@ const alertTypeTranslations = {
     en: 'Medical Emergency',
     fr: 'Urgence médicale',
   },
-  'Fire': {
+  Fire: {
     de: 'Feuer',
-    en: 'Fire', 
+    en: 'Fire',
     fr: 'Incendie',
   },
   'Lost Camper': {
@@ -41,7 +41,7 @@ const alertDescriptions = {
     en: 'Life-threatening situations requiring immediate medical attention.',
     fr: 'Situations potentiellement mortelles nécessitant une attention médicale immédiate.',
   },
-  'Fire': {
+  Fire: {
     de: 'Alle feuerbezogenen Notfälle innerhalb des Lagergeländes.',
     en: 'Any fire-related emergencies within the camp premises.',
     fr: 'Toute urgence liée au feu dans les locaux du camp.',
@@ -64,7 +64,7 @@ const alertProcedures = {
     en: 'Call for medical backup, prepare first aid kit, clear the area.',
     fr: 'Appeler des renforts médicaux, préparer la trousse de premiers secours, dégager la zone.',
   },
-  'Fire': {
+  Fire: {
     de: 'Bereich evakuieren, Feuerwehr rufen, Feuerlöscher verwenden wenn sicher.',
     en: 'Evacuate the area, call fire department, use fire extinguishers if safe.',
     fr: 'Évacuer la zone, appeler les pompiers, utiliser les extincteurs si sûr.',
@@ -77,14 +77,14 @@ const alertProcedures = {
   'Severe Weather': {
     de: 'Teilnehmer in bestimmte Schutzräume bringen, Wetterupdates überwachen, Notfallvorräte bereitstellen.',
     en: 'Move campers to designated shelters, monitor weather updates, prepare emergency supplies.',
-    fr: 'Déplacer les campeurs vers les abris désignés, surveiller les mises à jour météo, préparer les fournitures d\'urgence.',
+    fr: "Déplacer les campeurs vers les abris désignés, surveiller les mises à jour météo, préparer les fournitures d'urgence.",
   },
 };
 
 const searchPlaceholder: StaticTranslationString = {
   de: 'Alarmtypen suchen...',
   en: 'Search alert types...',
-  fr: 'Rechercher types d\'alerte...',
+  fr: "Rechercher types d'alerte...",
 };
 
 const descriptionLabel: StaticTranslationString = {

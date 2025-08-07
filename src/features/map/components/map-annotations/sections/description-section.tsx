@@ -9,7 +9,7 @@ import { ErrorBoundary } from 'react-error-boundary';
 const errorLoadingAnnotation: StaticTranslationString = {
   de: 'Fehler beim Laden der Annotation',
   en: 'Error loading annotation',
-  fr: 'Erreur lors du chargement de l\'annotation',
+  fr: "Erreur lors du chargement de l'annotation",
 };
 
 interface AnnotationDescriptionSectionProperties {
