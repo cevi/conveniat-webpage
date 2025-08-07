@@ -11,6 +11,7 @@ import { HeadingFeatureClient as HeadingFeatureClient_e70f5e05f09f93e00b997edb1e
 import { BlockquoteFeatureClient as BlockquoteFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { UnorderedListFeatureClient as UnorderedListFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { AlignFeatureClient as AlignFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
+import { default as default_c1c5209004cf90cf86c7efc1b3509bca } from '@/features/payload-cms/payload-cms/shared-fields/map-coordinates/map-coordinates-field'
 import { AccordionArrayRowLabel as AccordionArrayRowLabel_bc9931f10d1a1f60f5860e1fbc9733fe } from '@/features/payload-cms/payload-cms/components/accordion-row-label'
 import { SlugComponent as SlugComponent_f8d18e9ffd9ba326b0ef9eec14d7ac57 } from '@/features/payload-cms/payload-cms/components/slug/slug-component'
 import { default as default_b8a91c281781c959c4c68385023a0bcf } from '@/features/payload-cms/payload-cms/components/disable-actions/disable-many-actions'
@@ -43,6 +44,7 @@ export const importMap = {
   "@payloadcms/richtext-lexical/client#BlockquoteFeatureClient": BlockquoteFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#UnorderedListFeatureClient": UnorderedListFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#AlignFeatureClient": AlignFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
+  "@/features/payload-cms/payload-cms/shared-fields/map-coordinates/map-coordinates-field#default": default_c1c5209004cf90cf86c7efc1b3509bca,
   "@/features/payload-cms/payload-cms/components/accordion-row-label#AccordionArrayRowLabel": AccordionArrayRowLabel_bc9931f10d1a1f60f5860e1fbc9733fe,
   "@/features/payload-cms/payload-cms/components/slug/slug-component#SlugComponent": SlugComponent_f8d18e9ffd9ba326b0ef9eec14d7ac57,
   "@/features/payload-cms/payload-cms/components/disable-actions/disable-many-actions#default": default_b8a91c281781c959c4c68385023a0bcf,

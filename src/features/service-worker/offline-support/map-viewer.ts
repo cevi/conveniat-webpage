@@ -77,6 +77,7 @@ const urlsToPrecache: string[] = [
  * @param serwist
  */
 const tileURLRewriter = (serwist: Serwist): RouteHandler => {
+  // eslint-disable-next-line complexity
   return async ({ request }) => {
     // Check if the failed request URL matches a Swisstopo tile pattern
     // This regex will capture the layer, version, and x/y/z coordinates
@@ -108,9 +109,17 @@ const tileURLRewriter = (serwist: Serwist): RouteHandler => {
       }
     }
 
+    const url = new URL(request.url);
+    if (url.pathname.startsWith('/app/map') && request.destination === 'document') {
+      const cachedMapPage = await serwist.matchPrecache('/app/map');
+      if (cachedMapPage) {
+        console.log(`Serving precached /app/map for failed request to ${request.url}`);
+        return cachedMapPage;
+      }
+    }
+
     // For any other failed requests, use the default fallback (e.g., /offline for documents)
-    const destination = request.destination;
-    if (destination === 'document') {
+    if (request.destination === 'document') {
       const _match = await serwist.matchPrecache('/offline');
       return _match ?? Response.error();
     }
@@ -148,5 +157,4 @@ export const addOfflineSupportForMapViewer = (serwist: Serwist, revisionUuid: st
     }
     return Response.error();
   });
-  serwist.setCatchHandler(tileURLRewriter(serwist));
 };

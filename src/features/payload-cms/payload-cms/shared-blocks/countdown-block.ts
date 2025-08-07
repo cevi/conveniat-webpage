@@ -18,7 +18,7 @@ export const countdownBlock: Block = {
       admin: {
         date: {
           pickerAppearance: 'dayAndTime',
-          displayFormat: 'YYYY-MM-dd HH:mm',
+          displayFormat: 'yyyy-MM-dd HH:mm',
           timeIntervals: 15,
         },
       },

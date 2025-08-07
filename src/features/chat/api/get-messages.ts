@@ -56,19 +56,15 @@ export const getChats = async (): Promise<ChatDto[]> => {
     throw new Error('User not authenticated');
   }
 
-  let prismaUser = await prisma.user.findUnique({
+  const prismaUser = await prisma.user.findUnique({
     where: {
       uuid: user.uuid,
     },
   });
 
-  // create user if not exists
-  prismaUser ??= await prisma.user.create({
-    data: {
-      uuid: user.uuid,
-      name: user.name,
-    },
-  });
+  if (prismaUser === null) {
+    throw new Error('User not found');
+  }
 
   const chats = await prisma.chat.findMany({
     where: {

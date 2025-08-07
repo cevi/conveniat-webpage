@@ -38,6 +38,16 @@ const nextConfig: NextConfig = {
   turbopack: {
     moduleIds: 'named',
   },
+  experimental: {
+    // Forward browser logs to the terminal for easier debugging
+    browserDebugInfoInTerminal: true,
+
+    // Explore route composition and segment overrides via DevTools
+    devtoolSegmentExplorer: true,
+
+    // enable react compiler for better error messages and performance
+    reactCompiler: true,
+  },
   logging: { fetches: { fullUrl: true } },
   eslint: {
     ignoreDuringBuilds: true,

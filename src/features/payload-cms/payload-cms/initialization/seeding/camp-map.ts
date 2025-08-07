@@ -349,6 +349,8 @@ const iconMarkerSelectOptions = [
   'HelpCircle' as const,
   'Recycle' as const,
   'GlassWater' as const,
+  'Toilet' as const,
+  'Stage' as const,
   'BriefcaseMedical' as const,
 ];
 
@@ -436,7 +438,7 @@ export const createRandomCampAnnotation = (
   };
 };
 
-export const generateCampSides = (): RequiredDataFromCollectionSlug<'camp-map-annotations'>[] => {
+export const generateCampSites = (): RequiredDataFromCollectionSlug<'camp-map-annotations'>[] => {
   return campSides.map((coordinates, index) => {
     const selectedAbteilungen = faker.helpers.arrayElements(ceviAbteilungName, { min: 3, max: 5 });
     const abteilungenText = joinWithAnd(selectedAbteilungen);

@@ -1,5 +1,6 @@
 import { cn } from '@/utils/tailwindcss-override';
 import { Loader2 } from 'lucide-react';
+import Link from 'next/link';
 import React from 'react';
 
 export const NavLink: React.FC<{
@@ -15,12 +16,9 @@ export const NavLink: React.FC<{
   const isCurrentlyLoading = isLoading && loadingHref === href;
 
   return (
-    <a
+    <Link
       href={href}
-      onClick={(event: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
-        event.preventDefault();
-        onClick(href);
-      }}
+      onClick={() => onClick(href)}
       className={cn('flex h-full flex-1 flex-col items-center justify-center space-y-1 py-2', {
         'text-blue-600': isActive,
       })}
@@ -59,6 +57,6 @@ export const NavLink: React.FC<{
       >
         {label}
       </span>
-    </a>
+    </Link>
   );
 };

@@ -100,6 +100,26 @@ services:
     networks:
       - backend-net
 
+  mongo-backup:
+    image: mongo:latest
+    depends_on:
+      - mongo
+    networks:
+      - backend-net
+    volumes:
+      - /cluster/swarm/data/conveniat-prod/mongodb-data-backup-dumps:/backup
+    command: >
+      sh -c '
+        while true; do
+          echo "INFO: 🧹 Deleting backups older than 30 days...";
+          find /backup -type d -mtime +30 -exec rm -rf {} +;
+          echo "INFO: Creating database backup...";
+          mongodump --host mongo --out /backup/dump_$$(date +%Y-%m-%d_%H-%M-%S);
+          echo "INFO: Backup complete. Waiting 1 hour.";
+          sleep 3600; # 1 hour
+        done
+      '
+
   minio:
     image: minio/minio
 

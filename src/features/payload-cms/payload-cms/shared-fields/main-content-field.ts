@@ -1,5 +1,7 @@
 import { accordion } from '@/features/payload-cms/payload-cms/shared-blocks/accordion';
+import { blockPostsOverview } from '@/features/payload-cms/payload-cms/shared-blocks/blog-posts-overview-block';
 import { callToActionBlock } from '@/features/payload-cms/payload-cms/shared-blocks/call-to-action-block';
+import { campScheduleEntryBlock } from '@/features/payload-cms/payload-cms/shared-blocks/camp-schedule-entry.block';
 import { countdownBlock } from '@/features/payload-cms/payload-cms/shared-blocks/countdown-block';
 import { detailsTable } from '@/features/payload-cms/payload-cms/shared-blocks/details-table';
 import { fileDownloadBlock } from '@/features/payload-cms/payload-cms/shared-blocks/file-download-block';
@@ -13,6 +15,7 @@ import { singlePictureBlock } from '@/features/payload-cms/payload-cms/shared-bl
 import { summaryBoxBlock } from '@/features/payload-cms/payload-cms/shared-blocks/summary-box-block';
 import { swisstopoMapEmbedBlock } from '@/features/payload-cms/payload-cms/shared-blocks/swisstopo-embed-block';
 import { timelineEntries } from '@/features/payload-cms/payload-cms/shared-blocks/timeline-entries';
+import { whiteSpaceBlock } from '@/features/payload-cms/payload-cms/shared-blocks/white-space-block';
 import { youtubeEmbedBlock } from '@/features/payload-cms/payload-cms/shared-blocks/youtube-embed-block';
 import type { Field } from 'payload';
 
@@ -31,12 +34,7 @@ export const mainContentField: Field = {
   },
   blocks: [
     richTextArticleBlock,
-    {
-      slug: 'blogPostsOverview',
-      imageURL: '/admin-block-images/block-post-overview.png',
-      imageAltText: 'Blog Posts Overview Block',
-      fields: [],
-    },
+    blockPostsOverview,
     heroSection,
     formBlock,
     photoCarouselBlock,
@@ -50,13 +48,9 @@ export const mainContentField: Field = {
     summaryBoxBlock,
     timelineEntries,
     countdownBlock,
-    {
-      slug: 'whiteSpace',
-      imageURL: '/admin-block-images/white-space-block.png',
-      imageAltText: 'White Space Block',
-      fields: [],
-    },
+    whiteSpaceBlock,
     callToActionBlock,
     newsCardBlock,
+    campScheduleEntryBlock,
   ],
 };

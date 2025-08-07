@@ -4,4 +4,6 @@ export interface HitobitoNextAuthUser {
   email: string;
   name: string;
   nickname: string;
+  hof?: number | undefined;
+  quartier?: number | undefined;
 }

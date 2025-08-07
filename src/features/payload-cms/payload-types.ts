@@ -54,6 +54,7 @@ export interface Config {
     'generic-page': GenericPage;
     timeline: Timeline;
     'camp-map-annotations': CampMapAnnotation;
+    'camp-schedule-entry': CampScheduleEntry;
     images: Image;
     documents: Document;
     users: User;
@@ -81,6 +82,7 @@ export interface Config {
     'generic-page': GenericPageSelect<false> | GenericPageSelect<true>;
     timeline: TimelineSelect<false> | TimelineSelect<true>;
     'camp-map-annotations': CampMapAnnotationsSelect<false> | CampMapAnnotationsSelect<true>;
+    'camp-schedule-entry': CampScheduleEntrySelect<false> | CampScheduleEntrySelect<true>;
     images: ImagesSelect<false> | ImagesSelect<true>;
     documents: DocumentsSelect<false> | DocumentsSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
@@ -326,6 +328,13 @@ export interface Blog {
           blockName?: string | null;
           blockType: 'newsCard';
         }
+      | {
+          date: string;
+          location?: (string | null) | CampMapAnnotation;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'campScheduleEntryBlock';
+        }
     )[];
   };
   seo: {
@@ -381,6 +390,14 @@ export interface User {
    */
   nickname?: string | null;
   groups: GroupsOfTheUser;
+  /**
+   * The Hof of the user.
+   */
+  hof?: number | null;
+  /**
+   * The Quartier of the user.
+   */
+  quartier?: number | null;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -392,13 +409,29 @@ export interface User {
 export interface Image {
   id: string;
   /**
-   * Describe the image for screen readers.
+   * Describe the image for screen readers. (de)
    */
-  alt: string;
+  alt_de: string;
   /**
-   * Optional text to display below the image (e.g. image source, copyright information, explanatory text)
+   * Describe the image for screen readers. (en)
    */
-  imageCaption?: string | null;
+  alt_en: string;
+  /**
+   * Describe the image for screen readers. (fr)
+   */
+  alt_fr: string;
+  /**
+   * Optional text to display below the image (e.g. image source, copyright information, explanatory text) (de)
+   */
+  imageCaption_de?: string | null;
+  /**
+   * Optional text to display below the image (e.g. image source, copyright information, explanatory text) (en)
+   */
+  imageCaption_en?: string | null;
+  /**
+   * Optional text to display below the image (e.g. image source, copyright information, explanatory text) (fr)
+   */
+  imageCaption_fr?: string | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -912,8 +945,13 @@ export interface SwisstopoMapEmbedding {
   ceviLogoMarkers?:
     | {
         title?: string | null;
+        /**
+         * Coordinates of the annotation on the map.
+         */
         geometry?: {
           /**
+           * Coordinates of the annotation on the map.
+           *
            * @minItems 2
            * @maxItems 2
            */
@@ -1269,6 +1307,13 @@ export interface GenericPage {
           blockName?: string | null;
           blockType: 'newsCard';
         }
+      | {
+          date: string;
+          location?: (string | null) | CampMapAnnotation;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'campScheduleEntryBlock';
+        }
     )[];
   };
   seo: {
@@ -1452,7 +1497,18 @@ export interface CampMapAnnotation {
    */
   title: string;
   icon?:
-    | ('MapPin' | 'Tent' | 'Utensils' | 'Flag' | 'HelpCircle' | 'Recycle' | 'GlassWater' | 'BriefcaseMedical')
+    | (
+        | 'MapPin'
+        | 'Tent'
+        | 'Utensils'
+        | 'Flag'
+        | 'HelpCircle'
+        | 'Recycle'
+        | 'GlassWater'
+        | 'Stage'
+        | 'Toilet'
+        | 'BriefcaseMedical'
+      )
     | null;
   color?: ('#78909c' | '#fbc02d' | '#ff8126' | '#b56aff' | '#f848c7' | '#16a672' | '#f64955') | null;
   /**
@@ -1485,8 +1541,13 @@ export interface CampMapAnnotation {
     | null;
   images?: (string | Image)[] | null;
   annotationType: 'marker' | 'polygon';
+  /**
+   * Coordinates of the annotation on the map.
+   */
   geometry?: {
     /**
+     * Coordinates of the annotation on the map.
+     *
      * @minItems 2
      * @maxItems 2
      */
@@ -1502,6 +1563,58 @@ export interface CampMapAnnotation {
         id?: string | null;
       }[]
     | null;
+  updatedAt: string;
+  createdAt: string;
+  deletedAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "camp-schedule-entry".
+ */
+export interface CampScheduleEntry {
+  id: string;
+  /**
+   * The title of the entry.
+   */
+  title: string;
+  /**
+   * The description of the entry
+   */
+  description: {
+    root: {
+      type: string;
+      children: {
+        type: string;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  /**
+   * Time slots for the schedule entry
+   */
+  timeslot: {
+    date: string;
+    /**
+     * Time slots in HH:mm format (e.g., 08:00 - 18:00)
+     */
+    time: string;
+  };
+  /**
+   * Location of the Schedule Entry
+   */
+  location: string | CampMapAnnotation;
+  /**
+   * Organiser
+   */
+  organiser?: (string | null) | User;
+  participants_min?: number | null;
+  participants_max?: number | null;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -1595,6 +1708,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'camp-map-annotations';
         value: string | CampMapAnnotation;
+      } | null)
+    | ({
+        relationTo: 'camp-schedule-entry';
+        value: string | CampScheduleEntry;
       } | null)
     | ({
         relationTo: 'images';
@@ -1795,6 +1912,14 @@ export interface BlogSelect<T extends boolean = true> {
                     date?: T;
                     image?: T;
                     paragraph?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              campScheduleEntryBlock?:
+                | T
+                | {
+                    date?: T;
+                    location?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -2096,6 +2221,14 @@ export interface GenericPageSelect<T extends boolean = true> {
                     id?: T;
                     blockName?: T;
                   };
+              campScheduleEntryBlock?:
+                | T
+                | {
+                    date?: T;
+                    location?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
             };
       };
   seo?:
@@ -2187,11 +2320,36 @@ export interface CampMapAnnotationsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "camp-schedule-entry_select".
+ */
+export interface CampScheduleEntrySelect<T extends boolean = true> {
+  title?: T;
+  description?: T;
+  timeslot?:
+    | T
+    | {
+        date?: T;
+        time?: T;
+      };
+  location?: T;
+  organiser?: T;
+  participants_min?: T;
+  participants_max?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  deletedAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "images_select".
  */
 export interface ImagesSelect<T extends boolean = true> {
-  alt?: T;
-  imageCaption?: T;
+  alt_de?: T;
+  alt_en?: T;
+  alt_fr?: T;
+  imageCaption_de?: T;
+  imageCaption_en?: T;
+  imageCaption_fr?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -2257,6 +2415,8 @@ export interface UsersSelect<T extends boolean = true> {
   fullName?: T;
   nickname?: T;
   groups?: T;
+  hof?: T;
+  quartier?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;

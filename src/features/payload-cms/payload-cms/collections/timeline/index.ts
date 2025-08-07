@@ -27,7 +27,7 @@ export const TimelineCollection: CollectionConfig = asLocalizedCollection({
 
   admin: {
     group: AdminPanelDashboardGroups.PagesAndContent,
-    groupBy: true,
+    groupBy: false,
     /** this is broken with our localized versions */
     disableCopyToLocale: true,
     description: {
@@ -69,7 +69,7 @@ export const TimelineCollection: CollectionConfig = asLocalizedCollection({
           admin: {
             date: {
               pickerAppearance: 'dayAndTime',
-              displayFormat: 'YYYY-MM-dd HH:mm',
+              displayFormat: 'yyyy-MM-dd HH:mm',
               timeIntervals: 15,
             },
           },

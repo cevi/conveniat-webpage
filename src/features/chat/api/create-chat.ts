@@ -22,7 +22,7 @@ const createChatSchema = z.object({
 export const createChat = async (
   members: Contact[],
   chatName: string | undefined,
-): Promise<void> => {
+): Promise<string> => {
   const session = await auth();
   const user = session?.user as HitobitoNextAuthUser | undefined;
 
@@ -70,32 +70,88 @@ export const createChat = async (
   }
 
   try {
-    await prisma.chat.create({
-      data: {
-        name: validatedData.chatName,
-        messages: {
-          create: {
-            content: 'New chat created',
-            type: MessageType.SYSTEM,
-            messageEvents: {
-              create: {
-                eventType: MessageEventType.CREATED,
+    return await prisma.$transaction(async (tx) => {
+      // If it's a private chat, check if there is already a chat with the same members
+      if (validatedMembers.length === 1) {
+        const requestedMemberUuids = [
+          user.uuid,
+          ...validatedMembers.map((member) => member.uuid),
+        ].sort();
+
+        const existingChat = await tx.chat.findFirst({
+          where: {
+            // Ensure all requested members are present
+            chatMemberships: {
+              every: {
+                user: {
+                  uuid: {
+                    in: requestedMemberUuids,
+                  },
+                },
+              },
+
+              // Ensure no *other* members are present (i.e., only the requested members are there)
+              // This is crucial for an "exact" match.
+              none: {
+                user: {
+                  uuid: {
+                    notIn: requestedMemberUuids,
+                  },
+                },
               },
             },
           },
+          include: {
+            chatMemberships: {
+              select: {
+                user: {
+                  select: {
+                    uuid: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        // count members in the existing chat
+        if (existingChat && existingChat.chatMemberships.length === 2) {
+          // If the existing chat has exactly two members (the user and the requested member)
+          console.log('Found existing private chat:', existingChat.uuid);
+          return existingChat.uuid; // Return the ID of the existing chat
+        }
+      }
+
+      const chat = await tx.chat.create({
+        data: {
+          name: validatedData.chatName ?? '',
+          messages: {
+            create: {
+              content: 'New chat created',
+              type: MessageType.SYSTEM,
+              messageEvents: {
+                create: {
+                  eventType: MessageEventType.CREATED,
+                },
+              },
+            },
+          },
+          chatMemberships: {
+            create: [
+              { user: { connect: { uuid: user.uuid } } },
+              ...validatedMembers.map((member) => ({
+                user: { connect: { uuid: member.uuid } },
+              })),
+            ],
+          },
         },
-        chatMemberships: {
-          create: [
-            { user: { connect: { uuid: user.uuid } } },
-            ...validatedMembers.map((member) => ({
-              user: { connect: { uuid: member.uuid } },
-            })),
-          ],
-        },
-      },
+      });
+
+      console.log('Created new chat:', chat.uuid);
+      return chat.uuid; // Return the ID of the newly created chat
     });
   } catch (error) {
-    console.error('Error creating chat in database:', error);
+    console.error('Error creating chat in database within transaction:', error);
     throw new Error('Failed to create chat.');
   }
 };

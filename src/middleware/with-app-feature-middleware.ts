@@ -23,7 +23,7 @@ const applyMiddlewareForAppFeatures = (
 
   const shouldRedirectToAppLandingPage = isAtEntrypointPage && isInAppDesign && areCookiesAccepted;
   if (shouldRedirectToAppLandingPage) {
-    return NextResponse.redirect(new URL('/', request.url));
+    return NextResponse.redirect(new URL('/app/dashboard', request.url));
   }
   return middleware(request, event, response);
 };

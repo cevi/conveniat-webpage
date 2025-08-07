@@ -1,8 +1,10 @@
+import { AppAdvertisement } from '@/components/app-advertisement';
 import { environmentVariables } from '@/config/environment-variables';
 import { MapLibreRenderer } from '@/features/map/components/map-renderer-wrapper';
 import type {
   CampMapAnnotationPoint,
   CampMapAnnotationPolygon,
+  CampScheduleEntry,
   InitialMapPose,
 } from '@/features/map/types/types';
 import type { CampMapAnnotation as CampMapAnnotationPayloadDocumentType } from '@/features/payload-cms/payload-types';
@@ -25,6 +27,23 @@ export const CampMapComponent: React.FC = async () => {
     limit: 100,
     depth: 1,
   });
+
+  const scheduleEntries = await payload.find({
+    collection: 'camp-schedule-entry',
+    limit: 100,
+    depth: 1,
+  });
+
+  const simplifiedScheduleEntries = scheduleEntries.docs as CampScheduleEntry[];
+
+  const schedulesPerAnnotations: { [id: string]: CampScheduleEntry[] } = {};
+
+  for (const annotation of annotations.docs) {
+    const annotationID: string = annotation.id;
+    schedulesPerAnnotations[annotationID] = simplifiedScheduleEntries.filter(
+      (scheduleEntry: CampScheduleEntry) => scheduleEntry.location.id === annotation.id,
+    );
+  }
 
   const campMapAnnotationPoints: CampMapAnnotationPoint[] = annotations.docs
     .filter((document_) => document_.annotationType === 'marker')
@@ -72,14 +91,23 @@ export const CampMapComponent: React.FC = async () => {
     );
 
   return (
-    <div className="fixed top-[60px] left-0 h-[calc(100dvh-60px)] w-screen pb-20">
-      <MapLibreRenderer
-        initialMapPose={initialMapPoseObergoms}
-        ceviLogoMarkers={[]}
-        campMapAnnotationPoints={campMapAnnotationPoints}
-        campMapAnnotationPolygons={campMapAnnotationPolygons}
-        validateStyle={environmentVariables.NODE_ENV !== 'production'}
-      />
-    </div>
+    <>
+      <div // fixes https://github.com/cevi/conveniat-webpage/issues/481
+        className="h-dvh w-full overflow-hidden bg-white"
+      ></div>
+      <div className="fixed top-[60px] left-0 h-[calc(100dvh-60px)] w-screen pb-20">
+        <MapLibreRenderer
+          initialMapPose={initialMapPoseObergoms}
+          ceviLogoMarkers={[]}
+          campMapAnnotationPoints={campMapAnnotationPoints}
+          campMapAnnotationPolygons={campMapAnnotationPolygons}
+          validateStyle={environmentVariables.NODE_ENV !== 'production'}
+          schedules={schedulesPerAnnotations}
+        />
+      </div>
+
+      {/* advertisement for app, hidden if already in app mode */}
+      <AppAdvertisement />
+    </>
   );
 };

@@ -17,6 +17,7 @@ interface LinkFields {
         urlSlug: string;
       };
       _locale: Locale;
+      id?: string;
     };
     relationTo: string;
   };
@@ -36,14 +37,20 @@ const resolveInternalLink = (fields: LinkFields): string => {
   const locale = fields.doc.value._locale;
 
   if (fields.linkType === 'internal') {
-    const urlSlug = `/${fields.doc.value.seo.urlSlug}`;
-    const collectionName = fields.doc.relationTo as string;
+    if (fields.doc.relationTo === 'generic-page' || fields.doc.relationTo === 'blog') {
+      const urlSlug = `/${fields.doc.value.seo.urlSlug}`;
+      const collectionName = fields.doc.relationTo as string;
 
-    for (const value of Object.values(slugToUrlMapping)) {
-      if (value.slug === collectionName) {
-        const urlPrefix = value.urlPrefix[locale as Locale];
-        return urlPrefix === '' ? `${urlSlug}` : `/${urlPrefix}${urlSlug}`;
+      for (const value of Object.values(slugToUrlMapping)) {
+        if (value.slug === collectionName) {
+          const urlPrefix = value.urlPrefix[locale as Locale];
+          return urlPrefix === '' ? `${urlSlug}` : `/${urlPrefix}${urlSlug}`;
+        }
       }
+    } else if (fields.doc.relationTo === 'camp-map-annotations') {
+      const campAnnotationId = fields.doc.value.id;
+      if (!campAnnotationId) return `/${url}`;
+      return `/app/map?locationId=${campAnnotationId}`;
     }
   }
 

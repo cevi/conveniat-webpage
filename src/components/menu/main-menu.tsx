@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { getPayload } from 'payload';
 import type React from 'react';
+import { ErrorBoundary } from 'react-error-boundary';
 
 const appFeaturesTitle: StaticTranslationString = {
   en: 'App Features',
@@ -216,30 +217,32 @@ export const MainMenu: React.FC = async () => {
               }
 
               return (
-                <Disclosure key={item.id} as="div" className="-mx-3">
-                  <DisclosureButton className="group flex w-full cursor-pointer items-center justify-between rounded-lg py-2 pr-3.5 pl-3 text-base/7 font-semibold text-gray-700 hover:bg-gray-50">
-                    {item.label}
-                    <ChevronDown
-                      aria-hidden="true"
-                      className="size-5 flex-none group-data-open:rotate-180"
-                    />
-                  </DisclosureButton>
-                  <DisclosurePanel className="mt-2 mb-4 space-y-2">
-                    {subMenuItemsWherePermitted.map(
-                      (subItem) =>
-                        subItem && (
-                          <LinkComponent
-                            key={subItem.id}
-                            href={getURLForLinkField(subItem.linkField) ?? '/'}
-                            openInNewTab={openURLInNewTab(subItem.linkField)}
-                            className="closeNavOnClick block rounded-lg py-2 pr-3 pl-6 text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
-                          >
-                            {subItem.label}
-                          </LinkComponent>
-                        ),
-                    )}
-                  </DisclosurePanel>
-                </Disclosure>
+                <ErrorBoundary fallback={<></>} key={item.id}>
+                  <Disclosure as="div" className="-mx-3">
+                    <DisclosureButton className="group flex w-full cursor-pointer items-center justify-between rounded-lg py-2 pr-3.5 pl-3 text-base/7 font-semibold text-gray-700 hover:bg-gray-50">
+                      {item.label}
+                      <ChevronDown
+                        aria-hidden="true"
+                        className="size-5 flex-none group-data-open:rotate-180"
+                      />
+                    </DisclosureButton>
+                    <DisclosurePanel className="mt-2 mb-4 space-y-2">
+                      {subMenuItemsWherePermitted.map(
+                        (subItem) =>
+                          subItem && (
+                            <LinkComponent
+                              key={subItem.id}
+                              href={getURLForLinkField(subItem.linkField) ?? '/'}
+                              openInNewTab={openURLInNewTab(subItem.linkField)}
+                              className="closeNavOnClick block rounded-lg py-2 pr-3 pl-6 text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
+                            >
+                              {subItem.label}
+                            </LinkComponent>
+                          ),
+                      )}
+                    </DisclosurePanel>
+                  </Disclosure>
+                </ErrorBoundary>
               );
             }
 

@@ -62,7 +62,7 @@ export const CreateNewChatPage: React.FC = () => {
 
     // Validate group name if it's a group chat
     const nameError = validateGroupName(groupChatName);
-    if (nameError) {
+    if (nameError !== '') {
       setGroupChatNameError(nameError);
       return;
     }
@@ -89,7 +89,7 @@ export const CreateNewChatPage: React.FC = () => {
   const handleGroupNameChange = (value: string): void => {
     setGroupChatName(value);
     // Clear error when user starts typing
-    if (groupChatNameError) {
+    if (groupChatNameError !== '') {
       setGroupChatNameError('');
     }
     // Validate on change for real-time feedback
@@ -137,13 +137,13 @@ export const CreateNewChatPage: React.FC = () => {
                 value={groupChatName}
                 onChange={(changeEvent) => handleGroupNameChange(changeEvent.target.value)}
                 className={`font-body focus:ring-conveniat-green ${
-                  groupChatNameError
-                    ? 'border-red-300 focus:border-red-500'
-                    : 'focus:border-conveniat-green border-gray-300'
+                  groupChatNameError === ''
+                    ? 'focus:border-conveniat-green border-gray-300'
+                    : 'border-red-300 focus:border-red-500'
                 }`}
                 required
               />
-              {groupChatNameError && (
+              {groupChatNameError !== '' && (
                 <p className="font-body text-sm text-red-600">{groupChatNameError}</p>
               )}
               <p className="font-body text-xs text-gray-500">
@@ -212,9 +212,9 @@ export const CreateNewChatPage: React.FC = () => {
                   <div className="text-center">
                     <Users className="mx-auto h-12 w-12 text-gray-400" />
                     <p className="font-body mt-2 text-sm text-gray-500">
-                      {searchQuery
-                        ? 'No contacts found matching your search'
-                        : 'No contacts available'}
+                      {searchQuery === ''
+                        ? 'No contacts available'
+                        : 'No contacts found matching your search'}
                     </p>
                   </div>
                 </div>

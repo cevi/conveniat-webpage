@@ -6,6 +6,8 @@ import { NewsCardBlock } from '@/components/news-card';
 import { Accordion } from '@/features/payload-cms/components/accordion/accordion';
 import type { CallToActionType } from '@/features/payload-cms/components/content-blocks/call-to-action';
 import { CallToActionBlock } from '@/features/payload-cms/components/content-blocks/call-to-action';
+import type { CampScheduleEntryType } from '@/features/payload-cms/components/content-blocks/camp-schedule-entry';
+import { CampScheduleEntryContentBlock } from '@/features/payload-cms/components/content-blocks/camp-schedule-entry';
 import type { CountdownType } from '@/features/payload-cms/components/content-blocks/countdown';
 import { Countdown } from '@/features/payload-cms/components/content-blocks/countdown';
 import type { FileDownloadType } from '@/features/payload-cms/components/content-blocks/file-download';
@@ -61,7 +63,8 @@ export type ContentBlockTypeNames =
   | 'countdown'
   | 'whiteSpace'
   | 'callToAction'
-  | 'newsCard';
+  | 'newsCard'
+  | 'campScheduleEntryBlock';
 
 export type SectionRenderer<T = object> = React.FC<
   LocalizedPageType & {
@@ -356,6 +359,7 @@ export const RenderPhotoCarousel: SectionRenderer<PhotoCarouselBlock> = async ({
   block,
   sectionClassName,
   sectionOverrides,
+  locale,
 }) => {
   return (
     <SectionWrapper
@@ -368,7 +372,7 @@ export const RenderPhotoCarousel: SectionRenderer<PhotoCarouselBlock> = async ({
         fr: 'le carrousel de photos',
       })}
     >
-      <PhotoCarousel images={block.images} />
+      <PhotoCarousel images={block.images} locale={locale} />
     </SectionWrapper>
   );
 };
@@ -545,6 +549,27 @@ export const RenderNewsCard: SectionRenderer<NewsCardType> = async ({
       })}
     >
       <NewsCardBlock {...block} />
+    </SectionWrapper>
+  );
+};
+
+export const RenderCampScheduleEntry: SectionRenderer<CampScheduleEntryType> = async ({
+  block,
+  sectionClassName,
+  sectionOverrides,
+}) => {
+  return (
+    <SectionWrapper
+      block={block}
+      sectionClassName={sectionClassName}
+      sectionOverrides={sectionOverrides}
+      errorFallbackMessage={await errorMessageForType({
+        de: 'Das Programm',
+        en: 'program',
+        fr: 'le programme',
+      })}
+    >
+      <CampScheduleEntryContentBlock {...block} />
     </SectionWrapper>
   );
 };

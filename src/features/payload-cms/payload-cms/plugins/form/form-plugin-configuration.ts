@@ -1,6 +1,7 @@
 import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { getPublishingStatus } from '@/features/payload-cms/payload-cms/hooks/publishing-status';
+import { beforeEmailChangeHook } from '@/features/payload-cms/payload-cms/plugins/form/fix-links-in-mails';
 import { minimalEditorFeatures } from '@/features/payload-cms/payload-cms/plugins/lexical-editor';
 import { localizedStatusSchema } from '@/features/payload-cms/payload-cms/utils/localized-status-schema';
 import { formBuilderPlugin } from '@payloadcms/plugin-form-builder';
@@ -753,7 +754,7 @@ export const formPluginConfiguration = formBuilderPlugin({
     },
     admin: {
       group: AdminPanelDashboardGroups.GlobalSettings,
-      groupBy: true,
+      groupBy: false,
     },
     access: {
       read: canAccessAdminPanel,
@@ -988,4 +989,5 @@ export const formPluginConfiguration = formBuilderPlugin({
       ];
     },
   },
+  beforeEmail: beforeEmailChangeHook,
 });

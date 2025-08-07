@@ -1,5 +1,6 @@
 import type {
   CampMapAnnotation as CampMapAnnotationPayloadDocumentType,
+  CampScheduleEntry as CampScheduleEntryPayloadDocumentType,
   Image,
 } from '@/features/payload-cms/payload-types';
 
@@ -20,6 +21,19 @@ export interface CeviLogoMarker {
     coordinates: [number, number];
   };
   title: string;
+}
+
+export interface CampScheduleEntry {
+  id: string;
+  title: string;
+  description: CampScheduleEntryPayloadDocumentType['description'];
+  timeslot: CampScheduleEntryPayloadDocumentType['timeslot'];
+  location: {
+    id: string;
+  };
+  organiser: string;
+  participants_min: number;
+  participants_max: number;
 }
 
 export interface CampMapAnnotationPoint {

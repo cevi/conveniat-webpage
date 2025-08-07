@@ -20,6 +20,7 @@ const InlineSwisstopoMapEmbed: React.FC<InlineSwisstopoMapEmbedType> = ({
         initialMapPose={initialMapPose}
         ceviLogoMarkers={ceviLogoMarkers}
         validateStyle={environmentVariables.NODE_ENV !== 'production'}
+        schedules={{}}
       />
     </div>
   );

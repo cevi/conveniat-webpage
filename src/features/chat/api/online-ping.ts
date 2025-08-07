@@ -11,10 +11,14 @@ export const onlinePing = async (): Promise<void> => {
     throw new Error('User not authenticated');
   }
 
-  await prisma.user.update({
-    where: { uuid: user.uuid },
-    data: {
-      lastSeen: new Date(),
-    },
-  });
+  await prisma.user
+    .update({
+      where: { uuid: user.uuid },
+      data: {
+        lastSeen: new Date(),
+      },
+    })
+    .catch(() => {
+      console.error('Error updating user lastSeen.');
+    });
 };

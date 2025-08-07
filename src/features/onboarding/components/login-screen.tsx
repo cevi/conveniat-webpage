@@ -1,8 +1,6 @@
 import { CenteredConveniatLogo } from '@/features/onboarding/components/centered-conveniat-logo';
 import type { StaticTranslationString } from '@/types/types';
-import { Cookie } from '@/types/types';
-import Cookies from 'js-cookie';
-import { signIn } from 'next-auth/react';
+import { handleLogin } from '@/utils/login-handler';
 import React from 'react';
 
 const loginText: StaticTranslationString = {
@@ -21,21 +19,6 @@ const loginDismissText: StaticTranslationString = {
   en: 'Skip for now',
   de: 'Überspringen',
   fr: 'Ignorer pour l’instant',
-};
-
-const handleLogin = (): void => {
-  signIn('cevi-db', {
-    redirect: false,
-  })
-    .then(() => {
-      console.log('Logged in successfully!');
-      Cookies.set(Cookie.HAS_LOGGED_IN, 'true', {
-        expires: 730, // 2 years
-      });
-    })
-    .catch((error: unknown) => {
-      console.error('Login error', error);
-    });
 };
 
 export const LoginScreen: React.FC<{ onClick: () => void; locale: 'de' | 'fr' | 'en' }> = ({
