@@ -61,7 +61,9 @@ export const generateMetadata = async (): Promise<Metadata> => {
     icons: metadataIconDefinitions,
     manifest: '/manifest.webmanifest',
 
-    // TODO: include twitter card data
-    twitter: {},
+    twitter: {
+      card: 'summary',
+      description: defaultDescription,
+    },
   };
 };
