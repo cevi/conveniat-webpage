@@ -28,5 +28,5 @@ export const biggerParagraphFeature = createServerFeature({
       },
     },
   },
-  key: 'bigger-paragraph',
+  key: 'biggerParagraph',
 });
