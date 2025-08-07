@@ -257,6 +257,27 @@ your default browser.
 ANALYZE=true pnpm build
 ```
 
+## Git Workflow
+
+We follow a standard Git workflow for managing changes:
+
+1. **Branching:** Create a new branch for each (bigger) feature or bug fix.
+   - Use descriptive names (e.g., `feature/new-header`, `bugfix/fix-footer`).
+   - For small changes, you can commit directly to the `dev` branch.
+   - For larger features, create a feature branch from `dev` and merge it back when complete.
+   - You are allowed to force push to your feature branches, avoid force pushing to `dev`, never force push to `main`.
+2. **Pull Requests:** When ready, open a pull request (PR) against the `dev` branch.
+   - Ensure the PR description is clear about the changes made.
+   - Request reviews from team members.
+   - Once approved, we merge the PR into `dev`.
+3. **Releases:** When ready to deploy, merge `dev` into `main`.
+   - We do not use squash merging for releases, instead, we use regular merging to preserve commit history.
+   - After every release, we rebase the `dev` branch from `main` to keep it up to date without introducing merge
+     commits.
+   - We may squash merge features into `dev` to keep the history clean.
+4. **Hotfixes:** For urgent fixes, create a hotfix branch from `main`, apply the fix, and merge it back into both `main`
+   and `dev`. Hotfix branches should be named like `hotfix/fix-issue`.
+
 ## Migrate Production Database
 
 The following commands are used to generate and apply migrations to the postgreSQL database.
