@@ -40,7 +40,7 @@ These are strict rules. Please enforce them in all code suggestions and reviews.
   - Use camelCase for variables, functions, and methods.
   - Use PascalCase for React components and TypeScript interfaces.
   - Use UPPER_SNAKE_CASE for constants.
-- include javadocs for all public classes and methods
+- include JSDoc for all public classes and methods
 - follow clean code principles:
   - Keep functions small and focused on a single task.
   - Avoid deeply nested code; use early returns to simplify logic.
