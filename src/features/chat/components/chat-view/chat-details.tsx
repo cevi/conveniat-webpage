@@ -43,6 +43,12 @@ const chatNameLengthText: StaticTranslationString = {
   fr: 'Le nom du chat doit contenir entre 2 et 50 caractères',
 };
 
+const loadingContactsText: StaticTranslationString = {
+  de: 'Kontakte werden geladen...',
+  en: 'Loading contacts...',
+  fr: 'Chargement des contacts...',
+};
+
 const searchContactsPlaceholder: StaticTranslationString = {
   de: 'Kontakte suchen...',
   en: 'Search contacts to add...',
@@ -427,7 +433,7 @@ export const ChatDetails: React.FC = () => {
               <div className="mb-4 h-[200px] space-y-1 overflow-y-auto rounded-md border p-2">
                 {isLoadingContacts && (
                   <div className="flex h-full items-center justify-center text-sm text-gray-500">
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading contacts...
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> {loadingContactsText[locale]}
                   </div>
                 )}
                 {!isLoadingContacts &&

@@ -1,10 +1,19 @@
 import { useFormatDate } from '@/features/chat/hooks/use-format-date';
 import type { MessageDto } from '@/features/chat/types/api-dto-types';
 import { MessageStatusDto } from '@/features/chat/types/api-dto-types';
+import type { Locale, StaticTranslationString } from '@/types/types';
+import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { Check, MoreHorizontal, UserCircle } from 'lucide-react';
 import Link from 'next/link';
+import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useEffect, useRef, useState } from 'react';
+
+const messageOptionsAriaLabel: StaticTranslationString = {
+  de: 'Nachrichten-Optionen',
+  en: 'Message options',
+  fr: 'Options de message',
+};
 
 interface MessageProperties {
   message: MessageDto;
@@ -162,6 +171,7 @@ const MessageInfoDropdown: React.FC<{
  * @constructor
  */
 export const MessageComponent: React.FC<MessageProperties> = ({ message, isCurrentUser }) => {
+  const locale = useCurrentLocale(i18nConfig) as Locale;
   const [showInfo, setShowInfo] = useState(false);
   const formattedTime = useFormatDate().formatMessageTime(message.timestamp);
   const renderedContent = formatMessageContent(message.content);
@@ -224,7 +234,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({ message, isCurre
               'rounded-full p-1 transition-opacity duration-200 md:opacity-0 md:group-hover:opacity-100',
               { 'opacity-100': showInfo },
             )}
-            aria-label="Message options"
+            aria-label={messageOptionsAriaLabel[locale]}
           >
             <MoreHorizontal className="h-5 w-5 text-gray-500" />
           </button>
