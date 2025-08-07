@@ -12,6 +12,8 @@ import { useChatUser } from '@/features/chat/hooks/use-chat-user';
 import { CHATS_QUERY_KEY, useAllContacts, useChatDetail } from '@/features/chat/hooks/use-chats';
 import { useRemoveParticipants } from '@/features/chat/hooks/use-remove-participant';
 import { useUpdateChat } from '@/features/chat/hooks/use-update-chat';
+import type { Locale, StaticTranslationString } from '@/types/types';
+import { i18nConfig } from '@/types/types';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,
@@ -27,6 +29,26 @@ import {
   X,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useCurrentLocale } from 'next-i18n-router/client';
+
+const chatNamePlaceholder: StaticTranslationString = {
+  de: 'Chat-Namen eingeben',
+  en: 'Enter chat name',
+  fr: 'Entrez le nom du chat',
+};
+
+const chatNameLengthText: StaticTranslationString = {
+  de: 'Chat-Name muss zwischen 2-50 Zeichen lang sein',
+  en: 'Chat name must be between 2-50 characters',
+  fr: 'Le nom du chat doit contenir entre 2 et 50 caractères',
+};
+
+const searchContactsPlaceholder: StaticTranslationString = {
+  de: 'Kontakte suchen...',
+  en: 'Search contacts to add...',
+  fr: 'Rechercher des contacts à ajouter...',
+};
+import { useCurrentLocale } from 'next-i18n-router/client';
 
 const ChatDetailsPageSkeleton: React.FC = () => (
   <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col bg-gray-50 xl:top-[62px] xl:left-[480px] xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
@@ -89,6 +111,7 @@ const validateChatName = (name: string): string => {
 
 // eslint-disable-next-line complexity
 export const ChatDetails: React.FC = () => {
+  const locale = useCurrentLocale(i18nConfig) as Locale;
   const chatId = useChatId();
   const { data: chatDetails, isLoading, isError } = useChatDetail(chatId);
 
@@ -283,11 +306,11 @@ export const ChatDetails: React.FC = () => {
                       ? 'border-red-300 focus:border-red-500'
                       : 'focus:border-conveniat-green border-gray-300'
                   }`}
-                  placeholder="Enter chat name"
+                  placeholder={chatNamePlaceholder[locale]}
                 />
                 {chatNameError && <p className="font-body text-sm text-red-600">{chatNameError}</p>}
                 <p className="font-body text-xs text-gray-500">
-                  Chat name must be between 2-50 characters
+                  {chatNameLengthText[locale]}
                 </p>
               </div>
             ) : (
@@ -368,7 +391,7 @@ export const ChatDetails: React.FC = () => {
               <div className="relative mb-4">
                 <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <Input
-                  placeholder="Search contacts to add..."
+                  placeholder={searchContactsPlaceholder[locale]}
                   className="font-body focus:border-conveniat-green focus:ring-conveniat-green border-gray-300 pl-10"
                   value={searchQuery}
                   onChange={(changeEvent) => setSearchQuery(changeEvent.target.value)}

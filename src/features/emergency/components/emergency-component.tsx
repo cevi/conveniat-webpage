@@ -4,10 +4,106 @@ import { AccordionContent, AccordionItem, AccordionTrigger } from '@/components/
 import { Button } from '@/components/ui/buttons/button';
 import { Input } from '@/components/ui/input';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
+import type { Locale, StaticTranslationString } from '@/types/types';
+import { i18nConfig } from '@/types/types';
 import { Accordion } from '@radix-ui/react-accordion';
 import { AlertCircle, Search, X } from 'lucide-react';
+import { useCurrentLocale } from 'next-i18n-router/client';
 import type { ChangeEvent } from 'react';
 import React, { useState } from 'react';
+
+const alertTypeTranslations = {
+  'Medical Emergency': {
+    de: 'Medizinischer Notfall',
+    en: 'Medical Emergency',
+    fr: 'Urgence médicale',
+  },
+  'Fire': {
+    de: 'Feuer',
+    en: 'Fire', 
+    fr: 'Incendie',
+  },
+  'Lost Camper': {
+    de: 'Vermisster Teilnehmer',
+    en: 'Lost Camper',
+    fr: 'Campeur perdu',
+  },
+  'Severe Weather': {
+    de: 'Schweres Wetter',
+    en: 'Severe Weather',
+    fr: 'Intempéries',
+  },
+};
+
+const alertDescriptions = {
+  'Medical Emergency': {
+    de: 'Lebensbedrohliche Situationen, die sofortige medizinische Hilfe erfordern.',
+    en: 'Life-threatening situations requiring immediate medical attention.',
+    fr: 'Situations potentiellement mortelles nécessitant une attention médicale immédiate.',
+  },
+  'Fire': {
+    de: 'Alle feuerbezogenen Notfälle innerhalb des Lagergeländes.',
+    en: 'Any fire-related emergencies within the camp premises.',
+    fr: 'Toute urgence liée au feu dans les locaux du camp.',
+  },
+  'Lost Camper': {
+    de: 'Wenn ein Teilnehmer als vermisst gemeldet wird oder nicht aufgefunden werden kann.',
+    en: 'When a camper is reported missing or cannot be located.',
+    fr: 'Quand un campeur est signalé disparu ou ne peut pas être localisé.',
+  },
+  'Severe Weather': {
+    de: 'Gefährliche Wetterbedingungen wie Stürme, Blitze oder Überschwemmungen.',
+    en: 'Dangerous weather conditions such as storms, lightning, or flooding.',
+    fr: 'Conditions météorologiques dangereuses telles que tempêtes, éclairs ou inondations.',
+  },
+};
+
+const alertProcedures = {
+  'Medical Emergency': {
+    de: 'Medizinische Verstärkung anfordern, Erste-Hilfe-Kasten bereitmachen, Bereich räumen.',
+    en: 'Call for medical backup, prepare first aid kit, clear the area.',
+    fr: 'Appeler des renforts médicaux, préparer la trousse de premiers secours, dégager la zone.',
+  },
+  'Fire': {
+    de: 'Bereich evakuieren, Feuerwehr rufen, Feuerlöscher verwenden wenn sicher.',
+    en: 'Evacuate the area, call fire department, use fire extinguishers if safe.',
+    fr: 'Évacuer la zone, appeler les pompiers, utiliser les extincteurs si sûr.',
+  },
+  'Lost Camper': {
+    de: 'Suchteams organisieren, örtliche Behörden benachrichtigen, Lagerperimeter sichern.',
+    en: 'Organize search parties, notify local authorities, secure camp perimeter.',
+    fr: 'Organiser des équipes de recherche, aviser les autorités locales, sécuriser le périmètre du camp.',
+  },
+  'Severe Weather': {
+    de: 'Teilnehmer in bestimmte Schutzräume bringen, Wetterupdates überwachen, Notfallvorräte bereitstellen.',
+    en: 'Move campers to designated shelters, monitor weather updates, prepare emergency supplies.',
+    fr: 'Déplacer les campeurs vers les abris désignés, surveiller les mises à jour météo, préparer les fournitures d\'urgence.',
+  },
+};
+
+const searchPlaceholder: StaticTranslationString = {
+  de: 'Alarmtypen suchen...',
+  en: 'Search alert types...',
+  fr: 'Rechercher types d\'alerte...',
+};
+
+const descriptionLabel: StaticTranslationString = {
+  de: 'Beschreibung:',
+  en: 'Description:',
+  fr: 'Description:',
+};
+
+const procedureLabel: StaticTranslationString = {
+  de: 'Vorgehen:',
+  en: 'Procedure:',
+  fr: 'Procédure:',
+};
+
+const alertTriggeredText: StaticTranslationString = {
+  de: 'Alarm ausgelöst!',
+  en: 'Alert triggered!',
+  fr: 'Alerte déclenchée!',
+};
 
 const alertTypes = [
   {
@@ -77,9 +173,12 @@ const alertTypes = [
 
 export const EmergencyComponent: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const locale = useCurrentLocale(i18nConfig) as Locale;
 
   const filteredAlerts = alertTypes.filter((alert) =>
-    alert.title.toLowerCase().includes(searchTerm.toLowerCase()),
+    alertTypeTranslations[alert.title as keyof typeof alertTypeTranslations][locale]
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase()),
   );
 
   const clearSearch = (): void => {
@@ -103,7 +202,7 @@ export const EmergencyComponent: React.FC = () => {
               className="text-red-50"
               variant="destructive"
               size="lg"
-              onClick={() => alert(`Alert triggered!`)}
+              onClick={() => alert(alertTriggeredText[locale])}
             >
               Lagersanität Alarmieren
             </Button>
@@ -114,7 +213,7 @@ export const EmergencyComponent: React.FC = () => {
           <div className="relative">
             <Input
               type="text"
-              placeholder="Search alert types..."
+              placeholder={searchPlaceholder[locale]}
               value={searchTerm}
               onChange={(event: ChangeEvent<HTMLInputElement>) => setSearchTerm(event.target.value)}
               className="pl-10"
@@ -140,13 +239,17 @@ export const EmergencyComponent: React.FC = () => {
       <Accordion type="single" collapsible className="mb-8">
         {filteredAlerts.map((alert, index) => (
           <AccordionItem value={`item-${index}`} key={index}>
-            <AccordionTrigger>{alert.title}</AccordionTrigger>
+            <AccordionTrigger>
+              {alertTypeTranslations[alert.title as keyof typeof alertTypeTranslations][locale]}
+            </AccordionTrigger>
             <AccordionContent>
               <p className="mb-2">
-                <strong>Description:</strong> {alert.description}
+                <strong>{descriptionLabel[locale]}</strong>{' '}
+                {alertDescriptions[alert.title as keyof typeof alertDescriptions][locale]}
               </p>
               <p>
-                <strong>Procedure:</strong> {alert.procedure}
+                <strong>{procedureLabel[locale]}</strong>{' '}
+                {alertProcedures[alert.title as keyof typeof alertProcedures][locale]}
               </p>
             </AccordionContent>
           </AccordionItem>
