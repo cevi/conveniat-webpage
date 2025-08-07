@@ -2844,6 +2844,18 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
  */
 export interface Header {
   id: string;
+  _localized_status: LocalizedPublishingStatus;
+  publishingStatus?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  _disable_unpublishing?: boolean | null;
+  _locale: string;
   mainMenu?:
     | {
         label: string;
@@ -2990,6 +3002,10 @@ export interface PWA {
  * via the `definition` "header_select".
  */
 export interface HeaderSelect<T extends boolean = true> {
+  _localized_status?: T;
+  publishingStatus?: T;
+  _disable_unpublishing?: T;
+  _locale?: T;
   mainMenu?:
     | T
     | {
