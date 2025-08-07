@@ -1,11 +1,20 @@
+import { LinkComponent } from '@/components/ui/link-component';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { PageSectionsConverter } from '@/features/payload-cms/converters/page-sections';
 import type { ContentBlock } from '@/features/payload-cms/converters/page-sections/section-wrapper';
 import { getImageAltInLocale } from '@/features/payload-cms/payload-cms/utils/images-meta-fields';
 import type { Blog, Image as PayloadImage } from '@/features/payload-cms/payload-types';
-import type { Locale, SearchParameters } from '@/types/types';
+import type { Locale, SearchParameters, StaticTranslationString } from '@/types/types';
+import { formatBlogDate } from '@/utils/format-blog-date';
+import { ArrowLeft } from 'lucide-react';
 import Image from 'next/image';
 import React from 'react';
+
+const backToOverviewText: StaticTranslationString = {
+  en: '« Back to overview',
+  de: '« Zurück zur Übersicht',
+  fr: "« Retour à l'aperçu",
+};
 
 export const BlogArticleConverter: React.FC<{
   article: Blog;
@@ -30,12 +39,24 @@ export const BlogArticleConverter: React.FC<{
 
   const source = article.content.bannerImage.sizes?.large?.url ?? '';
   const altText = getImageAltInLocale(locale, article.content.bannerImage);
+  const formattedDate = formatBlogDate(article.content.releaseDate, locale);
+
   return (
     <>
       <article className="my-8 w-full max-w-2xl px-8 max-xl:mx-auto">
-        <HeadlineH1>{article.content.blogH1}</HeadlineH1>
+        {/* Back button */}
+        <div className="mb-6">
+          <LinkComponent
+            href={`/${locale}/blog`}
+            className="inline-flex items-center gap-2 text-red-600 transition-colors hover:text-red-700"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            {backToOverviewText[locale]}
+          </LinkComponent>
+        </div>
 
-        <div className="text-conveniat-green relative mt-10 aspect-[16/9] w-full text-lg">
+        {/* Banner image with correct 1:2 aspect ratio */}
+        <div className="text-conveniat-green relative mt-10 aspect-[1/2] w-full text-lg">
           <Image
             src={source}
             alt={altText}
@@ -44,6 +65,12 @@ export const BlogArticleConverter: React.FC<{
             priority
           />
         </div>
+
+        {/* Release date */}
+        <div className="mt-6 text-gray-600">{formattedDate}</div>
+
+        {/* Article title */}
+        <HeadlineH1>{article.content.blogH1}</HeadlineH1>
 
         <PageSectionsConverter
           blocks={article.content.mainContent as ContentBlock[]}
