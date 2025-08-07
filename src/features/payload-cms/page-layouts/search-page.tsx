@@ -101,7 +101,7 @@ const SearchPage: React.FC<LocalizedPageType> = async (properties) => {
   const searchEntriesPages = await payload.find({
     collection: 'search-collection',
     depth: 1,
-    limit: limitPerCategory,
+    limit: 5,
     locale,
     where: {
       and: [
@@ -163,7 +163,7 @@ const SearchPage: React.FC<LocalizedPageType> = async (properties) => {
           ],
         },
         {
-          'doc.relationTo': { equals: 'blogs' },
+          'doc.relationTo': { equals: 'blog' },
         },
       ],
     },
