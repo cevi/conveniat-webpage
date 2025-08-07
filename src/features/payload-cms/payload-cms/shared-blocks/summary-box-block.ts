@@ -1,4 +1,4 @@
-import { RichTextParagraphsField } from '@/features/payload-cms/payload-cms/shared-fields/rich-text-paragraphs-field';
+import { RichTextParagraphsField } from '@/features/payload-cms/payload-cms/shared-fields/rich-text-paragraph-field';
 import type { Block } from 'payload';
 
 export const summaryBoxBlock: Block = {

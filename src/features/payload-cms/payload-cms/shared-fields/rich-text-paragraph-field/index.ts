@@ -1,3 +1,4 @@
+import { biggerParagraphFeature } from '@/features/payload-cms/payload-cms/shared-fields/rich-text-paragraph-field/bigger-paragraph-feature';
 import { lexicalEditor } from '@payloadcms/richtext-lexical';
 import type { Field } from 'payload';
 
@@ -13,6 +14,6 @@ export const RichTextParagraphsField: Field = {
   localized: true,
   // Pass the Lexical editor here and override base settings as necessary
   editor: lexicalEditor({
-    features: ({ rootFeatures }) => [...rootFeatures],
+    features: ({ rootFeatures }) => [...rootFeatures, biggerParagraphFeature()],
   }),
 };
