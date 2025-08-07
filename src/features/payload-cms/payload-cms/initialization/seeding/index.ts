@@ -186,7 +186,12 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
   await payload.updateGlobal({
     slug: 'header',
     locale: LOCALE.DE,
-    data: { mainMenu: mainMenu },
+    data: {
+      mainMenu: mainMenu,
+      _disable_unpublishing: true,
+      _locale: LOCALE.DE,
+      _localized_status: { published: true },
+    },
   });
 
   // seed app content

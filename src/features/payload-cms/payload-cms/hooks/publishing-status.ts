@@ -1,7 +1,14 @@
 import type { PublishingStatusType } from '@/features/payload-cms/payload-cms/components/multi-lang-publishing/type';
 import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import type { Config } from '@/features/payload-cms/payload-types';
-import type { Block, CollectionConfig, CollectionSlug, FieldHookArgs, Tab } from 'payload';
+import type {
+  Block,
+  CollectionConfig,
+  CollectionSlug,
+  FieldHookArgs,
+  GlobalSlug,
+  Tab,
+} from 'payload';
 
 interface Field {
   name?: string;
@@ -344,6 +351,54 @@ const hasDiffs = (
 
   return false;
 };
+
+export const getPublishingStatusGlobal =
+  (globalSlug: GlobalSlug) =>
+  async (arguments_: FieldHookArgs): Promise<PublishingStatusType> => {
+    const { data, req, global } = arguments_;
+    const { payload } = req;
+
+    const id = data?.['id'] as string | unknown;
+    if (id == undefined) return {};
+
+    const originalDocument = (await payload.findGlobal({
+      slug: globalSlug,
+      select: { publishingStatus: false },
+      depth: 0,
+      locale: 'all',
+      draft: false,
+    })) as unknown as PayloadDocument;
+
+    const draftDocument = (await payload.findGlobal({
+      slug: globalSlug,
+      select: { publishingStatus: false },
+      depth: 0,
+      locale: 'all',
+      draft: true,
+    })) as unknown as PayloadDocument;
+
+    const fieldDefinition = (global?.fields as unknown as Field[] | undefined) ?? undefined;
+    if (fieldDefinition === undefined) throw new Error('Field definitions are undefined');
+
+    const getLocaleState = (
+      locale: Config['locale'],
+    ): { pendingChanges: boolean; published: boolean } => {
+      return {
+        pendingChanges: hasDiffs(locale, fieldDefinition, draftDocument, originalDocument),
+        published: (
+          originalDocument['_localized_status']?.[locale] as unknown as {
+            published: boolean;
+          }
+        )['published'],
+      };
+    };
+
+    return {
+      de: getLocaleState(LOCALE.DE),
+      en: getLocaleState(LOCALE.EN),
+      fr: getLocaleState(LOCALE.FR),
+    };
+  };
 
 /**
  * Returns a field hook that retrieves the publishing status of a document.
