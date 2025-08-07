@@ -211,7 +211,7 @@ Follow these guidelines for writing modern, high-quality code.
 - Data Fetching:
   - Fetch data directly in Server Components using async/await.
   - Use Server Actions for data mutations (POST, PUT, DELETE) to avoid creating API route handlers for simple form
-    submissions. For complex operations we use react-query pared with Server Actions.
+    submissions. For complex operations we use react-query paired with Server Actions.
 
 - Keep Components Small: A component should have a single responsibility. If it gets too large or complex, break it down
   into smaller components.
