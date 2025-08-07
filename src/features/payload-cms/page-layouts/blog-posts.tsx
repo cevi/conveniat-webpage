@@ -1,11 +1,12 @@
 import { LinkComponent } from '@/components/ui/link-component';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { BlogArticleConverter } from '@/features/payload-cms/converters/blog-article';
-import type { Permission } from '@/features/payload-cms/payload-types';
+import type { Image, Permission } from '@/features/payload-cms/payload-types';
 import { buildMetadata, findAlternatives } from '@/features/payload-cms/utils/metadata-helper';
 import type { Locale, LocalizedCollectionComponent, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { hasPermissions } from '@/utils/has-permissions';
+import { generateTwitterCardImageSettings } from '@/utils/twitter-card-image';
 import config from '@payload-config';
 import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
@@ -190,13 +191,21 @@ BlogPostPage.generateMetadata = async ({ locale, slugs }): Promise<Metadata> => 
       .map((alt) => [alt._locale, `/${alt._locale}/blog/${alt.seo.urlSlug}`]),
   );
 
-  return buildMetadata({
-    seo: article.seo,
-    canonicalLocale,
-    canonicalSlug,
-    alternates,
-    prefix: '/blog',
-  });
+  return {
+    ...buildMetadata({
+      seo: article.seo,
+      canonicalLocale,
+      canonicalSlug,
+      alternates,
+      prefix: '/blog',
+    }),
+    twitter: {
+      card: 'summary_large_image',
+      title: article.seo.metaTitle ?? article.content.blogH1,
+      images: [generateTwitterCardImageSettings(article.content.bannerImage as Image, locale)],
+      description: article.seo.metaDescription ?? undefined,
+    },
+  };
 };
 
 export default BlogPostPage;
