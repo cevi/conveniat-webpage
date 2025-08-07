@@ -265,7 +265,7 @@ We follow a standard Git workflow for managing changes:
    - Use descriptive names (e.g., `feature/new-header`, `bugfix/fix-footer`).
    - For small changes, you can commit directly to the `dev` branch.
    - For larger features, create a feature branch from `dev` and merge it back when complete.
-   - You are allowed to force push to your feature branches, avoid force pushing to `dev`, never force push to `main`.
+   - You are allowed to force push to your feature branches. However, if multiple developers are collaborating on the same feature branch, always coordinate and communicate with your teammates before force pushing, as it can overwrite others' work. Avoid force pushing to `dev`, and never force push to `main`.
 2. **Pull Requests:** When ready, open a pull request (PR) against the `dev` branch.
    - Ensure the PR description is clear about the changes made.
    - Request reviews from team members.
