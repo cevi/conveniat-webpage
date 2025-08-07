@@ -25,6 +25,7 @@
   "dependencies": {
     "@headlessui/react": "^2.2.7",
     "@icons-pack/react-simple-icons": "^12.9.0",
+    "@lexical/selection": "0.28.0",
     "@next/bundle-analyzer": "^15.4.5",
     "@payloadcms/db-mongodb": "^3.50.0",
     "@payloadcms/email-nodemailer": "^3.50.0",
@@ -50,7 +51,6 @@
     "@turf/turf": "^7.2.0",
     "@types/js-cookie": "^3.0.6",
     "@types/jsonwebtoken": "^9.0.10",
-    "babel-plugin-react-compiler": "19.1.0-rc.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cross-env": "^7.0.3",
@@ -61,6 +61,7 @@
     "js-cookie": "^3.0.5",
     "json-schema": "^0.4.0",
     "jsonwebtoken": "^9.0.2",
+    "babel-plugin-react-compiler": "19.1.0-rc.2",
     "lucide-react": "^0.460.0",
     "maplibre-gl": "^5.6.1",
     "next": "15.4.5",
