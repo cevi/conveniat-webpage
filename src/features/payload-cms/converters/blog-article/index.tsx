@@ -6,14 +6,14 @@ import { getImageAltInLocale } from '@/features/payload-cms/payload-cms/utils/im
 import type { Blog, Image as PayloadImage } from '@/features/payload-cms/payload-types';
 import type { Locale, SearchParameters, StaticTranslationString } from '@/types/types';
 import { formatBlogDate } from '@/utils/format-blog-date';
-import { ArrowLeft } from 'lucide-react';
+import { ChevronsLeft } from 'lucide-react';
 import Image from 'next/image';
 import React from 'react';
 
 const backToOverviewText: StaticTranslationString = {
-  en: '« Back to overview',
-  de: '« Zurück zur Übersicht',
-  fr: "« Retour à l'aperçu",
+  en: 'Back to overview',
+  de: 'Zurück zur Übersicht',
+  fr: "Retour à l'aperçu",
 };
 
 export const BlogArticleConverter: React.FC<{
@@ -50,7 +50,7 @@ export const BlogArticleConverter: React.FC<{
             href={`/${locale}/blog`}
             className="inline-flex items-center gap-2 text-red-600 transition-colors hover:text-red-700"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ChevronsLeft className="h-4 w-4" />
             {backToOverviewText[locale]}
           </LinkComponent>
         </div>
