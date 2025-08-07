@@ -27,18 +27,6 @@ const searchResultsTitlePages: StaticTranslationString = {
   fr: 'Touts Blogs',
 };
 
-const nextButton: StaticTranslationString = {
-  de: 'Nächste Seite',
-  en: 'Next Page',
-  fr: 'Page suivante',
-};
-
-const previousButton: StaticTranslationString = {
-  de: 'Vorherige Seite',
-  en: 'Previous Page',
-  fr: 'Page précédente',
-};
-
 const SearchOnlyBlogsClient: React.FC<{
   locale: Locale;
   page: number;
@@ -82,7 +70,7 @@ const SearchOnlyBlogsClient: React.FC<{
             className="flex-inline flex justify-center rounded bg-gray-200 px-4 py-2"
             href={buildPageLink(prevPage)}
           >
-            <MoveLeft /> {previousButton[locale]}
+            <MoveLeft />
           </LinkComponent>
         ) : (
           <div></div>
@@ -95,7 +83,7 @@ const SearchOnlyBlogsClient: React.FC<{
             className="flex-inline flex justify-center rounded bg-gray-200 px-4 py-2"
             href={buildPageLink(nextPage)}
           >
-            {nextButton[locale]} <MoveRight />
+            <MoveRight />
           </LinkComponent>
         ) : (
           <div></div>

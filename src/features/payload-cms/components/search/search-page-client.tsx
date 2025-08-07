@@ -28,18 +28,6 @@ const searchResultsTitlePages: StaticTranslationString = {
   fr: 'Touts Pages',
 };
 
-const nextButton: StaticTranslationString = {
-  de: 'Nächste Seite',
-  en: 'Next Page',
-  fr: 'Page suivante',
-};
-
-const previousButton: StaticTranslationString = {
-  de: 'Vorherige Seite',
-  en: 'Previous Page',
-  fr: 'Page précédente',
-};
-
 const searchAlternatives: StaticTranslationString = {
   en: '/search',
   de: '/suche',
@@ -84,7 +72,6 @@ const SearchOnlyPagesClient: React.FC<{
             href={buildPageLink(prevPage)}
           >
             <MoveLeft className="mt-0.5 mr-2" />
-            {previousButton[locale]}
           </LinkComponent>
         ) : (
           <div></div>
@@ -97,7 +84,6 @@ const SearchOnlyPagesClient: React.FC<{
             className="flex-inline bg-conveniat-green flex justify-center rounded px-4 py-2 text-white"
             href={buildPageLink(nextPage)}
           >
-            {nextButton[locale]}
             <MoveRight className="mt-0.5 ml-2" />
           </LinkComponent>
         ) : (
