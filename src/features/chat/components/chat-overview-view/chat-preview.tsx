@@ -1,16 +1,26 @@
 'use client';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import type { ChatDto } from '@/features/chat/types/api-dto-types';
+import type { Locale, StaticTranslationString } from '@/types/types';
+import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { formatDistanceToNow } from 'date-fns';
 import { Users } from 'lucide-react';
+import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
 import type React from 'react';
+
+const noMessagesYetText: StaticTranslationString = {
+  de: 'Noch keine Nachrichten',
+  en: 'No messages yet',
+  fr: 'Aucun message pour le moment',
+};
 
 export const ChatPreview: React.FC<{
   chat: ChatDto;
   // eslint-disable-next-line complexity
 }> = ({ chat }) => {
+  const locale = useCurrentLocale(i18nConfig) as Locale;
   const chatDetailLink = `/app/chat/${chat.id}`;
   const hasUnread = chat.unreadCount > 0;
   const timestamp = chat.lastMessage?.timestamp
@@ -72,7 +82,7 @@ export const ChatPreview: React.FC<{
               hasUnread ? 'font-medium text-gray-700' : 'text-gray-500',
             )}
           >
-            {chat.lastMessage?.content ?? 'No messages yet'}
+            {chat.lastMessage?.content ?? noMessagesYetText[locale]}
           </p>
         </div>
 

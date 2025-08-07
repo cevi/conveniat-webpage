@@ -1,11 +1,22 @@
 import { cn } from '@/utils/tailwindcss-override';
+import type { Locale, StaticTranslationString } from '@/types/types';
+import { i18nConfig } from '@/types/types';
+import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
+
+const typingText: StaticTranslationString = {
+  de: 'schreibt...',
+  en: 'is typing...',
+  fr: 'écrit...',
+};
 
 interface TypingIndicatorProperties {
   userName: string | undefined;
 }
 
 export const TypingIndicator: React.FC<TypingIndicatorProperties> = ({ userName }) => {
+  const locale = useCurrentLocale(i18nConfig) as Locale;
+  
   if (userName === undefined || userName === '') return <></>;
 
   return (
@@ -21,7 +32,7 @@ export const TypingIndicator: React.FC<TypingIndicatorProperties> = ({ userName 
           className={cn('h-2 w-2 animate-bounce rounded-full bg-gray-400', 'animation-delay-300')}
         />
       </div>
-      <span className="font-body text-xs text-gray-500">{userName} is typing...</span>
+      <span className="font-body text-xs text-gray-500">{userName} {typingText[locale]}</span>
     </div>
   );
 };

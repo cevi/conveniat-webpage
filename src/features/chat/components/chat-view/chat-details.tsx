@@ -55,6 +55,72 @@ const searchContactsPlaceholder: StaticTranslationString = {
   fr: 'Rechercher des contacts à ajouter...',
 };
 
+const validationMessages = {
+  emptyName: {
+    de: 'Chat-Name darf nicht leer sein',
+    en: 'Chat name cannot be empty',
+    fr: 'Le nom du chat ne peut pas être vide',
+  } as StaticTranslationString,
+  tooShort: {
+    de: 'Chat-Name muss mindestens 2 Zeichen haben',
+    en: 'Chat name must be at least 2 characters',
+    fr: 'Le nom du chat doit contenir au moins 2 caractères',
+  } as StaticTranslationString,
+  tooLong: {
+    de: 'Chat-Name muss weniger als 50 Zeichen haben',
+    en: 'Chat name must be less than 50 characters',
+    fr: 'Le nom du chat doit contenir moins de 50 caractères',
+  } as StaticTranslationString,
+};
+
+const savingText: StaticTranslationString = {
+  de: 'Speichern...',
+  en: 'Saving...',
+  fr: 'Enregistrement...',
+};
+
+const saveText: StaticTranslationString = {
+  de: 'Speichern',
+  en: 'Save',
+  fr: 'Enregistrer',
+};
+
+const chatNameSectionText: StaticTranslationString = {
+  de: 'Chat-Name',
+  en: 'Chat Name',
+  fr: 'Nom du chat',
+};
+
+const participantsSectionText: StaticTranslationString = {
+  de: 'Teilnehmer',
+  en: 'Participants',
+  fr: 'Participants',
+};
+
+const doneText: StaticTranslationString = {
+  de: 'Fertig',
+  en: 'Done',
+  fr: 'Terminé',
+};
+
+const manageText: StaticTranslationString = {
+  de: 'Verwalten',
+  en: 'Manage',
+  fr: 'Gérer',
+};
+
+const noContactsToAddText: StaticTranslationString = {
+  de: 'Keine Kontakte hinzuzufügen.',
+  en: 'No contacts to add.',
+  fr: 'Aucun contact à ajouter.',
+};
+
+const noContactsFoundText: StaticTranslationString = {
+  de: 'Keine Kontakte gefunden, die deiner Suche entsprechen',
+  en: 'No contacts found matching your search',
+  fr: 'Aucun contact trouvé correspondant à votre recherche',
+};
+
 const ChatDetailsPageSkeleton: React.FC = () => (
   <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col bg-gray-50 xl:top-[62px] xl:left-[480px] xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
     <div className="flex h-16 items-center gap-3 border-b border-gray-200 bg-white px-4 shadow-sm">
@@ -101,15 +167,15 @@ const ChatDetailsError: React.FC = () => (
 );
 
 // Validate chat name
-const validateChatName = (name: string): string => {
+const validateChatName = (name: string, locale: Locale): string => {
   if (name.trim().length === 0) {
-    return 'Chat name cannot be empty';
+    return validationMessages.emptyName[locale];
   }
   if (name.trim().length < 2) {
-    return 'Chat name must be at least 2 characters';
+    return validationMessages.tooShort[locale];
   }
   if (name.trim().length > 50) {
-    return 'Chat name must be less than 50 characters';
+    return validationMessages.tooLong[locale];
   }
   return '';
 };
@@ -165,7 +231,7 @@ export const ChatDetails: React.FC = () => {
 
   // --- Handlers for chat name editing ---
   const handleSaveName = (): void => {
-    const error = validateChatName(chatName);
+    const error = validateChatName(chatName, locale);
     if (error) {
       setChatNameError(error);
       return;
@@ -274,7 +340,7 @@ export const ChatDetails: React.FC = () => {
                 disabled={!isFormValid || updateChatMutation.isPending}
                 className="bg-conveniat-green font-body hover:bg-green-600 disabled:bg-gray-300"
               >
-                {updateChatMutation.isPending ? 'Saving...' : 'Save'}
+                {updateChatMutation.isPending ? savingText[locale] : saveText[locale]}
               </Button>
             </div>
           )}
@@ -287,7 +353,7 @@ export const ChatDetails: React.FC = () => {
           {/* --- Chat Name Section --- */}
           <div className="rounded-lg border border-gray-200 bg-white p-6">
             <div className="mb-4 flex items-center justify-between">
-              <div className="font-body text-sm font-medium text-gray-600">Chat Name</div>
+              <div className="font-body text-sm font-medium text-gray-600">{chatNameSectionText[locale]}</div>
               {isGroupChat && !isEditingName && (
                 <Button
                   variant="ghost"
@@ -327,7 +393,7 @@ export const ChatDetails: React.FC = () => {
           <div className="rounded-lg border border-gray-200 bg-white p-6">
             <div className="mb-4 flex items-center justify-between">
               <div className="font-body text-sm font-medium text-gray-600">
-                {chatDetails.participants.length} Participants
+                {chatDetails.participants.length} {participantsSectionText[locale]}
               </div>
               {isGroupChat && (
                 <Button
@@ -336,7 +402,7 @@ export const ChatDetails: React.FC = () => {
                   onClick={() => setIsManagingParticipants(!isManagingParticipants)}
                   className="h-8 gap-2 px-2 hover:bg-gray-100"
                 >
-                  {isManagingParticipants ? 'Done' : 'Manage'}
+                  {isManagingParticipants ? doneText[locale] : manageText[locale]}
                   {isManagingParticipants ? (
                     <X className="h-4 w-4" />
                   ) : (
@@ -437,8 +503,8 @@ export const ChatDetails: React.FC = () => {
                   (addableContacts.length === 0 ? (
                     <div className="flex h-full items-center justify-center text-sm text-gray-500">
                       {searchQuery === ''
-                        ? 'No contacts to add.'
-                        : 'No contacts found matching your search'}
+                        ? noContactsToAddText[locale]
+                        : noContactsFoundText[locale]}
                     </div>
                   ) : (
                     addableContacts.map((contact) => {
