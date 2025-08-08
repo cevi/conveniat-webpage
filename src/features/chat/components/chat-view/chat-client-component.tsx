@@ -13,13 +13,13 @@ import Link from 'next/link';
 import React from 'react';
 
 const yourOffline: StaticTranslationString = {
-  en: 'Your offline.',
+  en: "You're offline.",
   de: 'Du bist offline.',
   fr: 'Vous êtes hors ligne.',
 };
 
 const youMustBeOnline: StaticTranslationString = {
-  en: 'You must be online to view this chat.',
+  en: 'You need to be online to view this chat.',
   de: 'Du musst online sein, um diesen Chat zu sehen.',
   fr: 'Vous devez être en ligne pour voir ce chat.',
 };
@@ -28,6 +28,18 @@ const cannotSendOffline: StaticTranslationString = {
   en: 'You are currently offline. Messages will be sent when you are back online.',
   de: 'Du bist derzeit offline. Nachrichten werden gesendet, wenn du wieder online bist.',
   fr: 'Vous êtes actuellement hors ligne. Les messages seront envoyés lorsque vous serez de nouveau en ligne.',
+};
+
+const errorLoadingChat: StaticTranslationString = {
+  en: 'Error loading chat.',
+  de: 'Fehler beim Laden des Chats.',
+  fr: 'Erreur de chargement du chat.',
+};
+
+const tryAgainLater: StaticTranslationString = {
+  en: 'Please try again later.',
+  de: 'Bitte versuche es später noch einmal.',
+  fr: 'Veuillez réessayer plus tard.',
 };
 
 /**
@@ -52,18 +64,22 @@ const ChatOfflineMessage: React.FC = () => {
   );
 };
 
-export const ChatErrorMessage: React.FC = () => (
-  <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50 xl:top-[62px] xl:left-[480px] xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
-    <ChatHeaderSkeleton />
-    <div className="flex flex-1 items-center justify-center p-4 text-center text-red-500">
-      <span>
-        <b>Error loading chat.</b>
-        <br />
-        Please try again later.
-      </span>
+export const ChatErrorMessage: React.FC = () => {
+  const locale = useCurrentLocale(i18nConfig) as Locale;
+
+  return (
+    <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50 xl:top-[62px] xl:left-[480px] xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
+      <ChatHeaderSkeleton />
+      <div className="flex flex-1 items-center justify-center p-4 text-center text-red-500">
+        <span>
+          <b>{errorLoadingChat[locale]}</b>
+          <br />
+          {tryAgainLater[locale]}
+        </span>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const OfflineBanner: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
