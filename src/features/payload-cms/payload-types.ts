@@ -1051,9 +1051,18 @@ export interface AccordionBlocks {
   accordionBlocks?:
     | {
         /**
+         * Choose whether to display the title or a portrait in the miniaturized view.
+         */
+        titleOrPortrait: 'title' | 'portrait';
+        /**
          * This is the title of the accordion block. It will be displayed in the overview, and when clicked, the block will expand.
          */
-        title: string;
+        title?: string | null;
+        teamLeaderGroup?: {
+          name: string;
+          ceviname?: string | null;
+          portrait?: (string | null) | Image;
+        };
         /**
          * This is the content of the accordion block. It will be displayed when the block is expanded.
          */
@@ -2020,7 +2029,15 @@ export interface AccordionBlocksSelect<T extends boolean = true> {
   accordionBlocks?:
     | T
     | {
+        titleOrPortrait?: T;
         title?: T;
+        teamLeaderGroup?:
+          | T
+          | {
+              name?: T;
+              ceviname?: T;
+              portrait?: T;
+            };
         valueBlocks?:
           | T
           | {
