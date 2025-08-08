@@ -14,7 +14,7 @@ const scheduleTableTitle: StaticTranslationString = {
 };
 
 const errorLoadingEntry: StaticTranslationString = {
-  de: 'Fehler beim Laden des Termineintrags.',
+  de: 'Fehler beim Laden der Programm-Details.',
   en: 'Error loading schedule entry.',
   fr: "Erreur lors du chargement de l'entrée du programme.",
 };
