@@ -5,9 +5,30 @@ import { MessageInput } from '@/features/chat/components/chat-view/message-input
 import { MessageList } from '@/features/chat/components/chat-view/message-list';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
+import type { Locale, StaticTranslationString } from '@/types/types';
+import { i18nConfig } from '@/types/types';
 import { ArrowLeft } from 'lucide-react';
+import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
 import React from 'react';
+
+const yourOffline: StaticTranslationString = {
+  en: 'Your offline.',
+  de: 'Du bist offline.',
+  fr: 'Vous êtes hors ligne.',
+};
+
+const youMustBeOnline: StaticTranslationString = {
+  en: 'You must be online to view this chat.',
+  de: 'Du musst online sein, um diesen Chat zu sehen.',
+  fr: 'Vous devez être en ligne pour voir ce chat.',
+};
+
+const cannotSendOffline: StaticTranslationString = {
+  en: 'You are currently offline. Messages will be sent when you are back online.',
+  de: 'Du bist derzeit offline. Nachrichten werden gesendet, wenn du wieder online bist.',
+  fr: 'Vous êtes actuellement hors ligne. Les messages seront envoyés lorsque vous serez de nouveau en ligne.',
+};
 
 /**
  * Message displayed if the user is offline and tries to access a chat.
@@ -15,18 +36,21 @@ import React from 'react';
  *
  * @constructor
  */
-const ChatOfflineMessage: React.FC = () => (
-  <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50 xl:top-[62px] xl:left-[480px] xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
-    <ChatHeaderSkeleton />
-    <div className="flex flex-1 items-center justify-center p-4 text-center text-gray-500">
-      <span>
-        <b>Your offline.</b>
-        <br />
-        You need to be online to view this chat.
-      </span>
+const ChatOfflineMessage: React.FC = () => {
+  const locale = useCurrentLocale(i18nConfig) as Locale;
+  return (
+    <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50 xl:top-[62px] xl:left-[480px] xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
+      <ChatHeaderSkeleton />
+      <div className="flex flex-1 items-center justify-center p-4 text-center text-gray-500">
+        <span>
+          <b>{yourOffline[locale]}</b>
+          <br />
+          {youMustBeOnline[locale]}
+        </span>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export const ChatErrorMessage: React.FC = () => (
   <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50 xl:top-[62px] xl:left-[480px] xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
@@ -41,13 +65,15 @@ export const ChatErrorMessage: React.FC = () => (
   </div>
 );
 
-const OfflineBanner: React.FC = () => (
-  <div className="z-[500] bg-red-100 p-4 text-center text-red-800">
-    <span className="font-semibold">
-      You are currently offline. Messages will be sent when you are back online.
-    </span>
-  </div>
-);
+const OfflineBanner: React.FC = () => {
+  const locale = useCurrentLocale(i18nConfig) as Locale;
+
+  return (
+    <div className="z-[500] bg-red-100 p-4 text-center text-red-800">
+      <span className="font-semibold">{cannotSendOffline[locale]}</span>
+    </div>
+  );
+};
 
 export const ChatClientComponent: React.FC = () => {
   const chatId = useChatId();
