@@ -165,12 +165,19 @@ GenericPage.generateMetadata = async ({ locale, slugs }): Promise<Metadata> => {
       .map((alt) => [alt._locale, `/${alt._locale}/${alt.seo.urlSlug}`]),
   );
 
-  return buildMetadata({
-    seo: page.seo,
-    canonicalLocale,
-    canonicalSlug,
-    alternates,
-  });
+  return {
+    ...buildMetadata({
+      seo: page.seo,
+      canonicalLocale,
+      canonicalSlug,
+      alternates,
+    }),
+    twitter: {
+      card: 'summary',
+      title: page.seo.metaTitle ?? page.content.pageTitle,
+      description: page.seo.metaDescription ?? undefined,
+    },
+  };
 };
 
 export default GenericPage;

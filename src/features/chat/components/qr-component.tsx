@@ -18,6 +18,12 @@ const qrCodeTitleText: StaticTranslationString = {
   en: 'Let it be scanned to start a chat.',
 };
 
+const closeAriaLabel: StaticTranslationString = {
+  de: 'Schliessen',
+  en: 'Close',
+  fr: 'Fermer',
+};
+
 export const QRCodeClientComponent: React.FC<{
   url: string;
 }> = ({ url }) => {
@@ -106,7 +112,7 @@ export const QRCodeClientComponent: React.FC<{
             <button
               onClick={() => setOpen(false)}
               className="absolute top-4 right-4 cursor-pointer text-gray-500 hover:text-gray-700"
-              aria-label="Close"
+              aria-label={closeAriaLabel[locale]}
             >
               <X className="h-6 w-6" />
             </button>

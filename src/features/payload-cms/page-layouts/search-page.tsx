@@ -101,7 +101,7 @@ const SearchPage: React.FC<LocalizedPageType> = async (properties) => {
   const searchEntriesPages = await payload.find({
     collection: 'search-collection',
     depth: 1,
-    limit: limitPerCategory,
+    limit: 5,
     locale,
     where: {
       and: [
@@ -163,7 +163,7 @@ const SearchPage: React.FC<LocalizedPageType> = async (properties) => {
           ],
         },
         {
-          'doc.relationTo': { equals: 'blogs' },
+          'doc.relationTo': { equals: 'blog' },
         },
       ],
     },
@@ -205,7 +205,9 @@ const SearchPage: React.FC<LocalizedPageType> = async (properties) => {
 
       <div className="mx-auto my-8 grid gap-y-6 min-[1200px]:grid-cols-2">
         <div className="col-span-2 flex flex-col gap-y-4">
-          <h2 className="text-2xl font-bold">{searchResultsTitlePages[locale]}</h2>
+          <h2 className="text-conveniat-green text-2xl font-bold">
+            {searchResultsTitlePages[locale]}
+          </h2>
           {permittedPages.length === 0 && <p>{searchResultNoResults[locale]}</p>}
           {permittedPages.map((element) => renderPermittedPage(element))}
           {searchEntriesPages.totalPages > 1 && (
@@ -218,7 +220,9 @@ const SearchPage: React.FC<LocalizedPageType> = async (properties) => {
           )}
         </div>
         <div className="col-span-2 flex flex-col gap-y-4">
-          <h2 className="text-2xl font-bold">{searchResultsTitleBlog[locale]}</h2>
+          <h2 className="text-conveniat-green text-2xl font-bold">
+            {searchResultsTitleBlog[locale]}
+          </h2>
           {permittedBlogs.length === 0 && <p>{searchResultNoResults[locale]}</p>}
           {permittedBlogs.map((element) => renderPermittedBlog(element))}
           {searchEntriesBlogs.totalPages > 1 && (

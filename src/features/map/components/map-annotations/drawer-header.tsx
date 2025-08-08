@@ -1,9 +1,15 @@
 import { StarButton } from '@/components/star/star';
 import { LinkComponent } from '@/components/ui/link-component';
 import type { CampMapAnnotationPoint, CampMapAnnotationPolygon } from '@/features/map/types/types';
-import type { Locale } from '@/types/types';
+import type { Locale, StaticTranslationString } from '@/types/types';
 import { Share2, X } from 'lucide-react';
 import React, { useState } from 'react';
+
+const closeAriaLabel: StaticTranslationString = {
+  de: 'Schliessen',
+  en: 'Close',
+  fr: 'Fermer',
+};
 
 interface AnnotationDrawerHeaderProperties {
   closeDrawer: () => void;
@@ -55,7 +61,7 @@ export const AnnotationDrawerHeader: React.FC<AnnotationDrawerHeaderProperties> 
         <button
           className="flex h-8 w-8 items-center justify-center rounded-full bg-red-100 text-red-600 hover:bg-gray-200 hover:text-gray-800"
           onClick={closeDrawer}
-          aria-label="Close"
+          aria-label={closeAriaLabel[locale]}
         >
           <X size={20} />
         </button>

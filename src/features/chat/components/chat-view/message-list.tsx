@@ -5,9 +5,25 @@ import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useChatUser } from '@/features/chat/hooks/use-chat-user';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import { MessageStatusDto } from '@/features/chat/types/api-dto-types';
+import type { Locale, StaticTranslationString } from '@/types/types';
+import { i18nConfig } from '@/types/types';
+import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useEffect, useRef } from 'react';
 
+const loadingMessagesText: StaticTranslationString = {
+  de: 'Nachrichten werden geladen...',
+  en: 'Loading messages...',
+  fr: 'Chargement des messages...',
+};
+
+const todayText: StaticTranslationString = {
+  de: 'Heute',
+  en: 'Today',
+  fr: "Aujourd'hui",
+};
+
 export const MessageList: React.FC = () => {
+  const locale = useCurrentLocale(i18nConfig) as Locale;
   const chatId = useChatId();
   const { data: chatDetails, isLoading } = useChatDetail(chatId);
   const { data: currentUser } = useChatUser();
@@ -41,7 +57,7 @@ export const MessageList: React.FC = () => {
   if (isLoading || currentUser === undefined || chatDetails === undefined) {
     return (
       <div className="flex h-screen flex-row items-center justify-center bg-gray-50">
-        <div className="font-body text-gray-600">Loading messages...</div>
+        <div className="font-body text-gray-600">{loadingMessagesText[locale]}</div>
       </div>
     );
   }
@@ -62,7 +78,7 @@ export const MessageList: React.FC = () => {
           <div key={date}>
             <div className="my-6 flex justify-center">
               <div className="font-body rounded-full bg-gray-200 px-4 py-2 text-xs font-medium text-gray-600 shadow-sm">
-                {date === new Date().toLocaleDateString() ? 'Today' : date}
+                {date === new Date().toLocaleDateString() ? todayText[locale] : date}
               </div>
             </div>
             <div className="space-y-4">

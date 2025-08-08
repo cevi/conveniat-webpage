@@ -13,6 +13,12 @@ const scheduleTableTitle: StaticTranslationString = {
   fr: 'Programmes à cet endroit',
 };
 
+const errorLoadingEntry: StaticTranslationString = {
+  de: 'Fehler beim Laden der Programm-Details.',
+  en: 'Error loading schedule entry.',
+  fr: "Erreur lors du chargement de l'entrée du programme.",
+};
+
 export const AnnotationScheduleTableComponent: React.FC<{
   schedule: CampScheduleEntry[] | undefined;
   locale: Locale;
@@ -31,7 +37,7 @@ export const AnnotationScheduleTableComponent: React.FC<{
             <Link href={`/app/schedule/${entry.id}`}>
               <h4 className="font-medium text-gray-900">{entry.title}</h4>
               <div className="mt-1 text-sm text-gray-700">
-                <ErrorBoundary fallback={<span>Error loading schedule entry.</span>}>
+                <ErrorBoundary fallback={<span>{errorLoadingEntry[locale]}</span>}>
                   <LexicalRichTextSection
                     richTextSection={entry.description as SerializedEditorState}
                   />

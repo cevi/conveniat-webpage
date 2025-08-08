@@ -1,9 +1,24 @@
 import { Button } from '@/components/ui/buttons/button';
+import type { Locale, StaticTranslationString } from '@/types/types';
+import { i18nConfig } from '@/types/types';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 
 // Helper to ensure consistent date formatting for keys and comparisons
 const formatDate = (date: Date): string => date.toISOString().split('T')[0] ?? '';
+
+const previousDayAriaLabel: StaticTranslationString = {
+  de: 'Vorheriger Tag',
+  en: 'Previous day',
+  fr: 'Jour précédent',
+};
+
+const nextDayAriaLabel: StaticTranslationString = {
+  de: 'Nächster Tag',
+  en: 'Next day',
+  fr: 'Jour suivant',
+};
 
 interface DateCarouselProperties {
   allDates: Date[];
@@ -24,6 +39,7 @@ export const DateCarousel: React.FC<DateCarouselProperties> = ({
   onPrevious,
   onNext,
 }) => {
+  const locale = useCurrentLocale(i18nConfig) as Locale;
   const visibleDates = allDates.slice(startIndex, startIndex + maxVisible);
   const formattedCurrentDate = formatDate(currentDate);
 
@@ -35,7 +51,7 @@ export const DateCarousel: React.FC<DateCarouselProperties> = ({
           size="sm"
           onClick={onPrevious}
           disabled={startIndex <= 0}
-          aria-label="Previous day"
+          aria-label={previousDayAriaLabel[locale]}
           className="h-8 w-8 p-0"
         >
           <ChevronLeft className="h-4 w-4" />
@@ -69,7 +85,7 @@ export const DateCarousel: React.FC<DateCarouselProperties> = ({
           size="sm"
           onClick={onNext}
           disabled={startIndex >= allDates.length - maxVisible}
-          aria-label="Next day"
+          aria-label={nextDayAriaLabel[locale]}
           className="h-8 w-8 p-0"
         >
           <ChevronRight className="h-4 w-4" />

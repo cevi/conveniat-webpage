@@ -44,6 +44,12 @@ const adjustingSearchTermsText: StaticTranslationString = {
   fr: "Essayez d'ajuster vos termes de recherche",
 };
 
+const clearSearchText: StaticTranslationString = {
+  de: 'Suche löschen',
+  en: 'Clear search',
+  fr: 'Effacer la recherche',
+};
+
 const loadingPlaceholderText: StaticTranslationString = {
   en: 'Loading your conversations...',
   de: 'Lade deine Unterhaltungen...',
@@ -122,7 +128,7 @@ export const ChatsOverviewClientComponent: React.FC<{ user: HitobitoNextAuthUser
               className="font-body mt-4 border-gray-300 hover:bg-gray-100"
               onClick={() => setSearchQuery('')}
             >
-              Clear search
+              {clearSearchText[locale]}
             </Button>
           )}
         </div>

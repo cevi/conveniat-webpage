@@ -1,3 +1,4 @@
+import { BiggerParagraphJSXConverter } from '@/features/payload-cms/converters/richtext-lexical/bigger-paragraph-converter';
 import { HeadingJSXConverter } from '@/features/payload-cms/converters/richtext-lexical/heading-converter';
 import { LinkJSXConverter } from '@/features/payload-cms/converters/richtext-lexical/link-converter';
 import {
@@ -25,4 +26,5 @@ export const jsxConverters: JSXConverters<SerializedHeadingNode> = {
   ...ListItemJSXConverter,
   ...QuoteJSXConverter,
   ...LinebreakJSXConverter,
+  ...BiggerParagraphJSXConverter,
 };

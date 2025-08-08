@@ -1,8 +1,41 @@
 'use client';
 
 import AccordionItem from '@/features/payload-cms/components/accordion/accordion-item';
-import type { AccordionBlocks } from '@/features/payload-cms/payload-types';
+import { TeamLeaderPortrait } from '@/features/payload-cms/components/accordion/team-members/team-leader-portrait';
+import type { AccordionBlocks, Image } from '@/features/payload-cms/payload-types';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+
+const createTitleElement = (
+  accordionBlock: NonNullable<AccordionBlocks['accordionBlocks']>[number],
+): React.ReactNode => {
+  if (accordionBlock.titleOrPortrait === 'title') {
+    return <h3 className="text-lg font-medium text-gray-900">{accordionBlock.title}</h3>;
+  }
+
+  if (accordionBlock.teamLeaderGroup === undefined) return <></>;
+
+  const teamLeaderGroup = accordionBlock.teamLeaderGroup as {
+    name: string;
+    ceviname?: string | null;
+    portrait?: string | null | Image;
+  };
+
+  const name: string = teamLeaderGroup.name;
+  const ceviname: string = teamLeaderGroup.ceviname ?? '';
+  const portrait: string | Image | null | undefined = teamLeaderGroup.portrait;
+
+  return (
+    <button className="group flex w-full cursor-pointer flex-col items-center gap-4 rounded-md px-2 py-4 text-center transition-colors md:flex-row md:py-2 md:text-left">
+      <div className="relative h-48 w-48 overflow-hidden rounded-full md:h-24 md:w-24">
+        {<TeamLeaderPortrait name={name} portrait={portrait} hoverEffect={false} />}
+      </div>
+      <div>
+        <p className="font-medium text-gray-900">{name}</p>
+        {ceviname !== '' && <p className="text-sm text-gray-500">v/o {ceviname}</p>}
+      </div>
+    </button>
+  );
+};
 
 const AccordionClientContainer: React.FC<{
   accordionBlocks: AccordionBlocks['accordionBlocks'];
@@ -20,7 +53,22 @@ const AccordionClientContainer: React.FC<{
 
   const getFragmentFromBlock = useCallback(
     (accordionBlock: NonNullable<AccordionBlocks['accordionBlocks']>[number]): string => {
-      return accordionBlock.title === '' ? '' : sanitizeTitle(accordionBlock.title);
+      const titleOrPortrait = accordionBlock.titleOrPortrait as 'title' | 'portrait';
+      if (titleOrPortrait === 'portrait') {
+        if (accordionBlock.teamLeaderGroup === undefined) {
+          return '';
+        }
+
+        const teamLeaderGroup = accordionBlock.teamLeaderGroup as {
+          name: string;
+        };
+
+        // Use the team leader's name as the fragment
+        return sanitizeTitle(teamLeaderGroup.name);
+      }
+
+      const title = (accordionBlock.title as string | undefined) ?? '';
+      return accordionBlock.title === '' ? '' : sanitizeTitle(title);
     },
     [sanitizeTitle],
   );
@@ -43,7 +91,7 @@ const AccordionClientContainer: React.FC<{
         const title = accordionBlocks?.find(
           (block) => accordionItemReferences.current[getFragmentFromBlock(block)] === reference,
         )?.title;
-        return title === undefined ? false : sanitizeTitle(title) === fragment;
+        return title === undefined ? false : sanitizeTitle(title ?? '') === fragment;
       });
       if (element) {
         element.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -101,13 +149,17 @@ const AccordionClientContainer: React.FC<{
             }}
             className="scroll-mt-10"
           >
-            <AccordionItem
-              accordionBlock={accordionBlock}
-              isExpanded={expandedIds.includes(fragment)}
-              onToggle={() => toggleExpand(accordionBlock)}
-            >
-              {expandedIds.includes(fragment) && childs[accordionBlock.id ?? '']}
-            </AccordionItem>
+            {accordionBlock.id !== undefined && accordionBlock.id !== null && (
+              <AccordionItem
+                titleElement={createTitleElement(accordionBlock)}
+                showChevron={accordionBlock.titleOrPortrait === 'title'}
+                accordionId={accordionBlock.id}
+                isExpanded={expandedIds.includes(fragment)}
+                onToggle={() => toggleExpand(accordionBlock)}
+              >
+                {expandedIds.includes(fragment) && childs[accordionBlock.id ?? '']}
+              </AccordionItem>
+            )}
           </div>
         );
       })}

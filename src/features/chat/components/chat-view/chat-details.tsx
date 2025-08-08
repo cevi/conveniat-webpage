@@ -12,6 +12,8 @@ import { useChatUser } from '@/features/chat/hooks/use-chat-user';
 import { CHATS_QUERY_KEY, useAllContacts, useChatDetail } from '@/features/chat/hooks/use-chats';
 import { useRemoveParticipants } from '@/features/chat/hooks/use-remove-participant';
 import { useUpdateChat } from '@/features/chat/hooks/use-update-chat';
+import type { Locale, StaticTranslationString } from '@/types/types';
+import { i18nConfig } from '@/types/types';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,
@@ -26,7 +28,98 @@ import {
   UserX,
   X,
 } from 'lucide-react';
+import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
+
+const chatNamePlaceholder: StaticTranslationString = {
+  de: 'Chat-Namen eingeben',
+  en: 'Enter chat name',
+  fr: 'Entrez le nom du chat',
+};
+
+const chatNameLengthText: StaticTranslationString = {
+  de: 'Chat-Name muss zwischen 2-50 Zeichen lang sein',
+  en: 'Chat name must be between 2-50 characters',
+  fr: 'Le nom du chat doit contenir entre 2 et 50 caractères',
+};
+
+const loadingContactsText: StaticTranslationString = {
+  de: 'Kontakte werden geladen...',
+  en: 'Loading contacts...',
+  fr: 'Chargement des contacts...',
+};
+
+const searchContactsPlaceholder: StaticTranslationString = {
+  de: 'Kontakte suchen...',
+  en: 'Search contacts to add...',
+  fr: 'Rechercher des contacts à ajouter...',
+};
+
+const validationMessages = {
+  emptyName: {
+    de: 'Chat-Name darf nicht leer sein',
+    en: 'Chat name cannot be empty',
+    fr: 'Le nom du chat ne peut pas être vide',
+  } as StaticTranslationString,
+  tooShort: {
+    de: 'Chat-Name muss mindestens 2 Zeichen haben',
+    en: 'Chat name must be at least 2 characters',
+    fr: 'Le nom du chat doit contenir au moins 2 caractères',
+  } as StaticTranslationString,
+  tooLong: {
+    de: 'Chat-Name muss weniger als 50 Zeichen haben',
+    en: 'Chat name must be less than 50 characters',
+    fr: 'Le nom du chat doit contenir moins de 50 caractères',
+  } as StaticTranslationString,
+};
+
+const savingText: StaticTranslationString = {
+  de: 'Speichern...',
+  en: 'Saving...',
+  fr: 'Enregistrement...',
+};
+
+const saveText: StaticTranslationString = {
+  de: 'Speichern',
+  en: 'Save',
+  fr: 'Enregistrer',
+};
+
+const chatNameSectionText: StaticTranslationString = {
+  de: 'Chat-Name',
+  en: 'Chat Name',
+  fr: 'Nom du chat',
+};
+
+const participantsSectionText: StaticTranslationString = {
+  de: 'Teilnehmer',
+  en: 'Participants',
+  fr: 'Participants',
+};
+
+const doneText: StaticTranslationString = {
+  de: 'Fertig',
+  en: 'Done',
+  fr: 'Terminé',
+};
+
+const manageText: StaticTranslationString = {
+  de: 'Verwalten',
+  en: 'Manage',
+  fr: 'Gérer',
+};
+
+const noContactsToAddText: StaticTranslationString = {
+  de: 'Keine Kontakte hinzuzufügen.',
+  en: 'No contacts to add.',
+  fr: 'Aucun contact à ajouter.',
+};
+
+const noContactsFoundText: StaticTranslationString = {
+  de: 'Keine Kontakte gefunden, die deiner Suche entsprechen',
+  en: 'No contacts found matching your search',
+  fr: 'Aucun contact trouvé correspondant à votre recherche',
+};
 
 const ChatDetailsPageSkeleton: React.FC = () => (
   <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col bg-gray-50 xl:top-[62px] xl:left-[480px] xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
@@ -74,21 +167,22 @@ const ChatDetailsError: React.FC = () => (
 );
 
 // Validate chat name
-const validateChatName = (name: string): string => {
+const validateChatName = (name: string, locale: Locale): string => {
   if (name.trim().length === 0) {
-    return 'Chat name cannot be empty';
+    return validationMessages.emptyName[locale];
   }
   if (name.trim().length < 2) {
-    return 'Chat name must be at least 2 characters';
+    return validationMessages.tooShort[locale];
   }
   if (name.trim().length > 50) {
-    return 'Chat name must be less than 50 characters';
+    return validationMessages.tooLong[locale];
   }
   return '';
 };
 
 // eslint-disable-next-line complexity
 export const ChatDetails: React.FC = () => {
+  const locale = useCurrentLocale(i18nConfig) as Locale;
   const chatId = useChatId();
   const { data: chatDetails, isLoading, isError } = useChatDetail(chatId);
 
@@ -137,7 +231,7 @@ export const ChatDetails: React.FC = () => {
 
   // --- Handlers for chat name editing ---
   const handleSaveName = (): void => {
-    const error = validateChatName(chatName);
+    const error = validateChatName(chatName, locale);
     if (error) {
       setChatNameError(error);
       return;
@@ -246,7 +340,7 @@ export const ChatDetails: React.FC = () => {
                 disabled={!isFormValid || updateChatMutation.isPending}
                 className="bg-conveniat-green font-body hover:bg-green-600 disabled:bg-gray-300"
               >
-                {updateChatMutation.isPending ? 'Saving...' : 'Save'}
+                {updateChatMutation.isPending ? savingText[locale] : saveText[locale]}
               </Button>
             </div>
           )}
@@ -259,7 +353,9 @@ export const ChatDetails: React.FC = () => {
           {/* --- Chat Name Section --- */}
           <div className="rounded-lg border border-gray-200 bg-white p-6">
             <div className="mb-4 flex items-center justify-between">
-              <div className="font-body text-sm font-medium text-gray-600">Chat Name</div>
+              <div className="font-body text-sm font-medium text-gray-600">
+                {chatNameSectionText[locale]}
+              </div>
               {isGroupChat && !isEditingName && (
                 <Button
                   variant="ghost"
@@ -283,12 +379,10 @@ export const ChatDetails: React.FC = () => {
                       ? 'border-red-300 focus:border-red-500'
                       : 'focus:border-conveniat-green border-gray-300'
                   }`}
-                  placeholder="Enter chat name"
+                  placeholder={chatNamePlaceholder[locale]}
                 />
                 {chatNameError && <p className="font-body text-sm text-red-600">{chatNameError}</p>}
-                <p className="font-body text-xs text-gray-500">
-                  Chat name must be between 2-50 characters
-                </p>
+                <p className="font-body text-xs text-gray-500">{chatNameLengthText[locale]}</p>
               </div>
             ) : (
               <div className="font-heading text-lg font-semibold text-gray-900">
@@ -301,7 +395,7 @@ export const ChatDetails: React.FC = () => {
           <div className="rounded-lg border border-gray-200 bg-white p-6">
             <div className="mb-4 flex items-center justify-between">
               <div className="font-body text-sm font-medium text-gray-600">
-                {chatDetails.participants.length} Participants
+                {chatDetails.participants.length} {participantsSectionText[locale]}
               </div>
               {isGroupChat && (
                 <Button
@@ -310,7 +404,7 @@ export const ChatDetails: React.FC = () => {
                   onClick={() => setIsManagingParticipants(!isManagingParticipants)}
                   className="h-8 gap-2 px-2 hover:bg-gray-100"
                 >
-                  {isManagingParticipants ? 'Done' : 'Manage'}
+                  {isManagingParticipants ? doneText[locale] : manageText[locale]}
                   {isManagingParticipants ? (
                     <X className="h-4 w-4" />
                   ) : (
@@ -368,7 +462,7 @@ export const ChatDetails: React.FC = () => {
               <div className="relative mb-4">
                 <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <Input
-                  placeholder="Search contacts to add..."
+                  placeholder={searchContactsPlaceholder[locale]}
                   className="font-body focus:border-conveniat-green focus:ring-conveniat-green border-gray-300 pl-10"
                   value={searchQuery}
                   onChange={(changeEvent) => setSearchQuery(changeEvent.target.value)}
@@ -404,15 +498,15 @@ export const ChatDetails: React.FC = () => {
               <div className="mb-4 h-[200px] space-y-1 overflow-y-auto rounded-md border p-2">
                 {isLoadingContacts && (
                   <div className="flex h-full items-center justify-center text-sm text-gray-500">
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading contacts...
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> {loadingContactsText[locale]}
                   </div>
                 )}
                 {!isLoadingContacts &&
                   (addableContacts.length === 0 ? (
                     <div className="flex h-full items-center justify-center text-sm text-gray-500">
                       {searchQuery === ''
-                        ? 'No contacts to add.'
-                        : 'No contacts found matching your search'}
+                        ? noContactsToAddText[locale]
+                        : noContactsFoundText[locale]}
                     </div>
                   ) : (
                     addableContacts.map((contact) => {

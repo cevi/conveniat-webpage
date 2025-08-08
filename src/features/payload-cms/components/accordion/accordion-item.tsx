@@ -1,25 +1,25 @@
-import type { AccordionBlocks } from '@/features/payload-cms/payload-types';
 import { cn } from '@/utils/tailwindcss-override';
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import React from 'react';
+import type React from 'react';
 
 interface AccordionItemProperties {
-  accordionBlock: Exclude<Exclude<AccordionBlocks['accordionBlocks'], undefined>, null>[0];
+  titleElement: React.ReactNode;
+  accordionId: string;
   isExpanded: boolean;
   children: React.ReactNode;
   onToggle: () => void;
+  showChevron: boolean;
 }
 
 const AccordionItem: React.FC<AccordionItemProperties> = ({
-  accordionBlock,
+  titleElement,
+  accordionId,
   children,
   isExpanded,
   onToggle,
+  showChevron,
 }) => {
-  const blockId = accordionBlock.id;
-  if (blockId === undefined || blockId === null) {
-    return <></>;
-  }
+  const blockId = accordionId;
 
   return (
     <div
@@ -38,10 +38,12 @@ const AccordionItem: React.FC<AccordionItemProperties> = ({
         aria-expanded={isExpanded}
         aria-controls={`content-${blockId}`}
       >
-        <h3 className="text-lg font-medium text-gray-900">{accordionBlock.title}</h3>
-        <div className="text-gray-500">
-          {isExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
-        </div>
+        {titleElement}
+        {showChevron && (
+          <div className="text-gray-500">
+            {isExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+          </div>
+        )}
       </button>
 
       <div

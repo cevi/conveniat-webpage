@@ -6,8 +6,23 @@ import { Button } from '@/components/ui/buttons/button';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useChatUser } from '@/features/chat/hooks/use-chat-user';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
+import type { Locale, StaticTranslationString } from '@/types/types';
+import { i18nConfig } from '@/types/types';
 import { ArrowLeft, Info } from 'lucide-react';
+import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
+
+const onlineText: StaticTranslationString = {
+  de: 'Online',
+  en: 'Online',
+  fr: 'En ligne',
+};
+
+const participantsText: StaticTranslationString = {
+  de: 'Teilnehmer',
+  en: 'participants',
+  fr: 'participants',
+};
 
 export const ChatHeaderSkeleton: React.FC = () => (
   <div className="flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 shadow-sm">
@@ -21,6 +36,7 @@ export const ChatHeaderSkeleton: React.FC = () => (
 );
 
 export const ChatHeader: React.FC = () => {
+  const locale = useCurrentLocale(i18nConfig) as Locale;
   const chatId = useChatId();
   const { data: user } = useChatUser();
   const { data: chatDetails } = useChatDetail(chatId);
@@ -48,11 +64,11 @@ export const ChatHeader: React.FC = () => {
           <div>
             <h1 className="font-heading text-lg font-semibold text-gray-900">{chatDetails.name}</h1>
             {!isGroupChat && onlineParticipant && (
-              <p className="font-body text-xs text-green-600">Online</p>
+              <p className="font-body text-xs text-green-600">{onlineText[locale]}</p>
             )}
             {isGroupChat && (
               <p className="font-body text-xs text-gray-500">
-                {chatDetails.participants.length} participants
+                {chatDetails.participants.length} {participantsText[locale]}
               </p>
             )}
           </div>

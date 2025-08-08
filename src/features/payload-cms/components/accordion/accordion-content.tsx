@@ -1,10 +1,10 @@
-import { TeamMembers } from '@/features/payload-cms/components/accordion/team-members';
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
 import { ShowForm } from '@/features/payload-cms/components/content-blocks/show-form';
 import type { FormBlockType } from '@/features/payload-cms/components/form';
 import type { PlainTextBlock, TeamMembersBlock } from '@/features/payload-cms/payload-types';
 import type React from 'react';
 import { Fragment } from 'react';
+import { TeamMembers } from 'src/features/payload-cms/components/accordion/team-members';
 
 export interface AccordionContentProperties {
   valueBlocks: Array<TeamMembersBlock | PlainTextBlock | FormBlockType>;

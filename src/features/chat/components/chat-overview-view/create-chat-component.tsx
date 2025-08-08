@@ -4,15 +4,31 @@ import { Input } from '@/components/ui/input';
 import { createChat } from '@/features/chat/api/create-chat';
 import type { Contact } from '@/features/chat/api/get-contacts';
 import { CHATS_QUERY_KEY, useAllContacts } from '@/features/chat/hooks/use-chats';
+import type { Locale, StaticTranslationString } from '@/types/types';
+import { i18nConfig } from '@/types/types';
 import { useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, MessageSquarePlus, Search, Users, X } from 'lucide-react';
+import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type React from 'react';
 import { useState } from 'react';
 
+const groupNamePlaceholder: StaticTranslationString = {
+  de: 'Gruppennamen eingeben (erforderlich)',
+  en: 'Enter group name (required)',
+  fr: 'Entrez le nom du groupe (obligatoire)',
+};
+
+const searchContactsPlaceholder: StaticTranslationString = {
+  de: 'Kontakte suchen...',
+  en: 'Search contacts...',
+  fr: 'Rechercher des contacts...',
+};
+
 // eslint-disable-next-line complexity
 export const CreateNewChatPage: React.FC = () => {
+  const locale = useCurrentLocale(i18nConfig) as Locale;
   const { data: allContacts, isLoading } = useAllContacts();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedContacts, setSelectedContacts] = useState<Contact[]>([]);
@@ -133,7 +149,7 @@ export const CreateNewChatPage: React.FC = () => {
                 Group Chat Name <span className="text-red-500">*</span>
               </label>
               <Input
-                placeholder="Enter group name (required)"
+                placeholder={groupNamePlaceholder[locale]}
                 value={groupChatName}
                 onChange={(changeEvent) => handleGroupNameChange(changeEvent.target.value)}
                 className={`font-body focus:ring-conveniat-green ${
@@ -156,7 +172,7 @@ export const CreateNewChatPage: React.FC = () => {
           <div className="relative">
             <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <Input
-              placeholder="Search contacts..."
+              placeholder={searchContactsPlaceholder[locale]}
               className="font-body focus:border-conveniat-green focus:ring-conveniat-green border-gray-300 pl-10"
               value={searchQuery}
               onChange={(changeEvent) => setSearchQuery(changeEvent.target.value)}

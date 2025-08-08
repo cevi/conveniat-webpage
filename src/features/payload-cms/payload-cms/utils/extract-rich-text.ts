@@ -17,8 +17,13 @@ const extractAccordionBlock = (accordion: AccordionBlocks): string => {
   text +=
     accordion.accordionBlocks
       ?.map((accordionBlock) => {
+        const title =
+          accordionBlock.titleOrPortrait === 'title'
+            ? (accordionBlock.title ?? '')
+            : (accordionBlock.teamLeaderGroup?.name ?? '');
+
         return (
-          accordionBlock.title +
+          title +
           ' ' +
           accordionBlock.valueBlocks
             .map((valueBlock) => {
