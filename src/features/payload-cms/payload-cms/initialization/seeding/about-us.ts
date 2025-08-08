@@ -85,6 +85,7 @@ export const aboutUsContent = (
           },
           accordionBlocks: [
             {
+              titleOrPortrait: 'title',
               title: 'Leitung',
               valueBlocks: [
                 {
