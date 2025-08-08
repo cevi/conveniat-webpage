@@ -5,6 +5,7 @@ import {
   openURLInNewTab,
 } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import type { Image as ImageType, TeamMembersBlock } from '@/features/payload-cms/payload-types';
+import { cn } from '@/utils/tailwindcss-override';
 import Image from 'next/image';
 import type React from 'react';
 import { Fragment } from 'react';
@@ -94,12 +95,18 @@ const TeamHelpersList: React.FC<{
 
 export const TeamLeaderInternal: React.FC<{
   block: TeamMembersBlock;
-}> = ({ block }) => {
+  className?: string;
+}> = ({ block, className }) => {
   const teamLeader = block.teamLeaderGroup;
 
   return (
     <div>
-      <button className="group flex w-full flex-col items-center gap-4 rounded-md px-2 py-4 text-center transition-colors hover:bg-gray-50 md:flex-row md:py-2 md:text-left">
+      <button
+        className={cn(
+          'group flex w-full flex-col items-center gap-4 rounded-md px-2 py-4 text-center transition-colors hover:bg-gray-50 md:flex-row md:py-2 md:text-left',
+          className,
+        )}
+      >
         <div className="relative h-48 w-48 overflow-hidden rounded-full md:h-24 md:w-24">
           {<TeamLeaderPortrait name={teamLeader.name} portrait={teamLeader.portrait} />}
         </div>
@@ -117,7 +124,7 @@ export const TeamMembers: React.FC<{
 }> = ({ block }) => {
   const teamMembers = block.teamMembers;
   const linkField = block.linkField;
-  const link = getURLForLinkField(linkField) || '';
+  const link = getURLForLinkField(linkField) ?? '';
   return link === '' ? (
     <Fragment>
       <TeamLeaderInternal block={block} />
@@ -126,7 +133,7 @@ export const TeamMembers: React.FC<{
   ) : (
     <Fragment>
       <LinkComponent href={link} openInNewTab={openURLInNewTab(linkField)}>
-        <TeamLeaderInternal block={block} />
+        <TeamLeaderInternal block={block} className={cn(link !== '' && 'cursor-pointer')} />
       </LinkComponent>
       <TeamHelpersList teamMembers={teamMembers} />
     </Fragment>
