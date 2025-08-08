@@ -133,7 +133,7 @@ export const TeamMembers: React.FC<{
   ) : (
     <Fragment>
       <LinkComponent href={link} openInNewTab={openURLInNewTab(linkField)}>
-        <TeamLeaderInternal block={block} className={cn(link !== '' && 'cursor-pointer')} />
+        <TeamLeaderInternal block={block} className="cursor-pointer" />
       </LinkComponent>
       <TeamHelpersList teamMembers={teamMembers} />
     </Fragment>
