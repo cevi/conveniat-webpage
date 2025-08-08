@@ -4,8 +4,16 @@ import type { Contact } from '@/features/chat/api/get-contacts';
 import prisma from '@/features/chat/database';
 import { MessageEventType, MessageType } from '@/lib/prisma/client';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
+import type { StaticTranslationString } from '@/types/types';
 import { auth } from '@/utils/auth-helpers';
+import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { z } from 'zod';
+
+const newChatText: StaticTranslationString = {
+  de: 'Neuer Chat erstellt',
+  en: 'New Chat created',
+  fr: 'Nouveau chat créé',
+};
 
 const contactSchema = z.object({
   uuid: z.string().regex(/^[0-9a-f]{24}$/, 'Invalid chat ID format.'),
@@ -25,6 +33,8 @@ export const createChat = async (
 ): Promise<string> => {
   const session = await auth();
   const user = session?.user as HitobitoNextAuthUser | undefined;
+
+  const locale = await getLocaleFromCookies();
 
   if (user === undefined) {
     throw new Error('User not authenticated');
@@ -127,7 +137,7 @@ export const createChat = async (
           name: validatedData.chatName ?? '',
           messages: {
             create: {
-              content: 'New chat created',
+              content: newChatText[locale],
               type: MessageType.SYSTEM,
               messageEvents: {
                 create: {

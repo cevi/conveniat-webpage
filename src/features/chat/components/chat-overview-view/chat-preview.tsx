@@ -1,20 +1,59 @@
 'use client';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import type { ChatDto } from '@/features/chat/types/api-dto-types';
+import type { Locale, StaticTranslationString } from '@/types/types';
+import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { formatDistanceToNow } from 'date-fns';
 import { Users } from 'lucide-react';
+import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
 import type React from 'react';
+
+import { de as deLocale, fr as frLocale } from 'date-fns/locale';
+
+const noMessagesYetText: StaticTranslationString = {
+  de: 'Noch keine Nachrichten',
+  en: 'No messages yet',
+  fr: 'Aucun message pour le moment',
+};
 
 export const ChatPreview: React.FC<{
   chat: ChatDto;
   // eslint-disable-next-line complexity
 }> = ({ chat }) => {
+  const locale = useCurrentLocale(i18nConfig) as Locale;
   const chatDetailLink = `/app/chat/${chat.id}`;
   const hasUnread = chat.unreadCount > 0;
+
+  let localeToUse: typeof deLocale | typeof frLocale | undefined;
+  switch (locale) {
+    case 'de': {
+      localeToUse = deLocale;
+      break;
+    }
+    case 'fr': {
+      localeToUse = frLocale;
+      break;
+    }
+    case 'en': {
+      // English is default, so leave localeToUse undefined
+      localeToUse = undefined;
+      break;
+    }
+    default: {
+      // Fallback for any other locale
+      localeToUse = undefined;
+      break;
+    }
+  }
+
   const timestamp = chat.lastMessage?.timestamp
-    ? formatDistanceToNow(new Date(chat.lastMessage.timestamp), { addSuffix: true })
+    ? formatDistanceToNow(new Date(chat.lastMessage.timestamp), {
+        addSuffix: true,
+        // Only pass locale if defined, otherwise omit for English fallback
+        ...(localeToUse ? { locale: localeToUse } : {}),
+      })
     : '';
 
   const { data: chatDetails } = useChatDetail(chat.id);
@@ -72,7 +111,7 @@ export const ChatPreview: React.FC<{
               hasUnread ? 'font-medium text-gray-700' : 'text-gray-500',
             )}
           >
-            {chat.lastMessage?.content ?? 'No messages yet'}
+            {chat.lastMessage?.content ?? noMessagesYetText[locale]}
           </p>
         </div>
 

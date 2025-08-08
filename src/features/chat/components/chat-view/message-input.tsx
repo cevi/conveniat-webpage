@@ -2,14 +2,24 @@
 
 import { Button } from '@/components/ui/buttons/button';
 import { useMessageSend } from '@/features/chat/hooks/use-message-send';
+import type { Locale, StaticTranslationString } from '@/types/types';
+import { i18nConfig } from '@/types/types';
 import { Send } from 'lucide-react';
+import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 import { type ChangeEvent, type KeyboardEvent, useEffect, useRef, useState } from 'react';
+
+const messagePlaceholder: StaticTranslationString = {
+  de: 'Nachricht eingeben...',
+  en: 'Type a message...',
+  fr: 'Tapez un message...',
+};
 
 export const MessageInput: React.FC = () => {
   const [newMessage, setNewMessage] = useState('');
   const sendMessageMutation = useMessageSend();
   const textareaReference = useRef<HTMLTextAreaElement>(null);
+  const locale = useCurrentLocale(i18nConfig) as Locale;
 
   const handleSendMessage = (): void => {
     const trimmedMessage = newMessage.trim();
@@ -52,7 +62,7 @@ export const MessageInput: React.FC = () => {
         value={newMessage}
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
-        placeholder="Type a message..."
+        placeholder={messagePlaceholder[locale]}
         className="font-body flex-1 resize-none rounded-lg border-0 bg-transparent py-2 pr-10 pl-3 placeholder:text-gray-500 focus:shadow-none focus:ring-0 focus:ring-offset-0 focus:outline-none" // Removed overflow-hidden and added focus styles
         rows={1}
         style={{ minHeight: '40px', maxHeight: '250px' }}

@@ -1,5 +1,26 @@
+import type { Locale, StaticTranslationString } from '@/types/types';
+import { i18nConfig } from '@/types/types';
 import { Search } from 'lucide-react';
+import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+
+const searchPlaceholder: StaticTranslationString = {
+  de: 'Annotationen suchen...',
+  en: 'Search annotations...',
+  fr: 'Rechercher des annotations...',
+};
+
+const expandSearchAriaLabel: StaticTranslationString = {
+  de: 'Suchleiste erweitern',
+  en: 'Expand search bar',
+  fr: 'Étendre la barre de recherche',
+};
+
+const collapseSearchAriaLabel: StaticTranslationString = {
+  de: 'Suchleiste einklappen',
+  en: 'Collapse search bar',
+  fr: 'Réduire la barre de recherche',
+};
 
 interface SearchBarProperties {
   onSearch: (searchTerm: string) => void;
@@ -9,6 +30,7 @@ export const SearchBar: React.FC<SearchBarProperties> = ({ onSearch }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const inputReference = useRef<HTMLInputElement>(null);
+  const locale = useCurrentLocale(i18nConfig) as Locale;
 
   const handleToggleExpand = useCallback(() => {
     setIsExpanded((previous) => {
@@ -44,7 +66,7 @@ export const SearchBar: React.FC<SearchBarProperties> = ({ onSearch }) => {
       <button
         onClick={handleToggleExpand}
         className="flex h-6 w-6 items-center justify-center text-gray-600 focus:outline-none"
-        aria-label={isExpanded ? 'Collapse search bar' : 'Expand search bar'}
+        aria-label={isExpanded ? collapseSearchAriaLabel[locale] : expandSearchAriaLabel[locale]}
       >
         <Search className="h-5 w-5" />
       </button>
@@ -52,7 +74,7 @@ export const SearchBar: React.FC<SearchBarProperties> = ({ onSearch }) => {
         <input
           ref={inputReference}
           type="text"
-          placeholder="Search annotations..."
+          placeholder={searchPlaceholder[locale]}
           value={inputValue}
           onChange={handleChange}
           className="ml-2 flex-grow border-none text-gray-800 focus:outline-none"
