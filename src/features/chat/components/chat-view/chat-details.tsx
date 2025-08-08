@@ -353,7 +353,9 @@ export const ChatDetails: React.FC = () => {
           {/* --- Chat Name Section --- */}
           <div className="rounded-lg border border-gray-200 bg-white p-6">
             <div className="mb-4 flex items-center justify-between">
-              <div className="font-body text-sm font-medium text-gray-600">{chatNameSectionText[locale]}</div>
+              <div className="font-body text-sm font-medium text-gray-600">
+                {chatNameSectionText[locale]}
+              </div>
               {isGroupChat && !isEditingName && (
                 <Button
                   variant="ghost"
