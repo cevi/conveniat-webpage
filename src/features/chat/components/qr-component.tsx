@@ -19,7 +19,7 @@ const qrCodeTitleText: StaticTranslationString = {
 };
 
 const closeAriaLabel: StaticTranslationString = {
-  de: 'Schließen',
+  de: 'Schliessen',
   en: 'Close',
   fr: 'Fermer',
 };

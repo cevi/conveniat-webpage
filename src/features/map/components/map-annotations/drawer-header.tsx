@@ -6,7 +6,7 @@ import { Share2, X } from 'lucide-react';
 import React, { useState } from 'react';
 
 const closeAriaLabel: StaticTranslationString = {
-  de: 'Schließen',
+  de: 'Schliessen',
   en: 'Close',
   fr: 'Fermer',
 };
