@@ -10,12 +10,13 @@ interface TwitterImageDescriptor {
   width?: string | number | undefined;
   height?: string | number | undefined;
 }
+
 export const generateTwitterCardImageSettings = (
   image: Image,
   locale: Locale,
 ): TwitterImageDescriptor => {
   return {
-    url: (image.sizes?.large?.url || image.sizes?.tiny?.url) ?? '',
+    url: image.sizes?.large?.url ?? image.sizes?.tiny?.url ?? '',
     alt: getImageAltInLocale(locale, image),
     width: image.width ?? undefined,
     height: image.height ?? undefined,
