@@ -3,6 +3,10 @@ import build from '@/build';
 import type { Configuration } from '@vercel/otel';
 
 export function register(): void {
+  console.log(
+    `Registering OpenTelemetry instrumentation for ${build.version} (${build.git.hash}) on branch ${build.git.branch}`,
+  );
+
   // here we cannot use `environmentVariables` because that's only available in the node runtime
   // eslint-disable-next-line n/no-process-env
   if (process.env['NEXT_RUNTIME'] === 'nodejs') {
@@ -39,8 +43,12 @@ export function register(): void {
       registerOTel({ ...baseOTELConfig, logRecordProcessor });
     };
 
-    instantiateOTLP().catch((error: unknown) => {
-      console.error('Failed to load OTLPLogExporter:', error);
-    });
+    instantiateOTLP()
+      .then(() => {
+        console.log('OTLP instrumentation registered successfully.');
+      })
+      .catch((error: unknown) => {
+        console.error('Failed to load OTLPLogExporter:', error);
+      });
   }
 }
