@@ -1,5 +1,6 @@
 import build from '@/build';
 
+import { MongoDBInstrumentation } from '@opentelemetry/instrumentation-mongodb';
 import type { Configuration } from '@vercel/otel';
 
 export function register(): void {
@@ -33,6 +34,7 @@ export function register(): void {
         instrumentations: [
           new FetchInstrumentation({ enabled: true }),
           new PrismaInstrumentation({ enabled: true }),
+          new MongoDBInstrumentation({ enabled: true }),
         ],
       };
 

@@ -29,6 +29,7 @@
     "@next/bundle-analyzer": "^15.4.6",
     "@opentelemetry/exporter-jaeger": "^2.0.1",
     "@opentelemetry/exporter-logs-otlp-http": "^0.203.0",
+    "@opentelemetry/instrumentation-mongodb": "^0.56.0",
     "@opentelemetry/sdk-node": "^0.203.0",
     "@payloadcms/db-mongodb": "^3.50.0",
     "@payloadcms/email-nodemailer": "^3.50.0",
