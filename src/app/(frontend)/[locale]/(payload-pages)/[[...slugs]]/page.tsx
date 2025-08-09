@@ -27,17 +27,18 @@ const getCanonicalData = (
   locale: Locale,
 ): { canonical: string; languages: { [k: string]: string } } => {
   const availableLocales: Locale[] = ['de', 'fr', 'en'];
-  const canonicalLocale = specialPage.alternatives['de'] ? 'de' : locale;
+  const canonicalLocale = specialPage.alternatives['de'] === '' ? locale : 'de';
   const canonicalPath = specialPage.alternatives[canonicalLocale];
 
   const alternates = Object.fromEntries(
     availableLocales
-      .filter((lang) => lang !== canonicalLocale && specialPage.alternatives[lang])
+      .filter((lang): boolean => lang !== canonicalLocale && specialPage.alternatives[lang] !== '')
       .map((lang) => [lang, `/${lang}${specialPage.alternatives[lang]}`]),
   );
 
   return {
-    canonical: `/${canonicalLocale}${canonicalPath}`,
+    // If the canonical locale is 'de', we do not add the locale to the path
+    canonical: `${canonicalLocale == 'de' ? '' : '/' + canonicalLocale}${canonicalPath}`,
     languages: alternates,
   };
 };
