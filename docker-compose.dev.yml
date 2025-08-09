@@ -182,12 +182,15 @@ services:
 
 configs:
   loki-config:
+    name: loki_config_conveniat_dev-${STAMP:-0}
     file: /cluster/swarm/configs/conveniat27-dev/loki/loki-config.yml
 
   tempo-config:
+    name: tempo_config_conveniat_dev-${STAMP:-0}
     file: /cluster/swarm/configs/conveniat27-dev/tempo/tempo.yml
 
   prometheus-config:
+    name: prometheus_config_conveniat_dev-${STAMP:-0}
     file: /cluster/swarm/configs/conveniat27-dev/prometheus/prometheus.yml
 
 networks:
