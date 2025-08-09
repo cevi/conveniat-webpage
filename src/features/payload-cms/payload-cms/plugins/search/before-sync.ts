@@ -22,6 +22,7 @@ interface SearchDocument {
   search_title: string;
   search_content: string;
   doc: { relationTo: string; value: string };
+
   [key: string]: unknown; // Allow other dynamic keys
 }
 
@@ -37,11 +38,11 @@ export const beforeSyncWithSearch: BeforeSync = async ({ originalDoc, searchDoc 
     const blogH1 = content.blogH1;
     const shortTitle = content.blogShortTitle;
 
-    typedSearchDocument.search_title = blogH1 || shortTitle || '';
+    typedSearchDocument.search_title = blogH1 ?? shortTitle ?? '';
     typedSearchDocument.search_content = extractTextContent(content.mainContent);
   } else {
     const content = typedDocument.content as PageContent;
-    typedSearchDocument.search_title = content.pageTitle || '';
+    typedSearchDocument.search_title = content.pageTitle ?? '';
     typedSearchDocument.search_content = extractTextContent(content.mainContent);
   }
 

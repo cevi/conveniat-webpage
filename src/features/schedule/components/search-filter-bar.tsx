@@ -60,7 +60,9 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
   }, [onFiltersChange]);
 
   const hasActiveFilters =
-    filters.searchText || filters.selectedLocations.length > 0 || filters.selectedCategory;
+    filters.searchText !== '' ||
+    filters.selectedLocations.length > 0 ||
+    filters.selectedCategory !== '';
 
   return (
     <div className={`space-y-4 ${className}`}>
