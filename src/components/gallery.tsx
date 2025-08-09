@@ -28,6 +28,9 @@ export interface PhotoCarouselBlock {
   locale: Locale;
 }
 
+const blurDataURL =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkAAIAAAoAAv/lxKUAAAAASUVORK5CYII=';
+
 export const PhotoCarousel: React.FC<PhotoCarouselBlock> = async ({ images, locale }) => {
   const length = images.length;
 
@@ -63,7 +66,7 @@ export const PhotoCarousel: React.FC<PhotoCarouselBlock> = async ({ images, loca
                     images[index % images.length] as SimplifiedImageType,
                   )}
                   placeholder="blur"
-                  blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkAAIAAAoAAv/lxKUAAAAASUVORK5CYII="
+                  blurDataURL={blurDataURL}
                   width={600}
                   height={200}
                 />
