@@ -20,12 +20,8 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: 🚀 Build and Push Dev Image
-        uses: docker/build-push-action@v5
-        with:
-          context: . # Specifies the build context, usually the root of your repository
-          file: ./docker-compose.dev.yml # Path to your Docker Compose file
-          push: true
-          tags: registry.cevi.tools/cevi/conveniat27-webpage:dev
-          cache-from: type=registry,ref=registry.cevi.tools/cevi/conveniat27-webpage:dev
-          cache-to: type=registry,ref=registry.cevi.tools/cevi/conveniat27-webpage:dev,mode=max
+      - name: Build Docker Image
+        run: docker compose -f docker-compose.dev.yml build
+
+      - name: Push Docker Image
+        run: docker push registry.cevi.tools/cevi/conveniat27-webpage:dev
