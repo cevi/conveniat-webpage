@@ -1,6 +1,7 @@
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { SubheadingH2 } from '@/components/ui/typography/subheading-h2';
 import { SubheadingH3 } from '@/components/ui/typography/subheading-h3';
+import { nodeToAnchorReference } from '@/utils/node-to-anchor-reference';
 import { cn } from '@/utils/tailwindcss-override';
 import type { SerializedHeadingNode } from '@payloadcms/richtext-lexical';
 import type { JSXConverters } from '@payloadcms/richtext-lexical/react';
@@ -49,6 +50,7 @@ export const HeadingJSXConverter: JSXConverters<SerializedHeadingNode> = {
           format === 'right' && 'text-right',
           format === 'justify' && 'text-justify',
         )}
+        id={nodeToAnchorReference(children)}
       >
         {children}
       </NodeTag>
