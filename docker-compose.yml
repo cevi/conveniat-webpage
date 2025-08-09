@@ -152,6 +152,7 @@ services:
     volumes:
       - logging-grafana-storage:/var/lib/grafana
       - ./observability/grafana/provisioning:/etc/grafana/provisioning
+      - ./observability/grafana/dashboards:/etc/dashboards
     environment:
       - GF_LOG_LEVEL=error
     ports:
