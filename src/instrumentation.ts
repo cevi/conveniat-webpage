@@ -1,6 +1,5 @@
 import build from '@/build';
 
-import { MongoDBInstrumentation } from '@opentelemetry/instrumentation-mongodb';
 import type { Configuration } from '@vercel/otel';
 
 export function register(): void {
@@ -20,6 +19,7 @@ export function register(): void {
       const { OTLPLogExporter } = await import('@opentelemetry/exporter-logs-otlp-http');
       const { logs } = await import('@opentelemetry/sdk-node');
       const { PrismaInstrumentation } = await import('@prisma/instrumentation');
+      const { MongoDBInstrumentation } = await import('@opentelemetry/instrumentation-mongodb');
 
       const baseOTELConfig: Configuration = {
         serviceName: 'conveniat27-app',
