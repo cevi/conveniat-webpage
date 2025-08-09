@@ -194,6 +194,9 @@ importers:
       react-social-media-embed:
         specifier: ^2.5.18
         version: 2.5.18(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+      require-in-the-middle:
+        specifier: ^7.5.2
+        version: 7.5.2
       server-only:
         specifier: ^0.0.1
         version: 0.0.1
