@@ -4,7 +4,10 @@ import { LexicalRichTextSection } from '@/features/payload-cms/components/conten
 import type { CampMapAnnotation } from '@/features/payload-cms/payload-types';
 import { useStar } from '@/features/schedule/hooks/use-star';
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
+import type { Locale, StaticTranslationString } from '@/types/types';
+import { i18nConfig } from '@/types/types';
 import { Calendar, ChevronDown, ChevronUp, Clock, ExternalLink, MapPin } from 'lucide-react';
+import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 
 // Enhanced helper to format date and time more elegantly
@@ -33,6 +36,18 @@ interface ScheduleItemProperties {
   onMapClick: (location: CampMapAnnotation) => void;
 }
 
+const readMoreText: StaticTranslationString = {
+  en: 'Read More',
+  de: 'Mehr lesen',
+  fr: 'Lire la suite',
+};
+
+const viewOnMapText: StaticTranslationString = {
+  en: 'View on Map',
+  de: 'Auf der Karte anzeigen',
+  fr: 'Voir sur la carte',
+};
+
 export const ScheduleItem: React.FC<ScheduleItemProperties> = ({
   entry,
   isExpanded,
@@ -40,6 +55,8 @@ export const ScheduleItem: React.FC<ScheduleItemProperties> = ({
   onReadMore,
   onMapClick,
 }) => {
+  const locale = useCurrentLocale(i18nConfig) as Locale;
+
   const { isStarred, toggleStar } = useStar();
   const location = entry.location as CampMapAnnotation;
   const currentlyStarred = isStarred(entry.id);
@@ -141,7 +158,7 @@ export const ScheduleItem: React.FC<ScheduleItemProperties> = ({
                 className="inline-flex items-center rounded-md border border-transparent bg-blue-100 px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-blue-200 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
               >
                 <ExternalLink className="h-3.5 w-3.5" />
-                Read More
+                {readMoreText[locale]}
               </Button>
               {location.title !== '' && (
                 <Button
@@ -154,7 +171,7 @@ export const ScheduleItem: React.FC<ScheduleItemProperties> = ({
                   className="inline-flex items-center rounded-md border border-transparent bg-blue-100 px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-blue-200 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
                 >
                   <MapPin className="h-3.5 w-3.5" />
-                  View on Map
+                  {viewOnMapText[locale]}
                 </Button>
               )}
             </div>

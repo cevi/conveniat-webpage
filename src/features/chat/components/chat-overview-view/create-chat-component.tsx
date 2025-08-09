@@ -26,6 +26,42 @@ const searchContactsPlaceholder: StaticTranslationString = {
   fr: 'Rechercher des contacts...',
 };
 
+const creatingText: StaticTranslationString = {
+  en: 'Creating...',
+  de: 'Erstelle...',
+  fr: 'Création en cours...',
+};
+
+const createText: StaticTranslationString = {
+  en: 'Create',
+  de: 'Erstellen',
+  fr: 'Créer',
+};
+
+const newChat: StaticTranslationString = {
+  en: 'New Chat',
+  de: 'Neuer Chat',
+  fr: 'Nouveau chat',
+};
+
+const selectContactsText: StaticTranslationString = {
+  en: 'Select Contacts',
+  de: 'Kontakte auswählen',
+  fr: 'Sélectionner des contacts',
+};
+
+const loadingContactsText: StaticTranslationString = {
+  en: 'Loading contacts...',
+  de: 'Lade Kontakte...',
+  fr: 'Chargement des contacts...',
+};
+
+const groupMinMaxLength: StaticTranslationString = {
+  en: 'Group name must be between 2-50 characters',
+  de: 'Gruppenname muss zwischen 2 und 50 Zeichen liegen',
+  fr: 'Le nom du groupe doit comporter entre 2 et 50 caractères',
+};
+
 // eslint-disable-next-line complexity
 export const CreateNewChatPage: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
@@ -124,7 +160,7 @@ export const CreateNewChatPage: React.FC = () => {
         </Link>
         <div className="flex items-center gap-2">
           <MessageSquarePlus className="h-5 w-5 text-gray-700" />
-          <h1 className="font-heading text-lg font-semibold text-gray-900">New Chat</h1>
+          <h1 className="font-heading text-lg font-semibold text-gray-900">{newChat[locale]}</h1>
         </div>
         <div className="ml-auto">
           <Button
@@ -134,7 +170,9 @@ export const CreateNewChatPage: React.FC = () => {
             disabled={!isFormValid || isCreating}
             className="bg-conveniat-green font-body text-green-100 hover:bg-green-800 disabled:bg-gray-300"
           >
-            {isCreating ? 'Creating...' : `Create (${selectedContacts.length})`}
+            {isCreating
+              ? creatingText[locale]
+              : `${createText[locale]} (${selectedContacts.length})`}
           </Button>
         </div>
       </div>
@@ -162,9 +200,7 @@ export const CreateNewChatPage: React.FC = () => {
               {groupChatNameError !== '' && (
                 <p className="font-body text-sm text-red-600">{groupChatNameError}</p>
               )}
-              <p className="font-body text-xs text-gray-500">
-                Group name must be between 2-50 characters
-              </p>
+              <p className="font-body text-xs text-gray-500">{groupMinMaxLength[locale]}</p>
             </div>
           )}
 
@@ -210,7 +246,9 @@ export const CreateNewChatPage: React.FC = () => {
           {/* Contacts List */}
           <div className="rounded-lg border border-gray-200 bg-white">
             <div className="border-b border-gray-200 p-4">
-              <h2 className="font-body text-sm font-medium text-gray-700">Select Contacts</h2>
+              <h2 className="font-body text-sm font-medium text-gray-700">
+                {selectContactsText[locale]}
+              </h2>
             </div>
 
             <div className="min-h-[400px]">
@@ -218,7 +256,7 @@ export const CreateNewChatPage: React.FC = () => {
                 <div className="flex items-center justify-center py-12">
                   <div className="flex flex-col items-center gap-3">
                     <div className="border-t-conveniat-green h-6 w-6 animate-spin rounded-full border-2 border-gray-300"></div>
-                    <p className="font-body text-sm text-gray-600">Loading contacts...</p>
+                    <p className="font-body text-sm text-gray-600">{loadingContactsText[locale]}</p>
                   </div>
                 </div>
               )}
