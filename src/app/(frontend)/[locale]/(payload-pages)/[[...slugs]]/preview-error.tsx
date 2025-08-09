@@ -207,12 +207,10 @@ export const PreviewError: React.FC = () => {
           <TeaserText>{requestingPreviewModeText[locale]}</TeaserText>
 
           <TeaserText>
-            {pageNotAvailableP1Text[locale]}
+            {pageNotAvailableP1Text[locale]}{' '}
             <LinkComponent onClick={backToHomeHandler} className="font-bold text-red-600" href={''}>
-              {' '}
               {homePageLinkText[locale]}
             </LinkComponent>
-
             {pageNotAvailableP2Text[locale]}
           </TeaserText>
 
