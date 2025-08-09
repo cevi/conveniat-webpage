@@ -1,5 +1,5 @@
 import build from '@/build';
-import { logs } from '@opentelemetry/sdk-node';
+
 import { PrismaInstrumentation } from '@prisma/instrumentation';
 import type { Configuration } from '@vercel/otel';
 import { FetchInstrumentation, OTLPHttpJsonTraceExporter, registerOTel } from '@vercel/otel';
@@ -24,22 +24,25 @@ export function register(): void {
   // here we cannot use `environmentVariables` because that's only available in the node runtime
   // eslint-disable-next-line n/no-process-env
   if (process.env['NEXT_RUNTIME'] === 'nodejs') {
-    import('@opentelemetry/exporter-logs-otlp-http')
-      .then(({ OTLPLogExporter }) => {
-        const logRecordProcessor = new logs.BatchLogRecordProcessor(
-          new OTLPLogExporter({
-            url: 'http://loki:3100',
-          }),
-        );
+    const instantiateOTLP = async (): Promise<void> => {
+      const { OTLPLogExporter } = await import('@opentelemetry/exporter-logs-otlp-http');
+      const { logs } = await import('@opentelemetry/sdk-node');
 
-        registerOTel({
-          ...baseOTELConfig,
-          logRecordProcessor,
-        });
-      })
-      .catch((error: unknown) => {
-        console.error('Failed to load OTLPLogExporter:', error);
+      const logRecordProcessor = new logs.BatchLogRecordProcessor(
+        new OTLPLogExporter({
+          url: 'http://loki:3100',
+        }),
+      );
+
+      registerOTel({
+        ...baseOTELConfig,
+        logRecordProcessor,
       });
+    };
+
+    instantiateOTLP().catch((error: unknown) => {
+      console.error('Failed to load OTLPLogExporter:', error);
+    });
   } else {
     registerOTel({
       ...baseOTELConfig,
