@@ -52,7 +52,7 @@ services:
 
     healthcheck:
       test:
-        ['CMD-SHELL', 'curl -f https://conveniat27.cevi.tools/status | grep -q ''"status":"ok"''']
+        [ 'CMD-SHELL', 'curl -f https://conveniat27.cevi.tools/status | grep -q ''"status":"ok"''' ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -137,6 +137,50 @@ services:
     networks:
       - backend-net
       - traefik-net
+
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - /cluster/swarm/data/conveniat-dev/prometheus:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-remote-write-receiver'
+      - '--enable-feature=exemplar-storage'
+      - '--enable-feature=native-histograms'
+    configs:
+      - source: prometheus-config
+        target: /etc/prometheus/prometheus.yml
+
+  tempo:
+    user: '0:0'
+    image: grafana/tempo:latest
+    command: [ '-config.file=/etc/tempo/tempo.yml' ]
+    volumes:
+      - /cluster/swarm/data/conveniat-dev/tempo:/tmp/tempo
+    configs:
+      - source: tempo-config
+        target: /etc/tempo/tempo.yml
+
+  loki:
+    image: grafana/loki
+    volumes:
+      - /cluster/swarm/data/conveniat-dev/loki:/loki
+    command:
+      - --config.file=/mnt/config/loki-config.yml
+    configs:
+      - source: loki-config
+        target: /mnt/config/loki-config.yml
+
+configs:
+  loki-config:
+    file: /cluster/swarm/configs/conveniat27-dev/loki/loki-config.yml
+
+  tempo-config:
+    file: /cluster/swarm/configs/conveniat27-dev/tempo/tempo.yml
+
+  prometheus-config:
+    file: /cluster/swarm/configs/conveniat27-dev/prometheus/prometheus.yml
 
 networks:
   traefik-net:
