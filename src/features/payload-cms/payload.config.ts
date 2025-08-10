@@ -155,6 +155,7 @@ export const payloadConfig: RoutableConfig = {
   },
   db: mongooseAdapter({
     url: environmentVariables.DATABASE_URI,
+    connectOptions: {},
   }),
   sharp: sharp,
   telemetry: false,

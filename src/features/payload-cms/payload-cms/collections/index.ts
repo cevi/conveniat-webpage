@@ -9,6 +9,7 @@ import { PushNotificationSubscriptions } from '@/features/payload-cms/payload-cm
 import { TimelineCollection } from '@/features/payload-cms/payload-cms/collections/timeline';
 import { TimelineEntryCategory } from '@/features/payload-cms/payload-cms/collections/timeline/timeline-entry-category';
 import { UserCollection } from '@/features/payload-cms/payload-cms/collections/user-collection';
+import { asInstrumentalCollection } from '@/features/payload-cms/payload-cms/utils/instrumentalized-collection';
 import { slugToUrlMapping } from '@/features/payload-cms/slug-to-url-mapping';
 import type { RoutableCollectionConfigs } from '@/types/types';
 import type { CollectionConfig } from 'payload';
@@ -41,15 +42,16 @@ const rawCollectionsConfig: CollectionConfig[] = [
  *
  */
 export const collectionsConfig: RoutableCollectionConfigs = rawCollectionsConfig.map(
-  (collection: CollectionConfig) => {
-    const collectionSlug = collection.slug;
+  (collectionConfig: CollectionConfig) => {
+    const collectionWithInstrumentation = asInstrumentalCollection(collectionConfig);
+    const collectionSlug = collectionWithInstrumentation.slug;
 
     const foundMapping = slugToUrlMapping.find((mapping) => mapping.slug === collectionSlug);
 
-    if (foundMapping === undefined) return collection;
+    if (foundMapping === undefined) return collectionWithInstrumentation;
     return {
       urlPrefix: foundMapping.urlPrefix,
-      payloadCollection: collection,
+      payloadCollection: collectionWithInstrumentation,
     };
   },
 );
