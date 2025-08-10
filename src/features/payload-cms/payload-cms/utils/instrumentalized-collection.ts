@@ -9,18 +9,12 @@ import type {
 
 const tracer = trace.getTracer('payload-cms-instrumentation');
 
-const otelBeforeOperation: CollectionBeforeOperationHook = ({
-  collection,
-  operation,
-  args,
-  req,
-}) => {
+const otelBeforeOperation: CollectionBeforeOperationHook = ({ collection, operation, req }) => {
   const span: Span = tracer.startSpan(`payload.${collection.slug}.${operation}`);
 
   span.setAttributes({
     'payload.collection.slug': collection.slug,
     'payload.operation': operation,
-    'payload.args': JSON.stringify(args),
     'payload.user.id': req.user?.id ?? 'anonymous',
     'payload.req.hash': req.hash.toString(),
     'payload.transactionID': String(req.transactionID),
