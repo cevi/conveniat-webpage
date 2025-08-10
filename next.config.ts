@@ -31,7 +31,6 @@ const postHogRewrites = async (): Promise<Rewrite[]> => {
 const nextConfig: NextConfig = {
   output: 'standalone',
   productionBrowserSourceMaps: true,
-  serverExternalPackages: ['mongodb', 'mongoose'],
   transpilePackages: ['@t3-oss/env-nextjs', '@t3-oss/env-core'],
   poweredByHeader: false,
   reactStrictMode: true,
