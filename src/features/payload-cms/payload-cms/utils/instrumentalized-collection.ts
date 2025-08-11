@@ -10,17 +10,22 @@ import type {
 const tracer = trace.getTracer('payload-cms-instrumentation');
 
 const otelBeforeOperation: CollectionBeforeOperationHook = ({ collection, operation, req }) => {
-  const span: Span = tracer.startSpan(`payload.${collection.slug}.${operation}`);
+  // we ignore errors while creating the span, as this has no impact on the operation itself
+  try {
+    const span: Span = tracer.startSpan(`payload.${collection.slug}.${operation}`);
 
-  span.setAttributes({
-    'payload.collection.slug': collection.slug,
-    'payload.operation': operation,
-    'payload.user.id': req.user?.id ?? 'anonymous',
-    'payload.req.hash': req.hash.toString(),
-    'payload.transactionID': String(req.transactionID),
-    'payload.locale': req.locale,
-  });
-  req.context['span'] = span;
+    span.setAttributes({
+      'payload.collection.slug': collection.slug,
+      'payload.operation': operation,
+      'payload.user.id': req.user?.id ?? 'anonymous',
+      'payload.transactionID': String(req.transactionID),
+      'payload.locale': req.locale,
+    });
+    req.context['span'] = span;
+  } catch (error) {
+    console.error('Error creating OpenTelemetry span:', error);
+    req.context['span'] = undefined;
+  }
 };
 
 const otelAfterOperation: CollectionAfterOperationHook = ({ req, result }) => {
