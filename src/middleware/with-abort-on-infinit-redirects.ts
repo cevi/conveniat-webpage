@@ -4,9 +4,6 @@ import { NextResponse } from 'next/server';
 /**
  * Middleware to handle aborting requests that have too many redirects.
  *
- * Useful to prevent infinite redirect loops by tracking the number of redirects
- * and the history of URLs that have been redirected to.
- *
  * @param nextMiddleware
  */
 export const withAbortOnInfinitRedirects = (
@@ -23,28 +20,22 @@ export const withAbortOnInfinitRedirects = (
       const newRedirectCount =
         redirectCount == undefined ? 1 : Number.parseInt(redirectCount, 10) + 1;
       response.headers.set('x-request-redirect-count', newRedirectCount.toString());
-
-      // update url history by appending the current request URL
-      const urlHistory = request.headers.get('x-url-history') ?? '';
-      response.headers.set(
-        'x-url-history',
-        `${urlHistory}${urlHistory === '' ? '' : ','}${request.url}`,
-      );
+      request.headers.set('x-request-redirect-count', newRedirectCount.toString());
 
       // if the redirect count exceeds 5, we abort the request
       if (newRedirectCount > 5) {
         console.error(
-          `Aborting request due to too many redirects: ${request.headers.get('x-request-id')}.
-          With the following history: ${response.headers.get('x-url-history')}`,
+          `Aborting request due to too many redirects: ${request.headers.get('x-request-id')}. URL: ${request.url} Method: ${request.method} Redirect Count: ${newRedirectCount}`,
         );
 
         return NextResponse.json({ error: 'Too many redirects' }, { status: 500 });
       }
     } else {
       const uniqueRequestId = crypto.randomUUID();
-      response.headers.set('x-request-redirect-count', uniqueRequestId);
+      response.headers.set('x-request-redirect-count', String(0));
       response.headers.set('x-request-id', uniqueRequestId);
-      response.headers.set('x-url-history', request.url);
+      request.headers.set('x-request-redirect-count', String(0));
+      request.headers.set('x-request-id', uniqueRequestId);
     }
 
     return nextMiddleware(request, event, response);
