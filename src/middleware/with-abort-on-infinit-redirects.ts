@@ -22,10 +22,17 @@ export const withAbortOnInfinitRedirects = (
       response.headers.set('x-request-redirect-count', newRedirectCount.toString());
       request.headers.set('x-request-redirect-count', newRedirectCount.toString());
 
+      // update history
+      const urlHistory = request.headers.get('x-request-url-history') ?? '';
+      const newUrlHistory = urlHistory === '' ? request.url : `${urlHistory} » ${request.url}`;
+      response.headers.set('x-request-url-history', newUrlHistory);
+      request.headers.set('x-request-url-history', newUrlHistory);
+
       // if the redirect count exceeds 5, we abort the request
       if (newRedirectCount > 5) {
         console.error(
-          `Aborting request due to too many redirects: ${request.headers.get('x-request-id')}. URL: ${request.url} Method: ${request.method} Redirect Count: ${newRedirectCount}`,
+          `Aborting request due to too many redirects: ${request.headers.get('x-request-id')}.
+          URL: ${request.url} Method: ${request.method} Redirect Count: ${newRedirectCount} History: ${newUrlHistory}`,
         );
 
         return NextResponse.json({ error: 'Too many redirects' }, { status: 500 });
@@ -36,6 +43,10 @@ export const withAbortOnInfinitRedirects = (
       response.headers.set('x-request-id', uniqueRequestId);
       request.headers.set('x-request-redirect-count', String(0));
       request.headers.set('x-request-id', uniqueRequestId);
+
+      // add url to the history for debugging
+      response.headers.set('x-request-url-history', request.url);
+      request.headers.set('x-request-url-history', request.url);
     }
 
     return nextMiddleware(request, event, response);
