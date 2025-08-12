@@ -6,6 +6,7 @@ import type {
   CollectionConfig,
   CollectionSlug,
   FieldHookArgs,
+  GlobalConfig,
   GlobalSlug,
   Tab,
 } from 'payload';
@@ -353,7 +354,7 @@ const hasDiffs = (
 };
 
 export const getPublishingStatusGlobal =
-  (globalSlug: GlobalSlug) =>
+  (config: GlobalConfig) =>
   async (arguments_: FieldHookArgs): Promise<PublishingStatusType> => {
     const { data, req, global } = arguments_;
     const { payload } = req;
@@ -362,7 +363,7 @@ export const getPublishingStatusGlobal =
     if (id == undefined) return {};
 
     const originalDocument = (await payload.findGlobal({
-      slug: globalSlug,
+      slug: config.slug as GlobalSlug,
       select: { publishingStatus: false },
       depth: 0,
       locale: 'all',
@@ -370,7 +371,7 @@ export const getPublishingStatusGlobal =
     })) as unknown as PayloadDocument;
 
     const draftDocument = (await payload.findGlobal({
-      slug: globalSlug,
+      slug: config.slug as GlobalSlug,
       select: { publishingStatus: false },
       depth: 0,
       locale: 'all',
