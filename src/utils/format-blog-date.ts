@@ -10,7 +10,7 @@ const localeMap = {
 
 export const formatBlogDate = (dateString: string, locale: Locale): string => {
   const date = new Date(dateString);
-  const dateLocale = localeMap[locale] || de;
+  const dateLocale = localeMap[locale];
 
   switch (locale) {
     case 'de': {
