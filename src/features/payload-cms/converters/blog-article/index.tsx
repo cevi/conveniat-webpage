@@ -1,4 +1,3 @@
-import { LinkComponent } from '@/components/ui/link-component';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { PageSectionsConverter } from '@/features/payload-cms/converters/page-sections';
 import type { ContentBlock } from '@/features/payload-cms/converters/page-sections/section-wrapper';
@@ -6,7 +5,6 @@ import { getImageAltInLocale } from '@/features/payload-cms/payload-cms/utils/im
 import type { Blog } from '@/features/payload-cms/payload-types';
 import type { Locale, SearchParameters, StaticTranslationString } from '@/types/types';
 import { formatBlogDate } from '@/utils/format-blog-date';
-import { ChevronsLeft } from 'lucide-react';
 import Image from 'next/image';
 import React from 'react';
 
@@ -34,17 +32,6 @@ export const BlogArticleConverter: React.FC<{
   return (
     <>
       <article className="my-8 w-full max-w-2xl px-8 max-xl:mx-auto">
-        {/* Back button */}
-        <div className="mb-6">
-          <LinkComponent
-            href={`/${locale}/blog`}
-            className="inline-flex items-center gap-2 text-red-600 transition-colors hover:text-red-700"
-          >
-            <ChevronsLeft className="h-4 w-4" />
-            {backToOverviewText[locale]}
-          </LinkComponent>
-        </div>
-
         {/* Banner image with 2:1 aspect ratio */}
         <div className="text-conveniat-green relative mt-10 aspect-[2/1] w-full text-lg">
           <Image
