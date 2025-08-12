@@ -3,7 +3,7 @@ import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { PageSectionsConverter } from '@/features/payload-cms/converters/page-sections';
 import type { ContentBlock } from '@/features/payload-cms/converters/page-sections/section-wrapper';
 import { getImageAltInLocale } from '@/features/payload-cms/payload-cms/utils/images-meta-fields';
-import type { Blog, Image as PayloadImage } from '@/features/payload-cms/payload-types';
+import type { Blog } from '@/features/payload-cms/payload-types';
 import type { Locale, SearchParameters, StaticTranslationString } from '@/types/types';
 import { formatBlogDate } from '@/utils/format-blog-date';
 import { ChevronsLeft } from 'lucide-react';
@@ -25,16 +25,6 @@ export const BlogArticleConverter: React.FC<{
     throw new TypeError(
       'Expected bannerImage to be an object, you may got the ID instead of the object',
     );
-  }
-
-  if ((article.content.bannerImage as PayloadImage | undefined) === undefined) {
-    article.content.bannerImage = {
-      ...article.content.bannerImage,
-      url: '/admin-block-images/single-picture-block.png',
-      alt_de: 'Platzhalter Bild',
-      alt_en: 'Placeholder image',
-      alt_fr: 'Image de remplacement',
-    };
   }
 
   const source = article.content.bannerImage.sizes?.large?.url ?? '';
@@ -67,7 +57,10 @@ export const BlogArticleConverter: React.FC<{
         </div>
 
         {/* Release date */}
-        <div className="mt-6 text-gray-600">{formattedDate}</div>
+        <div className="flex items-center gap-2">
+          <div className="h-5 w-1 bg-gray-100"></div>
+          <div className="text-sm text-gray-500">{formattedDate}</div>
+        </div>
 
         {/* Article title */}
         <HeadlineH1>{article.content.blogH1}</HeadlineH1>
