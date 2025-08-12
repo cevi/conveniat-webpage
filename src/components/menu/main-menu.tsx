@@ -179,7 +179,13 @@ export const MainMenu: React.FC = async () => {
 
   const actionURL = specialPagesTable['search']?.alternatives[locale] ?? '/search';
 
-  const { mainMenu } = await payload.findGlobal({ slug: 'header', locale });
+  const showPreviewForMainMenu = false;
+
+  const { mainMenu } = await payload.findGlobal({
+    slug: 'header',
+    locale,
+    draft: showPreviewForMainMenu,
+  });
   if (mainMenu === undefined || mainMenu === null) return;
 
   return (

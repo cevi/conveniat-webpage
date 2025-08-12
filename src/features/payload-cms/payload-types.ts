@@ -2837,14 +2837,11 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   createdAt?: T;
 }
 /**
- * Settings for the header navigation
- *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "header".
  */
 export interface Header {
   id: string;
-  _localized_status: LocalizedPublishingStatus;
   publishingStatus?:
     | {
         [k: string]: unknown;
@@ -2854,7 +2851,7 @@ export interface Header {
     | number
     | boolean
     | null;
-  _disable_unpublishing?: boolean | null;
+  _localized_status: LocalizedPublishingStatus;
   _locale: string;
   mainMenu?:
     | {
@@ -2896,6 +2893,7 @@ export interface Header {
         id?: string | null;
       }[]
     | null;
+  _status?: ('draft' | 'published') | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -3002,9 +3000,8 @@ export interface PWA {
  * via the `definition` "header_select".
  */
 export interface HeaderSelect<T extends boolean = true> {
-  _localized_status?: T;
   publishingStatus?: T;
-  _disable_unpublishing?: T;
+  _localized_status?: T;
   _locale?: T;
   mainMenu?:
     | T
@@ -3034,6 +3031,7 @@ export interface HeaderSelect<T extends boolean = true> {
             };
         id?: T;
       };
+  _status?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
