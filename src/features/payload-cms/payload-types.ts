@@ -2853,6 +2853,7 @@ export interface Header {
     | null;
   _localized_status: LocalizedPublishingStatus;
   _locale: string;
+  _disable_unpublishing?: boolean | null;
   mainMenu?:
     | {
         label: string;
@@ -3003,6 +3004,7 @@ export interface HeaderSelect<T extends boolean = true> {
   publishingStatus?: T;
   _localized_status?: T;
   _locale?: T;
+  _disable_unpublishing?: T;
   mainMenu?:
     | T
     | {
