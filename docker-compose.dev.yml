@@ -53,7 +53,7 @@ services:
 
     healthcheck:
       test:
-        [ 'CMD-SHELL', 'curl -f https://conveniat27.cevi.tools/status | grep -q ''"status":"ok"''' ]
+        ['CMD-SHELL', 'curl -f https://conveniat27.cevi.tools/status | grep -q ''"status":"ok"''']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -159,7 +159,7 @@ services:
   tempo:
     user: '0:0'
     image: grafana/tempo:latest
-    command: [ '-config.file=/etc/tempo/tempo.yml' ]
+    command: ['-config.file=/etc/tempo/tempo.yml']
     volumes:
       - /cluster/swarm/data/conveniat-dev/tempo:/tmp/tempo
     configs:
