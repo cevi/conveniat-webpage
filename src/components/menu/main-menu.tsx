@@ -8,6 +8,7 @@ import {
   openURLInNewTab,
 } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import { specialPagesTable } from '@/features/payload-cms/special-pages-table';
+import { isCookiePreview } from '@/features/payload-cms/utils/preview-utils';
 import type { StaticTranslationString } from '@/types/types';
 import { getBuildInfo } from '@/utils/get-build-info';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
@@ -25,6 +26,7 @@ import {
   LucideMessageCircleQuestion,
   Map,
   MessageSquare,
+  OctagonAlert,
   Siren,
   Truck,
 } from 'lucide-react';
@@ -170,16 +172,25 @@ const AppFeatures: React.FC = async () => {
     </>
   );
 };
+const DeletedMenuEntry: React.FC<{ message: string }> = ({ message }) => {
+  return (
+    <>
+      <div className="closeNavOnClick block flex cursor-pointer items-center gap-2 rounded-lg py-2 pr-3 pl-6 text-sm/7 font-semibold text-gray-500 hover:bg-gray-50">
+        {message} <OctagonAlert color="red" />
+      </div>
+    </>
+  );
+};
 
-export const MainMenu: React.FC = async () => {
+export const MainMenu: React.FC = async ({}) => {
   const payload = await getPayload({ config });
   const locale = await getLocaleFromCookies();
   const isInAppDesign = await renderInAppDesign();
   const build = await getBuildInfo();
+  const actionURL = specialPagesTable['search']?.alternatives[locale] ?? '/suche';
 
-  const actionURL = specialPagesTable['search']?.alternatives[locale] ?? '/search';
-
-  const showPreviewForMainMenu = false;
+  // if the user is logged in, we show the preview for the menu
+  const showPreviewForMainMenu = await isCookiePreview();
 
   const { mainMenu } = await payload.findGlobal({
     slug: 'header',
@@ -206,17 +217,23 @@ export const MainMenu: React.FC = async () => {
 
         <div className="py-6">
           {isInAppDesign && <h3 className="text-conveniat-green mb-2 font-bold">Web Inhalte</h3>}
-
+          {showPreviewForMainMenu && (
+            <div className="closeNavOnClick block cursor-pointer rounded-lg bg-orange-500 py-2 pr-3 pl-6 text-sm/7 font-semibold text-white">
+              Preview Menu
+            </div>
+          )}
           {mainMenu.map(async (item) => {
             if (item.subMenu && item.subMenu.length > 0) {
               const subMenuItemsWherePermitted = await Promise.all(
                 item.subMenu.map(async (subItem) => {
                   const hasPermission = await hasPermissionsForLinkField(subItem.linkField);
-                  return hasPermission ? subItem : undefined;
+                  return { hasPerm: hasPermission, item: subItem };
                 }),
               );
 
-              const allNull = subMenuItemsWherePermitted.every((subItem) => subItem === undefined);
+              const allNull = subMenuItemsWherePermitted.every(
+                (subItem) => subItem.hasPerm === false,
+              );
 
               if (allNull) {
                 return <></>;
@@ -233,18 +250,19 @@ export const MainMenu: React.FC = async () => {
                       />
                     </DisclosureButton>
                     <DisclosurePanel className="mt-2 mb-4 space-y-2">
-                      {subMenuItemsWherePermitted.map(
-                        (subItem) =>
-                          subItem && (
-                            <LinkComponent
-                              key={subItem.id}
-                              href={getURLForLinkField(subItem.linkField) ?? '/'}
-                              openInNewTab={openURLInNewTab(subItem.linkField)}
-                              className="closeNavOnClick block rounded-lg py-2 pr-3 pl-6 text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
-                            >
-                              {subItem.label}
-                            </LinkComponent>
-                          ),
+                      {subMenuItemsWherePermitted.map((subItem) =>
+                        subItem.hasPerm ? (
+                          <LinkComponent
+                            key={subItem.item.id}
+                            href={getURLForLinkField(subItem.item.linkField) ?? '/'}
+                            openInNewTab={openURLInNewTab(subItem.item.linkField)}
+                            className="closeNavOnClick block rounded-lg py-2 pr-3 pl-6 text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
+                          >
+                            {subItem.item.label}
+                          </LinkComponent>
+                        ) : (
+                          <DeletedMenuEntry message={subItem.item.label} />
+                        ),
                       )}
                     </DisclosurePanel>
                   </Disclosure>
@@ -256,7 +274,7 @@ export const MainMenu: React.FC = async () => {
             const hasPermission = await hasPermissionsForLinkField(item.linkField);
 
             if (!hasPermission) {
-              return <></>;
+              return <DeletedMenuEntry message={item.label} />;
             }
 
             return (
