@@ -37,6 +37,11 @@ const nextConfig: NextConfig = {
   turbopack: {
     moduleIds: 'named',
   },
+
+  // We are running behind a reverse proxy (traefik) that handles gzip compression,
+  // so we disable it here to avoid compressing, decompressing, and recompressing the files.
+  compress: false,
+
   experimental: {
     // Forward browser logs to the terminal for easier debugging
     browserDebugInfoInTerminal: true,
