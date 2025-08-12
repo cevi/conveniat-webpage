@@ -55,8 +55,8 @@ export const BlogArticleConverter: React.FC<{
           </LinkComponent>
         </div>
 
-        {/* Banner image with correct 1:2 aspect ratio */}
-        <div className="text-conveniat-green relative mt-10 aspect-[1/2] w-full text-lg">
+        {/* Banner image with 2:1 aspect ratio */}
+        <div className="text-conveniat-green relative mt-10 aspect-[2/1] w-full text-lg">
           <Image
             src={source}
             alt={altText}
