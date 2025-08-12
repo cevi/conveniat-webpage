@@ -3,16 +3,10 @@ import { PageSectionsConverter } from '@/features/payload-cms/converters/page-se
 import type { ContentBlock } from '@/features/payload-cms/converters/page-sections/section-wrapper';
 import { getImageAltInLocale } from '@/features/payload-cms/payload-cms/utils/images-meta-fields';
 import type { Blog } from '@/features/payload-cms/payload-types';
-import type { Locale, SearchParameters, StaticTranslationString } from '@/types/types';
+import type { Locale, SearchParameters } from '@/types/types';
 import { formatBlogDate } from '@/utils/format-blog-date';
 import Image from 'next/image';
 import React from 'react';
-
-const backToOverviewText: StaticTranslationString = {
-  en: 'Back to overview',
-  de: 'Zurück zur Übersicht',
-  fr: "Retour à l'aperçu",
-};
 
 export const BlogArticleConverter: React.FC<{
   article: Blog;
