@@ -51,6 +51,14 @@ const nextConfig: NextConfig = {
 
     // enable react compiler for better error messages and performance
     reactCompiler: true,
+
+    // activate new client-side router improvements
+    clientSegmentCache: true,
+
+    staleTimes: {
+      dynamic: 30, // 30 seconds for dynamic pages
+      static: 300, // 5 minutes for static pages, default
+    },
   },
   logging: { fetches: { fullUrl: true } },
   eslint: {
