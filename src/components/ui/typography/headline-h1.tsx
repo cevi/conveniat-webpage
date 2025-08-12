@@ -10,7 +10,7 @@ export const HeadlineH1: React.FC<{
     <h1
       id={nodeToAnchorReference(children)}
       className={cn(
-        'font-heading text-conveniat-green mt-6 mb-4 max-w-4xl pt-8 text-3xl font-extrabold text-balance hyphens-auto md:pt-20',
+        'font-heading text-conveniat-green mt-4 mb-4 max-w-4xl text-3xl font-extrabold text-balance hyphens-auto',
         className,
       )}
     >
