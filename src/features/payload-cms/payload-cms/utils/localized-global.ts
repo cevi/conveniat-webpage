@@ -1,6 +1,6 @@
+import { getPublishingStatusGlobal } from '@/features/payload-cms/payload-cms/hooks/publishing-status';
 import { localizedStatusSchema } from '@/features/payload-cms/payload-cms/utils/localized-status-schema';
 import type { GlobalConfig } from 'payload';
-import { getPublishingStatusGlobal } from '../hooks/publishing-status';
 
 /**
  * This is a utility function that adds the necessary fields to a global to make it localized.
@@ -76,6 +76,15 @@ export const asLocalizedGlobal = (config: GlobalConfig): GlobalConfig => {
         admin: {
           disabled: true,
         },
+      },
+      {
+        name: '_disable_unpublishing',
+        type: 'checkbox',
+        admin: {
+          disabled: true,
+        },
+        localized: false,
+        defaultValue: false,
       },
 
       // add the existing fields from the original collection

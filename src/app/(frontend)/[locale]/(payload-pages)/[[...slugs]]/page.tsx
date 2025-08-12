@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { PreviewWarningClient } from '@/app/(frontend)/[locale]/(payload-pages)/[[...slugs]]/preview-warning-client';
+import { PreviewWarningClient } from '@/components/preview-warning-client';
 
 import { CustomErrorBoundaryFallback } from '@/app/(frontend)/[locale]/(payload-pages)/[[...slugs]]/custom-error-boundary-fallback';
 import { NotFound } from '@/app/(frontend)/not-found';

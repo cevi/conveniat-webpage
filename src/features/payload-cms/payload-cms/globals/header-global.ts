@@ -1,6 +1,6 @@
 import { LinkField } from '@/features/payload-cms/payload-cms/shared-fields/link-field';
+import { asLocalizedGlobal } from '@/features/payload-cms/payload-cms/utils/localized-global';
 import type { Field, GlobalConfig } from 'payload';
-import { asLocalizedGlobal } from '../utils/localized-global';
 
 const MainMenu: Field = {
   name: 'mainMenu',
