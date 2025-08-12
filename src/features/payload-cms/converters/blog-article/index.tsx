@@ -38,7 +38,7 @@ export const BlogArticleConverter: React.FC<{
         </div>
 
         {/* Release date */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 pt-2">
           <div className="h-5 w-1 bg-gray-100"></div>
           <div className="text-sm text-gray-500">{formattedDate}</div>
         </div>
