@@ -261,7 +261,9 @@ export const MainMenu: React.FC = async ({}) => {
                             {subItem.item.label}
                           </LinkComponent>
                         ) : (
-                          <DeletedMenuEntry message={subItem.item.label} />
+                          showPreviewForMainMenu && (
+                            <DeletedMenuEntry message={subItem.item.label} />
+                          )
                         ),
                       )}
                     </DisclosurePanel>
@@ -274,7 +276,7 @@ export const MainMenu: React.FC = async ({}) => {
             const hasPermission = await hasPermissionsForLinkField(item.linkField);
 
             if (!hasPermission) {
-              return <DeletedMenuEntry message={item.label} />;
+              return showPreviewForMainMenu && <DeletedMenuEntry message={item.label} />;
             }
 
             return (
