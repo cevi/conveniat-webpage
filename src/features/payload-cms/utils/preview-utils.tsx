@@ -1,12 +1,12 @@
 import 'server-only';
 
 import { PreviewWarningClient } from '@/components/preview-warning-client';
-import { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
-import { Locale, SearchParameters } from '@/types/types';
+import { canUserAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
+import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
+import type { Locale, SearchParameters } from '@/types/types';
 import { auth } from '@/utils/auth-helpers';
 import { isPreviewTokenValid } from '@/utils/preview-token';
 import { cookies } from 'next/headers';
-import { canUserAccessAdminPanel } from '../payload-cms/access-rules/can-access-admin-panel';
 /**
  * Checks if the preview token is valid.
  *
