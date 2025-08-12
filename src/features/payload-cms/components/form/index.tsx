@@ -1,6 +1,5 @@
 'use client';
 
-import { SubheadingH2 } from '@/components/ui/typography/subheading-h2';
 import { SubheadingH3 } from '@/components/ui/typography/subheading-h3';
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
 import { buildInitialFormState } from '@/features/payload-cms/components/form/build-initial-form-state';
@@ -361,14 +360,7 @@ export const FormBlock: React.FC<
     isPreviewMode,
     form: formFromProperties,
     withBorder,
-    form: {
-      id: formID,
-      title: mainFormTitle,
-      confirmationMessage,
-      confirmationType,
-      redirect,
-      submitButtonLabel,
-    } = {},
+    form: { id: formID, confirmationMessage, confirmationType, redirect, submitButtonLabel } = {},
   } = properties;
 
   const locale = useCurrentLocale(i18nConfig);
@@ -639,10 +631,6 @@ export const FormBlock: React.FC<
           <div className="bg-opacity-95 absolute inset-0 z-10 flex items-center justify-center bg-white p-6 text-center">
             <p>{pleaseWaitText[locale as Locale]}</p>
           </div>
-        )}
-
-        {mainFormTitle !== undefined && (
-          <SubheadingH2 className="mt-0">{mainFormTitle}</SubheadingH2>
         )}
 
         {/* Validation error message */}
