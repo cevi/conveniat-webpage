@@ -6,7 +6,7 @@ import { NextResponse } from 'next/server';
  *
  * @param nextMiddleware
  */
-export const withAbortOnInfinitRedirects = (
+export const withAbortOnInfiniteRedirects = (
   nextMiddleware: ChainedMiddleware,
 ): ChainedMiddleware => {
   return (request, event, response) => {
