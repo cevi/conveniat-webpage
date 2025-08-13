@@ -13,9 +13,18 @@ import { getPayload, type PaginatedDocs } from 'payload';
 import type React from 'react';
 import 'server-only';
 
+function parseEnvironmentMapCenter(): [number, number] {
+  const environmentVariable = environmentVariables.CAMP_MAP_INITIAL_MAP_CENTER;
+  const parts = environmentVariable.split('/');
+  if (parts.length !== 2) {
+    return [8.301_211, 46.502_822];
+  }
+  return [Number.parseFloat(parts[0] ?? ''), Number.parseFloat(parts[1] ?? '')];
+}
+
 const initialMapPoseObergoms: InitialMapPose = {
-  initialMapCenter: [8.301_211, 46.502_822],
-  zoom: 15.5,
+  initialMapCenter: parseEnvironmentMapCenter(),
+  zoom: environmentVariables.CAMP_MAP_INITIAL_ZOOM,
 };
 
 export const CampMapComponent: React.FC = async () => {

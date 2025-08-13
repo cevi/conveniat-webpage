@@ -39,6 +39,10 @@ export const environmentVariables = createEnv({
     SMTP_PASS: z.string().optional(),
     VAPID_PRIVATE_KEY: z.string().min(5),
     FEATURE_ENABLE_APP_FEATURE: z.string().transform((value) => value === 'true'),
+
+    // Map Config
+    CAMP_MAP_INITIAL_ZOOM: z.coerce.number(),
+    CAMP_MAP_INITIAL_MAP_CENTER: z.string(),
   },
   /*
    * Environment variables available on the client (and server).
