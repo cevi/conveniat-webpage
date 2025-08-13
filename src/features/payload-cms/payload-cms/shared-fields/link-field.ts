@@ -67,7 +67,6 @@ export const LinkField: NamedGroupField = {
       required: true,
       hasMany: false,
       filterOptions: filterOptionsOnlyPublished,
-      validate: () => true,
     },
     {
       name: 'url',
