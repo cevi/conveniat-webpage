@@ -1,12 +1,16 @@
 import { useMap } from '@/features/map/components/maplibre-renderer/map-context-provider';
 import type { CampMapAnnotationPoint, CampMapAnnotationPolygon } from '@/features/map/types/types';
-import type { Map as MapLibre, MapMouseEvent } from 'maplibre-gl';
+import type { GeoJSONSource, Map as MapLibre, MapMouseEvent } from 'maplibre-gl';
 import { useEffect, useRef, useState } from 'react';
 
 interface ClickedFeaturesState {
   polygons: CampMapAnnotationPolygon[];
   currentIndex: number;
 }
+
+// IDs for the single source and layer used for the selection outline
+const SELECTED_POLYGON_SOURCE_ID = 'selected-polygon-source';
+const SELECTED_POLYGON_LAYER_ID = 'selected-polygon-outline-layer';
 
 export const useAnnotationPolygons = (
   annotations: CampMapAnnotationPolygon[],
@@ -20,38 +24,25 @@ export const useAnnotationPolygons = (
   // eslint-disable-next-line react-naming-convention/use-state
   const [, setClickedPolygonState] = useState<ClickedFeaturesState | undefined>();
 
-  // Use a ref to hold the mutable map instance and event handlers to avoid re-creating them
-  // and issues with stale closures inside event listeners.
   const mapReference = useRef<MapLibre | undefined>(undefined);
   mapReference.current = map;
-
-  // Ref to track the previously selected annotation ID for efficient outline toggling
-  const previousAnnotationId = useRef<string | undefined>(undefined);
-
-  // set initial previousAnnotationId to the current annotation ID
-  useEffect(() => {
-    previousAnnotationId.current = currentAnnotation?.id;
-  });
 
   // Effect for setting up and tearing down map sources and layers
   useEffect(() => {
     if (!map) return;
 
     const setupLayers = (): void => {
+      // 1. Add individual sources and FILL layers for each polygon annotation
       for (const annotation of annotations) {
         const sourceId = `polygon-${annotation.id}`;
         const fillLayerId = `polygon-layer-${annotation.id}`;
-        const outlineLayerId = `polygon-outline-layer-${annotation.id}`;
 
-        // Skip if coordinates are empty
         if (annotation.geometry.coordinates.length === 0) continue;
 
-        // Ensure coordinates are properly formatted for GeoJSON Polygon
         const coordinates = [
           [...annotation.geometry.coordinates, annotation.geometry.coordinates[0]],
         ] as unknown as [number, number][][];
 
-        // Only add source and layer if they don't already exist
         if (!map.getSource(sourceId)) {
           map.addSource(sourceId, {
             type: 'geojson',
@@ -66,7 +57,6 @@ export const useAnnotationPolygons = (
           });
         }
 
-        // Add fill layer
         if (!map.getLayer(fillLayerId)) {
           map.addLayer({
             id: fillLayerId,
@@ -79,39 +69,46 @@ export const useAnnotationPolygons = (
           });
         }
 
-        // Add outline layer (initially invisible)
-        if (!map.getLayer(outlineLayerId)) {
-          map.addLayer({
-            id: outlineLayerId,
-            type: 'line',
-            source: sourceId,
-            paint: {
-              'line-color': '#e11d3c',
-              'line-width': currentAnnotation?.id === annotation.id ? 4 : 0,
-              'line-opacity': 0.9,
-            },
-          });
-        }
-
-        // Add mouseenter and mouseleave events to the fill layer
+        // Add hover cursor effect
         map.on('mouseenter', fillLayerId, () => {
-          if (mapReference.current) mapReference.current.getCanvas().style.cursor = 'pointer';
+          mapReference.current?.getCanvas().style.setProperty('cursor', 'pointer');
         });
-
         map.on('mouseleave', fillLayerId, () => {
-          if (mapReference.current) mapReference.current.getCanvas().style.cursor = '';
+          mapReference.current?.getCanvas().style.setProperty('cursor', '');
+        });
+      }
+
+      // 2. Add a SINGLE source and layer for the selection OUTLINE
+      if (!map.getSource(SELECTED_POLYGON_SOURCE_ID)) {
+        map.addSource(SELECTED_POLYGON_SOURCE_ID, {
+          type: 'geojson',
+          data: { type: 'FeatureCollection', features: [] }, // Initially empty
+        });
+      }
+
+      if (!map.getLayer(SELECTED_POLYGON_LAYER_ID)) {
+        map.addLayer({
+          id: SELECTED_POLYGON_LAYER_ID,
+          type: 'line',
+          source: SELECTED_POLYGON_SOURCE_ID,
+          paint: {
+            'line-color': '#e11d3c',
+            'line-width': 4,
+            'line-opacity': 0.9,
+          },
         });
       }
     };
 
     const cleanupLayers = (): void => {
+      // Remove the single selection layer and source
+      if (map.getLayer(SELECTED_POLYGON_LAYER_ID)) map.removeLayer(SELECTED_POLYGON_LAYER_ID);
+      if (map.getSource(SELECTED_POLYGON_SOURCE_ID)) map.removeSource(SELECTED_POLYGON_SOURCE_ID);
+
+      // Remove all individual polygon fill layers and sources
       for (const annotation of annotations) {
         const sourceId = `polygon-${annotation.id}`;
         const fillLayerId = `polygon-layer-${annotation.id}`;
-        const outlineLayerId = `polygon-outline-layer-${annotation.id}`;
-
-        // this is necessary during hot reloading
-        if (map.getLayer(outlineLayerId)) map.removeLayer(outlineLayerId);
         if (map.getLayer(fillLayerId)) map.removeLayer(fillLayerId);
         if (map.getSource(sourceId)) map.removeSource(sourceId);
       }
@@ -131,48 +128,46 @@ export const useAnnotationPolygons = (
       }
       map.off('load', setupLayers);
     };
-  }, [map, annotations, currentAnnotation?.id]);
+  }, [map, annotations]); // This effect now only depends on map and the list of annotations
 
-  // Effect for updating the polygon outline based on selection
-  // eslint-disable-next-line complexity
+  // Effect for updating the single polygon outline layer based on selection
   useEffect(() => {
-    if (map?.isStyleLoaded() === false) return;
+    if (map?.isStyleLoaded() === false || map === undefined) return;
 
-    const currentId = currentAnnotation?.id;
-    const previousId = previousAnnotationId.current;
+    const source = map.getSource(SELECTED_POLYGON_SOURCE_ID) as GeoJSONSource | undefined;
+    if (!source) return;
 
-    if (currentId === previousId) return; // No change in selection
+    const selectedPolygon = annotations.find((a) => a.id === currentAnnotation?.id);
 
-    // Hide the outline for the previously selected polygon
-    if (previousId != undefined) {
-      const previousLayerId = `polygon-outline-layer-${previousId}`;
-      if (map?.getLayer(previousLayerId)) {
-        map.setPaintProperty(previousLayerId, 'line-width', 0);
-      }
+    if (selectedPolygon) {
+      // A polygon is selected: update the source data with its geometry
+      const coordinates = [
+        [...selectedPolygon.geometry.coordinates, selectedPolygon.geometry.coordinates[0]],
+      ] as unknown as [number, number][][];
+
+      source.setData({
+        type: 'Feature',
+        properties: {},
+        geometry: {
+          type: 'Polygon',
+          coordinates: coordinates,
+        },
+      });
+    } else {
+      // No polygon is selected: clear the source data
+      source.setData({
+        type: 'FeatureCollection',
+        features: [],
+      });
     }
+  }, [map, annotations, currentAnnotation]); // Re-run when selection changes
 
-    // Show the outline for the newly selected polygon, if it's managed by this hook
-    const isCurrentAnnotationAPolygon = annotations.some((a) => a.id === currentId);
-    if (currentId != undefined && isCurrentAnnotationAPolygon) {
-      const currentLayerId = `polygon-outline-layer-${currentId}`;
-      if (map?.getLayer(currentLayerId)) {
-        map.setPaintProperty(currentLayerId, 'line-width', 4);
-      }
-    }
-
-    // Update the ref for the next render
-    previousAnnotationId.current = currentId;
-  }, [map, annotations, currentAnnotation]);
-
-  // Effect for handling map click events
+  // Effect for handling map click events (largely unchanged)
   useEffect(() => {
     if (!map) return;
 
     const handleClick = (event: MapMouseEvent): void => {
-      const currentMap = mapReference.current;
-      if (!currentMap) return;
-
-      const features = currentMap.queryRenderedFeatures(event.point, {
+      const features = map.queryRenderedFeatures(event.point, {
         layers: annotations.map((p) => `polygon-layer-${p.id}`),
       });
 
@@ -182,7 +177,7 @@ export const useAnnotationPolygons = (
 
       if (clickedPolygons.length === 0) {
         setClickedPolygonState(undefined);
-        setCurrentAnnotation(undefined); // Also clear the current annotation
+        setCurrentAnnotation(undefined);
         const url = new URL(globalThis.location.href);
         url.searchParams.delete('locationId');
         globalThis.history.pushState({}, '', url.toString());
@@ -202,15 +197,9 @@ export const useAnnotationPolygons = (
         let nextState: ClickedFeaturesState;
         if (isSameSetOfPolygons === true && previousState && sortedClickedPolygons.length > 1) {
           const nextIndex = (previousState.currentIndex + 1) % sortedClickedPolygons.length;
-          nextState = {
-            polygons: sortedClickedPolygons,
-            currentIndex: nextIndex,
-          };
+          nextState = { polygons: sortedClickedPolygons, currentIndex: nextIndex };
         } else {
-          nextState = {
-            polygons: sortedClickedPolygons,
-            currentIndex: 0,
-          };
+          nextState = { polygons: sortedClickedPolygons, currentIndex: 0 };
         }
 
         const selectedPolygon = nextState.polygons[nextState.currentIndex];
