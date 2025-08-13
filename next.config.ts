@@ -56,7 +56,7 @@ const nextConfig: NextConfig = {
     clientSegmentCache: true,
 
     staleTimes: {
-      dynamic: 30, // 30 seconds for dynamic pages
+      dynamic: 0, // this must be set to 0 for payload to work correctly
       static: 300, // 5 minutes for static pages, default
     },
   },
