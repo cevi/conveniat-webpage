@@ -14,9 +14,12 @@ import type React from 'react';
 import 'server-only';
 
 function parseEnvironmentMapCenter(): [number, number] {
-  const environmentVariable = environmentVariables.CAMP_MAP_INITIAL_MAP_CENTER;
-  const parts = environmentVariable.split('/');
-  if (parts.length !== 2) {
+  // this may still be undefined during build
+  const environmentVariable = environmentVariables.CAMP_MAP_INITIAL_MAP_CENTER as
+    | string
+    | undefined;
+  const parts = environmentVariable?.split('/');
+  if (parts === undefined || parts.length !== 2) {
     return [8.301_211, 46.502_822];
   }
   return [Number.parseFloat(parts[0] ?? ''), Number.parseFloat(parts[1] ?? '')];
