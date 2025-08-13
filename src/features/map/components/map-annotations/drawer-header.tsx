@@ -35,7 +35,7 @@ export const AnnotationDrawerHeader: React.FC<AnnotationDrawerHeaderProperties> 
   };
 
   return (
-    <div className="sticky top-0 border-b-2 border-gray-100 bg-white pt-4">
+    <>
       {/* Absolute positioned flex container for action icons */}
       <div className="absolute top-3 right-2 flex items-center space-x-2">
         {/* Heart Icon to star the annotation */}
@@ -68,6 +68,6 @@ export const AnnotationDrawerHeader: React.FC<AnnotationDrawerHeaderProperties> 
       </div>
 
       <h2 className="text-conveniat-green p-4 pt-0.5 pr-8 text-xl font-bold">{annotation.title}</h2>
-    </div>
+    </>
   );
 };
