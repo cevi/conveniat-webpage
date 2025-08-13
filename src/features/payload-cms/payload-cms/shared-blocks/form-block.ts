@@ -16,7 +16,6 @@ export const formBlock: Block = {
       required: true,
       hasMany: false,
       filterOptions: filterOptionsOnlyPublished,
-      validate: () => true,
     },
   ],
 };
