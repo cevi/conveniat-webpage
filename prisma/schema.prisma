@@ -32,6 +32,20 @@ model Chat {
 
   messages        Message[]
   chatMemberships ChatMembership[]
+
+  /// archived chats are read-only and cannot be modified
+  isArchived Boolean @default(false)
+}
+
+enum ChatMembershipPermission {
+  /// the user who has created the chat
+  OWNER
+  /// an admin can manage the chat, e.g. add or remove members
+  ADMIN
+  /// can read messages and send messages
+  MEMBER
+  /// can read messages, but cannot send messages
+  GUEST
 }
 
 model ChatMembership {
@@ -40,6 +54,11 @@ model ChatMembership {
 
   chatId String
   chat   Chat   @relation(fields: [chatId], references: [uuid])
+
+  /// indicates whether the user has deleted the chat
+  hasDeleted Boolean @default(false)
+
+  chatPermission ChatMembershipPermission @default(MEMBER)
 
   @@id([userId, chatId])
 }
