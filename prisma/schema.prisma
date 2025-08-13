@@ -29,6 +29,7 @@ model Chat {
   uuid       String   @id @default(uuid())
   name       String
   lastUpdate DateTime @default(now())
+  createdAt  DateTime @default(now())
 
   messages        Message[]
   chatMemberships ChatMembership[]

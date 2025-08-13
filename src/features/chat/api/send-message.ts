@@ -5,7 +5,7 @@ import prisma from '@/features/chat/database';
 import type { SendMessageDto } from '@/features/chat/types/api-dto-types';
 // eslint-disable-next-line import/no-restricted-paths
 import { sendNotificationToSubscription } from '@/features/onboarding/api/push-notification';
-import { MessageEventType } from '@/lib/prisma';
+import { ChatMembershipPermission, MessageEventType } from '@/lib/prisma';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import { auth } from '@/utils/auth-helpers';
 import config from '@payload-config';
@@ -140,6 +140,17 @@ export const sendMessage = async (message: SendMessageDto): Promise<void> => {
         `User ${user.uuid} attempted to send message to chat ${validatedMessage.chatId} they are not a member of.`,
       );
       throw new Error('You are not a member of this chat.');
+    }
+
+    const userMembership = chat.chatMemberships.find(
+      (membership) => membership.userId === user.uuid,
+    );
+    if (!userMembership || userMembership.chatPermission === ChatMembershipPermission.GUEST) {
+      console.warn(
+        `User ${user.uuid} does not have permission to send messages in chat ${validatedMessage.chatId}. The user has permission: ${userMembership?.chatPermission}.`,
+      );
+
+      throw new Error('You do not have permission to send messages in this chat.');
     }
 
     console.log(
