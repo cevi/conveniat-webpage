@@ -67,7 +67,9 @@ export const AnnotationDrawerHeader: React.FC<AnnotationDrawerHeaderProperties> 
         </button>
       </div>
 
-      <h2 className="text-conveniat-green p-4 pt-0.5 pr-8 text-xl font-bold">{annotation.title}</h2>
+      <h2 className="text-conveniat-green max-w-[calc(100%-72px)] p-4 pt-0.5 pr-8 text-xl font-bold">
+        {annotation.title}
+      </h2>
     </>
   );
 };
