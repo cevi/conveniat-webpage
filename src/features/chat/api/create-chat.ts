@@ -2,7 +2,7 @@
 
 import type { Contact } from '@/features/chat/api/get-contacts';
 import prisma from '@/features/chat/database';
-import { MessageEventType, MessageType } from '@/lib/prisma/client';
+import { ChatMembershipPermission, MessageEventType, MessageType } from '@/lib/prisma/client';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { StaticTranslationString } from '@/types/types';
 import { auth } from '@/utils/auth-helpers';
@@ -32,11 +32,11 @@ export const createChat = async (
   chatName: string | undefined,
 ): Promise<string> => {
   const session = await auth();
-  const user = session?.user as HitobitoNextAuthUser | undefined;
+  const sessionUser = session?.user as HitobitoNextAuthUser | undefined;
 
   const locale = await getLocaleFromCookies();
 
-  if (user === undefined) {
+  if (sessionUser === undefined) {
     throw new Error('User not authenticated');
   }
 
@@ -52,11 +52,13 @@ export const createChat = async (
   const validatedMembers = validatedData.members;
   const validatedChatName = validatedData.chatName;
 
-  // 2. Validate that the current user is not in the list of members
-  const isCurrentUserInMembers = validatedMembers.some((member) => member.uuid === user.uuid);
+  // 2. Validate that the current sessionUser is not in the list of members
+  const isCurrentUserInMembers = validatedMembers.some(
+    (member) => member.uuid === sessionUser.uuid,
+  );
 
   if (isCurrentUserInMembers) {
-    throw new Error('Cannot include the current user in the members list.');
+    throw new Error('Cannot include the current sessionUser in the members list.');
   }
 
   // 3. Validate chat members: check for duplicates
@@ -84,7 +86,7 @@ export const createChat = async (
       // If it's a private chat, check if there is already a chat with the same members
       if (validatedMembers.length === 1) {
         const requestedMemberUuids = [
-          user.uuid,
+          sessionUser.uuid,
           ...validatedMembers.map((member) => member.uuid),
         ].sort();
 
@@ -126,7 +128,7 @@ export const createChat = async (
 
         // count members in the existing chat
         if (existingChat && existingChat.chatMemberships.length === 2) {
-          // If the existing chat has exactly two members (the user and the requested member)
+          // If the existing chat has exactly two members (the sessionUser and the requested member)
           console.log('Found existing private chat:', existingChat.uuid);
           return existingChat.uuid; // Return the ID of the existing chat
         }
@@ -148,7 +150,10 @@ export const createChat = async (
           },
           chatMemberships: {
             create: [
-              { user: { connect: { uuid: user.uuid } } },
+              {
+                user: { connect: { uuid: sessionUser.uuid } },
+                chatPermission: ChatMembershipPermission.OWNER,
+              },
               ...validatedMembers.map((member) => ({
                 user: { connect: { uuid: member.uuid } },
               })),
