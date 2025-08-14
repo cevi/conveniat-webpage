@@ -1,4 +1,4 @@
-import { archiveChat } from '@/features/chat/api/archive-chat';
+import { archiveChatMutation } from '@/features/chat/api/archive-chat-mutation';
 import { renameChat } from '@/features/chat/api/rename-chat';
 import { CHAT_DETAIL_QUERY_KEY } from '@/features/chat/hooks/use-chats';
 import { useMutation, type UseMutationResult, useQueryClient } from '@tanstack/react-query';
@@ -33,7 +33,7 @@ export const useArchiveChat = (): UseMutationResult<{ success: boolean }, Error,
 
   return useMutation({
     mutationFn: async (chatId: string) => {
-      return archiveChat(chatId);
+      return archiveChatMutation(chatId);
     },
     onSuccess: (_, chatId) => {
       queryClient
