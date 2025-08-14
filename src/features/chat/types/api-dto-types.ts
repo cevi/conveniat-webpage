@@ -1,3 +1,5 @@
+import type { ChatMembershipPermission } from '@/lib/prisma/client';
+
 export enum MessageStatusDto {
   CREATED = 'CREATED',
   SENT = 'SENT',
@@ -29,6 +31,7 @@ export interface SendMessageDto {
 }
 
 export interface ParticipantDto {
+  chatPermission: ChatMembershipPermission;
   id: string;
   name: string;
   isOnline: boolean;

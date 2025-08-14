@@ -121,6 +121,12 @@ const noContactsFoundText: StaticTranslationString = {
   fr: 'Aucun contact trouvé correspondant à votre recherche',
 };
 
+const youText: StaticTranslationString = {
+  de: 'Du',
+  en: 'You',
+  fr: 'Vous',
+};
+
 const ChatDetailsPageSkeleton: React.FC = () => (
   <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col bg-gray-50 xl:top-[62px] xl:left-[480px] xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
     <div className="flex h-16 items-center gap-3 border-b border-gray-200 bg-white px-4 shadow-sm">
@@ -426,7 +432,14 @@ export const ChatDetails: React.FC = () => {
                       <div className="font-body font-medium text-gray-900">
                         {participant.name}
                         {participant.id === currentUser && (
-                          <span className="ml-1 text-sm text-gray-500">(You)</span>
+                          <span className="ml-1 text-sm text-gray-500">
+                            ({youText[locale]}, {participant.chatPermission})
+                          </span>
+                        )}
+                        {participant.id !== currentUser && (
+                          <span className="ml-1 text-sm text-gray-500">
+                            ({participant.chatPermission})
+                          </span>
                         )}
                       </div>
                     </div>

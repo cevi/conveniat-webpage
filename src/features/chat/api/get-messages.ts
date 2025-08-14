@@ -167,7 +167,7 @@ export const getChatDetail = async (
           },
         },
       },
-      chatMemberships: { select: { user: true } },
+      chatMemberships: { include: { user: true } },
     },
   });
 
@@ -203,6 +203,7 @@ export const getChatDetail = async (
       id: membership.user.uuid,
       name: membership.user.name,
       isOnline: membership.user.lastSeen > new Date(Date.now() - 30 * 1000),
+      chatPermission: membership.chatPermission,
     })),
   };
 };
