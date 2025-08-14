@@ -96,7 +96,7 @@ const RenderSystemMessage: React.FC<{ message: MessageDto }> = ({ message }) => 
   const renderedContent = formatMessageContent(message.content);
   return (
     <div className="flex items-center justify-center p-4 text-gray-500">
-      <span className="font-body" style={{ whiteSpace: 'pre-wrap' }}>
+      <span className="font-body text-center text-balance" style={{ whiteSpace: 'pre-wrap' }}>
         {renderedContent}
       </span>
     </div>

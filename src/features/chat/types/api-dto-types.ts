@@ -41,6 +41,7 @@ export interface ParticipantDto {
 export interface ChatDetailDto {
   id: string;
   name: string;
+  isArchived: boolean;
   messages: MessageDto[];
   participants: ParticipantDto[];
   isGroupChat?: boolean;

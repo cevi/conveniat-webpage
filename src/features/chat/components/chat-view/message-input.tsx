@@ -1,6 +1,8 @@
 'use client';
 
 import { Button } from '@/components/ui/buttons/button';
+import { useChatId } from '@/features/chat/context/chat-id-context';
+import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import { useMessageSend } from '@/features/chat/hooks/use-message-send';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
@@ -17,6 +19,8 @@ const messagePlaceholder: StaticTranslationString = {
 
 export const MessageInput: React.FC = () => {
   const [newMessage, setNewMessage] = useState('');
+  const chatId = useChatId();
+  const { data: chatDetails } = useChatDetail(chatId);
   const sendMessageMutation = useMessageSend();
   const textareaReference = useRef<HTMLTextAreaElement>(null);
   const locale = useCurrentLocale(i18nConfig) as Locale;
@@ -56,25 +60,34 @@ export const MessageInput: React.FC = () => {
   };
 
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-2 shadow-sm">
-      <textarea
-        ref={textareaReference}
-        value={newMessage}
-        onChange={handleInputChange}
-        onKeyDown={handleKeyDown}
-        placeholder={messagePlaceholder[locale]}
-        className="font-body flex-1 resize-none rounded-lg border-0 bg-transparent py-2 pr-10 pl-3 placeholder:text-gray-500 focus:shadow-none focus:ring-0 focus:ring-offset-0 focus:outline-none" // Removed overflow-hidden and added focus styles
-        rows={1}
-        style={{ minHeight: '40px', maxHeight: '250px' }}
-      />
-      <Button
-        onClick={handleSendMessage}
-        size="icon"
-        className="h-10 w-10 rounded-full bg-green-400 text-green-900 hover:bg-green-600 disabled:bg-gray-300 disabled:text-gray-700"
-        disabled={newMessage.trim() === '' || sendMessageMutation.isPending}
-      >
-        <Send className="h-5 w-5" />
-      </Button>
-    </div>
+    <>
+      {chatDetails?.isArchived === false && (
+        <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-2 shadow-sm">
+          <>
+            <textarea
+              ref={textareaReference}
+              value={newMessage}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              placeholder={messagePlaceholder[locale]}
+              className="font-body flex-1 resize-none rounded-lg border-0 bg-transparent py-2 pr-10 pl-3 placeholder:text-gray-500 focus:shadow-none focus:ring-0 focus:ring-offset-0 focus:outline-none" // Removed overflow-hidden and added focus styles
+              rows={1}
+              style={{ minHeight: '40px', maxHeight: '250px' }}
+            />
+            <Button
+              onClick={handleSendMessage}
+              size="icon"
+              className="h-10 w-10 rounded-full bg-green-400 text-green-900 hover:bg-green-600 disabled:bg-gray-300 disabled:text-gray-700"
+              disabled={newMessage.trim() === '' || sendMessageMutation.isPending}
+            >
+              <Send className="h-5 w-5" />
+            </Button>
+          </>
+        </div>
+      )}
+      {chatDetails?.isArchived === true && (
+        <div className="text-gray-500">This chat is archived. You cannot send messages.</div>
+      )}
+    </>
   );
 };
