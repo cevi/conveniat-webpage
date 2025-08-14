@@ -11,7 +11,7 @@ import { useAddParticipants } from '@/features/chat/hooks/use-add-participants';
 import { useChatUser } from '@/features/chat/hooks/use-chat-user';
 import { CHATS_QUERY_KEY, useAllContacts, useChatDetail } from '@/features/chat/hooks/use-chats';
 import { useRemoveParticipants } from '@/features/chat/hooks/use-remove-participant';
-import { useUpdateChat } from '@/features/chat/hooks/use-update-chat';
+import { useArchiveChat, useUpdateChat } from '@/features/chat/hooks/use-update-chat';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { useQueryClient } from '@tanstack/react-query';
@@ -204,6 +204,7 @@ export const ChatDetails: React.FC = () => {
   const queryClient = useQueryClient();
   const { data: allContacts, isLoading: isLoadingContacts } = useAllContacts();
   const updateChatMutation = useUpdateChat();
+  const deleteChatMutation = useArchiveChat();
   const addParticipantsMutation = useAddParticipants();
   const removeParticipantMutation = useRemoveParticipants();
   const { data: currentUser } = useChatUser();
@@ -312,6 +313,15 @@ export const ChatDetails: React.FC = () => {
         },
       },
     );
+  };
+
+  const handleDeleteChat = (chatUuid: string): void => {
+    deleteChatMutation.mutate(chatUuid, {
+      onSuccess: () => {
+        void queryClient.invalidateQueries({ queryKey: [CHATS_QUERY_KEY] });
+        globalThis.location.href = '/app/chat';
+      },
+    });
   };
 
   const isFormValid = !chatNameError && chatName.trim().length >= 2 && chatName.trim().length <= 50;
@@ -570,6 +580,29 @@ export const ChatDetails: React.FC = () => {
               </Button>
             </div>
           )}
+
+          {/* --- Archive Chat Section --- */}
+          <div className="rounded-lg border border-gray-200 bg-white p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <div className="font-body text-sm font-medium text-gray-600">Delete Chat</div>
+            </div>
+            <div className="mb-2 text-sm text-gray-500">
+              Deleting this chat is irreversible. You will no longer be able to see the chat or its
+              messages.
+            </div>
+            <div className="text-sm text-gray-500">
+              Deleting this chat will mark it as read-only for all other users, i.e. other members
+              will still be able to access the chat and read the messages.
+            </div>
+
+            <button
+              onClick={() => handleDeleteChat(chatDetails.id)}
+              disabled={updateChatMutation.isPending}
+              className="mt-4 w-full rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none"
+            >
+              Delete Chat
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -71,6 +71,7 @@ export const getChats = async (): Promise<ChatDto[]> => {
       chatMemberships: {
         some: {
           userId: prismaUser.uuid,
+          hasDeleted: false,
         },
       },
     },
@@ -192,6 +193,7 @@ export const getChatDetail = async (
       user,
     ),
     id: chat.uuid,
+    isArchived: chat.isArchived,
     messages: messages.map((message) => ({
       id: message.uuid,
       timestamp: message.timestamp,
