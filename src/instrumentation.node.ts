@@ -3,6 +3,7 @@ import build from '@/build';
 import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { logs } from '@opentelemetry/sdk-node';
+import { TraceIdRatioBasedSampler } from '@opentelemetry/sdk-trace-base';
 import { PrismaInstrumentation } from '@prisma/instrumentation';
 import type { Configuration } from '@vercel/otel';
 import { FetchInstrumentation, OTLPHttpJsonTraceExporter, registerOTel } from '@vercel/otel';
@@ -25,6 +26,9 @@ const instantiateOTLP = async (): Promise<void> => {
       new PrismaInstrumentation({ enabled: true }),
       new HttpInstrumentation({ enabled: true }),
     ],
+
+    // 25% of traces will be sampled
+    traceSampler: new TraceIdRatioBasedSampler(0.25),
   };
 
   const logRecordProcessor = new logs.BatchLogRecordProcessor(
