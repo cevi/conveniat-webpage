@@ -1,12 +1,10 @@
 'use client';
 import { Button } from '@/components/ui/buttons/button';
 import { Input } from '@/components/ui/input';
-import { createChat } from '@/features/chat/api/create-chat';
-import type { Contact } from '@/features/chat/api/get-contacts';
-import { CHATS_QUERY_KEY, useAllContacts } from '@/features/chat/hooks/use-chats';
+import type { Contact } from '@/features/chat/api/queries/contacts';
+import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, MessageSquarePlus, Search, Users, X } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
@@ -65,23 +63,28 @@ const groupMinMaxLength: StaticTranslationString = {
 // eslint-disable-next-line complexity
 export const CreateNewChatPage: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
-  const { data: allContacts, isLoading } = useAllContacts();
+  const { data: allContacts, isLoading } = trpc.chat.contacts.useQuery({});
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedContacts, setSelectedContacts] = useState<Contact[]>([]);
   const [groupChatName, setGroupChatName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
-  const queryClient = useQueryClient();
   const router = useRouter();
   const [groupChatNameError, setGroupChatNameError] = useState('');
 
+  const trpcUtils = trpc.useUtils();
+
+  const { mutate } = trpc.chat.createChat.useMutation({
+    onSuccess: async () => {
+      await trpcUtils.chat.chats.invalidate();
+    },
+  });
+
   const isGroupChat = selectedContacts.length > 1;
 
-  // Filter contacts based on search query
   const filteredContacts = allContacts?.filter((contact) =>
     contact.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
-  // Validate group chat name
   const validateGroupName = (name: string): string => {
     if (isGroupChat && name.trim().length === 0) {
       return 'Group name is required for group chats';
@@ -95,15 +98,16 @@ export const CreateNewChatPage: React.FC = () => {
     return '';
   };
 
-  // Check if form is valid
   const isFormValid =
     selectedContacts.length > 0 &&
     (!isGroupChat || (groupChatName.trim().length >= 2 && groupChatName.trim().length <= 50));
 
   const handleContactToggle = (contact: Contact): void => {
     setSelectedContacts((previous) => {
-      const isSelected = previous.some((c) => c.uuid === contact.uuid);
-      return isSelected ? previous.filter((c) => c.uuid !== contact.uuid) : [...previous, contact];
+      const isSelected = previous.some((c) => c.userId === contact.userId);
+      return isSelected
+        ? previous.filter((c) => c.userId !== contact.userId)
+        : [...previous, contact];
     });
   };
 
@@ -112,7 +116,6 @@ export const CreateNewChatPage: React.FC = () => {
       return;
     }
 
-    // Validate group name if it's a group chat
     const nameError = validateGroupName(groupChatName);
     if (nameError !== '') {
       setGroupChatNameError(nameError);
@@ -126,8 +129,7 @@ export const CreateNewChatPage: React.FC = () => {
           ? groupChatName.trim()
           : undefined;
 
-      await createChat(selectedContacts, chatName);
-      await queryClient.invalidateQueries({ queryKey: CHATS_QUERY_KEY });
+      mutate({ chatName, members: selectedContacts });
 
       // Navigate back to chat list
       router.push('/app/chat');
@@ -227,7 +229,7 @@ export const CreateNewChatPage: React.FC = () => {
               <div className="flex flex-wrap gap-2">
                 {selectedContacts.map((contact) => (
                   <div
-                    key={contact.uuid}
+                    key={contact.userId}
                     className="font-body text-conveniat-green flex items-center gap-2 rounded-full bg-green-100 px-3 py-1 text-sm"
                   >
                     <span>{contact.name}</span>
@@ -277,10 +279,10 @@ export const CreateNewChatPage: React.FC = () => {
               {!isLoading && (filteredContacts?.length ?? 0) > 0 && (
                 <div className="space-y-1 p-2">
                   {filteredContacts?.map((contact) => {
-                    const isSelected = selectedContacts.some((c) => c.uuid === contact.uuid);
+                    const isSelected = selectedContacts.some((c) => c.userId === contact.userId);
                     return (
                       <div
-                        key={contact.uuid}
+                        key={contact.userId}
                         className={`flex cursor-pointer items-center space-x-3 rounded-lg p-3 transition-colors ${
                           isSelected ? 'text-conveniat-green bg-green-100' : 'hover:bg-gray-100'
                         }`}

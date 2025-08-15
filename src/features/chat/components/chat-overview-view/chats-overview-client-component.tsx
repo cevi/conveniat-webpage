@@ -4,7 +4,6 @@ import { Input } from '@/components/ui/input';
 import { ChatPreview } from '@/features/chat/components/chat-overview-view/chat-preview';
 import { QRCodeClientComponent } from '@/features/chat/components/qr-component';
 import { useChats } from '@/features/chat/hooks/use-chats';
-import type { ChatDto } from '@/features/chat/types/api-dto-types';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
@@ -79,11 +78,12 @@ export const ChatsOverviewClientComponent: React.FC<{ user: HitobitoNextAuthUser
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
   // Filter chats based on a search query
-  const filteredChats: ChatDto[] =
+  const filteredChats =
     chats?.filter(
-      (chat) =>
-        chat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        chat.lastMessage?.content.toLowerCase().includes(searchQuery.toLowerCase()),
+      (chat): boolean =>
+        (chat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          chat.lastMessage?.content.toLowerCase().includes(searchQuery.toLowerCase())) ??
+        false,
     ) ?? [];
 
   return (
@@ -98,7 +98,6 @@ export const ChatsOverviewClientComponent: React.FC<{ user: HitobitoNextAuthUser
           onChange={(changeEvent) => setSearchQuery(changeEvent.target.value)}
         />
       </div>
-
       {/* New Chat Button */}
       <div className="flex justify-end gap-2">
         <Link className="flex justify-end" href="/app/chat/new">
@@ -107,7 +106,6 @@ export const ChatsOverviewClientComponent: React.FC<{ user: HitobitoNextAuthUser
 
         <QRCodeClientComponent url={user.uuid} />
       </div>
-
       {/* Loading State */}
       {isLoading && <ChatsOverviewLoadingPlaceholder />}
       {/* Empty State */}

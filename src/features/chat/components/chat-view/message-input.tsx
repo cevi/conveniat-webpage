@@ -38,7 +38,11 @@ export const MessageInput: React.FC = () => {
       textareaReference.current.style.height = `${textareaReference.current.scrollHeight}px`;
     }
 
-    sendMessageMutation.mutate(trimmedMessage);
+    sendMessageMutation.mutate({
+      chatId: chatId,
+      content: trimmedMessage,
+      timestamp: new Date(),
+    });
   };
 
   const handleInputChange = (event: ChangeEvent<HTMLTextAreaElement>): void => {

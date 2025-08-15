@@ -1,4 +1,4 @@
-import { createChat } from '@/features/chat/api/create-chat';
+import { create } from '@/features/chat/api/mutations/create';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import { auth } from '@/utils/auth-helpers';
 import Link from 'next/link';
@@ -33,7 +33,7 @@ const NewChatWithUserPage: React.FC<{
       name: '', // Name will be fetched from the user profile
     },
   ];
-  const chatId = await createChat(contacts, chatName).catch((error: unknown) => {
+  const chatId = await create(contacts, chatName).catch((error: unknown) => {
     console.error('Failed to create chat:', error);
     return; // Return undefined if chat creation fails
   });

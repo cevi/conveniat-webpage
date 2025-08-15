@@ -28,7 +28,7 @@ const formatMessageContent = (text: string): React.ReactNode[] => {
   const boldRegex = /^\*(.+)\*$/; // Matches *content*
   const italicRegex = /^_(.+)_$/; // Matches _content_
   const strikethroughRegex = /^~(.+)~$/; // Matches ~content~
-  const urlRegex = /^(https?:\/\/[^\s]+)$/; // Matches a URL
+  const urlRegex = /^(https?:\/\/\S+)$/; // Matches a URL
 
   // Split the text by newlines first
   const lines = text.split('\n');
