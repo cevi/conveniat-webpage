@@ -54,7 +54,7 @@ model ChatMembership {
   user   User   @relation(fields: [userId], references: [uuid])
 
   chatId String
-  chat   Chat   @relation(fields: [chatId], references: [uuid])
+  chat   Chat   @relation(fields: [chatId], references: [uuid], onDelete: Cascade)
 
   /// indicates whether the user has deleted the chat
   hasDeleted Boolean @default(false)
@@ -78,7 +78,7 @@ model Message {
   messageEvents MessageEvent[]
 
   chatId String
-  chat   Chat   @relation(fields: [chatId], references: [uuid])
+  chat   Chat   @relation(fields: [chatId], references: [uuid], onDelete: Cascade)
 
   // optional if send by the system, required if sent by a user
   senderId String?
@@ -98,7 +98,7 @@ model MessageEvent {
   timestamp DateTime @default(now())
 
   messageId String
-  message   Message @relation(fields: [messageId], references: [uuid])
+  message   Message @relation(fields: [messageId], references: [uuid], onDelete: Cascade)
 
   eventType MessageEventType
 
