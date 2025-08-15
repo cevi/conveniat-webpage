@@ -45,10 +45,6 @@ export const useArchiveChatMutation = (): UseArchiveChatMutation => {
 
     onError: (error, { chatUuid }, context) => {
       console.error('Failed to archive chat:', error);
-      console.dir({
-        chatUuid,
-        context,
-      });
 
       // Roll back the chat details to the previous stateD
       if (context?.previousChatDetails) {
