@@ -2,8 +2,19 @@ import type { ChatDetails } from '@/features/chat/api/queries/chat';
 import type { MessageDto } from '@/features/chat/types/api-dto-types';
 import { MessageStatusDto } from '@/features/chat/types/api-dto-types';
 import { trpc } from '@/trpc/client';
+import type { AppRouter } from '@/trpc/routers/_app';
+import type { TRPCClientErrorLike } from '@trpc/client';
+import type { UseTRPCMutationResult } from '@trpc/react-query/shared';
+import type { inferProcedureInput, inferProcedureOutput } from '@trpc/server';
 
-export const useMessageSend = (): ReturnType<typeof trpc.chat.sendMessage.useMutation> => {
+type UseMessageSendMutation = UseTRPCMutationResult<
+  inferProcedureOutput<AppRouter['chat']['sendMessage']>,
+  TRPCClientErrorLike<AppRouter>,
+  inferProcedureInput<AppRouter['chat']['sendMessage']>,
+  unknown
+>;
+
+export const useMessageSend = (): UseMessageSendMutation => {
   const trpcUtils = trpc.useUtils();
   const { data: currentUser } = trpc.chat.user.useQuery({});
 

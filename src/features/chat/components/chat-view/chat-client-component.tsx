@@ -1,7 +1,7 @@
 'use client';
 import { Button } from '@/components/ui/buttons/button';
 import { ChatHeader, ChatHeaderSkeleton } from '@/features/chat/components/chat-view/chat-header';
-import { MessageInput } from '@/features/chat/components/chat-view/message-input';
+import { ChatMessageInput } from '@/features/chat/components/chat-view/chat-textarea-input/chat-message-input';
 import { MessageList } from '@/features/chat/components/chat-view/message-list';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
@@ -107,7 +107,7 @@ export const ChatClientComponent: React.FC = () => {
         <MessageList />
       </div>
       <div className="border-t border-gray-200 bg-white p-4">
-        <MessageInput />
+        <ChatMessageInput />
       </div>
     </div>
   );
