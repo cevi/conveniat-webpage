@@ -1,44 +1,15 @@
-import { archiveChatMutation } from '@/features/chat/api/archive-chat-mutation';
-import { renameChat } from '@/features/chat/api/rename-chat';
-import { CHAT_DETAIL_QUERY_KEY } from '@/features/chat/hooks/use-chats';
-import { useMutation, type UseMutationResult, useQueryClient } from '@tanstack/react-query';
+import { trpc } from '@/trpc/client';
 
-interface UpdateChatParameters {
-  chatId: string;
-  name: string;
-}
+export const useUpdateChat = (): ReturnType<typeof trpc.chat.renameChat.useMutation> => {
+  const trpcUtils = trpc.useUtils();
 
-export const useUpdateChat = (): UseMutationResult<
-  { success: boolean },
-  Error,
-  UpdateChatParameters,
-  void
-> => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ chatId, name }: UpdateChatParameters) => {
-      return renameChat(chatId, name);
+  return trpc.chat.renameChat.useMutation({
+    onSuccess: (_, { chatUuid }) => {
+      console.log(`Chat ${chatUuid} renamed successfully, invalidating chat detail query.`);
+      trpcUtils.chat.chatDetails.invalidate({ chatId: chatUuid }).catch(console.error);
     },
-    onSuccess: (_, { chatId }) => {
-      queryClient
-        .invalidateQueries({ queryKey: CHAT_DETAIL_QUERY_KEY(chatId) })
-        .catch(console.error);
-    },
-  });
-};
-
-export const useArchiveChat = (): UseMutationResult<{ success: boolean }, Error, string, void> => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (chatId: string) => {
-      return archiveChatMutation(chatId);
-    },
-    onSuccess: (_, chatId) => {
-      queryClient
-        .invalidateQueries({ queryKey: CHAT_DETAIL_QUERY_KEY(chatId) })
-        .catch(console.error);
+    onError: (error) => {
+      console.error('Failed to rename chat:', error);
     },
   });
 };

@@ -1,5 +1,4 @@
-import { onlinePing } from '@/features/chat/api/online-ping';
-import { useMutation } from '@tanstack/react-query';
+import { trpc } from '@/trpc/client';
 import { useEffect } from 'react';
 
 /**
@@ -12,16 +11,19 @@ import { useEffect } from 'react';
 export const useOnlinePing = (
   pingInterval: number = 10_000, // Default to 10 seconds
 ): void => {
-  const { mutate } = useMutation({
-    mutationFn: async () => onlinePing(),
-    mutationKey: ['onlinePing'],
-    networkMode: 'always', // we let the mutation fail if the network is offline
-    retry: false, // disable retries for this mutation, no need to retry online pings
+  const { mutate: ping } = trpc.chat.onlinePing.useMutation({
+    networkMode: 'always',
+    retry: false,
   });
 
   useEffect(() => {
-    mutate();
-    const interval = setInterval(() => mutate(), pingInterval);
+    // Immediately ping on mount
+    ping({});
+
+    // Set up the interval for continuous pings
+    const interval = setInterval(() => ping({}), pingInterval);
+
+    // Clean up the interval on unmount
     return (): void => clearInterval(interval);
-  }, [pingInterval, mutate]);
+  }, [pingInterval, ping]);
 };

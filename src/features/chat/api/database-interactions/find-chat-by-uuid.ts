@@ -1,9 +1,9 @@
-import type { PrismaClient } from '@/lib/prisma';
 import type { ChatMembershipPermission } from '@/lib/prisma/client';
+import type { PrismaClientOrTransaction } from '@/types/types';
 
 export const findChatByUuid = async (
   chatId: string,
-  prismaClient: Partial<PrismaClient>,
+  prismaClient: PrismaClientOrTransaction,
 ): Promise<
   {
     chatMemberships: {
@@ -16,10 +16,6 @@ export const findChatByUuid = async (
 > => {
   if (chatId === '') {
     throw new Error('Chat ID is required to find a chat.');
-  }
-
-  if (!('chat' in prismaClient) || typeof prismaClient.chat.findUnique !== 'function') {
-    throw new Error('Invalid Prisma client provided.');
   }
 
   return prismaClient.chat.findUniqueOrThrow({

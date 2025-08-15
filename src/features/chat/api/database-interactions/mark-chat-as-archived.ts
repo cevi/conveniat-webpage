@@ -1,17 +1,13 @@
 import { isChatArchived } from '@/features/chat/api/permission-checks/is-chat-archived';
-import type { PrismaClient } from '@/lib/prisma';
+import type { PrismaClientOrTransaction } from '@/types/types';
 import { MessageType } from '@prisma/client';
 
 export const markChatAsArchived = async (
   chat: { uuid: string; isArchived: boolean },
-  prismaClient: Partial<PrismaClient>,
+  prismaClient: PrismaClientOrTransaction,
 ): Promise<void> => {
   if (chat.uuid === '') {
     throw new Error('Chat UUID is required to archive a chat.');
-  }
-
-  if (!('chat' in prismaClient) || typeof prismaClient.chat.update !== 'function') {
-    throw new Error('Invalid Prisma client provided.');
   }
 
   if (isChatArchived(chat)) {
@@ -27,10 +23,6 @@ export const markChatAsArchived = async (
       isArchived: true,
     },
   });
-
-  if (!('message' in prismaClient) || typeof prismaClient.message.create !== 'function') {
-    throw new Error('Invalid Prisma client provided for message creation.');
-  }
 
   await prismaClient.message.create({
     data: {

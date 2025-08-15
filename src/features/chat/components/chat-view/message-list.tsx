@@ -1,14 +1,13 @@
 'use client';
-import { changeMessageStatus } from '@/features/chat/api/change-message-status';
 import { MessageComponent } from '@/features/chat/components/chat-view/message';
 import { useChatId } from '@/features/chat/context/chat-id-context';
-import { useChatUser } from '@/features/chat/hooks/use-chat-user';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import { MessageStatusDto } from '@/features/chat/types/api-dto-types';
+import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { useCurrentLocale } from 'next-i18n-router/client';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 const loadingMessagesText: StaticTranslationString = {
   de: 'Nachrichten werden geladen...',
@@ -25,8 +24,11 @@ const todayText: StaticTranslationString = {
 export const MessageList: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const chatId = useChatId();
+  const { mutate: changeMessageStatus } = trpc.chat.messageStatus.useMutation({
+    retry: false,
+  });
   const { data: chatDetails, isLoading } = useChatDetail(chatId);
-  const { data: currentUser } = useChatUser();
+  const { data: currentUser } = trpc.chat.user.useQuery({});
   const messagesEndReference = useRef<HTMLDivElement>(null);
 
   const messages = chatDetails?.messages ?? [];
@@ -38,19 +40,32 @@ export const MessageList: React.FC = () => {
     messagesEndReference.current?.scrollIntoView({ behavior: 'instant' });
   }, [sortedMessages]);
 
+  // State to store IDs of messages that have been marked as READ
+  const [readMessageIds, setReadMessageIds] = useState<Set<string>>(new Set());
+
   useEffect(() => {
     if (currentUser !== undefined && sortedMessages.length > 0) {
+      const newReadMessageIds = new Set(readMessageIds);
       for (const message of sortedMessages) {
-        if (message.senderId === currentUser) continue;
-        if (message.status !== MessageStatusDto.READ) {
+        if (
+          message.senderId !== currentUser &&
+          message.status !== MessageStatusDto.READ &&
+          !newReadMessageIds.has(message.id)
+        ) {
+          console.log(`Changing status of message ${message.id} to READ`);
           changeMessageStatus({
             messageId: message.id,
             status: MessageStatusDto.READ,
-          }).catch(console.error);
+          });
+          newReadMessageIds.add(message.id);
         }
       }
+
+      if (newReadMessageIds.size > readMessageIds.size) {
+        setReadMessageIds(newReadMessageIds);
+      }
     }
-  }, [currentUser, sortedMessages]);
+  }, [changeMessageStatus, currentUser, sortedMessages, readMessageIds]);
 
   // Handle loading states for both chatDetails and currentUser
   // This early return is fine because all hooks above it are called unconditionally.

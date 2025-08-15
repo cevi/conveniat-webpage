@@ -16,16 +16,11 @@ export const canUserArchiveChat = (
 ): boolean => {
   const userUuid = user.uuid;
 
-  // verify integrity of userUuid
-  if (userUuid.trim() === '') return false;
-
   // verify the integrity of chatMemberships
   if (!Array.isArray(chatMemberships) || chatMemberships.length === 0) return false;
 
-  if (!isUserMemberOfChat(user, chatMemberships)) {
-    console.warn(`User ${user.uuid} attempted to archive chat they are not a member of.`);
-    throw new Error('You are not a member of this chat.');
-  }
+  // deny, if the user is not a member of the chat
+  if (!isUserMemberOfChat(user, chatMemberships)) return false;
 
   // Find the user's membership in the chat
   const userMembership = chatMemberships.find((membership) => membership.userId === userUuid);

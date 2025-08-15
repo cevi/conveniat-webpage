@@ -8,6 +8,9 @@ import type React from 'react';
 
 const queryClient = new QueryClient();
 
+/**
+ * @deprecated use `TRPCProvider` instead
+ */
 export const QueryClientProvider: React.FC<{
   children: React.ReactNode;
 }> = ({ children }) => {

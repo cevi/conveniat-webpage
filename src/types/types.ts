@@ -1,7 +1,10 @@
 import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
+import type { PrismaClient } from '@/lib/prisma';
+import type { ITXClientDenyList } from '@/lib/prisma/runtime/client';
 import type { Metadata } from 'next';
 import type { Config } from 'next-i18n-router/dist/types';
 import type { CollectionConfig, Config as PayloadConfig } from 'payload';
+import type React from 'react';
 
 const locales = Object.values(LOCALE);
 
@@ -54,3 +57,5 @@ export enum Cookie {
   HAS_LOGGED_IN = 'has-logged-in',
   CONVENIAT_COOKIE_BANNER = 'conveniat-cookie-banner',
 }
+
+export type PrismaClientOrTransaction = Omit<PrismaClient, ITXClientDenyList>;

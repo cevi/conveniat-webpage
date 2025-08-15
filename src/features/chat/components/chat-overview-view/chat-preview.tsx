@@ -79,7 +79,7 @@ export const ChatPreview: React.FC<{
           ) : (
             <div className="bg-conveniat-green flex h-12 w-12 items-center justify-center rounded-full shadow-sm">
               <span className="font-heading text-sm font-semibold text-white">
-                {chat.name.charAt(0).toUpperCase() || '?'}
+                {chat.name.charAt(0).toUpperCase()}
               </span>
             </div>
           )}
