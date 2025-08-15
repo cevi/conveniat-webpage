@@ -14,9 +14,9 @@ services:
 
       update_config:
         parallelism: 1 # Update one replica at a time
-        delay: 0s      # No delay between updates
+        delay: 0s # No delay between updates
         order: start-first # Start new containers before stopping old ones
-        monitor: 5s    # Time to wait after an update to monitor for failure
+        monitor: 5s # Time to wait after an update to monitor for failure
         failure_action: rollback # What to do if an update fails
         max_failure_ratio: 0.0 # Fail immediately if any container fails during update
 
@@ -77,7 +77,7 @@ services:
       - observability-net
 
     healthcheck:
-      test: [ 'CMD-SHELL', 'curl -fs http://localhost:3000/status | grep -q "status\":\"ok"' ]
+      test: ['CMD-SHELL', 'curl -fs http://localhost:3000/status | grep -q "status\":\"ok"']
       interval: 5s
       timeout: 3s
       retries: 3
@@ -183,7 +183,7 @@ services:
   tempo:
     user: '0:0'
     image: grafana/tempo:latest
-    command: [ '-config.file=/etc/tempo/tempo.yml' ]
+    command: ['-config.file=/etc/tempo/tempo.yml']
     volumes:
       - /cluster/swarm/data/conveniat-dev/tempo:/tmp/tempo
     configs:
