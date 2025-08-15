@@ -32,6 +32,10 @@ services:
         # Enable Traefik for this service, to make it available in the public network
         - traefik.enable=true
 
+        # Define a middleware for retrying failed requests.
+        - traefik.http.middlewares.retry-middleware.retry.attempts=3
+        - traefik.http.middlewares.retry-middleware.retry.initialinterval=50ms
+
         # HTTP gets redirected to HTTPS
         - traefik.http.routers.conveniat27-dev-router-http.rule=Host(`conveniat27.cevi.tools`)
         - traefik.http.routers.conveniat27-dev-router-http.entrypoints=web
@@ -42,6 +46,9 @@ services:
         - traefik.http.routers.conveniat27-dev-router.service=conveniat27-dev
 
         - traefik.http.services.conveniat27-dev.loadbalancer.server.port=3000
+
+        # Apply the retry middleware to this router
+        - traefik.http.routers.conveniat27-dev-router.middlewares=retry-middleware
 
         # Add Traefik healthcheck labels
         - traefik.http.services.conveniat27-dev.loadbalancer.healthcheck.path=/status
@@ -176,7 +183,7 @@ services:
   tempo:
     user: '0:0'
     image: grafana/tempo:latest
-    command: ['-config.file=/etc/tempo/tempo.yml']
+    command: [ '-config.file=/etc/tempo/tempo.yml' ]
     volumes:
       - /cluster/swarm/data/conveniat-dev/tempo:/tmp/tempo
     configs:
