@@ -10,6 +10,8 @@ services:
         - NEXT_PUBLIC_ENABLE_OFFLINE_SUPPORT=true
 
     deploy:
+      replicas: 2
+
       labels:
         - swarmpit.service.deployment.autoredeploy=true
 
@@ -28,12 +30,9 @@ services:
         - traefik.http.services.conveniat27-dev.loadbalancer.server.port=3000
 
       resources:
-        reservations:
-          cpus: '0.5'
-          memory: 256M
         limits:
-          cpus: '1.0'
-          memory: 512M
+          cpus: '2.0'
+          memory: 2048M
 
     volumes:
       - /cluster/swarm/data/conveniat-dev/next-cache:/app/.next/cache
@@ -52,8 +51,7 @@ services:
       - observability-net
 
     healthcheck:
-      test:
-        ['CMD-SHELL', 'curl -f https://conveniat27.cevi.tools/status | grep -q ''"status":"ok"''']
+      test: [ 'CMD-SHELL', 'curl -f https://conveniat27.cevi.tools/status | grep -q ''"status":"ok"''' ]
       interval: 30s
       timeout: 10s
       retries: 3

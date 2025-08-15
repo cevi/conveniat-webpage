@@ -11,6 +11,8 @@ services:
         - NEXT_PUBLIC_POSTHOG_HOST=https://eu.i.posthog.com
 
     deploy:
+      replicas: 2
+
       labels:
         - swarmpit.service.deployment.autoredeploy=true
 
@@ -59,12 +61,9 @@ services:
         - traefik.http.middlewares.conveniat27-to-non-www.redirectregex.permanent=true
 
       resources:
-        reservations:
-          cpus: '0.5'
-          memory: 256M
         limits:
-          cpus: '1.0'
-          memory: 512M
+          cpus: '2.0'
+          memory: 2048M
 
     volumes:
       - /cluster/swarm/data/conveniat/next-cache:/app/.next/cache
@@ -82,7 +81,7 @@ services:
       - backend-net
 
     healthcheck:
-      test: ['CMD-SHELL', 'curl -f https://conveniat27.ch/status | grep -q ''"status":"ok"''']
+      test: [ 'CMD-SHELL', 'curl -f https://conveniat27.cevi.tools/status | grep -q ''"status":"ok"''' ]
       interval: 30s
       timeout: 10s
       retries: 3
