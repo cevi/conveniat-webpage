@@ -6,7 +6,7 @@ import { onlinePing } from '@/features/chat/api/mutations/online-ping';
 import { renameChat } from '@/features/chat/api/mutations/rename-chat';
 import { chatDetails, chats } from '@/features/chat/api/queries/chat';
 import { contacts } from '@/features/chat/api/queries/contacts';
-import { userProcedure } from '@/features/chat/api/queries/userProcedure';
+import { userProcedure } from '@/features/chat/api/queries/user-procedure';
 import { createTRPCRouter } from '@/trpc/init';
 
 export const chatRouter = createTRPCRouter({

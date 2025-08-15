@@ -97,8 +97,6 @@ export const OnboardingProcess: React.FC = () => {
   };
 
   useEffect(() => {
-    let navigationTimer: NodeJS.Timeout;
-
     if (onboardingStep === OnboardingStep.Loading) {
       console.log('Redirect to Homepage');
       router.push('/app/dashboard');
@@ -115,8 +113,6 @@ export const OnboardingProcess: React.FC = () => {
     }
 
     if (onboardingStep === undefined) setOnboardingStep(OnboardingStep.Initial);
-
-    return (): void => clearTimeout(navigationTimer);
   }, [onboardingStep, router]);
 
   return (

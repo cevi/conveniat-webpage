@@ -17,8 +17,8 @@ const subject: string | undefined =
   NEXT_PUBLIC_APP_HOST_URL !== '' && NEXT_PUBLIC_APP_HOST_URL.includes('https://')
     ? NEXT_PUBLIC_APP_HOST_URL
     : 'https://conveniat27.ch';
-const publicKey: string | undefined = environmentVariables.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-const privateKey: string | undefined = environmentVariables.VAPID_PRIVATE_KEY;
+const publicKey: string = environmentVariables.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+const privateKey: string = environmentVariables.VAPID_PRIVATE_KEY;
 
 webpush.setVapidDetails(subject, publicKey, privateKey);
 
