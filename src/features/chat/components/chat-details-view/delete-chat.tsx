@@ -48,7 +48,9 @@ export const DeleteChat: React.FC = () => {
   return (
     <>
       <div className="mb-4 flex items-center justify-between">
-        <div className="font-body text-sm font-medium text-gray-600">Delete Chat</div>
+        <div className="font-body text-sm font-medium text-gray-600">
+          {localizedDeleteChat[locale]}
+        </div>
       </div>
       <div className="mb-2 text-sm text-gray-500">{localizedDeleteChatWarning[locale]}</div>
 
@@ -58,7 +60,7 @@ export const DeleteChat: React.FC = () => {
         disabled={updateChatMutation.isPending || deleteChatMutation.isPending}
         className="mt-4 w-full rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none"
       >
-        {localizedDeleteChat[locale]}]
+        {localizedDeleteChat[locale]}
       </button>
     </>
   );
