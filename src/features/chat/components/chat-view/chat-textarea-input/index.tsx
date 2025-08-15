@@ -21,7 +21,7 @@ const chatIsArchivedMessage: StaticTranslationString = {
   fr: 'Ce chat est archivé. Vous ne pouvez pas envoyer de messages.',
 };
 
-export const ChatMessageInput: React.FC = () => {
+export const ChatTextareaInput: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
   const chatId = useChatId();
