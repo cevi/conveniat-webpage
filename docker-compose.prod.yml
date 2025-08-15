@@ -79,13 +79,19 @@ services:
         - traefik.http.services.conveniat27.loadbalancer.healthcheck.interval=5s
         - traefik.http.services.conveniat27.loadbalancer.healthcheck.timeout=3s
 
+        # Define a middleware for retrying failed requests.
+        - traefik.http.middlewares.retry-middleware-prod.retry.attempts=3
+        - traefik.http.middlewares.retry-middleware-prod.retry.initialinterval=50ms
+
+        - traefik.http.routers.conveniat27-router.middlewares=retry-middleware-prod
+
       resources:
         limits:
           cpus: '2.0'
           memory: 2048M
 
     volumes:
-      - /cluster/swarm/data/conveniat/next-cache:/app/.next/cache
+      - /cluster/swarm/data/conveniat-prod/next-cache:/app/.next/cache
 
     dns:
       - 8.8.8.8 # Replace with your desired DNS server
