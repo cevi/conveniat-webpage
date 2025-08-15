@@ -28,7 +28,7 @@ export const useArchiveChatMutation = (): UseArchiveChatMutation => {
       });
 
       // Optimistically update the chat list to remove the archived chat
-      const previousChats = trpcUtils.chat.chats.getData();
+      const previousChats = trpcUtils.chat.chats.getData({});
       trpcUtils.chat.chats.setData({}, (oldChats) => {
         if (!oldChats) return oldChats;
         return oldChats.filter((chat) => chat.id !== chatUuid);
@@ -45,8 +45,12 @@ export const useArchiveChatMutation = (): UseArchiveChatMutation => {
 
     onError: (error, { chatUuid }, context) => {
       console.error('Failed to archive chat:', error);
+      console.dir({
+        chatUuid,
+        context,
+      });
 
-      // Roll back the chat details to the previous state
+      // Roll back the chat details to the previous stateD
       if (context?.previousChatDetails) {
         trpcUtils.chat.chatDetails.setData({ chatId: chatUuid }, context.previousChatDetails);
       }
