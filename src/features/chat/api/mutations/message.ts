@@ -1,5 +1,4 @@
 import { environmentVariables } from '@/config/environment-variables';
-import { sendNotificationToSubscription } from '@/features/onboarding/api/push-notification';
 import { ChatMembershipPermission, MessageEventType } from '@/lib/prisma';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
@@ -72,7 +71,12 @@ async function sendNotification(
   console.log(`Sending notification to ${subscriptions.length} subscriptions`);
 
   try {
-    const webPushPromises = subscriptions.map((subscription) => {
+    const webPushPromises = subscriptions.map(async (subscription) => {
+      const { sendNotificationToSubscription } = await import(
+        // eslint-disable-next-line import/no-restricted-paths
+        '@/features/onboarding/api/push-notification'
+      );
+
       return sendNotificationToSubscription(
         subscription as webpush.PushSubscription,
         message,
