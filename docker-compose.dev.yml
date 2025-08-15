@@ -12,6 +12,20 @@ services:
     deploy:
       replicas: 2
 
+      update_config:
+        parallelism: 1 # Update one replica at a time
+        delay: 0s      # No delay between updates
+        order: start-first # Start new containers before stopping old ones
+        monitor: 5s    # Time to wait after an update to monitor for failure
+        failure_action: rollback # What to do if an update fails
+        max_failure_ratio: 0.0 # Fail immediately if any container fails during update
+
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+        window: 60s
+
       labels:
         - swarmpit.service.deployment.autoredeploy=true
 
@@ -28,6 +42,11 @@ services:
         - traefik.http.routers.conveniat27-dev-router.service=conveniat27-dev
 
         - traefik.http.services.conveniat27-dev.loadbalancer.server.port=3000
+
+        # Add Traefik healthcheck labels
+        - traefik.http.services.conveniat27-dev.loadbalancer.healthcheck.path=/status
+        - traefik.http.services.conveniat27-dev.loadbalancer.healthcheck.interval=5s
+        - traefik.http.services.conveniat27-dev.loadbalancer.healthcheck.timeout=3s
 
       resources:
         limits:
@@ -51,11 +70,11 @@ services:
       - observability-net
 
     healthcheck:
-      test: [ 'CMD-SHELL', 'curl -f http://localhost:3000/status | grep -q ''"status":"ok"''' ]
-      interval: 30s
-      timeout: 10s
+      test: [ 'CMD-SHELL', 'curl -fs http://localhost:3000/status | grep -q "status\":\"ok"' ]
+      interval: 5s
+      timeout: 3s
       retries: 3
-      start_period: 40s
+      start_period: 10s
 
   mongo:
     image: mongo:latest
