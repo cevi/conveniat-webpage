@@ -38,9 +38,8 @@ const nextConfig: NextConfig = {
     moduleIds: 'named',
   },
 
-  // We are running behind a reverse proxy (traefik) that handles gzip compression,
-  // so we disable it here to avoid compressing, decompressing, and recompressing the files.
-  compress: false,
+  // enable gzip compression for all responses
+  compress: true,
 
   experimental: {
     // Forward browser logs to the terminal for easier debugging
