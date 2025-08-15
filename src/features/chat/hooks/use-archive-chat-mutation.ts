@@ -1,6 +1,16 @@
 import { trpc } from '@/trpc/client';
+import type { AppRouter } from '@/trpc/routers/_app';
+import type { TRPCClientErrorLike } from '@trpc/client';
+import type { UseTRPCMutationResult } from '@trpc/react-query/shared';
+import type { inferProcedureInput, inferProcedureOutput } from '@trpc/server';
 
-export const useArchiveChat = (): ReturnType<typeof trpc.chat.archiveChat.useMutation> => {
+type UseArchiveChatMutation = UseTRPCMutationResult<
+  inferProcedureOutput<AppRouter['chat']['archiveChat']>,
+  TRPCClientErrorLike<AppRouter>,
+  inferProcedureInput<AppRouter['chat']['archiveChat']>,
+  unknown
+>;
+export const useArchiveChatMutation = (): UseArchiveChatMutation => {
   const trpcUtils = trpc.useUtils();
 
   return trpc.chat.archiveChat.useMutation({
@@ -17,7 +27,14 @@ export const useArchiveChat = (): ReturnType<typeof trpc.chat.archiveChat.useMut
         };
       });
 
-      return { previousChatDetails };
+      // Optimistically update the chat list to remove the archived chat
+      const previousChats = trpcUtils.chat.chats.getData();
+      trpcUtils.chat.chats.setData({}, (oldChats) => {
+        if (!oldChats) return oldChats;
+        return oldChats.filter((chat) => chat.id !== chatUuid);
+      });
+
+      return { previousChatDetails, previousChats };
     },
 
     onSuccess: (_, { chatUuid }) => {
@@ -29,9 +46,14 @@ export const useArchiveChat = (): ReturnType<typeof trpc.chat.archiveChat.useMut
     onError: (error, { chatUuid }, context) => {
       console.error('Failed to archive chat:', error);
 
-      // If the mutation fails, use the context to roll back to the previous value
+      // Roll back the chat details to the previous state
       if (context?.previousChatDetails) {
         trpcUtils.chat.chatDetails.setData({ chatId: chatUuid }, context.previousChatDetails);
+      }
+
+      // Roll back the chat list to the previous state
+      if (context?.previousChats) {
+        trpcUtils.chat.chats.setData({}, context.previousChats);
       }
     },
   });

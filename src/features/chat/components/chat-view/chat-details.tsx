@@ -6,12 +6,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/buttons/button';
 import { Input } from '@/components/ui/input';
 import type { Contact } from '@/features/chat/api/queries/contacts';
+import { DeleteChat } from '@/features/chat/components/delete-chat';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useAddParticipants } from '@/features/chat/hooks/use-add-participants';
-import { useArchiveChat } from '@/features/chat/hooks/use-archive-chat';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import { useRemoveParticipants } from '@/features/chat/hooks/use-remove-participant';
-import { useUpdateChat } from '@/features/chat/hooks/use-update-chat';
+import { useUpdateChatMutation } from '@/features/chat/hooks/use-update-chat-mutation';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
@@ -30,7 +30,6 @@ import {
 } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 
 const chatNamePlaceholder: StaticTranslationString = {
   de: 'Chat-Namen eingeben',
@@ -200,10 +199,8 @@ export const ChatDetails: React.FC = () => {
   const [isManagingParticipants, setIsManagingParticipants] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedContactsToAdd, setSelectedContactsToAdd] = useState<Contact[]>([]);
-  const router = useRouter();
   const { data: allContacts, isLoading: isLoadingContacts } = trpc.chat.contacts.useQuery({});
-  const updateChatMutation = useUpdateChat();
-  const deleteChatMutation = useArchiveChat();
+  const updateChatMutation = useUpdateChatMutation();
   const addParticipantsMutation = useAddParticipants();
   const removeParticipantMutation = useRemoveParticipants();
   const { data: currentUser } = trpc.chat.user.useQuery({});
@@ -286,18 +283,6 @@ export const ChatDetails: React.FC = () => {
 
   const handleRemoveParticipant = (participantId: string): void => {
     removeParticipantMutation.mutate({ chatId: chatDetails.id, participantId });
-  };
-
-  const handleDeleteChat = (chatUuid: string): void => {
-    deleteChatMutation.mutate(
-      { chatUuid },
-      {
-        onSuccess: () => {
-          console.log(`Chat ${chatUuid} deleted successfully`);
-          router.push('/app/chat');
-        },
-      },
-    );
   };
 
   const isFormValid = !chatNameError && chatName.trim().length >= 2 && chatName.trim().length <= 50;
@@ -561,25 +546,7 @@ export const ChatDetails: React.FC = () => {
 
           {/* --- Archive Chat Section --- */}
           <div className="rounded-lg border border-gray-200 bg-white p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <div className="font-body text-sm font-medium text-gray-600">Delete Chat</div>
-            </div>
-            <div className="mb-2 text-sm text-gray-500">
-              Deleting this chat is irreversible. You will no longer be able to see the chat or its
-              messages.
-            </div>
-            <div className="text-sm text-gray-500">
-              Deleting this chat will mark it as read-only for all other users, i.e. other members
-              will still be able to access the chat and read the messages.
-            </div>
-
-            <button
-              onClick={() => handleDeleteChat(chatDetails.id)}
-              disabled={updateChatMutation.isPending}
-              className="mt-4 w-full rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none"
-            >
-              Delete Chat
-            </button>
+            <DeleteChat />
           </div>
         </div>
       </div>
