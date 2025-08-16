@@ -19,7 +19,7 @@ services:
       npx prisma studio &
       corepack enable pnpm && pnpm i --frozen-lockfile &&
       sh /home/node/app/create_build_info.sh &&
-      if [ \"$ENABLE_SERVICE_WORKER_LOCALLY\" = \"true\" ]; then
+      if [ \"$NEXT_PUBLIC_ENABLE_OFFLINE_SUPPORT\" = \"true\" ]; then
         echo '' &&
         echo '**************************************************' &&
         echo '*   WARNING: SERVICE WORKER ENABLED              *' &&
