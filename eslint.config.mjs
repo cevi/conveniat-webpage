@@ -62,6 +62,24 @@ const config = [
     },
   },
   {
+    rules: {
+      'unicorn/prevent-abbreviations': [
+        'error',
+        {
+          allowList: {
+            params: true, // parameters
+            ctx: true, // context in trpc
+            args: true, // arguments
+            props: true, // properties
+            db: true, // database
+            tx: true, // transaction
+            val: true, // value
+          },
+        },
+      ],
+    },
+  },
+  {
     languageOptions: {
       parserOptions: {
         project: ['./tsconfig.json'],
