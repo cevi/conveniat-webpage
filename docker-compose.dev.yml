@@ -10,11 +10,31 @@ services:
         - NEXT_PUBLIC_ENABLE_OFFLINE_SUPPORT=true
 
     deploy:
+      replicas: 2
+
+      update_config:
+        parallelism: 1 # Update one replica at a time
+        delay: 0s # No delay between updates
+        order: start-first # Start new containers before stopping old ones
+        monitor: 5s # Time to wait after an update to monitor for failure
+        failure_action: rollback # What to do if an update fails
+        max_failure_ratio: 0.0 # Fail immediately if any container fails during update
+
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+        window: 60s
+
       labels:
         - swarmpit.service.deployment.autoredeploy=true
 
         # Enable Traefik for this service, to make it available in the public network
         - traefik.enable=true
+
+        # Define a middleware for retrying failed requests.
+        - traefik.http.middlewares.retry-middleware.retry.attempts=3
+        - traefik.http.middlewares.retry-middleware.retry.initialinterval=50ms
 
         # HTTP gets redirected to HTTPS
         - traefik.http.routers.conveniat27-dev-router-http.rule=Host(`conveniat27.cevi.tools`)
@@ -27,13 +47,18 @@ services:
 
         - traefik.http.services.conveniat27-dev.loadbalancer.server.port=3000
 
+        # Apply the retry middleware to this router
+        - traefik.http.routers.conveniat27-dev-router.middlewares=retry-middleware
+
+        # Add Traefik healthcheck labels
+        - traefik.http.services.conveniat27-dev.loadbalancer.healthcheck.path=/status
+        - traefik.http.services.conveniat27-dev.loadbalancer.healthcheck.interval=5s
+        - traefik.http.services.conveniat27-dev.loadbalancer.healthcheck.timeout=3s
+
       resources:
-        reservations:
-          cpus: '0.5'
-          memory: 256M
         limits:
-          cpus: '1.0'
-          memory: 512M
+          cpus: '2.0'
+          memory: 2048M
 
     volumes:
       - /cluster/swarm/data/conveniat-dev/next-cache:/app/.next/cache
@@ -49,14 +74,14 @@ services:
     networks:
       - traefik-net
       - backend-net
+      - observability-net
 
     healthcheck:
-      test:
-        ['CMD-SHELL', 'curl -f https://conveniat27.cevi.tools/status | grep -q ''"status":"ok"''']
-      interval: 30s
-      timeout: 10s
+      test: ['CMD-SHELL', 'curl -fs http://localhost:3000/status | grep -q "status\":\"ok"']
+      interval: 5s
+      timeout: 3s
       retries: 3
-      start_period: 40s
+      start_period: 10s
 
   mongo:
     image: mongo:latest
@@ -108,6 +133,7 @@ services:
     networks:
       - traefik-net
       - backend-net
+      - observability-net
 
   postgres:
     image: postgres:17
@@ -138,10 +164,67 @@ services:
       - backend-net
       - traefik-net
 
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - /cluster/swarm/data/conveniat-dev/prometheus:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-remote-write-receiver'
+      - '--enable-feature=exemplar-storage'
+      - '--enable-feature=native-histograms'
+    configs:
+      - source: prometheus-config
+        target: /etc/prometheus/prometheus.yml
+    networks:
+      - observability-net
+
+  tempo:
+    user: '0:0'
+    image: grafana/tempo:latest
+    command: ['-config.file=/etc/tempo/tempo.yml']
+    volumes:
+      - /cluster/swarm/data/conveniat-dev/tempo:/tmp/tempo
+    configs:
+      - source: tempo-config
+        target: /etc/tempo/tempo.yml
+    networks:
+      - observability-net
+
+  loki:
+    image: grafana/loki
+    volumes:
+      - /cluster/swarm/data/conveniat-dev/loki:/loki
+    command:
+      - --config.file=/mnt/config/loki-config.yml
+    configs:
+      - source: loki-config
+        target: /mnt/config/loki-config.yml
+    networks:
+      - observability-net
+
+configs:
+  loki-config:
+    name: loki_config_conveniat_dev-${STAMP:-0}
+    file: /cluster/swarm/configs/conveniat27-dev/loki/loki-config.yml
+
+  tempo-config:
+    name: tempo_config_conveniat_dev-${STAMP:-0}
+    file: /cluster/swarm/configs/conveniat27-dev/tempo/tempo.yml
+
+  prometheus-config:
+    name: prometheus_config_conveniat_dev-${STAMP:-0}
+    file: /cluster/swarm/configs/conveniat27-dev/prometheus/prometheus.yml
+
 networks:
   traefik-net:
     external: true
 
   backend-net:
+    driver: overlay
+    attachable: true
+
+  observability-net:
     driver: overlay
     attachable: true

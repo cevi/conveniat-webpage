@@ -169,12 +169,9 @@ const Dashboard: React.FC = async () => {
                           <div className="flex w-full justify-end">
                             <div className="ml-auto flex items-center gap-1.5 text-sm text-gray-600">
                               <MapPin className="h-3.5 w-3.5 flex-shrink-0 text-gray-500" />
-                              <Link
-                                href={`/app/map?locationId=${location.id}`}
-                                className="cursor-pointer font-medium text-blue-600 transition-colors hover:text-blue-800 hover:underline"
-                              >
+                              <div className="cursor-pointer font-medium text-blue-600 transition-colors">
                                 {location.title}
-                              </Link>
+                              </div>
                             </div>
                           </div>
                         )}

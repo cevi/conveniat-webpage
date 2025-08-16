@@ -74,7 +74,7 @@ const teamMembersBlock: Block = {
   slug: 'accordionTeamMembersBlock',
   interfaceName: 'TeamMembersBlock',
   fields: [
-    LinkField,
+    LinkField(false),
     teamLeaderGroup,
     {
       name: 'teamMembers',

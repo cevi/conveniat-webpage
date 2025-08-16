@@ -11,6 +11,22 @@ services:
         - NEXT_PUBLIC_POSTHOG_HOST=https://eu.i.posthog.com
 
     deploy:
+      replicas: 2
+
+      update_config:
+        parallelism: 1 # Update one replica at a time
+        delay: 0s # No delay between updates
+        order: start-first # Start new containers before stopping old ones
+        monitor: 5s # Time to wait after an update to monitor for failure
+        failure_action: rollback # What to do if an update fails
+        max_failure_ratio: 0.0 # Fail immediately if any container fails during update
+
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+        window: 60s
+
       labels:
         - swarmpit.service.deployment.autoredeploy=true
 
@@ -50,7 +66,7 @@ services:
         - traefik.http.routers.conveniat27-router.rule=Host(`conveniat27.ch`) || Host(`www.conveniat27.ch`)
         - traefik.http.routers.conveniat27-router.entrypoints=websecure
         - traefik.http.routers.conveniat27-router.service=conveniat27
-        - traefik.http.routers.conveniat27-router.middlewares=conveniat27-to-non-www
+        - traefik.http.routers.conveniat27-router.middlewares=conveniat27-to-non-www,retry-middleware-prod
 
         - traefik.http.services.conveniat27.loadbalancer.server.port=3000
 
@@ -58,16 +74,22 @@ services:
         - traefik.http.middlewares.conveniat27-to-non-www.redirectregex.replacement=https://conveniat27.ch/$$$${1}
         - traefik.http.middlewares.conveniat27-to-non-www.redirectregex.permanent=true
 
+        # Add Traefik healthcheck labels
+        - traefik.http.services.conveniat27.loadbalancer.healthcheck.path=/status
+        - traefik.http.services.conveniat27.loadbalancer.healthcheck.interval=5s
+        - traefik.http.services.conveniat27.loadbalancer.healthcheck.timeout=3s
+
+        # Define a middleware for retrying failed requests.
+        - traefik.http.middlewares.retry-middleware-prod.retry.attempts=3
+        - traefik.http.middlewares.retry-middleware-prod.retry.initialinterval=50ms
+
       resources:
-        reservations:
-          cpus: '0.5'
-          memory: 256M
         limits:
-          cpus: '1.0'
-          memory: 512M
+          cpus: '2.0'
+          memory: 2048M
 
     volumes:
-      - /cluster/swarm/data/conveniat/next-cache:/app/.next/cache
+      - /cluster/swarm/data/conveniat-prod/next-cache:/app/.next/cache
 
     dns:
       - 8.8.8.8 # Replace with your desired DNS server
@@ -82,11 +104,11 @@ services:
       - backend-net
 
     healthcheck:
-      test: ['CMD-SHELL', 'curl -f https://conveniat27.ch/status | grep -q ''"status":"ok"''']
-      interval: 30s
-      timeout: 10s
+      test: ['CMD-SHELL', 'curl -fs http://localhost:3000/status | grep -q "status\":\"ok"']
+      interval: 5s
+      timeout: 3s
       retries: 3
-      start_period: 40s
+      start_period: 10s
 
   mongo:
     image: mongo:latest
@@ -114,7 +136,7 @@ services:
           echo "INFO: 🧹 Deleting backups older than 30 days...";
           find /backup -type d -mtime +30 -exec rm -rf {} +;
           echo "INFO: Creating database backup...";
-          mongodump --host mongo --out /backup/dump_$$(date +%Y-%m-%d_%H-%M-%S);
+          mongodump --host mongo --out /backup/dump_$$$$(date +%Y-%m-%d_%H-%M-%S);
           echo "INFO: Backup complete. Waiting 1 hour.";
           sleep 3600; # 1 hour
         done

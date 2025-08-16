@@ -95,7 +95,6 @@ export const AnnotationDetailsDrawer: React.FC<{
     });
   }, [closeDrawer]);
 
-  // --- UPDATED: Add and Remove Event Listeners ---
   useEffect(() => {
     if (isResizing) {
       globalThis.addEventListener('mousemove', handleMouseMove);
@@ -129,24 +128,26 @@ export const AnnotationDetailsDrawer: React.FC<{
       style={{ height: `${drawerHeight}vh` }}
     >
       <div
-        className="absolute top-0 right-0 left-0 z-30 flex h-4 cursor-ns-resize items-center justify-center bg-white"
-        onMouseDown={handleMouseDown}
-        onTouchStart={handleTouchStart}
-      >
-        <div className="h-1 w-20 rounded-full bg-gray-300"></div>
-      </div>
-
-      <div
         className="flex h-full flex-col overflow-y-auto px-4 pt-4 select-none"
         onDragStart={(event) => event.preventDefault()}
       >
         <div className="relative">
-          <AnnotationDrawerHeader
-            closeDrawer={closeDrawer}
-            annotation={annotation}
-            locale={locale}
-            shareLocationCallback={shareLocationCallback}
-          />
+          <div
+            className="sticky top-0 border-b-2 border-gray-100 bg-white pt-4"
+            onMouseDown={handleMouseDown}
+            onTouchStart={handleTouchStart}
+          >
+            <div className="absolute top-[-16px] right-0 left-0 z-30 flex h-4 cursor-ns-resize items-center justify-center bg-white">
+              <div className="h-1 w-20 rounded-full bg-gray-300"></div>
+            </div>
+
+            <AnnotationDrawerHeader
+              closeDrawer={closeDrawer}
+              annotation={annotation}
+              locale={locale}
+              shareLocationCallback={shareLocationCallback}
+            />
+          </div>
 
           <AnnotationDescriptionSection
             description={annotation.description as SerializedEditorState}

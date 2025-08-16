@@ -1,7 +1,5 @@
 'use client'; // Error boundaries must be Client Components
 
-import { initPostHog } from '@/lib/posthog-client';
-import posthog from 'posthog-js';
 import type React from 'react';
 import { useEffect } from 'react';
 
@@ -23,15 +21,26 @@ const GlobalError: React.FC<{
   useEffect(() => {
     console.error('Something went terribly wrong, we are sorry for that.');
 
-    // make sure to report the error to posthog
-    initPostHog(posthog); // here we need re-initialize posthog, as we are out of the app context
-    posthog.captureException(error, {
-      properties: {
-        digest: error.digest,
-        message: error.message,
-        stack: error.stack,
-      },
-    });
+    const initializePostHogAndCaptureError = async (): Promise<void> => {
+      try {
+        const posthogModule = await import('posthog-js');
+        const { initPostHog } = await import('@/lib/posthog-client');
+
+        // Initialize PostHog with the default export
+        initPostHog(posthogModule.default);
+        posthogModule.default.captureException(error, {
+          properties: {
+            digest: error.digest,
+            message: error.message,
+            stack: error.stack,
+          },
+        });
+      } catch (error_: unknown) {
+        console.error('Failed to initialize PostHog or capture error:', error_);
+      }
+    };
+
+    void initializePostHogAndCaptureError();
   }, [error]);
 
   return (

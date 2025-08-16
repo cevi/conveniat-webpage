@@ -1,4 +1,4 @@
-import { createChat } from '@/features/chat/api/create-chat';
+import { trpc } from '@/trpc/server';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import { auth } from '@/utils/auth-helpers';
 import Link from 'next/link';
@@ -23,7 +23,7 @@ const NewChatWithUserPage: React.FC<{
   const user = session?.user as HitobitoNextAuthUser;
 
   if (user.uuid == userId) {
-    return redirect(`/app/chat`); // do not allow create self-chat.
+    return redirect(`/app/chat`); // do not allow to create self-chat.
   }
 
   const chatName = ''; // Private chats do not require a name
@@ -33,10 +33,17 @@ const NewChatWithUserPage: React.FC<{
       name: '', // Name will be fetched from the user profile
     },
   ];
-  const chatId = await createChat(contacts, chatName).catch((error: unknown) => {
-    console.error('Failed to create chat:', error);
-    return; // Return undefined if chat creation fails
-  });
+  const chatId = await trpc.chat
+    .createChat({
+      chatName,
+      members: contacts.map((contact) => ({
+        userId: contact.uuid,
+      })),
+    })
+    .catch((error: unknown) => {
+      console.error('Failed to create chat:', error);
+      return; // Return undefined if chat creation fails
+    });
 
   if (chatId === undefined) {
     return (

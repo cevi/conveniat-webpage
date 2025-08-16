@@ -13,9 +13,21 @@ import { getPayload, type PaginatedDocs } from 'payload';
 import type React from 'react';
 import 'server-only';
 
+function parseEnvironmentMapCenter(): [number, number] {
+  // this may still be undefined during build
+  const environmentVariable = environmentVariables.CAMP_MAP_INITIAL_MAP_CENTER as
+    | string
+    | undefined;
+  const parts = environmentVariable?.split('/');
+  if (parts === undefined || parts.length !== 2) {
+    return [8.301_211, 46.502_822];
+  }
+  return [Number.parseFloat(parts[0] ?? ''), Number.parseFloat(parts[1] ?? '')];
+}
+
 const initialMapPoseObergoms: InitialMapPose = {
-  initialMapCenter: [8.301_211, 46.502_822],
-  zoom: 15.5,
+  initialMapCenter: parseEnvironmentMapCenter(),
+  zoom: environmentVariables.CAMP_MAP_INITIAL_ZOOM,
 };
 
 export const CampMapComponent: React.FC = async () => {
@@ -92,9 +104,6 @@ export const CampMapComponent: React.FC = async () => {
 
   return (
     <>
-      <div // fixes https://github.com/cevi/conveniat-webpage/issues/481
-        className="h-dvh w-full overflow-hidden bg-white"
-      ></div>
       <div className="fixed top-[60px] left-0 h-[calc(100dvh-60px)] w-screen pb-20">
         <MapLibreRenderer
           initialMapPose={initialMapPoseObergoms}

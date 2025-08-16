@@ -1,4 +1,5 @@
 import { middlewareChain } from '@/middleware/middleware-chain';
+import { withAbortOnInfiniteRedirects } from '@/middleware/with-abort-on-infinite-redirects';
 import { withAppFeatureMiddleware } from '@/middleware/with-app-feature-middleware';
 import { withAuthenticationRedirect } from '@/middleware/with-authentication-redirect';
 import { withI18nMiddleware } from '@/middleware/with-i18n-middleware';
@@ -12,6 +13,7 @@ import { withPreviewMiddleware } from '@/middleware/with-preview-middleware';
  *
  */
 export const middleware = middlewareChain([
+  withAbortOnInfiniteRedirects,
   withAppFeatureMiddleware,
   withPreviewMiddleware,
   withAuthenticationRedirect,

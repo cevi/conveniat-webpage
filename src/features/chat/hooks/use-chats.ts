@@ -1,37 +1,23 @@
-import type { Contact } from '@/features/chat/api/get-contacts';
-import { fetchAllContacts } from '@/features/chat/api/get-contacts';
-import { getChatDetail, getChats } from '@/features/chat/api/get-messages';
-import type { ChatDetailDto, ChatDto } from '@/features/chat/types/api-dto-types';
-import { MessageStatusDto } from '@/features/chat/types/api-dto-types';
-
-import { changeMessageStatus } from '@/features/chat/api/change-message-status';
-import type { UseQueryResult } from '@tanstack/react-query';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { trpc } from '@/trpc/client';
+import type { AppRouter } from '@/trpc/routers/_app';
+import type { TRPCClientErrorLike } from '@trpc/client';
+import type { UseTRPCQueryResult } from '@trpc/react-query/shared';
+import type { inferProcedureOutput } from '@trpc/server';
 import { useEffect } from 'react';
 
-// --- Define Query Keys ---
-export const CHATS_QUERY_KEY = ['chats'];
-export const CHAT_DETAIL_QUERY_KEY = (chatId: string): string[] => ['chatDetail', chatId];
-export const ALL_CONTACTS_QUERY_KEY = ['allContacts'];
+type ChatsResult = UseTRPCQueryResult<
+  inferProcedureOutput<AppRouter['chat']['chats']>,
+  TRPCClientErrorLike<AppRouter>
+>;
 
-// --- useChats Hook ---
-export const useChats = (): UseQueryResult<ChatDto[]> => {
-  const queryClient = useQueryClient();
-
-  const query = useQuery({
-    queryKey: CHATS_QUERY_KEY,
-    queryFn: getChats,
-    refetchInterval: 30_000, // 30 seconds
-  });
+export const useChats = (): ChatsResult => {
+  const trpcUtils = trpc.useUtils();
+  const query = trpc.chat.chats.useQuery({}, { refetchInterval: 30_000 });
 
   useEffect(() => {
     const handleMessage = (): void => {
-      console.log('Received message via push notification, invalidating chats query');
-      queryClient.invalidateQueries({ queryKey: CHATS_QUERY_KEY }).catch(console.error);
-      changeMessageStatus({
-        messageId: '', // TODO: Handle message ID properly
-        status: MessageStatusDto.DELIVERED,
-      }).catch(console.error);
+      console.log('Received message via service worker, updating state...');
+      trpcUtils.chat.chats.invalidate().catch(console.error);
     };
 
     if (typeof navigator !== 'undefined') {
@@ -43,21 +29,23 @@ export const useChats = (): UseQueryResult<ChatDto[]> => {
         navigator.serviceWorker.removeEventListener('message', handleMessage);
       }
     };
-  }, [queryClient]);
+  }, [trpcUtils]);
 
   return query;
 };
 
-// --- useChatDetail Hook ---
-export const useChatDetail = (chatId: string): UseQueryResult<ChatDetailDto> => {
-  const queryClient = useQueryClient();
+type ChatDetailResult = UseTRPCQueryResult<
+  inferProcedureOutput<AppRouter['chat']['chatDetails']>,
+  TRPCClientErrorLike<AppRouter>
+>;
+
+export const useChatDetail = (chatId: string): ChatDetailResult => {
+  const trpcUtils = trpc.useUtils();
 
   useEffect(() => {
     const handleMessage = (): void => {
       console.log('Received message via push notification, invalidating chat detail query');
-      queryClient
-        .invalidateQueries({ queryKey: CHAT_DETAIL_QUERY_KEY(chatId) })
-        .catch(console.error);
+      trpcUtils.chat.chatDetails.invalidate({ chatId }).catch(console.error);
     };
 
     if (typeof navigator !== 'undefined') {
@@ -69,33 +57,18 @@ export const useChatDetail = (chatId: string): UseQueryResult<ChatDetailDto> => 
         navigator.serviceWorker.removeEventListener('message', handleMessage);
       }
     };
-  }, [queryClient, chatId]);
+  }, [trpcUtils, chatId]);
 
-  return useQuery({
-    queryKey: CHAT_DETAIL_QUERY_KEY(chatId),
-    queryFn: () =>
-      getChatDetail(chatId).then((data) => {
-        if ('error' in data) throw new Error('Failed to fetch chat detail');
-        return data;
-      }),
-    enabled: chatId !== '',
-
-    retry: 3, // Retry up to 3 times on failure
-
-    refetchInterval: 5000, // 5 seconds
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
-    refetchOnReconnect: true,
-
-    // for that we have push notifications
-    refetchIntervalInBackground: false,
-  });
-};
-
-// --- useAllContacts Hook ---
-export const useAllContacts = (): UseQueryResult<Contact[]> => {
-  return useQuery({
-    queryKey: ALL_CONTACTS_QUERY_KEY,
-    queryFn: fetchAllContacts,
-  });
+  return trpc.chat.chatDetails.useQuery(
+    { chatId },
+    {
+      enabled: chatId !== '',
+      retry: 3,
+      refetchInterval: 5000,
+      refetchOnMount: true,
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
+      refetchIntervalInBackground: false,
+    },
+  );
 };

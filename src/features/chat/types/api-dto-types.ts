@@ -5,6 +5,7 @@ export enum MessageStatusDto {
   READ = 'READ',
 }
 
+/** @deprecated */
 export interface MessageDto {
   id: string;
   // undefined for system messages
@@ -14,37 +15,11 @@ export interface MessageDto {
   status: MessageStatusDto;
 }
 
+/** @deprecated */
 export interface ChatDto {
   id: string;
   name: string;
   lastMessage?: MessageDto;
   lastUpdate: Date;
   unreadCount: number;
-}
-
-export interface SendMessageDto {
-  chatId: string;
-  content: string;
-  timestamp: Date;
-}
-
-export interface ParticipantDto {
-  id: string;
-  name: string;
-  isOnline: boolean;
-  lastSeen?: string;
-}
-
-export interface ChatDetailDto {
-  id: string;
-  name: string;
-  messages: MessageDto[];
-  participants: ParticipantDto[];
-  isGroupChat?: boolean;
-  lastActivity?: string;
-}
-
-export interface ChangeMessageStatus {
-  messageId: string;
-  status: MessageStatusDto;
 }

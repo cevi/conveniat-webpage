@@ -96,7 +96,7 @@ const formNameValidation: TextFieldSingleValidation = (value) => {
 };
 
 const validateRegex: TextFieldSingleValidation = (value) => {
-  if (!value) return true; // allow empty values
+  if (value == undefined) return true; // allow empty values
   try {
     new RegExp(value);
     return true;

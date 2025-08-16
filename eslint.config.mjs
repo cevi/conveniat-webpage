@@ -4,7 +4,6 @@ import js from '@eslint/js';
 import progress from 'eslint-plugin-file-progress';
 import nodePlugin from 'eslint-plugin-n';
 import noRelativeImportPaths from 'eslint-plugin-no-relative-import-paths';
-import prettierConfigRecommended from 'eslint-plugin-prettier/recommended';
 import reactNamingConvention from 'eslint-plugin-react-naming-convention';
 import eslintPluginUnicorn from 'eslint-plugin-unicorn';
 import * as fs from 'node:fs';
@@ -55,12 +54,24 @@ const config = [
   progress.configs.recommended,
   ...patchedConfig,
   ...ts.configs.recommended,
-  prettierConfigRecommended,
   eslintPluginUnicorn.configs['flat/recommended'],
   {
-    files: ['**/next-env.d.ts'],
     rules: {
-      'unicorn/prevent-abbreviations': 'off',
+      'unicorn/prevent-abbreviations': [
+        'error',
+        {
+          allowList: {
+            params: true, // parameters
+            ctx: true, // context in trpc
+            args: true, // arguments
+            props: true, // properties
+            db: true, // database
+            tx: true, // transaction
+            val: true, // value
+            env: true, // environment
+          },
+        },
+      ],
     },
   },
   {

@@ -33,7 +33,7 @@ export const NewsCardBlock: React.FC<NewsCardType> = async ({
 }) => {
   const locale = await getLocaleFromCookies();
 
-  const newscardContent = (
+  const newsCardContent = (
     <div className="flex basis-1 flex-col rounded-md border-2 border-gray-200 bg-white p-6 transition duration-200 hover:shadow-md lg:max-w-96">
       <div>
         <span className="font-body text-[12px] font-bold text-gray-500">
@@ -42,8 +42,6 @@ export const NewsCardBlock: React.FC<NewsCardType> = async ({
             year: 'numeric',
             month: 'long',
             day: 'numeric',
-            /*hour: 'numeric',
-            minute: 'numeric',*/
             timeZone: 'Europe/Zurich',
           })}
         </span>
@@ -76,9 +74,9 @@ export const NewsCardBlock: React.FC<NewsCardType> = async ({
 
   return linkField ? (
     <LinkComponent href={url} openInNewTab={openURLInNewTab(linkField)} hideExternalIcon>
-      {newscardContent}
+      {newsCardContent}
     </LinkComponent>
   ) : (
-    newscardContent
+    newsCardContent
   );
 };

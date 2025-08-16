@@ -5,16 +5,16 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { Button } from '@/components/ui/buttons/button';
 import { Input } from '@/components/ui/input';
-import type { Contact } from '@/features/chat/api/get-contacts';
+import type { Contact } from '@/features/chat/api/queries/contacts';
+import { DeleteChat } from '@/features/chat/components/chat-details-view/delete-chat';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useAddParticipants } from '@/features/chat/hooks/use-add-participants';
-import { useChatUser } from '@/features/chat/hooks/use-chat-user';
-import { CHATS_QUERY_KEY, useAllContacts, useChatDetail } from '@/features/chat/hooks/use-chats';
+import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import { useRemoveParticipants } from '@/features/chat/hooks/use-remove-participant';
-import { useUpdateChat } from '@/features/chat/hooks/use-update-chat';
+import { useUpdateChatMutation } from '@/features/chat/hooks/use-update-chat-mutation';
+import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,
   Check,
@@ -121,6 +121,12 @@ const noContactsFoundText: StaticTranslationString = {
   fr: 'Aucun contact trouvé correspondant à votre recherche',
 };
 
+const youText: StaticTranslationString = {
+  de: 'Du',
+  en: 'You',
+  fr: 'Vous',
+};
+
 const ChatDetailsPageSkeleton: React.FC = () => (
   <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col bg-gray-50 xl:top-[62px] xl:left-[480px] xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
     <div className="flex h-16 items-center gap-3 border-b border-gray-200 bg-white px-4 shadow-sm">
@@ -190,18 +196,14 @@ export const ChatDetails: React.FC = () => {
   const [chatName, setChatName] = useState('');
   const [chatNameError, setChatNameError] = useState('');
 
-  // --- Start of new state and hooks ---
   const [isManagingParticipants, setIsManagingParticipants] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedContactsToAdd, setSelectedContactsToAdd] = useState<Contact[]>([]);
-
-  const queryClient = useQueryClient();
-  const { data: allContacts, isLoading: isLoadingContacts } = useAllContacts();
-  const updateChatMutation = useUpdateChat();
+  const { data: allContacts, isLoading: isLoadingContacts } = trpc.chat.contacts.useQuery({});
+  const updateChatMutation = useUpdateChatMutation();
   const addParticipantsMutation = useAddParticipants();
   const removeParticipantMutation = useRemoveParticipants();
-  const { data: currentUser } = useChatUser();
-  // --- End of new state and hooks ---
+  const { data: currentUser } = trpc.chat.user.useQuery({});
 
   // Memoize the list of contacts that can be added (not already in the chat)
   const addableContacts = useMemo(() => {
@@ -209,7 +211,7 @@ export const ChatDetails: React.FC = () => {
     const participantIds = new Set(chatDetails?.participants.map((p) => p.id) || []);
     return allContacts.filter(
       (contact) =>
-        !participantIds.has(contact.uuid) &&
+        !participantIds.has(contact.userId) &&
         contact.name.toLowerCase().includes(searchQuery.toLowerCase()),
     );
   }, [allContacts, chatDetails, searchQuery]);
@@ -238,16 +240,7 @@ export const ChatDetails: React.FC = () => {
     }
 
     if (chatName.trim() !== '' && chatName !== chatDetails.name) {
-      updateChatMutation.mutate(
-        { chatId: chatDetails.id, name: chatName.trim() },
-        {
-          onSuccess: () => {
-            void queryClient.invalidateQueries({ queryKey: [CHATS_QUERY_KEY] });
-            setIsEditingName(false);
-            setChatNameError('');
-          },
-        },
-      );
+      updateChatMutation.mutate({ chatUuid: chatDetails.id, newName: chatName.trim() });
     } else {
       setIsEditingName(false);
     }
@@ -274,38 +267,22 @@ export const ChatDetails: React.FC = () => {
   // --- Start of new handlers for participant management ---
   const handleToggleContactSelection = (contact: Contact): void => {
     setSelectedContactsToAdd((previous) =>
-      previous.some((c) => c.uuid === contact.uuid)
-        ? previous.filter((c) => c.uuid !== contact.uuid)
+      previous.some((c) => c.userId === contact.userId)
+        ? previous.filter((c) => c.userId !== contact.userId)
         : [...previous, contact],
     );
   };
 
   const handleAddParticipants = (): void => {
     if (selectedContactsToAdd.length === 0) return;
-    addParticipantsMutation.mutate(
-      {
-        chatId: chatDetails.id,
-        participantIds: selectedContactsToAdd.map((c) => c.uuid),
-      },
-      {
-        onSuccess: () => {
-          setSelectedContactsToAdd([]);
-          setSearchQuery('');
-          void queryClient.invalidateQueries({ queryKey: [CHATS_QUERY_KEY, chatDetails.id] });
-        },
-      },
-    );
+    addParticipantsMutation.mutate({
+      chatId: chatDetails.id,
+      participantIds: selectedContactsToAdd.map((c) => c.userId),
+    });
   };
 
   const handleRemoveParticipant = (participantId: string): void => {
-    removeParticipantMutation.mutate(
-      { chatId: chatDetails.id, participantId },
-      {
-        onSuccess: () => {
-          void queryClient.invalidateQueries({ queryKey: [CHATS_QUERY_KEY, chatDetails.id] });
-        },
-      },
-    );
+    removeParticipantMutation.mutate({ chatId: chatDetails.id, participantId });
   };
 
   const isFormValid = !chatNameError && chatName.trim().length >= 2 && chatName.trim().length <= 50;
@@ -426,7 +403,14 @@ export const ChatDetails: React.FC = () => {
                       <div className="font-body font-medium text-gray-900">
                         {participant.name}
                         {participant.id === currentUser && (
-                          <span className="ml-1 text-sm text-gray-500">(You)</span>
+                          <span className="ml-1 text-sm text-gray-500">
+                            ({youText[locale]}, {participant.chatPermission})
+                          </span>
+                        )}
+                        {participant.id !== currentUser && (
+                          <span className="ml-1 text-sm text-gray-500">
+                            ({participant.chatPermission})
+                          </span>
                         )}
                       </div>
                     </div>
@@ -478,7 +462,7 @@ export const ChatDetails: React.FC = () => {
                   <div className="flex flex-wrap gap-2">
                     {selectedContactsToAdd.map((contact) => (
                       <div
-                        key={contact.uuid}
+                        key={contact.userId}
                         className="font-body text-conveniat-green flex items-center gap-2 rounded-full bg-green-100 px-3 py-1 text-sm"
                       >
                         <span>{contact.name}</span>
@@ -510,10 +494,12 @@ export const ChatDetails: React.FC = () => {
                     </div>
                   ) : (
                     addableContacts.map((contact) => {
-                      const isSelected = selectedContactsToAdd.some((c) => c.uuid === contact.uuid);
+                      const isSelected = selectedContactsToAdd.some(
+                        (c) => c.userId === contact.userId,
+                      );
                       return (
                         <div
-                          key={contact.uuid}
+                          key={contact.userId}
                           className={`flex cursor-pointer items-center justify-between space-x-3 rounded-lg p-3 transition-colors ${
                             isSelected ? 'text-conveniat-green bg-green-100' : 'hover:bg-gray-100'
                           }`}
@@ -557,6 +543,11 @@ export const ChatDetails: React.FC = () => {
               </Button>
             </div>
           )}
+
+          {/* --- Archive Chat Section --- */}
+          <div className="rounded-lg border border-gray-200 bg-white p-6">
+            <DeleteChat />
+          </div>
         </div>
       </div>
     </div>

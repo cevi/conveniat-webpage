@@ -72,7 +72,7 @@ export const notificationClickHandler =
     const notificationData = event.notification.data as NotificationData;
 
     const urlToOpen =
-      notificationData.url || (process.env['NEXT_PUBLIC_APP_HOST_URL'] ?? 'https://conveniat27.ch');
+      notificationData.url ?? process.env['NEXT_PUBLIC_APP_HOST_URL'] ?? 'https://conveniat27.ch';
 
     event.waitUntil(serviceWorkerScope.clients.openWindow(urlToOpen));
   };

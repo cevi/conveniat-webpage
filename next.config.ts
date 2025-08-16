@@ -31,13 +31,16 @@ const postHogRewrites = async (): Promise<Rewrite[]> => {
 const nextConfig: NextConfig = {
   output: 'standalone',
   productionBrowserSourceMaps: true,
-  serverExternalPackages: ['mongodb', 'mongoose'],
   transpilePackages: ['@t3-oss/env-nextjs', '@t3-oss/env-core'],
   poweredByHeader: false,
   reactStrictMode: true,
   turbopack: {
     moduleIds: 'named',
   },
+
+  // enable gzip compression for all responses
+  compress: true,
+
   experimental: {
     // Forward browser logs to the terminal for easier debugging
     browserDebugInfoInTerminal: true,
@@ -47,6 +50,14 @@ const nextConfig: NextConfig = {
 
     // enable react compiler for better error messages and performance
     reactCompiler: true,
+
+    // activate new client-side router improvements
+    clientSegmentCache: true,
+
+    staleTimes: {
+      dynamic: 0, // this must be set to 0 for payload to work correctly
+      static: 300, // 5 minutes for static pages, default
+    },
   },
   logging: { fetches: { fullUrl: true } },
   eslint: {

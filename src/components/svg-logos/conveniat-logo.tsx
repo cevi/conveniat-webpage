@@ -1,10 +1,10 @@
-import { isDevelopementBuild } from '@/utils/is-development-build';
-import React from 'react';
+import { isDevelopmentBuild } from '@/utils/is-development-build';
+import type React from 'react';
 
 export const ConveniatLogo: React.FC<{
   className?: string;
 }> = ({ className }) => {
-  const ICON_COLOR = isDevelopementBuild() ? '#520000' : '#47564C';
+  const ICON_COLOR = isDevelopmentBuild() ? '#520000' : '#47564C';
   return (
     <svg
       width="75"

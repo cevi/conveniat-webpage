@@ -4,8 +4,7 @@ import type React from 'react';
 
 import { Button } from '@/components/ui/buttons/button';
 import { useChatId } from '@/features/chat/context/chat-id-context';
-import { useChatUser } from '@/features/chat/hooks/use-chat-user';
-import { useChatDetail } from '@/features/chat/hooks/use-chats';
+import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { ArrowLeft, Info } from 'lucide-react';
@@ -38,8 +37,8 @@ export const ChatHeaderSkeleton: React.FC = () => (
 export const ChatHeader: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const chatId = useChatId();
-  const { data: user } = useChatUser();
-  const { data: chatDetails } = useChatDetail(chatId);
+  const { data: user } = trpc.chat.user.useQuery({});
+  const { data: chatDetails } = trpc.chat.chatDetails.useQuery({ chatId });
 
   if (!chatDetails) {
     return <ChatHeaderSkeleton />;

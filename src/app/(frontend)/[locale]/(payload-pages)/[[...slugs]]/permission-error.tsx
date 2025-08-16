@@ -51,9 +51,8 @@ export const PermissionError: React.FC = () => {
           <TeaserText>{requestingPageText[locale]}</TeaserText>
 
           <TeaserText>
-            {pageNotAvailableP1Text[locale]}
+            {pageNotAvailableP1Text[locale]}{' '}
             <LinkComponent onClick={backToHomeHandler} className="font-bold text-red-600" href={''}>
-              {' '}
               {homePageLinkText[locale]}
             </LinkComponent>
             {'.'}

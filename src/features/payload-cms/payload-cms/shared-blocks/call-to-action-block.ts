@@ -17,7 +17,7 @@ export const callToActionBlock: Block = {
         },
       },
     },
-    LinkField,
+    LinkField(),
     {
       name: 'inverted',
       type: 'checkbox',

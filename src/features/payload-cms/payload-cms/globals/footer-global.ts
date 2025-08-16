@@ -1,6 +1,7 @@
+import { asLocalizedGlobal } from '@/features/payload-cms/payload-cms/utils/localized-global';
 import type { GlobalConfig } from 'payload';
 
-export const FooterGlobal: GlobalConfig = {
+export const FooterGlobal: GlobalConfig = asLocalizedGlobal({
   slug: 'footer',
   label: {
     en: 'Footer',
@@ -140,4 +141,4 @@ export const FooterGlobal: GlobalConfig = {
       fr: 'Paramètres pour le pied de page',
     },
   },
-};
+});

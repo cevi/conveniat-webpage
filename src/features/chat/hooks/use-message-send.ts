@@ -1,92 +1,74 @@
-import { sendMessage } from '@/features/chat/api/send-message';
-import { useChatId } from '@/features/chat/context/chat-id-context';
-import { useChatUser } from '@/features/chat/hooks/use-chat-user';
-import { CHAT_DETAIL_QUERY_KEY } from '@/features/chat/hooks/use-chats';
-import type { MessageDto, SendMessageDto } from '@/features/chat/types/api-dto-types';
+import type { ChatDetails } from '@/features/chat/api/queries/chat';
+import type { MessageDto } from '@/features/chat/types/api-dto-types';
 import { MessageStatusDto } from '@/features/chat/types/api-dto-types';
-import type { UseMutationResult } from '@tanstack/react-query';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { trpc } from '@/trpc/client';
+import type { AppRouter } from '@/trpc/routers/_app';
+import type { TRPCClientErrorLike } from '@trpc/client';
+import type { UseTRPCMutationResult } from '@trpc/react-query/shared';
+import type { inferProcedureInput, inferProcedureOutput } from '@trpc/server';
 
-interface ChatDetailData {
-  id: string;
-  messages: MessageDto[];
-}
+type UseMessageSendMutation = UseTRPCMutationResult<
+  inferProcedureOutput<AppRouter['chat']['sendMessage']>,
+  TRPCClientErrorLike<AppRouter>,
+  inferProcedureInput<AppRouter['chat']['sendMessage']>,
+  unknown
+>;
 
-/**
- * Custom hook to send a message in a chat.
- * It uses optimistic updates to provide immediate feedback to the user.
- *
- */
-export const useMessageSend = (): UseMutationResult<
-  void,
-  Error,
-  string,
-  { previousChatData: ChatDetailData | undefined }
-> => {
-  const queryClient = useQueryClient();
-  const chatId = useChatId();
-  const chatQueryKey = CHAT_DETAIL_QUERY_KEY(chatId);
-  const { data: currentUser } = useChatUser();
+export const useMessageSend = (): UseMessageSendMutation => {
+  const trpcUtils = trpc.useUtils();
+  const { data: currentUser } = trpc.chat.user.useQuery({});
 
-  return useMutation({
-    mutationFn: async (content: string) => {
-      const messagePayload: SendMessageDto = {
-        chatId: chatId,
-        content: content.trim(),
-        timestamp: new Date(),
-      };
-      return sendMessage(messagePayload);
-    },
+  return trpc.chat.sendMessage.useMutation({
+    async onMutate({ chatId, content }) {
+      if (!Boolean(currentUser)) {
+        throw new Error('Current user is not defined');
+      }
 
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: chatQueryKey }),
+      await trpcUtils.chat.chatDetails.cancel({ chatId });
+      const previousChatData = trpcUtils.chat.chatDetails.getData({ chatId });
 
-    onMutate: async (content: string) => {
-      // we cannot send without a current user
-      if (currentUser === undefined) throw new Error('Current user is not defined');
-
-      await queryClient.cancelQueries({ queryKey: chatQueryKey });
-
-      const previousChatData = queryClient.getQueryData<ChatDetailData>(chatQueryKey);
-      const temporaryId = `optimistic-${Date.now()}-${Math.random()}`;
-      const createdMessage: MessageDto = {
-        id: temporaryId,
+      const optimisticMessage: MessageDto = {
+        id: `optimistic-${Date.now()}`,
         content: content.trim(),
         timestamp: new Date(),
         senderId: currentUser,
         status: MessageStatusDto.CREATED,
       };
 
-      queryClient.setQueryData<ChatDetailData>(chatQueryKey, (oldData) => {
-        if (!oldData) {
-          console.warn('Attempted optimistic update on non-cached chat data.');
-          return (
-            previousChatData ?? {
+      trpcUtils.chat.chatDetails.setData(
+        { chatId },
+        (oldData: ChatDetails | undefined): ChatDetails => {
+          if (!oldData) {
+            return {
+              isArchived: false,
+              name: '',
+              participants: [],
               id: chatId,
-              messages: [createdMessage],
-            }
-          );
-        }
-
-        return {
-          ...oldData,
-          messages: [...oldData.messages, createdMessage],
-        };
-      });
+              messages: [optimisticMessage],
+            };
+          }
+          return {
+            ...oldData,
+            messages: [...oldData.messages, optimisticMessage],
+          };
+        },
+      );
 
       return { previousChatData };
     },
 
-    onError: async (error, _content, context) => {
-      console.error('Message send failed, rolling back optimistic update:', error);
+    onError: (error, { chatId }, context) => {
+      // TODO: use proper error handling and user feedback
+      console.error('Failed to send message, rolling back optimistic update:', error);
       if (context?.previousChatData) {
-        queryClient.setQueryData<ChatDetailData>(chatQueryKey, context.previousChatData);
+        trpcUtils.chat.chatDetails.setData({ chatId }, context.previousChatData);
       } else {
-        await queryClient.invalidateQueries({ queryKey: chatQueryKey });
+        trpcUtils.chat.chatDetails.invalidate({ chatId }).catch(console.error);
       }
     },
 
-    onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: chatQueryKey });
+    onSuccess: (_, { chatId }) => {
+      trpcUtils.chat.chatDetails.invalidate({ chatId }).catch(console.error);
     },
   });
 };
