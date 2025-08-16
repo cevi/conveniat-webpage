@@ -590,7 +590,9 @@ export const FormBlock: React.FC<
       <form
         className={cn(
           'relative mx-auto h-auto max-w-xl rounded-md bg-white',
-          withBorder === undefined || Boolean(withBorder) ? 'border-2 border-gray-200 p-6' : '',
+          withBorder === undefined || Boolean(withBorder)
+            ? 'border-2 border-gray-200 p-6 pt-0'
+            : '',
         )}
         id={formID}
         onSubmit={(event?: React.BaseSyntheticEvent): void => {
