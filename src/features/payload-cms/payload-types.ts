@@ -2837,13 +2837,23 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   createdAt?: T;
 }
 /**
- * Settings for the header navigation
- *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "header".
  */
 export interface Header {
   id: string;
+  publishingStatus?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  _localized_status: LocalizedPublishingStatus;
+  _locale: string;
+  _disable_unpublishing?: boolean | null;
   mainMenu?:
     | {
         label: string;
@@ -2884,6 +2894,7 @@ export interface Header {
         id?: string | null;
       }[]
     | null;
+  _status?: ('draft' | 'published') | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -2895,6 +2906,18 @@ export interface Header {
  */
 export interface Footer {
   id: string;
+  publishingStatus?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  _localized_status: LocalizedPublishingStatus;
+  _locale: string;
+  _disable_unpublishing?: boolean | null;
   /**
    * Menu item in the dark area of the footer
    */
@@ -2925,6 +2948,7 @@ export interface Footer {
     instagram?: string | null;
     youtube?: string | null;
   };
+  _status?: ('draft' | 'published') | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -2990,6 +3014,10 @@ export interface PWA {
  * via the `definition` "header_select".
  */
 export interface HeaderSelect<T extends boolean = true> {
+  publishingStatus?: T;
+  _localized_status?: T;
+  _locale?: T;
+  _disable_unpublishing?: T;
   mainMenu?:
     | T
     | {
@@ -3018,6 +3046,7 @@ export interface HeaderSelect<T extends boolean = true> {
             };
         id?: T;
       };
+  _status?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
@@ -3027,6 +3056,10 @@ export interface HeaderSelect<T extends boolean = true> {
  * via the `definition` "footer_select".
  */
 export interface FooterSelect<T extends boolean = true> {
+  publishingStatus?: T;
+  _localized_status?: T;
+  _locale?: T;
+  _disable_unpublishing?: T;
   minimalFooterMenu?:
     | T
     | {
@@ -3053,6 +3086,7 @@ export interface FooterSelect<T extends boolean = true> {
         instagram?: T;
         youtube?: T;
       };
+  _status?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

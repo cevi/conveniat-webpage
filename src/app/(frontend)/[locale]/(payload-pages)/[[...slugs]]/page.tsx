@@ -1,24 +1,19 @@
-import 'server-only';
-
-import { PreviewWarningClient } from '@/app/(frontend)/[locale]/(payload-pages)/[[...slugs]]/preview-warning-client';
-
 import { CustomErrorBoundaryFallback } from '@/app/(frontend)/[locale]/(payload-pages)/[[...slugs]]/custom-error-boundary-fallback';
 import { NotFound } from '@/app/(frontend)/not-found';
 import { CookieBanner } from '@/components/utils/cookie-banner';
 import { RefreshRouteOnSave } from '@/components/utils/refresh-preview';
 import { environmentVariables } from '@/config/environment-variables';
-import { canUserAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import { routeResolutionTable } from '@/features/payload-cms/route-resolution-table';
 import type { SpecialRouteResolutionEntry } from '@/features/payload-cms/special-pages-table';
 import { getSpecialPage, isSpecialPage } from '@/features/payload-cms/special-pages-table';
-import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
+import {
+  canAccessPreviewOfCurrentPage,
+  PreviewWarning,
+} from '@/features/payload-cms/utils/preview-utils';
 import type { Locale, SearchParameters } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { auth } from '@/utils/auth-helpers';
-import { isPreviewTokenValid } from '@/utils/preview-token';
 import type { Metadata } from 'next';
-import { cookies } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import type React from 'react';
 
@@ -93,75 +88,6 @@ export const generateMetadata = async ({
   }
 
   return {};
-};
-
-/**
- * Checks if the preview token is valid.
- *
- * We do that using the same concept as for a JWT token validation.
- * The token has a signature and is a compressed object { url: string; expires: number }
- * This function verifies the signature and checks if the token is still valid.
- *
- * @param previewToken
- * @param url the url of the current page (always include the locale,
- * especially for the default locale is included)
- */
-const isValidPreviewToken = async (
-  previewToken: string | undefined,
-  url: string,
-): Promise<boolean> => {
-  if (previewToken === undefined) return false;
-  return await isPreviewTokenValid(url, previewToken);
-};
-
-/**
- * Checks if the page should be rendered in preview mode.
- * This is the case of the `preview` query parameter is set to `true` and
- *
- * 1) the cookie `preview` is set and the use can access the payload admin panel
- * 2) or if the `preview-token` query parameter is set and valid
- *
- * @param searchParameters
- * @param url
- */
-const canAccessPreviewOfCurrentPage = async (
-  searchParameters: SearchParameters,
-  url: string,
-): Promise<boolean> => {
-  let previewToken = searchParameters['preview-token'];
-
-  if (Array.isArray(previewToken)) {
-    previewToken = previewToken[0];
-  }
-
-  // check if preview token is set and valid
-  const hasValidPreviewToken = await isValidPreviewToken(previewToken, url);
-  if (hasValidPreviewToken) return true;
-
-  // check if cookie is set
-  const cookieStore = await cookies();
-  const previewCookie = cookieStore.get('preview');
-  const isPreviewCookieSet = previewCookie?.value === 'true';
-  if (!isPreviewCookieSet) return false;
-
-  const session = await auth();
-  if (session === null) return false;
-
-  // check if user is an admin
-  const user = session.user;
-  if (user === undefined) return false;
-
-  return canUserAccessAdminPanel({ user: user as HitobitoNextAuthUser });
-};
-
-const PreviewWarning: React.FC<{
-  params: Promise<{
-    locale: Locale;
-  }>;
-}> = async ({ params }) => {
-  const { locale } = await params;
-
-  return <PreviewWarningClient locale={locale} />;
 };
 
 /**

@@ -1,3 +1,4 @@
+import { getPublishingStatusGlobal } from '@/features/payload-cms/payload-cms/hooks/publishing-status';
 import { localizedStatusSchema } from '@/features/payload-cms/payload-cms/utils/localized-status-schema';
 import type { GlobalConfig } from 'payload';
 
@@ -22,19 +23,32 @@ export const asLocalizedGlobal = (config: GlobalConfig): GlobalConfig => {
           // modify the Publish button to publish only the current locale
           PublishButton:
             '@/features/payload-cms/payload-cms/components/multi-lang-publishing/publish-localized',
+          beforeDocumentControls: [
+            {
+              path: '@/features/payload-cms/payload-cms/components/multi-lang-publishing/publishing-status-client',
+            },
+          ],
         },
       },
     },
     fields: [
       {
-        name: 'Versions',
-        type: 'ui',
+        name: 'publishingStatus',
+        type: 'json',
         admin: {
+          readOnly: true,
+          hidden: true,
           components: {
-            // adds the publishing status to the top of the edit page
-            Field:
-              '@/features/payload-cms/payload-cms/components/multi-lang-publishing/publishing-status',
+            Cell: '@/features/payload-cms/payload-cms/components/multi-lang-publishing/publishing-status',
           },
+        },
+        access: {
+          create: () => false,
+          update: () => false,
+        },
+        virtual: true,
+        hooks: {
+          afterRead: [getPublishingStatusGlobal(config)],
         },
       },
 
@@ -54,17 +68,6 @@ export const asLocalizedGlobal = (config: GlobalConfig): GlobalConfig => {
           disabled: true,
         },
       },
-
-      {
-        name: '_qr_code',
-        type: 'ui',
-        admin: {
-          components: {
-            Field: '@/features/payload-cms/payload-cms/components/qr-code/qr-code',
-          },
-        },
-      },
-
       {
         name: '_locale',
         type: 'text',
@@ -73,6 +76,15 @@ export const asLocalizedGlobal = (config: GlobalConfig): GlobalConfig => {
         admin: {
           disabled: true,
         },
+      },
+      {
+        name: '_disable_unpublishing',
+        type: 'checkbox',
+        admin: {
+          disabled: true,
+        },
+        localized: false,
+        defaultValue: false,
       },
 
       // add the existing fields from the original collection

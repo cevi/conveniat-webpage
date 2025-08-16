@@ -1,5 +1,5 @@
-import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { LinkField } from '@/features/payload-cms/payload-cms/shared-fields/link-field';
+import { asLocalizedGlobal } from '@/features/payload-cms/payload-cms/utils/localized-global';
 import type { Field, GlobalConfig } from 'payload';
 
 const MainMenu: Field = {
@@ -53,12 +53,8 @@ const MainMenu: Field = {
   ],
 };
 
-export const HeaderGlobal: GlobalConfig = {
+export const HeaderGlobal: GlobalConfig = asLocalizedGlobal({
   slug: 'header',
   label: 'Header Navigation',
   fields: [MainMenu],
-  admin: {
-    group: AdminPanelDashboardGroups.GlobalSettings,
-    description: 'Settings for the header navigation',
-  },
-};
+});
