@@ -1,6 +1,5 @@
 import { minimalEditorFeatures } from '@/features/payload-cms/payload-cms/plugins/lexical-editor';
 import { formBlock } from '@/features/payload-cms/payload-cms/shared-blocks/form-block';
-import { LinkField } from '@/features/payload-cms/payload-cms/shared-fields/link-field';
 import {
   defaultEditorLexicalConfig,
   HeadingFeature,
@@ -74,7 +73,7 @@ const teamMembersBlock: Block = {
   slug: 'accordionTeamMembersBlock',
   interfaceName: 'TeamMembersBlock',
   fields: [
-    LinkField,
+    LinkField(false),
     teamLeaderGroup,
     {
       name: 'teamMembers',

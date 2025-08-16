@@ -8,10 +8,7 @@ export const newsCardBlock: Block = {
   imageAltText: 'News Card block',
 
   fields: [
-    {
-      ...LinkField,
-      required: false,
-    },
+    LinkField(false),
     {
       type: 'text',
       name: 'headline',

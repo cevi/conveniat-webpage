@@ -30,62 +30,64 @@ const validateURL: TextFieldSingleValidation = (url) => {
   return true; // Valid URL
 };
 
-export const LinkField: NamedGroupField = {
-  name: 'linkField',
-  type: 'group',
-  fields: [
-    {
-      name: 'type',
-      type: 'radio',
-      admin: {
-        layout: 'horizontal',
-      },
-      defaultValue: 'reference',
-      label: 'To URL Type',
-      options: [
-        {
-          label: 'Internal link',
-          value: 'reference',
+export const LinkField = (required: boolean = true): NamedGroupField => {
+  return {
+    name: 'linkField',
+    type: 'group',
+    fields: [
+      {
+        name: 'type',
+        type: 'radio',
+        admin: {
+          layout: 'horizontal',
         },
-        {
-          label: 'Custom URL',
-          value: 'custom',
+        defaultValue: 'reference',
+        label: 'To URL Type',
+        options: [
+          {
+            label: 'Internal link',
+            value: 'reference',
+          },
+          {
+            label: 'Custom URL',
+            value: 'custom',
+          },
+        ],
+      },
+      {
+        name: 'reference',
+        type: 'relationship',
+        admin: {
+          condition: (_, siblingData) => siblingData['type'] === 'reference',
+          allowCreate: false,
+          allowEdit: false,
+          placeholder: 'Select a document or blog post',
         },
-      ],
-    },
-    {
-      name: 'reference',
-      type: 'relationship',
-      admin: {
-        condition: (_, siblingData) => siblingData['type'] === 'reference',
-        allowCreate: false,
-        allowEdit: false,
-        placeholder: 'Select a document or blog post',
+        label: 'Document to redirect to',
+        relationTo: ['blog', 'generic-page'],
+        required: required,
+        hasMany: false,
+        filterOptions: filterOptionsOnlyPublished,
       },
-      label: 'Document to redirect to',
-      relationTo: ['blog', 'generic-page'],
-      required: true,
-      hasMany: false,
-      filterOptions: filterOptionsOnlyPublished,
-    },
-    {
-      name: 'url',
-      type: 'text',
-      admin: {
-        condition: (_, siblingData) => siblingData['type'] === 'custom',
+      {
+        name: 'url',
+        type: 'text',
+        admin: {
+          condition: (_, siblingData) => siblingData['type'] === 'custom',
+        },
+        label: 'Custom URL',
+        required: required,
+        validate: validateURL,
       },
-      label: 'Custom URL',
-      required: true,
-      validate: validateURL,
-    },
-    {
-      name: 'openInNewTab',
-      type: 'checkbox',
-      label: 'Open in new tab',
-      defaultValue: false,
-      admin: {
-        condition: (_, siblingData) => siblingData['type'] === 'custom',
+      {
+        name: 'openInNewTab',
+        type: 'checkbox',
+        label: 'Open in new tab',
+        defaultValue: false,
+        admin: {
+          condition: (_, siblingData) => siblingData['type'] === 'custom',
+        },
       },
-    },
-  ],
+    ],
+  };
 };
