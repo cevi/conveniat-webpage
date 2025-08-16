@@ -1,5 +1,6 @@
 'use client';
 
+import { uploadUserImage } from '@/features/payload-cms/components/user-upload/upload-user-image';
 import type React from 'react';
 import { useState } from 'react';
 
@@ -14,6 +15,7 @@ const formatFileSize = (bytes: number): string => {
 
 const ImageUploadPage: React.FC = () => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [userDescription, setUserDescription] = useState('');
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [rightsTransferred, setRightsTransferred] = useState(false);
 
@@ -29,11 +31,16 @@ const ImageUploadPage: React.FC = () => {
     setSelectedFiles((previous) => previous.filter((_, index_) => index_ !== index));
   };
 
-  const handleSubmit = (event: React.FormEvent): void => {
+  const handleSubmit = async (event: React.FormEvent): Promise<void> => {
     event.preventDefault();
 
     if (selectedFiles.length === 0) {
       alert('Please select at least one image');
+      return;
+    }
+
+    if(!userDescription) {
+      alert('Please write a short description of the image');
       return;
     }
 
@@ -42,10 +49,12 @@ const ImageUploadPage: React.FC = () => {
       return;
     }
 
-    // Simulate submission (no actual upload)
-    alert(
-      `Ready to upload ${selectedFiles.length} image(s). (This is just a demo - no actual upload will occur)`,
-    );
+    const response = await uploadUserImage(selectedFiles, userDescription);
+    if(response.error) {
+      alert("Error! " + response.message);
+    }
+    alert(response.message);
+    // TODO: clear form
   };
 
   return (
@@ -70,7 +79,7 @@ const ImageUploadPage: React.FC = () => {
 
       {/* Content */}
       <div className="px-6 py-6">
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={(event) => void handleSubmit(event)} className="space-y-6">
           {/* File Upload Section */}
           <div className="space-y-4">
             <label className="block text-base font-medium text-gray-700">Select Images</label>
@@ -164,6 +173,25 @@ const ImageUploadPage: React.FC = () => {
           {/* Separator */}
           <hr className="border-gray-200" />
 
+
+          {/* Description Section */}
+          <div className="space-y-4">
+            <label className="block text-base font-medium text-gray-700">
+              Image Description
+            </label>
+
+            {/* Description Field */}
+            <input
+              id="description"
+              type="textarea"
+              onChange={(event) => setUserDescription(event.target.value)}
+              className="h-12 rounded-lg border-2 border-dashed border-gray-300  text-center transition-colors hover:border-gray-400"
+            />
+          </div>
+
+          {/* Separator */}
+          <hr className="border-gray-200" />
+
           {/* Confirmations Section */}
           <div className="space-y-4">
             <label className="block text-base font-medium text-gray-700">
@@ -228,7 +256,7 @@ const ImageUploadPage: React.FC = () => {
             className={`w-full rounded-md px-4 py-2 text-sm font-medium transition-colors ${
               selectedFiles.length === 0 || !privacyAccepted || !rightsTransferred
                 ? 'cursor-not-allowed bg-gray-300 text-gray-500'
-                : 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none'
+                : 'cursor-pointer bg-blue-600 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none'
             }`}
           >
             Upload Images ({selectedFiles.length})

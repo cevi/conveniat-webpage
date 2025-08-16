@@ -16,6 +16,7 @@ export const s3StorageConfiguration = s3Storage({
   collections: {
     images: true,
     documents: true,
+    userSubmittedImages: true,
   },
   bucket: MINIO_BUCKET_NAME,
   config: {

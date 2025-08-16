@@ -13,6 +13,7 @@ import { asInstrumentalCollection } from '@/features/payload-cms/payload-cms/uti
 import { slugToUrlMapping } from '@/features/payload-cms/slug-to-url-mapping';
 import type { RoutableCollectionConfigs } from '@/types/types';
 import type { CollectionConfig } from 'payload';
+import { UserSubmittedImagesCollection } from '@/features/payload-cms/payload-cms/collections/user-submitted-images-collection';
 
 // TODO: add slug validation enforcing uniqueness of slugs
 
@@ -28,6 +29,7 @@ const rawCollectionsConfig: CollectionConfig[] = [
 
   // general purpose collections, not routable
   ImageCollection,
+  UserSubmittedImagesCollection,
   DocumentsCollection,
   UserCollection,
   PermissionsCollection,
