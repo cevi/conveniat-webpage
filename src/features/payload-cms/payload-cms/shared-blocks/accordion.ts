@@ -7,6 +7,7 @@ import {
   UnorderedListFeature,
 } from '@payloadcms/richtext-lexical';
 import type { Block, Field } from 'payload';
+import { LinkField } from '@/features/payload-cms/payload-cms/shared-fields/link-field';
 
 const plainTextBlock: Block = {
   slug: 'accordionPlainTextBlock',
