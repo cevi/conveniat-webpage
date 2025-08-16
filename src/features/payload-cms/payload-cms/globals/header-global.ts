@@ -22,8 +22,7 @@ const MainMenu: Field = {
       required: true,
     },
     {
-      ...LinkField,
-      required: false,
+      ...LinkField(false),
       admin: {
         condition: (_, siblingData) =>
           !siblingData['subMenu'] || (siblingData['subMenu'] as Field[]).length === 0,
@@ -48,7 +47,7 @@ const MainMenu: Field = {
           type: 'text',
           required: true,
         },
-        LinkField,
+        LinkField(),
       ],
     },
   ],
