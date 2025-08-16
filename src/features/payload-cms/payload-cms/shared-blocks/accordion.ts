@@ -1,5 +1,6 @@
 import { minimalEditorFeatures } from '@/features/payload-cms/payload-cms/plugins/lexical-editor';
 import { formBlock } from '@/features/payload-cms/payload-cms/shared-blocks/form-block';
+import { LinkField } from '@/features/payload-cms/payload-cms/shared-fields/link-field';
 import {
   defaultEditorLexicalConfig,
   HeadingFeature,
@@ -7,7 +8,6 @@ import {
   UnorderedListFeature,
 } from '@payloadcms/richtext-lexical';
 import type { Block, Field } from 'payload';
-import { LinkField } from '@/features/payload-cms/payload-cms/shared-fields/link-field';
 
 const plainTextBlock: Block = {
   slug: 'accordionPlainTextBlock',
