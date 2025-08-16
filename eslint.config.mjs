@@ -56,12 +56,6 @@ const config = [
   ...ts.configs.recommended,
   eslintPluginUnicorn.configs['flat/recommended'],
   {
-    files: ['**/next-env.d.ts'],
-    rules: {
-      'unicorn/prevent-abbreviations': 'off',
-    },
-  },
-  {
     rules: {
       'unicorn/prevent-abbreviations': [
         'error',
@@ -74,6 +68,7 @@ const config = [
             db: true, // database
             tx: true, // transaction
             val: true, // value
+            env: true, // environment
           },
         },
       ],
