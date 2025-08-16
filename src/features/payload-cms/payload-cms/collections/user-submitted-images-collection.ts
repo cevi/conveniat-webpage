@@ -1,7 +1,6 @@
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
-import type { CollectionConfig } from 'payload';
 import { generateImageName } from '@/features/payload-cms/payload-cms/collections/image-collection';
-
+import type { CollectionConfig } from 'payload';
 
 export const UserSubmittedImagesCollection: CollectionConfig = {
   slug: 'userSubmittedImages',
@@ -35,21 +34,21 @@ export const UserSubmittedImagesCollection: CollectionConfig = {
       hasMany: false,
       required: true,
       localized: false,
-      label: 'The user who submitted the image'
+      label: 'The user who submitted the image',
     },
     {
       name: 'user_description',
       type: 'text',
       required: true,
       localized: false,
-      label: "The description the user submitted"
+      label: 'The description the user submitted',
     },
     {
       name: 'approved',
       type: 'checkbox',
       required: false,
-      label: 'This image is approved by the conveniat27 team.'
-    }
+      label: 'This image is approved by the conveniat27 team.',
+    },
   ],
   upload: {
     mimeTypes: ['image/*'],

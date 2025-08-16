@@ -39,7 +39,7 @@ const ImageUploadPage: React.FC = () => {
       return;
     }
 
-    if(!userDescription) {
+    if (!userDescription) {
       alert('Please write a short description of the image');
       return;
     }
@@ -50,8 +50,8 @@ const ImageUploadPage: React.FC = () => {
     }
 
     const response = await uploadUserImage(selectedFiles, userDescription);
-    if(response.error) {
-      alert("Error! " + response.message);
+    if (response.error) {
+      alert('Error! ' + response.message);
     }
     alert(response.message);
     // TODO: clear form
@@ -173,19 +173,16 @@ const ImageUploadPage: React.FC = () => {
           {/* Separator */}
           <hr className="border-gray-200" />
 
-
           {/* Description Section */}
           <div className="space-y-4">
-            <label className="block text-base font-medium text-gray-700">
-              Image Description
-            </label>
+            <label className="block text-base font-medium text-gray-700">Image Description</label>
 
             {/* Description Field */}
             <input
               id="description"
               type="textarea"
               onChange={(event) => setUserDescription(event.target.value)}
-              className="h-12 rounded-lg border-2 border-dashed border-gray-300  text-center transition-colors hover:border-gray-400"
+              className="h-12 rounded-lg border-2 border-dashed border-gray-300 text-center transition-colors hover:border-gray-400"
             />
           </div>
 

@@ -9,11 +9,11 @@ import { PushNotificationSubscriptions } from '@/features/payload-cms/payload-cm
 import { TimelineCollection } from '@/features/payload-cms/payload-cms/collections/timeline';
 import { TimelineEntryCategory } from '@/features/payload-cms/payload-cms/collections/timeline/timeline-entry-category';
 import { UserCollection } from '@/features/payload-cms/payload-cms/collections/user-collection';
+import { UserSubmittedImagesCollection } from '@/features/payload-cms/payload-cms/collections/user-submitted-images-collection';
 import { asInstrumentalCollection } from '@/features/payload-cms/payload-cms/utils/instrumentalized-collection';
 import { slugToUrlMapping } from '@/features/payload-cms/slug-to-url-mapping';
 import type { RoutableCollectionConfigs } from '@/types/types';
 import type { CollectionConfig } from 'payload';
-import { UserSubmittedImagesCollection } from '@/features/payload-cms/payload-cms/collections/user-submitted-images-collection';
 
 // TODO: add slug validation enforcing uniqueness of slugs
 
