@@ -66,7 +66,7 @@ services:
         - traefik.http.routers.conveniat27-router.rule=Host(`conveniat27.ch`) || Host(`www.conveniat27.ch`)
         - traefik.http.routers.conveniat27-router.entrypoints=websecure
         - traefik.http.routers.conveniat27-router.service=conveniat27
-        - traefik.http.routers.conveniat27-router.middlewares=conveniat27-to-non-www
+        - traefik.http.routers.conveniat27-router.middlewares=conveniat27-to-non-www,retry-middleware-prod
 
         - traefik.http.services.conveniat27.loadbalancer.server.port=3000
 
@@ -82,8 +82,6 @@ services:
         # Define a middleware for retrying failed requests.
         - traefik.http.middlewares.retry-middleware-prod.retry.attempts=3
         - traefik.http.middlewares.retry-middleware-prod.retry.initialinterval=50ms
-
-        - traefik.http.routers.conveniat27-router.middlewares=retry-middleware-prod
 
       resources:
         limits:
