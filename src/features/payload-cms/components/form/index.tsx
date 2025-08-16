@@ -178,7 +178,9 @@ const FormFieldRenderer: React.FC<FormFieldRendererProperties> = ({
 
   return (
     <>
-      <SubheadingH3>{'sectionTitle' in section ? section.sectionTitle : ''}</SubheadingH3>
+      <SubheadingH3 className="mt-0">
+        {'sectionTitle' in section ? section.sectionTitle : ''}
+      </SubheadingH3>
 
       {section.fields.map((fieldChild, indexChild) => {
         // render conditioned blocks
@@ -590,9 +592,7 @@ export const FormBlock: React.FC<
       <form
         className={cn(
           'relative mx-auto h-auto max-w-xl rounded-md bg-white',
-          withBorder === undefined || Boolean(withBorder)
-            ? 'border-2 border-gray-200 p-6 pt-0'
-            : '',
+          withBorder === undefined || Boolean(withBorder) ? 'border-2 border-gray-200 p-6' : '',
         )}
         id={formID}
         onSubmit={(event?: React.BaseSyntheticEvent): void => {
