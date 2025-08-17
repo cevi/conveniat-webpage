@@ -1,10 +1,10 @@
 'use server';
-import { checkImageDimensions } from '@/features/image-submission/check-image-dimensions';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { StaticTranslationString } from '@/types/types';
 import { auth } from '@/utils/auth-helpers';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import config from '@payload-config';
+import fromBuffer from 'image-size';
 import { randomUUID } from 'node:crypto';
 import { getPayload } from 'payload';
 
@@ -17,6 +17,15 @@ const notAuthenticatedError: StaticTranslationString = {
   en: 'Not authenticaed.',
   de: 'Nicht angemeldet.',
   fr: 'Non authentifié.',
+};
+
+export const checkImageDimensions = async (file: File): Promise<boolean> => {
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const dimensions = fromBuffer(buffer);
+
+  if (!dimensions.width || !dimensions.height) return false;
+
+  return dimensions.width >= 1920 && dimensions.height >= 1080;
 };
 
 export const uploadUserImage = async (

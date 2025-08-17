@@ -1,7 +1,6 @@
 'use client';
 
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
-import { checkImageDimensions } from '@/features/image-submission/check-image-dimensions';
 import { ConfirmationCheckboxes } from '@/features/image-submission/confirmation-checkboxes';
 import { DescriptionInput } from '@/features/image-submission/description-input';
 import { FilePreviewList } from '@/features/image-submission/file-preview-list';
@@ -86,9 +85,25 @@ const ImageUploadPage: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [showSuccessView, setShowSuccessView] = useState(false);
 
+  const checkImageDimensions = (file: File): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.addEventListener('load', (event) => {
+        const img = new Image();
+        img.addEventListener('load', () => {
+          resolve(img.width >= 1920 && img.height >= 1080);
+        });
+        img.src = event.target?.result as string;
+      });
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>): void => {
     const files = event.target.files;
     if (!files) return;
+
+    setErrorMessage('');
 
     const newFiles = [...files].filter((file) => file.type.startsWith('image/'));
 
