@@ -2,6 +2,7 @@
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import { auth } from '@/utils/auth-helpers';
 import config from '@payload-config';
+import { randomUUID } from 'crypto';
 import { getPayload } from 'payload';
 
 interface UploadReturnType {
@@ -50,6 +51,7 @@ export const uploadUserImage = async (
 
   await Promise.all(
     allowedImages.map(async (image) => {
+      const extension = image.name.split('.').slice(-1)[0];
       await payload.create({
         collection: 'userSubmittedImages',
         data: {
@@ -60,7 +62,7 @@ export const uploadUserImage = async (
         file: {
           data: Buffer.from(await image.arrayBuffer()),
           mimetype: image.type,
-          name: 'user_upload_' + image.name,
+          name: randomUUID() + '.' + extension,
           size: 0,
         },
       });

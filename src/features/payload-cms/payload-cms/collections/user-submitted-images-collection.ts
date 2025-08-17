@@ -22,7 +22,7 @@ export const UserSubmittedImagesCollection: CollectionConfig = {
     group: AdminPanelDashboardGroups.InternalCollections,
     groupBy: false,
     disableCopyToLocale: true,
-    defaultColumns: ['updatedAt', 'user', 'filename'],
+    defaultColumns: ['filename', 'updatedAt', 'user'],
   },
   access: {
     admin: canAccessAdminPanel,
