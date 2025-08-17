@@ -158,7 +158,7 @@ const AppFeatures: React.FC = async () => {
           text={departmentShiftsFeatureTranslation[locale]}
         />
         <AppFeatureMenuItem
-          href="/app/upload-picture"
+          href="/app/upload-images"
           Icon={ImageUp}
           text={uploadPicturesFeatureTranslation[locale]}
         />
