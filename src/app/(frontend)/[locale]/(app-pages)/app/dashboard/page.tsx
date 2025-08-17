@@ -29,9 +29,9 @@ const dashboardTitle: StaticTranslationString = {
 };
 
 const appFeaturesTitle: StaticTranslationString = {
-  en: 'App Features',
-  de: 'App-Funktionen',
-  fr: "Fonctionnalités de l'app",
+  en: 'conveniat27 App',
+  de: 'conveniat27 App',
+  fr: 'App conveniat27',
 };
 
 const upcomingProgramElementsTitle: StaticTranslationString = {
