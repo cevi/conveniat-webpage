@@ -1,6 +1,7 @@
 'use client';
 
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
+import { checkImageDimensions } from '@/features/image-submission/check-image-dimensions';
 import { ConfirmationCheckboxes } from '@/features/image-submission/confirmation-checkboxes';
 import { DescriptionInput } from '@/features/image-submission/description-input';
 import { FilePreviewList } from '@/features/image-submission/file-preview-list';
@@ -91,30 +92,18 @@ const ImageUploadPage: React.FC = () => {
 
     const newFiles = [...files].filter((file) => file.type.startsWith('image/'));
 
-    const checkImageDimensions = (file: File): Promise<File | null> => {
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const img = new Image();
-          img.onload = () => {
-            if (img.width >= 1920 && img.height >= 1080) {
-              setErrorMessage('');
-              resolve(file);
-            } else {
-              setErrorMessage(imageSizeTooSmall[locale]);
-              resolve(null);
-            }
-          };
-          img.src = e.target?.result as string;
-        };
-        reader.readAsDataURL(file);
-      });
-    };
+    void (async (): Promise<void> => {
+      const results = await Promise.all(
+        newFiles.map(async (file) => ({
+          file,
+          isValid: await checkImageDimensions(file),
+        })),
+      );
 
-    // Run async logic without marking handleFileSelect as async
-    (async () => {
-      const results = await Promise.all(newFiles.map(checkImageDimensions));
-      const validFiles = results.filter((f): f is File => f !== null);
+      const validFiles = results.filter((r) => r.isValid).map((r) => r.file);
+      const nonValid = results.some((r) => !r.isValid);
+      if (nonValid) setErrorMessage(imageSizeTooSmall[locale]);
+
       setSelectedFiles((previous) => [...previous, ...validFiles]);
     })();
   };

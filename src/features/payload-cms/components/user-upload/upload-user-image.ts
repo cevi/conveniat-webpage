@@ -1,10 +1,11 @@
 'use server';
+import { checkImageDimensions } from '@/features/image-submission/check-image-dimensions';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
-import { StaticTranslationString } from '@/types/types';
+import type { StaticTranslationString } from '@/types/types';
 import { auth } from '@/utils/auth-helpers';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import config from '@payload-config';
-import { randomUUID } from 'crypto';
+import { randomUUID } from 'node:crypto';
 import { getPayload } from 'payload';
 
 interface UploadReturnType {
@@ -16,24 +17,6 @@ const notAuthenticatedError: StaticTranslationString = {
   en: 'Not authenticaed.',
   de: 'Nicht angemeldet.',
   fr: 'Non authentifié.',
-};
-
-const checkImageDimensions = (file: File): Promise<File | null> => {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        if (img.width >= 1920 && img.height >= 1080) {
-          resolve(file);
-        } else {
-          resolve(null);
-        }
-      };
-      img.src = e.target?.result as string;
-    };
-    reader.readAsDataURL(file);
-  });
 };
 
 export const uploadUserImage = async (
@@ -52,15 +35,19 @@ export const uploadUserImage = async (
     };
   }
 
-  const allowedImages = await Promise.all(
-    images
-      .filter(async (image) => await checkImageDimensions(image))
-      .filter((image) => image.type.startsWith('image/')),
+  const filenameAllowed = images.filter((image) => image.type.startsWith('image/'));
+
+  const results = await Promise.all(
+    filenameAllowed.map(async (image) => {
+      const isValid = await checkImageDimensions(image);
+      return { image, isValid };
+    }),
   );
+  const allowedImages = results.filter((r) => r.isValid).map((r) => r.image);
 
   await Promise.all(
     allowedImages.map(async (image) => {
-      const extension = image.name.split('.').slice(-1)[0];
+      const extension = image.name.split('.').at(-1) ?? '';
       await payload.create({
         collection: 'userSubmittedImages',
         data: {
