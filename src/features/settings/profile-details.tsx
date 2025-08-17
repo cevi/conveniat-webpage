@@ -1,3 +1,4 @@
+import { LogoutButton } from '@/features/settings/logout-button';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { StaticTranslationString } from '@/types/types';
 import { auth } from '@/utils/auth-helpers';
@@ -11,9 +12,9 @@ const notAvailable: StaticTranslationString = {
 };
 
 const profileDetailsTitle: StaticTranslationString = {
-  de: 'Profil Details',
-  en: 'Profile Details',
-  fr: 'Détails du profil',
+  de: 'conveniat27 Account',
+  en: 'conveniat27 Account',
+  fr: 'conveniat27 Compte',
 };
 
 const profileDetailsExplanation: StaticTranslationString = {
@@ -31,10 +32,16 @@ export const ProfileDetails: React.FC = async () => {
     value?.toString() ?? notAvailable[locale];
 
   return (
-    <div className="rounded-lg bg-white p-6 shadow-md md:p-8">
-      <h2 className="mb-6 text-2xl font-bold text-gray-800">{profileDetailsTitle[locale]}</h2>
+    <div className="rounded-lg border-2 border-gray-200 bg-white p-6 md:p-8">
+      <h2 className="text-conveniat-green mb-6 text-2xl font-bold">
+        {profileDetailsTitle[locale]}
+      </h2>
 
-      <div className="space-y-4">
+      <p className="mb-8 text-sm text-gray-600">
+        <small>{profileDetailsExplanation[locale]}</small>
+      </p>
+
+      <div className="space-y-2">
         {/* Email */}
         <div className="flex items-center">
           <strong className="w-24 text-gray-700">E-Mail:</strong>
@@ -60,9 +67,7 @@ export const ProfileDetails: React.FC = async () => {
         </div>
       </div>
 
-      <p className="mt-8 text-sm text-gray-600">
-        <small>{profileDetailsExplanation[locale]}</small>
-      </p>
+      <LogoutButton />
     </div>
   );
 };
