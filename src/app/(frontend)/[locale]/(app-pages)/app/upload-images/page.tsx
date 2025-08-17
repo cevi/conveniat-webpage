@@ -111,7 +111,7 @@ const ImageUploadPage: React.FC = () => {
       const results = await Promise.all(
         newFiles.map(async (file) => ({
           file,
-          isValid: await checkImageDimensions(file),
+          isValid: (await checkImageDimensions(file)) && file.size < 10 * 1024 * 1024,
         })),
       );
 
@@ -162,10 +162,15 @@ const ImageUploadPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const response = await uploadUserImage(selectedFiles, userDescription.trim());
-      if (response.error) {
-        setErrorMessage(`${uploadError[locale]}: ${response.message}`);
-      } else {
+      await Promise.all(
+        selectedFiles.map(async (file) => {
+          const response = await uploadUserImage(file, userDescription.trim());
+          if (response.error) {
+            setErrorMessage(`${uploadError[locale]}: ${response.message}`);
+          }
+        }),
+      );
+      if (!errorMessage) {
         setShowSuccessView(true);
       }
     } catch (error) {

@@ -14,9 +14,21 @@ interface UploadReturnType {
 }
 
 const notAuthenticatedError: StaticTranslationString = {
-  en: 'Not authenticaed.',
+  en: 'Not authenticated.',
   de: 'Nicht angemeldet.',
   fr: 'Non authentifié.',
+};
+
+const notAnImageError: StaticTranslationString = {
+  en: 'Not an image.',
+  de: 'Kein Bild.',
+  fr: "Pas d'image.",
+};
+
+const imageTooBig: StaticTranslationString = {
+  en: 'Image too big (>10mb).',
+  de: 'Bild zu gross (>10mb).',
+  fr: 'Image trop grande (>10mb).',
 };
 
 export const checkImageDimensions = async (file: File): Promise<boolean> => {
@@ -29,7 +41,7 @@ export const checkImageDimensions = async (file: File): Promise<boolean> => {
 };
 
 export const uploadUserImage = async (
-  images: File[],
+  image: File,
   description: string,
 ): Promise<UploadReturnType> => {
   const payload = await getPayload({ config });
@@ -44,35 +56,36 @@ export const uploadUserImage = async (
     };
   }
 
-  const filenameAllowed = images.filter((image) => image.type.startsWith('image/'));
+  if (!image.type.startsWith('image')) {
+    return {
+      error: true,
+      message: notAnImageError[locale],
+    };
+  }
 
-  const results = await Promise.all(
-    filenameAllowed.map(async (image) => {
-      const isValid = await checkImageDimensions(image);
-      return { image, isValid };
-    }),
-  );
-  const allowedImages = results.filter((r) => r.isValid).map((r) => r.image);
+  const imageDimensionCheck = await checkImageDimensions(image);
+  if (!imageDimensionCheck) {
+    return {
+      error: true,
+      message: imageTooBig[locale],
+    };
+  }
 
-  await Promise.all(
-    allowedImages.map(async (image) => {
-      const extension = image.name.split('.').at(-1) ?? '';
-      await payload.create({
-        collection: 'userSubmittedImages',
-        data: {
-          uploaded_by: hitobito_user.uuid,
-          user_description: description,
-          original_filename: image.name,
-        },
-        file: {
-          data: Buffer.from(await image.arrayBuffer()),
-          mimetype: image.type,
-          name: randomUUID() + '.' + extension,
-          size: 0,
-        },
-      });
-    }),
-  );
+  const extension = image.name.split('.').at(-1) ?? '';
+  await payload.create({
+    collection: 'userSubmittedImages',
+    data: {
+      uploaded_by: hitobito_user.uuid,
+      user_description: description,
+      original_filename: image.name,
+    },
+    file: {
+      data: Buffer.from(await image.arrayBuffer()),
+      mimetype: image.type,
+      name: randomUUID() + '.' + extension,
+      size: 0,
+    },
+  });
 
   return {
     message: 'Ok',

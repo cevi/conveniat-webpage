@@ -61,7 +61,7 @@ const nextConfig: NextConfig = {
 
     // user uploads are bigger --> we need bigger body sizes
     serverActions: {
-      bodySizeLimit: '5mb',
+      bodySizeLimit: '10mb',
     },
   },
   logging: { fetches: { fullUrl: true } },
