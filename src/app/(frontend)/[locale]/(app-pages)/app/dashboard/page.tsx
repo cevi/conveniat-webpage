@@ -1,27 +1,37 @@
 import { SetDynamicPageTitle } from '@/components/header/set-dynamic-app-title';
-import { Button } from '@/components/ui/buttons/button';
-import { LinkComponent } from '@/components/ui/link-component';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { SubheadingH2 } from '@/components/ui/typography/subheading-h2';
-import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
-import type { CampMapAnnotation } from '@/features/payload-cms/payload-types';
 import { getScheduleEntries } from '@/features/schedule/api/get-schedule-entries';
+import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
 import type { StaticTranslationString } from '@/types/types';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
-import { ArrowRight, Calendar, Clock, MapPin } from 'lucide-react';
+import {
+  AlertTriangle,
+  Calendar,
+  CalendarDays,
+  Car,
+  Clock,
+  Compass,
+  MapIcon,
+  MapPin,
+  MessageCircle,
+  Settings,
+  Upload,
+  Users,
+} from 'lucide-react';
 import Link from 'next/link';
 import type React from 'react';
-
-const welcomeParagraph: StaticTranslationString = {
-  en: 'Welcome to the conveniat27 App!',
-  de: 'Willkommen in der conveniat27 App!',
-  fr: "Bienvenue dans l'application conveniat27!",
-};
 
 const dashboardTitle: StaticTranslationString = {
   en: 'Dashboard',
   de: 'Dashboard',
   fr: 'Tableau de bord',
+};
+
+const appFeaturesTitle: StaticTranslationString = {
+  en: 'App Features',
+  de: 'App-Funktionen',
+  fr: "Fonctionnalités de l'app",
 };
 
 const upcomingProgramElementsTitle: StaticTranslationString = {
@@ -30,78 +40,6 @@ const upcomingProgramElementsTitle: StaticTranslationString = {
   fr: 'Éléments de programme à venir',
 };
 
-const gettingStartedTitle: StaticTranslationString = {
-  en: 'Getting Started',
-  de: 'Erste Schritte',
-  fr: 'Pour commencer',
-};
-
-const gettingStartedParagraph: StaticTranslationString = {
-  en: 'To get the most out of the conveniat27 App, we recommend starting with the following steps:',
-  de: 'Um das Beste aus der conveniat27 App herauszuholen, empfehlen wir dir, mit den folgenden Schritten zu beginnen:',
-  fr: "Pour tirer le meilleur parti de l'application conveniat27, nous vous recommandons de commencer par les étapes suivantes :",
-};
-
-const exploreProgramElements: StaticTranslationString = {
-  en: 'Explore the upcoming program elements:',
-  de: 'Erkunde die bevorstehenden Programmelemente:',
-  fr: 'Explorez les éléments de programme à venir :',
-};
-
-const viewScheduleLink: StaticTranslationString = {
-  en: 'View Schedule',
-  de: 'Zeitplan ansehen',
-  fr: 'Voir le calendrier',
-};
-
-const checkMapDescription: StaticTranslationString = {
-  en: 'Check out the',
-  de: 'Schau dir die',
-  fr: 'Consultez la',
-};
-
-const mapLink: StaticTranslationString = {
-  en: 'Map',
-  de: 'Karte',
-  fr: 'carte',
-};
-
-const findWayAround: StaticTranslationString = {
-  en: 'to find your way around the event locations.',
-  de: 'an, um dich an den Veranstaltungsorten zurechtzufinden.',
-  fr: "pour vous orienter sur les lieux de l'événement.",
-};
-
-const exploreWebsiteTitle: StaticTranslationString = {
-  en: 'Explore the Website',
-  de: 'Erkunde die Webseite',
-  fr: 'Explorer le site web',
-};
-
-const exploreWebsiteParagraph: StaticTranslationString = {
-  en: 'Did you know that you can explore our full website directly within the app? Click the link below to visit the conveniat27 website and discover more about our events, speakers, and activities.',
-  de: 'Wusstest du, dass du unsere vollständige Webseite direkt in der App erkunden kannst? Klicke auf den Link unten, um die conveniat27 Webseite zu besuchen und mehr über unsere Veranstaltungen, Referenten und Aktivitäten zu erfahren.',
-  fr: "Saviez-vous que vous pouvez explorer notre site web complet directement dans l'application? Cliquez sur le link ci-dessous pour visiter le site web de conveniat27 und en savoir plus über unsere Veranstaltungen, Referenten und Aktivitäten.",
-};
-
-const visitWebsiteButton: StaticTranslationString = {
-  en: 'Visit conveniat27 Website',
-  de: 'Besuche die conveniat27 Webseite',
-  fr: 'Visitez le site web de conveniat27',
-};
-
-const settingsTitle: StaticTranslationString = {
-  en: 'App Settings',
-  de: 'App Einstellungen',
-  fr: 'Paramètres App',
-};
-const visitSettings: StaticTranslationString = {
-  de: 'Einstellungen besuchen',
-  en: 'Visit Settings',
-  fr: 'Ouvre Paramètres',
-};
-
-// Enhanced helper to format date and time more elegantly
 const formatDateTime = (
   date: string,
   time: string,
@@ -115,151 +53,220 @@ const formatDateTime = (
     day: 'numeric',
     month: 'short',
   });
-
   return { formattedDate, time };
+};
+
+interface FeatureCardProperties {
+  title: string;
+  description: string;
+  href: string;
+  icon: React.ElementType;
+}
+
+const FeatureCard: React.FC<FeatureCardProperties> = ({
+  title,
+  description,
+  href,
+  icon: IconComponent,
+}) => (
+  <Link href={href} className="block">
+    <div className="bg-conveniat-green/10 border-conveniat-green/20 hover:bg-conveniat-green/15 h-28 w-72 rounded-lg border p-4 transition-all duration-200 hover:shadow-md">
+      <div className="flex h-full items-center gap-3">
+        <div className="flex w-1/3 flex-shrink-0 justify-center">
+          <div className="bg-conveniat-green/20 rounded-full p-2">
+            <IconComponent className="text-conveniat-green h-6 w-6" />
+          </div>
+        </div>
+        <div className="w-2/3 flex-1">
+          <h3 className="mb-1 text-base font-semibold text-gray-900">{title}</h3>
+          <p className="line-clamp-3 text-xs leading-tight text-gray-600">{description}</p>
+        </div>
+      </div>
+    </div>
+  </Link>
+);
+
+const AppFeatures: React.FC<{ locale: 'en' | 'de' | 'fr' }> = ({ locale }) => {
+  const features = [
+    {
+      title: { en: 'Chat', de: 'Chat', fr: 'Chat' }[locale],
+      description: {
+        en: 'Connect and communicate with other participants',
+        de: 'Verbinde dich und kommuniziere mit anderen Teilnehmern',
+        fr: "Connectez-vous et communiquez avec d'autres participants",
+      }[locale],
+      href: '/app/chat',
+      icon: MessageCircle,
+    },
+    {
+      title: { en: 'Emergency', de: 'Notfall', fr: 'Urgence' }[locale],
+      description: {
+        en: 'Quick access to emergency contacts and information',
+        de: 'Schneller Zugang zu Notfallkontakten und Informationen',
+        fr: "Accès rapide aux contacts et informations d'urgence",
+      }[locale],
+      href: '/app/emergency',
+      icon: AlertTriangle,
+    },
+    {
+      title: { en: 'Location Map', de: 'Lagerplatz Map', fr: 'Carte des lieux' }[locale],
+      description: {
+        en: 'Navigate through event locations and find your way',
+        de: 'Navigiere durch Veranstaltungsorte und finde deinen Weg',
+        fr: "Naviguez dans les lieux d'événements et trouvez votre chemin",
+      }[locale],
+      href: '/app/map',
+      icon: MapIcon,
+    },
+    {
+      title: { en: 'Schedule', de: 'Programm', fr: 'Programme' }[locale],
+      description: {
+        en: 'View upcoming events and program elements',
+        de: 'Zeige bevorstehende Veranstaltungen und Programmelemente an',
+        fr: 'Voir les événements à venir et les éléments du programme',
+      }[locale],
+      href: '/app/schedule',
+      icon: CalendarDays,
+    },
+    {
+      title: { en: 'Upload Images', de: 'Bilder hochladen', fr: 'Télécharger des images' }[locale],
+      description: {
+        en: 'Share your memories by uploading photos',
+        de: 'Teile deine Erinnerungen durch das Hochladen von Fotos',
+        fr: 'Partagez vos souvenirs en téléchargeant des photos',
+      }[locale],
+      href: '/app/upload-images',
+      icon: Upload,
+    },
+    {
+      title: { en: 'Forum', de: 'Forum', fr: 'Forum' }[locale],
+      description: {
+        en: 'Discuss topics and share ideas with the community',
+        de: 'Diskutiere Themen und teile Ideen mit der Community',
+        fr: 'Discutez de sujets et partagez des idées avec la communauté',
+      }[locale],
+      href: '/app/forum',
+      icon: Users,
+    },
+    {
+      title: {
+        en: 'Vehicle Reservations',
+        de: 'Fahrzeug Reservationen',
+        fr: 'Réservations de véhicules',
+      }[locale],
+      description: {
+        en: 'Reserve a vehicle for your needs during the event',
+        de: 'Reserviere ein Fahrzeug für deine Bedürfnisse während der Veranstaltung',
+        fr: "Réservez un véhicule pour vos besoins pendant l'événement",
+      }[locale],
+      href: '/app/reservations',
+      icon: Car,
+    },
+    {
+      title: { en: 'Settings', de: 'Einstellungen', fr: 'Paramètres' }[locale],
+      description: {
+        en: 'Customize your app experience and preferences',
+        de: 'Passe deine App-Erfahrung und Einstellungen an',
+        fr: "Personnalisez votre expérience et vos préférences d'application",
+      }[locale],
+      href: '/app/settings',
+      icon: Settings,
+    },
+    {
+      title: { en: 'Explore Webpage', de: 'Webseite entdecken', fr: 'Explorer la page web' }[
+        locale
+      ],
+      description: {
+        en: 'Visit the official event webpage for more information',
+        de: 'Besuche die offizielle Veranstaltungs-Webseite für mehr Informationen',
+        fr: "Visitez la page web officielle de l'événement pour plus d'informations",
+      }[locale],
+      href: '/',
+      icon: Compass,
+    },
+  ];
+
+  return (
+    <div>
+      <HeadlineH1 className="mb-4">{appFeaturesTitle[locale]}</HeadlineH1>
+      <div className="overflow-x-auto pb-4">
+        <div className="flex w-max gap-4">
+          {features.map((feature, index) => (
+            <FeatureCard key={index} {...feature} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const EventCard: React.FC<{
+  entry: CampScheduleEntryFrontendType;
+}> = ({ entry }) => {
+  const location = entry.location;
+  const { formattedDate, time } = formatDateTime(entry.timeslot.date, entry.timeslot.time);
+
+  return (
+    <Link
+      href={`/app/schedule/${entry.id}`}
+      className="block rounded-md border-2 border-gray-200 bg-white p-4 transition duration-200 hover:shadow-md"
+    >
+      <div className="space-y-2">
+        <h3 className="text-conveniat-green text-sm font-semibold">{entry.title}</h3>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+          <div className="flex items-center gap-1 rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-blue-700">
+            <Calendar className="h-3 w-3" />
+            <span className="font-medium">{formattedDate}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Clock className="h-3 w-3 text-gray-500" />
+            <span className="text-gray-700">{time}</span>
+          </div>
+          {typeof location === 'object' && location.title !== '' && (
+            <div className="flex items-center gap-1">
+              <MapPin className="h-3 w-3 text-gray-500" />
+              <span className="text-xs text-blue-600">{location.title}</span>
+            </div>
+          )}
+        </div>
+      </div>
+    </Link>
+  );
+};
+
+const UpcomingEvents: React.FC<{ locale: 'en' | 'de' | 'fr' }> = async ({ locale }) => {
+  const scheduleEvents = await getScheduleEntries();
+  const upcomingEvents = scheduleEvents.slice(0, 3);
+
+  if (upcomingEvents.length === 0) {
+    return <></>;
+  }
+
+  return (
+    <div>
+      <SubheadingH2 className="mb-4">{upcomingProgramElementsTitle[locale]}</SubheadingH2>
+      <div className="space-y-3">
+        {upcomingEvents.map((entry) => (
+          <EventCard key={entry.id} entry={entry} />
+        ))}
+      </div>
+    </div>
+  );
 };
 
 const Dashboard: React.FC = async () => {
   const locale = await getLocaleFromCookies();
-  const scheduleEvents = await getScheduleEntries();
-  const upcomingEvents = scheduleEvents.slice(0, 4); // Limit to 4 upcoming events
 
   return (
     <>
       <SetDynamicPageTitle newTitle={dashboardTitle[locale]} />
-      <section className="container mx-auto my-8 px-4 py-8 md:py-12">
-        <article className="mx-auto w-full max-w-2xl space-y-10">
-          {/* Welcome Section */}
-          <div>
-            <HeadlineH1>{dashboardTitle[locale]}</HeadlineH1>
-            <p className="mt-2 text-gray-700">{welcomeParagraph[locale]}</p>
-          </div>
+      <section className="container mx-auto mt-8 px-4 py-6">
+        <article className="mx-auto w-full max-w-md space-y-6">
+          {/* App Features Section */}
+          <AppFeatures locale={locale} />
 
-          {/* Settings */}
-          <div>
-            <div className="mb-4">
-              <SubheadingH2>{settingsTitle[locale]}</SubheadingH2>
-            </div>
-            <div>
-              <Link href="/app/settings" passHref>
-                <Button className="bg-conveniat-green hover:bg-conveniat-green-dark text-white">
-                  {visitSettings[locale]}
-                </Button>
-              </Link>
-            </div>
-          </div>
-
-          {/* Upcoming Program Elements */}
-          <div>
-            <SubheadingH2>{upcomingProgramElementsTitle[locale]}</SubheadingH2>
-            <div className="mt-4 grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2">
-              {upcomingEvents.map((entry) => {
-                const location = entry.location as CampMapAnnotation;
-                return (
-                  <Link
-                    key={entry.id}
-                    href={`/app/schedule/${entry.id}`}
-                    className="flex flex-col rounded-md border p-4 shadow-sm"
-                  >
-                    <div className="mb-2">
-                      <h3 className="font-heading text-conveniat-green flex-inline flex text-base font-extrabold text-balance">
-                        {entry.title}
-                        {/* Location - inline */}
-                        {location.title !== '' && (
-                          <div className="flex w-full justify-end">
-                            <div className="ml-auto flex items-center gap-1.5 text-sm text-gray-600">
-                              <MapPin className="h-3.5 w-3.5 flex-shrink-0 text-gray-500" />
-                              <div className="cursor-pointer font-medium text-blue-600 transition-colors">
-                                {location.title}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </h3>
-                      <div className="mb-3 flex flex-wrap items-center gap-4">
-                        {/* Time slots */}
-
-                        <div className={'flex flex-shrink-0 items-center gap-3 text-sm'}>
-                          {
-                            <div className="flex flex-shrink-0 items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1 text-blue-700">
-                              <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
-                              <span className="font-medium whitespace-nowrap">
-                                {
-                                  formatDateTime(entry.timeslot.date, entry.timeslot.time)
-                                    .formattedDate
-                                }
-                              </span>
-                            </div>
-                          }
-
-                          {/* Time Slots */}
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            <Clock className="h-3.5 w-3.5 flex-shrink-0 text-gray-500" />
-                            <div className="flex flex-wrap gap-1.5">
-                              <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium whitespace-nowrap text-gray-700">
-                                {entry.timeslot.time}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex-1">
-                      <LexicalRichTextSection richTextSection={entry.description} />
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Getting Started */}
-          <div>
-            <SubheadingH2>{gettingStartedTitle[locale]}</SubheadingH2>
-            <p className="mt-2 text-gray-700">{gettingStartedParagraph[locale]}</p>
-            <ol className="mt-4 space-y-3 text-gray-700">
-              <li className="flex items-start gap-2">
-                <ArrowRight className="text-conveniat-green mt-0.5 h-5 w-5 flex-shrink-0" />
-                <span>
-                  {exploreProgramElements[locale]}{' '}
-                  <LinkComponent
-                    className="font-bold text-red-600 hover:underline"
-                    href="/app/schedule"
-                  >
-                    {viewScheduleLink[locale]}
-                  </LinkComponent>
-                </span>
-              </li>
-              <li className="flex items-start gap-2">
-                <ArrowRight className="text-conveniat-green mt-0.5 h-5 w-5 flex-shrink-0" />
-                <span>
-                  {checkMapDescription[locale]}{' '}
-                  <LinkComponent
-                    className="font-bold text-red-600 hover:underline"
-                    href="/app/schedule"
-                  >
-                    {mapLink[locale]}
-                  </LinkComponent>{' '}
-                  {findWayAround[locale]}
-                </span>
-              </li>
-            </ol>
-          </div>
-
-          {/* Explore Website */}
-          <div className="rounded-md border p-6 shadow-sm">
-            <div className="mb-4">
-              <h3 className="text-xl font-semibold">{exploreWebsiteTitle[locale]}</h3>
-              <p className="mt-2 text-gray-700">{exploreWebsiteParagraph[locale]}</p>
-            </div>
-            <div>
-              <Link href="/" passHref>
-                <Button className="bg-conveniat-green hover:bg-conveniat-green-dark text-white">
-                  {visitWebsiteButton[locale]}
-                </Button>
-              </Link>
-            </div>
-          </div>
+          {/* Upcoming Program Elements Section */}
+          <UpcomingEvents locale={locale} />
         </article>
       </section>
     </>
