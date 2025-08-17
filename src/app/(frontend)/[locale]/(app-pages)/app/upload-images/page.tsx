@@ -70,8 +70,8 @@ const submitMoreButton: StaticTranslationString = {
 
 const imageSizeTooSmall: StaticTranslationString = {
   en: 'Your uploaded image is too small',
-  de: 'Dein Bild ist zu klein.',
-  fr: '',
+  de: 'Dein Bild ist zu klein',
+  fr: 'Votre image téléchargée est trop petite',
 };
 
 const ImageUploadPage: React.FC = () => {
@@ -91,7 +91,9 @@ const ImageUploadPage: React.FC = () => {
       reader.addEventListener('load', (event) => {
         const img = new Image();
         img.addEventListener('load', () => {
-          resolve(img.width >= 1920 && img.height >= 1080);
+          resolve(
+            (img.width >= 1920 && img.height >= 1080) || (img.height >= 1920 && img.width >= 1080),
+          );
         });
         img.src = event.target?.result as string;
       });
