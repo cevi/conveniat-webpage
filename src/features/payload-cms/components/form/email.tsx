@@ -12,7 +12,7 @@ import type React from 'react';
 
 const isNotAValidEmailText: StaticTranslationString = {
   en: 'Please enter a valid email address',
-  de: 'Bitte geben Sie eine gültige E-Mail-Adresse ein',
+  de: 'Bitte gib eine gültige E-Mail-Adresse ein',
   fr: 'Veuillez saisir une adresse e-mail valide',
 };
 
