@@ -1,6 +1,7 @@
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { generateImageName } from '@/features/payload-cms/payload-cms/collections/image-collection';
 import type { CollectionConfig } from 'payload';
+import { canAccessAdminPanel } from '../access-rules/can-access-admin-panel';
 
 export const UserSubmittedImagesCollection: CollectionConfig = {
   slug: 'userSubmittedImages',
@@ -21,10 +22,13 @@ export const UserSubmittedImagesCollection: CollectionConfig = {
     group: AdminPanelDashboardGroups.InternalCollections,
     groupBy: false,
     disableCopyToLocale: true,
-    defaultColumns: ['updatedAt', 'user'],
+    defaultColumns: ['updatedAt', 'user', 'filename'],
   },
   access: {
-    read: () => true,
+    admin: canAccessAdminPanel,
+    create: canAccessAdminPanel,
+    delete: canAccessAdminPanel,
+    update: canAccessAdminPanel,
   },
   fields: [
     {
@@ -35,6 +39,13 @@ export const UserSubmittedImagesCollection: CollectionConfig = {
       required: true,
       localized: false,
       label: 'The user who submitted the image',
+    },
+    {
+      name: 'original_filename',
+      type: 'text',
+      required: false,
+      localized: false,
+      label: 'The original filename of the image.',
     },
     {
       name: 'user_description',
