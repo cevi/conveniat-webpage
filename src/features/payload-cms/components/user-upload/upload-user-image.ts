@@ -1,6 +1,8 @@
 'use server';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
+import { StaticTranslationString } from '@/types/types';
 import { auth } from '@/utils/auth-helpers';
+import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import config from '@payload-config';
 import { randomUUID } from 'crypto';
 import { getPayload } from 'payload';
@@ -9,6 +11,12 @@ interface UploadReturnType {
   error: boolean;
   message: string;
 }
+
+const notAuthenticatedError: StaticTranslationString = {
+  en: 'Not authenticaed.',
+  de: 'Nicht angemeldet.',
+  fr: 'Non authentifié.',
+};
 
 const checkImageDimensions = (file: File): Promise<File | null> => {
   return new Promise((resolve) => {
@@ -34,12 +42,13 @@ export const uploadUserImage = async (
 ): Promise<UploadReturnType> => {
   const payload = await getPayload({ config });
   const session = await auth();
+  const locale = await getLocaleFromCookies();
   const hitobito_user = session?.user as HitobitoNextAuthUser;
 
   if (!session?.user) {
     return {
       error: true,
-      message: 'Not authenticated.',
+      message: notAuthenticatedError[locale],
     };
   }
 
