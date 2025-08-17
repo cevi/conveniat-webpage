@@ -17,7 +17,7 @@ const selectImages: StaticTranslationString = {
 
 const dragDropText: StaticTranslationString = {
   en: 'Click to select images or drag and drop',
-  de: 'Klicken Sie, um Bilder auszuwählen oder ziehen Sie sie per Drag & Drop',
+  de: 'Klicke, um Bilder auszuwählen oder ziehe sie per Drag & Drop',
   fr: 'Cliquez pour sélectionner des images ou glissez-déposez',
 };
 

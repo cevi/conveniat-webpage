@@ -18,7 +18,7 @@ const imageDescription: StaticTranslationString = {
 
 const descriptionPlaceholder: StaticTranslationString = {
   en: 'Please provide a detailed description of your images...',
-  de: 'Bitte geben Sie eine detaillierte Beschreibung Ihrer Bilder an...',
+  de: 'Bitte gib eine detaillierte Beschreibung deiner Bilder an...',
   fr: 'Veuillez fournir une description détaillée de vos images...',
 };
 
