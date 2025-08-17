@@ -6,18 +6,17 @@ import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/ty
 import type { StaticTranslationString } from '@/types/types';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import {
-  AlertTriangle,
   Calendar,
-  CalendarDays,
-  Car,
   Clock,
   Compass,
+  ImageUp,
+  LucideMessageCircleQuestion,
   MapIcon,
   MapPin,
   MessageCircle,
   Settings,
-  Upload,
-  Users,
+  Siren,
+  Truck,
 } from 'lucide-react';
 import Link from 'next/link';
 import type React from 'react';
@@ -36,7 +35,7 @@ const appFeaturesTitle: StaticTranslationString = {
 
 const upcomingProgramElementsTitle: StaticTranslationString = {
   en: 'Upcoming Program Elements',
-  de: 'Bevorstehende Programmelemente',
+  de: 'Nächsten Programmpunkte',
   fr: 'Éléments de programme à venir',
 };
 
@@ -72,14 +71,16 @@ const FeatureCard: React.FC<FeatureCardProperties> = ({
   <Link href={href} className="block">
     <div className="bg-conveniat-green/10 border-conveniat-green/20 hover:bg-conveniat-green/15 h-28 w-72 rounded-lg border p-4 transition-all duration-200 hover:shadow-md">
       <div className="flex h-full items-center gap-3">
-        <div className="flex w-1/3 flex-shrink-0 justify-center">
+        <div className="flex w-16 flex-shrink-0 justify-center">
           <div className="bg-conveniat-green/20 rounded-full p-2">
             <IconComponent className="text-conveniat-green h-6 w-6" />
           </div>
         </div>
         <div className="w-2/3 flex-1">
           <h3 className="mb-1 text-base font-semibold text-gray-900">{title}</h3>
-          <p className="line-clamp-3 text-xs leading-tight text-gray-600">{description}</p>
+          <p className="line-clamp-3 text-xs leading-tight text-balance text-gray-600">
+            {description}
+          </p>
         </div>
       </div>
     </div>
@@ -106,7 +107,7 @@ const AppFeatures: React.FC<{ locale: 'en' | 'de' | 'fr' }> = ({ locale }) => {
         fr: "Accès rapide aux contacts et informations d'urgence",
       }[locale],
       href: '/app/emergency',
-      icon: AlertTriangle,
+      icon: Siren,
     },
     {
       title: { en: 'Location Map', de: 'Lagerplatz Map', fr: 'Carte des lieux' }[locale],
@@ -126,7 +127,7 @@ const AppFeatures: React.FC<{ locale: 'en' | 'de' | 'fr' }> = ({ locale }) => {
         fr: 'Voir les événements à venir et les éléments du programme',
       }[locale],
       href: '/app/schedule',
-      icon: CalendarDays,
+      icon: Calendar,
     },
     {
       title: { en: 'Upload Images', de: 'Bilder hochladen', fr: 'Télécharger des images' }[locale],
@@ -136,23 +137,23 @@ const AppFeatures: React.FC<{ locale: 'en' | 'de' | 'fr' }> = ({ locale }) => {
         fr: 'Partagez vos souvenirs en téléchargeant des photos',
       }[locale],
       href: '/app/upload-images',
-      icon: Upload,
+      icon: ImageUp,
     },
     {
-      title: { en: 'Forum', de: 'Forum', fr: 'Forum' }[locale],
+      title: { en: 'conveniat27 Forum', de: 'conveniat27 Forum', fr: 'Forum conveniat27' }[locale],
       description: {
         en: 'Discuss topics and share ideas with the community',
         de: 'Diskutiere Themen und teile Ideen mit der Community',
         fr: 'Discutez de sujets et partagez des idées avec la communauté',
       }[locale],
       href: '/app/forum',
-      icon: Users,
+      icon: LucideMessageCircleQuestion,
     },
     {
       title: {
-        en: 'Vehicle Reservations',
-        de: 'Fahrzeug Reservationen',
-        fr: 'Réservations de véhicules',
+        en: 'Reservations',
+        de: 'Reservationen',
+        fr: 'Réservations',
       }[locale],
       description: {
         en: 'Reserve a vehicle for your needs during the event',
@@ -160,7 +161,7 @@ const AppFeatures: React.FC<{ locale: 'en' | 'de' | 'fr' }> = ({ locale }) => {
         fr: "Réservez un véhicule pour vos besoins pendant l'événement",
       }[locale],
       href: '/app/reservations',
-      icon: Car,
+      icon: Truck,
     },
     {
       title: { en: 'Settings', de: 'Einstellungen', fr: 'Paramètres' }[locale],
@@ -234,6 +235,21 @@ const EventCard: React.FC<{
   );
 };
 
+const moreEventsTitle: StaticTranslationString = {
+  en: 'View More Events',
+  de: 'Weitere Veranstaltungen',
+  fr: "Voir plus d'événements",
+};
+
+const MoreEventsCard: React.FC = async () => {
+  const locale = await getLocaleFromCookies();
+  return (
+    <Link href="/app/schedule" className="block p-2 text-center">
+      <div className="text-sm font-semibold text-gray-700">{moreEventsTitle[locale]}</div>
+    </Link>
+  );
+};
+
 const UpcomingEvents: React.FC<{ locale: 'en' | 'de' | 'fr' }> = async ({ locale }) => {
   const scheduleEvents = await getScheduleEntries();
   const upcomingEvents = scheduleEvents.slice(0, 3);
@@ -244,11 +260,14 @@ const UpcomingEvents: React.FC<{ locale: 'en' | 'de' | 'fr' }> = async ({ locale
 
   return (
     <div>
-      <SubheadingH2 className="mb-4">{upcomingProgramElementsTitle[locale]}</SubheadingH2>
+      <SubheadingH2 className="mt-12 mb-4 text-center">
+        {upcomingProgramElementsTitle[locale]}
+      </SubheadingH2>
       <div className="space-y-3">
         {upcomingEvents.map((entry) => (
           <EventCard key={entry.id} entry={entry} />
         ))}
+        <MoreEventsCard />
       </div>
     </div>
   );
