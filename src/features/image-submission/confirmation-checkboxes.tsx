@@ -37,9 +37,9 @@ const rightsTitle: StaticTranslationString = {
 };
 
 const rightsDescription: StaticTranslationString = {
-  en: 'I hereby transfer all rights, title, and interest in the uploaded images to the Conveniat27 team. I confirm that I am the rightful owner of these images and have the authority to transfer these rights. The Conveniat27 team may use, modify, distribute, and display these images for any purpose.',
-  de: 'Hiermit übertrage ich alle Rechte, Titel und Interessen an den hochgeladenen Bildern an das Conveniat27-Team. Ich bestätige, dass ich der rechtmäßige Eigentümer dieser Bilder bin und die Befugnis habe, diese Rechte zu übertragen. Das Conveniat27-Team darf diese Bilder für jeden Zweck verwenden, ändern, verteilen und anzeigen.',
-  fr: "Je transfère par les présentes tous les droits, titres et intérêts dans les images téléchargées à l'équipe Conveniat27. Je confirme que je suis le propriétaire légitime de ces images et que j'ai l'autorité de transférer ces droits. L'équipe Conveniat27 peut utiliser, modifier, distribuer et afficher ces images à toute fin.",
+  en: 'I hereby transfer all rights, title, and interest in the uploaded images to the conveniat27 team. I confirm that I am the rightful owner of these images and have the authority to transfer these rights. The conveniat27 team may use, modify, distribute, and display these images for any purpose.',
+  de: 'Hiermit übertrage ich alle Rechte, Titel und Interessen an den hochgeladenen Bildern an das conveniat27-Team. Ich bestätige, dass ich der rechtmäßige Eigentümer dieser Bilder bin und die Befugnis habe, diese Rechte zu übertragen. Das conveniat27-Team darf diese Bilder für jeden Zweck verwenden, ändern, verteilen und anzeigen.',
+  fr: "Je transfère par les présentes tous les droits, titres et intérêts dans les images téléchargées à l'équipe conveniat27. Je confirme que je suis le propriétaire légitime de ces images et que j'ai l'autorité de transférer ces droits. L'équipe conveniat27 peut utiliser, modifier, distribuer et afficher ces images à toute fin.",
 };
 
 export const ConfirmationCheckboxes: React.FC<ConfirmationCheckboxesProperties> = ({
