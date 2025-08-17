@@ -10,12 +10,12 @@ export const UserSubmittedImagesCollection: CollectionConfig = {
     singular: {
       en: 'User Submitted Image',
       de: 'Benutzer hochgeladenes Bild',
-      fr: 'Image User',
+      fr: "Image d'Utilisateurs",
     },
     plural: {
       en: 'User Submitted Images',
       de: 'Benutzer hochgeladene Bilder',
-      fr: 'Images Users',
+      fr: "Images d'Utilisateurs",
     },
   },
   admin: {
@@ -38,27 +38,33 @@ export const UserSubmittedImagesCollection: CollectionConfig = {
       hasMany: false,
       required: true,
       localized: false,
-      label: 'The user who submitted the image',
+      label: {
+        en: 'The user who submitted the image',
+        de: 'Der Benutzer, der das Bild hochgeladen hat.',
+        fr: "L'utilisateur qui a soumis l'image",
+      },
     },
     {
       name: 'original_filename',
       type: 'text',
       required: false,
       localized: false,
-      label: 'The original filename of the image.',
+      label: {
+        en: 'The original filename of the image.',
+        de: 'Der Original Dateiname des Bildes',
+        fr: "Le nom de fichier original de l'image",
+      },
     },
     {
       name: 'user_description',
       type: 'text',
       required: true,
       localized: false,
-      label: 'The description the user submitted',
-    },
-    {
-      name: 'approved',
-      type: 'checkbox',
-      required: false,
-      label: 'This image is approved by the conveniat27 team.',
+      label: {
+        en: 'The description the user submitted',
+        de: 'Die Beschreibung, die der Benutzer hinzugefügt hat.',
+        fr: "La description soumise par l'utilisateur",
+      },
     },
   ],
   upload: {

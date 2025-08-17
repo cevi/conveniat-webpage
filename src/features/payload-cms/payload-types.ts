@@ -1639,7 +1639,6 @@ export interface UserSubmittedImage {
   uploaded_by: string | User;
   original_filename?: string | null;
   user_description: string;
-  approved?: boolean | null;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -2458,7 +2457,6 @@ export interface UserSubmittedImagesSelect<T extends boolean = true> {
   uploaded_by?: T;
   original_filename?: T;
   user_description?: T;
-  approved?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
