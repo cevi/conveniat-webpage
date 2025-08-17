@@ -16,19 +16,19 @@ import { useState } from 'react';
 
 const selectAtLeastOne: StaticTranslationString = {
   en: 'Please select at least one image',
-  de: 'Bitte wählen Sie mindestens ein Bild aus',
+  de: 'Bitte wähle mindestens ein Bild aus',
   fr: 'Veuillez sélectionner au moins une image',
 };
 
 const descriptionRequired: StaticTranslationString = {
   en: 'Please write a short description of the image',
-  de: 'Bitte schreiben Sie eine kurze Beschreibung des Bildes',
+  de: 'Bitte schreibe eine kurze Beschreibung des Bildes',
   fr: "Veuillez écrire une courte description de l'image",
 };
 
 const confirmationsRequired: StaticTranslationString = {
   en: 'Please accept both confirmations to proceed',
-  de: 'Bitte akzeptieren Sie beide Bestätigungen, um fortzufahren',
+  de: 'Bitte akzeptiere beide Bestätigungen, um fortzufahren',
   fr: 'Veuillez accepter les deux confirmations pour continuer',
 };
 
@@ -46,7 +46,7 @@ const pageTitle: StaticTranslationString = {
 
 const pageDescription: StaticTranslationString = {
   en: 'Upload your images and confirm the required agreements',
-  de: 'Laden Sie Ihre Bilder hoch und bestätigen Sie die erforderlichen Vereinbarungen',
+  de: 'Lade deine Bilder hoch und bestätige die erforderlichen Vereinbarungen',
   fr: 'Téléchargez vos images et confirmez les accords requis',
 };
 
@@ -58,7 +58,7 @@ const successTitle: StaticTranslationString = {
 
 const successMessage: StaticTranslationString = {
   en: 'Thank you for your submission. Your images have been uploaded successfully.',
-  de: 'Vielen Dank für Ihre Einreichung. Ihre Bilder wurden erfolgreich hochgeladen.',
+  de: 'Vielen Dank für deine Einreichung. Deine Bilder wurden erfolgreich hochgeladen.',
   fr: 'Merci pour votre soumission. Vos images ont été téléchargées avec succès.',
 };
 
