@@ -260,8 +260,8 @@ const Dashboard: React.FC = async () => {
   return (
     <>
       <SetDynamicPageTitle newTitle={dashboardTitle[locale]} />
-      <section className="container mx-auto mt-8 px-4 py-6">
-        <article className="mx-auto w-full max-w-md space-y-6">
+      <section className="container mx-auto mt-8 py-6">
+        <article className="mx-auto w-full max-w-2xl space-y-6 px-8">
           {/* App Features Section */}
           <AppFeatures locale={locale} />
 
