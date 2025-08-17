@@ -1637,6 +1637,7 @@ export interface CampScheduleEntry {
 export interface UserSubmittedImage {
   id: string;
   uploaded_by: string | User;
+  original_filename?: string | null;
   user_description: string;
   approved?: boolean | null;
   updatedAt: string;
@@ -2455,6 +2456,7 @@ export interface ImagesSelect<T extends boolean = true> {
  */
 export interface UserSubmittedImagesSelect<T extends boolean = true> {
   uploaded_by?: T;
+  original_filename?: T;
   user_description?: T;
   approved?: T;
   updatedAt?: T;

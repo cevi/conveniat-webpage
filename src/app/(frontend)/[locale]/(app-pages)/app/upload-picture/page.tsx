@@ -68,6 +68,12 @@ const submitMoreButton: StaticTranslationString = {
   fr: "Soumettre plus d'images",
 };
 
+const imageSizeTooSmall: StaticTranslationString = {
+  en: 'Your uploaded image is too small',
+  de: 'Dein Bild ist zu klein.',
+  fr: '',
+};
+
 const ImageUploadPage: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
@@ -81,10 +87,36 @@ const ImageUploadPage: React.FC = () => {
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>): void => {
     const files = event.target.files;
-    if (files) {
-      const newFiles = [...files].filter((file) => file.type.startsWith('image/'));
-      setSelectedFiles((previous) => [...previous, ...newFiles]);
-    }
+    if (!files) return;
+
+    const newFiles = [...files].filter((file) => file.type.startsWith('image/'));
+
+    const checkImageDimensions = (file: File): Promise<File | null> => {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            if (img.width >= 1920 && img.height >= 1080) {
+              setErrorMessage('');
+              resolve(file);
+            } else {
+              setErrorMessage(imageSizeTooSmall[locale]);
+              resolve(null);
+            }
+          };
+          img.src = e.target?.result as string;
+        };
+        reader.readAsDataURL(file);
+      });
+    };
+
+    // Run async logic without marking handleFileSelect as async
+    (async () => {
+      const results = await Promise.all(newFiles.map(checkImageDimensions));
+      const validFiles = results.filter((f): f is File => f !== null);
+      setSelectedFiles((previous) => [...previous, ...validFiles]);
+    })();
   };
 
   const removeFile = (index: number): void => {

@@ -9,6 +9,24 @@ interface UploadReturnType {
   message: string;
 }
 
+const checkImageDimensions = (file: File): Promise<File | null> => {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        if (img.width >= 1920 && img.height >= 1080) {
+          resolve(file);
+        } else {
+          resolve(null);
+        }
+      };
+      img.src = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+};
+
 export const uploadUserImage = async (
   images: File[],
   description: string,
@@ -20,22 +38,29 @@ export const uploadUserImage = async (
   if (!session?.user) {
     return {
       error: true,
-      message: 'not authenticated.',
+      message: 'Not authenticated.',
     };
   }
 
+  const allowedImages = await Promise.all(
+    images
+      .filter(async (image) => await checkImageDimensions(image))
+      .filter((image) => image.type.startsWith('image/')),
+  );
+
   await Promise.all(
-    images.map(async (image) => {
+    allowedImages.map(async (image) => {
       await payload.create({
         collection: 'userSubmittedImages',
         data: {
           uploaded_by: hitobito_user.uuid,
           user_description: description,
+          original_filename: image.name,
         },
         file: {
           data: Buffer.from(await image.arrayBuffer()),
-          mimetype: image.type, // TODO
-          name: image.name,
+          mimetype: image.type,
+          name: 'user_upload_' + image.name,
           size: 0,
         },
       });
@@ -43,7 +68,7 @@ export const uploadUserImage = async (
   );
 
   return {
-    message: 'ok',
+    message: 'Ok',
     error: false,
   };
 };
