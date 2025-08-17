@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import React from 'react';
 
 import { FooterAppNavBar } from '@/components/footer/footer-app-nav-bar';
+import { StarProvider } from '@/context/star-context';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { renderInAppDesign } from '@/utils/render-in-app-design';
 import { SessionProvider } from 'next-auth/react';
@@ -16,9 +17,11 @@ const Layout: React.FC<LayoutProperties> = async ({ children }) => {
 
   return (
     <>
-      <SessionProvider>{children}</SessionProvider>
-      <div></div>
-      {isInAppDesign && <FooterAppNavBar locale={locale} />}
+      <StarProvider>
+        <SessionProvider>{children}</SessionProvider>
+        <div></div>
+        {isInAppDesign && <FooterAppNavBar locale={locale} />}
+      </StarProvider>
     </>
   );
 };

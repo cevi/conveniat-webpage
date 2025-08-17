@@ -230,6 +230,7 @@ const config = [
                 './types',
                 './utils',
                 './config',
+                './context',
               ],
             },
           ],

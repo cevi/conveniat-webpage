@@ -1,9 +1,10 @@
 import { StarButton } from '@/components/star/star';
 import { LinkComponent } from '@/components/ui/link-component';
 import type { CampMapAnnotationPoint, CampMapAnnotationPolygon } from '@/features/map/types/types';
+import { useStar } from '@/hooks/use-star';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { Share2, X } from 'lucide-react';
-import React, { useState } from 'react';
+import React from 'react';
 
 const closeAriaLabel: StaticTranslationString = {
   de: 'Schliessen',
@@ -27,11 +28,11 @@ export const AnnotationDrawerHeader: React.FC<AnnotationDrawerHeaderProperties> 
   locale,
   shareLocationCallback,
 }) => {
-  const [isStared, setIsStared] = useState(false);
+  const { isStarred, toggleStar } = useStar();
 
-  const toggleStar = (id: string): void => {
-    setIsStared((previous) => !previous);
-    console.log(`Toggled star for annotation with id: ${id}`);
+  const toggleStarHandler = (): void => {
+    console.log(`Toggled star for annotation with id: ${annotation.id}`);
+    toggleStar(annotation.id);
   };
 
   return (
@@ -39,7 +40,11 @@ export const AnnotationDrawerHeader: React.FC<AnnotationDrawerHeaderProperties> 
       {/* Absolute positioned flex container for action icons */}
       <div className="absolute top-3 right-2 flex items-center space-x-2">
         {/* Heart Icon to star the annotation */}
-        <StarButton id={''} toggleStar={toggleStar} isStared={isStared} />
+        <StarButton
+          id={annotation.id}
+          toggleStar={toggleStarHandler}
+          isStared={isStarred(annotation.id)}
+        />
 
         {/* Share Icon */}
         {typeof navigator.share === 'function' && (

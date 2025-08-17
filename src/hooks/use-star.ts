@@ -1,9 +1,10 @@
-import { StarContext } from '@/features/schedule/context/star-context';
-import type { StarContextType } from '@/features/schedule/types/types';
+import { StarContext } from '@/context/star-context';
+import type { StarContextType } from '@/types/types';
 import { useContext } from 'react';
 
 /**
  * A custom hook to consume the star context.
+ *
  * @returns An object with a function to check if an item is starred
  * and a function to toggle the star status.
  */

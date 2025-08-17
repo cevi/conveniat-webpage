@@ -1,9 +1,9 @@
 'use client';
-import type { StarContextType } from '@/features/schedule/types/types';
+import type { StarContextType } from '@/types/types';
 import type React from 'react';
 import { createContext, type ReactNode, useCallback, useEffect, useState } from 'react';
 
-const STORAGE_KEY = 'starredScheduleItems';
+const STORAGE_KEY = 'starredItems';
 
 export interface StarProviderProperties {
   children: ReactNode;
