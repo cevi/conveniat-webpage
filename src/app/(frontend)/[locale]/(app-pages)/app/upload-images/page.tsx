@@ -69,9 +69,15 @@ const submitMoreButton: StaticTranslationString = {
 };
 
 const imageSizeTooSmall: StaticTranslationString = {
-  en: 'Your uploaded image is too small',
-  de: 'Dein Bild ist zu klein',
+  en: 'Your uploaded image size is too small',
+  de: 'Dein Bild hat eine zu geringe Auflösung',
   fr: 'Votre image téléchargée est trop petite',
+};
+
+const imageTooBig: StaticTranslationString = {
+  en: 'Your uploaded image is too big',
+  de: 'Dein Bild ist zu gross',
+  fr: 'Votre image téléchargée est trop grande',
 };
 
 const ImageUploadPage: React.FC = () => {
@@ -113,13 +119,24 @@ const ImageUploadPage: React.FC = () => {
       const results = await Promise.all(
         newFiles.map(async (file) => ({
           file,
-          isValid: (await checkImageDimensions(file)) && file.size < 10 * 1024 * 1024,
+          isValidDimensions: await checkImageDimensions(file),
+          isValidSize: file.size < 10 * 1024 * 1024,
         })),
       );
 
-      const validFiles = results.filter((r) => r.isValid).map((r) => r.file);
-      const nonValid = results.some((r) => !r.isValid);
-      if (nonValid) setErrorMessage(imageSizeTooSmall[locale]);
+      const validFiles = results
+        .filter((r) => r.isValidDimensions && r.isValidSize)
+        .map((r) => r.file);
+
+      const nonValidDimensions = results.some((r) => !r.isValidDimensions);
+      if (nonValidDimensions) {
+        setErrorMessage(imageSizeTooSmall[locale]);
+      }
+
+      const nonValidSize = results.some((r) => !r.isValidSize);
+      if (nonValidSize) {
+        setErrorMessage(imageTooBig[locale]);
+      }
 
       setSelectedFiles((previous) => [...previous, ...validFiles]);
     })();
