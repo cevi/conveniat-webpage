@@ -7,10 +7,10 @@ import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { Accordion } from '@radix-ui/react-accordion';
-import { AlertCircle, Search, X } from 'lucide-react';
+import { Check, ChevronRight, Search, X } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import type { ChangeEvent } from 'react';
-import React, { useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 
 const alertTypeTranslations = {
   'Medical Emergency': {
@@ -54,7 +54,7 @@ const alertDescriptions = {
   'Severe Weather': {
     de: 'Gefährliche Wetterbedingungen wie Stürme, Blitze oder Überschwemmungen.',
     en: 'Dangerous weather conditions such as storms, lightning, or flooding.',
-    fr: 'Conditions météorologiques dangereuses telles que tempêtes, éclairs ou inondations.',
+    fr: 'Conditions météorologiques dangereuses telles as storms, lightning, or flooding.',
   },
 };
 
@@ -103,6 +103,18 @@ const alertTriggeredText: StaticTranslationString = {
   de: 'Alarm ausgelöst!',
   en: 'Alert triggered!',
   fr: 'Alerte déclenchée!',
+};
+
+const alarmText: StaticTranslationString = {
+  de: 'Alarmieren',
+  en: 'Alert',
+  fr: 'Alerter',
+};
+
+const emergencyTitle: StaticTranslationString = {
+  de: 'Notfall und Alarmierung',
+  en: 'Emergency and Alert',
+  fr: 'Urgence et Alerte',
 };
 
 const alertTypes = [
@@ -171,6 +183,142 @@ const alertTypes = [
   },
 ];
 
+interface ConfirmationSliderProperties {
+  onConfirm: () => void;
+  text?: string;
+  confirmedText?: string;
+}
+
+const ConfirmationSlider: React.FC<ConfirmationSliderProperties> = ({
+  onConfirm,
+  text = 'Slide to confirm',
+  confirmedText = 'Confirmed!',
+}) => {
+  const trackReference = useRef<HTMLDivElement>(null);
+  const handleReference = useRef<HTMLDivElement>(null);
+  const isDraggingReference = useRef(false);
+  const startXReference = useRef(0);
+  const currentTranslateXReference = useRef(0);
+
+  const [isConfirmed, setIsConfirmed] = useState(false);
+
+  const resetSlider = useCallback(() => {
+    if (!handleReference.current || isConfirmed) return;
+    handleReference.current.style.transition = 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+    handleReference.current.style.transform = 'translateX(0px)';
+    trackReference.current?.style.setProperty('--translate-x-clamped', '0px');
+    setTimeout(() => {
+      if (handleReference.current) {
+        handleReference.current.style.transition = '';
+      }
+    }, 400);
+  }, [isConfirmed]);
+
+  const handlePointerMove = useCallback(
+    (event: PointerEvent) => {
+      if (!isDraggingReference.current || !trackReference.current || isConfirmed) return;
+
+      const deltaX = event.clientX - startXReference.current;
+      const handleWidth = handleReference.current?.offsetWidth ?? 64;
+      const trackWidth = trackReference.current.offsetWidth;
+      const maxTranslateX = trackWidth - handleWidth - 8;
+      const clampedTranslateX = Math.min(Math.max(0, deltaX), maxTranslateX);
+
+      currentTranslateXReference.current = clampedTranslateX;
+
+      if (handleReference.current) {
+        handleReference.current.style.transform = `translateX(${clampedTranslateX}px)`;
+      }
+      trackReference.current.style.setProperty('--translate-x-clamped', `${clampedTranslateX}px`);
+    },
+    [isConfirmed],
+  );
+
+  const handlePointerUp = useCallback(() => {
+    if (!isDraggingReference.current || !trackReference.current || isConfirmed) return;
+    isDraggingReference.current = false;
+
+    const handleWidth = handleReference.current?.offsetWidth ?? 64;
+    const trackWidth = trackReference.current.offsetWidth;
+    const triggerThreshold = trackWidth - handleWidth - 8;
+
+    if (currentTranslateXReference.current >= triggerThreshold) {
+      setIsConfirmed(true);
+      onConfirm();
+    } else {
+      resetSlider();
+    }
+
+    globalThis.removeEventListener('pointermove', handlePointerMove);
+    globalThis.removeEventListener('pointerup', handlePointerUp);
+  }, [handlePointerMove, onConfirm, resetSlider, isConfirmed]);
+
+  const handlePointerDown = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      if (isDraggingReference.current || isConfirmed) return;
+      isDraggingReference.current = true;
+      startXReference.current = event.clientX;
+
+      if (handleReference.current) {
+        handleReference.current.style.transition = '';
+      }
+
+      globalThis.addEventListener('pointermove', handlePointerMove);
+      globalThis.addEventListener('pointerup', handlePointerUp);
+    },
+    [handlePointerMove, handlePointerUp, isConfirmed],
+  );
+
+  return (
+    <div className="mx-auto w-full max-w-md p-4">
+      <div
+        ref={trackReference}
+        className={`relative flex h-16 cursor-grab items-center rounded-full px-2 transition-all duration-500 ${
+          isConfirmed ? 'bg-green-700 shadow-lg shadow-green-200' : 'bg-red-600 hover:bg-red-500'
+        }`}
+        onPointerDown={handlePointerDown}
+      >
+        {!isConfirmed && (
+          <div className="absolute left-2 h-12 w-12 animate-ping rounded-full bg-white/30 opacity-75"></div>
+        )}
+
+        <div
+          ref={handleReference}
+          className={`relative z-10 flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-lg transition-all duration-300 ${
+            isConfirmed ? 'absolute right-2' : 'absolute left-2'
+          }`}
+          style={isConfirmed ? { transform: 'translateX(0px)' } : undefined}
+        >
+          {!isConfirmed && (
+            <div className="absolute inset-0 animate-pulse rounded-full bg-gray-200 opacity-50"></div>
+          )}
+
+          {isConfirmed ? (
+            <Check className="relative z-10 text-green-500" size={24} />
+          ) : (
+            <ChevronRight className="relative z-10 text-gray-600" size={24} />
+          )}
+        </div>
+
+        <div
+          className={`pointer-events-none absolute left-1/2 -translate-x-1/2 transform text-lg font-medium text-white transition-all duration-300 ${
+            isConfirmed ? 'opacity-100' : ''
+          }`}
+          style={
+            isConfirmed
+              ? undefined
+              : {
+                  opacity: `calc(1 - (clamp(0, var(--translate-x-clamped), 60px) / 60px))`,
+                }
+          }
+        >
+          {isConfirmed ? confirmedText : text}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const EmergencyComponent: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const locale = useCurrentLocale(i18nConfig) as Locale;
@@ -185,30 +333,15 @@ export const EmergencyComponent: React.FC = () => {
     setSearchTerm('');
   };
 
+  const handleAlarmTrigger = (): void => {
+    alert(alertTriggeredText[locale]);
+  };
+
   return (
     <article className="mx-auto mt-16 w-full max-w-3xl px-4">
-      <HeadlineH1 className="text-center">Notfall und Alarmierung</HeadlineH1>
+      <HeadlineH1 className="text-center">{emergencyTitle[locale]}</HeadlineH1>
 
-      <div className="sticky top-[80px] z-20 bg-[#f8fafc] pb-4">
-        <div className="my-8 rounded-lg border-2 border-red-500 bg-red-50 p-6 shadow-xs">
-          <h2 className="mb-4 flex items-center justify-center text-2xl font-bold text-red-500">
-            <AlertCircle className="mr-2" /> Notfall Melden
-          </h2>
-          <p className="mb-4 text-center text-balance text-red-500">
-            In dringenden Notfällen, bitte sofort 1414 anrufen and anschliessend hier alarmieren.
-          </p>
-          <div className="flex justify-center">
-            <Button
-              className="text-red-50"
-              variant="destructive"
-              size="lg"
-              onClick={() => alert(alertTriggeredText[locale])}
-            >
-              Lagersanität Alarmieren
-            </Button>
-          </div>
-        </div>
-
+      <div className="pb-4">
         <div className="mb-8">
           <div className="relative">
             <Input
@@ -255,6 +388,13 @@ export const EmergencyComponent: React.FC = () => {
           </AccordionItem>
         ))}
       </Accordion>
+      <div className="fixed bottom-20 w-full select-none">
+        <ConfirmationSlider
+          confirmedText="Alarm Ausgelöst"
+          onConfirm={handleAlarmTrigger}
+          text={alarmText[locale]}
+        />
+      </div>
     </article>
   );
 };
