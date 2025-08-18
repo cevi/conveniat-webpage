@@ -36,11 +36,10 @@ html body[data-scroll-locked] {
   margin-right: 0 !important;
 }
 
-
 // Animation for Jump Effect (horizontally)
 @keyframes jump-x {
-
-  0%, 100% {
+  0%,
+  100% {
     transform: none;
     animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
   }
