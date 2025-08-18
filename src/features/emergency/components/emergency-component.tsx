@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/input';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
 import { Accordion } from '@radix-ui/react-accordion';
-import { Check, ChevronRight, Search, X } from 'lucide-react';
+import { Check, ChevronRight, LoaderCircle, Search, X } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import type { ChangeEvent } from 'react';
 import React, { useCallback, useRef, useState } from 'react';
@@ -184,14 +185,16 @@ const alertTypes = [
 ];
 
 interface ConfirmationSliderProperties {
-  onConfirm: () => void;
+  onConfirm: () => Promise<void>;
   text?: string;
+  pendingText?: string;
   confirmedText?: string;
 }
 
 const ConfirmationSlider: React.FC<ConfirmationSliderProperties> = ({
   onConfirm,
   text = 'Slide to confirm',
+  pendingText = 'Processing...',
   confirmedText = 'Confirmed!',
 }) => {
   const trackReference = useRef<HTMLDivElement>(null);
@@ -201,24 +204,28 @@ const ConfirmationSlider: React.FC<ConfirmationSliderProperties> = ({
   const currentTranslateXReference = useRef(0);
 
   const [isConfirmed, setIsConfirmed] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [displayText, setDisplayText] = useState(text);
+  const [isAnimating, setIsAnimating] = useState(true);
 
   const resetSlider = useCallback(() => {
-    if (!handleReference.current || isConfirmed) return;
+    if (!handleReference.current || isConfirmed || isProcessing) return;
     handleReference.current.style.transition = 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)';
     handleReference.current.style.transform = 'translateX(0px)';
     trackReference.current?.style.setProperty('--translate-x-clamped', '0px');
     setDisplayText(text);
+    setIsAnimating(true);
     setTimeout(() => {
       if (handleReference.current) {
         handleReference.current.style.transition = '';
       }
     }, 200);
-  }, [isConfirmed, text]);
+  }, [isConfirmed, isProcessing, text]);
 
   const handlePointerMove = useCallback(
     (event: PointerEvent) => {
-      if (!isDraggingReference.current || !trackReference.current || isConfirmed) return;
+      if (!isDraggingReference.current || !trackReference.current || isConfirmed || isProcessing)
+        return;
 
       const deltaX = event.clientX - startXReference.current;
       const handleWidth = handleReference.current?.offsetWidth ?? 64;
@@ -230,7 +237,7 @@ const ConfirmationSlider: React.FC<ConfirmationSliderProperties> = ({
 
       const textSwitchThreshold = maxTranslateX * 0.75;
       if (clampedTranslateX > textSwitchThreshold) {
-        setDisplayText(confirmedText);
+        setDisplayText(pendingText);
       } else {
         setDisplayText(text);
       }
@@ -240,11 +247,12 @@ const ConfirmationSlider: React.FC<ConfirmationSliderProperties> = ({
       }
       trackReference.current.style.setProperty('--translate-x-clamped', `${clampedTranslateX}px`);
     },
-    [isConfirmed, text, confirmedText],
+    [isConfirmed, isProcessing, text, pendingText],
   );
 
   const handlePointerUp = useCallback(() => {
-    if (!isDraggingReference.current || !trackReference.current || isConfirmed) return;
+    if (!isDraggingReference.current || !trackReference.current || isConfirmed || isProcessing)
+      return;
     isDraggingReference.current = false;
 
     const handleWidth = handleReference.current?.offsetWidth ?? 64;
@@ -252,30 +260,57 @@ const ConfirmationSlider: React.FC<ConfirmationSliderProperties> = ({
     const triggerThreshold = trackWidth - handleWidth - 16;
 
     if (currentTranslateXReference.current >= triggerThreshold) {
-      setIsConfirmed(true);
-      setDisplayText(confirmedText);
+      setIsProcessing(true);
+      setDisplayText(pendingText);
+      setIsAnimating(false);
       if (handleReference.current) {
         handleReference.current.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-        handleReference.current.style.transform = `translateX(${triggerThreshold + 8}px)`;
+        handleReference.current.style.transform = `translateX(${triggerThreshold}px)`;
       }
-      onConfirm();
+      try {
+        onConfirm()
+          .then((): void => {
+            setIsConfirmed(true);
+            setDisplayText(confirmedText);
+          })
+          .catch(() => {
+            resetSlider();
+            setIsConfirmed(false);
+            console.error('Confirmation failed, slider reset.');
+          });
+      } catch (error) {
+        console.error('Confirmation failed:', error);
+        setIsConfirmed(false);
+        resetSlider();
+      } finally {
+        setIsProcessing(false);
+      }
     } else {
       resetSlider();
     }
 
     globalThis.removeEventListener('pointermove', handlePointerMove);
     globalThis.removeEventListener('pointerup', handlePointerUp);
-  }, [handlePointerMove, onConfirm, resetSlider, isConfirmed, confirmedText]);
+  }, [
+    handlePointerMove,
+    onConfirm,
+    resetSlider,
+    isConfirmed,
+    isProcessing,
+    confirmedText,
+    pendingText,
+  ]);
 
   const handlePointerDown = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
-      if (isDraggingReference.current || isConfirmed) return;
+      if (isDraggingReference.current || isConfirmed || isProcessing) return;
 
       event.preventDefault();
       event.currentTarget.setPointerCapture(event.pointerId);
 
       isDraggingReference.current = true;
       startXReference.current = event.clientX;
+      setIsAnimating(false);
 
       if (handleReference.current) {
         handleReference.current.style.transition = 'none';
@@ -284,51 +319,63 @@ const ConfirmationSlider: React.FC<ConfirmationSliderProperties> = ({
       globalThis.addEventListener('pointermove', handlePointerMove);
       globalThis.addEventListener('pointerup', handlePointerUp);
     },
-    [handlePointerMove, handlePointerUp, isConfirmed],
+    [handlePointerMove, handlePointerUp, isConfirmed, isProcessing],
   );
 
   return (
     <div className="mx-auto w-full max-w-md p-4">
       <div
         ref={trackReference}
-        className={`relative flex h-16 cursor-grab items-center rounded-full transition-all duration-500 ${
-          isConfirmed ? 'bg-green-500 shadow-lg shadow-green-200' : 'bg-red-600 hover:bg-red-700'
-        }`}
+        className={cn(
+          'relative flex h-16 cursor-grab items-center rounded-full shadow-md transition-all duration-500',
+          {
+            'bg-green-500 shadow-green-200': isConfirmed,
+            'bg-red-600 hover:bg-red-700': !isConfirmed,
+            'cursor-not-allowed': isProcessing,
+          },
+        )}
         onPointerDown={handlePointerDown}
         style={{ touchAction: 'none' }}
       >
-        {!isConfirmed && (
-          <div className="absolute left-2 h-12 w-12 animate-ping rounded-full bg-red-400 opacity-75"></div>
-        )}
+        <div
+          className={cn('absolute left-2 h-12 w-12 rounded-full', {
+            'animate-ping bg-red-400 opacity-50': !isConfirmed && isAnimating && !isProcessing,
+          })}
+        ></div>
 
         <div
           ref={handleReference}
-          className={`relative z-10 flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-lg transition-all duration-300 ${
-            isConfirmed ? '' : 'absolute left-2'
-          }`}
+          className={cn(
+            'relative z-10 flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-lg transition-all duration-300',
+            {
+              'left-2': isConfirmed,
+              'absolute left-2': !isConfirmed,
+              'animate-jump-x': !isConfirmed && isAnimating && !isProcessing,
+            },
+          )}
         >
-          {!isConfirmed && (
+          {!isConfirmed && isAnimating && !isProcessing && (
             <div className="absolute inset-0 animate-pulse rounded-full bg-gray-200 opacity-50"></div>
           )}
 
-          {isConfirmed ? (
+          {isConfirmed && !isProcessing && (
             <Check className="relative z-10 text-green-800" size={24} />
-          ) : (
+          )}
+          {!isConfirmed && isProcessing && (
+            <LoaderCircle className="relative z-10 animate-spin text-gray-600" size={24} />
+          )}
+          {!isConfirmed && !isProcessing && (
             <ChevronRight className="relative z-10 text-gray-600" size={24} />
           )}
         </div>
 
         <div
-          className={`pointer-events-none absolute left-1/2 -translate-x-1/2 transform text-lg font-medium text-white transition-all duration-300 ${
-            isConfirmed ? 'opacity-100' : ''
-          }`}
-          style={
-            isConfirmed
-              ? undefined
-              : {
-                  opacity: `calc(1 - (clamp(0, var(--translate-x-clamped), 60px) / 60px))`,
-                }
-          }
+          className={cn(
+            'text-md pointer-events-none absolute left-1/2 -translate-x-1/2 transform font-medium text-white transition-all duration-300',
+            {
+              'opacity-100': isConfirmed || isProcessing,
+            },
+          )}
         >
           {displayText}
         </div>
@@ -351,16 +398,16 @@ export const EmergencyComponent: React.FC = () => {
     setSearchTerm('');
   };
 
-  const handleAlarmTrigger = (): void => {
+  const handleAlarmTrigger = async (): Promise<void> => {
     // get current location
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        console.log('Current location:', position.coords.latitude, position.coords.longitude);
-      },
-      (error) => {
-        console.error('Error getting location:', error);
-      },
-    );
+
+    const locationPromise = new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject);
+    });
+
+    const location = await locationPromise;
+
+    console.log('Current location:', location);
 
     alert(alertTriggeredText[locale]);
   };
@@ -419,9 +466,10 @@ export const EmergencyComponent: React.FC = () => {
 
       <div className="fixed bottom-20 left-0 w-full select-none">
         <ConfirmationSlider
-          confirmedText="Alarm Ausgelöst"
           onConfirm={handleAlarmTrigger}
           text={alarmText[locale]}
+          confirmedText="Alarm wurde ausgelöst"
+          pendingText="Alarm wird ausgelöst..."
         />
       </div>
     </article>
