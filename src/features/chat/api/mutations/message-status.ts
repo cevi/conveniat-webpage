@@ -15,11 +15,11 @@ export const messageStatus = trpcBaseProcedure
     const { user, prisma } = ctx;
     const { messageId, status } = input;
 
-    let eventType: MessageEventType = MessageEventType.USER_RECEIVED;
+    let eventType: MessageEventType = MessageEventType.STORED;
     if (status === MessageStatusDto.DELIVERED) {
-      eventType = MessageEventType.USER_RECEIVED;
+      eventType = MessageEventType.RECEIVED;
     } else if (status === MessageStatusDto.READ) {
-      eventType = MessageEventType.USER_READ;
+      eventType = MessageEventType.READ;
     }
 
     // Update the message event in the database

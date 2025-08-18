@@ -48,7 +48,7 @@ export const ChatTextareaInput: React.FC = () => {
     return <div className="text-gray-500">{isGuestMessage[locale]}</div>;
   }
 
-  if (chatDetails?.isArchived === true) {
+  if (chatDetails?.archivedAt !== null) {
     return <div className="text-gray-500">{chatIsArchivedMessage[locale]}</div>;
   }
 

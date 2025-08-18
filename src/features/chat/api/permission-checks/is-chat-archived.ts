@@ -3,6 +3,6 @@
  *
  * @param chat
  */
-export const isChatArchived = (chat: { isArchived: boolean }): boolean => {
-  return chat.isArchived;
+export const isChatArchived = (chat: { archivedAt: Date | null }): boolean => {
+  return chat.archivedAt !== null && chat.archivedAt <= new Date();
 };

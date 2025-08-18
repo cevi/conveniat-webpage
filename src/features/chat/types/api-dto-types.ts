@@ -1,21 +1,21 @@
+import type { JsonArray, JsonObject } from '@/lib/prisma/runtime/client';
+
 export enum MessageStatusDto {
   CREATED = 'CREATED',
-  SENT = 'SENT',
+  STORED = 'STORED',
   DELIVERED = 'DELIVERED',
   READ = 'READ',
 }
 
-/** @deprecated */
 export interface MessageDto {
   id: string;
   // undefined for system messages
   senderId: string | undefined;
-  content: string;
-  timestamp: Date;
+  messagePayload: string | number | boolean | JsonObject | JsonArray;
+  createdAt: Date;
   status: MessageStatusDto;
 }
 
-/** @deprecated */
 export interface ChatDto {
   id: string;
   name: string;

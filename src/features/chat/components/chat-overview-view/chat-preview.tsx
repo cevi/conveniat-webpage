@@ -48,8 +48,8 @@ export const ChatPreview: React.FC<{
     }
   }
 
-  const timestamp = chat.lastMessage?.timestamp
-    ? formatDistanceToNow(new Date(chat.lastMessage.timestamp), {
+  const timestamp = chat.lastMessage?.createdAt
+    ? formatDistanceToNow(new Date(chat.lastMessage.createdAt), {
         addSuffix: true,
         // Only pass locale if defined, otherwise omit for English fallback
         ...(localeToUse ? { locale: localeToUse } : {}),
@@ -111,7 +111,8 @@ export const ChatPreview: React.FC<{
               hasUnread ? 'font-medium text-gray-700' : 'text-gray-500',
             )}
           >
-            {chat.lastMessage?.content ?? noMessagesYetText[locale]}
+            {/* TODO: consider do that server side */}
+            {chat.lastMessage?.messagePayload.toString() ?? noMessagesYetText[locale]}
           </p>
         </div>
 

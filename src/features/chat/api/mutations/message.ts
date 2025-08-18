@@ -148,40 +148,21 @@ export const sendMessage = trpcBaseProcedure
     // Create the message and its initial events within a transaction
     const createdMessage = await prisma.message.create({
       data: {
-        content: validatedMessage.content,
-        sender: {
-          connect: {
-            uuid: user.uuid,
-          },
-        },
-        chat: {
-          connect: {
-            uuid: validatedMessage.chatId,
-          },
-        },
+        contentVersions: { create: [{ payload: validatedMessage.content }] },
+        sender: { connect: { uuid: user.uuid } },
+        chat: { connect: { uuid: validatedMessage.chatId } },
         messageEvents: {
           create: [
-            {
-              eventType: MessageEventType.CREATED,
-              timestamp: validatedMessage.timestamp,
-              userId: user.uuid,
-            },
-            {
-              eventType: MessageEventType.SERVER_RECEIVED,
-              timestamp: new Date(),
-            },
+            { type: MessageEventType.CREATED, user: { connect: { uuid: user.uuid } } },
+            { type: MessageEventType.STORED },
           ],
         },
       },
     });
 
     await prisma.chat.update({
-      where: {
-        uuid: validatedMessage.chatId,
-      },
-      data: {
-        lastUpdate: new Date(),
-      },
+      where: { uuid: validatedMessage.chatId },
+      data: { lastUpdate: new Date() },
     });
 
     console.log(`Message created with ID: ${createdMessage.uuid}`);
@@ -193,13 +174,12 @@ export const sendMessage = trpcBaseProcedure
     // Send push notification (fire-and-forget, with error logging)
     await sendNotification(validatedMessage.content, recipientUserIds, validatedMessage.chatId);
 
-    // Record SERVER_SENT event after a successful notification attempt
+    // Record DISTRIBUTED event after a successful notification attempt
     await prisma.messageEvent.createMany({
       data: recipientUserIds.map((userId) => ({
         userId: userId,
         messageId: createdMessage.uuid,
-        eventType: MessageEventType.SERVER_SENT,
-        timestamp: new Date(),
+        type: MessageEventType.DISTRIBUTED,
       })),
     });
   });

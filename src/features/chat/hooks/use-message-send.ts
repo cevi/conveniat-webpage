@@ -29,8 +29,8 @@ export const useMessageSend = (): UseMessageSendMutation => {
 
       const optimisticMessage: MessageDto = {
         id: `optimistic-${Date.now()}`,
-        content: content.trim(),
-        timestamp: new Date(),
+        messagePayload: content.trim(),
+        createdAt: new Date(),
         senderId: currentUser,
         status: MessageStatusDto.CREATED,
       };
@@ -40,7 +40,8 @@ export const useMessageSend = (): UseMessageSendMutation => {
         (oldData: ChatDetails | undefined): ChatDetails => {
           if (!oldData) {
             return {
-              isArchived: false,
+              // eslint-disable-next-line unicorn/no-null
+              archivedAt: null,
               name: '',
               participants: [],
               id: chatId,

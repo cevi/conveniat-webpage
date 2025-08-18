@@ -1,11 +1,18 @@
 import type { ChatDto } from '@/features/chat/types/api-dto-types';
 import { MessageStatusDto } from '@/features/chat/types/api-dto-types';
 import { MessageEventType } from '@/lib/prisma';
+import type { JsonArray, JsonObject } from '@/lib/prisma/runtime/client';
 import { trpcBaseProcedure } from '@/trpc/init';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { ChatMembershipPermission, MessageEvent } from '@prisma/client';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
+
+const userRelevantChatMessageEvents = [
+  MessageEventType.STORED, // show one tick
+  MessageEventType.RECEIVED, // show two ticks
+  MessageEventType.READ, // show two green ticks
+];
 
 // Helper functions for resolving chat names and message statuses
 const resolveChatName = (
@@ -27,19 +34,16 @@ const resolveChatName = (
 };
 
 const getStatusFromMessageEvents = (messageEvents: MessageEvent[]): MessageStatusDto => {
-  if (messageEvents.some((event) => event.eventType === MessageEventType.USER_READ)) {
+  if (messageEvents.some((event) => event.type === MessageEventType.READ)) {
     return MessageStatusDto.READ;
   }
 
-  if (messageEvents.some((event) => event.eventType === MessageEventType.USER_RECEIVED)) {
+  if (messageEvents.some((event) => event.type === MessageEventType.RECEIVED)) {
     return MessageStatusDto.DELIVERED;
   }
 
-  if (
-    messageEvents.some((event) => event.eventType === MessageEventType.SERVER_RECEIVED) ||
-    messageEvents.some((event) => event.eventType === MessageEventType.SERVER_SENT)
-  ) {
-    return MessageStatusDto.SENT;
+  if (messageEvents.some((event) => event.type === MessageEventType.STORED)) {
+    return MessageStatusDto.STORED;
   }
 
   return MessageStatusDto.CREATED;
@@ -69,14 +73,15 @@ export const chats = trpcBaseProcedure.input(z.object({})).query(async ({ ctx })
     },
     include: {
       messages: {
-        orderBy: {
-          timestamp: 'asc',
-        },
+        orderBy: { createdAt: 'asc' },
         include: {
           messageEvents: {
-            orderBy: {
-              timestamp: 'asc',
-            },
+            where: { type: { in: userRelevantChatMessageEvents } },
+            orderBy: { uuid: 'desc' },
+          },
+          contentVersions: {
+            take: 1, // include only the latest content version
+            orderBy: { revision: 'desc' },
           },
         },
       },
@@ -93,7 +98,7 @@ export const chats = trpcBaseProcedure.input(z.object({})).query(async ({ ctx })
 
   return _chats.map((chat): ChatDto => {
     const messages = chat.messages.sort(
-      (m1, m2) => m1.timestamp.getTime() - m2.timestamp.getTime(),
+      (m1, m2) => m1.createdAt.getTime() - m2.createdAt.getTime(),
     );
     const lastMessage = messages.at(-1);
 
@@ -108,8 +113,7 @@ export const chats = trpcBaseProcedure.input(z.object({})).query(async ({ ctx })
       unreadCount: messages
         .filter((message) => message.senderId !== prismaUser.uuid)
         .filter(
-          (message) =>
-            !message.messageEvents.some((event) => event.eventType === MessageEventType.USER_READ),
+          (message) => !message.messageEvents.some((event) => event.type === MessageEventType.READ),
         ).length,
       lastUpdate: chat.lastUpdate,
       name: resolveChatName(
@@ -123,8 +127,8 @@ export const chats = trpcBaseProcedure.input(z.object({})).query(async ({ ctx })
       id: chat.uuid,
       lastMessage: {
         id: lastMessage.uuid,
-        timestamp: chat.lastUpdate,
-        content: lastMessage.content,
+        createdAt: chat.lastUpdate,
+        messagePayload: lastMessage.contentVersions[0]?.payload ?? {},
         senderId: lastMessage.senderId ?? undefined,
         status: getStatusFromMessageEvents(lastMessage.messageEvents),
       },
@@ -134,8 +138,8 @@ export const chats = trpcBaseProcedure.input(z.object({})).query(async ({ ctx })
 
 interface ChatMessage {
   id: string;
-  timestamp: Date;
-  content: string;
+  createdAt: Date;
+  messagePayload: string | number | boolean | JsonObject | JsonArray;
   senderId: string | undefined;
   status: MessageStatusDto;
 }
@@ -150,7 +154,7 @@ interface ChatParticipant {
 export interface ChatDetails {
   name: string;
   id: string;
-  isArchived: boolean;
+  archivedAt: Date | null;
   messages: ChatMessage[];
   participants: ChatParticipant[];
 }
@@ -162,19 +166,19 @@ export const chatDetails = trpcBaseProcedure
     const { user, prisma } = ctx;
 
     const chat = await prisma.chat.findUnique({
-      where: {
-        uuid: chatId,
-      },
+      where: { uuid: chatId },
       include: {
         messages: {
-          orderBy: {
-            timestamp: 'asc',
-          },
+          orderBy: { createdAt: 'asc' },
+          take: 25, // limit to the last 25 messages
           include: {
             messageEvents: {
-              orderBy: {
-                timestamp: 'asc',
-              },
+              where: { type: { in: userRelevantChatMessageEvents } },
+              orderBy: { uuid: 'desc' },
+            },
+            contentVersions: {
+              take: 1, // include only the latest content version
+              orderBy: { revision: 'desc' },
             },
           },
         },
@@ -212,11 +216,11 @@ export const chatDetails = trpcBaseProcedure
         user,
       ),
       id: chat.uuid,
-      isArchived: chat.isArchived,
+      archivedAt: chat.archivedAt,
       messages: messages.map((message) => ({
         id: message.uuid,
-        timestamp: message.timestamp,
-        content: message.content,
+        createdAt: message.createdAt,
+        messagePayload: message.contentVersions[0]?.payload ?? {},
         senderId: message.senderId ?? undefined,
         status: getStatusFromMessageEvents(message.messageEvents),
       })),

@@ -192,10 +192,6 @@ export const EmergencyComponent: React.FC = () => {
 
   const handleAlarmTrigger = async (): Promise<void> => {
     // get current location
-
-    // await 10 seconds to allow user to prepare
-    await new Promise((resolve) => setTimeout(resolve, 10_000));
-
     const locationPromise = new Promise<GeolocationPosition>((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(resolve, reject);
     });

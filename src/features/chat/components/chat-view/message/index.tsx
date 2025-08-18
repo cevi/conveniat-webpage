@@ -32,8 +32,8 @@ interface MessageProperties {
 export const MessageComponent: React.FC<MessageProperties> = ({ message, isCurrentUser }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const [showInfo, setShowInfo] = useState(false);
-  const formattedTime = useFormatDate().formatMessageTime(message.timestamp);
-  const renderedContent = formatMessageContent(message.content);
+  const formattedTime = useFormatDate().formatMessageTime(message.createdAt);
+  const renderedContent = formatMessageContent(message.messagePayload);
 
   const handleInteraction = (event: React.MouseEvent | React.TouchEvent): void => {
     event.preventDefault();
@@ -46,7 +46,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({ message, isCurre
       return <div className="font-body ml-1 text-xs text-gray-400">Sending...</div>;
     }
     switch (message.status) {
-      case MessageStatusDto.SENT: {
+      case MessageStatusDto.STORED: {
         return <Check className="ml-1 h-3.5 w-3.5 text-gray-400" />;
       }
       case MessageStatusDto.DELIVERED: {

@@ -32,8 +32,9 @@ export const MessageList: React.FC = () => {
   const messagesEndReference = useRef<HTMLDivElement>(null);
 
   const messages = chatDetails?.messages ?? [];
+  // TODO: remove this, as the messages are already sorted in the backend
   const sortedMessages = [...messages].sort(
-    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
   );
 
   useEffect(() => {
@@ -80,7 +81,7 @@ export const MessageList: React.FC = () => {
   // Group messages by date - This logic can now safely access chatDetails.messages
   const messagesByDate: { [date: string]: typeof sortedMessages } = {};
   for (const message of sortedMessages) {
-    const date = new Date(message.timestamp).toLocaleDateString();
+    const date = new Date(message.createdAt).toLocaleDateString();
     messagesByDate[date] ??= [];
     messagesByDate[date].push(message);
   }

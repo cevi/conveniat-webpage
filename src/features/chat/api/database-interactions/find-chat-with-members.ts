@@ -15,7 +15,7 @@ export const findChatWithMembers = async (
       uuid: string;
       lastUpdate: Date;
       createdAt: Date;
-      isArchived: boolean;
+      archivedAt: Date | null;
     })
   | null
 > => {
@@ -23,34 +23,13 @@ export const findChatWithMembers = async (
     where: {
       // Ensure all requested members are present
       chatMemberships: {
-        every: {
-          user: {
-            uuid: {
-              in: requestedMemberUuids,
-            },
-          },
-        },
-
+        every: { user: { uuid: { in: requestedMemberUuids } } },
         // Ensure no *other* members are present (i.e., only the requested members are there)
-        none: {
-          user: {
-            uuid: {
-              notIn: requestedMemberUuids,
-            },
-          },
-        },
+        none: { user: { uuid: { notIn: requestedMemberUuids } } },
       },
     },
     include: {
-      chatMemberships: {
-        select: {
-          user: {
-            select: {
-              uuid: true,
-            },
-          },
-        },
-      },
+      chatMemberships: { select: { user: { select: { uuid: true } } } },
     },
   });
 };

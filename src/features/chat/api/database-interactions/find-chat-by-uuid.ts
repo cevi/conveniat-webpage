@@ -12,18 +12,14 @@ export const findChatByUuid = async (
       hasDeleted: boolean;
       chatPermission: ChatMembershipPermission;
     }[];
-  } & { uuid: string; name: string; lastUpdate: Date; createdAt: Date; isArchived: boolean }
+  } & { uuid: string; name: string; lastUpdate: Date; createdAt: Date; archivedAt: Date | null }
 > => {
   if (chatId === '') {
     throw new Error('Chat ID is required to find a chat.');
   }
 
   return prismaClient.chat.findUniqueOrThrow({
-    where: {
-      uuid: chatId,
-    },
-    include: {
-      chatMemberships: true,
-    },
+    where: { uuid: chatId },
+    include: { chatMemberships: true },
   });
 };

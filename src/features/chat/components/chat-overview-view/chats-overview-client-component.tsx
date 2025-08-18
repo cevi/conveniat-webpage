@@ -81,9 +81,10 @@ export const ChatsOverviewClientComponent: React.FC<{ user: HitobitoNextAuthUser
   const filteredChats =
     chats?.filter(
       (chat): boolean =>
-        (chat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          chat.lastMessage?.content.toLowerCase().includes(searchQuery.toLowerCase())) ??
-        false,
+        chat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        JSON.stringify(chat.lastMessage?.messagePayload)
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase()),
     ) ?? [];
 
   return (
