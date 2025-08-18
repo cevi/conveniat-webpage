@@ -3,13 +3,14 @@
 import { AccordionContent, AccordionItem, AccordionTrigger } from '@/components/accordion';
 import { Button } from '@/components/ui/buttons/button';
 import { Input } from '@/components/ui/input';
-import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { ConfirmationSlider } from '@/features/emergency/components/slide-to-confirm';
+import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { Accordion } from '@radix-ui/react-accordion';
 import { Search, X } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
+import { useRouter } from 'next/navigation';
 import type { ChangeEvent } from 'react';
 import React, { useState } from 'react';
 
@@ -106,12 +107,6 @@ const alarmText: StaticTranslationString = {
   fr: 'Alerter',
 };
 
-const emergencyTitle: StaticTranslationString = {
-  de: 'Notfall und Alarmierung',
-  en: 'Emergency and Alert',
-  fr: 'Urgence et Alerte',
-};
-
 const alertTypes = [
   {
     title: 'Medical Emergency',
@@ -178,25 +173,12 @@ const alertTypes = [
   },
 ];
 
-const handleAlarmTrigger = async (): Promise<void> => {
-  // get current location
-
-  // await 10 seconds to allow user to prepare
-  await new Promise((resolve) => setTimeout(resolve, 10_000));
-
-  const locationPromise = new Promise((resolve, reject) => {
-    navigator.geolocation.getCurrentPosition(resolve, reject);
-  });
-
-  const location = await locationPromise;
-  console.log(location);
-
-  // TODO: show popover (route intersection, see NextJS docs) of created chat
-};
-
 export const EmergencyComponent: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const locale = useCurrentLocale(i18nConfig) as Locale;
+
+  const router = useRouter();
+  const emergencyQuery = trpc.emergency.newAlert.useMutation();
 
   const filteredAlerts = alertTypes.filter((alert) =>
     alertTypeTranslations[alert.title as keyof typeof alertTypeTranslations][locale]
@@ -208,65 +190,105 @@ export const EmergencyComponent: React.FC = () => {
     setSearchTerm('');
   };
 
-  return (
-    <article className="mx-auto mt-16 w-full max-w-3xl px-4">
-      <HeadlineH1 className="text-center">{emergencyTitle[locale]}</HeadlineH1>
+  const handleAlarmTrigger = async (): Promise<void> => {
+    // get current location
 
-      <div className="pb-4">
-        <div className="mb-8">
-          <div className="relative">
-            <Input
-              type="text"
-              placeholder={searchPlaceholder[locale]}
-              value={searchTerm}
-              onChange={(event: ChangeEvent<HTMLInputElement>) => setSearchTerm(event.target.value)}
-              className="pl-10"
-            />
-            <Search
-              className="absolute top-1/2 left-3 -translate-y-1/2 transform text-gray-400"
-              size={20}
-            />
-            {searchTerm !== '' && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute top-1/2 right-2 -translate-y-1/2 transform"
-                onClick={clearSearch}
-              >
-                <X size={16} />
-              </Button>
-            )}
+    // await 10 seconds to allow user to prepare
+    await new Promise((resolve) => setTimeout(resolve, 10_000));
+
+    const locationPromise = new Promise<GeolocationPosition>((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject);
+    });
+
+    const location = await locationPromise;
+
+    // TODO: the alert should also be send if the user does not allow location access
+    //       or if the location cannot be determined (api call fails)
+    // TODO: the alert should also be send if the user is not signed in
+    //       what do we do in this case? create a temporary guest user?
+
+    const response = emergencyQuery.mutate(
+      {
+        location: location.toJSON() as GeolocationPosition,
+      },
+      {
+        onSuccess: (data) => {
+          console.log('Emergency alert triggered successfully:', data);
+
+          if (!data.success) {
+            console.error('Failed to trigger emergency alert:', response);
+            return;
+          }
+
+          router.push(data.redirectUrl);
+        },
+      },
+    );
+  };
+
+  return (
+    <article className="container mx-auto mt-8 py-6">
+      <div className="mx-auto w-full max-w-2xl space-y-6 px-8">
+        <div className="pb-4">
+          <div className="mb-2">
+            <div className="relative">
+              <Input
+                type="text"
+                placeholder={searchPlaceholder[locale]}
+                value={searchTerm}
+                onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                  setSearchTerm(event.target.value)
+                }
+                className="pl-10"
+              />
+              <Search
+                className="absolute top-1/2 left-3 -translate-y-1/2 transform text-gray-400"
+                size={20}
+              />
+              {searchTerm !== '' && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-1/2 right-2 -translate-y-1/2 transform"
+                  onClick={clearSearch}
+                >
+                  <X size={16} />
+                </Button>
+              )}
+            </div>
           </div>
         </div>
-      </div>
 
-      <Accordion type="single" collapsible className="mb-32">
-        {filteredAlerts.map((alert, index) => (
-          <AccordionItem value={`item-${index}`} key={index}>
-            <AccordionTrigger>
-              {alertTypeTranslations[alert.title as keyof typeof alertTypeTranslations][locale]}
-            </AccordionTrigger>
-            <AccordionContent>
-              <p className="mb-2">
-                <strong>{descriptionLabel[locale]}</strong>{' '}
-                {alertDescriptions[alert.title as keyof typeof alertDescriptions][locale]}
-              </p>
-              <p>
-                <strong>{procedureLabel[locale]}</strong>{' '}
-                {alertProcedures[alert.title as keyof typeof alertProcedures][locale]}
-              </p>
-            </AccordionContent>
-          </AccordionItem>
-        ))}
-      </Accordion>
+        <Accordion type="single" collapsible className="mb-40">
+          {filteredAlerts.map((alert, index) => (
+            <AccordionItem value={`item-${index}`} key={index}>
+              <AccordionTrigger>
+                <span className="font-semibold text-gray-900">
+                  {alertTypeTranslations[alert.title as keyof typeof alertTypeTranslations][locale]}
+                </span>
+              </AccordionTrigger>
+              <AccordionContent>
+                <p className="mb-2 text-gray-800">
+                  <strong>{descriptionLabel[locale]}</strong>{' '}
+                  {alertDescriptions[alert.title as keyof typeof alertDescriptions][locale]}
+                </p>
+                <p className="text-gray-800">
+                  <strong>{procedureLabel[locale]}</strong>{' '}
+                  {alertProcedures[alert.title as keyof typeof alertProcedures][locale]}
+                </p>
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
 
-      <div className="fixed bottom-20 left-0 w-full select-none">
-        <ConfirmationSlider
-          onConfirm={handleAlarmTrigger}
-          text={alarmText[locale]}
-          confirmedText="Alarm wurde ausgelöst"
-          pendingText="Alarm wird ausgelöst..."
-        />
+        <div className="fixed bottom-20 left-0 w-full select-none">
+          <ConfirmationSlider
+            onConfirm={handleAlarmTrigger}
+            text={alarmText[locale]}
+            confirmedText="Alarm wurde ausgelöst"
+            pendingText="Alarm wird ausgelöst..."
+          />
+        </div>
       </div>
     </article>
   );
