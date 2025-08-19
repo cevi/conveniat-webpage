@@ -284,6 +284,9 @@ We follow a standard Git workflow for managing changes:
 ## Migrate Production Database
 
 The following commands are used to generate and apply migrations to the postgreSQL database.
+Here you can find
+an [in-depth guide](https://www.prisma.io/docs/orm/prisma-migrate/understanding-prisma-migrate/mental-model) on how to
+use Prisma Migrate.
 
 ```bash
 ###############################################
