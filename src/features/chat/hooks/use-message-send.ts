@@ -1,6 +1,5 @@
-import type { ChatDetails } from '@/features/chat/api/queries/chat';
-import type { MessageDto } from '@/features/chat/types/api-dto-types';
-import { MessageStatusDto } from '@/features/chat/types/api-dto-types';
+import type { ChatDetails, ChatMessage } from '@/features/chat/api/queries/chat';
+import { MessageEventType } from '@/lib/prisma/client';
 import { trpc } from '@/trpc/client';
 import type { AppRouter } from '@/trpc/routers/_app';
 import type { TRPCClientErrorLike } from '@trpc/client';
@@ -27,12 +26,12 @@ export const useMessageSend = (): UseMessageSendMutation => {
       await trpcUtils.chat.chatDetails.cancel({ chatId });
       const previousChatData = trpcUtils.chat.chatDetails.getData({ chatId });
 
-      const optimisticMessage: MessageDto = {
+      const optimisticMessage: ChatMessage = {
         id: `optimistic-${Date.now()}`,
         messagePayload: content.trim(),
         createdAt: new Date(),
         senderId: currentUser,
-        status: MessageStatusDto.CREATED,
+        status: MessageEventType.CREATED,
       };
 
       trpcUtils.chat.chatDetails.setData(

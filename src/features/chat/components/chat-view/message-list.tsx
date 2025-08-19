@@ -2,7 +2,7 @@
 import { MessageComponent } from '@/features/chat/components/chat-view/message';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
-import { MessageStatusDto } from '@/features/chat/types/api-dto-types';
+import { MessageEventType } from '@/lib/prisma/client';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
@@ -50,13 +50,13 @@ export const MessageList: React.FC = () => {
       for (const message of sortedMessages) {
         if (
           message.senderId !== currentUser &&
-          message.status !== MessageStatusDto.READ &&
+          message.status !== MessageEventType.READ &&
           !newReadMessageIds.has(message.id)
         ) {
           console.log(`Changing status of message ${message.id} to READ`);
           changeMessageStatus({
             messageId: message.id,
-            status: MessageStatusDto.READ,
+            status: MessageEventType.READ,
           });
           newReadMessageIds.add(message.id);
         }

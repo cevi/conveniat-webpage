@@ -1,5 +1,4 @@
 import type { ChatDto } from '@/features/chat/types/api-dto-types';
-import { MessageStatusDto } from '@/features/chat/types/api-dto-types';
 import { MessageEventType } from '@/lib/prisma';
 import type { JsonArray, JsonObject } from '@/lib/prisma/runtime/client';
 import { trpcBaseProcedure } from '@/trpc/init';
@@ -33,20 +32,20 @@ const resolveChatName = (
   return chatName;
 };
 
-const getStatusFromMessageEvents = (messageEvents: MessageEvent[]): MessageStatusDto => {
+const getStatusFromMessageEvents = (messageEvents: MessageEvent[]): MessageEventType => {
   if (messageEvents.some((event) => event.type === MessageEventType.READ)) {
-    return MessageStatusDto.READ;
+    return MessageEventType.READ;
   }
 
   if (messageEvents.some((event) => event.type === MessageEventType.RECEIVED)) {
-    return MessageStatusDto.DELIVERED;
+    return MessageEventType.RECEIVED;
   }
 
   if (messageEvents.some((event) => event.type === MessageEventType.STORED)) {
-    return MessageStatusDto.STORED;
+    return MessageEventType.STORED;
   }
 
-  return MessageStatusDto.CREATED;
+  return MessageEventType.CREATED;
 };
 
 export const chats = trpcBaseProcedure.input(z.object({})).query(async ({ ctx }) => {
@@ -124,11 +123,13 @@ export const chats = trpcBaseProcedure.input(z.object({})).query(async ({ ctx })
         })),
         user,
       ),
+      chatType: chat.type,
       id: chat.uuid,
       lastMessage: {
         id: lastMessage.uuid,
         createdAt: chat.lastUpdate,
-        messagePayload: lastMessage.contentVersions[0]?.payload ?? {},
+        // TODO: replace with preperly formatted message preview
+        messagePreview: JSON.stringify(lastMessage.contentVersions[0]?.payload ?? {}),
         senderId: lastMessage.senderId ?? undefined,
         status: getStatusFromMessageEvents(lastMessage.messageEvents),
       },
@@ -136,12 +137,12 @@ export const chats = trpcBaseProcedure.input(z.object({})).query(async ({ ctx })
   });
 });
 
-interface ChatMessage {
+export interface ChatMessage {
   id: string;
   createdAt: Date;
   messagePayload: string | number | boolean | JsonObject | JsonArray;
   senderId: string | undefined;
-  status: MessageStatusDto;
+  status: MessageEventType;
 }
 
 interface ChatParticipant {

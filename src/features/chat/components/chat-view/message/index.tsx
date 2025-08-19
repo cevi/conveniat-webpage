@@ -1,9 +1,9 @@
+import type { ChatMessage } from '@/features/chat/api/queries/chat';
 import { MessageInfoDropdown } from '@/features/chat/components/chat-view/message/message-info-dropdown';
 import { SystemMessage } from '@/features/chat/components/chat-view/message/system-message';
 import { formatMessageContent } from '@/features/chat/components/chat-view/message/utils/format-message-content';
 import { useFormatDate } from '@/features/chat/hooks/use-format-date';
-import type { MessageDto } from '@/features/chat/types/api-dto-types';
-import { MessageStatusDto } from '@/features/chat/types/api-dto-types';
+import { MessageEventType } from '@/lib/prisma/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -18,7 +18,7 @@ const messageOptionsAriaLabel: StaticTranslationString = {
 };
 
 interface MessageProperties {
-  message: MessageDto;
+  message: ChatMessage;
   isCurrentUser: boolean;
 }
 
@@ -42,14 +42,14 @@ export const MessageComponent: React.FC<MessageProperties> = ({ message, isCurre
 
   const renderMessageStatus = (): React.JSX.Element => {
     if (!isCurrentUser) return <></>;
-    if (message.status === MessageStatusDto.CREATED) {
+    if (message.status === MessageEventType.CREATED) {
       return <div className="font-body ml-1 text-xs text-gray-400">Sending...</div>;
     }
     switch (message.status) {
-      case MessageStatusDto.STORED: {
+      case MessageEventType.STORED: {
         return <Check className="ml-1 h-3.5 w-3.5 text-gray-400" />;
       }
-      case MessageStatusDto.DELIVERED: {
+      case MessageEventType.RECEIVED: {
         return (
           <div className="ml-1 flex">
             <Check className="h-3.5 w-3.5 text-gray-400" />
@@ -57,13 +57,17 @@ export const MessageComponent: React.FC<MessageProperties> = ({ message, isCurre
           </div>
         );
       }
-      case MessageStatusDto.READ: {
+      case MessageEventType.READ: {
         return (
           <div className="ml-1 flex">
             <Check className="text-conveniat-green h-3.5 w-3.5" />
             <Check className="text-conveniat-green -ml-2 h-3.5 w-3.5" />
           </div>
         );
+      }
+
+      default: {
+        return <></>;
       }
     }
   };
@@ -113,7 +117,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({ message, isCurre
               isCurrentUser
                 ? 'rounded-br-md bg-green-200 text-green-800'
                 : 'rounded-bl-md border border-gray-200 bg-white text-gray-900',
-              message.status === MessageStatusDto.CREATED && 'opacity-60',
+              message.status === MessageEventType.CREATED && 'opacity-60',
             )}
             style={{
               whiteSpace: 'pre-wrap',

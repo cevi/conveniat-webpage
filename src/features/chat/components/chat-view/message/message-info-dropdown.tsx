@@ -1,5 +1,5 @@
+import type { ChatMessage } from '@/features/chat/api/queries/chat';
 import { useFormatDate } from '@/features/chat/hooks/use-format-date';
-import type { MessageDto } from '@/features/chat/types/api-dto-types';
 import { cn } from '@/utils/tailwindcss-override';
 import React, { useEffect, useRef } from 'react';
 
@@ -8,7 +8,7 @@ import React, { useEffect, useRef } from 'react';
  * (e.g., Sent, Delivered, Read)
  */
 export const MessageInfoDropdown: React.FC<{
-  message: MessageDto;
+  message: ChatMessage;
   isCurrentUser: boolean;
   onClose: () => void;
 }> = ({ message, isCurrentUser, onClose }) => {

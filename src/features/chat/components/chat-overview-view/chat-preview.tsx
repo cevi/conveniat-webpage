@@ -4,13 +4,13 @@ import type { ChatDto } from '@/features/chat/types/api-dto-types';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
+import { ChatType } from '@prisma/client';
 import { formatDistanceToNow } from 'date-fns';
-import { Users } from 'lucide-react';
+import { de as deLocale, fr as frLocale } from 'date-fns/locale';
+import { Siren, Users } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
 import type React from 'react';
-
-import { de as deLocale, fr as frLocale } from 'date-fns/locale';
 
 const noMessagesYetText: StaticTranslationString = {
   de: 'Noch keine Nachrichten',
@@ -60,27 +60,32 @@ export const ChatPreview: React.FC<{
 
   // Determine participant count for group chats
   const participantCount = chatDetails?.participants.length ?? 0;
-  const isGroupChat = participantCount > 2;
 
   return (
     <Link href={chatDetailLink} className="block w-full">
       <li
         className={cn(
           'relative flex items-center space-x-4 rounded-lg p-4 transition-all duration-200',
-          'hover:bg-gray-100 hover:shadow-sm',
-          hasUnread ? 'border-conveniat-green border-l-4 bg-green-50' : 'bg-white',
+          'hover:shadow-sm',
+          {},
         )}
       >
         <div className="shrink-0">
-          {isGroupChat ? (
+          {chat.chatType === ChatType.GROUP && (
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-200 shadow-sm">
               <Users size={20} className="text-gray-600" />
             </div>
-          ) : (
+          )}
+          {chat.chatType === ChatType.ONE_TO_ONE && (
             <div className="bg-conveniat-green flex h-12 w-12 items-center justify-center rounded-full shadow-sm">
               <span className="font-heading text-sm font-semibold text-white">
                 {chat.name.charAt(0).toUpperCase()}
               </span>
+            </div>
+          )}
+          {chat.chatType === ChatType.EMERGENCY && (
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-50 shadow-sm">
+              <Siren size={20} className="text-red-600" />
             </div>
           )}
         </div>
@@ -89,30 +94,38 @@ export const ChatPreview: React.FC<{
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <p
-                className={cn(
-                  'font-heading truncate text-sm',
-                  hasUnread ? 'font-semibold text-gray-900' : 'font-medium text-gray-800',
-                )}
+                className={cn('font-heading truncate text-sm', {
+                  'font-semibold text-gray-900': hasUnread,
+                  'font-medium text-gray-800': !hasUnread,
+                  'text-red-50': chat.chatType === ChatType.EMERGENCY,
+                })}
               >
                 {chat.name}
               </p>
-              {isGroupChat && (
+              {chat.chatType === ChatType.GROUP && (
                 <span className="font-body rounded-full bg-gray-200 px-2 py-0.5 text-xs text-gray-600">
                   {participantCount}
                 </span>
               )}
             </div>
-            <span className="font-body text-xs text-gray-500">{timestamp}</span>
+            <span
+              className={cn('font-body text-xs text-gray-500', {
+                'text-red-50': chat.chatType === ChatType.EMERGENCY,
+              })}
+            >
+              {timestamp}
+            </span>
           </div>
 
           <p
-            className={cn(
-              'font-body mt-1 truncate text-sm',
-              hasUnread ? 'font-medium text-gray-700' : 'text-gray-500',
-            )}
+            className={cn('font-body mt-1 truncate text-sm', {
+              'font-medium text-gray-700': hasUnread,
+              'text-gray-500': !hasUnread,
+              'text-red-50': chat.chatType === ChatType.EMERGENCY,
+            })}
           >
             {/* TODO: consider do that server side */}
-            {chat.lastMessage?.messagePayload.toString() ?? noMessagesYetText[locale]}
+            {chat.lastMessage?.messagePreview.toString() ?? noMessagesYetText[locale]}
           </p>
         </div>
 
