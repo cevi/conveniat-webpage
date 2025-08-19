@@ -34,6 +34,7 @@ export const useMessageSend = (): UseMessageSendMutation => {
         status: MessageEventType.CREATED,
       };
 
+      // optimistically update the chat details
       trpcUtils.chat.chatDetails.setData(
         { chatId },
         (oldData: ChatDetails | undefined): ChatDetails => {
@@ -53,6 +54,28 @@ export const useMessageSend = (): UseMessageSendMutation => {
           };
         },
       );
+
+      // optimistically update the chat overview
+      trpcUtils.chat.chats.setData({}, (oldChats) => {
+        if (!oldChats) return [];
+        return oldChats.map((chat) => {
+          if (chat.id === chatId) {
+            return {
+              ...chat,
+              lastMessage: {
+                id: optimisticMessage.id,
+                senderId: optimisticMessage.senderId,
+                messagePreview: optimisticMessage.messagePayload.toString(),
+                createdAt: optimisticMessage.createdAt,
+                status: optimisticMessage.status,
+              },
+              lastUpdate: optimisticMessage.createdAt,
+              unreadCount: 0,
+            };
+          }
+          return chat;
+        });
+      });
 
       return { previousChatData };
     },
