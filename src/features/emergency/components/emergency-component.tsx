@@ -179,6 +179,7 @@ export const EmergencyComponent: React.FC = () => {
 
   const router = useRouter();
   const emergencyQuery = trpc.emergency.newAlert.useMutation();
+  const trpcUtils = trpc.useUtils();
 
   const filteredAlerts = alertTypes.filter((alert) =>
     alertTypeTranslations[alert.title as keyof typeof alertTypeTranslations][locale]
@@ -216,6 +217,7 @@ export const EmergencyComponent: React.FC = () => {
             return;
           }
 
+          trpcUtils.chat.chats.invalidate().catch(console.error);
           router.push(data.redirectUrl);
         },
       },
