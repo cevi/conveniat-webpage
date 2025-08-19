@@ -1,4 +1,4 @@
-import type { ChatDetails, ChatMessage } from '@/features/chat/api/queries/chat';
+import type { ChatDetails, ChatMessage } from '@/features/chat/api/types';
 import { MessageEventType } from '@/lib/prisma/client';
 import { trpc } from '@/trpc/client';
 import type { AppRouter } from '@/trpc/routers/_app';

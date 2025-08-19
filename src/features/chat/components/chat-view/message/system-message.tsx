@@ -1,4 +1,4 @@
-import type { ChatMessage } from '@/features/chat/api/queries/chat';
+import type { ChatMessage } from '@/features/chat/api/types';
 import { formatMessageContent } from '@/features/chat/components/chat-view/message/utils/format-message-content';
 import React from 'react';
 

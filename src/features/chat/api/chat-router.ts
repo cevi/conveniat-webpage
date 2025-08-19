@@ -1,23 +1,24 @@
 import { archiveChat } from '@/features/chat/api/mutations/archive-chat';
-import { create } from '@/features/chat/api/mutations/create';
-import { sendMessage } from '@/features/chat/api/mutations/message';
-import { messageStatus } from '@/features/chat/api/mutations/message-status';
+import { createChat } from '@/features/chat/api/mutations/create-chat';
+import { createMessage } from '@/features/chat/api/mutations/create-message';
+import { createMessageStatus } from '@/features/chat/api/mutations/create-message-status';
 import { onlinePing } from '@/features/chat/api/mutations/online-ping';
 import { renameChat } from '@/features/chat/api/mutations/rename-chat';
-import { chatDetails, chats } from '@/features/chat/api/queries/chat';
-import { contacts } from '@/features/chat/api/queries/contacts';
-import { userProcedure } from '@/features/chat/api/queries/user-procedure';
+import { getChat } from '@/features/chat/api/queries/get-chat';
+import { getUser } from '@/features/chat/api/queries/get-user';
+import { listChats } from '@/features/chat/api/queries/list-chats';
+import { listContacts } from '@/features/chat/api/queries/list-contacts';
 import { createTRPCRouter } from '@/trpc/init';
 
 export const chatRouter = createTRPCRouter({
   archiveChat,
-  messageStatus,
-  createChat: create,
-  user: userProcedure,
-  contacts,
+  messageStatus: createMessageStatus,
+  createChat: createChat,
+  user: getUser,
+  contacts: listContacts,
   onlinePing,
   renameChat,
-  chats,
-  chatDetails,
-  sendMessage,
+  chats: listChats,
+  chatDetails: getChat,
+  sendMessage: createMessage,
 });

@@ -1,7 +1,7 @@
 'use client';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
-import type { ChatDto } from '@/features/chat/types/api-dto-types';
-import type { Locale, StaticTranslationString } from '@/types/types';
+import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
+import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { ChatType } from '@prisma/client';
@@ -12,14 +12,8 @@ import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
 import type React from 'react';
 
-const noMessagesYetText: StaticTranslationString = {
-  de: 'Noch keine Nachrichten',
-  en: 'No messages yet',
-  fr: 'Aucun message pour le moment',
-};
-
 export const ChatPreview: React.FC<{
-  chat: ChatDto;
+  chat: ChatWithMessagePreview;
   // eslint-disable-next-line complexity
 }> = ({ chat }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
@@ -48,13 +42,11 @@ export const ChatPreview: React.FC<{
     }
   }
 
-  const timestamp = chat.lastMessage?.createdAt
-    ? formatDistanceToNow(new Date(chat.lastMessage.createdAt), {
-        addSuffix: true,
-        // Only pass locale if defined, otherwise omit for English fallback
-        ...(localeToUse ? { locale: localeToUse } : {}),
-      })
-    : '';
+  const timestamp = formatDistanceToNow(new Date(chat.lastMessage.createdAt), {
+    addSuffix: true,
+    // Only pass locale if defined, otherwise omit for English fallback
+    ...(localeToUse ? { locale: localeToUse } : {}),
+  });
 
   const { data: chatDetails } = useChatDetail(chat.id);
 
@@ -125,7 +117,7 @@ export const ChatPreview: React.FC<{
             })}
           >
             {/* TODO: consider do that server side */}
-            {chat.lastMessage?.messagePreview.toString() ?? noMessagesYetText[locale]}
+            {chat.lastMessage.messagePreview}
           </p>
         </div>
 

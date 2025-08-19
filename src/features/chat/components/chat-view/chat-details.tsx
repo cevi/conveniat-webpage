@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { Button } from '@/components/ui/buttons/button';
 import { Input } from '@/components/ui/input';
-import type { Contact } from '@/features/chat/api/queries/contacts';
+import type { Contact } from '@/features/chat/api/queries/list-contacts';
 import { DeleteChat } from '@/features/chat/components/chat-details-view/delete-chat';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useAddParticipants } from '@/features/chat/hooks/use-add-participants';

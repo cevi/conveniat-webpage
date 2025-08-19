@@ -1,19 +1,18 @@
 import type { ChatType, MessageEventType } from '@prisma/client';
 
-export interface FirstChatMessage {
+export interface PreviewMessage {
   id: string;
-  // undefined for system messages
-  senderId: string | undefined;
+  senderId: string | undefined; // undefined for system messages
   messagePreview: string;
   createdAt: Date;
   status: MessageEventType;
 }
 
-export interface ChatDto {
+export interface ChatWithMessagePreview {
   id: string;
   name: string;
   chatType: ChatType;
-  lastMessage?: FirstChatMessage;
+  lastMessage: PreviewMessage;
   lastUpdate: Date;
   unreadCount: number;
 }

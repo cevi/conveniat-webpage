@@ -1,4 +1,4 @@
-import { isChatArchived } from '@/features/chat/api/permission-checks/is-chat-archived';
+import { isChatArchived } from '@/features/chat/api/checks/is-chat-archived';
 import { MessageEventType } from '@/lib/prisma/client';
 import type { PrismaClientOrTransaction } from '@/types/types';
 import { MessageType } from '@prisma/client';

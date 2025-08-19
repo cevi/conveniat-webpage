@@ -1,5 +1,5 @@
+import { isUserMemberOfChat } from '@/features/chat/api/checks/is-user-member-of-chat';
 import { findChatByUuid } from '@/features/chat/api/database-interactions/find-chat-by-uuid';
-import { isUserMemberOfChat } from '@/features/chat/api/permission-checks/is-user-member-of-chat';
 import { ChatMembershipPermission } from '@/lib/prisma';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
@@ -46,11 +46,7 @@ export const renameChat = trpcBaseProcedure
     }
 
     await prisma.chat.update({
-      where: {
-        uuid: chatUuid,
-      },
-      data: {
-        name: newName,
-      },
+      where: { uuid: chatUuid },
+      data: { name: newName },
     });
   });

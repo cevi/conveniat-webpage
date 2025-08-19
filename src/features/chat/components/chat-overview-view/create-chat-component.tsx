@@ -1,7 +1,7 @@
 'use client';
 import { Button } from '@/components/ui/buttons/button';
 import { Input } from '@/components/ui/input';
-import type { Contact } from '@/features/chat/api/queries/contacts';
+import type { Contact } from '@/features/chat/api/queries/list-contacts';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';

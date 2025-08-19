@@ -1,4 +1,4 @@
-import type { ChatMessage } from '@/features/chat/api/queries/chat';
+import type { ChatMessage } from '@/features/chat/api/types';
 import { useFormatDate } from '@/features/chat/hooks/use-format-date';
 import { cn } from '@/utils/tailwindcss-override';
 import React, { useEffect, useRef } from 'react';

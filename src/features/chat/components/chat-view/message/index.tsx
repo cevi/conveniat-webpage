@@ -1,4 +1,4 @@
-import type { ChatMessage } from '@/features/chat/api/queries/chat';
+import type { ChatMessage } from '@/features/chat/api/types';
 import { MessageInfoDropdown } from '@/features/chat/components/chat-view/message/message-info-dropdown';
 import { SystemMessage } from '@/features/chat/components/chat-view/message/system-message';
 import { formatMessageContent } from '@/features/chat/components/chat-view/message/utils/format-message-content';

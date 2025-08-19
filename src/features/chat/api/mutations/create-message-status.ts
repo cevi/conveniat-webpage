@@ -8,7 +8,7 @@ const changeMessageStatusSchema = z.object({
   status: z.nativeEnum(MessageEventType),
 });
 
-export const messageStatus = trpcBaseProcedure
+export const createMessageStatus = trpcBaseProcedure
   .input(changeMessageStatusSchema)
   .mutation(async ({ input, ctx }) => {
     const { user, prisma } = ctx;
