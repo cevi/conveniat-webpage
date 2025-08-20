@@ -180,7 +180,7 @@ export const ConfirmationSlider: React.FC<ConfirmationSliderProperties> = ({
             <div className="absolute inset-0 animate-pulse rounded-full bg-gray-200 opacity-50"></div>
           )}
 
-          {isConfirmed && <Check className="relative z-10 text-green-800" size={24} />}
+          {isConfirmed && <Check className="relative z-10 text-green-700" size={24} />}
           {!isConfirmed && isProcessing && (
             <LoaderCircle className="relative z-10 animate-spin text-gray-600" size={24} />
           )}

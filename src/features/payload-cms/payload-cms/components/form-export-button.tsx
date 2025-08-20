@@ -43,7 +43,7 @@ export const FormExportButton: React.FC = () => {
 
   return (
     <button
-      className="my-8 border border-solid border-green-300 bg-green-200 text-green-900 dark:bg-green-800 dark:text-green-100"
+      className="my-8 border border-solid border-green-300 bg-green-200 text-green-900 dark:bg-green-700 dark:text-green-100"
       onClick={downloadCSV}
     >
       {downloadButtonName[code]}

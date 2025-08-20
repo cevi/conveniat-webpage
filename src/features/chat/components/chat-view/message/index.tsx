@@ -115,7 +115,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({ message, isCurre
             className={cn(
               'font-body rounded-2xl px-4 py-3 shadow-sm',
               isCurrentUser
-                ? 'rounded-br-md bg-green-200 text-green-800'
+                ? 'rounded-br-md bg-green-200 text-green-700'
                 : 'rounded-bl-md border border-gray-200 bg-white text-gray-900',
               message.status === MessageEventType.CREATED && 'opacity-60',
             )}
