@@ -124,6 +124,12 @@ export const AnnotationDetailsDrawer: React.FC<{
     };
   }, [isResizing, handleMouseMove, handleTouchMove, handleResizeEnd]);
 
+  useEffect(() => {
+    if (scrollableContentReference.current) {
+      scrollableContentReference.current.scrollTop = 0;
+    }
+  }, [annotation]);
+
   if (drawerHeight === 0) {
     return <></>;
   }
