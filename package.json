@@ -81,7 +81,7 @@
     "js-cookie": "^3.0.5",
     "json-schema": "^0.4.0",
     "jsonwebtoken": "^9.0.2",
-    "lucide-react": "^0.460.0",
+    "lucide-react": "^0.540.0",
     "maplibre-gl": "^5.6.2",
     "next": "15.5.0",
     "next-auth": "5.0.0-beta.29",
