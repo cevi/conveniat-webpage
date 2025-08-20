@@ -23,6 +23,12 @@ const profileDetailsExplanation: StaticTranslationString = {
   fr: 'Ces informations sont extraites de votre compte Cevi.DB.',
 };
 
+const supportInformationText: StaticTranslationString = {
+  en: 'Your user ID may be required for support requests.',
+  de: 'Deine Benutzer-ID kann für Support-Anfragen erforderlich sein.',
+  fr: 'Votre identifiant utilisateur peut être requis pour les demandes de support.',
+};
+
 export const ProfileDetails: React.FC = async () => {
   const locale = await getLocaleFromCookies();
   const session = await auth();
@@ -68,6 +74,18 @@ export const ProfileDetails: React.FC = async () => {
       </div>
 
       <LogoutButton />
+
+      <hr className="my-2 mt-12 border-gray-200" />
+
+      <p className="mb-8 text-sm text-gray-600">
+        <small>{supportInformationText[locale]}</small>
+      </p>
+
+      {/* UUID */}
+      <div className="flex items-center">
+        <strong className="w-24 text-gray-700">User ID:</strong>
+        <span className="text-gray-900">{getDetail(user?.uuid)}</span>
+      </div>
     </div>
   );
 };
