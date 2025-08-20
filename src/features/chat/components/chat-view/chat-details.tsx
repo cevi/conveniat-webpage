@@ -73,12 +73,6 @@ const validationMessages = {
   } as StaticTranslationString,
 };
 
-const savingText: StaticTranslationString = {
-  de: 'Speichern...',
-  en: 'Saving...',
-  fr: 'Enregistrement...',
-};
-
 const saveText: StaticTranslationString = {
   de: 'Speichern',
   en: 'Save',
@@ -315,9 +309,9 @@ export const ChatDetails: React.FC = () => {
                 size="sm"
                 onClick={handleSaveName}
                 disabled={!isFormValid || updateChatMutation.isPending}
-                className="bg-conveniat-green font-body hover:bg-green-600 disabled:bg-gray-300"
+                className="bg-conveniat-green font-body text-white hover:bg-green-600 disabled:bg-gray-300"
               >
-                {updateChatMutation.isPending ? savingText[locale] : saveText[locale]}
+                {saveText[locale]} {updateChatMutation.isPending ? '...' : ''}
               </Button>
             </div>
           )}
