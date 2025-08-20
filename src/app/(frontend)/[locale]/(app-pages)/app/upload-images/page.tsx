@@ -181,16 +181,17 @@ const ImageUploadPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      await Promise.all(
+      const uploadResults = await Promise.all(
         selectedFiles.map(async (file) => {
           const response = await uploadUserImage(file, userDescription.trim());
-          if (response.error) {
-            setErrorMessage(`${uploadError[locale]}: ${response.message}`);
-          }
+          return response;
         }),
       );
-      if (!errorMessage) {
+      const failedUploads = uploadResults.filter((response) => response.error);
+      if (failedUploads.length === 0) {
         setShowSuccessView(true);
+      } else {
+        setErrorMessage(`${uploadError[locale]}: ${failedUploads[0]?.message ?? ''}`);
       }
     } catch (error) {
       setErrorMessage(
