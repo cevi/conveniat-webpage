@@ -11,6 +11,7 @@ import type {
   CampScheduleEntry,
 } from '@/features/map/types/types';
 import type { Locale, StaticTranslationString } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -135,9 +136,10 @@ export const AnnotationDetailsDrawer: React.FC<{
     >
       <div
         ref={scrollableContentReference}
-        className={`flex h-full flex-col px-4 pt-4 select-none ${
-          isResizing ? 'overflow-hidden' : 'overflow-y-auto'
-        }`}
+        className={cn('flex h-full flex-col px-4 pt-4 select-none', {
+          'overflow-hidden': isResizing,
+          'overflow-y-auto': !isResizing,
+        })}
         onDragStart={(event) => event.preventDefault()}
       >
         <div className="relative">
