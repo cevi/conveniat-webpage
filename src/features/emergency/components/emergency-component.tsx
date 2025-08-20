@@ -257,7 +257,7 @@ export const EmergencyComponent: React.FC = () => {
           </div>
         </div>
 
-        <Accordion type="single" collapsible className="mb-40">
+        <Accordion type="single" collapsible className="mb-20">
           {filteredAlerts.map((alert, index) => (
             <AccordionItem value={`item-${index}`} key={index}>
               <AccordionTrigger>
