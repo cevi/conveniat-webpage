@@ -144,7 +144,8 @@ export const ChatsOverviewClientComponent: React.FC<{ user: HitobitoNextAuthUser
                 {
                   'bg-white': !(chat.unreadCount > 0),
                   'border-l-conveniat-green border-l-4 bg-green-50': chat.unreadCount > 0,
-                  'border-red-700 bg-red-600 hover:bg-red-700': chat.chatType === 'EMERGENCY',
+                  'border-red-700 bg-red-600 hover:bg-red-700':
+                    chat.chatType === ChatType.EMERGENCY,
                   'border-l-4 border-l-red-800':
                     chat.chatType === ChatType.EMERGENCY && chat.unreadCount > 0,
                 },

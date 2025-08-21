@@ -56,7 +56,7 @@ const alertDescriptions = {
   'Severe Weather': {
     de: 'Gefährliche Wetterbedingungen wie Stürme, Blitze oder Überschwemmungen.',
     en: 'Dangerous weather conditions such as storms, lightning, or flooding.',
-    fr: 'Conditions météorologiques dangereuses telles as storms, lightning, or flooding.',
+    fr: 'Conditions météorologiques dangereuses telles que tempêtes, éclairs ou inondations.',
   },
 };
 
