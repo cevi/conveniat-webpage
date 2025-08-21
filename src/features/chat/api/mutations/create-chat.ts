@@ -1,6 +1,8 @@
+import { checkForDuplicateMembers } from '@/features/chat/api/checks/check-for-duplicate-members';
+import { isUserMemberOfChat } from '@/features/chat/api/checks/is-user-member-of-chat';
+import { verifyChatName } from '@/features/chat/api/checks/verify-chat-name';
 import { createNewChat } from '@/features/chat/api/database-interactions/create-new-chat';
 import { findChatWithMembers } from '@/features/chat/api/database-interactions/find-chat-with-members';
-import { isUserMemberOfChat } from '@/features/chat/api/permission-checks/is-user-member-of-chat';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { TRPCError } from '@trpc/server';
@@ -17,52 +19,7 @@ const createChatInputSchema = z.object({
   chatName: z.string().optional(), // full verification done in business logic
 });
 
-/**
- * Verifies the chat name based on the number of members.
- * If there is only one member (private chat), the name must be undefined or empty.
- *
- * @param chatName
- * @param members
- */
-const verifyChatName = (
-  chatName: string | undefined,
-  members: {
-    userId: string;
-  }[],
-): void => {
-  if (members.length === 1) {
-    if (chatName !== undefined && chatName.trim() !== '') {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'Private chats (with only one other member) cannot have a name.',
-      });
-    }
-  } else {
-    if (chatName === undefined || chatName.trim() === '') {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'Group chats must have a name.',
-      });
-    }
-  }
-};
-
-const checkForDuplicateMembers = (
-  members: {
-    userId: string;
-  }[],
-): void => {
-  const memberUuids = members.map((member) => member.userId);
-  const uniqueMemberUuids = new Set(memberUuids);
-  if (uniqueMemberUuids.size !== memberUuids.length) {
-    throw new TRPCError({
-      code: 'BAD_REQUEST',
-      message: 'Duplicate members are not allowed in the chat.',
-    });
-  }
-};
-
-export const create = trpcBaseProcedure
+export const createChat = trpcBaseProcedure
   .input(createChatInputSchema)
   .use(databaseTransactionWrapper) // use a DB transaction for this mutation
   .mutation(async ({ input, ctx }) => {
@@ -86,7 +43,7 @@ export const create = trpcBaseProcedure
     if (members.length === 1) {
       const requestedMemberUuids = [user.uuid, ...members.map((member) => member.userId)].sort();
 
-      const existingChat = await findChatWithMembers(requestedMemberUuids, prisma);
+      const existingChat = await findChatWithMembers(requestedMemberUuids, prisma, false);
       if (existingChat && existingChat.chatMemberships.length === 2) {
         console.log('Found existing private chat:', existingChat.uuid);
         return existingChat.uuid; // Return the ID of the existing chat

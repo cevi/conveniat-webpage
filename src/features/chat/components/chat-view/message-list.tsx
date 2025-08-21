@@ -2,7 +2,7 @@
 import { MessageComponent } from '@/features/chat/components/chat-view/message';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
-import { MessageStatusDto } from '@/features/chat/types/api-dto-types';
+import { MessageEventType } from '@/lib/prisma/client';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
@@ -32,8 +32,9 @@ export const MessageList: React.FC = () => {
   const messagesEndReference = useRef<HTMLDivElement>(null);
 
   const messages = chatDetails?.messages ?? [];
+  // TODO: remove this, as the messages are already sorted in the backend
   const sortedMessages = [...messages].sort(
-    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
   );
 
   useEffect(() => {
@@ -49,13 +50,13 @@ export const MessageList: React.FC = () => {
       for (const message of sortedMessages) {
         if (
           message.senderId !== currentUser &&
-          message.status !== MessageStatusDto.READ &&
+          message.status !== MessageEventType.READ &&
           !newReadMessageIds.has(message.id)
         ) {
           console.log(`Changing status of message ${message.id} to READ`);
           changeMessageStatus({
             messageId: message.id,
-            status: MessageStatusDto.READ,
+            status: MessageEventType.READ,
           });
           newReadMessageIds.add(message.id);
         }
@@ -80,7 +81,7 @@ export const MessageList: React.FC = () => {
   // Group messages by date - This logic can now safely access chatDetails.messages
   const messagesByDate: { [date: string]: typeof sortedMessages } = {};
   for (const message of sortedMessages) {
-    const date = new Date(message.timestamp).toLocaleDateString();
+    const date = new Date(message.createdAt).toLocaleDateString();
     messagesByDate[date] ??= [];
     messagesByDate[date].push(message);
   }

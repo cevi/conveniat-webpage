@@ -1,6 +1,7 @@
 /* We use the @tailwind directive to inject Tailwind's base, component, and utility styles. */
 /***************************************************/
 @import 'tailwindcss';
+
 @config './tailwind.config.ts';
 /***************************************************/
 
@@ -33,4 +34,21 @@
 html body[data-scroll-locked] {
   overflow: visible !important;
   margin-right: 0 !important;
+}
+
+// Animation for Jump Effect (horizontally)
+@keyframes jump-x {
+  0%,
+  100% {
+    transform: none;
+    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+  }
+  50% {
+    transform: translateX(25%);
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  }
+}
+
+.animate-jump-x {
+  animation: jump-x 2.5s ease-in-out infinite;
 }

@@ -1,7 +1,10 @@
+import type { JsonArray, JsonObject } from '@/lib/prisma/runtime/client';
 import Link from 'next/link';
 import type React from 'react';
 
-export const formatMessageContent = (text: string): React.ReactNode[] => {
+export const formatMessageContent = (
+  text: string | number | boolean | JsonObject | JsonArray,
+): React.ReactNode[] => {
   // Regex to split the string by WhatsApp-style formatting delimiters and also by URLs, keeping the delimiters/URLs.
   const splitFormattingAndLinkRegex = /(\*.*?\*|_.*?_|~.*?~|https?:\/\/[^\s]+)/g;
 
@@ -10,6 +13,15 @@ export const formatMessageContent = (text: string): React.ReactNode[] => {
   const italicRegex = /^_(.+)_$/; // Matches _content_
   const strikethroughRegex = /^~(.+)~$/; // Matches ~content~
   const urlRegex = /^(https?:\/\/\S+)$/; // Matches a URL
+
+  if (typeof text === 'number' || typeof text === 'boolean') {
+    // If the text is a number or boolean, return it as plain text
+    return [text.toString()];
+  }
+
+  if (typeof text !== 'string') {
+    return [JSON.stringify(text, undefined, 2)];
+  }
 
   // Split the text by newlines first
   const lines = text.split('\n');

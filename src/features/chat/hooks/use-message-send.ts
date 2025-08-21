@@ -1,6 +1,5 @@
-import type { ChatDetails } from '@/features/chat/api/queries/chat';
-import type { MessageDto } from '@/features/chat/types/api-dto-types';
-import { MessageStatusDto } from '@/features/chat/types/api-dto-types';
+import type { ChatDetails, ChatMessage } from '@/features/chat/api/types';
+import { MessageEventType } from '@/lib/prisma/client';
 import { trpc } from '@/trpc/client';
 import type { AppRouter } from '@/trpc/routers/_app';
 import type { TRPCClientErrorLike } from '@trpc/client';
@@ -27,20 +26,22 @@ export const useMessageSend = (): UseMessageSendMutation => {
       await trpcUtils.chat.chatDetails.cancel({ chatId });
       const previousChatData = trpcUtils.chat.chatDetails.getData({ chatId });
 
-      const optimisticMessage: MessageDto = {
+      const optimisticMessage: ChatMessage = {
         id: `optimistic-${Date.now()}`,
-        content: content.trim(),
-        timestamp: new Date(),
+        messagePayload: content.trim(),
+        createdAt: new Date(),
         senderId: currentUser,
-        status: MessageStatusDto.CREATED,
+        status: MessageEventType.CREATED,
       };
 
+      // optimistically update the chat details
       trpcUtils.chat.chatDetails.setData(
         { chatId },
         (oldData: ChatDetails | undefined): ChatDetails => {
           if (!oldData) {
             return {
-              isArchived: false,
+              // eslint-disable-next-line unicorn/no-null
+              archivedAt: null,
               name: '',
               participants: [],
               id: chatId,
@@ -53,6 +54,28 @@ export const useMessageSend = (): UseMessageSendMutation => {
           };
         },
       );
+
+      // optimistically update the chat overview
+      trpcUtils.chat.chats.setData({}, (oldChats) => {
+        if (!oldChats) return [];
+        return oldChats.map((chat) => {
+          if (chat.id === chatId) {
+            return {
+              ...chat,
+              lastMessage: {
+                id: optimisticMessage.id,
+                senderId: optimisticMessage.senderId,
+                messagePreview: optimisticMessage.messagePayload.toString(),
+                createdAt: optimisticMessage.createdAt,
+                status: optimisticMessage.status,
+              },
+              lastUpdate: optimisticMessage.createdAt,
+              unreadCount: 0,
+            };
+          }
+          return chat;
+        });
+      });
 
       return { previousChatData };
     },

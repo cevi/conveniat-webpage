@@ -15,7 +15,12 @@ import type { CollectionConfig, Field, GenerateImageName } from 'payload';
  * @param width
  * @param originalName
  */
-const generateImageName: GenerateImageName = ({ height, sizeName, extension, width }): string => {
+export const generateImageName: GenerateImageName = ({
+  height,
+  sizeName,
+  extension,
+  width,
+}): string => {
   const randomSuffix = Math.random().toString(36).slice(2, 8);
   return `${randomSuffix}-${sizeName}-${height}-${width}.${extension}`;
 };

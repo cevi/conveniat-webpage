@@ -9,8 +9,6 @@ export const onlinePing = trpcBaseProcedure
     const { user, prisma } = ctx;
     await prisma.user.update({
       where: { uuid: user.uuid },
-      data: {
-        lastSeen: new Date(),
-      },
+      data: { lastSeen: new Date() },
     });
   });

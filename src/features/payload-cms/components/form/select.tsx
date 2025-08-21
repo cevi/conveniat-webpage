@@ -113,7 +113,7 @@ export const Select: React.FC<
                   valueContainer: () => 'px-0 py-0',
                   input: () => 'font-body text-base text-gray-600 m-0 p-0',
                   singleValue: () => 'font-body text-base text-gray-600 m-0',
-                  multiValue: () => 'bg-green-100 text-green-800 rounded px-2 py-1 m-1 text-xs',
+                  multiValue: () => 'bg-green-100 text-green-700 rounded px-2 py-1 m-1 text-xs',
                   multiValueLabel: () => 'font-medium',
                   multiValueRemove: () => 'ml-1 hover:bg-green-200 rounded',
                   placeholder: () => 'font-body text-base text-gray-400 m-0',

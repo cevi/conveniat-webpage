@@ -1,5 +1,5 @@
+import type { ChatMessage } from '@/features/chat/api/types';
 import { useFormatDate } from '@/features/chat/hooks/use-format-date';
-import type { MessageDto } from '@/features/chat/types/api-dto-types';
 import { cn } from '@/utils/tailwindcss-override';
 import React, { useEffect, useRef } from 'react';
 
@@ -8,7 +8,7 @@ import React, { useEffect, useRef } from 'react';
  * (e.g., Sent, Delivered, Read)
  */
 export const MessageInfoDropdown: React.FC<{
-  message: MessageDto;
+  message: ChatMessage;
   isCurrentUser: boolean;
   onClose: () => void;
 }> = ({ message, isCurrentUser, onClose }) => {
@@ -27,9 +27,9 @@ export const MessageInfoDropdown: React.FC<{
   }, [onClose]);
 
   // TODO: set correct dates based on message events
-  const sentDate: Date = new Date(message.timestamp);
-  const deliveredDate = new Date(message.timestamp) as Date | undefined;
-  const readDate = new Date(message.timestamp) as Date | undefined;
+  const sentDate: Date = new Date(message.createdAt);
+  const deliveredDate = new Date(message.createdAt) as Date | undefined;
+  const readDate = new Date(message.createdAt) as Date | undefined;
 
   return (
     <div

@@ -1,6 +1,6 @@
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { Locale, PrismaClientOrTransaction, StaticTranslationString } from '@/types/types';
-import { ChatMembershipPermission, MessageEventType, MessageType } from '@prisma/client';
+import { ChatMembershipPermission, ChatType, MessageEventType, MessageType } from '@prisma/client';
 
 const newChatText: StaticTranslationString = {
   de: 'Neuer Chat erstellt',
@@ -13,7 +13,7 @@ export interface NewlyCreatedChat {
   name: string;
   createdAt: Date;
   lastUpdate: Date;
-  isArchived: boolean;
+  archivedAt: Date | null;
 }
 
 export interface ChatMembership {
@@ -27,17 +27,23 @@ export const createNewChat = async (
   members: ChatMembership[],
   prisma: PrismaClientOrTransaction,
 ): Promise<NewlyCreatedChat> => {
+  // assert that the user is not in the members list
+  if (members.some((member) => member.userId === user.uuid)) {
+    throw new Error('User cannot be a member of the chat they are creating.');
+  }
+
+  const isGroupChat = members.length > 1;
+
   return await prisma.chat.create({
     data: {
       name: finalChatName,
+      type: isGroupChat ? ChatType.GROUP : ChatType.ONE_TO_ONE,
       messages: {
         create: {
-          content: newChatText[locale],
-          type: MessageType.SYSTEM,
+          contentVersions: { create: [{ payload: newChatText[locale] }] },
+          type: MessageType.SYSTEM_MSG,
           messageEvents: {
-            create: {
-              eventType: MessageEventType.CREATED,
-            },
+            create: [{ type: MessageEventType.CREATED }, { type: MessageEventType.STORED }],
           },
         },
       },

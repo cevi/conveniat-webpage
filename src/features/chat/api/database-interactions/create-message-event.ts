@@ -13,7 +13,7 @@ export const createMessageEvent = async (
     .create({
       data: {
         messageId: messageId,
-        eventType: eventType,
+        type: eventType,
         userId: user.uuid,
       },
     })

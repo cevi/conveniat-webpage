@@ -7,6 +7,8 @@ import { useChats } from '@/features/chat/hooks/use-chats';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
+import { ChatType } from '@prisma/client';
 import { MessageSquare, MessageSquarePlus, Search } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
@@ -81,9 +83,8 @@ export const ChatsOverviewClientComponent: React.FC<{ user: HitobitoNextAuthUser
   const filteredChats =
     chats?.filter(
       (chat): boolean =>
-        (chat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          chat.lastMessage?.content.toLowerCase().includes(searchQuery.toLowerCase())) ??
-        false,
+        chat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        chat.lastMessage.messagePreview.toLowerCase().includes(searchQuery.toLowerCase()),
     ) ?? [];
 
   return (
@@ -137,7 +138,18 @@ export const ChatsOverviewClientComponent: React.FC<{ user: HitobitoNextAuthUser
           {filteredChats.map((chat) => (
             <div
               key={chat.id}
-              className="rounded-lg border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md"
+              className={cn(
+                'rounded-md border-2 border-gray-200 bg-white transition-shadow',
+                'hover:bg-gray-100 hover:shadow-md',
+                {
+                  'bg-white': !(chat.unreadCount > 0),
+                  'border-l-conveniat-green border-l-4 bg-green-50': chat.unreadCount > 0,
+                  'border-red-700 bg-red-600 hover:bg-red-700':
+                    chat.chatType === ChatType.EMERGENCY,
+                  'border-l-4 border-l-red-800':
+                    chat.chatType === ChatType.EMERGENCY && chat.unreadCount > 0,
+                },
+              )}
             >
               <ChatPreview chat={chat} />
             </div>

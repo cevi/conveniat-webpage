@@ -1,7 +1,7 @@
 'use client';
 import { Button } from '@/components/ui/buttons/button';
 import { Input } from '@/components/ui/input';
-import type { Contact } from '@/features/chat/api/queries/contacts';
+import type { Contact } from '@/features/chat/api/queries/list-contacts';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
@@ -154,7 +154,7 @@ export const CreateNewChatPage: React.FC = () => {
   return (
     <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50 xl:top-[62px] xl:left-[480px] xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
       {/* Header */}
-      <div className="flex h-16 items-center gap-3 border-b border-gray-200 bg-white px-4 shadow-sm">
+      <div className="flex h-16 items-center gap-3 border-b-2 border-gray-200 bg-white px-4">
         <Link href="/app/chat">
           <Button variant="ghost" size="icon" className="mr-2 hover:bg-gray-100">
             <ArrowLeft className="h-5 w-5 text-gray-700" />
@@ -170,7 +170,7 @@ export const CreateNewChatPage: React.FC = () => {
               handleCreateChat().catch(console.error);
             }}
             disabled={!isFormValid || isCreating}
-            className="bg-conveniat-green font-body text-green-100 hover:bg-green-800 disabled:bg-gray-300"
+            className="bg-conveniat-green font-body text-green-100 hover:bg-green-700 disabled:bg-gray-300"
           >
             {isCreating
               ? creatingText[locale]
@@ -247,7 +247,7 @@ export const CreateNewChatPage: React.FC = () => {
 
           {/* Contacts List */}
           <div className="rounded-lg border border-gray-200 bg-white">
-            <div className="border-b border-gray-200 p-4">
+            <div className="border-b-2 border-gray-200 p-4">
               <h2 className="font-body text-sm font-medium text-gray-700">
                 {selectContactsText[locale]}
               </h2>

@@ -1,0 +1,5 @@
+.maplibregl-ctrl-compass,
+.maplibregl-ctrl-geolocate {
+  width: 40px !important;
+  height: 40px !important;
+}

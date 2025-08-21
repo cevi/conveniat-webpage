@@ -27,6 +27,7 @@ import {
   Map,
   MessageSquare,
   OctagonAlert,
+  Settings,
   Siren,
   Truck,
 } from 'lucide-react';
@@ -54,9 +55,9 @@ const qaForumFeatureTranslation: StaticTranslationString = {
 };
 
 const emergencyInfoFeatureTranslation: StaticTranslationString = {
-  en: 'Alerts and Emergency Information',
-  de: 'Alarmierung und Notfallinformationen',
-  fr: "Alertes et informations d'urgence",
+  en: 'Emergency Information',
+  de: 'Notfallinformationen',
+  fr: "Informations d'urgence",
 };
 
 const campMapFeatureTranslation: StaticTranslationString = {
@@ -65,10 +66,10 @@ const campMapFeatureTranslation: StaticTranslationString = {
   fr: 'Carte du terrain de camp',
 };
 
-const campProgramFeatureTranslation: StaticTranslationString = {
-  en: 'Camp Program and Events',
-  de: 'Lager-Programm und Veranstaltungen',
-  fr: 'Programme du camp et événements',
+const scheduleFeatureTranslation: StaticTranslationString = {
+  en: 'Programm and Story',
+  de: 'Programm und Geschichte',
+  fr: 'Programme et histoire',
 };
 
 const helperShiftsFeatureTranslation: StaticTranslationString = {
@@ -89,10 +90,16 @@ const uploadPicturesFeatureTranslation: StaticTranslationString = {
   fr: 'Télécharger des photos',
 };
 
-const vehiclesReservationsFeatureTranslation: StaticTranslationString = {
-  en: 'Vehicles and Reservations',
-  de: 'Fahrzeuge und Reservationen',
-  fr: 'Véhicules et réservations',
+const reservationsFeatureTranslation: StaticTranslationString = {
+  en: 'Reservations',
+  de: 'Reservationen',
+  fr: 'Réservations',
+};
+
+const settingsFeatureTranslation: StaticTranslationString = {
+  en: 'Settings',
+  de: 'Einstellungen',
+  fr: 'Paramètres',
 };
 
 interface AppFeatureMenuItemProperties {
@@ -145,7 +152,7 @@ const AppFeatures: React.FC = async () => {
         <AppFeatureMenuItem
           href="/app/schedule"
           Icon={Calendar}
-          text={campProgramFeatureTranslation[locale]}
+          text={scheduleFeatureTranslation[locale]}
         />
         <AppFeatureMenuItem
           href="/app/helper-portal"
@@ -158,14 +165,19 @@ const AppFeatures: React.FC = async () => {
           text={departmentShiftsFeatureTranslation[locale]}
         />
         <AppFeatureMenuItem
-          href="/app/upload-picture"
+          href="/app/upload-images"
           Icon={ImageUp}
           text={uploadPicturesFeatureTranslation[locale]}
         />
         <AppFeatureMenuItem
           href="/app/reservations"
           Icon={Truck}
-          text={vehiclesReservationsFeatureTranslation[locale]}
+          text={reservationsFeatureTranslation[locale]}
+        />
+        <AppFeatureMenuItem
+          href="/app/settings"
+          Icon={Settings}
+          text={settingsFeatureTranslation[locale]}
         />
       </div>
       <hr className="border-t-2 text-gray-100" />

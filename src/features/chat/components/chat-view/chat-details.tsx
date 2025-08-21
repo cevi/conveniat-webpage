@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { Button } from '@/components/ui/buttons/button';
 import { Input } from '@/components/ui/input';
-import type { Contact } from '@/features/chat/api/queries/contacts';
+import type { Contact } from '@/features/chat/api/queries/list-contacts';
 import { DeleteChat } from '@/features/chat/components/chat-details-view/delete-chat';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useAddParticipants } from '@/features/chat/hooks/use-add-participants';
@@ -73,12 +73,6 @@ const validationMessages = {
   } as StaticTranslationString,
 };
 
-const savingText: StaticTranslationString = {
-  de: 'Speichern...',
-  en: 'Saving...',
-  fr: 'Enregistrement...',
-};
-
 const saveText: StaticTranslationString = {
   de: 'Speichern',
   en: 'Save',
@@ -129,7 +123,7 @@ const youText: StaticTranslationString = {
 
 const ChatDetailsPageSkeleton: React.FC = () => (
   <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col bg-gray-50 xl:top-[62px] xl:left-[480px] xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
-    <div className="flex h-16 items-center gap-3 border-b border-gray-200 bg-white px-4 shadow-sm">
+    <div className="flex h-16 items-center gap-3 border-b-2 border-gray-200 bg-white px-4">
       <div className="h-8 w-8 animate-pulse rounded bg-gray-200" />
       <div className="h-6 w-32 animate-pulse rounded bg-gray-200" />
     </div>
@@ -151,7 +145,7 @@ const ChatDetailsPageSkeleton: React.FC = () => (
 
 const ChatDetailsError: React.FC = () => (
   <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col bg-gray-50 xl:top-[62px] xl:left-[480px] xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
-    <div className="flex h-16 items-center gap-3 border-b border-gray-200 bg-white px-4 shadow-sm">
+    <div className="flex h-16 items-center gap-3 border-b-2 border-gray-200 bg-white px-4">
       <Link href="/app/chat">
         <Button variant="ghost" size="icon" className="mr-2 hover:bg-gray-100">
           <ArrowLeft className="h-5 w-5 text-gray-700" />
@@ -290,7 +284,7 @@ export const ChatDetails: React.FC = () => {
   return (
     <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50 xl:top-[62px] xl:left-[480px] xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
       {/* Header */}
-      <div className="flex h-16 items-center gap-3 border-b border-gray-200 bg-white px-4 shadow-sm">
+      <div className="flex h-16 items-center gap-3 border-b-2 border-gray-200 bg-white px-4">
         <Link href={`/app/chat/${chatId}`}>
           <Button variant="ghost" size="icon" className="mr-2 hover:bg-gray-100">
             <ArrowLeft className="h-5 w-5 text-gray-700" />
@@ -315,9 +309,9 @@ export const ChatDetails: React.FC = () => {
                 size="sm"
                 onClick={handleSaveName}
                 disabled={!isFormValid || updateChatMutation.isPending}
-                className="bg-conveniat-green font-body hover:bg-green-600 disabled:bg-gray-300"
+                className="bg-conveniat-green font-body text-white hover:bg-green-600 disabled:bg-gray-300"
               >
-                {updateChatMutation.isPending ? savingText[locale] : saveText[locale]}
+                {saveText[locale]} {updateChatMutation.isPending ? '...' : ''}
               </Button>
             </div>
           )}

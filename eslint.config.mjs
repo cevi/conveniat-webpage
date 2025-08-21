@@ -31,6 +31,7 @@ const features_folder = [
   'emergency',
   'payload-cms',
   'settings',
+  'image-submission',
 ];
 
 // assert that all folders in src/features are in the features array
@@ -229,6 +230,7 @@ const config = [
                 './types',
                 './utils',
                 './config',
+                './context',
               ],
             },
           ],

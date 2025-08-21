@@ -1,5 +1,5 @@
+import type { ChatMessage } from '@/features/chat/api/types';
 import { formatMessageContent } from '@/features/chat/components/chat-view/message/utils/format-message-content';
-import type { MessageDto } from '@/features/chat/types/api-dto-types';
 import React from 'react';
 
 /**
@@ -8,8 +8,8 @@ import React from 'react';
  * @param content
  * @constructor
  */
-export const SystemMessage: React.FC<{ message: MessageDto }> = ({ message }) => {
-  const renderedContent = formatMessageContent(message.content);
+export const SystemMessage: React.FC<{ message: ChatMessage }> = ({ message }) => {
+  const renderedContent = formatMessageContent(message.messagePayload);
   return (
     <div className="flex items-center justify-center p-4 text-gray-500">
       <span className="font-body text-center text-balance" style={{ whiteSpace: 'pre-wrap' }}>

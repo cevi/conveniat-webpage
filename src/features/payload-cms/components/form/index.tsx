@@ -178,7 +178,9 @@ const FormFieldRenderer: React.FC<FormFieldRendererProperties> = ({
 
   return (
     <>
-      <SubheadingH3>{'sectionTitle' in section ? section.sectionTitle : ''}</SubheadingH3>
+      <SubheadingH3 className="mt-0">
+        {'sectionTitle' in section ? section.sectionTitle : ''}
+      </SubheadingH3>
 
       {section.fields.map((fieldChild, indexChild) => {
         // render conditioned blocks
@@ -261,7 +263,7 @@ const NextPageButton: React.FC<{
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="bg-conveniat-green h-10 w-full cursor-pointer rounded-lg px-5 py-2 text-base font-bold text-gray-100 transition duration-100 hover:bg-green-800 disabled:opacity-50 sm:w-auto"
+      className="bg-conveniat-green h-10 w-full cursor-pointer rounded-lg px-5 py-2 text-base font-bold text-gray-100 transition duration-100 hover:bg-green-700 disabled:opacity-50 sm:w-auto"
     >
       {nextStepText[locale as Locale]}
     </button>

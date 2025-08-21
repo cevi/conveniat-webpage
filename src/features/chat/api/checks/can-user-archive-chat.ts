@@ -1,4 +1,4 @@
-import { isUserMemberOfChat } from '@/features/chat/api/permission-checks/is-user-member-of-chat';
+import { isUserMemberOfChat } from '@/features/chat/api/checks/is-user-member-of-chat';
 import { ChatMembershipPermission } from '@/lib/prisma/client';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 

@@ -1,10 +1,7 @@
-import { environmentVariables } from '@/config/environment-variables';
+import { sendNotification } from '@/features/chat/api/utils/send-push-notifications';
 import { ChatMembershipPermission, MessageEventType } from '@/lib/prisma';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
-import config from '@payload-config';
-import { getPayload } from 'payload';
-import type webpush from 'web-push';
 import { z } from 'zod';
 
 // Zod schema for input validation
@@ -34,70 +31,8 @@ const sendMessageInputSchema = z.object({
   ),
 });
 
-/**
- * Sends a push notification to the user.
- * This function remains largely the same, but it's now a utility within the tRPC context.
- * @param message - The message content to send in the notification.
- * @param recipientUserIds - An array of user IDs to whom the notification should be sent.
- * @param chatId - The ID of the chat, used to construct the deep link URL.
- */
-async function sendNotification(
-  message: string,
-  recipientUserIds: string[],
-  chatId: string,
-): Promise<{ success: boolean; error?: string }> {
-  const payload = await getPayload({ config });
-
-  const { totalDocs } = await payload.count({ collection: 'push-notification-subscriptions' });
-  if (totalDocs === 0) {
-    return {
-      success: true,
-      error: 'No push notification subscriptions found.',
-    };
-  }
-
-  const { docs: subscriptions } = await payload.find({
-    collection: 'push-notification-subscriptions',
-    where: {
-      user: {
-        in: recipientUserIds,
-      },
-    },
-    depth: 0,
-  });
-
-  const chatURL = environmentVariables.APP_HOST_URL + '/app/chat/' + chatId;
-
-  console.log(`Sending notification to ${subscriptions.length} subscriptions`);
-
-  try {
-    const webPushPromises = subscriptions.map(async (subscription) => {
-      const { sendNotificationToSubscription } = await import(
-        // eslint-disable-next-line import/no-restricted-paths
-        '@/features/onboarding/api/push-notification'
-      );
-
-      return sendNotificationToSubscription(
-        subscription as webpush.PushSubscription,
-        message,
-        chatURL,
-      ).catch((error: unknown) => {
-        console.error(`Error sending notification to subscription ${subscription.id}:`, error);
-        throw new Error(`Failed to send notification to subscription ${subscription.id}`);
-      });
-    });
-    await Promise.all(webPushPromises);
-
-    console.log('Push notifications sent successfully');
-    return { success: true };
-  } catch (error) {
-    console.error('Error sending push notification:', error);
-    return { success: false, error: 'Failed to send notification' };
-  }
-}
-
 // tRPC router for chat-related mutations
-export const sendMessage = trpcBaseProcedure
+export const createMessage = trpcBaseProcedure
   .input(sendMessageInputSchema)
   .use(databaseTransactionWrapper) // use a DB transaction for this mutation
   .mutation(async ({ input, ctx }) => {
@@ -106,12 +41,8 @@ export const sendMessage = trpcBaseProcedure
 
     // 2. Validate that the user is part of the chat and has permission to send messages
     const chat = await prisma.chat.findUnique({
-      where: {
-        uuid: validatedMessage.chatId,
-      },
-      select: {
-        chatMemberships: true,
-      },
+      where: { uuid: validatedMessage.chatId },
+      select: { chatMemberships: true },
     });
 
     if (
@@ -148,40 +79,21 @@ export const sendMessage = trpcBaseProcedure
     // Create the message and its initial events within a transaction
     const createdMessage = await prisma.message.create({
       data: {
-        content: validatedMessage.content,
-        sender: {
-          connect: {
-            uuid: user.uuid,
-          },
-        },
-        chat: {
-          connect: {
-            uuid: validatedMessage.chatId,
-          },
-        },
+        contentVersions: { create: [{ payload: validatedMessage.content }] },
+        sender: { connect: { uuid: user.uuid } },
+        chat: { connect: { uuid: validatedMessage.chatId } },
         messageEvents: {
           create: [
-            {
-              eventType: MessageEventType.CREATED,
-              timestamp: validatedMessage.timestamp,
-              userId: user.uuid,
-            },
-            {
-              eventType: MessageEventType.SERVER_RECEIVED,
-              timestamp: new Date(),
-            },
+            { type: MessageEventType.CREATED, user: { connect: { uuid: user.uuid } } },
+            { type: MessageEventType.STORED },
           ],
         },
       },
     });
 
     await prisma.chat.update({
-      where: {
-        uuid: validatedMessage.chatId,
-      },
-      data: {
-        lastUpdate: new Date(),
-      },
+      where: { uuid: validatedMessage.chatId },
+      data: { lastUpdate: new Date() },
     });
 
     console.log(`Message created with ID: ${createdMessage.uuid}`);
@@ -193,13 +105,12 @@ export const sendMessage = trpcBaseProcedure
     // Send push notification (fire-and-forget, with error logging)
     await sendNotification(validatedMessage.content, recipientUserIds, validatedMessage.chatId);
 
-    // Record SERVER_SENT event after a successful notification attempt
+    // Record DISTRIBUTED event after a successful notification attempt
     await prisma.messageEvent.createMany({
       data: recipientUserIds.map((userId) => ({
         userId: userId,
         messageId: createdMessage.uuid,
-        eventType: MessageEventType.SERVER_SENT,
-        timestamp: new Date(),
+        type: MessageEventType.DISTRIBUTED,
       })),
     });
   });

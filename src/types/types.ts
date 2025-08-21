@@ -59,3 +59,9 @@ export enum Cookie {
 }
 
 export type PrismaClientOrTransaction = Omit<PrismaClient, ITXClientDenyList>;
+
+// Define the shape of the context value
+export interface StarContextType {
+  isStarred: (id: string) => boolean;
+  toggleStar: (id: string) => void;
+}

@@ -63,6 +63,7 @@ const ScheduleDetailPage: React.FC<{
       id: { equals: scheduleId },
     },
     limit: 1,
+    fallbackLocale: 'de',
   });
 
   if (scheduleEntries.docs.length === 0) {

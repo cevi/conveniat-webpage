@@ -56,6 +56,7 @@ export interface Config {
     'camp-map-annotations': CampMapAnnotation;
     'camp-schedule-entry': CampScheduleEntry;
     images: Image;
+    userSubmittedImages: UserSubmittedImage;
     documents: Document;
     users: User;
     permissions: Permission;
@@ -84,6 +85,7 @@ export interface Config {
     'camp-map-annotations': CampMapAnnotationsSelect<false> | CampMapAnnotationsSelect<true>;
     'camp-schedule-entry': CampScheduleEntrySelect<false> | CampScheduleEntrySelect<true>;
     images: ImagesSelect<false> | ImagesSelect<true>;
+    userSubmittedImages: UserSubmittedImagesSelect<false> | UserSubmittedImagesSelect<true>;
     documents: DocumentsSelect<false> | DocumentsSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     permissions: PermissionsSelect<false> | PermissionsSelect<true>;
@@ -1630,6 +1632,46 @@ export interface CampScheduleEntry {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "userSubmittedImages".
+ */
+export interface UserSubmittedImage {
+  id: string;
+  uploaded_by: string | User;
+  original_filename?: string | null;
+  user_description: string;
+  updatedAt: string;
+  createdAt: string;
+  deletedAt?: string | null;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+  sizes?: {
+    tiny?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+    large?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "push-notification-subscriptions".
  */
 export interface PushNotificationSubscription {
@@ -1725,6 +1767,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'images';
         value: string | Image;
+      } | null)
+    | ({
+        relationTo: 'userSubmittedImages';
+        value: string | UserSubmittedImage;
       } | null)
     | ({
         relationTo: 'documents';
@@ -2369,6 +2415,51 @@ export interface ImagesSelect<T extends boolean = true> {
   imageCaption_fr?: T;
   updatedAt?: T;
   createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+  sizes?:
+    | T
+    | {
+        tiny?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+        large?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+      };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "userSubmittedImages_select".
+ */
+export interface UserSubmittedImagesSelect<T extends boolean = true> {
+  uploaded_by?: T;
+  original_filename?: T;
+  user_description?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  deletedAt?: T;
   url?: T;
   thumbnailURL?: T;
   filename?: T;

@@ -1,25 +1,18 @@
-export enum MessageStatusDto {
-  CREATED = 'CREATED',
-  SENT = 'SENT',
-  DELIVERED = 'DELIVERED',
-  READ = 'READ',
-}
+import type { ChatType, MessageEventType } from '@prisma/client';
 
-/** @deprecated */
-export interface MessageDto {
+export interface PreviewMessage {
   id: string;
-  // undefined for system messages
-  senderId: string | undefined;
-  content: string;
-  timestamp: Date;
-  status: MessageStatusDto;
+  senderId: string | undefined; // undefined for system messages
+  messagePreview: string;
+  createdAt: Date;
+  status: MessageEventType;
 }
 
-/** @deprecated */
-export interface ChatDto {
+export interface ChatWithMessagePreview {
   id: string;
   name: string;
-  lastMessage?: MessageDto;
+  chatType: ChatType;
+  lastMessage: PreviewMessage;
   lastUpdate: Date;
   unreadCount: number;
 }

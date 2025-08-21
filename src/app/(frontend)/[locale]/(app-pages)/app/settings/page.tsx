@@ -1,7 +1,5 @@
 import { SetDynamicPageTitle } from '@/components/header/set-dynamic-app-title';
 import { MainMenuLanguageSwitcher } from '@/components/menu/main-menu-language-switcher';
-import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
-import { LogoutButton } from '@/features/settings/logout-button';
 import { ProfileDetails } from '@/features/settings/profile-details';
 import { PushNotificationSettings } from '@/features/settings/push-notification-settings';
 import type { StaticTranslationString } from '@/types/types';
@@ -23,22 +21,22 @@ const Settings: React.FC = async () => {
       <SetDynamicPageTitle newTitle={settingsTitle[locale]} />
 
       {/* Main content section */}
-      <section className="container mx-auto my-8 px-4 py-8 md:py-12">
-        <article className="mx-auto w-full max-w-2xl space-y-10">
-          <HeadlineH1>{settingsTitle[locale]}</HeadlineH1>
-          <ProfileDetails />
-          <LogoutButton />
-        </article>
+      <section className="container mx-auto mt-8 py-6">
+        <div className="mx-auto w-full max-w-2xl space-y-6 px-8">
+          <article className="mx-auto w-full max-w-2xl space-y-10">
+            <ProfileDetails />
+          </article>
 
-        {/* Add Option to Change Language */}
-        <article className="mt-8 rounded-lg bg-white px-6 shadow-md">
-          <MainMenuLanguageSwitcher locale={locale} />
-        </article>
+          {/* Add Option to Change Language */}
+          <article className="my-8 rounded-lg border-2 border-gray-200 bg-white px-6 md:p-8">
+            <MainMenuLanguageSwitcher locale={locale} />
+          </article>
 
-        {/* Add Option to Configure Push Notifications */}
-        <article className="mt-8 rounded-lg bg-white p-6 px-6 shadow-md">
-          <PushNotificationSettings />
-        </article>
+          {/* Add Option to Configure Push Notifications */}
+          <article className="rounded-lg border-2 border-gray-200 bg-white p-6">
+            <PushNotificationSettings />
+          </article>
+        </div>
       </section>
     </>
   );

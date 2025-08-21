@@ -33,7 +33,7 @@ export const AnnotationScheduleTableComponent: React.FC<{
       </div>
       <div className="space-y-3">
         {schedule.map((entry) => (
-          <div key={entry.id} className="cursor-pointer rounded-lg border border-gray-200 p-3">
+          <div key={entry.id} className="cursor-pointer rounded-lg border-2 border-gray-200 p-3">
             <Link href={`/app/schedule/${entry.id}`}>
               <h4 className="font-medium text-gray-900">{entry.title}</h4>
               <div className="mt-1 text-sm text-gray-700">

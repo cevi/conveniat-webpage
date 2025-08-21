@@ -225,7 +225,7 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
   });
 
   const publishClasses = cva({
-    'border-solid border border-green-300 bg-green-200 text-green-900 dark:bg-green-800 dark:text-green-100': true,
+    'border-solid border border-green-300 bg-green-200 text-green-900 dark:bg-green-700 dark:text-green-100': true,
     'cursor-not-allowed opacity-40': !canPublish && isPublished?.[code],
   });
 

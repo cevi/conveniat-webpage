@@ -11,6 +11,7 @@ import type {
   CampScheduleEntry,
 } from '@/features/map/types/types';
 import type { Locale, StaticTranslationString } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -48,6 +49,7 @@ export const AnnotationDetailsDrawer: React.FC<{
   const [drawerHeight, setDrawerHeight] = useState(50);
   const [isResizing, setIsResizing] = useState(false);
   const drawerReference = useRef<HTMLDivElement>(null);
+  const scrollableContentReference = useRef<HTMLDivElement>(null);
 
   const handleMouseDown = useCallback(() => {
     setIsResizing(true);
@@ -89,9 +91,15 @@ export const AnnotationDetailsDrawer: React.FC<{
       }
 
       // Find the closest snap point
-      return snapPoints.reduce((previous, current) =>
+      const newHeight = snapPoints.reduce((previous, current) =>
         Math.abs(current - currentHeight) < Math.abs(previous - currentHeight) ? current : previous,
       );
+
+      if (scrollableContentReference.current && newHeight !== 0) {
+        scrollableContentReference.current.scrollTop = 0;
+      }
+
+      return newHeight;
     });
   }, [closeDrawer]);
 
@@ -116,9 +124,14 @@ export const AnnotationDetailsDrawer: React.FC<{
     };
   }, [isResizing, handleMouseMove, handleTouchMove, handleResizeEnd]);
 
-  // If drawer is closed (height 0), don't render it
+  useEffect(() => {
+    if (scrollableContentReference.current) {
+      scrollableContentReference.current.scrollTop = 0;
+    }
+  }, [annotation]);
+
   if (drawerHeight === 0) {
-    return;
+    return <></>;
   }
 
   return (
@@ -128,7 +141,11 @@ export const AnnotationDetailsDrawer: React.FC<{
       style={{ height: `${drawerHeight}vh` }}
     >
       <div
-        className="flex h-full flex-col overflow-y-auto px-4 pt-4 select-none"
+        ref={scrollableContentReference}
+        className={cn('flex h-full flex-col px-4 pt-4 select-none', {
+          'overflow-hidden': isResizing,
+          'overflow-y-auto': !isResizing,
+        })}
         onDragStart={(event) => event.preventDefault()}
       >
         <div className="relative">
@@ -137,8 +154,8 @@ export const AnnotationDetailsDrawer: React.FC<{
             onMouseDown={handleMouseDown}
             onTouchStart={handleTouchStart}
           >
-            <div className="absolute top-[-16px] right-0 left-0 z-30 flex h-4 cursor-ns-resize items-center justify-center bg-white">
-              <div className="h-1 w-20 rounded-full bg-gray-300"></div>
+            <div className="absolute top-[-16px] right-0 left-0 z-30 flex h-4 cursor-ns-resize items-center justify-center bg-white pt-2">
+              <div className="mt-2 mb-4 h-1 w-20 rounded-full bg-gray-300"></div>
             </div>
 
             <AnnotationDrawerHeader

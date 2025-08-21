@@ -28,7 +28,7 @@ export const languageStatusClasses = cva(
         published: true,
         pendingChanges: false,
         className:
-          'border-green-300 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 dark:border-green-500',
+          'border-green-300 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 dark:border-green-500',
       },
     ],
     defaultVariants: {

@@ -5,7 +5,7 @@ import React from 'react';
 
 export const ChatSkeleton: React.FC = () => (
   <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col bg-gray-50 xl:top-[62px] xl:left-[480px] xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
-    <div className="flex h-16 items-center gap-3 border-b border-gray-200 bg-white px-4 shadow-sm">
+    <div className="flex h-16 items-center gap-3 border-b-2 border-gray-200 bg-white px-4">
       <Link href="/app/chat">
         <Button variant="ghost" size="icon" className="mr-2 hover:bg-gray-100">
           <ArrowLeft className="h-5 w-5 text-gray-700" />

@@ -198,6 +198,25 @@ const locale = await getLocaleFromCookies();
 const buttonText = searchButtonText[locale];
 ```
 
+## tRPC
+
+We exclusively use tRPC to fetch date from client components. For mutations, we prefer tRPC over Server Actions
+unless the mutation is every simple and not part of a larger workflow which includes subsequent data fetching.
+
+- Example which is a valid use case for Server Actions: a simple form submission of the contact form.
+- Example which is not a valid use case for Server Actions: send a chat message, where we prefer to use tRPC mutations.
+
+### Naming Conventions for tRPC Mutations and Queries
+
+- Use camelCase for all tRPC query and mutation names.
+- For queries, use the format `get[[Feature]][Data]` (e.g., `getContacts`, `getChatMessages`). Fetches by uuid.
+- For mutations, use the format `update[[Feature]][Data]`, `create[[Feature]][Data]`, or `delete[[Feature]][Data]` (
+  e.g.,
+  `updateUser`, `createChatMessage`, `deleteChatMessage`).
+- For queries that fetch lists, use the format `get[[Feature][Data]List` (e.g., `getChatPreviewsList`, `getUserList`).
+- Special actions that do not fit the above patterns should be named descriptively, using a verb that describes the
+  action followed by the feature name (e.g., `archiveChat`, `markChatAsRead`).
+
 ## React & Next.js 15 Best Practices
 
 Follow these guidelines for writing modern, high-quality code.
