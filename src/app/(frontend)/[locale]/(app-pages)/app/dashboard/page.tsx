@@ -4,6 +4,7 @@ import { SubheadingH2 } from '@/components/ui/typography/subheading-h2';
 import { getScheduleEntries } from '@/features/schedule/api/get-schedule-entries';
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
 import type { StaticTranslationString } from '@/types/types';
+import { formatScheduleDateTime } from '@/utils/format-schedule-date-time';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import {
   Calendar,
@@ -37,22 +38,6 @@ const upcomingProgramElementsTitle: StaticTranslationString = {
   en: 'Upcoming Program Elements',
   de: 'Nächsten Programmpunkte',
   fr: 'Éléments de programme à venir',
-};
-
-const formatDateTime = (
-  date: string,
-  time: string,
-): {
-  formattedDate: string;
-  time: string;
-} => {
-  const dateObject = new Date(date);
-  const formattedDate = dateObject.toLocaleDateString('de-CH', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-  });
-  return { formattedDate, time };
 };
 
 interface FeatureCardProperties {
@@ -205,7 +190,7 @@ const EventCard: React.FC<{
   entry: CampScheduleEntryFrontendType;
 }> = ({ entry }) => {
   const location = entry.location;
-  const { formattedDate, time } = formatDateTime(entry.timeslot.date, entry.timeslot.time);
+  const { formattedDate, time } = formatScheduleDateTime(entry.timeslot.date, entry.timeslot.time);
 
   return (
     <Link
