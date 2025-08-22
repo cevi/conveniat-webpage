@@ -18,7 +18,7 @@ services:
         delay: 0s # No delay between updates
         order: start-first # Start new containers before stopping old ones
         monitor: 5s # Time to wait after an update to monitor for failure
-        failure_action: rollback # What to do if an update fails
+        failure_action: pause # What to do if an update fails
         max_failure_ratio: 0.0 # Fail immediately if any container fails during update
 
       restart_policy:
