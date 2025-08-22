@@ -6,28 +6,10 @@ import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/ty
 import { useStar } from '@/hooks/use-star';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { formatScheduleDateTime } from '@/utils/format-schedule-date-time';
 import { Calendar, ChevronDown, ChevronUp, Clock, ExternalLink, MapPin } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
-
-// Enhanced helper to format date and time more elegantly
-const formatDateTime = (
-  locale: Locale,
-  date: string,
-  time: string,
-): {
-  formattedDate: string;
-  time: string;
-} => {
-  const dateObject = new Date(date);
-  const formattedDate = dateObject.toLocaleDateString(locale, {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-  });
-
-  return { formattedDate, time };
-};
 
 interface ScheduleItemProperties {
   entry: CampScheduleEntryFrontendType;
@@ -104,7 +86,7 @@ export const ScheduleItem: React.FC<ScheduleItemProperties> = ({
                     <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
                     <span className="font-medium whitespace-nowrap">
                       {
-                        formatDateTime(locale, entry.timeslot.date, entry.timeslot.time)
+                        formatScheduleDateTime(locale, entry.timeslot.date, entry.timeslot.time)
                           .formattedDate
                       }
                     </span>
