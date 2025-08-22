@@ -8,13 +8,4 @@ export async function register(): Promise<void> {
   );
 
   sdk.start();
-
-  // gracefully shut down the SDK on process exit
-  process.on('SIGTERM', () => {
-    sdk
-      .shutdown()
-      .then(() => console.debug('Tracing terminated'))
-      .catch((error: unknown) => console.error('Error terminating tracing', error))
-      .finally(() => process.exit(0));
-  });
 }
