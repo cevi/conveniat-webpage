@@ -71,7 +71,7 @@ export const DateCarousel: React.FC<DateCarouselProperties> = ({
                     : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 }`}
               >
-                {date.toLocaleDateString('de-CH', {
+                {date.toLocaleDateString(locale, {
                   weekday: 'short',
                   day: 'numeric',
                 })}

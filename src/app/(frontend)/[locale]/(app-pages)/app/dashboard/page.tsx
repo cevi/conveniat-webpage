@@ -3,7 +3,7 @@ import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { SubheadingH2 } from '@/components/ui/typography/subheading-h2';
 import { getScheduleEntries } from '@/features/schedule/api/get-schedule-entries';
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
-import type { StaticTranslationString } from '@/types/types';
+import type { Locale, StaticTranslationString } from '@/types/types';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import {
   Calendar,
@@ -40,6 +40,7 @@ const upcomingProgramElementsTitle: StaticTranslationString = {
 };
 
 const formatDateTime = (
+  locale: Locale,
   date: string,
   time: string,
 ): {
@@ -47,7 +48,7 @@ const formatDateTime = (
   time: string;
 } => {
   const dateObject = new Date(date);
-  const formattedDate = dateObject.toLocaleDateString('de-CH', {
+  const formattedDate = dateObject.toLocaleDateString(locale, {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
@@ -203,9 +204,11 @@ const AppFeatures: React.FC<{ locale: 'en' | 'de' | 'fr' }> = ({ locale }) => {
 
 const EventCard: React.FC<{
   entry: CampScheduleEntryFrontendType;
-}> = ({ entry }) => {
+}> = async ({ entry }) => {
+  const locale = await getLocaleFromCookies();
+
   const location = entry.location;
-  const { formattedDate, time } = formatDateTime(entry.timeslot.date, entry.timeslot.time);
+  const { formattedDate, time } = formatDateTime(locale, entry.timeslot.date, entry.timeslot.time);
 
   return (
     <Link

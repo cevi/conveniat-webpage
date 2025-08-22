@@ -12,6 +12,7 @@ import type React from 'react';
 
 // Enhanced helper to format date and time more elegantly
 const formatDateTime = (
+  locale: Locale,
   date: string,
   time: string,
 ): {
@@ -19,7 +20,7 @@ const formatDateTime = (
   time: string;
 } => {
   const dateObject = new Date(date);
-  const formattedDate = dateObject.toLocaleDateString('de-CH', {
+  const formattedDate = dateObject.toLocaleDateString(locale, {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
@@ -102,7 +103,10 @@ export const ScheduleItem: React.FC<ScheduleItemProperties> = ({
                   <div className="flex flex-shrink-0 items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1 text-blue-700">
                     <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
                     <span className="font-medium whitespace-nowrap">
-                      {formatDateTime(entry.timeslot.date, entry.timeslot.time).formattedDate}
+                      {
+                        formatDateTime(locale, entry.timeslot.date, entry.timeslot.time)
+                          .formattedDate
+                      }
                     </span>
                   </div>
                 }
