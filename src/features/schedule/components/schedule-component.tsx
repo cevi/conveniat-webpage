@@ -9,9 +9,25 @@ import { SearchFilterBar } from '@/features/schedule/components/search-filter-ba
 import { useSchedule } from '@/features/schedule/hooks/use-schedule';
 import { useScheduleFilters } from '@/features/schedule/hooks/use-schedule-filter';
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
+import type { Locale, StaticTranslationString } from '@/types/types';
+import { i18nConfig } from '@/types/types';
+import { useCurrentLocale } from 'next-i18n-router/client';
 import { useRouter } from 'next/navigation';
 import type React from 'react';
 import { useMemo } from 'react';
+
+const noEventsText: StaticTranslationString = {
+  en: 'No events match your filters for this date',
+  de: 'Keine Veranstaltungen entsprechen deinen Filtern für dieses Datum',
+  fr: 'Aucun événement ne correspond à vos filtres pour cette date',
+};
+
+// Corrected pluralization for the German translation
+const foundEventsText: StaticTranslationString = {
+  en: 'Found {{count}} event{{plural}} for ',
+  de: '{{count}} Veranstaltung{{plural}} gefunden für ',
+  fr: '{{count}} événement{{plural}} trouvé pour ',
+};
 
 export const ScheduleComponent: React.FC<{
   scheduleEntries: CampScheduleEntryFrontendType[];
@@ -20,6 +36,8 @@ export const ScheduleComponent: React.FC<{
 
   const { currentDate, allDates, expandedEntries, carouselStartIndex, maxVisibleDays, actions } =
     useSchedule(scheduleEntries);
+
+  const locale = useCurrentLocale(i18nConfig) as Locale;
 
   const {
     filters,
@@ -42,6 +60,13 @@ export const ScheduleComponent: React.FC<{
   const handleMapClick = (location: CampMapAnnotation): void => {
     if (location.id !== '') router.push(`/app/map?locationId=${location.id}`);
   };
+
+  let pluralSuffix = '';
+  if (locale === 'de') {
+    pluralSuffix = currentProgram.length === 1 ? '' : 'en';
+  } else {
+    pluralSuffix = currentProgram.length === 1 ? '' : 's';
+  }
 
   return (
     <article className="mx-auto my-8 w-full max-w-2xl overflow-hidden px-4">
@@ -72,15 +97,17 @@ export const ScheduleComponent: React.FC<{
         <div className="mb-4 text-sm text-gray-600">
           {hasProgram ? (
             <span>
-              Found {currentProgram.length} event{currentProgram.length === 1 ? '' : 's'} for{' '}
-              {currentDate.toLocaleDateString('de-CH', {
+              {foundEventsText[locale]
+                .replace('{{count}}', String(currentProgram.length))
+                .replace('{{plural}}', pluralSuffix)}
+              {currentDate.toLocaleDateString(locale, {
                 weekday: 'long',
                 month: 'long',
                 day: 'numeric',
               })}
             </span>
           ) : (
-            <span>No events match your filters for this date</span>
+            <span>{noEventsText[locale]}</span>
           )}
         </div>
       )}
