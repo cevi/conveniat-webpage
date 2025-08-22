@@ -29,6 +29,12 @@ const supportInformationText: StaticTranslationString = {
   fr: 'Votre identifiant utilisateur peut être requis pour les demandes de support.',
 };
 
+const userIdLabel: StaticTranslationString = {
+  de: 'Benutzer-ID:',
+  en: 'User ID:',
+  fr: "ID d'utilisateur:",
+};
+
 export const ProfileDetails: React.FC = async () => {
   const locale = await getLocaleFromCookies();
   const session = await auth();
@@ -83,7 +89,7 @@ export const ProfileDetails: React.FC = async () => {
 
       {/* UUID */}
       <div className="flex items-center">
-        <strong className="w-24 text-gray-700">User ID:</strong>
+        <strong className="w-24 text-gray-700">{userIdLabel[locale]}</strong>
         <span className="text-gray-900">{getDetail(user?.uuid)}</span>
       </div>
     </div>
