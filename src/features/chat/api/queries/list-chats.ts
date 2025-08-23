@@ -8,6 +8,57 @@ import { databaseTransactionWrapper } from '@/trpc/middleware/database-transacti
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
+/**
+ * Extracts a preview text from the last message's content versions.
+ * Converts system messages and special messages to a text
+ * representation for preview purposes.
+ *
+ * TODO: how do we handle localization here?
+ *
+ * @param lastMessage
+ */
+// eslint-disable-next-line complexity
+const getMessagePreviewText = (lastMessage: {
+  contentVersions: { payload: unknown }[];
+}): string => {
+  const payload = lastMessage.contentVersions[0]?.payload;
+
+  if (
+    typeof payload === 'object' &&
+    payload !== null &&
+    'system_msg_type' in payload &&
+    typeof payload.system_msg_type === 'string'
+  ) {
+    switch (payload.system_msg_type) {
+      case 'emergency_alert': {
+        return '🚨 Emergency Alert';
+      }
+      default: {
+        return 'System message';
+      }
+    }
+  }
+
+  if (
+    typeof payload === 'object' &&
+    payload !== null &&
+    'location' in payload &&
+    typeof payload.location === 'object' &&
+    payload.location !== null &&
+    'latitude' in payload.location &&
+    'longitude' in payload.location
+  ) {
+    return '📍 Location shared';
+  }
+
+  if (typeof payload === 'string') {
+    return payload;
+  }
+
+  // Fallback for other message types
+  return JSON.stringify(payload ?? {});
+};
+
 export const listChats = trpcBaseProcedure
   .input(z.object({}))
   .use(databaseTransactionWrapper)
@@ -87,8 +138,7 @@ export const listChats = trpcBaseProcedure
         lastMessage: {
           id: lastMessage.uuid,
           createdAt: chat.lastUpdate,
-          // TODO: replace with properly formatted message preview
-          messagePreview: JSON.stringify(lastMessage.contentVersions[0]?.payload ?? {}),
+          messagePreview: getMessagePreviewText(lastMessage),
           senderId: lastMessage.senderId ?? undefined,
           status: getStatusFromMessageEvents(lastMessage.messageEvents),
         },

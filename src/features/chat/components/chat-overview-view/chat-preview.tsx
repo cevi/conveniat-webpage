@@ -116,7 +116,6 @@ export const ChatPreview: React.FC<{
               'text-red-50': chat.chatType === ChatType.EMERGENCY,
             })}
           >
-            {/* TODO: consider do that server side */}
             {chat.lastMessage.messagePreview}
           </p>
         </div>
