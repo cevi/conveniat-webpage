@@ -16,7 +16,7 @@ const GeolocationPositionSchema = z.object({
 });
 
 const newAlertSchema = z.object({
-  location: GeolocationPositionSchema.required(),
+  location: GeolocationPositionSchema.optional(),
 });
 
 export const emergencyRouter = createTRPCRouter({
@@ -69,6 +69,10 @@ export const emergencyRouter = createTRPCRouter({
         },
       });
 
+      if (!location) {
+        return { success: true, redirectUrl: `/app/chat/${chat.uuid}` };
+      }
+
       const locationSharingMessage = {
         payload: {
           location: {
@@ -90,9 +94,6 @@ export const emergencyRouter = createTRPCRouter({
         },
       });
 
-      return {
-        success: true,
-        redirectUrl: `/app/chat/${chat.uuid}`,
-      };
+      return { success: true, redirectUrl: `/app/chat/${chat.uuid}` };
     }),
 });
