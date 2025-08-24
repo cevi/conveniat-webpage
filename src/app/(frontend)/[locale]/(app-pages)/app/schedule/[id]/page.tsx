@@ -10,6 +10,9 @@ import type {
   CampScheduleEntry,
   User,
 } from '@/features/payload-cms/payload-types';
+import { EnrollButton } from '@/features/schedule/components/enroll-button';
+import { UnenrollButton } from '@/features/schedule/components/unenroll-button';
+import { TRPCProvider } from '@/trpc/client';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import { auth } from '@/utils/auth-helpers';
 import { formatScheduleDateTime } from '@/utils/format-schedule-date-time';
@@ -67,72 +70,83 @@ const ScheduleDetailPage: React.FC<{
   const userCanEdit = isUserOrganiser || canUserAccessAdminPanel({ user });
 
   return (
-    <article className="my-8 w-full max-w-2xl px-8 max-xl:mx-auto">
-      <HeadlineH1>Programm-Punkt: {entry.title}</HeadlineH1>
-      <div className="min-w-0 flex-1">
-        {/* Location and Time Display - single line */}
-        <div className="mb-3 flex flex-wrap items-center gap-4">
-          {/* Location - inline */}
-          {location.title !== '' && (
-            <div className="flex items-center gap-1.5 text-sm text-gray-600">
-              <MapPin className="h-3.5 w-3.5 flex-shrink-0 text-gray-500" />
-              <Link
-                href={`/app/map?locationId=${location.id}`}
-                className="cursor-pointer font-medium text-blue-600 transition-colors hover:text-blue-800 hover:underline"
-              >
-                {location.title}
-              </Link>
-            </div>
-          )}
-
-          {/* Time slots */}
-
-          <div className={'flex flex-shrink-0 items-center gap-3 text-sm'}>
-            {
-              <div className="flex flex-shrink-0 items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1 text-blue-700">
-                <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
-                <span className="font-medium whitespace-nowrap">
-                  {
-                    formatScheduleDateTime(locale, entry.timeslot.date, entry.timeslot.time)
-                      .formattedDate
-                  }
-                </span>
+    <TRPCProvider>
+      <article className="my-8 w-full max-w-2xl px-8 max-xl:mx-auto">
+        <HeadlineH1>Programm-Punkt: {entry.title}</HeadlineH1>
+        <div className="min-w-0 flex-1">
+          {/* Location and Time Display - single line */}
+          <div className="mb-3 flex flex-wrap items-center gap-4">
+            {/* Location - inline */}
+            {location.title !== '' && (
+              <div className="flex items-center gap-1.5 text-sm text-gray-600">
+                <MapPin className="h-3.5 w-3.5 flex-shrink-0 text-gray-500" />
+                <Link
+                  href={`/app/map?locationId=${location.id}`}
+                  className="cursor-pointer font-medium text-blue-600 transition-colors hover:text-blue-800 hover:underline"
+                >
+                  {location.title}
+                </Link>
               </div>
-            }
+            )}
 
-            {/* Time Slots */}
-            <div className="flex flex-wrap items-center gap-1.5">
-              <Clock className="h-3.5 w-3.5 flex-shrink-0 text-gray-500" />
-              <div className="flex flex-wrap gap-1.5">
-                <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium whitespace-nowrap text-gray-700">
-                  {entry.timeslot.time}
-                </span>
+            {/* Time slots */}
+
+            <div className={'flex flex-shrink-0 items-center gap-3 text-sm'}>
+              {
+                <div className="flex flex-shrink-0 items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1 text-blue-700">
+                  <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
+                  <span className="font-medium whitespace-nowrap">
+                    {
+                      formatScheduleDateTime(locale, entry.timeslot.date, entry.timeslot.time)
+                        .formattedDate
+                    }
+                  </span>
+                </div>
+              }
+
+              {/* Time Slots */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5 flex-shrink-0 text-gray-500" />
+                <div className="flex flex-wrap gap-1.5">
+                  <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium whitespace-nowrap text-gray-700">
+                    {entry.timeslot.time}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-      {userCanEdit && <ScheduleEntryForm description={entry.description} locale={locale} />}
-      <div>
-        <LexicalRichTextSection richTextSection={entry.description} />
-        {organiser && (
+        {userCanEdit && <ScheduleEntryForm description={entry.description} locale={locale} />}
+        <div>
+          <LexicalRichTextSection richTextSection={entry.description} />
+          {organiser && (
+            <div className="my-8">
+              <SubheadingH3>Kontakt mit Organisier</SubheadingH3>
+              <Button className="bg-conveniat-green hover:bg-conveniat-green-dark text-white">
+                <Link href={createChatWithOrganiser(organiser)}>
+                  Chat mit {organiser.fullName} starten
+                </Link>
+              </Button>
+              <p className="mt-2 text-gray-400">
+                Mailadresse:{' '}
+                <LinkComponent className="font-bold" href={`mailto:${organiser.email}`}>
+                  {organiser.email}
+                </LinkComponent>
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Enrol button if enrolment is enabled */}
+        <div>
           <div className="my-8">
-            <SubheadingH3>Kontakt mit Organisier</SubheadingH3>
-            <Button className="bg-conveniat-green hover:bg-conveniat-green-dark text-white">
-              <Link href={createChatWithOrganiser(organiser)}>
-                Chat mit {organiser.fullName} starten
-              </Link>
-            </Button>
-            <p className="mt-2 text-gray-400">
-              Mailadresse:{' '}
-              <LinkComponent className="font-bold" href={`mailto:${organiser.email}`}>
-                {organiser.email}
-              </LinkComponent>
-            </p>
+            <SubheadingH3>Für diesen Programmpunkt anmelden</SubheadingH3>
+            <EnrollButton courseId={entry.id} />
+            <UnenrollButton courseId={entry.id} />
           </div>
-        )}
-      </div>
-    </article>
+        </div>
+      </article>
+    </TRPCProvider>
   );
 };
 
