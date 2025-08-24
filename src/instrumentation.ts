@@ -1,12 +1,11 @@
 import build from '@/build';
+import { sdk } from '@/tracing';
 
 export async function register(): Promise<void> {
+  // start the SDK
   console.log(
-    `Registering OpenTelemetry instrumentation for ${build.version} (${build.git.hash}) on branch ${build.git.branch}`,
+    `Starting OpenTelemetry SDK for ${build.version} (${build.git.hash}) on branch ${build.git.branch}`,
   );
 
-  // eslint-disable-next-line n/no-process-env
-  if (process.env['NEXT_RUNTIME'] === 'nodejs') {
-    await import('@/instrumentation.node');
-  }
+  sdk.start();
 }

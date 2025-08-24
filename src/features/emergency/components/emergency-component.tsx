@@ -192,21 +192,24 @@ export const EmergencyComponent: React.FC = () => {
   };
 
   const handleAlarmTrigger = async (): Promise<void> => {
-    // get current location
-    const locationPromise = new Promise<GeolocationPosition>((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(resolve, reject);
-    });
+    let location: GeolocationPosition | undefined;
 
-    const location = await locationPromise;
-
-    // TODO: the alert should also be send if the user does not allow location access
-    //       or if the location cannot be determined (api call fails)
     // TODO: the alert should also be send if the user is not signed in
     //       what do we do in this case? create a temporary guest user?
 
+    try {
+      const locationPromise = new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject);
+      });
+
+      location = await locationPromise;
+    } catch (error) {
+      console.error('Failed to get location:', error);
+    }
+
     const response = emergencyQuery.mutate(
       {
-        location: location.toJSON() as GeolocationPosition,
+        location: location?.toJSON() as GeolocationPosition | undefined,
       },
       {
         onSuccess: (data) => {
@@ -219,6 +222,9 @@ export const EmergencyComponent: React.FC = () => {
 
           trpcUtils.chat.chats.invalidate().catch(console.error);
           router.push(data.redirectUrl);
+        },
+        onError: (error) => {
+          console.error('Failed to trigger emergency alert:', error);
         },
       },
     );

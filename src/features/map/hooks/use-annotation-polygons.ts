@@ -1,6 +1,12 @@
 import { useMap } from '@/features/map/components/maplibre-renderer/map-context-provider';
 import type { CampMapAnnotationPoint, CampMapAnnotationPolygon } from '@/features/map/types/types';
-import type { GeoJSONSource, Map as MapLibre, MapMouseEvent } from 'maplibre-gl';
+import type {
+  CanvasSourceSpecification,
+  GeoJSONSource,
+  Map as MapLibre,
+  MapMouseEvent,
+  SourceSpecification,
+} from 'maplibre-gl';
 import { useEffect, useRef, useState } from 'react';
 
 interface ClickedFeaturesState {
@@ -77,13 +83,36 @@ export const useAnnotationPolygons = (
           mapReference.current?.getCanvas().style.setProperty('cursor', '');
         });
       }
+      const selectedPolygon = annotations.find((a) => a.id === currentAnnotation?.id);
+      const coordinates =
+        selectedPolygon === undefined
+          ? undefined
+          : ([
+              [...selectedPolygon.geometry.coordinates, selectedPolygon.geometry.coordinates[0]],
+            ] as unknown as [number, number][][]);
 
       // 2. Add a SINGLE source and layer for the selection OUTLINE
       if (!map.getSource(SELECTED_POLYGON_SOURCE_ID)) {
         map.addSource(SELECTED_POLYGON_SOURCE_ID, {
           type: 'geojson',
-          data: { type: 'FeatureCollection', features: [] }, // Initially empty
-        });
+          data: {
+            type: 'FeatureCollection',
+            features: [
+              ...(coordinates === undefined
+                ? [] // empty if not selected via URL param
+                : [
+                    {
+                      type: 'Feature',
+                      properties: {},
+                      geometry: {
+                        type: 'Polygon',
+                        coordinates: coordinates,
+                      },
+                    },
+                  ]),
+            ],
+          },
+        } as SourceSpecification | CanvasSourceSpecification);
       }
 
       if (!map.getLayer(SELECTED_POLYGON_LAYER_ID)) {
@@ -128,6 +157,7 @@ export const useAnnotationPolygons = (
       }
       map.off('load', setupLayers);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map, annotations]); // This effect now only depends on map and the list of annotations
 
   // Effect for updating the single polygon outline layer based on selection
@@ -160,7 +190,7 @@ export const useAnnotationPolygons = (
         features: [],
       });
     }
-  }, [map, annotations, currentAnnotation]); // Re-run when selection changes
+  }, [map, annotations, currentAnnotation]);
 
   // Effect for handling map click events (largely unchanged)
   useEffect(() => {
