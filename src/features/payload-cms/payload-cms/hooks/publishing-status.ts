@@ -362,43 +362,53 @@ export const getPublishingStatusGlobal =
     const id = data?.['id'] as string | unknown;
     if (id == undefined) return {};
 
-    const originalDocument = (await payload.findGlobal({
-      slug: config.slug as GlobalSlug,
-      select: { publishingStatus: false },
-      depth: 0,
-      locale: 'all',
-      draft: false,
-    })) as unknown as PayloadDocument;
+    try {
+      const originalDocument = (await payload.findGlobal({
+        slug: config.slug as GlobalSlug,
+        select: { publishingStatus: false },
+        depth: 0,
+        locale: 'all',
+        draft: false,
+      })) as unknown as PayloadDocument;
 
-    const draftDocument = (await payload.findGlobal({
-      slug: config.slug as GlobalSlug,
-      select: { publishingStatus: false },
-      depth: 0,
-      locale: 'all',
-      draft: true,
-    })) as unknown as PayloadDocument;
+      const draftDocument = (await payload.findGlobal({
+        slug: config.slug as GlobalSlug,
+        select: { publishingStatus: false },
+        depth: 0,
+        locale: 'all',
+        draft: true,
+      })) as unknown as PayloadDocument;
 
-    const fieldDefinition = (global?.fields as unknown as Field[] | undefined) ?? undefined;
-    if (fieldDefinition === undefined) throw new Error('Field definitions are undefined');
+      const fieldDefinition = (global?.fields as unknown as Field[] | undefined) ?? undefined;
+      if (fieldDefinition === undefined) throw new Error('Field definitions are undefined');
 
-    const getLocaleState = (
-      locale: Config['locale'],
-    ): { pendingChanges: boolean; published: boolean } => {
-      return {
-        pendingChanges: hasDiffs(locale, fieldDefinition, draftDocument, originalDocument),
-        published: (
-          originalDocument['_localized_status']?.[locale] as unknown as {
-            published: boolean;
-          }
-        )['published'],
+      const getLocaleState = (
+        locale: Config['locale'],
+      ): { pendingChanges: boolean; published: boolean } => {
+        return {
+          pendingChanges: hasDiffs(locale, fieldDefinition, draftDocument, originalDocument),
+          published: (
+            originalDocument['_localized_status']?.[locale] as unknown as {
+              published: boolean;
+            }
+          )['published'],
+        };
       };
-    };
 
-    return {
-      de: getLocaleState(LOCALE.DE),
-      en: getLocaleState(LOCALE.EN),
-      fr: getLocaleState(LOCALE.FR),
-    };
+      return {
+        de: getLocaleState(LOCALE.DE),
+        en: getLocaleState(LOCALE.EN),
+        fr: getLocaleState(LOCALE.FR),
+      };
+    } catch {
+      // if the document is not found, we return an empty publishing status
+      // this may happen if the document was just created and has no draft yet
+      return {
+        de: { pendingChanges: false, published: false },
+        en: { pendingChanges: false, published: false },
+        fr: { pendingChanges: false, published: false },
+      };
+    }
   };
 
 /**
@@ -417,50 +427,60 @@ export const getPublishingStatus =
     // e.g. for a new document
     if (id == undefined) return {};
 
-    const originalDocument = (await payload.findByID({
-      collection: config.slug as CollectionSlug,
-      id,
-      // avoid infinite recursion
-      select: { publishingStatus: false },
-      depth: 0,
-      locale: 'all',
-      trash: true, // include trashed documents
-      draft: false,
-    })) as unknown as PayloadDocument;
+    try {
+      const originalDocument = (await payload.findByID({
+        collection: config.slug as CollectionSlug,
+        id,
+        // avoid infinite recursion
+        select: { publishingStatus: false },
+        depth: 0,
+        locale: 'all',
+        trash: true, // include trashed documents
+        draft: false,
+      })) as unknown as PayloadDocument;
 
-    const draftDocument = (await payload.findByID({
-      collection: config.slug as CollectionSlug,
-      id,
-      // avoid infinite recursion
-      select: { publishingStatus: false },
-      locale: 'all',
-      depth: 0,
-      trash: true, // include trashed documents
-      draft: true,
-    })) as unknown as PayloadDocument;
+      const draftDocument = (await payload.findByID({
+        collection: config.slug as CollectionSlug,
+        id,
+        // avoid infinite recursion
+        select: { publishingStatus: false },
+        locale: 'all',
+        depth: 0,
+        trash: true, // include trashed documents
+        draft: true,
+      })) as unknown as PayloadDocument;
 
-    const fieldDefinition = (collection?.fields as unknown as Field[] | undefined) ?? undefined;
-    if (fieldDefinition === undefined) throw new Error('Field definitions are undefined');
+      const fieldDefinition = (collection?.fields as unknown as Field[] | undefined) ?? undefined;
+      if (fieldDefinition === undefined) throw new Error('Field definitions are undefined');
 
-    const getLocaleState = (
-      locale: Config['locale'],
-    ): {
-      pendingChanges: boolean;
-      published: boolean;
-    } => {
-      return {
-        pendingChanges: hasDiffs(locale, fieldDefinition, draftDocument, originalDocument),
-        published: (
-          originalDocument['_localized_status']?.[locale] as unknown as {
-            published: boolean;
-          }
-        )['published'],
+      const getLocaleState = (
+        locale: Config['locale'],
+      ): {
+        pendingChanges: boolean;
+        published: boolean;
+      } => {
+        return {
+          pendingChanges: hasDiffs(locale, fieldDefinition, draftDocument, originalDocument),
+          published: (
+            originalDocument['_localized_status']?.[locale] as unknown as {
+              published: boolean;
+            }
+          )['published'],
+        };
       };
-    };
 
-    return {
-      de: getLocaleState(LOCALE.DE),
-      en: getLocaleState(LOCALE.EN),
-      fr: getLocaleState(LOCALE.FR),
-    };
+      return {
+        de: getLocaleState(LOCALE.DE),
+        en: getLocaleState(LOCALE.EN),
+        fr: getLocaleState(LOCALE.FR),
+      };
+    } catch {
+      // if the document is not found, we return an empty publishing status
+      // this may happen if the document was just created and has no draft yet
+      return {
+        de: { pendingChanges: false, published: false },
+        en: { pendingChanges: false, published: false },
+        fr: { pendingChanges: false, published: false },
+      };
+    }
   };
