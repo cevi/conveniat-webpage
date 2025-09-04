@@ -14,6 +14,7 @@ import { EnrollButton } from '@/features/schedule/components/enroll-button';
 import { UnenrollButton } from '@/features/schedule/components/unenroll-button';
 import { TRPCProvider } from '@/trpc/client';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
+import type { StaticTranslationString } from '@/types/types';
 import { auth } from '@/utils/auth-helpers';
 import { formatScheduleDateTime } from '@/utils/format-schedule-date-time';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
@@ -25,6 +26,18 @@ import type React from 'react';
 
 const createChatWithOrganiser = (organiser: User): string => {
   return `/app/chat/new-chat-with-user/${organiser.id}`;
+};
+
+const enrollText: StaticTranslationString = {
+  de: 'Für diesen Programmpunkt anmelden',
+  en: 'Enroll for this program entry',
+  fr: "S'inscrire à ce point du programme",
+};
+
+const emailText: StaticTranslationString = {
+  de: 'Mailadresse',
+  en: 'Email',
+  fr: 'E-mail',
 };
 
 const ScheduleDetailPage: React.FC<{
@@ -128,7 +141,7 @@ const ScheduleDetailPage: React.FC<{
                 </Link>
               </Button>
               <p className="mt-2 text-gray-400">
-                Mailadresse:{' '}
+                {emailText[locale]}:{' '}
                 <LinkComponent className="font-bold" href={`mailto:${organiser.email}`}>
                   {organiser.email}
                 </LinkComponent>
@@ -140,7 +153,7 @@ const ScheduleDetailPage: React.FC<{
         {/* Enrol button if enrolment is enabled */}
         <div>
           <div className="my-8">
-            <SubheadingH3>Für diesen Programmpunkt anmelden</SubheadingH3>
+            <SubheadingH3>{enrollText[locale]}</SubheadingH3>
             <EnrollButton courseId={entry.id} />
             <UnenrollButton courseId={entry.id} />
           </div>
