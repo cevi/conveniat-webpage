@@ -211,7 +211,6 @@ services:
       - backend-net
       - traefik-net
 
-
   tempo:
     user: '0:0'
     image: grafana/tempo:latest
