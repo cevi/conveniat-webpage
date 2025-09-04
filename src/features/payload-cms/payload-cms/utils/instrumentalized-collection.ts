@@ -13,7 +13,6 @@ const otelBeforeOperation: CollectionBeforeOperationHook = ({ collection, operat
   // we ignore errors while creating the span, as this has no impact on the operation itself
   try {
     const span: Span = tracer.startSpan(`payload.${collection.slug}.${operation}`);
-
     span.setAttributes({
       'payload.collection.slug': collection.slug,
       'payload.operation': operation,
@@ -21,16 +20,17 @@ const otelBeforeOperation: CollectionBeforeOperationHook = ({ collection, operat
       'payload.transactionID': String(req.transactionID),
       'payload.locale': req.locale,
     });
-    req.context['span'] = span;
+
+    req.context['spans'] = [...((req.context['spans'] as [] | undefined) ?? []), span];
   } catch (error) {
     console.error('Error creating OpenTelemetry span:', error);
-    req.context['span'] = undefined;
   }
 };
 
 const otelAfterOperation: CollectionAfterOperationHook = ({ req, result }) => {
   // Retrieve the span from the request context
-  const span = req.context['span'] as Span | undefined;
+  const spans = req.context['spans'] as Span[] | undefined;
+  const span = spans?.pop();
   if (span === undefined) return;
 
   span.setStatus({ code: SpanStatusCode.OK });
@@ -40,12 +40,12 @@ const otelAfterOperation: CollectionAfterOperationHook = ({ req, result }) => {
 
 const otelAfterError: CollectionAfterErrorHook = ({ error, req }) => {
   // Retrieve the span from the request context
-  const span = req.context['span'] as Span | undefined;
+  const spans = req.context['spans'] as Span[] | undefined;
+  const span = spans?.pop();
   if (span === undefined) return;
 
   span.recordException(error);
   span.setStatus({ code: SpanStatusCode.ERROR, message: error.message });
-  span.end();
 };
 /**
  * ==============================================================================================

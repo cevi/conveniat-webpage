@@ -1,4 +1,6 @@
 import { LinkComponent } from '@/components/ui/link-component';
+import type { Locale } from '@/types/types';
+import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { Paperclip } from 'lucide-react';
 import React from 'react';
 
@@ -23,17 +25,19 @@ const formatBytes = (bytes: number, decimals = 2): string => {
   return `${(bytes / 1024 ** 3).toFixed(decimals)} GB`;
 };
 
-const dateStringToFormatedDate = (dateString: string): string => {
+const dateStringToFormatedDate = (locale: Locale, dateString: string): string => {
   const date = new Date(dateString);
   const options: Intl.DateTimeFormatOptions = {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
   };
-  return date.toLocaleDateString('en-CH', options);
+  return date.toLocaleDateString(locale, options);
 };
 
-export const FileDownload: React.FC<FileDownloadType> = ({ ...block }) => {
+export const FileDownload: React.FC<FileDownloadType> = async ({ ...block }) => {
+  const locale = await getLocaleFromCookies();
+
   return (
     <div className="rounded-md border-2 border-gray-200 bg-white transition duration-200 hover:shadow-md sm:m-8">
       <LinkComponent
@@ -51,12 +55,14 @@ export const FileDownload: React.FC<FileDownloadType> = ({ ...block }) => {
               </span>
             </div>
             <span className="text-conveniat-green text-xs sm:ml-2 sm:hidden">
-              ({formatBytes(block.file.filesize)}, {dateStringToFormatedDate(block.file.updatedAt)})
+              ({formatBytes(block.file.filesize)},{' '}
+              {dateStringToFormatedDate(locale, block.file.updatedAt)})
             </span>
           </div>
           <div className="hidden sm:flex sm:flex-col sm:items-end">
             <span className="text-conveniat-green text-xs">
-              {formatBytes(block.file.filesize)}, {dateStringToFormatedDate(block.file.updatedAt)}
+              {formatBytes(block.file.filesize)},{' '}
+              {dateStringToFormatedDate(locale, block.file.updatedAt)}
             </span>
           </div>
         </div>

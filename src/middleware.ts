@@ -23,4 +23,5 @@ export const middleware = middlewareChain([
 // we apply the middleware to all routes
 export const config = {
   matcher: ['/((?!_next).*)'], // exclude _next routes
+  runtime: 'nodejs',
 };

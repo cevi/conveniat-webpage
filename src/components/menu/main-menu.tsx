@@ -274,7 +274,7 @@ export const MainMenu: React.FC = async ({}) => {
                           </LinkComponent>
                         ) : (
                           showPreviewForMainMenu && (
-                            <DeletedMenuEntry message={subItem.item.label} />
+                            <DeletedMenuEntry key={subItem.item.id} message={subItem.item.label} />
                           )
                         ),
                       )}

@@ -18,7 +18,7 @@ services:
         delay: 0s # No delay between updates
         order: start-first # Start new containers before stopping old ones
         monitor: 5s # Time to wait after an update to monitor for failure
-        failure_action: rollback # What to do if an update fails
+        failure_action: pause # What to do if an update fails
         max_failure_ratio: 0.0 # Fail immediately if any container fails during update
 
       restart_policy:
@@ -102,6 +102,7 @@ services:
     networks:
       - traefik-net
       - backend-net
+      - observability-net
 
     healthcheck:
       test: ['CMD-SHELL', 'curl -fs http://localhost:3000/status | grep -q "status\":\"ok"']
@@ -210,10 +211,47 @@ services:
       - backend-net
       - traefik-net
 
+  tempo:
+    user: '0:0'
+    image: grafana/tempo:latest
+    command: ['-config.file=/etc/tempo/tempo.yml']
+    volumes:
+      - /cluster/swarm/data/conveniat-prod/tempo:/tmp/tempo
+    configs:
+      - source: tempo-config
+        target: /etc/tempo/tempo.yml
+    networks:
+      - observability-net
+
+  loki:
+    image: grafana/loki
+    volumes:
+      - /cluster/swarm/data/conveniat-prod/loki:/loki
+    command:
+      - --config.file=/mnt/config/loki-config.yml
+    configs:
+      - source: loki-config
+        target: /mnt/config/loki-config.yml
+    networks:
+      - observability-net
+
+configs:
+  loki-config:
+    name: loki_config_conveniat_dev-${STAMP:-0}
+    file: /cluster/swarm/configs/conveniat27/loki/loki-config.yml
+
+  tempo-config:
+    name: tempo_config_conveniat_dev-${STAMP:-0}
+    file: /cluster/swarm/configs/conveniat27/tempo/tempo.yml
+
 networks:
   traefik-net:
     external: true
 
   backend-net:
+    driver: overlay
+    attachable: true
+
+  observability-net:
     driver: overlay
     attachable: true

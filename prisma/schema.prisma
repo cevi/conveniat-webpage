@@ -17,6 +17,7 @@ model User {
   messages        Message[]
   chatMemberships ChatMembership[]
   messagesEvents  MessageEvent[]
+  Enrollment      Enrollment?
 }
 
 enum ChatType {
@@ -172,5 +173,19 @@ model MessageEvent {
   // every message can only have one event per user, content version and event type
   @@unique([messageId, userId, type, messageContentId], name: "unique_message_event")
   @@index([messageId])
+  @@index([userId])
+}
+
+model Enrollment {
+  id String @id @default(uuid(7))
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [uuid])
+
+  // links to the objectID in the courses collection in MongoDB
+  courseId String
+
+  @@unique([courseId, userId]) // every user can only be enrolled once per course
+  @@index([courseId])
   @@index([userId])
 }

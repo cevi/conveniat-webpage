@@ -33,7 +33,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({ message, isCurre
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const [showInfo, setShowInfo] = useState(false);
   const formattedTime = useFormatDate().formatMessageTime(message.createdAt);
-  const renderedContent = formatMessageContent(message.messagePayload);
+  const renderedContent = formatMessageContent(message.messagePayload, locale);
 
   const handleInteraction = (event: React.MouseEvent | React.TouchEvent): void => {
     event.preventDefault();
