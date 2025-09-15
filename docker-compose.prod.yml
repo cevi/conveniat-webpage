@@ -89,7 +89,7 @@ services:
           memory: 2048M
 
     volumes:
-      - /cluster/swarm/data/conveniat-prod/next-cache:/app/.next/cache
+      - /cluster/dist_storage_insane/service_data/conveniat-prod/next-cache:/app/.next/cache
 
     dns:
       - 8.8.8.8 # Replace with your desired DNS server
@@ -116,7 +116,7 @@ services:
     command:
       - --storageEngine=wiredTiger
     volumes:
-      - /cluster/swarm/data/conveniat-prod/mongodb-data:/data/db
+      - /cluster/dist_storage_insane/service_data/conveniat-prod/mongodb-data:/data/db
     logging:
       driver: none
 
@@ -130,7 +130,7 @@ services:
     networks:
       - backend-net
     volumes:
-      - /cluster/swarm/data/conveniat-prod/mongodb-data-backup-dumps:/backup
+      - /cluster/dist_storage_insane/service_data/conveniat-prod/mongodb-data-backup-dumps:/backup
     command: >
       sh -c '
         while true; do
@@ -176,7 +176,7 @@ services:
       - .env
 
     volumes:
-      - /cluster/swarm/data/conveniat-prod/minio-data:/data
+      - /cluster/dist_storage_insane/service_data/conveniat-prod/minio-data:/data
 
     networks:
       - traefik-net
@@ -205,7 +205,7 @@ services:
       - .env
 
     volumes:
-      - /cluster/swarm/data/conveniat-prod/postgres:/var/lib/postgresql/data
+      - /cluster/dist_storage_insane/service_data/conveniat-prod/postgres:/var/lib/postgresql/data
 
     networks:
       - backend-net
@@ -216,7 +216,7 @@ services:
     image: grafana/tempo:latest
     command: ['-config.file=/etc/tempo/tempo.yml']
     volumes:
-      - /cluster/swarm/data/conveniat-prod/tempo:/tmp/tempo
+      - /cluster/dist_storage_insane/service_data/conveniat-prod/tempo:/tmp/tempo
     configs:
       - source: tempo-config
         target: /etc/tempo/tempo.yml
@@ -226,7 +226,7 @@ services:
   loki:
     image: grafana/loki
     volumes:
-      - /cluster/swarm/data/conveniat-prod/loki:/loki
+      - /cluster/dist_storage_insane/service_data/conveniat-prod/loki:/loki
     command:
       - --config.file=/mnt/config/loki-config.yml
     configs:
