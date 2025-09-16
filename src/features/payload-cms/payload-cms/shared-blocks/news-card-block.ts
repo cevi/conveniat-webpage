@@ -1,4 +1,5 @@
 import { LinkField } from '@/features/payload-cms/payload-cms/shared-fields/link-field';
+import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import type { Block } from 'payload';
 
 export const newsCardBlock: Block = {
@@ -28,6 +29,7 @@ export const newsCardBlock: Block = {
     {
       type: 'richText',
       name: 'paragraph',
+      hooks: patchRichTextLinkHook,
     },
   ],
 };

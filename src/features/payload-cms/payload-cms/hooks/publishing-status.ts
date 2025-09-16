@@ -1,5 +1,6 @@
 import type { PublishingStatusType } from '@/features/payload-cms/payload-cms/components/multi-lang-publishing/type';
 import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
+import { replaceInlinedDocumentWithDocumentId } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import type { Config } from '@/features/payload-cms/payload-types';
 import type {
   Block,
@@ -267,8 +268,8 @@ const hasDiffs = (
 
       // handle rich text
       case 'richText': {
-        const strippedValue1 = stripInternalLinks(value1);
-        const strippedValue2 = stripInternalLinks(value2);
+        const strippedValue1 = replaceInlinedDocumentWithDocumentId(stripInternalLinks(value1));
+        const strippedValue2 = replaceInlinedDocumentWithDocumentId(stripInternalLinks(value2));
         if (hasFieldDifferentValue(locale, field, strippedValue1, strippedValue2)) return true;
         break; // no diff found, continue with the next field
       }

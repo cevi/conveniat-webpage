@@ -1,3 +1,4 @@
+import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import type { Field } from 'payload';
 
 export const MinimalMainContentField: Field = {
@@ -12,6 +13,7 @@ export const MinimalMainContentField: Field = {
       fr: 'Le contenu principal de la page',
     },
   },
+  hooks: patchRichTextLinkHook,
 };
 
 export const MinimalMainContentFieldUnlocalized: Field = {

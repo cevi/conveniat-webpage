@@ -3,6 +3,7 @@ import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/ad
 import { getPublishingStatus } from '@/features/payload-cms/payload-cms/hooks/publishing-status';
 import { beforeEmailChangeHook } from '@/features/payload-cms/payload-cms/plugins/form/fix-links-in-mails';
 import { minimalEditorFeatures } from '@/features/payload-cms/payload-cms/plugins/lexical-editor';
+import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import { localizedStatusSchema } from '@/features/payload-cms/payload-cms/utils/localized-status-schema';
 import { formBuilderPlugin } from '@payloadcms/plugin-form-builder';
 import {
@@ -77,6 +78,7 @@ const formConfirmationMessageField: Field = {
   localized: true,
   required: true,
   editor: formLexicalEditorSettings,
+  hooks: patchRichTextLinkHook,
 };
 
 /**
@@ -181,6 +183,7 @@ const formEmailField: Field = {
       label: 'Message',
       localized: true,
       editor: formLexicalEditorSettings,
+      hooks: patchRichTextLinkHook,
     },
   ],
 };
@@ -224,6 +227,7 @@ const formCheckboxBlock: Block = {
             features: [...minimalEditorFeatures],
             lexical: defaultEditorLexicalConfig,
           }),
+          hooks: patchRichTextLinkHook,
         },
       ],
     },
@@ -381,7 +385,14 @@ const formEmailBlock: Block = {
 
 const formRichTextBlock: Block = {
   slug: 'message',
-  fields: [{ name: 'message', type: 'richText', localized: true }],
+  fields: [
+    {
+      name: 'message',
+      type: 'richText',
+      localized: true,
+      hooks: patchRichTextLinkHook,
+    },
+  ],
   labels: { plural: 'Message Blocks', singular: 'Message' },
 };
 

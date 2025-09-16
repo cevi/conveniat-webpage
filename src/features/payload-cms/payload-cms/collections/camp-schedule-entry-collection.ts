@@ -1,5 +1,6 @@
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { mapAnnotationDescriptionLexicalEditorSettings } from '@/features/payload-cms/payload-cms/collections/camp-map-collection';
+import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import type { CollectionConfig } from 'payload';
 
 export const CampScheduleEntryCollection: CollectionConfig = {
@@ -64,6 +65,7 @@ export const CampScheduleEntryCollection: CollectionConfig = {
         },
       },
       editor: mapAnnotationDescriptionLexicalEditorSettings,
+      hooks: patchRichTextLinkHook,
     },
     {
       name: 'timeslot',

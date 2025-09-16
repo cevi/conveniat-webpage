@@ -1,4 +1,5 @@
 import { minimalEditorFeatures } from '@/features/payload-cms/payload-cms/plugins/lexical-editor';
+import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import {
   defaultEditorLexicalConfig,
   HeadingFeature,
@@ -28,6 +29,7 @@ export const detailsTable: Block = {
         ],
         lexical: defaultEditorLexicalConfig,
       }),
+      hooks: patchRichTextLinkHook,
     },
     {
       name: 'detailsTableBlocks',
@@ -48,6 +50,7 @@ export const detailsTable: Block = {
             features: [...minimalEditorFeatures],
             lexical: defaultEditorLexicalConfig,
           }),
+          hooks: patchRichTextLinkHook,
         },
       ],
     },

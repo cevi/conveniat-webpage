@@ -1,7 +1,7 @@
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import type { CollectionConfig } from 'payload';
 
-interface ConditionType<> {
+interface ConditionType {
   permissions:
     | {
         group_id: number;

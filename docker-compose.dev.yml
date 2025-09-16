@@ -17,7 +17,7 @@ services:
         delay: 0s # No delay between updates
         order: start-first # Start new containers before stopping old ones
         monitor: 5s # Time to wait after an update to monitor for failure
-        failure_action: rollback # What to do if an update fails
+        failure_action: continue # What to do if an update fails
         max_failure_ratio: 0.0 # Fail immediately if any container fails during update
 
       restart_policy:
@@ -61,7 +61,7 @@ services:
           memory: 2048M
 
     volumes:
-      - /cluster/swarm/data/conveniat-dev/next-cache:/app/.next/cache
+      - /cluster/dist_storage_insane/service_data/conveniat-dev/next-cache:/app/.next/cache
 
     dns:
       - 8.8.8.8 # Replace with your desired DNS server
@@ -88,7 +88,7 @@ services:
     command:
       - --storageEngine=wiredTiger
     volumes:
-      - /cluster/swarm/data/conveniat-dev/mongodb-data:/data/db
+      - /cluster/dist_storage_insane/service_data/conveniat-dev/mongodb-data:/data/db
     logging:
       driver: none
 
@@ -128,7 +128,7 @@ services:
       - .env
 
     volumes:
-      - /cluster/swarm/data/conveniat-dev/minio-data:/data
+      - /cluster/dist_storage_insane/service_data/conveniat-dev/minio-data:/data
 
     networks:
       - traefik-net
@@ -158,7 +158,7 @@ services:
       - .env
 
     volumes:
-      - /cluster/swarm/data/conveniat-dev/postgres:/var/lib/postgresql/data
+      - /cluster/dist_storage_insane/service_data/conveniat-dev/postgres:/var/lib/postgresql/data
 
     networks:
       - backend-net
@@ -185,17 +185,18 @@ services:
     image: grafana/tempo:latest
     command: ['-config.file=/etc/tempo/tempo.yml']
     volumes:
-      - /cluster/swarm/data/conveniat-dev/tempo:/tmp/tempo
+      - /cluster/dist_storage_insane/service_data/conveniat-dev/tempo:/tmp/tempo
     configs:
       - source: tempo-config
         target: /etc/tempo/tempo.yml
     networks:
       - observability-net
+      - backend-net
 
   loki:
     image: grafana/loki
     volumes:
-      - /cluster/swarm/data/conveniat-dev/loki:/loki
+      - /cluster/dist_storage_insane/service_data/conveniat-dev/loki:/loki
     command:
       - --config.file=/mnt/config/loki-config.yml
     configs:

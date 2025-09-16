@@ -29,9 +29,9 @@ const createTitleElement = (
       <div className="relative h-48 w-48 overflow-hidden rounded-full md:h-24 md:w-24">
         {<TeamLeaderPortrait name={name} portrait={portrait} hoverEffect={false} />}
       </div>
-      <div>
+      <div className="w-full">
         <p className="font-medium text-gray-900">{name}</p>
-        {ceviname !== '' && <p className="text-sm text-gray-500">v/o {ceviname}</p>}
+        {ceviname !== '' && <p className="text-sm text-gray-500">{ceviname}</p>}
       </div>
     </button>
   );
