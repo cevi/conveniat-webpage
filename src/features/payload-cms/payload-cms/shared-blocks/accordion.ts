@@ -1,6 +1,7 @@
 import { minimalEditorFeatures } from '@/features/payload-cms/payload-cms/plugins/lexical-editor';
 import { formBlock } from '@/features/payload-cms/payload-cms/shared-blocks/form-block';
 import { LinkField } from '@/features/payload-cms/payload-cms/shared-fields/link-field';
+import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import {
   defaultEditorLexicalConfig,
   HeadingFeature,
@@ -22,6 +23,7 @@ const plainTextBlock: Block = {
         features: [...minimalEditorFeatures],
         lexical: defaultEditorLexicalConfig,
       }),
+      hooks: patchRichTextLinkHook,
     },
   ],
 };
@@ -147,6 +149,7 @@ export const accordion: Block = {
         ],
         lexical: defaultEditorLexicalConfig,
       }),
+      hooks: patchRichTextLinkHook,
     },
 
     {
