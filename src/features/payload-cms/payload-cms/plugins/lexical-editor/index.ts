@@ -51,7 +51,7 @@ export const defaultEditorFeatures = [
   AlignFeature(),
 ];
 
-export const index = lexicalEditorGenerator({
+export const lexicalEditor = lexicalEditorGenerator({
   features: defaultEditorFeatures,
   lexical: defaultEditorLexicalConfig,
 });
