@@ -41,13 +41,17 @@ export const useIsPublished = <
     if (_document) {
       const published = localesDefinition
         .map((l: Locale) => l.code)
-
         .reduce((accumulator, _locale) => {
           const locale = _locale as Config['locale'];
-          const state: boolean = Boolean(
-            (_document._localized_status as unknown as LocalizedPublishingStatus)[locale]
-              ?.published,
-          );
+          const state: boolean =
+            // _document._localized_status might be undefined/null after deletion operations
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+            _document._localized_status !== undefined &&
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+            _document._localized_status !== null &&
+            Object.prototype.hasOwnProperty.call(_document._localized_status, locale) &&
+            _document._localized_status[locale] !== undefined &&
+            _document._localized_status[locale].published === true;
           return { ...accumulator, [locale]: state };
         }, {});
       setIsPublished(published as LocalizedStatus);
