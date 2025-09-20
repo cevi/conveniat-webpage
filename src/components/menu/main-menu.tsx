@@ -187,7 +187,7 @@ const AppFeatures: React.FC = async () => {
 const DeletedMenuEntry: React.FC<{ message: string }> = ({ message }) => {
   return (
     <>
-      <div className="closeNavOnClick block flex cursor-pointer items-center gap-2 rounded-lg py-2 pr-3 pl-6 text-sm/7 font-semibold text-gray-500 hover:bg-gray-50">
+      <div className="closeNavOnClick block cursor-pointer items-center gap-2 rounded-lg py-2 pr-3 pl-6 text-sm/7 font-semibold text-gray-500 hover:bg-gray-50">
         {message} <OctagonAlert color="red" />
       </div>
     </>
