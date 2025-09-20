@@ -37,19 +37,20 @@ const resolveInternalLink = (fields: LinkFields): string => {
   const url = (fields.url ?? '') as string;
 
   const locale = fields.doc.value._locale;
-  const langPrefix = getLanguagePrefix(locale);
+  let langPrefix = getLanguagePrefix(locale);
+  langPrefix = langPrefix === '' ? '' : `${langPrefix}/`;
 
   if (fields.linkType === 'internal') {
     if (fields.doc.relationTo === 'generic-page' || fields.doc.relationTo === 'blog') {
-      const urlSlug = `/${fields.doc.value.seo.urlSlug}`;
+      const urlSlug = `${fields.doc.value.seo.urlSlug}`;
       const collectionName = fields.doc.relationTo as string;
       for (const value of Object.values(slugToUrlMapping)) {
         if (value.slug === collectionName) {
           // might be undefined if locale is undefined
           const urlPrefix = value.urlPrefix[locale as Locale] as string | undefined;
           return urlPrefix === '' || urlPrefix === undefined
-            ? `${langPrefix}${urlSlug}`
-            : `${langPrefix}/${urlPrefix}${urlSlug}`;
+            ? `/${langPrefix}${urlSlug}`
+            : `/${langPrefix}${urlPrefix}/${urlSlug}`;
         }
       }
     } else if (fields.doc.relationTo === 'camp-map-annotations') {
