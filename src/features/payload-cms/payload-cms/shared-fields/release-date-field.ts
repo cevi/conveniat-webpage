@@ -9,6 +9,7 @@ export const releaseDate: Field = {
   },
   type: 'date',
   required: true,
+  defaultValue: new Date().toISOString(),
   admin: {
     position: 'sidebar',
     date: {
