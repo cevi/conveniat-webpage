@@ -283,7 +283,7 @@ export const RenderSinglePicture: SectionRenderer<{
       <div className="text-conveniat-green relative mt-10 aspect-[16/9] w-[calc(100%+32px)] text-lg max-md:mx-[-16px]">
         <Image
           src={block.image.sizes?.large?.url ?? block.image.url}
-          alt={block.image.alt}
+          alt={(block.image.alt as undefined | string) ?? 'copyright by conveniat27'}
           className="block rounded-2xl object-cover"
           fill
         />
