@@ -9,6 +9,7 @@ import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 import { getPayload } from 'payload';
 
+// eslint-disable-next-line complexity
 const GenericPage: LocalizedCollectionComponent = async ({
   slugs,
   locale,
@@ -104,28 +105,43 @@ const GenericPage: LocalizedCollectionComponent = async ({
     notFound();
   }
 
+  let fallbackDocumentId: string | undefined;
+
   if (articles.length === 1) {
-    // get page in current locale
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-expect-error
-    const articleID = articles[0].id;
-
-    const article = await payload.findByID({
-      collection: 'generic-page',
-      id: articleID,
-      locale: locale,
-      draft: renderInPreviewMode,
-    });
-
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    if (article === null) {
-      notFound();
+    fallbackDocumentId = articles[0]?.id;
+  } else if (articles.length > 1) {
+    // if possible choose de, otherwise fr, then fr
+    const preferredLocales = ['de', 'fr', 'en'];
+    for (const preferredLocale of preferredLocales) {
+      const articleInPreferredLocale = articles.find((a) => a._locale === preferredLocale);
+      if (articleInPreferredLocale) {
+        fallbackDocumentId = articleInPreferredLocale.id;
+        break;
+      }
     }
-    // rewrite URL to the correct locale
-    redirect(`/${locale}/${article.seo.urlSlug}`);
   }
 
-  notFound();
+  if (fallbackDocumentId === undefined) notFound();
+  const article = await payload.findByID({
+    collection: 'generic-page',
+    id: fallbackDocumentId,
+    locale: locale,
+    draft: renderInPreviewMode,
+  });
+
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (article === null) {
+    notFound();
+  }
+
+  // check if published in target locale
+  if (article._localized_status.published !== true) {
+    notFound();
+  }
+
+  // rewrite URL to the correct locale
+  console.log(`Redirecting to locale /${locale}/${article.seo.urlSlug}`);
+  redirect(`/${locale}/${article.seo.urlSlug}`);
 };
 
 GenericPage.generateMetadata = async ({ locale, slugs }): Promise<Metadata> => {
