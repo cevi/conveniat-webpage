@@ -5,6 +5,7 @@ import { NavComponent } from '@/components/menu/nav-component';
 import { ConveniatLogo } from '@/components/svg-logos/conveniat-logo';
 import { LinkComponent } from '@/components/ui/link-component';
 import { canUserAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
+import { getLanguagePrefix } from '@/features/payload-cms/utils/get-language-prefix';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { StaticTranslationString } from '@/types/types';
 import { auth } from '@/utils/auth-helpers';
@@ -14,6 +15,7 @@ import React from 'react';
 export const HeaderComponent: React.FC = async () => {
   const session = await auth();
   const locale = await getLocaleFromCookies();
+  const languagePrefix = getLanguagePrefix(locale);
 
   const canAccessAdminDashboard = await canUserAccessAdminPanel({
     user: session?.user as HitobitoNextAuthUser,
@@ -32,7 +34,10 @@ export const HeaderComponent: React.FC = async () => {
       <div className="mb-[32px] border-b-2 border-gray-200 bg-white">
         <div className="text-conveniat-green relative mx-auto h-[60px] w-full max-w-2xl xl:ml-4">
           <div className="flex items-center justify-between px-6">
-            <LinkComponent href="/" aria-label={landingPageAreaLinktText[locale]}>
+            <LinkComponent
+              href={`/${languagePrefix}`}
+              aria-label={landingPageAreaLinktText[locale]}
+            >
               <ConveniatLogo className="absolute top-[12px] left-[24px] z-[100]" />
             </LinkComponent>
             <span className="absolute top-[16px] left-0 flex w-full items-center justify-center font-['Montserrat'] text-[24px] leading-normal font-extrabold xl:hidden">

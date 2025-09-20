@@ -1,5 +1,7 @@
 import type { LinkFieldDataType } from '@/features/payload-cms/payload-cms/shared-fields/link-field';
 import type { Blog, GenericPage, Permission } from '@/features/payload-cms/payload-types';
+import { getLanguagePrefix } from '@/features/payload-cms/utils/get-language-prefix';
+import type { Locale } from '@/types/types';
 import { hasPermissions } from '@/utils/has-permissions';
 import type { FieldHook } from 'payload';
 
@@ -28,7 +30,10 @@ export const hasPermissionsForLinkField = async (
 };
 
 // eslint-disable-next-line complexity
-export const getURLForLinkField = (linkFieldData?: LinkFieldDataType): string | undefined => {
+export const getURLForLinkField = (
+  linkFieldData: LinkFieldDataType | undefined,
+  locale: Locale,
+): string | undefined => {
   if (!linkFieldData) return undefined;
 
   const { type } = linkFieldData;
@@ -37,12 +42,15 @@ export const getURLForLinkField = (linkFieldData?: LinkFieldDataType): string | 
     return linkFieldData.url ?? undefined;
   }
 
-  if (type === 'reference' && linkFieldData.reference?.value) {
+  if (type === 'reference' && linkFieldData.reference?.value !== undefined) {
     const { relationTo, value } = linkFieldData.reference;
+
+    let langPrefix = getLanguagePrefix(locale);
+    langPrefix = langPrefix === '' ? '' : `/${langPrefix}`;
 
     if (relationTo === 'blog') {
       const urlSlug = (value as Blog).seo.urlSlug;
-      return urlSlug ? `/blog/${urlSlug}` : undefined;
+      return urlSlug === '' ? undefined : `${langPrefix}/blog/${urlSlug}`;
     }
 
     // if the reference is not of type GenericPage
@@ -52,9 +60,10 @@ export const getURLForLinkField = (linkFieldData?: LinkFieldDataType): string | 
 
     const urlSlug = (value as GenericPage).seo.urlSlug;
     if (urlSlug === '') {
-      return '/';
+      return langPrefix;
     }
-    return '/' + urlSlug;
+
+    return `${langPrefix}/${urlSlug}`;
   }
 
   return undefined;

@@ -70,7 +70,7 @@ export const NewsCardBlock: React.FC<NewsCardType> = async ({
     </div>
   );
 
-  const url = getURLForLinkField(linkField) ?? '';
+  const url = getURLForLinkField(linkField, locale) ?? '';
 
   return linkField ? (
     <LinkComponent href={url} openInNewTab={openURLInNewTab(linkField)} hideExternalIcon>

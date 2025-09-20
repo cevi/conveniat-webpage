@@ -268,7 +268,7 @@ export const MainMenu: React.FC = async ({}) => {
                         subItem.hasPerm ? (
                           <LinkComponent
                             key={subItem.item.id}
-                            href={getURLForLinkField(subItem.item.linkField) ?? '/'}
+                            href={getURLForLinkField(subItem.item.linkField, locale) ?? '/'}
                             openInNewTab={openURLInNewTab(subItem.item.linkField)}
                             className="closeNavOnClick block rounded-lg py-2 pr-3 pl-6 text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
                           >
@@ -286,7 +286,7 @@ export const MainMenu: React.FC = async ({}) => {
               );
             }
 
-            const itemLink = getURLForLinkField(item.linkField) ?? '/';
+            const itemLink = getURLForLinkField(item.linkField, locale) ?? '/';
             const hasPermission = await hasPermissionsForLinkField(item.linkField);
 
             if (!hasPermission) {

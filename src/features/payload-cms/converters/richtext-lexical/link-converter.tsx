@@ -1,5 +1,6 @@
 import { LinkComponent } from '@/components/ui/link-component';
 import { slugToUrlMapping } from '@/features/payload-cms/slug-to-url-mapping';
+import { getLanguagePrefix } from '@/features/payload-cms/utils/get-language-prefix';
 import type { Locale } from '@/types/types';
 import type { SerializedParagraphNode } from '@payloadcms/richtext-lexical';
 import type { JSXConverters } from '@payloadcms/richtext-lexical/react';
@@ -31,25 +32,29 @@ interface LinkFields {
  * @param fields
  *
  */
+// eslint-disable-next-line complexity
 const resolveInternalLink = (fields: LinkFields): string => {
   const url = (fields.url ?? '') as string;
 
   const locale = fields.doc.value._locale;
+  const langPrefix = getLanguagePrefix(locale);
 
   if (fields.linkType === 'internal') {
     if (fields.doc.relationTo === 'generic-page' || fields.doc.relationTo === 'blog') {
       const urlSlug = `/${fields.doc.value.seo.urlSlug}`;
       const collectionName = fields.doc.relationTo as string;
-
       for (const value of Object.values(slugToUrlMapping)) {
         if (value.slug === collectionName) {
-          const urlPrefix = value.urlPrefix[locale as Locale];
-          return urlPrefix === '' ? `${urlSlug}` : `/${urlPrefix}${urlSlug}`;
+          // might be undefined if locale is undefined
+          const urlPrefix = value.urlPrefix[locale as Locale] as string | undefined;
+          return urlPrefix === '' || urlPrefix === undefined
+            ? `${langPrefix}${urlSlug}`
+            : `${langPrefix}/${urlPrefix}${urlSlug}`;
         }
       }
     } else if (fields.doc.relationTo === 'camp-map-annotations') {
       const campAnnotationId = fields.doc.value.id;
-      if (!campAnnotationId) return `/${url}`;
+      if (campAnnotationId == undefined) return `/${url}`;
       return `/app/map?locationId=${campAnnotationId}`;
     }
   }
