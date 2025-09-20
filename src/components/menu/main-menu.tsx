@@ -209,7 +209,9 @@ export const MainMenu: React.FC = async ({}) => {
     locale,
     draft: showPreviewForMainMenu,
   });
-  if (mainMenu === undefined || mainMenu === null) return;
+
+  // fallback to an empty array if mainMenu is not an array, to avoid runtime errors
+  const mainMenuWithFallback = Array.isArray(mainMenu) ? mainMenu : [];
 
   return (
     <div
@@ -234,7 +236,7 @@ export const MainMenu: React.FC = async ({}) => {
               Preview Menu
             </div>
           )}
-          {mainMenu.map(async (item) => {
+          {mainMenuWithFallback.map(async (item) => {
             if (item.subMenu && item.subMenu.length > 0) {
               const subMenuItemsWherePermitted = await Promise.all(
                 item.subMenu.map(async (subItem) => {
