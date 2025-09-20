@@ -1,10 +1,10 @@
 'use client';
 import { Button } from '@/components/ui/buttons/button';
 import { AdminPanelBackgroundFaker } from '@/features/payload-cms/payload-cms/components/login-page/admin-panel-background-faker';
-import type { Config } from '@/features/payload-cms/payload-types';
-import type { StaticTranslationString } from '@/types/types';
-import { useLocale } from '@payloadcms/ui';
+import type { Locale, StaticTranslationString } from '@/types/types';
+import { i18nConfig } from '@/types/types';
 import { signIn } from 'next-auth/react';
+import { useCurrentLocale } from 'next-i18n-router/client';
 import React from 'react';
 
 /**
@@ -30,7 +30,7 @@ const localizedLoginText: StaticTranslationString = {
  * @constructor
  */
 const AdminPanelLoginPage: React.FC = () => {
-  const { code } = useLocale() as { code: Config['locale'] };
+  const locale = useCurrentLocale(i18nConfig) as Locale;
 
   return (
     <>
@@ -43,7 +43,7 @@ const AdminPanelLoginPage: React.FC = () => {
         </div>
         <div className="flex justify-center">
           <Button variant="secondary" onClick={handleLoginClick}>
-            {localizedLoginText[code]}
+            {localizedLoginText[locale]}
           </Button>
         </div>
       </div>
