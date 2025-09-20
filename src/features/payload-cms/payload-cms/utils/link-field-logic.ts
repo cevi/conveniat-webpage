@@ -60,7 +60,7 @@ export const getURLForLinkField = (
 
     const urlSlug = (value as GenericPage).seo.urlSlug;
     if (urlSlug === '') {
-      return langPrefix;
+      return langPrefix === '' ? '/' : langPrefix;
     }
 
     return `${langPrefix}/${urlSlug}`;
