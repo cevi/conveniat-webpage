@@ -187,7 +187,7 @@ const AppFeatures: React.FC = async () => {
 const DeletedMenuEntry: React.FC<{ message: string }> = ({ message }) => {
   return (
     <>
-      <div className="closeNavOnClick block flex cursor-pointer items-center gap-2 rounded-lg py-2 pr-3 pl-6 text-sm/7 font-semibold text-gray-500 hover:bg-gray-50">
+      <div className="closeNavOnClick block cursor-pointer items-center gap-2 rounded-lg py-2 pr-3 pl-6 text-sm/7 font-semibold text-gray-500 hover:bg-gray-50">
         {message} <OctagonAlert color="red" />
       </div>
     </>
@@ -209,7 +209,9 @@ export const MainMenu: React.FC = async ({}) => {
     locale,
     draft: showPreviewForMainMenu,
   });
-  if (mainMenu === undefined || mainMenu === null) return;
+
+  // fallback to an empty array if mainMenu is not an array, to avoid runtime errors
+  const mainMenuWithFallback = Array.isArray(mainMenu) ? mainMenu : [];
 
   return (
     <div
@@ -234,7 +236,7 @@ export const MainMenu: React.FC = async ({}) => {
               Preview Menu
             </div>
           )}
-          {mainMenu.map(async (item) => {
+          {mainMenuWithFallback.map(async (item) => {
             if (item.subMenu && item.subMenu.length > 0) {
               const subMenuItemsWherePermitted = await Promise.all(
                 item.subMenu.map(async (subItem) => {
@@ -266,7 +268,7 @@ export const MainMenu: React.FC = async ({}) => {
                         subItem.hasPerm ? (
                           <LinkComponent
                             key={subItem.item.id}
-                            href={getURLForLinkField(subItem.item.linkField) ?? '/'}
+                            href={getURLForLinkField(subItem.item.linkField, locale) ?? '/'}
                             openInNewTab={openURLInNewTab(subItem.item.linkField)}
                             className="closeNavOnClick block rounded-lg py-2 pr-3 pl-6 text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
                           >
@@ -284,7 +286,7 @@ export const MainMenu: React.FC = async ({}) => {
               );
             }
 
-            const itemLink = getURLForLinkField(item.linkField) ?? '/';
+            const itemLink = getURLForLinkField(item.linkField, locale) ?? '/';
             const hasPermission = await hasPermissionsForLinkField(item.linkField);
 
             if (!hasPermission) {

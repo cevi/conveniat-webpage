@@ -43,6 +43,7 @@ export const environmentVariables = createEnv({
     // Map Config
     CAMP_MAP_INITIAL_ZOOM: z.coerce.number(),
     CAMP_MAP_INITIAL_MAP_CENTER: z.string(),
+    APP_SUPPORT_EMAIL: z.string().email(),
   },
   /*
    * Environment variables available on the client (and server).

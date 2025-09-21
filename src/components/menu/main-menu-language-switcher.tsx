@@ -3,7 +3,7 @@
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { Disclosure, DisclosureButton, DisclosurePanel, useClose } from '@headlessui/react';
 import { ChevronDown, Languages } from 'lucide-react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import React from 'react';
 
 const language: StaticTranslationString = {
@@ -19,29 +19,26 @@ const language: StaticTranslationString = {
  *
  */
 export const MainMenuLanguageSwitcher: React.FC<{ locale: Locale }> = ({ locale }) => {
-  const route = useRouter();
   const pathname = usePathname();
   const searchParameters = useSearchParams();
 
   const close = useClose();
 
-  const handleLanguageChange = (lang: string): void => {
+  const handleLanguageChange = (lang: Locale): void => {
     const langRegex = /^\/(de|en|fr)\//;
+    let newPath;
+
     if (langRegex.test(pathname)) {
-      route.push(pathname.replace(langRegex, `/${lang}/`) + '?' + searchParameters.toString(), {
-        scroll: false,
-      });
-      route.refresh();
-      close(); // close nav
+      newPath = pathname.replace(langRegex, `/${lang}/`) + '?' + searchParameters.toString();
     } else {
       const path = pathname.replace(/\/(de|en|fr)\/?$/, '');
       const cleanPath = path.startsWith('//') ? path.slice(1) : path;
-      route.push(`/${lang}${cleanPath}?${searchParameters.toString()}`, {
-        scroll: false,
-      });
-      route.refresh();
-      close(); // close nav
+      newPath = `/${lang}${cleanPath}?${searchParameters.toString()}`;
     }
+
+    // Use window.location.href for a hard refresh
+    globalThis.location.href = newPath;
+    close(); // close nav
   };
 
   return (

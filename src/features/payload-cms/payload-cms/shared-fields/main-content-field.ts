@@ -32,6 +32,41 @@ export const mainContentField: Field = {
       fr: 'Le contenu principal de la page',
     },
   },
+  defaultValue: [
+    {
+      blockType: 'richTextSection',
+      richTextSection: {
+        root: {
+          children: [
+            {
+              children: [
+                {
+                  detail: 0,
+                  format: 0,
+                  mode: 'normal',
+                  style: '',
+                  text: 'This is a new page, please edit me!',
+                  type: 'text',
+                  version: 1,
+                },
+              ],
+              format: '',
+              indent: 0,
+              type: 'paragraph',
+              version: 1,
+              textFormat: 0,
+              textStyle: '',
+            },
+          ],
+          format: '',
+          indent: 0,
+          type: 'root',
+          version: 1,
+        },
+      },
+      blockName: 'Main Page Content',
+    },
+  ],
   blocks: [
     richTextArticleBlock,
     blockPostsOverview,

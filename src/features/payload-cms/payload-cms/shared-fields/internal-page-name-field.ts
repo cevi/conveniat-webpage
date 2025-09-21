@@ -26,6 +26,7 @@ export const internalPageNameField: Field = {
   // as it is used for internal purposes and should be the same in all locales
   // to uniquely identify the page within a collection
   localized: false,
+  defaultValue: 'New Page',
   admin: {
     position: 'sidebar',
     description: {

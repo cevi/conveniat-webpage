@@ -1,3 +1,5 @@
+import { LinkComponent } from '@/components/ui/link-component';
+import { environmentVariables } from '@/config/environment-variables';
 import { LogoutButton } from '@/features/settings/logout-button';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { StaticTranslationString } from '@/types/types';
@@ -12,9 +14,9 @@ const notAvailable: StaticTranslationString = {
 };
 
 const profileDetailsTitle: StaticTranslationString = {
-  de: 'conveniat27 Account',
-  en: 'conveniat27 Account',
-  fr: 'conveniat27 Compte',
+  de: 'conveniat27 App - Einstellungen',
+  en: 'conveniat27 App - Settings',
+  fr: 'conveniat27 App - Paramètres',
 };
 
 const profileDetailsExplanation: StaticTranslationString = {
@@ -29,10 +31,34 @@ const supportInformationText: StaticTranslationString = {
   fr: 'Votre identifiant utilisateur peut être requis pour les demandes de support.',
 };
 
+const contactSupportText: StaticTranslationString = {
+  en: 'Contact the application support.',
+  de: 'Kontaktiere den Applikations-Support.',
+  fr: "Contactez le support de l'application.",
+};
+
 const userIdLabel: StaticTranslationString = {
   de: 'Benutzer-ID:',
   en: 'User ID:',
   fr: "ID d'utilisateur:",
+};
+
+const supportMailLabel: StaticTranslationString = {
+  de: 'Support E-Mail:',
+  en: 'Support Email:',
+  fr: 'Email de support:',
+};
+
+const supportMailContent: StaticTranslationString = {
+  de: 'Guten Tag,\nIch habe ein App-Problem.\nMeine Benutzer ID: __ID__\n\n[Bitte beschreibe hier dein Problem]',
+  en: 'Hello,\nI have an app issue.\nMy user ID: __ID__\n\n[Please describe your issue here]',
+  fr: "Bonjour,\nJ'ai un problème avec l'application.\nMon ID utilisateur: __ID__\n\n[Veuillez décrire votre problème ici]",
+};
+
+const supportMailSubject: StaticTranslationString = {
+  de: '[conveniat27 App] Support Anfrage',
+  en: '[conveniat27 App] Support Request',
+  fr: '[conveniat27 App] Demande de support',
 };
 
 export const ProfileDetails: React.FC = async () => {
@@ -42,6 +68,12 @@ export const ProfileDetails: React.FC = async () => {
 
   const getDetail = (value: string | number | undefined | null): string =>
     value?.toString() ?? notAvailable[locale];
+
+  const mailSupportLink = `mailto:${environmentVariables.APP_SUPPORT_EMAIL}?subject=${encodeURIComponent(
+    supportMailSubject[locale],
+  )}&body=${encodeURIComponent(
+    supportMailContent[locale].replace('__ID__', getDetail(user?.uuid)),
+  )}`;
 
   return (
     <div className="rounded-lg border-2 border-gray-200 bg-white p-6 md:p-8">
@@ -91,6 +123,19 @@ export const ProfileDetails: React.FC = async () => {
       <div className="flex items-center">
         <strong className="w-24 text-gray-700">{userIdLabel[locale]}</strong>
         <span className="text-gray-900">{getDetail(user?.uuid)}</span>
+      </div>
+
+      <hr className="my-2 mt-12 border-gray-200" />
+
+      <p className="mb-8 text-sm text-gray-600">
+        <small>{contactSupportText[locale]}</small>
+      </p>
+
+      <div className="flex items-center">
+        <strong className="w-24 text-gray-700">{supportMailLabel[locale]}</strong>
+        <LinkComponent className="font-bold text-red-600" href={mailSupportLink} openInNewTab>
+          {environmentVariables.APP_SUPPORT_EMAIL}
+        </LinkComponent>
       </div>
     </div>
   );

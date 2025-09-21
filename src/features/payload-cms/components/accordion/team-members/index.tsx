@@ -6,6 +6,7 @@ import {
   openURLInNewTab,
 } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import type { TeamMembersBlock } from '@/features/payload-cms/payload-types';
+import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { cn } from '@/utils/tailwindcss-override';
 import type React from 'react';
 import { Fragment } from 'react';
@@ -40,10 +41,11 @@ export const TeamLeaderInternal: React.FC<{
 
 export const TeamMembers: React.FC<{
   block: TeamMembersBlock;
-}> = ({ block }) => {
+}> = async ({ block }) => {
   const teamMembers = block.teamMembers;
   const linkField = block.linkField;
-  const link = getURLForLinkField(linkField) ?? '';
+  const locale = await getLocaleFromCookies();
+  const link = getURLForLinkField(linkField, locale) ?? '';
   return link === '' ? (
     <Fragment>
       <TeamLeaderInternal block={block} />

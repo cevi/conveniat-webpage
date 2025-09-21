@@ -6,6 +6,11 @@ import Link from 'next/link';
 import type React from 'react';
 
 const isExternalURL = (url: string): boolean => {
+  // mailto and tel links are always external
+  if (url.startsWith('mailto:') || url.startsWith('tel:')) {
+    return true;
+  }
+
   // url is always internal if it doesn't start with http or https
   if (!url.startsWith('http://') && !url.startsWith('https://')) {
     return false;
