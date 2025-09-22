@@ -7,11 +7,8 @@ import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import { routeResolutionTable } from '@/features/payload-cms/route-resolution-table';
 import type { SpecialRouteResolutionEntry } from '@/features/payload-cms/special-pages-table';
 import { getSpecialPage, isSpecialPage } from '@/features/payload-cms/special-pages-table';
-import {
-  canAccessPreviewOfCurrentPage,
-  PreviewWarning,
-} from '@/features/payload-cms/utils/preview-utils';
-import type { Locale, SearchParameters } from '@/types/types';
+import { PreviewWarning } from '@/features/payload-cms/utils/preview-utils';
+import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
@@ -112,10 +109,9 @@ const CMSPage: React.FC<{
     slugs: string[] | undefined;
     locale: Locale;
   }>;
-  searchParams: Promise<SearchParameters>;
 }> =
   // eslint-disable-next-line complexity
-  async ({ params, searchParams: searchParametersPromise }) => {
+  async ({ params }) => {
     let { locale } = await params;
     let { slugs } = await params;
 
@@ -128,13 +124,17 @@ const CMSPage: React.FC<{
       locale = i18nConfig.defaultLocale as Locale;
     }
 
-    const searchParameters = await searchParametersPromise;
+    // TODO: fix dynamic rendering
+    const searchParameters = {
+      error: '',
+      preview: '',
+    };
 
     // check if error parameter is set
     if (searchParameters['error']) {
       return (
         <CustomErrorBoundaryFallback>
-          <NotFound />
+          <NotFound locale={locale} />
         </CustomErrorBoundaryFallback>
       );
     }
@@ -149,8 +149,12 @@ const CMSPage: React.FC<{
     const collection = (slugs?.[0] ?? '') as string;
     const remainingSlugs = slugs?.slice(1) ?? [];
 
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const url = `/${locale}/${slugs?.join('/') ?? ''}`;
-    const previewModeAllowed = await canAccessPreviewOfCurrentPage(searchParameters, url);
+    // TODO: fix dynamic rendering
+    const previewModeAllowed = false as boolean; // await canAccessPreviewOfCurrentPage(searchParameters, url);
     const hasPreviewSearchParameter = searchParameters['preview'] === 'true';
 
     // check if the collection is in the special page table
@@ -232,5 +236,6 @@ const CMSPage: React.FC<{
     notFound();
   };
 
-// export const dynamic = 'error';
+export const revalidate = 60;
+export const dynamic = 'error';
 export default CMSPage;

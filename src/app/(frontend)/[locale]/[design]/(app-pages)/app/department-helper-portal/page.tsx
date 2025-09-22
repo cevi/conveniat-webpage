@@ -1,6 +1,5 @@
 import { SetDynamicPageTitle } from '@/components/header/set-dynamic-app-title';
-import type { StaticTranslationString } from '@/types/types';
-import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
+import type { Locale, StaticTranslationString } from '@/types/types';
 import type React from 'react';
 
 const helperShiftsFeatureTranslation: StaticTranslationString = {
@@ -9,9 +8,7 @@ const helperShiftsFeatureTranslation: StaticTranslationString = {
   fr: "Postes d'aide",
 };
 
-const DepartmentHelperPortalPage: React.FC = async () => {
-  const locale = await getLocaleFromCookies();
-
+const DepartmentHelperPortalPage: React.FC<{ locale: Locale }> = async ({ locale }) => {
   return (
     <>
       <SetDynamicPageTitle newTitle={helperShiftsFeatureTranslation[locale]} />
