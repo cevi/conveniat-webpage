@@ -123,8 +123,6 @@ const prepareQRCodeData = async (
     };
   }
 
-  const fullURLForToken = domain + basePreviewURL;
-
   const maxExpirySeconds = 86_400 * 7; // 7 days
   const currentExpiry = expirySeconds <= maxExpirySeconds ? expirySeconds : 10_800;
 
@@ -134,7 +132,9 @@ const prepareQRCodeData = async (
     throw new Error('Failed to generate preview token');
   }
 
-  const previewTokenQueryParameter = `?preview=true&preview-token=${previewToken}`;
+  const previewTokenQueryParameter = `?auth=secret&preview=true&preview-token=${previewToken}&slug=${basePreviewURL}`;
+  const fullURLForToken = `${domain}/api/draft`;
+
   return {
     qrCodeContent: fullURLForToken + previewTokenQueryParameter,
     displayURL: fullURLForToken + previewTokenQueryParameter,

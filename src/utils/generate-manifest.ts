@@ -3,6 +3,7 @@ import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import { manifestIconDefinitions } from '@/utils/icon-definitions';
 import config from '@payload-config';
 import type { MetadataRoute } from 'next';
+import { cacheLife, cacheTag } from 'next/cache';
 import { getPayload } from 'payload';
 
 /**
@@ -13,7 +14,11 @@ import { getPayload } from 'payload';
  *
  * @see https://whatpwacando.today/ Capabilities of PWAs
  */
-export const manifestGenerator = async (): Promise<MetadataRoute.Manifest> => {
+export const cachedManifestGenerator = async (): Promise<MetadataRoute.Manifest> => {
+  'use cache';
+  cacheLife('hours');
+  cacheTag('payload', 'PWA');
+
   const payload = await getPayload({ config });
 
   const { appName, appShortName, appDescription } = await payload.findGlobal({

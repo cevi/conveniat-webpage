@@ -2,7 +2,6 @@ import build from '@/build';
 import { diag, DiagConsoleLogger, DiagLogLevel } from '@opentelemetry/api';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
-import { MongooseInstrumentation } from '@opentelemetry/instrumentation-mongoose';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { BatchSpanProcessor, TraceIdRatioBasedSampler } from '@opentelemetry/sdk-trace-base';
@@ -41,7 +40,7 @@ export const sdk = new NodeSDK({
       '@opentelemetry/instrumentation-mongoose': { enabled: true },
       '@opentelemetry/instrumentation-http': { enabled: false },
     }),
-    new MongooseInstrumentation({ enabled: true }),
+    // new MongooseInstrumentation({ enabled: true }),
     new PrismaInstrumentation({ enabled: true }),
     new FetchInstrumentation({ enabled: true }),
   ],

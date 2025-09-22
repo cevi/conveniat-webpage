@@ -12,7 +12,6 @@ import { getPayload } from 'payload';
 const GenericPage: LocalizedCollectionComponent = async ({
   slugs,
   locale,
-  searchParams,
   renderInPreviewMode,
 }) => {
   const payload = await getPayload({ config });
@@ -48,21 +47,9 @@ const GenericPage: LocalizedCollectionComponent = async ({
       renderInPreviewMode ||
       (await hasPermissions(articleInPrimaryLanguage.content.permissions as Permission))
     ) {
-      return (
-        <GenericPageConverter
-          page={articleInPrimaryLanguage}
-          locale={locale}
-          searchParams={searchParams}
-        />
-      );
+      return <GenericPageConverter page={articleInPrimaryLanguage} locale={locale} />;
     } else {
-      // set error=permission in search parameters
-      const searchParametersWithError: { [key: string]: string } = {
-        ...searchParams,
-        error: 'permission',
-      };
-      const searchParametersString = new URLSearchParams(searchParametersWithError).toString();
-      redirect(`/${locale}/${articleInPrimaryLanguage.seo.urlSlug}?${searchParametersString}`);
+      redirect(`/${locale}/${articleInPrimaryLanguage.seo.urlSlug}`);
     }
   }
 

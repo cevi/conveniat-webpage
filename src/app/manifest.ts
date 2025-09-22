@@ -1,17 +1,10 @@
-import { manifestGenerator } from '@/utils/generate-manifest';
-import type { MetadataRoute } from 'next';
-import { unstable_cache } from 'next/cache';
-import { connection } from 'next/server';
+import { cachedManifestGenerator } from '@/utils/generate-manifest';
+import { isBuildTimePreRendering } from '@/utils/is-pre-rendering';
+import { MetadataRoute } from 'next';
 
-const generateManifest = async (): Promise<MetadataRoute.Manifest> => {
-  await connection(); // opt-out of static generation
-
-  // cache the sitemap generation to avoid unnecessary re-fetching
-  // we can revalidate the cache by using a key 'manifest'
-  return unstable_cache(async () => manifestGenerator(), [], {
-    revalidate: 7 * 24 * 60 * 60, // revalidate once a week
-    tags: ['manifest'],
-  })();
+const manifestGenerator = async (): Promise<MetadataRoute.Manifest> => {
+  if (await isBuildTimePreRendering()) return {}; // bail out, don't cache anything at build time
+  return cachedManifestGenerator();
 };
 
-export default generateManifest;
+export default manifestGenerator;

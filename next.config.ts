@@ -34,6 +34,7 @@ const nextConfig: NextConfig = {
   transpilePackages: ['@t3-oss/env-nextjs', '@t3-oss/env-core'],
   poweredByHeader: false,
   reactStrictMode: true,
+  cacheComponents: true,
 
   // enable gzip compression for all responses
   compress: true,

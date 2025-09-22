@@ -2,14 +2,13 @@ import { SubheadingH2 } from '@/components/ui/typography/subheading-h2';
 import { PageSectionsConverter } from '@/features/payload-cms/converters/page-sections';
 import type { ContentBlock } from '@/features/payload-cms/converters/page-sections/section-wrapper';
 import type { Timeline } from '@/features/payload-cms/payload-types';
-import type { Locale, SearchParameters } from '@/types/types';
+import type { Locale } from '@/types/types';
 import React from 'react';
 
 export const TimelineEntry: React.FC<{
   timeline: Timeline;
   locale: Locale;
-  searchParams: SearchParameters;
-}> = ({ timeline, locale, searchParams }) => {
+}> = ({ timeline, locale }) => {
   const convertDate = (date: string, format: Timeline['dateFormat']): string => {
     switch (format) {
       case 'fullDateAndTime': {
@@ -53,7 +52,6 @@ export const TimelineEntry: React.FC<{
         <PageSectionsConverter
           blocks={timeline.mainContent as unknown as ContentBlock[]}
           locale={locale}
-          searchParams={searchParams}
           sectionClassName="mt-2"
           sectionOverrides={{
             photoCarousel: 'lg:mx-[60px]',

@@ -7,7 +7,7 @@ import {
   openURLInNewTab,
 } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import type { Image } from '@/features/payload-cms/payload-types';
-import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
+import type { Locale } from '@/types/types';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import { RichText } from '@payloadcms/richtext-lexical/react';
 import ImageNode from 'next/image';
@@ -21,6 +21,7 @@ export interface NewsCardType {
   linkField?: LinkFieldDataType;
   image?: Image;
   paragraph?: SerializedEditorState;
+  locale: Locale;
 }
 
 export const NewsCardBlock: React.FC<NewsCardType> = async ({
@@ -30,9 +31,8 @@ export const NewsCardBlock: React.FC<NewsCardType> = async ({
   linkField,
   image,
   paragraph,
+  locale,
 }) => {
-  const locale = await getLocaleFromCookies();
-
   const newsCardContent = (
     <div className="flex basis-1 flex-col rounded-md border-2 border-gray-200 bg-white p-6 transition duration-200 hover:shadow-md lg:max-w-96">
       <div>

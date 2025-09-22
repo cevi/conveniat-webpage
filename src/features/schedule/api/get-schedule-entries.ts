@@ -2,13 +2,19 @@
 
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
+import { isBuildTimePreRendering } from '@/utils/is-pre-rendering';
 import config from '@payload-config';
+import { cacheLife, cacheTag } from 'next/cache';
 import type { Where } from 'payload';
 import { getPayload } from 'payload';
 
-export const getScheduleEntries = async (
+const getScheduleEntriesCached = async (
   where: Where = {},
 ): Promise<CampScheduleEntryFrontendType[]> => {
+  'use cache';
+  cacheLife('hours');
+  cacheTag('payload', 'camp-schedule-entry');
+
   const payload = await getPayload({ config });
   const locale = await getLocaleFromCookies();
 
@@ -36,4 +42,11 @@ export const getScheduleEntries = async (
     const timeB = b.timeslot.time.split(' - ')[0] ?? '00:00';
     return timeA.localeCompare(timeB); // Sort by time
   });
+};
+
+export const getScheduleEntries = async (
+  where: Where = {},
+): Promise<CampScheduleEntryFrontendType[]> => {
+  if (await isBuildTimePreRendering()) return [];
+  return getScheduleEntriesCached(where);
 };

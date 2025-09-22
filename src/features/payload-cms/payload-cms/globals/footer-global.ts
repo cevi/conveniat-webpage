@@ -1,9 +1,12 @@
 import { LinkField } from '@/features/payload-cms/payload-cms/shared-fields/link-field';
+import { flushPageCacheOnChangeGlobal } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import { asLocalizedGlobal } from '@/features/payload-cms/payload-cms/utils/localized-global';
 import type { GlobalConfig } from 'payload';
 
 export const FooterGlobal: GlobalConfig = asLocalizedGlobal({
   slug: 'footer',
+  ...flushPageCacheOnChangeGlobal,
+
   label: {
     en: 'Footer',
     de: 'Fusszeile',

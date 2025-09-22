@@ -82,5 +82,3 @@ const OfflinePage: React.FC<Properties> = async ({ params }) => {
 };
 
 export default OfflinePage;
-
-export const dynamic = 'force-static';

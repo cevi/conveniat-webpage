@@ -1,25 +1,15 @@
 import { DynamicAppTitleProvider } from '@/components/header/dynamic-app-title-name';
+import { HeaderComponent } from '@/components/header/header-component';
 import { CeviLogo } from '@/components/svg-logos/cevi-logo';
 import { PostHogProvider } from '@/providers/post-hog-provider';
-import type { Locale } from '@/types/types';
+import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
+import { renderInAppDesign } from '@/utils/render-in-app-design';
 import { cn } from '@/utils/tailwindcss-override';
 import { Inter, Montserrat } from 'next/font/google';
 import NextTopLoader from 'nextjs-toploader';
+import type React from 'react';
 import type { ReactNode } from 'react';
-import React from 'react';
-
-// These styles apply to every route in the application
-import '@/app/globals.scss';
-import { HeaderComponent } from '@/components/header/header-component';
-import { DesignCodes } from '@/utils/design-codes';
-
-interface LayoutProperties {
-  children: ReactNode;
-  params: Promise<{
-    locale: Locale;
-    design: DesignCodes;
-  }>;
-}
+import { Suspense } from 'react';
 
 const montserrat = Montserrat({
   subsets: ['latin'],
@@ -31,9 +21,9 @@ const inter = Inter({
   display: 'block',
 });
 
-const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
-  const { locale, design } = await params;
-  const isInAppDesign = design === DesignCodes.APP_DESIGN;
+const Layout: React.FC<{ children: ReactNode }> = async ({ children }) => {
+  const isInAppDesign = await renderInAppDesign();
+  const locale = await getLocaleFromCookies();
 
   return (
     <html
@@ -66,8 +56,12 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
   );
 };
 
-export default RootLayout;
+const RootLayout: React.FC<{ children: ReactNode }> = async ({ children }) => {
+  return (
+    <Suspense>
+      <Layout>{children}</Layout>
+    </Suspense>
+  );
+};
 
-// configure the viewport and metadata
-export { generateMetadata } from '@/utils/generate-metadata';
-export { generateViewport } from '@/utils/generate-viewport';
+export default RootLayout;

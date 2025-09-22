@@ -69,11 +69,11 @@ export const getURLForLinkField = (
 
     switch (relationTo) {
       case 'blog': {
-        const urlSlug = (value as Blog).seo.urlSlug;
+        const urlSlug = (value as Blog).seo?.urlSlug;
         return urlSlug === '' ? undefined : `${langPrefix}/blog/${urlSlug}`;
       }
       case 'generic-page': {
-        const urlSlug = (value as GenericPage).seo.urlSlug;
+        const urlSlug = (value as GenericPage).seo?.urlSlug;
         if (urlSlug === '') {
           return langPrefix === '' ? '/' : langPrefix;
         }
@@ -81,8 +81,7 @@ export const getURLForLinkField = (
       }
       case 'images':
       case 'documents': {
-        const url = (value as unknown as { url: string }).url;
-        return url;
+        return (value as unknown as { url: string }).url;
       }
       case 'camp-schedule-entry': {
         const entryId = (value as CampScheduleEntry).id;

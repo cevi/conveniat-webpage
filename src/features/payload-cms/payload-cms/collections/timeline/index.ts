@@ -6,12 +6,14 @@ import { internalAuthorsField } from '@/features/payload-cms/payload-cms/shared-
 import { internalPageNameField } from '@/features/payload-cms/payload-cms/shared-fields/internal-page-name-field';
 import { internalStatusField } from '@/features/payload-cms/payload-cms/shared-fields/internal-status-field';
 import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared-fields/last-edited-by-user-field';
+import { flushPageCacheOnChange } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import { asLocalizedCollection } from '@/features/payload-cms/payload-cms/utils/localized-collection';
 import type { CollectionConfig } from 'payload';
 
 export const TimelineCollection: CollectionConfig = asLocalizedCollection({
   slug: 'timeline',
   trash: true,
+  ...flushPageCacheOnChange,
 
   labels: {
     singular: {

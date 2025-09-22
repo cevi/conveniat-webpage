@@ -1,12 +1,14 @@
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { mapAnnotationDescriptionLexicalEditorSettings } from '@/features/payload-cms/payload-cms/collections/camp-map-collection';
 import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared-fields/last-edited-by-user-field';
+import { flushPageCacheOnChange } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import type { CollectionConfig } from 'payload';
 
 export const CampScheduleEntryCollection: CollectionConfig = {
   slug: 'camp-schedule-entry',
   trash: true,
+  ...flushPageCacheOnChange,
 
   labels: {
     singular: {

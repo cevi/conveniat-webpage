@@ -6,7 +6,9 @@ import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { Locale, SearchParameters } from '@/types/types';
 import { auth } from '@/utils/auth';
 import { isPreviewTokenValid } from '@/utils/preview-token';
-import { cookies } from 'next/headers';
+import { draftMode } from 'next/headers';
+import type React from 'react';
+
 /**
  * Checks if the preview token is valid.
  *
@@ -24,13 +26,6 @@ const isValidPreviewToken = async (
 ): Promise<boolean> => {
   if (previewToken === undefined) return false;
   return await isPreviewTokenValid(url, previewToken);
-};
-
-export const isCookiePreview = async (): Promise<boolean> => {
-  const cookieStore = await cookies();
-  const previewCookie = cookieStore.get('preview');
-  const isPreviewCookieSet = previewCookie?.value === 'true';
-  return isPreviewCookieSet;
 };
 
 /**
@@ -58,10 +53,8 @@ export const canAccessPreviewOfCurrentPage = async (
   if (hasValidPreviewToken) return true;
 
   // check if cookie is set
-  const cookieStore = await cookies();
-  const previewCookie = cookieStore.get('preview');
-  const isPreviewCookieSet = previewCookie?.value === 'true';
-  if (!isPreviewCookieSet) return false;
+  const draft = await draftMode();
+  if (!draft.isEnabled) return false;
 
   const session = await auth();
   if (session === null) return false;

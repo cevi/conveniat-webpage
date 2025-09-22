@@ -23,7 +23,7 @@ export interface SearchParameters {
 
 export interface LocalizedPageType {
   locale: Locale;
-  searchParams: SearchParameters;
+  searchParams?: Promise<SearchParameters>;
 }
 
 export type LocalizedCollectionPage = LocalizedPageType & {

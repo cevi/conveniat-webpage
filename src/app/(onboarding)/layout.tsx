@@ -1,5 +1,6 @@
+import type React from 'react';
 import type { ReactNode } from 'react';
-import React from 'react';
+import { Suspense } from 'react';
 
 // These styles apply to every route in the application
 import '@/app/globals.scss';
@@ -22,7 +23,7 @@ const inter = Inter({ subsets: ['latin'] });
  *
  * @constructor
  */
-const AppEntrypointRootLayout: React.FC<LayoutProperties> = async ({ children }) => {
+const AppEntrypointLayout: React.FC<LayoutProperties> = async ({ children }) => {
   const locale = await getLocaleFromCookies();
 
   return (
@@ -36,6 +37,14 @@ const AppEntrypointRootLayout: React.FC<LayoutProperties> = async ({ children })
         </PostHogProvider>
       </body>
     </html>
+  );
+};
+
+const AppEntrypointRootLayout: React.FC<LayoutProperties> = async ({ children }) => {
+  return (
+    <Suspense>
+      <AppEntrypointLayout>{children}</AppEntrypointLayout>
+    </Suspense>
   );
 };
 

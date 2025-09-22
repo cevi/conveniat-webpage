@@ -6,22 +6,26 @@ import {
   getURLForLinkField,
   openURLInNewTab,
 } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
-import type { StaticTranslationString } from '@/types/types';
+import type { Locale, StaticTranslationString } from '@/types/types';
 import { getBuildInfo } from '@/utils/get-build-info';
-import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
-import { renderInAppDesign } from '@/utils/render-in-app-design';
+import { NoBuildTimePreRendering } from '@/utils/is-pre-rendering';
 import { cn } from '@/utils/tailwindcss-override';
 import config from '@payload-config';
+import { cacheLife, cacheTag } from 'next/cache';
 import { getPayload } from 'payload';
-import React, { Fragment } from 'react';
+import type React from 'react';
+import { Fragment } from 'react';
 
 interface Arguments {
   children: React.ReactNode;
 }
 
-const FooterMinimalMenu: React.FC = async () => {
+const FooterMinimalMenu: React.FC<{ locale: Locale }> = async ({ locale }) => {
+  'use cache';
+  cacheLife('hours');
+  cacheTag('payload', 'footer');
+
   const payload = await getPayload({ config });
-  const locale = await getLocaleFromCookies();
 
   const { minimalFooterMenu } = await payload.findGlobal({ slug: 'footer', locale });
   if (minimalFooterMenu === undefined || minimalFooterMenu === null) return <></>;
@@ -44,9 +48,13 @@ const FooterMinimalMenu: React.FC = async () => {
   );
 };
 
-const FooterCopyrightText: React.FC<Arguments> = ({ children }) => {
+const FooterCopyrightText: React.FC = async () => {
+  'use cache';
+  const year = new Date().getFullYear();
+  const copyright = `© ${year} · conveniat27`;
+
   return (
-    <span className="font-heading mt-[32px] text-[22px] leading-[24x] font-bold">{children}</span>
+    <span className="font-heading mt-[32px] text-[22px] leading-[24x] font-bold">{copyright}</span>
   );
 };
 
@@ -60,13 +68,11 @@ export const FooterBuildInfoText: React.FC<Arguments> = ({ children }: Arguments
   return <span className="text-[12px] leading-[16px] font-light">{children}</span>;
 };
 
-export const FooterCopyrightArea: React.FC = async () => {
-  const year = new Date().getFullYear();
-  const copyright = `© ${year} · conveniat27`;
-
-  const build = await getBuildInfo();
-  const isInAppDesign = await renderInAppDesign();
-  const locale = await getLocaleFromCookies();
+export const FooterCopyrightArea: React.FC<{
+  locale: Locale;
+  inAppDesign: boolean;
+}> = async ({ locale, inAppDesign }) => {
+  const build = await getBuildInfo(locale);
 
   return (
     <>
@@ -83,10 +89,10 @@ export const FooterCopyrightArea: React.FC = async () => {
           'bg-green-600',
           'text-green-200',
           'pb-6',
-          { 'pb-16': isInAppDesign },
+          { 'pb-16': inAppDesign },
         )}
       >
-        <FooterCopyrightText>{copyright}</FooterCopyrightText>
+        <FooterCopyrightText />
         <div className="mb-[20px]">
           <CeviSchweiz className="h-12 w-56" />
         </div>
@@ -94,10 +100,12 @@ export const FooterCopyrightArea: React.FC = async () => {
           /* The build info may not be available in (local) development mode */
           build !== undefined && (
             <div className="mb-[16px] flex flex-col text-center">
-              <FooterMinimalMenu />
-              <SocialMediaLinks />
+              <NoBuildTimePreRendering>
+                <FooterMinimalMenu locale={locale} />
+                <SocialMediaLinks locale={locale} />
+              </NoBuildTimePreRendering>
 
-              {!isInAppDesign && (
+              {!inAppDesign && (
                 <>
                   <FooterBuildInfoText>Version {build.version} </FooterBuildInfoText>
                   <FooterBuildInfoText>

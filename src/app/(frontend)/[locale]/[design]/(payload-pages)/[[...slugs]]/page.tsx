@@ -1,5 +1,3 @@
-import { CustomErrorBoundaryFallback } from '@/app/(frontend)/[locale]/[design]/(payload-pages)/[[...slugs]]/custom-error-boundary-fallback';
-import { NotFound } from '@/app/(frontend)/not-found';
 import { CookieBanner } from '@/components/utils/cookie-banner';
 import { RefreshRouteOnSave } from '@/components/utils/refresh-preview';
 import { environmentVariables } from '@/config/environment-variables';
@@ -7,13 +5,12 @@ import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import { routeResolutionTable } from '@/features/payload-cms/route-resolution-table';
 import type { SpecialRouteResolutionEntry } from '@/features/payload-cms/special-pages-table';
 import { getSpecialPage, isSpecialPage } from '@/features/payload-cms/special-pages-table';
-import {
-  canAccessPreviewOfCurrentPage,
-  PreviewWarning,
-} from '@/features/payload-cms/utils/preview-utils';
+import { PreviewWarning } from '@/features/payload-cms/utils/preview-utils';
 import type { Locale, SearchParameters } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import type { Metadata } from 'next';
+import { cacheLife, cacheTag } from 'next/cache';
+import { draftMode } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import type React from 'react';
 
@@ -67,11 +64,12 @@ export const generateMetadata = async ({
     locale: Locale;
     slugs: string[] | undefined;
   }>;
+  // eslint-disable-next-line complexity
 }): Promise<Metadata> => {
   const { slugs, locale } = await params;
   const awaitedParameters = await params;
   console.log(
-    `Render page with slug: ${slugs?.join(', ')}, from: ${JSON.stringify(awaitedParameters)}`,
+    `Render page with slug: ${slugs === undefined ? '/' : slugs?.join(', ')}, from: ${JSON.stringify(awaitedParameters)}`,
   );
   const collection = slugs?.[0] ?? '';
   const remainingSlugs = slugs?.slice(1) ?? [];
@@ -104,7 +102,6 @@ export const generateMetadata = async ({
  *
  * @param params - The parameters for the page route
  * @param searchParametersPromise - The search parameters for the page route
- *
  */
 const CMSPage: React.FC<{
   params: Promise<{
@@ -113,8 +110,12 @@ const CMSPage: React.FC<{
   }>;
   searchParams: Promise<SearchParameters>;
 }> = async ({ params, searchParams: searchParametersPromise }) => {
-  let { locale } = await params;
-  let { slugs } = await params;
+  'use cache';
+    cacheLife('hours');
+    cacheTag('payload');
+
+    let { locale } = await params;
+    let { slugs } = await params;
 
   // this logic is needed for the case the do not have set
   // we only treat valid locales as a valid locale, otherwise we use the default locale
@@ -125,30 +126,38 @@ const CMSPage: React.FC<{
     locale = i18nConfig.defaultLocale as Locale;
   }
 
-  const searchParameters = await searchParametersPromise;
+    const draft = await draftMode();
 
-  // check if error parameter is set
-  if (searchParameters['error']) {
-    return (
-      <CustomErrorBoundaryFallback>
-        <NotFound />
-      </CustomErrorBoundaryFallback>
-    );
-  }
+    // check if the query parameter "preview" is set to "true" if draft mode is enabled
+    // if preview is not enabled we shall not access the query parameters at all to avoid
+    // opting-out of static rendering
+    let hasPreviewSearchParameter = false;
+    if (draft.isEnabled) {
+      const searchParameters = await searchParametersPromise;
+      hasPreviewSearchParameter = searchParameters['preview'] === 'true';
+    }
 
-  const searchParametersString = Object.entries(searchParameters)
-    .map(([key, value]) => {
-      return Array.isArray(value) ? value.map((v) => `${key}=${v}`).join('&') : `${key}=${value}`;
-    })
-    .join('&');
+  // check if the user is allowed to access the preview of the current page
+    let previewModeAllowed = false;
+  if (draft.isEnabled) {
+    const { canAccessPreviewOfCurrentPage } = await import(
+        '@/features/payload-cms/utils/preview-utils'
+      );
+
+      const searchParameters = await searchParametersPromise;
+    const url = `/${locale}/${slugs?.join('/') ?? ''}`;
+    previewModeAllowed = await canAccessPreviewOfCurrentPage(searchParameters, url);
+      console.log(`Preview mode ${previewModeAllowed ? '' : 'not'} allowed for url: ${url}`);
+    }
 
   // check if part of a routable collection of the form [collection]/[slug]
   const collection = slugs?.[0] ?? '';
   const remainingSlugs = slugs?.slice(1) ?? [];
 
-  const url = `/${locale}/${slugs?.join('/') ?? ''}`;
-  const previewModeAllowed = await canAccessPreviewOfCurrentPage(searchParameters, url);
-  const hasPreviewSearchParameter = searchParameters['preview'] === 'true';
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const renderInPreviewMode = draft.isEnabled && previewModeAllowed && hasPreviewSearchParameter;
 
   // check if the collection is in the special page table
   if (isSpecialPage(collection)) {
@@ -165,18 +174,17 @@ const CMSPage: React.FC<{
         <>
           <specialPage.component
             slugs={remainingSlugs}
-            renderInPreviewMode={previewModeAllowed && hasPreviewSearchParameter}
-            locale={locale}
-            searchParams={searchParameters}
-          />
-          {previewModeAllowed && hasPreviewSearchParameter && <PreviewWarning params={params} />}
+            renderInPreviewMode={renderInPreviewMode}
+              locale={locale}
+            />
+          {renderInPreviewMode && <PreviewWarning params={params} />}
 
           <CookieBanner />
         </>
       );
     } else {
       // redirect to the alternative locale
-      redirect(`/${locale}${specialPage.alternatives[locale]}?${searchParametersString}`);
+      redirect(`/${locale}${specialPage.alternatives[locale]}`);
     }
   }
 
@@ -187,26 +195,21 @@ const CMSPage: React.FC<{
     remainingSlugs.unshift(collection);
   }
 
-  if (!previewModeAllowed && hasPreviewSearchParameter) {
-    throw new Error(`Preview mode is not allowed for this page.`);
-  }
-
-  if (collectionPage !== undefined) {
-    if (collectionPage.locales.includes(locale)) {
-      return (
-        <>
-          {previewModeAllowed && hasPreviewSearchParameter && (
+    if (collectionPage !== undefined) {
+      if (collectionPage.locales.includes(locale)) {
+        return (
+          <>
+            {renderInPreviewMode && (
             <RefreshRouteOnSave serverURL={environmentVariables.APP_HOST_URL} />
           )}
 
-          <collectionPage.component
-            locale={locale}
-            slugs={remainingSlugs}
-            searchParams={searchParameters}
-            renderInPreviewMode={previewModeAllowed && hasPreviewSearchParameter}
+            <collectionPage.component
+              locale={locale}
+              slugs={remainingSlugs}
+              renderInPreviewMode={renderInPreviewMode}
           />
 
-          {previewModeAllowed && hasPreviewSearchParameter && <PreviewWarning params={params} />}
+          {renderInPreviewMode && <PreviewWarning params={params} />}
 
           <CookieBanner />
         </>
@@ -214,7 +217,7 @@ const CMSPage: React.FC<{
     } else {
       // redirect to alternative collectionPage if available
       const alternative = collectionPage.alternatives[locale];
-      redirect(`/${locale}/${alternative}?${searchParametersString}`);
+      redirect(`/${locale}/${alternative}}`);
     }
   }
 
@@ -229,5 +232,6 @@ const CMSPage: React.FC<{
   notFound();
 };
 
-// export const dynamic = 'error';
+// Optional: pre-render important pages at build time
+
 export default CMSPage;

@@ -1,5 +1,6 @@
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared-fields/last-edited-by-user-field';
+import { flushPageCacheOnChange } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import type { CollectionConfig, Field, GenerateImageName } from 'payload';
 
 /**
@@ -66,6 +67,8 @@ const imageCaption = (locale: string): Field => {
 
 export const ImageCollection: CollectionConfig = {
   slug: 'images',
+  ...flushPageCacheOnChange,
+
   labels: {
     singular: {
       en: 'Image',

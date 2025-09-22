@@ -2,6 +2,7 @@ import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/ad
 import { minimalEditorFeatures } from '@/features/payload-cms/payload-cms/plugins/lexical-editor';
 import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared-fields/last-edited-by-user-field';
 import { MapCoordinates } from '@/features/payload-cms/payload-cms/shared-fields/map-coordinates/map-coordinates';
+import { flushPageCacheOnChange } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import type { CampMapAnnotation } from '@/features/payload-cms/payload-types';
 import {
@@ -31,6 +32,7 @@ AnnotationPointField.admin = {
 export const CampMapAnnotationsCollection: CollectionConfig = {
   slug: 'camp-map-annotations',
   trash: true,
+  ...flushPageCacheOnChange,
 
   labels: {
     singular: {

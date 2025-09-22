@@ -2,8 +2,7 @@ import { SetDynamicPageTitle } from '@/components/header/set-dynamic-app-title';
 import { MainMenuLanguageSwitcher } from '@/components/menu/main-menu-language-switcher';
 import { ProfileDetails } from '@/features/settings/profile-details';
 import { PushNotificationSettings } from '@/features/settings/push-notification-settings';
-import type { StaticTranslationString } from '@/types/types';
-import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
+import type { Locale, StaticTranslationString } from '@/types/types';
 import React from 'react';
 
 const settingsTitle: StaticTranslationString = {
@@ -12,8 +11,8 @@ const settingsTitle: StaticTranslationString = {
   fr: 'Paramètres',
 };
 
-const Settings: React.FC = async () => {
-  const locale = await getLocaleFromCookies();
+const Settings: React.FC<{ params: Promise<{ locale: Locale }> }> = async ({ params }) => {
+  const { locale } = await params;
 
   return (
     <>

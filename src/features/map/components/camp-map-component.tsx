@@ -9,6 +9,7 @@ import type {
 } from '@/features/map/types/types';
 import type { CampMapAnnotation as CampMapAnnotationPayloadDocumentType } from '@/features/payload-cms/payload-types';
 import config from '@payload-config';
+import { cacheLife, cacheTag } from 'next/cache';
 import { getPayload, type PaginatedDocs } from 'payload';
 import type React from 'react';
 import 'server-only';
@@ -31,7 +32,10 @@ const initialMapPoseObergoms: InitialMapPose = {
 };
 
 export const CampMapComponent: React.FC = async () => {
-  // load annotations from payload-cms
+  'use cache';
+  cacheLife('hours');
+  cacheTag('payload', 'camp-map-annotations', 'camp-schedule-entry');
+
   const payload = await getPayload({ config });
 
   const annotations: PaginatedDocs<CampMapAnnotationPayloadDocumentType> = await payload.find({
