@@ -1,4 +1,4 @@
-import { CustomErrorBoundaryFallback } from '@/app/(frontend)/[locale]/(payload-pages)/[[...slugs]]/custom-error-boundary-fallback';
+import { CustomErrorBoundaryFallback } from '@/app/(frontend)/[locale]/[design]/(payload-pages)/[[...slugs]]/custom-error-boundary-fallback';
 import { NotFound } from '@/app/(frontend)/not-found';
 import { CookieBanner } from '@/components/utils/cookie-banner';
 import { RefreshRouteOnSave } from '@/components/utils/refresh-preview';
@@ -60,15 +60,20 @@ const handleSpecialPage = (collection: string, locale: Locale): Metadata => {
   };
 };
 
+// eslint-disable-next-line complexity
 export const generateMetadata = async ({
   params,
 }: {
-  params: {
+  params: Promise<{
     locale: Locale;
     slugs: string[] | undefined;
-  };
+  }>;
 }): Promise<Metadata> => {
   const { slugs, locale } = await params;
+  const awaitedParameters = await params;
+  console.log(
+    `Render page with slug: ${slugs?.join(', ')}, from: ${JSON.stringify(awaitedParameters)}`,
+  );
   const collection = (slugs?.[0] ?? '') as string;
   const remainingSlugs = slugs?.slice(1) ?? [];
 
@@ -227,4 +232,5 @@ const CMSPage: React.FC<{
     notFound();
   };
 
+// export const dynamic = 'error';
 export default CMSPage;
