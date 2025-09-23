@@ -61,6 +61,7 @@ const OfflineLogo: React.FC = () => (
 
 const OfflinePage: React.FC<Properties> = async ({ params }) => {
   const { locale } = await params;
+  const generatedTime = new Date().toLocaleTimeString();
 
   return (
     <div className="bg-gradient-to-b from-slate-900 to-slate-800">
@@ -75,6 +76,8 @@ const OfflinePage: React.FC<Properties> = async ({ params }) => {
           <div className="mt-4 mb-8">
             <ParagraphText className="text-center">{offlineLongText[locale]}</ParagraphText>
           </div>
+
+          <span>Page Generated at {generatedTime}</span>
         </div>
       </div>
     </div>
@@ -83,4 +86,5 @@ const OfflinePage: React.FC<Properties> = async ({ params }) => {
 
 export default OfflinePage;
 
+export const revalidate = 3600;
 export const dynamic = 'force-static';

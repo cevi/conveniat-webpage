@@ -2,10 +2,8 @@ import { FooterGraphic } from '@/components/footer/footer-graphics';
 import { SocialMediaLinks } from '@/components/footer/social-media-links';
 import { CeviSchweiz } from '@/components/svg-logos/cevi-schweiz';
 import { LinkComponent } from '@/components/ui/link-component';
-import type { StaticTranslationString } from '@/types/types';
+import type { Locale, StaticTranslationString } from '@/types/types';
 import { getBuildInfo } from '@/utils/get-build-info';
-import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
-import { renderInAppDesign } from '@/utils/render-in-app-design';
 import { cn } from '@/utils/tailwindcss-override';
 import config from '@payload-config';
 import { getPayload } from 'payload';
@@ -15,9 +13,8 @@ interface Arguments {
   children: React.ReactNode;
 }
 
-const FooterMinimalMenu: React.FC = async () => {
+const FooterMinimalMenu: React.FC<{ locale: Locale }> = async ({ locale }) => {
   const payload = await getPayload({ config });
-  const locale = await getLocaleFromCookies();
 
   const { minimalFooterMenu } = await payload.findGlobal({ slug: 'footer', locale });
   if (minimalFooterMenu === undefined || minimalFooterMenu === null) return <></>;
@@ -53,13 +50,14 @@ export const FooterBuildInfoText: React.FC<Arguments> = ({ children }: Arguments
   return <span className="text-[12px] leading-[16px] font-light">{children}</span>;
 };
 
-export const FooterCopyrightArea: React.FC = async () => {
+export const FooterCopyrightArea: React.FC<{
+  locale: Locale;
+  inAppDesign: boolean;
+}> = async ({ locale, inAppDesign }) => {
   const year = new Date().getFullYear();
   const copyright = `© ${year} · conveniat27`;
 
-  const build = await getBuildInfo();
-  const isInAppDesign = await renderInAppDesign();
-  const locale = await getLocaleFromCookies();
+  const build = await getBuildInfo(locale);
 
   return (
     <>
@@ -76,7 +74,7 @@ export const FooterCopyrightArea: React.FC = async () => {
           'bg-green-600',
           'text-green-200',
           'pb-6',
-          { 'pb-16': isInAppDesign },
+          { 'pb-16': inAppDesign },
         )}
       >
         <FooterCopyrightText>{copyright}</FooterCopyrightText>
@@ -87,10 +85,10 @@ export const FooterCopyrightArea: React.FC = async () => {
           /* The build info may not be available in (local) development mode */
           build !== undefined && (
             <div className="mb-[16px] flex flex-col text-center">
-              <FooterMinimalMenu />
-              <SocialMediaLinks />
+              <FooterMinimalMenu locale={locale} />
+              <SocialMediaLinks locale={locale} />
 
-              {!isInAppDesign && (
+              {!inAppDesign && (
                 <>
                   <FooterBuildInfoText>Version {build.version} </FooterBuildInfoText>
                   <FooterBuildInfoText>

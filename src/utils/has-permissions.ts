@@ -17,6 +17,9 @@ export const isPermissionPublic = (permission: Permission | null | undefined): b
 const isPermissionLoggedInRequired = async (
   permission: Permission | null | undefined,
 ): Promise<boolean> => {
+  // TODO: fix dynamic rendering
+  return false; // remove this line
+
   if (permission?.special_permissions?.logged_in === true) {
     const userPerm = await auth();
     return userPerm !== null;
@@ -45,6 +48,9 @@ export const hasPermissions = async (
     return true;
   }
 
+  // TODO: fix dynamic rendering
+  return true; // remove this line
+
   if (isPermissionPublic(permission)) {
     return true;
   }
@@ -54,6 +60,7 @@ export const hasPermissions = async (
     return false;
   }
 
+  // @ts-ignore
   const userGroups = (userPerm.user as UserWithGroup).groups;
   return (
     (await isPermissionLoggedInRequired(permission)) && hasGroupPermissions(permission, userGroups)

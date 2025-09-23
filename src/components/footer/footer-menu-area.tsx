@@ -1,6 +1,6 @@
 import { LinkComponent } from '@/components/ui/link-component';
 import type { Footer } from '@/features/payload-cms/payload-types';
-import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
+import type { Locale } from '@/types/types';
 import config from '@payload-config';
 import { getPayload } from 'payload';
 import React from 'react';
@@ -39,9 +39,10 @@ const renderMenuSection = (menu: FooterMenuSection): React.JSX.Element => {
   );
 };
 
-export const FooterMenuArea: React.FC = async () => {
+export const FooterMenuArea: React.FC<{
+  locale: Locale;
+}> = async ({ locale }) => {
   const payload = await getPayload({ config });
-  const locale = await getLocaleFromCookies();
 
   const { footerMenu } = await payload.findGlobal({ slug: 'footer', locale });
   if (footerMenu === undefined || footerMenu === null || footerMenu.length === 0) return;
