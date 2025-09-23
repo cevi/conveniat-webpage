@@ -196,7 +196,7 @@ export const MainMenu: React.FC<{
   inAppDesign: boolean;
 }> = async ({ locale, inAppDesign }) => {
   const payload = await getPayload({ config });
-  const build = await getBuildInfo();
+  const build = await getBuildInfo(locale);
   const actionURL = specialPagesTable['search']?.alternatives[locale] ?? '/suche';
 
   // if the user is logged in, we show the preview for the menu

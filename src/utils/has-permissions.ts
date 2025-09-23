@@ -60,6 +60,7 @@ export const hasPermissions = async (
     return false;
   }
 
+  // @ts-ignore
   const userGroups = (userPerm.user as UserWithGroup).groups;
   return (
     (await isPermissionLoggedInRequired(permission)) && hasGroupPermissions(permission, userGroups)

@@ -186,7 +186,7 @@ export const AccordionBlock: SectionRenderer<AccordionBlocks> = async ({
       {block.introduction && <LexicalRichTextSection richTextSection={block.introduction} />}
 
       <div className="mt-4">
-        <Accordion block={block} />
+        <Accordion block={block} locale={locale} />
       </div>
     </SectionWrapper>
   );

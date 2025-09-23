@@ -1,5 +1,5 @@
+import { NotFound } from '@/app/(frontend)/(not-found)/not-found';
 import { CustomErrorBoundaryFallback } from '@/app/(frontend)/[locale]/[design]/(payload-pages)/[[...slugs]]/custom-error-boundary-fallback';
-import { NotFound } from '@/app/(frontend)/not-found';
 import { CookieBanner } from '@/components/utils/cookie-banner';
 import { RefreshRouteOnSave } from '@/components/utils/refresh-preview';
 import { environmentVariables } from '@/config/environment-variables';
@@ -236,6 +236,6 @@ const CMSPage: React.FC<{
     notFound();
   };
 
-export const revalidate = 60;
-export const dynamic = 'error';
+export const revalidate = 3600;
+export const dynamic = 'force-static';
 export default CMSPage;
