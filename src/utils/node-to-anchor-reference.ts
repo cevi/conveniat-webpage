@@ -30,6 +30,6 @@ export const nodeToAnchorReference = (node: ReactNode): string | undefined => {
   if (string_ === undefined) return undefined;
 
   return replaceUmlautsAndAccents(string_)
-    .replaceAll(/\s+/g, '-')            // Replace spaces with hyphens
-    .replaceAll(/[^a-z0-9-]/g, '');     // Remove non-alphanumerics (except hyphen)
+    .replaceAll(/\s+/g, '-') // Replace spaces with hyphens
+    .replaceAll(/[^a-z0-9-]/g, ''); // Remove non-alphanumerics (except hyphen)
 };
