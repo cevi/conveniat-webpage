@@ -3,6 +3,7 @@
 import AccordionItem from '@/features/payload-cms/components/accordion/accordion-item';
 import { TeamLeaderPortrait } from '@/features/payload-cms/components/accordion/team-members/team-leader-portrait';
 import type { AccordionBlocks, Image } from '@/features/payload-cms/payload-types';
+import { replaceUmlautsAndAccents } from '@/utils/node-to-anchor-reference';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 const createTitleElement = (
@@ -48,7 +49,7 @@ const AccordionClientContainer: React.FC<{
   const accordionItemReferences = useRef<Record<string, HTMLDivElement | null>>({});
 
   const sanitizeTitle = useCallback((title: string): string => {
-    return title.toLowerCase().replaceAll(/\W+/g, '-');
+    return replaceUmlautsAndAccents(title).replaceAll(/\W+/g, '-');
   }, []);
 
   const getFragmentFromBlock = useCallback(
