@@ -26,6 +26,9 @@ export const asLocalizedGlobal = (config: GlobalConfig): GlobalConfig => {
           beforeDocumentControls: [
             {
               path: '@/features/payload-cms/payload-cms/components/multi-lang-publishing/publishing-status-client',
+              clientProps: {
+                isGlobal: true,
+              },
             },
           ],
         },
