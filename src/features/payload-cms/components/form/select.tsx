@@ -2,7 +2,7 @@
 
 import { Required } from '@/features/payload-cms/components/form/required';
 import { fieldIsRequiredText } from '@/features/payload-cms/components/form/static-form-texts';
-import type { Locale } from '@/types/types';
+import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import type { SelectField } from '@payloadcms/plugin-form-builder/types';
@@ -41,6 +41,12 @@ export const Select: React.FC<
   const hasError = errors[name];
 
   const locale = useCurrentLocale(i18nConfig);
+
+  const noOptionsText: StaticTranslationString = {
+    de: 'Keine Optionen verfügbar',
+    en: 'No options available',
+    fr: "Aucune option n'est disponible",
+  };
 
   if (optionType === 'dropdown') {
     return (
@@ -88,6 +94,7 @@ export const Select: React.FC<
                   }
                 }}
                 options={options}
+                noOptionsMessage={() => noOptionsText[locale as Locale]}
                 value={
                   allowMultiple
                     ? // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
@@ -111,7 +118,7 @@ export const Select: React.FC<
                       },
                     ),
                   valueContainer: () => 'px-0 py-0',
-                  input: () => 'font-body text-base text-gray-600 m-0 p-0',
+                  input: () => 'font-body text-base text-gray-600 m-0 p-0 cursor-pointer',
                   singleValue: () => 'font-body text-base text-gray-600 m-0',
                   multiValue: () => 'bg-green-100 text-green-700 rounded px-2 py-1 m-1 text-xs',
                   multiValueLabel: () => 'font-medium',
@@ -124,7 +131,7 @@ export const Select: React.FC<
                     'mt-1 rounded-md overflow-hidden shadow-lg bg-white border border-gray-200 z-50',
                   menuList: () => 'py-1',
                   option: (state) =>
-                    cn('font-body text-base px-3 py-2 cursor-pointer transition-colors', {
+                    cn('font-body text-base px-3 py-2 transition-colors', {
                       'bg-green-600 text-white': state.isSelected,
                       'bg-green-50 text-gray-600': state.isFocused && !state.isSelected,
                       'bg-white text-gray-600 hover:bg-green-50':
