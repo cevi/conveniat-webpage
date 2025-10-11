@@ -12,7 +12,14 @@ export const findChatByUuid = async (
       hasDeleted: boolean;
       chatPermission: ChatMembershipPermission;
     }[];
-  } & { uuid: string; name: string; lastUpdate: Date; createdAt: Date; archivedAt: Date | null }
+  } & {
+    uuid: string;
+    name: string;
+    lastUpdate: Date;
+    createdAt: Date;
+    archivedAt: Date | null;
+    type: string;
+  }
 > => {
   if (chatId === '') {
     throw new Error('Chat ID is required to find a chat.');

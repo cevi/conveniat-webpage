@@ -58,7 +58,7 @@ export const DeleteChat: React.FC = () => {
         aria-label={'Delete Chat'}
         onClick={handleDeleteChat}
         disabled={updateChatMutation.isPending || deleteChatMutation.isPending}
-        className="mt-4 w-full rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none"
+        className="mt-4 w-full cursor-pointer rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none"
       >
         {localizedDeleteChat[locale]}
       </button>
