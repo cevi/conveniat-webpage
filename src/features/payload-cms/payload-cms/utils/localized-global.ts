@@ -97,7 +97,11 @@ export const asLocalizedGlobal = (config: GlobalConfig): GlobalConfig => {
     // versioning must be enabled for localized collections
     versions: {
       max: 100,
-      drafts: true,
+      drafts: {
+        autosave: {
+          interval: 1000,
+        },
+      },
     },
   };
 };
