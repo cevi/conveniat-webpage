@@ -64,6 +64,7 @@ export const getChat = trpcBaseProcedure
       ),
       id: chat.uuid,
       archivedAt: chat.archivedAt,
+      type: chat.type,
       messages: messages.map((message) => ({
         id: message.uuid,
         createdAt: message.createdAt,

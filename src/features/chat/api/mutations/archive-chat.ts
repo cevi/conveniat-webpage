@@ -2,7 +2,6 @@ import { canUserArchiveChat } from '@/features/chat/api/checks/can-user-archive-
 import { findChatByUuid } from '@/features/chat/api/database-interactions/find-chat-by-uuid';
 import { markChatAsArchived } from '@/features/chat/api/database-interactions/mark-chat-as-archived';
 import { markChatAsDeletedForUser } from '@/features/chat/api/database-interactions/mark-chat-as-deleted-for-user';
-import { ChatType } from '@/lib/prisma';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { TRPCError } from '@trpc/server';
@@ -21,14 +20,7 @@ export const archiveChat = trpcBaseProcedure
 
     const chat = await findChatByUuid(chatUuid, prisma);
 
-    if (chat.type === ChatType.EMERGENCY) {
-      // TODO: how to handle this on the emergency-responder side?
-      await markChatAsArchived(chat, prisma);
-      await markChatAsDeletedForUser(chat, user, prisma);
-      return;
-    }
-
-    if (!canUserArchiveChat(user, chat.chatMemberships)) {
+    if (!canUserArchiveChat(user, chat)) {
       throw new TRPCError({
         code: 'FORBIDDEN',
         message: `User ${user.uuid} does not have permission to archive chat ${chatUuid}.`,

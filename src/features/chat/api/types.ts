@@ -19,6 +19,7 @@ interface ChatParticipant {
 export interface ChatDetails {
   name: string;
   id: string;
+  type: string;
   archivedAt: Date | null;
   messages: ChatMessage[];
   participants: ChatParticipant[];
