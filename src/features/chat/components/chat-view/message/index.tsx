@@ -1,4 +1,5 @@
 import type { ChatMessage } from '@/features/chat/api/types';
+import { LocationMessage } from '@/features/chat/components/chat-view/message/location-message';
 import { MessageInfoDropdown } from '@/features/chat/components/chat-view/message/message-info-dropdown';
 import { SystemMessage } from '@/features/chat/components/chat-view/message/system-message';
 import { formatMessageContent } from '@/features/chat/components/chat-view/message/utils/format-message-content';
@@ -10,7 +11,6 @@ import { cn } from '@/utils/tailwindcss-override';
 import { Check, MoreHorizontal, UserCircle } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useState } from 'react';
-import { LocationMessage } from '@/features/chat/components/chat-view/message/location-message';
 
 const messageOptionsAriaLabel: StaticTranslationString = {
   de: 'Nachrichten-Optionen',

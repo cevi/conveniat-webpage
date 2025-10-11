@@ -2,13 +2,13 @@
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useArchiveChatMutation } from '@/features/chat/hooks/use-archive-chat-mutation';
 import { useUpdateChatMutation } from '@/features/chat/hooks/use-update-chat-mutation';
+import { useUserCanArchiveChat } from '@/features/chat/hooks/use-user-can-archive';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import { useRouter } from 'next/navigation';
 import type React from 'react';
-import { useUserCanArchiveChat } from '@/features/chat/hooks/use-user-can-archive';
 
 const localizedDeleteChat: StaticTranslationString = {
   en: 'Delete Chat',
