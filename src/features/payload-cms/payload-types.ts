@@ -194,7 +194,7 @@ export interface Blog {
             root: {
               type: string;
               children: {
-                type: string;
+                type: any;
                 version: number;
                 [k: string]: unknown;
               }[];
@@ -315,7 +315,7 @@ export interface Blog {
             root: {
               type: string;
               children: {
-                type: string;
+                type: any;
                 version: number;
                 [k: string]: unknown;
               }[];
@@ -524,7 +524,7 @@ export interface Form {
                   root: {
                     type: string;
                     children: {
-                      type: string;
+                      type: any;
                       version: number;
                       [k: string]: unknown;
                     }[];
@@ -563,7 +563,7 @@ export interface Form {
                   root: {
                     type: string;
                     children: {
-                      type: string;
+                      type: any;
                       version: number;
                       [k: string]: unknown;
                     }[];
@@ -663,7 +663,7 @@ export interface Form {
                             root: {
                               type: string;
                               children: {
-                                type: string;
+                                type: any;
                                 version: number;
                                 [k: string]: unknown;
                               }[];
@@ -702,7 +702,7 @@ export interface Form {
                             root: {
                               type: string;
                               children: {
-                                type: string;
+                                type: any;
                                 version: number;
                                 [k: string]: unknown;
                               }[];
@@ -809,7 +809,7 @@ export interface Form {
     root: {
       type: string;
       children: {
-        type: string;
+        type: any;
         version: number;
         [k: string]: unknown;
       }[];
@@ -841,7 +841,7 @@ export interface Form {
           root: {
             type: string;
             children: {
-              type: string;
+              type: any;
               version: number;
               [k: string]: unknown;
             }[];
@@ -994,7 +994,7 @@ export interface DetailsTable {
     root: {
       type: string;
       children: {
-        type: string;
+        type: any;
         version: number;
         [k: string]: unknown;
       }[];
@@ -1012,7 +1012,7 @@ export interface DetailsTable {
           root: {
             type: string;
             children: {
-              type: string;
+              type: any;
               version: number;
               [k: string]: unknown;
             }[];
@@ -1039,7 +1039,7 @@ export interface AccordionBlocks {
     root: {
       type: string;
       children: {
-        type: string;
+        type: any;
         version: number;
         [k: string]: unknown;
       }[];
@@ -1085,7 +1085,7 @@ export interface PlainTextBlock {
     root: {
       type: string;
       children: {
-        type: string;
+        type: any;
         version: number;
         [k: string]: unknown;
       }[];
@@ -1182,7 +1182,7 @@ export interface GenericPage {
             root: {
               type: string;
               children: {
-                type: string;
+                type: any;
                 version: number;
                 [k: string]: unknown;
               }[];
@@ -1303,7 +1303,7 @@ export interface GenericPage {
             root: {
               type: string;
               children: {
-                type: string;
+                type: any;
                 version: number;
                 [k: string]: unknown;
               }[];
@@ -1356,7 +1356,7 @@ export interface SummaryBox {
     root: {
       type: string;
       children: {
-        type: string;
+        type: any;
         version: number;
         [k: string]: unknown;
       }[];
@@ -1445,7 +1445,7 @@ export interface Timeline {
               root: {
                 type: string;
                 children: {
-                  type: string;
+                  type: any;
                   version: number;
                   [k: string]: unknown;
                 }[];
@@ -1529,7 +1529,7 @@ export interface CampMapAnnotation {
     root: {
       type: string;
       children: {
-        type: string;
+        type: any;
         version: number;
         [k: string]: unknown;
       }[];
@@ -1595,7 +1595,7 @@ export interface CampScheduleEntry {
     root: {
       type: string;
       children: {
-        type: string;
+        type: any;
         version: number;
         [k: string]: unknown;
       }[];
