@@ -71,6 +71,7 @@ export const getChat = trpcBaseProcedure
         messagePayload: message.contentVersions[0]?.payload ?? {},
         senderId: message.senderId ?? undefined,
         status: getStatusFromMessageEvents(message.messageEvents),
+        type: message.type,
       })),
       participants: chat.chatMemberships.map((membership) => ({
         id: membership.user.uuid,

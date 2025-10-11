@@ -7,6 +7,7 @@ export interface ChatMessage {
   messagePayload: string | number | boolean | JsonObject | JsonArray;
   senderId: string | undefined;
   status: MessageEventType;
+  type: string;
 }
 
 interface ChatParticipant {

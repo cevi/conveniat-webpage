@@ -29,7 +29,9 @@ export const useUserCanArchiveChat = (chatId: string): boolean => {
 
   if (!currentUserMembership) return false;
 
-  if (permissionsWhichAllowArchiving.includes(currentUserMembership?.chatPermission)) {
+  if (permissionsWhichAllowArchiving.includes(currentUserMembership.chatPermission)) {
     return true;
   }
+
+  return false;
 };

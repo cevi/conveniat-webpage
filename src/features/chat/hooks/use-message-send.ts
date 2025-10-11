@@ -1,5 +1,5 @@
 import type { ChatDetails, ChatMessage } from '@/features/chat/api/types';
-import { MessageEventType } from '@/lib/prisma/client';
+import { ChatType, MessageEventType, MessageType } from '@/lib/prisma/client';
 import { trpc } from '@/trpc/client';
 import type { AppRouter } from '@/trpc/routers/_app';
 import type { TRPCClientErrorLike } from '@trpc/client';
@@ -32,6 +32,7 @@ export const useMessageSend = (): UseMessageSendMutation => {
         createdAt: new Date(),
         senderId: currentUser,
         status: MessageEventType.CREATED,
+        type: MessageType.TEXT_MSG,
       };
 
       // optimistically update the chat details
@@ -46,6 +47,7 @@ export const useMessageSend = (): UseMessageSendMutation => {
               participants: [],
               id: chatId,
               messages: [optimisticMessage],
+              type: ChatType.ONE_TO_ONE,
             };
           }
           return {
@@ -68,6 +70,7 @@ export const useMessageSend = (): UseMessageSendMutation => {
                 messagePreview: optimisticMessage.messagePayload.toString(),
                 createdAt: optimisticMessage.createdAt,
                 status: optimisticMessage.status,
+                type: optimisticMessage.type,
               },
               lastUpdate: optimisticMessage.createdAt,
               unreadCount: 0,

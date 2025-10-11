@@ -8,7 +8,7 @@ import { cn } from '@/utils/tailwindcss-override';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import { useRouter } from 'next/navigation';
 import type React from 'react';
-import { useUserCanArchiveChat } from '../../hooks/use-user-can-archive';
+import { useUserCanArchiveChat } from '@/features/chat/hooks/use-user-can-archive';
 
 const localizedDeleteChat: StaticTranslationString = {
   en: 'Delete Chat',
