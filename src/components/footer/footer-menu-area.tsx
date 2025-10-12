@@ -20,7 +20,7 @@ const renderMenuItem = (menuItem: FooterMenuItem): React.JSX.Element => {
     );
 
   return (
-    <LinkComponent href={menuItem.link} className="leading-[24px]">
+    <LinkComponent href={menuItem.link} className="leading-[24px]" key={menuItem.id}>
       <span className="font-inter text-[14px] leading-[24px] font-normal text-green-600">
         {menuItem.label}
       </span>
