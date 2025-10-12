@@ -284,7 +284,7 @@ export const RenderSinglePicture: SectionRenderer<{
         <Image
           src={block.image.sizes?.large?.url ?? block.image.url}
           alt={(block.image.alt as undefined | string) ?? 'copyright by conveniat27'}
-          className="block rounded-2xl object-cover"
+          className="block rounded-2xl object-contain"
           fill
         />
       </div>
