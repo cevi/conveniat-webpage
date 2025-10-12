@@ -27,7 +27,7 @@ const createTitleElement = (
 
   return (
     <button className="group flex w-full cursor-pointer flex-col items-center gap-4 rounded-md px-2 py-4 text-center transition-colors md:flex-row md:py-2 md:text-left">
-      <div className="relative h-48 w-48 overflow-hidden rounded-full md:h-24 md:w-24">
+      <div className="relative h-48 w-48 flex-shrink-0 overflow-hidden rounded-full md:h-24 md:w-24">
         {<TeamLeaderPortrait name={name} portrait={portrait} hoverEffect={false} />}
       </div>
       <div className="w-full">
