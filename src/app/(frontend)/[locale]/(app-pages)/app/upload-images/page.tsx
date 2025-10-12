@@ -84,7 +84,7 @@ const ImageUploadPage: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [userDescription, setUserDescription] = useState('');
+  const [fileDescriptions, setFileDescriptions] = useState<Record<string, string>>({});
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [rightsTransferred, setRightsTransferred] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -143,12 +143,24 @@ const ImageUploadPage: React.FC = () => {
   };
 
   const removeFile = (index: number): void => {
-    setSelectedFiles((previous) => previous.filter((_, index_) => index_ !== index));
+    setSelectedFiles((previous) => {
+      const fileToRemove = previous[index];
+      setFileDescriptions((previous_) => {
+        const updated = { ...previous_ };
+        delete updated[fileToRemove?.name ?? ''];
+        return updated;
+      });
+      return previous.filter((_, index_) => index_ !== index);
+    });
+  };
+
+  const handleDescriptionChange = (fileName: string, description: string): void => {
+    setFileDescriptions((previous) => ({ ...previous, [fileName]: description }));
   };
 
   const clearForm = (): void => {
     setSelectedFiles([]);
-    setUserDescription('');
+    setFileDescriptions({});
     setPrivacyAccepted(false);
     setRightsTransferred(false);
     setErrorMessage('');
@@ -168,7 +180,11 @@ const ImageUploadPage: React.FC = () => {
       return;
     }
 
-    if (userDescription.trim() === '') {
+    const missingDescriptions = selectedFiles.some(
+      (file) => !fileDescriptions[file.name] || fileDescriptions[file.name]?.trim() === '',
+    );
+
+    if (missingDescriptions) {
       setErrorMessage(descriptionRequired[locale]);
       return;
     }
@@ -183,7 +199,8 @@ const ImageUploadPage: React.FC = () => {
     try {
       const uploadResults = await Promise.all(
         selectedFiles.map(async (file) => {
-          const response = await uploadUserImage(file, userDescription.trim());
+          const description = fileDescriptions[file.name]?.trim() ?? '';
+          const response = await uploadUserImage(file, description);
           return response;
         }),
       );
@@ -204,7 +221,7 @@ const ImageUploadPage: React.FC = () => {
 
   const isSubmitDisabled =
     selectedFiles.length === 0 ||
-    userDescription.trim() === '' ||
+    Object.values(fileDescriptions).some((desc) => desc.trim() === '') ||
     !privacyAccepted ||
     !rightsTransferred;
 
@@ -271,9 +288,18 @@ const ImageUploadPage: React.FC = () => {
           )}
 
           <FileUploadZone onFileSelect={handleFileSelect} />
-          <FilePreviewList files={selectedFiles} onRemoveFile={removeFile} />
-          {selectedFiles.length > 0 && <hr className="border-gray-200" />}
-          <DescriptionInput value={userDescription} onChange={setUserDescription} />
+          {selectedFiles.map((file, index) => (
+            <div key={file.name} className="mb-6">
+              <FilePreviewList files={[file]} onRemoveFile={() => removeFile(index)} />
+              <div className="mt-3">
+                <DescriptionInput
+                  value={fileDescriptions[file.name] || ''}
+                  onChange={(desc) => handleDescriptionChange(file.name, desc)}
+                />
+              </div>
+              <hr className="my-4 border-gray-200" />
+            </div>
+          ))}
           <hr className="border-gray-200" />
           <ConfirmationCheckboxes
             privacyAccepted={privacyAccepted}
