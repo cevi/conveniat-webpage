@@ -59,7 +59,7 @@ export const swisstopoMapEmbedBlock: Block = {
             {
               name: 'coordinates',
               type: 'point',
-              defaultValue: [8.303_628, 46.502992],
+              defaultValue: [8.303_628, 46.502_992],
               admin: {
                 description: 'Coordinates of the annotation on the map.',
                 components: {
