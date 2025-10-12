@@ -40,9 +40,12 @@ export const CookieBanner: React.FC = () => {
 
   return (
     <div className="fixed right-0 bottom-0 left-0 z-50 p-4">
-      <div className="rounded-lg bg-gray-800 px-4 py-2 font-bold text-white shadow-lg">
-        {staticCookieString[locale]}
-        <button onClick={acceptCookies} className="ml-4 rounded-sm bg-white p-2 text-gray-500">
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-gray-800 px-4 py-2 font-bold text-white shadow-lg">
+        <span className="flex-1">{staticCookieString[locale]}</span>
+        <button
+          onClick={acceptCookies}
+          className="cursor-pointer rounded-sm bg-white px-3 py-2 font-semibold text-gray-800"
+        >
           {staticCookieAcceptString[locale]}
         </button>
       </div>
