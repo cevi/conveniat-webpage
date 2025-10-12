@@ -4,16 +4,18 @@ import { Button } from '@/components/ui/buttons/button';
 import { ChatPreview } from '@/features/chat/components/chat-overview-view/chat-preview';
 import { QRCodeClientComponent } from '@/features/chat/components/qr-component';
 import { useChats } from '@/features/chat/hooks/use-chats';
+import { FeatureSettingsKeyWords } from '@/types/feature-settings';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { whichFeaturesEnabled } from '@/utils/feature-settings';
 import { cn } from '@/utils/tailwindcss-override';
 import { ChatType } from '@prisma/client';
 import { MessageSquare, MessageSquarePlus } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
 import type React from 'react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 const searchPlaceholderText: StaticTranslationString = {
   en: 'Search conversations...',
@@ -77,6 +79,24 @@ export const ChatsOverviewClientComponent: React.FC<{ user: HitobitoNextAuthUser
   const { data: chats, isLoading } = useChats();
 
   const [searchQuery, setSearchQuery] = useState('');
+
+  const [isNewChatEnabled, setIsNewChatEnabled] = useState<boolean>(false);
+  const [newChatsOnlyQR, setNewChatsOnlyQR] = useState<boolean>(false);
+
+  useEffect(() => {
+    const fetchFeatureFlags = async (): Promise<void> => {
+      const enabledFeatures = await whichFeaturesEnabled([
+        FeatureSettingsKeyWords.ChatEnableNewChats,
+        FeatureSettingsKeyWords.ChatEnableNewChatsOnlyQR,
+      ]);
+
+      setIsNewChatEnabled(enabledFeatures[FeatureSettingsKeyWords.ChatEnableNewChats]);
+      setNewChatsOnlyQR(enabledFeatures[FeatureSettingsKeyWords.ChatEnableNewChatsOnlyQR]);
+    };
+
+    void fetchFeatureFlags();
+  }, []);
+
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
   // Filter chats based on a search query
@@ -98,13 +118,18 @@ export const ChatsOverviewClientComponent: React.FC<{ user: HitobitoNextAuthUser
       />
 
       {/* New Chat Button */}
-      <div className="flex justify-end gap-2">
-        <Link className="flex justify-end" href="/app/chat/new">
-          <MessageSquarePlus />
-        </Link>
+      {isNewChatEnabled && (
+        <div className="flex justify-end gap-2">
+          {!newChatsOnlyQR && (
+            <Link className="flex justify-end" href="/app/chat/new">
+              <MessageSquarePlus />
+            </Link>
+          )}
 
-        <QRCodeClientComponent url={user.uuid} />
-      </div>
+          <QRCodeClientComponent url={user.uuid} />
+        </div>
+      )}
+
       {/* Loading State */}
       {isLoading && <ChatsOverviewLoadingPlaceholder />}
       {/* Empty State */}

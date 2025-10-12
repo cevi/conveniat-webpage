@@ -3,5 +3,12 @@ import { HeaderGlobal } from '@/features/payload-cms/payload-cms/globals/header-
 import { PWAGlobal } from '@/features/payload-cms/payload-cms/globals/pwa-global';
 import { SeoGlobal } from '@/features/payload-cms/payload-cms/globals/seo-global';
 import type { GlobalConfig } from 'payload';
+import { SettingsGlobal } from '@/features/payload-cms/payload-cms/globals/settings-global';
 
-export const globalConfig: GlobalConfig[] = [HeaderGlobal, FooterGlobal, SeoGlobal, PWAGlobal];
+export const globalConfig: GlobalConfig[] = [
+  HeaderGlobal,
+  FooterGlobal,
+  SeoGlobal,
+  PWAGlobal,
+  SettingsGlobal,
+];

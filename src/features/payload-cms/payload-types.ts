@@ -107,12 +107,14 @@ export interface Config {
     footer: Footer;
     SEO: SEO;
     PWA: PWA;
+    settings: Setting;
   };
   globalsSelect: {
     header: HeaderSelect<false> | HeaderSelect<true>;
     footer: FooterSelect<false> | FooterSelect<true>;
     SEO: SEOSelect<false> | SEOSelect<true>;
     PWA: PWASelect<false> | PWASelect<true>;
+    settings: SettingsSelect<false> | SettingsSelect<true>;
   };
   locale: 'en' | 'de' | 'fr';
   user: User & {
@@ -3115,6 +3117,23 @@ export interface PWA {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "settings".
+ */
+export interface Setting {
+  id: string;
+  /**
+   * Enable or disable the ability for users to start new chats.
+   */
+  chatEnableNewChats?: boolean | null;
+  /**
+   * If enabled, new chats can only be started via QR codes. Existing chats can still be used.
+   */
+  chatEnableNewChatsOnlyQR?: boolean | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "header_select".
  */
 export interface HeaderSelect<T extends boolean = true> {
@@ -3229,6 +3248,17 @@ export interface PWASelect<T extends boolean = true> {
   appName?: T;
   appShortName?: T;
   appDescription?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "settings_select".
+ */
+export interface SettingsSelect<T extends boolean = true> {
+  chatEnableNewChats?: T;
+  chatEnableNewChatsOnlyQR?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
