@@ -31,7 +31,7 @@ export const PermissionsCollection: CollectionConfig = {
   },
   admin: {
     group: AdminPanelDashboardGroups.InternalCollections,
-    groupBy: false,
+    groupBy: true,
     /** this is broken with our localized versions */
     disableCopyToLocale: true,
     defaultColumns: ['permissionName', 'permissions'],

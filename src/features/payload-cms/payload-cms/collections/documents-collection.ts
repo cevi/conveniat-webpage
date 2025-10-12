@@ -19,7 +19,7 @@ export const DocumentsCollection: CollectionConfig = {
   },
   admin: {
     group: AdminPanelDashboardGroups.InternalCollections,
-    groupBy: false,
+    groupBy: true,
     /** this is broken with our localized versions */
     disableCopyToLocale: true,
   },

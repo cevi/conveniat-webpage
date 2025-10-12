@@ -28,7 +28,7 @@ export const GenericPage: CollectionConfig = asLocalizedCollection({
   defaultSort: 'internalPageName',
   admin: {
     group: AdminPanelDashboardGroups.PagesAndContent,
-    groupBy: false,
+    groupBy: true,
     /** this is broken with our localized versions */
     disableCopyToLocale: true,
     useAsTitle: 'internalPageName',
