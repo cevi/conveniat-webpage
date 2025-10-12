@@ -1,6 +1,6 @@
 import { asLocalizedGlobal } from '@/features/payload-cms/payload-cms/utils/localized-global';
 import type { GlobalConfig } from 'payload';
-import { LinkField } from '../shared-fields/link-field';
+import { LinkField } from '@/features/payload-cms/payload-cms/shared-fields/link-field';
 
 export const FooterGlobal: GlobalConfig = asLocalizedGlobal({
   slug: 'footer',
