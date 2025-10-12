@@ -3015,7 +3015,20 @@ export interface Footer {
   minimalFooterMenu?:
     | {
         label: string;
-        link?: string | null;
+        linkField?: {
+          type?: ('reference' | 'custom') | null;
+          reference?:
+            | ({
+                relationTo: 'blog';
+                value: string | Blog;
+              } | null)
+            | ({
+                relationTo: 'generic-page';
+                value: string | GenericPage;
+              } | null);
+          url?: string | null;
+          openInNewTab?: boolean | null;
+        };
         id?: string | null;
       }[]
     | null;
@@ -3155,7 +3168,14 @@ export interface FooterSelect<T extends boolean = true> {
     | T
     | {
         label?: T;
-        link?: T;
+        linkField?:
+          | T
+          | {
+              type?: T;
+              reference?: T;
+              url?: T;
+              openInNewTab?: T;
+            };
         id?: T;
       };
   footerMenu?:
