@@ -40,6 +40,9 @@ export const SlugField = (collectionName: CustomSlugComponentProperties): TextFi
           collectionName,
         },
       },
+      Cell: {
+        path: '@/features/payload-cms/payload-cms/components/slug/slug-cell#SlugCell',
+      },
     },
   },
 });
