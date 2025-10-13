@@ -21,6 +21,9 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 
+// TODO: this should only be enabled in app mode
+const enableSearch: boolean = false; // Set to true to enable the search bar
+
 /**
  * Factory function to create a DOM element with the Cevi Logo SVG.
  * Used by the `useCeviLogoMarkers` hook.
@@ -116,7 +119,8 @@ export const MapLibreRenderer = ({
         />
       )}
       <div className="h-full w-full" ref={mapContainerReference} />
-      <SearchBar onSearch={handleSearch} />
+      {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */}
+      {enableSearch && <SearchBar onSearch={handleSearch} />}
       <MaplibreMap
         openAnnotation={openAnnotation}
         setOpenAnnotation={setOpenAnnotation}
