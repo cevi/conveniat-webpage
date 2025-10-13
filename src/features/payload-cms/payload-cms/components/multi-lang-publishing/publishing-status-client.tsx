@@ -25,11 +25,14 @@ export const PublishingStatusBadges: React.FC<{
   );
 };
 
-const PublishingStatus: React.FC<{ path: string }> = ({ path }) => {
+const PublishingStatus: React.FC<{ path: string; isGlobal?: boolean | undefined }> = ({
+  path,
+  isGlobal = false,
+}) => {
   const [fields] = useAllFormFields();
   const publishingStatusDefault = fields['publishingStatus']?.value as PublishingStatusType;
 
-  const { id, collectionSlug } = useDocumentInfo();
+  const { id, collectionSlug, globalSlug } = useDocumentInfo();
 
   const [publishingStatus, setPublishingStatus] =
     useState<PublishingStatusType>(publishingStatusDefault);
@@ -43,9 +46,9 @@ const PublishingStatus: React.FC<{ path: string }> = ({ path }) => {
     debounceTimeout.current = setTimeout(() => {
       const fetchPublishingStatus = async (): Promise<void> => {
         try {
-          const response = await fetch(
-            `/api/${collectionSlug}/${id}?depth=0&draft=false?locale=all`,
-          );
+          const response = await (isGlobal
+            ? fetch(`/api/globals/${globalSlug}?depth=0&draft=false?locale=all`)
+            : fetch(`/api/${collectionSlug}/${id}?depth=0&draft=false?locale=all`));
           const data = (await response.json()) as
             | { publishingStatus: PublishingStatusType | undefined }
             | undefined;
@@ -64,7 +67,7 @@ const PublishingStatus: React.FC<{ path: string }> = ({ path }) => {
         clearTimeout(debounceTimeout.current);
       }
     };
-  }, [collectionSlug, fields, id, path, publishingStatusDefault]);
+  }, [collectionSlug, globalSlug, isGlobal, fields, id, path, publishingStatusDefault]);
 
   return <PublishingStatusBadges publishingStatus={publishingStatus} />;
 };

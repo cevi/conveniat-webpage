@@ -1,3 +1,4 @@
+import { LinkField } from '@/features/payload-cms/payload-cms/shared-fields/link-field';
 import { asLocalizedGlobal } from '@/features/payload-cms/payload-cms/utils/localized-global';
 import type { GlobalConfig } from 'payload';
 
@@ -28,24 +29,11 @@ export const FooterGlobal: GlobalConfig = asLocalizedGlobal({
       fields: [
         {
           name: 'label',
-          label: {
-            en: 'Label',
-            de: 'Bezeichnung',
-            fr: 'Libellé',
-          },
+          label: 'Label',
           type: 'text',
           required: true,
         },
-        {
-          name: 'link',
-          label: {
-            en: 'Link',
-            de: 'Link',
-            fr: 'Lien',
-          },
-          type: 'text',
-          required: false,
-        },
+        LinkField(),
       ],
     },
 

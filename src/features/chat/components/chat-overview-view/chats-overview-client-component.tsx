@@ -1,6 +1,6 @@
 'use client';
+import { AppSearchBar } from '@/components/ui/app-search-bar';
 import { Button } from '@/components/ui/buttons/button';
-import { Input } from '@/components/ui/input';
 import { ChatPreview } from '@/features/chat/components/chat-overview-view/chat-preview';
 import { QRCodeClientComponent } from '@/features/chat/components/qr-component';
 import { useChats } from '@/features/chat/hooks/use-chats';
@@ -9,7 +9,7 @@ import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { ChatType } from '@prisma/client';
-import { MessageSquare, MessageSquarePlus, Search } from 'lucide-react';
+import { MessageSquare, MessageSquarePlus } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
 import type React from 'react';
@@ -90,15 +90,13 @@ export const ChatsOverviewClientComponent: React.FC<{ user: HitobitoNextAuthUser
   return (
     <div className="flex flex-col space-y-6">
       {/* Search Bar */}
-      <div className="relative">
-        <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
-        <Input
-          placeholder={searchPlaceholderText[locale]}
-          className="font-body focus:border-conveniat-green focus:ring-conveniat-green border-gray-300 bg-white pl-10"
-          value={searchQuery}
-          onChange={(changeEvent) => setSearchQuery(changeEvent.target.value)}
-        />
-      </div>
+
+      <AppSearchBar
+        placeholder={searchPlaceholderText[locale]}
+        value={searchQuery}
+        onChange={(event) => setSearchQuery(event.target.value)}
+      />
+
       {/* New Chat Button */}
       <div className="flex justify-end gap-2">
         <Link className="flex justify-end" href="/app/chat/new">

@@ -2,8 +2,10 @@
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useArchiveChatMutation } from '@/features/chat/hooks/use-archive-chat-mutation';
 import { useUpdateChatMutation } from '@/features/chat/hooks/use-update-chat-mutation';
+import { useUserCanArchiveChat } from '@/features/chat/hooks/use-user-can-archive';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import { useRouter } from 'next/navigation';
 import type React from 'react';
@@ -33,6 +35,8 @@ export const DeleteChat: React.FC = () => {
   const deleteChatMutation = useArchiveChatMutation();
   const updateChatMutation = useUpdateChatMutation();
 
+  const canUserArchiveChat = useUserCanArchiveChat(chatId);
+
   const handleDeleteChat = (): void => {
     deleteChatMutation.mutate({ chatUuid: chatId });
     /*
@@ -57,8 +61,14 @@ export const DeleteChat: React.FC = () => {
       <button
         aria-label={'Delete Chat'}
         onClick={handleDeleteChat}
-        disabled={updateChatMutation.isPending || deleteChatMutation.isPending}
-        className="mt-4 w-full rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none"
+        disabled={
+          !canUserArchiveChat || updateChatMutation.isPending || deleteChatMutation.isPending
+        }
+        className={cn('mt-4 w-full rounded-md px-4 py-2', {
+          'cursor-pointer bg-red-600 text-white hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none':
+            canUserArchiveChat,
+          'cursor-not-allowed bg-gray-300 text-gray-500': !canUserArchiveChat,
+        })}
       >
         {localizedDeleteChat[locale]}
       </button>

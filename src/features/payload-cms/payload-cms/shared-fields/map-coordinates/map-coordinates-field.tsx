@@ -40,7 +40,7 @@ const MapCoordinatesField: PointFieldClientComponent = ({ path }) => {
             .setLngLat(lngLat)
             .addTo(mapReference.current);
 
-          markerReference.current.on('dragend', () => {
+          markerReference.current.on('dragged', () => {
             const newLngLat = markerReference.current?.getLngLat();
             if (!newLngLat) return;
             setValue([newLngLat.lng, newLngLat.lat]);

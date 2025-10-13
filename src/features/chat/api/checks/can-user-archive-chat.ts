@@ -1,5 +1,5 @@
 import { isUserMemberOfChat } from '@/features/chat/api/checks/is-user-member-of-chat';
-import { ChatMembershipPermission } from '@/lib/prisma/client';
+import { ChatMembershipPermission, ChatType } from '@/lib/prisma/client';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 
 /**
@@ -12,9 +12,14 @@ import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
  */
 export const canUserArchiveChat = (
   user: HitobitoNextAuthUser,
-  chatMemberships: { userId: string; chatPermission: ChatMembershipPermission }[],
+  chat: {
+    type: string;
+    chatMemberships: { userId: string; chatPermission: ChatMembershipPermission }[];
+  },
 ): boolean => {
   const userUuid = user.uuid;
+
+  const chatMemberships = chat.chatMemberships;
 
   // verify the integrity of chatMemberships
   if (!Array.isArray(chatMemberships) || chatMemberships.length === 0) return false;
@@ -33,5 +38,13 @@ export const canUserArchiveChat = (
     ChatMembershipPermission.ADMIN,
   ];
 
-  return permissionsWhichAllowArchiving.includes(userMembership.chatPermission);
+  if (permissionsWhichAllowArchiving.includes(userMembership.chatPermission)) {
+    return true;
+  }
+
+  if (chat.type === ChatType.EMERGENCY) {
+    return true; // user can delete emergency chats regardless of their permission level
+  }
+
+  return false;
 };

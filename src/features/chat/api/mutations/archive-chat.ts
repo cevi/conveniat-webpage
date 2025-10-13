@@ -20,7 +20,7 @@ export const archiveChat = trpcBaseProcedure
 
     const chat = await findChatByUuid(chatUuid, prisma);
 
-    if (!canUserArchiveChat(user, chat.chatMemberships)) {
+    if (!canUserArchiveChat(user, chat)) {
       throw new TRPCError({
         code: 'FORBIDDEN',
         message: `User ${user.uuid} does not have permission to archive chat ${chatUuid}.`,

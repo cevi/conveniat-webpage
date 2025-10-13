@@ -1,12 +1,12 @@
 import type React from 'react';
 import { useCallback } from 'react';
 
+import { AppSearchBar } from '@/components/ui/app-search-bar';
 import { Button } from '@/components/ui/buttons/button';
-import { Input } from '@/components/ui/input';
 import type { CampMapAnnotation } from '@/features/payload-cms/payload-types';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { Search, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 
 const searchPlaceholder: StaticTranslationString = {
@@ -16,9 +16,9 @@ const searchPlaceholder: StaticTranslationString = {
 };
 
 const clearAllText: StaticTranslationString = {
-  de: 'Alle löschen',
-  en: 'Clear All',
-  fr: 'Tout effacer',
+  de: 'Suche Zurücksetzen',
+  en: 'Reset search',
+  fr: 'Réinitialiser la recherche',
 };
 
 export interface FilterState {
@@ -67,19 +67,14 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
   return (
     <div className={`space-y-4 ${className}`}>
       {/* Search Input */}
-      <div className="relative">
-        <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
-        <Input
-          placeholder={searchPlaceholder[locale]}
-          value={filters.searchText}
-          onChange={(event) => handleSearchChange(event.target.value)}
-          className="pl-10"
-        />
-      </div>
-
+      <AppSearchBar
+        placeholder={searchPlaceholder[locale]}
+        value={filters.searchText}
+        onChange={(event) => handleSearchChange(event.target.value)}
+      />
       {/* Clear Filters */}
       {hasActiveFilters && (
-        <Button variant="ghost" size="sm" onClick={clearAllFilters} className="h-9">
+        <Button variant="ghost" size="sm" onClick={clearAllFilters} className="h-9 border">
           <X className="mr-2 h-4 w-4" />
           {clearAllText[locale]}
         </Button>

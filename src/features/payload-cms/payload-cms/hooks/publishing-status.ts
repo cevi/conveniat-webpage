@@ -141,8 +141,10 @@ const hasDiffs = (
     // unnamed fields which are not part of the data structure
 
     if (name !== undefined) {
-      value1 = document1[name] as unknown;
-      value2 = document2[name] as unknown;
+      try {
+        value1 = document1[name] as unknown;
+        value2 = document2[name] as unknown;
+      } catch {}
     }
 
     switch (type) {
@@ -225,6 +227,10 @@ const hasDiffs = (
         if (fields === undefined) throw new Error('Fields are undefined');
         const isValue1Iterable = Array.isArray(value1);
         if (isValue1Iterable) {
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-expect-error
+          if (value1.length !== value2.length) return true;
+
           for (const _value1 of value1 as { id: string }[]) {
             const idV1 = _value1.id;
 
@@ -246,9 +252,7 @@ const hasDiffs = (
           }
 
           // verify that the array elements are in the same order
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-expect-error
-          if (value1.length !== value2.length) return true;
+
           // eslint-disable-next-line @typescript-eslint/ban-ts-comment
           // @ts-expect-error
           // eslint-disable-next-line @typescript-eslint/no-unsafe-call
@@ -360,36 +364,36 @@ export const getPublishingStatusGlobal =
     const { data, req, global } = arguments_;
     const { payload } = req;
 
-    const id = data?.['id'] as string | unknown;
+    const id = data?.['id'] as string | undefined;
     if (id == undefined) return {};
 
     try {
-      const originalDocument = (await payload.findGlobal({
-        slug: config.slug as GlobalSlug,
-        select: { publishingStatus: false },
-        depth: 0,
-        locale: 'all',
-        draft: false,
-      })) as unknown as PayloadDocument;
-
-      const draftDocument = (await payload.findGlobal({
-        slug: config.slug as GlobalSlug,
-        select: { publishingStatus: false },
-        depth: 0,
-        locale: 'all',
-        draft: true,
-      })) as unknown as PayloadDocument;
-
       const fieldDefinition = (global?.fields as unknown as Field[] | undefined) ?? undefined;
       if (fieldDefinition === undefined) throw new Error('Field definitions are undefined');
 
-      const getLocaleState = (
+      const getLocaleState = async (
         locale: Config['locale'],
-      ): { pendingChanges: boolean; published: boolean } => {
+      ): Promise<{ pendingChanges: boolean; published: boolean }> => {
+        const originalDocument = (await payload.findGlobal({
+          slug: config.slug as GlobalSlug,
+          select: { publishingStatus: false },
+          depth: 0,
+          locale: locale,
+          draft: false,
+        })) as unknown as PayloadDocument;
+
+        const draftDocument = (await payload.findGlobal({
+          slug: config.slug as GlobalSlug,
+          select: { publishingStatus: false },
+          depth: 0,
+          locale: locale,
+          draft: true,
+        })) as unknown as PayloadDocument;
+
         return {
           pendingChanges: hasDiffs(locale, fieldDefinition, draftDocument, originalDocument),
           published: (
-            originalDocument['_localized_status']?.[locale] as unknown as {
+            originalDocument['_localized_status'] as unknown as {
               published: boolean;
             }
           )['published'],
@@ -397,9 +401,9 @@ export const getPublishingStatusGlobal =
       };
 
       return {
-        de: getLocaleState(LOCALE.DE),
-        en: getLocaleState(LOCALE.EN),
-        fr: getLocaleState(LOCALE.FR),
+        de: await getLocaleState(LOCALE.DE),
+        en: await getLocaleState(LOCALE.EN),
+        fr: await getLocaleState(LOCALE.FR),
       };
     } catch {
       // if the document is not found, we return an empty publishing status

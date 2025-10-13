@@ -14,6 +14,7 @@ import { UnorderedListFeatureClient as UnorderedListFeatureClient_e70f5e05f09f93
 import { AlignFeatureClient as AlignFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { default as default_c1c5209004cf90cf86c7efc1b3509bca } from '@/features/payload-cms/payload-cms/shared-fields/map-coordinates/map-coordinates-field'
 import { AccordionArrayRowLabel as AccordionArrayRowLabel_bc9931f10d1a1f60f5860e1fbc9733fe } from '@/features/payload-cms/payload-cms/components/accordion-row-label'
+import { SlugCell as SlugCell_23aae5ad6216cafbc86332dc844c7d94 } from '@/features/payload-cms/payload-cms/components/slug/slug-cell'
 import { SlugComponent as SlugComponent_f8d18e9ffd9ba326b0ef9eec14d7ac57 } from '@/features/payload-cms/payload-cms/components/slug/slug-component'
 import { default as default_b8a91c281781c959c4c68385023a0bcf } from '@/features/payload-cms/payload-cms/components/disable-actions/disable-many-actions'
 import { default as default_bfb7b08888889fc5b15d089d71fdfbc6 } from '@/features/payload-cms/payload-cms/components/multi-lang-publishing/publishing-status-client'
@@ -48,6 +49,7 @@ export const importMap = {
   "@payloadcms/richtext-lexical/client#AlignFeatureClient": AlignFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@/features/payload-cms/payload-cms/shared-fields/map-coordinates/map-coordinates-field#default": default_c1c5209004cf90cf86c7efc1b3509bca,
   "@/features/payload-cms/payload-cms/components/accordion-row-label#AccordionArrayRowLabel": AccordionArrayRowLabel_bc9931f10d1a1f60f5860e1fbc9733fe,
+  "@/features/payload-cms/payload-cms/components/slug/slug-cell#SlugCell": SlugCell_23aae5ad6216cafbc86332dc844c7d94,
   "@/features/payload-cms/payload-cms/components/slug/slug-component#SlugComponent": SlugComponent_f8d18e9ffd9ba326b0ef9eec14d7ac57,
   "@/features/payload-cms/payload-cms/components/disable-actions/disable-many-actions#default": default_b8a91c281781c959c4c68385023a0bcf,
   "@/features/payload-cms/payload-cms/components/multi-lang-publishing/publishing-status-client#default": default_bfb7b08888889fc5b15d089d71fdfbc6,

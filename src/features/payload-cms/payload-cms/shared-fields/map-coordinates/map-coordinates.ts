@@ -9,7 +9,11 @@ export const MapCoordinates: Field = {
   },
   type: 'group',
   admin: {
-    description: 'Coordinates of the annotation on the map.',
+    description: {
+      en: 'Coordinates of the annotation on the map.',
+      de: 'Koordinaten der Markierung auf der Karte',
+      fr: "Coordonnées de l'annotation sur la carte",
+    },
   },
   fields: [
     {

@@ -1,9 +1,10 @@
 import type { ChatMessage } from '@/features/chat/api/types';
+import { LocationMessage } from '@/features/chat/components/chat-view/message/location-message';
 import { MessageInfoDropdown } from '@/features/chat/components/chat-view/message/message-info-dropdown';
 import { SystemMessage } from '@/features/chat/components/chat-view/message/system-message';
 import { formatMessageContent } from '@/features/chat/components/chat-view/message/utils/format-message-content';
 import { useFormatDate } from '@/features/chat/hooks/use-format-date';
-import { MessageEventType } from '@/lib/prisma/client';
+import { MessageEventType, MessageType } from '@/lib/prisma/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -72,8 +73,12 @@ export const MessageComponent: React.FC<MessageProperties> = ({ message, isCurre
     }
   };
 
-  if (message.senderId === undefined) {
+  if (message.type === MessageType.SYSTEM_MSG) {
     return <SystemMessage message={message} />;
+  }
+
+  if (message.type === MessageType.LOCATION_MSG) {
+    return <LocationMessage message={message} />;
   }
 
   return (

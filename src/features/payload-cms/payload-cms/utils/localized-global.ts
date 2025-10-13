@@ -26,6 +26,9 @@ export const asLocalizedGlobal = (config: GlobalConfig): GlobalConfig => {
           beforeDocumentControls: [
             {
               path: '@/features/payload-cms/payload-cms/components/multi-lang-publishing/publishing-status-client',
+              clientProps: {
+                isGlobal: true,
+              },
             },
           ],
         },
@@ -94,7 +97,11 @@ export const asLocalizedGlobal = (config: GlobalConfig): GlobalConfig => {
     // versioning must be enabled for localized collections
     versions: {
       max: 100,
-      drafts: true,
+      drafts: {
+        autosave: {
+          interval: 1000,
+        },
+      },
     },
   };
 };

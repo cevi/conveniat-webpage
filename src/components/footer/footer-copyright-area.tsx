@@ -2,6 +2,10 @@ import { FooterGraphic } from '@/components/footer/footer-graphics';
 import { SocialMediaLinks } from '@/components/footer/social-media-links';
 import { CeviSchweiz } from '@/components/svg-logos/cevi-schweiz';
 import { LinkComponent } from '@/components/ui/link-component';
+import {
+  getURLForLinkField,
+  openURLInNewTab,
+} from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import type { StaticTranslationString } from '@/types/types';
 import { getBuildInfo } from '@/utils/get-build-info';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
@@ -28,7 +32,10 @@ const FooterMinimalMenu: React.FC = async () => {
     <div className="mb-2 flex justify-center gap-x-4 text-xs">
       {minimalFooterMenu.map((footerMenuElement) => (
         <Fragment key={footerMenuElement.id}>
-          <LinkComponent href={footerMenuElement.link ?? ''}>
+          <LinkComponent
+            href={getURLForLinkField(footerMenuElement.linkField, locale) ?? ''}
+            openInNewTab={openURLInNewTab(footerMenuElement.linkField)}
+          >
             {footerMenuElement.label}
           </LinkComponent>
         </Fragment>

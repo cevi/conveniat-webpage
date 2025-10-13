@@ -29,7 +29,7 @@ const LoginScreen: React.FC = () => {
         <p className="mb-4 text-balance text-gray-700">{loginText[locale]}</p>
         <button
           onClick={handleLogin}
-          className="font-heading rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg leading-normal font-bold text-red-100 duration-100 hover:bg-red-800"
+          className="font-heading cursor-pointer rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg leading-normal font-bold text-red-100 duration-100 hover:bg-red-800"
         >
           {loginButtonText[locale]}
         </button>

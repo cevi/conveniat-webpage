@@ -127,7 +127,7 @@ export const asLocalizedCollection = (config: CollectionConfig): CollectionConfi
       maxPerDoc: 100,
       drafts: {
         autosave: {
-          interval: 300,
+          interval: 1000,
         },
       },
     },

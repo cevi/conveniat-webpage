@@ -22,7 +22,7 @@ export const CampScheduleEntryCollection: CollectionConfig = {
   admin: {
     useAsTitle: 'title',
     group: AdminPanelDashboardGroups.AppContent,
-    groupBy: false,
+    groupBy: true,
     disableCopyToLocale: true,
   },
   access: {
