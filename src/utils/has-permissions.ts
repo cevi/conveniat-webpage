@@ -1,5 +1,4 @@
 import type { Permission } from '@/features/payload-cms/payload-types';
-import { auth } from '@/utils/auth-helpers';
 
 interface UserWithGroup {
   groups:
@@ -18,6 +17,7 @@ const isPermissionLoggedInRequired = async (
   permission: Permission | null | undefined,
 ): Promise<boolean> => {
   if (permission?.special_permissions?.logged_in === true) {
+    const { auth } = await import('@/utils/auth');
     const userPerm = await auth();
     return userPerm !== null;
   }
@@ -49,6 +49,7 @@ export const hasPermissions = async (
     return true;
   }
 
+  const { auth } = await import('@/utils/auth');
   const userPerm = await auth();
   if (!userPerm) {
     return false;
