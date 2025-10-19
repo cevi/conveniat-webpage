@@ -4,7 +4,7 @@ import { PreviewWarningClient } from '@/components/preview-warning-client';
 import { canUserAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { Locale, SearchParameters } from '@/types/types';
-import { auth } from '@/utils/auth-helpers';
+import { auth } from '@/utils/auth';
 import { isPreviewTokenValid } from '@/utils/preview-token';
 import { cookies } from 'next/headers';
 /**

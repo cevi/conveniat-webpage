@@ -1,7 +1,7 @@
 'use server';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { StaticTranslationString } from '@/types/types';
-import { auth } from '@/utils/auth-helpers';
+import { auth } from '@/utils/auth';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import config from '@payload-config';
 import fromBuffer from 'image-size';

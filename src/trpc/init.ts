@@ -1,6 +1,6 @@
 import prisma from '@/features/chat/database';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
-import { auth } from '@/utils/auth-helpers';
+import { auth } from '@/utils/auth';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { initTRPC } from '@trpc/server';
 import { cache } from 'react';

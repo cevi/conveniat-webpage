@@ -1,6 +1,6 @@
 import { trpc } from '@/trpc/server';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
-import { auth } from '@/utils/auth-helpers';
+import { auth } from '@/utils/auth';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import type React from 'react';

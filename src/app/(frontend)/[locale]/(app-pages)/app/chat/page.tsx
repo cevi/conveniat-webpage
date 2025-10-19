@@ -1,6 +1,6 @@
 import { ChatsOverviewClientComponent } from '@/features/chat/components/chat-overview-view/chats-overview-client-component';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
-import { auth } from '@/utils/auth-helpers';
+import { auth } from '@/utils/auth';
 import type React from 'react';
 
 const ChatPage: React.FC = async () => {

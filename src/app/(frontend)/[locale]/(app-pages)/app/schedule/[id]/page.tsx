@@ -15,7 +15,7 @@ import { UnenrollButton } from '@/features/schedule/components/unenroll-button';
 import { TRPCProvider } from '@/trpc/client';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { StaticTranslationString } from '@/types/types';
-import { auth } from '@/utils/auth-helpers';
+import { auth } from '@/utils/auth';
 import { formatScheduleDateTime } from '@/utils/format-schedule-date-time';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import config from '@payload-config';
