@@ -1,5 +1,12 @@
 import type { LinkFieldDataType } from '@/features/payload-cms/payload-cms/shared-fields/link-field';
-import type { Blog, GenericPage, Permission } from '@/features/payload-cms/payload-types';
+import type {
+  Blog,
+  CampMapAnnotation,
+  CampScheduleEntry,
+  Document,
+  GenericPage,
+  Permission,
+} from '@/features/payload-cms/payload-types';
 import { getLanguagePrefix } from '@/features/payload-cms/utils/get-language-prefix';
 import type { Locale } from '@/types/types';
 import { hasPermissions } from '@/utils/has-permissions';
@@ -13,20 +20,33 @@ export const hasPermissionsForLinkField = async (
   if (type === 'custom') {
     return true;
   }
-  // reference field --> either blog or GenericPage
+  // reference field --> a payload collection
   if (!linkFieldData.reference?.value) return false;
   const { relationTo, value } = linkFieldData.reference;
 
-  if (relationTo === 'blog') {
-    const blog = value as Blog;
-    const permission = blog.content.permissions as Permission;
-    return await hasPermissions(permission);
+  switch (relationTo) {
+    case 'blog': {
+      const blog = value as Blog;
+      const permission = blog.content.permissions as Permission;
+      return await hasPermissions(permission);
+    }
+    case 'generic-page': {
+      const page = value as GenericPage;
+      if (typeof page !== 'object') return false; // abort
+      const permission = page.content.permissions as Permission;
+      return await hasPermissions(permission);
+    }
+    case 'images': {
+      break; // images are always public
+    }
+    case 'documents': {
+      const document = value as Document;
+      const permission = document.permissions as Permission;
+      return await hasPermissions(permission);
+    }
+    // No default
   }
-
-  const page = value as GenericPage;
-  if (typeof page !== 'object') return false; // abort
-  const permission = page.content.permissions as Permission;
-  return await hasPermissions(permission);
+  return true;
 };
 
 // eslint-disable-next-line complexity
@@ -48,22 +68,33 @@ export const getURLForLinkField = (
     let langPrefix = getLanguagePrefix(locale);
     langPrefix = langPrefix === '' ? '' : `/${langPrefix}`;
 
-    if (relationTo === 'blog') {
-      const urlSlug = (value as Blog).seo.urlSlug;
-      return urlSlug === '' ? undefined : `${langPrefix}/blog/${urlSlug}`;
+    switch (relationTo) {
+      case 'blog': {
+        const urlSlug = (value as Blog).seo.urlSlug;
+        return urlSlug === '' ? undefined : `${langPrefix}/blog/${urlSlug}`;
+      }
+      case 'generic-page': {
+        const urlSlug = (value as GenericPage).seo.urlSlug;
+        if (urlSlug === '') {
+          return langPrefix === '' ? '/' : langPrefix;
+        }
+        return `${langPrefix}/${urlSlug}`;
+      }
+      case 'images':
+      case 'documents': {
+        const url = (value as unknown as { url: string }).url;
+        return url;
+      }
+      case 'camp-schedule-entry': {
+        const entryId = (value as CampScheduleEntry).id;
+        return `/app/schedule/${entryId}`;
+      }
+      case 'camp-map-annotations': {
+        const locationId = (value as CampMapAnnotation).id;
+        return `/app/map?locationId=${locationId}`;
+      }
+      // No default
     }
-
-    // if the reference is not of type GenericPage
-    if (typeof value === 'string') {
-      return undefined; // abort
-    }
-
-    const urlSlug = (value as GenericPage).seo.urlSlug;
-    if (urlSlug === '') {
-      return langPrefix === '' ? '/' : langPrefix;
-    }
-
-    return `${langPrefix}/${urlSlug}`;
   }
 
   return undefined;

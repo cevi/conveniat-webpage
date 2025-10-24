@@ -281,6 +281,22 @@ export interface Blog {
               | ({
                   relationTo: 'generic-page';
                   value: string | GenericPage;
+                } | null)
+              | ({
+                  relationTo: 'images';
+                  value: string | Image;
+                } | null)
+              | ({
+                  relationTo: 'documents';
+                  value: string | Document;
+                } | null)
+              | ({
+                  relationTo: 'camp-map-annotations';
+                  value: string | CampMapAnnotation;
+                } | null)
+              | ({
+                  relationTo: 'camp-schedule-entry';
+                  value: string | CampScheduleEntry;
                 } | null);
             url?: string | null;
             openInNewTab?: boolean | null;
@@ -304,6 +320,22 @@ export interface Blog {
               | ({
                   relationTo: 'generic-page';
                   value: string | GenericPage;
+                } | null)
+              | ({
+                  relationTo: 'images';
+                  value: string | Image;
+                } | null)
+              | ({
+                  relationTo: 'documents';
+                  value: string | Document;
+                } | null)
+              | ({
+                  relationTo: 'camp-map-annotations';
+                  value: string | CampMapAnnotation;
+                } | null)
+              | ({
+                  relationTo: 'camp-schedule-entry';
+                  value: string | CampScheduleEntry;
                 } | null);
             url?: string | null;
             openInNewTab?: boolean | null;
@@ -1115,6 +1147,22 @@ export interface TeamMembersBlock {
       | ({
           relationTo: 'generic-page';
           value: string | GenericPage;
+        } | null)
+      | ({
+          relationTo: 'images';
+          value: string | Image;
+        } | null)
+      | ({
+          relationTo: 'documents';
+          value: string | Document;
+        } | null)
+      | ({
+          relationTo: 'camp-map-annotations';
+          value: string | CampMapAnnotation;
+        } | null)
+      | ({
+          relationTo: 'camp-schedule-entry';
+          value: string | CampScheduleEntry;
         } | null);
     url?: string | null;
     openInNewTab?: boolean | null;
@@ -1269,6 +1317,22 @@ export interface GenericPage {
               | ({
                   relationTo: 'generic-page';
                   value: string | GenericPage;
+                } | null)
+              | ({
+                  relationTo: 'images';
+                  value: string | Image;
+                } | null)
+              | ({
+                  relationTo: 'documents';
+                  value: string | Document;
+                } | null)
+              | ({
+                  relationTo: 'camp-map-annotations';
+                  value: string | CampMapAnnotation;
+                } | null)
+              | ({
+                  relationTo: 'camp-schedule-entry';
+                  value: string | CampScheduleEntry;
                 } | null);
             url?: string | null;
             openInNewTab?: boolean | null;
@@ -1292,6 +1356,22 @@ export interface GenericPage {
               | ({
                   relationTo: 'generic-page';
                   value: string | GenericPage;
+                } | null)
+              | ({
+                  relationTo: 'images';
+                  value: string | Image;
+                } | null)
+              | ({
+                  relationTo: 'documents';
+                  value: string | Document;
+                } | null)
+              | ({
+                  relationTo: 'camp-map-annotations';
+                  value: string | CampMapAnnotation;
+                } | null)
+              | ({
+                  relationTo: 'camp-schedule-entry';
+                  value: string | CampScheduleEntry;
                 } | null);
             url?: string | null;
             openInNewTab?: boolean | null;
@@ -2958,6 +3038,22 @@ export interface Header {
             | ({
                 relationTo: 'generic-page';
                 value: string | GenericPage;
+              } | null)
+            | ({
+                relationTo: 'images';
+                value: string | Image;
+              } | null)
+            | ({
+                relationTo: 'documents';
+                value: string | Document;
+              } | null)
+            | ({
+                relationTo: 'camp-map-annotations';
+                value: string | CampMapAnnotation;
+              } | null)
+            | ({
+                relationTo: 'camp-schedule-entry';
+                value: string | CampScheduleEntry;
               } | null);
           url?: string | null;
           openInNewTab?: boolean | null;
@@ -2975,6 +3071,22 @@ export interface Header {
                   | ({
                       relationTo: 'generic-page';
                       value: string | GenericPage;
+                    } | null)
+                  | ({
+                      relationTo: 'images';
+                      value: string | Image;
+                    } | null)
+                  | ({
+                      relationTo: 'documents';
+                      value: string | Document;
+                    } | null)
+                  | ({
+                      relationTo: 'camp-map-annotations';
+                      value: string | CampMapAnnotation;
+                    } | null)
+                  | ({
+                      relationTo: 'camp-schedule-entry';
+                      value: string | CampScheduleEntry;
                     } | null);
                 url?: string | null;
                 openInNewTab?: boolean | null;
@@ -3025,6 +3137,22 @@ export interface Footer {
             | ({
                 relationTo: 'generic-page';
                 value: string | GenericPage;
+              } | null)
+            | ({
+                relationTo: 'images';
+                value: string | Image;
+              } | null)
+            | ({
+                relationTo: 'documents';
+                value: string | Document;
+              } | null)
+            | ({
+                relationTo: 'camp-map-annotations';
+                value: string | CampMapAnnotation;
+              } | null)
+            | ({
+                relationTo: 'camp-schedule-entry';
+                value: string | CampScheduleEntry;
               } | null);
           url?: string | null;
           openInNewTab?: boolean | null;

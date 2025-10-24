@@ -19,6 +19,7 @@ interface LinkFields {
       };
       _locale: Locale;
       id?: string;
+      url?: string; // images, documents
     };
     relationTo: string;
   };
@@ -41,22 +42,38 @@ const resolveInternalLink = (fields: LinkFields): string => {
   langPrefix = langPrefix === '' ? '' : `${langPrefix}/`;
 
   if (fields.linkType === 'internal') {
-    if (fields.doc.relationTo === 'generic-page' || fields.doc.relationTo === 'blog') {
-      const urlSlug = `${fields.doc.value.seo.urlSlug}`;
-      const collectionName = fields.doc.relationTo as string;
-      for (const value of Object.values(slugToUrlMapping)) {
-        if (value.slug === collectionName) {
-          // might be undefined if locale is undefined
-          const urlPrefix = value.urlPrefix[locale as Locale] as string | undefined;
-          return urlPrefix === '' || urlPrefix === undefined
-            ? `/${langPrefix}${urlSlug}`
-            : `/${langPrefix}${urlPrefix}/${urlSlug}`;
+    switch (fields.doc.relationTo) {
+      case 'generic-page':
+      case 'blog': {
+        const urlSlug = `${fields.doc.value.seo.urlSlug}`;
+        const collectionName = fields.doc.relationTo as string;
+        for (const value of Object.values(slugToUrlMapping)) {
+          if (value.slug === collectionName) {
+            // might be undefined if locale is undefined
+            const urlPrefix = value.urlPrefix[locale as Locale] as string | undefined;
+            return urlPrefix === '' || urlPrefix === undefined
+              ? `/${langPrefix}${urlSlug}`
+              : `/${langPrefix}${urlPrefix}/${urlSlug}`;
+          }
         }
+
+        break;
       }
-    } else if (fields.doc.relationTo === 'camp-map-annotations') {
-      const campAnnotationId = fields.doc.value.id;
-      if (campAnnotationId == undefined) return `/${url}`;
-      return `/app/map?locationId=${campAnnotationId}`;
+      case 'camp-map-annotations': {
+        const campAnnotationId = fields.doc.value.id;
+        if (campAnnotationId == undefined) return `/${url}`;
+        return `/app/map?locationId=${campAnnotationId}`;
+      }
+      case 'images':
+      case 'documents': {
+        // for media files, we just return the URL as is
+        return `${fields.doc.value.url}`;
+      }
+      case 'camp-schedule-entry': {
+        return `/app/schedule/${fields.doc.value.id}`;
+      }
+      default:
+      // No default
     }
   }
 

@@ -71,7 +71,7 @@ const generatePreviewUrl = ({
   if (urlSlug == undefined) return '';
 
   return `${environmentVariables.APP_HOST_URL}/${locale.code}/${
-    collectionConfig && collectionConfig.slug === 'blog' ? `blog/` : ''
+    collectionConfig?.slug === 'blog' ? `blog/` : ''
   }${urlSlug}?preview=true`;
 };
 

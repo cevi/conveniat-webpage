@@ -50,8 +50,7 @@ export const useIsPublished = <
             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             _document._localized_status !== null &&
             Object.prototype.hasOwnProperty.call(_document._localized_status, locale) &&
-            _document._localized_status[locale] !== undefined &&
-            _document._localized_status[locale].published === true;
+            _document._localized_status[locale]?.published === true;
           return { ...accumulator, [locale]: state };
         }, {});
       setIsPublished(published as LocalizedStatus);

@@ -19,7 +19,7 @@ function parseEnvironmentMapCenter(): [number, number] {
     | string
     | undefined;
   const parts = environmentVariable?.split('/');
-  if (parts === undefined || parts.length !== 2) {
+  if (parts?.length !== 2) {
     return [8.301_211, 46.502_822];
   }
   return [Number.parseFloat(parts[0] ?? ''), Number.parseFloat(parts[1] ?? '')];
