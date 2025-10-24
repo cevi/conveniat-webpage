@@ -3032,22 +3032,6 @@ export interface Footer {
         id?: string | null;
       }[]
     | null;
-  /**
-   * Menu item in the light area of the footer
-   */
-  footerMenu?:
-    | {
-        menuSubTitle: string;
-        menuItem?:
-          | {
-              label: string;
-              link?: string | null;
-              id?: string | null;
-            }[]
-          | null;
-        id?: string | null;
-      }[]
-    | null;
   socialLinks?: {
     instagram?: string | null;
     youtube?: string | null;
@@ -3175,19 +3159,6 @@ export interface FooterSelect<T extends boolean = true> {
               reference?: T;
               url?: T;
               openInNewTab?: T;
-            };
-        id?: T;
-      };
-  footerMenu?:
-    | T
-    | {
-        menuSubTitle?: T;
-        menuItem?:
-          | T
-          | {
-              label?: T;
-              link?: T;
-              id?: T;
             };
         id?: T;
       };
