@@ -6,7 +6,6 @@ import { countdownBlock } from '@/features/payload-cms/payload-cms/shared-blocks
 import { detailsTable } from '@/features/payload-cms/payload-cms/shared-blocks/details-table';
 import { fileDownloadBlock } from '@/features/payload-cms/payload-cms/shared-blocks/file-download-block';
 import { formBlock } from '@/features/payload-cms/payload-cms/shared-blocks/form-block';
-import { heroSection } from '@/features/payload-cms/payload-cms/shared-blocks/hero-section-block';
 import { instagramEmbedBlock } from '@/features/payload-cms/payload-cms/shared-blocks/instagram-embed-block';
 import { newsCardBlock } from '@/features/payload-cms/payload-cms/shared-blocks/news-card-block';
 import { photoCarouselBlock } from '@/features/payload-cms/payload-cms/shared-blocks/photo-carousel-block';
@@ -70,7 +69,6 @@ export const mainContentField: Field = {
   blocks: [
     richTextArticleBlock,
     blockPostsOverview,
-    heroSection,
     formBlock,
     photoCarouselBlock,
     singlePictureBlock,

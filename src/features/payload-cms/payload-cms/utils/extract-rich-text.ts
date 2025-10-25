@@ -1,4 +1,3 @@
-import type { HeroSectionType } from '@/features/payload-cms/components/content-blocks/hero-section';
 import type { LexicalRichTextSectionType } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
 import type { ContentBlock } from '@/features/payload-cms/converters/page-sections/section-wrapper';
 import type {
@@ -52,12 +51,6 @@ export const extractTextContent = (mainContent: ContentBlock[]): string => {
       case 'accordion': {
         const accordion = block as ContentBlock<AccordionBlocks>;
         searchContent += extractAccordionBlock(accordion);
-        break;
-      }
-      case 'heroSection': {
-        const heroSection = block as ContentBlock<HeroSectionType>;
-        searchContent += heroSection.pageTeaser;
-
         break;
       }
       case 'summaryBox': {

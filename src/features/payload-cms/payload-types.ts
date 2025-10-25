@@ -214,25 +214,6 @@ export interface Blog {
           blockName?: string | null;
           blockType: 'blogPostsOverview';
         }
-      | {
-          /**
-           * This is the teaser that will be displayed on the page.
-           */
-          pageTeaser: string;
-          callToAction: {
-            /**
-             * This is the call to action that will be displayed on the page.
-             */
-            linkLabel: string;
-            /**
-             * This is the link that the call to action will point to.
-             */
-            link: string;
-          };
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'heroSection';
-        }
       | FormBlock
       | {
           images: (string | Image)[];
@@ -1250,25 +1231,6 @@ export interface GenericPage {
           blockName?: string | null;
           blockType: 'blogPostsOverview';
         }
-      | {
-          /**
-           * This is the teaser that will be displayed on the page.
-           */
-          pageTeaser: string;
-          callToAction: {
-            /**
-             * This is the call to action that will be displayed on the page.
-             */
-            linkLabel: string;
-            /**
-             * This is the link that the call to action will point to.
-             */
-            link: string;
-          };
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'heroSection';
-        }
       | FormBlock
       | {
           images: (string | Image)[];
@@ -1966,19 +1928,6 @@ export interface BlogSelect<T extends boolean = true> {
                     id?: T;
                     blockName?: T;
                   };
-              heroSection?:
-                | T
-                | {
-                    pageTeaser?: T;
-                    callToAction?:
-                      | T
-                      | {
-                          linkLabel?: T;
-                          link?: T;
-                        };
-                    id?: T;
-                    blockName?: T;
-                  };
               formBlock?: T | FormBlockSelect<T>;
               photoCarousel?:
                 | T
@@ -2277,19 +2226,6 @@ export interface GenericPageSelect<T extends boolean = true> {
               blogPostsOverview?:
                 | T
                 | {
-                    id?: T;
-                    blockName?: T;
-                  };
-              heroSection?:
-                | T
-                | {
-                    pageTeaser?: T;
-                    callToAction?:
-                      | T
-                      | {
-                          linkLabel?: T;
-                          link?: T;
-                        };
                     id?: T;
                     blockName?: T;
                   };

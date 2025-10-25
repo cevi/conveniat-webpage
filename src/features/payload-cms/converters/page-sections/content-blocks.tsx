@@ -12,8 +12,6 @@ import type { CountdownType } from '@/features/payload-cms/components/content-bl
 import { Countdown } from '@/features/payload-cms/components/content-blocks/countdown';
 import type { FileDownloadType } from '@/features/payload-cms/components/content-blocks/file-download';
 import { FileDownload } from '@/features/payload-cms/components/content-blocks/file-download';
-import type { HeroSectionType } from '@/features/payload-cms/components/content-blocks/hero-section';
-import { HeroSection } from '@/features/payload-cms/components/content-blocks/hero-section';
 import type { InlineSwisstopoMapEmbedType } from '@/features/payload-cms/components/content-blocks/inline-swisstopo-map-embed';
 import InlineSwisstopoMapEmbed from '@/features/payload-cms/components/content-blocks/inline-swisstopo-map-embed';
 import {
@@ -53,7 +51,6 @@ export type ContentBlockTypeNames =
   | 'youtubeEmbed'
   | 'instagramEmbed'
   | 'singlePicture'
-  | 'heroSection'
   | 'swisstopoEmbed'
   | 'fileDownload'
   | 'detailsTable'
@@ -288,27 +285,6 @@ export const RenderSinglePicture: SectionRenderer<{
           fill
         />
       </div>
-    </SectionWrapper>
-  );
-};
-
-export const RenderHeroSection: SectionRenderer<HeroSectionType> = async ({
-  block,
-  sectionClassName,
-  sectionOverrides,
-}) => {
-  return (
-    <SectionWrapper
-      block={block}
-      sectionClassName={sectionClassName}
-      sectionOverrides={sectionOverrides}
-      errorFallbackMessage={await errorMessageForType({
-        de: 'Der Hero-Abschnitt',
-        en: 'hero section',
-        fr: 'la section héros',
-      })}
-    >
-      <HeroSection {...block} />
     </SectionWrapper>
   );
 };

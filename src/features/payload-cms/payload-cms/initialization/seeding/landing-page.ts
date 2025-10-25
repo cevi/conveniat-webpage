@@ -17,19 +17,6 @@ export const landingPageContent = (
       releaseDate: '2025-01-01T01:00:00.000Z',
       mainContent: [
         {
-          blockType: 'heroSection' as const,
-          pageTeaser:
-            'Im Jahr 2009 hat im Jura das erste und bisher einzige nationale Zeltlager des Cevi Schweiz stattgefunden. ' +
-            'Fast 4000 junge Menschen aus der gesamten Schweiz sind zusammengekommen, um die verschiedenen Facetten des ' +
-            'Cevi zu feiern und gemeinsam eine grossartige Zeit zu haben. Neben unvergänglichen Erinnerungen wurden viele ' +
-            'Freundschaften über alle Landesteile hinweg geschlossen und die nationale Identität des Cevi gestärkt sowie ' +
-            'die grundlegenden sozialen und christlich geprägten Werte gepflegt.',
-          callToAction: {
-            linkLabel: 'Mehr erfahren',
-            link: '/zeitstrahl',
-          },
-        },
-        {
           blockType: 'countdown' as const,
           endDate: '2027-07-27T10:00:00.000Z',
           title: 'Bereit für conveniat27?',
