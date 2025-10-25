@@ -7,7 +7,6 @@ import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useEffect, useState } from 'react';
 
 import { environmentVariables } from '@/config/environment-variables';
-import { isProductionHosting } from '@/utils/is-production-hosting';
 import { FormSubmit } from '@payloadcms/ui';
 import { useQuery } from '@tanstack/react-query';
 import { QrCode, X } from 'lucide-react';
@@ -45,7 +44,7 @@ export const QRCodeClientComponent: React.FC<{
         setQrInputDataSource(undefined);
         try {
           const data = {
-            qrCodeContent: `${isProductionHosting() ? 'https://con27.ch' : environmentVariables.NEXT_PUBLIC_APP_HOST_URL}/app/chat/new-chat-with-user/${url}`,
+            qrCodeContent: `${environmentVariables.NEXT_PUBLIC_ENABLE_CON27_SHORT_URLS ? 'https://con27.ch' : environmentVariables.NEXT_PUBLIC_APP_HOST_URL}/app/chat/new-chat-with-user/${url}`,
           };
           setQrInputDataSource(data);
         } catch (error) {
