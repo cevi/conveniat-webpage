@@ -56,7 +56,7 @@ export const environmentVariables = createEnv({
     NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
     NEXT_PUBLIC_POSTHOG_HOST: z.string().url(),
     NEXT_PUBLIC_ENABLE_OFFLINE_SUPPORT: z.boolean().default(false),
-    NEXT_PUBLIC_ENABLE_CON27_SHORT_URLS: z.string().transform((value) => value === 'true'),
+    NEXT_PUBLIC_ENABLE_CON27_SHORT_URLS: z.boolean(),
   },
 
   experimental__runtimeEnv: {
