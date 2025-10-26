@@ -1,4 +1,5 @@
 import type { ChatMessage } from '@/features/chat/api/types';
+import { ImageMessage } from '@/features/chat/components/chat-view/message/image-message';
 import { LocationMessage } from '@/features/chat/components/chat-view/message/location-message';
 import { MessageInfoDropdown } from '@/features/chat/components/chat-view/message/message-info-dropdown';
 import { SystemMessage } from '@/features/chat/components/chat-view/message/system-message';
@@ -30,6 +31,7 @@ interface MessageProperties {
  * @param isCurrentUser
  * @constructor
  */
+// eslint-disable-next-line complexity
 export const MessageComponent: React.FC<MessageProperties> = ({ message, isCurrentUser }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const [showInfo, setShowInfo] = useState(false);
@@ -129,7 +131,11 @@ export const MessageComponent: React.FC<MessageProperties> = ({ message, isCurre
               overflowWrap: 'break-word',
             }}
           >
-            {renderedContent}
+            {message.type === MessageType.IMAGE_MSG ? (
+              <ImageMessage message={message} />
+            ) : (
+              renderedContent
+            )}
           </div>
           <div className="mt-1 flex items-center justify-end text-xs">
             <span className="font-body text-gray-500">{formattedTime}</span>
