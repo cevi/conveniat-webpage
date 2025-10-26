@@ -9,12 +9,12 @@ interface ConfirmationSliderProperties {
   confirmedText?: string;
 }
 
-// eslint-disable-next-line complexity
 export const ConfirmationSlider: React.FC<ConfirmationSliderProperties> = ({
   onConfirm,
   text = 'Slide to confirm',
   pendingText = 'Processing...',
   confirmedText = 'Confirmed!',
+// eslint-disable-next-line complexity
 }) => {
   const trackReference = useRef<HTMLDivElement>(null);
   const handleReference = useRef<HTMLDivElement>(null);

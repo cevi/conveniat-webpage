@@ -25,7 +25,6 @@ export const Select: React.FC<
     optionType: 'dropdown' | 'radio' | 'cards';
     allowMultiple: boolean;
   } & SelectField
-  // eslint-disable-next-line complexity
 > = ({
   name,
   control,
@@ -36,6 +35,7 @@ export const Select: React.FC<
   placeholder,
   optionType,
   allowMultiple,
+// eslint-disable-next-line complexity
 }) => {
   requiredFromProperties ??= false;
   const hasError = errors[name];

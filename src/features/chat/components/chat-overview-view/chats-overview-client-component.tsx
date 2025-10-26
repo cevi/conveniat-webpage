@@ -70,9 +70,9 @@ const ChatsOverviewLoadingPlaceholder: React.FC = () => {
   );
 };
 
-// eslint-disable-next-line complexity
 export const ChatsOverviewClientComponent: React.FC<{ user: HitobitoNextAuthUser }> = ({
   user,
+// eslint-disable-next-line complexity
 }) => {
   const { data: chats, isLoading } = useChats();
 

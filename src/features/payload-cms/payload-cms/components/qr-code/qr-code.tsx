@@ -72,7 +72,6 @@ const linkNotAvailableText: StaticTranslationString = {
   en: 'Link not available',
 };
 
-// eslint-disable-next-line complexity
 const prepareQRCodeData = async (
   collectionSlug: CollectionSlug,
   locale: Locale,
@@ -87,6 +86,7 @@ const prepareQRCodeData = async (
   expirySeconds: number,
   domain: string,
   isRedirectQR: boolean = false,
+  // eslint-disable-next-line complexity
 ): Promise<{ qrCodeContent: string; displayURL: string }> => {
   const path = await serverSideSlugToUrlResolution(collectionSlug, locale);
 

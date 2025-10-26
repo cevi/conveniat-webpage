@@ -122,12 +122,12 @@ const ignoredFields = new Set([
  * @param document1
  * @param document2
  */
-// eslint-disable-next-line complexity
 const hasDiffs = (
   locale: Config['locale'],
   fieldDefs: Field[],
   document1: PayloadDocument | undefined,
   document2: PayloadDocument | undefined,
+  // eslint-disable-next-line complexity
 ): boolean => {
   if (document1 === undefined || document2 === undefined) return false;
 

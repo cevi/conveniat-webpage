@@ -34,7 +34,6 @@ const dirname = path.dirname(filename);
  * @param collectionConfig
  * @param locale
  */
-// eslint-disable-next-line complexity
 const generatePreviewUrl = ({
   data,
   collectionConfig,
@@ -43,6 +42,7 @@ const generatePreviewUrl = ({
   data: { seo?: { urlSlug?: string }; id?: string } | null | undefined;
   collectionConfig?: CollectionConfig;
   locale: Locale;
+  // eslint-disable-next-line complexity
 }): string => {
   if (data === undefined || data === null) return '';
 

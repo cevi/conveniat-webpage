@@ -49,10 +49,10 @@ export const hasPermissionsForLinkField = async (
   return true;
 };
 
-// eslint-disable-next-line complexity
 export const getURLForLinkField = (
   linkFieldData: LinkFieldDataType | undefined,
   locale: Locale,
+  // eslint-disable-next-line complexity
 ): string | undefined => {
   if (!linkFieldData) return undefined;
 

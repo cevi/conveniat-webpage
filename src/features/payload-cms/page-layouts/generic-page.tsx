@@ -9,12 +9,12 @@ import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 import { getPayload } from 'payload';
 
-// eslint-disable-next-line complexity
 const GenericPage: LocalizedCollectionComponent = async ({
   slugs,
   locale,
   searchParams,
   renderInPreviewMode,
+// eslint-disable-next-line complexity
 }) => {
   const payload = await getPayload({ config });
   const slug = slugs.join('/');
