@@ -12,7 +12,7 @@ const alertMessageText: StaticTranslationString = {
 export const formatMessageContent = (
   text: string | number | boolean | JsonObject | JsonArray,
   locale: Locale,
-// eslint-disable-next-line complexity
+  // eslint-disable-next-line complexity
 ): React.ReactNode[] => {
   // If the payload is a JSON object, handle special message types.
   if (

@@ -7,13 +7,13 @@ import {
 import { internalAuthorsField } from '@/features/payload-cms/payload-cms/shared-fields/internal-authors-field';
 import { internalPageNameField } from '@/features/payload-cms/payload-cms/shared-fields/internal-page-name-field';
 import { internalStatusField } from '@/features/payload-cms/payload-cms/shared-fields/internal-status-field';
+import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared-fields/last-edited-by-user-field';
 import { mainContentField } from '@/features/payload-cms/payload-cms/shared-fields/main-content-field';
 import { permissionsField } from '@/features/payload-cms/payload-cms/shared-fields/permissions-field';
 import { releaseDate } from '@/features/payload-cms/payload-cms/shared-fields/release-date-field';
 import { seoTab } from '@/features/payload-cms/payload-cms/shared-tabs/seo-tab';
 import { asLocalizedCollection } from '@/features/payload-cms/payload-cms/utils/localized-collection';
 import type { CollectionConfig } from 'payload';
-import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared-fields/last-edited-by-user-field';
 
 export const BlogArticleCollection: CollectionConfig = asLocalizedCollection({
   // Unique, URL-friendly string that will act as an identifier for this Collection.

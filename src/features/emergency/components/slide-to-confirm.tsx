@@ -14,7 +14,7 @@ export const ConfirmationSlider: React.FC<ConfirmationSliderProperties> = ({
   text = 'Slide to confirm',
   pendingText = 'Processing...',
   confirmedText = 'Confirmed!',
-// eslint-disable-next-line complexity
+  // eslint-disable-next-line complexity
 }) => {
   const trackReference = useRef<HTMLDivElement>(null);
   const handleReference = useRef<HTMLDivElement>(null);

@@ -1,6 +1,6 @@
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
-import type { CollectionConfig, Field, GenerateImageName } from 'payload';
 import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared-fields/last-edited-by-user-field';
+import type { CollectionConfig, Field, GenerateImageName } from 'payload';
 
 /**
  * Generates a unique image name based on the provided parameters.
@@ -95,7 +95,7 @@ export const ImageCollection: CollectionConfig = {
     { ...imageCaption('de') },
     { ...imageCaption('en') },
     { ...imageCaption('fr') },
-    LastEditedByUserField
+    LastEditedByUserField,
   ],
   upload: {
     mimeTypes: ['image/*'],

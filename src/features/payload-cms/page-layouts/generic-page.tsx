@@ -14,7 +14,7 @@ const GenericPage: LocalizedCollectionComponent = async ({
   locale,
   searchParams,
   renderInPreviewMode,
-// eslint-disable-next-line complexity
+  // eslint-disable-next-line complexity
 }) => {
   const payload = await getPayload({ config });
   const slug = slugs.join('/');

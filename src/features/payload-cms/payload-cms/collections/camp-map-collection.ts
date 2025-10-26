@@ -1,5 +1,6 @@
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { minimalEditorFeatures } from '@/features/payload-cms/payload-cms/plugins/lexical-editor';
+import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared-fields/last-edited-by-user-field';
 import { MapCoordinates } from '@/features/payload-cms/payload-cms/shared-fields/map-coordinates/map-coordinates';
 import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import type { CampMapAnnotation } from '@/features/payload-cms/payload-types';
@@ -9,7 +10,6 @@ import {
   lexicalEditor,
 } from '@payloadcms/richtext-lexical';
 import type { CollectionConfig, Field } from 'payload';
-import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared-fields/last-edited-by-user-field';
 
 export const mapAnnotationDescriptionLexicalEditorSettings = lexicalEditor({
   features: [
@@ -350,6 +350,6 @@ export const CampMapAnnotationsCollection: CollectionConfig = {
       },
       required: false,
     },
-    LastEditedByUserField
+    LastEditedByUserField,
   ],
 };

@@ -1,6 +1,6 @@
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
-import type { CollectionConfig } from 'payload';
 import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared-fields/last-edited-by-user-field';
+import type { CollectionConfig } from 'payload';
 
 interface ConditionType {
   permissions:
@@ -164,6 +164,6 @@ export const PermissionsCollection: CollectionConfig = {
         },
       ],
     },
-    LastEditedByUserField
+    LastEditedByUserField,
   ],
 };
