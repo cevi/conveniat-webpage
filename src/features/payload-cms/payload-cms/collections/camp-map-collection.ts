@@ -9,6 +9,7 @@ import {
   lexicalEditor,
 } from '@payloadcms/richtext-lexical';
 import type { CollectionConfig, Field } from 'payload';
+import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared-fields/last-edited-by-user-field';
 
 export const mapAnnotationDescriptionLexicalEditorSettings = lexicalEditor({
   features: [
@@ -349,5 +350,6 @@ export const CampMapAnnotationsCollection: CollectionConfig = {
       },
       required: false,
     },
+    LastEditedByUserField
   ],
 };

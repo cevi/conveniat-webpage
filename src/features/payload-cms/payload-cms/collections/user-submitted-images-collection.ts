@@ -2,6 +2,7 @@ import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-r
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { generateImageName } from '@/features/payload-cms/payload-cms/collections/image-collection';
 import type { CollectionConfig } from 'payload';
+import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared-fields/last-edited-by-user-field';
 
 export const UserSubmittedImagesCollection: CollectionConfig = {
   slug: 'userSubmittedImages',
@@ -66,6 +67,7 @@ export const UserSubmittedImagesCollection: CollectionConfig = {
         fr: "La description soumise par l'utilisateur",
       },
     },
+    LastEditedByUserField
   ],
   upload: {
     mimeTypes: ['image/*'],

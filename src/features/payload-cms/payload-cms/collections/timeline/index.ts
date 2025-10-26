@@ -7,6 +7,7 @@ import { internalPageNameField } from '@/features/payload-cms/payload-cms/shared
 import { internalStatusField } from '@/features/payload-cms/payload-cms/shared-fields/internal-status-field';
 import { asLocalizedCollection } from '@/features/payload-cms/payload-cms/utils/localized-collection';
 import type { CollectionConfig } from 'payload';
+import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared-fields/last-edited-by-user-field';
 
 export const TimelineCollection: CollectionConfig = asLocalizedCollection({
   slug: 'timeline',
@@ -159,5 +160,6 @@ export const TimelineCollection: CollectionConfig = asLocalizedCollection({
       type: 'relationship',
       hasMany: true,
     },
+    LastEditedByUserField
   ],
 });

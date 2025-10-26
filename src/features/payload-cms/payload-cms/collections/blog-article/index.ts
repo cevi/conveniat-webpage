@@ -13,6 +13,7 @@ import { releaseDate } from '@/features/payload-cms/payload-cms/shared-fields/re
 import { seoTab } from '@/features/payload-cms/payload-cms/shared-tabs/seo-tab';
 import { asLocalizedCollection } from '@/features/payload-cms/payload-cms/utils/localized-collection';
 import type { CollectionConfig } from 'payload';
+import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared-fields/last-edited-by-user-field';
 
 export const BlogArticleCollection: CollectionConfig = asLocalizedCollection({
   // Unique, URL-friendly string that will act as an identifier for this Collection.
@@ -86,5 +87,6 @@ export const BlogArticleCollection: CollectionConfig = asLocalizedCollection({
         seoTab({ collectionSlugDE: 'blog', collectionSlugEN: 'blog', collectionSlugFR: 'blog' }),
       ],
     },
+    LastEditedByUserField,
   ],
 });

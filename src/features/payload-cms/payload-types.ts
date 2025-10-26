@@ -367,6 +367,7 @@ export interface Blog {
      */
     keywords?: string | null;
   };
+  lastEditedByUser?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -413,6 +414,7 @@ export interface User {
    * The Quartier of the user.
    */
   quartier?: number | null;
+  lastEditedByUser?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -447,6 +449,7 @@ export interface Image {
    * Optional text to display below the image (e.g. image source, copyright information, explanatory text) (fr)
    */
   imageCaption_fr?: string | null;
+  lastEditedByUser?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -504,6 +507,7 @@ export interface Permission {
     public?: boolean | null;
     logged_in?: boolean | null;
   };
+  lastEditedByUser?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -986,6 +990,7 @@ export interface SwisstopoMapEmbedding {
 export interface Document {
   id: string;
   permissions?: (string | null) | Permission;
+  lastEditedByUser?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -1384,6 +1389,7 @@ export interface GenericPage {
      */
     keywords?: string | null;
   };
+  lastEditedByUser?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -1512,6 +1518,7 @@ export interface Timeline {
       )[]
     | null;
   categories?: (string | TimelineCategory)[] | null;
+  lastEditedByUser?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -1616,6 +1623,7 @@ export interface CampMapAnnotation {
         id?: string | null;
       }[]
     | null;
+  lastEditedByUser?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -1668,6 +1676,7 @@ export interface CampScheduleEntry {
   organiser?: (string | null) | User;
   participants_min?: number | null;
   participants_max?: number | null;
+  lastEditedByUser?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -1681,6 +1690,7 @@ export interface UserSubmittedImage {
   uploaded_by: string | User;
   original_filename?: string | null;
   user_description: string;
+  lastEditedByUser?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -2017,6 +2027,7 @@ export interface BlogSelect<T extends boolean = true> {
         metaDescription?: T;
         keywords?: T;
       };
+  lastEditedByUser?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
@@ -2318,6 +2329,7 @@ export interface GenericPageSelect<T extends boolean = true> {
         metaDescription?: T;
         keywords?: T;
       };
+  lastEditedByUser?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
@@ -2358,6 +2370,7 @@ export interface TimelineSelect<T extends boolean = true> {
         instagramEmbed?: T | InstagramEmbeddingSelect<T>;
       };
   categories?: T;
+  lastEditedByUser?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
@@ -2393,6 +2406,7 @@ export interface CampMapAnnotationsSelect<T extends boolean = true> {
         longitude?: T;
         id?: T;
       };
+  lastEditedByUser?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
@@ -2414,6 +2428,7 @@ export interface CampScheduleEntrySelect<T extends boolean = true> {
   organiser?: T;
   participants_min?: T;
   participants_max?: T;
+  lastEditedByUser?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
@@ -2429,6 +2444,7 @@ export interface ImagesSelect<T extends boolean = true> {
   imageCaption_de?: T;
   imageCaption_en?: T;
   imageCaption_fr?: T;
+  lastEditedByUser?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -2473,6 +2489,7 @@ export interface UserSubmittedImagesSelect<T extends boolean = true> {
   uploaded_by?: T;
   original_filename?: T;
   user_description?: T;
+  lastEditedByUser?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
@@ -2516,6 +2533,7 @@ export interface UserSubmittedImagesSelect<T extends boolean = true> {
  */
 export interface DocumentsSelect<T extends boolean = true> {
   permissions?: T;
+  lastEditedByUser?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -2541,6 +2559,7 @@ export interface UsersSelect<T extends boolean = true> {
   groups?: T;
   hof?: T;
   quartier?: T;
+  lastEditedByUser?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
@@ -2564,6 +2583,7 @@ export interface PermissionsSelect<T extends boolean = true> {
         public?: T;
         logged_in?: T;
       };
+  lastEditedByUser?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
