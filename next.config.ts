@@ -34,22 +34,16 @@ const nextConfig: NextConfig = {
   transpilePackages: ['@t3-oss/env-nextjs', '@t3-oss/env-core'],
   poweredByHeader: false,
   reactStrictMode: true,
-  turbopack: {
-    moduleIds: 'named',
-  },
 
   // enable gzip compression for all responses
   compress: true,
 
+  // enable react compiler for better error messages and performance
+  reactCompiler: true,
+
   experimental: {
     // Forward browser logs to the terminal for easier debugging
     browserDebugInfoInTerminal: true,
-
-    // Explore route composition and segment overrides via DevTools
-    devtoolSegmentExplorer: true,
-
-    // enable react compiler for better error messages and performance
-    reactCompiler: true,
 
     // activate new client-side router improvements
     clientSegmentCache: true,
@@ -65,9 +59,6 @@ const nextConfig: NextConfig = {
     },
   },
   logging: { fetches: { fullUrl: true } },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   images: {
     minimumCacheTTL: optimizedImageMinimumCacheTTL,
     formats: ['image/avif', 'image/webp'],

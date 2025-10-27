@@ -12,7 +12,7 @@ import { withPreviewMiddleware } from '@/middleware/with-preview-middleware';
  * either returns a response or calls the next middleware in the chain.
  *
  */
-export const middleware = middlewareChain([
+export const proxy = middlewareChain([
   withAbortOnInfiniteRedirects,
   withAppFeatureMiddleware,
   withPreviewMiddleware,
@@ -22,6 +22,6 @@ export const middleware = middlewareChain([
 
 // we apply the middleware to all routes
 export const config = {
-  matcher: ['/((?!_next).*)'], // exclude _next routes
-  runtime: 'nodejs',
+  // exclude _next routes
+  matcher: ['/((?!_next).*)']
 };
