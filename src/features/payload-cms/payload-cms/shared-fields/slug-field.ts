@@ -25,7 +25,7 @@ export const SlugField = (collectionName: CustomSlugComponentProperties): TextFi
     afterChange: [
       (): void => {
         try {
-          revalidateTag('sitemap');
+          revalidateTag('sitemap', 'max');
           console.log('Slug changed, revalidating sitemap');
         } catch {}
       },
