@@ -14,7 +14,7 @@ services:
     working_dir: /home/node/app/
     command: >
       sh -c "export PRISMA_OUTPUT='src/lib/prisma/client/' &&
-      npx prisma generate &&
+      npx prisma generate --no-hints &&
       npx prisma db push &&
       npx prisma studio &
       corepack enable pnpm && pnpm i --frozen-lockfile &&

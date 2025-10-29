@@ -242,7 +242,7 @@ pnpm install
 bash create_build_info.sh
 
 # Generate Prisma client
-npx prisma generate
+npx prisma generate --no-hints
 
 # Build the Next.js application
 pnpm next build

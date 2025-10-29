@@ -33,7 +33,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: generate prisma client
-        run: npx prisma generate
+        run: npx prisma generate --no-hints
 
       - name: Verify that Payload Types and Importmaps are up to date
         env:
