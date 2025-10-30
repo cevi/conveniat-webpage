@@ -12,7 +12,7 @@ const errorMessageText: StaticTranslationString = {
   fr: 'Échec du chargement du bloc de contenu.',
 };
 
-const ErrorFallback: React.FC<{ error: Error; locale: Locale }> = async ({ locale, error }) => {
+const ErrorFallback: React.FC<{ error: Error; locale: Locale }> = ({ locale, error }) => {
   return (
     <div className="rounded-2xl bg-gray-100 px-16 py-4 text-center text-red-700">
       <b>{errorMessageText[locale]}</b> <br />

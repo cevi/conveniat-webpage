@@ -56,7 +56,7 @@ const Layout: React.FC<{ children: ReactNode }> = async ({ children }) => {
   );
 };
 
-const RootLayout: React.FC<{ children: ReactNode }> = async ({ children }) => {
+const RootLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
   return (
     <Suspense>
       <Layout>{children}</Layout>

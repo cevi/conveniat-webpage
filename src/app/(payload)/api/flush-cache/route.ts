@@ -16,7 +16,7 @@ const GET = async (): Promise<Response> => {
   if (!user) return new Response('No valid user found!', { status: 401 });
 
   const isAuthenticated = await canUserAccessAdminPanel({
-    user: user as HitobitoNextAuthUser,
+    user: user,
   });
 
   if (!isAuthenticated) {

@@ -24,7 +24,7 @@ export interface NewsCardType {
   locale: Locale;
 }
 
-export const NewsCardBlock: React.FC<NewsCardType> = async ({
+export const NewsCardBlock: React.FC<NewsCardType> = ({
   children,
   date,
   headline,

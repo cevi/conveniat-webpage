@@ -4,9 +4,11 @@ import type { Locale } from '@/types/types';
 import React, { Suspense } from 'react';
 
 export const FooterComponent: React.FC<{
-  locale: Locale;
-  inAppDesign: boolean;
-}> = async ({ locale, inAppDesign: isInAppDesign }) => {
+  locale: Promise<Locale>;
+  inAppDesign: Promise<boolean>;
+}> = async ({ locale: localePromise, inAppDesign: isInAppDesignPromise }) => {
+  const [locale, isInAppDesign] = await Promise.all([localePromise, isInAppDesignPromise]);
+
   return (
     <>
       <footer className="w-full">

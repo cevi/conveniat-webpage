@@ -8,7 +8,7 @@ const helperShiftsFeatureTranslation: StaticTranslationString = {
   fr: "Postes d'aide",
 };
 
-const DepartmentHelperPortalPage: React.FC<{ locale: Locale }> = async ({ locale }) => {
+const DepartmentHelperPortalPage: React.FC<{ locale: Locale }> = ({ locale }) => {
   return (
     <>
       <SetDynamicPageTitle newTitle={helperShiftsFeatureTranslation[locale]} />

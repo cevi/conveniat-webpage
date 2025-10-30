@@ -40,7 +40,7 @@ const AppEntrypointLayout: React.FC<LayoutProperties> = async ({ children }) => 
   );
 };
 
-const AppEntrypointRootLayout: React.FC<LayoutProperties> = async ({ children }) => {
+const AppEntrypointRootLayout: React.FC<LayoutProperties> = ({ children }) => {
   return (
     <Suspense>
       <AppEntrypointLayout>{children}</AppEntrypointLayout>

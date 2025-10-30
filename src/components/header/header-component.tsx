@@ -7,7 +7,7 @@ import { LinkComponent } from '@/components/ui/link-component';
 import { getLanguagePrefix } from '@/features/payload-cms/utils/get-language-prefix';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { NoBuildTimePreRendering } from '@/utils/is-pre-rendering';
-import { cookies, draftMode } from 'next/headers';
+import { draftMode } from 'next/headers';
 import React from 'react';
 
 export const HeaderComponent: React.FC<{
@@ -23,9 +23,6 @@ export const HeaderComponent: React.FC<{
     fr: "Page d'accueil de conveniat27",
     en: 'conveniat27 landingpage',
   };
-
-  const serverCookies = await cookies();
-  const previewModeActive = serverCookies.get('preview')?.value === 'true';
 
   return (
     <header className="fixed top-0 left-0 z-50 h-[60px] w-full">

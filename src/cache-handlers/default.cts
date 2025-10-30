@@ -12,6 +12,8 @@ import { CacheEntry, CacheHandler } from './types.cjs';
 // Define a simple logging prefix
 const LOG_PREFIX = '[SimpleCacheHandler]';
 
+let resolvePending: () => void = (): void => {};
+
 export function createDefaultCacheHandler(): CacheHandler {
   const memoryCache = new Map<string, CacheEntry>();
   const pendingSets = new Map<string, Promise<void>>();
@@ -29,7 +31,7 @@ export function createDefaultCacheHandler(): CacheHandler {
 
       if (!entry) {
         console.log(`${LOG_PREFIX} GET: ${cacheKey} (MISS)`);
-        return undefined;
+        return;
       }
 
       // Check if the entry is expired based on its revalidate time.
@@ -40,7 +42,7 @@ export function createDefaultCacheHandler(): CacheHandler {
         console.log(`${LOG_PREFIX} GET: ${cacheKey} (EXPIRED)`);
         // Entry is expired, remove it from the cache.
         memoryCache.delete(cacheKey);
-        return undefined;
+        return;
       }
 
       console.log(`${LOG_PREFIX} GET: ${cacheKey} (HIT)`);
@@ -57,7 +59,6 @@ export function createDefaultCacheHandler(): CacheHandler {
     },
 
     async set(cacheKey, pendingEntry) {
-      let resolvePending: () => void = () => {};
       const pendingPromise = new Promise<void>((resolve) => {
         resolvePending = resolve;
       });
@@ -76,6 +77,7 @@ export function createDefaultCacheHandler(): CacheHandler {
 
         // Drain the other stream to pull the data through
         const reader = streamToDrain.getReader();
+        // eslint-disable-next-line unicorn/no-await-expression-member
         while (!(await reader.read()).done) {
           // Discard chunks
         }
@@ -83,9 +85,9 @@ export function createDefaultCacheHandler(): CacheHandler {
         // Now store the entry (which contains streamToStore)
         memoryCache.set(cacheKey, entry);
         console.log(`${LOG_PREFIX} SET: ${cacheKey} (SUCCESS)`);
-      } catch (err) {
+      } catch (error) {
         // Handle or log the error if setting fails
-        console.error(`${LOG_PREFIX} SET: ${cacheKey} (FAILED)`, err);
+        console.error(`${LOG_PREFIX} SET: ${cacheKey} (FAILED)`, error);
       } finally {
         // Resolve the pending promise and remove it
         resolvePending();
@@ -93,23 +95,26 @@ export function createDefaultCacheHandler(): CacheHandler {
       }
     },
 
+    // eslint-disable-next-line @typescript-eslint/require-await
     async updateTags(tags: string[]) {
-      console.log(`${LOG_PREFIX} UPDATE_TAGS: ${tags}.`);
+      console.log(`${LOG_PREFIX} UPDATE_TAGS: ${tags.join(', ')}.`);
       console.log(`${LOG_PREFIX} UPDATE_TAGS: Clearing all ${memoryCache.size} entries.`);
       memoryCache.clear();
 
       // Must return a Promise<void>
-      return Promise.resolve();
+      return;
     },
 
+    // eslint-disable-next-line @typescript-eslint/require-await
     async getExpiration() {
       console.log(`${LOG_PREFIX} GET_EXPIRATION (no-op, returning 0)`);
-      return Promise.resolve(0);
+      return 0;
     },
 
+    // eslint-disable-next-line @typescript-eslint/require-await
     async refreshTags() {
       console.log(`${LOG_PREFIX} REFRESH_TAGS (no-op)`);
-      return Promise.resolve();
+      return;
     },
   };
 }

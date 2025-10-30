@@ -126,7 +126,7 @@ const AppFeatureMenuItem: React.FC<AppFeatureMenuItemProperties> = ({
 
 const AppFeatures: React.FC<{
   locale: Locale;
-}> = async ({ locale }) => {
+}> = ({ locale }) => {
   return (
     <>
       <div className="py-6">

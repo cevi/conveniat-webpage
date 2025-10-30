@@ -40,6 +40,7 @@ const nextConfig: NextConfig = {
   compress: true,
 
   cacheHandlers: {
+    // eslint-disable-next-line unicorn/prefer-module
     default: require.resolve('./src/cache-handlers/default.cjs'),
   },
 

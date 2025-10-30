@@ -48,7 +48,7 @@ const FooterMinimalMenu: React.FC<{ locale: Locale }> = async ({ locale }) => {
   );
 };
 
-const FooterCopyrightText: React.FC = async () => {
+const FooterCopyrightText: React.FC = () => {
   'use cache';
   const year = new Date().getFullYear();
   const copyright = `© ${year} · conveniat27`;

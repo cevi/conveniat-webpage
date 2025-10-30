@@ -42,7 +42,7 @@ export const TeamLeaderInternal: React.FC<{
 export const TeamMembers: React.FC<{
   block: TeamMembersBlock;
   locale: Locale;
-}> = async ({ locale, block }) => {
+}> = ({ locale, block }) => {
   const teamMembers = block.teamMembers;
   const linkField = block.linkField;
   const link = getURLForLinkField(linkField, locale) ?? '';

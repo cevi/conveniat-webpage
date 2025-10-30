@@ -64,12 +64,11 @@ export const generateMetadata = async ({
     locale: Locale;
     slugs: string[] | undefined;
   }>;
-  // eslint-disable-next-line complexity
 }): Promise<Metadata> => {
   const { slugs, locale } = await params;
   const awaitedParameters = await params;
   console.log(
-    `Render page with slug: ${slugs === undefined ? '/' : slugs?.join(', ')}, from: ${JSON.stringify(awaitedParameters)}`,
+    `Render page with slug: ${slugs === undefined ? '/' : slugs.join(', ')}, from: ${JSON.stringify(awaitedParameters)}`,
   );
   const collection = slugs?.[0] ?? '';
   const remainingSlugs = slugs?.slice(1) ?? [];
@@ -111,11 +110,11 @@ const CMSPage: React.FC<{
   searchParams: Promise<SearchParameters>;
 }> = async ({ params, searchParams: searchParametersPromise }) => {
   'use cache';
-    cacheLife('hours');
-    cacheTag('payload');
+  cacheLife('hours');
+  cacheTag('payload');
 
-    let { locale } = await params;
-    let { slugs } = await params;
+  let { locale } = await params;
+  let { slugs } = await params;
 
   // this logic is needed for the case the do not have set
   // we only treat valid locales as a valid locale, otherwise we use the default locale
@@ -126,38 +125,35 @@ const CMSPage: React.FC<{
     locale = i18nConfig.defaultLocale as Locale;
   }
 
-    const draft = await draftMode();
+  const draft = await draftMode();
 
-    // check if the query parameter "preview" is set to "true" if draft mode is enabled
-    // if preview is not enabled we shall not access the query parameters at all to avoid
-    // opting-out of static rendering
-    let hasPreviewSearchParameter = false;
-    if (draft.isEnabled) {
-      const searchParameters = await searchParametersPromise;
-      hasPreviewSearchParameter = searchParameters['preview'] === 'true';
-    }
+  // check if the query parameter "preview" is set to "true" if draft mode is enabled
+  // if preview is not enabled we shall not access the query parameters at all to avoid
+  // opting-out of static rendering
+  let hasPreviewSearchParameter = false;
+  if (draft.isEnabled) {
+    const searchParameters = await searchParametersPromise;
+    hasPreviewSearchParameter = searchParameters['preview'] === 'true';
+  }
 
   // check if the user is allowed to access the preview of the current page
-    let previewModeAllowed = false;
+  let previewModeAllowed = false;
   if (draft.isEnabled) {
     const { canAccessPreviewOfCurrentPage } = await import(
-        '@/features/payload-cms/utils/preview-utils'
-      );
+      '@/features/payload-cms/utils/preview-utils'
+    );
 
-      const searchParameters = await searchParametersPromise;
+    const searchParameters = await searchParametersPromise;
     const url = `/${locale}/${slugs?.join('/') ?? ''}`;
     previewModeAllowed = await canAccessPreviewOfCurrentPage(searchParameters, url);
-      console.log(`Preview mode ${previewModeAllowed ? '' : 'not'} allowed for url: ${url}`);
-    }
+    console.log(`Preview mode ${previewModeAllowed ? '' : 'not'} allowed for url: ${url}`);
+  }
 
   // check if part of a routable collection of the form [collection]/[slug]
   const collection = slugs?.[0] ?? '';
   const remainingSlugs = slugs?.slice(1) ?? [];
 
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-expect-error
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const renderInPreviewMode = draft.isEnabled && previewModeAllowed && hasPreviewSearchParameter;
+  const renderInPreviewMode = draft.isEnabled && previewModeAllowed && hasPreviewSearchParameter;
 
   // check if the collection is in the special page table
   if (isSpecialPage(collection)) {
@@ -175,8 +171,8 @@ const CMSPage: React.FC<{
           <specialPage.component
             slugs={remainingSlugs}
             renderInPreviewMode={renderInPreviewMode}
-              locale={locale}
-            />
+            locale={locale}
+          />
           {renderInPreviewMode && <PreviewWarning params={params} />}
 
           <CookieBanner />
@@ -195,18 +191,18 @@ const CMSPage: React.FC<{
     remainingSlugs.unshift(collection);
   }
 
-    if (collectionPage !== undefined) {
-      if (collectionPage.locales.includes(locale)) {
-        return (
-          <>
-            {renderInPreviewMode && (
+  if (collectionPage !== undefined) {
+    if (collectionPage.locales.includes(locale)) {
+      return (
+        <>
+          {renderInPreviewMode && (
             <RefreshRouteOnSave serverURL={environmentVariables.APP_HOST_URL} />
           )}
 
-            <collectionPage.component
-              locale={locale}
-              slugs={remainingSlugs}
-              renderInPreviewMode={renderInPreviewMode}
+          <collectionPage.component
+            locale={locale}
+            slugs={remainingSlugs}
+            renderInPreviewMode={renderInPreviewMode}
           />
 
           {renderInPreviewMode && <PreviewWarning params={params} />}

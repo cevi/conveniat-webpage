@@ -69,7 +69,7 @@ const SearchPage: React.FC<LocalizedPageType> = async ({
   const locale = await getLocaleFromCookies();
 
   const payload = await getPayload({ config });
-  const searchParameters = searchParametersPromise;
+  const searchParameters = await searchParametersPromise;
 
   if (searchParameters === undefined) {
     return (
@@ -80,7 +80,6 @@ const SearchPage: React.FC<LocalizedPageType> = async ({
     );
   }
   const searchQueryQ = searchParameters['q'];
-
   const searchQueryOnly = searchParameters['only'];
 
   const actionURL = specialPagesTable['search']?.alternatives[locale] ?? '/search';

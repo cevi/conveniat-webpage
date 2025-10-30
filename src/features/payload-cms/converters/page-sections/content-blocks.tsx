@@ -71,10 +71,7 @@ export type SectionRenderer<T = object> = React.FC<
   }
 >;
 
-const errorMessageForType = async (
-  type: StaticTranslationString,
-  locale: Locale,
-): Promise<string> => {
+const errorMessageForType = (type: StaticTranslationString, locale: Locale): string => {
   const part1: StaticTranslationString = {
     de: '',
     en: 'Failed to load ',
@@ -139,7 +136,7 @@ export const RenderTimelineEntries: SectionRenderer<TimelineEntries> = async ({
       block={block}
       sectionClassName={sectionClassName}
       sectionOverrides={sectionOverrides}
-      errorFallbackMessage={await errorMessageForType(
+      errorFallbackMessage={errorMessageForType(
         {
           de: 'der Zeitstrahl-Eintrag',
           en: 'timeline entry',
@@ -158,7 +155,7 @@ export const RenderTimelineEntries: SectionRenderer<TimelineEntries> = async ({
   );
 };
 
-export const AccordionBlock: SectionRenderer<AccordionBlocks> = async ({
+export const AccordionBlock: SectionRenderer<AccordionBlocks> = ({
   block,
   sectionClassName,
   sectionOverrides,
@@ -169,7 +166,7 @@ export const AccordionBlock: SectionRenderer<AccordionBlocks> = async ({
       block={block}
       sectionClassName={sectionClassName}
       sectionOverrides={sectionOverrides}
-      errorFallbackMessage={await errorMessageForType(
+      errorFallbackMessage={errorMessageForType(
         {
           de: 'Der Akkordeonblock',
           en: 'accordion block',
@@ -188,7 +185,7 @@ export const AccordionBlock: SectionRenderer<AccordionBlocks> = async ({
   );
 };
 
-export const SummaryBlock: SectionRenderer<LexicalRichTextSectionType> = async ({
+export const SummaryBlock: SectionRenderer<LexicalRichTextSectionType> = ({
   block,
   sectionClassName,
   sectionOverrides,
@@ -199,7 +196,7 @@ export const SummaryBlock: SectionRenderer<LexicalRichTextSectionType> = async (
       block={block}
       sectionClassName={sectionClassName}
       sectionOverrides={sectionOverrides}
-      errorFallbackMessage={await errorMessageForType(
+      errorFallbackMessage={errorMessageForType(
         {
           de: 'Der Zusammenfassungsblock',
           en: 'summary block',
@@ -219,13 +216,13 @@ export const SummaryBlock: SectionRenderer<LexicalRichTextSectionType> = async (
 export const DetailsTable: SectionRenderer<{
   introduction: SerializedEditorState;
   detailsTableBlocks: { label: string; value: SerializedEditorState }[];
-}> = async ({ block, sectionClassName, sectionOverrides, locale }) => {
+}> = ({ block, sectionClassName, sectionOverrides, locale }) => {
   return (
     <SectionWrapper
       block={block}
       sectionClassName={sectionClassName}
       sectionOverrides={sectionOverrides}
-      errorFallbackMessage={await errorMessageForType(
+      errorFallbackMessage={errorMessageForType(
         {
           de: 'Die Detailtabelle',
           en: 'details table',
@@ -255,7 +252,7 @@ export const DetailsTable: SectionRenderer<{
   );
 };
 
-export const SwisstopoInlineMapSection: SectionRenderer<InlineSwisstopoMapEmbedType> = async ({
+export const SwisstopoInlineMapSection: SectionRenderer<InlineSwisstopoMapEmbedType> = ({
   block,
   sectionClassName,
   sectionOverrides,
@@ -266,7 +263,7 @@ export const SwisstopoInlineMapSection: SectionRenderer<InlineSwisstopoMapEmbedT
       block={block}
       sectionClassName={sectionClassName}
       sectionOverrides={sectionOverrides}
-      errorFallbackMessage={await errorMessageForType(
+      errorFallbackMessage={errorMessageForType(
         {
           de: 'Die Swisstopo-Karte',
           en: 'Swisstopo inline map',
@@ -288,13 +285,13 @@ export const RenderSinglePicture: SectionRenderer<{
     alt: string;
     imageCaption?: string;
   };
-}> = async ({ block, sectionClassName, sectionOverrides, locale }) => {
+}> = ({ block, sectionClassName, sectionOverrides, locale }) => {
   return (
     <SectionWrapper
       block={block}
       sectionClassName={sectionClassName}
       sectionOverrides={sectionOverrides}
-      errorFallbackMessage={await errorMessageForType(
+      errorFallbackMessage={errorMessageForType(
         {
           de: 'Das Einzelbild',
           en: 'single picture',
@@ -316,7 +313,7 @@ export const RenderSinglePicture: SectionRenderer<{
   );
 };
 
-export const RenderYoutubeEmbed: SectionRenderer<YoutubeEmbedType> = async ({
+export const RenderYoutubeEmbed: SectionRenderer<YoutubeEmbedType> = ({
   block,
   sectionClassName,
   sectionOverrides,
@@ -327,7 +324,7 @@ export const RenderYoutubeEmbed: SectionRenderer<YoutubeEmbedType> = async ({
       block={block}
       sectionClassName={sectionClassName}
       sectionOverrides={sectionOverrides}
-      errorFallbackMessage={await errorMessageForType(
+      errorFallbackMessage={errorMessageForType(
         {
           de: 'Der YouTube-Link',
           en: 'YouTube link',
@@ -342,7 +339,7 @@ export const RenderYoutubeEmbed: SectionRenderer<YoutubeEmbedType> = async ({
   );
 };
 
-export const RenderInstagramEmbed: SectionRenderer<InstagramEmbedType> = async ({
+export const RenderInstagramEmbed: SectionRenderer<InstagramEmbedType> = ({
   block,
   sectionClassName,
   sectionOverrides,
@@ -353,7 +350,7 @@ export const RenderInstagramEmbed: SectionRenderer<InstagramEmbedType> = async (
       block={block}
       sectionClassName={sectionClassName}
       sectionOverrides={sectionOverrides}
-      errorFallbackMessage={await errorMessageForType(
+      errorFallbackMessage={errorMessageForType(
         {
           de: 'Der Instagram-Link',
           en: 'Instagram link',
@@ -368,7 +365,7 @@ export const RenderInstagramEmbed: SectionRenderer<InstagramEmbedType> = async (
   );
 };
 
-export const RenderPhotoCarousel: SectionRenderer<PhotoCarouselBlock> = async ({
+export const RenderPhotoCarousel: SectionRenderer<PhotoCarouselBlock> = ({
   block,
   sectionClassName,
   sectionOverrides,
@@ -379,7 +376,7 @@ export const RenderPhotoCarousel: SectionRenderer<PhotoCarouselBlock> = async ({
       block={block}
       sectionClassName={sectionClassName}
       sectionOverrides={sectionOverrides}
-      errorFallbackMessage={await errorMessageForType(
+      errorFallbackMessage={errorMessageForType(
         {
           de: 'Das Fotokarussell',
           en: 'photo carousel',
@@ -394,7 +391,7 @@ export const RenderPhotoCarousel: SectionRenderer<PhotoCarouselBlock> = async ({
   );
 };
 
-export const RenderFormBlock: SectionRenderer<FormBlockType> = async ({
+export const RenderFormBlock: SectionRenderer<FormBlockType> = ({
   block,
   sectionClassName,
   sectionOverrides,
@@ -405,7 +402,7 @@ export const RenderFormBlock: SectionRenderer<FormBlockType> = async ({
       block={block}
       sectionClassName={sectionClassName}
       sectionOverrides={sectionOverrides}
-      errorFallbackMessage={await errorMessageForType(
+      errorFallbackMessage={errorMessageForType(
         {
           de: 'der Formularblock',
           en: 'form block',
@@ -420,7 +417,7 @@ export const RenderFormBlock: SectionRenderer<FormBlockType> = async ({
   );
 };
 
-export const RenderBlogPostsOverview: SectionRenderer = async ({
+export const RenderBlogPostsOverview: SectionRenderer = ({
   locale,
   block,
   sectionClassName,
@@ -431,7 +428,7 @@ export const RenderBlogPostsOverview: SectionRenderer = async ({
       block={block}
       sectionClassName={sectionClassName}
       sectionOverrides={sectionOverrides}
-      errorFallbackMessage={await errorMessageForType(
+      errorFallbackMessage={errorMessageForType(
         {
           de: 'Die Blogbeitragsübersicht',
           en: 'blog posts overview',
@@ -446,7 +443,7 @@ export const RenderBlogPostsOverview: SectionRenderer = async ({
   );
 };
 
-export const RenderRichTextSection: SectionRenderer<LexicalRichTextSectionType> = async ({
+export const RenderRichTextSection: SectionRenderer<LexicalRichTextSectionType> = ({
   block,
   sectionClassName,
   sectionOverrides,
@@ -457,7 +454,7 @@ export const RenderRichTextSection: SectionRenderer<LexicalRichTextSectionType> 
       block={block}
       sectionClassName={sectionClassName}
       sectionOverrides={sectionOverrides}
-      errorFallbackMessage={await errorMessageForType(
+      errorFallbackMessage={errorMessageForType(
         {
           de: 'Der Rich-Text-Abschnitt',
           en: 'rich text section',
@@ -472,7 +469,7 @@ export const RenderRichTextSection: SectionRenderer<LexicalRichTextSectionType> 
   );
 };
 
-export const RenderFileDownload: SectionRenderer<FileDownloadType> = async ({
+export const RenderFileDownload: SectionRenderer<FileDownloadType> = ({
   block,
   sectionClassName,
   sectionOverrides,
@@ -483,7 +480,7 @@ export const RenderFileDownload: SectionRenderer<FileDownloadType> = async ({
       block={block}
       sectionClassName={sectionClassName}
       sectionOverrides={sectionOverrides}
-      errorFallbackMessage={await errorMessageForType(
+      errorFallbackMessage={errorMessageForType(
         {
           de: 'Der Datei-Download',
           en: 'file download',
@@ -498,7 +495,7 @@ export const RenderFileDownload: SectionRenderer<FileDownloadType> = async ({
   );
 };
 
-export const RenderCountdown: SectionRenderer<CountdownType> = async ({
+export const RenderCountdown: SectionRenderer<CountdownType> = ({
   block,
   sectionClassName,
   sectionOverrides,
@@ -509,7 +506,7 @@ export const RenderCountdown: SectionRenderer<CountdownType> = async ({
       block={block}
       sectionClassName={sectionClassName}
       sectionOverrides={sectionOverrides}
-      errorFallbackMessage={await errorMessageForType(
+      errorFallbackMessage={errorMessageForType(
         {
           de: 'Der Countdown',
           en: 'countdown',
@@ -530,7 +527,7 @@ export const RenderCountdown: SectionRenderer<CountdownType> = async ({
   );
 };
 
-export const RenderWhiteSpace: SectionRenderer = async ({
+export const RenderWhiteSpace: SectionRenderer = ({
   block,
   sectionClassName,
   sectionOverrides,
@@ -541,7 +538,7 @@ export const RenderWhiteSpace: SectionRenderer = async ({
       block={block}
       sectionClassName={sectionClassName}
       sectionOverrides={sectionOverrides}
-      errorFallbackMessage={await errorMessageForType(
+      errorFallbackMessage={errorMessageForType(
         {
           de: 'Der Leerraum',
           en: 'whitespace',
@@ -556,7 +553,7 @@ export const RenderWhiteSpace: SectionRenderer = async ({
   );
 };
 
-export const RenderCallToAction: SectionRenderer<CallToActionType> = async ({
+export const RenderCallToAction: SectionRenderer<CallToActionType> = ({
   block,
   sectionClassName,
   sectionOverrides,
@@ -567,7 +564,7 @@ export const RenderCallToAction: SectionRenderer<CallToActionType> = async ({
       block={block}
       sectionClassName={sectionClassName}
       sectionOverrides={sectionOverrides}
-      errorFallbackMessage={await errorMessageForType(
+      errorFallbackMessage={errorMessageForType(
         {
           de: 'Der Call-To-Action Button',
           en: 'call-to-action button',
@@ -582,7 +579,7 @@ export const RenderCallToAction: SectionRenderer<CallToActionType> = async ({
   );
 };
 
-export const RenderNewsCard: SectionRenderer<NewsCardType> = async ({
+export const RenderNewsCard: SectionRenderer<NewsCardType> = ({
   block,
   sectionClassName,
   sectionOverrides,
@@ -593,7 +590,7 @@ export const RenderNewsCard: SectionRenderer<NewsCardType> = async ({
       block={block}
       sectionClassName={sectionClassName}
       sectionOverrides={sectionOverrides}
-      errorFallbackMessage={await errorMessageForType(
+      errorFallbackMessage={errorMessageForType(
         {
           de: 'Die News-Card',
           en: 'news-card',
@@ -608,7 +605,7 @@ export const RenderNewsCard: SectionRenderer<NewsCardType> = async ({
   );
 };
 
-export const RenderCampScheduleEntry: SectionRenderer<CampScheduleEntryType> = async ({
+export const RenderCampScheduleEntry: SectionRenderer<CampScheduleEntryType> = ({
   block,
   sectionClassName,
   sectionOverrides,
@@ -619,7 +616,7 @@ export const RenderCampScheduleEntry: SectionRenderer<CampScheduleEntryType> = a
       block={block}
       sectionClassName={sectionClassName}
       sectionOverrides={sectionOverrides}
-      errorFallbackMessage={await errorMessageForType(
+      errorFallbackMessage={errorMessageForType(
         {
           de: 'Das Programm',
           en: 'program',

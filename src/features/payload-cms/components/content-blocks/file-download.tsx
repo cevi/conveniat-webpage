@@ -35,7 +35,7 @@ const dateStringToFormatedDate = (locale: Locale, dateString: string): string =>
   return date.toLocaleDateString(locale, options);
 };
 
-export const FileDownload: React.FC<FileDownloadType> = async ({ locale, ...block }) => {
+export const FileDownload: React.FC<FileDownloadType> = ({ locale, ...block }) => {
   return (
     <div className="rounded-md border-2 border-gray-200 bg-white transition duration-200 hover:shadow-md sm:m-8">
       <LinkComponent

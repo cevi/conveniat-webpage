@@ -11,7 +11,7 @@ interface LayoutProperties {
 }
 
 const Layout: React.FC<LayoutProperties> = ({ children, params }) => {
-  const { locale } = await params;
+  const locale = params.then((p) => p.locale);
   return (
     <ErrorBoundary
       fallback={

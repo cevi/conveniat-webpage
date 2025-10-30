@@ -11,7 +11,7 @@ export interface CallToActionType {
   locale: Locale;
 }
 
-export const CallToActionBlock: React.FC<CallToActionType> = async ({ locale, ...block }) => {
+export const CallToActionBlock: React.FC<CallToActionType> = ({ locale, ...block }) => {
   const url = getURLForLinkField(block.linkField, locale);
   return (
     <CallToAction href={url} inverted={block.inverted}>

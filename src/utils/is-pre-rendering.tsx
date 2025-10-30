@@ -18,9 +18,14 @@ import 'server-only';
  * is cached at runtime.
  *
  */
-export const isBuildTimePreRendering = async () => {
-  await connection();
-  return process.env['NEXT_PHASE'] === PHASE_PRODUCTION_BUILD;
+export const isBuildTimePreRendering = async (): Promise<boolean> => {
+  // eslint-disable-next-line n/no-process-env
+  if (process.env['NEXT_PHASE'] === PHASE_PRODUCTION_BUILD) {
+    await connection();
+    return true;
+  }
+
+  return false;
 };
 
 const NoBuildTimePreRenderingNotSuspended: React.FC<{ children: React.ReactNode }> = async ({
@@ -44,9 +49,7 @@ const NoBuildTimePreRenderingNotSuspended: React.FC<{ children: React.ReactNode 
  * @constructor
  * @param props
  */
-export const NoBuildTimePreRendering: React.FC<{ children: React.ReactNode }> = async ({
-  children,
-}) => {
+export const NoBuildTimePreRendering: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
     <Suspense>
       <NoBuildTimePreRenderingNotSuspended>{children}</NoBuildTimePreRenderingNotSuspended>

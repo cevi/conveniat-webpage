@@ -30,9 +30,7 @@ const AppLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
   );
 };
 
-export const generateStaticParams = async (): Promise<
-  { locale: Locale; design: DesignCodes }[]
-> => {
+export const generateStaticParams = (): { locale: Locale; design: DesignCodes }[] => {
   const designs: DesignCodes[] = [DesignCodes.APP_DESIGN];
   const locales: Locale[] = ['de', 'fr', 'en'];
 

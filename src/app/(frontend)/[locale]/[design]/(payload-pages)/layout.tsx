@@ -11,8 +11,9 @@ interface LayoutProperties {
 }
 
 const Layout: React.FC<LayoutProperties> = ({ children, params }) => {
-  const { locale, design } = await params;
-  const isInAppDesign = design === DesignCodes.APP_DESIGN;
+  const locale = params.then((p) => p.locale);
+  const isInAppDesign = params.then((p) => p.design === DesignCodes.APP_DESIGN);
+
   return (
     <>
       <SetDynamicPageTitle newTitle="conveniat27" />
@@ -25,9 +26,7 @@ const Layout: React.FC<LayoutProperties> = ({ children, params }) => {
   );
 };
 
-export const generateStaticParams = async (): Promise<
-  { locale: Locale; design: DesignCodes }[]
-> => {
+export const generateStaticParams = (): { locale: Locale; design: DesignCodes }[] => {
   const designs: DesignCodes[] = [DesignCodes.WEB_DESIGN, DesignCodes.APP_DESIGN];
   const locales: Locale[] = ['de', 'fr', 'en'];
 

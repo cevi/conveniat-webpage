@@ -61,7 +61,7 @@ const GET = async (request: Request): Promise<Response> => {
 
     // check if user has permissions to access the admin panel
     const hasPermissionsForPreview = await canUserAccessAdminPanel({
-      user: user as HitobitoNextAuthUser,
+      user: user,
     });
     if (!hasPermissionsForPreview)
       return new Response(

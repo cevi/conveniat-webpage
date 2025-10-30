@@ -46,9 +46,10 @@ const error404Description: Record<Locale, React.JSX.Element> = {
  * This file is responsible for converters a general 404 error page.
  */
 export const NotFound: React.FC<{
-  locale?: Locale;
-}> = async ({ locale }) => {
+  locale?: Promise<Locale>;
+}> = async ({ locale: localePromise }) => {
   // fetch locale from cookies if not provided
+  let locale = await localePromise;
   locale ??= await getLocaleFromCookies();
 
   return (

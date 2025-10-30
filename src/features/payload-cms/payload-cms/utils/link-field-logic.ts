@@ -69,11 +69,11 @@ export const getURLForLinkField = (
 
     switch (relationTo) {
       case 'blog': {
-        const urlSlug = (value as Blog).seo?.urlSlug;
+        const urlSlug = (value as Blog).seo.urlSlug;
         return urlSlug === '' ? undefined : `${langPrefix}/blog/${urlSlug}`;
       }
       case 'generic-page': {
-        const urlSlug = (value as GenericPage).seo?.urlSlug;
+        const urlSlug = (value as GenericPage).seo.urlSlug;
         if (urlSlug === '') {
           return langPrefix === '' ? '/' : langPrefix;
         }

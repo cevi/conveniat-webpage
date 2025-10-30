@@ -75,6 +75,7 @@ const config = defineConfig([
             tx: true, // transaction
             val: true, // value
             env: true, // environment
+            generateStaticParams: true, // Next.js function
           },
         },
       ],
