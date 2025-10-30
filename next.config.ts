@@ -39,6 +39,10 @@ const nextConfig: NextConfig = {
   // enable gzip compression for all responses
   compress: true,
 
+  cacheHandlers: {
+    default: require.resolve('./src/cache-handlers/default.cjs'),
+  },
+
   // enable react compiler for better error messages and performance
   reactCompiler: true,
 

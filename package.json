@@ -10,9 +10,10 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "build": "cross-env NODE_OPTIONS=--no-deprecation next build",
-    "dev": "cross-env NODE_OPTIONS=--no-deprecation next dev --turbopack",
-    "devsafe": "rm -rf .next/* && cross-env NODE_OPTIONS=--no-deprecation next dev",
+    "prebuild": "tsc -p tsconfig.infra.json",
+    "build": "pnpm prebuild && cross-env NODE_OPTIONS=--no-deprecation next build",
+    "dev": "pnpm prebuild && cross-env NODE_OPTIONS=--no-deprecation next dev --turbopack",
+    "devsafe": "rm -rf .next/* && pnpm prebuild && cross-env NODE_OPTIONS=--no-deprecation next dev",
     "generate:importmap": "cross-env NODE_OPTIONS=--no-deprecation payload generate:importmap",
     "generate:types": "cross-env NODE_OPTIONS=--no-deprecation payload generate:types",
     "lint": "(tsc --noemit --project ./tsconfig.json); eslint -c eslint.config.mjs --fix --quiet .",

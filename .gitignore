@@ -56,3 +56,6 @@ public/swe-worker*
 
 # prisma generated files
 src/lib/prisma
+
+# pre build code
+src/cache-handlers/**/*.js
