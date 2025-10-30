@@ -23,5 +23,5 @@ export const proxy = middlewareChain([
 // we apply the middleware to all routes
 export const config = {
   // exclude _next routes
-  matcher: ['/((?!_next).*)']
+  matcher: ['/((?!_next).*)'],
 };

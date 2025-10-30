@@ -1,12 +1,7 @@
 {
   "compilerOptions": {
     "baseUrl": ".",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext",
-      "webworker"
-    ],
+    "lib": ["dom", "dom.iterable", "esnext", "webworker"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -34,24 +29,16 @@
     "isolatedModules": true,
     "jsx": "react-jsx",
     "incremental": true,
-    "types": [
-      "@serwist/next/typings"
-    ],
+    "types": ["@serwist/next/typings"],
     "plugins": [
       {
         "name": "next"
       }
     ],
     "paths": {
-      "@/*": [
-        "./src/*"
-      ],
-      "@payload-config": [
-        "./src/features/payload-cms/payload.config.ts"
-      ],
-      "@prisma/client": [
-        "./src/lib/prisma/client"
-      ]
+      "@/*": ["./src/*"],
+      "@payload-config": ["./src/features/payload-cms/payload.config.ts"],
+      "@prisma/client": ["./src/lib/prisma/client"]
     },
     "target": "es2021"
   },
@@ -62,10 +49,5 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
-  "exclude": [
-    "public/sw.js",
-    "node_modules",
-    ".next",
-    "src/app/(payload)/layout.tsx"
-  ]
+  "exclude": ["public/sw.js", "node_modules", ".next", "src/app/(payload)/layout.tsx"]
 }
