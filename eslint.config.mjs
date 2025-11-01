@@ -1,11 +1,11 @@
-import { fixupConfigRules } from '@eslint/compat';
-import { FlatCompat } from '@eslint/eslintrc';
-import js from '@eslint/js';
+import nextVitals from 'eslint-config-next/core-web-vitals';
+import nextTs from 'eslint-config-next/typescript';
 import progress from 'eslint-plugin-file-progress';
 import nodePlugin from 'eslint-plugin-n';
 import noRelativeImportPaths from 'eslint-plugin-no-relative-import-paths';
 import reactNamingConvention from 'eslint-plugin-react-naming-convention';
 import eslintPluginUnicorn from 'eslint-plugin-unicorn';
+import { defineConfig, globalIgnores } from 'eslint/config';
 import * as fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -13,13 +13,6 @@ import ts from 'typescript-eslint';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-  recommendedConfig: js.configs.recommended,
-  allConfig: js.configs.all,
-});
-
-const patchedConfig = fixupConfigRules([...compat.extends('next/core-web-vitals')]);
 
 const features_folder = [
   'next-auth',
@@ -34,13 +27,12 @@ const features_folder = [
   'image-submission',
 ];
 
-// assert that all folders in src/features are in the features array
-const featuresDir = path.join(__dirname, 'src', 'features');
-const featuresFiles = await fs.promises.readdir(featuresDir);
-const featuresFolders = featuresFiles.filter(async (file) => {
-  const stat = await fs.promises.stat(path.join(featuresDir, file));
-  return stat.isDirectory();
-});
+const featuresDirectory = path.join(__dirname, 'src', 'features');
+const featuresFiles = await fs.promises.readdir(featuresDirectory);
+const stats = await Promise.all(
+  featuresFiles.map((file) => fs.promises.stat(path.join(featuresDirectory, file))),
+);
+const featuresFolders = featuresFiles.filter((file, index) => stats[index].isDirectory());
 const featuresFoldersSet = new Set(featuresFolders);
 const featuresSet = new Set(features_folder);
 const missingFeatures = [...featuresFoldersSet].filter((feature) => !featuresSet.has(feature));
@@ -51,11 +43,24 @@ if (missingFeatures.length > 0) {
   );
 }
 
-const config = [
-  progress.configs.recommended,
-  ...patchedConfig,
-  ...ts.configs.recommended,
+const config = defineConfig([
+  // 1. Base Configs
+  ...ts.configs.recommendedTypeChecked,
+
+  {
+    languageOptions: {
+      parserOptions: {
+        projectService: true,
+      },
+    },
+  },
+
+  ...nextVitals,
+  ...nextTs,
   eslintPluginUnicorn.configs['flat/recommended'],
+  progress.configs.recommended,
+
+  // 2. Global Rule Overrides
   {
     rules: {
       'unicorn/prevent-abbreviations': [
@@ -73,42 +78,19 @@ const config = [
           },
         },
       ],
+      'unicorn/no-array-reduce': 'off',
+
+      // Other global rules
+      'prefer-const': 'error',
+      'no-shadow': 'error',
+      'no-nested-ternary': 'error',
+      semi: 'error',
+      'no-control-regex': 'warn',
+      'no-useless-escape': 'warn',
     },
-  },
-  {
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.json'],
-        projectService: true,
-        tsconfigRootDir: import.meta.dirname,
-      },
-    },
-  },
-  {
-    files: ['**/*.{ts,tsx}'],
-    plugins: {
-      'react-naming-convention': reactNamingConvention,
-      'no-relative-import-paths': noRelativeImportPaths,
-    },
-    rules: {
-      // react-naming-convention recommended rules
-      'react-naming-convention/filename-extension': ['warn', 'as-needed'],
-      'react-naming-convention/use-state': 'warn',
-      'react-hooks/exhaustive-deps': 'error',
-      'react-hooks/rules-of-hooks': 'error',
-      'no-relative-import-paths/no-relative-import-paths': [
-        'error',
-        { allowSameFolder: false, rootDir: 'src', prefix: '@' },
-      ],
-    },
-  },
-  {
-    // we check typescript naming conventions only for typescript files
-    files: ['**/*.{ts}', '**/*.{tsx}'],
-    rules: { '@typescript-eslint/naming-convention': 'warn' },
   },
 
-  // disallow directly accessing process.env, use the config file instead
+  // 3. Node.js specific rules
   {
     plugins: { n: nodePlugin },
     rules: { 'n/no-process-env': ['error'] },
@@ -119,12 +101,39 @@ const config = [
     ],
   },
 
+  // 4. Consolidated TypeScript & React Custom Rules
+  // These rules are applied *on top of* the Next.js defaults.
+
+  // typescript-eslint naming conventions
   {
+    // we check typescript naming conventions only for typescript files
+    files: ['**/*.{ts}', '**/*.{tsx}'],
+    rules: { '@typescript-eslint/naming-convention': 'warn' },
+  },
+
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    plugins: {
+      'react-naming-convention': reactNamingConvention,
+      'no-relative-import-paths': noRelativeImportPaths,
+    },
+    // We no longer need languageOptions here, nextTs handles it.
     rules: {
-      'prefer-const': 'error',
-      complexity: ['error', { max: 10 }],
-      'no-shadow': 'error',
-      'no-nested-ternary': 'error',
+      // react-naming-convention recommended rules
+      'react-naming-convention/filename-extension': ['warn', 'as-needed'],
+      'react-naming-convention/use-state': 'warn',
+
+      // react-hooks (already in nextVitals, but explicit overrides are fine)
+      'react-hooks/exhaustive-deps': 'error',
+      'react-hooks/rules-of-hooks': 'error',
+
+      // no-relative-import-paths
+      'no-relative-import-paths/no-relative-import-paths': [
+        'error',
+        { allowSameFolder: false, rootDir: 'src', prefix: '@' },
+      ],
+
+      // All other custom TS/React rules
       '@typescript-eslint/ban-ts-comment': 'warn',
       '@typescript-eslint/no-unnecessary-condition': 'error',
       '@typescript-eslint/no-floating-promises': 'error',
@@ -188,6 +197,7 @@ const config = [
       '@typescript-eslint/no-deprecated': 'warn',
       'unicorn/no-array-reduce': 'off',
 
+      // import rules (from next/core-web-vitals)
       'import/no-restricted-paths': [
         'error',
         {
@@ -238,23 +248,30 @@ const config = [
       ],
     },
   },
-  {
-    ignores: [
-      // js files cannot be type checked
-      '**/*.js',
-      '**/*.mjs',
-      // some next.js files should not be checked
-      '.next/*',
-      // some payload files should not be checked
-      '**/payload-types.ts',
-      '**/(payload)/admin/*/not-found.tsx',
-      '**/(payload)/admin/*/page.tsx',
-      '**/(payload)/layout.tsx',
-      'src/build.ts',
-      'src/lib/prisma', // auto generated by prisma
-      'next-env.d.ts', // ignore next-env, auto-generated by NextJS
-    ],
-  },
-];
+
+  // 5. Global Ignores
+  globalIgnores([
+    // Default ignores from eslint-config-next
+    '.next/**',
+    'out/**',
+    'build/**',
+    'next-env.d.ts',
+
+    // this config file
+    'eslint.config.mjs',
+
+    // Custom project ignores
+    '**/payload-types.ts',
+    '**/(payload)/admin/*/not-found.tsx',
+    '**/(payload)/admin/*/page.tsx',
+    '**/(payload)/layout.tsx',
+    'src/build.ts',
+    'src/lib/prisma', // auto generated by prisma
+
+    // js files
+    'src/app/(payload)/admin/importMap.js',
+    'postcss.config.js'
+  ]),
+]);
 
 export default config;
