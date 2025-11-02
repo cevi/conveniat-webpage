@@ -48,7 +48,9 @@ const FooterMinimalMenu: React.FC<{ locale: Locale }> = async ({ locale }) => {
   );
 };
 
-const FooterCopyrightText: React.FC = () => {
+// cached functions must be async
+// eslint-disable-next-line @typescript-eslint/require-await
+const FooterCopyrightText: React.FC = async () => {
   'use cache';
   const year = new Date().getFullYear();
   const copyright = `© ${year} · conveniat27`;
