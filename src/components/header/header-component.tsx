@@ -8,7 +8,7 @@ import { canUserAccessAdminPanel } from '@/features/payload-cms/payload-cms/acce
 import { getLanguagePrefix } from '@/features/payload-cms/utils/get-language-prefix';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { StaticTranslationString } from '@/types/types';
-import { auth } from '@/utils/auth-helpers';
+import { auth } from '@/utils/auth';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { cookies } from 'next/headers';
 import React from 'react';
