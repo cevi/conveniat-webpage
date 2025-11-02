@@ -52,7 +52,6 @@ export const hasPermissionsForLinkField = async (
 export const getURLForLinkField = (
   linkFieldData: LinkFieldDataType | undefined,
   locale: Locale,
-  // eslint-disable-next-line complexity
 ): string | undefined => {
   if (!linkFieldData) return undefined;
 
@@ -124,7 +123,7 @@ export const openURLInNewTab = (linkFieldData?: LinkFieldDataType): boolean => {
  * @returns A new object with the 'id' values inlined.
  *
  */
-// eslint-disable-next-line complexity
+
 export const replaceInlinedDocumentWithDocumentId = <T>(object: T): T => {
   if (object === null || typeof object !== 'object') {
     return object;

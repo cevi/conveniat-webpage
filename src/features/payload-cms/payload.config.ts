@@ -42,7 +42,6 @@ const generatePreviewUrl = ({
   data: { seo?: { urlSlug?: string }; id?: string } | null | undefined;
   collectionConfig?: CollectionConfig;
   locale: Locale;
-  // eslint-disable-next-line complexity
 }): string => {
   if (data === undefined || data === null) return '';
 

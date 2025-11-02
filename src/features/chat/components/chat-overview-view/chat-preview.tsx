@@ -14,13 +14,12 @@ import type React from 'react';
 
 export const ChatPreview: React.FC<{
   chat: ChatWithMessagePreview;
-  // eslint-disable-next-line complexity
 }> = ({ chat }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const chatDetailLink = `/app/chat/${chat.id}`;
   const hasUnread = chat.unreadCount > 0;
 
-  let localeToUse: typeof deLocale | typeof frLocale | undefined;
+  let localeToUse: typeof deLocale | undefined;
   switch (locale) {
     case 'de': {
       localeToUse = deLocale;

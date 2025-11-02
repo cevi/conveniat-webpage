@@ -67,7 +67,7 @@ export const useMessageSend = (): UseMessageSendMutation => {
               lastMessage: {
                 id: optimisticMessage.id,
                 senderId: optimisticMessage.senderId,
-                messagePreview: optimisticMessage.messagePayload.toString(),
+                messagePreview: JSON.stringify(optimisticMessage.messagePayload),
                 createdAt: optimisticMessage.createdAt,
                 status: optimisticMessage.status,
                 type: optimisticMessage.type,

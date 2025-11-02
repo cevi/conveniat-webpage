@@ -12,7 +12,6 @@ const alertMessageText: StaticTranslationString = {
 export const formatMessageContent = (
   text: string | number | boolean | JsonObject | JsonArray,
   locale: Locale,
-  // eslint-disable-next-line complexity
 ): React.ReactNode[] => {
   // If the payload is a JSON object, handle special message types.
   if (
@@ -23,6 +22,7 @@ export const formatMessageContent = (
     const { userName, userNickname } = text;
     return [
       <div key="emergency-alert" className="rounded-md bg-red-100 p-2 font-bold text-red-600">
+        {/* eslint-disable-next-line @typescript-eslint/no-base-to-string */}
         {alertMessageText[locale]} {userName?.toString() ?? userNickname?.toString() ?? ''} <br />
       </div>,
     ];

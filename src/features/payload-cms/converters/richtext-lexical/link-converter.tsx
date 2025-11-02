@@ -9,7 +9,7 @@ import type { JSXConverters } from '@payloadcms/richtext-lexical/react';
  * The fields of a link node.
  */
 interface LinkFields {
-  url: string | unknown;
+  url: string | undefined;
   linkType: string;
   newTab?: boolean;
   doc: {
@@ -33,9 +33,9 @@ interface LinkFields {
  * @param fields
  *
  */
-// eslint-disable-next-line complexity
+
 const resolveInternalLink = (fields: LinkFields): string => {
-  const url = (fields.url ?? '') as string;
+  const url = fields.url ?? '';
 
   const locale = fields.doc.value._locale;
   let langPrefix = getLanguagePrefix(locale);
@@ -50,7 +50,7 @@ const resolveInternalLink = (fields: LinkFields): string => {
         for (const value of Object.values(slugToUrlMapping)) {
           if (value.slug === collectionName) {
             // might be undefined if locale is undefined
-            const urlPrefix = value.urlPrefix[locale as Locale] as string | undefined;
+            const urlPrefix = value.urlPrefix[locale] as string | undefined;
             return urlPrefix === '' || urlPrefix === undefined
               ? `/${langPrefix}${urlSlug}`
               : `/${langPrefix}${urlPrefix}/${urlSlug}`;
@@ -87,7 +87,7 @@ const linkConverter: JSXConverters<SerializedParagraphNode>['link'] = ({ node, n
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const fields = node.fields as unknown as LinkFields;
 
-  let url = (fields.url ?? '') as string;
+  let url = fields.url ?? '';
 
   if (fields.linkType === 'internal') {
     url = resolveInternalLink(fields);

@@ -27,7 +27,7 @@ import type { Payload } from 'payload';
  *
  * @param payload The Payload instance
  */
-// eslint-disable-next-line complexity
+
 export const seedDatabase = async (payload: Payload): Promise<void> => {
   // we only seed for the dev instance
   if (environmentVariables.NODE_ENV !== 'development') {

@@ -17,7 +17,7 @@ const otelBeforeOperation: CollectionBeforeOperationHook = ({ collection, operat
       'payload.collection.slug': collection.slug,
       'payload.operation': operation,
       'payload.user.id': req.user?.id ?? 'anonymous',
-      'payload.transactionID': String(req.transactionID),
+      'payload.transactionID': String((req.transactionID ?? '') as string),
       'payload.locale': req.locale,
     });
 

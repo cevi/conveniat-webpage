@@ -39,7 +39,7 @@ export const QRCodeClientComponent: React.FC<{
 
   useEffect(() => {
     if (open) {
-      const prepare = async (): Promise<void> => {
+      const prepare = (): void => {
         setIsPreparingQrData(true);
         setQrInputDataSource(undefined);
         try {
@@ -54,7 +54,7 @@ export const QRCodeClientComponent: React.FC<{
           setIsPreparingQrData(false);
         }
       };
-      prepare().catch(console.error);
+      prepare();
     }
   }, [open, locale, url]);
 
@@ -121,7 +121,7 @@ export const QRCodeClientComponent: React.FC<{
                 qrImageSrc={qrImageData}
                 copied={false}
                 isLoading={isLoading}
-                locale={locale as Locale}
+                locale={locale}
               />
               {isErrorQRCodeImage && (
                 <p className="px-2 text-center text-xs text-red-500">
@@ -130,9 +130,7 @@ export const QRCodeClientComponent: React.FC<{
               )}
             </div>
 
-            <h2 className="text-md mb-4 text-center font-bold">
-              {qrCodeTitleText[locale as Locale]}
-            </h2>
+            <h2 className="text-md mb-4 text-center font-bold">{qrCodeTitleText[locale]}</h2>
           </div>
         </div>
       )}

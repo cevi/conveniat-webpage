@@ -64,7 +64,7 @@ export const ListBlogPosts: React.FC<LocalizedPageType> = async ({ locale }) => 
     limit: 5,
   });
 
-  const blogs = blogsPaged.docs as Blog[];
+  const blogs = blogsPaged.docs;
 
   return (
     <div className="mx-auto my-8 flex flex-col xl:my-16 2xl:my-20 2xl:mr-[-11rem] 2xl:px-8">

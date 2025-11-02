@@ -16,19 +16,24 @@ const MapCoordinatesField: PointFieldClientComponent = ({ path }) => {
   const markerReference = useRef<maplibregl.Marker | undefined>(undefined);
 
   const [initialLoad, setInitialLoad] = useState(true);
+
+  // Update manual input fields when the map's value changes
   const [manualLng, setManualLng] = useState<string>(value ? value[0].toFixed(4) : '');
   const [manualLat, setManualLat] = useState<string>(value ? value[1].toFixed(4) : '');
 
-  // Update manual input fields when the map's value changes
-  useEffect(() => {
-    if (value) {
-      setManualLng(value[0].toFixed(4));
-      setManualLat(value[1].toFixed(4));
-    } else {
-      setManualLng('');
-      setManualLat('');
-    }
-  }, [value]);
+  // This state tracks the "value" that manualLng and manualLat are currently in sync with.
+  const [syncedValue, setSyncedValue] = useState(value);
+
+  // This is the fix:
+  // We check if the external 'value' has changed since our last sync.
+  if (value !== syncedValue) {
+    // If it has (e.g., from a map click), we force our local state
+    // to update *during this render*.
+    setManualLng(value ? value[0].toFixed(4) : '');
+    setManualLat(value ? value[1].toFixed(4) : '');
+    // We also update our tracker to this new value.
+    setSyncedValue(value);
+  }
 
   const updateMarker = useCallback(
     (lngLat: [number, number]) => {

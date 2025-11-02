@@ -63,13 +63,13 @@ const handleSpecialPage = (collection: string, locale: Locale): Metadata => {
 export const generateMetadata = async ({
   params,
 }: {
-  params: {
+  params: Promise<{
     locale: Locale;
     slugs: string[] | undefined;
-  };
+  }>;
 }): Promise<Metadata> => {
   const { slugs, locale } = await params;
-  const collection = (slugs?.[0] ?? '') as string;
+  const collection = slugs?.[0] ?? '';
   const remainingSlugs = slugs?.slice(1) ?? [];
 
   if (isSpecialPage(collection)) {
@@ -108,123 +108,121 @@ const CMSPage: React.FC<{
     locale: Locale;
   }>;
   searchParams: Promise<SearchParameters>;
-}> =
-  // eslint-disable-next-line complexity
-  async ({ params, searchParams: searchParametersPromise }) => {
-    let { locale } = await params;
-    let { slugs } = await params;
+}> = async ({ params, searchParams: searchParametersPromise }) => {
+  let { locale } = await params;
+  let { slugs } = await params;
 
-    // this logic is needed for the case the do not have set
-    // we only treat valid locales as a valid locale, otherwise we use the default locale
-    // and unshift the locale to the slugs array
-    if (!Object.values(LOCALE).includes(locale)) {
-      slugs ??= [];
-      slugs.unshift(locale);
-      locale = i18nConfig.defaultLocale as Locale;
+  // this logic is needed for the case the do not have set
+  // we only treat valid locales as a valid locale, otherwise we use the default locale
+  // and unshift the locale to the slugs array
+  if (!Object.values(LOCALE).includes(locale)) {
+    slugs ??= [];
+    slugs.unshift(locale);
+    locale = i18nConfig.defaultLocale as Locale;
+  }
+
+  const searchParameters = await searchParametersPromise;
+
+  // check if error parameter is set
+  if (searchParameters['error']) {
+    return (
+      <CustomErrorBoundaryFallback>
+        <NotFound />
+      </CustomErrorBoundaryFallback>
+    );
+  }
+
+  const searchParametersString = Object.entries(searchParameters)
+    .map(([key, value]) => {
+      return Array.isArray(value) ? value.map((v) => `${key}=${v}`).join('&') : `${key}=${value}`;
+    })
+    .join('&');
+
+  // check if part of a routable collection of the form [collection]/[slug]
+  const collection = slugs?.[0] ?? '';
+  const remainingSlugs = slugs?.slice(1) ?? [];
+
+  const url = `/${locale}/${slugs?.join('/') ?? ''}`;
+  const previewModeAllowed = await canAccessPreviewOfCurrentPage(searchParameters, url);
+  const hasPreviewSearchParameter = searchParameters['preview'] === 'true';
+
+  // check if the collection is in the special page table
+  if (isSpecialPage(collection)) {
+    const specialPage = getSpecialPage(collection);
+    if (specialPage === undefined) {
+      notFound();
     }
 
-    const searchParameters = await searchParametersPromise;
+    const foundLocale = specialPage.locale;
 
-    // check if error parameter is set
-    if (searchParameters['error']) {
+    if (foundLocale === locale) {
+      // locale matches --> render the page
       return (
-        <CustomErrorBoundaryFallback>
-          <NotFound />
-        </CustomErrorBoundaryFallback>
+        <>
+          <specialPage.component
+            slugs={remainingSlugs}
+            renderInPreviewMode={previewModeAllowed && hasPreviewSearchParameter}
+            locale={locale}
+            searchParams={searchParameters}
+          />
+          {previewModeAllowed && hasPreviewSearchParameter && <PreviewWarning params={params} />}
+
+          <CookieBanner />
+        </>
       );
+    } else {
+      // redirect to the alternative locale
+      redirect(`/${locale}${specialPage.alternatives[locale]}?${searchParametersString}`);
     }
+  }
 
-    const searchParametersString = Object.entries(searchParameters)
-      .map(([key, value]) => {
-        return Array.isArray(value) ? value.map((v) => `${key}=${v}`).join('&') : `${key}=${value}`;
-      })
-      .join('&');
+  let collectionPage = routeResolutionTable[collection];
+  if (collectionPage === undefined && routeResolutionTable[''] !== undefined) {
+    // if no collection found, try to match the first slug to the default collection
+    collectionPage = routeResolutionTable[''];
+    remainingSlugs.unshift(collection);
+  }
 
-    // check if part of a routable collection of the form [collection]/[slug]
-    const collection = (slugs?.[0] ?? '') as string;
-    const remainingSlugs = slugs?.slice(1) ?? [];
+  if (!previewModeAllowed && hasPreviewSearchParameter) {
+    throw new Error(`Preview mode is not allowed for this page.`);
+  }
 
-    const url = `/${locale}/${slugs?.join('/') ?? ''}`;
-    const previewModeAllowed = await canAccessPreviewOfCurrentPage(searchParameters, url);
-    const hasPreviewSearchParameter = searchParameters['preview'] === 'true';
+  if (collectionPage !== undefined) {
+    if (collectionPage.locales.includes(locale)) {
+      return (
+        <>
+          {previewModeAllowed && hasPreviewSearchParameter && (
+            <RefreshRouteOnSave serverURL={environmentVariables.APP_HOST_URL} />
+          )}
 
-    // check if the collection is in the special page table
-    if (isSpecialPage(collection)) {
-      const specialPage = getSpecialPage(collection);
-      if (specialPage === undefined) {
-        notFound();
-      }
+          <collectionPage.component
+            locale={locale}
+            slugs={remainingSlugs}
+            searchParams={searchParameters}
+            renderInPreviewMode={previewModeAllowed && hasPreviewSearchParameter}
+          />
 
-      const foundLocale = specialPage.locale;
+          {previewModeAllowed && hasPreviewSearchParameter && <PreviewWarning params={params} />}
 
-      if (foundLocale === locale) {
-        // locale matches --> render the page
-        return (
-          <>
-            <specialPage.component
-              slugs={remainingSlugs}
-              renderInPreviewMode={previewModeAllowed && hasPreviewSearchParameter}
-              locale={locale}
-              searchParams={searchParameters}
-            />
-            {previewModeAllowed && hasPreviewSearchParameter && <PreviewWarning params={params} />}
-
-            <CookieBanner />
-          </>
-        );
-      } else {
-        // redirect to the alternative locale
-        redirect(`/${locale}${specialPage.alternatives[locale]}?${searchParametersString}`);
-      }
+          <CookieBanner />
+        </>
+      );
+    } else {
+      // redirect to alternative collectionPage if available
+      const alternative = collectionPage.alternatives[locale];
+      redirect(`/${locale}/${alternative}?${searchParametersString}`);
     }
+  }
 
-    let collectionPage = routeResolutionTable[collection];
-    if (collectionPage === undefined && routeResolutionTable[''] !== undefined) {
-      // if no collection found, try to match the first slug to the default collection
-      collectionPage = routeResolutionTable[''];
-      remainingSlugs.unshift(collection);
-    }
+  if (collection === 'admin') {
+    redirect(`/admin`);
+  }
 
-    if (!previewModeAllowed && hasPreviewSearchParameter) {
-      throw new Error(`Preview mode is not allowed for this page.`);
-    }
-
-    if (collectionPage !== undefined) {
-      if (collectionPage.locales.includes(locale)) {
-        return (
-          <>
-            {previewModeAllowed && hasPreviewSearchParameter && (
-              <RefreshRouteOnSave serverURL={environmentVariables.APP_HOST_URL} />
-            )}
-
-            <collectionPage.component
-              locale={locale}
-              slugs={remainingSlugs}
-              searchParams={searchParameters}
-              renderInPreviewMode={previewModeAllowed && hasPreviewSearchParameter}
-            />
-
-            {previewModeAllowed && hasPreviewSearchParameter && <PreviewWarning params={params} />}
-
-            <CookieBanner />
-          </>
-        );
-      } else {
-        // redirect to alternative collectionPage if available
-        const alternative = collectionPage.alternatives[locale];
-        redirect(`/${locale}/${alternative}?${searchParametersString}`);
-      }
-    }
-
-    if (collection === 'admin') {
-      redirect(`/admin`);
-    }
-
-    /////////////////////////////////////
-    // no matching page found
-    //  --> render 404 page
-    /////////////////////////////////////
-    notFound();
-  };
+  /////////////////////////////////////
+  // no matching page found
+  //  --> render 404 page
+  /////////////////////////////////////
+  notFound();
+};
 
 export default CMSPage;

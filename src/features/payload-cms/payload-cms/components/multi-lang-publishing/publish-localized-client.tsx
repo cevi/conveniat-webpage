@@ -47,7 +47,7 @@ const minimalPublishingConfirmationString: StaticTranslationString = {
  * Globals cannot be unpublished, therefore the unpublish button is disabled for globals.
  *
  */
-// eslint-disable-next-line complexity
+
 export const PublishingButton: React.FC<{ label?: string }> = () => {
   const {
     id,

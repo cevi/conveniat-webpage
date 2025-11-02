@@ -31,7 +31,7 @@ interface MessageProperties {
  * @param isCurrentUser
  * @constructor
  */
-// eslint-disable-next-line complexity
+
 export const MessageComponent: React.FC<MessageProperties> = ({ message, isCurrentUser }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const [showInfo, setShowInfo] = useState(false);

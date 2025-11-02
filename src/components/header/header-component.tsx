@@ -10,6 +10,7 @@ import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { StaticTranslationString } from '@/types/types';
 import { auth } from '@/utils/auth-helpers';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
+import { cookies } from 'next/headers';
 import React from 'react';
 
 export const HeaderComponent: React.FC = async () => {
@@ -27,9 +28,16 @@ export const HeaderComponent: React.FC = async () => {
     en: 'conveniat27 landingpage',
   };
 
+  const serverCookies = await cookies();
+  const previewModeActive = serverCookies.get('preview')?.value === 'true';
+
   return (
     <header className="fixed top-0 left-0 z-50 h-[60px] w-full">
-      <PreviewModeBanner user={session?.user} canAccessAdmin={canAccessAdminDashboard} />
+      <PreviewModeBanner
+        user={session?.user}
+        canAccessAdmin={canAccessAdminDashboard}
+        previewModeActive={previewModeActive}
+      />
 
       <div className="mb-[32px] border-b-2 border-gray-200 bg-white">
         <div className="text-conveniat-green relative mx-auto h-[60px] w-full max-w-2xl xl:ml-4">

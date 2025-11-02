@@ -16,7 +16,7 @@ export const useRemoveParticipants = (): UseMutationResult<
   const trpcUtils = trpc.useUtils();
 
   return useMutation({
-    mutationFn: async () => ({ success: true }), // TODO: Replace with actual API call to add participants
+    mutationFn: () => new Promise((resolve) => resolve({ success: true })), // TODO: Replace with actual API call to add participants
     onSuccess: async (_, { chatId }) => {
       await trpcUtils.chat.chatDetails.invalidate({ chatId });
     },

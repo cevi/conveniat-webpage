@@ -63,14 +63,13 @@ const renderPermittedBlog = (blog: Blog): React.JSX.Element => (
   <BlogDisplay blog={blog} key={blog.seo.urlSlug} />
 );
 
-// eslint-disable-next-line complexity
 const SearchPage: React.FC<LocalizedPageType> = async (properties) => {
   const { searchParams: searchParametersPromise } = properties;
 
   const locale = await getLocaleFromCookies();
 
   const payload = await getPayload({ config });
-  const searchParameters = await searchParametersPromise;
+  const searchParameters = searchParametersPromise;
   const searchQueryQ = searchParameters['q'];
 
   const searchQueryOnly = searchParameters['only'];

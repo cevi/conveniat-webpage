@@ -9,7 +9,7 @@ interface LayoutProperties {
   children: ReactNode;
 }
 
-const Layout: React.FC<LayoutProperties> = async ({ children }) => {
+const Layout: React.FC<LayoutProperties> = ({ children }) => {
   return (
     <TRPCProvider>
       <ReactQueryDevtools initialIsOpen={false} buttonPosition="top-right" />

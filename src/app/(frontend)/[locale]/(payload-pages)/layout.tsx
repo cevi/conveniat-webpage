@@ -7,7 +7,7 @@ interface LayoutProperties {
   children: ReactNode;
 }
 
-const Layout: React.FC<LayoutProperties> = async ({ children }) => {
+const Layout: React.FC<LayoutProperties> = ({ children }) => {
   return (
     <>
       <SetDynamicPageTitle newTitle="conveniat27" />

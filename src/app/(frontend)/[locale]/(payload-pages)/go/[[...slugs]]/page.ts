@@ -38,7 +38,7 @@ const handleReferenceRedirect = async (
   redirect(`/${locale}/${path}/${urlSlug}`);
 };
 
-const handleRedirect = async (redirectPage?: Go | undefined): Promise<void> => {
+const handleRedirect = async (redirectPage?: Go): Promise<void> => {
   if (!redirectPage) {
     return redirect('/');
   }

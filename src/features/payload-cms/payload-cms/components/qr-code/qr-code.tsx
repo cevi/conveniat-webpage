@@ -86,7 +86,6 @@ const prepareQRCodeData = async (
   expirySeconds: number,
   domain: string,
   isRedirectQR: boolean = false,
-  // eslint-disable-next-line complexity
 ): Promise<{ qrCodeContent: string; displayURL: string }> => {
   const path = await serverSideSlugToUrlResolution(collectionSlug, locale);
 
@@ -257,7 +256,6 @@ const ExpiryDropdown: React.FC<ExpiryDropdownProperties> = ({
 
 type QRCodeProperties = object;
 
-// eslint-disable-next-line complexity
 const QRCode: React.FC<QRCodeProperties> = () => {
   const { collectionSlug, savedDocumentData } = useDocumentInfo();
   const { code: locale } = useLocale();
@@ -286,7 +284,7 @@ const QRCode: React.FC<QRCodeProperties> = () => {
         setQrInputDataSource(undefined);
         try {
           const data = await prepareQRCodeData(
-            collectionSlug as CollectionSlug,
+            collectionSlug,
             locale as Locale,
             savedDocumentData,
             expirySeconds,

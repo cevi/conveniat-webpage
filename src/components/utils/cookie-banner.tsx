@@ -4,7 +4,7 @@ import type { Locale, StaticTranslationString } from '@/types/types';
 import { Cookie, i18nConfig } from '@/types/types';
 import Cookies from 'js-cookie';
 import { useCurrentLocale } from 'next-i18n-router/client';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 
 const staticCookieString: StaticTranslationString = {
   de: 'conveniat27 speichert Cookies, um richtig zu funktionieren.',
@@ -25,11 +25,7 @@ const shouldShowCookieBanner = (): boolean => {
 export const CookieBanner: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
-  const [showBanner, setShowBanner] = useState(false);
-
-  useEffect(() => {
-    setShowBanner(shouldShowCookieBanner());
-  }, []);
+  const [showBanner, setShowBanner] = useState(shouldShowCookieBanner);
 
   const acceptCookies = (): void => {
     Cookies.set(Cookie.CONVENIAT_COOKIE_BANNER, 'true', { expires: 90 });

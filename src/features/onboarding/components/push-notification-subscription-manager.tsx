@@ -1,10 +1,8 @@
-'use client';
-
 import { environmentVariables } from '@/config/environment-variables';
 import { subscribeUser, unsubscribeUser } from '@/features/onboarding/api/push-notification';
 import type { StaticTranslationString } from '@/types/types';
 import { urlBase64ToUint8Array } from '@/utils/url-base64-to-uint8-array';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import type webpush from 'web-push';
 
 const vapidPublicKey: string | undefined = environmentVariables.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
@@ -47,17 +45,17 @@ export const PushNotificationSubscriptionManager: React.FC<{
   callback: () => void;
   locale: 'de' | 'fr' | 'en';
 }> = ({ callback, locale }) => {
-  const [isSupported, setIsSupported] = useState(false);
+  const [isSupported, setIsSupported] = useState(() => {
+    return (
+      typeof navigator !== 'undefined' &&
+      'serviceWorker' in navigator &&
+      typeof globalThis !== 'undefined' &&
+      'PushManager' in globalThis
+    );
+  });
   const [subscription, setSubscription] = useState<PushSubscription | undefined>();
 
-  useEffect(() => {
-    if ('serviceWorker' in navigator && 'PushManager' in globalThis) {
-      setIsSupported(true);
-      _registerServiceWorker().catch(console.error);
-    }
-  }, []);
-
-  const _registerServiceWorker = async (): Promise<void> => {
+  const _registerServiceWorker = useCallback(async (): Promise<PushSubscription | null> => {
     const registration: ServiceWorkerRegistration = await navigator.serviceWorker.register(
       '/sw.js',
       {
@@ -65,39 +63,53 @@ export const PushNotificationSubscriptionManager: React.FC<{
         updateViaCache: 'none',
       },
     );
-    const sub = await registration.pushManager.getSubscription();
-    if (sub) setSubscription(sub);
-  };
 
-  const _subscribeToPush = async (): Promise<void> => {
+    return await registration.pushManager.getSubscription();
+  }, []);
+
+  useEffect(() => {
+    if (isSupported) {
+      _registerServiceWorker()
+        .then((sub) => {
+          if (sub) setSubscription(sub);
+        })
+        .catch(console.error);
+    }
+  }, [isSupported, _registerServiceWorker]);
+
+  const _subscribeToPush = useCallback(async (): Promise<void> => {
     const registration = await navigator.serviceWorker.ready;
+    if (vapidPublicKey === '') {
+      console.error('VAPID public key is not defined.');
+      throw new Error('VAPID public key is not defined.');
+    }
     const sub = await registration.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
     });
     setSubscription(sub);
-    // structured clone algorithm does not work here
     await subscribeUser(sub.toJSON() as webpush.PushSubscription, locale);
-  };
+  }, [locale]);
 
-  const subscribeToPush = (): void => {
+  const subscribeToPush = useCallback((): void => {
     _subscribeToPush()
       .then(callback)
       .catch((error: unknown) => {
         console.error('Failed to subscribe to push notifications:', error);
         setIsSupported(false);
       });
-  };
+  }, [_subscribeToPush, callback]);
 
-  const _unsubscribeFromPush = async (): Promise<void> => {
-    await unsubscribeUser(subscription?.toJSON() as webpush.PushSubscription);
-    await subscription?.unsubscribe();
+  const _unsubscribeFromPush = useCallback(async (): Promise<void> => {
+    if (!subscription) return;
+    await unsubscribeUser(subscription.toJSON() as webpush.PushSubscription);
+    await subscription.unsubscribe();
     setSubscription(undefined);
-  };
+  }, [subscription]);
 
-  const unsubscribeFromPush = (): void => {
+  const unsubscribeFromPush = useCallback((): void => {
     _unsubscribeFromPush().catch(console.error);
-  };
+  }, [_unsubscribeFromPush]);
 
   if (!isSupported) {
     return (

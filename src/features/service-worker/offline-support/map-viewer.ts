@@ -77,7 +77,6 @@ const urlsToPrecache: string[] = [
  * @param serwist
  */
 const tileURLRewriter = (serwist: Serwist): RouteHandler => {
-  // eslint-disable-next-line complexity
   return async ({ request }) => {
     // Check if the failed request URL matches a Swisstopo tile pattern
     // This regex will capture the layer, version, and x/y/z coordinates
@@ -146,15 +145,18 @@ export const addOfflineSupportForMapViewer = (serwist: Serwist, revisionUuid: st
   serwist.setCatchHandler(tileURLRewriter(serwist));
 
   // redirect /[en|fr|de]/app/map to /app/map
-  serwist.setCatchHandler(async ({ request }) => {
-    const url = new URL(request.url);
-    if (
-      url.pathname.startsWith('/en/app/map') ||
-      url.pathname.startsWith('/fr/app/map') ||
-      url.pathname.startsWith('/de/app/map')
-    ) {
-      return Response.redirect('/app/map', 301);
-    }
-    return Response.error();
-  });
+  serwist.setCatchHandler(
+    async ({ request }) =>
+      new Promise((resolve) => {
+        const url = new URL(request.url);
+        if (
+          url.pathname.startsWith('/en/app/map') ||
+          url.pathname.startsWith('/fr/app/map') ||
+          url.pathname.startsWith('/de/app/map')
+        ) {
+          return resolve(Response.redirect('/app/map', 301));
+        }
+        return resolve(Response.error());
+      }),
+  );
 };

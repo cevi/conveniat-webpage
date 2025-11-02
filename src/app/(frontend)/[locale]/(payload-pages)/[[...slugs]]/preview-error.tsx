@@ -118,7 +118,6 @@ const PreviewTokenAnalysis: React.FC<PreviewTokenAnalysisProperties> = ({
   validPreviewToken,
   previewTokenExpired,
   decoded,
-  // eslint-disable-next-line complexity
 }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const { slugs } = useParams();

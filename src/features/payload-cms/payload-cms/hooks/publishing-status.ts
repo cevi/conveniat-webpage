@@ -127,7 +127,6 @@ const hasDiffs = (
   fieldDefs: Field[],
   document1: PayloadDocument | undefined,
   document2: PayloadDocument | undefined,
-  // eslint-disable-next-line complexity
 ): boolean => {
   if (document1 === undefined || document2 === undefined) return false;
 
@@ -202,8 +201,8 @@ const hasDiffs = (
 
         for (const tab of tabs) {
           const tabName = tab.name;
-          let tabValue1 = document1 as PayloadDocument;
-          let tabValue2 = document2 as PayloadDocument;
+          let tabValue1 = document1;
+          let tabValue2 = document2;
 
           if (tabName !== undefined) {
             tabValue1 = document1[tabName] as unknown as PayloadDocument;
@@ -323,7 +322,7 @@ const hasDiffs = (
           const v2 = value2 as { id: string }[] | undefined;
           if (v1 === undefined || v2 === undefined) continue;
           if (v1.length !== v2.length) return true; // different number of items
-          if (v1.toString() !== v2.toString()) return true; // different ids
+          if (JSON.stringify(v1) !== JSON.stringify(v2)) return true; // different ids
           break; // no diff found, continue with the next field
         }
 

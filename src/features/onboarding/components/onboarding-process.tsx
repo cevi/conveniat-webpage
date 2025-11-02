@@ -45,37 +45,46 @@ const LanguageSwitcher: React.FC<{
   );
 };
 
+const getInitialLocale = (): 'en' | 'de' | 'fr' => {
+  if (typeof navigator === 'undefined') return 'de'; // SSR Guard
+  const cookieLocale = Cookies.get('NEXT_LOCALE');
+  if (cookieLocale !== undefined) {
+    return cookieLocale as 'en' | 'de' | 'fr';
+  }
+  let _locale = navigator.language.split('-')[0] as 'en' | 'de' | 'fr';
+  if (!['en', 'de', 'fr'].includes(_locale)) _locale = 'en';
+  return _locale;
+};
+
+const getInitialOnboardingStep = (): OnboardingStep => {
+  if (typeof globalThis === 'undefined') return OnboardingStep.Initial; // SSR Guard
+  const hasAcceptedCookies = Cookies.get(Cookie.CONVENIAT_COOKIE_BANNER) === 'true';
+  const hasLoggedIn = Cookies.get(Cookie.HAS_LOGGED_IN) === 'true';
+
+  if (!hasAcceptedCookies) {
+    return OnboardingStep.Initial;
+  }
+  if (!hasLoggedIn) {
+    return OnboardingStep.Login;
+  }
+  return OnboardingStep.PushNotifications;
+};
+
 export const OnboardingProcess: React.FC = () => {
-  const [onboardingStep, setOnboardingStep] = useState<OnboardingStep | undefined>();
-  const [locale, setLocale] = useState<keyof typeof cookieInfoText>(
-    (Cookies.get('NEXT_LOCALE') ?? 'en') as 'en' | 'de' | 'fr',
-  );
+  const [locale, setLocale] = useState<keyof typeof cookieInfoText>(getInitialLocale);
+  const [onboardingStep, setOnboardingStep] = useState<OnboardingStep>(getInitialOnboardingStep);
+
   const router = useRouter();
 
-  const [hasManuallyChangedLanguage, setHasManuallyChangedLanguage] = useState(false);
-
-  useEffect(() => {
-    // check if NEXT_LOCALE is set in the cookie
-    const cookieLocale = Cookies.get('NEXT_LOCALE');
-    if (cookieLocale !== undefined) {
-      setLocale(cookieLocale as keyof typeof cookieInfoText);
-      return;
-    }
-
-    // else use the default locale of the OS / browser
-    let _locale = navigator.language.split('-')[0] as keyof typeof cookieInfoText;
-    if (!(_locale in ['en', 'de', 'fr'])) _locale = 'en'; // fallback to english if locale is not supported
-    setLocale(_locale);
-    setHasManuallyChangedLanguage(true);
-  }, []);
+  const [hasManuallyChangedLanguage, setHasManuallyChangedLanguage] = useState(() => {
+    if (typeof globalThis === 'undefined') return false;
+    return Cookies.get('NEXT_LOCALE') === undefined;
+  });
 
   // Set the cookie only if the user has manually changed the language
   // this prevents that the user needs to select the language again
   useEffect(() => {
-    if (
-      hasManuallyChangedLanguage &&
-      (onboardingStep ?? OnboardingStep.Initial) >= OnboardingStep.Login
-    ) {
+    if (hasManuallyChangedLanguage && onboardingStep >= OnboardingStep.Login) {
       Cookies.set('NEXT_LOCALE', locale, { expires: 730 });
     }
   }, [hasManuallyChangedLanguage, locale, onboardingStep]);
@@ -100,19 +109,7 @@ export const OnboardingProcess: React.FC = () => {
     if (onboardingStep === OnboardingStep.Loading) {
       console.log('Redirect to Homepage');
       router.push('/app/dashboard');
-    } else if (
-      onboardingStep === OnboardingStep.Login &&
-      Cookies.get(Cookie.HAS_LOGGED_IN) === 'true'
-    ) {
-      setOnboardingStep(OnboardingStep.PushNotifications);
-    } else if (
-      onboardingStep === OnboardingStep.Initial &&
-      Cookies.get(Cookie.CONVENIAT_COOKIE_BANNER) === 'true'
-    ) {
-      setOnboardingStep(OnboardingStep.Login);
     }
-
-    if (onboardingStep === undefined) setOnboardingStep(OnboardingStep.Initial);
   }, [onboardingStep, router]);
 
   return (

@@ -19,7 +19,6 @@ import { z } from 'zod';
  */
 const getMessagePreviewText = (lastMessage: {
   contentVersions: { payload: unknown }[];
-  // eslint-disable-next-line complexity
 }): string => {
   const payload = lastMessage.contentVersions[0]?.payload;
 

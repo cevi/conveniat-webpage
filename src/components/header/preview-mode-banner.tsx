@@ -6,11 +6,12 @@ import { RefreshCw, X } from 'lucide-react';
 import type { User } from 'next-auth';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import { useSearchParams } from 'next/navigation';
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 
 interface PreviewModeBannerProperties {
   user: User | undefined;
   canAccessAdmin: boolean;
+  previewModeActive: boolean;
 }
 
 const removePreviewCookie = (): void => {
@@ -37,27 +38,16 @@ const removePreviewCookie = (): void => {
 export const PreviewModeBanner: React.FC<PreviewModeBannerProperties> = ({
   user,
   canAccessAdmin,
+  previewModeActive,
 }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const searchParameters = useSearchParams();
 
-  const [renderPreviewModeBanner, setRenderPreviewModeBanner] = useState(false);
+  const tokenParameter = searchParameters.get('preview-token');
+  const accessWithToken = tokenParameter !== null && tokenParameter.length > 0;
 
-  useEffect(() => {
-    // check preview token
-    const tokenParameter = searchParameters.get('preview-token');
-    const accessWithToken = tokenParameter !== null && tokenParameter.length > 0;
-
-    // check if cookie is set and user is a Payload admin
-    const isPreviewCookieSet = document.cookie.includes('preview=true');
-    const accessWithCookie = isPreviewCookieSet && canAccessAdmin;
-
-    // we render the preview banner if...
-    // ... the user is a Payload admin and the preview cookie is set,
-    // ... or, the user has a valid preview token (e.g., the preview-token query parameter is set),
-    // access control is handled by the render logic of the page.
-    setRenderPreviewModeBanner(accessWithToken || accessWithCookie);
-  }, [searchParameters, canAccessAdmin]);
+  const accessWithCookie = previewModeActive && canAccessAdmin;
+  const renderPreviewModeBanner = accessWithToken || accessWithCookie;
 
   // abort, don't render the preview banner...
   if (!renderPreviewModeBanner) return <></>;

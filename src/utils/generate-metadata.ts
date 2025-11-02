@@ -35,7 +35,7 @@ export const generateMetadata = async (): Promise<Metadata> => {
     publisher,
 
     verification: {
-      google: (googleSearchConsoleVerification ?? '') as string,
+      google: googleSearchConsoleVerification ?? '',
     },
 
     formatDetection: {

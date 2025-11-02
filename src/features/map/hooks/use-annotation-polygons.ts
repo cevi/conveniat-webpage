@@ -164,18 +164,18 @@ export const useAnnotationPolygons = (
   useEffect(() => {
     if (map?.isStyleLoaded() === false || map === undefined) return;
 
-    const source = map.getSource(SELECTED_POLYGON_SOURCE_ID) as GeoJSONSource | undefined;
-    if (!source) return;
+    const source = map.getSource(SELECTED_POLYGON_SOURCE_ID);
+    if (source === undefined) return;
+    const sourceTyped = source as GeoJSONSource;
 
     const selectedPolygon = annotations.find((a) => a.id === currentAnnotation?.id);
-
     if (selectedPolygon) {
       // A polygon is selected: update the source data with its geometry
       const coordinates = [
         [...selectedPolygon.geometry.coordinates, selectedPolygon.geometry.coordinates[0]],
       ] as unknown as [number, number][][];
 
-      source.setData({
+      sourceTyped.setData({
         type: 'Feature',
         properties: {},
         geometry: {
@@ -185,7 +185,7 @@ export const useAnnotationPolygons = (
       });
     } else {
       // No polygon is selected: clear the source data
-      source.setData({
+      sourceTyped.setData({
         type: 'FeatureCollection',
         features: [],
       });

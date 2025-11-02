@@ -180,7 +180,6 @@ const validateChatName = (name: string, locale: Locale): string => {
   return '';
 };
 
-// eslint-disable-next-line complexity
 export const ChatDetails: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const chatId = useChatId();
@@ -213,6 +212,7 @@ export const ChatDetails: React.FC = () => {
   // Initialize chat name when chatDetails loads
   useEffect(() => {
     if (chatDetails?.name) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setChatName(chatDetails.name);
     }
   }, [chatDetails?.name]);

@@ -35,7 +35,6 @@ export const Select: React.FC<
   placeholder,
   optionType,
   allowMultiple,
-  // eslint-disable-next-line complexity
 }) => {
   requiredFromProperties ??= false;
   const hasError = errors[name];

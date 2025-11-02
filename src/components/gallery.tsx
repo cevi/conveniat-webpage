@@ -31,7 +31,7 @@ export interface PhotoCarouselBlock {
 const blurDataURL =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkAAIAAAoAAv/lxKUAAAAASUVORK5CYII=';
 
-export const PhotoCarousel: React.FC<PhotoCarouselBlock> = async ({ images, locale }) => {
+export const PhotoCarousel: React.FC<PhotoCarouselBlock> = ({ images, locale }) => {
   const length = images.length;
 
   if (length === 0) {

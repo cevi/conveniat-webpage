@@ -60,7 +60,6 @@ const groupMinMaxLength: StaticTranslationString = {
   fr: 'Le nom du groupe doit comporter entre 2 et 50 caractères',
 };
 
-// eslint-disable-next-line complexity
 export const CreateNewChatPage: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const { data: allContacts, isLoading } = trpc.chat.contacts.useQuery({});
@@ -111,7 +110,7 @@ export const CreateNewChatPage: React.FC = () => {
     });
   };
 
-  const handleCreateChat = async (): Promise<void> => {
+  const handleCreateChat = (): void => {
     if (selectedContacts.length === 0 || isCreating) {
       return;
     }
@@ -166,9 +165,7 @@ export const CreateNewChatPage: React.FC = () => {
         </div>
         <div className="ml-auto">
           <Button
-            onClick={() => {
-              handleCreateChat().catch(console.error);
-            }}
+            onClick={handleCreateChat}
             disabled={!isFormValid || isCreating}
             className="bg-conveniat-green font-body text-green-100 hover:bg-green-700 disabled:bg-gray-300"
           >

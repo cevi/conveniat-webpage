@@ -3,7 +3,7 @@
 import useEmblaCarousel, { type UseEmblaCarouselType } from 'embla-carousel-react';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import * as React from 'react';
-import { useEffect } from 'react';
+import { useCallback, useSyncExternalStore } from 'react';
 
 import { Button } from '@/components/ui/buttons/button';
 import { cn } from '@/utils/tailwindcss-override';
@@ -39,19 +39,43 @@ const useCarousel = (): CarouselContextProperties & { current: number; size: num
   }
   const { api } = context;
 
-  const [current, setCurrent] = React.useState(0);
-  const [size, setSize] = React.useState(0);
+  const current = useSyncExternalStore(
+    useCallback(
+      (callback) => {
+        if (!api) return (): void => {};
 
-  useEffect(() => {
-    if (!api) return;
-    setCurrent(api.selectedScrollSnap() + 1);
+        api.on('select', callback);
+        api.on('reInit', callback);
 
-    api.on('select', () => {
-      setCurrent(api.selectedScrollSnap() + 1);
-    });
+        return (): void => {
+          api.off('select', callback);
+          api.off('reInit', callback);
+        };
+      },
+      [api],
+    ),
+    () => (api ? api.selectedScrollSnap() + 1 : 1),
+    () => 1, // getServerSnapshot (default for SSR)
+  );
 
-    setSize(api.slideNodes().length);
-  }, [api]);
+  // Subscribe to 'size' (slide count) changes
+  const size = useSyncExternalStore(
+    useCallback(
+      (callback) => {
+        if (!api) return (): void => {};
+
+        // Size only changes when the carousel is re-initialized
+        api.on('reInit', callback);
+
+        return (): void => {
+          api.off('reInit', callback);
+        };
+      },
+      [api],
+    ),
+    () => (api ? api.slideNodes().length : 0),
+    () => 0, // getServerSnapshot (default for SSR)
+  );
 
   return { ...context, current, size };
 };

@@ -57,7 +57,7 @@ export const useFlyToAnnotation = (
   const map = useMap();
 
   // center marker
-  // eslint-disable-next-line complexity
+
   useEffect(() => {
     if (!map || !annotation) return;
 
@@ -94,7 +94,7 @@ export const useFlyToAnnotation = (
   }, [map, annotation]);
 
   // center polygon
-  // eslint-disable-next-line complexity
+
   useEffect(() => {
     if (!map || !annotation) return;
 
@@ -113,7 +113,7 @@ export const useFlyToAnnotation = (
     const polygonCoordinates = annotation.geometry.coordinates;
     const centroid = getPolygonCentroid(polygonCoordinates as [number, number][]);
 
-    const projectedCoordinates = map.project(centroid as [number, number]);
+    const projectedCoordinates = map.project(centroid);
 
     const annotationY = projectedCoordinates.y;
     const annotationX = projectedCoordinates.x;

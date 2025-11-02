@@ -15,13 +15,7 @@ export const LastEditedByUserField: Field = {
   },
   hooks: {
     beforeChange: [
-      async ({
-        value,
-        req,
-      }: {
-        value?: string;
-        req: PayloadRequest;
-      }): Promise<string | undefined> => {
+      ({ value, req }: { value?: string; req: PayloadRequest }): string | undefined => {
         if (req.user && typeof req.user.id === 'string') {
           return req.user.id;
         }

@@ -114,7 +114,7 @@ export const UserCollection: CollectionConfig = {
       },
       hooks: {
         afterRead: [
-          async ({ data }): Promise<boolean> => {
+          ({ data }): boolean => {
             if (!data) return false;
             return (data as User).groups.some((group) => GROUPS_WITH_API_ACCESS.has(group.id));
           },

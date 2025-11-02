@@ -11,7 +11,7 @@ const withBundleAnalyzer = bundleAnalyzer({
   openAnalyzer: true,
 });
 
-const postHogRewrites = async (): Promise<Rewrite[]> => {
+const postHogRewrites = (): Rewrite[] => {
   return [
     {
       source: '/ingest/static/:path*',

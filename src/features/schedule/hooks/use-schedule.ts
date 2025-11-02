@@ -29,22 +29,6 @@ export const useSchedule = (
   const router = useRouter();
   const searchParameters = useSearchParams();
 
-  const [currentDate, setCurrentDate] = useState(() => {
-    const dateParameter = searchParameters.get('date');
-    if (dateParameter != undefined) {
-      const parsedDate = new Date(dateParameter);
-      if (!Number.isNaN(parsedDate.getTime())) {
-        return parsedDate;
-      }
-    }
-    return new Date(); // Default to today if no valid URL param
-  });
-
-  const [expandedEntries, setExpandedEntries] = useState(new Set<string>());
-  const [starredEntries, setStarredEntries] = useState(new Set<string>());
-  const [carouselStartIndex, setCarouselStartIndex] = useState(0);
-
-  // Memoize the extraction and sorting of all unique dates
   const allDates = useMemo(() => {
     const uniqueDates = new Map<string, Date>();
     for (const entry of scheduleEntries) {
@@ -54,13 +38,44 @@ export const useSchedule = (
     return [...uniqueDates.values()].sort((a, b) => a.getTime() - b.getTime());
   }, [scheduleEntries]);
 
-  // Effect to update the URL when currentDate changes
+  const validatedInitialDate = useMemo(() => {
+    const dateParameter = searchParameters.get('date');
+    let dateToValidate: Date = new Date(); // Default to today
+
+    if (dateParameter != undefined) {
+      const parsedDate = new Date(dateParameter);
+      if (!Number.isNaN(parsedDate.getTime())) {
+        dateToValidate = parsedDate;
+      }
+    }
+
+    if (allDates.length > 0) {
+      const formattedDateToValidate = formatDate(dateToValidate);
+      const isDateValid = allDates.some((d) => formatDate(d) === formattedDateToValidate);
+
+      if (isDateValid) {
+        return dateToValidate;
+      }
+
+      const todayString = new Date().toDateString();
+      const todayMatch = allDates.find((d) => d.toDateString() === todayString);
+
+      return todayMatch ?? allDates[0] ?? dateToValidate;
+    }
+
+    return dateToValidate;
+  }, [allDates, searchParameters]);
+
+  const [currentDate, setCurrentDate] = useState(validatedInitialDate);
+
+  const [expandedEntries, setExpandedEntries] = useState(new Set<string>());
+  const [starredEntries, setStarredEntries] = useState(new Set<string>());
+  const [carouselStartIndex, setCarouselStartIndex] = useState(0);
+
   useEffect(() => {
     const currentUrlDate = searchParameters.get('date');
     const formattedCurrentDate = formatDate(currentDate);
 
-    // Only update URL if currentDate is different from the one in searchParams
-    // This prevents unnecessary router.replace calls and potential infinite loops
     if (currentUrlDate !== formattedCurrentDate) {
       const currentPathname = globalThis.location.pathname;
       const parameters = new URLSearchParams(searchParameters.toString());
@@ -69,10 +84,8 @@ export const useSchedule = (
     }
   }, [currentDate, router, searchParameters]);
 
-  // Memoize the program data grouped by date string
   const dailyPrograms = useMemo(() => {
     const programs: { [id: string]: CampScheduleEntryFrontendType[] } = {};
-    // Initialize programs for all known dates to ensure empty arrays for dates without entries
     for (const date of allDates) {
       programs[formatDate(date)] = [];
     }
@@ -118,26 +131,6 @@ export const useSchedule = (
       return newSet;
     });
   };
-
-  useEffect(() => {
-    if (allDates.length === 0) {
-      // If there are no schedule entries, we can't validate the date against them.
-      // The initial date from URL or today will remain as set by useState.
-      return;
-    }
-
-    const formattedCurrentDate = formatDate(currentDate);
-    const isCurrentDateInAllDates = allDates.some((d) => formatDate(d) === formattedCurrentDate);
-
-    if (!isCurrentDateInAllDates) {
-      // If the current date (from URL or initial new Date()) is not in allDates,
-      // try to find today's date in allDates, or fall back to the first available date.
-      const todayString = new Date().toDateString();
-      const todayMatch = allDates.find((d) => d.toDateString() === todayString);
-      setCurrentDate(todayMatch ?? allDates[0] ?? new Date());
-    }
-    // If isCurrentDateInAllDates is true, currentDate is already valid, no change needed.
-  }, [allDates, currentDate]); // currentDate is a dependency here because we are checking its validity against allDates
 
   return {
     currentDate,

@@ -16,26 +16,26 @@ export interface LinkFieldDataType {
         relationTo: 'blog';
         value: string | Blog;
       } | null)
-    | ({
+    | {
         relationTo: 'generic-page';
         value: string | GenericPage;
-      } | null)
-    | ({
+      }
+    | {
         relationTo: 'images';
         value: string | Image;
-      } | null)
-    | ({
+      }
+    | {
         relationTo: 'documents';
         value: string | Document;
-      } | null)
-    | ({
+      }
+    | {
         relationTo: 'camp-schedule-entry';
         value: string | CampScheduleEntry;
-      } | null)
-    | ({
+      }
+    | {
         relationTo: 'camp-map-annotations';
         value: string | CampMapAnnotation;
-      } | null);
+      };
   url?: string | null;
   openInNewTab?: boolean | null;
 }
