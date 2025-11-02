@@ -1,6 +1,8 @@
 import { environmentVariables } from '@/config/environment-variables';
 import type { ChainedMiddleware } from '@/middleware/middleware-chain';
+import { isExcludedFromPathRewrites } from '@/middleware/utils/is-excluded-from-path-rewrites';
 import { Cookie, i18nConfig } from '@/types/types';
+import { DesignCodes } from '@/utils/design-codes';
 import type { NextMiddlewareResult } from 'next/dist/server/web/types';
 import { type NextFetchEvent, type NextRequest, NextResponse } from 'next/server';
 
@@ -59,11 +61,47 @@ const applyMiddlewareForDisabledAppFeatures = (
  * @param nextMiddleware
  */
 export const withAppFeatureMiddleware = (nextMiddleware: ChainedMiddleware): ChainedMiddleware => {
+  // eslint-disable-next-line complexity
   return (request, event, response) => {
     const areAppFeaturesEnabled = environmentVariables.FEATURE_ENABLE_APP_FEATURE === true;
 
     // initialize response if not already set
     response ??= NextResponse.next();
+
+    // rewrite path to ${locale}/${designName}/rest-of-path
+    const { pathname } = request.nextUrl;
+
+    if (isExcludedFromPathRewrites(request)) {
+      return nextMiddleware(request, event, response);
+    }
+
+    const designName =
+      request.cookies.get(Cookie.APP_DESIGN)?.value === 'true'
+        ? DesignCodes.APP_DESIGN
+        : DesignCodes.WEB_DESIGN;
+    if (!pathname.includes(DesignCodes.APP_DESIGN) && !pathname.includes(DesignCodes.WEB_DESIGN)) {
+      const url = request.nextUrl.clone();
+
+      // if url starts with /de, /fr, /it, /en, we need to insert designName after the locale
+      // otherwise, we insert designName at the beginning of the path
+      const pathnameWithTrailingSlash = pathname.endsWith('/') ? pathname : `${pathname}/`;
+      if (
+        i18nConfig.locales.some((locale) => pathnameWithTrailingSlash.startsWith(`/${locale}/`))
+      ) {
+        const firstSegment = pathname.split('/')[1] ?? '';
+        url.pathname = `/${firstSegment}/${designName}${pathname.slice(Math.max(0, firstSegment.length + 1))}`;
+      } else {
+        url.pathname = `/de/${designName}${pathname}`;
+      }
+
+      const cookies = response.cookies;
+      response = NextResponse.rewrite(url, {
+        request,
+      });
+      for (const cookie of cookies.getAll()) {
+        response.cookies.set(cookie.name, cookie.value);
+      }
+    }
 
     if (areAppFeaturesEnabled) {
       return applyMiddlewareForAppFeatures(request, event, response, nextMiddleware);

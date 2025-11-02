@@ -13,11 +13,11 @@ import { withPreviewMiddleware } from '@/middleware/with-preview-middleware';
  *
  */
 export const proxy = middlewareChain([
+  withI18nMiddleware,
   withAbortOnInfiniteRedirects,
   withAppFeatureMiddleware,
   withPreviewMiddleware,
   withAuthenticationRedirect,
-  withI18nMiddleware, // must be the last middleware in the chain
 ]);
 
 // we apply the middleware to all routes

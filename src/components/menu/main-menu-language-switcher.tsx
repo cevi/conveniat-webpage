@@ -28,12 +28,21 @@ export const MainMenuLanguageSwitcher: React.FC<{ locale: Locale }> = ({ locale 
     const langRegex = /^\/(de|en|fr)\//;
     let newPath;
 
+    const searchParametersString = searchParameters.toString();
+    const searchParameterPrefixed =
+      searchParametersString === '' ? '' : `?${searchParametersString}`;
+
     if (langRegex.test(pathname)) {
-      newPath = pathname.replace(langRegex, `/${lang}/`) + '?' + searchParameters.toString();
+      newPath = pathname.replace(langRegex, `/${lang}/`) + searchParameterPrefixed;
     } else {
       const path = pathname.replace(/\/(de|en|fr)\/?$/, '');
       const cleanPath = path.startsWith('//') ? path.slice(1) : path;
-      newPath = `/${lang}${cleanPath}?${searchParameters.toString()}`;
+      newPath = `/${lang}/${cleanPath}${searchParameterPrefixed}`;
+
+      // drop tailing slash if exists
+      if (newPath.endsWith('/') && newPath.length > 1) {
+        newPath = newPath.slice(0, -1);
+      }
     }
 
     // Use window.location.href for a hard refresh

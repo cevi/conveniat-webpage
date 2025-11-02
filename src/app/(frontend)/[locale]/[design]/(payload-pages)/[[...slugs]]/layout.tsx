@@ -1,4 +1,4 @@
-import { CustomErrorBoundaryFallback } from '@/app/(frontend)/[locale]/(payload-pages)/[[...slugs]]/custom-error-boundary-fallback';
+import { CustomErrorBoundaryFallback } from '@/app/(frontend)/[locale]/[design]/(payload-pages)/[[...slugs]]/custom-error-boundary-fallback';
 import { NotFound } from '@/app/(frontend)/not-found';
 import type { ReactNode } from 'react';
 import React from 'react';
