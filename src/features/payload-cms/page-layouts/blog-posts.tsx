@@ -9,6 +9,7 @@ import { hasPermissions } from '@/utils/has-permissions';
 import { generateTwitterCardImageSettings } from '@/utils/twitter-card-image';
 import config from '@payload-config';
 import type { Metadata } from 'next';
+import { cacheLife, cacheTag } from 'next/cache';
 import { notFound, redirect } from 'next/navigation';
 import { getPayload } from 'payload';
 
@@ -139,6 +140,10 @@ const BlogPostPage: LocalizedCollectionComponent = async ({
 };
 
 BlogPostPage.generateMetadata = async ({ locale, slugs }): Promise<Metadata> => {
+  'use cache';
+  cacheLife('hours');
+  cacheTag('blog');
+
   const payload = await getPayload({ config });
   const slug = slugs?.join('/') ?? '';
   const currentDate = new Date().toISOString();
@@ -169,8 +174,8 @@ BlogPostPage.generateMetadata = async ({ locale, slugs }): Promise<Metadata> => 
   });
 
   const germanAlternative = blogAlternatives.find((a) => a._locale.startsWith('de'));
-  const canonicalLocale = germanAlternative?._locale || locale;
-  const canonicalSlug = germanAlternative?.seo.urlSlug || slug;
+  const canonicalLocale = germanAlternative?._locale ?? locale;
+  const canonicalSlug = germanAlternative?.seo.urlSlug ?? slug;
 
   const alternates = Object.fromEntries(
     blogAlternatives

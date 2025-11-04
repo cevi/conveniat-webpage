@@ -6,6 +6,7 @@ import { i18nConfig } from '@/types/types';
 import { hasPermissions } from '@/utils/has-permissions';
 import config from '@payload-config';
 import type { Metadata } from 'next';
+import { cacheLife, cacheTag } from 'next/cache';
 import { notFound, redirect } from 'next/navigation';
 import { getPayload } from 'payload';
 
@@ -131,6 +132,10 @@ const GenericPage: LocalizedCollectionComponent = async ({
 };
 
 GenericPage.generateMetadata = async ({ locale, slugs }): Promise<Metadata> => {
+  'use cache';
+  cacheLife('hours');
+  cacheTag('generic-page');
+
   const payload = await getPayload({ config });
   const slug = slugs?.join('/') ?? '';
 
@@ -158,8 +163,8 @@ GenericPage.generateMetadata = async ({ locale, slugs }): Promise<Metadata> => {
   });
 
   const germanAlternative = pageAlternatives.find((a) => a._locale.startsWith('de'));
-  const canonicalLocale = germanAlternative?._locale || locale;
-  const canonicalSlug = germanAlternative?.seo.urlSlug || slug;
+  const canonicalLocale = germanAlternative?._locale ?? locale;
+  const canonicalSlug = germanAlternative?.seo.urlSlug ?? slug;
 
   const alternates = Object.fromEntries(
     pageAlternatives
