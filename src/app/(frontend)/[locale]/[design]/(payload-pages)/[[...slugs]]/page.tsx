@@ -9,7 +9,6 @@ import { PreviewWarning } from '@/features/payload-cms/utils/preview-utils';
 import type { Locale, SearchParameters } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import type { Metadata } from 'next';
-import { cacheLife, cacheTag } from 'next/cache';
 import { draftMode } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import type React from 'react';
@@ -109,10 +108,6 @@ const CMSPage: React.FC<{
   }>;
   searchParams: Promise<SearchParameters>;
 }> = async ({ params, searchParams: searchParametersPromise }) => {
-  'use cache';
-  cacheLife('hours');
-  cacheTag('payload');
-
   let { locale } = await params;
   let { slugs } = await params;
 

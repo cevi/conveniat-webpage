@@ -1,7 +1,7 @@
 import { LinkComponent } from '@/components/ui/link-component';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { BlogArticleConverter } from '@/features/payload-cms/converters/blog-article';
-import type { Image, Permission } from '@/features/payload-cms/payload-types';
+import type { Blog, Image, Permission } from '@/features/payload-cms/payload-types';
 import { buildMetadata, findAlternatives } from '@/features/payload-cms/utils/metadata-helper';
 import type { Locale, LocalizedCollectionComponent, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
@@ -11,6 +11,7 @@ import config from '@payload-config';
 import type { Metadata } from 'next';
 import { cacheLife, cacheTag } from 'next/cache';
 import { notFound, redirect } from 'next/navigation';
+import type { PaginatedDocs } from 'payload';
 import { getPayload } from 'payload';
 
 const languageChooseText: StaticTranslationString = {
@@ -25,17 +26,19 @@ const languagePreposition: StaticTranslationString = {
   fr: 'en',
 };
 
-const BlogPostPage: LocalizedCollectionComponent = async ({
-  slugs,
-  locale,
-  renderInPreviewMode,
-}) => {
-  const payload = await getPayload({ config });
-  const slug = slugs.join('/');
+const getBlogArticlesInPrimaryLanguageCached = async (
+  slug: string,
+  locale: Locale,
+  renderInPreviewMode: boolean,
+): Promise<PaginatedDocs<Blog>> => {
+  'use cache';
+  cacheLife('hours');
+  cacheTag('blog');
 
   const currentDate = new Date().toISOString();
 
-  const articlesInPrimaryLanguage = await payload.find({
+  const payload = await getPayload({ config });
+  return payload.find({
     collection: 'blog',
     pagination: false,
     locale: locale,
@@ -56,6 +59,55 @@ const BlogPostPage: LocalizedCollectionComponent = async ({
       ],
     },
   });
+};
+
+const getBlogArticlesCached = async (
+  slug: string,
+  locale: Locale,
+  renderInPreviewMode: boolean,
+): Promise<PaginatedDocs<Blog>> => {
+  'use cache';
+  cacheLife('hours');
+  cacheTag('blog');
+
+  const currentDate = new Date().toISOString();
+
+  const payload = await getPayload({ config });
+
+  return payload.find({
+    collection: 'blog',
+    pagination: false,
+    draft: renderInPreviewMode,
+    locale: locale,
+    where: {
+      and: [
+        { 'seo.urlSlug': { equals: slug } },
+        // we only resolve published pages unless in preview mode
+        renderInPreviewMode ? {} : { _localized_status: { equals: { published: true } } },
+        renderInPreviewMode
+          ? {}
+          : {
+              'content.releaseDate': {
+                less_than_equal: currentDate,
+              },
+            },
+      ],
+    },
+  });
+};
+
+const BlogPostPage: LocalizedCollectionComponent = async ({
+  slugs,
+  locale,
+  renderInPreviewMode,
+}) => {
+  const slug = slugs.join('/');
+
+  const articlesInPrimaryLanguage = await getBlogArticlesInPrimaryLanguageCached(
+    slug,
+    locale,
+    renderInPreviewMode,
+  );
 
   if (articlesInPrimaryLanguage.docs.length > 1)
     throw new Error('More than one article with the same slug found');
@@ -78,28 +130,7 @@ const BlogPostPage: LocalizedCollectionComponent = async ({
   const locales: Locale[] = i18nConfig.locales.filter((l) => l !== locale) as Locale[];
 
   const articles = await Promise.all(
-    locales.map((l) =>
-      payload.find({
-        collection: 'blog',
-        pagination: false,
-        draft: renderInPreviewMode,
-        locale: l,
-        where: {
-          and: [
-            { 'seo.urlSlug': { equals: slug } },
-            // we only resolve published pages unless in preview mode
-            renderInPreviewMode ? {} : { _localized_status: { equals: { published: true } } },
-            renderInPreviewMode
-              ? {}
-              : {
-                  'content.releaseDate': {
-                    less_than_equal: currentDate,
-                  },
-                },
-          ],
-        },
-      }),
-    ),
+    locales.map((l) => getBlogArticlesCached(slug, l, renderInPreviewMode)),
   )
     .then((results) =>
       results

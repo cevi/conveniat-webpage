@@ -1,5 +1,5 @@
 import { GenericPageConverter } from '@/features/payload-cms/converters/generic-page';
-import type { Permission } from '@/features/payload-cms/payload-types';
+import type { GenericPage, Permission } from '@/features/payload-cms/payload-types';
 import { buildMetadata, findAlternatives } from '@/features/payload-cms/utils/metadata-helper';
 import type { Locale, LocalizedCollectionComponent } from '@/types/types';
 import { i18nConfig } from '@/types/types';
@@ -8,21 +8,21 @@ import config from '@payload-config';
 import type { Metadata } from 'next';
 import { cacheLife, cacheTag } from 'next/cache';
 import { notFound, redirect } from 'next/navigation';
+import type { PaginatedDocs } from 'payload';
 import { getPayload } from 'payload';
 
-const GenericPage: LocalizedCollectionComponent = async ({
-  slugs,
-  locale,
-  renderInPreviewMode,
-}) => {
+const getArticlesInPrimaryLanguageCached = async (
+  slug: string,
+  locale: Locale,
+  renderInPreviewMode: boolean,
+): Promise<PaginatedDocs<GenericPage>> => {
+  'use cache';
+  cacheLife('hours');
+  cacheTag('generic-page');
+
   const payload = await getPayload({ config });
-  const slug = slugs.join('/');
 
-  if (renderInPreviewMode) {
-    console.log('Preview mode enabled');
-  }
-
-  const articlesInPrimaryLanguage = await payload.find({
+  return payload.find({
     collection: 'generic-page',
     pagination: false,
     locale: locale,
@@ -36,6 +36,51 @@ const GenericPage: LocalizedCollectionComponent = async ({
       ],
     },
   });
+};
+
+const getArticlesCached = async (
+  slug: string,
+  locale: Locale,
+  renderInPreviewMode: boolean,
+): Promise<PaginatedDocs<GenericPage>> => {
+  'use cache';
+  cacheLife('hours');
+  cacheTag('generic-page');
+
+  const payload = await getPayload({ config });
+
+  return payload.find({
+    collection: 'generic-page',
+    pagination: false,
+    draft: renderInPreviewMode,
+    locale: locale,
+    where: {
+      and: [
+        { 'seo.urlSlug': { equals: slug } },
+        // we only resolve published pages unless in preview mode
+        renderInPreviewMode ? {} : { _localized_status: { equals: { published: true } } },
+      ],
+    },
+  });
+};
+
+const GenericPage: LocalizedCollectionComponent = async ({
+  slugs,
+  locale,
+  renderInPreviewMode,
+}) => {
+  const payload = await getPayload({ config });
+  const slug = slugs.join('/');
+
+  if (renderInPreviewMode) {
+    console.log('Preview mode enabled');
+  }
+
+  const articlesInPrimaryLanguage = await getArticlesInPrimaryLanguageCached(
+    slug,
+    locale,
+    renderInPreviewMode,
+  );
 
   if (articlesInPrimaryLanguage.docs.length > 1)
     throw new Error('More than one article with the same slug found');
@@ -58,21 +103,7 @@ const GenericPage: LocalizedCollectionComponent = async ({
   const locales: Locale[] = i18nConfig.locales.filter((l) => l !== locale) as Locale[];
 
   const articles = await Promise.all(
-    locales.map((l) =>
-      payload.find({
-        collection: 'generic-page',
-        pagination: false,
-        draft: renderInPreviewMode,
-        locale: l,
-        where: {
-          and: [
-            { 'seo.urlSlug': { equals: slug } },
-            // we only resolve published pages unless in preview mode
-            renderInPreviewMode ? {} : { _localized_status: { equals: { published: true } } },
-          ],
-        },
-      }),
-    ),
+    locales.map((l) => getArticlesCached(slug, l, renderInPreviewMode)),
   )
     .then((results) =>
       results
