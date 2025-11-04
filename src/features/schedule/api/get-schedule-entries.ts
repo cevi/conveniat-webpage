@@ -1,6 +1,7 @@
 'use server';
 
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
+import type { Locale } from '@/types/types';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { isBuildTimePreRendering } from '@/utils/is-pre-rendering';
 import config from '@payload-config';
@@ -10,13 +11,13 @@ import { getPayload } from 'payload';
 
 const getScheduleEntriesCached = async (
   where: Where = {},
+  locale: Locale,
 ): Promise<CampScheduleEntryFrontendType[]> => {
   'use cache';
   cacheLife('hours');
   cacheTag('payload', 'camp-schedule-entry');
 
   const payload = await getPayload({ config });
-  const locale = await getLocaleFromCookies();
 
   const scheduleEntries = await payload.find({
     collection: 'camp-schedule-entry',
@@ -48,5 +49,7 @@ export const getScheduleEntries = async (
   where: Where = {},
 ): Promise<CampScheduleEntryFrontendType[]> => {
   if (await isBuildTimePreRendering()) return [];
-  return getScheduleEntriesCached(where);
+
+  const locale = await getLocaleFromCookies();
+  return getScheduleEntriesCached(where, locale);
 };

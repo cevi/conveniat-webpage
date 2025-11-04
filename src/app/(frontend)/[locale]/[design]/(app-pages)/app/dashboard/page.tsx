@@ -3,7 +3,7 @@ import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { SubheadingH2 } from '@/components/ui/typography/subheading-h2';
 import { getScheduleEntries } from '@/features/schedule/api/get-schedule-entries';
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
-import type { StaticTranslationString } from '@/types/types';
+import type { Locale, StaticTranslationString } from '@/types/types';
 import { formatScheduleDateTime } from '@/utils/format-schedule-date-time';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import {
@@ -72,7 +72,7 @@ const FeatureCard: React.FC<FeatureCardProperties> = ({
   </Link>
 );
 
-const AppFeatures: React.FC<{ locale: 'en' | 'de' | 'fr' }> = ({ locale }) => {
+const AppFeatures: React.FC<{ locale: Locale }> = ({ locale }) => {
   const features = [
     {
       title: { en: 'Chat', de: 'Chat', fr: 'Chat' }[locale],
@@ -241,7 +241,7 @@ const MoreEventsCard: React.FC = async () => {
   );
 };
 
-const UpcomingEvents: React.FC<{ locale: 'en' | 'de' | 'fr' }> = async ({ locale }) => {
+const UpcomingEvents: React.FC<{ locale: Locale }> = async ({ locale }) => {
   const scheduleEvents = await getScheduleEntries();
   const upcomingEvents = scheduleEvents.slice(0, 3);
 
@@ -264,8 +264,10 @@ const UpcomingEvents: React.FC<{ locale: 'en' | 'de' | 'fr' }> = async ({ locale
   );
 };
 
-const Dashboard: React.FC = async () => {
-  const locale = await getLocaleFromCookies();
+const Dashboard: React.FC<{
+  params: Promise<{ locale: Locale }>;
+}> = async ({ params }) => {
+  const { locale } = await params;
 
   return (
     <>

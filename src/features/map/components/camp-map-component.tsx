@@ -8,6 +8,7 @@ import type {
   InitialMapPose,
 } from '@/features/map/types/types';
 import type { CampMapAnnotation as CampMapAnnotationPayloadDocumentType } from '@/features/payload-cms/payload-types';
+import type { Locale } from '@/types/types';
 import config from '@payload-config';
 import { cacheLife, cacheTag } from 'next/cache';
 import { getPayload, type PaginatedDocs } from 'payload';
@@ -31,12 +32,15 @@ const initialMapPoseObergoms: InitialMapPose = {
   zoom: environmentVariables.CAMP_MAP_INITIAL_ZOOM,
 };
 
-export const CampMapComponent: React.FC = async () => {
+export const CampMapComponent: React.FC<{
+  locale: Promise<Locale>;
+}> = async ({ locale: localeAsPromise }) => {
   'use cache';
   cacheLife('hours');
   cacheTag('payload', 'camp-map-annotations', 'camp-schedule-entry');
 
   const payload = await getPayload({ config });
+  const locale = await localeAsPromise;
 
   const annotations: PaginatedDocs<CampMapAnnotationPayloadDocumentType> = await payload.find({
     collection: 'camp-map-annotations',
@@ -120,7 +124,7 @@ export const CampMapComponent: React.FC = async () => {
       </div>
 
       {/* advertisement for app, hidden if already in app mode */}
-      <AppAdvertisement />
+      <AppAdvertisement locale={locale} />
     </>
   );
 };

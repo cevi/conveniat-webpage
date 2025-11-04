@@ -1,5 +1,4 @@
-import type { StaticTranslationString } from '@/types/types';
-import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
+import type { Locale, StaticTranslationString } from '@/types/types';
 import type React from 'react';
 
 const appAdvertisementTextPart1: StaticTranslationString = {
@@ -14,9 +13,9 @@ const appAdvertisementTextPart2: StaticTranslationString = {
   fr: 'Téléchargez-la pour une meilleure expérience !',
 };
 
-export const AppAdvertisement: React.FC = async () => {
-  const locale = await getLocaleFromCookies();
-
+export const AppAdvertisement: React.FC<{
+  locale: Locale;
+}> = ({ locale }) => {
   return (
     <div className="fixed right-0 bottom-0 left-0 z-0 bg-white p-4 text-center shadow-lg">
       <p className="text-sm text-gray-600">

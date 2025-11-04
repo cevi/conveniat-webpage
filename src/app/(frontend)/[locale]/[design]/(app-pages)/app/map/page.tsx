@@ -33,12 +33,14 @@ export const generateMetadata = async ({
   };
 };
 
-const MapPage: React.FC = () => {
+const MapPage: React.FC<{ params: Promise<{ locale: Locale }> }> = ({ params }) => {
+  const locale = params.then((p) => p.locale);
+
   return (
     <>
       <SetDynamicPageTitle newTitle="Lagerplatz" />
       <NoBuildTimePreRendering>
-        <CampMapComponent />
+        <CampMapComponent locale={locale} />
       </NoBuildTimePreRendering>
     </>
   );
