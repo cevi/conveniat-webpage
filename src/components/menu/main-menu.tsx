@@ -7,6 +7,7 @@ import {
   hasPermissionsForLinkField,
   openURLInNewTab,
 } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
+import type { Header } from '@/features/payload-cms/payload-types';
 import { specialPagesTable } from '@/features/payload-cms/special-pages-table';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { getBuildInfo } from '@/utils/get-build-info';
@@ -193,27 +194,35 @@ const DeletedMenuEntry: React.FC<{ message: string }> = ({ message }) => {
   );
 };
 
-export const CachedMainMenu: React.FC<{
+const getMainMenuFromPayloadCached = async (
+  locale: Locale,
+  showPreviewForMainMenu: boolean,
+): Promise<Header['mainMenu']> => {
+  'use cache';
+  cacheLife('hours');
+  cacheTag('header');
+
+  const payload = await getPayload({ config });
+  const { mainMenu } = await payload.findGlobal({
+    slug: 'header',
+    locale,
+    draft: showPreviewForMainMenu,
+  });
+
+  return Array.isArray(mainMenu) ? mainMenu : [];
+};
+
+export const MainMenu: React.FC<{
   locale: Locale;
   inAppDesign: boolean;
 }> = async ({ locale, inAppDesign }) => {
-  'use cache';
-  cacheLife('hours');
-  cacheTag('payload', 'header');
-
-  const payload = await getPayload({ config });
   const build = await getBuildInfo(locale);
   const actionURL = specialPagesTable['search']?.alternatives[locale] ?? '/suche';
 
   // if the user is logged in, we show the preview for the menu
   const draft = await draftMode();
   const showPreviewForMainMenu: boolean = draft.isEnabled;
-
-  const { mainMenu } = await payload.findGlobal({
-    slug: 'header',
-    locale,
-    draft: showPreviewForMainMenu,
-  });
+  const mainMenu = await getMainMenuFromPayloadCached(locale, showPreviewForMainMenu);
 
   // fallback to an empty array if mainMenu is not an array, to avoid runtime errors
   const mainMenuWithFallback = Array.isArray(mainMenu) ? mainMenu : [];
@@ -293,8 +302,7 @@ export const CachedMainMenu: React.FC<{
 
             const itemLink = getURLForLinkField(item.linkField, locale) ?? '/';
 
-            const hasPermission =
-              draft.isEnabled && (await hasPermissionsForLinkField(item.linkField));
+            const hasPermission = await hasPermissionsForLinkField(item.linkField);
 
             if (!hasPermission) {
               return showPreviewForMainMenu && <DeletedMenuEntry message={item.label} />;

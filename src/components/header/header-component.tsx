@@ -1,6 +1,6 @@
 import { DynamicAppTitleName } from '@/components/header/dynamic-app-title-name';
 import { PreviewModeBannerServerComponent } from '@/components/header/preview-mode-banner-server';
-import { CachedMainMenu } from '@/components/menu/cached-main-menu';
+import { MainMenu } from '@/components/menu/main-menu';
 import { NavComponent } from '@/components/menu/nav-component';
 import { ConveniatLogo } from '@/components/svg-logos/conveniat-logo';
 import { LinkComponent } from '@/components/ui/link-component';
@@ -42,7 +42,7 @@ export const HeaderComponent: React.FC<{
             </span>
             <NavComponent>
               <NoBuildTimePreRendering>
-                <CachedMainMenu locale={locale} inAppDesign={inAppDesign} />
+                <MainMenu locale={locale} inAppDesign={inAppDesign} />
               </NoBuildTimePreRendering>
             </NavComponent>
           </div>
