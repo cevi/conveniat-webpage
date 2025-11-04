@@ -50,6 +50,18 @@ export const withI18nMiddleware = (nextMiddleware: ChainedMiddleware): ChainedMi
     }
 
     response = i18nRouter(request, i18nConfig);
+
+    // remove /de/ from path, as this is the default locale
+    const url = request.nextUrl.clone();
+    const firstSegment = getFirstSegment(request);
+    if (firstSegment === i18nConfig.defaultLocale) {
+      url.pathname = url.pathname.replace(`/${i18nConfig.defaultLocale}`, '');
+      return NextResponse.redirect(url, {
+        headers: response.headers,
+        status: 307,
+      });
+    }
+
     return nextMiddleware(request, _event, response) as NextResponse;
   };
 };
