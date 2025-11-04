@@ -4,7 +4,8 @@ import type { Locale, StaticTranslationString } from '@/types/types';
 import { Cookie, i18nConfig } from '@/types/types';
 import Cookies from 'js-cookie';
 import { useCurrentLocale } from 'next-i18n-router/client';
-import React, { useState } from 'react';
+import type React from 'react';
+import { useEffect, useState } from 'react';
 
 const staticCookieString: StaticTranslationString = {
   de: 'conveniat27 speichert Cookies, um richtig zu funktionieren.',
@@ -25,14 +26,24 @@ const shouldShowCookieBanner = (): boolean => {
 export const CookieBanner: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
-  const [showBanner, setShowBanner] = useState(shouldShowCookieBanner);
+  const [showBanner, setShowBanner] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsClient(true);
+  }, []);
 
   const acceptCookies = (): void => {
     Cookies.set(Cookie.CONVENIAT_COOKIE_BANNER, 'true', { expires: 90 });
     setShowBanner(false);
   };
 
-  if (!showBanner) return <></>;
+  const bannerShouldBeVisible = isClient && showBanner && shouldShowCookieBanner();
+
+  if (!bannerShouldBeVisible) {
+    return <></>;
+  }
 
   return (
     <div className="fixed right-0 bottom-0 left-0 z-50 p-4">
