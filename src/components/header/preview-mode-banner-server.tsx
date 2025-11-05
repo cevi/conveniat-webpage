@@ -24,7 +24,7 @@ export const PreviewModeBannerServerComponent: React.FC = async () => {
   const session = await auth();
 
   const serverCookies = await cookies();
-  const previewModeActive = serverCookies.get('preview')?.value === 'true';
+  const previewModeActive = serverCookies.get('__prerender_bypass')?.value !== undefined;
 
   const canAccessAdminDashboard = await canUserAccessAdminPanel({
     user: session?.user as HitobitoNextAuthUser,
