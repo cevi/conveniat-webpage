@@ -11,7 +11,10 @@ export type ChainedMiddleware = (
 type MiddlewareFactory = (middleware: ChainedMiddleware) => ChainedMiddleware;
 
 /**
- * based on https://medium.com/@0xTanzim/implementing-multiple-middleware-in-next-js-combining-nextauth-and-internationalization-28d5435d3187
+ *
+ * Creates a middleware chain from an array of middleware factories.
+ * Tracks and logs the performance of each middleware in the chain.
+ *
  * @param functions
  * @param index
  */

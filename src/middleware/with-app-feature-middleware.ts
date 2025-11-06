@@ -61,7 +61,6 @@ const applyMiddlewareForDisabledAppFeatures = (
  * @param nextMiddleware
  */
 export const withAppFeatureMiddleware = (nextMiddleware: ChainedMiddleware): ChainedMiddleware => {
-  // eslint-disable-next-line complexity
   return (request, event, response) => {
     const areAppFeaturesEnabled = environmentVariables.FEATURE_ENABLE_APP_FEATURE === true;
 

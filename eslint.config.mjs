@@ -272,6 +272,11 @@ const config = defineConfig([
     // js files
     'src/app/(payload)/admin/importMap.js',
     'postcss.config.js',
+    '**/*.cjs',
+
+    // code coverage
+    'coverage/**',
+
   ]),
 ]);
 
