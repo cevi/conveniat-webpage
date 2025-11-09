@@ -95,7 +95,8 @@ const GenericPage: LocalizedCollectionComponent = async ({
     ) {
       return <GenericPageConverter page={articleInPrimaryLanguage} locale={locale} />;
     } else {
-      redirect(`/${locale}/${articleInPrimaryLanguage.seo.urlSlug}`);
+      console.log('Redirecting to published locale version');
+      notFound();
     }
   }
 

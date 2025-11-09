@@ -175,6 +175,7 @@ const CMSPage: React.FC<{
       );
     } else {
       // redirect to the alternative locale
+      console.log('Redirecting to alternative locale for special page');
       redirect(`/${locale}${specialPage.alternatives[locale]}`);
     }
   }
@@ -208,6 +209,7 @@ const CMSPage: React.FC<{
     } else {
       // redirect to alternative collectionPage if available
       const alternative = collectionPage.alternatives[locale];
+      console.log('Redirecting to alternative locale for collection page');
       redirect(`/${locale}/${alternative}}`);
     }
   }

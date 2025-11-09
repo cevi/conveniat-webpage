@@ -82,9 +82,6 @@ const nextConfig: NextConfig = {
 
   rewrites: postHogRewrites,
   headers: cachingHeaders,
-
-  // Support PostHog trailing slash API requests
-  skipTrailingSlashRedirect: true,
 };
 
 const serviceWorkerRevision =

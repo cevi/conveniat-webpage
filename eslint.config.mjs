@@ -276,7 +276,6 @@ const config = defineConfig([
 
     // code coverage
     'coverage/**',
-
   ]),
 ]);
 

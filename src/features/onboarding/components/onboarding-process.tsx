@@ -6,6 +6,7 @@ import { GettingReadyEntrypointComponent } from '@/features/onboarding/component
 import { LoginScreen } from '@/features/onboarding/components/login-screen';
 import { PushNotificationManagerEntrypointComponent } from '@/features/onboarding/components/push-notification-manager';
 import { Cookie } from '@/types/types';
+import { DesignCodes } from '@/utils/design-codes';
 import Cookies from 'js-cookie';
 import { useRouter } from 'next/navigation';
 import type { ChangeEvent } from 'react';
@@ -47,7 +48,7 @@ const LanguageSwitcher: React.FC<{
 
 const getInitialLocale = (): 'en' | 'de' | 'fr' => {
   if (typeof navigator === 'undefined') return 'de'; // SSR Guard
-  const cookieLocale = Cookies.get('NEXT_LOCALE');
+  const cookieLocale = Cookies.get(Cookie.LOCALE_COOKIE);
   if (cookieLocale !== undefined) {
     return cookieLocale as 'en' | 'de' | 'fr';
   }
@@ -78,14 +79,14 @@ export const OnboardingProcess: React.FC = () => {
 
   const [hasManuallyChangedLanguage, setHasManuallyChangedLanguage] = useState(() => {
     if (typeof globalThis === 'undefined') return false;
-    return Cookies.get('NEXT_LOCALE') === undefined;
+    return Cookies.get(Cookie.LOCALE_COOKIE) === undefined;
   });
 
   // Set the cookie only if the user has manually changed the language
   // this prevents that the user needs to select the language again
   useEffect(() => {
     if (hasManuallyChangedLanguage && onboardingStep >= OnboardingStep.Login) {
-      Cookies.set('NEXT_LOCALE', locale, { expires: 730 });
+      Cookies.set(Cookie.LOCALE_COOKIE, locale, { expires: 730 });
     }
   }, [hasManuallyChangedLanguage, locale, onboardingStep]);
 
@@ -101,7 +102,7 @@ export const OnboardingProcess: React.FC = () => {
 
   const handlePushNotification = (): void => {
     setOnboardingStep(OnboardingStep.Loading);
-    Cookies.set(Cookie.APP_DESIGN, 'true', { expires: 730 });
+    Cookies.set(Cookie.DESIGN_MODE, DesignCodes.APP_DESIGN, { expires: 730 });
     Cookies.remove(Cookie.HAS_LOGGED_IN);
   };
 
