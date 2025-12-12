@@ -1,6 +1,6 @@
 {
   "name": "conveniat27",
-  "version": "0.30.1",
+  "version": "0.30.2",
   "author": "Cyrill Püntener v/o JPG (cyrill.puentener@cevi.ch)",
   "maintainers": [
     "Cyrill Püntener v/o JPG (cyrill.puentener@cevi.ch)",
@@ -85,7 +85,7 @@
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.540.0",
     "maplibre-gl": "^5.9.0",
-    "next": "15.5.7",
+    "next": "15.5.9",
     "next-auth": "5.0.0-beta.29",
     "next-i18n-router": "^5.5.4",
     "nextjs-toploader": "^3.9.17",
