@@ -54,9 +54,6 @@ const nextConfig: NextConfig = {
     // enable server source maps for better error tracking
     serverSourceMaps: true,
 
-    // activate new client-side router improvements
-    clientSegmentCache: true,
-
     staleTimes: {
       dynamic: 0, // this must be set to 0 for payload to work correctly
       static: 300, // 5 minutes for static pages, default

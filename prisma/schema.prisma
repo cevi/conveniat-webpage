@@ -6,7 +6,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("CHAT_DATABASE_URL")
 }
 
 model User {

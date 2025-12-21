@@ -104,6 +104,7 @@ export interface Config {
   db: {
     defaultIDType: string;
   };
+  fallbackLocale: ('false' | 'none' | 'null') | false | null | ('en' | 'de' | 'fr') | ('en' | 'de' | 'fr')[];
   globals: {
     header: Header;
     footer: Footer;
