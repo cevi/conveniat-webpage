@@ -162,6 +162,7 @@ const CMSPage: React.FC<{
             slugs={remainingSlugs}
             renderInPreviewMode={renderInPreviewMode}
             locale={locale}
+            searchParams={searchParametersPromise}
           />
           {isDraftSession && (
             <PreviewWarning params={params} renderInPreviewMode={renderInPreviewMode} />

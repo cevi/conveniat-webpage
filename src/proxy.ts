@@ -11,8 +11,16 @@ const skipExcludedPaths: ProxyModule = (next) => {
   };
 };
 
+const pathnameProxy: ProxyModule = (next) => {
+  return async (request, _event, response) => {
+    response.headers.set('x-pathname', request.nextUrl.pathname);
+    return next(request, _event, response);
+  };
+};
+
 export const proxy = proxyChain([
   { proxy: skipExcludedPaths, name: 'skipExcludedPaths' },
+  { proxy: pathnameProxy, name: 'pathname' },
   { proxy: i18nProxy, name: 'i18n' },
   { proxy: designRewriteProxy, name: 'designRewrite' },
 ]);

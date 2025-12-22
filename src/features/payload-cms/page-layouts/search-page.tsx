@@ -63,6 +63,34 @@ const renderPermittedBlog = (locale: Locale, blog: Blog): React.JSX.Element => (
   <BlogDisplay blog={blog} key={blog.seo.urlSlug} locale={locale} />
 );
 
+const renderNoResults = (locale: Locale): React.JSX.Element => (
+  <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-200 bg-gray-50 p-8 text-center">
+    <div className="mb-4 rounded-full bg-gray-200 p-4">
+      <svg
+        className="h-8 w-8 text-gray-400"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+        />
+      </svg>
+    </div>
+    <h3 className="text-lg font-semibold text-gray-700">{searchResultNoResults[locale]}</h3>
+    <p className="mt-2 text-gray-500">
+      {locale === 'de'
+        ? 'Versuche es mit einem anderen Suchbegriff.'
+        : locale === 'fr'
+          ? 'Essayez avec un autre terme de recherche.'
+          : 'Try another search term.'}
+    </p>
+  </div>
+);
+
 const SearchPage: React.FC<LocalizedPageType> = async ({
   searchParams: searchParametersPromise,
 }) => {
@@ -107,7 +135,7 @@ const SearchPage: React.FC<LocalizedPageType> = async ({
 
   const searchEntriesPages = await payload.find({
     collection: 'search-collection',
-    depth: 1,
+    depth: 0,
     limit: 5,
     locale,
     where: {
@@ -150,7 +178,7 @@ const SearchPage: React.FC<LocalizedPageType> = async ({
 
   const searchEntriesBlogs = await payload.find({
     collection: 'search-collection',
-    depth: 1,
+    depth: 0,
     limit: limitPerCategory,
     locale,
     where: {
@@ -215,7 +243,7 @@ const SearchPage: React.FC<LocalizedPageType> = async ({
           <h2 className="text-conveniat-green text-2xl font-bold">
             {searchResultsTitlePages[locale]}
           </h2>
-          {permittedPages.length === 0 && <p>{searchResultNoResults[locale]}</p>}
+          {permittedPages.length === 0 && renderNoResults(locale)}
           {permittedPages.map((element) => renderPermittedPage(locale, element))}
           {searchEntriesPages.totalPages > 1 && (
             <LinkComponent
@@ -230,7 +258,7 @@ const SearchPage: React.FC<LocalizedPageType> = async ({
           <h2 className="text-conveniat-green text-2xl font-bold">
             {searchResultsTitleBlog[locale]}
           </h2>
-          {permittedBlogs.length === 0 && <p>{searchResultNoResults[locale]}</p>}
+          {permittedBlogs.length === 0 && renderNoResults(locale)}
           {permittedBlogs.map((element) => renderPermittedBlog(locale, element))}
           {searchEntriesBlogs.totalPages > 1 && (
             <LinkComponent
