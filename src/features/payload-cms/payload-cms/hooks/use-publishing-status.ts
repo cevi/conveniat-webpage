@@ -1,8 +1,10 @@
 'use client';
 
 import type { PublishingStatusType } from '@/features/payload-cms/payload-cms/components/multi-lang-publishing/type';
-import { useDocumentInfo } from '@payloadcms/ui';
+import type { Config } from '@/features/payload-cms/payload-types';
+import { useDocumentInfo, useFormModified, useLocale } from '@payloadcms/ui';
 import { useQuery } from '@tanstack/react-query';
+import { useEffect, useRef, useState } from 'react';
 
 interface PublishingData {
     publishingStatus?: PublishingStatusType;
@@ -10,7 +12,10 @@ interface PublishingData {
 }
 
 export const usePublishingStatus = () => {
-    const { id, collectionSlug, globalSlug } = useDocumentInfo();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { id, collectionSlug, globalSlug, updatedAt } = useDocumentInfo() as any;
+    const modified = useFormModified();
+    const { code } = useLocale() as { code: Config['locale'] };
 
     const queryKey = ['publishingStatus', collectionSlug, globalSlug, id];
 
@@ -46,11 +51,45 @@ export const usePublishingStatus = () => {
         refetchOnReconnect: false,
     });
 
+    const wasModified = useRef(false);
+    const [isSyncing, setIsSyncing] = useState(false);
+
+    // Refetch when the document is updated (saved)
+    useEffect(() => {
+        void refetch();
+    }, [updatedAt, refetch]);
+
+    // Refetch when modified state changes from true to false (autosave)
+    useEffect(() => {
+        if (modified) {
+            wasModified.current = true;
+        } else if (wasModified.current) {
+            wasModified.current = false;
+            setIsSyncing(true);
+            void refetch().finally(() => {
+                setIsSyncing(false);
+            });
+        }
+    }, [modified, refetch]);
+
+    // Apply optimistic updates
+    let publishingStatus = data?.publishingStatus;
+
+    if ((modified || isSyncing) && publishingStatus && code) {
+        publishingStatus = {
+            ...publishingStatus,
+            [code]: {
+                published: publishingStatus[code]?.published ?? false,
+                pendingChanges: true,
+            },
+        };
+    }
+
     // canUnpublish is true unless _disable_unpublishing is explicitly true
     const canUnpublish = data?._disable_unpublishing !== true;
 
     return {
-        publishingStatus: data?.publishingStatus,
+        publishingStatus,
         canUnpublish,
         isLoading,
         error,
