@@ -114,6 +114,19 @@ export function createRedisCacheHandler(): CacheHandler {
                     ? redis.set(cacheKey, finalBuffer, 'EX', entry.expire)
                     : redis.set(cacheKey, finalBuffer));
 
+                // Track tags for granular invalidation
+                if (metadata.tags && metadata.tags.length > 0) {
+                    const pipeline = redis.pipeline();
+                    for (const tag of metadata.tags) {
+                        pipeline.sadd(`tags:${tag}`, cacheKey);
+                        // Set expiration for the tag set to be slightly longer than the entry
+                        if (entry.expire > 0) {
+                            pipeline.expire(`tags:${tag}`, entry.expire + 60);
+                        }
+                    }
+                    await pipeline.exec();
+                }
+
                 console.log(`${LOG_PREFIX} SET: ${cacheKey} (SUCCESS)`);
             } catch (error) {
                 console.error(`${LOG_PREFIX} SET: ${cacheKey} (FAILED)`, error);
@@ -125,10 +138,25 @@ export function createRedisCacheHandler(): CacheHandler {
 
         async updateTags(tags: string[]) {
             console.log(`${LOG_PREFIX} UPDATE_TAGS: ${tags.join(', ')}.`);
-            // For now, match the default handler's behavior of clearing EVERYTHING.
-            // This is safe even if overkill.
-            console.log(`${LOG_PREFIX} UPDATE_TAGS: Clearing all entries.`);
-            await redis.flushdb();
+
+            for (const tag of tags) {
+                const tagKey = `tags:${tag}`;
+
+                // If 'payload' tag is invalidated, we might want to be aggressive,
+                // but let's try to be selective first.
+                const keys = await redis.smembers(tagKey);
+
+                if (keys.length > 0) {
+                    console.log(`${LOG_PREFIX} UPDATE_TAGS: Clearing ${keys.length} keys for tag ${tag}`);
+                    // UNLINK is non-blocking (unlike DEL)
+                    await redis.unlink(...keys);
+                    await redis.del(tagKey);
+                } else if (tag === 'payload') {
+                    // Fallback if 'payload' is invalidated but no keys tracked (e.g. after restart)
+                    console.log(`${LOG_PREFIX} UPDATE_TAGS: 'payload' tag cleared but no keys found in set. Flushing DB.`);
+                    await redis.flushdb();
+                }
+            }
         },
 
         // eslint-disable-next-line @typescript-eslint/require-await

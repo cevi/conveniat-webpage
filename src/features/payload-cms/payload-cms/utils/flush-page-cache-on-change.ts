@@ -1,18 +1,22 @@
 import { revalidateTag } from 'next/cache';
-import type { CollectionConfig, GlobalConfig, PayloadRequest } from 'payload';
+import type { CollectionConfig, GlobalConfig } from 'payload';
 
 export const flushPageCacheOnChange: Partial<CollectionConfig> = {
   hooks: {
     afterChange: [
-      ({ req }: { req: PayloadRequest }): void => {
+      ({ doc, collection, req }): void => {
         if (req.context['disableRevalidation']) {
           return;
         }
-        console.log(`Flush all pages due to Generic Page change`);
+        const collectionSlug = collection.slug;
+        const id = doc.id;
+
+        console.log(`Revalidating cache for ${collectionSlug}:${id}`);
         setTimeout(() => {
           try {
             revalidateTag('payload', 'max');
-            revalidateTag('generic-page', 'max');
+            revalidateTag(`collection:${collectionSlug}`, 'max');
+            revalidateTag(`doc:${collectionSlug}:${id}`, 'max');
           } catch {
             console.warn('Revalidate failed (non-critical)');
           }
@@ -25,15 +29,14 @@ export const flushPageCacheOnChange: Partial<CollectionConfig> = {
 export const flushPageCacheOnChangeGlobal: Partial<GlobalConfig> = {
   hooks: {
     afterChange: [
-      ({ req }: { req: PayloadRequest }): void => {
+      ({ req }): void => {
         if (req.context['disableRevalidation']) {
           return;
         }
-        console.log(`Flush all pages due to Generic Page change`);
+        console.log(`Flush all pages due to Global change`);
         setTimeout(() => {
           try {
             revalidateTag('payload', 'max');
-            revalidateTag('generic-page', 'max');
           } catch {
             // do nothing
           }

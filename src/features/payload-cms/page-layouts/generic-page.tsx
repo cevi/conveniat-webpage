@@ -18,7 +18,7 @@ const getArticlesInPrimaryLanguageCached = async (
 ): Promise<PaginatedDocs<GenericPage>> => {
   'use cache';
   cacheLife('hours');
-  cacheTag('generic-page', 'payload');
+  cacheTag('payload', 'generic-page', `collection:generic-page`);
 
   const payload = await getPayload({ config });
 
@@ -46,7 +46,7 @@ const getArticlesCached = async (
 ): Promise<PaginatedDocs<GenericPage>> => {
   'use cache';
   cacheLife('hours');
-  cacheTag('generic-page', 'payload');
+  cacheTag('payload', 'generic-page', `collection:generic-page`);
 
   const payload = await getPayload({ config });
 
@@ -73,7 +73,7 @@ const getFallbackArticleCached = async (
 ): Promise<GenericPage> => {
   'use cache';
   cacheLife('hours');
-  cacheTag('generic-page', 'payload');
+  cacheTag('payload', 'generic-page', `doc:generic-page:${id}`);
 
   const payload = await getPayload({ config });
 
@@ -178,7 +178,7 @@ const GenericPage: LocalizedCollectionComponent = async ({
 GenericPage.generateMetadata = async ({ locale, slugs }): Promise<Metadata> => {
   'use cache';
   cacheLife('hours');
-  cacheTag('generic-page');
+  cacheTag('payload', 'generic-page', `collection:generic-page`);
 
   const payload = await getPayload({ config });
   const slug = slugs?.join('/') ?? '';
