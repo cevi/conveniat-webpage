@@ -15,6 +15,7 @@ interface UseMessageInputLogicResult {
   textareaProps: MessageInputProperties;
   handleSendMessage: () => void;
   isSendButtonDisabled: boolean;
+  messageLength: number;
 }
 
 export const useMessageInput = (): UseMessageInputLogicResult => {
@@ -65,5 +66,6 @@ export const useMessageInput = (): UseMessageInputLogicResult => {
     },
     handleSendMessage,
     isSendButtonDisabled,
+    messageLength: newMessage.length,
   };
 };

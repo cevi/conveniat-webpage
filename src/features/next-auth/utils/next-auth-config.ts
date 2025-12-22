@@ -113,10 +113,20 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
       }),
     });
 
-    const refreshedTokens = (await response.json()) as TokenResponse;
+    let refreshedTokens: TokenResponse | undefined;
+    const responseText = await response.text();
+
+    try {
+      refreshedTokens = JSON.parse(responseText) as TokenResponse;
+    } catch {
+      console.error('Failed to parse refresh token response as JSON:', responseText);
+      throw new Error(
+        `Invalid JSON response from token refresh endpoint: ${responseText.slice(0, 100)}...`,
+      );
+    }
 
     if (!response.ok) {
-      throw refreshedTokens;
+      throw new Error(JSON.stringify(refreshedTokens));
     }
 
     // After refreshing the token, we re-fetch the user profile to get updated groups
@@ -257,7 +267,7 @@ export const authOptions: NextAuthConfig = {
           // @ts-ignore
           refresh_token: account.refresh_token,
           // @ts-ignore
-          expires_at: (account.expires_at as number | undefined) ?? Math.floor(Date.now() / 1000) + 3600,
+          expires_at: account.expires_at ?? Math.floor(Date.now() / 1000) + 3600,
           uuid: payloadCMSUser.id, // the id of the user in the CeviDB
           group_ids: profile.roles.map((role) => role.group_id),
           email: profile.email,
@@ -274,6 +284,14 @@ export const authOptions: NextAuthConfig = {
       }
 
       // Access token has expired, try to update it
+      // Access token has expired, try to update it
+      if (!token.refresh_token) {
+        return {
+          ...token,
+          error: 'RefreshAccessTokenError',
+        };
+      }
+
       return refreshAccessToken(token);
     },
   },

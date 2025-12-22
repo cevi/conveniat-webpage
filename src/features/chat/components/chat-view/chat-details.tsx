@@ -9,7 +9,7 @@ import type { Contact } from '@/features/chat/api/queries/list-contacts';
 import { DeleteChat } from '@/features/chat/components/chat-details-view/delete-chat';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useAddParticipants } from '@/features/chat/hooks/use-add-participants';
-import { useChatDetail } from '@/features/chat/hooks/use-chats';
+import { useSuspenseChatDetail } from '@/features/chat/hooks/use-chats';
 import { useRemoveParticipants } from '@/features/chat/hooks/use-remove-participant';
 import { useUpdateChatMutation } from '@/features/chat/hooks/use-update-chat-mutation';
 import { trpc } from '@/trpc/client';
@@ -121,51 +121,6 @@ const youText: StaticTranslationString = {
   fr: 'Vous',
 };
 
-const ChatDetailsPageSkeleton: React.FC = () => (
-  <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col bg-gray-50 xl:top-[62px] xl:left-[480px] xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
-    <div className="flex h-16 items-center gap-3 border-b-2 border-gray-200 bg-white px-4">
-      <div className="h-8 w-8 animate-pulse rounded bg-gray-200" />
-      <div className="h-6 w-32 animate-pulse rounded bg-gray-200" />
-    </div>
-    <div className="flex-1 space-y-6 overflow-y-auto p-4">
-      <div className="mx-auto max-w-2xl space-y-6">
-        <div className="h-8 w-48 animate-pulse rounded bg-gray-200" />
-        <div className="space-y-4">
-          {Array.from({ length: 3 }).map((_, index) => (
-            <div key={index} className="flex items-center gap-3">
-              <div className="h-10 w-10 animate-pulse rounded-full bg-gray-200" />
-              <div className="h-4 w-32 animate-pulse rounded bg-gray-200" />
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  </div>
-);
-
-const ChatDetailsError: React.FC = () => (
-  <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col bg-gray-50 xl:top-[62px] xl:left-[480px] xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
-    <div className="flex h-16 items-center gap-3 border-b-2 border-gray-200 bg-white px-4">
-      <Link href="/app/chat">
-        <Button variant="ghost" size="icon" className="mr-2 hover:bg-gray-100">
-          <ArrowLeft className="h-5 w-5 text-gray-700" />
-        </Button>
-      </Link>
-      <div className="flex items-center gap-2">
-        <Settings className="h-5 w-5 text-gray-700" />
-        <h1 className="font-heading text-lg font-semibold text-gray-900">Chat Details</h1>
-      </div>
-    </div>
-    <div className="flex flex-1 items-center justify-center p-4 text-center text-red-500">
-      <span>
-        <b>Error loading chat details.</b>
-        <br />
-        Please try again later.
-      </span>
-    </div>
-  </div>
-);
-
 // Validate chat name
 const validateChatName = (name: string, locale: Locale): string => {
   if (name.trim().length === 0) {
@@ -183,7 +138,8 @@ const validateChatName = (name: string, locale: Locale): string => {
 export const ChatDetails: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const chatId = useChatId();
-  const { data: chatDetails, isLoading, isError } = useChatDetail(chatId);
+  // const { data: chatDetails, isLoading, isPending, isError } = useChatDetail(chatId);
+  const [chatDetails] = useSuspenseChatDetail(chatId);
 
   const [isEditingName, setIsEditingName] = useState(false);
   const [chatName, setChatName] = useState('');
@@ -201,7 +157,7 @@ export const ChatDetails: React.FC = () => {
   // Memoize the list of contacts that can be added (not already in the chat)
   const addableContacts = useMemo(() => {
     if (!allContacts) return [];
-    const participantIds = new Set(chatDetails?.participants.map((p) => p.id) || []);
+    const participantIds = new Set(chatDetails.participants.map((p) => p.id));
     return allContacts.filter(
       (contact) =>
         !participantIds.has(contact.userId) &&
@@ -211,17 +167,11 @@ export const ChatDetails: React.FC = () => {
 
   // Initialize chat name when chatDetails loads
   useEffect(() => {
-    if (chatDetails?.name) {
+    if (chatDetails.name) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setChatName(chatDetails.name);
     }
-  }, [chatDetails?.name]);
-
-  // Show loading state
-  if (isLoading) return <ChatDetailsPageSkeleton />;
-
-  // Show error state
-  if (isError || !chatDetails) return <ChatDetailsError />;
+  }, [chatDetails.name]);
 
   const isGroupChat = chatDetails.participants.length > 2;
 
@@ -282,7 +232,7 @@ export const ChatDetails: React.FC = () => {
   const isFormValid = !chatNameError && chatName.trim().length >= 2 && chatName.trim().length <= 50;
 
   return (
-    <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50 xl:top-[62px] xl:left-[480px] xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
+    <div className="fixed top-0 z-[100] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50 xl:top-[62px] xl:left-[480px] xl:z-0 xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
       {/* Header */}
       <div className="flex h-16 items-center gap-3 border-b-2 border-gray-200 bg-white px-4">
         <Link href={`/app/chat/${chatId}`}>

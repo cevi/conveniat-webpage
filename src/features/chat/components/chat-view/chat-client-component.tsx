@@ -1,4 +1,5 @@
 'use client';
+import { SetHideFooter } from '@/components/footer/hide-footer-context';
 import { ChatHeader, ChatHeaderSkeleton } from '@/features/chat/components/chat-view/chat-header';
 import { ChatSkeleton } from '@/features/chat/components/chat-view/chat-skeleton';
 import { ChatTextareaInput } from '@/features/chat/components/chat-view/chat-textarea-input';
@@ -49,7 +50,7 @@ const tryAgainLater: StaticTranslationString = {
 const ChatOfflineMessage: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   return (
-    <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50 xl:top-[62px] xl:left-[480px] xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
+    <div className="fixed top-0 z-[100] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50 xl:top-[62px] xl:left-[480px] xl:z-0 xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
       <ChatHeaderSkeleton />
       <div className="flex flex-1 items-center justify-center p-4 text-center text-gray-500">
         <span>
@@ -66,7 +67,7 @@ export const ChatErrorMessage: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
   return (
-    <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50 xl:top-[62px] xl:left-[480px] xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
+    <div className="fixed top-0 z-[100] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50 xl:top-[62px] xl:left-[480px] xl:z-0 xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
       <ChatHeaderSkeleton />
       <div className="flex flex-1 items-center justify-center p-4 text-center text-red-500">
         <span>
@@ -83,7 +84,7 @@ const OfflineBanner: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
   return (
-    <div className="z-[500] bg-red-100 p-4 text-center text-red-800">
+    <div className="bg-red-100 p-4 text-center text-red-800">
       <span className="font-semibold">{cannotSendOffline[locale]}</span>
     </div>
   );
@@ -98,13 +99,14 @@ export const ChatClientComponent: React.FC = () => {
   if (isError || (isLoading && errorUpdateCount !== 0)) return <ChatErrorMessage />;
 
   return (
-    <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50 xl:top-[62px] xl:left-[480px] xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
+    <div className="fixed top-0 z-[100] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50 xl:top-[62px] xl:left-[480px] xl:z-0 xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
+      <SetHideFooter value />
       <ChatHeader />
       {isPaused && <OfflineBanner />}
       <div className="flex-1 overflow-y-auto">
         <MessageList />
       </div>
-      <div className="border-t border-gray-200 bg-white p-4">
+      <div className="border-t border-gray-200 bg-white p-2">
         <ChatTextareaInput />
       </div>
     </div>

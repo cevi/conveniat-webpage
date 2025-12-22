@@ -7,6 +7,9 @@ import type { Locale } from '@/types/types';
 import { DesignCodes } from '@/utils/design-codes';
 import { SessionProvider } from 'next-auth/react';
 
+import { FooterClientWrapper } from '@/components/footer/footer-client-wrapper';
+import { HideFooterProvider } from '@/components/footer/hide-footer-context';
+
 interface LayoutProperties {
   children: ReactNode;
   params: Promise<{
@@ -20,13 +23,17 @@ const AppLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
   const isInAppDesign = design === DesignCodes.APP_DESIGN;
 
   return (
-    <StarProvider>
-      <SessionProvider>
-        <div className="mb-20">{children}</div>
-      </SessionProvider>
-      <div></div>
-      <Suspense>{isInAppDesign && <FooterAppNavBar locale={locale} />}</Suspense>
-    </StarProvider>
+    <HideFooterProvider>
+      <StarProvider>
+        <SessionProvider>
+          <div className="mb-20">{children}</div>
+        </SessionProvider>
+        <div></div>
+        <FooterClientWrapper>
+          <Suspense>{isInAppDesign && <FooterAppNavBar locale={locale} />}</Suspense>
+        </FooterClientWrapper>
+      </StarProvider>
+    </HideFooterProvider>
   );
 };
 

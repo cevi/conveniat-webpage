@@ -37,8 +37,30 @@ export const MessageList: React.FC = () => {
     (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
   );
 
+  // Track if this is the initial load and if user is at bottom
+  const hasScrolledReference = useRef(false);
+  const isAtBottomReference = useRef(true);
+  const scrollContainerReference = useRef<HTMLDivElement>(null);
+
+  // Track scroll position to know if user is at bottom
+  const handleScroll = (): void => {
+    const container = scrollContainerReference.current;
+    if (container) {
+      const threshold = 100; // pixels from bottom to consider "at bottom"
+      isAtBottomReference.current =
+        container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
+    }
+  };
+
   useEffect(() => {
-    messagesEndReference.current?.scrollIntoView({ behavior: 'instant' });
+    // Scroll to bottom on initial load OR when user is at bottom and new messages arrive
+    if (
+      sortedMessages.length > 0 &&
+      (!hasScrolledReference.current || isAtBottomReference.current)
+    ) {
+      messagesEndReference.current?.scrollIntoView({ behavior: 'instant' });
+      hasScrolledReference.current = true;
+    }
   }, [sortedMessages]);
 
   // State to store IDs of messages that have been marked as READ
@@ -87,24 +109,39 @@ export const MessageList: React.FC = () => {
   }
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto bg-gray-50">
+    <div
+      ref={scrollContainerReference}
+      onScroll={handleScroll}
+      className="flex h-full flex-col overflow-y-auto bg-gray-50"
+    >
       <div className="flex-1" />
-      <div className="space-y-6 px-4 py-4">
+      <div className="space-y-6 px-2 py-4">
         {Object.entries(messagesByDate).map(([date, messagesForDate]) => (
           <div key={date}>
             <div className="my-6 flex justify-center">
-              <div className="font-body rounded-full bg-gray-200 px-4 py-2 text-xs font-medium text-gray-600 shadow-sm">
+              <div className="font-body rounded-full border border-gray-200 bg-gray-100 px-4 py-1 text-xs font-medium text-gray-500 shadow-sm">
                 {date === new Date().toLocaleDateString() ? todayText[locale] : date}
               </div>
             </div>
-            <div className="space-y-4">
-              {messagesForDate.map((message) => (
-                <MessageComponent
-                  key={message.id}
-                  message={message}
-                  isCurrentUser={message.senderId === currentUser}
-                />
-              ))}
+            <div className="space-y-1">
+              {messagesForDate.map((message, index) => {
+                const previousMessage = index > 0 ? messagesForDate[index - 1] : undefined;
+                const isWithin5Min = previousMessage
+                  ? new Date(message.createdAt).getTime() -
+                      new Date(previousMessage.createdAt).getTime() <
+                    5 * 60 * 1000
+                  : false;
+
+                return (
+                  <div key={message.id} className={isWithin5Min ? 'mt-1' : 'mt-4'}>
+                    <MessageComponent
+                      message={message}
+                      isCurrentUser={message.senderId === currentUser}
+                      chatType={chatDetails.type}
+                    />
+                  </div>
+                );
+              })}
             </div>
           </div>
         ))}

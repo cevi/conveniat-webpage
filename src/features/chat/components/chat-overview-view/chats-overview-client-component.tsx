@@ -98,11 +98,15 @@ export const ChatsOverviewClientComponent: React.FC<{ user: HitobitoNextAuthUser
 
       {/* New Chat Button */}
       <div className="flex justify-end gap-2">
-        <Link className="flex justify-end" href="/app/chat/new">
-          <MessageSquarePlus />
-        </Link>
-
         <QRCodeClientComponent url={user.uuid} />
+      </div>
+
+      <div className="fixed right-6 bottom-18 z-50">
+        <Link href="/app/chat/new">
+          <div className="bg-conveniat-green flex h-14 w-14 items-center justify-center rounded-2xl text-white shadow-lg transition-transform hover:scale-105 hover:bg-green-600">
+            <MessageSquarePlus className="h-7 w-7" />
+          </div>
+        </Link>
       </div>
       {/* Loading State */}
       {isLoading && <ChatsOverviewLoadingPlaceholder />}
@@ -140,10 +144,11 @@ export const ChatsOverviewClientComponent: React.FC<{ user: HitobitoNextAuthUser
                 'hover:bg-gray-100 hover:shadow-md',
                 {
                   'bg-white': !(chat.unreadCount > 0),
-                  'border-l-conveniat-green border-l-4 bg-green-50': chat.unreadCount > 0,
-                  'border-red-700 bg-red-600 hover:bg-red-700':
+                  'border-l-conveniat-green border-l-4 bg-green-50':
+                    chat.unreadCount > 0 && chat.chatType !== ChatType.EMERGENCY,
+                  'bg-gradient-to-r from-red-50 to-orange-50 hover:from-red-100 hover:to-orange-100':
                     chat.chatType === ChatType.EMERGENCY,
-                  'border-l-4 border-l-red-800':
+                  'border-l-4 border-l-red-500':
                     chat.chatType === ChatType.EMERGENCY && chat.unreadCount > 0,
                 },
               )}

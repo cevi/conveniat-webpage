@@ -1,56 +1,20 @@
 'use client';
-import { useChatDetail } from '@/features/chat/hooks/use-chats';
+import { useFormatDate } from '@/features/chat/hooks/use-format-date';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
-import type { Locale } from '@/types/types';
-import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { ChatType } from '@prisma/client';
-import { formatDistanceToNow } from 'date-fns';
-import { de as deLocale, fr as frLocale } from 'date-fns/locale';
 import { Siren, Users } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
 import type React from 'react';
 
 export const ChatPreview: React.FC<{
   chat: ChatWithMessagePreview;
 }> = ({ chat }) => {
-  const locale = useCurrentLocale(i18nConfig) as Locale;
   const chatDetailLink = `/app/chat/${chat.id}`;
   const hasUnread = chat.unreadCount > 0;
+  const { formatMessageTime } = useFormatDate();
 
-  let localeToUse: typeof deLocale | undefined;
-  switch (locale) {
-    case 'de': {
-      localeToUse = deLocale;
-      break;
-    }
-    case 'fr': {
-      localeToUse = frLocale;
-      break;
-    }
-    case 'en': {
-      // English is default, so leave localeToUse undefined
-      localeToUse = undefined;
-      break;
-    }
-    default: {
-      // Fallback for any other locale
-      localeToUse = undefined;
-      break;
-    }
-  }
-
-  const timestamp = formatDistanceToNow(new Date(chat.lastMessage.createdAt), {
-    addSuffix: true,
-    // Only pass locale if defined, otherwise omit for English fallback
-    ...(localeToUse ? { locale: localeToUse } : {}),
-  });
-
-  const { data: chatDetails } = useChatDetail(chat.id);
-
-  // Determine participant count for group chats
-  const participantCount = chatDetails?.participants.length ?? 0;
+  const timestamp = formatMessageTime(new Date(chat.lastMessage.createdAt));
 
   return (
     <Link href={chatDetailLink} className="block w-full">
@@ -75,33 +39,30 @@ export const ChatPreview: React.FC<{
             </div>
           )}
           {chat.chatType === ChatType.EMERGENCY && (
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-50 shadow-sm">
-              <Siren size={20} className="text-red-600" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-md ring-2 ring-red-500">
+              <Siren size={20} className="text-red-500" />
             </div>
           )}
         </div>
 
         <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <p
-                className={cn('font-heading truncate text-sm', {
-                  'font-semibold text-gray-900': hasUnread,
-                  'font-medium text-gray-800': !hasUnread,
-                  'text-red-50': chat.chatType === ChatType.EMERGENCY,
-                })}
-              >
-                {chat.name}
-              </p>
-              {chat.chatType === ChatType.GROUP && (
-                <span className="font-body rounded-full bg-gray-200 px-2 py-0.5 text-xs text-gray-600">
-                  {participantCount}
-                </span>
-              )}
+          <div className="flex items-start justify-between">
+            <div className="flex min-w-0 flex-1 flex-col pr-2">
+              <div className="flex items-center gap-2">
+                <p
+                  className={cn('font-heading truncate text-sm font-semibold', {
+                    'text-gray-900': hasUnread,
+                    'text-gray-800': !hasUnread,
+                    'text-red-500': chat.chatType === ChatType.EMERGENCY,
+                  })}
+                >
+                  {chat.name}
+                </p>
+              </div>
             </div>
             <span
-              className={cn('font-body text-xs text-gray-500', {
-                'text-red-50': chat.chatType === ChatType.EMERGENCY,
+              className={cn('font-body shrink-0 text-xs whitespace-nowrap text-gray-500', {
+                'text-red-500': chat.chatType === ChatType.EMERGENCY,
               })}
             >
               {timestamp}
@@ -112,7 +73,7 @@ export const ChatPreview: React.FC<{
             className={cn('font-body mt-1 truncate text-sm', {
               'font-medium text-gray-700': hasUnread,
               'text-gray-500': !hasUnread,
-              'text-red-50': chat.chatType === ChatType.EMERGENCY,
+              'text-red-500': chat.chatType === ChatType.EMERGENCY,
             })}
           >
             {chat.lastMessage.messagePreview}
@@ -120,7 +81,7 @@ export const ChatPreview: React.FC<{
         </div>
 
         {hasUnread && (
-          <div className="bg-conveniat-green font-body flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold text-white shadow-sm">
+          <div className="bg-conveniat-green font-body flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white shadow-sm">
             {chat.unreadCount > 99 ? '99+' : chat.unreadCount}
           </div>
         )}
