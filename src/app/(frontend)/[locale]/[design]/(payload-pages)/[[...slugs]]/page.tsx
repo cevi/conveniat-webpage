@@ -134,9 +134,8 @@ const CMSPage: React.FC<{
   // check if the user is allowed to access the preview of the current page
   let previewModeAllowed = false;
   if (draft.isEnabled) {
-    const { canAccessPreviewOfCurrentPage } = await import(
-      '@/features/payload-cms/utils/preview-utils'
-    );
+    const { canAccessPreviewOfCurrentPage } =
+      await import('@/features/payload-cms/utils/preview-utils');
 
     const searchParameters = await searchParametersPromise;
     const url = `/${locale}/${slugs?.join('/') ?? ''}`;
