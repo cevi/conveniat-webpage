@@ -6,6 +6,7 @@ import { Config } from '@/features/payload-cms/payload-types';
 import { StaticTranslationString } from '@/types/types';
 import { useLocale } from '@payloadcms/ui';
 import { signOut } from 'next-auth/react';
+import { useEffect } from 'react';
 
 const localizedLogoutText: StaticTranslationString = {
   en: 'Logging out...',
@@ -16,10 +17,18 @@ const localizedLogoutText: StaticTranslationString = {
 const Page = () => {
   const { code } = useLocale() as { code: Config['locale'] };
 
-  signOut({
-    redirect: true,
-    redirectTo: '/',
-  }).catch((e: unknown) => console.error(e));
+  useEffect(() => {
+    const doLogout = async () => {
+      await fetch('/api/draft?disable=true');
+      await signOut({
+        redirect: true,
+        callbackUrl: '/',
+      });
+    };
+
+    void doLogout();
+  }, []);
+
   return (
     <>
       <AdminPanelBackgroundFaker />
