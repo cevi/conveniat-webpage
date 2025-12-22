@@ -285,7 +285,7 @@ export const EmergencyComponent: React.FC = () => {
           ))}
         </Accordion>
 
-        <div className="fixed bottom-20 left-0 w-full select-none">
+        <div className="fixed bottom-20 left-0 w-full select-none xl:left-[480px] xl:w-[calc(100%-480px)]">
           <ConfirmationSlider
             onConfirm={handleAlarmTrigger}
             text={alarmText[locale]}
