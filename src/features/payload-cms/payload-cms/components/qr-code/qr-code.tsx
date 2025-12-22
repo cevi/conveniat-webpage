@@ -11,9 +11,9 @@ import { environmentVariables } from '@/config/environment-variables';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { serverSideSlugToUrlResolution } from '@/utils/find-url-prefix';
 import { generatePreviewToken } from '@/utils/preview-token';
-import { FormSubmit, useDocumentInfo, useLocale, useTheme } from '@payloadcms/ui';
+import { useDocumentInfo, useLocale, useTheme } from '@payloadcms/ui';
 import { useQuery } from '@tanstack/react-query'; // Added for TanStack Query
-import { Check, Copy, Eye } from 'lucide-react';
+import { Check, Copy, Share } from 'lucide-react';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import type { CollectionSlug } from 'payload';
@@ -41,11 +41,7 @@ const previewDaysText: StaticTranslationString = {
   en: 'Days',
 };
 
-const previewLinkText: StaticTranslationString = {
-  de: 'Vorschau',
-  fr: 'Aperçu',
-  en: 'Preview',
-};
+
 
 const previewLinkTextLong: StaticTranslationString = {
   de: 'Vorschau Link für',
@@ -59,7 +55,19 @@ const qrCodeLoadingText: StaticTranslationString = {
   en: 'QR Code',
 };
 
+const localeNames: StaticTranslationString = {
+  de: 'Deutsch',
+  fr: 'Français',
+  en: 'English',
+};
+
 const linkLoadingText: StaticTranslationString = { de: 'Link', fr: 'Lien', en: 'Link' };
+
+const sharePreviewLinkText: StaticTranslationString = {
+  de: 'Vorschau-Link teilen',
+  fr: 'Partager le lien d’aperçu',
+  en: 'Share a preview link',
+};
 
 const qrNotAvailableText: StaticTranslationString = {
   de: 'QR-Code nicht verfügbar',
@@ -77,11 +85,11 @@ const prepareQRCodeData = async (
   locale: Locale,
   savedDocumentData:
     | {
-        seo?: { urlSlug?: string };
-        id?: string;
-        _localized_status?: Record<Locale, { status: string }>;
-        urlSlug?: string; // redirects have urlSlug on root
-      }
+      seo?: { urlSlug?: string };
+      id?: string;
+      _localized_status?: Record<Locale, { status: string }>;
+      urlSlug?: string; // redirects have urlSlug on root
+    }
     | undefined,
   expirySeconds: number,
   domain: string,
@@ -267,9 +275,9 @@ const QRCode: React.FC<QRCodeProperties> = () => {
 
   const [qrInputDataSource, setQrInputDataSource] = useState<
     | {
-        qrCodeContent: string;
-        displayURL: string;
-      }
+      qrCodeContent: string;
+      displayURL: string;
+    }
     | undefined
   >();
   const [isPreparingQrData, setIsPreparingQrData] = useState(false);
@@ -378,22 +386,21 @@ const QRCode: React.FC<QRCodeProperties> = () => {
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
-        <FormSubmit
-          icon={<Eye className="h-6 w-6" />}
-          iconPosition="left"
-          buttonStyle="tab"
+        <Button
+          variant="outline"
+          size="icon"
+          type="button"
           onClick={() => {
             if (!open) setOpen(true);
           }}
+          title={
+            createRedirectQR
+              ? (qrCodeLoadingText[locale as Locale] as string)
+              : sharePreviewLinkText[locale as Locale]
+          }
         >
-          {createRedirectQR ? (
-            <>{qrCodeLoadingText[locale as Locale]}</>
-          ) : (
-            <>
-              {previewLinkText[locale as Locale]}({locale.toUpperCase()})
-            </>
-          )}
-        </FormSubmit>
+          <Share className="h-4 w-4" />
+        </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-96 rounded-md border-gray-200 bg-white text-gray-900 shadow-lg dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100">
         <DropdownMenuLabel className="px-2 py-1.5 font-semibold">
@@ -401,7 +408,7 @@ const QRCode: React.FC<QRCodeProperties> = () => {
             <>{qrCodeLoadingText[locale as Locale]}</>
           ) : (
             <>
-              {previewLinkTextLong[locale as Locale]}({locale.toUpperCase()})
+              {previewLinkTextLong[locale as Locale]} {localeNames[locale as Locale]}
             </>
           )}
         </DropdownMenuLabel>
