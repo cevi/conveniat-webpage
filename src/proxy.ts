@@ -1,6 +1,6 @@
 import { designRewriteProxy } from '@/proxy/design-rewrite-proxy';
 import { i18nProxy } from '@/proxy/i18n-proxy';
-import { proxyChain } from '@/proxy/porxy-chain';
+import { proxyChain } from '@/proxy/proxy-chain';
 import type { ProxyModule } from '@/proxy/types';
 import { isExcludedFromPathRewrites } from '@/proxy/utils/is-excluded-from-path-rewrites';
 
