@@ -87,6 +87,12 @@ enum MessageType {
 
   /// an image message, e.g. { url: "https://example.com/image.jpg" }
   IMAGE_MSG
+
+  /// a question asked by the system, e.g. "How many persons are involved?"
+  ALERT_QUESTION
+
+  /// Final response message with instructions and phone number
+  ALERT_RESPONSE
 }
 
 model Message {

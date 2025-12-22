@@ -1,3 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 import { USER_RELEVANT_MESSAGE_EVENTS } from '@/features/chat/api/definitions';
 import { getStatusFromMessageEvents } from '@/features/chat/api/utils/get-status-from-message-events';
 import { resolveChatName } from '@/features/chat/api/utils/resolve-chat-name';
@@ -48,6 +52,18 @@ const getMessagePreviewText = (lastMessage: {
     'longitude' in payload.location
   ) {
     return '📍 Location shared';
+  }
+
+  // Handle Alert Response and Alert Question with robust checks
+  // Payload is typed as unknown (Prisma Json), so we cast to any to safe access properties
+  const p = payload as any;
+
+  if (p?.message && typeof p.message === 'string') {
+    return p.message;
+  }
+
+  if (p?.question && typeof p.question === 'string') {
+    return p.question;
   }
 
   if (typeof payload === 'string') {

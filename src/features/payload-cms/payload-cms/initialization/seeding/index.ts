@@ -20,6 +20,7 @@ import {
   seedPermissionPublic,
 } from '@/features/payload-cms/payload-cms/initialization/seeding/permissions';
 import { generateScheduleEntries } from '@/features/payload-cms/payload-cms/initialization/seeding/schedule-entries';
+import { seedAlertSettings } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-alert-settings';
 import { createRandomUser } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-users';
 import {
   generateTimelineEntries,
@@ -550,6 +551,9 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     },
     context: { disableRevalidation: true },
   });
+
+  await seedAlertSettings(payload);
+
   console.log('Seeding: Generic pages created.');
 
   console.log('Seeding: Creating app content (camp map)...');

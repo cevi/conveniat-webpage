@@ -1,4 +1,6 @@
 import type { ChatMessage } from '@/features/chat/api/types';
+import { AlertQuestionMessage } from '@/features/chat/components/chat-view/message/alert-question-message';
+import { AlertResponseMessage } from '@/features/chat/components/chat-view/message/alert-response-message';
 import { ImageMessage } from '@/features/chat/components/chat-view/message/image-message';
 import { LocationMessage } from '@/features/chat/components/chat-view/message/location-message';
 import { MessageInfoDropdown } from '@/features/chat/components/chat-view/message/message-info-dropdown';
@@ -107,6 +109,14 @@ export const MessageComponent: React.FC<MessageProperties> = ({
 
   if (message.type === MessageType.LOCATION_MSG) {
     return <LocationMessage message={message} />;
+  }
+
+  if (message.type === ('ALERT_QUESTION' as unknown as MessageType)) {
+    return <AlertQuestionMessage message={message} isCurrentUser={isCurrentUser} />;
+  }
+
+  if (message.type === ('ALERT_RESPONSE' as unknown as MessageType)) {
+    return <AlertResponseMessage message={message} />;
   }
 
   return (
