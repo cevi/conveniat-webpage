@@ -38,7 +38,9 @@ export const localeReplacingRewrite = (config: {
   const remainingSegments = isValidLocaleSegment ? segments.slice(1) : segments;
 
   const newPathname = `/${[locale, ...remainingSegments].join('/')}`;
-  return NextResponse.rewrite(new URL(newPathname, request.url), response);
+  const newUrl = new URL(newPathname, request.url);
+  newUrl.search = request.nextUrl.search;
+  return NextResponse.rewrite(newUrl, response);
 };
 
 /**

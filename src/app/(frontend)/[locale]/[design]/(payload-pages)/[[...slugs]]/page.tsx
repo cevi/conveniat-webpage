@@ -110,7 +110,7 @@ const CMSPage: React.FC<{
 }> = async ({ params, searchParams: searchParametersPromise }) => {
   let { locale } = await params;
   let { slugs } = await params;
-
+  const searchParameters = await searchParametersPromise;
   // this logic is needed for the case the do not have set
   // we only treat valid locales as a valid locale, otherwise we use the default locale
   // and unshift the locale to the slugs array
@@ -122,32 +122,28 @@ const CMSPage: React.FC<{
 
   const draft = await draftMode();
 
-  // check if the query parameter "preview" is set to "true" if draft mode is enabled
-  // if preview is not enabled we shall not access the query parameters at all to avoid
-  // opting-out of static rendering
-  let hasPreviewSearchParameter = false;
-  if (draft.isEnabled) {
-    const searchParameters = await searchParametersPromise;
-    hasPreviewSearchParameter = searchParameters['preview'] === 'true';
-  }
-
   // check if the user is allowed to access the preview of the current page
   let previewModeAllowed = false;
   if (draft.isEnabled) {
     const { canAccessPreviewOfCurrentPage } =
       await import('@/features/payload-cms/utils/preview-utils');
 
-    const searchParameters = await searchParametersPromise;
     const url = `/${locale}/${slugs?.join('/') ?? ''}`;
     previewModeAllowed = await canAccessPreviewOfCurrentPage(searchParameters, url);
-    console.log(`Preview mode ${previewModeAllowed ? '' : 'not'} allowed for url: ${url}`);
+  } else {
+    console.log('Draft mode is NOT enabled.');
   }
 
   // check if part of a routable collection of the form [collection]/[slug]
   const collection = slugs?.[0] ?? '';
   const remainingSlugs = slugs?.slice(1) ?? [];
 
-  const renderInPreviewMode = draft.isEnabled && previewModeAllowed && hasPreviewSearchParameter;
+  const isDraftSession = draft.isEnabled && previewModeAllowed;
+  const previewParameter = searchParameters['preview'];
+  const isPreviewDisabled =
+    previewParameter === 'false' || (Array.isArray(previewParameter) && previewParameter[0] === 'false');
+
+  const renderInPreviewMode = isDraftSession && !isPreviewDisabled;
 
   // check if the collection is in the special page table
   if (isSpecialPage(collection)) {
@@ -167,7 +163,9 @@ const CMSPage: React.FC<{
             renderInPreviewMode={renderInPreviewMode}
             locale={locale}
           />
-          {renderInPreviewMode && <PreviewWarning params={params} />}
+          {isDraftSession && (
+            <PreviewWarning params={params} renderInPreviewMode={renderInPreviewMode} />
+          )}
 
           <CookieBanner />
         </>
@@ -200,7 +198,9 @@ const CMSPage: React.FC<{
             renderInPreviewMode={renderInPreviewMode}
           />
 
-          {renderInPreviewMode && <PreviewWarning params={params} />}
+          {isDraftSession && (
+            <PreviewWarning params={params} renderInPreviewMode={renderInPreviewMode} />
+          )}
 
           <CookieBanner />
         </>

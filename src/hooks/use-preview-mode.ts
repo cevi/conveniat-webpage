@@ -21,7 +21,7 @@ export const usePreviewMode = (): {
   const router = useRouter();
 
   const isInPreviewMode = useMemo(() => {
-    return searchParameters.get('preview') === 'true' ? 'enabled' : 'disabled';
+    return searchParameters.get('preview') === 'false' ? 'disabled' : 'enabled';
   }, [searchParameters]);
 
   const togglePreviewMode = useCallback(
@@ -29,9 +29,9 @@ export const usePreviewMode = (): {
       const newUrl = new URL(globalThis.location.href);
 
       if (value === 'enabled') {
-        newUrl.searchParams.set('preview', 'true');
-      } else {
         newUrl.searchParams.delete('preview');
+      } else {
+        newUrl.searchParams.set('preview', 'false');
       }
 
       router.push(newUrl.toString());

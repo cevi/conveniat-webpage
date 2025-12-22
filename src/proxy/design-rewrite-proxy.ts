@@ -40,7 +40,9 @@ export const createPrefixedRewriteResponse = (config: {
   const prefixSegments = isValidLocaleSegment ? [segments[0]] : [];
 
   const newPathname = `/${[...prefixSegments, prefix, ...remainingSegments].join('/')}`;
-  return NextResponse.rewrite(new URL(newPathname, request.url), response);
+  const newUrl = new URL(newPathname, request.url);
+  newUrl.search = request.nextUrl.search;
+  return NextResponse.rewrite(newUrl, response);
 };
 
 /**
