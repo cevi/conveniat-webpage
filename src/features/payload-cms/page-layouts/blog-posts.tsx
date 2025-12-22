@@ -52,10 +52,10 @@ const getBlogArticlesInPrimaryLanguageCached = async (
         renderInPreviewMode
           ? {}
           : {
-            'content.releaseDate': {
-              less_than_equal: currentDate,
+              'content.releaseDate': {
+                less_than_equal: currentDate,
+              },
             },
-          },
       ],
     },
   });
@@ -87,10 +87,10 @@ const getBlogArticlesCached = async (
         renderInPreviewMode
           ? {}
           : {
-            'content.releaseDate': {
-              less_than_equal: currentDate,
+              'content.releaseDate': {
+                less_than_equal: currentDate,
+              },
             },
-          },
       ],
     },
   });

@@ -175,10 +175,11 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
         publishSpecificLocale: code,
       });
 
-      const action = `${serverURL}${api}${globalSlug === undefined
-        ? `/${collectionSlug}/${id === undefined ? '' : `/${id}`}`
-        : `/globals/${globalSlug}`
-        }${parameters === '' ? '' : '?' + parameters}`;
+      const action = `${serverURL}${api}${
+        globalSlug === undefined
+          ? `/${collectionSlug}/${id === undefined ? '' : `/${id}`}`
+          : `/globals/${globalSlug}`
+      }${parameters === '' ? '' : '?' + parameters}`;
 
       await submit({
         action,
@@ -208,10 +209,11 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
         publishSpecificLocale: code,
       });
 
-      const action = `${serverURL}${api}${globalSlug === undefined
-        ? `/${collectionSlug}/${id === undefined ? '' : `/${id}`}`
-        : `/globals/${globalSlug}`
-        }${parameters === '' ? '' : '?' + parameters}`;
+      const action = `${serverURL}${api}${
+        globalSlug === undefined
+          ? `/${collectionSlug}/${id === undefined ? '' : `/${id}`}`
+          : `/globals/${globalSlug}`
+      }${parameters === '' ? '' : '?' + parameters}`;
 
       await submit({
         action,
@@ -242,8 +244,7 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
   }
 
   const unpublishClasses = cva({
-    'border-solid border border-red-300 bg-red-200 text-red-900 dark:bg-red-800 dark:text-red-100':
-      true,
+    'border-solid border border-red-300 bg-red-200 text-red-900 dark:bg-red-800 dark:text-red-100': true,
     'cursor-not-allowed opacity-40': !isCurrentLocalePublished,
   });
 
@@ -251,8 +252,7 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
   const isLockedPublished = !canUnpublish && isCurrentLocalePublished && !hasPendingChanges;
 
   const publishClasses = cva({
-    'border-solid border border-green-300 bg-green-200 text-green-900 dark:bg-green-700 dark:text-green-100':
-      true,
+    'border-solid border border-green-300 bg-green-200 text-green-900 dark:bg-green-700 dark:text-green-100': true,
     'cursor-not-allowed opacity-40': isLockedPublished || (!canPublish && isCurrentLocalePublished),
   });
 
@@ -270,7 +270,9 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
       <ConfirmationModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onConfirm={modalType === 'publish' ? handleConfirmPublish : handleConfirmUnpublish}
+        onConfirm={() =>
+          void (modalType === 'publish' ? handleConfirmPublish() : handleConfirmUnpublish())
+        }
         message={
           modalType === 'publish'
             ? minimalPublishingConfirmationString[code]
@@ -301,11 +303,11 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
           {unpublishingActionString[code]} {languageNames[code]}
         </FormSubmit>
       ) : (
-        <div className="relative group">
+        <div className="group relative">
           <FormSubmit
             className={publishClasses()}
             buttonId="action-save"
-            disabled={isLockedPublished || ((!canPublish && isCurrentLocalePublished) ?? true)}
+            disabled={isLockedPublished || (!canPublish && isCurrentLocalePublished)}
             onClick={() => publishSpecificLocale()}
             size="medium"
             type="button"
@@ -313,7 +315,7 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
             {publishActionAstring[code]} {languageNames[code]}
           </FormSubmit>
           {isLockedPublished && (
-            <span className="absolute bottom-full left-1/2 mb-2 w-max max-w-xs -translate-x-1/2 transform rounded-md bg-gray-800 px-3 py-2 text-sm text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none z-50">
+            <span className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 w-max max-w-xs -translate-x-1/2 transform rounded-md bg-gray-800 px-3 py-2 text-sm text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
               {lockedPublishedTooltip[code]}
             </span>
           )}

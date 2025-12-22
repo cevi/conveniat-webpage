@@ -60,20 +60,22 @@ const DashboardWelcomeBanner: React.FC<{ locale: Locale }> = ({ locale = 'de' })
 
         <button
           type="button"
-          onClick={async () => {
-            try {
-              const response = await fetch('/api/flush-cache');
-              if (response.ok) {
-                alert('Cache flushed successfully!');
-              } else {
-                alert('Failed to flush cache.');
+          onClick={() => {
+            void (async (): Promise<void> => {
+              try {
+                const response = await fetch('/api/flush-cache');
+                if (response.ok) {
+                  alert('Cache flushed successfully!');
+                } else {
+                  alert('Failed to flush cache.');
+                }
+              } catch (error) {
+                console.error(error);
+                alert('An error occurred while flushing cache.');
               }
-            } catch (error) {
-              console.error(error);
-              alert('An error occurred while flushing cache.');
-            }
+            })();
           }}
-          className="font-heading cursor-pointer rounded-[8px] bg-conveniat-green px-8 py-3 text-center text-lg leading-normal font-bold text-white duration-100 hover:brightness-110"
+          className="font-heading bg-conveniat-green cursor-pointer rounded-[8px] px-8 py-3 text-center text-lg leading-normal font-bold text-white duration-100 hover:brightness-110"
         >
           Flush Cache
         </button>

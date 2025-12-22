@@ -1,5 +1,6 @@
 'use client';
 
+import { ConfirmationModal } from '@/features/payload-cms/payload-cms/components/multi-lang-publishing/confirmation-modal';
 import { formatSlug } from '@/features/payload-cms/payload-cms/components/slug/format-slug';
 import type { CustomSlugComponentProperties } from '@/features/payload-cms/payload-cms/components/slug/types';
 import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
@@ -8,7 +9,6 @@ import { FieldLabel, TextInput, useField, useFormFields, useLocale } from '@payl
 import { Lock, Unlock } from 'lucide-react';
 import type { TextFieldClientProps } from 'payload';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ConfirmationModal } from '@/features/payload-cms/payload-cms/components/multi-lang-publishing/confirmation-modal';
 
 const modalTitleString: StaticTranslationString = {
   en: 'Change URL Slug',
@@ -148,12 +148,12 @@ export const SlugComponent: React.FC<
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onConfirm={handleConfirmUnlock}
-        message={modalMessageString[locale.code as Locale] ?? modalMessageString.en}
+        message={modalMessageString[locale.code as Locale]}
         isSubmitting={isSubmitting}
         locale={locale.code as Locale}
-        title={modalTitleString[locale.code as Locale] ?? modalTitleString.en}
-        confirmLabel={confirmButtonString[locale.code as Locale] ?? confirmButtonString.en}
-        submittingText={submittingTextString[locale.code as Locale] ?? submittingTextString.en}
+        title={modalTitleString[locale.code as Locale]}
+        confirmLabel={confirmButtonString[locale.code as Locale]}
+        submittingText={submittingTextString[locale.code as Locale]}
         confirmVariant="danger"
       />
     </div>

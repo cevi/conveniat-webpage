@@ -1,3 +1,1 @@
-import redisHandler from './redis.cjs';
-
-export default redisHandler;
+export { default } from './redis.cjs';

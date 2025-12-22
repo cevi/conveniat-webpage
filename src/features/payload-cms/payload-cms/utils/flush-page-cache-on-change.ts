@@ -9,7 +9,8 @@ export const flushPageCacheOnChange: Partial<CollectionConfig> = {
           return;
         }
         const collectionSlug = collection.slug;
-        const id = doc.id;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        const id = doc.id as string | number;
 
         console.log(`Revalidating cache for ${collectionSlug}:${id}`);
         setTimeout(() => {

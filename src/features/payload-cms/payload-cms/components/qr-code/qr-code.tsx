@@ -41,8 +41,6 @@ const previewDaysText: StaticTranslationString = {
   en: 'Days',
 };
 
-
-
 const previewLinkTextLong: StaticTranslationString = {
   de: 'Vorschau Link für',
   fr: 'lien d’aperçu pour',
@@ -85,11 +83,11 @@ const prepareQRCodeData = async (
   locale: Locale,
   savedDocumentData:
     | {
-      seo?: { urlSlug?: string };
-      id?: string;
-      _localized_status?: Record<Locale, { status: string }>;
-      urlSlug?: string; // redirects have urlSlug on root
-    }
+        seo?: { urlSlug?: string };
+        id?: string;
+        _localized_status?: Record<Locale, { status: string }>;
+        urlSlug?: string; // redirects have urlSlug on root
+      }
     | undefined,
   expirySeconds: number,
   domain: string,
@@ -275,9 +273,9 @@ const QRCode: React.FC<QRCodeProperties> = () => {
 
   const [qrInputDataSource, setQrInputDataSource] = useState<
     | {
-      qrCodeContent: string;
-      displayURL: string;
-    }
+        qrCodeContent: string;
+        displayURL: string;
+      }
     | undefined
   >();
   const [isPreparingQrData, setIsPreparingQrData] = useState(false);
@@ -395,7 +393,7 @@ const QRCode: React.FC<QRCodeProperties> = () => {
           }}
           title={
             createRedirectQR
-              ? (qrCodeLoadingText[locale as Locale] as string)
+              ? qrCodeLoadingText[locale as Locale]
               : sharePreviewLinkText[locale as Locale]
           }
         >

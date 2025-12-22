@@ -78,7 +78,7 @@ services:
       - observability-net
 
     healthcheck:
-      test: [ 'CMD-SHELL', 'curl -fs http://localhost:3000/status | grep -q "status\":\"ok"' ]
+      test: ['CMD-SHELL', 'curl -fs http://localhost:3000/status | grep -q "status\":\"ok"']
       interval: 5s
       timeout: 3s
       retries: 3
@@ -184,7 +184,7 @@ services:
   tempo:
     user: '0:0'
     image: grafana/tempo:latest
-    command: [ '-config.file=/etc/tempo/tempo.yml' ]
+    command: ['-config.file=/etc/tempo/tempo.yml']
     volumes:
       - /cluster/dist_storage_insane/service_data/conveniat-dev/tempo:/tmp/tempo
     configs:
