@@ -1,11 +1,39 @@
 import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import type { Permission } from '@/features/payload-cms/payload-types';
+import type { Locale } from '@/types/types';
 import type { RequiredDataFromCollectionSlug } from 'payload';
 
 export const internalPageContent = (
   privatePermission: Permission,
   fileDownload: string,
+  locale: Locale = LOCALE.DE,
 ): RequiredDataFromCollectionSlug<'generic-page'> => {
+  const content = {
+    [LOCALE.DE]: {
+      title: 'Intern',
+      heading: 'Diese Seite ist nur intern zugänglich.',
+      downloadText: 'Unten kannst du ein Bild herunterladen:',
+      metaTitle: 'Intern',
+      slug: 'intern',
+    },
+    [LOCALE.EN]: {
+      title: 'Internal',
+      heading: 'This page is only accessible internally.',
+      downloadText: 'Below you can download an image:',
+      metaTitle: 'Internal',
+      slug: 'internal',
+    },
+    [LOCALE.FR]: {
+      title: 'Interne',
+      heading: "Cette page n'est accessible qu'en interne.",
+      downloadText: 'Ci-dessous vous pouvez télécharger une image:',
+      metaTitle: 'Interne',
+      slug: 'interne',
+    },
+  };
+
+  const t = content[locale];
+
   return {
     internalPageName: 'intern',
     authors: [],
@@ -14,7 +42,7 @@ export const internalPageContent = (
     _status: 'published',
     content: {
       permissions: privatePermission,
-      pageTitle: 'Intern',
+      pageTitle: t.title,
       releaseDate: '2025-01-01T01:00:00.000Z',
       mainContent: [
         {
@@ -32,7 +60,7 @@ export const internalPageContent = (
                       format: 0,
                       mode: 'normal',
                       style: '',
-                      text: 'Diese Seite ist nur intern zugänglich.',
+                      text: t.heading,
                       version: 1,
                     },
                   ],
@@ -49,7 +77,7 @@ export const internalPageContent = (
                       format: 0,
                       mode: 'normal',
                       style: '',
-                      text: 'Unten kannst du ein Bild herunterladen:',
+                      text: t.downloadText,
                       type: 'text',
                       version: 1,
                     },
@@ -77,14 +105,14 @@ export const internalPageContent = (
       ],
     },
     seo: {
-      urlSlug: 'internal',
-      metaTitle: 'Intern',
+      urlSlug: t.slug,
+      metaTitle: t.metaTitle,
       metaDescription: 'conveniat27',
       keywords: 'conveniat27',
     },
     _localized_status: {
       published: true,
     },
-    _locale: LOCALE.DE,
+    _locale: locale,
   };
 };

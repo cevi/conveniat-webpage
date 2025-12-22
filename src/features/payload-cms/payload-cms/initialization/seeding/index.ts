@@ -1,6 +1,10 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { aboutUsContent } from '@/features/payload-cms/payload-cms/initialization/seeding/about-us';
 import {
+  generateBlogArticles,
+  getLocalizedBlogContent,
+} from '@/features/payload-cms/payload-cms/initialization/seeding/blog-articles';
+import {
   createRandomCampAnnotation,
   generateCampSites,
   generatePlaygroundPolygons,
@@ -17,6 +21,10 @@ import {
 } from '@/features/payload-cms/payload-cms/initialization/seeding/permissions';
 import { generateScheduleEntries } from '@/features/payload-cms/payload-cms/initialization/seeding/schedule-entries';
 import { createRandomUser } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-users';
+import {
+  generateTimelineEntries,
+  getLocalizedTimelineContent,
+} from '@/features/payload-cms/payload-cms/initialization/seeding/timeline';
 import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import { fakerDE as faker } from '@faker-js/faker';
 import { revalidateTag } from 'next/cache';
@@ -43,7 +51,6 @@ const checkInternetConnection = async (): Promise<boolean> => {
     return false;
   }
 };
-
 const fetchWithTimeout = async (url: string, timeout = 5000): Promise<Response> => {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
@@ -57,9 +64,21 @@ const fetchWithTimeout = async (url: string, timeout = 5000): Promise<Response> 
   }
 };
 
-const getFallbackImageBuffer = (): Buffer => {
-  // 1x1 pixel transparent GIF
-  return Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
+const getFallbackImageBuffer = async (): Promise<Buffer> => {
+  /*
+   * 360x240 PNG
+   */
+  const svg = `
+  <svg width="360" height="240" viewBox="0 0 360 240" xmlns="http://www.w3.org/2000/svg">
+    <rect width="360" height="240" fill="#cccccc" />
+    <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="monospace" font-size="24" fill="#333333">360x240</text>
+  </svg>
+  `;
+
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+  const { default: sharp } = await import('sharp');
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return
+  return await sharp(Buffer.from(svg)).toFormat('png').toBuffer();
 };
 
 /**
@@ -105,10 +124,101 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
 
   console.log('Seeding: Creating contact form...');
 
+  // Create Contact Form (DE is default)
   const { id: contactFormID } = await payload.create({
     collection: 'forms',
     data: structuredClone(contactForm),
-    context: { disableRevalidation: true },
+    locale: LOCALE.DE,
+    context: { disableRevalidation: true, validate: false },
+  });
+
+  // Localize Contact Form for EN
+  const contactFormEN = structuredClone(contactForm);
+  contactFormEN.title = 'Contact Form';
+  contactFormEN.submitButtonLabel = 'Submit';
+
+  // @ts-ignore
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  contactFormEN.confirmationMessage.root.children[0].children[0].text =
+    'The form was submitted successfully.';
+  if (contactFormEN.emails?.[0]) {
+    contactFormEN.emails[0].subject = 'New Request';
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, @typescript-eslint/prefer-optional-chain
+  if (contactFormEN.sections?.[0]?.formSection.fields) {
+    contactFormEN.sections[0].formSection.sectionTitle = 'Contact Details';
+    const fields = contactFormEN.sections[0].formSection.fields;
+    // Name
+    // @ts-ignore
+    if (fields[0]) fields[0].label = 'My Name';
+    // Email
+    // @ts-ignore
+    if (fields[1]) fields[1].label = 'Email';
+  }
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, @typescript-eslint/prefer-optional-chain
+  if (contactFormEN.sections?.[1]?.formSection.fields) {
+    contactFormEN.sections[1].formSection.sectionTitle = 'Message';
+    const fields = contactFormEN.sections[1].formSection.fields;
+    // Checkbox
+    // @ts-ignore
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    if (fields[0]) fields[0].label.root.children[0].children[0].text = 'I am in.';
+    // Comment
+    // @ts-ignore
+    if (fields[1]) fields[1].label = 'Comment';
+  }
+
+  await payload.update({
+    collection: 'forms',
+    id: contactFormID,
+    locale: LOCALE.EN,
+    data: contactFormEN,
+    context: { disableRevalidation: true, validate: false },
+  });
+
+  // Localize Contact Form for FR
+  const contactFormFR = structuredClone(contactForm);
+  contactFormFR.title = 'Formulaire de contact';
+  contactFormFR.submitButtonLabel = 'Envoyer';
+  // @ts-ignore
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  contactFormFR.confirmationMessage.root.children[0].children[0].text =
+    'Le formulaire a été envoyé avec succès.';
+  if (contactFormFR.emails?.[0]) {
+    contactFormFR.emails[0].subject = 'Nouvelle demande';
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, @typescript-eslint/prefer-optional-chain
+  if (contactFormFR.sections?.[0]?.formSection.fields) {
+    contactFormFR.sections[0].formSection.sectionTitle = 'Détails du contact';
+    const fields = contactFormFR.sections[0].formSection.fields;
+    // Name
+    // @ts-ignore
+    if (fields[0]) fields[0].label = 'Mon Nom';
+    // Email
+    // @ts-ignore
+    if (fields[1]) fields[1].label = 'Email';
+  }
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, @typescript-eslint/prefer-optional-chain
+  if (contactFormFR.sections?.[1]?.formSection.fields) {
+    contactFormFR.sections[1].formSection.sectionTitle = 'Message';
+    const fields = contactFormFR.sections[1].formSection.fields;
+    // Checkbox
+    // @ts-ignore
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    if (fields[0]) fields[0].label.root.children[0].children[0].text = 'Je participe.';
+    // Comment
+    // @ts-ignore
+    if (fields[1]) fields[1].label = 'Commentaire';
+  }
+
+  await payload.update({
+    collection: 'forms',
+    id: contactFormID,
+    locale: LOCALE.FR,
+    data: contactFormFR,
+    context: { disableRevalidation: true, validate: false },
   });
 
   // seed images
@@ -145,7 +255,7 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
         throw new Error('Offline mode');
       }
     } catch {
-      imageBuffer = getFallbackImageBuffer();
+      imageBuffer = await getFallbackImageBuffer();
     }
 
     const alt = faker.lorem.sentence({ min: 5, max: 8 });
@@ -198,7 +308,7 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
       throw new Error('Offline');
     }
   } catch {
-    documentImageBuffer = getFallbackImageBuffer();
+    documentImageBuffer = await getFallbackImageBuffer();
   }
 
   const { id: fileDownloadId } = await payload.create({
@@ -217,11 +327,115 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     context: { disableRevalidation: true },
   });
 
+  // Create Subpages first (Contact, About Us, Internal)
+  const { id: contactPageId } = await payload.create({
+    collection: 'generic-page',
+    locale: LOCALE.DE,
+    data: {
+      ...contactPageContent(publicPermission, contactFormID, LOCALE.DE),
+      _locale: LOCALE.DE,
+    },
+    context: { disableRevalidation: true },
+  });
+
+  await payload.update({
+    collection: 'generic-page',
+    id: contactPageId,
+    locale: LOCALE.EN,
+    data: {
+      ...contactPageContent(publicPermission, contactFormID, LOCALE.EN),
+      _locale: LOCALE.EN,
+    },
+    context: { disableRevalidation: true },
+  });
+
+  await payload.update({
+    collection: 'generic-page',
+    id: contactPageId,
+    locale: LOCALE.FR,
+    data: {
+      ...contactPageContent(publicPermission, contactFormID, LOCALE.FR),
+      _locale: LOCALE.FR,
+    },
+    context: { disableRevalidation: true },
+  });
+
+  const { id: aboutUsPageId } = await payload.create({
+    collection: 'generic-page',
+    locale: LOCALE.DE,
+    data: {
+      ...aboutUsContent(publicPermission, imageIds[0] ?? '', LOCALE.DE),
+      _locale: LOCALE.DE,
+    },
+    context: { disableRevalidation: true },
+  });
+
+  await payload.update({
+    collection: 'generic-page',
+    id: aboutUsPageId,
+    locale: LOCALE.EN,
+    data: {
+      ...aboutUsContent(publicPermission, imageIds[0] ?? '', LOCALE.EN),
+      _locale: LOCALE.EN,
+    },
+    context: { disableRevalidation: true },
+  });
+
+  await payload.update({
+    collection: 'generic-page',
+    id: aboutUsPageId,
+    locale: LOCALE.FR,
+    data: {
+      ...aboutUsContent(publicPermission, imageIds[0] ?? '', LOCALE.FR),
+      _locale: LOCALE.FR,
+    },
+    context: { disableRevalidation: true },
+  });
+
+  const { id: internalPageId } = await payload.create({
+    collection: 'generic-page',
+    locale: LOCALE.DE,
+    data: {
+      ...internalPageContent(internalPermission, fileDownloadId, LOCALE.DE),
+      _locale: LOCALE.DE,
+    },
+    context: { disableRevalidation: true },
+  });
+
+  await payload.update({
+    collection: 'generic-page',
+    id: internalPageId,
+    locale: LOCALE.EN,
+    data: {
+      ...internalPageContent(internalPermission, fileDownloadId, LOCALE.EN),
+      _locale: LOCALE.EN,
+    },
+    context: { disableRevalidation: true },
+  });
+
+  await payload.update({
+    collection: 'generic-page',
+    id: internalPageId,
+    locale: LOCALE.FR,
+    data: {
+      ...internalPageContent(internalPermission, fileDownloadId, LOCALE.FR),
+      _locale: LOCALE.FR,
+    },
+    context: { disableRevalidation: true },
+  });
+
+  // Create Landing Page with links to subpages
+  const subpageIds = {
+    contact: contactPageId,
+    aboutUs: aboutUsPageId,
+    internal: internalPageId,
+  };
+
   const { id: landingPageId } = await payload.create({
     collection: 'generic-page',
     locale: LOCALE.DE,
     data: {
-      ...landingPageContent(publicPermission),
+      ...landingPageContent(publicPermission, LOCALE.DE, subpageIds),
       _locale: LOCALE.DE,
     },
     context: { disableRevalidation: true },
@@ -232,7 +446,7 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     id: landingPageId,
     locale: LOCALE.EN,
     data: {
-      ...landingPageContent(publicPermission),
+      ...landingPageContent(publicPermission, LOCALE.EN, subpageIds),
       _locale: LOCALE.EN,
     },
     context: { disableRevalidation: true },
@@ -243,41 +457,87 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     id: landingPageId,
     locale: LOCALE.FR,
     data: {
-      ...landingPageContent(publicPermission),
+      ...landingPageContent(publicPermission, LOCALE.FR, subpageIds),
       _locale: LOCALE.FR,
     },
     context: { disableRevalidation: true },
   });
 
-  const { id: contactPageId } = await payload.create({
-    collection: 'generic-page',
-    locale: LOCALE.DE,
-    data: {
-      ...contactPageContent(publicPermission, contactFormID),
-      _locale: LOCALE.DE,
-    },
-    context: { disableRevalidation: true },
-  });
+  // seed users
+  console.log('Seeding: Creating users...');
+  const userIds = [];
+  for (let index = 0; index < 10; index++) {
+    userIds.push(await createRandomUser(payload));
+  }
+  console.log('Seeding: Users created.');
 
-  const { id: aboutUsPageId } = await payload.create({
-    collection: 'generic-page',
-    locale: LOCALE.DE,
-    data: {
-      ...aboutUsContent(publicPermission, imageIds[0] ?? ''),
-      _locale: LOCALE.DE,
-    },
-    context: { disableRevalidation: true },
-  });
+  // seed blog articles
+  console.log('Seeding: Creating blog articles...');
+  const blogArticles = generateBlogArticles(publicPermission, userIds[0] ?? '', imageIds[0] ?? '');
+  for (const article of blogArticles) {
+    const { id: articleId } = await payload.create({
+      collection: 'blog',
+      locale: LOCALE.DE,
+      data: article,
+      context: { disableRevalidation: true },
+    });
 
-  const { id: internalPageId } = await payload.create({
-    collection: 'generic-page',
-    locale: LOCALE.DE,
-    data: {
-      ...internalPageContent(internalPermission, fileDownloadId),
-      _locale: LOCALE.DE,
-    },
-    context: { disableRevalidation: true },
-  });
+    const enContent = getLocalizedBlogContent(LOCALE.EN, 'willkommen-beim-cevi', imageIds[0] ?? '');
+    if (Object.keys(enContent).length > 0) {
+      await payload.update({
+        collection: 'blog',
+        id: articleId,
+        locale: LOCALE.EN,
+        data: enContent,
+        context: { disableRevalidation: true },
+      });
+    }
+
+    const frContent = getLocalizedBlogContent(LOCALE.FR, 'willkommen-beim-cevi', imageIds[0] ?? '');
+    if (Object.keys(frContent).length > 0) {
+      await payload.update({
+        collection: 'blog',
+        id: articleId,
+        locale: LOCALE.FR,
+        data: frContent,
+        context: { disableRevalidation: true },
+      });
+    }
+  }
+
+  // seed timeline
+  console.log('Seeding: Creating timeline entries...');
+  const timelineEntries = generateTimelineEntries();
+  for (const entry of timelineEntries) {
+    const { id: entryId } = await payload.create({
+      collection: 'timeline',
+      locale: LOCALE.DE,
+      data: entry,
+      context: { disableRevalidation: true },
+    });
+
+    const enContent = getLocalizedTimelineContent(LOCALE.EN, 'Lagerstart 2027');
+    if (Object.keys(enContent).length > 0) {
+      await payload.update({
+        collection: 'timeline',
+        id: entryId,
+        locale: LOCALE.EN,
+        data: enContent,
+        context: { disableRevalidation: true },
+      });
+    }
+
+    const frContent = getLocalizedTimelineContent(LOCALE.FR, 'Lagerstart 2027');
+    if (Object.keys(frContent).length > 0) {
+      await payload.update({
+        collection: 'timeline',
+        id: entryId,
+        locale: LOCALE.FR,
+        data: frContent,
+        context: { disableRevalidation: true },
+      });
+    }
+  }
 
   const mainMenu = generateMainMenu(contactPageId, aboutUsPageId, internalPageId);
   await payload.updateGlobal({
@@ -325,14 +585,6 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     });
   }
   console.log('Seeding: Camp map creation done.');
-
-  // seed users
-  console.log('Seeding: Creating users...');
-  const userIds = [];
-  for (let index = 0; index < 10; index++) {
-    userIds.push(await createRandomUser(payload));
-  }
-  console.log('Seeding: Users created.');
 
   // schedule entries
   console.log('Seeding: Creating schedule entries...');

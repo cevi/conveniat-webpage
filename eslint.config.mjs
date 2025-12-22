@@ -276,6 +276,9 @@ const config = defineConfig([
 
     // code coverage
     'coverage/**',
+
+    // observability tools
+    'observability/**',
   ]),
 ]);
 

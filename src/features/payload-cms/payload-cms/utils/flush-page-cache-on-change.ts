@@ -33,11 +33,10 @@ export const flushPageCacheOnChangeGlobal: Partial<GlobalConfig> = {
           try {
             revalidateTag('payload', 'max');
           } catch {
-            console.warn('Revalidate failed (non-critical)');
+            // do nothing
           }
         });
       },
     ],
   },
 };
-
