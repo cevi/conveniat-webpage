@@ -135,7 +135,7 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
     event.preventDefault();
     event.stopPropagation();
 
-    if (Boolean(docConfig?.versions.drafts)) {
+    if (Boolean(docConfig?.versions?.drafts)) {
       void saveDraft();
     }
   });
@@ -149,11 +149,10 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
         publishSpecificLocale: _locale,
       });
 
-      const action = `${serverURL}${api}${
-        globalSlug === undefined
+      const action = `${serverURL}${api}${globalSlug === undefined
           ? `/${collectionSlug}/${id === undefined ? '' : `/${id}`}`
           : `/globals/${globalSlug}`
-      }${parameters === '' ? '' : '?' + parameters}`;
+        }${parameters === '' ? '' : '?' + parameters}`;
 
       void submit({
         action,
@@ -187,11 +186,10 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
         publishSpecificLocale: _locale,
       });
 
-      const action = `${serverURL}${api}${
-        globalSlug === undefined
+      const action = `${serverURL}${api}${globalSlug === undefined
           ? `/${collectionSlug}/${id === undefined ? '' : `/${id}`}`
           : `/globals/${globalSlug}`
-      }${parameters === '' ? '' : '?' + parameters}`;
+        }${parameters === '' ? '' : '?' + parameters}`;
 
       void submit({
         action,

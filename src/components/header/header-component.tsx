@@ -26,7 +26,11 @@ export const HeaderComponent: React.FC<{
 
   return (
     <header className="fixed top-0 left-0 z-50 h-[60px] w-full">
-      {draft.isEnabled && <PreviewModeBannerServerComponent />}
+      {draft.isEnabled && (
+        <React.Suspense fallback={undefined}>
+          <PreviewModeBannerServerComponent />
+        </React.Suspense>
+      )}
 
       <div className="mb-[32px] border-b-2 border-gray-200 bg-white">
         <div className="text-conveniat-green relative mx-auto h-[60px] w-full max-w-2xl xl:ml-4">

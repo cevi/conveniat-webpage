@@ -39,6 +39,15 @@ export const sdk = new NodeSDK({
     getNodeAutoInstrumentations({
       '@opentelemetry/instrumentation-mongoose': { enabled: true },
       '@opentelemetry/instrumentation-http': { enabled: false },
+      '@opentelemetry/instrumentation-mongodb': {
+        dbStatementSerializer: (command: Record<string, unknown>) => {
+          try {
+            return JSON.stringify(command);
+          } catch {
+            return 'Statement serialization failed';
+          }
+        },
+      },
     }),
     // new MongooseInstrumentation({ enabled: true }),
     new PrismaInstrumentation({ enabled: true }),

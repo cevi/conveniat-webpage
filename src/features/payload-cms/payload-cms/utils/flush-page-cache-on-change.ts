@@ -1,12 +1,21 @@
 import { revalidateTag } from 'next/cache';
-import type { CollectionConfig, GlobalConfig } from 'payload';
+import type { CollectionConfig, GlobalConfig, PayloadRequest } from 'payload';
 
 export const flushPageCacheOnChange: Partial<CollectionConfig> = {
   hooks: {
     afterChange: [
-      (): void => {
+      ({ req }: { req: PayloadRequest }): void => {
+        if (req.context['disableRevalidation']) {
+          return;
+        }
         console.log(`Flush all pages due to Generic Page change`);
-        revalidateTag('payload', 'max');
+        setTimeout(() => {
+          try {
+            revalidateTag('payload', 'max');
+          } catch {
+            console.warn('Revalidate failed (non-critical)');
+          }
+        });
       },
     ],
   },
@@ -15,10 +24,20 @@ export const flushPageCacheOnChange: Partial<CollectionConfig> = {
 export const flushPageCacheOnChangeGlobal: Partial<GlobalConfig> = {
   hooks: {
     afterChange: [
-      (): void => {
+      ({ req }: { req: PayloadRequest }): void => {
+        if (req.context['disableRevalidation']) {
+          return;
+        }
         console.log(`Flush all pages due to Generic Page change`);
-        revalidateTag('payload', 'max');
+        setTimeout(() => {
+          try {
+            revalidateTag('payload', 'max');
+          } catch {
+            console.warn('Revalidate failed (non-critical)');
+          }
+        });
       },
     ],
   },
 };
+

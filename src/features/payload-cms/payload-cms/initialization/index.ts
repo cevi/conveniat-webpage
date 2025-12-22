@@ -15,7 +15,9 @@ export const onPayloadInit = async (payload: Payload): Promise<void> => {
     console.log(environmentVariables);
   }
 
-  await seedDatabase(payload).catch(console.error);
+  await seedDatabase(payload)
+    .then(() => console.log('Seeding complete.'))
+    .catch(console.error);
 };
 
 export const deleteEverything = async (payload: Payload): Promise<void> => {
