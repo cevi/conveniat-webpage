@@ -141,7 +141,8 @@ const CMSPage: React.FC<{
   const isDraftSession = draft.isEnabled && previewModeAllowed;
   const previewParameter = searchParameters['preview'];
   const isPreviewDisabled =
-    previewParameter === 'false' || (Array.isArray(previewParameter) && previewParameter[0] === 'false');
+    previewParameter === 'false' ||
+    (Array.isArray(previewParameter) && previewParameter[0] === 'false');
 
   const renderInPreviewMode = isDraftSession && !isPreviewDisabled;
 

@@ -66,12 +66,7 @@ const renderPermittedBlog = (locale: Locale, blog: Blog): React.JSX.Element => (
 const renderNoResults = (locale: Locale): React.JSX.Element => (
   <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-200 bg-gray-50 p-8 text-center">
     <div className="mb-4 rounded-full bg-gray-200 p-4">
-      <svg
-        className="h-8 w-8 text-gray-400"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-      >
+      <svg className="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path
           strokeLinecap="round"
           strokeLinejoin="round"
