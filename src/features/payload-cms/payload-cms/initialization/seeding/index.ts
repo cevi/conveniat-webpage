@@ -545,7 +545,6 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     locale: LOCALE.DE,
     data: {
       mainMenu: mainMenu,
-      _disable_unpublishing: true,
       _locale: LOCALE.DE,
       _localized_status: { published: true },
     },

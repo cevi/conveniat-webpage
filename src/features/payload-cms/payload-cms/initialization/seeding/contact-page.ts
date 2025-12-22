@@ -38,7 +38,6 @@ export const contactPageContent = (
     internalPageName: 'contact',
     authors: [],
     internalStatus: 'approved',
-    _disable_unpublishing: true,
     _status: 'published',
     content: {
       permissions: publicPermission,

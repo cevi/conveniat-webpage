@@ -44,7 +44,6 @@ export const aboutUsContent = (
     internalPageName: 'about-us',
     authors: [],
     internalStatus: 'approved',
-    _disable_unpublishing: true,
     _status: 'published',
     content: {
       permissions: publicPermission,

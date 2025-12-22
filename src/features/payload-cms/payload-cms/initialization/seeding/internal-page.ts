@@ -38,7 +38,6 @@ export const internalPageContent = (
     internalPageName: 'intern',
     authors: [],
     internalStatus: 'approved',
-    _disable_unpublishing: true,
     _status: 'published',
     content: {
       permissions: privatePermission,
