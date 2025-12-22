@@ -60,3 +60,4 @@ src/lib/prisma
 # pre build code
 src/cache-handlers/**/*.js
 src/cache-handlers/**/*.cjs
+.eslintcache
