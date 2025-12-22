@@ -55,6 +55,12 @@ const searchMoreButton: StaticTranslationString = {
   fr: 'Plus',
 };
 
+const searchNoResultsSuggestion: StaticTranslationString = {
+  de: 'Versuche es mit einem anderen Suchbegriff.',
+  en: 'Try another search term.',
+  fr: 'Essayez avec un autre terme de recherche.',
+};
+
 const renderPermittedPage = (locale: Locale, page: GenericPage): React.JSX.Element => (
   <PageDisplay page={page} key={page.seo.urlSlug} locale={locale} />
 );
@@ -76,13 +82,7 @@ const renderNoResults = (locale: Locale): React.JSX.Element => (
       </svg>
     </div>
     <h3 className="text-lg font-semibold text-gray-700">{searchResultNoResults[locale]}</h3>
-    <p className="mt-2 text-gray-500">
-      {locale === 'de'
-        ? 'Versuche es mit einem anderen Suchbegriff.'
-        : locale === 'fr'
-          ? 'Essayez avec un autre terme de recherche.'
-          : 'Try another search term.'}
-    </p>
+    <p className="mt-2 text-gray-500">{searchNoResultsSuggestion[locale]}</p>
   </div>
 );
 

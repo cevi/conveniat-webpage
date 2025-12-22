@@ -1,7 +1,7 @@
 import { SearchSkeleton } from '@/features/payload-cms/components/search/search-skeleton';
 import { headers } from 'next/headers';
 
-const GenericSkeleton = () => (
+const GenericSkeleton = (): React.JSX.Element => (
   <div className="flex min-h-[400px] w-full animate-pulse items-center justify-center">
     <div className="flex w-full max-w-2xl flex-col items-center gap-6 px-8">
       <div className="h-12 w-1/2 rounded bg-gray-200" />
@@ -20,7 +20,7 @@ const GenericSkeleton = () => (
  * Global loading component for dynamic routes.
  * Displays a skeleton screen matched to the route.
  */
-const Loading = async () => {
+const Loading = async (): Promise<React.JSX.Element> => {
   const headersList = await headers();
   const pathname = headersList.get('x-pathname') || '';
 

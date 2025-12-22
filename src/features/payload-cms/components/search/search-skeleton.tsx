@@ -1,6 +1,6 @@
 import React from 'react';
 
-const CardSkeleton = ({ hasImage = false }) => (
+const CardSkeleton = ({ hasImage = false }): React.JSX.Element => (
   <div className="flex basis-1 flex-col rounded-md border-2 border-gray-200 bg-white p-6 lg:max-w-96">
     <div className="mb-2 h-3 w-1/3 rounded bg-gray-50" /> {/* Date */}
     <div className="mb-6 h-5 w-full rounded bg-gray-100" /> {/* Headline */}
