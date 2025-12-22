@@ -5,5 +5,5 @@
     "moduleResolution": "node",
     "declaration": false
   },
-  "include": ["src/cache-handlers/default.cts"]
+  "include": ["src/cache-handlers/default.cts", "src/cache-handlers/redis.cts"]
 }
