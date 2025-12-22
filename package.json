@@ -16,10 +16,10 @@
     "devsafe": "rm -rf .next/* && pnpm prebuild && cross-env NODE_OPTIONS=--no-deprecation next dev",
     "generate:importmap": "cross-env NODE_OPTIONS=--no-deprecation payload generate:importmap",
     "generate:types": "cross-env NODE_OPTIONS=--no-deprecation payload generate:types",
-    "lint": "(tsc --noemit --project ./tsconfig.json); eslint -c eslint.config.mjs --fix --quiet .",
+    "lint": "(tsc --noemit --project ./tsconfig.json); eslint -c eslint.config.mjs --fix --quiet --cache .",
     "lint:warnings": "(tsc --noemit --project ./tsconfig.json); eslint -c eslint.config.mjs  --fix .",
     "lint:check": "(tsc --noemit --project ./tsconfig.json); eslint -c eslint.config.mjs .",
-    "prettier": "prettier --config .prettierrc.json --write .",
+    "prettier": "prettier --config-path .prettierrc.json --write --cache --experimental-cli .",
     "prettier:check": "prettier  --config .prettierrc.json --check .",
     "start": "cross-env NODE_OPTIONS=--no-deprecation next start",
     "test": "jest"
