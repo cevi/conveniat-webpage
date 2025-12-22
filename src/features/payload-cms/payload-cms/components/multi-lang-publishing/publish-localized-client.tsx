@@ -101,9 +101,13 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
     serverURL,
   } = config;
 
+  const isCreating = id === undefined;
+
   const hasNewerVersions = unpublishedVersionCount > 0;
   const canPublish =
-    hasPublishPermission === true && (modified || hasNewerVersions || hasPublishedDoc);
+    hasPublishPermission === true &&
+    (modified || hasNewerVersions || hasPublishedDoc) &&
+    !isCreating;
   const operation = useOperation();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -265,6 +269,12 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
     fr: 'Cette page ne peut pas être dépubliée. Apportez des modifications pour la republier.',
   };
 
+  const creatingTooltip: StaticTranslationString = {
+    en: 'Saving draft... please wait.',
+    de: 'Entwurf wird gespeichert... bitte warten.',
+    fr: 'Enregistrement du brouillon... veuillez patienter.',
+  };
+
   return (
     <div className="flex gap-2">
       <ConfirmationModal
@@ -307,16 +317,16 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
           <FormSubmit
             className={publishClasses()}
             buttonId="action-save"
-            disabled={isLockedPublished || (!canPublish && isCurrentLocalePublished)}
+            disabled={isLockedPublished || (!canPublish && isCurrentLocalePublished) || isCreating}
             onClick={() => publishSpecificLocale()}
             size="medium"
             type="button"
           >
             {publishActionAstring[code]} {languageNames[code]}
           </FormSubmit>
-          {isLockedPublished && (
+          {(isLockedPublished || isCreating) && (
             <span className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 w-max max-w-xs -translate-x-1/2 transform rounded-md bg-gray-800 px-3 py-2 text-sm text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-              {lockedPublishedTooltip[code]}
+              {isCreating ? creatingTooltip[code] : lockedPublishedTooltip[code]}
             </span>
           )}
         </div>
