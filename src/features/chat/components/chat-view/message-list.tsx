@@ -6,8 +6,9 @@ import { MessageEventType } from '@/lib/prisma/client';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { Loader2 } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 const loadingMessagesText: StaticTranslationString = {
   de: 'Nachrichten werden geladen...',
@@ -31,26 +32,78 @@ export const MessageList: React.FC = () => {
   const { data: currentUser } = trpc.chat.user.useQuery({});
   const messagesEndReference = useRef<HTMLDivElement>(null);
 
-  const messages = chatDetails?.messages ?? [];
-  // TODO: remove this, as the messages are already sorted in the backend
-  const sortedMessages = [...messages].sort(
-    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+  // Fetch messages with infinite scrolling
+  const {
+    data: infiniteData,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = trpc.chat.infiniteMessages.useInfiniteQuery(
+    { chatId, limit: 25 },
+    {
+      getNextPageParam: (lastPage) => lastPage.nextCursor,
+      initialCursor: undefined, // Start from the beginning (newest)
+      // Refetch when window is refocused or connection restored
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
+      // Refetch periodically to get new messages
+      refetchInterval: 5000,
+    },
   );
+
+  // Combine messages from all pages and reverse them (newest at bottom)
+  const sortedMessages = React.useMemo(() => {
+    if (!infiniteData) return [];
+    return infiniteData.pages.flatMap((page) => page.items).reverse();
+  }, [infiniteData]);
 
   // Track if this is the initial load and if user is at bottom
   const hasScrolledReference = useRef(false);
   const isAtBottomReference = useRef(true);
   const scrollContainerReference = useRef<HTMLDivElement>(null);
 
-  // Track scroll position to know if user is at bottom
+  // Track scroll position to know if user is at bottom and handle infinite scroll
   const handleScroll = (): void => {
     const container = scrollContainerReference.current;
     if (container) {
       const threshold = 100; // pixels from bottom to consider "at bottom"
       isAtBottomReference.current =
         container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
+
+      // Check if we need to load more messages
+      if (container.scrollTop === 0 && hasNextPage && !isFetchingNextPage) {
+        fetchNextPage().catch(console.error);
+      }
     }
   };
+
+  const previousScrollHeightReference = useRef<number>(0);
+  const previousMessageCountReference = useRef<number>(0);
+
+  // Adjust scroll position after loading older messages to maintain visual continuity
+  useLayoutEffect(() => {
+    const container = scrollContainerReference.current;
+    if (!container) return;
+
+    const currentMessageCount = sortedMessages.length;
+
+    // If messages were added at the top (older messages loaded), adjust scroll position
+    // to prevent the view from jumping.
+    if (
+      previousScrollHeightReference.current > 0 &&
+      currentMessageCount > previousMessageCountReference.current
+    ) {
+      const newScrollHeight = container.scrollHeight;
+      const heightDifference = newScrollHeight - previousScrollHeightReference.current;
+
+      if (heightDifference > 0) {
+        container.scrollTop += heightDifference;
+      }
+    }
+
+    previousScrollHeightReference.current = container.scrollHeight;
+    previousMessageCountReference.current = currentMessageCount;
+  }, [sortedMessages, isFetchingNextPage]);
 
   useEffect(() => {
     // Scroll to bottom on initial load OR when user is at bottom and new messages arrive
@@ -116,6 +169,11 @@ export const MessageList: React.FC = () => {
     >
       <div className="flex-1" />
       <div className="space-y-6 px-2 py-4">
+        {isFetchingNextPage && (
+          <div className="flex w-full justify-center py-2">
+            <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+          </div>
+        )}
         {Object.entries(messagesByDate).map(([date, messagesForDate]) => (
           <div key={date}>
             <div className="my-6 flex justify-center">
