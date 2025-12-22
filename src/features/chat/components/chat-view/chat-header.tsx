@@ -74,8 +74,10 @@ export const ChatHeader: React.FC = () => {
         </div>
 
         <div className="flex items-center">
-          <Link href={`/app/chat/${chatId}/details`} className="hover:bg-gray-100">
-            <Info className="h-5 w-5 text-gray-700" />
+          <Link href={`/app/chat/${chatId}/details`}>
+            <Button variant="ghost" size="icon" className="hover:bg-gray-100">
+              <Info className="h-5 w-5 text-gray-700" />
+            </Button>
           </Link>
         </div>
       </div>
