@@ -41,6 +41,7 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
         'overscroll-y-none': isInAppDesign,
       })}
       lang={locale}
+      suppressHydrationWarning
     >
       <body
         className={cn('flex h-dvh w-dvw flex-col overflow-x-hidden bg-[#f8fafc]', {
