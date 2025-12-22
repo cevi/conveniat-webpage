@@ -7,7 +7,7 @@ import { hasPermissions } from '@/utils/has-permissions';
 import config from '@payload-config';
 import type { Metadata } from 'next';
 import { cacheLife, cacheTag } from 'next/cache';
-import { notFound, redirect } from 'next/navigation';
+import { forbidden, notFound, redirect } from 'next/navigation';
 import type { PaginatedDocs } from 'payload';
 import { getPayload } from 'payload';
 
@@ -18,11 +18,12 @@ const getArticlesInPrimaryLanguageCached = async (
 ): Promise<PaginatedDocs<GenericPage>> => {
   'use cache';
   cacheLife('hours');
-  cacheTag('generic-page');
+  cacheTag('generic-page', 'payload');
 
   const payload = await getPayload({ config });
 
   return payload.find({
+    depth: 1,
     collection: 'generic-page',
     pagination: false,
     locale: locale,
@@ -45,11 +46,12 @@ const getArticlesCached = async (
 ): Promise<PaginatedDocs<GenericPage>> => {
   'use cache';
   cacheLife('hours');
-  cacheTag('generic-page');
+  cacheTag('generic-page', 'payload');
 
   const payload = await getPayload({ config });
 
   return payload.find({
+    depth: 1,
     collection: 'generic-page',
     pagination: false,
     draft: renderInPreviewMode,
@@ -71,12 +73,13 @@ const getFallbackArticleCached = async (
 ): Promise<GenericPage> => {
   'use cache';
   cacheLife('hours');
-  cacheTag('generic-page');
+  cacheTag('generic-page', 'payload');
 
   const payload = await getPayload({ config });
 
   return payload.findByID({
     collection: 'generic-page',
+    depth: 1,
     id,
     locale,
     draft: renderInPreviewMode,
@@ -113,8 +116,8 @@ const GenericPage: LocalizedCollectionComponent = async ({
     ) {
       return <GenericPageConverter page={articleInPrimaryLanguage} locale={locale} />;
     } else {
-      console.log('Redirecting to published locale version');
-      notFound();
+      console.log('Access denied: Redirecting to 403');
+      forbidden();
     }
   }
 

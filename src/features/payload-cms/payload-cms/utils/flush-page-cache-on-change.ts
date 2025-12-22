@@ -12,6 +12,7 @@ export const flushPageCacheOnChange: Partial<CollectionConfig> = {
         setTimeout(() => {
           try {
             revalidateTag('payload', 'max');
+            revalidateTag('generic-page', 'max');
           } catch {
             console.warn('Revalidate failed (non-critical)');
           }
@@ -32,6 +33,7 @@ export const flushPageCacheOnChangeGlobal: Partial<GlobalConfig> = {
         setTimeout(() => {
           try {
             revalidateTag('payload', 'max');
+            revalidateTag('generic-page', 'max');
           } catch {
             // do nothing
           }
