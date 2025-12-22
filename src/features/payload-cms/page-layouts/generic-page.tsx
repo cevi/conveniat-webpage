@@ -64,12 +64,30 @@ const getArticlesCached = async (
   });
 };
 
+const getFallbackArticleCached = async (
+  id: string,
+  locale: Locale,
+  renderInPreviewMode: boolean,
+): Promise<GenericPage> => {
+  'use cache';
+  cacheLife('hours');
+  cacheTag('generic-page');
+
+  const payload = await getPayload({ config });
+
+  return payload.findByID({
+    collection: 'generic-page',
+    id,
+    locale,
+    draft: renderInPreviewMode,
+  });
+};
+
 const GenericPage: LocalizedCollectionComponent = async ({
   slugs,
   locale,
   renderInPreviewMode,
 }) => {
-  const payload = await getPayload({ config });
   const slug = slugs.join('/');
 
   if (renderInPreviewMode) {
@@ -141,17 +159,8 @@ const GenericPage: LocalizedCollectionComponent = async ({
   }
 
   if (fallbackDocumentId === undefined) notFound();
-  const article = await payload.findByID({
-    collection: 'generic-page',
-    id: fallbackDocumentId,
-    locale: locale,
-    draft: renderInPreviewMode,
-  });
 
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (article === null) {
-    notFound();
-  }
+  const article = await getFallbackArticleCached(fallbackDocumentId, locale, renderInPreviewMode);
 
   // check if published in target locale
   if (article._localized_status.published !== true) {
