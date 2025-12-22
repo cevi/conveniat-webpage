@@ -6,6 +6,30 @@ import type { JWT } from 'next-auth/jwt';
 import type { BasePayload } from 'payload';
 import { getPayload } from 'payload';
 
+// Extend the JWT type to include our custom fields
+declare module 'next-auth/jwt' {
+  interface JWT {
+    access_token?: string | undefined;
+    refresh_token?: string | undefined;
+    expires_at?: number | undefined;
+    uuid?: string;
+    group_ids?: number[];
+    nickname?: string;
+    email?: string;
+    name?: string;
+    error?: string;
+  }
+}
+
+interface TokenResponse {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+  refresh_token?: string;
+  scope?: string;
+  error?: string;
+}
+
 const HITOBITO_BASE_URL = environmentVariables.HITOBITO_BASE_URL;
 const HITOBITO_FORWARD_URL = environmentVariables.HITOBITO_FORWARD_URL;
 const CEVI_DB_CLIENT_ID = environmentVariables.CEVI_DB_CLIENT_ID;
@@ -65,6 +89,86 @@ async function saveAndFetchUserFromPayload(
       nickname: userProfile.nickname,
     },
   });
+}
+
+/**
+ * Refreshes the access token using the refresh token.
+ * returns the new token with updated expiration and access token
+ */
+async function refreshAccessToken(token: JWT): Promise<JWT> {
+  try {
+    const url = `${HITOBITO_BASE_URL}/oauth/token`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        // @ts-ignore
+        client_id: CEVI_DB_CLIENT_ID,
+        // @ts-ignore
+        client_secret: CEVI_DB_CLIENT_SECRET,
+        grant_type: 'refresh_token',
+        refresh_token: token.refresh_token ?? '',
+      }),
+    });
+
+    const refreshedTokens = (await response.json()) as TokenResponse;
+
+    if (!response.ok) {
+      throw refreshedTokens;
+    }
+
+    // After refreshing the token, we re-fetch the user profile to get updated groups
+    const profileUrl = `${HITOBITO_BASE_URL}/oauth/profile`;
+    const profileResponse = await fetch(profileUrl, {
+      headers: {
+        Authorization: `Bearer ${refreshedTokens.access_token}`,
+        'X-Scope': 'with_roles',
+      },
+    });
+
+    if (profileResponse.ok) {
+      const profile = (await profileResponse.json()) as HitobitoProfile;
+
+      // Update the user in Payload CMS with the new groups
+      // async loading of payload configuration (to avoid circular dependency)
+      const config = await import('@payload-config');
+      // @ts-ignore
+      const payload = await getPayload({ config });
+      const payloadCMSUser = await saveAndFetchUserFromPayload(payload, profile);
+
+      return {
+        ...token,
+        access_token: refreshedTokens.access_token,
+        // Fall back to old refresh token if new one is not returned
+        refresh_token: refreshedTokens.refresh_token ?? token.refresh_token,
+        expires_at: Math.floor(Date.now() / 1000) + refreshedTokens.expires_in,
+        // Update persisted user data
+        uuid: payloadCMSUser.id,
+        group_ids: profile.roles.map((role) => role.group_id),
+        email: profile.email,
+        name: profile.first_name + ' ' + profile.last_name,
+        nickname: profile.nickname,
+      };
+    } else {
+      console.error('Failed to refetch user profile after token refresh');
+      // If profile fetch fails, we still return the refreshed token but keep old user data (or maybe we should error?)
+      // For now, let's just update the tokens
+      return {
+        ...token,
+        access_token: refreshedTokens.access_token,
+        refresh_token: refreshedTokens.refresh_token ?? token.refresh_token,
+        expires_at: Math.floor(Date.now() / 1000) + refreshedTokens.expires_in,
+      };
+    }
+  } catch (error) {
+    console.error('Error refreshing access token', error);
+    return {
+      ...token,
+      error: 'RefreshAccessTokenError',
+    };
+  }
 }
 
 export const authOptions: NextAuthConfig = {
@@ -135,26 +239,42 @@ export const authOptions: NextAuthConfig = {
     },
 
     // This callback is called whenever a JSON Web Token is created (i.e. at sign in) or updated (i.e whenever a session is accessed in the client).
-    async jwt({ token, profile: _profile }): Promise<JWT> {
-      if (!_profile) return token;
-      const profile = _profile as unknown as HitobitoProfile;
+    async jwt({ token, account, profile: _profile }): Promise<JWT> {
+      // Initial sign in
+      if (account && _profile) {
+        const profile = _profile as unknown as HitobitoProfile;
 
-      // async loading of payload configuration (to avoid circular dependency)
-      const config = await import('@payload-config');
-      // @ts-ignore
-      const payload = await getPayload({ config });
-      const payloadCMSUser = await saveAndFetchUserFromPayload(payload, profile);
+        // async loading of payload configuration (to avoid circular dependency)
+        const config = await import('@payload-config');
+        // @ts-ignore
+        const payload = await getPayload({ config });
+        const payloadCMSUser = await saveAndFetchUserFromPayload(payload, profile);
 
-      // @ts-ignore
-      token.uuid = payloadCMSUser.id; // the id of the user in the CeviDB
+        return {
+          ...token,
+          // @ts-ignore
+          access_token: account.access_token,
+          // @ts-ignore
+          refresh_token: account.refresh_token,
+          // @ts-ignore
+          expires_at: (account.expires_at as number | undefined) ?? Math.floor(Date.now() / 1000) + 3600,
+          uuid: payloadCMSUser.id, // the id of the user in the CeviDB
+          group_ids: profile.roles.map((role) => role.group_id),
+          email: profile.email,
+          name: profile.first_name + ' ' + profile.last_name,
+          nickname: profile.nickname,
+        };
+      }
 
-      // @ts-ignore
-      token.group_ids = profile.roles.map((role) => role.group_id);
+      // Return previous token if the access token has not expired yet
+      // buffer time of 10s
+      const expiresAt = token.expires_at as number;
+      if (Date.now() < expiresAt * 1000 - 10_000) {
+        return token;
+      }
 
-      token.email = profile.email;
-      token.name = profile.first_name + ' ' + profile.last_name;
-      token['nickname'] = profile.nickname;
-      return token;
+      // Access token has expired, try to update it
+      return refreshAccessToken(token);
     },
   },
 
