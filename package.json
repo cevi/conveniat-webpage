@@ -135,6 +135,7 @@
     "@types/web-push": "^3.6.4",
     "baseline-browser-mapping": "^2.9.11",
     "dotenv": "^17.2.3",
+    "esbuild-wasm": "^0.27.2",
     "eslint": "^9.39.2",
     "eslint-config-next": "16.0.1",
     "eslint-config-prettier": "^10.1.8",
