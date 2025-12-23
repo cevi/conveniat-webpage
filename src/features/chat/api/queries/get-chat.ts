@@ -30,6 +30,7 @@ export const getChat = trpcBaseProcedure
           },
         },
         chatMemberships: { include: { user: true } },
+        capabilities: true,
       },
     });
 
@@ -79,6 +80,10 @@ export const getChat = trpcBaseProcedure
         name: membership.user.name,
         isOnline: membership.user.lastSeen > new Date(Date.now() - 30 * 1000),
         chatPermission: membership.chatPermission,
+      })),
+      capabilities: chat.capabilities.map((cap) => ({
+        capability: cap.capability,
+        isEnabled: cap.isEnabled,
       })),
     };
   });

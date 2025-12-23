@@ -1,14 +1,15 @@
 // hooks/use-message-input-logic.ts
 import { Button } from '@/components/ui/buttons/button';
-import { useMessageInput } from '@/features/chat/components/chat-view/chat-textarea-input/hooks/use-message-input';
+import { useMessageInput } from '@/features/chat/components/chat-view/chat-text-area-input/hooks/use-message-input';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
+import { useImageUpload } from '@/features/chat/hooks/use-image-upload';
 import { useMessageSend } from '@/features/chat/hooks/use-message-send';
-import { ChatMembershipPermission } from '@/lib/prisma';
+import { ChatMembershipPermission } from '@/lib/prisma/client';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { Send } from 'lucide-react';
+import { Paperclip, Send } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import React from 'react';
 
@@ -44,15 +45,35 @@ const splitAndSendText: StaticTranslationString = {
   fr: 'Diviser et envoyer',
 };
 
-export const ChatTextareaInput: React.FC = () => {
+const messagingDisabledText: StaticTranslationString = {
+  de: 'Nachrichten sind derzeit deaktiviert.',
+  en: 'Messaging is currently disabled.',
+  fr: 'La messagerie est actuellement désactivée.',
+};
+
+const chatLockedText: StaticTranslationString = {
+  de: 'Dieser Chat wurde geschlossen. Es können keine Nachrichten mehr gesendet werden.',
+  en: 'This chat has been locked. No further messages can be sent.',
+  fr: 'Ce chat a été verrouillé. Plus aucun message ne peut être envoyé.',
+};
+
+export const ChatTextAreaInput: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
+  const fileInputReference = React.useRef<HTMLInputElement>(null);
 
   const { data: currentUser } = trpc.chat.user.useQuery({});
   const chatId = useChatId();
   const { data: chatDetails } = useChatDetail(chatId);
-  const { textareaProps, handleSendMessage, isSendButtonDisabled, messageLength } =
-    useMessageInput();
+
   const sendMessageMutation = useMessageSend();
+
+  const {
+    textareaProps,
+    handleSendMessage,
+    isSendButtonDisabled,
+    messageLength,
+    isGlobalMessagingDisabled,
+  } = useMessageInput();
 
   const isGuest =
     chatDetails?.participants.some(
@@ -60,6 +81,38 @@ export const ChatTextareaInput: React.FC = () => {
         participant.id === currentUser &&
         participant.chatPermission === ChatMembershipPermission.GUEST,
     ) ?? false;
+
+  const canUploadPictures =
+    chatDetails?.capabilities.some(
+      (capability) => capability.capability === 'PICTURE_UPLOAD' && capability.isEnabled,
+    ) ?? false;
+
+  const canSendMessagesInChat =
+    chatDetails?.capabilities.find((c) => c.capability === 'CAN_SEND_MESSAGES')?.isEnabled ?? true;
+
+  const { uploadImage } = useImageUpload({
+    chatId,
+    onError: (error) => {
+      // TODO: Show toast
+      console.error('Failed to upload image:', error);
+    },
+  });
+
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      await uploadImage(file);
+    } catch {
+      // Error handled in hook
+    }
+
+    // Reset input
+    if (fileInputReference.current) {
+      fileInputReference.current.value = '';
+    }
+  };
 
   const isTooLong = messageLength > MAX_MESSAGE_LENGTH;
   const isNearLimit = messageLength > MAX_MESSAGE_LENGTH * 0.8;
@@ -123,6 +176,21 @@ export const ChatTextareaInput: React.FC = () => {
     return <div className="text-gray-500">{chatIsArchivedMessage[locale]}</div>;
   }
 
+  if (isGlobalMessagingDisabled) {
+    return (
+      <div className="flex w-full items-center justify-center rounded-lg bg-gray-100 p-4 text-center text-sm text-gray-500">
+        {messagingDisabledText[locale]}
+      </div>
+    );
+  }
+
+  if (!canSendMessagesInChat) {
+    return (
+      <div className="flex w-full items-center justify-center rounded-lg border border-red-100 bg-red-50 p-4 text-center text-sm text-red-600">
+        {chatLockedText[locale]}
+      </div>
+    );
+  }
   return (
     <div className="flex flex-col gap-1">
       {/* Character count warning */}
@@ -136,6 +204,27 @@ export const ChatTextareaInput: React.FC = () => {
       )}
 
       <div className="flex items-end gap-2">
+        {canUploadPictures && (
+          <>
+            <input
+              type="file"
+              ref={fileInputReference}
+              className="hidden"
+              accept="image/*"
+              onChange={(event) => {
+                void handleFileSelect(event);
+              }}
+            />
+            <Button
+              onClick={() => fileInputReference.current?.click()}
+              size="icon"
+              variant="outline"
+              className="h-10 w-10 shrink-0 rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+            >
+              <Paperclip className="h-5 w-5" />
+            </Button>
+          </>
+        )}
         {/* Input box */}
         <div className="flex-1 rounded-lg border border-gray-200 bg-white shadow-sm">
           <textarea

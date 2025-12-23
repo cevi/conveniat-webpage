@@ -62,6 +62,7 @@ export interface Config {
     permissions: Permission;
     'push-notification-subscriptions': PushNotificationSubscription;
     timelineCategory: TimelineCategory;
+    'chat-images': ChatImage;
     forms: Form;
     'form-submissions': FormSubmission;
     'search-collection': SearchCollection;
@@ -92,6 +93,7 @@ export interface Config {
     permissions: PermissionsSelect<false> | PermissionsSelect<true>;
     'push-notification-subscriptions': PushNotificationSubscriptionsSelect<false> | PushNotificationSubscriptionsSelect<true>;
     timelineCategory: TimelineCategorySelect<false> | TimelineCategorySelect<true>;
+    'chat-images': ChatImagesSelect<false> | ChatImagesSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     'search-collection': SearchCollectionSelect<false> | SearchCollectionSelect<true>;
@@ -111,6 +113,9 @@ export interface Config {
     SEO: SEO;
     PWA: PWA;
     alert_settings: AlertSetting;
+    'app-feature-flags': AppFeatureFlag;
+    'support-chat-management': SupportChatManagement;
+    'alert-management': AlertManagement;
   };
   globalsSelect: {
     header: HeaderSelect<false> | HeaderSelect<true>;
@@ -118,6 +123,9 @@ export interface Config {
     SEO: SEOSelect<false> | SEOSelect<true>;
     PWA: PWASelect<false> | PWASelect<true>;
     alert_settings: AlertSettingsSelect<false> | AlertSettingsSelect<true>;
+    'app-feature-flags': AppFeatureFlagsSelect<false> | AppFeatureFlagsSelect<true>;
+    'support-chat-management': SupportChatManagementSelect<false> | SupportChatManagementSelect<true>;
+    'alert-management': AlertManagementSelect<false> | AlertManagementSelect<true>;
   };
   locale: 'en' | 'de' | 'fr';
   user: User & {
@@ -1744,6 +1752,36 @@ export interface PushNotificationSubscription {
   createdAt: string;
 }
 /**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "chat-images".
+ */
+export interface ChatImage {
+  id: string;
+  chatId: string;
+  uploadedBy: string | User;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+  sizes?: {
+    thumbnail?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+  };
+}
+/**
  * This is a collection of automatically created search results. These results are used by the global site search and will be updated automatically as documents in the CMS are created or updated.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1865,6 +1903,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'timelineCategory';
         value: string | TimelineCategory;
+      } | null)
+    | ({
+        relationTo: 'chat-images';
+        value: string | ChatImage;
       } | null)
     | ({
         relationTo: 'forms';
@@ -2640,6 +2682,39 @@ export interface TimelineCategorySelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "chat-images_select".
+ */
+export interface ChatImagesSelect<T extends boolean = true> {
+  chatId?: T;
+  uploadedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+  sizes?:
+    | T
+    | {
+        thumbnail?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+      };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "forms_select".
  */
 export interface FormsSelect<T extends boolean = true> {
@@ -3234,6 +3309,36 @@ export interface AlertSetting {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "app-feature-flags".
+ */
+export interface AppFeatureFlag {
+  id: string;
+  globalMessagingEnabled?: boolean | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "support-chat-management".
+ */
+export interface SupportChatManagement {
+  id: string;
+  dummy?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "alert-management".
+ */
+export interface AlertManagement {
+  id: string;
+  dummy?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "header_select".
  */
 export interface HeaderSelect<T extends boolean = true> {
@@ -3358,6 +3463,36 @@ export interface AlertSettingsSelect<T extends boolean = true> {
       };
   finalResponseMessage?: T;
   emergencyPhoneNumber?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "app-feature-flags_select".
+ */
+export interface AppFeatureFlagsSelect<T extends boolean = true> {
+  globalMessagingEnabled?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "support-chat-management_select".
+ */
+export interface SupportChatManagementSelect<T extends boolean = true> {
+  dummy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "alert-management_select".
+ */
+export interface AlertManagementSelect<T extends boolean = true> {
+  dummy?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

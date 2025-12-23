@@ -80,11 +80,17 @@ export const ChatsOverviewClientComponent: React.FC<{ user: HitobitoNextAuthUser
 
   // Filter chats based on a search query
   const filteredChats =
-    chats?.filter(
-      (chat): boolean =>
+    chats?.filter((chat): boolean => {
+      const previewText =
+        typeof chat.lastMessage.messagePreview === 'string'
+          ? chat.lastMessage.messagePreview
+          : chat.lastMessage.messagePreview[locale];
+
+      return (
         chat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        chat.lastMessage.messagePreview.toLowerCase().includes(searchQuery.toLowerCase()),
-    ) ?? [];
+        previewText.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }) ?? [];
 
   return (
     <div className="flex flex-col space-y-6">
@@ -108,8 +114,10 @@ export const ChatsOverviewClientComponent: React.FC<{ user: HitobitoNextAuthUser
           </div>
         </Link>
       </div>
+
       {/* Loading State */}
       {isLoading && <ChatsOverviewLoadingPlaceholder />}
+
       {/* Empty State */}
       {!isLoading && filteredChats.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -133,6 +141,7 @@ export const ChatsOverviewClientComponent: React.FC<{ user: HitobitoNextAuthUser
           )}
         </div>
       )}
+
       {/* Chat List */}
       {!isLoading && filteredChats.length > 0 && (
         <div className="space-y-2">

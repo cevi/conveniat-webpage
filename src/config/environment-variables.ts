@@ -9,6 +9,7 @@ export const environmentVariables = createEnv({
   server: {
     DATABASE_URI: z.string().url(),
     CHAT_DATABASE_URL: z.string().url(),
+    REDIS_URL: z.string().url(),
     PAYLOAD_SECRET: z.string().min(5),
     APP_HOST_URL: z.string().url(),
     NODE_ENV: z.string().default('development'),
@@ -32,6 +33,7 @@ export const environmentVariables = createEnv({
     MINIO_SECRET_ACCESS_KEY: z.string().min(5),
     MINIO_BUCKET_NAME: z.string().min(5),
     MINIO_HOST: z.string().url(),
+    MINIO_PUBLIC_HOST: z.string().url(),
     ENABLE_NODEMAILER: z.string().transform((value) => value === 'true'),
     SMTP_HOST: z.string().optional(),
     SMTP_PORT: z.coerce.number().optional(),

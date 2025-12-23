@@ -27,6 +27,8 @@ import { FormExportButton as FormExportButton_fe5d55229fbe6ce6db571a8c425d41f4 }
 import { LinkToDoc as LinkToDoc_aead06e4cbf6b2620c5c51c9ab283634 } from '@payloadcms/plugin-search/client'
 import { ReindexButton as ReindexButton_aead06e4cbf6b2620c5c51c9ab283634 } from '@payloadcms/plugin-search/client'
 import { MainEntryRowLabel as MainEntryRowLabel_576220226adef27d36922a63f8de9abd } from '@/features/payload-cms/payload-cms/components/main-menu-row-label'
+import { default as default_54174459954867e20e36ce19080dde49 } from '@/features/payload-cms/payload-cms/views/chat-management'
+import { default as default_ab019a1f47fb69008664ade9a2845503 } from '@/features/payload-cms/payload-cms/views/alert-management'
 import { ConveniatLogo as ConveniatLogo_1dcd95bfbb6787f73675c94df91c942d } from '@/components/svg-logos/conveniat-logo.tsx'
 import { default as default_d432a7de1921f0e10a01eefbe71b022a } from '@/features/payload-cms/payload-cms/components/login-page/admin-panel-login-page'
 import { default as default_a79319ae20aa3b9aa7415044aaf68603 } from '@/features/payload-cms/payload-cms/components/dashboard-welcome-banner'
@@ -63,6 +65,8 @@ export const importMap = {
   "@payloadcms/plugin-search/client#LinkToDoc": LinkToDoc_aead06e4cbf6b2620c5c51c9ab283634,
   "@payloadcms/plugin-search/client#ReindexButton": ReindexButton_aead06e4cbf6b2620c5c51c9ab283634,
   "@/features/payload-cms/payload-cms/components/main-menu-row-label#MainEntryRowLabel": MainEntryRowLabel_576220226adef27d36922a63f8de9abd,
+  "@/features/payload-cms/payload-cms/views/chat-management#default": default_54174459954867e20e36ce19080dde49,
+  "@/features/payload-cms/payload-cms/views/alert-management#default": default_ab019a1f47fb69008664ade9a2845503,
   "@/components/svg-logos/conveniat-logo.tsx#ConveniatLogo": ConveniatLogo_1dcd95bfbb6787f73675c94df91c942d,
   "@/features/payload-cms/payload-cms/components/login-page/admin-panel-login-page#default": default_d432a7de1921f0e10a01eefbe71b022a,
   "@/features/payload-cms/payload-cms/components/dashboard-welcome-banner#default": default_a79319ae20aa3b9aa7415044aaf68603,

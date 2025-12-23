@@ -1,6 +1,7 @@
-import { useAutoResizeTextarea } from '@/features/chat/components/chat-view/chat-textarea-input/hooks/use-auto-resize-textarea';
+import { useAutoResizeTextarea } from '@/features/chat/components/chat-view/chat-text-area-input/hooks/use-auto-resize-textarea';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useMessageSend } from '@/features/chat/hooks/use-message-send';
+import { trpc } from '@/trpc/client';
 import type React from 'react';
 import { useCallback, useState } from 'react';
 
@@ -9,6 +10,7 @@ interface MessageInputProperties {
   onChange: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onKeyDown: (event: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   ref: React.RefObject<HTMLTextAreaElement | null>;
+  disabled?: boolean;
 }
 
 interface UseMessageInputLogicResult {
@@ -16,6 +18,7 @@ interface UseMessageInputLogicResult {
   handleSendMessage: () => void;
   isSendButtonDisabled: boolean;
   messageLength: number;
+  isGlobalMessagingDisabled: boolean;
 }
 
 export const useMessageInput = (): UseMessageInputLogicResult => {
@@ -25,7 +28,19 @@ export const useMessageInput = (): UseMessageInputLogicResult => {
   const { textareaRef: messageInputReference, resize: resizeTextarea } =
     useAutoResizeTextarea(newMessage);
 
+  const { data: featureFlags, isLoading: isLoadingFlags } = trpc.admin.getFeatureFlags.useQuery(
+    undefined,
+    {
+      refetchInterval: 5000, // Poll every 5 seconds
+    },
+  );
+
+  const isGlobalMessagingEnabled =
+    featureFlags?.find((f) => f.key === 'send_messages')?.isEnabled ?? true;
+
   const handleSendMessage = useCallback((): void => {
+    if (!isGlobalMessagingEnabled) return;
+
     const trimmedMessage = newMessage.trim();
     if (trimmedMessage === '') {
       return;
@@ -39,7 +54,7 @@ export const useMessageInput = (): UseMessageInputLogicResult => {
       content: trimmedMessage,
       timestamp: new Date(),
     });
-  }, [newMessage, chatId, sendMessageMutation, resizeTextarea]);
+  }, [newMessage, chatId, sendMessageMutation, resizeTextarea, isGlobalMessagingEnabled]);
 
   const handleInputChange = useCallback((event: React.ChangeEvent<HTMLTextAreaElement>): void => {
     setNewMessage(event.target.value);
@@ -55,7 +70,11 @@ export const useMessageInput = (): UseMessageInputLogicResult => {
     [handleSendMessage],
   );
 
-  const isSendButtonDisabled = newMessage.trim() === '' || sendMessageMutation.isPending;
+  const isSendButtonDisabled =
+    newMessage.trim() === '' ||
+    sendMessageMutation.isPending ||
+    !isGlobalMessagingEnabled ||
+    isLoadingFlags;
 
   return {
     textareaProps: {
@@ -63,9 +82,11 @@ export const useMessageInput = (): UseMessageInputLogicResult => {
       onChange: handleInputChange,
       onKeyDown: handleKeyDown,
       ref: messageInputReference,
+      disabled: !isGlobalMessagingEnabled,
     },
     handleSendMessage,
     isSendButtonDisabled,
     messageLength: newMessage.length,
+    isGlobalMessagingDisabled: !isGlobalMessagingEnabled,
   };
 };

@@ -1,5 +1,6 @@
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { Locale, PrismaClientOrTransaction, StaticTranslationString } from '@/types/types';
+import { CHAT_CAPABILITY_CAN_SEND_MESSAGES } from '@/lib/chat-shared';
 import { ChatMembershipPermission, ChatType, MessageEventType, MessageType } from '@prisma/client';
 
 const newChatText: StaticTranslationString = {
@@ -34,7 +35,7 @@ export const createNewChat = async (
 
   const isGroupChat = members.length > 1;
 
-  return await prisma.chat.create({
+  return prisma.chat.create({
     data: {
       name: finalChatName,
       type: isGroupChat ? ChatType.GROUP : ChatType.ONE_TO_ONE,
@@ -57,6 +58,12 @@ export const createNewChat = async (
             user: { connect: { uuid: member.userId } },
           })),
         ],
+      },
+      capabilities: {
+        create: {
+          capability: CHAT_CAPABILITY_CAN_SEND_MESSAGES,
+          isEnabled: true,
+        },
       },
     },
   });

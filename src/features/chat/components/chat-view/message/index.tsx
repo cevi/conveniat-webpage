@@ -1,3 +1,5 @@
+'use client';
+
 import type { ChatMessage } from '@/features/chat/api/types';
 import { AlertQuestionMessage } from '@/features/chat/components/chat-view/message/alert-question-message';
 import { AlertResponseMessage } from '@/features/chat/components/chat-view/message/alert-response-message';

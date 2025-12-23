@@ -1,6 +1,6 @@
-import prisma from '@/features/chat/database';
 import { deleteDatabase } from '@/features/payload-cms/payload-cms/initialization/deleting';
 import { seedDatabase } from '@/features/payload-cms/payload-cms/initialization/seeding';
+import prisma from '@/lib/database';
 import type { Payload } from 'payload';
 
 /**

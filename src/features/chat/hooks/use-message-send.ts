@@ -1,5 +1,7 @@
 import type { ChatDetails, ChatMessage } from '@/features/chat/api/types';
+import { SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import { ChatType, MessageEventType, MessageType } from '@/lib/prisma/client';
+import { toast } from '@/lib/toast';
 import { trpc } from '@/trpc/client';
 import type { AppRouter } from '@/trpc/routers/_app';
 import type { TRPCClientErrorLike } from '@trpc/client';
@@ -81,6 +83,7 @@ export const useMessageSend = (): UseMessageSendMutation => {
               participants: [],
               id: chatId,
               messages: [optimisticMessage],
+              capabilities: [],
               type: ChatType.ONE_TO_ONE,
             };
           }
@@ -100,8 +103,15 @@ export const useMessageSend = (): UseMessageSendMutation => {
               ...chat,
               lastMessage: {
                 id: optimisticMessage.id,
-                senderId: optimisticMessage.senderId,
-                messagePreview: JSON.stringify(optimisticMessage.messagePayload),
+                senderId: optimisticMessage.senderId ?? SYSTEM_SENDER_ID,
+                messagePreview:
+                  optimisticMessage.type === MessageType.IMAGE_MSG
+                    ? {
+                      de: '📷 Bild',
+                      en: '📷 Image',
+                      fr: '📷 Image',
+                    }
+                    : JSON.stringify(optimisticMessage.messagePayload),
                 createdAt: optimisticMessage.createdAt,
                 status: optimisticMessage.status,
                 type: optimisticMessage.type,
@@ -118,8 +128,9 @@ export const useMessageSend = (): UseMessageSendMutation => {
     },
 
     onError: (error, { chatId }, context) => {
-      // TODO: use proper error handling and user feedback
+      toast.error('Failed to send message', error);
       console.error('Failed to send message, rolling back optimistic update:', error);
+
       if (context?.previousChatData) {
         trpcUtils.chat.chatDetails.setData({ chatId }, context.previousChatData);
       } else {

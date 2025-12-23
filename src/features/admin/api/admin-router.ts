@@ -1,0 +1,481 @@
+import {
+  CHAT_CAPABILITY_CAN_SEND_MESSAGES,
+  ChatStatus,
+  SYSTEM_SENDER_ID,
+  USER_RELEVANT_MESSAGE_EVENTS,
+  getStatusFromMessageEvents,
+} from '@/lib/chat-shared';
+import { FEATURE_FLAG_SEND_MESSAGES } from '@/lib/feature-flags';
+// eslint-disable-next-line import/no-restricted-paths
+import { getMessagePreviewText } from '@/features/chat/api/utils/get-message-preview-text';
+// eslint-disable-next-line import/no-restricted-paths
+import { resolveChatName } from '@/features/chat/api/utils/resolve-chat-name';
+// eslint-disable-next-line import/no-restricted-paths
+import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
+import { canUserAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
+import { ChatType, MessageEventType, MessageType } from '@/lib/prisma/client';
+import { getFeatureFlag, setFeatureFlag } from '@/lib/redis';
+import { MINIO_BUCKET_NAME, s3ClientPublic } from '@/lib/s3';
+import { createTRPCRouter, trpcBaseProcedure } from '@/trpc/init';
+import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import type { Prisma } from '@prisma/client';
+import { TRPCError } from '@trpc/server';
+import { z } from 'zod';
+
+
+const adminProcedure = trpcBaseProcedure.use(async ({ ctx, next }) => {
+  const hasAccess = await canUserAccessAdminPanel({ user: ctx.user });
+  if (!hasAccess) {
+    throw new TRPCError({ code: 'FORBIDDEN' });
+  }
+  return next({ ctx });
+});
+
+export const adminRouter = createTRPCRouter({
+  // Feature Flags
+  getFeatureFlags: adminProcedure.query(async () => {
+    // List of known flags
+    const flags = [FEATURE_FLAG_SEND_MESSAGES];
+    const result = await Promise.all(
+      flags.map(async (key) => ({
+        key,
+        isEnabled: await getFeatureFlag(key, true),
+      })),
+    );
+    return result;
+  }),
+
+  toggleFeatureFlag: trpcBaseProcedure
+    .input(z.object({ key: z.string(), isEnabled: z.boolean() }))
+    .mutation(async ({ input }) => {
+      await setFeatureFlag(input.key, input.isEnabled);
+      return { success: true };
+    }),
+
+  // Support Chats
+  listSupportChats: trpcBaseProcedure
+    .input(
+      z
+        .object({
+          status: z.nativeEnum(ChatStatus).optional(),
+          search: z.string().optional(),
+          type: z.nativeEnum(ChatType).optional(),
+          includeId: z.string().uuid().optional(),
+        })
+        .optional(),
+    )
+    .query(async ({ ctx, input }): Promise<ChatWithMessagePreview[]> => {
+      const { prisma, user } = ctx;
+
+      const filters: Prisma.ChatWhereInput[] = [{ type: input?.type ?? ChatType.SUPPORT_GROUP }];
+
+      if (input?.status) {
+        filters.push({ status: input.status });
+      }
+
+      if (input?.search) {
+        const search = input.search;
+        filters.push({
+          OR: [
+            { name: { contains: search, mode: 'insensitive' } },
+            { description: { contains: search, mode: 'insensitive' } },
+            {
+              chatMemberships: {
+                some: {
+                  user: {
+                    name: { contains: search, mode: 'insensitive' },
+                  },
+                },
+              },
+            },
+            {
+              messages: {
+                some: {
+                  contentVersions: {
+                    some: {
+                      payload: {
+                        path: ['en'],
+                        string_contains: search,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            {
+              messages: {
+                some: {
+                  contentVersions: {
+                    some: {
+                      payload: {
+                        path: ['de'],
+                        string_contains: search,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          ],
+        });
+      }
+
+      const whereClause: Prisma.ChatWhereInput = input?.includeId
+        ? {
+          OR: [{ AND: filters }, { uuid: input.includeId }],
+        }
+        : { AND: filters };
+
+      const chats = await prisma.chat.findMany({
+        where: whereClause,
+        include: {
+          capabilities: true,
+          chatMemberships: {
+            include: {
+              user: { select: { name: true, uuid: true } },
+            },
+          },
+          messages: {
+            orderBy: { createdAt: 'asc' },
+            include: {
+              messageEvents: {
+                where: { type: { in: USER_RELEVANT_MESSAGE_EVENTS } },
+                orderBy: { uuid: 'desc' },
+              },
+              contentVersions: {
+                take: 1, // include only the latest content version
+                orderBy: { revision: 'desc' },
+              },
+            },
+          },
+          _count: { select: { messages: true } },
+        },
+        orderBy: { lastUpdate: 'desc' },
+      });
+
+      return chats.map((chat): ChatWithMessagePreview => {
+        const messages = chat.messages.sort(
+          (m1, m2) => m1.createdAt.getTime() - m2.createdAt.getTime(),
+        );
+        const lastMessage = messages.at(-1);
+
+        if (lastMessage === undefined) {
+          // Admin view: Handle empty chats gracefully if needed, or throw.
+          // Assuming all support chats have at least a creation message?
+          // If not, we might need to handle this. For now throwing consistent with list-chats.
+          // BUT: listSupportChats might return chats without messages if they are just created via some other means?
+          // Let's safe guard.
+          return {
+            id: chat.uuid,
+            name: resolveChatName(
+              chat.name,
+              chat.chatMemberships.map((membership) => ({
+                name: membership.user.name,
+                uuid: membership.userId,
+              })),
+              user,
+            ),
+            description: chat.description,
+            status: chat.status as ChatStatus,
+            chatType: chat.type,
+            lastUpdate: chat.lastUpdate,
+            unreadCount: 0,
+            messageCount: chat._count.messages,
+            lastMessage: {
+              id: 'unknown',
+              createdAt: chat.lastUpdate,
+              messagePreview: 'No messages',
+              senderId: SYSTEM_SENDER_ID,
+              status: MessageEventType.CREATED,
+            },
+          };
+        }
+
+        return {
+          unreadCount: messages
+            .filter((message) => message.senderId !== user.uuid)
+            .filter(
+              (message) =>
+                !message.messageEvents.some((event) => event.type === MessageEventType.READ),
+            ).length,
+          lastUpdate: chat.lastUpdate,
+          name: resolveChatName(
+            chat.name,
+            chat.chatMemberships.map((membership) => ({
+              name: membership.user.name,
+              uuid: membership.userId,
+            })),
+            user,
+          ),
+          description: chat.description,
+          status: chat.status as ChatStatus,
+          chatType: chat.type,
+          id: chat.uuid,
+          messageCount: chat._count.messages,
+          lastMessage: {
+            id: lastMessage.uuid,
+            createdAt: lastMessage.createdAt,
+            messagePreview: getMessagePreviewText(lastMessage),
+            senderId: lastMessage.senderId ?? SYSTEM_SENDER_ID,
+            status: getStatusFromMessageEvents(lastMessage.messageEvents),
+          },
+        };
+      });
+    }),
+
+  toggleChatCapability: trpcBaseProcedure
+    .input(
+      z.object({
+        chatId: z.string().uuid(),
+        capability: z.string(),
+        isEnabled: z.boolean(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { prisma } = ctx;
+      // Upsert capability
+      return prisma.chatCapability.upsert({
+        where: {
+          chatId_capability: {
+            chatId: input.chatId,
+            capability: input.capability,
+          },
+        },
+        create: {
+          chatId: input.chatId,
+          capability: input.capability,
+          isEnabled: input.isEnabled,
+        },
+        update: {
+          isEnabled: input.isEnabled,
+        },
+      });
+    }),
+
+  getChatMessages: trpcBaseProcedure
+    .input(z.object({ chatId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const { prisma } = ctx;
+      const messages = await prisma.message.findMany({
+        where: { chatId: input.chatId },
+        include: {
+          contentVersions: {
+            orderBy: { revision: 'desc' },
+            take: 1,
+          },
+          sender: { select: { name: true, uuid: true } },
+          messageEvents: {
+            where: { type: { in: USER_RELEVANT_MESSAGE_EVENTS } },
+            orderBy: { uuid: 'desc' },
+          },
+        },
+        orderBy: { createdAt: 'asc' },
+      });
+
+      return messages.map((m) => ({
+        id: m.uuid,
+        createdAt: m.createdAt,
+        messagePayload: m.contentVersions[0]?.payload ?? {},
+        senderId: m.senderId ?? SYSTEM_SENDER_ID,
+        senderName: m.sender?.name,
+        type: m.type,
+        status: getStatusFromMessageEvents(m.messageEvents),
+      }));
+    }),
+
+  postAdminMessage: trpcBaseProcedure
+    .input(
+      z.object({
+        chatId: z.string().uuid(),
+        content: z.string().min(1),
+        type: z.nativeEnum(MessageType).optional().default(MessageType.TEXT_MSG),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { prisma, user } = ctx;
+
+      const message = await prisma.message.create({
+        data: {
+          chatId: input.chatId,
+          senderId: user.uuid,
+          type: input.type,
+          contentVersions: {
+            create: {
+              payload: input.content,
+            },
+          },
+          messageEvents: {
+            create: [
+              { type: MessageEventType.CREATED, userId: user.uuid },
+              { type: MessageEventType.STORED },
+            ],
+          },
+        },
+      });
+
+      await prisma.chat.update({
+        where: { uuid: input.chatId },
+        data: { lastUpdate: new Date() },
+      });
+
+      return message;
+    }),
+
+  getAdminUploadUrl: adminProcedure
+    .input(
+      z.object({
+        chatId: z.string().uuid(),
+        fileName: z.string(),
+        contentType: z.string(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const { chatId, fileName, contentType } = input;
+
+      // Generate a unique key for the file
+      const fileExtension = fileName.split('.').pop();
+      const uniqueFileName = `${chatId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${fileExtension}`;
+      const key = `chat-images/${uniqueFileName}`;
+
+      // Generate pre-signed PUT URL
+      const command = new PutObjectCommand({
+        Bucket: MINIO_BUCKET_NAME,
+        Key: key,
+        ContentType: contentType,
+      });
+
+      const url = await getSignedUrl(s3ClientPublic, command, { expiresIn: 3600 });
+
+      return {
+        url,
+        key,
+      };
+    }),
+
+  closeChat: trpcBaseProcedure
+    .input(z.object({ chatId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const { prisma, user } = ctx;
+      await prisma.chatCapability.upsert({
+        where: {
+          chatId_capability: {
+            chatId: input.chatId,
+            capability: 'CAN_SEND_MESSAGES',
+          },
+        },
+        create: {
+          chatId: input.chatId,
+          capability: CHAT_CAPABILITY_CAN_SEND_MESSAGES,
+          isEnabled: false,
+        },
+        update: {
+          isEnabled: false,
+        },
+      });
+
+      const chat = await prisma.chat.findUnique({
+        where: { uuid: input.chatId },
+        select: { type: true },
+      });
+
+      const isEmergency = chat?.type === ChatType.EMERGENCY;
+
+      // Add system message
+      await prisma.message.create({
+        data: {
+          chatId: input.chatId,
+          type: MessageType.SYSTEM_MSG,
+          contentVersions: {
+            create: {
+              payload: {
+                en: isEmergency
+                  ? `${user.name} has marked the emergency alert as completed`
+                  : `${user.name} has marked this issue as resolved`,
+                de: isEmergency
+                  ? `${user.name} hat die Notfallmeldung als abgeschlossen markiert`
+                  : `${user.name} hat dieses Problem als gelöst markiert`,
+              },
+            },
+          },
+          messageEvents: {
+            create: [
+              { type: MessageEventType.CREATED, userId: user.uuid },
+              { type: MessageEventType.STORED },
+            ],
+          },
+        },
+      });
+
+      return prisma.chat.update({
+        where: { uuid: input.chatId },
+        data: {
+          status: 'CLOSED',
+          lastUpdate: new Date(),
+        },
+      });
+    }),
+
+  reopenChat: trpcBaseProcedure
+    .input(z.object({ chatId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const { prisma, user } = ctx;
+      await prisma.chatCapability.upsert({
+        where: {
+          chatId_capability: {
+            chatId: input.chatId,
+            capability: 'CAN_SEND_MESSAGES',
+          },
+        },
+        create: {
+          chatId: input.chatId,
+          capability: CHAT_CAPABILITY_CAN_SEND_MESSAGES,
+          isEnabled: true,
+        },
+        update: {
+          isEnabled: true,
+        },
+      });
+
+      const chat = await prisma.chat.findUnique({
+        where: { uuid: input.chatId },
+        select: { type: true },
+      });
+
+      const isEmergency = chat?.type === ChatType.EMERGENCY;
+
+      // Add system message
+      await prisma.message.create({
+        data: {
+          chatId: input.chatId,
+          type: MessageType.SYSTEM_MSG,
+          contentVersions: {
+            create: {
+              payload: {
+                en: isEmergency
+                  ? `${user.name} has reopened the emergency alert`
+                  : `${user.name} has reopened this issue`,
+                de: isEmergency
+                  ? `${user.name} hat die Notfallmeldung wiedergeöffnet`
+                  : `${user.name} hat dieses Problem wiedergeöffnet`,
+              },
+            },
+          },
+          messageEvents: {
+            create: [
+              { type: MessageEventType.CREATED, userId: user.uuid },
+              { type: MessageEventType.STORED },
+            ],
+          },
+        },
+      });
+
+      return prisma.chat.update({
+        where: { uuid: input.chatId },
+        data: {
+          status: 'OPEN',
+          lastUpdate: new Date(),
+        },
+      });
+    }),
+});

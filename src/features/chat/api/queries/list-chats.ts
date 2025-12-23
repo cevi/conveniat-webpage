@@ -1,78 +1,14 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-import { USER_RELEVANT_MESSAGE_EVENTS } from '@/features/chat/api/definitions';
-import { getStatusFromMessageEvents } from '@/features/chat/api/utils/get-status-from-message-events';
+import { SYSTEM_SENDER_ID, USER_RELEVANT_MESSAGE_EVENTS, getStatusFromMessageEvents } from '@/lib/chat-shared';
+import { getMessagePreviewText } from '@/features/chat/api/utils/get-message-preview-text';
 import { resolveChatName } from '@/features/chat/api/utils/resolve-chat-name';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
+import type { ChatStatus } from '@/lib/chat-shared';
 import { MessageEventType } from '@/lib/prisma';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
-/**
- * Extracts a preview text from the last message's content versions.
- * Converts system messages and special messages to a text
- * representation for preview purposes.
- *
- * TODO: how do we handle localization here?
- *
- * @param lastMessage
- */
-const getMessagePreviewText = (lastMessage: {
-  contentVersions: { payload: unknown }[];
-}): string => {
-  const payload = lastMessage.contentVersions[0]?.payload;
-
-  if (
-    typeof payload === 'object' &&
-    payload !== null &&
-    'system_msg_type' in payload &&
-    typeof payload.system_msg_type === 'string'
-  ) {
-    switch (payload.system_msg_type) {
-      case 'emergency_alert': {
-        return '🚨 Emergency Alert';
-      }
-      default: {
-        return 'System message';
-      }
-    }
-  }
-
-  if (
-    typeof payload === 'object' &&
-    payload !== null &&
-    'location' in payload &&
-    typeof payload.location === 'object' &&
-    payload.location !== null &&
-    'latitude' in payload.location &&
-    'longitude' in payload.location
-  ) {
-    return '📍 Location shared';
-  }
-
-  // Handle Alert Response and Alert Question with robust checks
-  // Payload is typed as unknown (Prisma Json), so we cast to any to safe access properties
-  const p = payload as any;
-
-  if (p?.message && typeof p.message === 'string') {
-    return p.message;
-  }
-
-  if (p?.question && typeof p.question === 'string') {
-    return p.question;
-  }
-
-  if (typeof payload === 'string') {
-    return payload;
-  }
-
-  // Fallback for other message types
-  return JSON.stringify(payload ?? {});
-};
 
 export const listChats = trpcBaseProcedure
   .input(z.object({}))
@@ -115,6 +51,7 @@ export const listChats = trpcBaseProcedure
           },
         },
         chatMemberships: { include: { user: true } },
+        _count: { select: { messages: true } },
       },
       orderBy: { lastUpdate: 'desc' },
     });
@@ -148,13 +85,16 @@ export const listChats = trpcBaseProcedure
           })),
           user,
         ),
+        description: chat.description,
+        status: chat.status as ChatStatus,
         chatType: chat.type,
         id: chat.uuid,
+        messageCount: chat._count.messages,
         lastMessage: {
           id: lastMessage.uuid,
           createdAt: chat.lastUpdate,
           messagePreview: getMessagePreviewText(lastMessage),
-          senderId: lastMessage.senderId ?? undefined,
+          senderId: lastMessage.senderId ?? SYSTEM_SENDER_ID,
           status: getStatusFromMessageEvents(lastMessage.messageEvents),
         },
       };

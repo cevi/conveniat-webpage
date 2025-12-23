@@ -5,11 +5,14 @@ import { cn } from '@/utils/tailwindcss-override';
 import { ChatType } from '@prisma/client';
 import { Siren, Users } from 'lucide-react';
 import Link from 'next/link';
+import { i18nConfig, type Locale } from '@/types/types';
+import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 
 export const ChatPreview: React.FC<{
   chat: ChatWithMessagePreview;
 }> = ({ chat }) => {
+  const locale = useCurrentLocale(i18nConfig) as Locale;
   const chatDetailLink = `/app/chat/${chat.id}`;
   const hasUnread = chat.unreadCount > 0;
   const { formatMessageTime } = useFormatDate();
@@ -41,6 +44,11 @@ export const ChatPreview: React.FC<{
           {chat.chatType === ChatType.EMERGENCY && (
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-md ring-2 ring-red-500">
               <Siren size={20} className="text-red-500" />
+            </div>
+          )}
+          {chat.chatType === ChatType.SUPPORT_GROUP && (
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-200 shadow-sm">
+              <Siren size={20} className="text-blue-500" />
             </div>
           )}
         </div>
@@ -76,7 +84,9 @@ export const ChatPreview: React.FC<{
               'text-red-500': chat.chatType === ChatType.EMERGENCY,
             })}
           >
-            {chat.lastMessage.messagePreview}
+            {typeof chat.lastMessage.messagePreview === 'string'
+              ? chat.lastMessage.messagePreview
+              : chat.lastMessage.messagePreview[locale]}
           </p>
         </div>
 
