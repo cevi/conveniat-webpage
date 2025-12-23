@@ -1,5 +1,10 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { subscribeUser, unsubscribeUser } from '@/features/onboarding/api/push-notification';
+import {
+  getPushSubscription,
+  isPushSupported,
+  registerServiceWorker,
+} from '@/features/onboarding/utils/push-subscription-utils';
 import type { StaticTranslationString } from '@/types/types';
 import { urlBase64ToUint8Array } from '@/utils/url-base64-to-uint8-array';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -46,55 +51,55 @@ export const PushNotificationSubscriptionManager: React.FC<{
   locale: 'de' | 'fr' | 'en';
   swUrl?: string;
 }> = ({ callback, locale, swUrl = '/api/serwist/sw.js' }) => {
-  const [isSupported, setIsSupported] = useState(() => {
-    return (
-      typeof navigator !== 'undefined' &&
-      'serviceWorker' in navigator &&
-      typeof globalThis !== 'undefined' &&
-      'PushManager' in globalThis
-    );
-  });
+  const [isSupported, setIsSupported] = useState(false);
   const [subscription, setSubscription] = useState<PushSubscription | undefined>();
 
-  const _registerServiceWorker = useCallback(async (): Promise<PushSubscription | null> => {
-    const registration: ServiceWorkerRegistration = await navigator.serviceWorker.register(swUrl, {
-      scope: '/',
-      updateViaCache: 'none',
-    });
+  // Use the robust check on mount
+  useEffect(() => {
+    setTimeout(() => {
+      setIsSupported(isPushSupported());
+    }, 0);
+  }, []);
 
-    return await registration.pushManager.getSubscription();
-  }, [swUrl]);
-
+  // Check for existing subscription (Pure Check)
   useEffect(() => {
     if (isSupported) {
-      _registerServiceWorker()
+      getPushSubscription()
         .then((sub) => {
           if (sub) setSubscription(sub);
         })
         .catch(console.error);
     }
-  }, [isSupported, _registerServiceWorker]);
+  }, [isSupported]);
 
   const _subscribeToPush = useCallback(async (): Promise<void> => {
-    const registration = await navigator.serviceWorker.ready;
+    // Explicitly register the service worker first (Recovery/Bootstrap)
+    const registration = await registerServiceWorker(swUrl);
+    if (!registration) {
+      throw new Error('Failed to register service worker for push.');
+    }
+
     if (vapidPublicKey === '') {
       console.error('VAPID public key is not defined.');
       throw new Error('VAPID public key is not defined.');
     }
+
+    // Subscribe using the active registration
     const sub = await registration.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
     });
     setSubscription(sub);
     await subscribeUser(sub.toJSON() as webpush.PushSubscription, locale);
-  }, [locale]);
+  }, [locale, swUrl]);
 
   const subscribeToPush = useCallback((): void => {
     _subscribeToPush()
       .then(callback)
       .catch((error: unknown) => {
         console.error('Failed to subscribe to push notifications:', error);
-        setIsSupported(false);
+        // If subscription fails, it might be due to support issues, but mainly we log.
+        // We don't necessarily set isSupported to false unless we know it's a platform error.
       });
   }, [_subscribeToPush, callback]);
 

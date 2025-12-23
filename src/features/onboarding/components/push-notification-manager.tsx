@@ -1,6 +1,7 @@
 import { CenteredConveniatLogo } from '@/features/onboarding/components/centered-conveniat-logo';
 import { PushNotificationSubscriptionManager } from '@/features/onboarding/components/push-notification-subscription-manager';
-import type { StaticTranslationString } from '@/types/types';
+import { Cookie, type StaticTranslationString } from '@/types/types';
+import Cookies from 'js-cookie';
 import React from 'react';
 
 const skipPushNotificationText: StaticTranslationString = {
@@ -13,13 +14,18 @@ export const PushNotificationManagerEntrypointComponent: React.FC<{
   callback: () => void;
   locale: 'de' | 'fr' | 'en';
 }> = ({ callback, locale }) => {
+  const onSkip = (): void => {
+    Cookies.set(Cookie.SKIP_PUSH_NOTIFICATION, 'true', { expires: 7 });
+    callback();
+  };
+
   return (
     <div className="rounded-lg p-8 text-center">
       <CenteredConveniatLogo />
 
       <PushNotificationSubscriptionManager callback={callback} locale={locale} />
 
-      <button onClick={callback} className="mt-3 font-semibold text-gray-400">
+      <button onClick={onSkip} className="mt-3 font-semibold text-gray-400">
         {skipPushNotificationText[locale]}
       </button>
     </div>

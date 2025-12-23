@@ -7,6 +7,7 @@ import '@/app/globals.scss';
 import { CeviLogo } from '@/components/svg-logos/cevi-logo';
 import { PostHogProvider } from '@/providers/post-hog-provider';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
+import { SessionProvider } from 'next-auth/react';
 import { Inter, Montserrat } from 'next/font/google';
 
 interface LayoutProperties {
@@ -43,7 +44,9 @@ const AppEntrypointLayout: React.FC<LayoutProperties> = async ({ children }) => 
 const AppEntrypointRootLayout: React.FC<LayoutProperties> = ({ children }) => {
   return (
     <Suspense>
-      <AppEntrypointLayout>{children}</AppEntrypointLayout>
+      <AppEntrypointLayout>
+        <SessionProvider>{children}</SessionProvider>
+      </AppEntrypointLayout>
     </Suspense>
   );
 };
