@@ -19,6 +19,19 @@ const GlobalError: React.FC<{
   error: Error & { digest?: string };
 }> = ({ error }) => {
   useEffect(() => {
+    // Check if the error is likely due to being offline (e.g., failed to load a JS chunk)
+    const isOfflineError =
+      !navigator.onLine ||
+      error.name === 'ChunkLoadError' ||
+      error.message.toLowerCase().includes('failed to fetch') ||
+      error.message.toLowerCase().includes('network error');
+
+    if (isOfflineError) {
+      console.log('[GlobalError] Offline error detected, redirecting to /~offline');
+      globalThis.location.href = '/~offline';
+      return;
+    }
+
     console.error('Something went terribly wrong, we are sorry for that.');
 
     const initializePostHogAndCaptureError = async (): Promise<void> => {

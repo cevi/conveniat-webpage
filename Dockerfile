@@ -68,6 +68,9 @@ RUN \
   else echo "Lockfile not found." && exit 1; \
   fi
 
+# Ensure fallback cache directory exists so copy commands don't fail if empty
+RUN mkdir -p .next/cache/redis-fallback
+
 
 # Production image, copy all the files and run next
 FROM base AS runner
@@ -96,6 +99,7 @@ RUN chown nextjs:nodejs .next
 # https://nextjs.org/docs/advanced-features/output-file-tracing
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/.next/cache/redis-fallback ./.next/cache/redis-fallback
 COPY --from=builder --chown=nextjs:nodejs /app/src/lib/prisma/ /app/src/lib/prisma/
 
 USER nextjs

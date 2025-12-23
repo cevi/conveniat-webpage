@@ -1,11 +1,14 @@
 /**
- * This is a Redis-based "use cache" handler.
+ * This is a Redis-based "use cache" handler with a filesystem fallback for build time.
  * It uses 'ioredis' to store cache entries.
  *
  * Includes simple debug logging.
  */
 
 import Redis from 'ioredis';
+import * as crypto from 'node:crypto';
+import * as fs from 'node:fs/promises';
+import path from 'node:path';
 import { CacheHandler } from './types.cjs';
 
 // Define a simple logging prefix
@@ -22,33 +25,113 @@ interface CacheMetadata {
   [key: string]: unknown;
 }
 
+// Check if we are in the build phase
+const isBuild =
+  // eslint-disable-next-line n/no-process-env
+  process.env['NEXT_PHASE'] === 'phase-production-build' || process.argv.includes('build');
+
 // eslint-disable-next-line n/no-process-env
 const REDIS_URL = process.env['REDIS_URL'] || 'redis://localhost:6379';
 
+// Fallback cache directory
+const FALLBACK_CACHE_DIR = path.join(process.cwd(), '.next/cache/redis-fallback');
+
+// Helper to ensure directory exists
+async function ensureFallbackDirectory() {
+  try {
+    await fs.mkdir(FALLBACK_CACHE_DIR, { recursive: true });
+  } catch {
+    // ignore
+  }
+}
+
+// Helper to get fallback file path
+function getFallbackPath(key: string) {
+  // Hash the key to avoid filename issues
+  const hash = crypto.createHash('sha256').update(key).digest('hex');
+  return path.join(FALLBACK_CACHE_DIR, `${hash}.json`);
+}
+
+// Helper to write to fallback cache
+async function writeToFallback(key: string, data: Buffer) {
+  if (!isBuild) return; // ONLY write to fallback during build
+  try {
+    await ensureFallbackDirectory();
+    await fs.writeFile(getFallbackPath(key), data);
+    console.log(`${LOG_PREFIX} FALLBACK SET: ${key} (Written to disk)`);
+  } catch (error) {
+    console.error(`${LOG_PREFIX} FALLBACK SET ERROR: ${key}`, error);
+  }
+}
+
+// Helper to read from fallback cache
+async function readFromFallback(key: string): Promise<Buffer | undefined> {
+  try {
+    const filePath = getFallbackPath(key);
+    // Check if file exists
+    try {
+      await fs.access(filePath);
+    } catch {
+      return undefined;
+    }
+    const data = await fs.readFile(filePath);
+    console.log(`${LOG_PREFIX} FALLBACK GET: ${key} (Read from disk)`);
+    return data;
+  } catch (error) {
+    console.error(`${LOG_PREFIX} FALLBACK GET ERROR: ${key}`, error);
+    return undefined;
+  }
+}
+
 export function createRedisCacheHandler(): CacheHandler {
-  const redis = new Redis(REDIS_URL);
-  const pendingSets = new Map<string, Promise<void>>();
+  // Use lazyConnect so we don't fail immediately if Redis is down (e.g. during build)
+  const redis = new Redis(REDIS_URL, {
+    lazyConnect: true,
+    maxRetriesPerRequest: 1, // Fail fast
+    retryStrategy: (times) => {
+      if (isBuild && times > 1) return; // Stop retrying during build
+      return Math.min(times * 50, 2000); // Retry with backoff
+    },
+  });
 
   redis.on('error', (error) => {
-    console.error(`${LOG_PREFIX} Redis connection error:`, error);
+    const redisError = error as Error & { code?: string };
+    // Suppress connection errors during build or if expected
+    if (isBuild || redisError.code === 'EAI_AGAIN' || redisError.code === 'ECONNREFUSED') {
+    } else {
+      console.error(`${LOG_PREFIX} Redis connection error:`, error);
+    }
   });
+
+  const pendingSets = new Map<string, Promise<void>>();
 
   return {
     async get(cacheKey) {
       // Wait for any pending set for this key to complete
       const pendingPromise = pendingSets.get(cacheKey);
       if (pendingPromise) {
-        console.log(`${LOG_PREFIX} GET: ${cacheKey} (waiting for pending set)`);
         await pendingPromise;
       }
 
-      try {
-        const data = await redis.getBuffer(cacheKey);
-        if (!data) {
-          console.log(`${LOG_PREFIX} GET: ${cacheKey} (MISS)`);
-          return;
-        }
+      let data: Buffer | null | undefined;
 
+      try {
+        data = await redis.getBuffer(cacheKey);
+      } catch (error) {
+        console.warn(`${LOG_PREFIX} Redis GET failed: ${cacheKey}`, (error as Error).message);
+        // Fallthrough to fallback
+      }
+
+      // If Redis missed or failed, try fallback
+      if (!data) {
+        data = await readFromFallback(cacheKey);
+      }
+
+      if (!data) {
+        return;
+      }
+
+      try {
         // The stored data is: [metadata_json_length (4 bytes)][metadata_json][value_binary]
         const metadataLength = data.readUInt32BE(0);
         const metadataJson = data.toString('utf8', 4, 4 + metadataLength);
@@ -61,8 +144,8 @@ export function createRedisCacheHandler(): CacheHandler {
 
         if (now > expirationTime) {
           console.log(`${LOG_PREFIX} GET: ${cacheKey} (EXPIRED)`);
-          // Entry is expired, remove it from the cache.
-          await redis.del(cacheKey);
+          // Entry is expired. Try to remove it from Redis (fire and forget)
+          redis.del(cacheKey).catch(() => {});
           return;
         }
 
@@ -83,7 +166,7 @@ export function createRedisCacheHandler(): CacheHandler {
           value: stream,
         };
       } catch (error) {
-        console.error(`${LOG_PREFIX} GET: ${cacheKey} (ERROR)`, error);
+        console.error(`${LOG_PREFIX} Error parsing cached data: ${cacheKey}`, error);
         return;
       }
     },
@@ -121,27 +204,37 @@ export function createRedisCacheHandler(): CacheHandler {
         metadataBuffer.copy(finalBuffer, 4);
         valueBuffer.copy(finalBuffer, 4 + metadataBuffer.length);
 
-        // Use PXAT to set absolute expiration time if possible,
-        // or just set with TTL. Next.js uses 'expire' (seconds).
-        // Let's use the 'expire' field for Redis TTL.
-        await (entry.expire > 0
-          ? redis.set(cacheKey, finalBuffer, 'EX', entry.expire)
-          : redis.set(cacheKey, finalBuffer));
+        try {
+          // Use PXAT to set absolute expiration time if possible,
+          // or just set with TTL. Next.js uses 'expire' (seconds).
+          // Let's use the 'expire' field for Redis TTL.
+          await (entry.expire > 0
+            ? redis.set(cacheKey, finalBuffer, 'EX', entry.expire)
+            : redis.set(cacheKey, finalBuffer));
 
-        // Track tags for granular invalidation
-        if (metadata.tags && metadata.tags.length > 0) {
-          const pipeline = redis.pipeline();
-          for (const tag of metadata.tags) {
-            pipeline.sadd(`tags:${tag}`, cacheKey);
-            // Set expiration for the tag set to be slightly longer than the entry
-            if (entry.expire > 0) {
-              pipeline.expire(`tags:${tag}`, entry.expire + 60);
+          // Track tags for granular invalidation
+          if (metadata.tags && metadata.tags.length > 0) {
+            const pipeline = redis.pipeline();
+            for (const tag of metadata.tags) {
+              pipeline.sadd(`tags:${tag}`, cacheKey);
+              // Set expiration for the tag set to be slightly longer than the entry
+              if (entry.expire > 0) {
+                pipeline.expire(`tags:${tag}`, entry.expire + 60);
+              }
             }
+            await pipeline.exec();
           }
-          await pipeline.exec();
+
+          console.log(`${LOG_PREFIX} SET: ${cacheKey} (SUCCESS - Redis)`);
+        } catch (error) {
+          console.error(`${LOG_PREFIX} SET Redis failed: ${cacheKey}`, (error as Error).message);
         }
 
-        console.log(`${LOG_PREFIX} SET: ${cacheKey} (SUCCESS)`);
+        // In build mode, we ALWAYS write to fallback to ensure artifacts are persisted to disk
+        // and included in the build image, regardless of Redis availability.
+        if (isBuild) {
+          await writeToFallback(cacheKey, finalBuffer);
+        }
       } catch (error) {
         console.error(`${LOG_PREFIX} SET: ${cacheKey} (FAILED)`, error);
       } finally {
@@ -153,25 +246,29 @@ export function createRedisCacheHandler(): CacheHandler {
     async updateTags(tags: string[]) {
       console.log(`${LOG_PREFIX} UPDATE_TAGS: ${tags.join(', ')}.`);
 
-      for (const tag of tags) {
-        const tagKey = `tags:${tag}`;
+      try {
+        for (const tag of tags) {
+          const tagKey = `tags:${tag}`;
 
-        // If 'payload' tag is invalidated, we might want to be aggressive,
-        // but let's try to be selective first.
-        const keys = await redis.smembers(tagKey);
+          // If 'payload' tag is invalidated, we might want to be aggressive,
+          // but let's try to be selective first.
+          const keys = await redis.smembers(tagKey);
 
-        if (keys.length > 0) {
-          console.log(`${LOG_PREFIX} UPDATE_TAGS: Clearing ${keys.length} keys for tag ${tag}`);
-          // UNLINK is non-blocking (unlike DEL)
-          await redis.unlink(...keys);
-          await redis.del(tagKey);
-        } else if (tag === 'payload') {
-          // Fallback if 'payload' is invalidated but no keys tracked (e.g. after restart)
-          console.log(
-            `${LOG_PREFIX} UPDATE_TAGS: 'payload' tag cleared but no keys found in set. Flushing DB.`,
-          );
-          await redis.flushdb();
+          if (keys.length > 0) {
+            console.log(`${LOG_PREFIX} UPDATE_TAGS: Clearing ${keys.length} keys for tag ${tag}`);
+            // UNLINK is non-blocking (unlike DEL)
+            await redis.unlink(...keys);
+            await redis.del(tagKey);
+          } else if (tag === 'payload') {
+            // Fallback if 'payload' is invalidated but no keys tracked (e.g. after restart)
+            console.log(
+              `${LOG_PREFIX} UPDATE_TAGS: 'payload' tag cleared but no keys found in set. Flushing DB.`,
+            );
+            await redis.flushdb();
+          }
         }
+      } catch (error) {
+        console.log(`${LOG_PREFIX} UPDATE_TAGS failed: ${(error as Error).message}`);
       }
     },
 
