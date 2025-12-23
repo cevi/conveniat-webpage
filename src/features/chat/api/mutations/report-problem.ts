@@ -1,4 +1,7 @@
-import { CHAT_CAPABILITY_CAN_SEND_MESSAGES, CHAT_CAPABILITY_PICTURE_UPLOAD } from '@/lib/chat-shared';
+import {
+  CHAT_CAPABILITY_CAN_SEND_MESSAGES,
+  CHAT_CAPABILITY_PICTURE_UPLOAD,
+} from '@/lib/chat-shared';
 import { ChatType, MessageEventType, MessageType } from '@/lib/prisma';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
@@ -64,11 +67,11 @@ export const reportProblem = trpcBaseProcedure
               ...systemMessageContent,
               ...(input?.location
                 ? {
-                  location: {
-                    longitude: input.location[0],
-                    latitude: input.location[1],
-                  },
-                }
+                    location: {
+                      longitude: input.location[0],
+                      latitude: input.location[1],
+                    },
+                  }
                 : {}),
             },
           },

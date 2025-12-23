@@ -1,14 +1,17 @@
-import { SYSTEM_SENDER_ID, USER_RELEVANT_MESSAGE_EVENTS, getStatusFromMessageEvents } from '@/lib/chat-shared';
 import { getMessagePreviewText } from '@/features/chat/api/utils/get-message-preview-text';
 import { resolveChatName } from '@/features/chat/api/utils/resolve-chat-name';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import type { ChatStatus } from '@/lib/chat-shared';
+import {
+  SYSTEM_SENDER_ID,
+  USER_RELEVANT_MESSAGE_EVENTS,
+  getStatusFromMessageEvents,
+} from '@/lib/chat-shared';
 import { MessageEventType } from '@/lib/prisma';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
-
 
 export const listChats = trpcBaseProcedure
   .input(z.object({}))

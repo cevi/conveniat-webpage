@@ -4,8 +4,8 @@ import type { MessageEvent } from '@prisma/client';
 export const SYSTEM_SENDER_ID = 'system';
 
 export enum ChatCapability {
-    CAN_SEND_MESSAGES = 'CAN_SEND_MESSAGES',
-    PICTURE_UPLOAD = 'PICTURE_UPLOAD',
+  CAN_SEND_MESSAGES = 'CAN_SEND_MESSAGES',
+  PICTURE_UPLOAD = 'PICTURE_UPLOAD',
 }
 
 // Keep constants for backward compatibility if needed, or update usages.
@@ -17,28 +17,28 @@ export const CHAT_CAPABILITY_PICTURE_UPLOAD = ChatCapability.PICTURE_UPLOAD;
 export const SYSTEM_MSG_TYPE_EMERGENCY_ALERT = 'emergency_alert';
 
 export enum ChatStatus {
-    OPEN = 'OPEN',
-    CLOSED = 'CLOSED',
+  OPEN = 'OPEN',
+  CLOSED = 'CLOSED',
 }
 
 export const USER_RELEVANT_MESSAGE_EVENTS = [
-    MessageEventType.STORED, // show one tick
-    MessageEventType.RECEIVED, // show two ticks
-    MessageEventType.READ, // show two green ticks
+  MessageEventType.STORED, // show one tick
+  MessageEventType.RECEIVED, // show two ticks
+  MessageEventType.READ, // show two green ticks
 ];
 
 export const getStatusFromMessageEvents = (messageEvents: MessageEvent[]): MessageEventType => {
-    if (messageEvents.some((event) => event.type === MessageEventType.READ)) {
-        return MessageEventType.READ;
-    }
+  if (messageEvents.some((event) => event.type === MessageEventType.READ)) {
+    return MessageEventType.READ;
+  }
 
-    if (messageEvents.some((event) => event.type === MessageEventType.RECEIVED)) {
-        return MessageEventType.RECEIVED;
-    }
+  if (messageEvents.some((event) => event.type === MessageEventType.RECEIVED)) {
+    return MessageEventType.RECEIVED;
+  }
 
-    if (messageEvents.some((event) => event.type === MessageEventType.STORED)) {
-        return MessageEventType.STORED;
-    }
+  if (messageEvents.some((event) => event.type === MessageEventType.STORED)) {
+    return MessageEventType.STORED;
+  }
 
-    return MessageEventType.CREATED;
+  return MessageEventType.CREATED;
 };

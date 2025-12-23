@@ -2,11 +2,13 @@ export enum CapabilityAction {
   Send = 'send',
   Upload = 'upload',
   View = 'view',
+  Create = 'create',
 }
 
 export enum CapabilitySubject {
   Messages = 'Messages',
   Images = 'Images',
+  Chat = 'Chat',
 }
 
 export interface CapabilityContext {
@@ -16,6 +18,7 @@ export interface CapabilityContext {
 export interface CapabilitiesMap {
   [CapabilitySubject.Messages]: CapabilityAction.Send | CapabilityAction.View;
   [CapabilitySubject.Images]: CapabilityAction.Upload;
+  [CapabilitySubject.Chat]: CapabilityAction.Create;
 }
 
 export interface Capability {

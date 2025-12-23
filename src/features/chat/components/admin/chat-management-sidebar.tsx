@@ -1,5 +1,5 @@
-import { ChatStatus } from '@/lib/chat-shared';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
+import { ChatStatus } from '@/lib/chat-shared';
 import { RefreshCw } from 'lucide-react';
 import React from 'react';
 
@@ -76,34 +76,36 @@ export const ChatManagementSidebar: React.FC<ChatManagementSidebarProperties> = 
       <div className="flex-1 space-y-2 overflow-y-auto p-2">
         {loadingChats
           ? Array.from({ length: 5 }).map((_, index) => (
-            <Skeleton key={index} className="h-20 w-full" />
-          ))
+              <Skeleton key={index} className="h-20 w-full" />
+            ))
           : chats.map((chat) => (
-            <button
-              key={chat.id}
-              onClick={() => onSelectChat(chat.id)}
-              className={`w-full rounded-lg border p-4 text-left transition-all ${selectedChatId === chat.id
-                ? 'translate-x-1 border-[var(--theme-elevation-400)] bg-[var(--theme-elevation-100)] shadow-md'
-                : 'border-[var(--theme-elevation-150)] bg-[var(--theme-bg)] hover:border-[var(--theme-elevation-300)] hover:bg-[var(--theme-elevation-50)]'
+              <button
+                key={chat.id}
+                onClick={() => onSelectChat(chat.id)}
+                className={`w-full rounded-lg border p-4 text-left transition-all ${
+                  selectedChatId === chat.id
+                    ? 'translate-x-1 border-[var(--theme-elevation-400)] bg-[var(--theme-elevation-100)] shadow-md'
+                    : 'border-[var(--theme-elevation-150)] bg-[var(--theme-bg)] hover:border-[var(--theme-elevation-300)] hover:bg-[var(--theme-elevation-50)]'
                 }`}
-            >
-              <div className="flex items-start justify-between">
-                <span className="truncate font-semibold">{chat.name}</span>
-                <span
-                  className={`rounded border px-1.5 py-0.5 text-[10px] font-bold uppercase ${chat.status === ChatStatus.OPEN
-                    ? 'border-[var(--theme-success-150)] bg-[var(--theme-success-50)] text-[var(--theme-success-700)]'
-                    : 'border-[var(--theme-elevation-300)] bg-[var(--theme-elevation-200)] text-[var(--theme-elevation-500)]'
+              >
+                <div className="flex items-start justify-between">
+                  <span className="truncate font-semibold">{chat.name}</span>
+                  <span
+                    className={`rounded border px-1.5 py-0.5 text-[10px] font-bold uppercase ${
+                      chat.status === ChatStatus.OPEN
+                        ? 'border-[var(--theme-success-150)] bg-[var(--theme-success-50)] text-[var(--theme-success-700)]'
+                        : 'border-[var(--theme-elevation-300)] bg-[var(--theme-elevation-200)] text-[var(--theme-elevation-500)]'
                     }`}
-                >
-                  {chat.status}
-                </span>
-              </div>
-              <div className="mt-1 truncate text-xs opacity-70">
-                {chat.description ?? 'No description'}
-              </div>
-              <div className="mt-1 text-[10px] opacity-50">{chat.messageCount} messages</div>
-            </button>
-          ))}
+                  >
+                    {chat.status}
+                  </span>
+                </div>
+                <div className="mt-1 truncate text-xs opacity-70">
+                  {chat.description ?? 'No description'}
+                </div>
+                <div className="mt-1 text-[10px] opacity-50">{chat.messageCount} messages</div>
+              </button>
+            ))}
         {!loadingChats && chats.length === 0 && (
           <div className="p-4 text-center opacity-50">No chats found.</div>
         )}

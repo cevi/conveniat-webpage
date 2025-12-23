@@ -1,5 +1,8 @@
+import {
+  CHAT_CAPABILITY_CAN_SEND_MESSAGES,
+  SYSTEM_MSG_TYPE_EMERGENCY_ALERT,
+} from '@/lib/chat-shared';
 import { createTRPCRouter, trpcBaseProcedure } from '@/trpc/init';
-import { CHAT_CAPABILITY_CAN_SEND_MESSAGES, SYSTEM_MSG_TYPE_EMERGENCY_ALERT } from '@/lib/chat-shared';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import config from '@payload-config';
 import type { Prisma } from '@prisma/client';
@@ -22,7 +25,6 @@ const GeolocationPositionSchema = z.object({
 const newAlertSchema = z.object({
   location: GeolocationPositionSchema.optional(),
 });
-
 
 const resolveEmergencyChatName = (locale: string, nickname: string): string => {
   if (locale === 'de') {
@@ -138,7 +140,8 @@ export const emergencyRouter = createTRPCRouter({
       // set up the emergency alert in the Payload CMS
       const chat = await prisma.chat.create({
         data: {
-          name: resolveEmergencyChatName(ctx.locale, user.nickname), type: ChatType.EMERGENCY,
+          name: resolveEmergencyChatName(ctx.locale, user.nickname),
+          type: ChatType.EMERGENCY,
 
           messages: {
             create: messagesToCreate,

@@ -67,12 +67,14 @@ export const ChatCapabilities: React.FC<ChatCapabilitiesProperties> = ({
                 {capabilityLabels[capabilityKey]?.[locale] ?? capabilityKey}
               </span>
               <div
-                className={`h-6 w-11 rounded-full p-1 opacity-50 transition-colors ${isEnabled ? 'bg-conveniat-green' : 'bg-gray-300'
-                  }`}
+                className={`h-6 w-11 rounded-full p-1 opacity-50 transition-colors ${
+                  isEnabled ? 'bg-conveniat-green' : 'bg-gray-300'
+                }`}
               >
                 <div
-                  className={`h-4 w-4 rounded-full bg-white transition-transform ${isEnabled ? 'translate-x-5' : 'translate-x-0'
-                    }`}
+                  className={`h-4 w-4 rounded-full bg-white transition-transform ${
+                    isEnabled ? 'translate-x-5' : 'translate-x-0'
+                  }`}
                 />
               </div>
             </div>

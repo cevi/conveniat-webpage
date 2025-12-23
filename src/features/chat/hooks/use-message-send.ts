@@ -107,10 +107,10 @@ export const useMessageSend = (): UseMessageSendMutation => {
                 messagePreview:
                   optimisticMessage.type === MessageType.IMAGE_MSG
                     ? {
-                      de: '📷 Bild',
-                      en: '📷 Image',
-                      fr: '📷 Image',
-                    }
+                        de: '📷 Bild',
+                        en: '📷 Image',
+                        fr: '📷 Image',
+                      }
                     : JSON.stringify(optimisticMessage.messagePayload),
                 createdAt: optimisticMessage.createdAt,
                 status: optimisticMessage.status,

@@ -16,7 +16,10 @@ import { getFeatureFlags } from '@/features/chat/api/queries/get-feature-flags';
 import { getUser } from '@/features/chat/api/queries/get-user';
 import { listChats } from '@/features/chat/api/queries/list-chats';
 import { listContacts } from '@/features/chat/api/queries/list-contacts';
-import { createTRPCRouter } from '@/trpc/init';
+import { checkCapability } from '@/lib/capabilities';
+import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
+import { createTRPCRouter, trpcBaseProcedure } from '@/trpc/init';
+import { z } from 'zod';
 
 export const chatRouter = createTRPCRouter({
   archiveChat,
@@ -37,4 +40,15 @@ export const chatRouter = createTRPCRouter({
   addParticipants: addParticipants,
   removeParticipant: removeParticipant,
   getFeatureFlags: getFeatureFlags,
+  checkCapability: trpcBaseProcedure
+    .input(
+      z.object({
+        subject: z.nativeEnum(CapabilitySubject),
+        action: z.nativeEnum(CapabilityAction),
+        chatId: z.string().optional(),
+      }),
+    )
+    .query(async ({ input }): Promise<boolean> => {
+      return checkCapability(input.action, input.subject, input.chatId);
+    }),
 });

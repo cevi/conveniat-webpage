@@ -68,30 +68,29 @@ export const ChatManagementMessages: React.FC<ChatManagementMessagesProperties> 
               </div>
             </div>
             <div className="space-y-1">
-              {messagesForDate
-                .map((message, index) => {
-                  const previousMessage = index > 0 ? messagesForDate[index - 1] : undefined;
-                  const isWithin5Min = previousMessage
-                    ? new Date(message.createdAt).getTime() -
-                    new Date(previousMessage.createdAt).getTime() <
+              {messagesForDate.map((message, index) => {
+                const previousMessage = index > 0 ? messagesForDate[index - 1] : undefined;
+                const isWithin5Min = previousMessage
+                  ? new Date(message.createdAt).getTime() -
+                      new Date(previousMessage.createdAt).getTime() <
                     5 * 60 * 1000
-                    : false;
+                  : false;
 
-                  const isSenderAdmin = message.senderId !== undefined;
+                const isSenderAdmin = message.senderId !== undefined;
 
-                  return (
-                    <div
-                      key={message.id}
-                      className={`admin-chat-message ${isWithin5Min ? 'mt-1' : 'mt-4'}`}
-                    >
-                      <MessageComponent
-                        message={message}
-                        isCurrentUser={isSenderAdmin}
-                        chatType={chatType}
-                      />
-                    </div>
-                  );
-                })}
+                return (
+                  <div
+                    key={message.id}
+                    className={`admin-chat-message ${isWithin5Min ? 'mt-1' : 'mt-4'}`}
+                  >
+                    <MessageComponent
+                      message={message}
+                      isCurrentUser={isSenderAdmin}
+                      chatType={chatType}
+                    />
+                  </div>
+                );
+              })}
             </div>
           </div>
         ))}

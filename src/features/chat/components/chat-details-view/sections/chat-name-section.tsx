@@ -122,10 +122,11 @@ export const ChatNameSection: React.FC<ChatNameSectionProperties> = ({
               }}
               onKeyDown={handleKeyDown}
               autoFocus
-              className={`font-body focus:ring-conveniat-green flex-1 ${error
+              className={`font-body focus:ring-conveniat-green flex-1 ${
+                error
                   ? 'border-red-300 focus:border-red-500'
                   : 'focus:border-conveniat-green border-gray-300'
-                }`}
+              }`}
               placeholder={chatNamePlaceholder[locale]}
               disabled={isSaving}
             />

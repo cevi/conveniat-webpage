@@ -1,6 +1,6 @@
-import { ChatStatus } from '@/lib/chat-shared';
 import type { ChatMessage } from '@/features/chat/api/types';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
+import { ChatStatus } from '@/lib/chat-shared';
 import type { ChatType } from '@/lib/prisma/client';
 import { trpc } from '@/trpc/client';
 
@@ -47,7 +47,7 @@ export const useAdminChatManagement = ({
     { chatId: selectedChatId! },
     {
       enabled: !!selectedChatId,
-      // TODO: 
+      // TODO:
       //   - Refetch perodically or rely on invalidation?
       //   - Admin might want live updates?
       //   - Let's stick to standard behavior + invalidation on actions.

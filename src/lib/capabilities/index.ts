@@ -1,8 +1,15 @@
-import { MediaCapabilities } from '@/lib/capabilities/definitions/media-capabilities';
-import { MessageCapabilities } from '@/lib/capabilities/definitions/message-capabilities';
+import {
+  ChatCreationCapabilities,
+  MediaCapabilities,
+  MessageCapabilities,
+} from '@/lib/capabilities/definitions/chat-capabilities';
 import type { CapabilitiesMap, Capability, CapabilitySubject } from '@/lib/capabilities/types';
 
-const capabilities: Capability[] = [new MessageCapabilities(), new MediaCapabilities()];
+const capabilities: Capability[] = [
+  new MessageCapabilities(),
+  new MediaCapabilities(),
+  new ChatCreationCapabilities(),
+];
 
 export const checkCapability = async <S extends CapabilitySubject>(
   action: CapabilitiesMap[S],

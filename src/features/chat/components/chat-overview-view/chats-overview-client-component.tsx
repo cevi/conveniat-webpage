@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/buttons/button';
 import { ChatPreview } from '@/features/chat/components/chat-overview-view/chat-preview';
 import { QRCodeClientComponent } from '@/features/chat/components/qr-component';
 import { useChats } from '@/features/chat/hooks/use-chats';
+import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
+import { trpc } from '@/trpc/client';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
@@ -75,6 +77,12 @@ export const ChatsOverviewClientComponent: React.FC<{ user: HitobitoNextAuthUser
 }) => {
   const { data: chats, isLoading } = useChats();
 
+  // Check capability instead of raw feature flag
+  const { data: createChatsEnabled } = trpc.chat.checkCapability.useQuery({
+    action: CapabilityAction.Create,
+    subject: CapabilitySubject.Chat,
+  });
+
   const [searchQuery, setSearchQuery] = useState('');
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
@@ -102,18 +110,22 @@ export const ChatsOverviewClientComponent: React.FC<{ user: HitobitoNextAuthUser
         onChange={(event) => setSearchQuery(event.target.value)}
       />
 
-      {/* New Chat Button */}
-      <div className="flex justify-end gap-2">
-        <QRCodeClientComponent url={user.uuid} />
-      </div>
-
-      <div className="fixed right-6 bottom-18 z-50">
-        <Link href="/app/chat/new">
-          <div className="bg-conveniat-green flex h-14 w-14 items-center justify-center rounded-2xl text-white shadow-lg transition-transform hover:scale-105 hover:bg-green-600">
-            <MessageSquarePlus className="h-7 w-7" />
+      {createChatsEnabled && (
+        <>
+          {/* New Chat Button */}
+          <div className="flex justify-end gap-2">
+            <QRCodeClientComponent url={user.uuid} />
           </div>
-        </Link>
-      </div>
+
+          <div className="fixed right-6 bottom-18 z-50">
+            <Link href="/app/chat/new">
+              <div className="bg-conveniat-green flex h-14 w-14 items-center justify-center rounded-2xl text-white shadow-lg transition-transform hover:scale-105 hover:bg-green-600">
+                <MessageSquarePlus className="h-7 w-7" />
+              </div>
+            </Link>
+          </div>
+        </>
+      )}
 
       {/* Loading State */}
       {isLoading && <ChatsOverviewLoadingPlaceholder />}

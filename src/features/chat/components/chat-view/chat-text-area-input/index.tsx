@@ -57,6 +57,18 @@ const chatLockedText: StaticTranslationString = {
   fr: 'Ce chat a été verrouillé. Plus aucun message ne peut être envoyé.',
 };
 
+const sendErrorMessageText: StaticTranslationString = {
+  de: 'Nachricht konnte nicht gesendet werden. Bitte versuche es erneut.',
+  en: 'Failed to send message. Please try again.',
+  fr: "Échec de l'envoi du message. Veuillez réessayer.",
+};
+
+const messagingDisabledErrorText: StaticTranslationString = {
+  de: 'Nachrichten sind derzeit deaktiviert. Bitte versuche es später erneut.',
+  en: 'Messaging is currently disabled. Please try again later.',
+  fr: 'La messagerie est actuellement désactivée. Veuillez réessayer plus tard.',
+};
+
 export const ChatTextAreaInput: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const fileInputReference = React.useRef<HTMLInputElement>(null);
@@ -73,7 +85,16 @@ export const ChatTextAreaInput: React.FC = () => {
     isSendButtonDisabled,
     messageLength,
     isGlobalMessagingDisabled,
+    sendError,
   } = useMessageInput();
+
+  const getLocalizedError = (error: string | undefined): string | undefined => {
+    if (!error) return undefined;
+    if (error.includes('disabled')) {
+      return messagingDisabledErrorText[locale];
+    }
+    return sendErrorMessageText[locale];
+  };
 
   const isGuest =
     chatDetails?.participants.some(
@@ -191,8 +212,18 @@ export const ChatTextAreaInput: React.FC = () => {
       </div>
     );
   }
+
+  const localizedError = getLocalizedError(sendError);
+
   return (
     <div className="flex flex-col gap-1">
+      {/* Error message when sending fails */}
+      {localizedError && (
+        <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+          {localizedError}
+        </div>
+      )}
+
       {/* Character count warning */}
       {isNearLimit && (
         <div

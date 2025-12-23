@@ -5,9 +5,7 @@ export interface AddParticipants {
   participantIds: string[];
 }
 
-export const useAddParticipants = (): ReturnType<
-  typeof trpc.chat.addParticipants.useMutation
-> => {
+export const useAddParticipants = (): ReturnType<typeof trpc.chat.addParticipants.useMutation> => {
   const trpcUtils = trpc.useUtils();
 
   return trpc.chat.addParticipants.useMutation({

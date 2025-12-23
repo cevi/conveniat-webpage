@@ -122,14 +122,16 @@ export const AddParticipants: React.FC<AddParticipantsProperties> = ({
               return (
                 <div
                   key={contact.userId}
-                  className={`flex cursor-pointer items-center justify-between space-x-3 rounded-lg p-3 transition-colors ${isSelected ? 'text-conveniat-green bg-green-100' : 'hover:bg-gray-100'
-                    }`}
+                  className={`flex cursor-pointer items-center justify-between space-x-3 rounded-lg p-3 transition-colors ${
+                    isSelected ? 'text-conveniat-green bg-green-100' : 'hover:bg-gray-100'
+                  }`}
                   onClick={() => onToggleSelection(contact)}
                 >
                   <div className="flex items-center gap-3">
                     <div
-                      className={`flex h-8 w-8 items-center justify-center rounded-full ${isSelected ? 'bg-conveniat-green text-white' : 'bg-gray-200 text-gray-600'
-                        }`}
+                      className={`flex h-8 w-8 items-center justify-center rounded-full ${
+                        isSelected ? 'bg-conveniat-green text-white' : 'bg-gray-200 text-gray-600'
+                      }`}
                     >
                       <span className="font-heading text-sm font-semibold">
                         {contact.name.charAt(0).toUpperCase()}
@@ -155,9 +157,7 @@ export const AddParticipants: React.FC<AddParticipantsProperties> = ({
         className="bg-conveniat-green font-body w-full hover:bg-green-600 disabled:bg-gray-300"
       >
         <UserPlus className="mr-2 h-4 w-4" />
-        {isAdding
-          ? addingText[locale]
-          : `${addSelectedText[locale]} (${selectedContacts.length})`}
+        {isAdding ? addingText[locale] : `${addSelectedText[locale]} (${selectedContacts.length})`}
       </Button>
     </div>
   );

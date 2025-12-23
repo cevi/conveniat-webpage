@@ -3313,7 +3313,14 @@ export interface AlertSetting {
  */
 export interface AppFeatureFlag {
   id: string;
+  /**
+   * Toggles the ability for users to send messages globally.
+   */
   globalMessagingEnabled?: boolean | null;
+  /**
+   * Toggles the ability for users to create new chats (1-on-1 and Group). Emergency/Support chats are excluded.
+   */
+  createChatsEnabled?: boolean | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -3473,6 +3480,7 @@ export interface AlertSettingsSelect<T extends boolean = true> {
  */
 export interface AppFeatureFlagsSelect<T extends boolean = true> {
   globalMessagingEnabled?: T;
+  createChatsEnabled?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

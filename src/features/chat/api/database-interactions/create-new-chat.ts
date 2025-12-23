@@ -1,6 +1,6 @@
+import { CHAT_CAPABILITY_CAN_SEND_MESSAGES } from '@/lib/chat-shared';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { Locale, PrismaClientOrTransaction, StaticTranslationString } from '@/types/types';
-import { CHAT_CAPABILITY_CAN_SEND_MESSAGES } from '@/lib/chat-shared';
 import { ChatMembershipPermission, ChatType, MessageEventType, MessageType } from '@prisma/client';
 
 const newChatText: StaticTranslationString = {

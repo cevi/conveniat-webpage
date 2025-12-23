@@ -9,8 +9,8 @@ import { useAdminChatManagement } from '@/features/chat/hooks/use-admin-chat-man
 import { LocationMap } from '@/features/map/components/location-map';
 import { ConfirmationModal } from '@/features/payload-cms/payload-cms/components/multi-lang-publishing/confirmation-modal';
 import type { Config } from '@/features/payload-cms/payload-types';
-import { ChatType } from '@/lib/prisma/client';
 import { ChatStatus } from '@/lib/chat-shared';
+import { ChatType } from '@/lib/prisma/client';
 import { TRPCProvider } from '@/trpc/client';
 import { useLocale } from '@payloadcms/ui';
 import React, { useEffect, useState } from 'react';

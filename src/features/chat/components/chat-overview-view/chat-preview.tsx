@@ -1,12 +1,12 @@
 'use client';
 import { useFormatDate } from '@/features/chat/hooks/use-format-date';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
+import { i18nConfig, type Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { ChatType } from '@prisma/client';
 import { Siren, Users } from 'lucide-react';
-import Link from 'next/link';
-import { i18nConfig, type Locale } from '@/types/types';
 import { useCurrentLocale } from 'next-i18n-router/client';
+import Link from 'next/link';
 import type React from 'react';
 
 export const ChatPreview: React.FC<{

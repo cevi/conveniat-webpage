@@ -23,7 +23,6 @@ import type { Prisma } from '@prisma/client';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
-
 const adminProcedure = trpcBaseProcedure.use(async ({ ctx, next }) => {
   const hasAccess = await canUserAccessAdminPanel({ user: ctx.user });
   if (!hasAccess) {
@@ -123,8 +122,8 @@ export const adminRouter = createTRPCRouter({
 
       const whereClause: Prisma.ChatWhereInput = input?.includeId
         ? {
-          OR: [{ AND: filters }, { uuid: input.includeId }],
-        }
+            OR: [{ AND: filters }, { uuid: input.includeId }],
+          }
         : { AND: filters };
 
       const chats = await prisma.chat.findMany({
