@@ -44,7 +44,8 @@ const unsubscribeAcceptedText: StaticTranslationString = {
 export const PushNotificationSubscriptionManager: React.FC<{
   callback: () => void;
   locale: 'de' | 'fr' | 'en';
-}> = ({ callback, locale }) => {
+  swUrl?: string;
+}> = ({ callback, locale, swUrl = '/api/serwist/sw.js' }) => {
   const [isSupported, setIsSupported] = useState(() => {
     return (
       typeof navigator !== 'undefined' &&
@@ -56,16 +57,13 @@ export const PushNotificationSubscriptionManager: React.FC<{
   const [subscription, setSubscription] = useState<PushSubscription | undefined>();
 
   const _registerServiceWorker = useCallback(async (): Promise<PushSubscription | null> => {
-    const registration: ServiceWorkerRegistration = await navigator.serviceWorker.register(
-      '/sw.js',
-      {
-        scope: '/',
-        updateViaCache: 'none',
-      },
-    );
+    const registration: ServiceWorkerRegistration = await navigator.serviceWorker.register(swUrl, {
+      scope: '/',
+      updateViaCache: 'none',
+    });
 
     return await registration.pushManager.getSubscription();
-  }, []);
+  }, [swUrl]);
 
   useEffect(() => {
     if (isSupported) {
