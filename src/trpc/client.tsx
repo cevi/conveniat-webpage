@@ -5,9 +5,11 @@ import { makeQueryClient } from '@/trpc/query-client';
 import type { AppRouter } from '@/trpc/routers/_app';
 import type { QueryClient } from '@tanstack/react-query';
 import { QueryClientProvider } from '@tanstack/react-query';
+import type { Persister } from '@tanstack/react-query-persist-client';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { httpBatchLink } from '@trpc/client';
 import { createTRPCReact } from '@trpc/react-query';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import superjson from 'superjson';
 
 export const trpc = createTRPCReact<AppRouter>();
@@ -46,9 +48,36 @@ export const TRPCProvider: React.FC<{
     }),
   );
 
+  const [persister, setPersister] = useState<Persister | undefined>();
+
+  useEffect(() => {
+    if (typeof globalThis !== 'undefined') {
+      void import('@tanstack/query-async-storage-persister')
+        .then(({ createAsyncStoragePersister }) => {
+          setPersister(
+            createAsyncStoragePersister({
+              storage: globalThis.localStorage,
+              key: 'conveniat-query-cache',
+            }),
+          );
+        })
+        .catch(() => {});
+    }
+  }, []);
+
+  if (!persister) {
+    return (
+      <trpc.Provider client={trpcClient} queryClient={queryClient}>
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      </trpc.Provider>
+    );
+  }
+
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <PersistQueryClientProvider client={queryClient} persistOptions={{ persister }}>
+        {children}
+      </PersistQueryClientProvider>
     </trpc.Provider>
   );
 };

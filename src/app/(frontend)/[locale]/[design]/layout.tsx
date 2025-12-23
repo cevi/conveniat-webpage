@@ -1,19 +1,14 @@
-import { DynamicAppTitleProvider } from '@/components/header/dynamic-app-title-name';
-import { HeaderClientWrapper } from '@/components/header/header-client-wrapper';
-import { HideHeaderProvider } from '@/components/header/hide-header-context';
-import { CeviLogo } from '@/components/svg-logos/cevi-logo';
-import { SerwistProvider } from '@/lib/serwist-client';
-import { PostHogProvider } from '@/providers/post-hog-provider';
-import { TRPCProvider } from '@/trpc/client';
+import { AppShell } from '@/app/app-shell';
+import { FooterComponent } from '@/components/footer/footer-component';
+import { HeaderComponent } from '@/components/header/header-component';
 import type { Locale } from '@/types/types';
+import { DesignCodes } from '@/utils/design-codes';
+import { sharedFontClassName } from '@/utils/fonts';
 import { cn } from '@/utils/tailwindcss-override';
-import { Inter, Montserrat } from 'next/font/google';
 import type { ReactNode } from 'react';
 
 // These styles apply to every route in the application
 import '@/app/globals.scss';
-import { HeaderComponent } from '@/components/header/header-component';
-import { DesignCodes } from '@/utils/design-codes';
 
 interface LayoutProperties {
   children: ReactNode;
@@ -23,23 +18,16 @@ interface LayoutProperties {
   }>;
 }
 
-const montserrat = Montserrat({
-  subsets: ['latin'],
-  display: 'block',
-});
-
-const inter = Inter({
-  subsets: ['latin'],
-  display: 'block',
-});
-
 const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
   const { locale, design } = await params;
   const isInAppDesign = design === DesignCodes.APP_DESIGN;
 
+  const localePromise = Promise.resolve(locale);
+  const inAppDesignPromise = Promise.resolve(isInAppDesign);
+
   return (
     <html
-      className={cn(`${montserrat.className} ${inter.className}`, {
+      className={cn(sharedFontClassName, {
         'overscroll-y-none': isInAppDesign,
       })}
       lang={locale}
@@ -50,28 +38,13 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
           'overscroll-y-none': isInAppDesign,
         })}
       >
-        {/* !isInAppDesign && <NextTopLoader showSpinner={false} color="#47564c" zIndex={999} /> */}
-
-        <SerwistProvider swUrl="/api/serwist/sw.js">
-          <PostHogProvider>
-            <TRPCProvider>
-              <HideHeaderProvider>
-                <DynamicAppTitleProvider>
-                  <HeaderClientWrapper>
-                    <HeaderComponent locale={locale} inAppDesign={isInAppDesign} />
-                  </HeaderClientWrapper>
-                  <div className="absolute top-0 z-[-999] h-screen w-full p-[56px] xl:pl-[480px]">
-                    <CeviLogo className="mx-auto h-full max-h-[60vh] w-full max-w-[384px] opacity-10 blur-md" />
-                  </div>
-
-                  <div className="mt-[62px] h-[calc(100dvh-62px)] xl:ml-[480px]">
-                    <main className="flex min-h-full flex-col justify-between">{children}</main>
-                  </div>
-                </DynamicAppTitleProvider>
-              </HideHeaderProvider>
-            </TRPCProvider>
-          </PostHogProvider>
-        </SerwistProvider>
+        <AppShell
+          header={<HeaderComponent locale={locale} inAppDesign={isInAppDesign} />}
+          footer={<FooterComponent locale={localePromise} inAppDesign={inAppDesignPromise} />}
+          inAppDesign={isInAppDesign}
+        >
+          {children}
+        </AppShell>
       </body>
     </html>
   );

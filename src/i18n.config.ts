@@ -37,4 +37,5 @@ export const i18nExcludedRoutes: string[] = [
   'manifest.webmanifest',
   'sitemap.xml',
   'robots.txt',
+  '~offline',
 ] as const;

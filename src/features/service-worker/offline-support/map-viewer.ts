@@ -1,7 +1,7 @@
+import { offlineRegistry } from '@/features/service-worker/offline-support/offline-registry';
 import type { Serwist } from 'serwist';
-import { type RouteHandler } from 'serwist';
+import { CacheFirst, type RouteHandler } from 'serwist';
 
-const revision = 'v2025-06-18';
 const tilesBaseUrl = 'https://vectortiles0.geo.admin.ch/tiles/';
 const tilesStyleBaseUrl = 'https://vectortiles.geo.admin.ch/tiles/';
 const stylesBaseUrl = 'https://vectortiles.geo.admin.ch/styles/';
@@ -69,55 +69,41 @@ const urlsToPrecache: string[] = [
 
 /**
  * Rewrites failed tile requests to the primary tile server.
- * As by default we are fetching tiles from `vectortiles[0-4].geo.admin.ch`,
- * this function rewrites the URL to `vectortiles0.geo.admin.ch`
- * to ensure that the request is served from the primary tile server as
- * the fallback.
- *
- * @param serwist
  */
-const tileURLRewriter = (serwist: Serwist): RouteHandler => {
+export const tileURLRewriter = (serwist: Serwist): RouteHandler => {
   return async ({ request }) => {
-    // Check if the failed request URL matches a Swisstopo tile pattern
-    // This regex will capture the layer, version, and x/y/z coordinates
+    const url = new URL(request.url);
+
+    if (
+      url.pathname.startsWith('/en/app/map') ||
+      url.pathname.startsWith('/fr/app/map') ||
+      url.pathname.startsWith('/de/app/map')
+    ) {
+      return Response.redirect('/app/map', 301);
+    }
+
     const tileRegex =
       /https:\/\/vectortiles[0-4]\.geo\.admin\.ch\/tiles\/(ch\.swisstopo\..*\.vt\/v[0-9]\.[0-9]\.[0-9])\/([0-9]+\/[0-9]+\/[0-9]+\.pbf)/;
     const match = request.url.match(tileRegex);
 
     if (match?.[1] !== undefined && match[2] !== undefined) {
-      const tilePath = match[1]; // e.g., ch.swisstopo.relief.vt/v1.0.0
-      const coordsAndFile = match[2]; // e.g., 12/2141/1449.pbf
+      const tilePath = match[1];
+      const coordsAndFile = match[2];
+      const newTileUrl = `${tilesBaseUrl}${tilePath}/${coordsAndFile}`;
 
-      // Construct the new URL using the desired base URL (vectortiles0)
-      const newTileUrl = `https://vectortiles0.geo.admin.ch/tiles/${tilePath}/${coordsAndFile}`;
-
-      console.log(`Rewriting failed tile request from ${request.url} to ${newTileUrl}`);
-
-      // Try to fetch the tile from the rewritten URL using a CacheFirst strategy
       try {
         const cachedResponse = await caches.match(newTileUrl);
-        if (cachedResponse) {
-          return cachedResponse;
-        } else {
-          console.warn(`Tile not found in cache for rewritten URL: ${newTileUrl}`);
-          return Response.error();
-        }
+        if (cachedResponse) return cachedResponse;
       } catch (error) {
         console.error(`Error trying to fetch rewritten tile URL: ${newTileUrl}`, error);
-        return Response.error();
       }
     }
 
-    const url = new URL(request.url);
     if (url.pathname.startsWith('/app/map') && request.destination === 'document') {
       const cachedMapPage = await serwist.matchPrecache('/app/map');
-      if (cachedMapPage) {
-        console.log(`Serving precached /app/map for failed request to ${request.url}`);
-        return cachedMapPage;
-      }
+      if (cachedMapPage) return cachedMapPage;
     }
 
-    // For any other failed requests, use the default fallback (e.g., /offline for documents)
     if (request.destination === 'document') {
       const _match = await serwist.matchPrecache('/~offline');
       return _match ?? Response.error();
@@ -128,35 +114,19 @@ const tileURLRewriter = (serwist: Serwist): RouteHandler => {
 };
 
 /**
- * Pre-cache the map viewer and its tiles for offline support.
- *
- * @param serwist
- * @param revisionUuid
+ * Register map viewer offline support.
  */
-export const addOfflineSupportForMapViewer = (serwist: Serwist, revisionUuid: string): void => {
-  const precacheList = urlsToPrecache.map((preCacheURL) => ({
-    url: preCacheURL,
-    revision: preCacheURL === '/app/map' ? revisionUuid : revision,
-  }));
-  serwist.addToPrecacheList(precacheList);
-
-  // Set a catch handler for failed requests.
-  // This will be invoked when a request fails and no other route handles it.
-  serwist.setCatchHandler(tileURLRewriter(serwist));
-
-  // redirect /[en|fr|de]/app/map to /app/map
-  serwist.setCatchHandler(
-    async ({ request }) =>
-      new Promise((resolve) => {
-        const url = new URL(request.url);
-        if (
-          url.pathname.startsWith('/en/app/map') ||
-          url.pathname.startsWith('/fr/app/map') ||
-          url.pathname.startsWith('/de/app/map')
-        ) {
-          return resolve(Response.redirect('/app/map', 301));
-        }
-        return resolve(Response.error());
-      }),
-  );
+export const registerMapOfflineSupport = (): void => {
+  offlineRegistry.register('map-viewer', {
+    precacheAssets: urlsToPrecache,
+    prefetchUrls: ['/app/map'],
+    runtimeCaching: [
+      {
+        matcher: /https:\/\/vectortiles[0-4]\.geo\.admin\.ch\/tiles\/.*/,
+        handler: new CacheFirst({
+          cacheName: 'map-tiles-cache',
+        }),
+      },
+    ],
+  });
 };
