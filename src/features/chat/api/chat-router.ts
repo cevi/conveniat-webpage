@@ -12,6 +12,7 @@ import { updateMessageContent } from '@/features/chat/api/mutations/update-messa
 import { getChat } from '@/features/chat/api/queries/get-chat';
 import { getChatMessages } from '@/features/chat/api/queries/get-chat-messages';
 import { getDownloadUrl } from '@/features/chat/api/queries/get-download-url';
+import { getFeatureFlags } from '@/features/chat/api/queries/get-feature-flags';
 import { getUser } from '@/features/chat/api/queries/get-user';
 import { listChats } from '@/features/chat/api/queries/list-chats';
 import { listContacts } from '@/features/chat/api/queries/list-contacts';
@@ -35,4 +36,5 @@ export const chatRouter = createTRPCRouter({
   getDownloadUrl: getDownloadUrl,
   addParticipants: addParticipants,
   removeParticipant: removeParticipant,
+  getFeatureFlags: getFeatureFlags,
 });

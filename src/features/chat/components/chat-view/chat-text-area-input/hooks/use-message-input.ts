@@ -28,7 +28,7 @@ export const useMessageInput = (): UseMessageInputLogicResult => {
   const { textareaRef: messageInputReference, resize: resizeTextarea } =
     useAutoResizeTextarea(newMessage);
 
-  const { data: featureFlags, isLoading: isLoadingFlags } = trpc.admin.getFeatureFlags.useQuery(
+  const { data: featureFlags, isLoading: isLoadingFlags } = trpc.chat.getFeatureFlags.useQuery(
     undefined,
     {
       refetchInterval: 5000, // Poll every 5 seconds
