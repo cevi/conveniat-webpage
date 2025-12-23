@@ -294,11 +294,13 @@ use Prisma Migrate.
 ###############################################
 # Generate and apply migrations to conveniat27.cevi.tools
 ###############################################
+# 1. Establish SSH Tunnel for Dev (see 'Connect from Localhost' below)
 export DB_PASSWORD= # dev deployment database password
-export CHAT_DATABASE_URL="postgres://conveniat27:$DB_PASSWORD@db.conveniat27.cevi.tools:443/conveniat27"
+# Connect via the tunnel on localhost:5433
+export CHAT_DATABASE_URL="postgres://conveniat27:$DB_PASSWORD@localhost:5433/conveniat27"
 
 # check status (this will show the current migration status)
-npx prisma migrate diff --from-url $CHAT_DATABASE_URL --to-schema-datamodel prisma/schema.prisma
+npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma
 
 # create a new migration
 npx prisma migrate dev --schema prisma/schema.prisma
@@ -306,10 +308,92 @@ npx prisma migrate dev --schema prisma/schema.prisma
 #############################################
 # Apply migrations to conveniat27.ch
 #############################################
+# 1. Establish SSH Tunnel for Prod (see 'Connect from Localhost' below)
 export DB_PASSWORD= # prod deployment database password
-export CHAT_DATABASE_URL="postgres://conveniat27:$DB_PASSWORD@conveniat27.ch:443/conveniat27"
+# Connect via the tunnel on localhost:5433
+export CHAT_DATABASE_URL="postgres://conveniat27:$DB_PASSWORD@localhost:5433/conveniat27"
+
 npx prisma migrate deploy --schema prisma/schema.prisma
 ```
+
+### Database Maintenance
+
+If you see warnings about **collation version mismatch** (e.g., `The database was created using collation version 2.36, but the operating system provides version 2.41`), you need to update the collation version to match the current OS.
+
+Run the following SQL command against the database:
+
+```sql
+ALTER DATABASE conveniat27 REFRESH COLLATION VERSION;
+```
+
+SSH into the server and run the following command to execute the SQL command:
+
+### Production (conveniat.ch)
+
+If asked for a password for the user conveniat27, use the production database password.
+
+```bash
+docker run --rm -it --network conveniat_backend-net postgres:17 \
+  psql -h conveniat_postgres -U conveniat27 -d conveniat27 -c "ALTER DATABASE conveniat27 REFRESH COLLATION VERSION;"
+```
+
+### Development (conveniat27.cevi.tools)
+
+If asked for a password for the user conveniat27, use the development database password.
+
+```bash
+docker run --rm -it --network conveniat-dev_backend-net postgres:17 \
+  psql -h conveniat-dev_postgres -U conveniat27 -d conveniat27 -c "ALTER DATABASE conveniat27 REFRESH COLLATION VERSION;"
+```
+
+### Interactive SQL Console
+
+To open an interactive `psql` shell (instead of running a single command), simply omit the `-c` argument:
+
+**Production:**
+
+```bash
+docker run --rm -it --network conveniat_backend-net postgres:17 \
+  psql -h conveniat_postgres -U conveniat27 -d conveniat27
+```
+
+**Development:**
+
+```bash
+docker run --rm -it --network conveniat-dev_backend-net postgres:17 \
+  psql -h conveniat-dev_postgres -U conveniat27 -d conveniat27
+```
+
+### Connect from Localhost
+
+To directly connect to the database from your local machine, use an **SSH Tunnel**:
+
+#### Open Tunnel (Swarm-Aware):
+
+Since the database runs on a private internal network (`conveniat_backend-net`) and may not be on the manager node, a simple SSH tunnel won't work.
+Use this command to tunnel via a temporary forwarder container:
+
+**For Production:**
+
+```bash
+ssh -i ~/.ssh/id_rsa_cevi_tools -L 5433:127.0.0.1:5433 root@10.0.0.13 \
+  "docker run --rm -p 127.0.0.1:5433:5432 --network conveniat_backend-net alpine sh -c 'apk add --no-cache socat && socat TCP-LISTEN:5432,fork TCP:conveniat_postgres:5432'"
+```
+
+**For Development:**
+
+```bash
+ssh -i ~/.ssh/id_rsa_cevi_tools -L 5433:127.0.0.1:5433 root@10.0.0.13 \
+    "docker run --rm -p 127.0.0.1:5433:5432 --network conveniat-dev_backend-net alpine sh -c 'apk add --no-cache socat && socat TCP-LISTEN:5432,fork TCP:conveniat-dev_postgres:5432'"
+```
+
+**How this works:**
+
+- It SSHs to the manager.
+- Starts a tiny `alpine` container attached to the private backend network.
+- Maps the container's port to the manager's localhost (`-p 127.0.0.1:5433:5432`).
+- Uses `socat` to forward traffic to the `conveniat_postgres` service VIP.
+- Your local machine tunnels to the manager's `localhost:5433`.
 
 ## License
 
