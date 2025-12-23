@@ -6,8 +6,5 @@
     "declaration": false,
     "esModuleInterop": true
   },
-  "include": [
-    "src/cache-handlers/default.cts",
-    "src/cache-handlers/redis.cts"
-  ]
+  "include": ["src/cache-handlers/default.cts", "src/cache-handlers/redis.cts"]
 }
