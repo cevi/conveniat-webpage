@@ -1,5 +1,6 @@
 import nextVitals from 'eslint-config-next/core-web-vitals';
 import nextTs from 'eslint-config-next/typescript';
+import eslintConfigPrettier from 'eslint-config-prettier';
 import progress from 'eslint-plugin-file-progress';
 import nodePlugin from 'eslint-plugin-n';
 import noRelativeImportPaths from 'eslint-plugin-no-relative-import-paths';
@@ -252,7 +253,10 @@ const config = defineConfig([
     },
   },
 
-  // 5. Global Ignores
+  // 5. Prettier (Disables all conflicting formatting rules)
+  eslintConfigPrettier,
+
+  // 6. Global Ignores
   globalIgnores([
     // Default ignores from eslint-config-next
     '.next/**',
