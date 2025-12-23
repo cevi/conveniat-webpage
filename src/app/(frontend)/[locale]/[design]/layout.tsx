@@ -2,6 +2,7 @@ import { DynamicAppTitleProvider } from '@/components/header/dynamic-app-title-n
 import { HeaderClientWrapper } from '@/components/header/header-client-wrapper';
 import { HideHeaderProvider } from '@/components/header/hide-header-context';
 import { CeviLogo } from '@/components/svg-logos/cevi-logo';
+import { SerwistProvider } from '@/lib/serwist-client';
 import { PostHogProvider } from '@/providers/post-hog-provider';
 import { TRPCProvider } from '@/trpc/client';
 import type { Locale } from '@/types/types';
@@ -51,24 +52,26 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
       >
         {/* !isInAppDesign && <NextTopLoader showSpinner={false} color="#47564c" zIndex={999} /> */}
 
-        <PostHogProvider>
-          <TRPCProvider>
-            <HideHeaderProvider>
-              <DynamicAppTitleProvider>
-                <HeaderClientWrapper>
-                  <HeaderComponent locale={locale} inAppDesign={isInAppDesign} />
-                </HeaderClientWrapper>
-                <div className="absolute top-0 z-[-999] h-screen w-full p-[56px] xl:pl-[480px]">
-                  <CeviLogo className="mx-auto h-full max-h-[60vh] w-full max-w-[384px] opacity-10 blur-md" />
-                </div>
+        <SerwistProvider swUrl="/api/serwist/sw.js">
+          <PostHogProvider>
+            <TRPCProvider>
+              <HideHeaderProvider>
+                <DynamicAppTitleProvider>
+                  <HeaderClientWrapper>
+                    <HeaderComponent locale={locale} inAppDesign={isInAppDesign} />
+                  </HeaderClientWrapper>
+                  <div className="absolute top-0 z-[-999] h-screen w-full p-[56px] xl:pl-[480px]">
+                    <CeviLogo className="mx-auto h-full max-h-[60vh] w-full max-w-[384px] opacity-10 blur-md" />
+                  </div>
 
-                <div className="mt-[62px] h-[calc(100dvh-62px)] xl:ml-[480px]">
-                  <main className="flex min-h-full flex-col justify-between">{children}</main>
-                </div>
-              </DynamicAppTitleProvider>
-            </HideHeaderProvider>
-          </TRPCProvider>
-        </PostHogProvider>
+                  <div className="mt-[62px] h-[calc(100dvh-62px)] xl:ml-[480px]">
+                    <main className="flex min-h-full flex-col justify-between">{children}</main>
+                  </div>
+                </DynamicAppTitleProvider>
+              </HideHeaderProvider>
+            </TRPCProvider>
+          </PostHogProvider>
+        </SerwistProvider>
       </body>
     </html>
   );

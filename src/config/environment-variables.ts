@@ -57,7 +57,6 @@ export const environmentVariables = createEnv({
     NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string(),
     NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
     NEXT_PUBLIC_POSTHOG_HOST: z.string().url(),
-    NEXT_PUBLIC_ENABLE_OFFLINE_SUPPORT: z.boolean().default(false),
     NEXT_PUBLIC_ENABLE_CON27_SHORT_URLS: z.boolean(),
   },
 
@@ -66,7 +65,6 @@ export const environmentVariables = createEnv({
     NEXT_PUBLIC_VAPID_PUBLIC_KEY: process.env['NEXT_PUBLIC_VAPID_PUBLIC_KEY'],
     NEXT_PUBLIC_POSTHOG_KEY: process.env['NEXT_PUBLIC_POSTHOG_KEY'],
     NEXT_PUBLIC_POSTHOG_HOST: process.env['NEXT_PUBLIC_POSTHOG_HOST'],
-    NEXT_PUBLIC_ENABLE_OFFLINE_SUPPORT: process.env['ENABLE_SERVICE_WORKER_LOCALLY'] === 'true',
     NEXT_PUBLIC_ENABLE_CON27_SHORT_URLS: process.env['ENABLE_CON27_SHORT_URLS'] === 'true',
   },
 

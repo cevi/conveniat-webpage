@@ -4,8 +4,8 @@ FROM node:24.4-alpine AS base
 
 # Install curl for healthcheck and build dependencies for sharp, rebuild sharp, and then uninstall build dependencies
 RUN apk add --no-cache curl vips vips-dev fftw-dev gcc g++ make python3 && \
-    npm rebuild sharp --platform=linuxmusl --arch=x64 && \
-    apk del vips-dev fftw-dev gcc g++ make python3
+  npm rebuild sharp --platform=linuxmusl --arch=x64 && \
+  apk del vips-dev fftw-dev gcc g++ make python3
 
 # Install dependencies only when needed
 FROM base AS deps
@@ -45,10 +45,6 @@ ENV NEXT_PUBLIC_VAPID_PUBLIC_KEY=${NEXT_PUBLIC_VAPID_PUBLIC_KEY}
 ENV NEXT_PUBLIC_POSTHOG_HOST=${NEXT_PUBLIC_POSTHOG_HOST}
 ENV NEXT_PUBLIC_POSTHOG_KEY=${NEXT_PUBLIC_POSTHOG_KEY}
 
-# additional build time feature flags
-ARG NEXT_PUBLIC_ENABLE_OFFLINE_SUPPORT=false
-ENV NEXT_PUBLIC_ENABLE_OFFLINE_SUPPORT=${NEXT_PUBLIC_ENABLE_OFFLINE_SUPPORT}
-
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
@@ -56,7 +52,7 @@ COPY . .
 # if NEXT_PUBLIC_APP_HOST_URL is not set to conveniat27.ch
 RUN \
   if [ "${NEXT_PUBLIC_APP_HOST_URL}" != "https://conveniat27.ch" ]; then \
-    cp /app/public/dev-icons/* /app/public/; \
+  cp /app/public/dev-icons/* /app/public/; \
   fi
 
 RUN sh create_build_info.sh

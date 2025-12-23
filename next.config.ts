@@ -1,8 +1,6 @@
-import build from '@/build';
 import { cachingHeaders, optimizedImageMinimumCacheTTL } from '@/cache-control';
 import bundleAnalyzer from '@next/bundle-analyzer';
 import { withPayload } from '@payloadcms/next/withPayload';
-import withSerwistInit from '@serwist/next';
 import type { NextConfig } from 'next';
 import type { Rewrite } from 'next/dist/lib/load-custom-routes';
 
@@ -30,6 +28,7 @@ const postHogRewrites = (): Rewrite[] => {
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  serverExternalPackages: ['esbuild-wasm'],
   productionBrowserSourceMaps: true,
   transpilePackages: ['@t3-oss/env-nextjs', '@t3-oss/env-core'],
   poweredByHeader: false,
@@ -86,25 +85,4 @@ const nextConfig: NextConfig = {
   headers: cachingHeaders,
 };
 
-const serviceWorkerRevision =
-  process.env.NODE_ENV === 'production' ? build.git.hash : Math.random().toString(36).slice(2);
-
-if (process.env['ENABLE_SERVICE_WORKER_LOCALLY'] === 'true') {
-  console.log(`serviceWorkerRevision: ${serviceWorkerRevision}`);
-}
-
-export const withSerwist = withSerwistInit({
-  cacheOnNavigation: true,
-  swSrc: 'src/features/service-worker/index.ts',
-  swDest: 'public/sw.js',
-  register: true,
-  reloadOnOnline: false, // don't reload the page when going online
-  disable:
-    (process.env.NODE_ENV !== 'production' &&
-      process.env['ENABLE_SERVICE_WORKER_LOCALLY'] !== 'true') ||
-    process.env['DISABLE_SERVICE_WORKER'] === 'true',
-});
-
-export default withBundleAnalyzer(
-  withSerwist(withPayload(nextConfig, { devBundleServerPackages: false })),
-);
+export default withBundleAnalyzer(withPayload(nextConfig, { devBundleServerPackages: false }));

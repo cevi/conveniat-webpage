@@ -1,9 +1,11 @@
-import { serwistFactory } from '@/features/service-worker/offline-support';
+import { addOfflineSupportForMapViewer } from '@/features/service-worker/offline-support/map-viewer';
 import {
   notificationClickHandler,
   pushNotificationHandler,
 } from '@/features/service-worker/push-notifications';
+import { defaultCache } from '@serwist/turbopack/worker';
 import type { PrecacheEntry, SerwistGlobalConfig } from 'serwist';
+import { Serwist } from 'serwist';
 
 /**
  * Declares the global `__SW_MANIFEST` property on the `WorkerGlobalScope`.
@@ -29,11 +31,27 @@ declare global {
 // Ensures the global `self` variable is correctly typed as `ServiceWorkerGlobalScope`.
 declare const self: ServiceWorkerGlobalScope;
 
-// offline support » handled by serwist
-const serwist = serwistFactory(
-  self.__SW_MANIFEST ?? [],
-  process.env['NEXT_PUBLIC_ENABLE_OFFLINE_SUPPORT'] === 'true',
-);
+// Initialize Serwist with Turbopack worker defaults
+const serwist = new Serwist({
+  precacheEntries: self.__SW_MANIFEST ?? [],
+  skipWaiting: true,
+  clientsClaim: true,
+  navigationPreload: true,
+  runtimeCaching: defaultCache,
+  fallbacks: {
+    entries: [
+      {
+        url: '/~offline',
+        matcher({ request }) {
+          return request.destination === 'document';
+        },
+      },
+    ],
+  },
+});
+
+// Add map viewer offline support
+addOfflineSupportForMapViewer(serwist, crypto.randomUUID());
 
 // push notifications » has nothing to do with serwist
 self.addEventListener('push', pushNotificationHandler(self));

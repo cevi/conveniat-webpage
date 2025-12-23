@@ -119,7 +119,7 @@ const tileURLRewriter = (serwist: Serwist): RouteHandler => {
 
     // For any other failed requests, use the default fallback (e.g., /offline for documents)
     if (request.destination === 'document') {
-      const _match = await serwist.matchPrecache('/offline');
+      const _match = await serwist.matchPrecache('/~offline');
       return _match ?? Response.error();
     }
 

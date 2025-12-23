@@ -1,5 +1,5 @@
 import { addOfflineSupportForMapViewer } from '@/features/service-worker/offline-support/map-viewer';
-import { defaultCache } from '@serwist/next/worker';
+import { defaultCache } from '@serwist/turbopack/worker';
 import type { PrecacheEntry } from 'serwist';
 import { Serwist } from 'serwist';
 
@@ -47,7 +47,7 @@ export const serwistFactory = (
     fallbacks: {
       entries: [
         {
-          url: '/offline',
+          url: '/~offline',
           matcher({ request }): boolean {
             return request.destination === 'document';
           },
@@ -57,7 +57,7 @@ export const serwistFactory = (
   });
 
   const revisionUuid = crypto.randomUUID();
-  serwist.addToPrecacheList([{ url: '/offline', revision: revisionUuid }]);
+  serwist.addToPrecacheList([{ url: '/~offline', revision: revisionUuid }]);
 
   if (!enablePrecaching) {
     console.warn('Service Worker: Offline support is disabled. Limited offline functionality.');
