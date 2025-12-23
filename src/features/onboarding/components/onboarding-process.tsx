@@ -2,12 +2,14 @@
 
 import type { cookieInfoText } from '@/features/onboarding/components/accept-cookies-component';
 import { AcceptCookieEntrypointComponent } from '@/features/onboarding/components/accept-cookies-component';
-import { GettingReadyEntrypointComponent } from '@/features/onboarding/components/getting-started';
+import { FancyLoadingScreen } from '@/features/onboarding/components/fancy-loading-screen';
 import { LoginScreen } from '@/features/onboarding/components/login-screen';
 import { PushNotificationManagerEntrypointComponent } from '@/features/onboarding/components/push-notification-manager';
+import { getPushSubscription } from '@/features/onboarding/utils/push-subscription-utils';
 import { Cookie } from '@/types/types';
 import { DesignCodes } from '@/utils/design-codes';
 import Cookies from 'js-cookie';
+import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import type { ChangeEvent } from 'react';
 import React, { useEffect, useState } from 'react';
@@ -17,6 +19,7 @@ enum OnboardingStep {
   Login = 1,
   PushNotifications = 2,
   Loading = 3,
+  Checking = 4,
 }
 
 const languageOptions = [
@@ -58,22 +61,13 @@ const getInitialLocale = (): 'en' | 'de' | 'fr' => {
 };
 
 const getInitialOnboardingStep = (): OnboardingStep => {
-  if (typeof globalThis === 'undefined') return OnboardingStep.Initial; // SSR Guard
-  const hasAcceptedCookies = Cookies.get(Cookie.CONVENIAT_COOKIE_BANNER) === 'true';
-  const hasLoggedIn = Cookies.get(Cookie.HAS_LOGGED_IN) === 'true';
-
-  if (!hasAcceptedCookies) {
-    return OnboardingStep.Initial;
-  }
-  if (!hasLoggedIn) {
-    return OnboardingStep.Login;
-  }
-  return OnboardingStep.PushNotifications;
+  return OnboardingStep.Checking;
 };
 
 export const OnboardingProcess: React.FC = () => {
   const [locale, setLocale] = useState<keyof typeof cookieInfoText>(getInitialLocale);
   const [onboardingStep, setOnboardingStep] = useState<OnboardingStep>(getInitialOnboardingStep);
+  const { status } = useSession();
 
   const router = useRouter();
 
@@ -90,6 +84,61 @@ export const OnboardingProcess: React.FC = () => {
     }
   }, [hasManuallyChangedLanguage, locale, onboardingStep]);
 
+  const isMounted = React.useRef(true);
+
+  useEffect(() => {
+    return (): void => {
+      isMounted.current = false;
+    };
+  }, []);
+
+  const handlePushNotification = (): void => {
+    setOnboardingStep(OnboardingStep.Loading);
+    Cookies.set(Cookie.DESIGN_MODE, DesignCodes.APP_DESIGN, { expires: 730 });
+    Cookies.remove(Cookie.HAS_LOGGED_IN);
+  };
+
+  useEffect(() => {
+    // Determine the step client-side to avoid hydration mismatch
+    const hasAcceptedCookies = Cookies.get(Cookie.CONVENIAT_COOKIE_BANNER) === 'true';
+
+    if (!hasAcceptedCookies) {
+      // Defer state update to next tick to avoid "synchronous setState in effect" error
+      // and allow initial render to complete.
+      setTimeout(() => {
+        if (isMounted.current) setOnboardingStep(OnboardingStep.Initial);
+      }, 0);
+      return;
+    }
+
+    if (status === 'loading') {
+      return;
+    }
+
+    if (status === 'authenticated') {
+      // Check for push subscription before showing the screen
+      getPushSubscription()
+        .then((subscription: PushSubscription | undefined): void => {
+          if (!isMounted.current) return;
+          const hasSkipped = Cookies.get(Cookie.SKIP_PUSH_NOTIFICATION) === 'true';
+
+          if (subscription || hasSkipped) {
+            // Already subscribed OR explicitly skipped: skip to main app
+            handlePushNotification();
+          } else {
+            setOnboardingStep(OnboardingStep.PushNotifications);
+          }
+        })
+        .catch((): void => {
+          if (isMounted.current) setOnboardingStep(OnboardingStep.PushNotifications);
+        });
+    } else {
+      setTimeout(() => {
+        if (isMounted.current) setOnboardingStep(OnboardingStep.Login);
+      }, 0);
+    }
+  }, [status]);
+
   const handleLanguageChange = (newLocale: string): void => {
     setLocale(newLocale as keyof typeof cookieInfoText);
     setHasManuallyChangedLanguage(true);
@@ -97,13 +146,21 @@ export const OnboardingProcess: React.FC = () => {
 
   const acceptCookiesCallback = (): void => {
     router.prefetch('/app/dashboard');
-    setOnboardingStep(OnboardingStep.Login);
-  };
-
-  const handlePushNotification = (): void => {
-    setOnboardingStep(OnboardingStep.Loading);
-    Cookies.set(Cookie.DESIGN_MODE, DesignCodes.APP_DESIGN, { expires: 730 });
-    Cookies.remove(Cookie.HAS_LOGGED_IN);
+    if (status === 'authenticated') {
+      getPushSubscription()
+        .then((subscription: PushSubscription | undefined): void => {
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          if (!isMounted.current) return;
+          if (subscription) {
+            handlePushNotification();
+          } else {
+            setOnboardingStep(OnboardingStep.PushNotifications);
+          }
+        })
+        .catch((): void => setOnboardingStep(OnboardingStep.PushNotifications));
+    } else {
+      setOnboardingStep(OnboardingStep.Login);
+    }
   };
 
   useEffect(() => {
@@ -134,9 +191,8 @@ export const OnboardingProcess: React.FC = () => {
         />
       )}
 
-      {onboardingStep === OnboardingStep.Loading && (
-        <GettingReadyEntrypointComponent locale={locale} />
-      )}
+      {(onboardingStep === OnboardingStep.Loading ||
+        onboardingStep === OnboardingStep.Checking) && <FancyLoadingScreen />}
     </div>
   );
 };

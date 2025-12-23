@@ -13,6 +13,7 @@ export enum Cookie {
   HAS_LOGGED_IN = 'has-logged-in',
   CONVENIAT_COOKIE_BANNER = 'conveniat-cookie-banner',
   LOCALE_COOKIE = 'next-locale',
+  SKIP_PUSH_NOTIFICATION = 'skip-push-notification',
 }
 
 export enum Header {
