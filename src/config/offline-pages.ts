@@ -11,6 +11,12 @@ export const offlinePages = [
   // Offline fallback page (required)
   '/~offline',
 
+  // App entrypoint
+  '/entrypoint?app-mode=true',
+
+  // Main application dashboard
+  '/app/dashboard',
+
   // Map viewer with tile caching
   '/app/map',
 ] as const;
