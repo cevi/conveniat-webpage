@@ -1,5 +1,6 @@
 import { AppShell } from '@/app/app-shell';
 import { FooterComponent } from '@/components/footer/footer-component';
+import { HideFooterProvider } from '@/components/footer/hide-footer-context';
 import { HeaderComponent } from '@/components/header/header-component';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { WifiOff } from 'lucide-react';
@@ -27,23 +28,25 @@ export default function OfflinePage(): React.ReactNode {
   const inAppDesignPromise = Promise.resolve(inAppDesign);
 
   return (
-    <AppShell
-      header={<HeaderComponent locale={localeSelection} inAppDesign={inAppDesign} />}
-      footer={<FooterComponent locale={localePromise} inAppDesign={inAppDesignPromise} />}
-      inAppDesign={inAppDesign}
-    >
-      <title>{offlineTitle[localeSelection]}</title>
-      <div className="flex min-h-[50vh] items-center justify-center p-4">
-        <div className="max-w-lg text-center">
-          <div className="mb-8 flex justify-center">
-            <WifiOff size={96} className="text-slate-500" strokeWidth={1.5} />
+    <HideFooterProvider>
+      <AppShell
+        header={<HeaderComponent locale={localeSelection} inAppDesign={inAppDesign} />}
+        footer={<FooterComponent locale={localePromise} inAppDesign={inAppDesignPromise} />}
+        inAppDesign={inAppDesign}
+      >
+        <title>{offlineTitle[localeSelection]}</title>
+        <div className="flex min-h-[50vh] items-center justify-center p-4">
+          <div className="max-w-lg text-center">
+            <div className="mb-8 flex justify-center">
+              <WifiOff size={96} className="text-slate-500" strokeWidth={1.5} />
+            </div>
+            <h1 className="mb-4 font-['Montserrat'] text-3xl font-bold text-slate-100">
+              {offlineTitle[localeSelection]}
+            </h1>
+            <p className="leading-relaxed text-slate-400">{offlineMessage[localeSelection]}</p>
           </div>
-          <h1 className="mb-4 font-['Montserrat'] text-3xl font-bold text-slate-100">
-            {offlineTitle[localeSelection]}
-          </h1>
-          <p className="leading-relaxed text-slate-400">{offlineMessage[localeSelection]}</p>
         </div>
-      </div>
-    </AppShell>
+      </AppShell>
+    </HideFooterProvider>
   );
 }

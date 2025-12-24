@@ -174,7 +174,9 @@ const getNewPrecacheEntries = (urls: string[], revisionGenerator: (url: string) 
 };
 
 serwist.addToPrecacheList(
-  getNewPrecacheEntries(criticalAssets, (url) => (url === '/~offline' ? 'initial' : crypto.randomUUID())),
+  getNewPrecacheEntries(criticalAssets, (url) =>
+    url === '/~offline' ? 'initial' : crypto.randomUUID(),
+  ),
 );
 
 // Add precache assets from the offline registry
@@ -249,7 +251,7 @@ async function prefetchOfflinePages(): Promise<void> {
       console.log(`[SW] Found ${assetUrls.size} dependencies for ${pageUrl}`);
 
       // 4. Fetch and cache all found assets
-      // These fetches will trigger the 'fetch' event listener and go through 
+      // These fetches will trigger the 'fetch' event listener and go through
       // the Runtime Caching rules (e.g. StaleWhileRevalidate for static assets)
       await Promise.all(
         Array.from(assetUrls).map(async (url) => {
@@ -258,7 +260,7 @@ async function prefetchOfflinePages(): Promise<void> {
           } catch (e) {
             console.warn(`[SW] Failed to prefetch asset: ${url}`, e);
           }
-        })
+        }),
       );
 
       // 5. Also prefetch the RSC payload for this page
@@ -277,7 +279,6 @@ async function prefetchOfflinePages(): Promise<void> {
         // RSC might fail or not be relevant for some pages
         console.debug(`[SW] Could not prefetch RSC for ${pageUrl}`, err);
       }
-
     } catch (error) {
       console.error(`[SW] Error prefetching ${pageUrl}:`, error);
     }
@@ -288,18 +289,14 @@ async function prefetchOfflinePages(): Promise<void> {
 
 // Push notifications
 self.addEventListener('push', pushNotificationHandler(self));
-self.addEventListener('pushsubscriptionchange', () => { });
+self.addEventListener('pushsubscriptionchange', () => {});
 self.addEventListener('notificationclick', notificationClickHandler(self));
-self.addEventListener('notificationclose', () => { });
+self.addEventListener('notificationclose', () => {});
 
 // Service worker lifecycle events
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    Promise.all([
-      self.clients.claim(),
-      prefetchOfflinePages(),
-      pruneInactiveClients(),
-    ]),
+    Promise.all([self.clients.claim(), prefetchOfflinePages(), pruneInactiveClients()]),
   );
   console.log('[SW] Activated and ready to handle requests.');
 });
@@ -321,7 +318,7 @@ async function ensureInitialized(): Promise<void> {
     const cache = await caches.open(APP_MODE_CACHE_NAME);
     const response = await cache.match(APP_MODE_STORAGE_KEY);
     if (response) {
-      const persistedIds = await response.json() as string[];
+      const persistedIds = (await response.json()) as string[];
       appModeClients = new Set(persistedIds);
     }
   } catch (error) {
@@ -372,14 +369,16 @@ self.addEventListener('message', (event) => {
   const data = event.data as { type?: string } | undefined;
   if (data?.type === 'SET_APP_MODE' && event.source instanceof Client) {
     const clientId = event.source.id;
-    event.waitUntil((async () => {
-      await ensureInitialized();
-      if (!appModeClients.has(clientId)) {
-        appModeClients.add(clientId);
-        await persistAppModeClients();
-        console.log(`[SW] Client registered for App Mode: ${clientId}`);
-      }
-    })());
+    event.waitUntil(
+      (async () => {
+        await ensureInitialized();
+        if (!appModeClients.has(clientId)) {
+          appModeClients.add(clientId);
+          await persistAppModeClients();
+          console.log(`[SW] Client registered for App Mode: ${clientId}`);
+        }
+      })(),
+    );
   }
 });
 
@@ -441,7 +440,9 @@ self.addEventListener('fetch', (event) => {
       // Debug logging for navigations or when app mode is enabled
       if (isNavigation || (isAppMode && !url.pathname.startsWith('/_next/'))) {
         console.log('************************************');
-        console.log(`[SW] App Mode: ${isAppMode ? 'ENABLED 📱' : 'DISABLED 🌐'} (Via: ${detectionSource})`);
+        console.log(
+          `[SW] App Mode: ${isAppMode ? 'ENABLED 📱' : 'DISABLED 🌐'} (Via: ${detectionSource})`,
+        );
         console.log(`[SW] URL: ${event.request.url}`);
         console.log(`[SW] Client ID: ${event.clientId || 'none'}`);
         if (isNavigation) {
@@ -460,12 +461,12 @@ self.addEventListener('fetch', (event) => {
 
       const requestToHandle = isAppMode
         ? (() => {
-          const newHeaders = new Headers(event.request.headers);
-          if (newHeaders.get(DesignModeTriggers.HEADER_IMPLICIT) !== 'true') {
-            newHeaders.set(DesignModeTriggers.HEADER_IMPLICIT, 'true');
-          }
-          return new Request(event.request, { headers: newHeaders });
-        })()
+            const newHeaders = new Headers(event.request.headers);
+            if (newHeaders.get(DesignModeTriggers.HEADER_IMPLICIT) !== 'true') {
+              newHeaders.set(DesignModeTriggers.HEADER_IMPLICIT, 'true');
+            }
+            return new Request(event.request, { headers: newHeaders });
+          })()
         : event.request;
 
       const response = await serwist.handleRequest({

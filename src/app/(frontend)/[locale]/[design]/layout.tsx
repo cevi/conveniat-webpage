@@ -1,7 +1,8 @@
 import { AppShell } from '@/app/app-shell';
-import { ServiceWorkerManager } from '@/components/service-worker/service-worker-manager';
 import { FooterComponent } from '@/components/footer/footer-component';
+import { HideFooterProvider } from '@/components/footer/hide-footer-context';
 import { HeaderComponent } from '@/components/header/header-component';
+import { ServiceWorkerManager } from '@/components/service-worker/service-worker-manager';
 import type { Locale } from '@/types/types';
 import { DesignCodes } from '@/utils/design-codes';
 import { sharedFontClassName } from '@/utils/fonts';
@@ -42,15 +43,17 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
           'overscroll-y-none': isInAppDesign,
         })}
       >
-        <ServiceWorkerManager>
-          <AppShell
-            header={<HeaderComponent locale={locale} inAppDesign={isInAppDesign} />}
-            footer={<FooterComponent locale={localePromise} inAppDesign={inAppDesignPromise} />}
-            inAppDesign={isInAppDesign}
-          >
-            {children}
-          </AppShell>
-        </ServiceWorkerManager>
+        <HideFooterProvider>
+          <ServiceWorkerManager>
+            <AppShell
+              header={<HeaderComponent locale={locale} inAppDesign={isInAppDesign} />}
+              footer={<FooterComponent locale={localePromise} inAppDesign={inAppDesignPromise} />}
+              inAppDesign={isInAppDesign}
+            >
+              {children}
+            </AppShell>
+          </ServiceWorkerManager>
+        </HideFooterProvider>
       </body>
     </html>
   );
