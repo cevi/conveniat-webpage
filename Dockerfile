@@ -2,8 +2,8 @@
 # From https://github.com/vercel/next.js/blob/canary/examples/with-docker/Dockerfile
 FROM node:24.4-alpine AS base
 
-# Install curl for healthcheck and build dependencies for sharp, rebuild sharp, and then uninstall build dependencies
-RUN apk add --no-cache curl vips vips-dev fftw-dev gcc g++ make python3 && \
+# Install curl for healthcheck, libc6-compat for native libs, and build dependencies for sharp
+RUN apk add --no-cache curl libc6-compat vips vips-dev fftw-dev gcc g++ make python3 && \
   npm rebuild sharp --platform=linuxmusl --arch=x64 && \
   apk del vips-dev fftw-dev gcc g++ make python3
 
@@ -14,9 +14,6 @@ WORKDIR /app
 ENV BUILD_TARGET=production
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-
-# Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
-RUN apk add --no-cache libc6-compat
 
 COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
 
@@ -62,9 +59,9 @@ ENV PRISMA_OUTPUT='src/lib/prisma/client/'
 RUN npx prisma generate --no-hints
 
 RUN \
-  if [ -f yarn.lock ]; then yarn run build --webpack; \
-  elif [ -f package-lock.json ]; then npm run build --webpack; \
-  elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm run build --webpack; \
+  if [ -f yarn.lock ]; then yarn run build; \
+  elif [ -f package-lock.json ]; then npm run build; \
+  elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm run build; \
   else echo "Lockfile not found." && exit 1; \
   fi
 

@@ -8,6 +8,7 @@ import {
   notificationClickHandler,
   pushNotificationHandler,
 } from '@/features/service-worker/push-notifications';
+import { DesignModeTriggers } from '@/utils/design-codes';
 import type { PrecacheEntry, RuntimeCaching, SerwistGlobalConfig } from 'serwist';
 import { CacheFirst, NetworkFirst, Serwist, StaleWhileRevalidate } from 'serwist';
 
@@ -15,18 +16,6 @@ import { CacheFirst, NetworkFirst, Serwist, StaleWhileRevalidate } from 'serwist
 registerMapOfflineSupport();
 
 /**
- * Declares the global `__SW_MANIFEST` property on the `WorkerGlobalScope`.
- *
- * Serwist's build process injects the precache manifest (a list of URLs and
- * their revisions to be cached) into the Service Worker using this global
- * variable. This declaration informs TypeScript about the existence and
- * expected type of `__SW_MANIFEST`.
- *
- * @remarks
- * The default injection point string used by Serwist is `"self.__SW_MANIFEST"`.
- * This type declaration ensures type safety when accessing this variable within
- * the Service Worker context.
- *
  * @see {@link https://serwist.pages.dev/docs/next/getting-started | Serwist Documentation}
  */
 declare global {
@@ -37,6 +26,13 @@ declare global {
 
 // Ensures the global `self` variable is correctly typed as `ServiceWorkerGlobalScope`.
 declare const self: ServiceWorkerGlobalScope;
+
+/**
+ * Capture the precache manifest in a local variable.
+ * This ensures that the string "self.__SW_MANIFEST" only appears once in the
+ * source code, which is a requirement for Serwist's injectManifest tool.
+ */
+const swManifest = self.__SW_MANIFEST;
 
 /**
  * Custom runtime caching configuration for robust offline support.
@@ -117,10 +113,11 @@ const runtimeCaching: RuntimeCaching[] = [
 
 // Initialize Serwist with custom caching for robust offline support
 const serwist = new Serwist({
-  precacheEntries: self.__SW_MANIFEST ?? [],
+  precacheEntries: swManifest ?? [],
   skipWaiting: true,
   clientsClaim: true,
-  navigationPreload: true,
+  // Disabled to prevent error: 'The service worker navigation preload request was cancelled before preloadResponse settled'
+  navigationPreload: false,
   runtimeCaching,
   fallbacks: {
     entries: [
@@ -145,19 +142,43 @@ const criticalAssets = [
   '/web-app-manifest-512x512.png',
 ];
 
+/**
+ * Filter assets that are already in the precache manifest to avoid conflicts.
+ */
+const getNewPrecacheEntries = (urls: string[], revisionGenerator: (url: string) => string) => {
+  const normalizeUrl = (url: string) => {
+    try {
+      // If it's a full URL, strip origin and leading slash
+      const parsed = new URL(url, 'https://example.com');
+      return parsed.pathname.replace(/^\/+/, '');
+    } catch {
+      // Fallback for relative paths: strip leading slash
+      return url.replace(/^\/+/, '');
+    }
+  };
+
+  const existingNormalized = new Set(
+    (swManifest ?? []).map((entry) => {
+      const url = typeof entry === 'string' ? entry : entry.url;
+      return normalizeUrl(url);
+    }),
+  );
+
+  return urls
+    .filter((url) => !existingNormalized.has(normalizeUrl(url)))
+    .map((url) => ({
+      url,
+      revision: revisionGenerator(url),
+    }));
+};
+
 serwist.addToPrecacheList(
-  criticalAssets.map((url) => ({
-    url,
-    revision: url === '/~offline' ? 'initial' : crypto.randomUUID(),
-  })),
+  getNewPrecacheEntries(criticalAssets, (url) => (url === '/~offline' ? 'initial' : crypto.randomUUID())),
 );
 
 // Add precache assets from the offline registry
 serwist.addToPrecacheList(
-  offlineRegistry.getPrecacheAssets().map((url) => ({
-    url,
-    revision: crypto.randomUUID(),
-  })),
+  getNewPrecacheEntries(offlineRegistry.getPrecacheAssets(), () => crypto.randomUUID()),
 );
 
 // Map viewer specific catch handler for tile rewriting
@@ -217,15 +238,194 @@ async function prefetchOfflinePages(): Promise<void> {
 
 // Push notifications
 self.addEventListener('push', pushNotificationHandler(self));
-self.addEventListener('pushsubscriptionchange', () => {});
+self.addEventListener('pushsubscriptionchange', () => { });
 self.addEventListener('notificationclick', notificationClickHandler(self));
-self.addEventListener('notificationclose', () => {});
+self.addEventListener('notificationclose', () => { });
 
 // Service worker lifecycle events
 self.addEventListener('activate', (event) => {
-  event.waitUntil(Promise.all([self.clients.claim(), prefetchOfflinePages()]));
+  event.waitUntil(
+    Promise.all([
+      self.clients.claim(),
+      prefetchOfflinePages(),
+      pruneInactiveClients(),
+    ]),
+  );
   console.log('[SW] Activated and ready to handle requests.');
 });
 
 // This should be called after all custom event listeners are registered
+// Persistent storage for App Mode client IDs
+const APP_MODE_CACHE_NAME = 'app-mode-persistence-v1';
+const APP_MODE_STORAGE_KEY = '/app-mode-clients';
+
+let appModeClients = new Set<string>();
+let isInitialized = false;
+
+/**
+ * Loads the persisted App Mode client IDs from the cache.
+ */
+async function ensureInitialized(): Promise<void> {
+  if (isInitialized) return;
+  try {
+    const cache = await caches.open(APP_MODE_CACHE_NAME);
+    const response = await cache.match(APP_MODE_STORAGE_KEY);
+    if (response) {
+      const persistedIds = await response.json() as string[];
+      appModeClients = new Set(persistedIds);
+    }
+  } catch (error) {
+    console.error('[SW] Failed to load persistent app mode clients:', error);
+  } finally {
+    isInitialized = true;
+  }
+}
+
+/**
+ * Persists the current App Mode client IDs to the cache.
+ */
+async function persistAppModeClients(): Promise<void> {
+  try {
+    const cache = await caches.open(APP_MODE_CACHE_NAME);
+    await cache.put(
+      APP_MODE_STORAGE_KEY,
+      new Response(JSON.stringify(Array.from(appModeClients)), {
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+  } catch (error) {
+    console.error('[SW] Failed to persist app mode clients:', error);
+  }
+}
+
+/**
+ * Prunes inactive client IDs from the persistent storage.
+ */
+async function pruneInactiveClients(): Promise<void> {
+  await ensureInitialized();
+  const currentClients = await self.clients.matchAll();
+  const currentClientIds = new Set(currentClients.map((client) => client.id));
+
+  const initialSize = appModeClients.size;
+  for (const id of appModeClients) {
+    if (!currentClientIds.has(id)) {
+      appModeClients.delete(id);
+    }
+  }
+
+  if (appModeClients.size !== initialSize) {
+    await persistAppModeClients();
+  }
+}
+
+self.addEventListener('message', (event) => {
+  const data = event.data as { type?: string } | undefined;
+  if (data?.type === 'SET_APP_MODE' && event.source instanceof Client) {
+    const clientId = event.source.id;
+    event.waitUntil((async () => {
+      await ensureInitialized();
+      if (!appModeClients.has(clientId)) {
+        appModeClients.add(clientId);
+        await persistAppModeClients();
+        console.log(`[SW] Client registered for App Mode: ${clientId}`);
+      }
+    })());
+  }
+});
+
+self.addEventListener('fetch', (event) => {
+  // Perform detection and handle request
+  event.respondWith(
+    (async (): Promise<Response> => {
+      await ensureInitialized();
+
+      const url = new URL(event.request.url);
+      const isInternal = url.origin === self.location.origin;
+
+      if (!isInternal) {
+        const response = await serwist.handleRequest({
+          request: event.request,
+          event,
+        });
+        return response ?? fetch(event.request);
+      }
+
+      const isNavigation = event.request.mode === 'navigate';
+      const hasAppModeParameter =
+        url.searchParams.get('app-mode') === 'true' ||
+        url.searchParams.get(DesignModeTriggers.QUERY_PARAM_FORCE) === 'true';
+
+      /**
+       * Detection logic refinement:
+       * 1. Explicitly registered via message (persistent for the client lifetime)
+       * 2. Navigation with app-mode parameter (initial latch from manifest/shortcut)
+       * 3. Navigation from an already registered app client (internal link)
+       * 4. Subresource request from a registered client
+       * 5. Fallback: Manual header presence (for CURL/manual testing)
+       */
+      let isAppMode = false;
+      let detectionSource = 'NONE';
+
+      if (isNavigation) {
+        if (hasAppModeParameter) {
+          isAppMode = true;
+          detectionSource = 'QUERY_PARAM';
+        } else if (event.clientId && appModeClients.has(event.clientId)) {
+          isAppMode = true;
+          detectionSource = 'SOURCE_CLIENT';
+        } else if (event.request.headers.get(DesignModeTriggers.HEADER_IMPLICIT) === 'true') {
+          isAppMode = true;
+          detectionSource = 'EXISTING_HEADER';
+        }
+      } else {
+        // Subresource
+        if (event.clientId && appModeClients.has(event.clientId)) {
+          isAppMode = true;
+          detectionSource = 'SUBRESOURCE_FROM_CLIENT';
+        } else if (event.request.headers.get(DesignModeTriggers.HEADER_IMPLICIT) === 'true') {
+          isAppMode = true;
+          detectionSource = 'SUBRESOURCE_WITH_HEADER';
+        }
+      }
+
+      // Debug logging for navigations or when app mode is enabled
+      if (isNavigation || (isAppMode && !url.pathname.startsWith('/_next/'))) {
+        console.log('************************************');
+        console.log(`[SW] App Mode: ${isAppMode ? 'ENABLED 📱' : 'DISABLED 🌐'} (Via: ${detectionSource})`);
+        console.log(`[SW] URL: ${event.request.url}`);
+        console.log(`[SW] Client ID: ${event.clientId || 'none'}`);
+        if (isNavigation) {
+          console.log(`[SW] Resulting ID: ${event.resultingClientId || 'none'}`);
+        }
+        console.log('************************************');
+      }
+
+      // Propagate app mode status to the resulting client
+      if (isAppMode && isNavigation && event.resultingClientId) {
+        if (!appModeClients.has(event.resultingClientId)) {
+          appModeClients.add(event.resultingClientId);
+          await persistAppModeClients();
+        }
+      }
+
+      const requestToHandle = isAppMode
+        ? (() => {
+          const newHeaders = new Headers(event.request.headers);
+          if (newHeaders.get(DesignModeTriggers.HEADER_IMPLICIT) !== 'true') {
+            newHeaders.set(DesignModeTriggers.HEADER_IMPLICIT, 'true');
+          }
+          return new Request(event.request, { headers: newHeaders });
+        })()
+        : event.request;
+
+      const response = await serwist.handleRequest({
+        request: requestToHandle,
+        event,
+      });
+
+      return response ?? fetch(requestToHandle);
+    })(),
+  );
+});
+
 serwist.addEventListeners();

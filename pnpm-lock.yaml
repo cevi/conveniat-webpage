@@ -310,6 +310,9 @@ importers:
       '@serwist/turbopack':
         specifier: ^9.3.0
         version: 9.3.0(@swc/helpers@0.5.17)(esbuild-wasm@0.27.2)(next@16.1.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(babel-plugin-macros@3.1.0)(babel-plugin-react-compiler@19.1.0-rc.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(sass@1.77.4))(react@19.2.0)(typescript@5.7.2)
+      '@swc/helpers':
+        specifier: ^0.5.15
+        version: 0.5.17
       '@swc/jest':
         specifier: ^0.2.39
         version: 0.2.39(@swc/core@1.15.7(@swc/helpers@0.5.17))
@@ -349,6 +352,9 @@ importers:
       dotenv:
         specifier: ^17.2.3
         version: 17.2.3
+      esbuild:
+        specifier: ^0.25.0
+        version: 0.25.12
       esbuild-wasm:
         specifier: ^0.27.2
         version: 0.27.2
@@ -427,6 +433,9 @@ importers:
       ts-node:
         specifier: ^10.9.2
         version: 10.9.2(@swc/core@1.15.7(@swc/helpers@0.5.17))(@types/node@24.10.4)(typescript@5.7.2)
+      tsx:
+        specifier: ^4.19.2
+        version: 4.20.6
       typescript:
         specifier: 5.7.2
         version: 5.7.2
@@ -18158,7 +18167,7 @@ snapshots:
   tsx@4.20.3:
     dependencies:
       esbuild: 0.25.12
-      get-tsconfig: 4.8.1
+      get-tsconfig: 4.13.0
     optionalDependencies:
       fsevents: 2.3.3
 

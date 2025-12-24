@@ -1,4 +1,5 @@
 import { AppShell } from '@/app/app-shell';
+import { ServiceWorkerManager } from '@/components/service-worker/service-worker-manager';
 import { FooterComponent } from '@/components/footer/footer-component';
 import { HeaderComponent } from '@/components/header/header-component';
 import type { Locale } from '@/types/types';
@@ -33,18 +34,23 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
       lang={locale}
       suppressHydrationWarning
     >
+      <head>
+        <link rel="manifest" href="/manifest.webmanifest" />
+      </head>
       <body
         className={cn('flex h-dvh w-dvw flex-col overflow-x-hidden bg-[#f8fafc]', {
           'overscroll-y-none': isInAppDesign,
         })}
       >
-        <AppShell
-          header={<HeaderComponent locale={locale} inAppDesign={isInAppDesign} />}
-          footer={<FooterComponent locale={localePromise} inAppDesign={inAppDesignPromise} />}
-          inAppDesign={isInAppDesign}
-        >
-          {children}
-        </AppShell>
+        <ServiceWorkerManager>
+          <AppShell
+            header={<HeaderComponent locale={locale} inAppDesign={isInAppDesign} />}
+            footer={<FooterComponent locale={localePromise} inAppDesign={inAppDesignPromise} />}
+            inAppDesign={isInAppDesign}
+          >
+            {children}
+          </AppShell>
+        </ServiceWorkerManager>
       </body>
     </html>
   );

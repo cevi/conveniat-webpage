@@ -52,3 +52,30 @@ html body[data-scroll-locked] {
 .animate-jump-x {
   animation: jump-x 2.5s ease-in-out infinite;
 }
+
+// Window Controls Overlay Support
+:root {
+  --wco-height: env(titlebar-area-height, 0px);
+}
+
+@media (display-mode: window-controls-overlay) {
+  header {
+    height: var(--wco-height) !important;
+    app-region: drag;
+    -webkit-app-region: drag;
+
+    // Interactive elements should not be draggable
+    a,
+    button,
+    .no-drag {
+      app-region: no-drag;
+      -webkit-app-region: no-drag;
+    }
+  }
+
+  // Adjust main content to start below the WCO
+  .wco-content-wrapper {
+    margin-top: var(--wco-height);
+    height: calc(100dvh - var(--wco-height));
+  }
+}

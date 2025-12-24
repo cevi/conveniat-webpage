@@ -6,6 +6,7 @@ import { Suspense } from 'react';
 import '@/app/globals.scss';
 import { CeviLogo } from '@/components/svg-logos/cevi-logo';
 import { PostHogProvider } from '@/providers/post-hog-provider';
+import { ServiceWorkerManager } from '@/components/service-worker/service-worker-manager';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { SessionProvider } from 'next-auth/react';
 import { Inter, Montserrat } from 'next/font/google';
@@ -29,6 +30,9 @@ const AppEntrypointLayout: React.FC<LayoutProperties> = async ({ children }) => 
 
   return (
     <html className={`${montserrat.className} ${inter.className} overscroll-y-none`} lang={locale}>
+      <head>
+        <link rel="manifest" href="/manifest.webmanifest" />
+      </head>
       <body className="flex h-screen w-screen flex-col overflow-x-hidden overscroll-y-none bg-[#f8fafc]">
         <PostHogProvider>
           <div className="absolute top-0 z-[-999] h-screen w-full p-[56px]">
@@ -45,7 +49,9 @@ const AppEntrypointRootLayout: React.FC<LayoutProperties> = ({ children }) => {
   return (
     <Suspense>
       <AppEntrypointLayout>
-        <SessionProvider>{children}</SessionProvider>
+        <ServiceWorkerManager>
+          <SessionProvider>{children}</SessionProvider>
+        </ServiceWorkerManager>
       </AppEntrypointLayout>
     </Suspense>
   );
