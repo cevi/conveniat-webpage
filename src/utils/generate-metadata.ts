@@ -10,7 +10,7 @@ import { getPayload } from 'payload';
 export const generateMetadataCached = async (): Promise<Metadata> => {
   'use cache';
   cacheLife('hours');
-  cacheTag('payload', 'PWA', 'SEO');
+  cacheTag('payload', 'PWA-v8', 'SEO');
 
   const payload = await getPayload({ config });
 
@@ -26,17 +26,13 @@ export const generateMetadataCached = async (): Promise<Metadata> => {
     slug: 'SEO',
   });
 
-  const { appName } = await payload.findGlobal({
-    slug: 'PWA',
-  });
-
   return {
     title: {
       default: defaultTitle,
       template: '%s | conveniat27',
     },
     description: defaultDescription,
-    keywords: defaultKeywords.map((keyword) => keyword.keyword),
+    keywords: (defaultKeywords || []).map((keyword) => keyword.keyword),
 
     publisher,
 
@@ -50,11 +46,6 @@ export const generateMetadataCached = async (): Promise<Metadata> => {
       telephone: true,
     },
 
-    appleWebApp: {
-      title: appName,
-      statusBarStyle: 'black',
-    },
-
     alternates: {
       canonical: APP_HOST_URL,
       languages: {
@@ -65,7 +56,6 @@ export const generateMetadataCached = async (): Promise<Metadata> => {
     },
 
     icons: metadataIconDefinitions,
-    manifest: '/manifest.webmanifest',
 
     twitter: {
       card: 'summary',

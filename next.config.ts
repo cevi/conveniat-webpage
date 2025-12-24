@@ -63,11 +63,11 @@ const nextConfig: NextConfig = {
       static: 300, // 5 minutes for static pages, default
     },
 
-    // user uploads are bigger --> we need bigger body sizes
     serverActions: {
       bodySizeLimit: '10mb',
     },
   },
+
   logging: { fetches: { fullUrl: true } },
   images: {
     minimumCacheTTL: optimizedImageMinimumCacheTTL,
@@ -81,7 +81,17 @@ const nextConfig: NextConfig = {
     ],
   },
 
-  rewrites: postHogRewrites,
+  rewrites: async () => {
+    return {
+      beforeFiles: [
+        {
+          source: '/manifest.json',
+          destination: '/manifest.webmanifest',
+        },
+      ],
+      afterFiles: [...postHogRewrites()],
+    };
+  },
   headers: cachingHeaders,
 };
 

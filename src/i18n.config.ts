@@ -11,6 +11,7 @@ export const i18nExcludedRoutes: string[] = [
   'web-app-manifest-512x512.png',
   'favicon.svg',
   'notification-icon.png',
+  'screenshots',
 
   // system endpoints
   'status',
@@ -35,6 +36,7 @@ export const i18nExcludedRoutes: string[] = [
   'sw.js',
   'swe-worker-',
   'manifest.webmanifest',
+  'manifest.json',
   'sitemap.xml',
   'robots.txt',
   '~offline',
