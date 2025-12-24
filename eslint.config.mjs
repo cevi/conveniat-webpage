@@ -285,6 +285,7 @@ const config = defineConfig([
 
     // observability tools
     'observability/**',
+    'public/sw.js',
   ]),
 ]);
 

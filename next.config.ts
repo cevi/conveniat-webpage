@@ -81,7 +81,7 @@ const nextConfig: NextConfig = {
     ],
   },
 
-  rewrites: async () => {
+  rewrites: () => {
     return {
       beforeFiles: [
         {

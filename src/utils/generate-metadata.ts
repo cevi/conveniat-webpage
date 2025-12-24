@@ -32,7 +32,7 @@ export const generateMetadataCached = async (): Promise<Metadata> => {
       template: '%s | conveniat27',
     },
     description: defaultDescription,
-    keywords: (defaultKeywords || []).map((keyword) => keyword.keyword),
+    keywords: defaultKeywords.map((keyword) => keyword.keyword),
 
     publisher,
 
