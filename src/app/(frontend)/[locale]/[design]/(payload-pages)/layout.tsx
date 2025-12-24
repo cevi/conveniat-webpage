@@ -1,4 +1,3 @@
-import { FooterComponent } from '@/components/footer/footer-component';
 import { SetDynamicPageTitle } from '@/components/header/set-dynamic-app-title';
 import type { Locale } from '@/types/types';
 import { DesignCodes } from '@/utils/design-codes';
@@ -10,10 +9,7 @@ interface LayoutProperties {
   params: Promise<{ locale: Locale; design: DesignCodes }>;
 }
 
-const Layout: React.FC<LayoutProperties> = ({ children, params }) => {
-  const locale = params.then((p) => p.locale);
-  const isInAppDesign = params.then((p) => p.design === DesignCodes.APP_DESIGN);
-
+const Layout: React.FC<LayoutProperties> = ({ children }) => {
   return (
     <>
       <SetDynamicPageTitle newTitle="conveniat27" />
@@ -21,7 +17,6 @@ const Layout: React.FC<LayoutProperties> = ({ children, params }) => {
         {children}
       </div>
       <div></div>
-      <FooterComponent locale={locale} inAppDesign={isInAppDesign} />
     </>
   );
 };

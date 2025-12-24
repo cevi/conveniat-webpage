@@ -1,14 +1,11 @@
 import type { ReactNode } from 'react';
-import React, { Suspense } from 'react';
+import React from 'react';
 
-import { FooterAppNavBar } from '@/components/footer/footer-app-nav-bar';
+import { SetHideCopyrightFooter } from '@/components/footer/hide-footer-context';
 import { StarProvider } from '@/context/star-context';
 import type { Locale } from '@/types/types';
 import { DesignCodes } from '@/utils/design-codes';
 import { SessionProvider } from 'next-auth/react';
-
-import { FooterClientWrapper } from '@/components/footer/footer-client-wrapper';
-import { HideFooterProvider } from '@/components/footer/hide-footer-context';
 
 interface LayoutProperties {
   children: ReactNode;
@@ -18,22 +15,15 @@ interface LayoutProperties {
   }>;
 }
 
-const AppLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
-  const { locale, design } = await params;
-  const isInAppDesign = design === DesignCodes.APP_DESIGN;
-
+const AppLayout: React.FC<LayoutProperties> = async ({ children }) => {
   return (
-    <HideFooterProvider>
-      <StarProvider>
-        <SessionProvider>
-          <div className="mb-20">{children}</div>
-        </SessionProvider>
-        <div></div>
-        <FooterClientWrapper>
-          <Suspense>{isInAppDesign && <FooterAppNavBar locale={locale} />}</Suspense>
-        </FooterClientWrapper>
-      </StarProvider>
-    </HideFooterProvider>
+    <StarProvider>
+      <SetHideCopyrightFooter value={true} />
+      <SessionProvider>
+        <div className="mb-20">{children}</div>
+      </SessionProvider>
+      <div></div>
+    </StarProvider>
   );
 };
 

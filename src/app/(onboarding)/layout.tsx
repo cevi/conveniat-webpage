@@ -4,9 +4,9 @@ import { Suspense } from 'react';
 
 // These styles apply to every route in the application
 import '@/app/globals.scss';
+import { ServiceWorkerManager } from '@/components/service-worker/service-worker-manager';
 import { CeviLogo } from '@/components/svg-logos/cevi-logo';
 import { PostHogProvider } from '@/providers/post-hog-provider';
-import { ServiceWorkerManager } from '@/components/service-worker/service-worker-manager';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { SessionProvider } from 'next-auth/react';
 import { Inter, Montserrat } from 'next/font/google';

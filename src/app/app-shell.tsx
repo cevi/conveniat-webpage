@@ -1,5 +1,6 @@
 'use client';
 
+import { FooterClientWrapper } from '@/components/footer/footer-client-wrapper';
 import { DynamicAppTitleProvider } from '@/components/header/dynamic-app-title-name';
 import { HeaderClientWrapper } from '@/components/header/header-client-wrapper';
 import { HideHeaderProvider } from '@/components/header/hide-header-context';
@@ -55,7 +56,7 @@ export const AppShell: React.FC<AppShellProperties> = ({
             >
               <main className="flex min-h-full flex-col justify-between">
                 <div className="flex-1">{children}</div>
-                {footer}
+                <FooterClientWrapper>{footer}</FooterClientWrapper>
               </main>
             </div>
           </DynamicAppTitleProvider>

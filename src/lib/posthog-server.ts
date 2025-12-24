@@ -3,7 +3,6 @@ import { PostHog } from 'posthog-node';
 
 let posthogInstance: PostHog | undefined;
 
-
 export const getPostHogServer = (): PostHog | undefined => {
   if (environmentVariables.NEXT_PUBLIC_POSTHOG_KEY === undefined) {
     return undefined;

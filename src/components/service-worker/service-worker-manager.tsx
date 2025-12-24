@@ -6,8 +6,8 @@ import type { ReactNode } from 'react';
 import React from 'react';
 
 interface ServiceWorkerManagerProperties {
-    children: ReactNode;
-    swUrl?: string;
+  children: ReactNode;
+  swUrl?: string;
 }
 
 /**
@@ -15,10 +15,10 @@ interface ServiceWorkerManagerProperties {
  * This ensures that the SW is registered consistently across different layouts.
  */
 export const ServiceWorkerManager: React.FC<ServiceWorkerManagerProperties> = ({
-    children,
-    swUrl = '/sw.js',
+  children,
+  swUrl = '/sw.js',
 }) => {
-    useAppMode();
+  useAppMode();
 
-    return <SerwistProvider swUrl={swUrl}>{children}</SerwistProvider>;
+  return <SerwistProvider swUrl={swUrl}>{children}</SerwistProvider>;
 };
