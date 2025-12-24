@@ -1,7 +1,7 @@
 import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import type { ProxyModule } from '@/proxy/types';
 import type { Locale } from '@/types/types';
-import { Header } from '@/types/types';
+import { Cookie, Header } from '@/types/types';
 import { DesignCodes, DesignModeTriggers } from '@/utils/design-codes';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
@@ -66,6 +66,7 @@ export const createPrefixedRewriteResponse = (config: {
  */
 export const designRewriteProxy: ProxyModule = (next) => async (request, event, response) => {
   const headerDesign = request.headers.get(Header.DESIGN_MODE);
+  const cookieDesign = request.cookies.get(Cookie.DESIGN_MODE)?.value;
 
   const initialAppModeCookie = request.cookies.get('x-app-mode-initial')?.value === 'true';
 
@@ -76,7 +77,7 @@ export const designRewriteProxy: ProxyModule = (next) => async (request, event, 
     request.headers.get(DesignModeTriggers.HEADER_IMPLICIT) === 'true' ||
     initialAppModeCookie;
 
-  let designPrefix = headerDesign ?? DesignCodes.WEB_DESIGN;
+  let designPrefix = headerDesign ?? cookieDesign ?? DesignCodes.WEB_DESIGN;
 
   if (forceAppMode || implicitAppMode) {
     designPrefix = DesignCodes.APP_DESIGN;
