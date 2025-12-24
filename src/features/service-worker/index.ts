@@ -134,6 +134,7 @@ const serwist = new Serwist({
 // Ensure critical assets are precached
 const criticalAssets = [
   '/~offline',
+  '/entrypoint?app-mode=true',
   '/favicon.ico',
   '/favicon.svg',
   '/apple-touch-icon.png',
@@ -192,6 +193,13 @@ serwist.setCatchHandler(tileURLRewriter(serwist));
  * caching rules (StaleWhileRevalidate) automatically cache these
  * resources as they are loaded.
  */
+/**
+ * Prefetch offline pages and cache them with all their dependencies.
+ *
+ * This function fetches each configured offline page, which fetches the HTML.
+ * It then parses the HTML to find all linked CSS and JS files, and fetches
+ * them as well to ensure they are cached by the runtime caching rules.
+ */
 async function prefetchOfflinePages(): Promise<void> {
   console.log(`[SW] Prefetching ${offlinePages.length} offline pages: ${offlinePages.join(', ')}`);
 
@@ -199,35 +207,77 @@ async function prefetchOfflinePages(): Promise<void> {
 
   for (const pageUrl of offlinePages) {
     try {
-      // Fetch the page - this triggers loading all dependencies
-      // which get cached by the runtime caching rules
+      // 1. Fetch the page HTML
       const response = await fetch(pageUrl, {
         credentials: 'same-origin',
-        headers: {
-          Accept: 'text/html',
-        },
+        headers: { Accept: 'text/html' },
       });
 
-      if (response.ok) {
-        // Cache the page HTML
-        await pagesCache.put(pageUrl, response.clone());
-        console.log(`[SW] Successfully prefetched HTML: ${pageUrl}`);
+      if (!response.ok) {
+        console.warn(`[SW] Failed to fetch offline page: ${pageUrl}`);
+        continue;
       }
 
-      // Also prefetch the RSC payload for this page
+      // 2. Clone the response to store it in the cache
+      // We need to read the body to parse it, so we must cache a clone or new response
+      const htmlText = await response.text();
+      await pagesCache.put(pageUrl, new Response(htmlText, response));
+      console.log(`[SW] Successfully prefetched HTML: ${pageUrl}`);
+
+      // 3. Parse dependencies (CSS, JS, Preloads) from HTML
+      // We look for:
+      // - <link rel="stylesheet" href="...">
+      // - <script src="...">
+      // - <link rel="preload" as="script" href="...">
+      const assetUrls = new Set<string>();
+      const tagRegex = /<(?<tag>link|script)[^>]*(?:href|src)=["'](?<url>[^"']+)["'][^>]*>/gi;
+
+      let match;
+      while ((match = tagRegex.exec(htmlText)) !== null) {
+        const url = match.groups?.['url'];
+        if (!url) continue;
+
+        // Only cache local Next.js static assets
+        if (url.startsWith('/_next/') || (url.startsWith('/') && !url.startsWith('//'))) {
+          // Basic filter to avoid external stuff or data links
+          if (url.match(/\.(css|js|woff2?|ttf|otf|png|jpg|jpeg|svg|webp|ico)$/)) {
+            assetUrls.add(url);
+          }
+        }
+      }
+
+      console.log(`[SW] Found ${assetUrls.size} dependencies for ${pageUrl}`);
+
+      // 4. Fetch and cache all found assets
+      // These fetches will trigger the 'fetch' event listener and go through 
+      // the Runtime Caching rules (e.g. StaleWhileRevalidate for static assets)
+      await Promise.all(
+        Array.from(assetUrls).map(async (url) => {
+          try {
+            await fetch(url, { mode: 'no-cors' });
+          } catch (e) {
+            console.warn(`[SW] Failed to prefetch asset: ${url}`, e);
+          }
+        })
+      );
+
+      // 5. Also prefetch the RSC payload for this page
       const rscUrl = `${pageUrl}${pageUrl.includes('?') ? '&' : '?'}_rsc`;
-      const rscResponse = await fetch(rscUrl, {
-        credentials: 'same-origin',
-        headers: {
-          RSC: '1',
-        },
-      });
-
-      if (rscResponse.ok) {
-        const rscCache = await caches.open('next-rsc-cache');
-        await rscCache.put(rscUrl, rscResponse.clone());
-        console.log(`[SW] Successfully prefetched RSC: ${rscUrl}`);
+      try {
+        const rscResponse = await fetch(rscUrl, {
+          credentials: 'same-origin',
+          headers: { RSC: '1' },
+        });
+        if (rscResponse.ok) {
+          const rscCache = await caches.open('next-rsc-cache');
+          await rscCache.put(rscUrl, rscResponse.clone());
+          console.log(`[SW] Successfully prefetched RSC: ${rscUrl}`);
+        }
+      } catch (err) {
+        // RSC might fail or not be relevant for some pages
+        console.debug(`[SW] Could not prefetch RSC for ${pageUrl}`, err);
       }
+
     } catch (error) {
       console.error(`[SW] Error prefetching ${pageUrl}:`, error);
     }
