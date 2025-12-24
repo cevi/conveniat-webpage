@@ -27,6 +27,7 @@ export const cachedManifestGenerator = async (): Promise<MetadataRoute.Manifest>
     slug: 'PWA',
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (!pwaGlobal) {
     throw new Error('PWA global configuration not found');
   }

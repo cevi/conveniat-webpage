@@ -15,10 +15,10 @@ interface LayoutProperties {
   }>;
 }
 
-const AppLayout: React.FC<LayoutProperties> = async ({ children }) => {
+const AppLayout: React.FC<LayoutProperties> = ({ children }) => {
   return (
     <StarProvider>
-      <SetHideCopyrightFooter value={true} />
+      <SetHideCopyrightFooter value />
       <SessionProvider>
         <div className="mb-20">{children}</div>
       </SessionProvider>

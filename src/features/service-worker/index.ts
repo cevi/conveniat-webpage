@@ -146,17 +146,22 @@ const criticalAssets = [
 /**
  * Filter assets that are already in the precache manifest to avoid conflicts.
  */
-const getNewPrecacheEntries = (urls: string[], revisionGenerator: (url: string) => string) => {
-  const normalizeUrl = (url: string) => {
-    try {
-      // If it's a full URL, strip origin and leading slash
-      const parsed = new URL(url, 'https://example.com');
-      return parsed.pathname.replace(/^\/+/, '');
-    } catch {
-      // Fallback for relative paths: strip leading slash
-      return url.replace(/^\/+/, '');
-    }
-  };
+const normalizeUrl = (url: string): string => {
+  try {
+    // If it's a full URL, strip origin and leading slash
+    const parsed = new URL(url, 'https://example.com');
+    return parsed.pathname.replace(/^\/+/, '');
+  } catch {
+    // Fallback for relative paths: strip leading slash
+    return url.replace(/^\/+/, '');
+  }
+};
+
+/**
+ * Filter assets that are already in the precache manifest to avoid conflicts.
+ */
+const getNewPrecacheEntries = (urls: string[], revisionGenerator: (url: string) => string): PrecacheEntry[] => {
+
 
   const existingNormalized = new Set(
     (swManifest ?? []).map((entry) => {
@@ -240,11 +245,9 @@ async function prefetchOfflinePages(): Promise<void> {
         if (!url) continue;
 
         // Only cache local Next.js static assets
-        if (url.startsWith('/_next/') || (url.startsWith('/') && !url.startsWith('//'))) {
-          // Basic filter to avoid external stuff or data links
-          if (url.match(/\.(css|js|woff2?|ttf|otf|png|jpg|jpeg|svg|webp|ico)$/)) {
-            assetUrls.add(url);
-          }
+        if ((url.startsWith('/_next/') || (url.startsWith('/') && !url.startsWith('//'))) && // Basic filter to avoid external stuff or data links
+          /\.(css|js|woff2?|ttf|otf|png|jpg|jpeg|svg|webp|ico)$/.test(url)) {
+          assetUrls.add(url);
         }
       }
 
@@ -254,11 +257,11 @@ async function prefetchOfflinePages(): Promise<void> {
       // These fetches will trigger the 'fetch' event listener and go through
       // the Runtime Caching rules (e.g. StaleWhileRevalidate for static assets)
       await Promise.all(
-        Array.from(assetUrls).map(async (url) => {
+        [...assetUrls].map(async (url) => {
           try {
             await fetch(url, { mode: 'no-cors' });
-          } catch (e) {
-            console.warn(`[SW] Failed to prefetch asset: ${url}`, e);
+          } catch (error) {
+            console.warn(`[SW] Failed to prefetch asset: ${url}`, error);
           }
         }),
       );
@@ -275,9 +278,9 @@ async function prefetchOfflinePages(): Promise<void> {
           await rscCache.put(rscUrl, rscResponse.clone());
           console.log(`[SW] Successfully prefetched RSC: ${rscUrl}`);
         }
-      } catch (err) {
+      } catch (error) {
         // RSC might fail or not be relevant for some pages
-        console.debug(`[SW] Could not prefetch RSC for ${pageUrl}`, err);
+        console.debug(`[SW] Could not prefetch RSC for ${pageUrl}`, error);
       }
     } catch (error) {
       console.error(`[SW] Error prefetching ${pageUrl}:`, error);
@@ -289,9 +292,9 @@ async function prefetchOfflinePages(): Promise<void> {
 
 // Push notifications
 self.addEventListener('push', pushNotificationHandler(self));
-self.addEventListener('pushsubscriptionchange', () => {});
+self.addEventListener('pushsubscriptionchange', () => { });
 self.addEventListener('notificationclick', notificationClickHandler(self));
-self.addEventListener('notificationclose', () => {});
+self.addEventListener('notificationclose', () => { });
 
 // Service worker lifecycle events
 self.addEventListener('activate', (event) => {
@@ -336,7 +339,7 @@ async function persistAppModeClients(): Promise<void> {
     const cache = await caches.open(APP_MODE_CACHE_NAME);
     await cache.put(
       APP_MODE_STORAGE_KEY,
-      new Response(JSON.stringify(Array.from(appModeClients)), {
+      new Response(JSON.stringify([...appModeClients]), {
         headers: { 'Content-Type': 'application/json' },
       }),
     );
@@ -370,7 +373,7 @@ self.addEventListener('message', (event) => {
   if (data?.type === 'SET_APP_MODE' && event.source instanceof Client) {
     const clientId = event.source.id;
     event.waitUntil(
-      (async () => {
+      (async (): Promise<void> => {
         await ensureInitialized();
         if (!appModeClients.has(clientId)) {
           appModeClients.add(clientId);
@@ -452,21 +455,19 @@ self.addEventListener('fetch', (event) => {
       }
 
       // Propagate app mode status to the resulting client
-      if (isAppMode && isNavigation && event.resultingClientId) {
-        if (!appModeClients.has(event.resultingClientId)) {
-          appModeClients.add(event.resultingClientId);
-          await persistAppModeClients();
-        }
+      if (isAppMode && isNavigation && event.resultingClientId && !appModeClients.has(event.resultingClientId)) {
+        appModeClients.add(event.resultingClientId);
+        await persistAppModeClients();
       }
 
       const requestToHandle = isAppMode
-        ? (() => {
-            const newHeaders = new Headers(event.request.headers);
-            if (newHeaders.get(DesignModeTriggers.HEADER_IMPLICIT) !== 'true') {
-              newHeaders.set(DesignModeTriggers.HEADER_IMPLICIT, 'true');
-            }
-            return new Request(event.request, { headers: newHeaders });
-          })()
+        ? ((): Request => {
+          const newHeaders = new Headers(event.request.headers);
+          if (newHeaders.get(DesignModeTriggers.HEADER_IMPLICIT) !== 'true') {
+            newHeaders.set(DesignModeTriggers.HEADER_IMPLICIT, 'true');
+          }
+          return new Request(event.request, { headers: newHeaders });
+        })()
         : event.request;
 
       const response = await serwist.handleRequest({
