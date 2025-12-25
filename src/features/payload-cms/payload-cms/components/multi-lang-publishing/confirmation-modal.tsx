@@ -1,9 +1,8 @@
-'use client';
-
 import type { Config } from '@/features/payload-cms/payload-types';
 import type { StaticTranslationString } from '@/types/types';
 import { cva } from 'class-variance-authority';
 import React from 'react';
+import { createPortal } from 'react-dom';
 
 const cancelButtonString: StaticTranslationString = {
   en: 'Cancel',
@@ -34,7 +33,7 @@ export const ConfirmationModal: React.FC<{
   submittingText,
   confirmVariant = 'primary',
 }) => {
-  if (!isOpen) return;
+  if (!isOpen) return <></>;
 
   const confirmClasses = cva(
     'relative flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 min-w-[100px]',
@@ -51,8 +50,8 @@ export const ConfirmationModal: React.FC<{
     },
   );
 
-  return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
+  const modalContent = (
+    <div className="fixed inset-0 z-[2147483647] flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
       <div className="w-full max-w-md rounded-lg border border-gray-200 bg-white p-6 shadow-2xl dark:border-gray-800 dark:bg-gray-900">
         <h3 className="mb-4 text-xl font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
         <p className="mb-6 text-gray-600 dark:text-gray-400">{message}</p>
@@ -84,4 +83,7 @@ export const ConfirmationModal: React.FC<{
       </div>
     </div>
   );
+
+  if (typeof document === 'undefined') return modalContent;
+  return createPortal(modalContent, document.body);
 };

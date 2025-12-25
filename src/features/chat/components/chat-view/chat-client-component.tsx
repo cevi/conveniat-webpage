@@ -2,7 +2,7 @@
 import { SetHideFooter } from '@/components/footer/hide-footer-context';
 import { ChatHeader, ChatHeaderSkeleton } from '@/features/chat/components/chat-view/chat-header';
 import { ChatSkeleton } from '@/features/chat/components/chat-view/chat-skeleton';
-import { ChatTextareaInput } from '@/features/chat/components/chat-view/chat-textarea-input';
+import { ChatTextAreaInput } from '@/features/chat/components/chat-view/chat-text-area-input';
 import { MessageList } from '@/features/chat/components/chat-view/message-list';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
@@ -107,7 +107,7 @@ export const ChatClientComponent: React.FC = () => {
         <MessageList />
       </div>
       <div className="border-t border-gray-200 bg-white p-2">
-        <ChatTextareaInput />
+        <ChatTextAreaInput />
       </div>
     </div>
   );

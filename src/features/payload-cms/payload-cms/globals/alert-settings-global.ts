@@ -6,6 +6,13 @@ export const AlertSettingsGlobal: GlobalConfig = {
   access: {
     read: () => true,
   },
+  admin: {
+    group: {
+      en: 'Backoffice App Features',
+      de: 'Backoffice App Funktionen',
+      fr: 'Fonctionnalités Backoffice',
+    },
+  },
   fields: [
     {
       name: 'questions',

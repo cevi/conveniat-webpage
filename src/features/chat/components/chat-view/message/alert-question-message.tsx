@@ -1,6 +1,7 @@
 'use client';
 
 import type { ChatMessage } from '@/features/chat/api/types';
+import { useChatId } from '@/features/chat/context/chat-id-context';
 import { trpc } from '@/trpc/client';
 import { cn } from '@/utils/tailwindcss-override';
 import { Check, Circle, Loader2 } from 'lucide-react';
@@ -22,6 +23,7 @@ export const AlertQuestionMessage: React.FC<AlertQuestionMessageProperties> = ({
   message,
   isCurrentUser,
 }) => {
+  const chatId = useChatId();
   const payload = message.messagePayload as unknown as QuestionPayload;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [optimisticSelection, setOptimisticSelection] = useState<string | undefined>();
@@ -30,14 +32,18 @@ export const AlertQuestionMessage: React.FC<AlertQuestionMessageProperties> = ({
   const hasAnswered = !!currentSelection;
   const canAnswer = isCurrentUser && !hasAnswered;
 
+  const trpcUtils = trpc.useUtils();
   const updateMessageContext = trpc.chat.updateMessageContent.useMutation({
     onSuccess: () => {
       setIsSubmitting(false);
-      // In a real app, we'd invalidate queries or update context
+      void trpcUtils.chat.infiniteMessages.invalidate({ chatId });
+      void trpcUtils.admin.getChatMessages.invalidate({ chatId });
     },
-    onError: () => {
+    onError: (error) => {
       setIsSubmitting(false);
       setOptimisticSelection(undefined);
+      console.error('Failed to update message:', error);
+      // Optional: Show toast error here
     },
   });
 
@@ -57,7 +63,7 @@ export const AlertQuestionMessage: React.FC<AlertQuestionMessageProperties> = ({
 
   return (
     <div className="flex min-w-[200px] flex-col space-y-2 p-1">
-      <h3 className="font-semibold text-gray-900">{payload.question}</h3>
+      <h3 className="font-semibold text-[var(--theme-text)]">{payload.question}</h3>
       <div className="flex flex-col space-y-2">
         {payload.options.map((option) => {
           const isSelected = currentSelection === option;
@@ -72,8 +78,10 @@ export const AlertQuestionMessage: React.FC<AlertQuestionMessageProperties> = ({
                 'flex items-center space-x-2 rounded-md border p-2 text-left transition-colors',
                 isSelected
                   ? 'bg-conveniat-green/10 border-conveniat-green text-conveniat-green'
-                  : 'border-gray-200 bg-white hover:bg-gray-50',
-                !isSelectable && !isSelected && 'cursor-not-allowed opacity-50 hover:bg-white',
+                  : 'border-[var(--theme-elevation-150)] bg-[var(--theme-elevation-50)] text-[var(--theme-text)] hover:bg-[var(--theme-elevation-100)]',
+                !isSelectable &&
+                  !isSelected &&
+                  'cursor-not-allowed opacity-50 hover:bg-[var(--theme-elevation-50)]',
               )}
             >
               {isSelected ? (

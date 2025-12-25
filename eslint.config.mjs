@@ -25,6 +25,8 @@ const features_folder = [
   'payload-cms',
   'settings',
   'image-submission',
+  'admin',
+  'permissions',
 ];
 
 const featuresDirectory = path.join(__dirname, 'src', 'features');

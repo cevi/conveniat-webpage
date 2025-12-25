@@ -1,6 +1,7 @@
 import { BlogArticleCollection } from '@/features/payload-cms/payload-cms/collections/blog-article';
 import { CampMapAnnotationsCollection } from '@/features/payload-cms/payload-cms/collections/camp-map-collection';
 import { CampScheduleEntryCollection } from '@/features/payload-cms/payload-cms/collections/camp-schedule-entry-collection';
+import { ChatImagesCollection } from '@/features/payload-cms/payload-cms/collections/chat-images-collection';
 import { DocumentsCollection } from '@/features/payload-cms/payload-cms/collections/documents-collection';
 import { GenericPage as GenericPageCollection } from '@/features/payload-cms/payload-cms/collections/generic-page';
 import { ImageCollection } from '@/features/payload-cms/payload-cms/collections/image-collection';
@@ -35,6 +36,7 @@ const rawCollectionsConfig: CollectionConfig[] = [
   PermissionsCollection,
   PushNotificationSubscriptions,
   TimelineEntryCategory,
+  ChatImagesCollection,
 ];
 
 /**

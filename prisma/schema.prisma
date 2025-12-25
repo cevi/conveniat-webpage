@@ -28,11 +28,17 @@ enum ChatType {
 
   /// a chat created after triggering an emergency
   EMERGENCY
+
+  /// a support chat for reporting problems
+  SUPPORT_GROUP
 }
 
 model Chat {
   uuid String @id @default(uuid())
-  name String
+  name String 
+  
+  description String?
+  status      String   @default("OPEN")
 
   lastUpdate DateTime @default(now())
   createdAt  DateTime @default(now())
@@ -43,8 +49,26 @@ model Chat {
   type            ChatType         @default(GROUP)
   messages        Message[]
   chatMemberships ChatMembership[]
+  capabilities    ChatCapability[]
 
   @@index([lastUpdate])
+}
+
+/// Define specific capabilities for a chat that can be enabled or disabled
+model ChatCapability {
+  id String @id @default(uuid())
+
+  chatId String
+  chat   Chat   @relation(fields: [chatId], references: [uuid], onDelete: Cascade)
+
+  /// The capability identifier, e.g. "PICTURE_UPLOAD", "CAN_SEND_MESSAGES"
+  capability String
+  
+  /// Whether the capability is enabled for this chat
+  isEnabled  Boolean @default(true)
+
+  @@unique([chatId, capability])
+  @@index([chatId])
 }
 
 enum ChatMembershipPermission {

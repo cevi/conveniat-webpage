@@ -176,7 +176,15 @@ export const AnnotationDetailsDrawer: React.FC<{
 
           {schedule && <AnnotationScheduleTableComponent locale={locale} schedule={schedule} />}
 
-          <AnnotationForumAndReportSection />
+          <AnnotationForumAndReportSection
+            coordinates={((): [number, number] | undefined => {
+              if (!('geometry' in annotation)) return undefined;
+              if (Array.isArray(annotation.geometry.coordinates[0])) {
+                return annotation.geometry.coordinates[0];
+              }
+              return annotation.geometry.coordinates as [number, number];
+            })()}
+          />
         </div>
       </div>
     </div>

@@ -44,9 +44,17 @@ async function saveAndFetchUserFromPayload(
   payload: BasePayload,
   userProfile: HitobitoProfile,
 ): Promise<User> {
+  // Ensure the id is a number - Hitobito may return it as a string in some cases
+  const ceviDatabaseUuid =
+    typeof userProfile.id === 'string' ? Number.parseInt(userProfile.id, 10) : userProfile.id;
+
+  if (Number.isNaN(ceviDatabaseUuid)) {
+    throw new TypeError(`Invalid user ID from Hitobito: ${userProfile.id}`);
+  }
+
   const matchedUsers = await payload.find({
     collection: 'users',
-    where: { cevi_db_uuid: { equals: userProfile.id } },
+    where: { cevi_db_uuid: { equals: ceviDatabaseUuid } },
   });
 
   if (matchedUsers.totalDocs > 1) {
@@ -58,7 +66,7 @@ async function saveAndFetchUserFromPayload(
   if (matchedUsers.totalDocs === 1 && payloadUserId !== undefined) {
     await payload.update({
       collection: 'users',
-      where: { cevi_db_uuid: { equals: userProfile.id } },
+      where: { cevi_db_uuid: { equals: ceviDatabaseUuid } },
       data: {
         groups: userProfile.roles,
         email: userProfile.email,
@@ -77,7 +85,7 @@ async function saveAndFetchUserFromPayload(
   return await payload.create({
     collection: 'users',
     data: {
-      cevi_db_uuid: userProfile.id,
+      cevi_db_uuid: ceviDatabaseUuid,
       groups: userProfile.roles.map((role) => ({
         id: role.group_id,
         name: role.group_name,
@@ -283,7 +291,6 @@ export const authOptions: NextAuthConfig = {
         return token;
       }
 
-      // Access token has expired, try to update it
       // Access token has expired, try to update it
       if (!token.refresh_token) {
         return {

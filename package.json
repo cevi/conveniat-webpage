@@ -25,6 +25,8 @@
     "test": "jest"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.957.0",
+    "@aws-sdk/s3-request-presigner": "^3.957.0",
     "@headlessui/react": "^2.2.9",
     "@icons-pack/react-simple-icons": "^12.9.0",
     "@lexical/selection": "0.35.0",

@@ -50,6 +50,21 @@ export const createChat = trpcBaseProcedure
       }
     }
 
+    const { checkCapability } = await import('@/lib/capabilities');
+    const { CapabilitySubject, CapabilityAction } = await import('@/lib/capabilities/types');
+
+    const isChatCreationEnabled = await checkCapability(
+      CapabilityAction.Create,
+      CapabilitySubject.Chat,
+    );
+
+    if (!isChatCreationEnabled) {
+      throw new TRPCError({
+        code: 'FORBIDDEN',
+        message: 'Chat creation is currently disabled.',
+      });
+    }
+
     const chat = await createNewChat(finalChatName, locale, user, members, prisma);
     return chat.uuid; // Return the ID of the newly created chat
   });

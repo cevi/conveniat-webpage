@@ -26,6 +26,26 @@ const NewChatWithUserPage: React.FC<{
     return redirect(`/app/chat`); // do not allow to create self-chat.
   }
 
+  // Check Feature Flag / Capability
+  const { checkCapability } = await import('@/lib/capabilities');
+  const { CapabilitySubject, CapabilityAction } = await import('@/lib/capabilities/types');
+
+  const canCreateChat = await checkCapability(CapabilityAction.Create, CapabilitySubject.Chat);
+
+  if (!canCreateChat) {
+    return (
+      <div className="flex h-screen flex-row items-center justify-center bg-gray-50">
+        <div className="font-body text-center text-gray-600">
+          Chat creation is currently paused by administrators.
+          <br />
+          <Link href="/app/chat" className="underline">
+            Go back to chats
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   const chatName = ''; // Private chats do not require a name
   const contacts = [
     {

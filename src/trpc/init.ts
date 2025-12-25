@@ -1,4 +1,4 @@
-import prisma from '@/features/chat/database';
+import prisma from '@/lib/database';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import { auth } from '@/utils/auth';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
