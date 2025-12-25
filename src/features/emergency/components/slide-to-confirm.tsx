@@ -82,6 +82,10 @@ export const ConfirmationSlider: React.FC<ConfirmationSliderProperties> = ({
         handleReference.current.style.transform = `translateX(${clampedTranslateX}px)`;
       }
       trackReference.current.style.setProperty('--translate-x-clamped', `${clampedTranslateX}px`);
+
+      if (typeof navigator !== 'undefined') {
+        navigator.vibrate(5);
+      }
     },
     [isConfirmed, isProcessing, text, pendingText],
   );
@@ -110,6 +114,9 @@ export const ConfirmationSlider: React.FC<ConfirmationSliderProperties> = ({
               setIsConfirmed(true);
               setIsProcessing(false);
               setDisplayText(confirmedText);
+              if (typeof navigator !== 'undefined') {
+                navigator.vibrate(50);
+              }
             })
             .catch(() => {
               resetSlider();

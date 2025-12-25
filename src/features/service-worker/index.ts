@@ -9,8 +9,8 @@ import {
   pushNotificationHandler,
 } from '@/features/service-worker/push-notifications';
 import { DesignModeTriggers } from '@/utils/design-codes';
-import type { PrecacheEntry, RuntimeCaching, SerwistGlobalConfig } from 'serwist';
-import { CacheFirst, NetworkFirst, Serwist, StaleWhileRevalidate } from 'serwist';
+import type { PrecacheEntry, RuntimeCaching, SerwistGlobalConfig, SerwistPlugin } from 'serwist';
+import { CacheFirst, NetworkFirst, NetworkOnly, Serwist, StaleWhileRevalidate } from 'serwist';
 
 // Register features
 registerMapOfflineSupport();
@@ -35,23 +35,43 @@ declare const self: ServiceWorkerGlobalScope;
 const swManifest = self.__SW_MANIFEST;
 
 /**
+ * Plugin to prevent caching of HTML responses for non-HTML requests (e.g. 404 pages for JS files)
+ */
+const badResponsePlugin: SerwistPlugin = {
+  cacheWillUpdate: ({ response }) => {
+    if (response.headers.get('content-type')?.includes('text/html')) {
+      return;
+    }
+    return response;
+  },
+};
+
+const isDevelopment = process.env.NODE_ENV === 'development';
+
+/**
  * Custom runtime caching configuration for robust offline support.
  * Uses StaleWhileRevalidate for static assets to enable offline functionality.
  */
 const runtimeCaching: RuntimeCaching[] = [
-  // Cache CSS files with StaleWhileRevalidate
+  // Cache CSS files
   {
     matcher: /\/_next\/static\/.*\.css$/,
-    handler: new StaleWhileRevalidate({
-      cacheName: 'next-css-cache',
-    }),
+    handler: isDevelopment
+      ? new NetworkOnly()
+      : new StaleWhileRevalidate({
+          cacheName: 'next-css-cache',
+          plugins: [badResponsePlugin],
+        }),
   },
-  // Cache JS files and chunks with StaleWhileRevalidate
+  // Cache JS files and chunks
   {
     matcher: /\/_next\/static\/.*\.js$/,
-    handler: new StaleWhileRevalidate({
-      cacheName: 'next-js-cache',
-    }),
+    handler: isDevelopment
+      ? new NetworkOnly()
+      : new StaleWhileRevalidate({
+          cacheName: 'next-js-cache',
+          plugins: [badResponsePlugin],
+        }),
   },
   // Cache Next.js RSC data with StaleWhileRevalidate
   {
@@ -87,9 +107,12 @@ const runtimeCaching: RuntimeCaching[] = [
   // Cache images with StaleWhileRevalidate
   {
     matcher: /\.(png|jpg|jpeg|svg|gif|webp|ico)$/,
-    handler: new StaleWhileRevalidate({
-      cacheName: 'images-cache',
-    }),
+    handler: isDevelopment
+      ? new NetworkOnly()
+      : new StaleWhileRevalidate({
+          cacheName: 'images-cache',
+          plugins: [badResponsePlugin],
+        }),
   },
   // Cache API responses with NetworkFirst (prefer fresh data, but use cache if offline)
   {
