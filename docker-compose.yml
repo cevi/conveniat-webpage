@@ -6,6 +6,7 @@ services:
     ports:
       - '3000:3000'
       - '51212:51212'
+      - '9464:9464' # Prometheus metrics
     volumes:
       - .:/home/node/app
       - next-cache:/home/node/app/.next
@@ -41,6 +42,19 @@ services:
       - data:/data/db
     logging:
       driver: none
+
+  mongodb-exporter:
+    profiles:
+      - observability
+    image: percona/mongodb_exporter:0.40
+    command:
+      - '--mongodb.uri=mongodb://mongo:27017'
+      - '--compatible-mode'
+      - '--collect-all'
+    ports:
+      - '9216:9216'
+    depends_on:
+      - mongo
 
   mongo-express:
     image: mongo-express
@@ -90,7 +104,35 @@ services:
     volumes:
       - postgress-data:/var/lib/postgresql/data
 
+  postgres-exporter:
+    profiles:
+      - observability
+    image: prometheuscommunity/postgres-exporter
+    ports:
+      - '9187:9187'
+    environment:
+      DATA_SOURCE_URI: 'postgres:5432/${POSTGRES_DB}?sslmode=disable'
+      DATA_SOURCE_USER: '${POSTGRES_USER}'
+      DATA_SOURCE_PASS: '${POSTGRES_PASSWORD}'
+    depends_on:
+      - postgres
+    env_file:
+      - .env
+
+  redis-exporter:
+    profiles:
+      - observability
+    image: oliver006/redis_exporter
+    ports:
+      - '9121:9121'
+    environment:
+      - REDIS_ADDR=redis:6379
+    depends_on:
+      - redis
+
   prometheus:
+    profiles:
+      - observability
     image: prom/prometheus
     volumes:
       - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
@@ -98,6 +140,8 @@ services:
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--storage.tsdb.retention.size=10GB'
       - '--web.enable-remote-write-receiver'
       - '--enable-feature=exemplar-storage'
       - '--enable-feature=native-histograms'
@@ -106,6 +150,8 @@ services:
       - '9090:9090'
 
   tempo:
+    profiles:
+      - observability
     user: '0:0'
     image: grafana/tempo:latest
     command: ['-config.file=/etc/tempo/tempo.yml']
@@ -118,6 +164,8 @@ services:
       - '4318' # otlp http
 
   loki:
+    profiles:
+      - observability
     image: grafana/loki
     ports:
       - '3100:3100'
@@ -125,8 +173,23 @@ services:
       - --config.file=/mnt/config/loki-config.yml
     volumes:
       - ./observability/loki/loki-config.yml:/mnt/config/loki-config.yml:ro
+      - logging-loki-data:/loki
+
+  promtail:
+    profiles:
+      - observability
+    image: grafana/promtail:latest
+    volumes:
+      - ./observability/promtail/promtail-config.yml:/etc/promtail/promtail-config.yml
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    command: -config.file=/etc/promtail/promtail-config.yml
+    depends_on:
+      - loki
 
   grafana:
+    profiles:
+      - observability
     image: grafana/grafana
     volumes:
       - logging-grafana-storage:/var/lib/grafana
@@ -156,3 +219,4 @@ volumes:
   logging-prometheus-storage:
   logging-grafana-storage:
   logging-tempo-data:
+  logging-loki-data:

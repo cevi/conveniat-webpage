@@ -5,14 +5,35 @@
  * Includes simple debug logging.
  */
 
+import { metrics, trace, ValueType } from '@opentelemetry/api';
 import Redis from 'ioredis';
 import * as crypto from 'node:crypto';
 import * as fs from 'node:fs/promises';
 import path from 'node:path';
+
+// ... imports remain ...
 import { CacheHandler } from './types.cjs';
 
 // Define a simple logging prefix
 const LOG_PREFIX = '[RedisCacheHandler]';
+
+const meter = metrics.getMeter('nextjs-redis-cache-handler');
+const cacheHitCounter = meter.createCounter('cache_hits_total', {
+  description: 'Total number of cache hits',
+  valueType: ValueType.INT,
+});
+const cacheMissCounter = meter.createCounter('cache_misses_total', {
+  description: 'Total number of cache misses',
+  valueType: ValueType.INT,
+});
+const cacheDurationHistogram = meter.createHistogram('cache_operation_duration_seconds', {
+  description: 'Duration of cache operations',
+  unit: 's',
+});
+const cacheInvalidationCounter = meter.createCounter('cache_invalidation_total', {
+  description: 'Total number of cache invalidation events',
+  valueType: ValueType.INT,
+});
 
 const noop = () => {};
 
@@ -107,67 +128,103 @@ export function createRedisCacheHandler(): CacheHandler {
 
   return {
     async get(cacheKey) {
-      // Wait for any pending set for this key to complete
-      const pendingPromise = pendingSets.get(cacheKey);
-      if (pendingPromise) {
-        await pendingPromise;
-      }
-
-      let data: Buffer | null | undefined;
-
+      const startTime = performance.now();
       try {
-        data = await redis.getBuffer(cacheKey);
-      } catch (error) {
-        console.warn(`${LOG_PREFIX} Redis GET failed: ${cacheKey}`, (error as Error).message);
-        // Fallthrough to fallback
-      }
+        // Wait for any pending set for this key to complete
+        const pendingPromise = pendingSets.get(cacheKey);
+        if (pendingPromise) {
+          await pendingPromise;
+        }
 
-      // If Redis missed or failed, try fallback
-      if (!data) {
-        data = await readFromFallback(cacheKey);
-      }
+        let data: Buffer | null | undefined;
 
-      if (!data) {
-        return;
-      }
+        try {
+          data = await redis.getBuffer(cacheKey);
+        } catch (error) {
+          console.warn(`${LOG_PREFIX} Redis GET failed: ${cacheKey}`, (error as Error).message);
+          // Fallthrough to fallback
+        }
 
-      try {
-        // The stored data is: [metadata_json_length (4 bytes)][metadata_json][value_binary]
-        const metadataLength = data.readUInt32BE(0);
-        const metadataJson = data.toString('utf8', 4, 4 + metadataLength);
-        const metadata = JSON.parse(metadataJson) as CacheMetadata;
-        const valueBuffer = data.subarray(4 + metadataLength);
+        // If Redis missed or failed, try fallback
+        if (!data) {
+          data = await readFromFallback(cacheKey);
+        }
 
-        // Check if the entry is expired based on its revalidate time.
-        const now = performance.timeOrigin + performance.now();
-        const expirationTime = metadata.timestamp + metadata.revalidate * 1000;
-
-        if (now > expirationTime) {
-          console.log(`${LOG_PREFIX} GET: ${cacheKey} (EXPIRED)`);
-          // Entry is expired. Try to remove it from Redis (fire and forget)
-          redis.del(cacheKey).catch(() => {});
+        if (!data) {
+          cacheMissCounter.add(1, { cache: 'redis' });
+          cacheDurationHistogram.record((performance.now() - startTime) / 1000, {
+            op: 'get',
+            status: 'miss',
+          });
           return;
         }
 
-        console.log(`${LOG_PREFIX} GET: ${cacheKey} (HIT)`);
+        try {
+          // The stored data is: [metadata_json_length (4 bytes)][metadata_json][value_binary]
+          const metadataLength = data.readUInt32BE(0);
+          const metadataJson = data.toString('utf8', 4, 4 + metadataLength);
+          const metadata = JSON.parse(metadataJson) as CacheMetadata;
+          const valueBuffer = data.subarray(4 + metadataLength);
 
-        // Create a ReadableStream from the Buffered value
-        const stream = new ReadableStream<Uint8Array>({
-          start(controller) {
-            controller.enqueue(new Uint8Array(valueBuffer));
-            controller.close();
-          },
-        });
+          // Check if the entry is expired based on its revalidate time.
+          const now = performance.timeOrigin + performance.now();
+          const expirationTime = metadata.timestamp + metadata.revalidate * 1000;
 
-        return {
-          ...metadata,
-          tags: metadata.tags || [],
-          stale: metadata.stale || 0, // Default to 0 if not present
-          value: stream,
-        };
+          if (now > expirationTime) {
+            console.log(`${LOG_PREFIX} GET: ${cacheKey} (EXPIRED)`);
+            setImmediate(() => {
+              cacheMissCounter.add(1, { cache: 'redis', reason: 'expired' });
+              cacheDurationHistogram.record((performance.now() - startTime) / 1000, {
+                op: 'get',
+                status: 'expired',
+              });
+              // Entry is expired. Try to remove it from Redis (fire and forget)
+              redis.del(cacheKey).catch(() => {});
+            });
+            return;
+          }
+
+          console.log(`${LOG_PREFIX} GET: ${cacheKey} (HIT)`);
+          setImmediate(() => {
+            cacheHitCounter.add(1, { cache: 'redis' });
+            cacheDurationHistogram.record((performance.now() - startTime) / 1000, {
+              op: 'get',
+              status: 'hit',
+            });
+          });
+
+          // Create a ReadableStream from the Buffered value
+          const stream = new ReadableStream<Uint8Array>({
+            start(controller) {
+              controller.enqueue(new Uint8Array(valueBuffer));
+              controller.close();
+            },
+          });
+
+          return {
+            ...metadata,
+            tags: metadata.tags || [],
+            stale: metadata.stale || 0, // Default to 0 if not present
+            value: stream,
+          };
+        } catch (error) {
+          console.error(`${LOG_PREFIX} Error parsing cached data: ${cacheKey}`, error);
+          setImmediate(() => {
+            cacheMissCounter.add(1, { cache: 'redis', reason: 'error_parsing' });
+            cacheDurationHistogram.record((performance.now() - startTime) / 1000, {
+              op: 'get',
+              status: 'error',
+            });
+          });
+          return;
+        }
       } catch (error) {
-        console.error(`${LOG_PREFIX} Error parsing cached data: ${cacheKey}`, error);
-        return;
+        // Catch-all for unexpected errors at the top level of get()
+        cacheDurationHistogram.record((performance.now() - startTime) / 1000, {
+          op: 'get',
+          status: 'error_top_level',
+        });
+        throw error;
       }
     },
 
@@ -255,16 +312,45 @@ export function createRedisCacheHandler(): CacheHandler {
           const keys = await redis.smembers(tagKey);
 
           if (keys.length > 0) {
-            console.log(`${LOG_PREFIX} UPDATE_TAGS: Clearing ${keys.length} keys for tag ${tag}`);
+            let reason = 'tag_invalidation';
+            if (tag.startsWith('details-')) {
+              reason = 'cms_page_update';
+            } else if (tag.startsWith('list-')) {
+              reason = 'cms_list_update';
+            }
+            const spanContext = trace.getActiveSpan()?.spanContext();
+            const traceId = spanContext?.traceId || '';
+            const spanId = spanContext?.spanId || '';
+
+            console.log(
+              `${LOG_PREFIX} CACHE_INVALIDATION: {"tag": "${tag}", "reason": "${reason}", "keys_cleared": ${keys.length}, "trace_id": "${traceId}", "span_id": "${spanId}"}`,
+            );
             // UNLINK is non-blocking (unlike DEL)
             await redis.unlink(...keys);
             await redis.del(tagKey);
+            cacheInvalidationCounter.add(1, { type: 'tag', tag });
           } else if (tag === 'payload') {
             // Fallback if 'payload' is invalidated but no keys tracked (e.g. after restart)
+            const spanContext = trace.getActiveSpan()?.spanContext();
+            const traceId = spanContext?.traceId || '';
+            const spanId = spanContext?.spanId || '';
+
+            console.log(
+              `${LOG_PREFIX} CACHE_INVALIDATION: {"tag": "payload", "reason": "full_flush_fallback", "keys_cleared": -1, "trace_id": "${traceId}", "span_id": "${spanId}"}`,
+            );
             console.log(
               `${LOG_PREFIX} UPDATE_TAGS: 'payload' tag cleared but no keys found in set. Flushing DB.`,
             );
             await redis.flushdb();
+            cacheInvalidationCounter.add(1, { type: 'full_flush', tag });
+          } else {
+            const spanContext = trace.getActiveSpan()?.spanContext();
+            const traceId = spanContext?.traceId || '';
+            const spanId = spanContext?.spanId || '';
+            console.log(
+              `${LOG_PREFIX} CACHE_INVALIDATION: {"tag": "${tag}", "reason": "tag_invalidation", "keys_cleared": 0, "trace_id": "${traceId}", "span_id": "${spanId}"}`,
+            );
+            cacheInvalidationCounter.add(1, { type: 'tag_empty', tag });
           }
         }
       } catch (error) {
@@ -283,6 +369,11 @@ export function createRedisCacheHandler(): CacheHandler {
     async refreshTags() {
       // No-op, matching default behavior.
       return;
+    },
+
+    async revalidateTag(tag: string) {
+      console.log(`${LOG_PREFIX} REVALIDATE_TAG: ${tag}.Delegating to updateTags.`);
+      await this.updateTags([tag]);
     },
   };
 }

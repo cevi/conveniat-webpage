@@ -32,7 +32,7 @@ compactor:
   compaction:
     compaction_window: 1h # Blocks in this time window will be compacted together.
     max_block_bytes: 100_000_000 # Maximum size of a compacted block.
-    block_retention: 1h # How long to keep blocks. Default is 14 days, this demo system is short-lived.
+    block_retention: 720h # How long to keep blocks.
     compacted_block_retention: 10m # How long to keep compacted blocks stored elsewhere.
 
 # Configuration block to determine where to store TSDB blocks.
