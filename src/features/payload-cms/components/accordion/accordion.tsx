@@ -2,11 +2,13 @@ import AccordionClientContainer from '@/features/payload-cms/components/accordio
 import type { AccordionContentProperties } from '@/features/payload-cms/components/accordion/accordion-content';
 import AccordionContent from '@/features/payload-cms/components/accordion/accordion-content';
 import type { AccordionBlocks } from '@/features/payload-cms/payload-types';
+import type { Locale } from '@/types/types';
 import type React from 'react';
 
 export const Accordion: React.FC<{
   block: AccordionBlocks;
-}> = ({ block }) => {
+  locale: Locale;
+}> = ({ locale, block }) => {
   if (block.accordionBlocks === undefined || block.accordionBlocks === null) {
     return <></>;
   }
@@ -26,6 +28,7 @@ export const Accordion: React.FC<{
           valueBlocks={
             accordionBlock.valueBlocks as unknown as AccordionContentProperties['valueBlocks']
           }
+          locale={locale}
         />
       );
       return accumulator;

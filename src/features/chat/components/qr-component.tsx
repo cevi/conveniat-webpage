@@ -7,20 +7,20 @@ import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useEffect, useState } from 'react';
 
 import { environmentVariables } from '@/config/environment-variables';
+import {
+  ChatDialog,
+  ChatDialogContent,
+  ChatDialogHeader,
+  ChatDialogTitle,
+} from '@/features/chat/components/ui/chat-dialog';
 import { FormSubmit } from '@payloadcms/ui';
 import { useQuery } from '@tanstack/react-query';
-import { QrCode, X } from 'lucide-react';
+import { QrCode } from 'lucide-react';
 
 const qrCodeTitleText: StaticTranslationString = {
   de: 'Scannen lassen, um einen Chat zu starten.',
   fr: 'Faites-le scanner pour démarrer une discussion.',
   en: 'Let it be scanned to start a chat.',
-};
-
-const closeAriaLabel: StaticTranslationString = {
-  de: 'Schliessen',
-  en: 'Close',
-  fr: 'Fermer',
 };
 
 export const QRCodeClientComponent: React.FC<{
@@ -95,45 +95,37 @@ export const QRCodeClientComponent: React.FC<{
 
   return (
     <>
-      <FormSubmit
-        icon={<QrCode className="h-6 w-6 cursor-pointer" />}
-        iconPosition="left"
-        buttonStyle="tab"
-        onClick={() => setOpen(true)}
-      />
+      <div onClick={() => setOpen(true)}>
+        <FormSubmit
+          icon={<QrCode className="h-6 w-6 cursor-pointer" />}
+          iconPosition="left"
+          buttonStyle="tab"
+        />
+      </div>
 
-      {open && (
-        <div
-          className="bg-opacity-75 fixed inset-0 z-50 flex items-center justify-center bg-black p-4 backdrop-blur-sm"
-          onClick={() => setOpen(false)}
-        >
-          <div className="relative w-full max-w-md rounded-lg border border-gray-200 bg-white p-6 text-gray-900 shadow-xl md:max-w-lg lg:max-w-xl">
-            <button
-              onClick={() => setOpen(false)}
-              className="absolute top-4 right-4 cursor-pointer text-gray-500 hover:text-gray-700"
-              aria-label={closeAriaLabel[locale]}
-            >
-              <X className="h-6 w-6" />
-            </button>
+      <ChatDialog open={open} onOpenChange={setOpen}>
+        <ChatDialogContent className="sm:max-w-md">
+          <ChatDialogHeader className="sr-only">
+            <ChatDialogTitle>{qrCodeTitleText[locale]}</ChatDialogTitle>
+          </ChatDialogHeader>
 
-            <div className="flex flex-col items-center gap-3 p-2">
-              <QRCodeImage
-                qrImageSrc={qrImageData}
-                copied={false}
-                isLoading={isLoading}
-                locale={locale}
-              />
-              {isErrorQRCodeImage && (
-                <p className="px-2 text-center text-xs text-red-500">
-                  Fehler beim Laden des QR-Codes. Bitte versuchen Sie es später erneut.
-                </p>
-              )}
-            </div>
-
-            <h2 className="text-md mb-4 text-center font-bold">{qrCodeTitleText[locale]}</h2>
+          <div className="flex flex-col items-center gap-3 p-2">
+            <QRCodeImage
+              qrImageSrc={qrImageData}
+              copied={false}
+              isLoading={isLoading}
+              locale={locale}
+            />
+            {isErrorQRCodeImage && (
+              <p className="px-2 text-center text-xs text-red-500">
+                Fehler beim Laden des QR-Codes. Bitte versuchen Sie es später erneut.
+              </p>
+            )}
           </div>
-        </div>
-      )}
+
+          <h2 className="text-md mb-4 text-center font-bold">{qrCodeTitleText[locale]}</h2>
+        </ChatDialogContent>
+      </ChatDialog>
     </>
   );
 };

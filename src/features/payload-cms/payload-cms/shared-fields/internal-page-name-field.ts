@@ -1,3 +1,4 @@
+import { beforeDuplicateAddCopySuffix } from '@/features/payload-cms/payload-cms/shared-fields/hooks/before-duplicate-add-copy-suffix';
 import type { Field } from 'payload';
 
 /**
@@ -27,6 +28,9 @@ export const internalPageNameField: Field = {
   // to uniquely identify the page within a collection
   localized: false,
   defaultValue: 'New Page',
+  hooks: {
+    beforeDuplicate: [beforeDuplicateAddCopySuffix],
+  },
   admin: {
     position: 'sidebar',
     description: {

@@ -7,12 +7,10 @@ import {
   hasPermissionsForLinkField,
   openURLInNewTab,
 } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
+import type { Header } from '@/features/payload-cms/payload-types';
 import { specialPagesTable } from '@/features/payload-cms/special-pages-table';
-import { isCookiePreview } from '@/features/payload-cms/utils/preview-utils';
-import type { StaticTranslationString } from '@/types/types';
+import type { Locale, StaticTranslationString } from '@/types/types';
 import { getBuildInfo } from '@/utils/get-build-info';
-import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
-import { renderInAppDesign } from '@/utils/render-in-app-design';
 import { cn } from '@/utils/tailwindcss-override';
 import { Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/react';
 import config from '@payload-config';
@@ -31,6 +29,8 @@ import {
   Siren,
   Truck,
 } from 'lucide-react';
+import { cacheLife, cacheTag } from 'next/cache';
+import { draftMode } from 'next/headers';
 import { getPayload } from 'payload';
 import type React from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
@@ -125,9 +125,9 @@ const AppFeatureMenuItem: React.FC<AppFeatureMenuItemProperties> = ({
   );
 };
 
-const AppFeatures: React.FC = async () => {
-  const locale = await getLocaleFromCookies();
-
+const AppFeatures: React.FC<{
+  locale: Locale;
+}> = ({ locale }) => {
   return (
     <>
       <div className="py-6">
@@ -194,21 +194,35 @@ const DeletedMenuEntry: React.FC<{ message: string }> = ({ message }) => {
   );
 };
 
-export const MainMenu: React.FC = async ({}) => {
+const getMainMenuFromPayloadCached = async (
+  locale: Locale,
+  showPreviewForMainMenu: boolean,
+): Promise<Header['mainMenu']> => {
+  'use cache';
+  cacheLife('hours');
+  cacheTag('header');
+
   const payload = await getPayload({ config });
-  const locale = await getLocaleFromCookies();
-  const isInAppDesign = await renderInAppDesign();
-  const build = await getBuildInfo();
-  const actionURL = specialPagesTable['search']?.alternatives[locale] ?? '/suche';
-
-  // if the user is logged in, we show the preview for the menu
-  const showPreviewForMainMenu = await isCookiePreview();
-
   const { mainMenu } = await payload.findGlobal({
     slug: 'header',
     locale,
     draft: showPreviewForMainMenu,
   });
+
+  return Array.isArray(mainMenu) ? mainMenu : [];
+};
+
+export const MainMenu: React.FC<{
+  locale: Locale;
+  inAppDesign: boolean;
+}> = async ({ locale, inAppDesign }) => {
+  const build = await getBuildInfo(locale);
+  const actionURL = specialPagesTable['search']?.alternatives[locale] ?? '/suche';
+
+  // if the user is logged in, we show the preview for the menu
+  const draft = await draftMode();
+  const showPreviewForMainMenu: boolean = draft.isEnabled;
+  const mainMenu = await getMainMenuFromPayloadCached(locale, showPreviewForMainMenu);
 
   // fallback to an empty array if mainMenu is not an array, to avoid runtime errors
   const mainMenuWithFallback = Array.isArray(mainMenu) ? mainMenu : [];
@@ -217,7 +231,7 @@ export const MainMenu: React.FC = async ({}) => {
     <div
       className={cn(
         'mx-auto mt-8 flex h-[calc(100%-100px)] max-w-md flex-col justify-between divide-gray-100 overflow-x-hidden overflow-y-auto px-4 xl:px-8',
-        { 'pb-16': isInAppDesign },
+        { 'pb-16': inAppDesign },
       )}
     >
       <div>
@@ -227,10 +241,10 @@ export const MainMenu: React.FC = async ({}) => {
           </LinkComponent>
         </span>
 
-        {isInAppDesign && <AppFeatures />}
+        {inAppDesign && <AppFeatures locale={locale} />}
 
         <div className="py-6">
-          {isInAppDesign && <h3 className="text-conveniat-green mb-2 font-bold">Web Inhalte</h3>}
+          {inAppDesign && <h3 className="text-conveniat-green mb-2 font-bold">Web Inhalte</h3>}
           {showPreviewForMainMenu && (
             <div className="closeNavOnClick block cursor-pointer rounded-lg bg-orange-500 py-2 pr-3 pl-6 text-sm/7 font-semibold text-white">
               Preview Menu
@@ -287,6 +301,7 @@ export const MainMenu: React.FC = async ({}) => {
             }
 
             const itemLink = getURLForLinkField(item.linkField, locale) ?? '/';
+
             const hasPermission = await hasPermissionsForLinkField(item.linkField);
 
             if (!hasPermission) {
@@ -314,7 +329,7 @@ export const MainMenu: React.FC = async ({}) => {
         <MainMenuLanguageSwitcher locale={locale} />
         <SearchComponent locale={locale} actionURL={actionURL} />
 
-        {isInAppDesign && build && (
+        {inAppDesign && build && (
           <div className="flex flex-col py-6 text-center">
             <FooterBuildInfoText>Version {build.version} </FooterBuildInfoText>
             <FooterBuildInfoText>

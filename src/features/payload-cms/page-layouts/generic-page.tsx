@@ -1,28 +1,29 @@
 import { GenericPageConverter } from '@/features/payload-cms/converters/generic-page';
-import type { Permission } from '@/features/payload-cms/payload-types';
+import type { GenericPage, Permission } from '@/features/payload-cms/payload-types';
 import { buildMetadata, findAlternatives } from '@/features/payload-cms/utils/metadata-helper';
 import type { Locale, LocalizedCollectionComponent } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { hasPermissions } from '@/utils/has-permissions';
 import config from '@payload-config';
 import type { Metadata } from 'next';
-import { notFound, redirect } from 'next/navigation';
+import { cacheLife, cacheTag } from 'next/cache';
+import { forbidden, notFound, redirect } from 'next/navigation';
+import type { PaginatedDocs } from 'payload';
 import { getPayload } from 'payload';
 
-const GenericPage: LocalizedCollectionComponent = async ({
-  slugs,
-  locale,
-  searchParams,
-  renderInPreviewMode,
-}) => {
+const getArticlesInPrimaryLanguageCached = async (
+  slug: string,
+  locale: Locale,
+  renderInPreviewMode: boolean,
+): Promise<PaginatedDocs<GenericPage>> => {
+  'use cache';
+  cacheLife('hours');
+  cacheTag('payload', 'generic-page', `collection:generic-page`);
+
   const payload = await getPayload({ config });
-  const slug = slugs.join('/');
 
-  if (renderInPreviewMode) {
-    console.log('Preview mode enabled');
-  }
-
-  const articlesInPrimaryLanguage = await payload.find({
+  return payload.find({
+    depth: 1,
     collection: 'generic-page',
     pagination: false,
     locale: locale,
@@ -36,6 +37,71 @@ const GenericPage: LocalizedCollectionComponent = async ({
       ],
     },
   });
+};
+
+const getArticlesCached = async (
+  slug: string,
+  locale: Locale,
+  renderInPreviewMode: boolean,
+): Promise<PaginatedDocs<GenericPage>> => {
+  'use cache';
+  cacheLife('hours');
+  cacheTag('payload', 'generic-page', `collection:generic-page`);
+
+  const payload = await getPayload({ config });
+
+  return payload.find({
+    depth: 1,
+    collection: 'generic-page',
+    pagination: false,
+    draft: renderInPreviewMode,
+    locale: locale,
+    where: {
+      and: [
+        { 'seo.urlSlug': { equals: slug } },
+        // we only resolve published pages unless in preview mode
+        renderInPreviewMode ? {} : { _localized_status: { equals: { published: true } } },
+      ],
+    },
+  });
+};
+
+const getFallbackArticleCached = async (
+  id: string,
+  locale: Locale,
+  renderInPreviewMode: boolean,
+): Promise<GenericPage> => {
+  'use cache';
+  cacheLife('hours');
+  cacheTag('payload', 'generic-page', `doc:generic-page:${id}`);
+
+  const payload = await getPayload({ config });
+
+  return payload.findByID({
+    collection: 'generic-page',
+    depth: 1,
+    id,
+    locale,
+    draft: renderInPreviewMode,
+  });
+};
+
+const GenericPage: LocalizedCollectionComponent = async ({
+  slugs,
+  locale,
+  renderInPreviewMode,
+}) => {
+  const slug = slugs.join('/');
+
+  if (renderInPreviewMode) {
+    console.log('Preview mode enabled');
+  }
+
+  const articlesInPrimaryLanguage = await getArticlesInPrimaryLanguageCached(
+    slug,
+    locale,
+    renderInPreviewMode,
+  );
 
   if (articlesInPrimaryLanguage.docs.length > 1)
     throw new Error('More than one article with the same slug found');
@@ -48,21 +114,10 @@ const GenericPage: LocalizedCollectionComponent = async ({
       renderInPreviewMode ||
       (await hasPermissions(articleInPrimaryLanguage.content.permissions as Permission))
     ) {
-      return (
-        <GenericPageConverter
-          page={articleInPrimaryLanguage}
-          locale={locale}
-          searchParams={searchParams}
-        />
-      );
+      return <GenericPageConverter page={articleInPrimaryLanguage} locale={locale} />;
     } else {
-      // set error=permission in search parameters
-      const searchParametersWithError: { [key: string]: string } = {
-        ...searchParams,
-        error: 'permission',
-      };
-      const searchParametersString = new URLSearchParams(searchParametersWithError).toString();
-      redirect(`/${locale}/${articleInPrimaryLanguage.seo.urlSlug}?${searchParametersString}`);
+      console.log('Access denied: Redirecting to 403');
+      forbidden();
     }
   }
 
@@ -70,21 +125,7 @@ const GenericPage: LocalizedCollectionComponent = async ({
   const locales: Locale[] = i18nConfig.locales.filter((l) => l !== locale) as Locale[];
 
   const articles = await Promise.all(
-    locales.map((l) =>
-      payload.find({
-        collection: 'generic-page',
-        pagination: false,
-        draft: renderInPreviewMode,
-        locale: l,
-        where: {
-          and: [
-            { 'seo.urlSlug': { equals: slug } },
-            // we only resolve published pages unless in preview mode
-            renderInPreviewMode ? {} : { _localized_status: { equals: { published: true } } },
-          ],
-        },
-      }),
-    ),
+    locales.map((l) => getArticlesCached(slug, l, renderInPreviewMode)),
   )
     .then((results) =>
       results
@@ -121,17 +162,8 @@ const GenericPage: LocalizedCollectionComponent = async ({
   }
 
   if (fallbackDocumentId === undefined) notFound();
-  const article = await payload.findByID({
-    collection: 'generic-page',
-    id: fallbackDocumentId,
-    locale: locale,
-    draft: renderInPreviewMode,
-  });
 
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (article === null) {
-    notFound();
-  }
+  const article = await getFallbackArticleCached(fallbackDocumentId, locale, renderInPreviewMode);
 
   // check if published in target locale
   if (article._localized_status.published !== true) {
@@ -144,6 +176,10 @@ const GenericPage: LocalizedCollectionComponent = async ({
 };
 
 GenericPage.generateMetadata = async ({ locale, slugs }): Promise<Metadata> => {
+  'use cache';
+  cacheLife('hours');
+  cacheTag('payload', 'generic-page', `collection:generic-page`);
+
   const payload = await getPayload({ config });
   const slug = slugs?.join('/') ?? '';
 
@@ -171,8 +207,8 @@ GenericPage.generateMetadata = async ({ locale, slugs }): Promise<Metadata> => {
   });
 
   const germanAlternative = pageAlternatives.find((a) => a._locale.startsWith('de'));
-  const canonicalLocale = germanAlternative?._locale || locale;
-  const canonicalSlug = germanAlternative?.seo.urlSlug || slug;
+  const canonicalLocale = germanAlternative?._locale ?? locale;
+  const canonicalSlug = germanAlternative?.seo.urlSlug ?? slug;
 
   const alternates = Object.fromEntries(
     pageAlternatives

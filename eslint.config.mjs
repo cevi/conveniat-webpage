@@ -75,6 +75,7 @@ const config = defineConfig([
             tx: true, // transaction
             val: true, // value
             env: true, // environment
+            generateStaticParams: true, // Next.js function
           },
         },
       ],
@@ -271,6 +272,13 @@ const config = defineConfig([
     // js files
     'src/app/(payload)/admin/importMap.js',
     'postcss.config.js',
+    '**/*.cjs',
+
+    // code coverage
+    'coverage/**',
+
+    // observability tools
+    'observability/**',
   ]),
 ]);
 

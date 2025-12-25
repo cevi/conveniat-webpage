@@ -8,9 +8,26 @@ import type React from 'react';
 
 const locales = Object.values(LOCALE);
 
-export const i18nConfig: Config = {
+export enum Cookie {
+  DESIGN_MODE = 'design-mode',
+  HAS_LOGGED_IN = 'has-logged-in',
+  CONVENIAT_COOKIE_BANNER = 'conveniat-cookie-banner',
+  LOCALE_COOKIE = 'next-locale',
+}
+
+export enum Header {
+  DESIGN_MODE = 'x-design-mode',
+  MIDDLEWARE_REWRITES = 'x-middleware-rewrite',
+}
+
+interface I18nConfig extends Config {
+  localeCookie: string;
+}
+
+export const i18nConfig: I18nConfig = {
   locales: locales,
   defaultLocale: LOCALE.DE,
+  localeCookie: Cookie.LOCALE_COOKIE,
   serverSetCookie: 'always',
 };
 
@@ -23,7 +40,7 @@ export interface SearchParameters {
 
 export interface LocalizedPageType {
   locale: Locale;
-  searchParams: SearchParameters;
+  searchParams?: Promise<SearchParameters>;
 }
 
 export type LocalizedCollectionPage = LocalizedPageType & {
@@ -51,12 +68,6 @@ export type RoutableCollectionConfigs = (CollectionConfig | RoutableCollectionCo
 export type RoutableConfig = Omit<PayloadConfig, 'collections'> & {
   collections?: RoutableCollectionConfigs;
 };
-
-export enum Cookie {
-  APP_DESIGN = 'app-design',
-  HAS_LOGGED_IN = 'has-logged-in',
-  CONVENIAT_COOKIE_BANNER = 'conveniat-cookie-banner',
-}
 
 export type PrismaClientOrTransaction = Omit<PrismaClient, ITXClientDenyList>;
 

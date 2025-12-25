@@ -5,7 +5,7 @@ services:
       dockerfile: dev.Dockerfile
     ports:
       - '3000:3000'
-      - '5555:5555'
+      - '51212:51212'
     volumes:
       - .:/home/node/app
       - next-cache:/home/node/app/.next
@@ -13,13 +13,7 @@ services:
       - node_modules:/home/node/app/node_modules
     working_dir: /home/node/app/
     command: >
-      sh -c "export PRISMA_OUTPUT='src/lib/prisma/client/' &&
-      npx prisma generate --no-hints &&
-      npx prisma db push &&
-      npx prisma studio &
-      corepack enable pnpm && pnpm i --frozen-lockfile &&
-      sh /home/node/app/create_build_info.sh &&
-      if [ \"$NEXT_PUBLIC_ENABLE_OFFLINE_SUPPORT\" = \"true\" ]; then
+      sh -c "export PRISMA_OUTPUT='src/lib/prisma/client/' && npx prisma generate --no-hints && npx prisma db push --accept-data-loss && npx prisma studio --browser none & corepack enable pnpm && pnpm i --frozen-lockfile && sh /home/node/app/create_build_info.sh && if [ \"$NEXT_PUBLIC_ENABLE_OFFLINE_SUPPORT\" = \"true\" ]; then
         echo '' &&
         echo '**************************************************' &&
         echo '*   WARNING: SERVICE WORKER ENABLED              *' &&
@@ -34,6 +28,8 @@ services:
       fi"
     dns:
       - 8.8.8.8
+      - 1.1.1.1
+
     depends_on:
       - mongo
     env_file:
@@ -76,13 +72,7 @@ services:
 
     entrypoint: sh
     command: >
-      -c "mkdir -p /data/${MINIO_BUCKET_NAME} &&
-      /usr/bin/minio server --console-address ':9001' /data & 
-      sleep 10 &&
-      mc alias set myminio http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD} &&
-      mc admin user svcacct add --access-key '${MINIO_ACCESS_KEY_ID}' --secret-key '${MINIO_SECRET_ACCESS_KEY}' myminio ${MINIO_ROOT_USER} || true &&
-      echo 'minio is ready' &&
-      sleep infinity"
+      -c "mkdir -p /data/${MINIO_BUCKET_NAME} && /usr/bin/minio server --console-address ':9001' /data &  sleep 10 && mc alias set myminio http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD} && mc admin user svcacct add --access-key '${MINIO_ACCESS_KEY_ID}' --secret-key '${MINIO_SECRET_ACCESS_KEY}' myminio ${MINIO_ROOT_USER} || true && echo 'minio is ready' && sleep infinity"
 
     env_file:
       - .env
@@ -123,6 +113,7 @@ services:
       - '--web.enable-remote-write-receiver'
       - '--enable-feature=exemplar-storage'
       - '--enable-feature=native-histograms'
+      - '--log.level=error'
     ports:
       - '9090:9090'
 
@@ -157,6 +148,13 @@ services:
       - GF_LOG_LEVEL=error
     ports:
       - '9050:3000' # localhost:9050 for accessing grafana
+
+  redis:
+    image: redis:alpine
+    ports:
+      - '6379:6379'
+    logging:
+      driver: none
 
 volumes:
   data:

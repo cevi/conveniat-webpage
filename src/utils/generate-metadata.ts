@@ -1,11 +1,17 @@
 import { environmentVariables } from '@/config/environment-variables';
 import type { SEO } from '@/features/payload-cms/payload-types';
 import { metadataIconDefinitions } from '@/utils/icon-definitions';
+import { isBuildTimePreRendering } from '@/utils/is-pre-rendering';
 import config from '@payload-config';
 import type { Metadata } from 'next';
+import { cacheLife, cacheTag } from 'next/cache';
 import { getPayload } from 'payload';
 
-export const generateMetadata = async (): Promise<Metadata> => {
+export const generateMetadataCached = async (): Promise<Metadata> => {
+  'use cache';
+  cacheLife('hours');
+  cacheTag('payload', 'PWA', 'SEO');
+
   const payload = await getPayload({ config });
 
   const APP_HOST_URL = environmentVariables.APP_HOST_URL;
@@ -66,4 +72,9 @@ export const generateMetadata = async (): Promise<Metadata> => {
       description: defaultDescription,
     },
   };
+};
+
+export const generateMetadata = async (): Promise<Metadata> => {
+  if (await isBuildTimePreRendering()) return {};
+  return generateMetadataCached();
 };

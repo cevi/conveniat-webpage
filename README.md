@@ -17,7 +17,7 @@ Next.js and Payload CMS.
   - [Folder Overview](#folder-overview)
   - [Feature-Based Modularity](#feature-based-modularity)
 - [Key Concepts](#key-concepts)
-  - [Dynamic Page Rendering](#dynamic-page-rendering)
+  - [Page Rendering](#page-rendering)
   - [Progressive Web App (PWA)](#progressive-web-app-pwa)
 - [Code Quality & Conventions](#code-quality--conventions)
   - [TypeScript Strictness](#typescript-strictness)
@@ -138,9 +138,9 @@ This structure aids scalability, maintainability, and team collaboration by keep
 
 ## Key Concepts
 
-### Dynamic Page Rendering
+### Page Rendering
 
-A core aspect of this project is that most frontend pages are dynamically generated based on data managed within Payload
+A core aspect of this project is that most frontend pages are generated based on data managed within Payload
 CMS.
 
 1. **CMS Configuration (`src/features/payload-cms/payload.config.ts`, `src/features/payload-cms/settings`):** Defines
@@ -152,6 +152,8 @@ CMS.
 4. **Layout & Component Mapping:** Once the corresponding CMS data is found for a URL, a specific page layout (
    `src/features/payload-cms/page-layouts`) is rendered. Complex CMS fields (like Blocks or Rich Text) are mapped
    to React components using converters (`src/features/payload-cms/converters`).
+
+To improve performance, calls to Payload CMS are cached server-side using Next.js 'use cache' functionality.
 
 ### Progressive Web App (PWA)
 

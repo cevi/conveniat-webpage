@@ -1,4 +1,6 @@
 import type { ChatMessage } from '@/features/chat/api/types';
+import { AlertQuestionMessage } from '@/features/chat/components/chat-view/message/alert-question-message';
+import { AlertResponseMessage } from '@/features/chat/components/chat-view/message/alert-response-message';
 import { ImageMessage } from '@/features/chat/components/chat-view/message/image-message';
 import { LocationMessage } from '@/features/chat/components/chat-view/message/location-message';
 import { MessageInfoDropdown } from '@/features/chat/components/chat-view/message/message-info-dropdown';
@@ -9,9 +11,9 @@ import { MessageEventType, MessageType } from '@/lib/prisma/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { Check, MoreHorizontal, UserCircle } from 'lucide-react';
+import { Check, Loader2, MoreHorizontal, UserCircle } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 
 const messageOptionsAriaLabel: StaticTranslationString = {
   de: 'Nachrichten-Optionen',
@@ -22,6 +24,7 @@ const messageOptionsAriaLabel: StaticTranslationString = {
 interface MessageProperties {
   message: ChatMessage;
   isCurrentUser: boolean;
+  chatType: string;
 }
 
 /**
@@ -32,9 +35,15 @@ interface MessageProperties {
  * @constructor
  */
 
-export const MessageComponent: React.FC<MessageProperties> = ({ message, isCurrentUser }) => {
+export const MessageComponent: React.FC<MessageProperties> = ({
+  message,
+  isCurrentUser,
+  chatType,
+}) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const [showInfo, setShowInfo] = useState(false);
+  const [isLongPressing, setIsLongPressing] = useState(false);
+  const longPressTimerReference = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const formattedTime = useFormatDate().formatMessageTime(message.createdAt);
   const renderedContent = formatMessageContent(message.messagePayload, locale);
 
@@ -43,10 +52,29 @@ export const MessageComponent: React.FC<MessageProperties> = ({ message, isCurre
     setShowInfo((previous) => !previous);
   };
 
+  const handleTouchStart = (event: React.TouchEvent): void => {
+    event.stopPropagation();
+    setIsLongPressing(true);
+    longPressTimerReference.current = setTimeout(() => {
+      // Trigger haptic feedback if available
+      navigator.vibrate(50);
+      setShowInfo(true);
+      setIsLongPressing(false);
+    }, 500); // 500ms for long press
+  };
+
+  const handleTouchEnd = (): void => {
+    if (longPressTimerReference.current) {
+      clearTimeout(longPressTimerReference.current);
+      longPressTimerReference.current = undefined;
+    }
+    setIsLongPressing(false);
+  };
+
   const renderMessageStatus = (): React.JSX.Element => {
     if (!isCurrentUser) return <></>;
     if (message.status === MessageEventType.CREATED) {
-      return <div className="font-body ml-1 text-xs text-gray-400">Sending...</div>;
+      return <Loader2 className="ml-1 h-3.5 w-3.5 animate-spin text-white/70" />;
     }
     switch (message.status) {
       case MessageEventType.STORED: {
@@ -63,8 +91,8 @@ export const MessageComponent: React.FC<MessageProperties> = ({ message, isCurre
       case MessageEventType.READ: {
         return (
           <div className="ml-1 flex">
-            <Check className="text-conveniat-green h-3.5 w-3.5" />
-            <Check className="text-conveniat-green -ml-2 h-3.5 w-3.5" />
+            <Check className="h-3.5 w-3.5 text-white/70" />
+            <Check className="-ml-2 h-3.5 w-3.5 text-white/70" />
           </div>
         );
       }
@@ -83,26 +111,37 @@ export const MessageComponent: React.FC<MessageProperties> = ({ message, isCurre
     return <LocationMessage message={message} />;
   }
 
+  if (message.type === ('ALERT_QUESTION' as unknown as MessageType)) {
+    return <AlertQuestionMessage message={message} isCurrentUser={isCurrentUser} />;
+  }
+
+  if (message.type === ('ALERT_RESPONSE' as unknown as MessageType)) {
+    return <AlertResponseMessage message={message} />;
+  }
+
   return (
     <div
       className={cn('group flex items-end gap-2', isCurrentUser ? 'justify-end' : 'justify-start')}
     >
-      {!isCurrentUser && (
+      {!isCurrentUser && chatType === 'GROUP' && (
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100">
           <UserCircle className="h-6 w-6 text-gray-400" />
         </div>
       )}
 
       <div
-        className={cn('flex items-center gap-2', isCurrentUser ? 'flex-row-reverse' : 'flex-row')}
+        className={cn(
+          'group flex items-center gap-2',
+          isCurrentUser ? 'flex-row-reverse' : 'flex-row',
+        )}
         onContextMenu={handleInteraction}
       >
         <div className="relative">
           <button
             onClick={handleInteraction}
             className={cn(
-              'rounded-full p-1 transition-opacity duration-200 md:opacity-0 md:group-hover:opacity-100',
-              { 'opacity-100': showInfo },
+              'hidden rounded-full p-1 transition-all duration-200 hover:bg-gray-200/50 md:group-hover:block',
+              { 'md:block': showInfo },
             )}
             aria-label={messageOptionsAriaLabel[locale]}
           >
@@ -117,14 +156,20 @@ export const MessageComponent: React.FC<MessageProperties> = ({ message, isCurre
           )}
         </div>
 
-        <div>
+        <div
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          onTouchCancel={handleTouchEnd}
+          style={{ touchAction: 'manipulation' }}
+        >
           <div
             className={cn(
-              'font-body rounded-2xl px-4 py-3 shadow-sm',
+              'font-body relative min-w-[100px] rounded-2xl px-3 py-2 pb-6 shadow-sm transition-transform duration-150',
               isCurrentUser
-                ? 'rounded-br-md bg-green-200 text-green-700'
+                ? 'bg-conveniat-green rounded-br-md text-white'
                 : 'rounded-bl-md border border-gray-200 bg-white text-gray-900',
               message.status === MessageEventType.CREATED && 'opacity-60',
+              isLongPressing && 'scale-95',
             )}
             style={{
               whiteSpace: 'pre-wrap',
@@ -136,16 +181,21 @@ export const MessageComponent: React.FC<MessageProperties> = ({ message, isCurre
             ) : (
               renderedContent
             )}
-          </div>
-          <div className="mt-1 flex items-center justify-end text-xs">
-            <span className="font-body text-gray-500">{formattedTime}</span>
-            {renderMessageStatus()}
+            <div
+              className={cn(
+                'absolute right-3 bottom-1 flex items-center justify-end text-[10px]',
+                isCurrentUser ? 'text-white/70' : 'text-gray-400',
+              )}
+            >
+              <span className="font-body mr-1">{formattedTime}</span>
+              {renderMessageStatus()}
+            </div>
           </div>
         </div>
       </div>
 
-      {isCurrentUser && (
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-green-200">
+      {isCurrentUser && chatType === 'GROUP' && (
+        <div className="bg-conveniat-green/10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
           <UserCircle className="text-conveniat-green h-6 w-6" />
         </div>
       )}

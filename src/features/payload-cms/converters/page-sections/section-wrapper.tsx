@@ -1,6 +1,5 @@
 import type { ContentBlockTypeNames } from '@/features/payload-cms/converters/page-sections/content-blocks';
-import type { StaticTranslationString } from '@/types/types';
-import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
+import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import React from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
@@ -13,9 +12,7 @@ const errorMessageText: StaticTranslationString = {
   fr: 'Échec du chargement du bloc de contenu.',
 };
 
-const ErrorFallback: React.FC<{ error: Error }> = async ({ error }) => {
-  const locale = await getLocaleFromCookies();
-
+const ErrorFallback: React.FC<{ error: Error; locale: Locale }> = ({ locale, error }) => {
   return (
     <div className="rounded-2xl bg-gray-100 px-16 py-4 text-center text-red-700">
       <b>{errorMessageText[locale]}</b> <br />
@@ -30,14 +27,17 @@ const SectionWrapper: React.FC<{
   sectionOverrides: { [key in ContentBlockTypeNames]?: string } | undefined;
   children: React.ReactNode;
   errorFallbackMessage: string;
-}> = ({ block, sectionClassName, sectionOverrides, children, errorFallbackMessage }) => {
+  locale: Locale;
+}> = ({ block, sectionClassName, sectionOverrides, children, errorFallbackMessage, locale }) => {
   const blockTypeOverrideClassName = sectionOverrides?.[block.blockType];
   return (
     <section
       key={block.id}
       className={cn('mt-8 first:mt-0', sectionClassName, blockTypeOverrideClassName)}
     >
-      <ErrorBoundary fallback={<ErrorFallback error={new Error(errorFallbackMessage)} />}>
+      <ErrorBoundary
+        fallback={<ErrorFallback error={new Error(errorFallbackMessage)} locale={locale} />}
+      >
         {children}
       </ErrorBoundary>
     </section>

@@ -1,6 +1,5 @@
 import { LinkComponent } from '@/components/ui/link-component';
 import type { Locale } from '@/types/types';
-import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { Paperclip } from 'lucide-react';
 import React from 'react';
 
@@ -12,6 +11,7 @@ export interface FileDownloadType {
     updatedAt: string;
   };
   openInNewTab: boolean;
+  locale: Locale;
 }
 
 const formatBytes = (bytes: number, decimals = 2): string => {
@@ -35,9 +35,7 @@ const dateStringToFormatedDate = (locale: Locale, dateString: string): string =>
   return date.toLocaleDateString(locale, options);
 };
 
-export const FileDownload: React.FC<FileDownloadType> = async ({ ...block }) => {
-  const locale = await getLocaleFromCookies();
-
+export const FileDownload: React.FC<FileDownloadType> = ({ locale, ...block }) => {
   return (
     <div className="rounded-md border-2 border-gray-200 bg-white transition duration-200 hover:shadow-md sm:m-8">
       <LinkComponent

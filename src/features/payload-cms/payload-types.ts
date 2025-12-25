@@ -104,17 +104,20 @@ export interface Config {
   db: {
     defaultIDType: string;
   };
+  fallbackLocale: ('false' | 'none' | 'null') | false | null | ('en' | 'de' | 'fr') | ('en' | 'de' | 'fr')[];
   globals: {
     header: Header;
     footer: Footer;
     SEO: SEO;
     PWA: PWA;
+    alert_settings: AlertSetting;
   };
   globalsSelect: {
     header: HeaderSelect<false> | HeaderSelect<true>;
     footer: FooterSelect<false> | FooterSelect<true>;
     SEO: SEOSelect<false> | SEOSelect<true>;
     PWA: PWASelect<false> | PWASelect<true>;
+    alert_settings: AlertSettingsSelect<false> | AlertSettingsSelect<true>;
   };
   locale: 'en' | 'de' | 'fr';
   user: User & {
@@ -3210,6 +3213,27 @@ export interface PWA {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "alert_settings".
+ */
+export interface AlertSetting {
+  id: string;
+  questions?:
+    | {
+        question: string;
+        options: {
+          option: string;
+          id?: string | null;
+        }[];
+        id?: string | null;
+      }[]
+    | null;
+  finalResponseMessage: string;
+  emergencyPhoneNumber: string;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "header_select".
  */
 export interface HeaderSelect<T extends boolean = true> {
@@ -3311,6 +3335,29 @@ export interface PWASelect<T extends boolean = true> {
   appName?: T;
   appShortName?: T;
   appDescription?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "alert_settings_select".
+ */
+export interface AlertSettingsSelect<T extends boolean = true> {
+  questions?:
+    | T
+    | {
+        question?: T;
+        options?:
+          | T
+          | {
+              option?: T;
+              id?: T;
+            };
+        id?: T;
+      };
+  finalResponseMessage?: T;
+  emergencyPhoneNumber?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

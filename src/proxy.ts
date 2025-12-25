@@ -1,27 +1,30 @@
-import { middlewareChain } from '@/middleware/middleware-chain';
-import { withAbortOnInfiniteRedirects } from '@/middleware/with-abort-on-infinite-redirects';
-import { withAppFeatureMiddleware } from '@/middleware/with-app-feature-middleware';
-import { withAuthenticationRedirect } from '@/middleware/with-authentication-redirect';
-import { withI18nMiddleware } from '@/middleware/with-i18n-middleware';
-import { withPreviewMiddleware } from '@/middleware/with-preview-middleware';
+import { designRewriteProxy } from '@/proxy/design-rewrite-proxy';
+import { i18nProxy } from '@/proxy/i18n-proxy';
+import { proxyChain } from '@/proxy/proxy-chain';
+import type { ProxyModule } from '@/proxy/types';
+import { isExcludedFromPathRewrites } from '@/proxy/utils/is-excluded-from-path-rewrites';
 
-/**
- * Middlewares are applied in a chain.
- *
- * The order of the middlewares is important! Each middleware
- * either returns a response or calls the next middleware in the chain.
- *
- */
-export const proxy = middlewareChain([
-  withAbortOnInfiniteRedirects,
-  withAppFeatureMiddleware,
-  withPreviewMiddleware,
-  withAuthenticationRedirect,
-  withI18nMiddleware, // must be the last middleware in the chain
+const skipExcludedPaths: ProxyModule = (next) => {
+  return async (request, _event, response) => {
+    if (isExcludedFromPathRewrites(request)) return response;
+    return next(request, _event, response);
+  };
+};
+
+const pathnameProxy: ProxyModule = (next) => {
+  return async (request, _event, response) => {
+    response.headers.set('x-pathname', request.nextUrl.pathname);
+    return next(request, _event, response);
+  };
+};
+
+export const proxy = proxyChain([
+  { proxy: skipExcludedPaths, name: 'skipExcludedPaths' },
+  { proxy: pathnameProxy, name: 'pathname' },
+  { proxy: i18nProxy, name: 'i18n' },
+  { proxy: designRewriteProxy, name: 'designRewrite' },
 ]);
 
-// we apply the middleware to all routes
 export const config = {
-  // exclude _next routes
-  matcher: ['/((?!_next).*)'],
+  matcher: ['/((?!_next).*)'], // exclude _next routes
 };

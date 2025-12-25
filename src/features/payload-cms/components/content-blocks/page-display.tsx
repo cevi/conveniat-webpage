@@ -3,9 +3,10 @@ import type { ContentBlock } from '@/features/payload-cms/converters/page-sectio
 import type { LinkFieldDataType } from '@/features/payload-cms/payload-cms/shared-fields/link-field';
 import { extractTextContent } from '@/features/payload-cms/payload-cms/utils/extract-rich-text';
 import type { GenericPage } from '@/features/payload-cms/payload-types';
+import type { Locale } from '@/types/types';
 import React from 'react';
 
-export const PageDisplay: React.FC<{ page: GenericPage }> = ({ page }) => {
+export const PageDisplay: React.FC<{ locale: Locale; page: GenericPage }> = ({ locale, page }) => {
   const contentExcerpt = extractTextContent(page.content.mainContent as ContentBlock[]);
   const contentExcerptTrimmed =
     contentExcerpt.length > 150 ? contentExcerpt.slice(0, 150) + '...' : contentExcerpt;
@@ -24,6 +25,7 @@ export const PageDisplay: React.FC<{ page: GenericPage }> = ({ page }) => {
         date={page.content.releaseDate}
         headline={page.content.pageTitle}
         linkField={linkField}
+        locale={locale}
       >
         <p className="text-sm text-gray-500">{contentExcerptTrimmed}</p>
       </NewsCardBlock>

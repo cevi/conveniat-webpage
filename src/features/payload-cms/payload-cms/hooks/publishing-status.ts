@@ -122,6 +122,7 @@ const ignoredFields = new Set([
  * @param document1
  * @param document2
  */
+
 const hasDiffs = (
   locale: Config['locale'],
   fieldDefs: Field[],

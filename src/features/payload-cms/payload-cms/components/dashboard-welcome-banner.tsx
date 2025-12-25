@@ -47,15 +47,39 @@ const DashboardWelcomeBanner: React.FC<{ locale: Locale }> = ({ locale = 'de' })
         {welcomeMessageTitle[locale]} - Version {build.version}
       </h1>
       <p className="mt-2 text-lg">{welcomeMessage[locale]}</p>
-      {isLocalhost && (
+      <div className="mt-4 flex flex-wrap gap-4">
+        {isLocalhost && (
+          <button
+            type="button"
+            onClick={() => void resetHandler()}
+            className="font-heading cursor-pointer rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg leading-normal font-bold text-red-100 duration-100 hover:bg-red-800"
+          >
+            Reset this instance
+          </button>
+        )}
+
         <button
-          type="submit"
-          onClick={() => void resetHandler()}
-          className="font-heading cursor-pointer rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg leading-normal font-bold text-red-100 duration-100 hover:bg-red-800"
+          type="button"
+          onClick={() => {
+            void (async (): Promise<void> => {
+              try {
+                const response = await fetch('/api/flush-cache');
+                if (response.ok) {
+                  alert('Cache flushed successfully!');
+                } else {
+                  alert('Failed to flush cache.');
+                }
+              } catch (error) {
+                console.error(error);
+                alert('An error occurred while flushing cache.');
+              }
+            })();
+          }}
+          className="font-heading bg-conveniat-green cursor-pointer rounded-[8px] px-8 py-3 text-center text-lg leading-normal font-bold text-white duration-100 hover:brightness-110"
         >
-          Reset this instance
+          Flush Cache
         </button>
-      )}
+      </div>
     </div>
   );
 };

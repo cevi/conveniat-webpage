@@ -28,6 +28,23 @@ export const formatMessageContent = (
     ];
   }
 
+  // Handle Alert Response (Help is on the way)
+  if (
+    typeof text === 'object' &&
+    !Array.isArray(text) &&
+    'message' in text &&
+    'phoneNumber' in text
+  ) {
+    // eslint-disable-next-line @typescript-eslint/no-base-to-string
+    return [text['message']?.toString() ?? ''];
+  }
+
+  // Handle Alert Question
+  if (typeof text === 'object' && !Array.isArray(text) && 'question' in text && 'options' in text) {
+    // eslint-disable-next-line @typescript-eslint/no-base-to-string
+    return [text['question']?.toString() ?? ''];
+  }
+
   if (typeof text === 'number' || typeof text === 'boolean') {
     return [text.toString()];
   }

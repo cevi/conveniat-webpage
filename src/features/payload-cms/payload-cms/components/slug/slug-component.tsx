@@ -1,13 +1,38 @@
 'use client';
 
+import { ConfirmationModal } from '@/features/payload-cms/payload-cms/components/multi-lang-publishing/confirmation-modal';
 import { formatSlug } from '@/features/payload-cms/payload-cms/components/slug/format-slug';
 import type { CustomSlugComponentProperties } from '@/features/payload-cms/payload-cms/components/slug/types';
 import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
-import type { Locale } from '@/types/types';
+import type { Locale, StaticTranslationString } from '@/types/types';
 import { FieldLabel, TextInput, useField, useFormFields, useLocale } from '@payloadcms/ui';
 import { Lock, Unlock } from 'lucide-react';
 import type { TextFieldClientProps } from 'payload';
 import React, { useCallback, useEffect, useState } from 'react';
+
+const modalTitleString: StaticTranslationString = {
+  en: 'Change URL Slug',
+  de: 'URL-Slug ändern',
+  fr: 'Modifier le slug URL',
+};
+
+const modalMessageString: StaticTranslationString = {
+  en: 'Changing the slug is dangerous. It will change the URL and break any links already shared to this page. Do you want to continue?',
+  de: 'Das Ändern des Slugs ist gefährlich. Es ändert die URL und macht bereits geteilte Links zu dieser Seite ungültig. Möchten Sie fortfahren?',
+  fr: "Changer le slug est dangereux. Cela modifiera l'URL et brisera tous les liens déjà partagés vers cette page. Voulez-vous continuer?",
+};
+
+const confirmButtonString: StaticTranslationString = {
+  en: 'Continue',
+  de: 'Fortfahren',
+  fr: 'Continuer',
+};
+
+const submittingTextString: StaticTranslationString = {
+  en: 'Unlocking...',
+  de: 'Entsperren...',
+  fr: 'Déverrouillage...',
+};
 
 export const SlugComponent: React.FC<
   TextFieldClientProps & { collectionName: CustomSlugComponentProperties }
@@ -39,6 +64,8 @@ export const SlugComponent: React.FC<
   const { value, setValue } = useField<string>({ path: path || 'seo.urlSlug' });
 
   const [checkboxValue, setCheckboxValue] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const targetFieldValue = useFormFields(([fields]) => {
     return fields[path || 'seo.urlSlug']?.value as string;
@@ -58,21 +85,29 @@ export const SlugComponent: React.FC<
 
   const handleLock = useCallback(
     (event: { preventDefault: () => void }) => {
-      if (
-        checkboxValue &&
-        !globalThis.confirm(
-          'Changing the slug will change the URL. Do you want to continue? This will break all links to that page.',
-        )
-      ) {
-        return; // do not change the state
-      }
-
       event.preventDefault();
 
-      setCheckboxValue((previous) => !previous); // Update state instead of local variable
+      if (checkboxValue) {
+        // If locked, open confirmation modal
+        setIsModalOpen(true);
+      } else {
+        // If unlocked, just lock it
+        setCheckboxValue(true);
+      }
     },
     [checkboxValue],
   );
+
+  const handleConfirmUnlock = useCallback(() => {
+    setIsSubmitting(true);
+    // Simulate async operation if needed, or just unlock
+    // For now we just mock a small delay for UX or resolve immediately
+    setTimeout(() => {
+      setCheckboxValue(false);
+      setIsModalOpen(false);
+      setIsSubmitting(false);
+    }, 200);
+  }, []);
 
   const readOnly = checkboxValue;
 
@@ -107,6 +142,19 @@ export const SlugComponent: React.FC<
         path={path || field.name}
         readOnly={Boolean(readOnly)}
         className=""
+      />
+
+      <ConfirmationModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onConfirm={handleConfirmUnlock}
+        message={modalMessageString[locale.code as Locale]}
+        isSubmitting={isSubmitting}
+        locale={locale.code as Locale}
+        title={modalTitleString[locale.code as Locale]}
+        confirmLabel={confirmButtonString[locale.code as Locale]}
+        submittingText={submittingTextString[locale.code as Locale]}
+        confirmVariant="danger"
       />
     </div>
   );

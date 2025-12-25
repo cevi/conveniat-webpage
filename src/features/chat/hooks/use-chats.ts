@@ -72,3 +72,38 @@ export const useChatDetail = (chatId: string): ChatDetailResult => {
     },
   );
 };
+
+export const useSuspenseChatDetail = (
+  chatId: string,
+): [inferProcedureOutput<AppRouter['chat']['chatDetails']>, unknown] => {
+  // Explicitly typed to avoid inference issues (unknown)
+  const trpcUtils = trpc.useUtils();
+
+  useEffect(() => {
+    const handleMessage = (): void => {
+      console.log('Received message via push notification, invalidating chat detail query');
+      trpcUtils.chat.chatDetails.invalidate({ chatId }).catch(console.error);
+    };
+
+    if (typeof navigator !== 'undefined') {
+      navigator.serviceWorker.addEventListener('message', handleMessage);
+    }
+
+    return (): void => {
+      if (typeof navigator !== 'undefined') {
+        navigator.serviceWorker.removeEventListener('message', handleMessage);
+      }
+    };
+  }, [trpcUtils, chatId]);
+
+  return trpc.chat.chatDetails.useSuspenseQuery(
+    { chatId },
+    {
+      refetchInterval: 5000,
+      refetchOnMount: true,
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
+      refetchIntervalInBackground: false,
+    },
+  );
+};

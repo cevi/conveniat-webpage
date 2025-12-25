@@ -96,6 +96,7 @@ services:
 
     depends_on:
       - mongo
+      - redis
     env_file:
       - .env
 
@@ -234,6 +235,18 @@ services:
         target: /mnt/config/loki-config.yml
     networks:
       - observability-net
+
+  redis:
+    image: redis:alpine
+    networks:
+      - backend-net
+    logging:
+      driver: none
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
 
 configs:
   loki-config:

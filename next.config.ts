@@ -34,22 +34,30 @@ const nextConfig: NextConfig = {
   transpilePackages: ['@t3-oss/env-nextjs', '@t3-oss/env-core'],
   poweredByHeader: false,
   reactStrictMode: true,
+  cacheComponents: true,
 
   // enable gzip compression for all responses
   compress: true,
+
+  cacheHandlers: {
+    // eslint-disable-next-line unicorn/prefer-module
+    default: require.resolve('./src/cache-handlers/default.cjs'),
+  },
 
   // enable react compiler for better error messages and performance
   reactCompiler: true,
 
   experimental: {
+    authInterrupts: true,
+
     // Forward browser logs to the terminal for easier debugging
     browserDebugInfoInTerminal: true,
 
     // enable server source maps for better error tracking
     serverSourceMaps: true,
 
-    // activate new client-side router improvements
-    clientSegmentCache: true,
+    // Enable filesystem caching for `next dev`
+    turbopackFileSystemCacheForDev: true,
 
     staleTimes: {
       dynamic: 0, // this must be set to 0 for payload to work correctly
@@ -76,9 +84,6 @@ const nextConfig: NextConfig = {
 
   rewrites: postHogRewrites,
   headers: cachingHeaders,
-
-  // Support PostHog trailing slash API requests
-  skipTrailingSlashRedirect: true,
 };
 
 const serviceWorkerRevision =

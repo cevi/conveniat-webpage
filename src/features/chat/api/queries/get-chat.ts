@@ -16,7 +16,7 @@ export const getChat = trpcBaseProcedure
       where: { uuid: chatId },
       include: {
         messages: {
-          orderBy: { createdAt: 'asc' },
+          orderBy: { createdAt: 'desc' }, // Get newest messages first
           take: 25, // limit to the last 25 messages
           include: {
             messageEvents: {
@@ -65,7 +65,8 @@ export const getChat = trpcBaseProcedure
       id: chat.uuid,
       archivedAt: chat.archivedAt,
       type: chat.type,
-      messages: messages.map((message) => ({
+      // Reverse to chronological order (we fetched in desc to get newest 25)
+      messages: [...messages].reverse().map((message) => ({
         id: message.uuid,
         createdAt: message.createdAt,
         messagePayload: message.contentVersions[0]?.payload ?? {},

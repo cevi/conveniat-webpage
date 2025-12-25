@@ -11,6 +11,3 @@ const handler = (request: Request): Promise<Response> =>
   });
 
 export { handler as GET, handler as POST };
-
-// this is an API route, so it should not be cached at Next.js level
-export const dynamic = 'force-dynamic';

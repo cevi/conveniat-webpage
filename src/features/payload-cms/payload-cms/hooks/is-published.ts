@@ -49,8 +49,8 @@ export const useIsPublished = <
   }, [_document]);
 
   const canUnpublish =
-    (_document as { _disable_unpublishing?: boolean } | undefined)?.['_disable_unpublishing'] ===
-    false;
+    (_document as { _disable_unpublishing?: boolean } | undefined)?.['_disable_unpublishing'] !==
+    true;
 
   return {
     isPublished,

@@ -41,6 +41,21 @@ export const ConfirmationSlider: React.FC<ConfirmationSliderProperties> = ({
     setIsProcessing(false);
   }, [isConfirmed, text]);
 
+  // Ensure slider is reset on mount
+  React.useEffect(() => {
+    setIsConfirmed(false);
+    setDisplayText(text);
+    setIsProcessing(false);
+    setIsAnimating(true);
+    if (handleReference.current) {
+      handleReference.current.style.transform = 'translateX(0px)';
+      handleReference.current.style.transition = '';
+    }
+    if (trackReference.current) {
+      trackReference.current.style.setProperty('--translate-x-clamped', '0px');
+    }
+  }, [text]);
+
   const handlePointerMove = useCallback(
     (event: PointerEvent) => {
       if (!isDraggingReference.current || !trackReference.current || isConfirmed || isProcessing)

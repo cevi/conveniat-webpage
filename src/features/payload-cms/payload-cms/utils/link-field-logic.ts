@@ -81,8 +81,7 @@ export const getURLForLinkField = (
       }
       case 'images':
       case 'documents': {
-        const url = (value as unknown as { url: string }).url;
-        return url;
+        return (value as unknown as { url: string }).url;
       }
       case 'camp-schedule-entry': {
         const entryId = (value as CampScheduleEntry).id;
