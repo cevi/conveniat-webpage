@@ -1,5 +1,5 @@
 import build from '@/build';
-import { diag, DiagConsoleLogger, DiagLogLevel } from '@opentelemetry/api';
+import { diag, DiagConsoleLogger, DiagLogLevel, type DiagLogger } from '@opentelemetry/api';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
 import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
@@ -44,8 +44,73 @@ const metricsReader = new PrometheusExporter(
   },
 );
 
+class IgnoreTempoErrorLogger implements DiagLogger {
+  constructor(private readonly logger: DiagLogger = new DiagConsoleLogger()) {}
+
+  error(message: string, ...args: unknown[]): void {
+    if (this.shouldIgnore(message, args)) return;
+    this.logger.error(message, ...args);
+  }
+
+  warn(message: string, ...args: unknown[]): void {
+    if (this.shouldIgnore(message, args)) return;
+    this.logger.warn(message, ...args);
+  }
+
+  info(message: string, ...args: unknown[]): void {
+    if (this.shouldIgnore(message, args)) return;
+    this.logger.info(message, ...args);
+  }
+
+  debug(message: string, ...args: unknown[]): void {
+    if (this.shouldIgnore(message, args)) return;
+    this.logger.debug(message, ...args);
+  }
+
+  verbose(message: string, ...args: unknown[]): void {
+    if (this.shouldIgnore(message, args)) return;
+    this.logger.verbose(message, ...args);
+  }
+
+  private shouldIgnore(message: string, args: unknown[]): boolean {
+    if (message.includes('getaddrinfo ENOTFOUND tempo') || message.includes('ECONNREFUSED tempo')) {
+      return true;
+    }
+
+    return args.some((argument) => this.checkArgument(argument));
+  }
+
+  private checkArgument(argument: unknown): boolean {
+    if (!argument) return false;
+
+    if (typeof argument === 'string') {
+      return (
+        argument.includes('getaddrinfo ENOTFOUND tempo') || argument.includes('ECONNREFUSED tempo')
+      );
+    }
+
+    if (argument instanceof Error) {
+      return (
+        argument.message.includes('getaddrinfo ENOTFOUND tempo') ||
+        argument.message.includes('ECONNREFUSED tempo')
+      );
+    }
+
+    if (typeof argument === 'object') {
+      const record = argument as Record<string, unknown>;
+      return (
+        (record['code'] === 'ENOTFOUND' && record['hostname'] === 'tempo') ||
+        (record['code'] === 'ECONNREFUSED' && record['address'] === 'tempo') ||
+        (typeof record['message'] === 'string' && record['message'].includes('tempo'))
+      );
+    }
+
+    return false;
+  }
+}
+
 // For troubleshooting, set the log level to DiagLogLevel.DEBUG
-diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.WARN);
+diag.setLogger(new IgnoreTempoErrorLogger(), DiagLogLevel.WARN);
 
 export const sdk = new NodeSDK({
   traceExporter,
