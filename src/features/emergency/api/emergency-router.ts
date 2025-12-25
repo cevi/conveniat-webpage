@@ -1,3 +1,4 @@
+import type { AlertSetting } from '@/features/payload-cms/payload-types';
 import {
   CHAT_CAPABILITY_CAN_SEND_MESSAGES,
   SYSTEM_MSG_TYPE_EMERGENCY_ALERT,
@@ -73,9 +74,10 @@ export const emergencyRouter = createTRPCRouter({
       };
 
       const payloadAPI = await getPayload({ config });
-      const alertSettings = await payloadAPI.findGlobal({
+      const alertSettings: AlertSetting = await payloadAPI.findGlobal({
         slug: 'alert_settings',
         locale: ctx.locale,
+        fallbackLocale: 'de',
       });
 
       // Prepare messages with explicit timestamps to ensure order: System -> Location -> Question
@@ -122,7 +124,9 @@ export const emergencyRouter = createTRPCRouter({
             create: {
               payload: {
                 question: firstQuestion.question,
-                options: firstQuestion.options.map((o) => o.option),
+                options: firstQuestion.options
+                  .map((o) => o.option as string | undefined)
+                  .filter((o): o is string => o !== undefined),
                 selectedOption: undefined,
                 questionRefId: firstQuestion.id,
               },

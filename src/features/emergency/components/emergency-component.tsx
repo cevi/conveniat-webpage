@@ -107,6 +107,18 @@ const alarmText: StaticTranslationString = {
   fr: 'Alerter',
 };
 
+const alarmConfirmedText: StaticTranslationString = {
+  de: 'Alarm wurde ausgelöst',
+  en: 'Alarm triggered',
+  fr: 'Alerte déclenchée',
+};
+
+const alarmPendingText: StaticTranslationString = {
+  de: 'Alarm wird ausgelöst...',
+  en: 'Triggering alarm...',
+  fr: "Déclenchement de l'alerte...",
+};
+
 const alertTypes = [
   {
     title: 'Medical Emergency',
@@ -289,8 +301,8 @@ export const EmergencyComponent: React.FC = () => {
           <ConfirmationSlider
             onConfirm={handleAlarmTrigger}
             text={alarmText[locale]}
-            confirmedText="Alarm wurde ausgelöst"
-            pendingText="Alarm wird ausgelöst..."
+            confirmedText={alarmConfirmedText[locale]}
+            pendingText={alarmPendingText[locale]}
           />
         </div>
       </div>

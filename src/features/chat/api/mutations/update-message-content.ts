@@ -1,3 +1,4 @@
+import type { AlertSetting } from '@/features/payload-cms/payload-types';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { MessageType } from '@prisma/client';
@@ -55,9 +56,10 @@ export const updateMessageContent = trpcBaseProcedure
       const config = await import('@payload-config');
       const payloadAPI = await getPayload({ config: config.default });
 
-      const alertSettings = await payloadAPI.findGlobal({
+      const alertSettings: AlertSetting = await payloadAPI.findGlobal({
         slug: 'alert_settings',
         locale: ctx.locale,
+        fallbackLocale: 'de',
       });
 
       const questions = alertSettings.questions || [];
@@ -77,7 +79,9 @@ export const updateMessageContent = trpcBaseProcedure
                   create: {
                     payload: {
                       question: nextQuestion.question,
-                      options: nextQuestion.options.map((o) => o.option),
+                      options: nextQuestion.options
+                        .map((o) => o.option as string | undefined)
+                        .filter((o): o is string => o !== undefined),
                       selectedOption: undefined,
                       questionRefId: nextQuestion.id,
                     },
