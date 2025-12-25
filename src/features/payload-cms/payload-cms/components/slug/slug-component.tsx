@@ -1,6 +1,6 @@
 'use client';
 
-import { ConfirmationModal } from '@/features/payload-cms/payload-cms/components/multi-lang-publishing/confirmation-modal';
+import { ConfirmationModal } from '@/features/payload-cms/payload-cms/components/shared/confirmation-modal';
 import { formatSlug } from '@/features/payload-cms/payload-cms/components/slug/format-slug';
 import type { CustomSlugComponentProperties } from '@/features/payload-cms/payload-cms/components/slug/types';
 import { LOCALE } from '@/features/payload-cms/payload-cms/locales';

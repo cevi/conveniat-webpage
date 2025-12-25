@@ -1,4 +1,4 @@
-import { ConfirmationModal } from '@/features/payload-cms/payload-cms/components/multi-lang-publishing/confirmation-modal';
+import { ConfirmationModal } from '@/features/payload-cms/payload-cms/components/shared/confirmation-modal';
 import { toast } from '@/lib/toast';
 import type { StaticTranslationString } from '@/types/types';
 import { Button, useForm, useLocale } from '@payloadcms/ui';

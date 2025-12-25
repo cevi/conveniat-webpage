@@ -2,7 +2,7 @@
 
 import * as qs from 'qs-esm';
 
-import { ConfirmationModal } from '@/features/payload-cms/payload-cms/components/multi-lang-publishing/confirmation-modal';
+import { ConfirmationModal } from '@/features/payload-cms/payload-cms/components/shared/confirmation-modal';
 import { usePublishingStatus } from '@/features/payload-cms/payload-cms/hooks/use-publishing-status';
 import type { Config } from '@/features/payload-cms/payload-types';
 import type { StaticTranslationString } from '@/types/types';

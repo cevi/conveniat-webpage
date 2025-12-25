@@ -7,7 +7,7 @@ import { ChatManagementSidebar } from '@/features/chat/components/admin/chat-man
 import { ChatIdProvider } from '@/features/chat/context/chat-id-context';
 import { useAdminChatManagement } from '@/features/chat/hooks/use-admin-chat-management';
 import { LocationMap } from '@/features/map/components/location-map';
-import { ConfirmationModal } from '@/features/payload-cms/payload-cms/components/multi-lang-publishing/confirmation-modal';
+import { ConfirmationModal } from '@/features/payload-cms/payload-cms/components/shared/confirmation-modal';
 import type { Config } from '@/features/payload-cms/payload-types';
 import { ChatStatus } from '@/lib/chat-shared';
 import { ChatType } from '@/lib/prisma/client';
