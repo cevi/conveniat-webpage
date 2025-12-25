@@ -33,9 +33,9 @@ const AppEntrypointLayout: React.FC<LayoutProperties> = async ({ children }) => 
       <head>
         <link rel="manifest" href="/manifest.webmanifest" />
       </head>
-      <body className="flex h-screen w-screen flex-col overflow-x-hidden overscroll-y-none bg-[#f8fafc]">
+      <body className="flex h-svh w-screen flex-col overflow-x-hidden overflow-y-hidden overscroll-y-none bg-[#f8fafc]">
         <PostHogProvider>
-          <div className="absolute top-0 z-[-999] h-screen w-full p-[56px]">
+          <div className="absolute top-0 z-[-999] h-svh w-full p-[56px]">
             <CeviLogo className="mx-auto h-full w-full max-w-[384px] opacity-10 blur-md" />
           </div>
           {children}

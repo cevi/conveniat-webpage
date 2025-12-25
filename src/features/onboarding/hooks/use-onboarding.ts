@@ -1,6 +1,6 @@
 'use client';
 
-import type { cookieInfoText } from '@/features/onboarding/components/accept-cookies-component';
+import type { cookieInfoText } from '@/features/onboarding/onboarding-constants';
 import { OnboardingStep } from '@/features/onboarding/types';
 import { getPushSubscription } from '@/features/onboarding/utils/push-subscription-utils';
 import { Cookie } from '@/types/types';
@@ -11,14 +11,9 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 const getInitialLocale = (): 'en' | 'de' | 'fr' => {
-  if (typeof navigator === 'undefined') return 'de'; // SSR Guard
-  const cookieLocale = Cookies.get(Cookie.LOCALE_COOKIE);
-  if (cookieLocale !== undefined) {
-    return cookieLocale as 'en' | 'de' | 'fr';
-  }
-  let _locale = navigator.language.split('-')[0] as 'en' | 'de' | 'fr';
-  if (!['en', 'de', 'fr'].includes(_locale)) _locale = 'en';
-  return _locale;
+  // Always return 'de' initially to match the server-side default and avoid hydration mismatch.
+  // The useEffect hook will update the locale to the user's preference (cookie/browser) immediately after mount.
+  return 'de';
 };
 
 const getInitialOnboardingStep = (): OnboardingStep => {
@@ -70,13 +65,21 @@ export const useOnboarding = (): UseOnboardingReturn => {
       void getPushSubscription()
         .then((subscription: PushSubscription | undefined): void => {
           if (!isMounted.current) return;
-          if (subscription) {
+          const hasSkipped = Cookies.get(Cookie.SKIP_PUSH_NOTIFICATION) === 'true';
+          const isDenied =
+            typeof Notification !== 'undefined' && Notification.permission === 'denied';
+
+          if (subscription || hasSkipped || isDenied) {
             handlePushNotification();
           } else {
             setOnboardingStep(OnboardingStep.PushNotifications);
           }
         })
-        .catch((): void => setOnboardingStep(OnboardingStep.PushNotifications));
+        .catch((): void => {
+          // If error checking subscription, default to showing push step or skipping strictly?
+          // Safest is to show step, let user try/skip.
+          setOnboardingStep(OnboardingStep.PushNotifications);
+        });
     } else {
       setOnboardingStep(OnboardingStep.Login);
     }
@@ -99,6 +102,29 @@ export const useOnboarding = (): UseOnboardingReturn => {
       router.replace(newUrl);
     }
   }, [searchParameters, pathname, router]);
+
+  // Sync locale state with cookie on mount to fix inconsistent selector or hydration mismatch
+  useEffect(() => {
+    // Force client-side read to ensure state matches browser reality
+    const cookieLocale = Cookies.get(Cookie.LOCALE_COOKIE);
+    let targetLocale: 'en' | 'de' | 'fr' = 'en';
+
+    if (cookieLocale && ['en', 'de', 'fr'].includes(cookieLocale)) {
+      targetLocale = cookieLocale as 'en' | 'de' | 'fr';
+    } else if (typeof navigator !== 'undefined') {
+      const browserLang = navigator.language.split('-')[0];
+      if (browserLang === 'en' || browserLang === 'de' || browserLang === 'fr') {
+        targetLocale = browserLang;
+      }
+    }
+
+    // Only update if different to prevent unnecessary renders, but vital for hydration fix
+    // Only update if different to prevent unnecessary renders, but vital for hydration fix
+    setTimeout(() => {
+      setLocale((current) => (current === targetLocale ? current : targetLocale));
+      setHasManuallyChangedLanguage(true);
+    }, 0);
+  }, []);
 
   // Set the locale cookie
   useEffect(() => {
@@ -125,8 +151,10 @@ export const useOnboarding = (): UseOnboardingReturn => {
         .then((subscription: PushSubscription | undefined): void => {
           if (!isMounted.current) return;
           const hasSkipped = Cookies.get(Cookie.SKIP_PUSH_NOTIFICATION) === 'true';
+          const isDenied =
+            typeof Notification !== 'undefined' && Notification.permission === 'denied';
 
-          if (subscription || hasSkipped) {
+          if (subscription || hasSkipped || isDenied) {
             handlePushNotification();
           } else {
             setOnboardingStep(OnboardingStep.PushNotifications);

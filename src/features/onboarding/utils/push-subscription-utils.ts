@@ -29,7 +29,7 @@ export const getPushSubscription = async (): Promise<PushSubscription | undefine
 };
 
 export const registerServiceWorker = async (
-  swUrl: string = '/api/serwist/sw.js',
+  swUrl: string = '/sw.js',
 ): Promise<ServiceWorkerRegistration | undefined> => {
   if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
     return undefined;

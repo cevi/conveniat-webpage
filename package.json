@@ -91,6 +91,7 @@
     "cross-env": "^7.0.3",
     "date-fns": "^4.1.0",
     "embla-carousel-react": "^8.6.0",
+    "framer-motion": "^12.23.26",
     "image-size": "^2.0.2",
     "ioredis": "^5.8.2",
     "js-cookie": "^3.0.5",
