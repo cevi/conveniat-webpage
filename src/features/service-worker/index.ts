@@ -160,9 +160,10 @@ const normalizeUrl = (url: string): string => {
 /**
  * Filter assets that are already in the precache manifest to avoid conflicts.
  */
-const getNewPrecacheEntries = (urls: string[], revisionGenerator: (url: string) => string): PrecacheEntry[] => {
-
-
+const getNewPrecacheEntries = (
+  urls: string[],
+  revisionGenerator: (url: string) => string,
+): PrecacheEntry[] => {
   const existingNormalized = new Set(
     (swManifest ?? []).map((entry) => {
       const url = typeof entry === 'string' ? entry : entry.url;
@@ -245,8 +246,10 @@ async function prefetchOfflinePages(): Promise<void> {
         if (!url) continue;
 
         // Only cache local Next.js static assets
-        if ((url.startsWith('/_next/') || (url.startsWith('/') && !url.startsWith('//'))) && // Basic filter to avoid external stuff or data links
-          /\.(css|js|woff2?|ttf|otf|png|jpg|jpeg|svg|webp|ico)$/.test(url)) {
+        if (
+          (url.startsWith('/_next/') || (url.startsWith('/') && !url.startsWith('//'))) && // Basic filter to avoid external stuff or data links
+          /\.(css|js|woff2?|ttf|otf|png|jpg|jpeg|svg|webp|ico)$/.test(url)
+        ) {
           assetUrls.add(url);
         }
       }
@@ -292,9 +295,9 @@ async function prefetchOfflinePages(): Promise<void> {
 
 // Push notifications
 self.addEventListener('push', pushNotificationHandler(self));
-self.addEventListener('pushsubscriptionchange', () => { });
+self.addEventListener('pushsubscriptionchange', () => {});
 self.addEventListener('notificationclick', notificationClickHandler(self));
-self.addEventListener('notificationclose', () => { });
+self.addEventListener('notificationclose', () => {});
 
 // Service worker lifecycle events
 self.addEventListener('activate', (event) => {
@@ -455,19 +458,24 @@ self.addEventListener('fetch', (event) => {
       }
 
       // Propagate app mode status to the resulting client
-      if (isAppMode && isNavigation && event.resultingClientId && !appModeClients.has(event.resultingClientId)) {
+      if (
+        isAppMode &&
+        isNavigation &&
+        event.resultingClientId &&
+        !appModeClients.has(event.resultingClientId)
+      ) {
         appModeClients.add(event.resultingClientId);
         await persistAppModeClients();
       }
 
       const requestToHandle = isAppMode
         ? ((): Request => {
-          const newHeaders = new Headers(event.request.headers);
-          if (newHeaders.get(DesignModeTriggers.HEADER_IMPLICIT) !== 'true') {
-            newHeaders.set(DesignModeTriggers.HEADER_IMPLICIT, 'true');
-          }
-          return new Request(event.request, { headers: newHeaders });
-        })()
+            const newHeaders = new Headers(event.request.headers);
+            if (newHeaders.get(DesignModeTriggers.HEADER_IMPLICIT) !== 'true') {
+              newHeaders.set(DesignModeTriggers.HEADER_IMPLICIT, 'true');
+            }
+            return new Request(event.request, { headers: newHeaders });
+          })()
         : event.request;
 
       const response = await serwist.handleRequest({

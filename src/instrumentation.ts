@@ -1,5 +1,5 @@
 import build from '@/build';
-import { sdk } from '@/tracing';
+import { hostMetrics, sdk } from '@/tracing';
 
 export function register(): void {
   // start the SDK
@@ -8,4 +8,5 @@ export function register(): void {
   );
 
   sdk.start();
+  hostMetrics.start();
 }

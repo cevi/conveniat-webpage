@@ -78,6 +78,15 @@ Ensure you have the following installed on your system:
   After running this, you'll need to restart the server with `docker compose up --build` to re-initialize and
   potentially re-seed the database based on Payload's configuration.
 
+### Observability Stack
+
+The project includes an optional observability stack (Prometheus, Grafana, Loki, Tempo).
+To start the project with these tools enabled locally:
+
+```bash
+docker compose --profile observability up --build
+```
+
 ### Accessing the Payload Admin Panel
 
 Once the development server is running, you can typically access the Payload CMS admin interface at:

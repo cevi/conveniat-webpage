@@ -77,4 +77,9 @@ export interface CacheHandler {
    * it should update the tags manifest accordingly.
    */
   updateTags(tags: string[], durations?: { expire?: number }): Promise<void>;
+
+  /**
+   * Revalidate a tag.
+   */
+  revalidateTag?(tag: string): Promise<void>;
 }

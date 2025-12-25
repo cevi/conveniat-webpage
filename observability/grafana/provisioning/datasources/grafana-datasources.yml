@@ -23,7 +23,7 @@ datasources:
         datasourceUid: prometheus
 
       tracesToLogs:
-        datasourceUid: 'Loki'
+        datasourceUid: 'loki'
         spanEndTimeShift: '30m'
         spanStartTimeShift: '-30m'
         filterByTraceID: true
@@ -32,6 +32,7 @@ datasources:
 
   - name: 'Loki'
     type: loki
+    uid: loki
     url: http://loki:3100
 
     jsonData:
@@ -39,8 +40,8 @@ datasources:
       derivedFields:
         # Field with internal link pointing to data source in Grafana.
         # Right now, Grafana supports only Jaeger and Zipkin data sources as link targets.
-        - datasourceUid: 'Tempo' # not a uid, bug
-          matcherRegex: 'trace_id\":\"(\w+)\"'
+        - datasourceUid: 'tempo'
+          matcherRegex: 'trace_id":\s*"(\w+)"'
           name: traceId
           # url will be interpreted as query for the datasource
           url: '$${__value.raw}'
