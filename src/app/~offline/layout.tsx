@@ -1,3 +1,4 @@
+import '@/app/globals.scss';
 import { ServiceWorkerManager } from '@/components/service-worker/service-worker-manager';
 import { sharedFontClassName } from '@/utils/fonts';
 import { cn } from '@/utils/tailwindcss-override';
