@@ -1,5 +1,6 @@
 'use client';
 
+import { environmentVariables } from '@/config/environment-variables';
 import { useAppMode } from '@/hooks/use-app-mode';
 import { SerwistProvider } from '@/lib/serwist-client';
 import type { ReactNode } from 'react';
@@ -19,6 +20,10 @@ export const ServiceWorkerManager: React.FC<ServiceWorkerManagerProperties> = ({
   swUrl = '/sw.js',
 }) => {
   useAppMode();
+
+  if (environmentVariables.NEXT_PUBLIC_DISABLE_SERWIST) {
+    return <>{children}</>;
+  }
 
   return <SerwistProvider swUrl={swUrl}>{children}</SerwistProvider>;
 };

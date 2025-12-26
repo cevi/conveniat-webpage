@@ -58,6 +58,7 @@ export const environmentVariables = createEnv({
     NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
     NEXT_PUBLIC_POSTHOG_HOST: z.string().url(),
     NEXT_PUBLIC_ENABLE_CON27_SHORT_URLS: z.boolean(),
+    NEXT_PUBLIC_DISABLE_SERWIST: z.boolean().default(false),
   },
 
   experimental__runtimeEnv: {
@@ -66,6 +67,7 @@ export const environmentVariables = createEnv({
     NEXT_PUBLIC_POSTHOG_KEY: process.env['NEXT_PUBLIC_POSTHOG_KEY'],
     NEXT_PUBLIC_POSTHOG_HOST: process.env['NEXT_PUBLIC_POSTHOG_HOST'],
     NEXT_PUBLIC_ENABLE_CON27_SHORT_URLS: process.env['ENABLE_CON27_SHORT_URLS'] === 'true',
+    NEXT_PUBLIC_DISABLE_SERWIST: process.env['NEXT_PUBLIC_DISABLE_SERWIST'] === 'true',
   },
 
   /**

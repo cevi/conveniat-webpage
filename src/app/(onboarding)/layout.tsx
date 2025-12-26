@@ -7,6 +7,7 @@ import '@/app/globals.scss';
 import { ServiceWorkerManager } from '@/components/service-worker/service-worker-manager';
 import { CeviLogo } from '@/components/svg-logos/cevi-logo';
 import { PostHogProvider } from '@/providers/post-hog-provider';
+import { environmentVariables } from '@/config/environment-variables';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { SessionProvider } from 'next-auth/react';
 import { Inter, Montserrat } from 'next/font/google';
@@ -31,7 +32,9 @@ const AppEntrypointLayout: React.FC<LayoutProperties> = async ({ children }) => 
   return (
     <html className={`${montserrat.className} ${inter.className} overscroll-y-none`} lang={locale}>
       <head>
-        <link rel="manifest" href="/manifest.webmanifest" />
+        {!environmentVariables.NEXT_PUBLIC_DISABLE_SERWIST && (
+          <link rel="manifest" href="/manifest.webmanifest" />
+        )}
       </head>
       <body className="flex h-svh w-screen flex-col overflow-x-hidden overflow-y-hidden overscroll-y-none bg-[#f8fafc]">
         <PostHogProvider>

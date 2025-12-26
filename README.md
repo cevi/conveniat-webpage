@@ -163,8 +163,15 @@ functionality, enabling PWA features:
 - **Caching:** Improves performance by caching assets and network requests.
 - **Reliability:** Provides a more resilient user experience on flaky networks.
 
-The service worker logic is defined in `src/features/service-worker/index.ts` and configured in `next.config.mjs`. It's
-generally disabled in development unless `ENABLE_SERVICE_WORKER_LOCALLY=true` is set.
+The service worker logic is defined in `src/features/service-worker/index.ts` and configured in `next.config.mjs`.
+
+To disable the service worker during local development (e.g., if caching interferes with your work), you can set the following environment variable in your `.env` file or pass it to Docker:
+
+```bash
+NEXT_PUBLIC_DISABLE_SERWIST=true
+```
+
+When set to `true`, the service worker will not be registered, and the web manifest link will be omitted from the HTML head.
 
 ## Code Quality & Conventions
 
