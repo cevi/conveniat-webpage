@@ -138,22 +138,6 @@ services:
   postgres:
     image: postgres:17
 
-    deploy:
-      labels:
-        - swarmpit.service.deployment.autoredeploy=true
-
-        # expose the DB via tcp on port 443
-        - traefik.enable=true
-        - traefik.tcp.routers.conveniat27-dev-database.entrypoints=websecure
-        - traefik.tcp.routers.conveniat27-dev-database.rule=HostSNI(`db.conveniat27.cevi.tools`)
-
-        # define TLS
-        - traefik.tcp.routers.conveniat27-dev-database.tls=true
-        - traefik.tcp.routers.conveniat27-dev-database.tls.certresolver=myresolver
-        - traefik.tcp.routers.conveniat27-dev-database.middlewares=vpn-whitelist@file
-
-        - traefik.tcp.services.conveniat27-dev-database.loadbalancer.server.port=5432
-
     env_file:
       - .env
 
@@ -162,7 +146,6 @@ services:
 
     networks:
       - backend-net
-      - traefik-net
 
   prometheus:
     image: prom/prometheus

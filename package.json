@@ -23,7 +23,11 @@
     "prettier": "prettier --config-path .prettierrc.json --write --cache --experimental-cli .",
     "prettier:check": "prettier  --config .prettierrc.json --check .",
     "start": "cross-env NODE_OPTIONS=--no-deprecation next start",
-    "test": "jest"
+    "test": "jest",
+    "db:tunnel-prod": "bash src/scripts/db/tunnel.sh prod",
+    "db:tunnel-dev": "bash src/scripts/db/tunnel.sh dev",
+    "db:pull": "bash src/scripts/db/pull.sh",
+    "db:push-dev": "bash src/scripts/db/push-dev.sh"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.957.0",
