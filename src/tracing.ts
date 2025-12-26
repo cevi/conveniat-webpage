@@ -5,12 +5,12 @@ import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
 import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { HostMetrics } from '@opentelemetry/host-metrics';
+import { UndiciInstrumentation } from '@opentelemetry/instrumentation-undici';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { BatchLogRecordProcessor } from '@opentelemetry/sdk-logs';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { BatchSpanProcessor, TraceIdRatioBasedSampler } from '@opentelemetry/sdk-trace-base';
 import { PrismaInstrumentation } from '@prisma/instrumentation';
-import { FetchInstrumentation } from '@vercel/otel';
 
 // Environment variables with fallbacks
 const TRACE_URL =
@@ -123,12 +123,14 @@ export const sdk = new NodeSDK({
       maxExportBatchSize: 512,
     }),
   ],
-  logRecordProcessor: new BatchLogRecordProcessor(logExporter, {
-    exportTimeoutMillis: 5000,
-    maxQueueSize: 2048,
-    scheduledDelayMillis: 5000,
-    maxExportBatchSize: 512,
-  }),
+  logRecordProcessors: [
+    new BatchLogRecordProcessor(logExporter, {
+      exportTimeoutMillis: 5000,
+      maxQueueSize: 2048,
+      scheduledDelayMillis: 5000,
+      maxExportBatchSize: 512,
+    }),
+  ],
   resource: resourceFromAttributes({
     version: build.version,
     commitHash: build.git.hash,
@@ -153,7 +155,7 @@ export const sdk = new NodeSDK({
       '@opentelemetry/instrumentation-fs': { enabled: false }, // Reduce noise
     }),
     new PrismaInstrumentation({ enabled: true }),
-    new FetchInstrumentation({ enabled: true }),
+    new UndiciInstrumentation({ enabled: true }),
   ],
 });
 
