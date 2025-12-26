@@ -10,21 +10,10 @@ Next.js and Payload CMS.
 - [Core Technologies](#core-technologies)
 - [Prerequisites](#prerequisites)
 - [Getting Started](#getting-started)
-  - [Launch Project Locally (Devcontainer Recommended)](#launch-project-locally-devcontainer-recommended)
-  - [Local Development Commands](#local-development-commands)
-  - [Accessing the Payload Admin Panel](#accessing-the-payload-admin-panel)
 - [Project Structure](#project-structure)
-  - [Folder Overview](#folder-overview)
-  - [Feature-Based Modularity](#feature-based-modularity)
 - [Key Concepts](#key-concepts)
-  - [Page Rendering](#page-rendering)
-  - [Progressive Web App (PWA)](#progressive-web-app-pwa)
-- [Code Quality & Conventions](#code-quality--conventions)
-  - [TypeScript Strictness](#typescript-strictness)
-  - [Linting and Formatting](#linting-and-formatting)
-  - [Import Restrictions](#import-restrictions)
-- [UI Component Library](#ui-component-library)
-- [Environment Variables](#environment-variables)
+- [Database Maintenance](#database-maintenance)
+- [SSH Tunneling / Troubleshooting](#ssh-tunneling--troubleshooting)
 - [License](#license)
 
 ## Core Technologies
@@ -301,28 +290,24 @@ use Prisma Migrate.
 
 ```bash
 ###############################################
-# Generate and apply migrations to conveniat27.cevi.tools
+# Generate and apply migrations to remote databases
 ###############################################
-# 1. Establish SSH Tunnel for Dev (see 'Connect from Localhost' below)
-export DB_PASSWORD= # dev deployment database password
-# Connect via the tunnel on localhost:5433
+# 1. Establish SSH Tunnel (separate terminal)
+pnpm db:tunnel-dev # or pnpm db:tunnel-prod
+
+# 2. Set password (for the remote database)
+export DB_PASSWORD=
+
+# 3. Connect via the tunnel on localhost:5433
+# (Note: 5433 is used for the tunnel, 5432 is for your local instance)
 export CHAT_DATABASE_URL="postgres://conveniat27:$DB_PASSWORD@localhost:5433/conveniat27"
 
-# check status (this will show the current migration status)
+# Check status
 npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma
 
-# create a new migration
-npx prisma migrate dev --schema prisma/schema.prisma
-
-#############################################
-# Apply migrations to conveniat27.ch
-#############################################
-# 1. Establish SSH Tunnel for Prod (see 'Connect from Localhost' below)
-export DB_PASSWORD= # prod deployment database password
-# Connect via the tunnel on localhost:5433
-export CHAT_DATABASE_URL="postgres://conveniat27:$DB_PASSWORD@localhost:5433/conveniat27"
-
-npx prisma migrate deploy --schema prisma/schema.prisma
+# Create/Apply migrations
+npx prisma migrate dev --schema prisma/schema.prisma # for dev
+npx prisma migrate deploy --schema prisma/schema.prisma # for prod
 ```
 
 ### Database Maintenance
@@ -375,34 +360,68 @@ docker run --rm -it --network conveniat-dev_backend-net postgres:17 \
 
 ### Connect from Localhost
 
-To directly connect to the database from your local machine, use an **SSH Tunnel**:
+To directly connect to the database from your local machine, use the provided script to open an **SSH Tunnel**. This tunnel supports both Postgres (local 5433) and MongoDB (local 27018).
 
-#### Open Tunnel (Swarm-Aware):
+#### Open Tunnel:
 
-Since the database runs on a private internal network (`conveniat_backend-net`) and may not be on the manager node, a simple SSH tunnel won't work.
-Use this command to tunnel via a temporary forwarder container:
-
-**For Production:**
+The tunnel runs in the foreground and forwards traffic to the remote infrastructure.
 
 ```bash
-ssh -i ~/.ssh/id_rsa_cevi_tools -L 5433:127.0.0.1:5433 root@10.0.0.13 \
-  "docker run --rm -p 127.0.0.1:5433:5432 --network conveniat_backend-net alpine sh -c 'apk add --no-cache socat && socat TCP-LISTEN:5432,fork TCP:conveniat_postgres:5432'"
+pnpm db:tunnel-prod  # For Production
+pnpm db:tunnel-dev   # For Development
 ```
 
-**For Development:**
+### Synchronize Database
+
+You can easily sync the entire database state (Postgres + MongoDB) between your local environment and the remote servers.
+
+#### Pull (Remote -> Local)
+
+Copies the state from the remote database to your local Docker instance.
+
+1. Open a tunnel (see above).
+2. Run the pull command:
+   ```bash
+   pnpm db:pull
+   ```
+3. Follow the prompts for the remote database passwords.
+
+#### Push (Local -> Remote DEV)
+
+Updates the remote **Development** state with your local data. **Safety confirmation required.**
+
+1. Open the **dev** tunnel: `pnpm db:tunnel-dev`.
+2. Run the push command:
+   ```bash
+   pnpm db:push-dev
+   ```
+
+### SSH Tunneling / Troubleshooting
+
+If you encounter errors when opening a tunnel, follow these steps:
+
+#### "Bind for 127.0.0.1:5433 failed: port is already allocated"
+
+This usually happens because a previous tunnel container is still running on the remote host. The updated commands above automatically attempt to stop the existing container (`db-tunnel-prod` or `db-tunnel-dev`) before starting a new one.
+
+#### Manual Cleanup
+
+If the automatic stopping fails, SSH into the host and run:
 
 ```bash
-ssh -i ~/.ssh/id_rsa_cevi_tools -L 5433:127.0.0.1:5433 root@10.0.0.13 \
-    "docker run --rm -p 127.0.0.1:5433:5432 --network conveniat-dev_backend-net alpine sh -c 'apk add --no-cache socat && socat TCP-LISTEN:5432,fork TCP:conveniat-dev_postgres:5432'"
+docker rm -f db-tunnel-prod  # or db-tunnel-dev
 ```
+
+#### Signal Propagation
+
+The scripts use the `-t` flag in SSH and `--init` flag in Docker to ensure that when you press `Ctrl+C` on your local machine, the signal is propagated correctly to the remote container, allowing it to exit and clean itself up (via `--rm`).
 
 **How this works:**
 
-- It SSHs to the manager.
-- Starts a tiny `alpine` container attached to the private backend network.
-- Maps the container's port to the manager's localhost (`-p 127.0.0.1:5433:5432`).
-- Uses `socat` to forward traffic to the `conveniat_postgres` service VIP.
-- Your local machine tunnels to the manager's `localhost:5433`.
+- The tunnel script starts a forwarder container on the manager node.
+- It maps local ports (`5433` for PG, `27018` for Mongo) to the manager, which in turn forwards to the internal network.
+- The sync scripts use `pg_dump`/`psql` and `mongodump`/`mongorestore` to stream data over these ports.
+- Your local machine tunnels to the manager's mapped ports.
 
 ## License
 
