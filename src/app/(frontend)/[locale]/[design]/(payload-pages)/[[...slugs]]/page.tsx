@@ -130,9 +130,8 @@ const CMSPage: React.FC<{
 
     const url = `/${locale}/${slugs?.join('/') ?? ''}`;
     previewModeAllowed = await canAccessPreviewOfCurrentPage(searchParameters, url);
-  } else {
-    console.log('Draft mode is NOT enabled.');
   }
+
 
   // check if part of a routable collection of the form [collection]/[slug]
   const collection = slugs?.[0] ?? '';
