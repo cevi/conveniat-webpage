@@ -1,5 +1,6 @@
 'use client';
 
+import type { MapControlOptions } from '@/features/map/hooks/use-map-controls';
 import type {
   CampMapAnnotationPoint,
   CampMapAnnotationPolygon,
@@ -7,14 +8,35 @@ import type {
   CeviLogoMarker,
   InitialMapPose,
 } from '@/features/map/types/types';
-import type { MapControlOptions } from '@/features/map/hooks/use-map-controls';
+import type { Locale, StaticTranslationString } from '@/types/types';
+import { i18nConfig } from '@/types/types';
+import { useCurrentLocale } from 'next-i18n-router/client';
 import dynamic from 'next/dynamic';
 import type React from 'react';
+
+const mapLoadingText: StaticTranslationString = {
+  en: 'Loading map...',
+  de: 'Karte wird geladen...',
+  fr: 'Chargement de la carte...',
+};
+
+const MapLoadingFallback: React.FC = () => {
+  const locale = (useCurrentLocale(i18nConfig) as Locale | undefined) ?? 'de';
+  return (
+    <div className="flex h-full w-full items-center justify-center bg-gray-100">
+      <div className="text-center">
+        <div className="border-conveniat-green mx-auto h-12 w-12 animate-spin rounded-full border-3 border-solid border-t-transparent" />
+        <p className="mt-4 text-sm text-gray-500">{mapLoadingText[locale]}</p>
+      </div>
+    </div>
+  );
+};
 
 const LazyMapLibreRenderer = dynamic(
   () => import('@/features/map/components/maplibre-renderer/map-renderer'),
   {
     ssr: false,
+    loading: () => <MapLoadingFallback />,
   },
 );
 
