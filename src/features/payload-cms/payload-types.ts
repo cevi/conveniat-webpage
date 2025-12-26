@@ -54,6 +54,7 @@ export interface Config {
     'generic-page': GenericPage;
     timeline: Timeline;
     'camp-map-annotations': CampMapAnnotation;
+    'camp-categories': CampCategory;
     'camp-schedule-entry': CampScheduleEntry;
     images: Image;
     userSubmittedImages: UserSubmittedImage;
@@ -85,6 +86,7 @@ export interface Config {
     'generic-page': GenericPageSelect<false> | GenericPageSelect<true>;
     timeline: TimelineSelect<false> | TimelineSelect<true>;
     'camp-map-annotations': CampMapAnnotationsSelect<false> | CampMapAnnotationsSelect<true>;
+    'camp-categories': CampCategoriesSelect<false> | CampCategoriesSelect<true>;
     'camp-schedule-entry': CampScheduleEntrySelect<false> | CampScheduleEntrySelect<true>;
     images: ImagesSelect<false> | ImagesSelect<true>;
     userSubmittedImages: UserSubmittedImagesSelect<false> | UserSubmittedImagesSelect<true>;
@@ -1686,13 +1688,42 @@ export interface CampScheduleEntry {
   /**
    * Organiser
    */
-  organiser?: (string | null) | User;
+  organiser?: (string | User)[] | null;
+  enable_enrolment?: boolean | null;
+  hide_participant_list?: boolean | null;
   participants_min?: number | null;
   participants_max?: number | null;
+  target_group?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  category?: (string | null) | CampCategory;
   lastEditedByUser?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "camp-categories".
+ */
+export interface CampCategory {
+  id: string;
+  title: string;
+  colorTheme: 'purple' | 'green' | 'blue' | 'gray' | 'indigo' | 'amber' | 'rose' | 'cyan' | 'orange';
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1871,6 +1902,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'camp-map-annotations';
         value: string | CampMapAnnotation;
+      } | null)
+    | ({
+        relationTo: 'camp-categories';
+        value: string | CampCategory;
       } | null)
     | ({
         relationTo: 'camp-schedule-entry';
@@ -2477,6 +2512,16 @@ export interface CampMapAnnotationsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "camp-categories_select".
+ */
+export interface CampCategoriesSelect<T extends boolean = true> {
+  title?: T;
+  colorTheme?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "camp-schedule-entry_select".
  */
 export interface CampScheduleEntrySelect<T extends boolean = true> {
@@ -2490,8 +2535,12 @@ export interface CampScheduleEntrySelect<T extends boolean = true> {
       };
   location?: T;
   organiser?: T;
+  enable_enrolment?: T;
+  hide_participant_list?: T;
   participants_min?: T;
   participants_max?: T;
+  target_group?: T;
+  category?: T;
   lastEditedByUser?: T;
   updatedAt?: T;
   createdAt?: T;

@@ -17,6 +17,9 @@ export const offlinePages = [
   // Main application dashboard
   '/app/dashboard',
 
+  // Schedule page with local DB offline support
+  '/app/schedule',
+
   // Map viewer with tile caching
   '/app/map',
 ] as const;

@@ -1,4 +1,5 @@
 import { BlogArticleCollection } from '@/features/payload-cms/payload-cms/collections/blog-article';
+import { CampCategoryCollection } from '@/features/payload-cms/payload-cms/collections/camp-category';
 import { CampMapAnnotationsCollection } from '@/features/payload-cms/payload-cms/collections/camp-map-collection';
 import { CampScheduleEntryCollection } from '@/features/payload-cms/payload-cms/collections/camp-schedule-entry-collection';
 import { ChatImagesCollection } from '@/features/payload-cms/payload-cms/collections/chat-images-collection';
@@ -26,6 +27,7 @@ const rawCollectionsConfig: CollectionConfig[] = [
 
   // app content collections
   CampMapAnnotationsCollection,
+  CampCategoryCollection,
   CampScheduleEntryCollection,
 
   // general purpose collections, not routable

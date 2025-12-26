@@ -76,4 +76,5 @@ export type PrismaClientOrTransaction = Omit<PrismaClient, ITXClientDenyList>;
 export interface StarContextType {
   isStarred: (id: string) => boolean;
   toggleStar: (id: string) => void;
+  starredEntries: Set<string>;
 }

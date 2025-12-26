@@ -16,7 +16,8 @@ model User {
   messages        Message[]
   chatMemberships ChatMembership[]
   messagesEvents  MessageEvent[]
-  Enrollment      Enrollment?
+  Enrollments     Enrollment[]
+  Stars           Star[]
 }
 
 enum ChatType {
@@ -208,13 +209,28 @@ model MessageEvent {
 model Enrollment {
   id String @id @default(uuid(7))
 
-  userId String @unique
+  userId String
   user   User   @relation(fields: [userId], references: [uuid])
 
   // links to the objectID in the courses collection in MongoDB
   courseId String
 
   @@unique([courseId, userId]) // every user can only be enrolled once per course
+  @@index([courseId])
+  @@index([userId])
+}
+
+model Star {
+  id String @id @default(uuid(7))
+
+  userId String
+  user   User   @relation(fields: [userId], references: [uuid])
+
+  courseId String
+
+  createdAt DateTime @default(now())
+
+  @@unique([courseId, userId])
   @@index([courseId])
   @@index([userId])
 }

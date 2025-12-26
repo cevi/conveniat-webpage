@@ -165,7 +165,7 @@ functionality, enabling PWA features:
 
 The service worker logic is defined in `src/features/service-worker/index.ts` and configured in `next.config.mjs`.
 
-To disable the service worker during local development (e.g., if caching interferes with your work), you can set the following environment variable in your `.env` file or pass it to Docker:
+To disable the service worker during local development, you can set the following environment variable in your `.env` file or pass it to Docker. It is recommended to disable the service worker during local development to avoid issues with caching and HMR (Hot Module Replacement).
 
 ```bash
 NEXT_PUBLIC_DISABLE_SERWIST=true
