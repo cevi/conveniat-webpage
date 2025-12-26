@@ -4,6 +4,7 @@ import { HideFooterProvider } from '@/components/footer/hide-footer-context';
 import { HeaderComponent } from '@/components/header/header-component';
 import { ServiceWorkerManager } from '@/components/service-worker/service-worker-manager';
 import type { Locale } from '@/types/types';
+import { environmentVariables } from '@/config/environment-variables';
 import { DesignCodes } from '@/utils/design-codes';
 import { sharedFontClassName } from '@/utils/fonts';
 import { cn } from '@/utils/tailwindcss-override';
@@ -36,7 +37,9 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
       suppressHydrationWarning
     >
       <head>
-        <link rel="manifest" href="/manifest.webmanifest" />
+        {!environmentVariables.NEXT_PUBLIC_DISABLE_SERWIST && (
+          <link rel="manifest" href="/manifest.webmanifest" />
+        )}
       </head>
       <body
         className={cn('flex h-dvh w-dvw flex-col overflow-x-hidden bg-[#f8fafc]', {
