@@ -132,7 +132,6 @@ const CMSPage: React.FC<{
     previewModeAllowed = await canAccessPreviewOfCurrentPage(searchParameters, url);
   }
 
-
   // check if part of a routable collection of the form [collection]/[slug]
   const collection = slugs?.[0] ?? '';
   const remainingSlugs = slugs?.slice(1) ?? [];
