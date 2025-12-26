@@ -1,6 +1,6 @@
 'use client';
 
-import type { CampMapAnnotation } from '@/features/payload-cms/payload-types';
+import type { CampCategory, CampMapAnnotation } from '@/features/payload-cms/payload-types';
 import type { FilterState } from '@/features/schedule/components/search-filter-bar';
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
 import { convertLexicalToPlaintext } from '@payloadcms/richtext-lexical/plaintext';
@@ -8,11 +8,12 @@ import { useCallback, useMemo, useState } from 'react';
 
 export const useScheduleFilters = (
   entries: CampScheduleEntryFrontendType[],
+  starredIds: Set<string>,
 ): {
   filters: FilterState;
   filteredEntries: CampScheduleEntryFrontendType[];
   availableLocations: CampMapAnnotation[];
-  availableCategories: string[];
+  availableCategories: CampCategory[];
   hasActiveFilters: boolean;
   handleFiltersChange: (newFilters: FilterState) => void;
   clearFilters: () => void;
@@ -21,12 +22,13 @@ export const useScheduleFilters = (
     searchText: '',
     selectedLocations: [],
     selectedCategory: '',
+    starredOnly: false,
   });
 
   // Extract unique locations and categories from entries
   const { availableLocations, availableCategories } = useMemo(() => {
     const locationMap = new Map<string, CampMapAnnotation>();
-    const categorySet = new Set<string>();
+    const categoryMap = new Map<string, CampCategory>();
 
     for (const entry of entries) {
       // Extract location
@@ -35,21 +37,26 @@ export const useScheduleFilters = (
         locationMap.set(location.id, location);
       }
 
-      // Extract category (prepare for future category field)
-      if (entry.category != undefined) {
-        categorySet.add(entry.category);
+      // Extract category
+      if (typeof entry.category === 'object' && entry.category !== null) {
+        categoryMap.set(entry.category.id, entry.category);
       }
     }
 
     return {
       availableLocations: [...locationMap.values()],
-      availableCategories: [...categorySet],
+      availableCategories: [...categoryMap.values()],
     };
   }, [entries]);
 
   // Filter entries based on current filters
   const filteredEntries = useMemo(() => {
     return entries.filter((entry) => {
+      // Starred filter
+      if (filters.starredOnly && !starredIds.has(entry.id)) {
+        return false;
+      }
+
       // Text search in title and description
       if (filters.searchText !== '') {
         const searchLower = filters.searchText.toLowerCase();
@@ -80,13 +87,21 @@ export const useScheduleFilters = (
         }
       }
 
-      // Category filter (prepare for future category field)
-      return !(
-        filters.selectedCategory !== '' &&
-        (entry.category == undefined || entry.category !== filters.selectedCategory)
-      );
+      // Category filter
+      if (filters.selectedCategory !== '') {
+        const categoryId =
+          typeof entry.category === 'object' && entry.category !== null
+            ? entry.category.id
+            : entry.category;
+
+        if (categoryId !== filters.selectedCategory) {
+          return false;
+        }
+      }
+
+      return true;
     });
-  }, [entries, filters]);
+  }, [entries, filters, starredIds]);
 
   const handleFiltersChange = useCallback((newFilters: FilterState) => {
     setFilters(newFilters);
@@ -97,6 +112,7 @@ export const useScheduleFilters = (
       searchText: '',
       selectedLocations: [],
       selectedCategory: '',
+      starredOnly: false,
     });
   }, []);
 
@@ -104,7 +120,8 @@ export const useScheduleFilters = (
     return (
       filters.searchText !== '' ||
       filters.selectedLocations.length > 0 ||
-      filters.selectedCategory !== ''
+      filters.selectedCategory !== '' ||
+      filters.starredOnly
     );
   }, [filters]);
 

@@ -8,69 +8,25 @@ type ScheduleEntry = RequiredDataFromCollectionSlug<'camp-schedule-entry'>;
 const CAMP_START_DATE = new Date('2027-07-26'); // Monday
 const CAMP_DAYS = 6; // Monday to Saturday
 
-// A much larger pool of workshop titles to ensure variety.
-const workshopPool: string[] = [
-  'Workshop: Cevi-Plus',
-  'Workshop: Cevi-Tools',
-  'Workshop: Basteln mit Naturmaterialien',
-  'Workshop: Effektives Rollenspiel',
-  'Erste Hilfe für Fortgeschrittene',
-  'Fussball-Turnier Vorrunde',
-  'Knotenkunde für Lagerbauten',
-  'Kartenlesen und Kompass-Navigation',
-  'Lagerbauten: Pioniertechnik',
-  'Spurenlesen im Wald',
-  'Sichere Feuertechniken',
-  'Theater & Improvisation',
-  'Gitarren-Crashkurs: Lagerfeuerlieder',
-  'Naturfotografie mit dem Smartphone',
-  'Schnitzen für Anfänger',
-  'Volleyball-Training',
-  'Vertrauensspiele und Teambuilding',
-  'Wetterkunde für Outdoor-Aktivitäten',
-  'Nacht-OL (Orientierungslauf)',
-  'Erste Hilfe im Gelände',
-];
-
-// --- Helper Functions ---
-
 /**
- * Creates a single event object with the required structure.
+ * Helper to create a Lexical RichText object from plain text.
  */
-const createEvent = (
-  title: string,
-  date: string,
-  time: string,
-  location: string,
-  organiser: string,
-  descriptionText: string,
-): ScheduleEntry => {
-  // Same implementation as before...
-  return {
-    title,
-    timeslot: { date, time },
-    location,
-    organiser,
-    description: {
-      root: {
-        type: 'root',
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const createRichText = (text: string): { root: any } => ({
+  // eslint-disable-line @typescript-eslint/no-explicit-any
+  root: {
+    type: 'root',
+    children: [
+      {
+        type: 'paragraph',
         children: [
           {
-            type: 'paragraph',
-            children: [
-              {
-                type: 'text',
-                detail: 0,
-                format: 'left' as const,
-                mode: 'normal' as const,
-                style: '',
-                text: descriptionText,
-                version: 1,
-              },
-            ],
-            direction: 'ltr' as const,
+            type: 'text',
+            detail: 0,
             format: 'left' as const,
-            indent: 0,
+            mode: 'normal' as const,
+            style: '',
+            text,
             version: 1,
           },
         ],
@@ -79,93 +35,132 @@ const createEvent = (
         indent: 0,
         version: 1,
       },
-    },
+    ],
+    direction: 'ltr' as const,
+    format: 'left' as const,
+    indent: 0,
+    version: 1,
+  },
+});
+
+/**
+ * Creates a single event object with the required structure.
+ */
+/**
+ * Map of category keys to their MongoDB ObjectIds.
+ * These IDs are obtained from seeding the camp-categories collection first.
+ */
+export interface CategoryIds {
+  workshop: string;
+  general: string;
+  food: string;
+  activity: string;
+  other: string;
+}
+
+const createEvent = (
+  title: string,
+  date: string,
+  time: string,
+  location: string,
+  organiser: string[],
+  descriptionText: string,
+  categoryIds: CategoryIds,
+  options: {
+    enrolment?: boolean;
+    min?: number;
+    max?: number;
+    targetGroup?: string;
+    category?: keyof CategoryIds;
+  } = {},
+): ScheduleEntry => {
+  const categoryId = options.category ? categoryIds[options.category] : categoryIds.general;
+  return {
+    title,
+    timeslot: { date, time },
+    location,
+    organiser,
+    description: createRichText(descriptionText),
+    enable_enrolment: options.enrolment ?? false,
+    participants_min: options.min ?? null, // eslint-disable-line unicorn/no-null
+    participants_max: options.max ?? null, // eslint-disable-line unicorn/no-null
+    target_group: options.targetGroup ? createRichText(options.targetGroup) : null, // eslint-disable-line unicorn/no-null
+    category: categoryId,
   };
 };
 
-/**
- * Formats a Date object into a 'yyyy-MM-DD' string.
- */
 const formatDate = (date: Date): string => {
   return date.toISOString().split('T')[0] ?? '';
 };
 
-// --- Main Generation Logic ---
+const shuffleArray = <T>(array: T[]): T[] => [...array].sort(() => Math.random() - 0.5);
+
+// --- Meaningful Entry Data Pools ---
+
+const workshops = [
+  {
+    title: 'Pioniertechnik: Turmbau',
+    description: 'Wir bauen gemeinsam einen Aussichtsturm aus Rundholz und Seilen.',
+    targetGroup: 'Fortgeschrittene (ab 12 Jahren)',
+  },
+  {
+    title: 'Erste Hilfe im Wald',
+    description: 'Was tun bei Schnittwunden oder Zeckenbissen? Wir lernen die Grundlagen.',
+    targetGroup: 'Alle Teilnehmenden',
+  },
+  {
+    title: 'Kreatives mit Naturmaterialien',
+    description: 'Wir basteln Schmuck und Deko aus dem, was der Wald uns bietet.',
+    targetGroup: 'Kreative Köpfe',
+  },
+  {
+    title: 'Fussball-Turnier',
+    description: 'Das grosse Conveniat-Turnier. Wer gewinnt den Wanderpokal?',
+    targetGroup: 'Sportbegeisterte',
+  },
+  {
+    title: 'Gitarren-Crashkurs',
+    description: 'Lerne die 3 wichtigsten Akkorde für jedes Lagerfeuerlied.',
+    targetGroup: 'Anfänger ohne Vorkenntnisse',
+  },
+  {
+    title: 'Kartenlesen & Orientierung',
+    description: 'Wie finde ich mich ohne GPS zurecht? Karte und Kompass im Check.',
+    targetGroup: 'Alle Teilnehmenden',
+  },
+  {
+    title: 'Solares Kochen',
+    description: 'Wir bauen einen Solarofen und kochen ein kleines Dessert.',
+    targetGroup: 'Technik-Interessierte',
+  },
+  {
+    title: 'Theater & Improvisation',
+    description: 'Wir bereiten kleine Sketche für den Abend vor.',
+    targetGroup: 'Alle, die gerne auf der Bühne stehen',
+  },
+  {
+    title: 'Feuer machen ohne Streichhölzer',
+    description: 'Die Kunst des Feuerschlagens mit Feuerstein und Stahl.',
+    targetGroup: 'Outdoor-Fans',
+  },
+  {
+    title: 'Wald-Yogа',
+    description: 'Entspannung pur zwischen den Bäumen.',
+    targetGroup: 'Alle, die Ruhe suchen',
+  },
+];
 
 export const generateScheduleEntries = (
   campSitesId: string[],
   userIds: string[],
+  categoryIds: CategoryIds,
 ): ScheduleEntry[] => {
   const allEvents: ScheduleEntry[] = [];
   const mainStageLocation = campSitesId[0];
-  if (mainStageLocation == undefined) {
+  if (mainStageLocation === undefined) {
+    // Changed to strict equality
     throw new Error('Main stage location is not defined in campSitesId.');
   }
-
-  // Create a mutable copy of the workshop pool to draw from.
-  const availableWorkshops = [...workshopPool];
-
-  /**
-   * Schedules a given number of workshops concurrently, assigning each to a unique location.
-   */
-  const scheduleConcurrentWorkshops = (date: string, time: string, count: number): void => {
-    // Ensure we don't try to schedule more workshops than available campsites or titles.
-    const numberToSchedule = Math.min(count, campSitesId.length, availableWorkshops.length);
-    if (count > numberToSchedule) {
-      console.warn(
-        `Warning: Tried to schedule ${count} workshops, but only ${numberToSchedule} locations/titles are available. Adjusting.`,
-      );
-    }
-
-    // Shuffle campsites to get random, unique locations for this timeslot
-    const shuffledCampsites = faker.helpers.shuffle(campSitesId);
-
-    // Pick unique workshop titles for this timeslot
-    const selectedTitles: string[] = [];
-    for (let index = 0; index < numberToSchedule; index++) {
-      const randomIndex = Math.floor(Math.random() * availableWorkshops.length);
-      selectedTitles.push(availableWorkshops.splice(randomIndex, 1)[0] ?? 'Workshop');
-    }
-
-    for (let index = 0; index < numberToSchedule; index++) {
-      const title = selectedTitles[index] ?? 'Workshop';
-      const location = shuffledCampsites[index] ?? mainStageLocation; // Fallback to main stage if no location is available
-      allEvents.push(
-        createEvent(
-          title,
-          date,
-          time,
-          location,
-          faker.helpers.arrayElement(userIds),
-          faker.lorem.paragraph(3), // Generate a random description
-        ),
-      );
-    }
-  };
-
-  /**
-   * Generates an event that happens at every single campsite.
-   */
-  const createEverywhereEventsForDay = (
-    title: string,
-    date: string,
-    time: string,
-    description: string,
-  ): void => {
-    // Same implementation as before...
-    for (const campSiteId of campSitesId) {
-      allEvents.push(
-        createEvent(
-          title,
-          date,
-          time,
-          campSiteId,
-          faker.helpers.arrayElement(userIds),
-          description,
-        ),
-      );
-    }
-  };
 
   // Loop through each day of the camp
   for (let dayIndex = 0; dayIndex < CAMP_DAYS; dayIndex++) {
@@ -173,142 +168,190 @@ export const generateScheduleEntries = (
     currentDate.setDate(currentDate.getDate() + dayIndex);
     const dateString = formatDate(currentDate);
 
-    // --- Daily Schedule Generation ---
+    // Morning Block (08:00 - 12:00)
     if (dayIndex === 0) {
-      // Monday: Arrival & Setup
-      createEverywhereEventsForDay(
-        'Zeltbau',
-        dateString,
-        '10:00 - 12:00',
-        'Willkommen im Camp! Findet euren zugewiesenen Platz und baut eure Zelte auf.',
-      );
-      createEverywhereEventsForDay(
-        'Mittagessen',
-        dateString,
-        '12:30 - 13:30',
-        'Stärkung nach dem Aufbau.',
-      );
-      // Schedule the first introductory workshop
-      scheduleConcurrentWorkshops(dateString, '14:30 - 16:00', 1);
-      createEverywhereEventsForDay(
-        'Nachtessen',
-        dateString,
-        '18:30 - 19:30',
-        'Das erste gemeinsame Abendessen.',
-      );
+      // Monday arrival
+      for (const siteId of campSitesId) {
+        allEvents.push(
+          createEvent(
+            'Ankunft & Zeltbau',
+            dateString,
+            '10:00 - 12:00',
+            siteId,
+            [faker.helpers.arrayElement(userIds)],
+            'Willkommen im Camp!',
+            categoryIds,
+            { category: 'activity' },
+          ),
+        );
+      }
+    } else if (dayIndex < CAMP_DAYS - 1) {
+      // Standard morning: 08:00 Breakfast (Everywhere), 09:30 Workshops (Distributed)
+      for (const siteId of campSitesId) {
+        allEvents.push(
+          createEvent(
+            'Morgenessen',
+            dateString,
+            '08:00 - 09:00',
+            siteId,
+            [],
+            'Startet gut in den Tag.',
+            categoryIds,
+            { category: 'food' },
+          ),
+        );
+      }
+
+      // Concurrent workshops at 10:00 - 12:00
+      const dayWorkshops = shuffleArray(workshops).slice(0, Math.min(campSitesId.length, 5));
+      for (const [index, ws] of dayWorkshops.entries()) {
+        const siteId = campSitesId[index % campSitesId.length];
+        if (siteId === undefined) continue; // Changed to strict equality
+        allEvents.push(
+          createEvent(
+            ws.title,
+            dateString,
+            '10:00 - 12:00',
+            siteId,
+            [faker.helpers.arrayElement(userIds)],
+            ws.description,
+            categoryIds,
+            {
+              enrolment: true,
+              min: 5,
+              max: 20,
+              targetGroup: ws.targetGroup,
+              category: 'workshop',
+            },
+          ),
+        );
+      }
+    }
+
+    // Lunch Block (12:30 - 13:30)
+    if (dayIndex < CAMP_DAYS - 1) {
+      for (const siteId of campSitesId) {
+        allEvents.push(
+          createEvent(
+            'Mittagessen',
+            dateString,
+            '12:30 - 13:30',
+            siteId,
+            [],
+            'Stärkung zur Mittagszeit.',
+            categoryIds,
+            { category: 'food' },
+          ),
+        );
+      }
+    }
+
+    // Afternoon Block (14:00 - 17:00)
+    if (dayIndex === 0) {
       allEvents.push(
         createEvent(
-          'Plenum vor Bühne',
+          'Eröffnungsspiel',
+          dateString,
+          '14:30 - 16:30',
+          mainStageLocation,
+          [faker.helpers.arrayElement(userIds)],
+          'Ein Spiel für alle.',
+          categoryIds,
+          { category: 'activity' },
+        ),
+      );
+    } else if (dayIndex === 2) {
+      // Wednesday Hike
+      for (const siteId of campSitesId) {
+        allEvents.push(
+          createEvent(
+            'Tageswanderung',
+            dateString,
+            '09:30 - 16:30',
+            siteId,
+            [faker.helpers.arrayElement(userIds)],
+            'Ab in die Berge!',
+            categoryIds,
+            { category: 'activity' },
+          ),
+        );
+      }
+    } else if (dayIndex < CAMP_DAYS - 1) {
+      // More workshops or games
+      const afternoonWorkshops = shuffleArray(workshops).slice(0, 3);
+      for (const [index, ws] of afternoonWorkshops.entries()) {
+        const siteId = campSitesId[(index + 2) % campSitesId.length];
+        if (!siteId) continue;
+        allEvents.push(
+          createEvent(
+            ws.title,
+            dateString,
+            '14:30 - 16:30',
+            siteId,
+            [faker.helpers.arrayElement(userIds)],
+            ws.description,
+            categoryIds,
+            {
+              enrolment: true,
+              min: 5,
+              max: 25,
+              targetGroup: ws.targetGroup,
+              category: 'workshop',
+            },
+          ),
+        );
+      }
+    }
+
+    // Evening Block (18:30 - Close)
+    if (dayIndex < CAMP_DAYS - 1) {
+      for (const siteId of campSitesId) {
+        allEvents.push(
+          createEvent('Nachtessen', dateString, '18:30 - 19:30', siteId, [], 'Abendbrot.', categoryIds, {
+            category: 'food',
+          }),
+        );
+      }
+      allEvents.push(
+        createEvent(
+          'Plenum',
           dateString,
           '20:00 - 21:00',
           mainStageLocation,
-          faker.helpers.arrayElement(userIds),
-          'Offizielle Eröffnung des Lagers.',
+          [faker.helpers.arrayElement(userIds)],
+          'Rückblick und Infos.',
+          categoryIds,
+          { category: 'general' },
         ),
       );
-    } else if (dayIndex < CAMP_DAYS - 1) {
-      // Tuesday - Friday: Main Program
-      // Standard morning routine
-      createEverywhereEventsForDay(
-        'Morgensport',
-        dateString,
-        '07:00 - 07:45',
-        'Startet fit in den Tag!',
-      );
-      createEverywhereEventsForDay(
-        'Morgenessen',
-        dateString,
-        '08:00 - 09:00',
-        'Geniesst das Frühstück.',
-      );
+    }
 
-      // Daily Program Block
-      switch (dayIndex) {
-        case 1: {
-          // Tuesday: Workshop Day 1
-          scheduleConcurrentWorkshops(dateString, '10:00 - 12:00', 4); // 4 workshops in the morning
-          scheduleConcurrentWorkshops(dateString, '14:00 - 16:00', 3); // 3 workshops in the afternoon
-
-          break;
-        }
-        case 2: {
-          // Wednesday: Hike Day
-          createEverywhereEventsForDay(
-            'Tageswanderung',
+    // Final Day Saturday
+    if (dayIndex === CAMP_DAYS - 1) {
+      for (const siteId of campSitesId) {
+        allEvents.push(
+          createEvent(
+            'Abschluss-Zmorge',
             dateString,
-            '09:30 - 16:00',
-            'Heute erkunden wir die Umgebung! Das Mittagessen gibt es als Lunchpaket.',
-          );
-
-          break;
-        }
-        case 3: {
-          // Thursday: Big Game Day & Workshops
-          scheduleConcurrentWorkshops(dateString, '10:00 - 12:00', 4); // 4 more workshops
-          createEverywhereEventsForDay(
-            'Geländespiel',
+            '08:30 - 10:00',
+            siteId,
+            [],
+            'Das letzte Frühstück.',
+            categoryIds,
+            { category: 'food' },
+          ),
+          createEvent(
+            'Abbau & Reinigung',
             dateString,
-            '14:00 - 17:00',
-            'Das grosse Geländespiel steht an! Taktik, Teamwork und Spass sind gefragt.',
-          );
-
-          break;
-        }
-        case 4: {
-          // Friday: Workshop Day 2 & Closing
-          scheduleConcurrentWorkshops(dateString, '10:00 - 12:00', 5); // 5 workshops in the morning
-          scheduleConcurrentWorkshops(dateString, '14:00 - 16:00', 4); // Final 4 workshops
-          allEvents.push(
-            createEvent(
-              'Plenum vor Bühne',
-              dateString,
-              '20:00 - 21:30',
-              mainStageLocation,
-              faker.helpers.arrayElement(userIds),
-              'Abschlussabend mit Rückblick und Lagerfeuer.',
-            ),
-          );
-
-          break;
-        }
-        // No default
-      }
-
-      // Standard lunch and dinner (except on hike day)
-      if (dayIndex !== 2) {
-        createEverywhereEventsForDay(
-          'Mittagessen',
-          dateString,
-          '12:30 - 13:30',
-          'Zeit für die Mittagspause.',
+            '10:30 - 13:00',
+            siteId,
+            [],
+            'Alle helfen mit.',
+            categoryIds,
+            { category: 'activity' },
+          ),
         );
       }
-      createEverywhereEventsForDay(
-        'Nachtessen',
-        dateString,
-        '18:30 - 19:30',
-        'Gemeinsames Abendessen.',
-      );
-    } else {
-      // Saturday: Departure
-      createEverywhereEventsForDay(
-        'Morgenessen',
-        dateString,
-        '08:00 - 09:00',
-        'Das letzte Frühstück im Camp.',
-      );
-      createEverywhereEventsForDay(
-        'Abbau',
-        dateString,
-        '09:30 - 11:30',
-        'Alle packen mit an! Zelte abbauen und den Lagerplatz sauber hinterlassen.',
-      );
-      createEverywhereEventsForDay(
-        'Transfer',
-        dateString,
-        '11:30 - 13:00',
-        'Verabschiedung und organisierter Transfer. Auf Wiedersehen!',
-      );
     }
   }
 

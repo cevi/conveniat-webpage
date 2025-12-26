@@ -1,44 +1,37 @@
-import { ScheduleEntryForm } from '@/components/schedule-entry';
-import { Button } from '@/components/ui/buttons/button';
-import { LinkComponent } from '@/components/ui/link-component';
-import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
-import { SubheadingH3 } from '@/components/ui/typography/subheading-h3';
+import { SetHideFooter } from '@/components/footer/hide-footer-context';
+import { SetHideHeader } from '@/components/header/hide-header-context';
+import { ChatLinkButton } from '@/components/ui/buttons/chat-link-button';
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
-import { canUserAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import type {
   CampMapAnnotation,
   CampScheduleEntry,
   User,
 } from '@/features/payload-cms/payload-types';
-import { EnrollButton } from '@/features/schedule/components/enroll-button';
-import { UnenrollButton } from '@/features/schedule/components/unenroll-button';
+import { DetailStarButton } from '@/features/schedule/components/detail-star-button';
+import { EnrollmentAction } from '@/features/schedule/components/enrollment-action';
+import { WorkshopAdminActions } from '@/features/schedule/components/workshop-admin-actions';
 import { TRPCProvider } from '@/trpc/client';
-import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { StaticTranslationString } from '@/types/types';
 import { auth } from '@/utils/auth';
 import { formatScheduleDateTime } from '@/utils/format-schedule-date-time';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import config from '@payload-config';
-import { Calendar, Clock, MapPin } from 'lucide-react';
+import { Calendar, ChevronLeft, Clock, MapPin, Users } from 'lucide-react';
 import Link from 'next/link';
 import { getPayload } from 'payload';
 import type React from 'react';
 
-const createChatWithOrganiser = (organiser: User): string => {
-  return `/app/chat/new-chat-with-user/${organiser.id}`;
+const contactAdminText: StaticTranslationString = {
+  de: 'Kontakt mit Organisator',
+  en: 'Contact Organiser',
+  fr: "Contacter l'organisateur",
 };
 
-const enrollText: StaticTranslationString = {
-  de: 'Für diesen Programmpunkt anmelden',
-  en: 'Enroll for this program entry',
-  fr: "S'inscrire à ce point du programme",
-};
-
-const emailText: StaticTranslationString = {
-  de: 'Mailadresse',
-  en: 'Email',
-  fr: 'E-mail',
-};
+const labels = {
+  location: { de: 'Ort', en: 'Location', fr: 'Lieu' },
+  targetGroup: { de: 'Zielgruppe', en: 'Target Group', fr: 'Groupe cible' },
+  back: { de: 'Zurück', en: 'Back', fr: 'Retour' },
+} as const;
 
 const ScheduleDetailPage: React.FC<{
   params: Promise<{
@@ -48,117 +41,154 @@ const ScheduleDetailPage: React.FC<{
   const { id: scheduleId } = await params;
   const payload = await getPayload({ config });
 
-  // the user object is undefined if the user is not logged in
-  const session = await auth();
-  const user = session?.user as HitobitoNextAuthUser | undefined;
-
+  await auth();
   const locale = await getLocaleFromCookies();
 
   const scheduleEntries = await payload.find({
     collection: 'camp-schedule-entry',
     depth: 1,
     locale: locale,
-    where: {
-      id: { equals: scheduleId },
-    },
+    where: { id: { equals: scheduleId } },
     limit: 1,
     fallbackLocale: 'de',
   });
 
   if (scheduleEntries.docs.length === 0) {
-    return (
-      <>
-        <HeadlineH1>Fehler.</HeadlineH1>
-        <p>Der Programm-Punkt wurde nicht gefunden.</p>
-      </>
-    );
+    return <div className="p-8 text-center text-gray-500">Entry not found.</div>;
   }
 
   const entry = scheduleEntries.docs[0] as CampScheduleEntry;
   const location = entry.location as CampMapAnnotation;
-  const organiser = entry.organiser ? (entry.organiser as User) : undefined;
+  const organisers = entry.organiser as User[];
+  const primaryOrganiser = organisers[0];
 
-  const isUserOrganiser = user?.uuid === organiser?.id;
-
-  const userCanEdit = isUserOrganiser || canUserAccessAdminPanel({ user });
+  const dateTime = formatScheduleDateTime(locale, entry.timeslot.date, entry.timeslot.time);
 
   return (
     <TRPCProvider>
-      <article className="my-8 w-full max-w-2xl px-8 max-xl:mx-auto">
-        <HeadlineH1>Programm-Punkt: {entry.title}</HeadlineH1>
-        <div className="min-w-0 flex-1">
-          {/* Location and Time Display - single line */}
-          <div className="mb-3 flex flex-wrap items-center gap-4">
-            {/* Location - inline */}
-            {location.title !== '' && (
-              <div className="flex items-center gap-1.5 text-sm text-gray-600">
-                <MapPin className="h-3.5 w-3.5 flex-shrink-0 text-gray-500" />
-                <Link
-                  href={`/app/map?locationId=${location.id}`}
-                  className="cursor-pointer font-medium text-blue-600 transition-colors hover:text-blue-800 hover:underline"
-                >
-                  {location.title}
-                </Link>
-              </div>
-            )}
+      <SetHideHeader value />
+      <SetHideFooter value />
 
-            {/* Time slots */}
-
-            <div className={'flex flex-shrink-0 items-center gap-3 text-sm'}>
-              {
-                <div className="flex flex-shrink-0 items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1 text-blue-700">
-                  <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
-                  <span className="font-medium whitespace-nowrap">
-                    {
-                      formatScheduleDateTime(locale, entry.timeslot.date, entry.timeslot.time)
-                        .formattedDate
-                    }
-                  </span>
-                </div>
-              }
-
-              {/* Time Slots */}
-              <div className="flex flex-wrap items-center gap-1.5">
-                <Clock className="h-3.5 w-3.5 flex-shrink-0 text-gray-500" />
-                <div className="flex flex-wrap gap-1.5">
-                  <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium whitespace-nowrap text-gray-700">
-                    {entry.timeslot.time}
-                  </span>
-                </div>
-              </div>
+      {/* Full-screen container like chat */}
+      <div className="fixed inset-0 z-[100] flex flex-col overflow-hidden bg-gray-50">
+        {/* White Header - like chat details */}
+        <header className="flex h-16 items-center justify-between gap-3 border-b-2 border-gray-200 bg-white px-4">
+          <div className="flex items-center gap-3 overflow-hidden">
+            <Link href="/app/schedule" className="rounded-lg p-2 transition-colors hover:bg-gray-100">
+              <ChevronLeft className="h-5 w-5 text-gray-700" />
+            </Link>
+            <div className="min-w-0 flex-1">
+              <h1 className="font-heading truncate text-lg font-semibold text-gray-900">
+                {entry.title}
+              </h1>
             </div>
           </div>
-        </div>
-        {userCanEdit && <ScheduleEntryForm description={entry.description} locale={locale} />}
-        <div>
-          <LexicalRichTextSection richTextSection={entry.description} />
-          {organiser && (
-            <div className="my-8">
-              <SubheadingH3>Kontakt mit Organisier</SubheadingH3>
-              <Button className="bg-conveniat-green hover:bg-conveniat-green-dark text-white">
-                <Link href={createChatWithOrganiser(organiser)}>
-                  Chat mit {organiser.fullName} starten
-                </Link>
-              </Button>
-              <p className="mt-2 text-gray-400">
-                {emailText[locale]}:{' '}
-                <LinkComponent className="font-bold" href={`mailto:${organiser.email}`}>
-                  {organiser.email}
-                </LinkComponent>
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Enrol button if enrolment is enabled */}
-        <div>
-          <div className="my-8">
-            <SubheadingH3>{enrollText[locale]}</SubheadingH3>
-            <EnrollButton courseId={entry.id} />
-            <UnenrollButton courseId={entry.id} />
+          <div className="flex shrink-0 items-center">
+            <DetailStarButton entryId={entry.id} />
           </div>
+        </header>
+
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto">
+          <article className="mx-auto w-full max-w-3xl">
+            <div className="flex flex-col lg:flex-row">
+              {/* Main Content */}
+              <div className="flex-1 bg-white p-6">
+                <div className="prose prose-gray max-w-none">
+                  <LexicalRichTextSection richTextSection={entry.description} />
+                </div>
+
+                {/* Admin Actions */}
+                <WorkshopAdminActions courseId={entry.id} courseTitle={entry.title} />
+
+                {primaryOrganiser && (
+                  <div className="mt-8 border-t-2 border-gray-200 pt-6">
+                    <h3 className="mb-4 text-sm font-bold tracking-wider text-gray-400 uppercase">
+                      {contactAdminText[locale]}
+                    </h3>
+                    <div className="flex items-center justify-between gap-4 rounded-xl border border-gray-100 bg-gray-50 p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="bg-conveniat-green/10 text-conveniat-green flex h-10 w-10 items-center justify-center rounded-full font-bold">
+                          {primaryOrganiser.fullName.charAt(0)}
+                        </div>
+                        <div>
+                          <div className="font-bold text-gray-900">{primaryOrganiser.fullName}</div>
+                          <div className="text-xs text-gray-500">{primaryOrganiser.email}</div>
+                        </div>
+                      </div>
+                      <ChatLinkButton userId={primaryOrganiser.id} />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Side Info Bar (ASVZ Style Card) */}
+              <aside className="w-full bg-gray-50/50 p-6 lg:w-80 lg:border-l lg:bg-white">
+                <div className="space-y-5">
+                  {/* Date & Time */}
+                  <div className="flex gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
+                      <Calendar className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {dateTime.formattedDate}
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                        <Clock className="h-3 w-3" />
+                        {entry.timeslot.time}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Location */}
+                  <Link
+                    href={`/app/map?locationId=${location.id}`}
+                    className="-m-2 flex gap-3 rounded-lg p-2 transition-colors hover:bg-gray-50 active:bg-gray-100"
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-orange-100 text-orange-600">
+                      <MapPin className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className="mb-0.5 text-xs font-bold tracking-wide text-gray-400 uppercase">
+                        {labels.location[locale]}
+                      </div>
+                      <div className="group-hover:text-conveniat-green text-sm font-medium text-gray-900">
+                        {location.title}
+                      </div>
+                    </div>
+                  </Link>
+
+                  {/* Target Group */}
+                  {entry.target_group && (
+                    <div className="flex gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-purple-100 text-purple-600">
+                        <Users className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-0.5 text-xs font-bold tracking-wide text-gray-400 uppercase">
+                          {labels.targetGroup[locale]}
+                        </div>
+                        <div className="text-sm text-gray-700">
+                          <LexicalRichTextSection richTextSection={entry.target_group} />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Enrollment Action Section */}
+                  <div className="border-t-2 border-gray-200 pt-5">
+                    <EnrollmentAction courseId={entry.id} />
+                  </div>
+                </div>
+              </aside>
+            </div>
+          </article>
+
+          {/* Bottom padding for safe area */}
+          <div className="h-8" />
         </div>
-      </article>
+      </div>
     </TRPCProvider>
   );
 };

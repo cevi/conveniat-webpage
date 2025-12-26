@@ -7,6 +7,7 @@ import type {
   CeviLogoMarker,
   InitialMapPose,
 } from '@/features/map/types/types';
+import type { MapControlOptions } from '@/features/map/hooks/use-map-controls';
 import dynamic from 'next/dynamic';
 import type React from 'react';
 
@@ -39,14 +40,16 @@ export const MapLibreRenderer = ({
   schedules,
   limitUsage = true,
   validateStyle = true,
+  mapControlOptions,
 }: {
   initialMapPose: InitialMapPose;
   ceviLogoMarkers: CeviLogoMarker[];
-  campMapAnnotationPoints?: CampMapAnnotationPoint[] | undefined;
-  campMapAnnotationPolygons?: CampMapAnnotationPolygon[] | undefined;
+  campMapAnnotationPoints?: CampMapAnnotationPoint[];
+  campMapAnnotationPolygons?: CampMapAnnotationPolygon[];
   schedules: { [id: string]: CampScheduleEntry[] };
   limitUsage?: boolean;
   validateStyle?: boolean;
+  mapControlOptions?: MapControlOptions | undefined;
 }): React.JSX.Element => {
   // default values for optional parameters
   campMapAnnotationPoints ??= [];
@@ -61,6 +64,7 @@ export const MapLibreRenderer = ({
       schedules={schedules}
       limitUsage={limitUsage}
       validateStyle={validateStyle}
+      mapControlOptions={mapControlOptions}
     />
   );
 };

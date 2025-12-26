@@ -28,20 +28,28 @@ const getDateFnsLocale = (localeString: string): typeof enUS => {
 };
 
 export const useFormatDate = (): {
-  formatMessageTime: (timestamp: Date) => string;
+  formatMessageTime: (timestamp: Date | string) => string;
 } => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
-  const formatMessageTime = (timestamp: Date): string => {
+  const formatMessageTime = (timestamp: Date | string): string => {
     const dateFnsLocale = getDateFnsLocale(locale);
 
+    // Ensure we have a Date object
+    const date = timestamp instanceof Date ? timestamp : new Date(timestamp);
+
+    // Guard against invalid date
+    if (Number.isNaN(date.getTime())) {
+      return '';
+    }
+
     // For messages from today, show just the time (e.g., "15:25")
-    if (isToday(timestamp)) {
-      return format(timestamp, 'HH:mm', { locale: dateFnsLocale });
+    if (isToday(date)) {
+      return format(date, 'HH:mm', { locale: dateFnsLocale });
     }
 
     // For older messages, show the date and time
-    return format(timestamp, 'MMM d, HH:mm', { locale: dateFnsLocale });
+    return format(date, 'MMM d, HH:mm', { locale: dateFnsLocale });
   };
 
   return { formatMessageTime };

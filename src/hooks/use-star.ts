@@ -1,3 +1,5 @@
+'use client';
+
 import { StarContext } from '@/context/star-context';
 import type { StarContextType } from '@/types/types';
 import { useContext } from 'react';

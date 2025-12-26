@@ -2,7 +2,7 @@ import prisma from '@/lib/database';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import { auth } from '@/utils/auth';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
-import { initTRPC } from '@trpc/server';
+import { initTRPC, TRPCError } from '@trpc/server';
 import { cache } from 'react';
 import superjson from 'superjson';
 
@@ -13,7 +13,10 @@ export const createTRPCContext = cache(async () => {
   const locale = await getLocaleFromCookies();
 
   if (sessionUser === undefined) {
-    throw new Error('User not authenticated');
+    throw new TRPCError({
+      code: 'UNAUTHORIZED',
+      message: 'User not authenticated',
+    });
   }
 
   return { user: sessionUser, locale, prisma: prisma };

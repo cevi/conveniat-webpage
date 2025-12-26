@@ -3,11 +3,14 @@ import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { SubheadingH2 } from '@/components/ui/typography/subheading-h2';
 import { getScheduleEntries } from '@/features/schedule/api/get-schedule-entries';
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
+import { getCategoryDisplayData } from '@/features/schedule/utils/category-utils';
 import type { Locale, StaticTranslationString } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
 import { formatScheduleDateTime } from '@/utils/format-schedule-date-time';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import {
   Calendar,
+  ChevronRight,
   Clock,
   Compass,
   ImageUp,
@@ -186,6 +189,8 @@ const AppFeatures: React.FC<{ locale: Locale }> = ({ locale }) => {
   );
 };
 
+
+
 const EventCard: React.FC<{
   entry: CampScheduleEntryFrontendType;
 }> = async ({ entry }) => {
@@ -198,28 +203,57 @@ const EventCard: React.FC<{
     entry.timeslot.time,
   );
 
+  const categoryData = getCategoryDisplayData(entry.category);
+
   return (
     <Link
       href={`/app/schedule/${entry.id}`}
-      className="block rounded-md border-2 border-gray-200 bg-white p-4 transition duration-200 hover:shadow-md"
+      className="group block cursor-pointer overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all duration-200 hover:border-gray-300 hover:shadow-md active:scale-[0.99]"
     >
-      <div className="space-y-2">
-        <h3 className="text-conveniat-green text-sm font-semibold">{entry.title}</h3>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-          <div className="flex items-center gap-1 rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-blue-700">
-            <Calendar className="h-3 w-3" />
-            <span className="font-medium">{formattedDate}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <Clock className="h-3 w-3 text-gray-500" />
-            <span className="text-gray-700">{time}</span>
-          </div>
-          {typeof location === 'object' && location.title !== '' && (
-            <div className="flex items-center gap-1">
-              <MapPin className="h-3 w-3 text-gray-500" />
-              <span className="text-xs text-blue-600">{location.title}</span>
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            {/* Category Tag */}
+            {categoryData.label && (
+              <div className="mb-2">
+                <span
+                  className={cn(
+                    'rounded-full border px-2.5 py-0.5 text-[10px] font-bold tracking-wide uppercase',
+                    categoryData.className,
+                  )}
+                >
+                  {categoryData.label}
+                </span>
+              </div>
+            )}
+
+            <h3 className="group-hover:text-conveniat-green mb-1 text-base leading-snug font-semibold text-gray-900 transition-colors">
+              {entry.title}
+            </h3>
+
+            {/* Info Row: Date, Time & Location */}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-500">
+              <div className="flex items-center gap-1">
+                <Calendar className="h-3.5 w-3.5" />
+                <span className="font-medium text-gray-700">{formattedDate}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Clock className="h-3.5 w-3.5" />
+                <span className="font-medium text-gray-700">{time}</span>
+              </div>
+              {typeof location === 'object' && location.title !== '' && (
+                <div className="flex items-center gap-1">
+                  <MapPin className="h-3.5 w-3.5" />
+                  <span className="font-medium">{location.title}</span>
+                </div>
+              )}
             </div>
-          )}
+          </div>
+
+          {/* Right side: chevron */}
+          <div className="flex items-center">
+            <ChevronRight className="h-5 w-5 text-gray-300 transition-colors group-hover:text-gray-500" />
+          </div>
         </div>
       </div>
     </Link>
