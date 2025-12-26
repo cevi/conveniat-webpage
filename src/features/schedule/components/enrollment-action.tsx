@@ -284,9 +284,7 @@ export const EnrollmentAction: React.FC<{
       <ChatAlertDialog open={conflictDialogOpen} onOpenChange={setConflictDialogOpen}>
         <ChatAlertDialogContent>
           <ChatAlertDialogHeader>
-            <ChatAlertDialogTitle>
-              {localizedConflict[locale]}
-            </ChatAlertDialogTitle>
+            <ChatAlertDialogTitle>{localizedConflict[locale]}</ChatAlertDialogTitle>
             <ChatAlertDialogDescription>
               {localizedConflictDescription[locale]}
             </ChatAlertDialogDescription>
@@ -297,9 +295,7 @@ export const EnrollmentAction: React.FC<{
                 {conflictInfo?.conflictingCourseName}
               </div>
             </div>
-            <p className="text-center text-sm text-gray-500">
-              {localizedSwitchQuestion[locale]}
-            </p>
+            <p className="text-center text-sm text-gray-500">{localizedSwitchQuestion[locale]}</p>
           </div>
           <ChatAlertDialogFooter className="gap-3 sm:gap-0">
             <ChatAlertDialogAction

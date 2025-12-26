@@ -175,7 +175,7 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
               className={cn(
                 'h-8 rounded-full px-3 text-sm',
                 filters.selectedCategory === category.id &&
-                'bg-conveniat-green/10 text-conveniat-green font-medium',
+                  'bg-conveniat-green/10 text-conveniat-green font-medium',
               )}
             >
               {category.title}

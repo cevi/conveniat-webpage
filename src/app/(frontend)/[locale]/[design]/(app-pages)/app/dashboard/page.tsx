@@ -5,9 +5,9 @@ import { getScheduleEntries } from '@/features/schedule/api/get-schedule-entries
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
 import { getCategoryDisplayData } from '@/features/schedule/utils/category-utils';
 import type { Locale, StaticTranslationString } from '@/types/types';
-import { cn } from '@/utils/tailwindcss-override';
 import { formatScheduleDateTime } from '@/utils/format-schedule-date-time';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
+import { cn } from '@/utils/tailwindcss-override';
 import {
   Calendar,
   ChevronRight,
@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import type React from 'react';
+import { Suspense } from 'react';
 
 const dashboardTitle: StaticTranslationString = {
   en: 'Dashboard',
@@ -189,8 +190,6 @@ const AppFeatures: React.FC<{ locale: Locale }> = ({ locale }) => {
   );
 };
 
-
-
 const EventCard: React.FC<{
   entry: CampScheduleEntryFrontendType;
 }> = async ({ entry }) => {
@@ -312,7 +311,21 @@ const Dashboard: React.FC<{
           <AppFeatures locale={locale} />
 
           {/* Upcoming Program Elements Section */}
-          <UpcomingEvents locale={locale} />
+          <Suspense
+            fallback={
+              <div className="mt-12 space-y-3">
+                <div className="mx-auto mb-4 h-6 w-56 animate-pulse rounded bg-gray-200" />
+                {[1, 2, 3].map((index) => (
+                  <div
+                    key={index}
+                    className="h-24 animate-pulse rounded-xl border border-gray-200 bg-gray-100"
+                  />
+                ))}
+              </div>
+            }
+          >
+            <UpcomingEvents locale={locale} />
+          </Suspense>
         </article>
       </section>
     </>

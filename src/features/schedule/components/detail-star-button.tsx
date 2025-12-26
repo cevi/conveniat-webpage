@@ -7,7 +7,7 @@ import type React from 'react';
 import { useMemo } from 'react';
 
 interface DetailStarButtonProperties {
-    entryId: string;
+  entryId: string;
 }
 
 /**
@@ -15,20 +15,20 @@ interface DetailStarButtonProperties {
  * Handles enrollment check to determine if the star is locked.
  */
 export const DetailStarButton: React.FC<DetailStarButtonProperties> = ({ entryId }) => {
-    const { isStarred, toggleStar } = useStar();
+  const { isStarred, toggleStar } = useStar();
 
-    // Get enrolled courses to check if this entry is enrolled
-    const { data: myEnrollments } = trpc.schedule.getMyEnrollments.useQuery();
-    const enrolledIds = useMemo(() => new Set(myEnrollments ?? []), [myEnrollments]);
-    const isEnrolled = enrolledIds.has(entryId);
-    const currentlyStarred = isStarred(entryId);
+  // Get enrolled courses to check if this entry is enrolled
+  const { data: myEnrollments } = trpc.schedule.getMyEnrollments.useQuery();
+  const enrolledIds = useMemo(() => new Set(myEnrollments ?? []), [myEnrollments]);
+  const isEnrolled = enrolledIds.has(entryId);
+  const currentlyStarred = isStarred(entryId);
 
-    return (
-        <StarButton
-            id={entryId}
-            isStared={currentlyStarred}
-            toggleStar={toggleStar}
-            isLocked={isEnrolled}
-        />
-    );
+  return (
+    <StarButton
+      id={entryId}
+      isStared={currentlyStarred}
+      toggleStar={toggleStar}
+      isLocked={isEnrolled}
+    />
+  );
 };

@@ -221,7 +221,7 @@ export const ScheduleComponent: React.FC<ScheduleComponentProperties> = ({ sched
                 actions.handleDateSelect(previousDay);
               }
             }}
-            className="touch-pan-y h-full"
+            className="h-full touch-pan-y"
           >
             {hasProgram ? (
               <div className="space-y-8">

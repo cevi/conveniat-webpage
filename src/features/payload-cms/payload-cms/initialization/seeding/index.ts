@@ -19,7 +19,10 @@ import {
   seedPermissionLoggedIn,
   seedPermissionPublic,
 } from '@/features/payload-cms/payload-cms/initialization/seeding/permissions';
-import { type CategoryIds, generateScheduleEntries } from '@/features/payload-cms/payload-cms/initialization/seeding/schedule-entries';
+import {
+  type CategoryIds,
+  generateScheduleEntries,
+} from '@/features/payload-cms/payload-cms/initialization/seeding/schedule-entries';
 import { seedAlertSettings } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-alert-settings';
 import { createRandomUser } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-users';
 import {
@@ -591,12 +594,57 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
 
   // schedule categories
   console.log('Seeding: Creating schedule categories...');
-  const categoryDefinitions: Array<{ key: keyof CategoryIds; title_de: string; title_en: string; title_fr: string; colorTheme: 'purple' | 'green' | 'blue' | 'gray' | 'indigo' | 'amber' | 'rose' | 'cyan' | 'orange' }> = [
-    { key: 'workshop', title_de: 'Workshop', title_en: 'Workshop', title_fr: 'Atelier', colorTheme: 'purple' },
-    { key: 'general', title_de: 'Allgemein', title_en: 'General', title_fr: 'Général', colorTheme: 'gray' },
-    { key: 'food', title_de: 'Essen', title_en: 'Food', title_fr: 'Nourriture', colorTheme: 'orange' },
-    { key: 'activity', title_de: 'Aktivität', title_en: 'Activity', title_fr: 'Activité', colorTheme: 'green' },
-    { key: 'other', title_de: 'Sonstiges', title_en: 'Other', title_fr: 'Autre', colorTheme: 'blue' },
+  const categoryDefinitions: Array<{
+    key: keyof CategoryIds;
+    title_de: string;
+    title_en: string;
+    title_fr: string;
+    colorTheme:
+      | 'purple'
+      | 'green'
+      | 'blue'
+      | 'gray'
+      | 'indigo'
+      | 'amber'
+      | 'rose'
+      | 'cyan'
+      | 'orange';
+  }> = [
+    {
+      key: 'workshop',
+      title_de: 'Workshop',
+      title_en: 'Workshop',
+      title_fr: 'Atelier',
+      colorTheme: 'purple',
+    },
+    {
+      key: 'general',
+      title_de: 'Allgemein',
+      title_en: 'General',
+      title_fr: 'Général',
+      colorTheme: 'gray',
+    },
+    {
+      key: 'food',
+      title_de: 'Essen',
+      title_en: 'Food',
+      title_fr: 'Nourriture',
+      colorTheme: 'orange',
+    },
+    {
+      key: 'activity',
+      title_de: 'Aktivität',
+      title_en: 'Activity',
+      title_fr: 'Activité',
+      colorTheme: 'green',
+    },
+    {
+      key: 'other',
+      title_de: 'Sonstiges',
+      title_en: 'Other',
+      title_fr: 'Autre',
+      colorTheme: 'blue',
+    },
   ];
 
   const categoryIds: CategoryIds = {

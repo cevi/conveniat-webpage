@@ -15,13 +15,13 @@ export interface CampScheduleEntryFrontendType {
   enable_enrolment?: boolean | null | undefined;
   category?: string | CampCategory | null;
   organiser?:
-  | (
-    | string
-    | {
-      fullName: string;
-      email: string;
-    }
-  )[]
-  | null
-  | undefined;
+    | (
+        | string
+        | {
+            fullName: string;
+            email: string;
+          }
+      )[]
+    | null
+    | undefined;
 }

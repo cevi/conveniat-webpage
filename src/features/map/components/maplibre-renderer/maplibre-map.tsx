@@ -30,11 +30,11 @@ export const MaplibreMap: React.FC<{
   ceviLogoMarkers,
   mapControlOptions,
 }) => {
-    useFlyToAnnotation(openAnnotation);
-    useMapControls(mapControlOptions);
-    useCeviLogoMarkers(ceviLogoMarkers, ceviLogoMarkerElementFactory);
-    useAnnotationPointMarkers(campMapAnnotationPoints, openAnnotation, setOpenAnnotation);
-    useAnnotationPolygons(campMapAnnotationPolygons, openAnnotation, setOpenAnnotation);
+  useFlyToAnnotation(openAnnotation);
+  useMapControls(mapControlOptions);
+  useCeviLogoMarkers(ceviLogoMarkers, ceviLogoMarkerElementFactory);
+  useAnnotationPointMarkers(campMapAnnotationPoints, openAnnotation, setOpenAnnotation);
+  useAnnotationPolygons(campMapAnnotationPolygons, openAnnotation, setOpenAnnotation);
 
-    return <></>;
-  };
+  return <></>;
+};

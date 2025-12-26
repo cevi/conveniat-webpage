@@ -74,7 +74,10 @@ const ScheduleDetailPage: React.FC<{
         {/* White Header - like chat details */}
         <header className="flex h-16 items-center justify-between gap-3 border-b-2 border-gray-200 bg-white px-4">
           <div className="flex items-center gap-3 overflow-hidden">
-            <Link href="/app/schedule" className="rounded-lg p-2 transition-colors hover:bg-gray-100">
+            <Link
+              href="/app/schedule"
+              className="rounded-lg p-2 transition-colors hover:bg-gray-100"
+            >
               <ChevronLeft className="h-5 w-5 text-gray-700" />
             </Link>
             <div className="min-w-0 flex-1">

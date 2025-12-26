@@ -5,8 +5,8 @@ import { AnnotationDetailsDrawer } from '@/features/map/components/map-annotatio
 import { MapContextProvider } from '@/features/map/components/maplibre-renderer/map-context-provider';
 import { MaplibreMap } from '@/features/map/components/maplibre-renderer/maplibre-map';
 import { SearchBar } from '@/features/map/components/search-bar';
-import { useMapInitialization } from '@/features/map/hooks/use-map-initialization';
 import type { MapControlOptions } from '@/features/map/hooks/use-map-controls';
+import { useMapInitialization } from '@/features/map/hooks/use-map-initialization';
 import { useMapUrlSync } from '@/features/map/hooks/use-map-url-sync';
 import type {
   CampMapAnnotationPoint,

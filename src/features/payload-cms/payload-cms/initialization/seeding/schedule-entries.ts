@@ -307,9 +307,18 @@ export const generateScheduleEntries = (
     if (dayIndex < CAMP_DAYS - 1) {
       for (const siteId of campSitesId) {
         allEvents.push(
-          createEvent('Nachtessen', dateString, '18:30 - 19:30', siteId, [], 'Abendbrot.', categoryIds, {
-            category: 'food',
-          }),
+          createEvent(
+            'Nachtessen',
+            dateString,
+            '18:30 - 19:30',
+            siteId,
+            [],
+            'Abendbrot.',
+            categoryIds,
+            {
+              category: 'food',
+            },
+          ),
         );
       }
       allEvents.push(
