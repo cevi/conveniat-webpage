@@ -18,9 +18,23 @@ import 'server-only';
  * is cached at runtime.
  *
  */
-export const isBuildTimePreRendering = async (): Promise<boolean> => {
+/**
+ * Synchronous check for build phase.
+ * Useful for top-level conditional logic where async `connection()` cannot be used.
+ */
+export const isBuildPhase = (): boolean =>
   // eslint-disable-next-line n/no-process-env
-  if (process.env['NEXT_PHASE'] === PHASE_PRODUCTION_BUILD) {
+  process.env['NEXT_PHASE'] === PHASE_PRODUCTION_BUILD ||
+  // eslint-disable-next-line n/no-process-env
+  process.env['NEXT_PHASE'] === 'phase-production-build';
+
+/**
+ * Checks if we are in the build phase. If so, it opts into dynamic rendering (by awaiting `connection()`)
+ * to prevent static generation failure for components needing unavailable resources (DB).
+ * Returns true if in build phase (dynamic), false otherwise (static/cached).
+ */
+export const forceDynamicOnBuild = async (): Promise<boolean> => {
+  if (isBuildPhase()) {
     await connection();
     return true;
   }
@@ -28,31 +42,25 @@ export const isBuildTimePreRendering = async (): Promise<boolean> => {
   return false;
 };
 
-const NoBuildTimePreRenderingNotSuspended: React.FC<{ children: React.ReactNode }> = async ({
+const ForceDynamicOnBuildNotSuspended: React.FC<{ children: React.ReactNode }> = async ({
   children,
 }) => {
-  if (await isBuildTimePreRendering()) return <></>;
+  if (await forceDynamicOnBuild()) return <></>;
   return <>{children}</>;
 };
 
 /**
- * A React component that conditionally renders its children based on whether the current
- * execution context is during build-time pre-rendering. If it is build-time pre-rendering,
- * the component renders nothing; otherwise, it renders its children.
- *
- * This is useful for avoiding rendering certain parts of the UI that depend on
- * runtime data or APIs that are not available during build-time pre-rendering. For example,
- * it can be used to skip rendering components that rely on Payload CMS data fetching
- * during the static generation phase, i.e., at build time we cannot use
- * `await getPayload({ config })` as it would error out.
+ * A React component that conditionally renders its children.
+ * During build time, it forces dynamic rendering and renders nothing (to avoid DB calls).
+ * During runtime (prod), it renders children normally allows caching.
  *
  * @constructor
  * @param props
  */
-export const NoBuildTimePreRendering: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const ForceDynamicOnBuild: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
     <Suspense>
-      <NoBuildTimePreRenderingNotSuspended>{children}</NoBuildTimePreRenderingNotSuspended>
+      <ForceDynamicOnBuildNotSuspended>{children}</ForceDynamicOnBuildNotSuspended>
     </Suspense>
   );
 };

@@ -8,10 +8,13 @@ import { getSpecialPage, isSpecialPage } from '@/features/payload-cms/special-pa
 import { PreviewWarning } from '@/features/payload-cms/utils/preview-utils';
 import type { Locale, SearchParameters } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { forceDynamicOnBuild } from '@/utils/is-pre-rendering';
 import type { Metadata } from 'next';
 import { draftMode } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
+import { connection } from 'next/server';
 import type React from 'react';
+import { cache } from 'react';
 
 const getCanonicalData = (
   specialPage: SpecialRouteResolutionEntry,
@@ -56,6 +59,38 @@ const handleSpecialPage = (collection: string, locale: Locale): Metadata => {
   };
 };
 
+/**
+ * Cached helper to generate metadata, avoiding redundant DB lookups.
+ */
+const generateMetadataCached = cache(
+  async (locale: Locale, slugs: string[] | undefined): Promise<Metadata> => {
+    // Check if we should bail out during build time
+    if (await forceDynamicOnBuild()) {
+      return {};
+    }
+
+    const collection = slugs?.[0] ?? '';
+    const remainingSlugs = slugs?.slice(1) ?? [];
+
+    if (isSpecialPage(collection)) {
+      return handleSpecialPage(collection, locale);
+    }
+
+    let collectionPage = routeResolutionTable[collection];
+
+    if (!collectionPage && routeResolutionTable['']) {
+      collectionPage = routeResolutionTable[''];
+      remainingSlugs.unshift(collection);
+    }
+
+    if (collectionPage?.component.generateMetadata) {
+      return await collectionPage.component.generateMetadata({ locale, slugs: remainingSlugs });
+    }
+
+    return {};
+  },
+);
+
 export const generateMetadata = async ({
   params,
 }: {
@@ -69,25 +104,13 @@ export const generateMetadata = async ({
   console.log(
     `Render page with slug: ${slugs === undefined ? '/' : slugs.join(', ')}, from: ${JSON.stringify(awaitedParameters)}`,
   );
-  const collection = slugs?.[0] ?? '';
-  const remainingSlugs = slugs?.slice(1) ?? [];
 
-  if (isSpecialPage(collection)) {
-    return handleSpecialPage(collection, locale);
-  }
-
-  let collectionPage = routeResolutionTable[collection];
-
-  if (!collectionPage && routeResolutionTable['']) {
-    collectionPage = routeResolutionTable[''];
-    remainingSlugs.unshift(collection);
-  }
-
-  if (collectionPage?.component.generateMetadata) {
-    return await collectionPage.component.generateMetadata({ locale, slugs: remainingSlugs });
-  }
-
-  return {};
+  // During build, 'await connection()' signals that this function depends on
+  // request-time info (like headers), effectively opting out of static pre-rendering
+  // for this specific execution if it were truly dynamic.
+  // HOWEVER, preventing the DB connection manually via our helper is safer for avoiding build errors.
+  await connection();
+  return await generateMetadataCached(locale, slugs);
 };
 
 /**
@@ -108,6 +131,10 @@ const CMSPage: React.FC<{
   }>;
   searchParams: Promise<SearchParameters>;
 }> = async ({ params, searchParams: searchParametersPromise }) => {
+  if (await forceDynamicOnBuild()) {
+    return <></>;
+  }
+
   let { locale } = await params;
   let { slugs } = await params;
   const searchParameters = await searchParametersPromise;
@@ -173,7 +200,7 @@ const CMSPage: React.FC<{
     } else {
       // redirect to the alternative locale
       console.log('Redirecting to alternative locale for special page');
-      redirect(`/${locale}${specialPage.alternatives[locale]}`);
+      redirect(`/${locale}/${specialPage.alternatives[locale]}`);
     }
   }
 

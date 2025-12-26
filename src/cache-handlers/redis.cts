@@ -7,11 +7,10 @@
 
 import { metrics, trace, ValueType } from '@opentelemetry/api';
 import Redis from 'ioredis';
+import { PHASE_PRODUCTION_BUILD } from 'next/constants';
 import * as crypto from 'node:crypto';
 import * as fs from 'node:fs/promises';
 import path from 'node:path';
-
-// ... imports remain ...
 import { CacheHandler } from './types.cjs';
 
 // Define a simple logging prefix
@@ -49,7 +48,9 @@ interface CacheMetadata {
 // Check if we are in the build phase
 const isBuild =
   // eslint-disable-next-line n/no-process-env
-  process.env['NEXT_PHASE'] === 'phase-production-build' || process.argv.includes('build');
+  process.env['NEXT_PHASE'] === PHASE_PRODUCTION_BUILD ||
+  process.env['NEXT_PHASE'] === 'phase-production-build' ||
+  process.argv.includes('build');
 
 // eslint-disable-next-line n/no-process-env
 const REDIS_URL = process.env['REDIS_URL'] || 'redis://localhost:6379';
@@ -73,13 +74,18 @@ function getFallbackPath(key: string) {
   return path.join(FALLBACK_CACHE_DIR, `${hash}.json`);
 }
 
-// Helper to write to fallback cache
+// Helper to write to fallback cache atomically
 async function writeToFallback(key: string, data: Buffer) {
   if (!isBuild) return; // ONLY write to fallback during build
   try {
     await ensureFallbackDirectory();
-    await fs.writeFile(getFallbackPath(key), data);
-    console.log(`${LOG_PREFIX} FALLBACK SET: ${key} (Written to disk)`);
+    const filePath = getFallbackPath(key);
+    const temporaryPath = `${filePath}.tmp.${crypto.randomBytes(4).toString('hex')}`;
+
+    await fs.writeFile(temporaryPath, data);
+    await fs.rename(temporaryPath, filePath);
+
+    // console.log(`${LOG_PREFIX} FALLBACK SET: ${key} (Written to disk)`);
   } catch (error) {
     console.error(`${LOG_PREFIX} FALLBACK SET ERROR: ${key}`, error);
   }
@@ -96,7 +102,7 @@ async function readFromFallback(key: string): Promise<Buffer | undefined> {
       return undefined;
     }
     const data = await fs.readFile(filePath);
-    console.log(`${LOG_PREFIX} FALLBACK GET: ${key} (Read from disk)`);
+    // console.log(`${LOG_PREFIX} FALLBACK GET: ${key} (Read from disk)`);
     return data;
   } catch (error) {
     console.error(`${LOG_PREFIX} FALLBACK GET ERROR: ${key}`, error);
@@ -105,24 +111,65 @@ async function readFromFallback(key: string): Promise<Buffer | undefined> {
 }
 
 export function createRedisCacheHandler(): CacheHandler {
-  // Use lazyConnect so we don't fail immediately if Redis is down (e.g. during build)
-  const redis = new Redis(REDIS_URL, {
-    lazyConnect: true,
-    maxRetriesPerRequest: 1, // Fail fast
-    retryStrategy: (times) => {
-      if (isBuild && times > 1) return; // Stop retrying during build
-      return Math.min(times * 50, 2000); // Retry with backoff
-    },
-  });
+  // During build, we DO NOT connect to Redis.
+  // We mock the client to ensure code paths don't crash, but methods effectively "miss"
+  // so that the fallback logic (filesystem) takes over.
+  const redis = isBuild
+    ? ({
+        getBuffer: async () => {
+          await Promise.resolve();
+          // eslint-disable-next-line unicorn/no-null
+          return null;
+        },
+        set: async () => {
+          await Promise.resolve();
+          return 'OK';
+        },
+        del: async () => {
+          await Promise.resolve();
+          return 0;
+        },
+        unlink: async () => {
+          await Promise.resolve();
+          return 0;
+        },
+        flushdb: async () => {
+          await Promise.resolve();
+          return 'OK';
+        },
+        pipeline: () => ({
+          sadd: () => {},
+          expire: () => {},
+          exec: async () => {
+            await Promise.resolve();
+            return [];
+          },
+        }),
+        on: () => {},
+        smembers: async () => {
+          await Promise.resolve();
+          return [];
+        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as unknown as Redis)
+    : new Redis(REDIS_URL, {
+        lazyConnect: true,
+        maxRetriesPerRequest: 1, // Fail fast
+        retryStrategy: (times) => {
+          return Math.min(times * 50, 2000); // Retry with backoff
+        },
+      });
 
-  redis.on('error', (error) => {
-    const redisError = error as Error & { code?: string };
-    // Suppress connection errors during build or if expected
-    if (isBuild || redisError.code === 'EAI_AGAIN' || redisError.code === 'ECONNREFUSED') {
-    } else {
-      console.error(`${LOG_PREFIX} Redis connection error:`, error);
-    }
-  });
+  if (!isBuild) {
+    redis.on('error', (error) => {
+      const redisError = error as Error & { code?: string };
+      // Suppress connection errors if expected
+      if (redisError.code === 'EAI_AGAIN' || redisError.code === 'ECONNREFUSED') {
+      } else {
+        console.error(`${LOG_PREFIX} Redis connection error:`, error);
+      }
+    });
+  }
 
   const pendingSets = new Map<string, Promise<void>>();
 
@@ -160,6 +207,13 @@ export function createRedisCacheHandler(): CacheHandler {
         }
 
         try {
+          // Safety check for empty or malformed buffers from file read
+          if (data.length < 4) {
+            // Treat as miss/corrupt
+            cacheMissCounter.add(1, { cache: 'redis', reason: 'corrupt_data' });
+            return;
+          }
+
           // The stored data is: [metadata_json_length (4 bytes)][metadata_json][value_binary]
           const metadataLength = data.readUInt32BE(0);
           const metadataJson = data.toString('utf8', 4, 4 + metadataLength);
@@ -184,7 +238,7 @@ export function createRedisCacheHandler(): CacheHandler {
             return;
           }
 
-          console.log(`${LOG_PREFIX} GET: ${cacheKey} (HIT)`);
+          // console.log(`${LOG_PREFIX} GET: ${cacheKey} (HIT)`);
           setImmediate(() => {
             cacheHitCounter.add(1, { cache: 'redis' });
             cacheDurationHistogram.record((performance.now() - startTime) / 1000, {
@@ -282,7 +336,7 @@ export function createRedisCacheHandler(): CacheHandler {
             await pipeline.exec();
           }
 
-          console.log(`${LOG_PREFIX} SET: ${cacheKey} (SUCCESS - Redis)`);
+          console.log(`${LOG_PREFIX} SET: ${cacheKey} (SUCCESS)`);
         } catch (error) {
           console.error(`${LOG_PREFIX} SET Redis failed: ${cacheKey}`, (error as Error).message);
         }

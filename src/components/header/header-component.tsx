@@ -6,7 +6,7 @@ import { ConveniatLogo } from '@/components/svg-logos/conveniat-logo';
 import { LinkComponent } from '@/components/ui/link-component';
 import { getLanguagePrefix } from '@/features/payload-cms/utils/get-language-prefix';
 import type { Locale, StaticTranslationString } from '@/types/types';
-import { NoBuildTimePreRendering } from '@/utils/is-pre-rendering';
+import { ForceDynamicOnBuild } from '@/utils/is-pre-rendering';
 import { draftMode } from 'next/headers';
 import React from 'react';
 
@@ -47,9 +47,9 @@ export const HeaderComponent: React.FC<{
             </span>
 
             <NavComponent>
-              <NoBuildTimePreRendering>
+              <ForceDynamicOnBuild>
                 <MainMenu locale={locale} inAppDesign={inAppDesign} />
-              </NoBuildTimePreRendering>
+              </ForceDynamicOnBuild>
             </NavComponent>
           </div>
         </div>

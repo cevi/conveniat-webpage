@@ -411,6 +411,23 @@ self.addEventListener('message', (event) => {
   }
 });
 
+/**
+ * Suppress 'Cache.put' NetworkErrors.
+ * These usually happen when a response stream is interrupted (e.g. navigation) while being cached.
+ * They are generally harmless as the cache just doesn't get updated.
+ */
+self.addEventListener('unhandledrejection', (event) => {
+  const error: unknown = event.reason;
+  if (
+    error instanceof Error &&
+    error.name === 'NetworkError' &&
+    error.message.includes('Cache.put')
+  ) {
+    event.preventDefault();
+    console.debug('[SW] Suppressed Cache.put network error:', error);
+  }
+});
+
 self.addEventListener('fetch', (event) => {
   // Perform detection and handle request
   event.respondWith(

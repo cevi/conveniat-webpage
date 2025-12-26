@@ -8,7 +8,7 @@ import {
 } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { getBuildInfo } from '@/utils/get-build-info';
-import { NoBuildTimePreRendering } from '@/utils/is-pre-rendering';
+import { ForceDynamicOnBuild } from '@/utils/is-pre-rendering';
 import { cn } from '@/utils/tailwindcss-override';
 import config from '@payload-config';
 import { cacheLife, cacheTag } from 'next/cache';
@@ -102,10 +102,10 @@ export const FooterCopyrightArea: React.FC<{
           /* The build info may not be available in (local) development mode */
           build !== undefined && (
             <div className="mb-[16px] flex flex-col text-center">
-              <NoBuildTimePreRendering>
+              <ForceDynamicOnBuild>
                 <FooterMinimalMenu locale={locale} />
                 <SocialMediaLinks locale={locale} />
-              </NoBuildTimePreRendering>
+              </ForceDynamicOnBuild>
 
               {!inAppDesign && (
                 <>

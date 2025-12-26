@@ -3,7 +3,7 @@
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
 import type { Locale } from '@/types/types';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
-import { isBuildTimePreRendering } from '@/utils/is-pre-rendering';
+import { forceDynamicOnBuild } from '@/utils/is-pre-rendering';
 import config from '@payload-config';
 import { cacheLife, cacheTag } from 'next/cache';
 import type { Where } from 'payload';
@@ -48,7 +48,7 @@ const getScheduleEntriesCached = async (
 export const getScheduleEntries = async (
   where: Where = {},
 ): Promise<CampScheduleEntryFrontendType[]> => {
-  if (await isBuildTimePreRendering()) return [];
+  if (await forceDynamicOnBuild()) return [];
 
   const locale = await getLocaleFromCookies();
   return getScheduleEntriesCached(where, locale);

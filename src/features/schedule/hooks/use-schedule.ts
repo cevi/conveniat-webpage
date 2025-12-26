@@ -1,7 +1,7 @@
 'use client';
 
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
 const formatDate = (date: Date): string => date.toISOString().split('T')[0] ?? '';
@@ -28,6 +28,8 @@ export const useSchedule = (
 } => {
   const router = useRouter();
   const searchParameters = useSearchParams();
+
+  const pathname = usePathname();
 
   const allDates = useMemo(() => {
     const uniqueDates = new Map<string, Date>();
@@ -73,16 +75,21 @@ export const useSchedule = (
   const [carouselStartIndex, setCarouselStartIndex] = useState(0);
 
   useEffect(() => {
+    // Only sync date to URL if we are on the main schedule page
+    // Using regex to match /schedule or /schedule/ but not sub-paths
+    if (!/\/schedule\/?$/.test(pathname)) {
+      return;
+    }
+
     const currentUrlDate = searchParameters.get('date');
     const formattedCurrentDate = formatDate(currentDate);
 
     if (currentUrlDate !== formattedCurrentDate) {
-      const currentPathname = globalThis.location.pathname;
       const parameters = new URLSearchParams(searchParameters.toString());
       parameters.set('date', formattedCurrentDate);
-      router.replace(`${currentPathname}?${parameters.toString()}`);
+      router.replace(`${pathname}?${parameters.toString()}`);
     }
-  }, [currentDate, router, searchParameters]);
+  }, [currentDate, router, searchParameters, pathname]);
 
   const dailyPrograms = useMemo(() => {
     const programs: { [id: string]: CampScheduleEntryFrontendType[] } = {};

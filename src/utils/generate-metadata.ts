@@ -1,7 +1,7 @@
 import { environmentVariables } from '@/config/environment-variables';
 import type { SEO } from '@/features/payload-cms/payload-types';
 import { metadataIconDefinitions } from '@/utils/icon-definitions';
-import { isBuildTimePreRendering } from '@/utils/is-pre-rendering';
+import { forceDynamicOnBuild } from '@/utils/is-pre-rendering';
 import config from '@payload-config';
 import type { Metadata } from 'next';
 import { cacheLife, cacheTag } from 'next/cache';
@@ -65,6 +65,6 @@ export const generateMetadataCached = async (): Promise<Metadata> => {
 };
 
 export const generateMetadata = async (): Promise<Metadata> => {
-  if (await isBuildTimePreRendering()) return {};
+  if (await forceDynamicOnBuild()) return {};
   return generateMetadataCached();
 };
