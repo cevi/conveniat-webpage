@@ -62,7 +62,7 @@ export class Orchestrator implements CacheOrchestrator {
   async set(cacheKey: string, pendingEntry: Promise<CacheEntry>): Promise<void> {
     // Create a lock for this key
     // eslint-disable-next-line unicorn/consistent-function-scoping
-    let resolveLock: () => void = (): void => { };
+    let resolveLock: () => void = (): void => {};
     const lock = new Promise<void>((resolve) => {
       resolveLock = resolve;
     });
