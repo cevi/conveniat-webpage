@@ -2,15 +2,17 @@ import { LexicalRichTextSection } from '@/features/payload-cms/components/conten
 import { ShowForm } from '@/features/payload-cms/components/content-blocks/show-form';
 import type { FormBlockType } from '@/features/payload-cms/components/form';
 import type { PlainTextBlock, TeamMembersBlock } from '@/features/payload-cms/payload-types';
+import type { Locale } from '@/types/types';
 import type React from 'react';
 import { Fragment } from 'react';
 import { TeamMembers } from 'src/features/payload-cms/components/accordion/team-members';
 
 export interface AccordionContentProperties {
   valueBlocks: Array<TeamMembersBlock | PlainTextBlock | FormBlockType>;
+  locale: Locale;
 }
 
-const AccordionContent: React.FC<AccordionContentProperties> = ({ valueBlocks }) => {
+const AccordionContent: React.FC<AccordionContentProperties> = ({ valueBlocks, locale }) => {
   return (
     <>
       {valueBlocks.map(
@@ -42,7 +44,7 @@ const AccordionContent: React.FC<AccordionContentProperties> = ({ valueBlocks })
 
           return (
             <Fragment key={index}>
-              <TeamMembers block={_block as TeamMembersBlock} />
+              <TeamMembers block={_block as TeamMembersBlock} locale={locale} />
               {index !== valueBlocks.length - 1 && <hr className="my-6 border border-gray-100" />}
             </Fragment>
           );

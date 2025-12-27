@@ -31,7 +31,7 @@ export interface CampScheduleEntry {
   location: {
     id: string;
   };
-  organiser: string;
+  organiser: (string | { fullName: string; email: string })[];
   participants_min: number;
   participants_max: number;
 }
@@ -56,4 +56,5 @@ export interface CampMapAnnotationPolygon {
   geometry: { coordinates: [number, number][] };
   icon: 'MapPin' | 'Tent';
   color: string;
+  isInteractive: boolean;
 }

@@ -16,7 +16,6 @@ const pageTitle: StaticTranslationString = {
 export const TimelinePreviewPage: React.FC<LocalizedCollectionPage> = async ({
   slugs,
   locale,
-  searchParams,
   renderInPreviewMode,
 }) => {
   // we use this page only for a preview of the news entry
@@ -42,7 +41,7 @@ export const TimelinePreviewPage: React.FC<LocalizedCollectionPage> = async ({
       {timeLineItems.docs.map((item: Timeline) => {
         return (
           <React.Fragment key={item.id}>
-            <TimelineEntry timeline={item} searchParams={searchParams} locale={locale} />
+            <TimelineEntry timeline={item} locale={locale} />
           </React.Fragment>
         );
       })}

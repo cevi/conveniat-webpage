@@ -3,6 +3,7 @@ import type { CampMapAnnotationPoint, CampMapAnnotationPolygon } from '@/feature
 import type {
   CanvasSourceSpecification,
   GeoJSONSource,
+  MapGeoJSONFeature,
   Map as MapLibre,
   MapMouseEvent,
   SourceSpecification,
@@ -37,11 +38,22 @@ export const useAnnotationPolygons = (
   useEffect(() => {
     if (!map) return;
 
+    const isStyleReady = (): boolean => {
+      try {
+        return map.isStyleLoaded() || map.getStyle() !== undefined;
+      } catch {
+        return false;
+      }
+    };
+
     const setupLayers = (): void => {
+      if (!isStyleReady()) return;
+
       // 1. Add individual sources and FILL layers for each polygon annotation
       for (const annotation of annotations) {
         const sourceId = `polygon-${annotation.id}`;
         const fillLayerId = `polygon-layer-${annotation.id}`;
+        const outlineLayerId = `polygon-outline-layer-${annotation.id}`;
 
         if (annotation.geometry.coordinates.length === 0) continue;
 
@@ -75,21 +87,36 @@ export const useAnnotationPolygons = (
           });
         }
 
+        if (!map.getLayer(outlineLayerId)) {
+          map.addLayer({
+            id: outlineLayerId,
+            type: 'line',
+            source: sourceId,
+            paint: {
+              'line-color': annotation.color,
+              'line-width': 2,
+              'line-opacity': 0.5,
+            },
+          });
+        }
+
         // Add hover cursor effect
-        map.on('mouseenter', fillLayerId, () => {
-          mapReference.current?.getCanvas().style.setProperty('cursor', 'pointer');
-        });
-        map.on('mouseleave', fillLayerId, () => {
-          mapReference.current?.getCanvas().style.setProperty('cursor', '');
-        });
+        if (annotation.isInteractive) {
+          map.on('mouseenter', fillLayerId, () => {
+            mapReference.current?.getCanvas().style.setProperty('cursor', 'pointer');
+          });
+          map.on('mouseleave', fillLayerId, () => {
+            mapReference.current?.getCanvas().style.setProperty('cursor', '');
+          });
+        }
       }
       const selectedPolygon = annotations.find((a) => a.id === currentAnnotation?.id);
       const coordinates =
         selectedPolygon === undefined
           ? undefined
           : ([
-              [...selectedPolygon.geometry.coordinates, selectedPolygon.geometry.coordinates[0]],
-            ] as unknown as [number, number][][]);
+            [...selectedPolygon.geometry.coordinates, selectedPolygon.geometry.coordinates[0]],
+          ] as unknown as [number, number][][]);
 
       // 2. Add a SINGLE source and layer for the selection OUTLINE
       if (!map.getSource(SELECTED_POLYGON_SOURCE_ID)) {
@@ -101,15 +128,15 @@ export const useAnnotationPolygons = (
               ...(coordinates === undefined
                 ? [] // empty if not selected via URL param
                 : [
-                    {
-                      type: 'Feature',
-                      properties: {},
-                      geometry: {
-                        type: 'Polygon',
-                        coordinates: coordinates,
-                      },
+                  {
+                    type: 'Feature',
+                    properties: {},
+                    geometry: {
+                      type: 'Polygon',
+                      coordinates: coordinates,
                     },
-                  ]),
+                  },
+                ]),
             ],
           },
         } as SourceSpecification | CanvasSourceSpecification);
@@ -130,6 +157,8 @@ export const useAnnotationPolygons = (
     };
 
     const cleanupLayers = (): void => {
+      if (!isStyleReady()) return;
+
       // Remove the single selection layer and source
       if (map.getLayer(SELECTED_POLYGON_LAYER_ID)) map.removeLayer(SELECTED_POLYGON_LAYER_ID);
       if (map.getSource(SELECTED_POLYGON_SOURCE_ID)) map.removeSource(SELECTED_POLYGON_SOURCE_ID);
@@ -138,12 +167,15 @@ export const useAnnotationPolygons = (
       for (const annotation of annotations) {
         const sourceId = `polygon-${annotation.id}`;
         const fillLayerId = `polygon-layer-${annotation.id}`;
+        const outlineLayerId = `polygon-outline-layer-${annotation.id}`;
+
         if (map.getLayer(fillLayerId)) map.removeLayer(fillLayerId);
+        if (map.getLayer(outlineLayerId)) map.removeLayer(outlineLayerId);
         if (map.getSource(sourceId)) map.removeSource(sourceId);
       }
     };
 
-    if (map.isStyleLoaded() === true) {
+    if (isStyleReady()) {
       setupLayers();
     } else {
       map.on('load', setupLayers);
@@ -151,7 +183,7 @@ export const useAnnotationPolygons = (
 
     return (): void => {
       try {
-        if (map.isStyleLoaded() === true) cleanupLayers();
+        if (isStyleReady()) cleanupLayers();
       } catch (error) {
         console.error('Error during cleanup of polygon layers:', error);
       }
@@ -162,20 +194,28 @@ export const useAnnotationPolygons = (
 
   // Effect for updating the single polygon outline layer based on selection
   useEffect(() => {
-    if (map?.isStyleLoaded() === false || map === undefined) return;
+    const isStyleReady = (): boolean => {
+      try {
+        return (map !== undefined && map.isStyleLoaded()) || (map !== undefined && map.getStyle() !== undefined);
+      } catch {
+        return false;
+      }
+    };
 
-    const source = map.getSource(SELECTED_POLYGON_SOURCE_ID) as GeoJSONSource | undefined;
-    if (!source) return;
+    if (!isStyleReady() || map === undefined) return;
+
+    const source = map.getSource(SELECTED_POLYGON_SOURCE_ID);
+    if (source === undefined) return;
+    const sourceTyped = source as GeoJSONSource;
 
     const selectedPolygon = annotations.find((a) => a.id === currentAnnotation?.id);
-
     if (selectedPolygon) {
       // A polygon is selected: update the source data with its geometry
       const coordinates = [
         [...selectedPolygon.geometry.coordinates, selectedPolygon.geometry.coordinates[0]],
       ] as unknown as [number, number][][];
 
-      source.setData({
+      sourceTyped.setData({
         type: 'Feature',
         properties: {},
         geometry: {
@@ -185,7 +225,7 @@ export const useAnnotationPolygons = (
       });
     } else {
       // No polygon is selected: clear the source data
-      source.setData({
+      sourceTyped.setData({
         type: 'FeatureCollection',
         features: [],
       });
@@ -201,8 +241,10 @@ export const useAnnotationPolygons = (
         layers: annotations.map((p) => `polygon-layer-${p.id}`),
       });
 
-      const clickedPolygons = annotations.filter((poly) =>
-        features.some((feature) => feature.properties['id'] === poly.id),
+      const clickedPolygons = annotations.filter(
+        (poly) =>
+          poly.isInteractive &&
+          features.some((feature: MapGeoJSONFeature) => feature.properties['id'] === poly.id),
       );
 
       if (clickedPolygons.length === 0) {
@@ -214,10 +256,12 @@ export const useAnnotationPolygons = (
         return;
       }
 
-      setClickedPolygonState((previousState) => {
+      setClickedPolygonState((previousState: ClickedFeaturesState | undefined) => {
         const sortedClickedPolygons = clickedPolygons.sort((a, b) => a.id.localeCompare(b.id));
-        const currentIds = previousState?.polygons.map((p) => p.id).sort();
-        const newIds = sortedClickedPolygons.map((p) => p.id).sort();
+        const currentIds = previousState?.polygons
+          .map((p: CampMapAnnotationPolygon) => p.id)
+          .sort();
+        const newIds = sortedClickedPolygons.map((p: CampMapAnnotationPolygon) => p.id).sort();
 
         const isSameSetOfPolygons =
           currentIds &&

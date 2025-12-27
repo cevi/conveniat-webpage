@@ -2,7 +2,6 @@ import type { FormFieldBlock } from '@payloadcms/plugin-form-builder/types';
 import type { DefaultValues, FieldValues } from 'react-hook-form';
 
 export const buildInitialFormState = (fields: FormFieldBlock[]): DefaultValues<FieldValues> => {
-  // eslint-disable-next-line complexity
   return fields.reduce((initialSchema, field) => {
     if (field.blockType === 'checkbox') {
       return {

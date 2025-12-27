@@ -14,20 +14,36 @@ import {
 } from 'lucide-react';
 import type React from 'react';
 
-const CirclePin: React.FC<{ color: string; children: React.ReactNode }> = ({ color, children }) => (
-  <div className="relative h-12 w-9">
+interface CirclePinProperties {
+  color: string;
+  children: React.ReactNode;
+}
+
+const CirclePin = ({ color, children }: CirclePinProperties): React.JSX.Element => (
+  <div className="flex flex-col items-center" style={{ width: 'fit-content' }}>
+    {/* Pin Head */}
     <div
-      className="absolute top-0 left-0 flex h-9 w-9 items-center justify-center rounded-full border-2 border-white p-1"
+      className="z-10 flex h-9 w-9 items-center justify-center rounded-full border-2 border-white shadow-lg"
       style={{ backgroundColor: color }}
     >
       {children}
     </div>
 
-    {/* This is your small dot. Its center needs to be on the coordinate. */}
-    <div
-      className="absolute bottom-[-2px] left-1/2 h-2 w-2 -translate-x-1/2 rounded-full border border-white"
-      style={{ backgroundColor: color }}
-    />
+    {/* Pin Tail (Triangle) */}
+    <div className="z-0 -mt-1 flex flex-col items-center">
+      {/* Outer Triangle (White border) */}
+      <div
+        className="h-0 w-0 border-t-[12px] border-r-[10px] border-l-[10px] border-r-transparent border-l-transparent"
+        style={{ borderTopColor: 'white' }}
+      />
+      {/* Inner Triangle (Color) */}
+      <div
+        className="z-10 -mt-[11px] h-0 w-0 border-t-[10px] border-r-[8px] border-l-[8px] border-r-transparent border-l-transparent"
+        style={{ borderTopColor: color }}
+      />
+      {/* Precision Tip / Shadow */}
+      <div className="z-20 -mt-0.5 h-1 w-1 rounded-full bg-black/20 blur-[0.5px]" />
+    </div>
   </div>
 );
 

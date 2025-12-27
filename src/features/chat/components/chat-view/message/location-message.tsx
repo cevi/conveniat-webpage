@@ -14,9 +14,18 @@ import React from 'react';
  */
 export const LocationMessage: React.FC<{ message: ChatMessage }> = ({ message }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
-  const { latitude, longitude } = (
-    message.messagePayload as { location: { latitude: number; longitude: number } }
-  ).location;
+
+  const payload = message.messagePayload as unknown as {
+    location?: { latitude: number; longitude: number };
+    latitude?: number;
+    longitude?: number;
+  };
+  const location = payload.location ?? payload;
+
+  const latitude = location.latitude;
+  const longitude = location.longitude;
+
+  if (latitude === undefined || longitude === undefined) return <></>;
 
   const initialMapPose = {
     initialMapCenter: [longitude, latitude] as [number, number],

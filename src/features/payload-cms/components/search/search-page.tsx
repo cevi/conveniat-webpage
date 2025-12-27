@@ -25,7 +25,7 @@ const SearchOnlyPages: React.FC<{ searchParameters: SearchParameters }> = async 
   const searchCollectionEntries = await payload.find({
     collection: 'search-collection',
     limit,
-    depth: 1,
+    depth: 0,
     locale,
     where: {
       and: [

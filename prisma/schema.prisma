@@ -6,7 +6,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("CHAT_DATABASE_URL")
 }
 
 model User {
@@ -17,7 +16,8 @@ model User {
   messages        Message[]
   chatMemberships ChatMembership[]
   messagesEvents  MessageEvent[]
-  Enrollment      Enrollment?
+  Enrollments     Enrollment[]
+  Stars           Star[]
 }
 
 enum ChatType {
@@ -29,11 +29,17 @@ enum ChatType {
 
   /// a chat created after triggering an emergency
   EMERGENCY
+
+  /// a support chat for reporting problems
+  SUPPORT_GROUP
 }
 
 model Chat {
   uuid String @id @default(uuid())
-  name String
+  name String 
+  
+  description String?
+  status      String   @default("OPEN")
 
   lastUpdate DateTime @default(now())
   createdAt  DateTime @default(now())
@@ -44,8 +50,26 @@ model Chat {
   type            ChatType         @default(GROUP)
   messages        Message[]
   chatMemberships ChatMembership[]
+  capabilities    ChatCapability[]
 
   @@index([lastUpdate])
+}
+
+/// Define specific capabilities for a chat that can be enabled or disabled
+model ChatCapability {
+  id String @id @default(uuid())
+
+  chatId String
+  chat   Chat   @relation(fields: [chatId], references: [uuid], onDelete: Cascade)
+
+  /// The capability identifier, e.g. "PICTURE_UPLOAD", "CAN_SEND_MESSAGES"
+  capability String
+  
+  /// Whether the capability is enabled for this chat
+  isEnabled  Boolean @default(true)
+
+  @@unique([chatId, capability])
+  @@index([chatId])
 }
 
 enum ChatMembershipPermission {
@@ -88,6 +112,12 @@ enum MessageType {
 
   /// an image message, e.g. { url: "https://example.com/image.jpg" }
   IMAGE_MSG
+
+  /// a question asked by the system, e.g. "How many persons are involved?"
+  ALERT_QUESTION
+
+  /// Final response message with instructions and phone number
+  ALERT_RESPONSE
 }
 
 model Message {
@@ -179,13 +209,28 @@ model MessageEvent {
 model Enrollment {
   id String @id @default(uuid(7))
 
-  userId String @unique
+  userId String
   user   User   @relation(fields: [userId], references: [uuid])
 
   // links to the objectID in the courses collection in MongoDB
   courseId String
 
   @@unique([courseId, userId]) // every user can only be enrolled once per course
+  @@index([courseId])
+  @@index([userId])
+}
+
+model Star {
+  id String @id @default(uuid(7))
+
+  userId String
+  user   User   @relation(fields: [userId], references: [uuid])
+
+  courseId String
+
+  createdAt DateTime @default(now())
+
+  @@unique([courseId, userId])
   @@index([courseId])
   @@index([userId])
 }

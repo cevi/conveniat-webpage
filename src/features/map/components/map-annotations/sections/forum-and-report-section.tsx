@@ -1,22 +1,12 @@
 'use client';
 
+import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { Flag, MessageCircleQuestion, MessageSquare } from 'lucide-react';
+import { Flag, Loader2, MessageCircleQuestion } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
-import type React from 'react';
-
-const viewForumPostsText: StaticTranslationString = {
-  en: 'View Forum Posts',
-  de: 'Forum-Beiträge anzeigen',
-  fr: 'Voir les publications du forum',
-};
-
-const viewForumPostDescription: StaticTranslationString = {
-  en: 'See what others are saying',
-  de: 'Sehen Sie, was andere sagen',
-  fr: 'Voir ce que les autres disent',
-};
+import { useRouter } from 'next/navigation';
+import React from 'react';
 
 const reportIssueText: StaticTranslationString = {
   en: 'Report an Issue',
@@ -30,8 +20,23 @@ const reportIssueDescription: StaticTranslationString = {
   fr: 'Toilettes cassées, maintenance nécessaire, etc.',
 };
 
-export const AnnotationForumAndReportSection: React.FC = () => {
+export const AnnotationForumAndReportSection: React.FC<{
+  coordinates: [number, number] | undefined;
+}> = ({ coordinates }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
+  const router = useRouter();
+  const [isRedirecting, setIsRedirecting] = React.useState(false);
+  const { mutate: createReport, isPending } = trpc.chat.reportProblem.useMutation({
+    onSuccess: (chat) => {
+      setIsRedirecting(true);
+      router.push(`/${locale}/app/chat/${chat.uuid}`);
+    },
+    onError: (error) => {
+      // TODO: Toast or alert
+      console.error('Failed to create report:', error);
+      setIsRedirecting(false);
+    },
+  });
 
   return (
     <div className="p-4">
@@ -40,15 +45,16 @@ export const AnnotationForumAndReportSection: React.FC = () => {
         <h3 className="text-conveniat-green font-semibold">conveniat27 Forum</h3>
       </div>
       <div className="space-y-2">
-        <button className="flex w-full items-center gap-3 rounded-lg border-2 border-gray-200 p-3 text-left hover:border-gray-300 hover:bg-gray-50">
-          <MessageSquare size={16} className="text-blue-600" />
-          <div>
-            <div className="font-medium text-gray-900">{viewForumPostsText[locale]}</div>
-            <div className="text-sm text-gray-600">{viewForumPostDescription[locale]}</div>
-          </div>
-        </button>
-        <button className="flex w-full items-center gap-3 rounded-lg border border-gray-200 p-3 text-left hover:border-gray-300 hover:bg-gray-50">
-          <Flag size={16} className="text-orange-600" />
+        <button
+          onClick={() => createReport({ location: coordinates })}
+          disabled={isPending || isRedirecting}
+          className="flex w-full items-center gap-3 rounded-lg border border-gray-200 p-3 text-left hover:border-gray-300 hover:bg-gray-50 disabled:opacity-50"
+        >
+          {isPending || isRedirecting ? (
+            <Loader2 className="animate-spin text-orange-600" size={16} />
+          ) : (
+            <Flag size={16} className="text-orange-600" />
+          )}
           <div>
             <div className="font-medium text-gray-900"> {reportIssueText[locale]}</div>
             <div className="text-sm text-gray-600">{reportIssueDescription[locale]}</div>

@@ -6,6 +6,39 @@ import type { AccordionBlocks, Image } from '@/features/payload-cms/payload-type
 import { replaceUmlautsAndAccents } from '@/utils/node-to-anchor-reference';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
+/**
+ * Sanitizes a title string into a URL-friendly fragment.
+ */
+const sanitizeTitle = (title: string): string => {
+  return replaceUmlautsAndAccents(title).replaceAll(/\W+/g, '-');
+};
+
+/**
+ * Gets the unique fragment identifier for an accordion block.
+ */
+const getFragmentFromBlock = (
+  accordionBlock: NonNullable<AccordionBlocks['accordionBlocks']>[number],
+): string => {
+  const titleOrPortrait = accordionBlock.titleOrPortrait;
+  if (titleOrPortrait === 'portrait') {
+    if (accordionBlock.teamLeaderGroup === undefined) {
+      return '';
+    }
+
+    const teamLeaderGroup = accordionBlock.teamLeaderGroup as {
+      name: string;
+    };
+
+    return sanitizeTitle(teamLeaderGroup.name);
+  }
+
+  const title = (accordionBlock.title as string | undefined) ?? '';
+  return accordionBlock.title === '' ? '' : sanitizeTitle(title);
+};
+
+/**
+ * Creates the title element (either text or portrait) for the accordion item.
+ */
 const createTitleElement = (
   accordionBlock: NonNullable<AccordionBlocks['accordionBlocks']>[number],
 ): React.ReactNode => {
@@ -48,32 +81,7 @@ const AccordionClientContainer: React.FC<{
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
   const accordionItemReferences = useRef<Record<string, HTMLDivElement | null>>({});
 
-  const sanitizeTitle = useCallback((title: string): string => {
-    return replaceUmlautsAndAccents(title).replaceAll(/\W+/g, '-');
-  }, []);
-
-  const getFragmentFromBlock = useCallback(
-    (accordionBlock: NonNullable<AccordionBlocks['accordionBlocks']>[number]): string => {
-      const titleOrPortrait = accordionBlock.titleOrPortrait as 'title' | 'portrait';
-      if (titleOrPortrait === 'portrait') {
-        if (accordionBlock.teamLeaderGroup === undefined) {
-          return '';
-        }
-
-        const teamLeaderGroup = accordionBlock.teamLeaderGroup as {
-          name: string;
-        };
-
-        // Use the team leader's name as the fragment
-        return sanitizeTitle(teamLeaderGroup.name);
-      }
-
-      const title = (accordionBlock.title as string | undefined) ?? '';
-      return accordionBlock.title === '' ? '' : sanitizeTitle(title);
-    },
-    [sanitizeTitle],
-  );
-
+  // Helper functions that depend on component state/props remain inside
   const updateURLFragment = useCallback((fragment?: string) => {
     if (typeof globalThis !== 'undefined') {
       if (fragment === undefined) {
@@ -86,20 +94,12 @@ const AccordionClientContainer: React.FC<{
     }
   }, []);
 
-  const scrollToElement = useCallback(
-    (fragment: string) => {
-      const element = Object.values(accordionItemReferences.current).find((reference) => {
-        const title = accordionBlocks?.find(
-          (block) => accordionItemReferences.current[getFragmentFromBlock(block)] === reference,
-        )?.title;
-        return title === undefined ? false : sanitizeTitle(title ?? '') === fragment;
-      });
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    },
-    [accordionBlocks, sanitizeTitle, getFragmentFromBlock],
-  );
+  const scrollToElement = useCallback((fragment: string) => {
+    const element = accordionItemReferences.current[fragment];
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, []);
 
   // Function to handle toggling the expanded state
   const toggleExpand = useCallback(
@@ -116,11 +116,10 @@ const AccordionClientContainer: React.FC<{
       });
       updateURLFragment(fragment);
     },
-    [updateURLFragment, getFragmentFromBlock],
+    [updateURLFragment],
   );
 
-  // Effect to check the URL fragment on an initial load
-  useEffect(() => {
+  useEffect((): void | (() => void) => {
     if (typeof globalThis !== 'undefined') {
       const hash = globalThis.location.hash.slice(1); // Remove the '#'
       if (hash !== '') {
@@ -128,15 +127,22 @@ const AccordionClientContainer: React.FC<{
           (block) => getFragmentFromBlock(block) === hash,
         );
         if (isValidFragment === true) {
-          // Initialize expandedIds with the fragment from the URL
-          setExpandedIds([hash]);
-          setTimeout(() => {
+          const timer1 = setTimeout(() => {
+            setExpandedIds([hash]);
+          }, 0);
+
+          const timer2 = setTimeout(() => {
             scrollToElement(hash);
           }, 150);
+
+          return (): void => {
+            clearTimeout(timer1);
+            clearTimeout(timer2);
+          };
         }
       }
     }
-  }, [accordionBlocks, scrollToElement, getFragmentFromBlock]);
+  }, [accordionBlocks, scrollToElement]);
 
   return (
     <div className="space-y-4">

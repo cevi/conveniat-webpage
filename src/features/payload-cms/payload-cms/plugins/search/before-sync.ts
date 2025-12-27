@@ -26,7 +26,7 @@ interface SearchDocument {
   [key: string]: unknown; // Allow other dynamic keys
 }
 
-export const beforeSyncWithSearch: BeforeSync = async ({ originalDoc, searchDoc }) => {
+export const beforeSyncWithSearch: BeforeSync = ({ originalDoc, searchDoc }) => {
   const typedDocument = originalDoc as OriginalDocument;
   const typedSearchDocument = searchDoc as SearchDocument;
 

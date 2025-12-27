@@ -21,7 +21,7 @@ import type { Header } from 'next/dist/lib/load-custom-routes';
  */
 export const optimizedImageMinimumCacheTTL = 90 * 24 * 60 * 60; // 90 days in seconds
 
-export const cachingHeaders = async (): Promise<Header[]> => {
+export const cachingHeaders = (): Header[] => {
   return [
     {
       source: '/sitemap.xml',

@@ -1,64 +1,124 @@
+import { DialogDescription } from '@/components/ui/dialog';
 import type { ChatMessage } from '@/features/chat/api/types';
+import { formatMessageContent } from '@/features/chat/components/chat-view/message/utils/format-message-content';
+import {
+  ChatDialog,
+  ChatDialogContent,
+  ChatDialogHeader,
+  ChatDialogTitle,
+} from '@/features/chat/components/ui/chat-dialog';
 import { useFormatDate } from '@/features/chat/hooks/use-format-date';
+import { MessageEventType } from '@/lib/prisma/client';
+import type { Locale, StaticTranslationString } from '@/types/types';
+import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import React, { useEffect, useRef } from 'react';
+import { Check, Clock } from 'lucide-react';
+import { useCurrentLocale } from 'next-i18n-router/client';
+import React from 'react';
+
+const messageInfoText: StaticTranslationString = {
+  de: 'Nachrichten-Details',
+  en: 'Message Info',
+  fr: 'Infos message',
+};
+
+const statusText: StaticTranslationString = {
+  de: 'Status',
+  en: 'Status',
+  fr: 'Statut',
+};
+
+const sentText: StaticTranslationString = {
+  de: 'Gesendet',
+  en: 'Sent',
+  fr: 'Envoyé',
+};
 
 /**
- * A dropdown component that displays message event timestamps.
- * (e.g., Sent, Delivered, Read)
+ * A full-screen overlay that displays message event timestamps and details.
  */
 export const MessageInfoDropdown: React.FC<{
   message: ChatMessage;
   isCurrentUser: boolean;
   onClose: () => void;
 }> = ({ message, isCurrentUser, onClose }) => {
+  const locale = useCurrentLocale(i18nConfig) as Locale;
   const { formatMessageTime } = useFormatDate();
-  const dropdownReference = useRef<HTMLDivElement>(null);
+  const renderedContent = formatMessageContent(message.messagePayload, locale);
 
-  // Effect to handle clicks outside the dropdown to close it
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent): void => {
-      if (dropdownReference.current && !dropdownReference.current.contains(event.target as Node)) {
-        onClose();
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return (): void => document.removeEventListener('mousedown', handleClickOutside);
-  }, [onClose]);
-
-  // TODO: set correct dates based on message events
-  const sentDate: Date = new Date(message.createdAt);
-  const deliveredDate = new Date(message.createdAt) as Date | undefined;
-  const readDate = new Date(message.createdAt) as Date | undefined;
+  const sentDate = new Date(message.createdAt);
 
   return (
-    <div
-      ref={dropdownReference}
-      className={cn(
-        'ring-opacity-5 absolute top-8 z-10 mt-1 w-56 rounded-lg bg-white p-3 shadow-xl ring-1 ring-black focus:outline-none',
-        isCurrentUser ? 'right-0' : 'left-0',
-      )}
-      role="menu"
-      aria-orientation="vertical"
-    >
-      <ul>
-        <li className="flex justify-between py-1 text-sm text-gray-800">
-          <span className="font-semibold">Sent</span>
-          <span className="text-gray-600">{formatMessageTime(sentDate)}</span>
-        </li>
-        {deliveredDate !== undefined && (
-          <li className="flex justify-between border-t border-gray-100 py-1 pt-2 text-sm text-gray-800">
-            <span className="font-semibold">Delivered</span>
-            <span className="text-gray-600">{formatMessageTime(deliveredDate)}</span>
-          </li>
-        )}
-        {readDate !== undefined && (
-          <li className="flex justify-between border-t border-gray-100 py-1 pt-2 text-sm text-gray-800">
-            <span className="font-semibold">Read</span>
-            <span className="text-gray-600">{formatMessageTime(readDate)}</span>
-          </li>
-        )}
-      </ul>
-    </div>
+    <ChatDialog open onOpenChange={(open) => !open && onClose()}>
+      <ChatDialogContent className="sm:max-w-md">
+        <ChatDialogHeader>
+          <ChatDialogTitle>{messageInfoText[locale]}</ChatDialogTitle>
+          <DialogDescription className="sr-only">Message details and status</DialogDescription>
+        </ChatDialogHeader>
+
+        <div className="space-y-6 py-4">
+          {/* Message Preview */}
+          <div
+            className={cn(
+              'rounded-lg p-4 shadow-sm',
+              isCurrentUser ? 'bg-conveniat-green text-white' : 'bg-gray-100 text-gray-900',
+            )}
+          >
+            <div className="font-body text-sm">{renderedContent}</div>
+            <div
+              className={cn(
+                'mt-2 flex items-center justify-end text-xs',
+                isCurrentUser ? 'text-white/80' : 'text-gray-500',
+              )}
+            >
+              {formatMessageTime(sentDate)}
+            </div>
+          </div>
+
+          {/* Details List */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+              <div className="flex items-center gap-2">
+                <div className="bg-conveniat-green/10 flex h-8 w-8 items-center justify-center rounded-full">
+                  <Clock className="text-conveniat-green h-4 w-4" />
+                </div>
+                <span className="font-body font-medium text-gray-700">{sentText[locale]}</span>
+              </div>
+              <span className="font-body text-sm text-gray-500">{formatMessageTime(sentDate)}</span>
+            </div>
+
+            <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+              <div className="flex items-center gap-2">
+                <div className="bg-conveniat-green/10 flex h-8 w-8 items-center justify-center rounded-full">
+                  <Check className="text-conveniat-green h-4 w-4" />
+                </div>
+                <span className="font-body font-medium text-gray-700">{statusText[locale]}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                {/* Visual Indicator for Status */}
+                {message.status === MessageEventType.READ && (
+                  <div className="flex">
+                    <Check className="text-conveniat-green h-4 w-4" />
+                    <Check className="text-conveniat-green -ml-2 h-4 w-4" />
+                  </div>
+                )}
+                {message.status === MessageEventType.RECEIVED && (
+                  <div className="flex">
+                    <Check className="h-4 w-4 text-gray-400" />
+                    <Check className="-ml-2 h-4 w-4 text-gray-400" />
+                  </div>
+                )}
+                {message.status === MessageEventType.STORED && (
+                  <Check className="h-4 w-4 text-gray-400" />
+                )}
+                <span className="font-body text-sm text-gray-500 capitalize">
+                  {message.status.toLowerCase()}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ChatDialogContent>
+    </ChatDialog>
   );
 };

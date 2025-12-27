@@ -1,5 +1,7 @@
 import type { ChatDetails, ChatMessage } from '@/features/chat/api/types';
+import { SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import { ChatType, MessageEventType, MessageType } from '@/lib/prisma/client';
+import { toast } from '@/lib/toast';
 import { trpc } from '@/trpc/client';
 import type { AppRouter } from '@/trpc/routers/_app';
 import type { TRPCClientErrorLike } from '@trpc/client';
@@ -24,7 +26,13 @@ export const useMessageSend = (): UseMessageSendMutation => {
       }
 
       await trpcUtils.chat.chatDetails.cancel({ chatId });
+      await trpcUtils.chat.infiniteMessages.cancel({ chatId, limit: 25 });
+
       const previousChatData = trpcUtils.chat.chatDetails.getData({ chatId });
+      const previousInfiniteData = trpcUtils.chat.infiniteMessages.getInfiniteData({
+        chatId,
+        limit: 25,
+      });
 
       const optimisticMessage: ChatMessage = {
         id: `optimistic-${Date.now()}`,
@@ -34,6 +42,34 @@ export const useMessageSend = (): UseMessageSendMutation => {
         status: MessageEventType.CREATED,
         type: MessageType.TEXT_MSG,
       };
+
+      // optimistically update the infinite messages
+      trpcUtils.chat.infiniteMessages.setInfiniteData({ chatId, limit: 25 }, (data) => {
+        if (!data) {
+          return {
+            pages: [
+              {
+                items: [optimisticMessage],
+                nextCursor: undefined,
+              },
+            ],
+            pageParams: [],
+          };
+        }
+
+        return {
+          ...data,
+          pages: data.pages.map((page, index) => {
+            if (index === 0) {
+              return {
+                ...page,
+                items: [optimisticMessage, ...page.items],
+              };
+            }
+            return page;
+          }),
+        };
+      });
 
       // optimistically update the chat details
       trpcUtils.chat.chatDetails.setData(
@@ -47,6 +83,7 @@ export const useMessageSend = (): UseMessageSendMutation => {
               participants: [],
               id: chatId,
               messages: [optimisticMessage],
+              capabilities: [],
               type: ChatType.ONE_TO_ONE,
             };
           }
@@ -66,8 +103,15 @@ export const useMessageSend = (): UseMessageSendMutation => {
               ...chat,
               lastMessage: {
                 id: optimisticMessage.id,
-                senderId: optimisticMessage.senderId,
-                messagePreview: optimisticMessage.messagePayload.toString(),
+                senderId: optimisticMessage.senderId ?? SYSTEM_SENDER_ID,
+                messagePreview:
+                  optimisticMessage.type === MessageType.IMAGE_MSG
+                    ? {
+                        de: '📷 Bild',
+                        en: '📷 Image',
+                        fr: '📷 Image',
+                      }
+                    : JSON.stringify(optimisticMessage.messagePayload),
                 createdAt: optimisticMessage.createdAt,
                 status: optimisticMessage.status,
                 type: optimisticMessage.type,
@@ -80,21 +124,32 @@ export const useMessageSend = (): UseMessageSendMutation => {
         });
       });
 
-      return { previousChatData };
+      return { previousChatData, previousInfiniteData };
     },
 
     onError: (error, { chatId }, context) => {
-      // TODO: use proper error handling and user feedback
+      toast.error('Failed to send message', error);
       console.error('Failed to send message, rolling back optimistic update:', error);
+
       if (context?.previousChatData) {
         trpcUtils.chat.chatDetails.setData({ chatId }, context.previousChatData);
       } else {
         trpcUtils.chat.chatDetails.invalidate({ chatId }).catch(console.error);
       }
+
+      if (context?.previousInfiniteData) {
+        trpcUtils.chat.infiniteMessages.setInfiniteData(
+          { chatId, limit: 25 },
+          context.previousInfiniteData,
+        );
+      } else {
+        trpcUtils.chat.infiniteMessages.invalidate({ chatId }).catch(console.error);
+      }
     },
 
     onSuccess: (_, { chatId }) => {
       trpcUtils.chat.chatDetails.invalidate({ chatId }).catch(console.error);
+      trpcUtils.chat.infiniteMessages.invalidate({ chatId }).catch(console.error);
     },
   });
 };

@@ -24,7 +24,7 @@ export const SearchComponent: React.FC<{ locale: Locale; actionURL: string }> = 
     const searchData = new FormData(event.currentTarget);
     const searchInput = searchData.get('searchInput') as string;
     if (searchInput !== '') {
-      router.push(`/${locale as Locale}${actionURL}?q=${searchInput}`);
+      router.push(`/${locale}${actionURL}?q=${searchInput}`);
       router.refresh();
       close(); // close nav
     }
@@ -42,13 +42,13 @@ export const SearchComponent: React.FC<{ locale: Locale; actionURL: string }> = 
           name="searchInput"
           className="h-12 grow px-4 font-['Inter'] text-sm text-[#333] placeholder-[#999] focus:outline-hidden"
           type="text"
-          placeholder={searchButtonText[locale as Locale]}
+          placeholder={searchButtonText[locale]}
         />
         <button
           type="submit"
           className="bg-conveniat-green flex h-12 cursor-pointer items-center justify-center px-4 text-white transition-colors duration-300 hover:bg-[#3b4a3f]"
         >
-          <span className="sr-only">{searchButtonText[locale as Locale]}</span>
+          <span className="sr-only">{searchButtonText[locale]}</span>
           <Search className="text-lg" aria-hidden="true" />
         </button>
       </form>

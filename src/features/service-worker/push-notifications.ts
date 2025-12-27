@@ -39,7 +39,7 @@ export const pushNotificationHandler =
         });
 
         const isAppInFocus = clientList.some((client) => {
-          return (client as WindowClient).visibilityState === 'visible';
+          return client.visibilityState === 'visible';
         });
 
         if (isAppInFocus) {

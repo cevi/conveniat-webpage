@@ -12,7 +12,7 @@ import type {
   SearchCollection,
 } from '@/features/payload-cms/payload-types';
 import { specialPagesTable } from '@/features/payload-cms/special-pages-table';
-import type { LocalizedPageType, StaticTranslationString } from '@/types/types';
+import type { Locale, LocalizedPageType, StaticTranslationString } from '@/types/types';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { hasPermissions } from '@/utils/has-permissions';
 import config from '@payload-config';
@@ -55,24 +55,54 @@ const searchMoreButton: StaticTranslationString = {
   fr: 'Plus',
 };
 
-const renderPermittedPage = (page: GenericPage): React.JSX.Element => (
-  <PageDisplay page={page} key={page.seo.urlSlug} />
+const searchNoResultsSuggestion: StaticTranslationString = {
+  de: 'Versuche es mit einem anderen Suchbegriff.',
+  en: 'Try another search term.',
+  fr: 'Essayez avec un autre terme de recherche.',
+};
+
+const renderPermittedPage = (locale: Locale, page: GenericPage): React.JSX.Element => (
+  <PageDisplay page={page} key={page.seo.urlSlug} locale={locale} />
 );
 
-const renderPermittedBlog = (blog: Blog): React.JSX.Element => (
-  <BlogDisplay blog={blog} key={blog.seo.urlSlug} />
+const renderPermittedBlog = (locale: Locale, blog: Blog): React.JSX.Element => (
+  <BlogDisplay blog={blog} key={blog.seo.urlSlug} locale={locale} />
 );
 
-// eslint-disable-next-line complexity
-const SearchPage: React.FC<LocalizedPageType> = async (properties) => {
-  const { searchParams: searchParametersPromise } = properties;
+const renderNoResults = (locale: Locale): React.JSX.Element => (
+  <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-200 bg-gray-50 p-8 text-center">
+    <div className="mb-4 rounded-full bg-gray-200 p-4">
+      <svg className="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+        />
+      </svg>
+    </div>
+    <h3 className="text-lg font-semibold text-gray-700">{searchResultNoResults[locale]}</h3>
+    <p className="mt-2 text-gray-500">{searchNoResultsSuggestion[locale]}</p>
+  </div>
+);
 
+const SearchPage: React.FC<LocalizedPageType> = async ({
+  searchParams: searchParametersPromise,
+}) => {
   const locale = await getLocaleFromCookies();
 
   const payload = await getPayload({ config });
   const searchParameters = await searchParametersPromise;
-  const searchQueryQ = searchParameters['q'];
 
+  if (searchParameters === undefined) {
+    return (
+      <article className="my-8 w-full max-w-2xl px-8 max-xl:mx-auto">
+        <HeadlineH1>{searchNoSearchQuery[locale]}</HeadlineH1>
+        <SearchBar initialQuery={''} actionURL={'/search'} />
+      </article>
+    );
+  }
+  const searchQueryQ = searchParameters['q'];
   const searchQueryOnly = searchParameters['only'];
 
   const actionURL = specialPagesTable['search']?.alternatives[locale] ?? '/search';
@@ -100,7 +130,7 @@ const SearchPage: React.FC<LocalizedPageType> = async (properties) => {
 
   const searchEntriesPages = await payload.find({
     collection: 'search-collection',
-    depth: 1,
+    depth: 0,
     limit: 5,
     locale,
     where: {
@@ -143,7 +173,7 @@ const SearchPage: React.FC<LocalizedPageType> = async (properties) => {
 
   const searchEntriesBlogs = await payload.find({
     collection: 'search-collection',
-    depth: 1,
+    depth: 0,
     limit: limitPerCategory,
     locale,
     where: {
@@ -208,8 +238,8 @@ const SearchPage: React.FC<LocalizedPageType> = async (properties) => {
           <h2 className="text-conveniat-green text-2xl font-bold">
             {searchResultsTitlePages[locale]}
           </h2>
-          {permittedPages.length === 0 && <p>{searchResultNoResults[locale]}</p>}
-          {permittedPages.map((element) => renderPermittedPage(element))}
+          {permittedPages.length === 0 && renderNoResults(locale)}
+          {permittedPages.map((element) => renderPermittedPage(locale, element))}
           {searchEntriesPages.totalPages > 1 && (
             <LinkComponent
               href={`?q=${searchQuery}&only=pages`}
@@ -223,8 +253,8 @@ const SearchPage: React.FC<LocalizedPageType> = async (properties) => {
           <h2 className="text-conveniat-green text-2xl font-bold">
             {searchResultsTitleBlog[locale]}
           </h2>
-          {permittedBlogs.length === 0 && <p>{searchResultNoResults[locale]}</p>}
-          {permittedBlogs.map((element) => renderPermittedBlog(element))}
+          {permittedBlogs.length === 0 && renderNoResults(locale)}
+          {permittedBlogs.map((element) => renderPermittedBlog(locale, element))}
           {searchEntriesBlogs.totalPages > 1 && (
             <LinkComponent
               href={`?q=${searchQuery}&only=blogs`}

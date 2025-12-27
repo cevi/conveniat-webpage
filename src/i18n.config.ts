@@ -11,6 +11,7 @@ export const i18nExcludedRoutes: string[] = [
   'web-app-manifest-512x512.png',
   'favicon.svg',
   'notification-icon.png',
+  'screenshots',
 
   // system endpoints
   'status',
@@ -18,6 +19,7 @@ export const i18nExcludedRoutes: string[] = [
   // app landing page (is localized manually)
   'entrypoint',
   'login',
+  '~offline',
 
   // Internal Paths (API, Admin Panel of Payload CMS)
   '_next',
@@ -32,9 +34,9 @@ export const i18nExcludedRoutes: string[] = [
   'vector-map',
 
   // Static Files (Service Workers, Manifests, SEO)
-  'sw.js',
-  'swe-worker-',
+  'serwist',
   'manifest.webmanifest',
+  'manifest.json',
   'sitemap.xml',
   'robots.txt',
 ] as const;

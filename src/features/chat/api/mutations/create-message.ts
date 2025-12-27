@@ -1,5 +1,7 @@
 import { sendNotification } from '@/features/chat/api/utils/send-push-notifications';
-import { ChatMembershipPermission, MessageEventType } from '@/lib/prisma';
+import { Ability } from '@/lib/ability';
+import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
+import { ChatMembershipPermission, MessageEventType, MessageType } from '@/lib/prisma/client';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { z } from 'zod';
@@ -29,6 +31,7 @@ const sendMessageInputSchema = z.object({
       invalid_type_error: 'Timestamp must be a valid date.',
     }),
   ),
+  type: z.nativeEnum(MessageType).optional().default(MessageType.TEXT_MSG),
 });
 
 // tRPC router for chat-related mutations
@@ -37,7 +40,28 @@ export const createMessage = trpcBaseProcedure
   .use(databaseTransactionWrapper) // use a DB transaction for this mutation
   .mutation(async ({ input, ctx }) => {
     const { user, prisma } = ctx; // Destructure user and prisma from the tRPC context
-    const validatedMessage = input; // Input is already validated by Zod
+    const validatedMessage = input;
+
+    // 1. Global & Chat-specific Ability Check
+    const canSend = await Ability.can(
+      CapabilityAction.Send,
+      CapabilitySubject.Messages,
+      validatedMessage.chatId,
+    );
+    if (!canSend) {
+      throw new Error('Messaging is disabled in this chat or globally.');
+    }
+
+    if (validatedMessage.type === MessageType.IMAGE_MSG) {
+      const canUpload = await Ability.can(
+        CapabilityAction.Upload,
+        CapabilitySubject.Images,
+        validatedMessage.chatId,
+      );
+      if (!canUpload) {
+        throw new Error('Image uploading is not enabled in this chat.');
+      }
+    }
 
     // 2. Validate that the user is part of the chat and has permission to send messages
     const chat = await prisma.chat.findUnique({
@@ -79,7 +103,17 @@ export const createMessage = trpcBaseProcedure
     // Create the message and its initial events within a transaction
     const createdMessage = await prisma.message.create({
       data: {
-        contentVersions: { create: [{ payload: validatedMessage.content }] },
+        type: validatedMessage.type,
+        contentVersions: {
+          create: [
+            {
+              payload:
+                validatedMessage.type === MessageType.IMAGE_MSG
+                  ? { url: validatedMessage.content }
+                  : validatedMessage.content,
+            },
+          ],
+        },
         sender: { connect: { uuid: user.uuid } },
         chat: { connect: { uuid: validatedMessage.chatId } },
         messageEvents: {
@@ -103,7 +137,11 @@ export const createMessage = trpcBaseProcedure
     //  --> consider using a queue system
 
     // Send push notification (fire-and-forget, with error logging)
-    await sendNotification(validatedMessage.content, recipientUserIds, validatedMessage.chatId);
+    sendNotification(validatedMessage.content, recipientUserIds, validatedMessage.chatId).catch(
+      (error: unknown) => {
+        console.error('Failed to send push notification:', error);
+      },
+    );
 
     // Record DISTRIBUTED event after a successful notification attempt
     await prisma.messageEvent.createMany({

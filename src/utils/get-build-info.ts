@@ -1,4 +1,4 @@
-import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
+import type { Locale } from '@/types/types';
 
 interface BuildInfo {
   version: string;
@@ -15,14 +15,12 @@ interface BuildInfo {
  * @returns {BuildInfo | undefined} The build information or undefined if not found.
  *
  */
-export const getBuildInfo = async (): Promise<BuildInfo | undefined> => {
+export const getBuildInfo = async (locale: Locale): Promise<BuildInfo | undefined> => {
   try {
     // eslint-disable-next-line import/no-restricted-paths
     const { default: rawBuildInfo } = (await import('@/build')) as {
       default: BuildInfo;
     };
-
-    const locale = await getLocaleFromCookies();
 
     // parse the timestamp from the build info
     const buildInfo = structuredClone(rawBuildInfo);
@@ -38,7 +36,6 @@ export const getBuildInfo = async (): Promise<BuildInfo | undefined> => {
 
     return buildInfo;
   } catch {
-    console.error('Build information not found, build info not displayed.');
     return undefined;
   }
 };

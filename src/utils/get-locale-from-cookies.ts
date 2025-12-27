@@ -1,7 +1,7 @@
 import 'server-only';
 
 import type { Locale } from '@/types/types';
-import { i18nConfig } from '@/types/types';
+import { Cookie, i18nConfig } from '@/types/types';
 import { cookies } from 'next/headers';
 
 /**
@@ -13,7 +13,7 @@ import { cookies } from 'next/headers';
  */
 export const getLocaleFromCookies = async (): Promise<Locale> => {
   const cookieStore = await cookies();
-  let locale = cookieStore.get('NEXT_LOCALE')?.value as Locale | undefined;
+  let locale = cookieStore.get(Cookie.LOCALE_COOKIE)?.value as Locale | undefined;
   locale ??= i18nConfig.defaultLocale as Locale;
   return locale;
 };

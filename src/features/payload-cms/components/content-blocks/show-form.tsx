@@ -9,7 +9,7 @@ export const ShowForm: React.FC<
     isPreviewMode?: boolean | undefined;
     withBorder?: boolean | undefined;
   }
-> = async ({ isPreviewMode, withBorder, ...block }) => {
+> = ({ isPreviewMode, withBorder, ...block }) => {
   return (
     <ClientOnly
       fallback={

@@ -5,6 +5,7 @@ import { AnnotationDetailsDrawer } from '@/features/map/components/map-annotatio
 import { MapContextProvider } from '@/features/map/components/maplibre-renderer/map-context-provider';
 import { MaplibreMap } from '@/features/map/components/maplibre-renderer/maplibre-map';
 import { SearchBar } from '@/features/map/components/search-bar';
+import type { MapControlOptions } from '@/features/map/hooks/use-map-controls';
 import { useMapInitialization } from '@/features/map/hooks/use-map-initialization';
 import { useMapUrlSync } from '@/features/map/hooks/use-map-url-sync';
 import type {
@@ -40,6 +41,7 @@ export const MapLibreRenderer = ({
   schedules,
   limitUsage = true,
   validateStyle = true,
+  mapControlOptions,
 }: {
   initialMapPose: InitialMapPose;
   ceviLogoMarkers: CeviLogoMarker[];
@@ -48,6 +50,7 @@ export const MapLibreRenderer = ({
   schedules: { [id: string]: CampScheduleEntry[] };
   limitUsage?: boolean;
   validateStyle?: boolean;
+  mapControlOptions?: MapControlOptions | undefined;
 }): React.JSX.Element => {
   const mapContainerReference = useRef<HTMLDivElement>(null);
   const [openAnnotation, setOpenAnnotation] = useState<
@@ -127,6 +130,7 @@ export const MapLibreRenderer = ({
         campMapAnnotationPoints={filteredAnnotationPoints}
         campMapAnnotationPolygons={filteredAnnotationPolygons}
         ceviLogoMarkers={ceviLogoMarkers}
+        mapControlOptions={mapControlOptions}
       />
     </MapContextProvider>
   );

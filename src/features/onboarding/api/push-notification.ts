@@ -3,7 +3,8 @@
 import { environmentVariables } from '@/config/environment-variables';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { StaticTranslationString } from '@/types/types';
-import { auth, getPayloadUserFromNextAuthUser } from '@/utils/auth-helpers';
+import { auth } from '@/utils/auth';
+import { getPayloadUserFromNextAuthUser } from '@/utils/auth-helpers';
 import config from '@payload-config';
 import type { Where } from 'payload';
 import { getPayload } from 'payload';

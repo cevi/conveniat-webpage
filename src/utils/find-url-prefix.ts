@@ -13,4 +13,5 @@ import type { CollectionSlug } from 'payload';
 export const serverSideSlugToUrlResolution = async (
   collectionSlug: CollectionSlug,
   locale: Locale,
-): Promise<string> => findPrefixByCollectionSlugAndLocale(collectionSlug, locale);
+): Promise<string> =>
+  new Promise((resolve) => resolve(findPrefixByCollectionSlugAndLocale(collectionSlug, locale)));

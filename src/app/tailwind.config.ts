@@ -9,6 +9,18 @@ module.exports = {
   plugins: [twAnimate],
 
   theme: {
+    extend: {
+      keyframes: {
+        loading: {
+          '0%': { left: '-50%', width: '50%' },
+          '50%': { left: '25%', width: '75%' },
+          '100%': { left: '100%', width: '50%' },
+        },
+      },
+      animation: {
+        loading: 'loading 1.5s ease-in-out infinite',
+      },
+    },
     fontFamily: {
       heading: ['Montserrat', 'Helvetica', 'Arial', 'sans-serif'],
       body: ['Inter', 'Helvetica', 'Arial', 'sans-serif'],

@@ -3,7 +3,7 @@ import { PageSectionsConverter } from '@/features/payload-cms/converters/page-se
 import type { ContentBlock } from '@/features/payload-cms/converters/page-sections/section-wrapper';
 import { getImageAltInLocale } from '@/features/payload-cms/payload-cms/utils/images-meta-fields';
 import type { Blog } from '@/features/payload-cms/payload-types';
-import type { Locale, SearchParameters } from '@/types/types';
+import type { Locale } from '@/types/types';
 import { formatBlogDate } from '@/utils/format-blog-date';
 import Image from 'next/image';
 import React from 'react';
@@ -11,8 +11,7 @@ import React from 'react';
 export const BlogArticleConverter: React.FC<{
   article: Blog;
   locale: Locale;
-  searchParams: SearchParameters;
-}> = ({ article, locale, searchParams }) => {
+}> = ({ article, locale }) => {
   if (typeof article.content.bannerImage === 'string') {
     throw new TypeError(
       'Expected bannerImage to be an object, you may got the ID instead of the object',
@@ -49,7 +48,6 @@ export const BlogArticleConverter: React.FC<{
         <PageSectionsConverter
           blocks={article.content.mainContent as ContentBlock[]}
           locale={locale}
-          searchParams={searchParams}
         />
       </article>
     </>

@@ -6,8 +6,9 @@ import { MessageEventType } from '@/lib/prisma/client';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { Loader2 } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 const loadingMessagesText: StaticTranslationString = {
   de: 'Nachrichten werden geladen...',
@@ -31,14 +32,88 @@ export const MessageList: React.FC = () => {
   const { data: currentUser } = trpc.chat.user.useQuery({});
   const messagesEndReference = useRef<HTMLDivElement>(null);
 
-  const messages = chatDetails?.messages ?? [];
-  // TODO: remove this, as the messages are already sorted in the backend
-  const sortedMessages = [...messages].sort(
-    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+  // Fetch messages with infinite scrolling
+  const {
+    data: infiniteData,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = trpc.chat.infiniteMessages.useInfiniteQuery(
+    { chatId, limit: 25 },
+    {
+      getNextPageParam: (lastPage) => lastPage.nextCursor,
+      initialCursor: undefined, // Start from the beginning (newest)
+      // Refetch when window is refocused or connection restored
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
+      // Refetch periodically to get new messages
+      refetchInterval: 5000,
+    },
   );
 
+  // Combine messages from all pages and reverse them (newest at bottom)
+  const sortedMessages = React.useMemo(() => {
+    if (!infiniteData) return [];
+    return infiniteData.pages.flatMap((page) => page.items).reverse();
+  }, [infiniteData]);
+
+  // Track if this is the initial load and if user is at bottom
+  const hasScrolledReference = useRef(false);
+  const isAtBottomReference = useRef(true);
+  const scrollContainerReference = useRef<HTMLDivElement>(null);
+
+  // Track scroll position to know if user is at bottom and handle infinite scroll
+  const handleScroll = (): void => {
+    const container = scrollContainerReference.current;
+    if (container) {
+      const threshold = 100; // pixels from bottom to consider "at bottom"
+      isAtBottomReference.current =
+        container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
+
+      // Check if we need to load more messages
+      if (container.scrollTop === 0 && hasNextPage && !isFetchingNextPage) {
+        fetchNextPage().catch(console.error);
+      }
+    }
+  };
+
+  const previousScrollHeightReference = useRef<number>(0);
+  const previousMessageCountReference = useRef<number>(0);
+
+  // Adjust scroll position after loading older messages to maintain visual continuity
+  useLayoutEffect(() => {
+    const container = scrollContainerReference.current;
+    if (!container) return;
+
+    const currentMessageCount = sortedMessages.length;
+
+    // If messages were added at the top (older messages loaded), adjust scroll position
+    // to prevent the view from jumping.
+    if (
+      previousScrollHeightReference.current > 0 &&
+      currentMessageCount > previousMessageCountReference.current
+    ) {
+      const newScrollHeight = container.scrollHeight;
+      const heightDifference = newScrollHeight - previousScrollHeightReference.current;
+
+      if (heightDifference > 0) {
+        container.scrollTop += heightDifference;
+      }
+    }
+
+    previousScrollHeightReference.current = container.scrollHeight;
+    previousMessageCountReference.current = currentMessageCount;
+  }, [sortedMessages, isFetchingNextPage]);
+
   useEffect(() => {
-    messagesEndReference.current?.scrollIntoView({ behavior: 'instant' });
+    // Scroll to bottom on initial load OR when user is at bottom and new messages arrive
+    if (
+      sortedMessages.length > 0 &&
+      (!hasScrolledReference.current || isAtBottomReference.current)
+    ) {
+      messagesEndReference.current?.scrollIntoView({ behavior: 'instant' });
+      hasScrolledReference.current = true;
+    }
   }, [sortedMessages]);
 
   // State to store IDs of messages that have been marked as READ
@@ -87,24 +162,44 @@ export const MessageList: React.FC = () => {
   }
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto bg-gray-50">
+    <div
+      ref={scrollContainerReference}
+      onScroll={handleScroll}
+      className="flex h-full flex-col overflow-y-auto bg-gray-50"
+    >
       <div className="flex-1" />
-      <div className="space-y-6 px-4 py-4">
+      <div className="space-y-6 px-2 py-4">
+        {isFetchingNextPage && (
+          <div className="flex w-full justify-center py-2">
+            <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+          </div>
+        )}
         {Object.entries(messagesByDate).map(([date, messagesForDate]) => (
           <div key={date}>
             <div className="my-6 flex justify-center">
-              <div className="font-body rounded-full bg-gray-200 px-4 py-2 text-xs font-medium text-gray-600 shadow-sm">
+              <div className="font-body rounded-full border border-gray-200 bg-gray-100 px-4 py-1 text-xs font-medium text-gray-500 shadow-sm">
                 {date === new Date().toLocaleDateString() ? todayText[locale] : date}
               </div>
             </div>
-            <div className="space-y-4">
-              {messagesForDate.map((message) => (
-                <MessageComponent
-                  key={message.id}
-                  message={message}
-                  isCurrentUser={message.senderId === currentUser}
-                />
-              ))}
+            <div className="space-y-1">
+              {messagesForDate.map((message, index) => {
+                const previousMessage = index > 0 ? messagesForDate[index - 1] : undefined;
+                const isWithin5Min = previousMessage
+                  ? new Date(message.createdAt).getTime() -
+                      new Date(previousMessage.createdAt).getTime() <
+                    5 * 60 * 1000
+                  : false;
+
+                return (
+                  <div key={message.id} className={isWithin5Min ? 'mt-1' : 'mt-4'}>
+                    <MessageComponent
+                      message={message}
+                      isCurrentUser={message.senderId === currentUser}
+                      chatType={chatDetails.type}
+                    />
+                  </div>
+                );
+              })}
             </div>
           </div>
         ))}

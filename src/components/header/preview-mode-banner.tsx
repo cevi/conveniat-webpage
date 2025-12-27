@@ -6,17 +6,22 @@ import { RefreshCw, X } from 'lucide-react';
 import type { User } from 'next-auth';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import { useSearchParams } from 'next/navigation';
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 
 interface PreviewModeBannerProperties {
   user: User | undefined;
   canAccessAdmin: boolean;
+  previewModeActive: boolean;
 }
 
 const removePreviewCookie = (): void => {
-  // eslint-disable-next-line unicorn/no-document-cookie
-  document.cookie = 'preview=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-  globalThis.location.reload();
+  // make a fetch request to /api/draft?disable=true to disable preview mode
+  fetch('/api/draft?disable=true')
+    .then(() => {
+      console.log('Preview mode disabled');
+      globalThis.location.reload(); // refresh page to reflect change
+    })
+    .catch((error: unknown) => console.error('Error disabling preview mode:', error));
 };
 
 /**
@@ -25,39 +30,20 @@ const removePreviewCookie = (): void => {
  * is visible whenever the user is viewing at a page in preview mode.
  * The preview banner is part of the previewing system.
  *
- * The preview banner cannot be closed while a page in preview mode is visited.
- * If the visiting user is a Payload admin (e.g. a user that can access the admin panel).
- * The preview banner becomes visible as soon as the user has signed in to the Payload CMS and
- * visited the admin panel (see middleware.ts).
- *
- * The preview banner can be closed (e.g. hidden away) whenever a non-preview page is accessed.
- * The preview banner of a non-payload admin is only visible on the specific page that is in preview mode.
- *
  */
 export const PreviewModeBanner: React.FC<PreviewModeBannerProperties> = ({
   user,
   canAccessAdmin,
+  previewModeActive,
 }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const searchParameters = useSearchParams();
 
-  const [renderPreviewModeBanner, setRenderPreviewModeBanner] = useState(false);
+  const tokenParameter = searchParameters.get('preview-token');
+  const accessWithToken = tokenParameter !== null && tokenParameter.length > 0;
 
-  useEffect(() => {
-    // check preview token
-    const tokenParameter = searchParameters.get('preview-token');
-    const accessWithToken = tokenParameter !== null && tokenParameter.length > 0;
-
-    // check if cookie is set and user is a Payload admin
-    const isPreviewCookieSet = document.cookie.includes('preview=true');
-    const accessWithCookie = isPreviewCookieSet && canAccessAdmin;
-
-    // we render the preview banner if...
-    // ... the user is a Payload admin and the preview cookie is set,
-    // ... or, the user has a valid preview token (e.g., the preview-token query parameter is set),
-    // access control is handled by the render logic of the page.
-    setRenderPreviewModeBanner(accessWithToken || accessWithCookie);
-  }, [searchParameters, canAccessAdmin]);
+  const accessWithCookie = previewModeActive && canAccessAdmin;
+  const renderPreviewModeBanner = accessWithToken || accessWithCookie;
 
   // abort, don't render the preview banner...
   if (!renderPreviewModeBanner) return <></>;
@@ -80,7 +66,7 @@ export const PreviewModeBanner: React.FC<PreviewModeBannerProperties> = ({
     },
   };
 
-  // we set the email to 'anonymous' if the user is not signed in
+  // we set the email to 'anonymous' if the user is not signed
   const { email: userEmail } = user ?? { email: StaticTranslationStrings.anonymous[locale] };
 
   return (

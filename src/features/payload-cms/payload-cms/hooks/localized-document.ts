@@ -4,7 +4,14 @@ import {
   NotYetSavedException,
 } from '@/features/payload-cms/payload-cms/components/multi-lang-publishing/utils';
 import { useDebounce, useDocumentInfo } from '@payloadcms/ui';
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+
+interface UseLocalizedDocumentReturn<T> {
+  doc: T | undefined;
+  isLoading: boolean;
+  error: Error | undefined;
+  isGlobal: boolean;
+}
 
 /**
  *
@@ -17,74 +24,46 @@ export const useLocalizedDocument = <T>({
   draft,
 }: {
   draft: boolean;
-}): {
-  doc: T | undefined;
-  isLoading: boolean;
-  error: Error | undefined;
-  isGlobal: boolean;
-} => {
+}): UseLocalizedDocumentReturn<T> => {
   const debouncedParameters = useDebounce(useDocumentInfo(), 1000);
+  const { collectionSlug, globalSlug, id } = debouncedParameters;
 
-  const [error, setError] = useState<Error | undefined>();
-  const [isLoading, setIsLoading] = useState(false);
-  const [document_, setDocument] = useState<T | undefined>();
-  const [isGlobal, setIsGlobal] = useState(false);
+  const queryKey = ['localizedDocument', collectionSlug, globalSlug, id, draft];
 
-  useEffect(() => {
-    setIsLoading(true);
-    setError(undefined);
-
-    // is neither a collection nor a global
-    if (
-      debouncedParameters.collectionSlug === undefined &&
-      debouncedParameters.globalSlug === undefined
-    ) {
-      setIsLoading(false);
-      setError(new Error('Invalid object (neither collection nor global)'));
-      return;
+  const queryFunction = async (): Promise<{ doc: T; isGlobal: boolean }> => {
+    if (collectionSlug === undefined && globalSlug === undefined) {
+      throw new Error('Invalid object (neither collection nor global)');
     }
 
-    // check for collection
-    if (debouncedParameters.collectionSlug !== undefined) {
-      if (debouncedParameters.id === undefined) {
-        setIsLoading(false);
-        setError(new NotYetSavedException());
-        return;
+    if (collectionSlug !== undefined) {
+      if (id === undefined) {
+        throw new NotYetSavedException();
       }
-
-      fetchDocument<T>({
-        slug: debouncedParameters.collectionSlug,
-        id: debouncedParameters.id as string,
+      const document = await fetchDocument<T>({
+        slug: collectionSlug,
+        id: id as string,
         draft,
-      })
-        .then((_document) => {
-          setDocument(_document);
-        })
-        .catch((error_: unknown) => {
-          setError(error_ as Error);
-        })
-        .finally(() => {
-          setIsLoading(false);
-        });
+      });
+      return { doc: document, isGlobal: false };
     }
-    // check for global
-    else if (debouncedParameters.globalSlug !== undefined) {
-      fetchGlobalDocument<T>({
-        slug: debouncedParameters.globalSlug as string,
-        draft,
-      })
-        .then((_document) => {
-          setDocument(_document);
-          setIsGlobal(true);
-        })
-        .catch((error_: unknown) => {
-          setError(error_ as Error);
-        })
-        .finally(() => {
-          setIsLoading(false);
-        });
-    }
-  }, [debouncedParameters, draft]);
 
-  return { doc: document_, isLoading, error, isGlobal };
+    const document = await fetchGlobalDocument<T>({
+      slug: globalSlug as string,
+      draft,
+    });
+    return { doc: document, isGlobal: true };
+  };
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: queryKey,
+    queryFn: queryFunction,
+    enabled: collectionSlug !== undefined || globalSlug !== undefined,
+  });
+
+  return {
+    doc: data?.doc,
+    isLoading,
+    error: error ?? undefined,
+    isGlobal: data?.isGlobal ?? false,
+  };
 };

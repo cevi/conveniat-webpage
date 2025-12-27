@@ -34,8 +34,13 @@ export const minimalEditorFeatures = [
     enabledCollections: [
       'generic-page',
       'blog',
+      'images',
+      'documents',
       ...(environmentVariables.FEATURE_ENABLE_APP_FEATURE
         ? ['camp-map-annotations' as CollectionSlug]
+        : []),
+      ...(environmentVariables.FEATURE_ENABLE_APP_FEATURE
+        ? ['camp-schedule-entry' as CollectionSlug]
         : []),
     ],
   }),

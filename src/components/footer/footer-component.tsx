@@ -1,21 +1,23 @@
 import { FooterAppNavBar } from '@/components/footer/footer-app-nav-bar';
 import { FooterCopyrightArea } from '@/components/footer/footer-copyright-area';
-import { FooterMenuArea } from '@/components/footer/footer-menu-area';
-import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
-import { renderInAppDesign } from '@/utils/render-in-app-design';
-import React from 'react';
+import { FooterCopyrightClientWrapper } from '@/components/footer/footer-copyright-client-wrapper';
+import type { Locale } from '@/types/types';
+import React, { Suspense } from 'react';
 
-export const FooterComponent: React.FC = async () => {
-  const isInAppDesign = await renderInAppDesign();
-  const locale = await getLocaleFromCookies();
+export const FooterComponent: React.FC<{
+  locale: Promise<Locale>;
+  inAppDesign: Promise<boolean>;
+}> = async ({ locale: localePromise, inAppDesign: isInAppDesignPromise }) => {
+  const [locale, isInAppDesign] = await Promise.all([localePromise, isInAppDesignPromise]);
 
   return (
     <>
       <footer className="w-full">
-        <FooterMenuArea />
-        <FooterCopyrightArea />
+        <FooterCopyrightClientWrapper>
+          <FooterCopyrightArea locale={locale} inAppDesign={isInAppDesign} />
+        </FooterCopyrightClientWrapper>
       </footer>
-      {isInAppDesign && <FooterAppNavBar locale={locale} />}
+      <Suspense>{isInAppDesign && <FooterAppNavBar locale={locale} />}</Suspense>
     </>
   );
 };

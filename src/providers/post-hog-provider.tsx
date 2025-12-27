@@ -2,10 +2,10 @@
 
 import { initPostHog } from '@/lib/posthog-client';
 import { usePathname, useSearchParams } from 'next/navigation';
-import posthog from 'posthog-js';
+import type { PostHog } from 'posthog-js';
 import { PostHogProvider as ReactPostHogProvider, usePostHog } from 'posthog-js/react';
 import type React from 'react';
-import { Suspense, useEffect } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 
 const PostHogPageView: React.FC = () => {
   const pathname = usePathname();
@@ -28,21 +28,33 @@ const PostHogPageView: React.FC = () => {
 
 const SuspendedPostHogPageView: React.FC = () => {
   return (
-    <Suspense fallback={<></>}>
+    <Suspense>
       <PostHogPageView />
     </Suspense>
   );
 };
 
 export const PostHogProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [client, setClient] = useState<PostHog | undefined>();
+
   useEffect(() => {
-    initPostHog(posthog);
+    const init = async (): Promise<void> => {
+      const posthogModule = await import('posthog-js');
+      const posthog = posthogModule.default;
+      initPostHog(posthog);
+      setClient(posthog);
+    };
+    void init();
   }, []);
 
   return (
-    <ReactPostHogProvider client={posthog}>
-      <SuspendedPostHogPageView />
+    <>
+      {client && (
+        <ReactPostHogProvider client={client}>
+          <SuspendedPostHogPageView />
+        </ReactPostHogProvider>
+      )}
       {children}
-    </ReactPostHogProvider>
+    </>
   );
 };

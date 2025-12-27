@@ -8,6 +8,11 @@ scrape_configs:
     static_configs:
       - targets: ['tempo:3200']
 
+  - job_name: 'loki'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['loki:3100']
+
   - job_name: minio-job
     metrics_path: /minio/v2/metrics/cluster
     scrape_interval: 10s
@@ -22,8 +27,23 @@ scrape_configs:
     static_configs:
       - targets: ['minio:9000']
 
-  - job_name: postgres-exporter
+  - job_name: 'payload'
     scrape_interval: 10s
     scheme: http
     static_configs:
+      - targets: ['payload:9464']
+
+  - job_name: 'postgres-exporter'
+    scrape_interval: 10s
+    static_configs:
       - targets: ['postgres-exporter:9187']
+
+  - job_name: 'redis-exporter'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['redis-exporter:9121']
+
+  - job_name: 'mongodb-exporter'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['mongodb-exporter:9216']

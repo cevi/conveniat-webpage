@@ -53,7 +53,7 @@ export const routeResolutionTable: RouteResolutionTable =
         const locales = [locale as Locale, ...(routes[prefix]?.locales ?? [])];
 
         if (!(payloadCollection['slug'] in slugLookup)) {
-          throw new Error(`Component not found for slug: ${payloadCollection['slug'] as string}`);
+          throw new Error(`Component not found for slug: ${payloadCollection['slug']}`);
         }
 
         const component = slugLookup[payloadCollection['slug']];

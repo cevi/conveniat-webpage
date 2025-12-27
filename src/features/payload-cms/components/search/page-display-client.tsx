@@ -3,6 +3,7 @@ import type { ContentBlock } from '@/features/payload-cms/converters/page-sectio
 import { extractTextContent } from '@/features/payload-cms/payload-cms/utils/extract-rich-text';
 import type { GenericPage } from '@/features/payload-cms/payload-types';
 import type { Locale } from '@/types/types';
+import type React from 'react';
 
 const PageDisplayClient: React.FC<{
   page: GenericPage;
