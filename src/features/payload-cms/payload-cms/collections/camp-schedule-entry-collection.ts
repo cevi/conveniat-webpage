@@ -139,6 +139,31 @@ export const CampScheduleEntryCollection: CollectionConfig = {
       type: 'relationship',
       relationTo: 'camp-map-annotations',
       hasMany: false,
+      filterOptions: ({
+        relationTo,
+      }):
+        | boolean
+        | {
+            or: { annotationType?: { equals: string }; isInteractive?: { not_equals: boolean } }[];
+          } => {
+        if (relationTo === 'camp-map-annotations') {
+          return {
+            or: [
+              {
+                annotationType: {
+                  equals: 'marker',
+                },
+              },
+              {
+                isInteractive: {
+                  not_equals: false,
+                },
+              },
+            ],
+          };
+        }
+        return true;
+      },
       required: true,
       admin: {
         description: {

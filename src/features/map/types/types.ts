@@ -56,4 +56,5 @@ export interface CampMapAnnotationPolygon {
   geometry: { coordinates: [number, number][] };
   icon: 'MapPin' | 'Tent';
   color: string;
+  isInteractive: boolean;
 }

@@ -1571,6 +1571,8 @@ export interface CampMapAnnotation {
    * The title of the annotation.
    */
   title: string;
+  color?: ('#78909c' | '#fbc02d' | '#ff8126' | '#b56aff' | '#f848c7' | '#16a672' | '#f64955') | null;
+  annotationType: 'marker' | 'polygon';
   icon?:
     | (
         | 'MapPin'
@@ -1585,7 +1587,27 @@ export interface CampMapAnnotation {
         | 'BriefcaseMedical'
       )
     | null;
-  color?: ('#78909c' | '#fbc02d' | '#ff8126' | '#b56aff' | '#f848c7' | '#16a672' | '#f64955') | null;
+  /**
+   * @minItems 2
+   * @maxItems 2
+   */
+  geometry?: [number, number] | null;
+  /**
+   * Enter the coordinates for the polygon. A closed polygon requires at least 3 points.
+   */
+  polygonCoordinates?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * If checked, the polygon will be clickable and show metadata. If unchecked, it will be a background-only shape.
+   */
+  isInteractive?: boolean | null;
   /**
    * A detailed description of the annotation.
    */
@@ -1615,29 +1637,6 @@ export interface CampMapAnnotation {
       }[]
     | null;
   images?: (string | Image)[] | null;
-  annotationType: 'marker' | 'polygon';
-  /**
-   * Coordinates of the annotation on the map.
-   */
-  geometry?: {
-    /**
-     * Coordinates of the annotation on the map.
-     *
-     * @minItems 2
-     * @maxItems 2
-     */
-    coordinates?: [number, number] | null;
-  };
-  /**
-   * Enter the coordinates for the polygon. A closed polygon requires at least 3 points.
-   */
-  polygonCoordinates?:
-    | {
-        latitude: number;
-        longitude: number;
-        id?: string | null;
-      }[]
-    | null;
   lastEditedByUser?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
@@ -2481,8 +2480,12 @@ export interface TimelineSelect<T extends boolean = true> {
  */
 export interface CampMapAnnotationsSelect<T extends boolean = true> {
   title?: T;
-  icon?: T;
   color?: T;
+  annotationType?: T;
+  icon?: T;
+  geometry?: T;
+  polygonCoordinates?: T;
+  isInteractive?: T;
   description?: T;
   openingHours?:
     | T
@@ -2492,19 +2495,6 @@ export interface CampMapAnnotationsSelect<T extends boolean = true> {
         id?: T;
       };
   images?: T;
-  annotationType?: T;
-  geometry?:
-    | T
-    | {
-        coordinates?: T;
-      };
-  polygonCoordinates?:
-    | T
-    | {
-        latitude?: T;
-        longitude?: T;
-        id?: T;
-      };
   lastEditedByUser?: T;
   updatedAt?: T;
   createdAt?: T;

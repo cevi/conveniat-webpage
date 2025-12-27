@@ -16,7 +16,7 @@ interface ScheduleMiniMapProperties {
  * Displays the location with a marker and provides a link to the main map.
  */
 export const ScheduleMiniMap: React.FC<ScheduleMiniMapProperties> = ({ location }) => {
-  const coordinates = location.geometry?.coordinates;
+  const coordinates = location.geometry;
 
   // If no coordinates, don't render the map
   if (!coordinates) {

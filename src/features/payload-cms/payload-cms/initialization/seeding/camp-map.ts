@@ -427,7 +427,7 @@ export const createRandomCampAnnotation = (
       '#b56aff',
       '#16a672',
     ]),
-    geometry: { coordinates: randomCoordinates },
+    geometry: randomCoordinates,
     openingHours: [
       {
         ...(randomDayOrUndefined === undefined ? {} : { day: randomDayOrUndefined }),
