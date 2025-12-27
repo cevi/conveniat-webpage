@@ -28,6 +28,7 @@ services:
     environment:
       - NODE_COMPILE_CACHE=/nodecache # see https://nodejs.org/en/blog/release/v22.1.0
       - NEXT_PUBLIC_DISABLE_SERWIST=true
+      - CI=true
 
     healthcheck:
       test: ['CMD-SHELL', 'curl -f http://localhost:3000/status | grep -q ''"status":"ok"''']
