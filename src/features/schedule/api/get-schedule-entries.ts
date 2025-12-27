@@ -47,9 +47,10 @@ const getScheduleEntriesCached = async (
 
 export const getScheduleEntries = async (
   where: Where = {},
+  locale?: Locale,
 ): Promise<CampScheduleEntryFrontendType[]> => {
   if (await forceDynamicOnBuild()) return [];
 
-  const locale = await getLocaleFromCookies();
-  return getScheduleEntriesCached(where, locale);
+  const currentLocale = locale ?? (await getLocaleFromCookies());
+  return getScheduleEntriesCached(where, currentLocale);
 };

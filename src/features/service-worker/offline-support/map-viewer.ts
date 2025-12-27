@@ -1,5 +1,4 @@
 import { offlineRegistry } from '@/features/service-worker/offline-support/offline-registry';
-import type { Serwist } from 'serwist';
 import { CacheFirst, type RouteHandler } from 'serwist';
 
 const tilesBaseUrl = 'https://vectortiles0.geo.admin.ch/tiles/';
@@ -8,9 +7,6 @@ const stylesBaseUrl = 'https://vectortiles.geo.admin.ch/styles/';
 const fontBaseUrl = 'https://vectortiles.geo.admin.ch/fonts/';
 
 const urlsToPrecache: string[] = [
-  // map viewer page
-  '/app/map',
-
   // fonts for map viewer
   `${fontBaseUrl}Frutiger%20Neue%20Italic/0-255.pbf`,
   `${fontBaseUrl}Frutiger%20Neue%20Condensed%20Regular/0-255.pbf`,
@@ -19,59 +15,86 @@ const urlsToPrecache: string[] = [
   // configs for map viewer
   `${tilesStyleBaseUrl}ch.swisstopo.base.vt/v1.0.0/tiles.json`,
   `${tilesStyleBaseUrl}ch.swisstopo.relief.vt/v1.0.0/tiles.json`,
+
+  // standard resolution sprites
   `${stylesBaseUrl}ch.swisstopo.basemap_world.vt/sprite/sprite.json`,
   `${stylesBaseUrl}ch.swisstopo.basemap_world.vt/sprite/sprite.png`,
 
-  // map tiles - base
+  // high-dpi (retina) sprites
+  `${stylesBaseUrl}ch.swisstopo.basemap_world.vt/sprite/sprite@2x.json`,
+  `${stylesBaseUrl}ch.swisstopo.basemap_world.vt/sprite/sprite@2x.png`,
+
+  // --- MAP TILES (Added from logs) ---
+  // Zoom Levels 3-12 (Base)
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/3/4/2.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/4/8/5.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/5/16/11.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/6/33/22.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/7/66/45.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/8/133/90.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/9/267/181.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/10/535/362.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/11/1071/724.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/12/2141/1448.pbf`,
   `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/12/2141/1449.pbf`,
   `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/12/2142/1448.pbf`,
-  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/13/4283/2897.pbf`,
-  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/13/4284/2896.pbf`,
-  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/14/8568/5797.pbf`,
-  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/13/4283/2898.pbf`,
-  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/13/4285/2896.pbf`,
-  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/14/8569/5797.pbf`,
-  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/13/4283/2899.pbf`,
-  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/14/8568/5794.pbf`,
-  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/14/8570/5797.pbf`,
-  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/13/4284/2899.pbf`,
-  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/13/4285/2898.pbf`,
-  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/12/2141/1448.pbf`,
-  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/13/4283/2896.pbf`,
-  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/13/4285/2899.pbf`,
-  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/14/8570/5794.pbf`,
-  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/14/8569/5795.pbf`,
-  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/14/8570/5795.pbf`,
-  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/14/8569/5796.pbf`,
-  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/14/8570/5796.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/12/2142/1449.pbf`,
 
-  // map tiles - relief
+  // Zoom Levels 13-14 (Base & Relief)
+  // Base
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/13/4283/2896.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/13/4283/2897.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/13/4283/2898.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/13/4283/2899.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/13/4284/2896.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/13/4284/2897.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/13/4284/2898.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/13/4284/2899.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/13/4285/2896.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/13/4285/2897.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/13/4285/2898.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/13/4285/2899.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/14/8568/5794.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/14/8568/5796.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/14/8568/5797.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/14/8569/5794.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/14/8569/5795.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/14/8569/5796.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/14/8569/5797.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/14/8570/5794.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/14/8570/5795.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/14/8570/5796.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/14/8570/5797.pbf`,
+
+  // Relief
+  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/12/2141/1448.pbf`,
   `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/12/2141/1449.pbf`,
   `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/12/2142/1448.pbf`,
-  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/13/4283/2897.pbf`,
   `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/12/2142/1449.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/13/4283/2897.pbf`,
   `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/13/4283/2898.pbf`,
-  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/14/8569/5797.pbf`,
   `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/13/4283/2899.pbf`,
-  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/14/8568/5794.pbf`,
-  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/14/8570/5797.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/13/4284/2897.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/13/4284/2898.pbf`,
   `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/13/4284/2899.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/13/4285/2897.pbf`,
   `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/13/4285/2898.pbf`,
-  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/12/2141/1448.pbf`,
   `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/13/4285/2899.pbf`,
-  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/14/8569/5795.pbf`,
-  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/14/8570/5794.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/14/8568/5794.pbf`,
   `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/14/8568/5796.pbf`,
-  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/14/8570/5795.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/14/8568/5797.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/14/8569/5794.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/14/8569/5795.pbf`,
   `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/14/8569/5796.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/14/8569/5797.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/14/8570/5794.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/14/8570/5795.pbf`,
   `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/14/8570/5796.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/14/8570/5797.pbf`,
 ];
 
-/**
- * Rewrites failed tile requests to the primary tile server.
- */
-export const tileURLRewriter = (serwist: Serwist): RouteHandler => {
-  return async ({ request }) => {
+export const tileURLRewriter = (): RouteHandler => {
+  return async ({ request }: { request: Request }) => {
     const url = new URL(request.url);
 
     if (
@@ -83,7 +106,7 @@ export const tileURLRewriter = (serwist: Serwist): RouteHandler => {
     }
 
     const tileRegex =
-      /https:\/\/vectortiles[0-4]\.geo\.admin\.ch\/tiles\/(ch\.swisstopo\..*\.vt\/v[0-9]\.[0-9]\.[0-9])\/([0-9]+\/[0-9]+\/[0-9]+\.pbf)/;
+      /https:\/\/vectortiles[0-9]?\.geo\.admin\.ch\/tiles\/(ch\.swisstopo\..*\.vt\/v[0-9]\.[0-9]\.[0-9])\/([0-9]+\/[0-9]+\/[0-9]+\.pbf)/;
     const match = request.url.match(tileRegex);
 
     if (match?.[1] !== undefined && match[2] !== undefined) {
@@ -99,30 +122,29 @@ export const tileURLRewriter = (serwist: Serwist): RouteHandler => {
       }
     }
 
+    const pagesCache = await caches.open('pages-cache');
+
     if (url.pathname.startsWith('/app/map') && request.destination === 'document') {
-      const cachedMapPage = await serwist.matchPrecache('/app/map');
+      const cachedMapPage = await pagesCache.match('/app/map', { ignoreVary: true });
       if (cachedMapPage) return cachedMapPage;
     }
 
     if (request.destination === 'document') {
-      const _match = await serwist.matchPrecache('/~offline');
-      return _match ?? Response.error();
+      const offlinePage = await pagesCache.match('/~offline', { ignoreVary: true });
+      return offlinePage ?? Response.error();
     }
 
     return Response.error();
   };
 };
 
-/**
- * Register map viewer offline support.
- */
-export const registerMapOfflineSupport = (): void => {
+export const registerMapOfflineSupport: () => void = (): void => {
   offlineRegistry.register('map-viewer', {
     precacheAssets: urlsToPrecache,
     prefetchUrls: ['/app/map'],
     runtimeCaching: [
       {
-        matcher: /https:\/\/vectortiles[0-4]\.geo\.admin\.ch\/tiles\/.*/,
+        matcher: /https:\/\/vectortiles[0-9]?\.geo\.admin\.ch\/(tiles|styles)\/.*/,
         handler: new CacheFirst({
           cacheName: 'map-tiles-cache',
         }),

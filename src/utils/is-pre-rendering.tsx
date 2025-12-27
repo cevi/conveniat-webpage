@@ -24,9 +24,7 @@ import 'server-only';
  */
 export const isBuildPhase = (): boolean =>
   // eslint-disable-next-line n/no-process-env
-  process.env['NEXT_PHASE'] === PHASE_PRODUCTION_BUILD ||
-  // eslint-disable-next-line n/no-process-env
-  process.env['NEXT_PHASE'] === 'phase-production-build';
+  process.env['NEXT_PHASE'] === PHASE_PRODUCTION_BUILD;
 
 /**
  * Checks if we are in the build phase. If so, it opts into dynamic rendering (by awaiting `connection()`)

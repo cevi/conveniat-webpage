@@ -19,6 +19,7 @@ export const i18nExcludedRoutes: string[] = [
   // app landing page (is localized manually)
   'entrypoint',
   'login',
+  '~offline',
 
   // Internal Paths (API, Admin Panel of Payload CMS)
   '_next',
@@ -33,11 +34,9 @@ export const i18nExcludedRoutes: string[] = [
   'vector-map',
 
   // Static Files (Service Workers, Manifests, SEO)
-  'sw.js',
-  'swe-worker-',
+  'serwist',
   'manifest.webmanifest',
   'manifest.json',
   'sitemap.xml',
   'robots.txt',
-  '~offline',
 ] as const;

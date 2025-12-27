@@ -56,6 +56,12 @@ export const ScheduleComponent: React.FC<ScheduleComponentProperties> = ({ sched
   const { data: myEnrollments } = trpc.schedule.getMyEnrollments.useQuery();
   const enrolledIds = useMemo(() => new Set(myEnrollments ?? []), [myEnrollments]);
 
+  // Hydrate schedule entries into TanStack Query cache for offline access
+  const { data: hydratedScheduleEntries } = trpc.schedule.getScheduleEntries.useQuery(undefined, {
+    initialData: scheduleEntries,
+    staleTime: 1000 * 60 * 60, // 1 hour
+  });
+
   const {
     currentDate,
     allDates,
@@ -63,7 +69,7 @@ export const ScheduleComponent: React.FC<ScheduleComponentProperties> = ({ sched
     carouselStartIndex,
     maxVisibleDays,
     actions,
-  } = useSchedule(scheduleEntries);
+  } = useSchedule(hydratedScheduleEntries);
 
   const {
     filters,
@@ -232,7 +238,7 @@ export const ScheduleComponent: React.FC<ScheduleComponentProperties> = ({ sched
                 />
 
                 {/* Navigation Links */}
-                {(previousDay || nextDate) && (
+                {(previousDay ?? nextDate) && (
                   <div className="flex flex-col space-y-3">
                     {/* Prev Day Link */}
                     {previousDay && (

@@ -8,6 +8,7 @@ import { DesignCodes, DesignModeTriggers } from '@/utils/design-codes';
 import Cookies from 'js-cookie';
 import { useSession } from 'next-auth/react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import type { Dispatch, SetStateAction } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 const getInitialLocale = (): 'en' | 'de' | 'fr' => {
@@ -19,15 +20,6 @@ const getInitialLocale = (): 'en' | 'de' | 'fr' => {
 const getInitialOnboardingStep = (): OnboardingStep => {
   return OnboardingStep.Checking;
 };
-
-interface UseOnboardingReturn {
-  locale: keyof typeof cookieInfoText;
-  onboardingStep: OnboardingStep;
-  handleLanguageChange: (newLocale: string) => void;
-  acceptCookiesCallback: () => void;
-  handlePushNotification: () => void;
-  setOnboardingStep: React.Dispatch<React.SetStateAction<OnboardingStep>>;
-}
 
 export const useOnboarding = (): UseOnboardingReturn => {
   const [locale, setLocale] = useState<keyof typeof cookieInfoText>(getInitialLocale);
@@ -98,7 +90,7 @@ export const useOnboarding = (): UseOnboardingReturn => {
       const params = new URLSearchParams(searchParameters.toString());
       params.delete(DesignModeTriggers.QUERY_PARAM_FORCE);
       const queryString = params.toString();
-      const newUrl = `${pathname}${queryString ? `?${queryString}` : ''}`;
+      const newUrl = `${pathname}${queryString}`;
       router.replace(newUrl);
     }
   }, [searchParameters, pathname, router]);
@@ -109,7 +101,7 @@ export const useOnboarding = (): UseOnboardingReturn => {
     const cookieLocale = Cookies.get(Cookie.LOCALE_COOKIE);
     let targetLocale: 'en' | 'de' | 'fr' = 'en';
 
-    if (cookieLocale && ['en', 'de', 'fr'].includes(cookieLocale)) {
+    if (cookieLocale !== undefined && ['en', 'de', 'fr'].includes(cookieLocale)) {
       targetLocale = cookieLocale as 'en' | 'de' | 'fr';
     } else if (typeof navigator !== 'undefined') {
       const browserLang = navigator.language.split('-')[0];
@@ -118,7 +110,6 @@ export const useOnboarding = (): UseOnboardingReturn => {
       }
     }
 
-    // Only update if different to prevent unnecessary renders, but vital for hydration fix
     // Only update if different to prevent unnecessary renders, but vital for hydration fix
     setTimeout(() => {
       setLocale((current) => (current === targetLocale ? current : targetLocale));
@@ -133,47 +124,113 @@ export const useOnboarding = (): UseOnboardingReturn => {
     }
   }, [hasManuallyChangedLanguage, locale, onboardingStep]);
 
-  // Determine the current step
+  // Handle Offline Content Step
+  const handleOfflineContent = useCallback((accepted: boolean) => {
+    // Store preference in TanStack DB
+    void import('@/lib/tanstack-db').then(({ userPreferencesCollection }) => {
+      userPreferencesCollection.insert({ key: 'offline-content-handled', value: true });
+      if (accepted) {
+        userPreferencesCollection.insert({ key: 'offline-content-accepted', value: true });
+      } else {
+        userPreferencesCollection.insert({ key: 'offline-content-accepted', value: false });
+      }
+    });
+
+    setOnboardingStep(OnboardingStep.Loading);
+  }, []);
+
+  // Check Onboarding State
   useEffect(() => {
-    const hasAcceptedCookies = Cookies.get(Cookie.CONVENIAT_COOKIE_BANNER) === 'true';
+    const checkOnboarding = async (): Promise<void> => {
+      const hasAcceptedCookies = Cookies.get(Cookie.CONVENIAT_COOKIE_BANNER) === 'true';
 
-    if (!hasAcceptedCookies) {
-      setTimeout(() => {
+      if (!hasAcceptedCookies) {
         if (isMounted.current) setOnboardingStep(OnboardingStep.Initial);
-      }, 0);
-      return;
-    }
+        return;
+      }
 
-    if (status === 'loading') return;
+      if (status === 'loading') return;
 
-    if (status === 'authenticated') {
-      void getPushSubscription()
-        .then((subscription: PushSubscription | undefined): void => {
+      if (status === 'authenticated') {
+        try {
+          const subscription = await getPushSubscription();
           if (!isMounted.current) return;
-          const hasSkipped = Cookies.get(Cookie.SKIP_PUSH_NOTIFICATION) === 'true';
-          const isDenied =
+
+          const hasSkippedPush = Cookies.get(Cookie.SKIP_PUSH_NOTIFICATION) === 'true';
+          const isDeniedPush =
             typeof Notification !== 'undefined' && Notification.permission === 'denied';
 
-          if (subscription || hasSkipped || isDenied) {
-            handlePushNotification();
-          } else {
+          if (!subscription && !hasSkippedPush && !isDeniedPush) {
             setOnboardingStep(OnboardingStep.PushNotifications);
+            return;
           }
-        })
-        .catch((): void => {
-          if (isMounted.current) setOnboardingStep(OnboardingStep.PushNotifications);
-        });
-    } else {
-      setTimeout(() => {
-        if (isMounted.current) setOnboardingStep(OnboardingStep.Login);
-      }, 0);
-    }
+
+          // Check Offline Content Preference from TanStack DB
+          const { userPreferencesCollection } = await import('@/lib/tanstack-db');
+          const offlineHandled = userPreferencesCollection.get('offline-content-handled');
+
+          // ALSO check if content is already cached (e.g. from previous session)
+          let hasCachedContent = false;
+          if (typeof caches !== 'undefined') {
+            try {
+              const pagesCache = await caches.open('pages-cache');
+              const keys = await pagesCache.keys();
+              if (keys.length > 5) {
+                hasCachedContent = true;
+              }
+            } catch (error) {
+              console.warn('Failed to check cache', error);
+            }
+          }
+
+          if (!offlineHandled && !hasCachedContent) {
+            setOnboardingStep(OnboardingStep.OfflineContent);
+            return;
+          }
+
+          // If we have content but database is out of sync, sync it?
+          if (hasCachedContent && !offlineHandled) {
+            void userPreferencesCollection.insert({ key: 'offline-content-handled', value: true });
+            void userPreferencesCollection.insert({ key: 'offline-content-accepted', value: true });
+          }
+
+          setOnboardingStep(OnboardingStep.Loading);
+        } catch (error) {
+          console.error('Onboarding check failed', error);
+          // Default to dashboard on error to avoid active blocking
+          setOnboardingStep(OnboardingStep.Loading);
+        }
+      } else {
+        setTimeout(() => {
+          if (isMounted.current) setOnboardingStep(OnboardingStep.Login);
+        }, 0);
+      }
+    };
+
+    void checkOnboarding();
   }, [status, handlePushNotification]);
+
+  // Handle Push Notification Step Transitions
+  const handlePushNotificationWithNextStep = useCallback(async () => {
+    // Check if we need to show Offline Content step
+    const { userPreferencesCollection } = await import('@/lib/tanstack-db');
+    const offlineHandled = userPreferencesCollection.get('offline-content-handled');
+
+    if (offlineHandled) {
+      setOnboardingStep(OnboardingStep.Loading);
+    } else {
+      setOnboardingStep(OnboardingStep.OfflineContent);
+    }
+  }, []);
+
+  const handlePushNotificationNext = useCallback(() => {
+    Cookies.remove(Cookie.HAS_LOGGED_IN);
+    void handlePushNotificationWithNextStep();
+  }, [handlePushNotificationWithNextStep]);
 
   // Redirect to dashboard when finished
   useEffect(() => {
     if (onboardingStep === OnboardingStep.Loading) {
-      console.log('Redirect to Homepage');
       router.push('/app/dashboard');
     }
   }, [onboardingStep, router]);
@@ -183,7 +240,18 @@ export const useOnboarding = (): UseOnboardingReturn => {
     onboardingStep,
     handleLanguageChange,
     acceptCookiesCallback,
-    handlePushNotification,
+    handlePushNotification: handlePushNotificationNext,
+    handleOfflineContent,
     setOnboardingStep,
   };
 };
+
+export interface UseOnboardingReturn {
+  locale: keyof typeof cookieInfoText;
+  onboardingStep: OnboardingStep;
+  handleLanguageChange: (newLocale: string) => void;
+  acceptCookiesCallback: () => void;
+  handlePushNotification: () => void;
+  handleOfflineContent: (accepted: boolean) => void;
+  setOnboardingStep: Dispatch<SetStateAction<OnboardingStep>>;
+}

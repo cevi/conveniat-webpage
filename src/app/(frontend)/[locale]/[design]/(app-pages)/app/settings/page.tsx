@@ -1,5 +1,6 @@
 import { SetDynamicPageTitle } from '@/components/header/set-dynamic-app-title';
 import { MainMenuLanguageSwitcher } from '@/components/menu/main-menu-language-switcher';
+import { OfflineContentSettings } from '@/features/settings/offline-content-settings';
 import { ProfileDetails } from '@/features/settings/profile-details';
 import { PushNotificationSettings } from '@/features/settings/push-notification-settings';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -34,6 +35,11 @@ const Settings: React.FC<{ params: Promise<{ locale: Locale }> }> = async ({ par
           {/* Add Option to Configure Push Notifications */}
           <article className="rounded-lg border-2 border-gray-200 bg-white p-6">
             <PushNotificationSettings />
+          </article>
+
+          {/* Offline Content Settings */}
+          <article className="rounded-lg border-2 border-gray-200 bg-white p-6">
+            <OfflineContentSettings locale={locale} />
           </article>
         </div>
       </section>

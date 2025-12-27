@@ -21,6 +21,18 @@ const isOverlapping = (time1: string, date1: string, time2: string, date2: strin
 };
 
 export const scheduleRouter = createTRPCRouter({
+  getScheduleEntries: trpcBaseProcedure.query(async ({ ctx }) => {
+    const { locale } = ctx;
+    const { getScheduleEntries } = await import('./get-schedule-entries');
+    return getScheduleEntries({}, locale);
+  }),
+
+  getById: trpcBaseProcedure.input(z.object({ id: z.string() })).query(async ({ input, ctx }) => {
+    const { locale } = ctx;
+    const { getById } = await import('./get-by-id');
+    return getById(input.id, locale);
+  }),
+
   getCourseStatus: trpcBaseProcedure.input(enrollInCourseSchema).query(async ({ input, ctx }) => {
     const { prisma, user } = ctx;
     const { courseId } = input;
@@ -81,7 +93,7 @@ export const scheduleRouter = createTRPCRouter({
         id: courseId,
       });
 
-      if (!course.enable_enrolment) {
+      if (course.enable_enrolment === false) {
         throw new TRPCError({
           code: 'BAD_REQUEST',
           message: 'Enrolment is not enabled for this course.',
@@ -273,8 +285,8 @@ export const scheduleRouter = createTRPCRouter({
     .input(
       z.object({
         courseId: z.string(),
-        description: z.any().optional(), // eslint-disable-line @typescript-eslint/no-explicit-any
-        targetGroup: z.any().optional(), // eslint-disable-line @typescript-eslint/no-explicit-any
+        description: z.any().optional(),
+        targetGroup: z.any().optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -426,10 +438,10 @@ export const scheduleRouter = createTRPCRouter({
       .input(z.object({ courseId: z.string() }))
       .query(async ({ input, ctx }) => {
         const { prisma } = ctx;
-        const count = await prisma.star.count({
+
+        return await prisma.star.count({
           where: { courseId: input.courseId },
         });
-        return count;
       }),
   }),
 });

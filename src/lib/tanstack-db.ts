@@ -96,3 +96,25 @@ export const scheduleEntriesCollection = createCollection(
 
 // Type helper for schedule entries
 export type ScheduleEntryRecord = z.infer<typeof scheduleEntrySchema>;
+
+/**
+ * Schema for user preferences
+ */
+const userPreferenceSchema = z.object({
+  key: z.string(),
+  value: z.any(),
+});
+
+/**
+ * Initialize the local TanStack DB collection for user preferences.
+ */
+export const userPreferencesCollection = createCollection(
+  localStorageCollectionOptions({
+    id: 'user-preferences',
+    storageKey: 'tanstack-db-user-preferences',
+    getKey: (item) => item.key,
+    schema: userPreferenceSchema,
+  }),
+);
+
+export type UserPreferenceRecord = z.infer<typeof userPreferenceSchema>;

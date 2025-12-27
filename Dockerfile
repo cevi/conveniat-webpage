@@ -66,8 +66,7 @@ RUN \
   fi
 
 # Ensure fallback cache directory exists so copy commands don't fail if empty
-RUN mkdir -p .next/cache/redis-fallback
-
+RUN mkdir -p .next/cache/fs-fallback
 
 # Production image, copy all the files and run next
 FROM base AS runner
@@ -85,8 +84,6 @@ ENV NEXT_TELEMETRY_DISABLED 1
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Remove this line if you do not have this folder
-COPY --from=builder /app/public ./public
 
 # Set the correct permission for prerender cache
 RUN mkdir .next
@@ -94,9 +91,14 @@ RUN chown nextjs:nodejs .next
 
 # Automatically leverage output traces to reduce image size
 # https://nextjs.org/docs/advanced-features/output-file-tracing
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-COPY --from=builder --chown=nextjs:nodejs /app/.next/cache/redis-fallback ./.next/cache/redis-fallback
+
+# copy the fallback cache containing pre-build / static assets
+COPY --from=builder --chown=nextjs:nodejs /app/.next/cache/fs-fallback ./.next/cache/fs-fallback
+
+# copy prisma client
 COPY --from=builder --chown=nextjs:nodejs /app/src/lib/prisma/ /app/src/lib/prisma/
 
 USER nextjs

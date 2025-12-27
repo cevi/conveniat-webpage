@@ -4,6 +4,7 @@ import { AcceptCookieEntrypointComponent } from '@/features/onboarding/component
 import { FancyLoadingScreen } from '@/features/onboarding/components/fancy-loading-screen';
 import { LanguageSwitcher } from '@/features/onboarding/components/language-switcher';
 import { LoginScreen, loginDismissText } from '@/features/onboarding/components/login-screen';
+import { OfflineContentEntrypointComponent } from '@/features/onboarding/components/offline-content-component';
 import { OnboardingLayout } from '@/features/onboarding/components/onboarding-layout';
 import { OnboardingProgress } from '@/features/onboarding/components/onboarding-progress';
 import {
@@ -24,6 +25,7 @@ export const OnboardingProcess: React.FC = () => {
     handleLanguageChange,
     acceptCookiesCallback,
     handlePushNotification,
+    handleOfflineContent,
     setOnboardingStep,
   } = useOnboarding();
 
@@ -43,16 +45,6 @@ export const OnboardingProcess: React.FC = () => {
     footer = (
       <button
         onClick={() => {
-          // We need to import Cookies and Cookie enum here if we want to do it here,
-          // OR we can make the Footer part of the Step Component but rendered via Portal?
-          // Simpler: Just render the Footer HERE if possible.
-          // Actually, PushNotificationManagerEntrypointComponent had the logic.
-          // Let's look at PushNotificationManagerEntrypointComponent again.
-          // It just calls callback(). Using the same callback for skip seems fine if the logic is inside.
-          // Wait, the logic for setting the cookie was INSIDE PushNotificationManagerEntrypointComponent.
-          // I should probably move that logic up or keep it there?
-          // If I keep it there, I can't put it in the footer efficiently without context.
-          // Let's assume for now I can recreate the button here.
           Cookies.set(Cookie.SKIP_PUSH_NOTIFICATION, 'true', { expires: 7 });
           handlePushNotification();
         }}
@@ -62,10 +54,6 @@ export const OnboardingProcess: React.FC = () => {
       </button>
     );
   }
-
-  // To properly handle the Push Skip logic cleanly without dynamic imports inside render:
-  // We'll trust the handlePushNotification to handle "next step", but the "skip cookie" is specific.
-  // Let's import Cookies in this file.
 
   return (
     <div className="relative mx-auto flex h-svh max-w-96 flex-col items-center justify-center p-4">
@@ -111,6 +99,22 @@ export const OnboardingProcess: React.FC = () => {
               >
                 <PushNotificationManagerEntrypointComponent
                   callback={handlePushNotification}
+                  locale={locale}
+                />
+              </motion.div>
+            )}
+
+            {onboardingStep === OnboardingStep.OfflineContent && (
+              <motion.div
+                key="offline"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+                className="w-full"
+              >
+                <OfflineContentEntrypointComponent
+                  callback={handleOfflineContent}
                   locale={locale}
                 />
               </motion.div>

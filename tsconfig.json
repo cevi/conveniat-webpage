@@ -50,5 +50,5 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
-  "exclude": ["public/sw.js", "node_modules", ".next", "src/app/(payload)/layout.tsx"]
+  "exclude": ["node_modules", ".next", "src/app/(payload)/layout.tsx"]
 }

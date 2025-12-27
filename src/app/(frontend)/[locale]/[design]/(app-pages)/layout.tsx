@@ -5,6 +5,7 @@ import { SetHideCopyrightFooter } from '@/components/footer/hide-footer-context'
 import { ClientProviders } from '@/context/client-providers';
 import type { Locale } from '@/types/types';
 import { DesignCodes } from '@/utils/design-codes';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { SessionProvider } from 'next-auth/react';
 
 interface LayoutProperties {
@@ -19,6 +20,7 @@ const AppLayout: React.FC<LayoutProperties> = ({ children }) => {
   return (
     <Suspense fallback={undefined}>
       <ClientProviders>
+        <ReactQueryDevtools initialIsOpen={false} buttonPosition="top-right" />
         <SetHideCopyrightFooter value />
         <SessionProvider>
           <div className="mb-20">{children}</div>

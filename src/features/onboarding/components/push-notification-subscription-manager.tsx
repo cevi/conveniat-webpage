@@ -64,7 +64,7 @@ export const PushNotificationSubscriptionManager: React.FC<{
   callback: () => void;
   locale: 'de' | 'fr' | 'en';
   swUrl?: string;
-}> = ({ callback, locale, swUrl = '/sw.js' }) => {
+}> = ({ callback, locale, swUrl = '/serwist/sw.js' }) => {
   const [isSupported, setIsSupported] = useState(false);
   const [subscription, setSubscription] = useState<PushSubscription | undefined>();
   const [isLoading, setIsLoading] = useState(false);

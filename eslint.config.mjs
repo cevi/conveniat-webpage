@@ -78,7 +78,10 @@ const config = defineConfig([
             tx: true, // transaction
             val: true, // value
             env: true, // environment
-            generateStaticParams: true, // Next.js function
+
+            // Next.js functions
+            generateStaticParams: true,
+            dynamicParams: true,
           },
         },
       ],
@@ -285,7 +288,6 @@ const config = defineConfig([
 
     // observability tools
     'observability/**',
-    'public/sw.js',
   ]),
 ]);
 

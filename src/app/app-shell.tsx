@@ -4,7 +4,6 @@ import { FooterClientWrapper } from '@/components/footer/footer-client-wrapper';
 import { DynamicAppTitleProvider } from '@/components/header/dynamic-app-title-name';
 import { HeaderClientWrapper } from '@/components/header/header-client-wrapper';
 import { HideHeaderProvider } from '@/components/header/hide-header-context';
-import { PrefetchOfflinePages } from '@/components/service-worker/prefetch-offline-pages';
 import { CeviLogo } from '@/components/svg-logos/cevi-logo';
 import { PostHogProvider } from '@/providers/post-hog-provider';
 import { TRPCProvider } from '@/trpc/client';
@@ -36,8 +35,6 @@ export const AppShell: React.FC<AppShellProperties> = ({
         <HideHeaderProvider>
           <DynamicAppTitleProvider>
             <HeaderClientWrapper>{header}</HeaderClientWrapper>
-
-            <PrefetchOfflinePages />
 
             {/* Background Logo */}
             <div

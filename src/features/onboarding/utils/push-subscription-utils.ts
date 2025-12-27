@@ -29,7 +29,7 @@ export const getPushSubscription = async (): Promise<PushSubscription | undefine
 };
 
 export const registerServiceWorker = async (
-  swUrl: string = '/sw.js',
+  swUrl: string = '/serwist/sw.js',
 ): Promise<ServiceWorkerRegistration | undefined> => {
   if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
     return undefined;
@@ -52,7 +52,7 @@ export const registerServiceWorker = async (
 };
 
 export const isPushSupported = (): boolean => {
-  // 1. Basic API checks (covers Chrome, Firefox, Desktop Safari)
+  // Basic API checks (covers Chrome, Firefox, Desktop Safari)
   if (
     typeof globalThis === 'undefined' ||
     !('serviceWorker' in navigator) ||
@@ -61,11 +61,6 @@ export const isPushSupported = (): boolean => {
   ) {
     return false;
   }
-
-  // 2. iOS/iPadOS Specific Check
-  // On iOS < 16.4, Push is not supported.
-  // On iOS 16.4+, Push is supported BUT only in "Standalone" (Home Screen) mode.
-  // Many devs miss this: In standard Safari tabs, the API might exist but fail.
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(globalThis as any).MSStream;

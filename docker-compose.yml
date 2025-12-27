@@ -1,5 +1,7 @@
 services:
   payload:
+    profiles:
+      - dev
     build:
       context: .
       dockerfile: dev.Dockerfile
@@ -25,6 +27,7 @@ services:
       - .env
     environment:
       - NODE_COMPILE_CACHE=/nodecache # see https://nodejs.org/en/blog/release/v22.1.0
+      - NEXT_PUBLIC_DISABLE_SERWIST=true
 
     healthcheck:
       test: ['CMD-SHELL', 'curl -f http://localhost:3000/status | grep -q ''"status":"ok"''']
@@ -32,6 +35,61 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+
+  payload-service-worker:
+    profiles:
+      - service-worker
+    build:
+      context: .
+      dockerfile: service-worker.Dockerfile
+    ports:
+      - '3000:3000'
+      - '51212:51212'
+      - '9464:9464' # Prometheus metrics
+    volumes:
+      - next-cache:/home/node/app/.next
+      - node-cache:/nodecache
+      - node_modules:/home/node/app/node_modules
+    working_dir: /home/node/app/
+    command: >
+      sh -c "export PRISMA_OUTPUT='src/lib/prisma/client/' && npx prisma generate --no-hints && npx prisma db push --accept-data-loss && npx prisma studio --browser none & corepack enable pnpm && pnpm i --frozen-lockfile && sh /home/node/app/create_build_info.sh && pnpm build && node .next/standalone/server.js"
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+
+    depends_on:
+      - mongo
+    env_file:
+      - .env
+    environment:
+      - NODE_COMPILE_CACHE=/nodecache # see https://nodejs.org/en/blog/release/v22.1.0
+      - NEXT_PUBLIC_DISABLE_SERWIST=false
+      - ENABLE_TURBOPACK_FS_CACHE=true
+      - CI=true
+
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:3000/status | grep -q ''"status":"ok"''']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./src
+          target: /home/node/app/src
+        - action: sync+restart
+          path: ./public
+          target: /home/node/app/public
+        - action: sync+restart
+          path: ./next.config.ts
+          target: /home/node/app/next.config.ts
+        - action: sync+restart
+          path: ./package.json
+          target: /home/node/app/package.json
+        - action: sync+restart
+          path: ./tsconfig.json
+          target: /home/node/app/tsconfig.json
 
   mongo:
     image: mongo:latest

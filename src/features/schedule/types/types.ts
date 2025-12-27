@@ -14,6 +14,7 @@ export interface CampScheduleEntryFrontendType {
   participants_max?: number | null | undefined;
   enable_enrolment?: boolean | null | undefined;
   category?: string | CampCategory | null;
+  target_group?: SerializedEditorState | null | undefined;
   organiser?:
     | (
         | string

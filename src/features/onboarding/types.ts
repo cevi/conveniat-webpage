@@ -4,4 +4,5 @@ export enum OnboardingStep {
   PushNotifications = 2,
   Loading = 3,
   Checking = 4,
+  OfflineContent = 5,
 }

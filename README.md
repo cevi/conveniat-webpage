@@ -58,7 +58,7 @@ Ensure you have the following installed on your system:
 ### Local Development Commands
 
 - **Install Dependencies:** `pnpm install`
-- **Start Development Server:** `docker compose up --build`
+- **Start Development Server:** `docker compose up --build` (this uses the default `dev` profile defined in `.env`)
 - **Stop Development Server:** `docker compose down`
 - **Clear Database & Volumes:** To completely reset the database and remove Docker volumes (useful for reseeding):
   ```bash
@@ -89,7 +89,7 @@ modularity and maintainability.
 ### Folder Overview
 
 ```plaintext
-public/         # Static assets (images, fonts, sw.js, etc.)
+public/         # Static assets (images, fonts, etc.)
 src/
 |
 +-- app/              # Next.js App Router: Layouts, Pages, Route Handlers
@@ -158,20 +158,28 @@ To improve performance, calls to Payload CMS are cached server-side using Next.j
 This application utilizes [Serwist](https://serwist.pages.dev/) (`@serwist/next`) to implement Service Worker
 functionality, enabling PWA features:
 
-- **Offline Access:** Pre-cached pages (like the `/offline` page) and potentially other assets allow basic functionality
+- **Offline Access:** Pre-cached pages (like the `/~offline` page) and potentially other assets allow basic
+  functionality
   when the user is offline.
 - **Caching:** Improves performance by caching assets and network requests.
 - **Reliability:** Provides a more resilient user experience on flaky networks.
 
 The service worker logic is defined in `src/features/service-worker/index.ts` and configured in `next.config.mjs`.
 
-To disable the service worker during local development, you can set the following environment variable in your `.env` file or pass it to Docker. It is recommended to disable the service worker during local development to avoid issues with caching and HMR (Hot Module Replacement).
+### Service Worker in Development
+
+By default, the Service Worker is **disabled** during local development (`docker compose up`) to prevent caching issues
+with Hot Module Replacement (HMR).
+
+To enable the Service Worker locally and simulate a production-like environment (including file watching and
+rebuilding), use the `service-worker` profile:
 
 ```bash
-NEXT_PUBLIC_DISABLE_SERWIST=true
+docker compose --profile service-worker up --watch --build
 ```
 
-When set to `true`, the service worker will not be registered, and the web manifest link will be omitted from the HTML head.
+This uses `docker watch` to sync file changes and trigger rebuilds, leveraging the Turbopack file system cache for
+faster subsequent builds.
 
 ## Code Quality & Conventions
 
@@ -319,12 +327,15 @@ npx prisma migrate deploy --schema prisma/schema.prisma # for prod
 
 ### Database Maintenance
 
-If you see warnings about **collation version mismatch** (e.g., `The database was created using collation version 2.36, but the operating system provides version 2.41`), you need to update the collation version to match the current OS.
+If you see warnings about **collation version mismatch** (e.g.,
+`The database was created using collation version 2.36, but the operating system provides version 2.41`), you need to
+update the collation version to match the current OS.
 
 Run the following SQL command against the database:
 
 ```sql
-ALTER DATABASE conveniat27 REFRESH COLLATION VERSION;
+ALTER
+DATABASE conveniat27 REFRESH COLLATION VERSION;
 ```
 
 SSH into the server and run the following command to execute the SQL command:
@@ -367,7 +378,8 @@ docker run --rm -it --network conveniat-dev_backend-net postgres:17 \
 
 ### Connect from Localhost
 
-To directly connect to the database from your local machine, use the provided script to open an **SSH Tunnel**. This tunnel supports both Postgres (local 5433) and MongoDB (local 27018).
+To directly connect to the database from your local machine, use the provided script to open an **SSH Tunnel**. This
+tunnel supports both Postgres (local 5433) and MongoDB (local 27018).
 
 #### Open Tunnel:
 
@@ -380,7 +392,8 @@ pnpm db:tunnel-dev   # For Development
 
 ### Synchronize Database
 
-You can easily sync the entire database state (Postgres + MongoDB) between your local environment and the remote servers.
+You can easily sync the entire database state (Postgres + MongoDB) between your local environment and the remote
+servers.
 
 #### Pull (Remote -> Local)
 
@@ -409,7 +422,8 @@ If you encounter errors when opening a tunnel, follow these steps:
 
 #### "Bind for 127.0.0.1:5433 failed: port is already allocated"
 
-This usually happens because a previous tunnel container is still running on the remote host. The updated commands above automatically attempt to stop the existing container (`db-tunnel-prod` or `db-tunnel-dev`) before starting a new one.
+This usually happens because a previous tunnel container is still running on the remote host. The updated commands above
+automatically attempt to stop the existing container (`db-tunnel-prod` or `db-tunnel-dev`) before starting a new one.
 
 #### Manual Cleanup
 
@@ -421,7 +435,9 @@ docker rm -f db-tunnel-prod  # or db-tunnel-dev
 
 #### Signal Propagation
 
-The scripts use the `-t` flag in SSH and `--init` flag in Docker to ensure that when you press `Ctrl+C` on your local machine, the signal is propagated correctly to the remote container, allowing it to exit and clean itself up (via `--rm`).
+The scripts use the `-t` flag in SSH and `--init` flag in Docker to ensure that when you press `Ctrl+C` on your local
+machine, the signal is propagated correctly to the remote container, allowing it to exit and clean itself up (via
+`--rm`).
 
 **How this works:**
 

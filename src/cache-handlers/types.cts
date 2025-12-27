@@ -1,6 +1,7 @@
 /**
- * A timestamp in milliseconds elapsed since the epoch
+ * src/cache-handlers/types.cts
  */
+
 export type Timestamp = number;
 
 export interface CacheEntry {
@@ -39,7 +40,7 @@ export interface CacheEntry {
   revalidate: number;
 }
 
-export interface CacheHandler {
+export interface CacheOrchestrator {
   /**
    * Retrieve a cache entry for the given cache key, if available. Will return
    * undefined if there's no valid entry, or if the given soft tags are stale.
@@ -82,4 +83,11 @@ export interface CacheHandler {
    * Revalidate a tag.
    */
   revalidateTag?(tag: string): Promise<void>;
+}
+
+export interface InternalCacheHandler {
+  name: string;
+  get(key: string): Promise<{ value: Buffer; metadata?: Partial<CacheEntry> } | undefined>;
+  set(key: string, value: Buffer, metadata: CacheEntry): Promise<void>;
+  invalidateTags(tags: string[]): Promise<void>;
 }
