@@ -10,7 +10,8 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "build": "cross-env NODE_OPTIONS=--no-deprecation next build",
+    "build": "pnpm run build:cache && cross-env NODE_OPTIONS=--no-deprecation next build",
+    "build:cache": "esbuild src/cache-handlers/default.ts --bundle --platform=node --format=cjs --outfile=src/cache-handlers/default.cjs --external:next --external:ioredis --external:node:crypto --external:node:fs --external:node:path --external:node:fs/promises --external:@opentelemetry/api",
     "dev": "cross-env NODE_OPTIONS=--no-deprecation next dev --turbo",
     "devsafe": "rm -rf .next/* && cross-env NODE_OPTIONS=--no-deprecation next dev",
     "generate:importmap": "cross-env NODE_OPTIONS=--no-deprecation payload generate:importmap",

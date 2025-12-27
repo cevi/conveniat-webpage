@@ -2,9 +2,9 @@
  * src/cache-handlers/default.cts
  */
 import { PHASE_PRODUCTION_BUILD } from 'next/constants';
-import { FileSystemCache } from './handlers/file-system.cjs';
-import { RedisCache } from './handlers/redis.cjs';
-import { CacheEntry, CacheOrchestrator, Timestamp } from './types.cjs';
+import { FileSystemCache } from './handlers/file-system';
+import { RedisCache } from './handlers/redis';
+import { CacheEntry, CacheOrchestrator, Timestamp } from './types';
 
 const isBuild =
   // eslint-disable-next-line n/no-process-env
@@ -62,7 +62,7 @@ export class Orchestrator implements CacheOrchestrator {
   async set(cacheKey: string, pendingEntry: Promise<CacheEntry>): Promise<void> {
     // Create a lock for this key
     // eslint-disable-next-line unicorn/consistent-function-scoping
-    let resolveLock: () => void = (): void => {};
+    let resolveLock: () => void = (): void => { };
     const lock = new Promise<void>((resolve) => {
       resolveLock = resolve;
     });

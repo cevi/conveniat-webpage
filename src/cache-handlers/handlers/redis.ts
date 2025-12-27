@@ -1,7 +1,7 @@
 import { metrics, ValueType } from '@opentelemetry/api';
 import Redis from 'ioredis';
-import { CacheEntry } from '../types.cjs';
-import { BaseCacheHandler } from './base.cjs';
+import { CacheEntry } from '../types';
+import { BaseCacheHandler } from './base';
 
 const LOG_PREFIX = '[RedisCache]';
 // eslint-disable-next-line n/no-process-env

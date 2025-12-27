@@ -3,8 +3,8 @@ import { createHash, randomBytes } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import { access, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { CacheEntry } from '../types.cjs';
-import { BaseCacheHandler } from './base.cjs';
+import { CacheEntry } from '../types';
+import { BaseCacheHandler } from './base';
 
 const LOG_PREFIX = '[FileSystemCache]';
 

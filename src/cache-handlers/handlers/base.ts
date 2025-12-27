@@ -1,4 +1,4 @@
-import { CacheEntry, InternalCacheHandler } from '../types.cjs';
+import { CacheEntry, InternalCacheHandler } from '../types';
 
 export abstract class BaseCacheHandler implements InternalCacheHandler {
   abstract name: string;

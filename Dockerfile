@@ -59,10 +59,27 @@ ENV PRISMA_OUTPUT='src/lib/prisma/client/'
 RUN npx prisma generate --no-hints
 
 RUN \
-  if [ -f yarn.lock ]; then yarn run build; \
+  if [ -f pnpm-lock.yaml ]; then corepack enable pnpm; fi; \
+  if [ -f yarn.lock ]; then yarn build; \
   elif [ -f package-lock.json ]; then npm run build; \
-  elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm run build; \
+  elif [ -f pnpm-lock.yaml ]; then pnpm run build; \
   else echo "Lockfile not found." && exit 1; \
+  fi 2>&1 | tee build.log; \
+  RET=$?; \
+  if [ $RET -ne 0 ]; then \
+  echo "Build failed with exit code $RET"; \
+  cat build.log; \
+  exit $RET; \
+  fi; \
+  if ! grep -F "/serwist/[path]" build.log > /dev/null; then \
+  echo "Error: /serwist/sw.js was not found in build output!"; \
+  echo "Check the build logs above for errors."; \
+  exit 1; \
+  fi; \
+  if ! grep -F "/serwist/[path]" build.log | grep -qE "●|\(SSG\)"; then \
+  echo "Error: /serwist/sw.js was not rendered as SSG!"; \
+  grep -F "/serwist/[path]" build.log; \
+  exit 1; \
   fi
 
 # Ensure fallback cache directory exists so copy commands don't fail if empty
