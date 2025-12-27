@@ -1,4 +1,4 @@
-import { CacheEntry, InternalCacheHandler } from '../types';
+import type { CacheEntry, InternalCacheHandler } from '@/cache-handlers/types';
 
 export abstract class BaseCacheHandler implements InternalCacheHandler {
   abstract name: string;
@@ -34,7 +34,7 @@ export abstract class BaseCacheHandler implements InternalCacheHandler {
       const metaLength = rawData.readUInt32BE(0);
       const metaString = rawData.toString('utf8', 4, 4 + metaLength);
 
-      const metadata = JSON.parse(metaString) as CacheEntry;
+      const metadata = JSON.parse(metaString) as unknown;
 
       // Basic validation
       if (!metadata || typeof metadata !== 'object') {
@@ -42,9 +42,10 @@ export abstract class BaseCacheHandler implements InternalCacheHandler {
         return undefined;
       }
 
+      const validatedMetadata = metadata as CacheEntry;
       const value = rawData.subarray(4 + metaLength);
 
-      return { value, metadata };
+      return { value, metadata: validatedMetadata };
     } catch (error) {
       console.error(`[${this.name}] Deserialization failed`, error);
       return undefined;

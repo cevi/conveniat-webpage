@@ -1,10 +1,10 @@
+import { BaseCacheHandler } from '@/cache-handlers/handlers/base';
+import type { CacheEntry } from '@/cache-handlers/types';
 import { PHASE_PRODUCTION_BUILD } from 'next/constants';
 import { createHash, randomBytes } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import { access, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { CacheEntry } from '../types';
-import { BaseCacheHandler } from './base';
 
 const LOG_PREFIX = '[FileSystemCache]';
 
@@ -39,12 +39,12 @@ export class FileSystemCache extends BaseCacheHandler {
     }
   }
 
-  private getFilePath(key: string) {
+  private getFilePath(key: string): string {
     const hash = createHash('sha256').update(key).digest('hex');
     return path.join(FALLBACK_CACHE_DIR, `${hash}.json`);
   }
 
-  async get(key: string) {
+  async get(key: string): Promise<{ value: Buffer; metadata?: Partial<CacheEntry> } | undefined> {
     try {
       const filePath = this.getFilePath(key);
       try {
@@ -79,7 +79,7 @@ export class FileSystemCache extends BaseCacheHandler {
     }
   }
 
-  async invalidateTags() {
+  async invalidateTags(): Promise<void> {
     // FS is immutable
   }
 }

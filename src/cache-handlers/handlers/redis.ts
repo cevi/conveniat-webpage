@@ -1,7 +1,7 @@
+import { BaseCacheHandler } from '@/cache-handlers/handlers/base';
+import type { CacheEntry } from '@/cache-handlers/types';
 import { metrics, ValueType } from '@opentelemetry/api';
 import Redis from 'ioredis';
-import { CacheEntry } from '../types';
-import { BaseCacheHandler } from './base';
 
 const LOG_PREFIX = '[RedisCache]';
 // eslint-disable-next-line n/no-process-env
@@ -21,7 +21,7 @@ export class RedisCache extends BaseCacheHandler {
     this.redis = new Redis(REDIS_URL, {
       lazyConnect: true,
       maxRetriesPerRequest: 1,
-      retryStrategy: (times) => Math.min(times * 50, 2000),
+      retryStrategy: (times: number): number | void | null => Math.min(times * 50, 2000),
     });
 
     this.redis.on('error', (error: { code: string }) => {
@@ -31,7 +31,7 @@ export class RedisCache extends BaseCacheHandler {
     });
   }
 
-  async get(key: string) {
+  async get(key: string): Promise<{ value: Buffer; metadata?: Partial<CacheEntry> } | undefined> {
     try {
       const data = await this.redis.getBuffer(key);
       if (!data) return;
@@ -59,7 +59,7 @@ export class RedisCache extends BaseCacheHandler {
         pipeline.set(key, finalBuffer);
       }
 
-      if (metadata.tags && metadata.tags.length > 0) {
+      if (metadata.tags.length > 0) {
         for (const tag of metadata.tags) {
           pipeline.sadd(`tags:${tag}`, key);
           if (ttl > 0) pipeline.expire(`tags:${tag}`, ttl);
@@ -72,7 +72,7 @@ export class RedisCache extends BaseCacheHandler {
     }
   }
 
-  async invalidateTags(tags: string[]) {
+  async invalidateTags(tags: string[]): Promise<void> {
     console.log(`${LOG_PREFIX} INVALIDATING: [${tags.join(', ')}]`);
     for (const tag of tags) {
       const tagKey = `tags:${tag}`;

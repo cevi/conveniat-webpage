@@ -1,10 +1,10 @@
 /**
  * src/cache-handlers/default.cts
  */
+import { FileSystemCache } from '@/cache-handlers/handlers/file-system';
+import { RedisCache } from '@/cache-handlers/handlers/redis';
+import type { CacheEntry, CacheOrchestrator, Timestamp } from '@/cache-handlers/types';
 import { PHASE_PRODUCTION_BUILD } from 'next/constants';
-import { FileSystemCache } from './handlers/file-system';
-import { RedisCache } from './handlers/redis';
-import { CacheEntry, CacheOrchestrator, Timestamp } from './types';
 
 const isBuild =
   // eslint-disable-next-line n/no-process-env
@@ -77,9 +77,11 @@ export class Orchestrator implements CacheOrchestrator {
       const reader = entry.value.getReader();
 
       try {
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
           if (value) chunks.push(value);
         }
       } finally {
@@ -117,7 +119,7 @@ export class Orchestrator implements CacheOrchestrator {
     return Promise.resolve();
   }
 
-  async getExpiration(_tags: string[]): Promise<Timestamp> {
+  async getExpiration(): Promise<Timestamp> {
     // We return 0 or Infinity.
     // Returning 0 implies "tags are never stale" unless explicitly deleted.
     // Since we delete keys in 'updateTags', we can assume any key found is valid.
@@ -125,7 +127,7 @@ export class Orchestrator implements CacheOrchestrator {
     return Promise.resolve(0);
   }
 
-  async updateTags(tags: string[], _durations?: { expire?: number }): Promise<void> {
+  async updateTags(tags: string[]): Promise<void> {
     // This is called when revalidation happens.
     // We strictly invalidate the keys associated with these tags.
     if (!this.redisCache) {
@@ -147,7 +149,7 @@ export class Orchestrator implements CacheOrchestrator {
   /**
    * Helper to reconstruct the CacheEntry from Buffer + Metadata
    */
-  private hydrateEntry(valueBuffer: Buffer, metadata?: CacheEntry): CacheEntry {
+  private hydrateEntry(valueBuffer: Buffer, metadata?: Partial<CacheEntry>): CacheEntry {
     return {
       value: this.createStream(valueBuffer),
       timestamp: metadata?.timestamp || Date.now(),
@@ -160,7 +162,7 @@ export class Orchestrator implements CacheOrchestrator {
 
   private createStream(buffer: Buffer): ReadableStream<Uint8Array> {
     return new ReadableStream({
-      start(controller) {
+      start(controller: ReadableStreamDefaultController<Uint8Array>): void {
         controller.enqueue(new Uint8Array(buffer));
         controller.close();
       },
