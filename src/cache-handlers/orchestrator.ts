@@ -14,10 +14,11 @@ export class Orchestrator implements CacheOrchestrator {
   private readonly fsCache: FileSystemCache;
   private readonly redisCache: RedisCache | undefined;
   private readonly pendingSets = new Map<string, Promise<void>>();
+  private readonly instanceId = Math.random().toString(36).slice(7);
 
   constructor() {
     console.log(
-      `[Orchestrator] Initializing Cache Manager - Mode: ${isBuild ? 'BUILD' : 'RUNTIME'}`,
+      `[Orchestrator] Initializing Cache Manager - Mode: ${isBuild ? 'BUILD' : 'RUNTIME'} (PID: ${process.pid}, Instance: ${this.instanceId})`,
     );
     this.fsCache = new FileSystemCache();
 
@@ -170,5 +171,14 @@ export class Orchestrator implements CacheOrchestrator {
   }
 }
 
-const cacheOrchestrator = new Orchestrator();
+declare global {
+  var cacheOrchestrator: Orchestrator | undefined;
+}
+
+const cacheOrchestrator = globalThis.cacheOrchestrator ?? new Orchestrator();
+
+if (!isBuild) {
+  globalThis.cacheOrchestrator = cacheOrchestrator;
+}
+
 export default cacheOrchestrator;
