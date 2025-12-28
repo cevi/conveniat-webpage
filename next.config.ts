@@ -38,10 +38,12 @@ const nextConfig: NextConfig = {
   // enable gzip compression for all responses
   compress: true,
 
-  cacheHandlers: {
-    // eslint-disable-next-line unicorn/prefer-module
-    default: require.resolve('./src/cache-handlers/default.cjs'),
-  },
+  ...(process.env['NODE_ENV'] !== 'development' && {
+    cacheHandlers: {
+      // eslint-disable-next-line unicorn/prefer-module
+      default: require.resolve('./src/cache-handlers/default.cjs'),
+    },
+  }),
 
   // enable react compiler for better error messages and performance
   reactCompiler: true,

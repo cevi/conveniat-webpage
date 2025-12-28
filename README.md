@@ -153,6 +153,10 @@ CMS.
 
 To improve performance, calls to Payload CMS are cached server-side using Next.js 'use cache' functionality.
 
+### Caching in Development
+
+In development mode (`NODE_ENV=development`), the custom cache handler (Redis/FileSystem) is **disabled**. Next.js uses its default in-memory cache in development.
+
 ### Progressive Web App (PWA)
 
 This application utilizes [Serwist](https://serwist.pages.dev/) (`@serwist/next`) to implement Service Worker
