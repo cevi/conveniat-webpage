@@ -1,5 +1,6 @@
 'use client';
 
+import { AppErrorFallback } from '@/components/error-boundary/app-error-fallback';
 import { FooterClientWrapper } from '@/components/footer/footer-client-wrapper';
 import { DynamicAppTitleProvider } from '@/components/header/dynamic-app-title-name';
 import { HeaderClientWrapper } from '@/components/header/header-client-wrapper';
@@ -10,6 +11,7 @@ import { TRPCProvider } from '@/trpc/client';
 import { cn } from '@/utils/tailwindcss-override';
 import type { ReactNode } from 'react';
 import React from 'react';
+import { ErrorBoundary } from 'react-error-boundary';
 
 interface AppShellProperties {
   children: ReactNode;
@@ -52,7 +54,9 @@ export const AppShell: React.FC<AppShellProperties> = ({
               })}
             >
               <main className="flex min-h-full flex-col justify-between">
-                <div className="flex-1">{children}</div>
+                <div className="flex-1">
+                  <ErrorBoundary FallbackComponent={AppErrorFallback}>{children}</ErrorBoundary>
+                </div>
                 <FooterClientWrapper>{footer}</FooterClientWrapper>
               </main>
             </div>

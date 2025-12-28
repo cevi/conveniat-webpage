@@ -2,6 +2,7 @@
 import { MessageComponent } from '@/features/chat/components/chat-view/message';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
+import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { MessageEventType } from '@/lib/prisma/client';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -25,8 +26,27 @@ const todayText: StaticTranslationString = {
 export const MessageList: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const chatId = useChatId();
+  const trpcUtils = trpc.useUtils();
   const { mutate: changeMessageStatus } = trpc.chat.messageStatus.useMutation({
     retry: false,
+    onMutate: () => {
+      // Optimistically update the chat overview
+      trpcUtils.chat.chats.setData({}, (oldChats: ChatWithMessagePreview[] | undefined) => {
+        if (!oldChats) return [];
+        return oldChats.map((chat: ChatWithMessagePreview) => {
+          if (chat.id === chatId) {
+            return {
+              ...chat,
+              unreadCount: Math.max(0, chat.unreadCount - 1),
+            };
+          }
+          return chat;
+        });
+      });
+    },
+    onSettled: () => {
+      trpcUtils.chat.chats.invalidate().catch(console.error);
+    },
   });
   const { data: chatDetails, isLoading } = useChatDetail(chatId);
   const { data: currentUser } = trpc.chat.user.useQuery({});

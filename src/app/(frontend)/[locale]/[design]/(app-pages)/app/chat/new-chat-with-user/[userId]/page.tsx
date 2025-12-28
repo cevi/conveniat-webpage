@@ -59,7 +59,7 @@ const NewChatWithUserPage: React.FC<{
     const user = session?.user as HitobitoNextAuthUser | undefined;
 
     // Check if user is authenticated
-    if (!user?.uuid) {
+    if (user?.uuid === undefined) {
       return (
         <div className="flex h-screen flex-row items-center justify-center bg-gray-50">
           <div className="font-body text-center text-gray-600">
@@ -112,24 +112,28 @@ const NewChatWithUserPage: React.FC<{
         })),
       })
       .catch((error: unknown) => {
-        console.error('Failed to create chat:', error);
+        console.error('[NewChatWithUserPage] Failed to create chat via TRPC:', error);
         return; // Return undefined if chat creation fails
       });
 
     if (chatId === undefined) {
+      console.warn('[NewChatWithUserPage] Chat creation returned undefined. userId:', userId);
       return (
         <div className="flex h-screen flex-row items-center justify-center bg-gray-50">
           <div className="font-body text-center text-gray-600">
-            {labels.failedToCreateChat[locale]}
-            <br />
-            <Link href="/app/chat" className="underline">
-              {labels.pleaseTryAgain[locale]}
+            <h2 className="mb-2 text-xl font-semibold text-gray-800">
+              {labels.failedToCreateChat[locale]}
+            </h2>
+            <p className="mb-4">{labels.pleaseTryAgain[locale]}</p>
+            <Link href="/app/chat" className="text-conveniat-blue font-medium underline">
+              {labels.goBackToChats[locale]}
             </Link>
           </div>
         </div>
       );
     }
 
+    console.log('[NewChatWithUserPage] Chat created successfully. chatId:', chatId);
     redirect(`/app/chat/${chatId}`);
   } catch (error) {
     // Re-throw redirect errors - they're not real errors
@@ -137,12 +141,14 @@ const NewChatWithUserPage: React.FC<{
       throw error;
     }
 
-    console.error('Error in NewChatWithUserPage:', error);
+    console.error('[NewChatWithUserPage] Fatal error in page:', error);
     return (
       <div className="flex h-screen flex-row items-center justify-center bg-gray-50">
         <div className="font-body text-center text-gray-600">
-          {labels.unexpectedError[locale]}
-          <br />
+          <h2 className="mb-2 text-xl font-semibold text-red-600">
+            {labels.unexpectedError[locale]}
+          </h2>
+          <p className="mb-4">Bitte versuche es später noch einmal.</p>
           <Link href="/app/chat" className="underline">
             {labels.goBackToChats[locale]}
           </Link>

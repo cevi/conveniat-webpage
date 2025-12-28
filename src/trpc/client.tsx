@@ -65,19 +65,21 @@ export const TRPCProvider: React.FC<{
     }
   }, []);
 
-  if (!persister) {
-    return (
-      <trpc.Provider client={trpcClient} queryClient={queryClient}>
-        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-      </trpc.Provider>
-    );
-  }
-
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
-      <PersistQueryClientProvider client={queryClient} persistOptions={{ persister }}>
-        {children}
-      </PersistQueryClientProvider>
+      {persister ? (
+        <PersistQueryClientProvider
+          key="persisted-query-client"
+          client={queryClient}
+          persistOptions={{ persister }}
+        >
+          {children}
+        </PersistQueryClientProvider>
+      ) : (
+        <QueryClientProvider key="standard-query-client" client={queryClient}>
+          {children}
+        </QueryClientProvider>
+      )}
     </trpc.Provider>
   );
 };
