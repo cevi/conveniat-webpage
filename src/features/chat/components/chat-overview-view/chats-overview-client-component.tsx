@@ -72,7 +72,7 @@ const ChatsOverviewLoadingPlaceholder: React.FC = () => {
   );
 };
 
-export const ChatsOverviewClientComponent: React.FC<{ user: HitobitoNextAuthUser }> = ({
+export const ChatsOverviewClientComponent: React.FC<{ user: HitobitoNextAuthUser | undefined }> = ({
   user,
 }) => {
   const { data: chats, isLoading } = useChats();
@@ -114,7 +114,7 @@ export const ChatsOverviewClientComponent: React.FC<{ user: HitobitoNextAuthUser
         <>
           {/* New Chat Button */}
           <div className="flex justify-end gap-2">
-            <QRCodeClientComponent url={user.uuid} />
+            {user?.uuid && <QRCodeClientComponent url={user.uuid} />}
           </div>
 
           <div className="fixed right-6 bottom-18 z-50">
