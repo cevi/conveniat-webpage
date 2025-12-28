@@ -40,7 +40,7 @@ export const useAnnotationPolygons = (
 
     const isStyleReady = (): boolean => {
       try {
-        return map.isStyleLoaded() || map.getStyle() !== undefined;
+        return map.isStyleLoaded() === true;
       } catch {
         return false;
       }
@@ -115,8 +115,8 @@ export const useAnnotationPolygons = (
         selectedPolygon === undefined
           ? undefined
           : ([
-            [...selectedPolygon.geometry.coordinates, selectedPolygon.geometry.coordinates[0]],
-          ] as unknown as [number, number][][]);
+              [...selectedPolygon.geometry.coordinates, selectedPolygon.geometry.coordinates[0]],
+            ] as unknown as [number, number][][]);
 
       // 2. Add a SINGLE source and layer for the selection OUTLINE
       if (!map.getSource(SELECTED_POLYGON_SOURCE_ID)) {
@@ -128,15 +128,15 @@ export const useAnnotationPolygons = (
               ...(coordinates === undefined
                 ? [] // empty if not selected via URL param
                 : [
-                  {
-                    type: 'Feature',
-                    properties: {},
-                    geometry: {
-                      type: 'Polygon',
-                      coordinates: coordinates,
+                    {
+                      type: 'Feature',
+                      properties: {},
+                      geometry: {
+                        type: 'Polygon',
+                        coordinates: coordinates,
+                      },
                     },
-                  },
-                ]),
+                  ]),
             ],
           },
         } as SourceSpecification | CanvasSourceSpecification);
@@ -196,7 +196,7 @@ export const useAnnotationPolygons = (
   useEffect(() => {
     const isStyleReady = (): boolean => {
       try {
-        return (map !== undefined && map.isStyleLoaded()) || (map !== undefined && map.getStyle() !== undefined);
+        return map?.isStyleLoaded() ?? map?.getStyle() !== undefined;
       } catch {
         return false;
       }

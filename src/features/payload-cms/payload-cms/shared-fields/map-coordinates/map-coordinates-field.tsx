@@ -94,7 +94,7 @@ const MapCoordinatesField: PointFieldClientComponent = ({ path }) => {
   const renderContext = useCallback((map: maplibregl.Map, items: CampMapAnnotation[]): void => {
     const isStyleReady = (): boolean => {
       try {
-        return map.isStyleLoaded() || map.getStyle() !== undefined;
+        return map.isStyleLoaded() === true;
       } catch {
         return false;
       }
@@ -124,7 +124,7 @@ const MapCoordinatesField: PointFieldClientComponent = ({ path }) => {
         const coordinates: [number, number][] = rawCoords.map((c) => [c.longitude, c.latitude]);
         polygonFeatures.push({
           type: 'Feature',
-          properties: { color: item.color || '#78909c' },
+          properties: { color: item.color ?? '#78909c' },
           geometry: {
             type: 'Polygon',
             coordinates: [coordinates],
