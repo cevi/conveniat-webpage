@@ -4,6 +4,7 @@ import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
 import { ChatMembershipPermission, MessageEventType, MessageType } from '@/lib/prisma/client';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
+import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
 // Zod schema for input validation
@@ -49,7 +50,10 @@ export const createMessage = trpcBaseProcedure
       validatedMessage.chatId,
     );
     if (!canSend) {
-      throw new Error('Messaging is disabled in this chat or globally.');
+      throw new TRPCError({
+        code: 'FORBIDDEN',
+        message: 'Messaging is disabled in this chat or globally.',
+      });
     }
 
     if (validatedMessage.type === MessageType.IMAGE_MSG) {
@@ -59,7 +63,10 @@ export const createMessage = trpcBaseProcedure
         validatedMessage.chatId,
       );
       if (!canUpload) {
-        throw new Error('Image uploading is not enabled in this chat.');
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Image uploading is not enabled in this chat.',
+        });
       }
     }
 
@@ -77,7 +84,10 @@ export const createMessage = trpcBaseProcedure
       console.warn(
         `User ${user.uuid} attempted to send message to chat ${validatedMessage.chatId} they are not a member of.`,
       );
-      throw new Error('You are not a member of this chat.');
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message: 'You are not a member of this chat.',
+      });
     }
 
     const userMembership = chat.chatMemberships.find(
@@ -87,7 +97,10 @@ export const createMessage = trpcBaseProcedure
       console.warn(
         `User ${user.uuid} does not have permission to send messages in chat ${validatedMessage.chatId}. The user has permission: ${userMembership?.chatPermission}.`,
       );
-      throw new Error('You do not have permission to send messages in this chat.');
+      throw new TRPCError({
+        code: 'FORBIDDEN',
+        message: 'You do not have permission to send messages in this chat.',
+      });
     }
 
     console.log(
