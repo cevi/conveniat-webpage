@@ -136,14 +136,17 @@ export const handleFetchEvent =
             await persistAppModeClients();
           }
 
-          const requestToHandle = isAppMode
-            ? new Request(event.request, {
-                headers: {
-                  ...Object.fromEntries(event.request.headers),
-                  [DesignModeTriggers.HEADER_IMPLICIT]: 'true',
-                },
-              })
-            : event.request;
+          const isSameOrigin = url.origin === self.location.origin;
+
+          const requestToHandle =
+            isAppMode && isSameOrigin
+              ? new Request(event.request, {
+                  headers: {
+                    ...Object.fromEntries(event.request.headers),
+                    [DesignModeTriggers.HEADER_IMPLICIT]: 'true',
+                  },
+                })
+              : event.request;
 
           try {
             const response = await serwist.handleRequest({
