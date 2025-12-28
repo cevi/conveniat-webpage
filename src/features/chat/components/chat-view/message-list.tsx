@@ -7,6 +7,7 @@ import { MessageEventType } from '@/lib/prisma/client';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
 import { Loader2 } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
@@ -23,7 +24,11 @@ const todayText: StaticTranslationString = {
   fr: "Aujourd'hui",
 };
 
-export const MessageList: React.FC = () => {
+export const MessageList: React.FC<{
+  parentId?: string;
+  hideReplyCount?: boolean;
+  isThread?: boolean;
+}> = ({ parentId, hideReplyCount = false, isThread = false }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const chatId = useChatId();
   const trpcUtils = trpc.useUtils();
@@ -59,7 +64,7 @@ export const MessageList: React.FC = () => {
     hasNextPage,
     isFetchingNextPage,
   } = trpc.chat.infiniteMessages.useInfiniteQuery(
-    { chatId, limit: 25 },
+    { chatId, limit: 25, ...(parentId && { parentId }) },
     {
       getNextPageParam: (lastPage) => lastPage.nextCursor,
       initialCursor: undefined, // Start from the beginning (newest)
@@ -185,10 +190,10 @@ export const MessageList: React.FC = () => {
     <div
       ref={scrollContainerReference}
       onScroll={handleScroll}
-      className="flex h-full flex-col overflow-y-auto bg-gray-50"
+      className={cn('flex flex-col', !isThread && 'h-full overflow-y-auto bg-gray-50')}
     >
-      <div className="flex-1" />
-      <div className="space-y-6 px-2 py-4">
+      {!isThread && <div className="flex-1" />}
+      <div className={cn('px-2', isThread ? 'space-y-3 py-1' : 'space-y-6 py-4')}>
         {isFetchingNextPage && (
           <div className="flex w-full justify-center py-2">
             <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
@@ -196,7 +201,7 @@ export const MessageList: React.FC = () => {
         )}
         {Object.entries(messagesByDate).map(([date, messagesForDate]) => (
           <div key={date}>
-            <div className="my-6 flex justify-center">
+            <div className={cn('flex justify-center', isThread ? 'my-3' : 'my-6')}>
               <div className="font-body rounded-full border border-gray-200 bg-gray-100 px-4 py-1 text-xs font-medium text-gray-500 shadow-sm">
                 {date === new Date().toLocaleDateString() ? todayText[locale] : date}
               </div>
@@ -216,6 +221,7 @@ export const MessageList: React.FC = () => {
                       message={message}
                       isCurrentUser={message.senderId === currentUser}
                       chatType={chatDetails.type}
+                      hideReplyCount={hideReplyCount}
                     />
                   </div>
                 );

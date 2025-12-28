@@ -1,6 +1,7 @@
 import type { AlertSetting } from '@/features/payload-cms/payload-types';
 import {
   CHAT_CAPABILITY_CAN_SEND_MESSAGES,
+  ChatCapability,
   SYSTEM_MSG_TYPE_EMERGENCY_ALERT,
 } from '@/lib/chat-shared';
 import { createTRPCRouter, trpcBaseProcedure } from '@/trpc/init';
@@ -160,10 +161,16 @@ export const emergencyRouter = createTRPCRouter({
             ],
           },
           capabilities: {
-            create: {
-              capability: CHAT_CAPABILITY_CAN_SEND_MESSAGES,
-              isEnabled: true,
-            },
+            create: [
+              {
+                capability: CHAT_CAPABILITY_CAN_SEND_MESSAGES,
+                isEnabled: true,
+              },
+              {
+                capability: ChatCapability.THREADS,
+                isEnabled: false,
+              },
+            ],
           },
         },
       });

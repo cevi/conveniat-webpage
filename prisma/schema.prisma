@@ -139,6 +139,11 @@ model Message {
   // Relation to the MessageContent model is now on the MessageContent side
   contentVersions MessageContent[]
 
+  /// The parent message if this is a reply in a thread
+  parentId String?
+  parent   Message?  @relation("Thread", fields: [parentId], references: [uuid], onDelete: Cascade)
+  replies  Message[] @relation("Thread")
+
   @@index([chatId, createdAt(sort: Asc)])
 }
 

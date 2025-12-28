@@ -360,7 +360,7 @@ export const adminRouter = createTRPCRouter({
         where: {
           chatId_capability: {
             chatId: input.chatId,
-            capability: 'CAN_SEND_MESSAGES',
+            capability: CHAT_CAPABILITY_CAN_SEND_MESSAGES,
           },
         },
         create: {
@@ -423,7 +423,7 @@ export const adminRouter = createTRPCRouter({
         where: {
           chatId_capability: {
             chatId: input.chatId,
-            capability: 'CAN_SEND_MESSAGES',
+            capability: CHAT_CAPABILITY_CAN_SEND_MESSAGES,
           },
         },
         create: {

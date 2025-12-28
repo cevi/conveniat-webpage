@@ -8,6 +8,9 @@ export interface ChatMessage {
   senderId: string | undefined;
   status: MessageEventType;
   type: string;
+  replyCount?: number | undefined;
+  parentId?: string | undefined;
+  hasUnreadReplies?: boolean | undefined;
 }
 
 interface ChatParticipant {

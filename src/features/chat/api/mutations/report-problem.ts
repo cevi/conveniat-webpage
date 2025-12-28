@@ -1,6 +1,7 @@
 import {
   CHAT_CAPABILITY_CAN_SEND_MESSAGES,
   CHAT_CAPABILITY_PICTURE_UPLOAD,
+  ChatCapability,
 } from '@/lib/chat-shared';
 import { ChatType, MessageEventType, MessageType } from '@/lib/prisma';
 import { trpcBaseProcedure } from '@/trpc/init';
@@ -50,6 +51,10 @@ export const reportProblem = trpcBaseProcedure
             {
               capability: CHAT_CAPABILITY_CAN_SEND_MESSAGES,
               isEnabled: true,
+            },
+            {
+              capability: ChatCapability.THREADS,
+              isEnabled: false,
             },
           ],
         },

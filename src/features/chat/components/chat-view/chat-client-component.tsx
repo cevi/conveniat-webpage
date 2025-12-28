@@ -4,6 +4,8 @@ import { ChatHeader, ChatHeaderSkeleton } from '@/features/chat/components/chat-
 import { ChatSkeleton } from '@/features/chat/components/chat-view/chat-skeleton';
 import { ChatTextAreaInput } from '@/features/chat/components/chat-view/chat-text-area-input';
 import { MessageList } from '@/features/chat/components/chat-view/message-list';
+import { ThreadView } from '@/features/chat/components/chat-view/thread-view';
+import { ChatActionsProvider, useChatActions } from '@/features/chat/context/chat-actions-context';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -90,9 +92,10 @@ const OfflineBanner: React.FC = () => {
   );
 };
 
-export const ChatClientComponent: React.FC = () => {
+const ChatClientContent: React.FC = () => {
   const chatId = useChatId();
   const { isLoading, isPaused, isPending, isError, errorUpdateCount } = useChatDetail(chatId);
+  const { activeThreadId, closeThread } = useChatActions();
 
   if (isLoading && errorUpdateCount === 0) return <ChatSkeleton />;
   if (isPaused && isPending) return <ChatOfflineMessage />;
@@ -109,6 +112,21 @@ export const ChatClientComponent: React.FC = () => {
       <div className="border-t border-gray-200 bg-white p-2">
         <ChatTextAreaInput />
       </div>
+
+      {/* Thread View Overlay */}
+      {activeThreadId && (
+        <div className="absolute inset-0 z-50 bg-white">
+          <ThreadView threadId={activeThreadId} onClose={() => closeThread()} />
+        </div>
+      )}
     </div>
+  );
+};
+
+export const ChatClientComponent: React.FC = () => {
+  return (
+    <ChatActionsProvider>
+      <ChatClientContent />
+    </ChatActionsProvider>
   );
 };

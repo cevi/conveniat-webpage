@@ -12,7 +12,7 @@ import {
   type CapabilityContext,
   CapabilitySubject,
 } from '@/lib/capabilities/types';
-import { CHAT_CAPABILITY_CAN_SEND_MESSAGES } from '@/lib/chat-shared';
+import { CHAT_CAPABILITY_CAN_SEND_MESSAGES, ChatCapability } from '@/lib/chat-shared';
 import prisma from '@/lib/database';
 import { FEATURE_FLAG_CREATE_CHATS_ENABLED, FEATURE_FLAG_SEND_MESSAGES } from '@/lib/feature-flags';
 import { getFeatureFlag } from '@/lib/redis';
@@ -110,5 +110,37 @@ export class ChatCreationCapabilities implements Capability {
   private async canCreate(): Promise<boolean> {
     const isCreateChatsEnabled = await getFeatureFlag(FEATURE_FLAG_CREATE_CHATS_ENABLED, true);
     return isCreateChatsEnabled;
+  }
+}
+
+/**
+ * Handles capabilities related to creating threads.
+ */
+export class ThreadCapabilities implements Capability {
+  readonly subject = CapabilitySubject.Threads;
+
+  async can(action: CapabilityAction, context?: CapabilityContext): Promise<boolean> {
+    if (action === CapabilityAction.Create) {
+      return this.canCreate(context?.chatId);
+    }
+    return false;
+  }
+
+  private async canCreate(chatId?: string): Promise<boolean> {
+    if (chatId === undefined) {
+      return false;
+    }
+
+    const capability = await prisma.chatCapability.findUnique({
+      where: {
+        chatId_capability: {
+          chatId,
+          capability: ChatCapability.THREADS,
+        },
+      },
+    });
+
+    // Enabled by default if no record exists
+    return capability?.isEnabled ?? true;
   }
 }

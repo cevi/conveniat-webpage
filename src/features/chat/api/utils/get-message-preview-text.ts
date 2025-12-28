@@ -50,6 +50,10 @@ export const getMessagePreviewText = (lastMessage: {
     };
   }
 
+  if ('text' in p && typeof p['text'] === 'string') {
+    return p['text'];
+  }
+
   if (
     'location' in p &&
     typeof p['location'] === 'object' &&

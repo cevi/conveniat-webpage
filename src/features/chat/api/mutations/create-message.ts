@@ -33,6 +33,8 @@ const sendMessageInputSchema = z.object({
     }),
   ),
   type: z.nativeEnum(MessageType).optional().default(MessageType.TEXT_MSG),
+  parentId: z.string().uuid().optional(),
+  quotedMessageId: z.string().uuid().optional(),
 });
 
 // tRPC router for chat-related mutations
@@ -66,6 +68,20 @@ export const createMessage = trpcBaseProcedure
         throw new TRPCError({
           code: 'FORBIDDEN',
           message: 'Image uploading is not enabled in this chat.',
+        });
+      }
+    }
+
+    if (validatedMessage.parentId) {
+      const canThread = await Ability.can(
+        CapabilityAction.Create,
+        CapabilitySubject.Threads,
+        validatedMessage.chatId,
+      );
+      if (!canThread) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Threading is not enabled in this chat.',
         });
       }
     }
@@ -113,6 +129,27 @@ export const createMessage = trpcBaseProcedure
       .filter((membership) => membership.userId !== user.uuid)
       .map((membership) => membership.userId);
 
+    // Fetch quoted message content if quotedMessageId is provided
+    let quotedSnippet: string | undefined;
+    if (validatedMessage.quotedMessageId) {
+      const quotedMessage = await prisma.message.findUnique({
+        where: { uuid: validatedMessage.quotedMessageId },
+        include: { contentVersions: { take: 1, orderBy: { revision: 'desc' } } },
+      });
+      if (quotedMessage?.contentVersions[0]?.payload) {
+        const payload = quotedMessage.contentVersions[0].payload;
+        let text: string;
+        if (typeof payload === 'string') {
+          text = payload;
+        } else {
+          const textPayload = payload as Record<string, unknown>;
+          text =
+            typeof textPayload['text'] === 'string' ? textPayload['text'] : JSON.stringify(payload);
+        }
+        quotedSnippet = text.length > 100 ? `${text.slice(0, 100)}...` : text;
+      }
+    }
+
     // Create the message and its initial events within a transaction
     const createdMessage = await prisma.message.create({
       data: {
@@ -123,12 +160,19 @@ export const createMessage = trpcBaseProcedure
               payload:
                 validatedMessage.type === MessageType.IMAGE_MSG
                   ? { url: validatedMessage.content }
-                  : validatedMessage.content,
+                  : {
+                      text: validatedMessage.content,
+                      quotedMessageId: validatedMessage.quotedMessageId,
+                      quotedSnippet,
+                    },
             },
           ],
         },
         sender: { connect: { uuid: user.uuid } },
         chat: { connect: { uuid: validatedMessage.chatId } },
+        ...(validatedMessage.parentId && {
+          parent: { connect: { uuid: validatedMessage.parentId } },
+        }),
         messageEvents: {
           create: [
             { type: MessageEventType.CREATED, user: { connect: { uuid: user.uuid } } },

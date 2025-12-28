@@ -22,6 +22,8 @@ interface UseMessageInputLogicResult {
   sendError: string | undefined;
 }
 
+import { useChatActions } from '@/features/chat/context/chat-actions-context';
+
 export const useMessageInput = (): UseMessageInputLogicResult => {
   const [newMessage, setNewMessage] = useState('');
   const [sendError, setSendError] = useState<string>();
@@ -29,6 +31,7 @@ export const useMessageInput = (): UseMessageInputLogicResult => {
   const sendMessageMutation = useMessageSend();
   const { textareaRef: messageInputReference, resize: resizeTextarea } =
     useAutoResizeTextarea(newMessage);
+  const { activeThreadId, quotedMessageId, cancelQuote } = useChatActions();
 
   // Keep a ref to the pending message so we can restore it on error
   const pendingMessageReference = useRef<string | undefined>(undefined);
@@ -66,11 +69,14 @@ export const useMessageInput = (): UseMessageInputLogicResult => {
         chatId: chatId,
         content: trimmedMessage,
         timestamp: new Date(),
+        parentId: activeThreadId ?? undefined,
+        quotedMessageId: quotedMessageId ?? undefined,
       },
       {
         onSuccess: () => {
           // Message sent successfully, clear the pending message ref
           pendingMessageReference.current = undefined;
+          if (quotedMessageId) cancelQuote();
         },
         onError: (error) => {
           // Restore the message on error so user can retry
@@ -87,7 +93,16 @@ export const useMessageInput = (): UseMessageInputLogicResult => {
         },
       },
     );
-  }, [newMessage, chatId, sendMessageMutation, resizeTextarea, isGlobalMessagingEnabled]);
+  }, [
+    newMessage,
+    chatId,
+    sendMessageMutation,
+    resizeTextarea,
+    isGlobalMessagingEnabled,
+    activeThreadId,
+    quotedMessageId,
+    cancelQuote,
+  ]);
 
   const handleInputChange = useCallback((event: React.ChangeEvent<HTMLTextAreaElement>): void => {
     setNewMessage(event.target.value);

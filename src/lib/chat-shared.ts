@@ -6,6 +6,7 @@ export const SYSTEM_SENDER_ID = 'system';
 export enum ChatCapability {
   CAN_SEND_MESSAGES = 'CAN_SEND_MESSAGES',
   PICTURE_UPLOAD = 'PICTURE_UPLOAD',
+  THREADS = 'THREADS',
 }
 
 // Keep constants for backward compatibility if needed, or update usages.

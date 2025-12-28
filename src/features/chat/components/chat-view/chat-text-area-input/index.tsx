@@ -1,6 +1,7 @@
 // hooks/use-message-input-logic.ts
 import { Button } from '@/components/ui/buttons/button';
 import { useMessageInput } from '@/features/chat/components/chat-view/chat-text-area-input/hooks/use-message-input';
+import { useChatActions } from '@/features/chat/context/chat-actions-context';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import { useImageUpload } from '@/features/chat/hooks/use-image-upload';
@@ -9,7 +10,7 @@ import { ChatMembershipPermission } from '@/lib/prisma/client';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { Paperclip, Send } from 'lucide-react';
+import { Paperclip, Send, X } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import React from 'react';
 
@@ -51,6 +52,12 @@ const messagingDisabledText: StaticTranslationString = {
   fr: 'La messagerie est actuellement désactivée.',
 };
 
+const replyingToText: StaticTranslationString = {
+  de: 'Antwort auf',
+  en: 'Replying to',
+  fr: 'En réponse à',
+};
+
 const chatLockedText: StaticTranslationString = {
   de: 'Dieser Chat wurde geschlossen. Es können keine Nachrichten mehr gesendet werden.',
   en: 'This chat has been locked. No further messages can be sent.',
@@ -72,6 +79,7 @@ const messagingDisabledErrorText: StaticTranslationString = {
 export const ChatTextAreaInput: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const fileInputReference = React.useRef<HTMLInputElement>(null);
+  const { quotedMessageId, cancelQuote } = useChatActions();
 
   const { data: currentUser } = trpc.chat.user.useQuery({});
   const chatId = useChatId();
@@ -224,6 +232,11 @@ export const ChatTextAreaInput: React.FC = () => {
         </div>
       )}
 
+      {/* Quote Preview */}
+      {quotedMessageId && (
+        <QuotedMessagePreview messageId={quotedMessageId} onCancel={cancelQuote} />
+      )}
+
       {/* Character count warning */}
       {isNearLimit && (
         <div
@@ -288,6 +301,48 @@ export const ChatTextAreaInput: React.FC = () => {
           </Button>
         )}
       </div>
+    </div>
+  );
+};
+const QuotedMessagePreview: React.FC<{
+  messageId: string;
+  onCancel: () => void;
+}> = ({ messageId, onCancel }) => {
+  const locale = useCurrentLocale(i18nConfig) as Locale;
+  const { data: message, isLoading } = trpc.chat.getMessage.useQuery({ messageId });
+
+  const getSnippet = (): string => {
+    if (isLoading) return '...';
+    if (!message) return 'Message not found';
+
+    const payload = message.messagePayload;
+    if (typeof payload === 'string') return payload;
+    const textPayload = payload as Record<string, unknown>;
+    if ('text' in textPayload) {
+      return String(textPayload['text']);
+    }
+    return '...';
+  };
+
+  const snippet = getSnippet();
+  const truncatedSnippet = snippet.length > 100 ? snippet.slice(0, 100) + '...' : snippet;
+
+  return (
+    <div className="flex items-center justify-between rounded-t-xl border border-b-0 border-gray-200 bg-gray-50/80 px-4 py-2 text-xs backdrop-blur-sm">
+      <div className="border-cevi-blue flex flex-1 items-center gap-3 overflow-hidden border-l-[3px] pl-3">
+        <div className="flex flex-col overflow-hidden">
+          <span className="text-cevi-blue text-[10px] font-bold tracking-tight uppercase">
+            {replyingToText[locale]}
+          </span>
+          <span className="truncate text-gray-600 italic">{truncatedSnippet}</span>
+        </div>
+      </div>
+      <button
+        onClick={onCancel}
+        className="ml-4 shrink-0 rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-600"
+      >
+        <X className="h-4 w-4" />
+      </button>
     </div>
   );
 };

@@ -2,6 +2,7 @@ import { USER_RELEVANT_MESSAGE_EVENTS } from '@/features/chat/api/definitions';
 import type { ChatMessage } from '@/features/chat/api/types';
 import { getStatusFromMessageEvents } from '@/features/chat/api/utils/get-status-from-message-events';
 import { trpcBaseProcedure } from '@/trpc/init';
+import { MessageEventType } from '@prisma/client';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
@@ -11,11 +12,12 @@ export const getChatMessages = trpcBaseProcedure
       chatId: z.string().uuid(),
       cursor: z.string().nullish(), // Use message UUID as cursor
       limit: z.number().min(1).max(100).default(25),
+      parentId: z.string().uuid().optional(),
     }),
   )
   .query(
     async ({ input, ctx }): Promise<{ items: ChatMessage[]; nextCursor: string | undefined }> => {
-      const { chatId, cursor, limit } = input;
+      const { chatId, cursor, limit, parentId } = input;
       const { prisma } = ctx;
 
       // Verify chat existence and access
@@ -39,6 +41,8 @@ export const getChatMessages = trpcBaseProcedure
         take: limit + 1, // Get an extra item at the end to know if there's a next page
         where: {
           chatId: chat.uuid,
+          // eslint-disable-next-line unicorn/no-null
+          parentId: parentId ?? null,
         },
         ...(cursor == undefined ? {} : { cursor: { uuid: cursor } }),
         orderBy: {
@@ -52,6 +56,24 @@ export const getChatMessages = trpcBaseProcedure
           contentVersions: {
             take: 1,
             orderBy: { revision: 'desc' },
+          },
+          _count: {
+            select: {
+              replies: true,
+              // We want to know if there are replies that the current user hasn't read yet
+            },
+          },
+          replies: {
+            where: {
+              senderId: { not: ctx.user.uuid },
+              messageEvents: {
+                none: {
+                  type: MessageEventType.READ,
+                  userId: ctx.user.uuid,
+                },
+              },
+            },
+            take: 1, // We only need to know if at least one exists
           },
         },
       });
@@ -69,6 +91,9 @@ export const getChatMessages = trpcBaseProcedure
         senderId: message.senderId ?? undefined,
         status: getStatusFromMessageEvents(message.messageEvents),
         type: message.type,
+        replyCount: message._count.replies,
+        parentId: message.parentId ?? undefined,
+        hasUnreadReplies: message.replies.length > 0,
       }));
 
       return {

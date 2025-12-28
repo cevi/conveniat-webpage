@@ -43,6 +43,7 @@ html body[data-scroll-locked] {
     transform: none;
     animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
   }
+
   50% {
     transform: translateX(25%);
     animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
@@ -58,6 +59,7 @@ html body[data-scroll-locked] {
   0% {
     left: -50%;
   }
+
   100% {
     left: 100%;
   }
@@ -65,6 +67,21 @@ html body[data-scroll-locked] {
 
 .animate-loading {
   animation: loading 1.5s infinite linear;
+}
+
+// Animation for message highlight
+@keyframes message-highlight {
+  0% {
+    background-color: rgba(50, 51, 148, 0.4);
+  }
+
+  100% {
+    background-color: transparent;
+  }
+}
+
+.animate-message-highlight {
+  animation: message-highlight 2s ease-out forwards;
 }
 
 // Window Controls Overlay Support

@@ -13,6 +13,7 @@ import { getChat } from '@/features/chat/api/queries/get-chat';
 import { getChatMessages } from '@/features/chat/api/queries/get-chat-messages';
 import { getDownloadUrl } from '@/features/chat/api/queries/get-download-url';
 import { getFeatureFlags } from '@/features/chat/api/queries/get-feature-flags';
+import { getMessage } from '@/features/chat/api/queries/get-message';
 import { getUser } from '@/features/chat/api/queries/get-user';
 import { listChats } from '@/features/chat/api/queries/list-chats';
 import { listContacts } from '@/features/chat/api/queries/list-contacts';
@@ -33,6 +34,7 @@ export const chatRouter = createTRPCRouter({
   chatDetails: getChat,
   sendMessage: createMessage,
   infiniteMessages: getChatMessages,
+  getMessage: getMessage,
   updateMessageContent: updateMessageContent,
   reportProblem: reportProblem,
   getUploadUrl: getUploadUrl,

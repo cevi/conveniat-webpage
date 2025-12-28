@@ -35,7 +35,7 @@ export const ImageMessage: React.FC<{ message: ChatMessage }> = ({ message }) =>
   }
 
   return (
-    <div className="relative max-w-sm overflow-hidden rounded-lg">
+    <div className="relative overflow-hidden rounded-lg">
       <img
         src={displayUrl}
         alt={messageData.altText ?? 'Image message'}

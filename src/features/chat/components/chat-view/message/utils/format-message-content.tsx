@@ -58,6 +58,16 @@ export const formatMessageContent = (
     return [text.toString()];
   }
 
+  // Handle nested text property (e.g. from messages with citations)
+  if (
+    typeof text === 'object' &&
+    !Array.isArray(text) &&
+    'text' in text &&
+    typeof text['text'] === 'string'
+  ) {
+    return formatMessageContent(text['text'], locale);
+  }
+
   if (typeof text !== 'string') {
     if (typeof text === 'object' && Object.keys(text).length === 0) {
       return [''];
