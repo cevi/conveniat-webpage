@@ -1,5 +1,6 @@
 'use client';
 
+import { Skeleton } from '@/components/ui/skeleton';
 import type { MapControlOptions } from '@/features/map/hooks/use-map-controls';
 import type {
   CampMapAnnotationPoint,
@@ -40,6 +41,16 @@ const LazyMapLibreRenderer = dynamic(
   },
 );
 
+const MiniMapLoadingFallback: React.FC = () => <Skeleton className="h-full w-full bg-gray-200" />;
+
+const LazyMiniMapLibreRenderer = dynamic(
+  () => import('@/features/map/components/maplibre-renderer/map-renderer'),
+  {
+    ssr: false,
+    loading: () => <MiniMapLoadingFallback />,
+  },
+);
+
 /***
  * This component is a wrapper for the MapLibreRenderer that allows for dynamic loading. This
  * helps to reduce the bundle size and improve performance by loading the map renderer only when it is necessary.
@@ -54,6 +65,21 @@ const LazyMapLibreRenderer = dynamic(
  * @param validateStyle
  * @constructor
  */
+export interface MapLibreRendererProperties {
+  initialMapPose: InitialMapPose;
+  ceviLogoMarkers: CeviLogoMarker[];
+  campMapAnnotationPoints?: CampMapAnnotationPoint[];
+  campMapAnnotationPolygons?: CampMapAnnotationPolygon[];
+  schedules: { [id: string]: CampScheduleEntry[] };
+  limitUsage?: boolean;
+  validateStyle?: boolean;
+  mapControlOptions?: MapControlOptions | undefined;
+  selectedAnnotationId?: string;
+  hideDrawer?: boolean;
+  disableUrlSync?: boolean;
+  disableFlyTo?: boolean;
+}
+
 export const MapLibreRenderer = ({
   initialMapPose,
   ceviLogoMarkers,
@@ -67,26 +93,49 @@ export const MapLibreRenderer = ({
   hideDrawer,
   disableUrlSync,
   disableFlyTo,
-}: {
-  initialMapPose: InitialMapPose;
-  ceviLogoMarkers: CeviLogoMarker[];
-  campMapAnnotationPoints?: CampMapAnnotationPoint[];
-  campMapAnnotationPolygons?: CampMapAnnotationPolygon[];
-  schedules: { [id: string]: CampScheduleEntry[] };
-  limitUsage?: boolean;
-  validateStyle?: boolean;
-  mapControlOptions?: MapControlOptions | undefined;
-  selectedAnnotationId?: string;
-  hideDrawer?: boolean;
-  disableUrlSync?: boolean;
-  disableFlyTo?: boolean;
-}): React.JSX.Element => {
+}: MapLibreRendererProperties): React.JSX.Element => {
   // default values for optional parameters
   campMapAnnotationPoints ??= [];
   campMapAnnotationPolygons ??= [];
 
   return (
     <LazyMapLibreRenderer
+      initialMapPose={initialMapPose}
+      ceviLogoMarkers={ceviLogoMarkers}
+      campMapAnnotationPoints={campMapAnnotationPoints}
+      campMapAnnotationPolygons={campMapAnnotationPolygons}
+      schedules={schedules}
+      limitUsage={limitUsage}
+      validateStyle={validateStyle}
+      mapControlOptions={mapControlOptions}
+      {...(selectedAnnotationId !== undefined && { selectedAnnotationId })}
+      {...(hideDrawer !== undefined && { hideDrawer })}
+      {...(disableUrlSync !== undefined && { disableUrlSync })}
+      {...(disableFlyTo !== undefined && { disableFlyTo })}
+    />
+  );
+};
+
+export const MiniMapLibreRenderer = ({
+  initialMapPose,
+  ceviLogoMarkers,
+  campMapAnnotationPoints,
+  campMapAnnotationPolygons,
+  schedules,
+  limitUsage = true,
+  validateStyle = true,
+  mapControlOptions,
+  selectedAnnotationId,
+  hideDrawer,
+  disableUrlSync,
+  disableFlyTo,
+}: MapLibreRendererProperties): React.JSX.Element => {
+  // default values for optional parameters
+  campMapAnnotationPoints ??= [];
+  campMapAnnotationPolygons ??= [];
+
+  return (
+    <LazyMiniMapLibreRenderer
       initialMapPose={initialMapPose}
       ceviLogoMarkers={ceviLogoMarkers}
       campMapAnnotationPoints={campMapAnnotationPoints}

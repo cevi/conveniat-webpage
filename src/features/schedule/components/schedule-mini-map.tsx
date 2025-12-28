@@ -1,7 +1,7 @@
 'use client';
 
 // eslint-disable-next-line import/no-restricted-paths -- schedule feature needs to display maps for locations
-import { MapLibreRenderer } from '@/features/map/components/map-renderer-wrapper';
+import { MiniMapLibreRenderer } from '@/features/map/components/map-renderer-wrapper';
 // eslint-disable-next-line import/no-restricted-paths -- schedule feature needs types from map
 import type { CampMapAnnotationPolygon } from '@/features/map/types/types';
 import type { CampMapAnnotation, Image } from '@/features/payload-cms/payload-types';
@@ -145,7 +145,7 @@ export const ScheduleMiniMap: React.FC<ScheduleMiniMapProperties> = ({ location 
     >
       {/* Map container with explicit dimensions */}
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
-        <MapLibreRenderer
+        <MiniMapLibreRenderer
           key={location.id}
           initialMapPose={{
             initialMapCenter: [longitude, latitude],
