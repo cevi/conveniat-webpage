@@ -9,8 +9,26 @@ import type { Persister } from '@tanstack/react-query-persist-client';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { httpBatchLink } from '@trpc/client';
 import { createTRPCReact } from '@trpc/react-query';
+import { signOut } from 'next-auth/react';
 import React, { useEffect, useState } from 'react';
 import superjson from 'superjson';
+
+/**
+ * Custom fetch function that handles 401 Unauthorized responses.
+ * When a 401 is received, it clears auth cookies via signOut and redirects to /entrypoint.
+ */
+const fetchWithAuthRedirect: typeof fetch = async (input, init) => {
+  const response = await fetch(input, init);
+
+  if (response.status === 401) {
+    await signOut({ redirect: false });
+    globalThis.location.href = '/entrypoint';
+    // Return the response anyway to prevent further processing
+    return response;
+  }
+
+  return response;
+};
 
 export const trpc = createTRPCReact<AppRouter>();
 let clientQueryClientSingleton: QueryClient | undefined;
@@ -43,6 +61,8 @@ export const TRPCProvider: React.FC<{
         httpBatchLink({
           url: getUrl(),
           transformer: superjson,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
+          fetch: fetchWithAuthRedirect as any,
         }),
       ],
     }),
@@ -61,7 +81,7 @@ export const TRPCProvider: React.FC<{
             }),
           );
         })
-        .catch(() => {});
+        .catch(() => { });
     }
   }, []);
 
