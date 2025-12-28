@@ -25,7 +25,7 @@ export const listChats = trpcBaseProcedure
 
     if (prismaUser === null) {
       throw new TRPCError({
-        code: 'NOT_FOUND',
+        code: 'UNAUTHORIZED',
         message: `User with UUID ${user.uuid} not found in the database`,
       });
     }
