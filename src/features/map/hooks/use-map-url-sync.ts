@@ -7,9 +7,12 @@ export const useMapUrlSync = (
   closeDrawer: () => void,
   points: CampMapAnnotationPoint[],
   polygons: CampMapAnnotationPolygon[],
+  enabled: boolean = true,
 ): void => {
   // Effect 1: Read initial annotation ID from URL on mount
   useEffect(() => {
+    if (!enabled) return;
+
     const annotationId = new URL(globalThis.location.href).searchParams.get('locationId');
     if (annotationId) {
       const initialAnnotation =
@@ -19,10 +22,12 @@ export const useMapUrlSync = (
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [points, polygons]); // Only run once with the initial data
+  }, [points, polygons, enabled]); // Only run once with the initial data (and if enabled)
 
   // Effect 2: Sync openAnnotation state to URL
   useEffect(() => {
+    if (!enabled) return;
+
     const url = new URL(globalThis.location.href);
     if (openAnnotation) {
       url.searchParams.set('locationId', openAnnotation.id);
@@ -30,10 +35,12 @@ export const useMapUrlSync = (
       url.searchParams.delete('locationId');
     }
     globalThis.history.pushState({}, '', url.toString());
-  }, [openAnnotation]);
+  }, [openAnnotation, enabled]);
 
   // Effect 3: Handle browser back/forward navigation
   useEffect(() => {
+    if (!enabled) return;
+
     const handlePopState = (): void => {
       const annotationId = new URL(globalThis.location.href).searchParams.get('locationId');
       if (!annotationId) {
@@ -43,5 +50,5 @@ export const useMapUrlSync = (
 
     globalThis.addEventListener('popstate', handlePopState);
     return (): void => globalThis.removeEventListener('popstate', handlePopState);
-  }, [closeDrawer]);
+  }, [closeDrawer, enabled]);
 };

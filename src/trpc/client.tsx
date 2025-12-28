@@ -81,7 +81,7 @@ export const TRPCProvider: React.FC<{
             }),
           );
         })
-        .catch(() => { });
+        .catch(() => {});
     }
   }, []);
 

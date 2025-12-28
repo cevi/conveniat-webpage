@@ -63,9 +63,9 @@ export const scheduleRouter = createTRPCRouter({
       participants:
         isAdmin || !course.hide_participant_list
           ? enrollments.map((enrollment_) => ({
-            uuid: enrollment_.user.uuid,
-            name: enrollment_.user.name,
-          }))
+              uuid: enrollment_.user.uuid,
+              name: enrollment_.user.name,
+            }))
           : [],
     };
   }),

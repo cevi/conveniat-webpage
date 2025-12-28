@@ -63,6 +63,10 @@ export const MapLibreRenderer = ({
   limitUsage = true,
   validateStyle = true,
   mapControlOptions,
+  selectedAnnotationId,
+  hideDrawer,
+  disableUrlSync,
+  disableFlyTo,
 }: {
   initialMapPose: InitialMapPose;
   ceviLogoMarkers: CeviLogoMarker[];
@@ -72,6 +76,10 @@ export const MapLibreRenderer = ({
   limitUsage?: boolean;
   validateStyle?: boolean;
   mapControlOptions?: MapControlOptions | undefined;
+  selectedAnnotationId?: string;
+  hideDrawer?: boolean;
+  disableUrlSync?: boolean;
+  disableFlyTo?: boolean;
 }): React.JSX.Element => {
   // default values for optional parameters
   campMapAnnotationPoints ??= [];
@@ -87,6 +95,10 @@ export const MapLibreRenderer = ({
       limitUsage={limitUsage}
       validateStyle={validateStyle}
       mapControlOptions={mapControlOptions}
+      {...(selectedAnnotationId !== undefined && { selectedAnnotationId })}
+      {...(hideDrawer !== undefined && { hideDrawer })}
+      {...(disableUrlSync !== undefined && { disableUrlSync })}
+      {...(disableFlyTo !== undefined && { disableFlyTo })}
     />
   );
 };

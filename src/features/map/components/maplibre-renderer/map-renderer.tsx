@@ -20,7 +20,7 @@ import { i18nConfig } from '@/types/types';
 import { reactToDomElement } from '@/utils/react-to-dom-element';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useCurrentLocale } from 'next-i18n-router/client';
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 
 // TODO: this should only be enabled in app mode
 const enableSearch: boolean = false; // Set to true to enable the search bar
@@ -42,6 +42,10 @@ export const MapLibreRenderer = ({
   limitUsage = true,
   validateStyle = true,
   mapControlOptions,
+  selectedAnnotationId,
+  hideDrawer = false,
+  disableUrlSync = false,
+  disableFlyTo = false,
 }: {
   initialMapPose: InitialMapPose;
   ceviLogoMarkers: CeviLogoMarker[];
@@ -51,17 +55,30 @@ export const MapLibreRenderer = ({
   limitUsage?: boolean;
   validateStyle?: boolean;
   mapControlOptions?: MapControlOptions | undefined;
+  selectedAnnotationId?: string;
+  hideDrawer?: boolean;
+  disableUrlSync?: boolean;
+  disableFlyTo?: boolean;
 }): React.JSX.Element => {
-  const mapContainerReference = useRef<HTMLDivElement>(null);
+  const [mapContainer, setMapContainer] = useState<HTMLDivElement | undefined>();
   const [openAnnotation, setOpenAnnotation] = useState<
     CampMapAnnotationPoint | CampMapAnnotationPolygon | undefined
-  >();
+  >(() => {
+    // Initialize with selected annotation if provided
+    if (selectedAnnotationId) {
+      const selectedPoint = campMapAnnotationPoints.find((a) => a.id === selectedAnnotationId);
+      if (selectedPoint) return selectedPoint;
+      const selectedPolygon = campMapAnnotationPolygons.find((a) => a.id === selectedAnnotationId);
+      if (selectedPolygon) return selectedPolygon;
+    }
+    return;
+  });
   const [searchTerm, setSearchTerm] = useState<string>('');
 
   const closeDrawer = useCallback(() => setOpenAnnotation(undefined), []);
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
-  const map = useMapInitialization(mapContainerReference, {
+  const map = useMapInitialization(mapContainer, {
     initialMapPose,
     limitUsage,
     validateStyle,
@@ -73,6 +90,7 @@ export const MapLibreRenderer = ({
     closeDrawer,
     campMapAnnotationPoints,
     campMapAnnotationPolygons,
+    !disableUrlSync,
   );
 
   // Filter annotations based on search term
@@ -113,7 +131,7 @@ export const MapLibreRenderer = ({
 
   return (
     <MapContextProvider map={map}>
-      {openAnnotation && (
+      {openAnnotation && !hideDrawer && (
         <AnnotationDetailsDrawer
           closeDrawer={closeDrawer}
           annotation={openAnnotation}
@@ -121,7 +139,7 @@ export const MapLibreRenderer = ({
           schedule={schedules[openAnnotation.id]}
         />
       )}
-      <div className="h-full w-full" ref={mapContainerReference} />
+      <div className="h-full w-full" ref={(element) => setMapContainer(element ?? undefined)} />
       {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */}
       {enableSearch && <SearchBar onSearch={handleSearch} />}
       <MaplibreMap
@@ -131,6 +149,7 @@ export const MapLibreRenderer = ({
         campMapAnnotationPolygons={filteredAnnotationPolygons}
         ceviLogoMarkers={ceviLogoMarkers}
         mapControlOptions={mapControlOptions}
+        disableFlyTo={disableFlyTo}
       />
     </MapContextProvider>
   );

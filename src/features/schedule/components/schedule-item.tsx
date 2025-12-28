@@ -14,6 +14,7 @@ import { cn } from '@/utils/tailwindcss-override';
 import { CheckCircle, ChevronRight, Clock, MapPin } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 
 import type React from 'react';
 
@@ -29,6 +30,7 @@ export const ScheduleItem: React.FC<ScheduleItemProperties> = ({
   onMapClick,
 }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
+  const searchParameters = useSearchParams();
   const { isStarred, toggleStar } = useStar();
   const { saveScrollPosition } = useScrollRestoration();
   const location = entry.location as CampMapAnnotation;
@@ -39,7 +41,7 @@ export const ScheduleItem: React.FC<ScheduleItemProperties> = ({
   );
 
   const hasEnrollment = entry.enable_enrolment === true;
-  const href = `/app/schedule/${entry.id}`;
+  const href = `/app/schedule/${entry.id}?${searchParameters.toString()}`;
 
   return (
     <div

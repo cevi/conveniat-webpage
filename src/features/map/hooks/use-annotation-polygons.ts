@@ -29,7 +29,9 @@ export const useAnnotationPolygons = (
   const map = useMap();
 
   // eslint-disable-next-line react-naming-convention/use-state
-  const [, setClickedPolygonState] = useState<ClickedFeaturesState | undefined>();
+  const [clickedPolygonState, setClickedPolygonState] = useState<
+    ClickedFeaturesState | undefined
+  >();
 
   const mapReference = useRef<MapLibre | undefined>(undefined);
   mapReference.current = map;
@@ -256,36 +258,36 @@ export const useAnnotationPolygons = (
         return;
       }
 
-      setClickedPolygonState((previousState: ClickedFeaturesState | undefined) => {
-        const sortedClickedPolygons = clickedPolygons.sort((a, b) => a.id.localeCompare(b.id));
-        const currentIds = previousState?.polygons
-          .map((p: CampMapAnnotationPolygon) => p.id)
-          .sort();
-        const newIds = sortedClickedPolygons.map((p: CampMapAnnotationPolygon) => p.id).sort();
+      // Use the state captured in closure (added to deps) instead of functional update
+      // to avoid side-effects (setCurrentAnnotation) inside reducer
+      const previousState = clickedPolygonState;
 
-        const isSameSetOfPolygons =
-          currentIds &&
-          newIds.length === currentIds.length &&
-          newIds.every((id, index) => id === currentIds[index]);
+      const sortedClickedPolygons = clickedPolygons.sort((a, b) => a.id.localeCompare(b.id));
+      const currentIds = previousState?.polygons.map((p: CampMapAnnotationPolygon) => p.id).sort();
+      const newIds = sortedClickedPolygons.map((p: CampMapAnnotationPolygon) => p.id).sort();
 
-        let nextState: ClickedFeaturesState;
-        if (isSameSetOfPolygons === true && previousState && sortedClickedPolygons.length > 1) {
-          const nextIndex = (previousState.currentIndex + 1) % sortedClickedPolygons.length;
-          nextState = { polygons: sortedClickedPolygons, currentIndex: nextIndex };
-        } else {
-          nextState = { polygons: sortedClickedPolygons, currentIndex: 0 };
-        }
+      const isSameSetOfPolygons =
+        currentIds &&
+        newIds.length === currentIds.length &&
+        newIds.every((id, index) => id === currentIds[index]);
 
-        const selectedPolygon = nextState.polygons[nextState.currentIndex];
-        if (selectedPolygon) {
-          setCurrentAnnotation(selectedPolygon);
-          const url = new URL(globalThis.location.href);
-          url.searchParams.set('locationId', selectedPolygon.id);
-          globalThis.history.pushState({}, '', url.toString());
-        }
+      let nextState: ClickedFeaturesState;
+      if (isSameSetOfPolygons === true && previousState && sortedClickedPolygons.length > 1) {
+        const nextIndex = (previousState.currentIndex + 1) % sortedClickedPolygons.length;
+        nextState = { polygons: sortedClickedPolygons, currentIndex: nextIndex };
+      } else {
+        nextState = { polygons: sortedClickedPolygons, currentIndex: 0 };
+      }
 
-        return nextState;
-      });
+      setClickedPolygonState(nextState);
+
+      const selectedPolygon = nextState.polygons[nextState.currentIndex];
+      if (selectedPolygon) {
+        setCurrentAnnotation(selectedPolygon);
+        const url = new URL(globalThis.location.href);
+        url.searchParams.set('locationId', selectedPolygon.id);
+        globalThis.history.pushState({}, '', url.toString());
+      }
     };
 
     map.on('click', handleClick);
@@ -293,5 +295,5 @@ export const useAnnotationPolygons = (
     return (): void => {
       map.off('click', handleClick);
     };
-  }, [map, annotations, setCurrentAnnotation]);
+  }, [map, annotations, setCurrentAnnotation, clickedPolygonState]);
 };
