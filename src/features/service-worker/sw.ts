@@ -7,7 +7,10 @@ import {
 import { serwist } from '@/features/service-worker/offline-support/caching';
 import { handleFetchEvent } from '@/features/service-worker/offline-support/fetch-handler';
 import { registerMapOfflineSupport } from '@/features/service-worker/offline-support/map-viewer';
-import { prefetchOfflinePages } from '@/features/service-worker/offline-support/prefetch';
+import {
+  isOfflineSupportEnabled,
+  prefetchOfflinePages,
+} from '@/features/service-worker/offline-support/prefetch';
 import {
   notificationClickHandler,
   pushNotificationHandler,
@@ -33,13 +36,46 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    Promise.all([
-      serwist.handleActivate(event),
-      self.clients.claim(),
-      pruneInactiveAppModeClients(self),
-    ]),
+    (async (): Promise<void> => {
+      // Standard activation tasks
+      await Promise.all([
+        serwist.handleActivate(event),
+        self.clients.claim(),
+        pruneInactiveAppModeClients(self),
+      ]);
+
+      // Handle offline cache update if previously enabled
+      const offlineEnabled = await isOfflineSupportEnabled();
+      if (offlineEnabled) {
+        console.log('[SW] Service Worker updated. Flushing and redownloading offline content...');
+
+        // 1. Delete relevant runtime caches
+        const cachesToFlush = [
+          'pages-cache',
+          'next-rsc-cache',
+          'next-css-cache',
+          'next-js-cache',
+          'images-cache',
+          'offline-assets-cache',
+        ];
+
+        await Promise.all(cachesToFlush.map((cacheName) => caches.delete(cacheName)));
+
+        // 2. Trigger redownload using existing prefetch logic
+        // We trigger it for all clients on the next tick to ensure they are ready
+        console.log('[SW] Triggering offline content redownload for all clients...');
+        setTimeout(() => {
+          void (async (): Promise<void> => {
+            const clients = await self.clients.matchAll();
+            const mainClient = clients[0];
+            await prefetchOfflinePages(mainClient?.id);
+          })();
+        }, 1000);
+      }
+
+      console.log('[SW] Activated and ready to handle requests.');
+    })(),
   );
-  console.log('[SW] Activated and ready to handle requests.');
 });
 
 // Message handler for App Mode and Offline Download

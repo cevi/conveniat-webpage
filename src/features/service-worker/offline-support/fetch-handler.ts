@@ -178,7 +178,7 @@ export const handleFetchEvent =
               if (cachedRsc) {
                 return cachedRsc;
               }
-              console.log('[SW] RSC Cache Miss:', url.toString());
+              console.warn(`[SW] RSC Cache Miss for: ${url.toString()}. Returning error response.`);
               return Response.error();
             }
 
@@ -196,8 +196,13 @@ export const handleFetchEvent =
               ignoreSearch: true,
               ignoreVary: true,
             });
-            if (fallbackMatch) return fallbackMatch;
 
+            if (fallbackMatch) {
+              console.log(`[SW] Serving fallback for: ${url.toString()}`);
+              return fallbackMatch;
+            }
+
+            console.error(`[SW] Fetch failed and no cache/fallback found for: ${url.toString()}`);
             return Response.error();
           }
         } catch (criticalError) {

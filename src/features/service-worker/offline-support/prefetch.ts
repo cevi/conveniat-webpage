@@ -2,6 +2,9 @@ import { offlinePages } from '@/features/service-worker/offline-support/offline-
 import { offlineRegistry } from '@/features/service-worker/offline-support/offline-registry';
 import { DesignModeTriggers } from '@/utils/design-codes';
 
+export const OFFLINE_STATUS_CACHE = 'offline-status-cache';
+export const OFFLINE_ENABLED_FLAG = 'offline-enabled';
+
 export function getCacheNameForUrl(url: string): string {
   if (/\.css(\?.*)?$/i.test(url)) return 'next-css-cache';
   if (/\.(woff2?|ttf|otf|eot)(\?.*)?$/i.test(url)) return 'next-fonts-cache';
@@ -31,6 +34,19 @@ function cleanHeaders(headers: Headers): Headers {
     }
   }
   return newHeaders;
+}
+
+export async function isOfflineSupportEnabled(): Promise<boolean> {
+  const cache = await caches.open(OFFLINE_STATUS_CACHE);
+  const response = await cache.match(OFFLINE_ENABLED_FLAG);
+  return response !== undefined;
+}
+
+export async function setOfflineSupportEnabled(enabled: boolean): Promise<void> {
+  const cache = await caches.open(OFFLINE_STATUS_CACHE);
+  await (enabled
+    ? cache.put(OFFLINE_ENABLED_FLAG, new Response('true'))
+    : cache.delete(OFFLINE_ENABLED_FLAG));
 }
 
 export async function prefetchOfflinePages(
@@ -231,6 +247,9 @@ export async function prefetchOfflinePages(
     processedItems++;
     if (clientId !== undefined && onProgress) onProgress(totalItems, processedItems);
   }
+
+  // Set the "offline enabled" flag after successful prefetch
+  await setOfflineSupportEnabled(true);
 
   console.log('[SW] Prefetching complete.');
 }
