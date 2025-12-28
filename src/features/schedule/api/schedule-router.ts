@@ -63,9 +63,9 @@ export const scheduleRouter = createTRPCRouter({
       participants:
         isAdmin || !course.hide_participant_list
           ? enrollments.map((enrollment_) => ({
-              uuid: enrollment_.user.uuid,
-              name: enrollment_.user.name,
-            }))
+            uuid: enrollment_.user.uuid,
+            name: enrollment_.user.name,
+          }))
           : [],
     };
   }),
@@ -129,7 +129,7 @@ export const scheduleRouter = createTRPCRouter({
             )
           ) {
             throw new TRPCError({
-              code: 'BAD_REQUEST',
+              code: 'CONFLICT',
               // Format: "Time conflict with [TITLE]|[ID]" - the ID is used for switch enrollment
               message: `Time conflict with ${other.title}|${other.id}`,
             });
@@ -238,7 +238,7 @@ export const scheduleRouter = createTRPCRouter({
             )
           ) {
             throw new TRPCError({
-              code: 'BAD_REQUEST',
+              code: 'CONFLICT',
               message: `Time conflict with ${other.title}`,
             });
           }
