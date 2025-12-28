@@ -28,6 +28,9 @@ export const { dynamic, dynamicParams, revalidate } = {
 // SSG /serwist/sw.js and /serwist/sw.js.map
 export const { generateStaticParams } = serwistConfig;
 
+// Header to detect self-fetch loops
+const SELF_FETCH_HEADER = 'X-Serwist-Self-Fetch';
+
 /**
  * Custom GET handler to bypass draft mode for the Service Worker.
  *
@@ -38,6 +41,9 @@ export const { generateStaticParams } = serwistConfig;
  * * Fix: We detect draft mode. If found, we `fetch` this same URL
  *   *without cookies*. Next.js sees the cookie-less request and serves the
  *   pre-built static file (SSG) from the cache. We then return that file.
+ *
+ * * Loop Prevention: If the self-fetch header is present, it means we're in a loop
+ *   (cached version wasn't served). Abort with 404 to prevent infinite recursion.
  */
 export async function GET(request: NextRequest, context: never): Promise<NextResponse> {
   // only build service worker at build time, avoid 500 error due to mising dependencies
@@ -49,12 +55,25 @@ export async function GET(request: NextRequest, context: never): Promise<NextRes
     return serwistConfig.GET(request, context);
   }
 
+  // Prevent infinite loop: if this is a self-fetch and we're executing the handler,
+  // it means the cached version wasn't served - abort with 404
+  if (request.headers.get(SELF_FETCH_HEADER)) {
+    console.warn('[Serwist] Self-fetch loop detected, returning 404');
+    return NextResponse.json(
+      { error: 'Static SW not available (loop prevention)' },
+      { status: 404 },
+    );
+  }
+
   // try to retrieve pre-build file
   const localUrl = `http://127.0.0.1:3000${request.nextUrl.pathname}`;
   console.log(`[Serwist] Bypassing draft mode via self-fetch to: ${localUrl}`);
 
   const staticResponse = await fetch(localUrl, {
     cache: 'force-cache',
+    headers: {
+      [SELF_FETCH_HEADER]: '1', // Mark this as a self-fetch to prevent loops
+    },
   });
 
   if (staticResponse.ok) {
