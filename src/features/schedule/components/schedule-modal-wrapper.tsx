@@ -1,5 +1,4 @@
-'use client';
-
+import { Skeleton } from '@/components/ui/skeleton';
 import { X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type React from 'react';
@@ -7,8 +6,9 @@ import { useCallback, useEffect } from 'react';
 
 interface ScheduleModalWrapperProperties {
   children: React.ReactNode;
-  title: string;
+  title: string | React.ReactNode;
   rightAction?: React.ReactNode;
+  isLoading?: boolean;
 }
 
 /**
@@ -19,6 +19,7 @@ export const ScheduleModalWrapper: React.FC<ScheduleModalWrapperProperties> = ({
   children,
   title,
   rightAction,
+  isLoading = false,
 }) => {
   const router = useRouter();
 
@@ -60,10 +61,22 @@ export const ScheduleModalWrapper: React.FC<ScheduleModalWrapperProperties> = ({
               <X className="h-5 w-5 text-gray-700" />
             </button>
             <div className="min-w-0 flex-1">
-              <h1 className="font-heading truncate text-lg font-semibold text-gray-900">{title}</h1>
+              {isLoading ? (
+                <Skeleton className="h-6 w-3/4 max-w-[200px]" />
+              ) : (
+                <h1 className="font-heading truncate text-lg font-semibold text-gray-900">
+                  {title}
+                </h1>
+              )}
             </div>
           </div>
-          {rightAction && <div className="flex shrink-0 items-center">{rightAction}</div>}
+          <div className="flex shrink-0 items-center">
+            {isLoading && !rightAction ? (
+              <Skeleton className="h-8 w-8 rounded-full" />
+            ) : (
+              rightAction
+            )}
+          </div>
         </header>
 
         {/* Scrollable Content */}

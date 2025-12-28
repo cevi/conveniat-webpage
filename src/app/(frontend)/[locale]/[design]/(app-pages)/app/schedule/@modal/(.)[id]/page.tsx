@@ -4,6 +4,7 @@ import { useScheduleEntries } from '@/context/schedule-entries-context';
 import type { CampScheduleEntry } from '@/features/payload-cms/payload-types';
 import { DetailStarButton } from '@/features/schedule/components/detail-star-button';
 import { ScheduleDetailContent } from '@/features/schedule/components/schedule-detail-content';
+import { ScheduleDetailSkeleton } from '@/features/schedule/components/schedule-detail-skeleton';
 import { ScheduleModalWrapper } from '@/features/schedule/components/schedule-modal-wrapper';
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
@@ -32,6 +33,7 @@ const ScheduleDetailModal: React.FC = () => {
   const {
     data: fetchedEntry,
     isLoading,
+    isFetched,
     error,
   } = trpc.schedule.getById.useQuery(
     { id: scheduleId ?? '' },
@@ -46,17 +48,28 @@ const ScheduleDetailModal: React.FC = () => {
   // Loading state (only when fetching and no cache)
   if (isLoading && !cachedEntry) {
     return (
-      <ScheduleModalWrapper title="Loading...">
-        <div className="flex h-64 items-center justify-center text-gray-400">Loading...</div>
+      <ScheduleModalWrapper title="" isLoading>
+        <ScheduleDetailSkeleton />
       </ScheduleModalWrapper>
     );
   }
 
   // Error or not found state
-  if (error || !entry) {
+  // Only show error if we are relatively sure we are done loading
+  if ((isFetched || error) && !entry) {
     return (
       <ScheduleModalWrapper title="Not Found">
         <div className="flex h-64 items-center justify-center text-gray-500">Entry not found.</div>
+      </ScheduleModalWrapper>
+    );
+  }
+
+  // Fallback for when data is still loading but we passed the isLoading check
+  // This prevents "Not Found" from flickering during subtle state transitions
+  if (!entry) {
+    return (
+      <ScheduleModalWrapper title="" isLoading>
+        <ScheduleDetailSkeleton />
       </ScheduleModalWrapper>
     );
   }
