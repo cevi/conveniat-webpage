@@ -165,7 +165,17 @@ export const QRCodeImage: React.FC<QRCodeImageProperties> = ({
   isLoading,
   locale = 'en',
 }) => {
-  if (isLoading) {
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const [previousQrImageSource, setPreviousQrImageSource] = useState(qrImageSrc);
+
+  if (qrImageSrc !== previousQrImageSource) {
+    setPreviousQrImageSource(qrImageSrc);
+    setIsImageLoaded(false);
+  }
+
+  const showLoading = isLoading || (qrImageSrc != undefined && !isImageLoaded);
+
+  if (showLoading) {
     return (
       <>
         <div className="flex h-[200px] w-[200px] animate-pulse items-center justify-center rounded-md bg-gray-100 dark:bg-gray-700">
@@ -185,7 +195,13 @@ export const QRCodeImage: React.FC<QRCodeImageProperties> = ({
   if (qrImageSrc != undefined) {
     return (
       <>
-        <Image src={qrImageSrc} height="200" width="200" alt="link-qr-code" />
+        <Image
+          src={qrImageSrc}
+          height="200"
+          width="200"
+          alt="link-qr-code"
+          onLoad={() => setIsImageLoaded(true)}
+        />
         {fullURL != undefined && (
           <div className="relative w-full">
             <input

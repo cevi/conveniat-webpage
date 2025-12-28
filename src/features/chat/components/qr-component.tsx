@@ -4,7 +4,7 @@ import { QRCodeImage } from '@/features/payload-cms/payload-cms/components/qr-co
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { useCurrentLocale } from 'next-i18n-router/client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import { environmentVariables } from '@/config/environment-variables';
 import {
@@ -90,6 +90,21 @@ export const QRCodeClientComponent: React.FC<{
     refetchOnWindowFocus: false,
     retry: 1,
   });
+
+  const previousQrImageData = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (previousQrImageData.current != undefined && previousQrImageData.current !== qrImageData) {
+      URL.revokeObjectURL(previousQrImageData.current);
+    }
+    previousQrImageData.current = qrImageData;
+
+    return (): void => {
+      if (previousQrImageData.current != undefined) {
+        URL.revokeObjectURL(previousQrImageData.current);
+        previousQrImageData.current = undefined;
+      }
+    };
+  }, [qrImageData]);
 
   const isLoading = isPreparingQrData || (isLoadingQRCodeImage && !isSuccessQRCodeImage);
 
