@@ -25,7 +25,7 @@ export const AlertResponseMessage: React.FC<AlertResponseMessageProperties> = ({
       <p className="whitespace-pre-wrap text-[var(--theme-text)]">{payload.message}</p>
       <button
         onClick={handleCall}
-        className="bg-conveniat-green hover:bg-conveniat-green-dark active:bg-conveniat-green-darker flex items-center justify-center space-x-2 rounded-md px-4 py-2 text-white transition-colors"
+        className="bg-conveniat-green flex w-full cursor-pointer items-center justify-center space-x-2 rounded-xl px-4 py-3 text-white shadow-sm transition-all duration-200 hover:bg-green-700 hover:shadow-md active:scale-[0.98]"
       >
         <Phone className="h-4 w-4" />
         <span className="font-semibold">{payload.phoneNumber}</span>

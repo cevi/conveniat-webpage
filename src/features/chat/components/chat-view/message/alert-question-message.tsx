@@ -19,10 +19,7 @@ interface QuestionPayload {
   questionRefId?: string;
 }
 
-export const AlertQuestionMessage: React.FC<AlertQuestionMessageProperties> = ({
-  message,
-  isCurrentUser,
-}) => {
+export const AlertQuestionMessage: React.FC<AlertQuestionMessageProperties> = ({ message }) => {
   const chatId = useChatId();
   const payload = message.messagePayload as unknown as QuestionPayload;
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -30,7 +27,7 @@ export const AlertQuestionMessage: React.FC<AlertQuestionMessageProperties> = ({
 
   const currentSelection = payload.selectedOption ?? optimisticSelection;
   const hasAnswered = !!currentSelection;
-  const canAnswer = isCurrentUser && !hasAnswered;
+  const canAnswer = !hasAnswered;
 
   const trpcUtils = trpc.useUtils();
   const updateMessageContext = trpc.chat.updateMessageContent.useMutation({
@@ -62,7 +59,7 @@ export const AlertQuestionMessage: React.FC<AlertQuestionMessageProperties> = ({
   };
 
   return (
-    <div className="flex min-w-[200px] flex-col space-y-2 p-1">
+    <div className="flex min-w-[200px] flex-col space-y-2.5 p-1">
       <h3 className="font-semibold text-[var(--theme-text)]">{payload.question}</h3>
       <div className="flex flex-col space-y-2">
         {payload.options.map((option) => {
@@ -75,29 +72,37 @@ export const AlertQuestionMessage: React.FC<AlertQuestionMessageProperties> = ({
               onClick={() => handleSelectOption(option)}
               disabled={!isSelectable && !isSelected}
               className={cn(
-                'flex items-center space-x-2 rounded-md border p-2 text-left transition-colors',
+                'group flex items-center space-x-3 rounded-xl border-2 px-4 py-3 text-left transition-all duration-200',
                 isSelected
-                  ? 'bg-conveniat-green/10 border-conveniat-green text-conveniat-green'
-                  : 'border-[var(--theme-elevation-150)] bg-[var(--theme-elevation-50)] text-[var(--theme-text)] hover:bg-[var(--theme-elevation-100)]',
-                !isSelectable &&
+                  ? 'border-conveniat-green bg-conveniat-green/10 text-conveniat-green shadow-sm'
+                  : 'border-gray-200 bg-white text-[var(--theme-text)]',
+                isSelectable &&
                   !isSelected &&
-                  'cursor-not-allowed opacity-50 hover:bg-[var(--theme-elevation-50)]',
+                  'cursor-pointer hover:border-gray-300 hover:bg-gray-50 hover:shadow-md active:scale-[0.98]',
+                !isSelectable && !isSelected && 'cursor-not-allowed opacity-50',
               )}
             >
               {isSelected ? (
-                <div className="bg-conveniat-green rounded-full p-0.5">
+                <div className="bg-conveniat-green flex h-5 w-5 shrink-0 items-center justify-center rounded-full shadow-sm">
                   {isSubmitting ? (
-                    <Loader2 className="h-3 w-3 animate-spin text-white" />
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-white" />
                   ) : (
-                    <Check className="h-3 w-3 text-white" />
+                    <Check className="h-3.5 w-3.5 text-white" />
                   )}
                 </div>
               ) : (
-                <Circle
-                  className={cn('h-4 w-4', isSelectable ? 'text-gray-400' : 'text-gray-200')}
-                />
+                <div
+                  className={cn(
+                    'flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors duration-200',
+                    isSelectable
+                      ? 'border-gray-300 group-hover:border-gray-400'
+                      : 'border-gray-200',
+                  )}
+                >
+                  <Circle className="h-0 w-0" />
+                </div>
               )}
-              <span className="text-sm">{option}</span>
+              <span className="text-sm font-medium">{option}</span>
             </button>
           );
         })}
