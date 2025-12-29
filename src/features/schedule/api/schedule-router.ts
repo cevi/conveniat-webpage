@@ -1,3 +1,4 @@
+import { isOverlapping } from '@/features/schedule/utils/time-utils';
 import { createNewChat } from '@/features/chat/api/database-interactions/create-new-chat'; // eslint-disable-line import/no-restricted-paths
 import type { User as PayloadUser } from '@/features/payload-cms/payload-types';
 import { ChatMembershipPermission, ChatType, MessageEventType, MessageType } from '@/lib/prisma';
@@ -14,14 +15,6 @@ import { z } from 'zod';
 const enrollInCourseSchema = z.object({
   courseId: z.string(),
 });
-
-const isOverlapping = (time1: string, date1: string, time2: string, date2: string): boolean => {
-  if (date1 !== date2) return false;
-  const [start1, end1] = time1.split(' - ').map((t) => t.trim());
-  const [start2, end2] = time2.split(' - ').map((t) => t.trim());
-  if (!start1 || !end1 || !start2 || !end2) return false;
-  return start1 < end2 && start2 < end1;
-};
 
 export const scheduleRouter = createTRPCRouter({
   getScheduleEntries: trpcBaseProcedure.query(async ({ ctx }) => {
@@ -73,9 +66,9 @@ export const scheduleRouter = createTRPCRouter({
       participants:
         isAdmin || !course.hide_participant_list
           ? enrollments.map((enrollment_) => ({
-              uuid: enrollment_.user.uuid,
-              name: enrollment_.user.name,
-            }))
+            uuid: enrollment_.user.uuid,
+            name: enrollment_.user.name,
+          }))
           : [],
       // Markdown versions for editing
       descriptionMarkdown: isAdmin
