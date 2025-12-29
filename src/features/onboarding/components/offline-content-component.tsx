@@ -22,36 +22,84 @@ interface OfflineContentEntrypointComponentProperties {
 export const OfflineContentEntrypointComponent: React.FC<
   OfflineContentEntrypointComponentProperties
 > = ({ callback, locale }) => {
-  const [status, setStatus] = React.useState<'idle' | 'downloading' | 'success' | 'error'>('idle');
+  const [status, setStatus] = React.useState<
+    'idle' | 'checking' | 'downloading' | 'success' | 'error'
+  >('checking');
   const [progress, setProgress] = React.useState({ total: 0, current: 0 });
 
   React.useEffect(() => {
-    if (status === 'downloading') {
-      const handleMessage = (event: MessageEvent): void => {
-        const data = event.data as
-          | {
-              type: typeof ServiceWorkerMessages.OFFLINE_DOWNLOAD_PROGRESS;
-              payload: { total: number; current: number };
-            }
-          | { type: typeof ServiceWorkerMessages.OFFLINE_DOWNLOAD_COMPLETE }
-          | undefined;
+    // 1) Set up message listener for download progress OR check response
+    const handleMessage = (event: MessageEvent): void => {
+      const data = event.data as
+        | {
+            type: typeof ServiceWorkerMessages.OFFLINE_DOWNLOAD_PROGRESS;
+            payload: { total: number; current: number };
+          }
+        | { type: typeof ServiceWorkerMessages.OFFLINE_DOWNLOAD_COMPLETE }
+        | {
+            type: typeof ServiceWorkerMessages.CHECK_OFFLINE_READY;
+            payload: { ready: boolean };
+          }
+        | undefined;
 
-        if (data?.type === ServiceWorkerMessages.OFFLINE_DOWNLOAD_PROGRESS) {
-          setProgress(data.payload);
-        } else if (data?.type === ServiceWorkerMessages.OFFLINE_DOWNLOAD_COMPLETE) {
-          setStatus('success');
-          setTimeout(() => {
-            callback(true);
-          }, 1500); // Wait a bit before proceeding
+      switch (data?.type) {
+      case ServiceWorkerMessages.OFFLINE_DOWNLOAD_PROGRESS: {
+        setProgress(data.payload);
+      
+      break;
+      }
+      case ServiceWorkerMessages.OFFLINE_DOWNLOAD_COMPLETE: {
+        setStatus('success');
+        setTimeout(() => {
+          callback(true);
+        }, 1500); // Wait a bit before proceeding
+      
+      break;
+      }
+      case ServiceWorkerMessages.CHECK_OFFLINE_READY: {
+        if (data.payload.ready) {
+          // Previously downloaded -> Skip immediately
+          callback(true);
+        } else {
+          // Not downloaded -> Ask user
+          setStatus('idle');
         }
-      };
+      
+      break;
+      }
+      // No default
+      }
+    };
 
-      navigator.serviceWorker.addEventListener('message', handleMessage);
-      return (): void => {
-        navigator.serviceWorker.removeEventListener('message', handleMessage);
-      };
+    navigator.serviceWorker.addEventListener('message', handleMessage);
+
+    // 2) If we are in 'checking' state, ask SW if we are ready
+    if (status === 'checking') {
+      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        // Send check message
+        navigator.serviceWorker.controller.postMessage({
+          type: ServiceWorkerMessages.CHECK_OFFLINE_READY,
+        });
+
+        // Fallback safety: If SW doesn't answer fast enough (e.g. 500ms),
+        // show the UI so the user isn't stuck on a blank screen forever.
+        const timer = setTimeout(() => {
+          setStatus((previous) => (previous === 'checking' ? 'idle' : previous));
+        }, 500);
+
+        return (): void => {
+          clearTimeout(timer);
+          navigator.serviceWorker.removeEventListener('message', handleMessage);
+        };
+      } else {
+        // No SW controller? Just show UI
+        setStatus('idle');
+      }
     }
-    return;
+
+    return (): void => {
+      navigator.serviceWorker.removeEventListener('message', handleMessage);
+    };
   }, [status, callback]);
 
   const handleDownload = (): void => {
@@ -81,6 +129,16 @@ export const OfflineContentEntrypointComponent: React.FC<
       </div>
 
       <div className="w-full space-y-4">
+        {status === 'checking' && (
+          <div className="flex flex-col items-center justify-center py-4">
+            <motion.div
+              className="h-10 w-10 rounded-full border-4 border-red-200 border-t-red-600"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+            />
+          </div>
+        )}
+
         {status === 'idle' && (
           <div className="flex flex-col gap-3">
             <button
