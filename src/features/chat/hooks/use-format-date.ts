@@ -29,6 +29,7 @@ const getDateFnsLocale = (localeString: string): typeof enUS => {
 
 export const useFormatDate = (): {
   formatMessageTime: (timestamp: Date | string) => string;
+  formatMessageTimeOnly: (timestamp: Date | string) => string;
 } => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
@@ -52,5 +53,20 @@ export const useFormatDate = (): {
     return format(date, 'MMM d, HH:mm', { locale: dateFnsLocale });
   };
 
-  return { formatMessageTime };
+  const formatMessageTimeOnly = (timestamp: Date | string): string => {
+    const dateFnsLocale = getDateFnsLocale(locale);
+
+    // Ensure we have a Date object
+    const date = timestamp instanceof Date ? timestamp : new Date(timestamp);
+
+    // Guard against invalid date
+    if (Number.isNaN(date.getTime())) {
+      return '';
+    }
+
+    // Always show just the time (e.g., "15:25")
+    return format(date, 'HH:mm', { locale: dateFnsLocale });
+  };
+
+  return { formatMessageTime, formatMessageTimeOnly };
 };

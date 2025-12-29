@@ -28,9 +28,9 @@ import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useRef, useState } from 'react';
 
 const DoubleCheck: React.FC<{ className?: string }> = ({ className }) => (
-  <div className={cn('relative flex h-3.5 w-4.5 items-center', className)}>
-    <Check className="absolute left-0 h-3.5 w-3.5" />
-    <Check className="absolute left-1.5 h-3.5 w-3.5" />
+  <div className={cn('relative flex h-2 w-4.5 items-center', className)}>
+    <Check className="absolute left-0 h-2 w-2" />
+    <Check className="absolute left-1.5 h-2 w-2" />
   </div>
 );
 
@@ -87,7 +87,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
   const touchStartX = useRef(0);
   const isTouchReference = useRef(false);
   const longPressTimerReference = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const { formatMessageTime } = useFormatDate();
+  const { formatMessageTimeOnly } = useFormatDate();
   const renderedContent = formatMessageContent(message.messagePayload, locale);
   const chatId = useChatId();
   const { data: chatDetails } = useChatDetail(chatId);
@@ -247,7 +247,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
             >
               <div
                 className={cn(
-                  'font-body relative rounded-[18px] px-4 py-3 shadow-sm transition-transform duration-150',
+                  'font-body relative rounded-[18px] px-4 pt-3 pb-6 shadow-sm transition-transform duration-150',
                   // Ensure minimum width for short messages to accommodate timestamp
                   'min-w-[120px]',
                   isCurrentUser
@@ -286,14 +286,14 @@ export const MessageComponent: React.FC<MessageProperties> = ({
                 ) : (
                   renderedContent
                 )}
+                {/* Timestamp and status - absolutely positioned at bottom right */}
                 <span
                   className={cn(
-                    'float-right ml-2 inline-flex items-baseline gap-1 text-[10px]',
+                    'absolute bottom-1.5 right-3 inline-flex items-center gap-0.5 text-[10px]',
                     isCurrentUser ? 'text-white/70' : 'text-gray-400',
-                    'translate-y-[1px]', // Fine-tune baseline alignment
                   )}
                 >
-                  <span className="font-body">{formatMessageTime(message.createdAt)}</span>
+                  <span className="font-body">{formatMessageTimeOnly(message.createdAt)}</span>
                   {renderMessageStatus()}
                 </span>
               </div>
