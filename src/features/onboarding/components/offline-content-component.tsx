@@ -43,31 +43,31 @@ export const OfflineContentEntrypointComponent: React.FC<
         | undefined;
 
       switch (data?.type) {
-      case ServiceWorkerMessages.OFFLINE_DOWNLOAD_PROGRESS: {
-        setProgress(data.payload);
-      
-      break;
-      }
-      case ServiceWorkerMessages.OFFLINE_DOWNLOAD_COMPLETE: {
-        setStatus('success');
-        setTimeout(() => {
-          callback(true);
-        }, 1500); // Wait a bit before proceeding
-      
-      break;
-      }
-      case ServiceWorkerMessages.CHECK_OFFLINE_READY: {
-        if (data.payload.ready) {
-          // Previously downloaded -> Skip immediately
-          callback(true);
-        } else {
-          // Not downloaded -> Ask user
-          setStatus('idle');
+        case ServiceWorkerMessages.OFFLINE_DOWNLOAD_PROGRESS: {
+          setProgress(data.payload);
+
+          break;
         }
-      
-      break;
-      }
-      // No default
+        case ServiceWorkerMessages.OFFLINE_DOWNLOAD_COMPLETE: {
+          setStatus('success');
+          setTimeout(() => {
+            callback(true);
+          }, 1500); // Wait a bit before proceeding
+
+          break;
+        }
+        case ServiceWorkerMessages.CHECK_OFFLINE_READY: {
+          if (data.payload.ready) {
+            // Previously downloaded -> Skip immediately
+            callback(true);
+          } else {
+            // Not downloaded -> Ask user
+            setStatus('idle');
+          }
+
+          break;
+        }
+        // No default
       }
     };
 

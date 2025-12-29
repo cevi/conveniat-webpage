@@ -1,3 +1,4 @@
+import { CACHE_NAMES } from '@/features/service-worker/constants';
 import { offlineRegistry } from '@/features/service-worker/offline-support/offline-registry';
 import { CacheFirst, type RouteHandler } from 'serwist';
 
@@ -93,6 +94,14 @@ const urlsToPrecache: string[] = [
   `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/14/8570/5797.pbf`,
 ];
 
+/**
+ * Normalizes a tile URL from any load-balanced server (vectortiles0-4)
+ * to the canonical vectortiles0 used for precaching.
+ */
+export function normalizeTileUrl(url: string): string {
+  return url.replace(/vectortiles[0-9]/, 'vectortiles0');
+}
+
 export const tileURLRewriter = (): RouteHandler => {
   return async ({ request }: { request: Request }) => {
     const url = new URL(request.url);
@@ -109,10 +118,8 @@ export const tileURLRewriter = (): RouteHandler => {
       /https:\/\/vectortiles[0-9]?\.geo\.admin\.ch\/tiles\/(ch\.swisstopo\..*\.vt\/v[0-9]\.[0-9]\.[0-9])\/([0-9]+\/[0-9]+\/[0-9]+\.pbf)/;
     const match = request.url.match(tileRegex);
 
-    if (match?.[1] !== undefined && match[2] !== undefined) {
-      const tilePath = match[1];
-      const coordsAndFile = match[2];
-      const newTileUrl = `${tilesBaseUrl}${tilePath}/${coordsAndFile}`;
+    if (match !== null) {
+      const newTileUrl = normalizeTileUrl(request.url);
 
       try {
         const cachedResponse = await caches.match(newTileUrl);
@@ -122,16 +129,12 @@ export const tileURLRewriter = (): RouteHandler => {
       }
     }
 
-    const pagesCache = await caches.open('pages-cache');
+    const pagesCache = await caches.open(CACHE_NAMES.PAGES);
 
+    // Map Page Fallback
     if (url.pathname.startsWith('/app/map') && request.destination === 'document') {
       const cachedMapPage = await pagesCache.match('/app/map', { ignoreVary: true });
       if (cachedMapPage) return cachedMapPage;
-    }
-
-    if (request.destination === 'document') {
-      const offlinePage = await pagesCache.match('/~offline', { ignoreVary: true });
-      return offlinePage ?? Response.error();
     }
 
     return Response.error();
@@ -146,7 +149,7 @@ export const registerMapOfflineSupport: () => void = (): void => {
       {
         matcher: /https:\/\/vectortiles[0-9]?\.geo\.admin\.ch\/(tiles|styles)\/.*/,
         handler: new CacheFirst({
-          cacheName: 'map-tiles-cache',
+          cacheName: CACHE_NAMES.MAP_TILES,
         }),
       },
     ],

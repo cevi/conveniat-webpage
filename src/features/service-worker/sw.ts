@@ -4,6 +4,7 @@ import {
   persistAppModeClients,
   pruneInactiveAppModeClients,
 } from '@/features/service-worker/app-mode';
+import { CACHE_NAMES } from '@/features/service-worker/constants';
 import { serwist } from '@/features/service-worker/offline-support/caching';
 import { handleFetchEvent } from '@/features/service-worker/offline-support/fetch-handler';
 import { registerMapOfflineSupport } from '@/features/service-worker/offline-support/map-viewer';
@@ -20,7 +21,8 @@ import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
 // Register map offline support
 registerMapOfflineSupport();
 
-// Ensures the global `self` variable is correctly typed as `ServiceWorkerGlobalScope`.
+// Ensures the global `self` variable is correctly
+// typed as `ServiceWorkerGlobalScope`.
 declare const self: ServiceWorkerGlobalScope;
 
 // Push notifications
@@ -44,33 +46,38 @@ self.addEventListener('activate', (event) => {
         pruneInactiveAppModeClients(self),
       ]);
 
+      // Selective Invalidation (Automated Lifecycle)
+      // Only delete caches that are safe to prune (Assets/Fonts/Images are kept!)
+      const expectedCaches = new Set<string>(Object.values(CACHE_NAMES));
+      const currentCaches = await caches.keys();
+      await Promise.all(
+        currentCaches.map((cacheName) => {
+          if (!expectedCaches.has(cacheName) && !cacheName.includes('precache')) {
+            console.log(`[SW] Pruning old cache: ${cacheName}`);
+            return caches.delete(cacheName);
+          }
+          return Promise.resolve(false);
+        }),
+      );
+
       // Handle offline cache update if previously enabled
       const offlineEnabled = await isOfflineSupportEnabled();
       if (offlineEnabled) {
         console.log('[SW] Service Worker updated. Flushing and redownloading offline content...');
 
-        // 1. Delete relevant runtime caches
-        const cachesToFlush = [
-          'pages-cache',
-          'next-rsc-cache',
-          'next-css-cache',
-          'next-js-cache',
-          'images-cache',
-          'offline-assets-cache',
-        ];
-
-        await Promise.all(cachesToFlush.map((cacheName) => caches.delete(cacheName)));
-
-        // 2. Trigger redownload using existing prefetch logic
-        // We trigger it for all clients on the next tick to ensure they are ready
+        // Trigger redownload using reliable Client Claiming
         console.log('[SW] Triggering offline content redownload for all clients...');
-        setTimeout(() => {
-          void (async (): Promise<void> => {
-            const clients = await self.clients.matchAll();
-            const mainClient = clients[0];
-            await prefetchOfflinePages(mainClient?.id);
-          })();
-        }, 1000);
+
+        // Wait for control to be active
+        await self.clients.claim();
+
+        const clients = await self.clients.matchAll();
+        for (const client of clients) {
+          client.postMessage({ type: ServiceWorkerMessages.START_OFFLINE_DOWNLOAD });
+        }
+
+        // Also trigger internally for the SW itself if needed
+        void prefetchOfflinePages();
       }
 
       console.log('[SW] Activated and ready to handle requests.');
@@ -112,6 +119,19 @@ self.addEventListener('message', (event) => {
         });
 
         client.postMessage({ type: ServiceWorkerMessages.OFFLINE_DOWNLOAD_COMPLETE });
+      })(),
+    );
+  }
+
+  if (data?.type === ServiceWorkerMessages.CHECK_OFFLINE_READY && event.source instanceof Client) {
+    const client = event.source;
+    event.waitUntil(
+      (async (): Promise<void> => {
+        const isReady = await isOfflineSupportEnabled();
+        client.postMessage({
+          type: ServiceWorkerMessages.CHECK_OFFLINE_READY,
+          payload: { ready: isReady },
+        });
       })(),
     );
   }
