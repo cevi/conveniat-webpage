@@ -32,6 +32,9 @@ enum ChatType {
 
   /// a support chat for reporting problems
   SUPPORT_GROUP
+
+  /// an automatically managed group chat for a schedule entry (workshop)
+  COURSE_GROUP
 }
 
 model Chat {
@@ -48,6 +51,10 @@ model Chat {
   archivedAt DateTime?
 
   type            ChatType         @default(GROUP)
+  
+  /// links to the objectID in the courses collection in MongoDB (for COURSE_GROUP type)
+  courseId String? @unique
+  
   messages        Message[]
   chatMemberships ChatMembership[]
   capabilities    ChatCapability[]

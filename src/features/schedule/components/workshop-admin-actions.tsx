@@ -6,6 +6,7 @@ import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { Loader2, MessageSquare, Settings } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
+import Link from 'next/link';
 import type React from 'react';
 
 const labels = {
@@ -16,6 +17,11 @@ const labels = {
     de: 'Gruppenchat erstellen',
     en: 'Create Group Chat',
     fr: 'Créer un chat de groupe',
+  },
+  viewChat: {
+    de: 'Gruppenchat öffnen',
+    en: 'View Group Chat',
+    fr: 'Voir le chat de groupe',
   },
   noParticipants: {
     de: 'Noch keine Teilnehmer',
@@ -31,6 +37,7 @@ interface CourseStatus {
   isAdmin: boolean;
   enableEnrolment: boolean | null | undefined;
   hideList: boolean | null | undefined;
+  chatId: string | undefined;
   participants: { uuid: string; name: string }[];
   descriptionMarkdown: string | undefined;
   targetGroupMarkdown: string | undefined;
@@ -50,6 +57,7 @@ export const WorkshopAdminActions: React.FC<WorkshopAdminActionsProperties> = ({
   courseStatus: courseStatusProperty,
 }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
+  const utils = trpc.useUtils();
 
   // Use passed props or fetch if not provided
   const { data: fetchedStatus, isLoading } = trpc.schedule.getCourseStatus.useQuery(
@@ -62,6 +70,8 @@ export const WorkshopAdminActions: React.FC<WorkshopAdminActionsProperties> = ({
 
   const createChat = trpc.schedule.createWorkshopChat.useMutation({
     onSuccess: (data) => {
+      // Invalidate the status query to update the UI
+      void utils.schedule.getCourseStatus.invalidate({ courseId });
       globalThis.location.href = `/app/chat/${data.chatId}`;
     },
     onError: (error) => toast.error(error.message),
@@ -70,6 +80,8 @@ export const WorkshopAdminActions: React.FC<WorkshopAdminActionsProperties> = ({
   // Don't render if not admin or still loading
   if (isLoading && !status) return;
   if (!isAdmin || !status) return;
+
+  const hasChatCreated = Boolean(status.chatId);
 
   return (
     <div className="mt-10 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -85,22 +97,31 @@ export const WorkshopAdminActions: React.FC<WorkshopAdminActionsProperties> = ({
         {/* Management Section */}
         <div>
           <h3 className="mb-2 text-xs font-semibold text-gray-500">{labels.management[locale]}</h3>
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2"
-            onClick={() => {
-              createChat.mutate({ courseId, chatName: `Workshop: ${courseTitle}` });
-            }}
-            disabled={createChat.isPending || status.participants.length === 0}
-          >
-            {createChat.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <MessageSquare className="h-4 w-4" />
-            )}
-            {labels.createChat[locale]}
-          </Button>
+          {hasChatCreated ? (
+            <Button variant="outline" size="sm" className="gap-2" asChild>
+              <Link href={`/app/chat/${status.chatId}`}>
+                <MessageSquare className="h-4 w-4" />
+                {labels.viewChat[locale]}
+              </Link>
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={() => {
+                createChat.mutate({ courseId, chatName: `Workshop: ${courseTitle}` });
+              }}
+              disabled={createChat.isPending}
+            >
+              {createChat.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <MessageSquare className="h-4 w-4" />
+              )}
+              {labels.createChat[locale]}
+            </Button>
+          )}
         </div>
 
         {/* Participant List Section */}

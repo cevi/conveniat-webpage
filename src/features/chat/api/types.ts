@@ -24,6 +24,7 @@ export interface ChatDetails {
   name: string;
   id: string;
   type: string;
+  courseId?: string | null;
   archivedAt: Date | null;
   messages: ChatMessage[];
   participants: ChatParticipant[];

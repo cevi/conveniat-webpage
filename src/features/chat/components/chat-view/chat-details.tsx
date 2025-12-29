@@ -7,6 +7,7 @@ import type { Contact } from '@/features/chat/api/queries/list-contacts';
 import { DeleteChat } from '@/features/chat/components/chat-details-view/delete-chat';
 import { AddParticipants } from '@/features/chat/components/chat-details-view/sections/add-participants';
 import { ChatCapabilities } from '@/features/chat/components/chat-details-view/sections/chat-capabilities';
+import { ChatCourseSection } from '@/features/chat/components/chat-details-view/sections/chat-course-section';
 import { ChatDetailsHeader } from '@/features/chat/components/chat-details-view/sections/chat-details-header';
 import { ChatNameSection } from '@/features/chat/components/chat-details-view/sections/chat-name-section';
 import { ParticipantsList } from '@/features/chat/components/chat-details-view/sections/participants-list';
@@ -95,6 +96,10 @@ export const ChatDetails: React.FC = () => {
               updateChatMutation.mutate({ chatUuid: chatDetails.id, newName });
             }}
           />
+
+          {chatDetails.type === 'COURSE_GROUP' && chatDetails.courseId && (
+            <ChatCourseSection courseId={chatDetails.courseId} locale={locale} />
+          )}
 
           {/* --- Participants Section --- */}
           <ParticipantsList

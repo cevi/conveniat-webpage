@@ -57,6 +57,7 @@ interface CourseStatus {
   isAdmin: boolean;
   enableEnrolment: boolean | null | undefined;
   hideList: boolean | null | undefined;
+  chatId: string | undefined;
   participants: { uuid: string; name: string }[];
   descriptionMarkdown: string | undefined;
   targetGroupMarkdown: string | undefined;
@@ -89,7 +90,6 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
 }) => {
   const location = entry.location as CampMapAnnotation;
   const organisers = entry.organiser as User[];
-  const primaryOrganiser = organisers[0];
   const dateTime = formatScheduleDateTime(locale, entry.timeslot.date, entry.timeslot.time);
 
   const handleDescriptionChange = (value: string): void => {
@@ -152,8 +152,8 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
               />
             )}
 
-            {/* Contact Organiser - Hide when editing */}
-            {primaryOrganiser && !isEditing && (
+            {/* Contact Organisers - Hide when editing */}
+            {organisers.length > 0 && !isEditing && (
               <div className="mt-8 border-t border-gray-200 pt-6">
                 <div className="mb-4 flex items-center gap-2">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
@@ -163,17 +163,24 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
                     {contactAdminText[locale]}
                   </h3>
                 </div>
-                <div className="flex items-center justify-between gap-4 rounded-xl border border-gray-100 bg-gray-50 p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-conveniat-green/10 text-conveniat-green flex h-10 w-10 items-center justify-center rounded-full font-bold">
-                      {primaryOrganiser.fullName.charAt(0)}
+                <div className="space-y-3">
+                  {organisers.map((organiser) => (
+                    <div
+                      key={organiser.id}
+                      className="flex items-center justify-between gap-4 rounded-xl border border-gray-100 bg-gray-50 p-4"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="bg-conveniat-green/10 text-conveniat-green flex h-10 w-10 items-center justify-center rounded-full font-bold">
+                          {organiser.fullName.charAt(0)}
+                        </div>
+                        <div>
+                          <div className="font-semibold text-gray-900">{organiser.fullName}</div>
+                          <div className="text-xs text-gray-500">{organiser.email}</div>
+                        </div>
+                      </div>
+                      <ChatLinkButton userId={organiser.id} />
                     </div>
-                    <div>
-                      <div className="font-semibold text-gray-900">{primaryOrganiser.fullName}</div>
-                      <div className="text-xs text-gray-500">{primaryOrganiser.email}</div>
-                    </div>
-                  </div>
-                  <ChatLinkButton userId={primaryOrganiser.id} />
+                  ))}
                 </div>
               </div>
             )}

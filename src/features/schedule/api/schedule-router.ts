@@ -1,5 +1,6 @@
 import { createNewChat } from '@/features/chat/api/database-interactions/create-new-chat'; // eslint-disable-line import/no-restricted-paths
 import type { User as PayloadUser } from '@/features/payload-cms/payload-types';
+import { ChatMembershipPermission, ChatType, MessageEventType, MessageType } from '@/lib/prisma';
 import { createTRPCRouter, trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { ensureUserExistsMiddleware } from '@/trpc/middleware/ensure-user-exists';
@@ -55,6 +56,12 @@ export const scheduleRouter = createTRPCRouter({
     const organisers = course.organiser as PayloadUser[];
     const isAdmin = organisers.some((o) => o.id === user.uuid);
 
+    // Check if a group chat exists for this course
+    const courseChat = await prisma.chat.findUnique({
+      where: { courseId },
+      select: { uuid: true },
+    });
+
     return {
       enrolledCount: enrollments.length,
       maxParticipants: course.participants_max ?? undefined,
@@ -62,6 +69,7 @@ export const scheduleRouter = createTRPCRouter({
       isAdmin,
       enableEnrolment: course.enable_enrolment,
       hideList: course.hide_participant_list,
+      chatId: courseChat?.uuid,
       participants:
         isAdmin || !course.hide_participant_list
           ? enrollments.map((enrollment_) => ({
@@ -149,6 +157,55 @@ export const scheduleRouter = createTRPCRouter({
       await prisma.enrollment.create({
         data: { userId: user.uuid, courseId },
       });
+
+      // Add user to course group chat if it exists
+      const courseChat = await prisma.chat.findUnique({
+        where: { courseId },
+        select: { uuid: true },
+      });
+
+      if (courseChat) {
+        // Check if user is already a member (e.g., organizer)
+        const existingMembership = await prisma.chatMembership.findUnique({
+          where: {
+            userId_chatId: {
+              userId: user.uuid,
+              chatId: courseChat.uuid,
+            },
+          },
+        });
+
+        if (!existingMembership) {
+          // Add as GUEST by default
+          await prisma.chatMembership.create({
+            data: {
+              userId: user.uuid,
+              chatId: courseChat.uuid,
+              chatPermission: ChatMembershipPermission.GUEST,
+            },
+          });
+
+          // Create system message for joining
+          await prisma.message.create({
+            data: {
+              chatId: courseChat.uuid,
+              type: MessageType.SYSTEM_MSG,
+              contentVersions: {
+                create: [{ payload: `${user.name} joined the group` }],
+              },
+              messageEvents: {
+                create: [{ type: MessageEventType.CREATED }, { type: MessageEventType.STORED }],
+              },
+            },
+          });
+
+          // Update chat lastUpdate
+          await prisma.chat.update({
+            where: { uuid: courseChat.uuid },
+            data: { lastUpdate: new Date() },
+          });
+        }
+      }
 
       return { success: true };
     }),
@@ -268,6 +325,105 @@ export const scheduleRouter = createTRPCRouter({
         data: { userId: user.uuid, courseId: toCourseId },
       });
 
+      // Handle chat membership changes
+      // Remove from old course chat if exists
+      const fromCourseChat = await prisma.chat.findUnique({
+        where: { courseId: fromCourseId },
+        select: { uuid: true },
+      });
+
+      if (fromCourseChat) {
+        const fromMembership = await prisma.chatMembership.findUnique({
+          where: {
+            userId_chatId: {
+              userId: user.uuid,
+              chatId: fromCourseChat.uuid,
+            },
+          },
+        });
+
+        if (fromMembership) {
+          // Check if user is an organizer of the old course
+          const isOrganiser = fromCourse.organiser?.some((org: string | { id: string }) =>
+            typeof org === 'string' ? org === user.uuid : org.id === user.uuid,
+          );
+
+          if (!isOrganiser) {
+            await prisma.chatMembership.delete({
+              where: {
+                userId_chatId: {
+                  userId: user.uuid,
+                  chatId: fromCourseChat.uuid,
+                },
+              },
+            });
+
+            await prisma.message.create({
+              data: {
+                chatId: fromCourseChat.uuid,
+                type: MessageType.SYSTEM_MSG,
+                contentVersions: {
+                  create: [{ payload: `${user.name} left the group` }],
+                },
+                messageEvents: {
+                  create: [{ type: MessageEventType.CREATED }, { type: MessageEventType.STORED }],
+                },
+              },
+            });
+
+            await prisma.chat.update({
+              where: { uuid: fromCourseChat.uuid },
+              data: { lastUpdate: new Date() },
+            });
+          }
+        }
+      }
+
+      // Add to new course chat if exists
+      const toCourseChat = await prisma.chat.findUnique({
+        where: { courseId: toCourseId },
+        select: { uuid: true },
+      });
+
+      if (toCourseChat) {
+        const toMembership = await prisma.chatMembership.findUnique({
+          where: {
+            userId_chatId: {
+              userId: user.uuid,
+              chatId: toCourseChat.uuid,
+            },
+          },
+        });
+
+        if (!toMembership) {
+          await prisma.chatMembership.create({
+            data: {
+              userId: user.uuid,
+              chatId: toCourseChat.uuid,
+              chatPermission: ChatMembershipPermission.GUEST,
+            },
+          });
+
+          await prisma.message.create({
+            data: {
+              chatId: toCourseChat.uuid,
+              type: MessageType.SYSTEM_MSG,
+              contentVersions: {
+                create: [{ payload: `${user.name} joined the group` }],
+              },
+              messageEvents: {
+                create: [{ type: MessageEventType.CREATED }, { type: MessageEventType.STORED }],
+              },
+            },
+          });
+
+          await prisma.chat.update({
+            where: { uuid: toCourseChat.uuid },
+            data: { lastUpdate: new Date() },
+          });
+        }
+      }
+
       return {
         success: true,
         switchedFrom: fromCourse.title,
@@ -286,6 +442,64 @@ export const scheduleRouter = createTRPCRouter({
       await prisma.enrollment.deleteMany({
         where: { userId: user.uuid, courseId },
       });
+
+      // Remove user from course group chat if it exists
+      const courseChat = await prisma.chat.findUnique({
+        where: { courseId },
+        select: { uuid: true },
+      });
+
+      if (courseChat) {
+        const payload = await getPayload({ config });
+        const course = await payload.findByID({
+          collection: 'camp-schedule-entry',
+          id: courseId,
+          depth: 0,
+        });
+        const organisers = (course.organiser || []) as string[];
+
+        // Check if user is a member
+        const membership = await prisma.chatMembership.findUnique({
+          where: {
+            userId_chatId: {
+              userId: user.uuid,
+              chatId: courseChat.uuid,
+            },
+          },
+        });
+
+        if (membership && !organisers.includes(user.uuid)) {
+          // Remove membership
+          await prisma.chatMembership.delete({
+            where: {
+              userId_chatId: {
+                userId: user.uuid,
+                chatId: courseChat.uuid,
+              },
+            },
+          });
+
+          // Create system message for leaving
+          await prisma.message.create({
+            data: {
+              chatId: courseChat.uuid,
+              type: MessageType.SYSTEM_MSG,
+              contentVersions: {
+                create: [{ payload: `${user.name} left the group` }],
+              },
+              messageEvents: {
+                create: [{ type: MessageEventType.CREATED }, { type: MessageEventType.STORED }],
+              },
+            },
+          });
+
+          // Update chat lastUpdate
+          await prisma.chat.update({
+            where: { uuid: courseChat.uuid },
+            data: { lastUpdate: new Date() },
+          });
+        }
+      }
 
       return { success: true };
     }),
@@ -348,6 +562,7 @@ export const scheduleRouter = createTRPCRouter({
 
   createWorkshopChat: trpcBaseProcedure
     .input(z.object({ courseId: z.string(), chatName: z.string() }))
+    .use(databaseTransactionWrapper)
     .mutation(async ({ input, ctx }) => {
       const { user, prisma, locale } = ctx;
       const payload = await getPayload({ config });
@@ -355,6 +570,7 @@ export const scheduleRouter = createTRPCRouter({
       const course = await payload.findByID({
         collection: 'camp-schedule-entry',
         id: input.courseId,
+        depth: 0,
       });
 
       const organisers = course.organiser as string[];
@@ -365,23 +581,60 @@ export const scheduleRouter = createTRPCRouter({
         });
       }
 
+      // Check if a chat already exists for this course
+      const existingChat = await prisma.chat.findUnique({
+        where: { courseId: input.courseId },
+        select: { uuid: true },
+      });
+
+      if (existingChat) {
+        return { chatId: existingChat.uuid };
+      }
+
       const enrollments = await prisma.enrollment.findMany({
         where: { courseId: input.courseId },
         select: { userId: true },
       });
 
-      const members = enrollments
+      // Filter out the current user from enrollments - they will be added as OWNER
+      const enrolledMemberIds = enrollments
         .filter((enrollment_) => enrollment_.userId !== user.uuid)
-        .map((enrollment_) => ({ userId: enrollment_.userId }));
+        .map((enrollment_) => enrollment_.userId);
 
-      if (members.length === 0) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'Cannot create chat with no other participants.',
+      // Get other organizers (not the current user) to add as ADMIN
+      const otherOrganisers = organisers.filter((orgId) => orgId !== user.uuid);
+
+      // Create the chat with COURSE_GROUP type
+      const chat = await createNewChat(input.chatName, locale, user, [], prisma, {
+        courseId: input.courseId,
+        chatType: ChatType.COURSE_GROUP,
+      });
+
+      // Add other organizers as ADMIN
+      for (const orgId of otherOrganisers) {
+        await prisma.chatMembership.create({
+          data: {
+            userId: orgId,
+            chatId: chat.uuid,
+            chatPermission: ChatMembershipPermission.ADMIN,
+          },
         });
       }
 
-      const chat = await createNewChat(input.chatName, locale, user, members, prisma);
+      // Add enrolled users as GUEST (can read but not send messages by default)
+      for (const memberId of enrolledMemberIds) {
+        // Skip if this member is already an organizer
+        if (organisers.includes(memberId)) continue;
+
+        await prisma.chatMembership.create({
+          data: {
+            userId: memberId,
+            chatId: chat.uuid,
+            chatPermission: ChatMembershipPermission.GUEST,
+          },
+        });
+      }
+
       return { chatId: chat.uuid };
     }),
 

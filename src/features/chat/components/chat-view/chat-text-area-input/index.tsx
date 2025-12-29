@@ -198,11 +198,11 @@ export const ChatTextAreaInput: React.FC = () => {
   };
 
   if (isGuest) {
-    return <div className="text-gray-500">{isGuestMessage[locale]}</div>;
+    return <div className="text-balance text-gray-500">{isGuestMessage[locale]}</div>;
   }
 
   if (chatDetails?.archivedAt !== null) {
-    return <div className="text-gray-500">{chatIsArchivedMessage[locale]}</div>;
+    return <div className="text-balance text-gray-500">{chatIsArchivedMessage[locale]}</div>;
   }
 
   if (isGlobalMessagingDisabled) {

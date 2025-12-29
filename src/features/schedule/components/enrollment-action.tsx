@@ -19,8 +19,9 @@ import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { CheckCircle, Loader2, Users, WifiOff } from 'lucide-react';
+import { CheckCircle, Loader2, MessageSquare, Users, WifiOff } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
+import Link from 'next/link';
 import React, { useState } from 'react';
 
 const localizedEnroll: StaticTranslationString = {
@@ -99,6 +100,12 @@ const localizedSwitchQuestion: StaticTranslationString = {
   de: 'Möchtest du dich vom anderen Kurs abmelden und dich für diesen Workshop anmelden?',
   en: 'Would you like to unenroll from the other course and enroll in this workshop?',
   fr: "Souhaitez-vous vous désinscrire de l'autre cours et vous inscrire à cet atelier?",
+};
+
+const localizedViewChat: StaticTranslationString = {
+  de: 'Gruppenchat öffnen',
+  en: 'View Group Chat',
+  fr: 'Voir le chat de groupe',
 };
 
 interface ConflictInfo {
@@ -208,35 +215,41 @@ export const EnrollmentAction: React.FC<{
   if (!status?.enableEnrolment) return;
 
   const { isEnrolled, enrolledCount, maxParticipants } = status;
-  const isFull =
-    maxParticipants !== undefined && maxParticipants !== null && enrolledCount >= maxParticipants;
-  const spotsLeft =
-    maxParticipants !== undefined && maxParticipants !== null
-      ? maxParticipants - enrolledCount
-      : undefined;
+  const isFull = maxParticipants !== undefined && enrolledCount >= maxParticipants;
+  const spotsLeft = maxParticipants === undefined ? undefined : maxParticipants - enrolledCount;
 
   if (isEnrolled) {
     return (
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 text-sm">
-          <CheckCircle className="h-4 w-4 text-green-600" />
-          <span className="font-medium text-green-600">{localizedEnrolled[locale]}</span>
-          {maxParticipants && (
-            <span className="text-gray-400">
-              ({enrolledCount} / {maxParticipants})
-            </span>
-          )}
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-sm">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <span className="font-medium text-green-600">{localizedEnrolled[locale]}</span>
+            {maxParticipants && (
+              <span className="text-gray-400">
+                ({enrolledCount} / {maxParticipants})
+              </span>
+            )}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => unenroll.mutate({ courseId })}
+            disabled={unenroll.isPending}
+            className="h-8 text-sm"
+          >
+            {unenroll.isPending && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+            {localizedUnenroll[locale]}
+          </Button>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => unenroll.mutate({ courseId })}
-          disabled={unenroll.isPending}
-          className="h-8 text-sm"
-        >
-          {unenroll.isPending && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
-          {localizedUnenroll[locale]}
-        </Button>
+        {status.chatId && (
+          <Button variant="outline" size="sm" className="gap-2" asChild>
+            <Link href={`/app/chat/${status.chatId}`}>
+              <MessageSquare className="h-4 w-4" />
+              {localizedViewChat[locale]}
+            </Link>
+          </Button>
+        )}
       </div>
     );
   }

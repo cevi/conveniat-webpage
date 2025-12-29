@@ -66,6 +66,7 @@ export const getChat = trpcBaseProcedure
       id: chat.uuid,
       archivedAt: chat.archivedAt,
       type: chat.type,
+      courseId: chat.courseId,
       // Reverse to chronological order (we fetched in desc to get newest 25)
       messages: [...messages].reverse().map((message) => ({
         id: message.uuid,
