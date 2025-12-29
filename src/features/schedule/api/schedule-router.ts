@@ -3,7 +3,9 @@ import type { User as PayloadUser } from '@/features/payload-cms/payload-types';
 import { createTRPCRouter, trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { ensureUserExistsMiddleware } from '@/trpc/middleware/ensure-user-exists';
+import { convertLexicalToMarkdown, convertMarkdownToLexical } from '@/utils/markdown-to-lexical';
 import config from '@payload-config';
+import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import { TRPCError } from '@trpc/server';
 import { getPayload } from 'payload';
 import { z } from 'zod';
@@ -55,7 +57,7 @@ export const scheduleRouter = createTRPCRouter({
 
     return {
       enrolledCount: enrollments.length,
-      maxParticipants: course.participants_max,
+      maxParticipants: course.participants_max ?? undefined,
       isEnrolled,
       isAdmin,
       enableEnrolment: course.enable_enrolment,
@@ -67,6 +69,13 @@ export const scheduleRouter = createTRPCRouter({
               name: enrollment_.user.name,
             }))
           : [],
+      // Markdown versions for editing
+      descriptionMarkdown: isAdmin
+        ? convertLexicalToMarkdown(course.description as SerializedEditorState)
+        : undefined,
+      targetGroupMarkdown: isAdmin
+        ? convertLexicalToMarkdown(course.target_group as SerializedEditorState)
+        : undefined,
     };
   }),
 
@@ -285,12 +294,13 @@ export const scheduleRouter = createTRPCRouter({
     .input(
       z.object({
         courseId: z.string(),
-        description: z.any().optional(),
-        targetGroup: z.any().optional(),
+        description: z.string().optional(),
+        targetGroup: z.string().optional(),
+        maxParticipants: z.number().optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      const { user } = ctx;
+      const { user, prisma } = ctx;
       const payload = await getPayload({ config });
 
       const course = await payload.findByID({
@@ -304,14 +314,33 @@ export const scheduleRouter = createTRPCRouter({
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Only organisers can update details.' });
       }
 
-      const updateData: any = {}; // eslint-disable-line @typescript-eslint/no-explicit-any
-      if (input.description) updateData.description = input.description; // eslint-disable-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-      if (input.targetGroup) updateData.target_group = input.targetGroup; // eslint-disable-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+      // Validate maxParticipants
+      if (input.maxParticipants !== undefined) {
+        const currentCount = await prisma.enrollment.count({ where: { courseId: input.courseId } });
+        if (input.maxParticipants < currentCount) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'Max participants cannot be less than current enrolled count.',
+          });
+        }
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const updateData: Record<string, any> = {};
+      if (input.description !== undefined) {
+        updateData['description'] = convertMarkdownToLexical(input.description);
+      }
+      if (input.targetGroup !== undefined) {
+        updateData['target_group'] = convertMarkdownToLexical(input.targetGroup);
+      }
+      if (input.maxParticipants !== undefined) {
+        updateData['participants_max'] = input.maxParticipants;
+      }
 
       await payload.update({
         collection: 'camp-schedule-entry',
         id: input.courseId,
-        data: updateData, // eslint-disable-line @typescript-eslint/no-unsafe-assignment
+        data: updateData,
       });
 
       return { success: true };

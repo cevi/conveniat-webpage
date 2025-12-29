@@ -4,23 +4,19 @@ import { toast } from '@/lib/toast';
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { Edit, Loader2, MessageSquare, Save, Settings, Users, X } from 'lucide-react';
+import { Loader2, MessageSquare, Settings } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
-import React, { useState } from 'react';
+import type React from 'react';
 
 const labels = {
   admin: { de: 'Administration', en: 'Administration', fr: 'Administration' },
   participants: { de: 'Teilnehmer', en: 'Participants', fr: 'Participants' },
+  management: { de: 'Verwaltung', en: 'Management', fr: 'Gestion' },
   createChat: {
     de: 'Gruppenchat erstellen',
     en: 'Create Group Chat',
     fr: 'Créer un chat de groupe',
   },
-  editDetails: { de: 'Details bearbeiten', en: 'Edit details', fr: 'Modifier les détails' },
-  save: { de: 'Speichern', en: 'Save', fr: 'Enregistrer' },
-  cancel: { de: 'Abbrechen', en: 'Cancel', fr: 'Annuler' },
-  enrolled: { de: 'Teilnehmer', en: 'Participants', fr: 'Participants' },
-  targetGroup: { de: 'Zielgruppe', en: 'Target Group', fr: 'Groupe cible' },
   noParticipants: {
     de: 'Noch keine Teilnehmer',
     en: 'No participants yet',
@@ -28,16 +24,41 @@ const labels = {
   },
 } as const;
 
-export const WorkshopAdminActions: React.FC<{
+interface CourseStatus {
+  enrolledCount: number;
+  maxParticipants: number | undefined;
+  isEnrolled: boolean;
+  isAdmin: boolean;
+  enableEnrolment: boolean | null | undefined;
+  hideList: boolean | null | undefined;
+  participants: { uuid: string; name: string }[];
+  descriptionMarkdown: string | undefined;
+  targetGroupMarkdown: string | undefined;
+}
+
+interface WorkshopAdminActionsProperties {
   courseId: string;
   courseTitle: string;
-}> = ({ courseId, courseTitle }) => {
-  const trpcUtils = trpc.useUtils();
-  const [isEditing, setIsEditing] = useState(false);
-  const [targetGroupText, setTargetGroupText] = useState('');
+  isAdmin?: boolean;
+  courseStatus?: CourseStatus | undefined;
+}
 
+export const WorkshopAdminActions: React.FC<WorkshopAdminActionsProperties> = ({
+  courseId,
+  courseTitle,
+  isAdmin: isAdminProperty,
+  courseStatus: courseStatusProperty,
+}) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
-  const { data: status, isLoading } = trpc.schedule.getCourseStatus.useQuery({ courseId });
+
+  // Use passed props or fetch if not provided
+  const { data: fetchedStatus, isLoading } = trpc.schedule.getCourseStatus.useQuery(
+    { courseId },
+    { enabled: isAdminProperty === undefined || courseStatusProperty === undefined },
+  );
+
+  const status = courseStatusProperty ?? fetchedStatus;
+  const isAdmin = isAdminProperty ?? status?.isAdmin ?? false;
 
   const createChat = trpc.schedule.createWorkshopChat.useMutation({
     onSuccess: (data) => {
@@ -46,63 +67,24 @@ export const WorkshopAdminActions: React.FC<{
     onError: (error) => toast.error(error.message),
   });
 
-  const updateCourse = trpc.schedule.updateCourseDetails.useMutation({
-    onSuccess: () => {
-      setIsEditing(false);
-      void trpcUtils.schedule.getCourseStatus.invalidate({ courseId });
-    },
-    onError: (error) => toast.error(error.message),
-  });
-
-  if (isLoading || !status?.isAdmin) return;
-
-  const handleSave = (): void => {
-    updateCourse.mutate({
-      courseId,
-      targetGroup: targetGroupText,
-    });
-  };
-
-  const startEditing = (): void => {
-    setTargetGroupText('');
-    setIsEditing(true);
-  };
+  // Don't render if not admin or still loading
+  if (isLoading && !status) return;
+  if (!isAdmin || !status) return;
 
   return (
-    <div className="mt-12 rounded-2xl border-2 border-dashed border-gray-200 bg-white p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <h2 className="flex items-center gap-2 text-lg font-bold text-gray-900">
-          <Settings className="h-5 w-5 text-gray-400" />
-          {labels.admin[locale]}
-        </h2>
-        <div className="flex gap-2">
-          {isEditing ? (
-            <div className="flex gap-2">
-              <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)}>
-                <X className="mr-1 h-4 w-4" />
-                {labels.cancel[locale]}
-              </Button>
-              <Button
-                variant="default"
-                size="sm"
-                className="bg-conveniat-green hover:bg-conveniat-green-dark gap-2 text-white"
-                onClick={handleSave}
-                disabled={updateCourse.isPending}
-              >
-                {updateCourse.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Save className="h-4 w-4" />
-                )}
-                {labels.save[locale]}
-              </Button>
-            </div>
-          ) : (
-            <Button variant="outline" size="sm" className="gap-2" onClick={startEditing}>
-              <Edit className="h-4 w-4" />
-              {labels.editDetails[locale]}
-            </Button>
-          )}
+    <div className="mt-10 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+      {/* Header */}
+      <h2 className="mb-5 flex items-center gap-2 text-base font-semibold text-gray-900">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100 text-gray-500">
+          <Settings className="h-4 w-4" />
+        </div>
+        {labels.admin[locale]}
+      </h2>
+
+      <div className="space-y-5">
+        {/* Management Section */}
+        <div>
+          <h3 className="mb-2 text-xs font-semibold text-gray-500">{labels.management[locale]}</h3>
           <Button
             variant="outline"
             size="sm"
@@ -120,30 +102,10 @@ export const WorkshopAdminActions: React.FC<{
             {labels.createChat[locale]}
           </Button>
         </div>
-      </div>
 
-      {isEditing && (
-        <div className="animate-in fade-in slide-in-from-top-2 mb-8 space-y-4 duration-200">
-          <div>
-            <label className="mb-2 block text-xs font-bold tracking-wider text-gray-400 uppercase">
-              {labels.targetGroup[locale]}
-            </label>
-            <textarea
-              className="focus:border-conveniat-green focus:ring-conveniat-green w-full rounded-xl border-gray-200 bg-gray-50 p-4 text-sm"
-              rows={3}
-              value={targetGroupText}
-              onChange={(event_) => setTargetGroupText(event_.target.value)}
-              placeholder="Enter target group description..."
-            />
-          </div>
-        </div>
-      )}
-
-      <div className="space-y-4">
-        {/* Participant List */}
+        {/* Participant List Section */}
         <div>
-          <h3 className="mb-3 flex items-center gap-2 text-sm font-bold tracking-wider text-gray-400 uppercase">
-            <Users className="h-4 w-4" />
+          <h3 className="mb-2 text-xs font-semibold text-gray-500">
             {labels.participants[locale]} ({status.participants.length})
           </h3>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">

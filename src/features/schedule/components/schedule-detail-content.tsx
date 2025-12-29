@@ -1,4 +1,5 @@
 import { ChatLinkButton } from '@/components/ui/buttons/chat-link-button';
+import { MarkdownEditor } from '@/components/ui/markdown-editor';
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
 import type {
   CampMapAnnotation,
@@ -11,8 +12,17 @@ import { WorkshopAdminActions } from '@/features/schedule/components/workshop-ad
 import { TRPCProvider } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { formatScheduleDateTime } from '@/utils/format-schedule-date-time';
-import { Calendar, Clock, MapPin, Users } from 'lucide-react';
+import {
+  AlertTriangle,
+  Calendar,
+  Clock,
+  MapPin,
+  MessageCircle,
+  UserPlus,
+  Users,
+} from 'lucide-react';
 import type React from 'react';
+import type { Dispatch, SetStateAction } from 'react';
 
 const contactAdminText: StaticTranslationString = {
   de: 'Kontakt mit Organisator',
@@ -23,11 +33,44 @@ const contactAdminText: StaticTranslationString = {
 const labels = {
   location: { de: 'Ort', en: 'Location', fr: 'Lieu' },
   targetGroup: { de: 'Zielgruppe', en: 'Target Group', fr: 'Groupe cible' },
+  description: { de: 'Beschreibung', en: 'Description', fr: 'Description' },
+  maxParticipants: { de: 'Max. Teilnehmer', en: 'Max Participants', fr: 'Participants max.' },
+  editWarning: {
+    de: 'Formatierungen können beim Speichern vereinfacht werden.',
+    en: 'Formatting may be simplified when saving.',
+    fr: "Le formatage peut être simplifié lors de l'enregistrement.",
+  },
+  dateTime: { de: 'Datum & Zeit', en: 'Date & Time', fr: 'Date & Heure' },
+  enrollment: { de: 'Anmeldung', en: 'Enrollment', fr: 'Inscription' },
 } as const;
+
+interface EditData {
+  description: string;
+  targetGroup: string;
+  maxParticipants: number;
+}
+
+interface CourseStatus {
+  enrolledCount: number;
+  maxParticipants: number | undefined;
+  isEnrolled: boolean;
+  isAdmin: boolean;
+  enableEnrolment: boolean | null | undefined;
+  hideList: boolean | null | undefined;
+  participants: { uuid: string; name: string }[];
+  descriptionMarkdown: string | undefined;
+  targetGroupMarkdown: string | undefined;
+}
 
 interface ScheduleDetailContentProperties {
   entry: CampScheduleEntry;
   locale: Locale;
+  isEditing?: boolean;
+  isAdmin?: boolean;
+  courseStatus?: CourseStatus | undefined;
+  editData?: EditData;
+  onEditDataChange?: Dispatch<SetStateAction<EditData>>;
+  editError?: string | undefined;
 }
 
 /**
@@ -37,11 +80,30 @@ interface ScheduleDetailContentProperties {
 export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = ({
   entry,
   locale,
+  isEditing = false,
+  isAdmin = false,
+  courseStatus,
+  editData,
+  onEditDataChange,
+  editError,
 }) => {
   const location = entry.location as CampMapAnnotation;
   const organisers = entry.organiser as User[];
   const primaryOrganiser = organisers[0];
   const dateTime = formatScheduleDateTime(locale, entry.timeslot.date, entry.timeslot.time);
+
+  const handleDescriptionChange = (value: string): void => {
+    onEditDataChange?.((previous) => ({ ...previous, description: value }));
+  };
+
+  const handleTargetGroupChange = (value: string): void => {
+    onEditDataChange?.((previous) => ({ ...previous, targetGroup: value }));
+  };
+
+  const handleMaxParticipantsChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
+    const value = Number.parseInt(event.target.value, 10) || 0;
+    onEditDataChange?.((previous) => ({ ...previous, maxParticipants: value }));
+  };
 
   return (
     <TRPCProvider>
@@ -49,25 +111,65 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
         <div className="flex flex-col lg:flex-row">
           {/* Main Content */}
           <div className="flex-1 bg-white p-6">
-            <div className="prose prose-gray max-w-none">
-              <LexicalRichTextSection richTextSection={entry.description} />
-            </div>
+            {/* Edit Warning */}
+            {isEditing && (
+              <div className="mb-4 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                {labels.editWarning[locale]}
+              </div>
+            )}
 
-            {/* Admin Actions */}
-            <WorkshopAdminActions courseId={entry.id} courseTitle={entry.title} />
+            {/* Error Banner */}
+            {editError && (
+              <div className="mb-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                {editError}
+              </div>
+            )}
 
-            {primaryOrganiser && (
-              <div className="mt-8 border-t-2 border-gray-200 pt-6">
-                <h3 className="mb-4 text-sm font-bold tracking-wider text-gray-400 uppercase">
-                  {contactAdminText[locale]}
-                </h3>
+            {/* Description */}
+            {isEditing && editData ? (
+              <MarkdownEditor
+                label={labels.description[locale]}
+                value={editData.description}
+                onChange={handleDescriptionChange}
+                rows={6}
+                placeholder="..."
+              />
+            ) : (
+              <div className="prose prose-gray max-w-none">
+                <LexicalRichTextSection richTextSection={entry.description} />
+              </div>
+            )}
+
+            {/* Admin Actions - Hide when editing */}
+            {isAdmin && !isEditing && (
+              <WorkshopAdminActions
+                courseId={entry.id}
+                courseTitle={entry.title}
+                isAdmin={isAdmin}
+                courseStatus={courseStatus}
+              />
+            )}
+
+            {/* Contact Organiser - Hide when editing */}
+            {primaryOrganiser && !isEditing && (
+              <div className="mt-8 border-t border-gray-200 pt-6">
+                <div className="mb-4 flex items-center gap-2">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
+                    <MessageCircle className="h-5 w-5" />
+                  </div>
+                  <h3 className="text-sm font-semibold text-gray-900">
+                    {contactAdminText[locale]}
+                  </h3>
+                </div>
                 <div className="flex items-center justify-between gap-4 rounded-xl border border-gray-100 bg-gray-50 p-4">
                   <div className="flex items-center gap-3">
                     <div className="bg-conveniat-green/10 text-conveniat-green flex h-10 w-10 items-center justify-center rounded-full font-bold">
                       {primaryOrganiser.fullName.charAt(0)}
                     </div>
                     <div>
-                      <div className="font-bold text-gray-900">{primaryOrganiser.fullName}</div>
+                      <div className="font-semibold text-gray-900">{primaryOrganiser.fullName}</div>
                       <div className="text-xs text-gray-500">{primaryOrganiser.email}</div>
                     </div>
                   </div>
@@ -79,16 +181,18 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
 
           {/* Side Info Bar */}
           <aside className="w-full bg-gray-50/50 p-6 lg:w-80 lg:border-l lg:bg-white">
-            <div className="space-y-5">
+            <div className="space-y-6">
               {/* Date & Time */}
               <div className="flex gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
                   <Calendar className="h-5 w-5" />
                 </div>
                 <div>
-                  <div className="text-sm font-medium text-gray-900">{dateTime.formattedDate}</div>
-                  <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                    <Clock className="h-3 w-3" />
+                  <div className="text-sm font-semibold text-gray-900">
+                    {dateTime.formattedDate}
+                  </div>
+                  <div className="flex items-center gap-1.5 text-sm text-gray-500">
+                    <Clock className="h-3.5 w-3.5" />
                     {entry.timeslot.time}
                   </div>
                 </div>
@@ -96,41 +200,88 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
 
               {/* Location */}
               <div>
-                <div className="flex gap-3 px-2">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-orange-100 text-orange-600">
+                <div className="flex gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
                     <MapPin className="h-5 w-5" />
                   </div>
                   <div>
-                    <div className="mb-0.5 text-xs font-bold tracking-wide text-gray-400 uppercase">
+                    <div className="text-xs font-semibold text-gray-500">
                       {labels.location[locale]}
                     </div>
-                    <div className="text-sm font-medium text-gray-900">{location.title}</div>
+                    <div className="text-sm font-semibold text-gray-900">{location.title}</div>
                   </div>
                 </div>
                 <ScheduleMiniMap location={location} />
               </div>
 
               {/* Target Group */}
-              {entry.target_group && (
+              {(entry.target_group || isEditing) && (
                 <div className="flex gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-purple-100 text-purple-600">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
                     <Users className="h-5 w-5" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="mb-0.5 text-xs font-bold tracking-wide text-gray-400 uppercase">
+                    <div className="text-xs font-semibold text-gray-500">
                       {labels.targetGroup[locale]}
                     </div>
-                    <div className="text-sm text-gray-700">
-                      <LexicalRichTextSection richTextSection={entry.target_group} />
-                    </div>
+                    {isEditing && editData ? (
+                      <MarkdownEditor
+                        value={editData.targetGroup}
+                        onChange={handleTargetGroupChange}
+                        rows={3}
+                        placeholder="..."
+                      />
+                    ) : undefined}
+                    {!isEditing && entry.target_group && (
+                      <div className="text-sm text-gray-700">
+                        <LexicalRichTextSection richTextSection={entry.target_group} />
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
 
-              {/* Enrollment Action Section */}
-              <div className="pt-5">
-                <EnrollmentAction courseId={entry.id} />
-              </div>
+              {/* Max Participants (only when editing) */}
+              {isEditing && editData && (
+                <div className="flex gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
+                    <Users className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <label className="block text-xs font-semibold text-gray-500">
+                      {labels.maxParticipants[locale]}
+                    </label>
+                    <input
+                      type="number"
+                      min={courseStatus?.enrolledCount ?? 0}
+                      value={editData.maxParticipants || ''}
+                      onChange={handleMaxParticipantsChange}
+                      className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none"
+                      placeholder="0 = unlimited"
+                    />
+                    {courseStatus && courseStatus.enrolledCount > 0 && (
+                      <p className="mt-1 text-xs text-gray-500">
+                        Min: {courseStatus.enrolledCount} ({courseStatus.enrolledCount} enrolled)
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Enrollment Action Section - Hide when editing */}
+              {!isEditing && (
+                <div className="border-t border-gray-100 pt-5">
+                  <div className="mb-3 flex items-center gap-2">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
+                      <UserPlus className="h-5 w-5" />
+                    </div>
+                    <h3 className="text-sm font-semibold text-gray-900">
+                      {labels.enrollment[locale]}
+                    </h3>
+                  </div>
+                  <EnrollmentAction courseId={entry.id} />
+                </div>
+              )}
             </div>
           </aside>
         </div>

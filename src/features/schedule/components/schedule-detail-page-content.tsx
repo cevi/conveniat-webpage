@@ -4,8 +4,9 @@ import { SetHideFooter } from '@/components/footer/hide-footer-context';
 import { SetHideHeader } from '@/components/header/hide-header-context';
 import { Button } from '@/components/ui/buttons/button';
 import type { CampScheduleEntry } from '@/features/payload-cms/payload-types';
-import { DetailStarButton } from '@/features/schedule/components/detail-star-button';
 import { ScheduleDetailContent } from '@/features/schedule/components/schedule-detail-content';
+import { ScheduleEditHeaderActions } from '@/features/schedule/components/schedule-edit-header-actions';
+import { useScheduleEdit } from '@/features/schedule/hooks/use-schedule-edit';
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
@@ -42,7 +43,7 @@ const DetailContent: React.FC<{ id: string }> = ({ id }) => {
 
   const cachedEntry = scheduleList?.find((entry) => entry.id === id);
 
-  // 2. If not in cache, fetch directly (Online or deep link fallback)
+  // 2. Fetch via TRPC (primary source, enables refresh after edit)
   const {
     data: fetchedEntry,
     isLoading,
@@ -50,12 +51,37 @@ const DetailContent: React.FC<{ id: string }> = ({ id }) => {
   } = trpc.schedule.getById.useQuery(
     { id },
     {
-      enabled: !cachedEntry,
+      enabled: true,
       staleTime: 1000 * 60 * 60,
     },
   );
 
-  const entry = cachedEntry ?? (fetchedEntry as unknown as CampScheduleEntry);
+  // Prefer fetched entry (fresh) over cached entry (may be stale)
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  const entry = (fetchedEntry as unknown as CampScheduleEntry) ?? cachedEntry;
+
+  // 3. Get course status to determine if user is admin
+  const { data: courseStatus } = trpc.schedule.getCourseStatus.useQuery(
+    { courseId: id },
+    { enabled: !!entry },
+  );
+
+  // 4. Use shared edit hook
+  const {
+    isEditing,
+    editError,
+    editData,
+    isAdmin,
+    isSaving,
+    handleStartEdit,
+    handleCancelEdit,
+    handleSave,
+    setEditData,
+  } = useScheduleEdit({
+    courseId: id,
+    locale,
+    courseStatus,
+  });
 
   if (isLoading && !cachedEntry) {
     return (
@@ -65,7 +91,18 @@ const DetailContent: React.FC<{ id: string }> = ({ id }) => {
     );
   }
 
-  if (error ?? (!entry as boolean)) {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (error && !entry) {
+    return (
+      <div className="flex h-screen flex-col items-center justify-center p-8 text-center text-gray-500">
+        <p className="mb-4">{labels.errorLoading[locale]}</p>
+        <Button onClick={() => router.back()}>{labels.back[locale]}</Button>
+      </div>
+    );
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (!entry) {
     return (
       <div className="flex h-screen flex-col items-center justify-center p-8 text-center text-gray-500">
         <p className="mb-4">{labels.notFound[locale]}</p>
@@ -93,14 +130,21 @@ const DetailContent: React.FC<{ id: string }> = ({ id }) => {
               <ChevronLeft className="h-5 w-5 text-gray-700" />
             </button>
             <div className="min-w-0 flex-1">
-              <h1 className="font-heading truncate text-lg font-semibold text-gray-900">
+              <h1 className="font-heading truncate text-xl font-bold text-gray-900">
                 {entry.title}
               </h1>
             </div>
           </div>
-          <div className="flex shrink-0 items-center">
-            <DetailStarButton entryId={entry.id} />
-          </div>
+          <ScheduleEditHeaderActions
+            entryId={entry.id}
+            locale={locale}
+            isAdmin={isAdmin}
+            isEditing={isEditing}
+            isSaving={isSaving}
+            onStartEdit={handleStartEdit}
+            onCancelEdit={handleCancelEdit}
+            onSave={handleSave}
+          />
         </header>
 
         {/* Scrollable Content */}
@@ -115,7 +159,16 @@ const DetailContent: React.FC<{ id: string }> = ({ id }) => {
               </div>
             }
           >
-            <ScheduleDetailContent entry={entry as CampScheduleEntry} locale={locale} />
+            <ScheduleDetailContent
+              entry={entry}
+              locale={locale}
+              isEditing={isEditing}
+              isAdmin={isAdmin}
+              courseStatus={courseStatus}
+              editData={editData}
+              onEditDataChange={setEditData}
+              editError={editError}
+            />
           </ErrorBoundary>
         </div>
       </div>
@@ -132,18 +185,13 @@ export const ScheduleDetailPageContent: React.FC<{ id?: string }> = ({ id: prope
 
   if (!isClient) return; // Avoid hydration mismatch on initial shell render
 
-  if (!id) return <div>Missing ID</div>;
+  if (!id) {
+    return (
+      <div className="flex h-screen items-center justify-center text-gray-500">
+        {labels.notFound[locale]}
+      </div>
+    );
+  }
 
-  return (
-    <ErrorBoundary
-      fallback={
-        <div className="flex h-screen flex-col items-center justify-center gap-4">
-          <p>Something went wrong loading the schedule entry.</p>
-          <Button onClick={() => globalThis.location.reload()}>{labels.retry[locale]}</Button>
-        </div>
-      }
-    >
-      <DetailContent id={id} />
-    </ErrorBoundary>
-  );
+  return <DetailContent id={id} />;
 };

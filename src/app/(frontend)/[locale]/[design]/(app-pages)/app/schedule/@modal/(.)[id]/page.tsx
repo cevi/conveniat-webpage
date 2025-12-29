@@ -2,10 +2,11 @@
 
 import { useScheduleEntries } from '@/context/schedule-entries-context';
 import type { CampScheduleEntry } from '@/features/payload-cms/payload-types';
-import { DetailStarButton } from '@/features/schedule/components/detail-star-button';
 import { ScheduleDetailContent } from '@/features/schedule/components/schedule-detail-content';
 import { ScheduleDetailSkeleton } from '@/features/schedule/components/schedule-detail-skeleton';
+import { ScheduleEditHeaderActions } from '@/features/schedule/components/schedule-edit-header-actions';
 import { ScheduleModalWrapper } from '@/features/schedule/components/schedule-modal-wrapper';
+import { useScheduleEdit } from '@/features/schedule/hooks/use-schedule-edit';
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
@@ -29,7 +30,7 @@ const ScheduleDetailModal: React.FC = () => {
   const { entries: localEntries } = useScheduleEntries();
   const cachedEntry = localEntries.find((entry) => entry.id === scheduleId);
 
-  // 2. If not in cache, fetch directly via TRPC (online or deep link fallback)
+  // 2. Fetch via TRPC (primary source, enables refresh after edit)
   const {
     data: fetchedEntry,
     isLoading,
@@ -38,12 +39,36 @@ const ScheduleDetailModal: React.FC = () => {
   } = trpc.schedule.getById.useQuery(
     { id: scheduleId ?? '' },
     {
-      enabled: !cachedEntry && !!scheduleId,
+      enabled: !!scheduleId,
       staleTime: 1000 * 60 * 60, // 1 hour
     },
   );
 
-  const entry = cachedEntry ?? (fetchedEntry as unknown as CampScheduleEntry | undefined);
+  // Prefer fetched entry (fresh) over cached entry (may be stale)
+  const entry = (fetchedEntry as unknown as CampScheduleEntry | undefined) ?? cachedEntry;
+
+  // Get course status for admin check
+  const { data: courseStatus } = trpc.schedule.getCourseStatus.useQuery(
+    { courseId: scheduleId ?? '' },
+    { enabled: !!entry && !!scheduleId },
+  );
+
+  // Use shared edit hook
+  const {
+    isEditing,
+    editError,
+    editData,
+    isAdmin,
+    isSaving,
+    handleStartEdit,
+    handleCancelEdit,
+    handleSave,
+    setEditData,
+  } = useScheduleEdit({
+    courseId: scheduleId ?? '',
+    locale,
+    courseStatus,
+  });
 
   // Loading state (only when fetching and no cache)
   if (isLoading && !cachedEntry) {
@@ -74,9 +99,32 @@ const ScheduleDetailModal: React.FC = () => {
     );
   }
 
+  // Build header actions using shared component
+  const headerActions = (
+    <ScheduleEditHeaderActions
+      entryId={entry.id}
+      locale={locale}
+      isAdmin={isAdmin}
+      isEditing={isEditing}
+      isSaving={isSaving}
+      onStartEdit={handleStartEdit}
+      onCancelEdit={handleCancelEdit}
+      onSave={handleSave}
+    />
+  );
+
   return (
-    <ScheduleModalWrapper title={entry.title} rightAction={<DetailStarButton entryId={entry.id} />}>
-      <ScheduleDetailContent entry={entry as CampScheduleEntry} locale={locale} />
+    <ScheduleModalWrapper title={entry.title} rightAction={headerActions}>
+      <ScheduleDetailContent
+        entry={entry as CampScheduleEntry}
+        locale={locale}
+        isEditing={isEditing}
+        isAdmin={isAdmin}
+        courseStatus={courseStatus}
+        editData={editData}
+        onEditDataChange={setEditData}
+        editError={editError}
+      />
     </ScheduleModalWrapper>
   );
 };
