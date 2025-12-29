@@ -27,11 +27,11 @@ import { useChatActions } from '@/features/chat/context/chat-actions-context';
 import { useSearchParams } from 'next/navigation';
 
 export const useMessageInput = (): UseMessageInputLogicResult => {
-  const searchParams = useSearchParams();
+  const searchParameters = useSearchParams();
   const [newMessage, setNewMessage] = useState(() => {
-    const shareText = searchParams.get('text');
-    const shareTitle = searchParams.get('title');
-    const shareUrl = searchParams.get('url');
+    const shareText = searchParameters.get('text');
+    const shareTitle = searchParameters.get('title');
+    const shareUrl = searchParameters.get('url');
 
     const parts = [shareTitle, shareText, shareUrl].filter(Boolean);
     return parts.length > 0 ? parts.join('\n') : '';
