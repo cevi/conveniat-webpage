@@ -127,8 +127,8 @@ export const adminRouter = createTRPCRouter({
 
       const whereClause: Prisma.ChatWhereInput = input?.includeId
         ? {
-          OR: [{ AND: filters }, { uuid: input.includeId }],
-        }
+            OR: [{ AND: filters }, { uuid: input.includeId }],
+          }
         : { AND: filters };
 
       const chats = await prisma.chat.findMany({
