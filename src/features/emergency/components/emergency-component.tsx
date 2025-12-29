@@ -8,11 +8,13 @@ import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { Accordion } from '@radix-ui/react-accordion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Search, X } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import { useRouter } from 'next/navigation';
 import type { ChangeEvent } from 'react';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 const alertTypeTranslations = {
   'Medical Emergency': {
@@ -119,6 +121,30 @@ const alarmPendingText: StaticTranslationString = {
   fr: "Déclenchement de l'alerte...",
 };
 
+const offlineCallText: StaticTranslationString = {
+  de: 'Notfall anrufen',
+  en: 'Call Emergency',
+  fr: "Appeler l'urgence",
+};
+
+const offlineStatusText: StaticTranslationString = {
+  de: 'Kein Netz - Bitte anrufen:',
+  en: 'No network - Please call:',
+  fr: 'Pas de réseau - Veuillez appeler:',
+};
+
+const unauthenticatedStatusText: StaticTranslationString = {
+  de: 'Nicht angemeldet - Bitte anrufen:',
+  en: 'Not signed in - Please call:',
+  fr: 'Non connecté - Veuillez appeler:',
+};
+
+const errorStatusText: StaticTranslationString = {
+  de: 'Fehler - Bitte anrufen:',
+  en: 'Error - Please call:',
+  fr: 'Erreur - Veuillez appeler:',
+};
+
 const alertTypes = [
   {
     title: 'Medical Emergency',
@@ -187,11 +213,48 @@ const alertTypes = [
 
 export const EmergencyComponent: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [showFallback, setShowFallback] = useState(true);
+  const [isOnline, setIsOnline] = useState(true); // Default to true (optimistic)
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
   const router = useRouter();
   const emergencyQuery = trpc.emergency.newAlert.useMutation();
   const trpcUtils = trpc.useUtils();
+
+  const { status } = useSession();
+
+  // Fetch alert settings for offline caching and emergency number
+  const { data: alertSettings } = trpc.emergency.getAlertSettings.useQuery(undefined, {
+    refetchInterval: 1000 * 60 * 60 * 2, // 2 hours
+    refetchOnMount: true,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+
+  // Track online/offline status and auth status
+  useEffect(() => {
+    const updateStatus = (): void => {
+      const online = navigator.onLine;
+      setIsOnline(online);
+      const isAuthenticated = status === 'authenticated';
+
+      if (!online || !isAuthenticated) {
+        setShowFallback(true);
+      } else {
+        setShowFallback(false);
+      }
+    };
+
+    // Initial check
+    updateStatus();
+
+    globalThis.addEventListener('online', updateStatus);
+    globalThis.addEventListener('offline', updateStatus);
+
+    return (): void => {
+      globalThis.removeEventListener('online', updateStatus);
+      globalThis.removeEventListener('offline', updateStatus);
+    };
+  }, [status]);
 
   const filteredAlerts = alertTypes.filter((alert) =>
     alertTypeTranslations[alert.title as keyof typeof alertTypeTranslations][locale]
@@ -237,10 +300,20 @@ export const EmergencyComponent: React.FC = () => {
         },
         onError: (error) => {
           console.error('Failed to trigger emergency alert:', error);
+          setShowFallback(true);
         },
       },
     );
   };
+
+  // Determine fallback texts
+  let fallbackMessage = offlineStatusText[locale];
+  if (isOnline && status !== 'authenticated') {
+    fallbackMessage = unauthenticatedStatusText[locale];
+  } else if (isOnline && status === 'authenticated' && showFallback) {
+    // Allows distinction for API errors if showFallback is true but online+authed
+    fallbackMessage = errorStatusText[locale];
+  }
 
   return (
     <article className="container mx-auto mt-8 py-6">
@@ -298,12 +371,45 @@ export const EmergencyComponent: React.FC = () => {
         </Accordion>
 
         <div className="fixed bottom-20 left-0 w-full select-none xl:left-[480px] xl:w-[calc(100%-480px)]">
-          <ConfirmationSlider
-            onConfirm={handleAlarmTrigger}
-            text={alarmText[locale]}
-            confirmedText={alarmConfirmedText[locale]}
-            pendingText={alarmPendingText[locale]}
-          />
+          <AnimatePresence mode="popLayout">
+            {showFallback && alertSettings?.emergencyPhoneNumber ? (
+              <motion.div
+                key="fallback"
+                layout
+                layoutId="emergency-toggle"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                className="mx-auto w-full max-w-md space-y-2 p-4"
+              >
+                <p className="text-center text-sm font-medium text-gray-600">{fallbackMessage}</p>
+                <a
+                  href={`tel:${alertSettings.emergencyPhoneNumber}`}
+                  className="flex h-16 w-full items-center justify-center rounded-full bg-red-600 text-lg font-bold text-white shadow-md hover:bg-red-700"
+                >
+                  {offlineCallText[locale]}: {alertSettings.emergencyPhoneNumber}
+                </a>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="slider"
+                layout
+                layoutId="emergency-toggle"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+              >
+                <ConfirmationSlider
+                  onConfirm={handleAlarmTrigger}
+                  text={alarmText[locale]}
+                  confirmedText={alarmConfirmedText[locale]}
+                  pendingText={alarmPendingText[locale]}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </article>

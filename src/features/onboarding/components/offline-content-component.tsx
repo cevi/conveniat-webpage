@@ -9,6 +9,7 @@ import {
   offlineContentSuccess,
   offlineContentTitle,
 } from '@/features/onboarding/onboarding-constants';
+import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
 import { motion } from 'framer-motion';
@@ -102,7 +103,12 @@ export const OfflineContentEntrypointComponent: React.FC<
     };
   }, [status, callback]);
 
+  const trpcUtils = trpc.useUtils();
+
   const handleDownload = (): void => {
+    // Prefetch emergency alert settings for offline usage
+    void trpcUtils.emergency.getAlertSettings.ensureData().catch(console.warn);
+
     if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
       setStatus('downloading');
       navigator.serviceWorker.controller.postMessage({

@@ -1,16 +1,16 @@
 import { ChatsOverviewClientComponent } from '@/features/chat/components/chat-overview-view/chats-overview-client-component';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
-import { auth, signOut } from '@/utils/auth';
+import { auth } from '@/utils/auth';
 import type React from 'react';
+
+import { redirect } from 'next/navigation';
 
 const ChatPage: React.FC = async () => {
   const session = await auth();
   const user = session?.user as HitobitoNextAuthUser | undefined;
 
   if (user?.uuid === undefined) {
-    await signOut({
-      redirectTo: '/entrypoint',
-    });
+    redirect('/entrypoint');
   }
 
   return (

@@ -7,6 +7,10 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import type { ReactNode } from 'react';
 import React from 'react';
 
+import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
+import { auth } from '@/utils/auth';
+import { redirect } from 'next/navigation';
+
 interface LayoutProperties {
   children: ReactNode;
   params: Promise<{
@@ -22,6 +26,12 @@ const chatsTitle: StaticTranslationString = {
 
 const Layout: React.FC<LayoutProperties> = async ({ children, params }) => {
   const { locale } = await params;
+  const session = await auth();
+  const user = session?.user as HitobitoNextAuthUser | undefined;
+
+  if (user?.uuid === undefined) {
+    redirect('/entrypoint');
+  }
 
   return (
     <TRPCProvider>
