@@ -19,7 +19,6 @@ export const i18nExcludedRoutes: string[] = [
   // app landing page (is localized manually)
   'entrypoint',
   'login',
-  '~offline',
 
   // Internal Paths (API, Admin Panel of Payload CMS)
   '_next',

@@ -77,9 +77,13 @@ export const designRewriteProxy: ProxyModule = (next) => async (request, event, 
     request.headers.get(DesignModeTriggers.HEADER_IMPLICIT) === 'true' ||
     initialAppModeCookie;
 
+  const pathname = new URL(response.headers.get(Header.MIDDLEWARE_REWRITES) ?? request.url)
+    .pathname;
+  const isOfflinePage = pathname.endsWith('/~offline');
+
   let designPrefix = headerDesign ?? cookieDesign ?? DesignCodes.WEB_DESIGN;
 
-  if (forceAppMode || implicitAppMode) {
+  if (forceAppMode || implicitAppMode || isOfflinePage) {
     designPrefix = DesignCodes.APP_DESIGN;
   }
 
