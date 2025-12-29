@@ -231,9 +231,21 @@ export const useOnboarding = (): UseOnboardingReturn => {
   // Redirect to dashboard when finished
   useEffect(() => {
     if (onboardingStep === OnboardingStep.Loading) {
-      router.push('/app/dashboard');
+      const shareText = searchParameters.get('text');
+      const shareTitle = searchParameters.get('title');
+      const shareUrl = searchParameters.get('url');
+
+      if (shareText || shareTitle || shareUrl) {
+        const params = new URLSearchParams();
+        if (shareText) params.set('text', shareText);
+        if (shareTitle) params.set('title', shareTitle);
+        if (shareUrl) params.set('url', shareUrl);
+        router.push(`/app/chat?${params.toString()}`);
+      } else {
+        router.push('/app/dashboard');
+      }
     }
-  }, [onboardingStep, router]);
+  }, [onboardingStep, router, searchParameters]);
 
   return {
     locale,

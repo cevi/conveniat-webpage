@@ -24,8 +24,18 @@ interface UseMessageInputLogicResult {
 
 import { useChatActions } from '@/features/chat/context/chat-actions-context';
 
+import { useSearchParams } from 'next/navigation';
+
 export const useMessageInput = (): UseMessageInputLogicResult => {
-  const [newMessage, setNewMessage] = useState('');
+  const searchParams = useSearchParams();
+  const [newMessage, setNewMessage] = useState(() => {
+    const shareText = searchParams.get('text');
+    const shareTitle = searchParams.get('title');
+    const shareUrl = searchParams.get('url');
+
+    const parts = [shareTitle, shareText, shareUrl].filter(Boolean);
+    return parts.length > 0 ? parts.join('\n') : '';
+  });
   const [sendError, setSendError] = useState<string>();
   const chatId = useChatId();
   const sendMessageMutation = useMessageSend();

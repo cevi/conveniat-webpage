@@ -74,5 +74,15 @@ export const cachedManifestGenerator = async (): Promise<MetadataRoute.Manifest>
     orientation: 'portrait-primary',
     scope: '/',
     prefer_related_applications: false,
+    share_target: {
+      action: '/entrypoint',
+      method: 'GET',
+      enctype: 'application/x-www-form-urlencoded',
+      params: {
+        title: 'title',
+        text: 'text',
+        url: 'url',
+      },
+    },
   };
 };

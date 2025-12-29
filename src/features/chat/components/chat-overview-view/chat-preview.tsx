@@ -7,13 +7,30 @@ import { ChatType } from '@prisma/client';
 import { Siren, Users } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import type React from 'react';
 
 export const ChatPreview: React.FC<{
   chat: ChatWithMessagePreview;
 }> = ({ chat }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
-  const chatDetailLink = `/app/chat/${chat.id}`;
+  const searchParameters = useSearchParams();
+
+  let chatDetailLink = `/app/chat/${chat.id}`;
+
+  // Forward share parameters if present
+  const shareText = searchParameters.get('text');
+  const shareTitle = searchParameters.get('title');
+  const shareUrl = searchParameters.get('url');
+
+  if (shareText || shareTitle || shareUrl) {
+    const params = new URLSearchParams();
+    if (shareText) params.set('text', shareText);
+    if (shareTitle) params.set('title', shareTitle);
+    if (shareUrl) params.set('url', shareUrl);
+    chatDetailLink += `?${params.toString()}`;
+  }
+
   const hasUnread = chat.unreadCount > 0;
   const { formatMessageTime } = useFormatDate();
 
