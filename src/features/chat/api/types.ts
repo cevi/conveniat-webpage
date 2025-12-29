@@ -28,5 +28,5 @@ export interface ChatDetails {
   archivedAt: Date | null;
   messages: ChatMessage[];
   participants: ChatParticipant[];
-  capabilities: { capability: string; isEnabled: boolean }[];
+  capabilities: string[];
 }

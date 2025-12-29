@@ -5,10 +5,7 @@ import type { Locale, StaticTranslationString } from '@/types/types';
 import type React from 'react';
 
 interface ChatCapabilitiesProperties {
-  capabilities: Array<{
-    capability: string;
-    isEnabled: boolean;
-  }>;
+  capabilities: string[];
   locale: Locale;
 }
 
@@ -62,8 +59,7 @@ export const ChatCapabilities: React.FC<ChatCapabilitiesProperties> = ({
       <p className="font-body mb-4 text-xs text-gray-500">{adminOnlyRemarkText[locale]}</p>
       <div className="space-y-4">
         {allPossibleCapabilities.map((capabilityKey) => {
-          const capability = capabilities.find((c) => c.capability === (capabilityKey as string));
-          const isEnabled = capability?.isEnabled ?? false;
+          const isEnabled = capabilities.includes(capabilityKey as string);
           return (
             <div key={capabilityKey} className="flex items-center justify-between">
               <span className="font-body text-sm font-medium text-gray-700">

@@ -37,6 +37,12 @@ enum ChatType {
   COURSE_GROUP
 }
 
+enum ChatCapability {
+  CAN_SEND_MESSAGES
+  PICTURE_UPLOAD
+  THREADS
+}
+
 model Chat {
   uuid String @id @default(uuid())
   name String 
@@ -62,22 +68,6 @@ model Chat {
   @@index([lastUpdate])
 }
 
-/// Define specific capabilities for a chat that can be enabled or disabled
-model ChatCapability {
-  id String @id @default(uuid())
-
-  chatId String
-  chat   Chat   @relation(fields: [chatId], references: [uuid], onDelete: Cascade)
-
-  /// The capability identifier, e.g. "PICTURE_UPLOAD", "CAN_SEND_MESSAGES"
-  capability String
-  
-  /// Whether the capability is enabled for this chat
-  isEnabled  Boolean @default(true)
-
-  @@unique([chatId, capability])
-  @@index([chatId])
-}
 
 enum ChatMembershipPermission {
   /// the user who has created the chat

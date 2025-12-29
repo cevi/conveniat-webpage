@@ -30,7 +30,6 @@ export const getChat = trpcBaseProcedure
           },
         },
         chatMemberships: { include: { user: true } },
-        capabilities: true,
       },
     });
 
@@ -45,7 +44,7 @@ export const getChat = trpcBaseProcedure
     if (messages.length === 0) {
       throw new TRPCError({
         code: 'NOT_FOUND',
-        message: `No messages found in chat with ID ${chatId}`,
+        message: `No messages found in chat with ID ${chatId} `,
       });
     }
 
@@ -53,7 +52,7 @@ export const getChat = trpcBaseProcedure
     if (lastMessage === undefined) {
       throw new TRPCError({
         code: 'NOT_FOUND',
-        message: `No last message found in chat with ID ${chatId}`,
+        message: `No last message found in chat with ID ${chatId} `,
       });
     }
 
@@ -82,9 +81,6 @@ export const getChat = trpcBaseProcedure
         isOnline: membership.user.lastSeen > new Date(Date.now() - 30 * 1000),
         chatPermission: membership.chatPermission,
       })),
-      capabilities: chat.capabilities.map((cap) => ({
-        capability: cap.capability,
-        isEnabled: cap.isEnabled,
-      })),
+      capabilities: chat.capabilities,
     };
   });

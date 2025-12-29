@@ -97,9 +97,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
     useChatActions();
   const isHighlighted = highlightedMessageId === message.id;
 
-  const canThread =
-    chatDetails?.capabilities.find((c) => String(c.capability) === String(ChatCapability.THREADS))
-      ?.isEnabled ?? true;
+  const canThread = chatDetails?.capabilities.includes(ChatCapability.THREADS) ?? true;
 
   // Extract quotedMessageId and quotedSnippet from payload if present
   const payload = message.messagePayload as Record<string, unknown>;

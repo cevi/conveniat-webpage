@@ -1,5 +1,5 @@
 import {
-  CHAT_CAPABILITY_CAN_SEND_MESSAGES,
+  ChatCapability,
   ChatStatus,
   SYSTEM_SENDER_ID,
   USER_RELEVANT_MESSAGE_EVENTS,
@@ -127,14 +127,13 @@ export const adminRouter = createTRPCRouter({
 
       const whereClause: Prisma.ChatWhereInput = input?.includeId
         ? {
-            OR: [{ AND: filters }, { uuid: input.includeId }],
-          }
+          OR: [{ AND: filters }, { uuid: input.includeId }],
+        }
         : { AND: filters };
 
       const chats = await prisma.chat.findMany({
         where: whereClause,
         include: {
-          capabilities: true,
           chatMemberships: {
             include: {
               user: { select: { name: true, uuid: true } },
@@ -240,22 +239,20 @@ export const adminRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       const { prisma } = ctx;
-      // Upsert capability
-      return prisma.chatCapability.upsert({
-        where: {
-          chatId_capability: {
-            chatId: input.chatId,
-            capability: input.capability,
-          },
-        },
-        create: {
-          chatId: input.chatId,
-          capability: input.capability,
-          isEnabled: input.isEnabled,
-        },
-        update: {
-          isEnabled: input.isEnabled,
-        },
+      const chat = await prisma.chat.findUnique({
+        where: { uuid: input.chatId },
+        select: { capabilities: true },
+      });
+
+      if (!chat) throw new TRPCError({ code: 'NOT_FOUND' });
+
+      const newCapabilities = input.isEnabled
+        ? [...new Set([...chat.capabilities, input.capability as ChatCapability])]
+        : chat.capabilities.filter((c) => (c as string) !== input.capability);
+
+      return prisma.chat.update({
+        where: { uuid: input.chatId },
+        data: { capabilities: newCapabilities },
       });
     }),
 
@@ -363,29 +360,24 @@ export const adminRouter = createTRPCRouter({
     .input(z.object({ chatId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const { prisma, user } = ctx;
-      await prisma.chatCapability.upsert({
-        where: {
-          chatId_capability: {
-            chatId: input.chatId,
-            capability: CHAT_CAPABILITY_CAN_SEND_MESSAGES,
-          },
-        },
-        create: {
-          chatId: input.chatId,
-          capability: CHAT_CAPABILITY_CAN_SEND_MESSAGES,
-          isEnabled: false,
-        },
-        update: {
-          isEnabled: false,
-        },
-      });
-
       const chat = await prisma.chat.findUnique({
         where: { uuid: input.chatId },
-        select: { type: true },
+        select: { capabilities: true, type: true },
       });
 
-      const isEmergency = chat?.type === ChatType.EMERGENCY;
+      if (!chat) throw new TRPCError({ code: 'NOT_FOUND' });
+
+      // Remove CAN_SEND_MESSAGES
+      const newCapabilities = chat.capabilities.filter(
+        (c) => (c as string) !== (ChatCapability.CAN_SEND_MESSAGES as string),
+      );
+
+      await prisma.chat.update({
+        where: { uuid: input.chatId },
+        data: { capabilities: newCapabilities },
+      });
+
+      const isEmergency = chat.type === ChatType.EMERGENCY;
 
       // Add system message
       await prisma.message.create({
@@ -426,29 +418,24 @@ export const adminRouter = createTRPCRouter({
     .input(z.object({ chatId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const { prisma, user } = ctx;
-      await prisma.chatCapability.upsert({
-        where: {
-          chatId_capability: {
-            chatId: input.chatId,
-            capability: CHAT_CAPABILITY_CAN_SEND_MESSAGES,
-          },
-        },
-        create: {
-          chatId: input.chatId,
-          capability: CHAT_CAPABILITY_CAN_SEND_MESSAGES,
-          isEnabled: true,
-        },
-        update: {
-          isEnabled: true,
-        },
-      });
-
       const chat = await prisma.chat.findUnique({
         where: { uuid: input.chatId },
-        select: { type: true },
+        select: { capabilities: true, type: true },
       });
 
-      const isEmergency = chat?.type === ChatType.EMERGENCY;
+      if (!chat) throw new TRPCError({ code: 'NOT_FOUND' });
+
+      // Add CAN_SEND_MESSAGES
+      const newCapabilities = [
+        ...new Set([...chat.capabilities, ChatCapability.CAN_SEND_MESSAGES]),
+      ];
+
+      await prisma.chat.update({
+        where: { uuid: input.chatId },
+        data: { capabilities: newCapabilities },
+      });
+
+      const isEmergency = chat.type === ChatType.EMERGENCY;
 
       // Add system message
       await prisma.message.create({

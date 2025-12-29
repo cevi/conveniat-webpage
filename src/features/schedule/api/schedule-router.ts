@@ -1,6 +1,6 @@
-import { isOverlapping } from '@/features/schedule/utils/time-utils';
 import { createNewChat } from '@/features/chat/api/database-interactions/create-new-chat'; // eslint-disable-line import/no-restricted-paths
 import type { User as PayloadUser } from '@/features/payload-cms/payload-types';
+import { isOverlapping } from '@/features/schedule/utils/time-utils';
 import { ChatMembershipPermission, ChatType, MessageEventType, MessageType } from '@/lib/prisma';
 import { createTRPCRouter, trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
@@ -66,9 +66,9 @@ export const scheduleRouter = createTRPCRouter({
       participants:
         isAdmin || !course.hide_participant_list
           ? enrollments.map((enrollment_) => ({
-            uuid: enrollment_.user.uuid,
-            name: enrollment_.user.name,
-          }))
+              uuid: enrollment_.user.uuid,
+              name: enrollment_.user.name,
+            }))
           : [],
       // Markdown versions for editing
       descriptionMarkdown: isAdmin

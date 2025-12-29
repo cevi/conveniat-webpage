@@ -6,10 +6,11 @@ import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import { useImageUpload } from '@/features/chat/hooks/use-image-upload';
 import { useMessageSend } from '@/features/chat/hooks/use-message-send';
-import { ChatMembershipPermission } from '@/lib/prisma/client';
+import { ChatCapability } from '@/lib/chat-shared';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { ChatMembershipPermission } from '@prisma/client';
 import { Paperclip, Send, X } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import React from 'react';
@@ -106,18 +107,16 @@ export const ChatTextAreaInput: React.FC = () => {
 
   const isGuest =
     chatDetails?.participants.some(
-      (participant) =>
+      (participant: { id: string; chatPermission: ChatMembershipPermission }) =>
         participant.id === currentUser &&
         participant.chatPermission === ChatMembershipPermission.GUEST,
     ) ?? false;
 
   const canUploadPictures =
-    chatDetails?.capabilities.some(
-      (capability) => capability.capability === 'PICTURE_UPLOAD' && capability.isEnabled,
-    ) ?? false;
+    chatDetails?.capabilities.includes(ChatCapability.PICTURE_UPLOAD) ?? false;
 
   const canSendMessagesInChat =
-    chatDetails?.capabilities.find((c) => c.capability === 'CAN_SEND_MESSAGES')?.isEnabled ?? true;
+    chatDetails?.capabilities.includes(ChatCapability.CAN_SEND_MESSAGES) ?? true;
 
   const { uploadImage } = useImageUpload({
     chatId,

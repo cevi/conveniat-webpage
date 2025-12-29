@@ -12,7 +12,7 @@ import {
   type CapabilityContext,
   CapabilitySubject,
 } from '@/lib/capabilities/types';
-import { CHAT_CAPABILITY_CAN_SEND_MESSAGES, ChatCapability } from '@/lib/chat-shared';
+import { ChatCapability } from '@/lib/chat-shared';
 import prisma from '@/lib/database';
 import { FEATURE_FLAG_CREATE_CHATS_ENABLED, FEATURE_FLAG_SEND_MESSAGES } from '@/lib/feature-flags';
 import { getFeatureFlag } from '@/lib/redis';
@@ -40,16 +40,12 @@ export class MessageCapabilities implements Capability {
     }
 
     if (chatId) {
-      const capability = await prisma.chatCapability.findUnique({
-        where: {
-          chatId_capability: {
-            chatId,
-            capability: CHAT_CAPABILITY_CAN_SEND_MESSAGES,
-          },
-        },
+      const chat = await prisma.chat.findUnique({
+        where: { uuid: chatId },
+        select: { capabilities: true },
       });
 
-      if (capability && !capability.isEnabled) {
+      if (chat && !chat.capabilities.includes(ChatCapability.CAN_SEND_MESSAGES)) {
         return false;
       }
     }
@@ -81,16 +77,12 @@ export class MediaCapabilities implements Capability {
       return false;
     }
 
-    const capability = await prisma.chatCapability.findUnique({
-      where: {
-        chatId_capability: {
-          chatId,
-          capability: 'PICTURE_UPLOAD',
-        },
-      },
+    const chat = await prisma.chat.findUnique({
+      where: { uuid: chatId },
+      select: { capabilities: true },
     });
 
-    return capability?.isEnabled ?? false;
+    return chat?.capabilities.includes(ChatCapability.PICTURE_UPLOAD) ?? false;
   }
 }
 
@@ -131,16 +123,12 @@ export class ThreadCapabilities implements Capability {
       return false;
     }
 
-    const capability = await prisma.chatCapability.findUnique({
-      where: {
-        chatId_capability: {
-          chatId,
-          capability: ChatCapability.THREADS,
-        },
-      },
+    const chat = await prisma.chat.findUnique({
+      where: { uuid: chatId },
+      select: { capabilities: true },
     });
 
-    // Enabled by default if no record exists
-    return capability?.isEnabled ?? true;
+    // Enabled by default if chat exists and THREADS in capabilities
+    return chat?.capabilities.includes(ChatCapability.THREADS) ?? true;
   }
 }

@@ -1,8 +1,4 @@
-import {
-  CHAT_CAPABILITY_CAN_SEND_MESSAGES,
-  CHAT_CAPABILITY_PICTURE_UPLOAD,
-  ChatCapability,
-} from '@/lib/chat-shared';
+import { ChatCapability } from '@/lib/chat-shared';
 import { ChatType, MessageEventType, MessageType } from '@/lib/prisma';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
@@ -42,22 +38,7 @@ export const reportProblem = trpcBaseProcedure
             chatPermission: 'OWNER',
           },
         },
-        capabilities: {
-          create: [
-            {
-              capability: CHAT_CAPABILITY_PICTURE_UPLOAD,
-              isEnabled: true,
-            },
-            {
-              capability: CHAT_CAPABILITY_CAN_SEND_MESSAGES,
-              isEnabled: true,
-            },
-            {
-              capability: ChatCapability.THREADS,
-              isEnabled: false,
-            },
-          ],
-        },
+        capabilities: [ChatCapability.PICTURE_UPLOAD, ChatCapability.CAN_SEND_MESSAGES],
       },
     });
 
