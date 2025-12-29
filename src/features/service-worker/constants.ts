@@ -21,5 +21,9 @@ export const CACHE_NAMES = {
 export const TIMEOUTS = {
   DEFAULT_FETCH: 10_000, // 10 seconds
   RSC_FETCH: 15_000, // 15 seconds
-  PREFETCH_CONCURRENCY: 5,
+  PREFETCH_CONCURRENCY: 20, // High concurrency to utilize HTTP/2 streams for map tiles
+  ASSET_FETCH: 15_000, // 15 seconds per asset
+  PROGRESS_STALL: 25_000, // 25 seconds without progress = stall
+  MAX_RETRIES: 3, // Retry failed fetches up to 3 times
+  BACKOFF_BASE: 500, // Start with 500ms delay
 } as const;

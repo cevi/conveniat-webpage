@@ -63,6 +63,71 @@ function cleanHeaders(headers: Headers): Headers {
   return newHeaders;
 }
 
+/**
+ * Robust fetch wrapper with timeout, retries, and exponential backoff.
+ * Optionally load-balances across map tile servers (vectortiles0-4).
+ */
+async function fetchWithRetryAndTimeout(
+  url: string,
+  options: RequestInit = {},
+  timeoutMs: number = TIMEOUTS.ASSET_FETCH,
+  shouldLoadBalance = false,
+): Promise<Response | undefined> {
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt <= TIMEOUTS.MAX_RETRIES; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    // Load Balancing: Randomly select a server 0-4 for map tiles
+    let targetUrl = url;
+    if (shouldLoadBalance && url.includes('vectortiles')) {
+      const randomServer = Math.floor(Math.random() * 5); // 0 to 4
+      targetUrl = url.replace(/vectortiles[0-9]/, `vectortiles${randomServer}`);
+    }
+
+    try {
+      if (attempt > 0) {
+        // Exponential backoff: 500ms, 1000ms, 2000ms...
+        const delay = TIMEOUTS.BACKOFF_BASE * Math.pow(2, attempt - 1);
+        console.log(`[SW] Retry attempt ${attempt} for ${targetUrl} after ${delay}ms`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+
+      console.log(
+        `[SW] Fetching: ${targetUrl} (Attempt ${attempt + 1}/${TIMEOUTS.MAX_RETRIES + 1})`,
+      );
+      const response = await fetch(targetUrl, { ...options, signal: controller.signal });
+
+      if (response.ok || response.type === 'opaque') {
+        return response;
+      }
+
+      console.warn(`[SW] Fetch failed with status ${response.status} for ${targetUrl}`);
+      // Don't retry 404s - the resource doesn't exist
+      if (response.status === 404) {
+        return undefined;
+      }
+      // Throw to trigger retry for other errors (5xx, etc.)
+      throw new Error(`HTTP ${response.status}`);
+    } catch (error) {
+      lastError = error;
+      const isAbort = error instanceof DOMException && error.name === 'AbortError';
+      console.warn(
+        `[SW] Fetch error for ${targetUrl}: ${isAbort ? 'Timeout' : (error as Error).message}`,
+      );
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
+  console.error(
+    `[SW] Failed to download ${url} after ${TIMEOUTS.MAX_RETRIES + 1} attempts. Last error:`,
+    lastError,
+  );
+  return undefined;
+}
+
 export async function isOfflineSupportEnabled(): Promise<boolean> {
   const cache = await caches.open(OFFLINE_STATUS_CACHE);
   const response = await cache.match(OFFLINE_ENABLED_FLAG);
@@ -79,11 +144,17 @@ export async function setOfflineSupportEnabled(enabled: boolean): Promise<void> 
 async function cacheAsset(url: string): Promise<void> {
   const mapTilesCache = await caches.open(CACHE_NAMES.MAP_TILES);
 
-  const request = new Request(url, { mode: 'cors' });
-  const response = await fetch(request);
+  // Use load balancing for map tiles (vectortiles0-4)
+  const isMapTile = url.includes('vectortiles') || url.includes('geo.admin.ch');
+  const response = await fetchWithRetryAndTimeout(
+    url,
+    { mode: 'cors' },
+    TIMEOUTS.ASSET_FETCH,
+    isMapTile,
+  );
 
-  if (!response.ok) {
-    console.warn(`[SW] Failed to fetch registry asset: ${url}`);
+  if (response === undefined) {
+    console.warn(`[SW] Skipping cache for failed asset: ${url}`);
     return;
   }
 
@@ -96,13 +167,14 @@ async function cacheAsset(url: string): Promise<void> {
 
   const cacheTarget =
     // eslint-disable-next-line no-nested-ternary
-    url.includes('vectortiles') || url.includes('geo.admin.ch')
+    isMapTile
       ? mapTilesCache
       : /\.(woff2?|ttf|otf|eot)(\?.*)?$/i.test(url)
         ? await caches.open(CACHE_NAMES.FONTS)
         : await caches.open(CACHE_NAMES.OFFLINE_ASSETS);
 
-  await cacheTarget.put(request, safeResponse);
+  // Always cache using the ORIGINAL normalized URL (vectortiles0)
+  await cacheTarget.put(new Request(url, { mode: 'cors' }), safeResponse);
 }
 
 async function cachePageAndScrape(pageUrl: string): Promise<void> {
@@ -110,17 +182,22 @@ async function cachePageAndScrape(pageUrl: string): Promise<void> {
   const pagesCache = await caches.open(CACHE_NAMES.PAGES);
   const rscCache = await caches.open(CACHE_NAMES.RSC);
 
-  // Reverted to Header Strategy as per user requirement
-  const response = await fetch(pageUrl, {
-    credentials: 'same-origin',
-    headers: {
-      Accept: 'text/html',
-      [DesignModeTriggers.HEADER_IMPLICIT]: 'true',
+  // Use robust fetch with timeout for page HTML
+  const response = await fetchWithRetryAndTimeout(
+    pageUrl,
+    {
+      credentials: 'same-origin',
+      headers: {
+        Accept: 'text/html',
+        [DesignModeTriggers.HEADER_IMPLICIT]: 'true',
+      },
     },
-  });
+    TIMEOUTS.ASSET_FETCH,
+    false, // No load balancing for pages
+  );
 
-  if (!response.ok) {
-    console.warn(`[SW] Fetch failed for ${pageUrl}: ${response.status} ${response.statusText}`);
+  if (response === undefined) {
+    console.warn(`[SW] Skipping page prefetch for failed URL: ${pageUrl}`);
     return;
   }
 
@@ -191,25 +268,26 @@ async function cachePageAndScrape(pageUrl: string): Promise<void> {
 
   await Promise.all(
     [...validAssets].map(async (url) => {
-      try {
-        const requestInit: RequestInit = url.startsWith('http')
-          ? { mode: 'cors', credentials: 'omit' }
-          : { headers: { [DesignModeTriggers.HEADER_IMPLICIT]: 'true' } };
+      const requestInit: RequestInit = url.startsWith('http')
+        ? { mode: 'cors', credentials: 'omit' }
+        : { headers: { [DesignModeTriggers.HEADER_IMPLICIT]: 'true' } };
 
-        const assetResponse = await fetch(url, requestInit);
-        if (assetResponse.ok || assetResponse.type === 'opaque') {
-          const cacheName = getCacheNameForUrl(url);
-          const specificCache = await caches.open(cacheName);
-          const safeAssetHeaders = cleanHeaders(assetResponse.headers);
-          const safeAssetResponse = new Response(await assetResponse.blob(), {
-            status: assetResponse.status,
-            statusText: assetResponse.statusText,
-            headers: safeAssetHeaders,
-          });
-          await specificCache.put(url, safeAssetResponse);
-        }
-      } catch {
-        /* ignore */
+      const assetResponse = await fetchWithRetryAndTimeout(
+        url,
+        requestInit,
+        TIMEOUTS.ASSET_FETCH,
+        false,
+      );
+      if (assetResponse !== undefined) {
+        const cacheName = getCacheNameForUrl(url);
+        const specificCache = await caches.open(cacheName);
+        const safeAssetHeaders = cleanHeaders(assetResponse.headers);
+        const safeAssetResponse = new Response(await assetResponse.blob(), {
+          status: assetResponse.status,
+          statusText: assetResponse.statusText,
+          headers: safeAssetHeaders,
+        });
+        await specificCache.put(url, safeAssetResponse);
       }
     }),
   );

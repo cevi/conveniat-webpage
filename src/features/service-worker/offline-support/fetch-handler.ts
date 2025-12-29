@@ -227,11 +227,11 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
 
 export const handleFetchEvent =
   (serwist: Serwist): ((event: FetchEvent) => void) =>
-    (event: FetchEvent): void => {
-      event.respondWith(
-        router(event, serwist).catch((criticalError: unknown) => {
-          console.error('[SW] Critical Error:', criticalError);
-          return new Response('Critical SW Error', { status: 500 });
-        }),
-      );
-    };
+  (event: FetchEvent): void => {
+    event.respondWith(
+      router(event, serwist).catch((criticalError: unknown) => {
+        console.error('[SW] Critical Error:', criticalError);
+        return new Response('Critical SW Error', { status: 500 });
+      }),
+    );
+  };

@@ -1,6 +1,6 @@
 import { CACHE_NAMES } from '@/features/service-worker/constants';
 import { offlineRegistry } from '@/features/service-worker/offline-support/offline-registry';
-import { CacheFirst, type RouteHandler } from 'serwist';
+import { CacheFirst, type RouteHandler, type SerwistPlugin } from 'serwist';
 
 const tilesBaseUrl = 'https://vectortiles0.geo.admin.ch/tiles/';
 const tilesStyleBaseUrl = 'https://vectortiles.geo.admin.ch/tiles/';
@@ -25,7 +25,7 @@ const urlsToPrecache: string[] = [
   `${stylesBaseUrl}ch.swisstopo.basemap_world.vt/sprite/sprite@2x.json`,
   `${stylesBaseUrl}ch.swisstopo.basemap_world.vt/sprite/sprite@2x.png`,
 
-  // --- MAP TILES (Added from logs) ---
+  // --- MAP TILES ---
   // Zoom Levels 3-12 (Base)
   `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/3/4/2.pbf`,
   `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/4/8/5.pbf`,
@@ -142,6 +142,21 @@ export const tileURLRewriter = (): RouteHandler => {
 };
 
 export const registerMapOfflineSupport: () => void = (): void => {
+  /**
+   * Plugin to normalize tile URLs before cache lookup.
+   * This ensures vectortiles0-4 all resolve to the same cache key (vectortiles0).
+   */
+  const tileNormalizationPlugin: SerwistPlugin = {
+    cacheKeyWillBeUsed: ({ request }) => {
+      const normalizedUrl = normalizeTileUrl(request.url);
+      // Return a new Request with the normalized URL if it changed
+      if (normalizedUrl !== request.url) {
+        return new Request(normalizedUrl, { mode: request.mode });
+      }
+      return request;
+    },
+  };
+
   offlineRegistry.register('map-viewer', {
     precacheAssets: urlsToPrecache,
     prefetchUrls: ['/app/map'],
@@ -150,6 +165,7 @@ export const registerMapOfflineSupport: () => void = (): void => {
         matcher: /https:\/\/vectortiles[0-9]?\.geo\.admin\.ch\/(tiles|styles)\/.*/,
         handler: new CacheFirst({
           cacheName: CACHE_NAMES.MAP_TILES,
+          plugins: [tileNormalizationPlugin],
         }),
       },
     ],
