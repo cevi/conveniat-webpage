@@ -7,7 +7,7 @@ import {
   USER_RELEVANT_MESSAGE_EVENTS,
   getStatusFromMessageEvents,
 } from '@/lib/chat-shared';
-import { MessageEventType } from '@/lib/prisma';
+import { ChatMembershipPermission, MessageEventType } from '@/lib/prisma';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { TRPCError } from '@trpc/server';
@@ -100,6 +100,9 @@ export const listChats = trpcBaseProcedure
           senderId: lastMessage.senderId ?? SYSTEM_SENDER_ID,
           status: getStatusFromMessageEvents(lastMessage.messageEvents),
         },
+        userChatPermission:
+          chat.chatMemberships.find((m) => m.userId === prismaUser.uuid)?.chatPermission ??
+          ChatMembershipPermission.GUEST,
       };
     });
   });

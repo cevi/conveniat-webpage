@@ -2,6 +2,7 @@
 import { AppSearchBar } from '@/components/ui/app-search-bar';
 import { Button } from '@/components/ui/buttons/button';
 import { ChatPreview } from '@/features/chat/components/chat-overview-view/chat-preview';
+import { SwipeToDeleteChat } from '@/features/chat/components/chat-overview-view/swipe-to-delete-chat';
 import { QRCodeClientComponent } from '@/features/chat/components/qr-component';
 import { useChats } from '@/features/chat/hooks/use-chats';
 import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
@@ -139,7 +140,7 @@ export const ChatsOverviewClientComponent: React.FC<{ user: HitobitoNextAuthUser
           <p className="font-heading text-lg font-semibold text-gray-700">
             {searchQuery === '' ? noChatsYetText[locale] : noChatsFoundText[locale]}
           </p>
-          <p className="font-body mt-2 text-sm text-gray-500">
+          <p className="font-body mt-2 text-sm text-balance text-gray-500">
             {searchQuery === '' ? newConversationText[locale] : adjustingSearchTermsText[locale]}
           </p>
           {searchQuery !== '' && (
@@ -158,24 +159,25 @@ export const ChatsOverviewClientComponent: React.FC<{ user: HitobitoNextAuthUser
       {!isLoading && filteredChats.length > 0 && (
         <div className="space-y-2">
           {filteredChats.map((chat) => (
-            <div
-              key={chat.id}
-              className={cn(
-                'rounded-md border-2 border-gray-200 bg-white transition-shadow',
-                'hover:bg-gray-100 hover:shadow-md',
-                {
-                  'bg-white': !(chat.unreadCount > 0),
-                  'border-l-conveniat-green border-l-4 bg-green-50':
-                    chat.unreadCount > 0 && chat.chatType !== ChatType.EMERGENCY,
-                  'bg-gradient-to-r from-red-50 to-orange-50 hover:from-red-100 hover:to-orange-100':
-                    chat.chatType === ChatType.EMERGENCY,
-                  'border-l-4 border-l-red-500':
-                    chat.chatType === ChatType.EMERGENCY && chat.unreadCount > 0,
-                },
-              )}
-            >
-              <ChatPreview chat={chat} />
-            </div>
+            <SwipeToDeleteChat key={chat.id} chat={chat}>
+              <div
+                className={cn(
+                  'rounded-md border-2 border-gray-200 bg-white transition-shadow',
+                  'hover:bg-gray-100 hover:shadow-md',
+                  {
+                    'bg-white': !(chat.unreadCount > 0),
+                    'border-l-conveniat-green border-l-4 bg-green-50':
+                      chat.unreadCount > 0 && chat.chatType !== ChatType.EMERGENCY,
+                    'bg-gradient-to-r from-red-50 to-orange-50 hover:from-red-100 hover:to-orange-100':
+                      chat.chatType === ChatType.EMERGENCY,
+                    'border-l-4 border-l-red-500':
+                      chat.chatType === ChatType.EMERGENCY && chat.unreadCount > 0,
+                  },
+                )}
+              >
+                <ChatPreview chat={chat} />
+              </div>
+            </SwipeToDeleteChat>
           ))}
         </div>
       )}

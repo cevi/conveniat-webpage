@@ -1,4 +1,4 @@
-import type { ChatType, MessageEventType } from '@prisma/client';
+import type { ChatMembershipPermission, ChatType, MessageEventType } from '@prisma/client';
 
 import type { StaticTranslationString } from '@/types/types';
 
@@ -22,4 +22,5 @@ export interface ChatWithMessagePreview {
   lastUpdate: Date;
   unreadCount: number;
   messageCount: number;
+  userChatPermission: ChatMembershipPermission;
 }

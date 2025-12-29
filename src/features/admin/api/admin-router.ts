@@ -13,7 +13,12 @@ import { resolveChatName } from '@/features/chat/api/utils/resolve-chat-name';
 // eslint-disable-next-line import/no-restricted-paths
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { canUserAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
-import { ChatType, MessageEventType, MessageType } from '@/lib/prisma/client';
+import {
+  ChatMembershipPermission,
+  ChatType,
+  MessageEventType,
+  MessageType,
+} from '@/lib/prisma/client';
 import { getFeatureFlag, setFeatureFlag } from '@/lib/redis';
 import { MINIO_BUCKET_NAME, s3ClientPublic } from '@/lib/s3';
 import { createTRPCRouter, trpcBaseProcedure } from '@/trpc/init';
@@ -188,6 +193,7 @@ export const adminRouter = createTRPCRouter({
               senderId: SYSTEM_SENDER_ID,
               status: MessageEventType.CREATED,
             },
+            userChatPermission: ChatMembershipPermission.ADMIN,
           };
         }
 
@@ -219,6 +225,7 @@ export const adminRouter = createTRPCRouter({
             senderId: lastMessage.senderId ?? SYSTEM_SENDER_ID,
             status: getStatusFromMessageEvents(lastMessage.messageEvents),
           },
+          userChatPermission: ChatMembershipPermission.ADMIN,
         };
       });
     }),

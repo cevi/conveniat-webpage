@@ -264,7 +264,7 @@ export const CreateNewChatPage: React.FC = () => {
                 <div className="flex items-center justify-center py-12">
                   <div className="text-center">
                     <Users className="mx-auto h-12 w-12 text-gray-400" />
-                    <p className="font-body mt-2 text-sm text-gray-500">
+                    <p className="font-body mt-2 text-sm text-balance text-gray-500">
                       {searchQuery === ''
                         ? 'No contacts available'
                         : 'No contacts found matching your search'}
