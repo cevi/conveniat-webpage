@@ -66,9 +66,9 @@ export const scheduleRouter = createTRPCRouter({
       participants:
         isAdmin || !course.hide_participant_list
           ? enrollments.map((enrollment_) => ({
-              uuid: enrollment_.user.uuid,
-              name: enrollment_.user.name,
-            }))
+            uuid: enrollment_.user.uuid,
+            name: enrollment_.user.name,
+          }))
           : [],
       // Markdown versions for editing
       descriptionMarkdown: isAdmin
@@ -101,7 +101,12 @@ export const scheduleRouter = createTRPCRouter({
       const course = await payload.findByID({
         collection: 'camp-schedule-entry',
         id: courseId,
+        depth: 0,
       });
+
+      // Check if user is an organizer of this course
+      const organisers = (course.organiser || []) as string[];
+      const isOrganiser = organisers.includes(user.uuid);
 
       if (course.enable_enrolment === false) {
         throw new TRPCError({
@@ -109,6 +114,10 @@ export const scheduleRouter = createTRPCRouter({
           message: 'Enrolment is not enabled for this course.',
         });
       }
+
+      // Acquire advisory lock to prevent race condition when checking/updating capacity
+      // This ensures only one enrollment can be processed at a time for this course
+      await prisma.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${courseId}))`;
 
       // Check capacity
       const currentCount = await prisma.enrollment.count({ where: { courseId } });
@@ -169,12 +178,14 @@ export const scheduleRouter = createTRPCRouter({
         });
 
         if (!existingMembership) {
-          // Add as GUEST by default
+          // Add as ADMIN if organizer, otherwise GUEST
           await prisma.chatMembership.create({
             data: {
               userId: user.uuid,
               chatId: courseChat.uuid,
-              chatPermission: ChatMembershipPermission.GUEST,
+              chatPermission: isOrganiser
+                ? ChatMembershipPermission.ADMIN
+                : ChatMembershipPermission.GUEST,
             },
           });
 
@@ -222,17 +233,25 @@ export const scheduleRouter = createTRPCRouter({
 
       const payload = await getPayload({ config });
 
-      // Fetch both courses
+      // Fetch both courses with depth: 0 for consistent organizer ID checking
       const [fromCourse, toCourse] = await Promise.all([
         payload.findByID({
           collection: 'camp-schedule-entry',
           id: fromCourseId,
+          depth: 0,
         }),
         payload.findByID({
           collection: 'camp-schedule-entry',
           id: toCourseId,
+          depth: 0,
         }),
       ]);
+
+      // Check if user is an organizer of each course
+      const fromOrganisers = (fromCourse.organiser || []) as string[];
+      const toOrganisers = (toCourse.organiser || []) as string[];
+      const isFromOrganiser = fromOrganisers.includes(user.uuid);
+      const isToOrganiser = toOrganisers.includes(user.uuid);
 
       // Verify user is enrolled in the from course
       const existingEnrollment = await prisma.enrollment.findUnique({
@@ -258,6 +277,10 @@ export const scheduleRouter = createTRPCRouter({
           message: 'Enrollment is not enabled for the target course.',
         });
       }
+
+      // Acquire advisory lock to prevent race condition when checking/updating capacity
+      // This ensures only one enrollment can be processed at a time for the target course
+      await prisma.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${toCourseId}))`;
 
       // Check capacity of target course
       const currentCount = await prisma.enrollment.count({ where: { courseId: toCourseId } });
@@ -336,12 +359,8 @@ export const scheduleRouter = createTRPCRouter({
         });
 
         if (fromMembership) {
-          // Check if user is an organizer of the old course
-          const isOrganiser = fromCourse.organiser?.some((org: string | { id: string }) =>
-            typeof org === 'string' ? org === user.uuid : org.id === user.uuid,
-          );
-
-          if (!isOrganiser) {
+          // Only remove if user is NOT an organizer of the old course
+          if (!isFromOrganiser) {
             await prisma.chatMembership.delete({
               where: {
                 userId_chatId: {
@@ -359,7 +378,10 @@ export const scheduleRouter = createTRPCRouter({
                   create: [{ payload: `${user.name} left the group` }],
                 },
                 messageEvents: {
-                  create: [{ type: MessageEventType.CREATED }, { type: MessageEventType.STORED }],
+                  create: [
+                    { type: MessageEventType.CREATED },
+                    { type: MessageEventType.STORED },
+                  ],
                 },
               },
             });
@@ -389,11 +411,14 @@ export const scheduleRouter = createTRPCRouter({
         });
 
         if (!toMembership) {
+          // Add as ADMIN if organizer, otherwise GUEST
           await prisma.chatMembership.create({
             data: {
               userId: user.uuid,
               chatId: toCourseChat.uuid,
-              chatPermission: ChatMembershipPermission.GUEST,
+              chatPermission: isToOrganiser
+                ? ChatMembershipPermission.ADMIN
+                : ChatMembershipPermission.GUEST,
             },
           });
 
