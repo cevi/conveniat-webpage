@@ -3,16 +3,14 @@
 import { Button } from '@/components/ui/buttons/button';
 import type { ChatMessage } from '@/features/chat/api/types';
 import { ChatTextAreaInput } from '@/features/chat/components/chat-view/chat-text-area-input';
-import { MessageComponent } from '@/features/chat/components/chat-view/message';
 import { MessageList } from '@/features/chat/components/chat-view/message-list';
-import { useChatId } from '@/features/chat/context/chat-id-context';
-import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { ArrowLeft } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import React from 'react';
+
 const threadTitle: StaticTranslationString = {
   de: 'Thread',
   en: 'Thread',
@@ -32,9 +30,6 @@ interface ThreadViewProperties {
 
 export const ThreadView: React.FC<ThreadViewProperties> = ({ threadId, onClose }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
-  const chatId = useChatId();
-  const { data: chatDetails } = useChatDetail(chatId);
-  const { data: currentUser } = trpc.chat.user.useQuery({});
 
   // Fetch parent message directly
   const { data: parentMessage, isLoading: isLoadingParent } = trpc.chat.getMessage.useQuery({
@@ -59,26 +54,24 @@ export const ThreadView: React.FC<ThreadViewProperties> = ({ threadId, onClose }
 
       {/* Message List with Parent */}
       <div className="flex-1 overflow-y-auto">
-        {/* Parent Message - Non-sticky */}
-        <div className="bg-white px-4 pt-4 pb-1">
-          {isLoadingParent && (
-            <div className="text-center text-gray-400">Loading parent message...</div>
-          )}
-          {!isLoadingParent && parentMessage && (
-            <MessageComponent
-              message={parentMessage as ChatMessage}
-              isCurrentUser={parentMessage.senderId === currentUser}
-              chatType={chatDetails?.type ?? 'PRIVATE'}
-              hideReplyCount
-            />
-          )}
-          {!isLoadingParent && !parentMessage && (
-            <div className="text-center text-red-500">Failed to load parent message.</div>
-          )}
-        </div>
-
-        {/* Replies */}
-        <MessageList parentId={threadId} hideReplyCount />
+        {isLoadingParent && (
+          <div className="flex h-full items-center justify-center text-gray-400">
+            Loading thread...
+          </div>
+        )}
+        {!isLoadingParent && !parentMessage && (
+          <div className="flex h-full items-center justify-center text-red-500">
+            Failed to load thread.
+          </div>
+        )}
+        {!isLoadingParent && parentMessage && (
+          <MessageList
+            parentId={threadId}
+            hideReplyCount
+            isThread
+            parentMessage={parentMessage as ChatMessage}
+          />
+        )}
       </div>
 
       {/* Input */}

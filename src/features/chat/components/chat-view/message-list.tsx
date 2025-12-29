@@ -1,4 +1,5 @@
 'use client';
+import type { ChatMessage } from '@/features/chat/api/types';
 import { MessageComponent } from '@/features/chat/components/chat-view/message';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
@@ -28,7 +29,8 @@ export const MessageList: React.FC<{
   parentId?: string;
   hideReplyCount?: boolean;
   isThread?: boolean;
-}> = ({ parentId, hideReplyCount = false, isThread = false }) => {
+  parentMessage?: ChatMessage;
+}> = ({ parentId, hideReplyCount = false, isThread = false, parentMessage }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const chatId = useChatId();
   const trpcUtils = trpc.useUtils();
@@ -77,10 +79,16 @@ export const MessageList: React.FC<{
   );
 
   // Combine messages from all pages and reverse them (newest at bottom)
+  // Prepend the parent message if provided (for thread view)
   const sortedMessages = React.useMemo(() => {
-    if (!infiniteData) return [];
-    return infiniteData.pages.flatMap((page) => page.items).reverse();
-  }, [infiniteData]);
+    if (!infiniteData) return parentMessage ? [parentMessage] : [];
+    const fetchedMessages = infiniteData.pages.flatMap((page) => page.items).reverse();
+    // Prepend parent message if provided and not already in the list
+    if (parentMessage && !fetchedMessages.some((m) => m.id === parentMessage.id)) {
+      return [parentMessage, ...fetchedMessages];
+    }
+    return fetchedMessages;
+  }, [infiniteData, parentMessage]);
 
   // Track if this is the initial load and if user is at bottom
   const hasScrolledReference = useRef(false);
@@ -215,6 +223,7 @@ export const MessageList: React.FC<{
                     5 * 60 * 1000
                   : false;
 
+                const isThreadRoot = parentMessage?.id === message.id;
                 return (
                   <div key={message.id} className={isWithin5Min ? 'mt-1' : 'mt-4'}>
                     <MessageComponent
@@ -222,6 +231,7 @@ export const MessageList: React.FC<{
                       isCurrentUser={message.senderId === currentUser}
                       chatType={chatDetails.type}
                       hideReplyCount={hideReplyCount}
+                      isThreadRoot={isThreadRoot}
                     />
                   </div>
                 );

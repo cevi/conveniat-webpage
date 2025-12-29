@@ -63,6 +63,7 @@ interface MessageProperties {
   isCurrentUser: boolean;
   chatType: string;
   hideReplyCount?: boolean;
+  isThreadRoot?: boolean;
 }
 
 /**
@@ -78,6 +79,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
   isCurrentUser,
   chatType,
   hideReplyCount = false,
+  isThreadRoot = false,
 }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const [showInfo, setShowInfo] = useState(false);
@@ -260,6 +262,13 @@ export const MessageComponent: React.FC<MessageProperties> = ({
                   overflowWrap: 'break-word',
                 }}
               >
+                {/* Thread Root Label */}
+                {isThreadRoot && (
+                  <div className="mb-2 flex items-center gap-1.5 text-[0.7rem] font-semibold tracking-wide uppercase opacity-70">
+                    <MessageSquare className="h-3 w-3" />
+                    <span>Thread</span>
+                  </div>
+                )}
                 {/* Quoted message preview */}
                 {quotedMessageId && (
                   <div
@@ -289,7 +298,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
                 {/* Timestamp and status - absolutely positioned at bottom right */}
                 <span
                   className={cn(
-                    'absolute bottom-1.5 right-3 inline-flex items-center gap-0.5 text-[10px]',
+                    'absolute right-3 bottom-1.5 inline-flex items-center gap-0.5 text-[10px]',
                     isCurrentUser ? 'text-white/70' : 'text-gray-400',
                   )}
                 >
