@@ -21,6 +21,17 @@ import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
 // Register map offline support
 registerMapOfflineSupport();
 
+const logToPostHog = (event: string, properties?: Record<string, unknown>): void => {
+  void self.clients.matchAll().then((clients) => {
+    for (const client of clients) {
+      client.postMessage({
+        type: ServiceWorkerMessages.CAPTURE_POSTHOG_EVENT,
+        payload: { event, properties },
+      });
+    }
+  });
+};
+
 // Ensures the global `self` variable is correctly
 // typed as `ServiceWorkerGlobalScope`.
 declare const self: ServiceWorkerGlobalScope;
@@ -33,6 +44,7 @@ self.addEventListener('notificationclose', () => {});
 
 // Service worker lifecycle events
 self.addEventListener('install', (event) => {
+  logToPostHog('service_worker_installing');
   event.waitUntil(serwist.handleInstall(event));
 });
 
@@ -81,6 +93,7 @@ self.addEventListener('activate', (event) => {
       }
 
       console.log('[SW] Activated and ready to handle requests.');
+      logToPostHog('service_worker_activated');
     })(),
   );
 });
@@ -147,6 +160,7 @@ self.addEventListener('unhandledrejection', (event) => {
   ) {
     event.preventDefault();
     console.debug('[SW] Suppressed network error:', error);
+    logToPostHog('service_worker_network_error', { error: String(error) });
   }
 });
 

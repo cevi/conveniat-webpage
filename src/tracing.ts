@@ -1,5 +1,5 @@
 import build from '@/build';
-import { diag, DiagConsoleLogger, DiagLogLevel, type DiagLogger } from '@opentelemetry/api';
+import { diag, DiagConsoleLogger, type DiagLogger, DiagLogLevel } from '@opentelemetry/api';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
 import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
@@ -112,6 +112,18 @@ class IgnoreTempoErrorLogger implements DiagLogger {
 // For troubleshooting, set the log level to DiagLogLevel.DEBUG
 diag.setLogger(new IgnoreTempoErrorLogger(), DiagLogLevel.WARN);
 
+// eslint-disable-next-line n/no-process-env
+const POSTHOG_HOST = process.env['NEXT_PUBLIC_POSTHOG_HOST'] ?? 'https://eu.i.posthog.com';
+// eslint-disable-next-line n/no-process-env
+const POSTHOG_KEY = process.env['NEXT_PUBLIC_POSTHOG_KEY'];
+
+const postHogLogExporter = new OTLPLogExporter({
+  url: `${POSTHOG_HOST}/i/v1/logs`,
+  headers: {
+    Authorization: `Bearer ${POSTHOG_KEY}`,
+  },
+});
+
 export const sdk = new NodeSDK({
   traceExporter,
   metricReader: metricsReader,
@@ -125,6 +137,12 @@ export const sdk = new NodeSDK({
   ],
   logRecordProcessors: [
     new BatchLogRecordProcessor(logExporter, {
+      exportTimeoutMillis: 5000,
+      maxQueueSize: 2048,
+      scheduledDelayMillis: 5000,
+      maxExportBatchSize: 512,
+    }),
+    new BatchLogRecordProcessor(postHogLogExporter, {
       exportTimeoutMillis: 5000,
       maxQueueSize: 2048,
       scheduledDelayMillis: 5000,
