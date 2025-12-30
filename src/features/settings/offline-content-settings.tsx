@@ -1,6 +1,8 @@
 'use client';
 
 import { Button } from '@/components/ui/buttons/button';
+// eslint-disable-next-line import/no-restricted-paths
+import { CACHE_NAMES } from '@/features/service-worker/constants';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
 import { motion } from 'framer-motion';
@@ -66,8 +68,8 @@ export const OfflineContentSettings: React.FC<OfflineContentSettingsProperties> 
   // Check if content is already cached on mount
   React.useEffect(() => {
     const checkCache = async (): Promise<void> => {
-      // Simple check: see if 'pages-cache' has entries
-      const pagesCache = await caches.open('pages-cache');
+      // Simple check: see if pages cache has entries
+      const pagesCache = await caches.open(CACHE_NAMES.PAGES);
       const keys = await pagesCache.keys();
       // We can be smarter here, checking for specific offline page keys
       if (keys.length > 5) {
@@ -116,9 +118,14 @@ export const OfflineContentSettings: React.FC<OfflineContentSettingsProperties> 
   };
 
   const handleDelete = async (): Promise<void> => {
-    // Manual delete of caches
-    const cacheNames = ['pages-cache', 'map-tiles-cache', 'offline-assets-cache', 'next-rsc-cache'];
-    for (const name of cacheNames) {
+    // Manual delete of caches using correct versioned names
+    const cacheNamesToDelete = [
+      CACHE_NAMES.PAGES,
+      CACHE_NAMES.MAP_TILES,
+      CACHE_NAMES.OFFLINE_ASSETS,
+      CACHE_NAMES.RSC,
+    ];
+    for (const name of cacheNamesToDelete) {
       await caches.delete(name);
     }
     setStatus('idle');

@@ -3,6 +3,8 @@
 import type { cookieInfoText } from '@/features/onboarding/onboarding-constants';
 import { OnboardingStep } from '@/features/onboarding/types';
 import { getPushSubscription } from '@/features/onboarding/utils/push-subscription-utils';
+// eslint-disable-next-line import/no-restricted-paths
+import { CACHE_NAMES } from '@/features/service-worker/constants';
 import { Cookie } from '@/types/types';
 import { DesignCodes, DesignModeTriggers } from '@/utils/design-codes';
 import Cookies from 'js-cookie';
@@ -173,7 +175,7 @@ export const useOnboarding = (): UseOnboardingReturn => {
           let hasCachedContent = false;
           if (typeof caches !== 'undefined') {
             try {
-              const pagesCache = await caches.open('pages-cache');
+              const pagesCache = await caches.open(CACHE_NAMES.PAGES);
               const keys = await pagesCache.keys();
               if (keys.length > 5) {
                 hasCachedContent = true;
