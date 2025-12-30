@@ -1,8 +1,8 @@
+import { SafeErrorBoundary } from '@/components/error-boundary/safe-error-boundary';
 import type { ContentBlockTypeNames } from '@/features/payload-cms/converters/page-sections/content-blocks';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import React from 'react';
-import { ErrorBoundary } from 'react-error-boundary';
 
 export type ContentBlock<T = object> = { blockType: ContentBlockTypeNames; id: string } & T;
 
@@ -35,11 +35,11 @@ const SectionWrapper: React.FC<{
       key={block.id}
       className={cn('mt-8 first:mt-0', sectionClassName, blockTypeOverrideClassName)}
     >
-      <ErrorBoundary
+      <SafeErrorBoundary
         fallback={<ErrorFallback error={new Error(errorFallbackMessage)} locale={locale} />}
       >
         {children}
-      </ErrorBoundary>
+      </SafeErrorBoundary>
     </section>
   );
 };

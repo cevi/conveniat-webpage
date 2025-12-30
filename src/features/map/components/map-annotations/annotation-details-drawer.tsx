@@ -1,3 +1,5 @@
+'use client';
+
 import { environmentVariables } from '@/config/environment-variables';
 import { AnnotationDrawerHeader } from '@/features/map/components/map-annotations/drawer-header';
 import { AnnotationScheduleTableComponent } from '@/features/map/components/map-annotations/sections/annotation-schedule-table-component';

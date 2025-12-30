@@ -1,3 +1,4 @@
+import { SafeErrorBoundary } from '@/components/error-boundary/safe-error-boundary';
 import type { CampScheduleEntry } from '@/features/map/types/types';
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -5,7 +6,6 @@ import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical
 import { Calendar } from 'lucide-react';
 import Link from 'next/link';
 import React from 'react';
-import { ErrorBoundary } from 'react-error-boundary';
 
 const scheduleTableTitle: StaticTranslationString = {
   de: 'Programme an diesem Ort',
@@ -37,11 +37,11 @@ export const AnnotationScheduleTableComponent: React.FC<{
             <Link href={`/app/schedule/${entry.id}`}>
               <h4 className="font-medium text-gray-900">{entry.title}</h4>
               <div className="mt-1 text-sm text-gray-700">
-                <ErrorBoundary fallback={<span>{errorLoadingEntry[locale]}</span>}>
+                <SafeErrorBoundary fallback={<span>{errorLoadingEntry[locale]}</span>}>
                   <LexicalRichTextSection
                     richTextSection={entry.description as SerializedEditorState}
                   />
-                </ErrorBoundary>
+                </SafeErrorBoundary>
               </div>
             </Link>
           </div>

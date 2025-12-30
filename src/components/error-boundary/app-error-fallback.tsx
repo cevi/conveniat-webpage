@@ -3,7 +3,7 @@ import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
-import React from 'react';
+import React, { useEffect } from 'react';
 import type { FallbackProps } from 'react-error-boundary';
 
 const title: StaticTranslationString = {
@@ -35,6 +35,13 @@ const tryAgain: StaticTranslationString = {
  */
 export const AppErrorFallback: React.FC<FallbackProps> = ({ error, resetErrorBoundary }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
+
+  useEffect(() => {
+    console.error(error);
+    if (error instanceof Error) {
+      console.error(error.stack);
+    }
+  }, [error]);
 
   return (
     <div className="flex min-h-[400px] w-full flex-col items-center justify-center p-6 text-center">

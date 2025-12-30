@@ -1,5 +1,6 @@
 'use client';
 
+import { SafeErrorBoundary } from '@/components/error-boundary/safe-error-boundary';
 import { SetHideFooter } from '@/components/footer/hide-footer-context';
 import { SetHideHeader } from '@/components/header/hide-header-context';
 import { Button } from '@/components/ui/buttons/button';
@@ -14,7 +15,6 @@ import { ChevronLeft } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import { useParams, useRouter } from 'next/navigation';
 import { useSyncExternalStore } from 'react';
-import { ErrorBoundary } from 'react-error-boundary';
 
 const noop = (): void => {};
 const emptySubscribe = (): (() => void) => noop;
@@ -149,7 +149,7 @@ const DetailContent: React.FC<{ id: string }> = ({ id }) => {
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto">
-          <ErrorBoundary
+          <SafeErrorBoundary
             fallback={
               <div className="flex h-full flex-col items-center justify-center p-8 text-center text-gray-500">
                 <p>{labels.errorLoading[locale]}</p>
@@ -169,7 +169,7 @@ const DetailContent: React.FC<{ id: string }> = ({ id }) => {
               onEditDataChange={setEditData}
               editError={editError}
             />
-          </ErrorBoundary>
+          </SafeErrorBoundary>
         </div>
       </div>
     </>

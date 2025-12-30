@@ -1,3 +1,4 @@
+import { SafeErrorBoundary } from '@/components/error-boundary/safe-error-boundary';
 import { FooterBuildInfoText } from '@/components/footer/footer-copyright-area';
 import { MainMenuLanguageSwitcher } from '@/components/menu/main-menu-language-switcher';
 import { SearchComponent } from '@/components/menu/search';
@@ -19,7 +20,6 @@ import { cacheLife, cacheTag } from 'next/cache';
 import { draftMode } from 'next/headers';
 import { getPayload } from 'payload';
 import type React from 'react';
-import { ErrorBoundary } from 'react-error-boundary';
 
 import { AppFeatures } from '@/components/menu/app-features';
 const DeletedMenuEntry: React.FC<{ message: string }> = ({ message }) => {
@@ -106,7 +106,7 @@ export const MainMenu: React.FC<{
               }
 
               return (
-                <ErrorBoundary fallback={<></>} key={item.id}>
+                <SafeErrorBoundary fallback={<></>} key={item.id}>
                   <Disclosure as="div" className="-mx-3">
                     <DisclosureButton className="group flex w-full cursor-pointer items-center justify-between rounded-lg py-2 pr-3.5 pl-3 text-base/7 font-semibold text-gray-700 hover:bg-gray-50">
                       {item.label}
@@ -134,7 +134,7 @@ export const MainMenu: React.FC<{
                       )}
                     </DisclosurePanel>
                   </Disclosure>
-                </ErrorBoundary>
+                </SafeErrorBoundary>
               );
             }
 
