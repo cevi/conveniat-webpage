@@ -41,10 +41,7 @@ export async function sendNotification(
 
   try {
     const webPushPromises = subscriptions.map(async (subscription) => {
-      const { sendNotificationToSubscription } = await import(
-        // eslint-disable-next-line import/no-restricted-paths
-        '@/features/onboarding/api/push-notification'
-      );
+      const { sendNotificationToSubscription } = await import('@/utils/push-notification-api');
 
       return sendNotificationToSubscription(
         subscription as webpush.PushSubscription,

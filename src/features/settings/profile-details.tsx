@@ -6,7 +6,10 @@ import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { StaticTranslationString } from '@/types/types';
 import { auth } from '@/utils/auth';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
+import { ExternalLink, Hash, LifeBuoy, LogIn, Mail, MapPin, User } from 'lucide-react';
 import React from 'react';
+
+import { SettingsRow } from '@/features/settings/components/settings-row';
 
 const notAvailable: StaticTranslationString = {
   de: 'nicht verfügbar',
@@ -14,40 +17,40 @@ const notAvailable: StaticTranslationString = {
   fr: '',
 };
 
-const profileDetailsTitle: StaticTranslationString = {
-  de: 'conveniat27 App - Einstellungen',
-  en: 'conveniat27 App - Settings',
-  fr: 'conveniat27 App - Paramètres',
+const guestTitle: StaticTranslationString = {
+  de: 'Gast',
+  en: 'Guest',
+  fr: 'Invité',
+};
+
+const guestDescription: StaticTranslationString = {
+  de: 'Melde dich an, um alle Funktionen zu nutzen.',
+  en: 'Sign in to access all features.',
+  fr: 'Connectez-vous pour accéder à toutes les fonctionnalités.',
 };
 
 const profileDetailsExplanation: StaticTranslationString = {
-  de: 'Diese Informationen werden von deinem Cevi.DB Account abgerufen.',
-  en: 'This information is pulled from your Cevi.DB account.',
-  fr: 'Ces informations sont extraites de votre compte Cevi.DB.',
+  de: 'Daten aus deinem Cevi.DB Account',
+  en: 'Data from your Cevi.DB account',
+  fr: 'Données de votre compte Cevi.DB',
 };
 
-const supportInformationText: StaticTranslationString = {
-  en: 'Your user ID may be required for support requests.',
-  de: 'Deine Benutzer-ID kann für Support-Anfragen erforderlich sein.',
-  fr: 'Votre identifiant utilisateur peut être requis pour les demandes de support.',
+const supportTitle: StaticTranslationString = {
+  de: 'Hilfe & Support',
+  en: 'Help & Support',
+  fr: 'Aide & Support',
 };
 
 const contactSupportText: StaticTranslationString = {
-  en: 'Contact the application support.',
-  de: 'Kontaktiere den Applikations-Support.',
-  fr: "Contactez le support de l'application.",
+  en: 'Contact Support',
+  de: 'Support kontaktieren',
+  fr: 'Contacter le support',
 };
 
 const userIdLabel: StaticTranslationString = {
-  de: 'Benutzer-ID:',
-  en: 'User ID:',
-  fr: "ID d'utilisateur:",
-};
-
-const supportMailLabel: StaticTranslationString = {
-  de: 'Support E-Mail:',
-  en: 'Support Email:',
-  fr: 'Email de support:',
+  de: 'Benutzer-ID',
+  en: 'User ID',
+  fr: "ID d'utilisateur",
 };
 
 const supportMailContent: StaticTranslationString = {
@@ -78,71 +81,65 @@ export const ProfileDetails: React.FC = async () => {
   )}`;
 
   return (
-    <div className="rounded-lg border-2 border-gray-200 bg-white p-6 md:p-8">
-      <h2 className="text-conveniat-green mb-6 text-2xl font-bold">
-        {profileDetailsTitle[locale]}
-      </h2>
-
-      {isAuthenticated ? (
-        <>
-          <p className="mb-8 text-sm text-gray-600">
-            <small>{profileDetailsExplanation[locale]}</small>
-          </p>
-
-          <div className="space-y-2">
-            {/* Email */}
-            <div className="flex items-center">
-              <strong className="w-24 text-gray-700">E-Mail:</strong>
-              <span className="text-gray-900">{getDetail(user.email)}</span>
-            </div>
-
-            {/* Name */}
-            <div className="flex items-center">
-              <strong className="w-24 text-gray-700">Name:</strong>
-              <span className="text-gray-900">{getDetail(user.name)}</span>
-            </div>
-
-            {/* Hof */}
-            <div className="flex items-center">
-              <strong className="w-24 text-gray-700">Hof:</strong>
-              <span className="text-gray-900">{getDetail(user.hof)}</span>
-            </div>
-
-            {/* Quartier */}
-            <div className="flex items-center">
-              <strong className="w-24 text-gray-700">Quartier:</strong>
-              <span className="text-gray-900">{getDetail(user.quartier)}</span>
-            </div>
+    <div className="space-y-6">
+      {/* Profile Header */}
+      <div className="rounded-xl bg-white p-6 shadow-sm">
+        <div className="flex items-center gap-4">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-100">
+            {isAuthenticated ? (
+              <User className="h-7 w-7 text-gray-600" />
+            ) : (
+              <LogIn className="h-7 w-7 text-gray-400" />
+            )}
           </div>
-
-          <LogoutButton />
-
-          <hr className="my-2 mt-12 border-gray-200" />
-
-          <p className="mb-8 text-sm text-gray-600">
-            <small>{supportInformationText[locale]}</small>
-          </p>
-
-          {/* UUID */}
-          <div className="flex items-center">
-            <strong className="w-24 text-gray-700">{userIdLabel[locale]}</strong>
-            <span className="text-gray-900">{getDetail(user.uuid)}</span>
+          <div className="flex-1">
+            <h2 className="text-xl font-bold text-gray-900">
+              {isAuthenticated ? getDetail(user.name) : guestTitle[locale]}
+            </h2>
+            <p className="text-sm text-gray-500">
+              {isAuthenticated ? profileDetailsExplanation[locale] : guestDescription[locale]}
+            </p>
           </div>
-        </>
-      ) : (
-        <LoginButton />
-      )}
+        </div>
 
-      <hr className="my-2 mt-12 border-gray-200" />
+        {isAuthenticated ? (
+          <>
+            {/* User Details List */}
+            <div className="mt-6 space-y-4">
+              <SettingsRow icon={Mail} title="E-Mail" subtitle={getDetail(user.email)} />
 
-      <p className="mb-8 text-sm text-gray-600">
-        <small>{contactSupportText[locale]}</small>
-      </p>
+              <SettingsRow icon={MapPin} title="Hof" subtitle={getDetail(user.hof)} />
 
-      <div className="flex items-center">
-        <strong className="w-24 text-gray-700">{supportMailLabel[locale]}</strong>
-        <LinkComponent className="font-bold text-red-600" href={mailSupportLink} openInNewTab>
-          {environmentVariables.APP_SUPPORT_EMAIL}
+              <SettingsRow icon={MapPin} title="Quartier" subtitle={getDetail(user.quartier)} />
+
+              <SettingsRow
+                icon={Hash}
+                title={userIdLabel[locale]}
+                subtitle={getDetail(user.uuid)}
+                subtitleClassName="font-mono text-xs text-gray-600"
+              />
+            </div>
+
+            <LogoutButton />
+          </>
+        ) : (
+          <LoginButton />
+        )}
+      </div>
+
+      {/* Support Section */}
+      <div className="rounded-xl bg-white p-6 shadow-sm">
+        <h3 className="mb-4 text-lg font-semibold text-gray-900">{supportTitle[locale]}</h3>
+        <LinkComponent
+          href={mailSupportLink}
+          className="-mx-3 block rounded-lg px-3 transition-colors hover:bg-gray-50"
+          hideExternalIcon
+        >
+          <SettingsRow
+            icon={LifeBuoy}
+            title={contactSupportText[locale]}
+            action={<ExternalLink className="h-4 w-4 text-gray-400" />}
+          />
         </LinkComponent>
       </div>
     </div>

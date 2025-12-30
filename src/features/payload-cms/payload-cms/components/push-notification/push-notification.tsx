@@ -1,6 +1,6 @@
 'use client';
 
-import { sendNotificationToSubscription } from '@/features/onboarding/api/push-notification';
+import { sendNotificationToSubscription } from '@/utils/push-notification-api';
 import { useDocumentInfo } from '@payloadcms/ui';
 import type webpush from 'web-push';
 

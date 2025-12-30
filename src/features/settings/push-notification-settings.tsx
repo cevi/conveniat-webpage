@@ -1,28 +1,48 @@
 'use client';
 
-// TODO: use a proper shared component for push notification settings
-// eslint-disable-next-line import/no-restricted-paths
-import { PushNotificationSubscriptionManager } from '@/features/onboarding/components/push-notification-subscription-manager';
-import type { Locale } from '@/types/types';
-import { i18nConfig } from '@/types/types';
-import { useCurrentLocale } from 'next-i18n-router/client';
+import { Switch } from '@/components/ui/switch';
+import { SettingsRow } from '@/features/settings/components/settings-row';
+import { usePushNotificationState } from '@/features/settings/hooks/use-push-notification-state';
+import type { Locale, StaticTranslationString } from '@/types/types';
+import { Bell } from 'lucide-react';
 import React from 'react';
 
-const pushNotificationSettingsTitle: Record<Locale, string> = {
+const pushNotificationSettingsTitle: StaticTranslationString = {
   de: 'Push-Benachrichtigungen',
   en: 'Push Notifications',
   fr: 'Notifications Push',
 };
 
-export const PushNotificationSettings: React.FC = () => {
-  const locale = useCurrentLocale(i18nConfig) as Locale;
+const pushNotificationDescription: StaticTranslationString = {
+  de: 'Erhalte wichtige Updates',
+  en: 'Get important updates',
+  fr: 'Recevez des mises à jour importantes',
+};
+
+const notSupportedText: StaticTranslationString = {
+  de: 'Nicht unterstützt',
+  en: 'Not supported',
+  fr: 'Non supporté',
+};
+
+export const PushNotificationSettings: React.FC<{ locale: Locale }> = ({ locale }) => {
+  const { isSupported, isSubscribed, isLoading, errorMessage, toggleSubscription } =
+    usePushNotificationState();
 
   return (
-    <div className="text-center">
-      <h2 className="text-conveniat-green mb-8 text-left text-xl font-bold">
-        {pushNotificationSettingsTitle[locale]}
-      </h2>
-      <PushNotificationSubscriptionManager callback={() => {}} locale={locale} />
-    </div>
+    <SettingsRow
+      icon={Bell}
+      title={pushNotificationSettingsTitle[locale]}
+      subtitle={isSupported ? pushNotificationDescription[locale] : notSupportedText[locale]}
+      error={errorMessage}
+      action={
+        <Switch
+          checked={isSubscribed}
+          onCheckedChange={toggleSubscription}
+          disabled={!isSupported || isLoading}
+          loading={isLoading}
+        />
+      }
+    />
   );
 };

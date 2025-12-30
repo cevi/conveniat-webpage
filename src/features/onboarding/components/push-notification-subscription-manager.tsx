@@ -1,13 +1,13 @@
 'use client';
 
 import { environmentVariables } from '@/config/environment-variables';
-import { subscribeUser, unsubscribeUser } from '@/features/onboarding/api/push-notification';
+import type { StaticTranslationString } from '@/types/types';
+import { subscribeUser, unsubscribeUser } from '@/utils/push-notification-api';
 import {
   getPushSubscription,
   isPushSupported,
   registerServiceWorker,
-} from '@/features/onboarding/utils/push-subscription-utils';
-import type { StaticTranslationString } from '@/types/types';
+} from '@/utils/push-notification-utils';
 import { urlBase64ToUint8Array } from '@/utils/url-base64-to-uint8-array';
 import React, { useCallback, useEffect, useState } from 'react';
 import type webpush from 'web-push';
@@ -137,8 +137,6 @@ export const PushNotificationSubscriptionManager: React.FC<{
       setIsLoading(false);
     }
   }, [locale, swUrl, callback]);
-
-  // ... (unsubscribe remains same) ...
 
   const _unsubscribeFromPush = useCallback(async (): Promise<void> => {
     if (!subscription) return;

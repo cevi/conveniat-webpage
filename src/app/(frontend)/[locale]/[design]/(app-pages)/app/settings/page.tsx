@@ -1,5 +1,5 @@
 import { SetDynamicPageTitle } from '@/components/header/set-dynamic-app-title';
-import { MainMenuLanguageSwitcher } from '@/components/menu/main-menu-language-switcher';
+import { LanguageSettings } from '@/features/settings/language-settings';
 import { OfflineContentSettings } from '@/features/settings/offline-content-settings';
 import { ProfileDetails } from '@/features/settings/profile-details';
 import { PushNotificationSettings } from '@/features/settings/push-notification-settings';
@@ -12,6 +12,12 @@ const settingsTitle: StaticTranslationString = {
   fr: 'Paramètres',
 };
 
+const appPreferencesTitle: StaticTranslationString = {
+  de: 'App-Einstellungen',
+  en: 'App Preferences',
+  fr: "Préférences de l'application",
+};
+
 const Settings: React.FC<{ params: Promise<{ locale: Locale }> }> = async ({ params }) => {
   const { locale } = await params;
 
@@ -21,26 +27,34 @@ const Settings: React.FC<{ params: Promise<{ locale: Locale }> }> = async ({ par
       <SetDynamicPageTitle newTitle={settingsTitle[locale]} />
 
       {/* Main content section */}
-      <section className="container mx-auto mt-8 py-6">
-        <div className="mx-auto w-full max-w-2xl space-y-6 px-8">
-          <article className="mx-auto w-full max-w-2xl space-y-10">
-            <ProfileDetails />
-          </article>
+      <section className="container mx-auto my-6 py-6">
+        <div className="mx-auto w-full max-w-2xl space-y-8 px-4">
+          {/* Profile Section */}
+          <ProfileDetails />
 
-          {/* Add Option to Change Language */}
-          <article className="my-8 rounded-lg border-2 border-gray-200 bg-white px-6 md:p-8">
-            <MainMenuLanguageSwitcher locale={locale} />
-          </article>
+          {/* App Preferences Section */}
+          <div className="rounded-xl bg-white shadow-sm">
+            <h3 className="border-b border-gray-100 px-6 py-4 text-lg font-semibold text-gray-900">
+              {appPreferencesTitle[locale]}
+            </h3>
 
-          {/* Add Option to Configure Push Notifications */}
-          <article className="rounded-lg border-2 border-gray-200 bg-white p-6">
-            <PushNotificationSettings />
-          </article>
+            <div className="divide-y divide-gray-100">
+              {/* Push Notifications Row */}
+              <div className="px-6 py-4">
+                <PushNotificationSettings locale={locale} />
+              </div>
 
-          {/* Offline Content Settings */}
-          <article className="rounded-lg border-2 border-gray-200 bg-white p-6">
-            <OfflineContentSettings locale={locale} />
-          </article>
+              {/* Language Row */}
+              <div className="px-6 py-4">
+                <LanguageSettings locale={locale} />
+              </div>
+
+              {/* Offline Content Row */}
+              <div className="px-6 py-4">
+                <OfflineContentSettings locale={locale} />
+              </div>
+            </div>
+          </div>
         </div>
       </section>
     </>

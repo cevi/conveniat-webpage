@@ -2,7 +2,7 @@
 
 import type { cookieInfoText } from '@/features/onboarding/onboarding-constants';
 import { OnboardingStep } from '@/features/onboarding/types';
-import { getPushSubscription } from '@/features/onboarding/utils/push-subscription-utils';
+import { getPushSubscription } from '@/utils/push-notification-utils';
 // eslint-disable-next-line import/no-restricted-paths
 import { CACHE_NAMES } from '@/features/service-worker/constants';
 import { Cookie } from '@/types/types';
