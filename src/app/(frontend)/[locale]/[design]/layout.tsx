@@ -1,4 +1,5 @@
 import { AppShell } from '@/app/app-shell';
+import { ChunkErrorHandler } from '@/components/chunk-error-handler';
 import { FooterComponent } from '@/components/footer/footer-component';
 import { HideFooterProvider } from '@/components/footer/hide-footer-context';
 import { HeaderComponent } from '@/components/header/header-component';
@@ -47,6 +48,7 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
         })}
       >
         <HideFooterProvider>
+          <ChunkErrorHandler />
           <ServiceWorkerManager>
             <AppShell
               header={<HeaderComponent locale={locale} inAppDesign={isInAppDesign} />}

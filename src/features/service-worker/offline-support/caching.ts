@@ -32,6 +32,22 @@ const cssCaching: RuntimeCaching = {
           new CacheableResponsePlugin({
             statuses: [200],
           }) as SerwistPlugin,
+          {
+            // Prevent caching HTML error responses as CSS
+            cacheWillUpdate: ({ response }) => {
+              if (response.headers.get('content-type')?.includes('text/html') === true) {
+                return;
+              }
+              return response;
+            },
+            // Validate cached responses before serving - reject HTML error pages
+            cachedResponseWillBeUsed: ({ cachedResponse }) => {
+              if (cachedResponse?.headers.get('content-type')?.includes('text/html') === true) {
+                return;
+              }
+              return cachedResponse;
+            },
+          } as SerwistPlugin,
         ],
       }),
 };
@@ -47,11 +63,20 @@ const jsCaching: RuntimeCaching = {
             statuses: [200],
           }) as SerwistPlugin,
           {
+            // Prevent caching HTML error responses as JS
             cacheWillUpdate: ({ response }) => {
               if (response.headers.get('content-type')?.includes('text/html') === true) {
                 return;
               }
               return response;
+            },
+            // Validate cached responses before serving - reject HTML error pages
+            cachedResponseWillBeUsed: ({ cachedResponse }) => {
+              if (cachedResponse?.headers.get('content-type')?.includes('text/html') === true) {
+                // Return undefined to force network fetch instead of serving HTML as JS
+                return;
+              }
+              return cachedResponse;
             },
           } as SerwistPlugin,
         ],
