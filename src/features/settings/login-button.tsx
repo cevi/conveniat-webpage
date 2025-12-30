@@ -17,7 +17,12 @@ export const LoginButton: React.FC = () => {
   return (
     <button
       onClick={() => {
-        signIn('hitobito', { redirect: true }).catch((error: unknown) => console.error(error));
+        void (async (): Promise<void> => {
+          const response = await signIn('cevi-db', { redirect: false, callbackUrl: '/entrypoint' });
+          if (response.url) {
+            globalThis.location.href = response.url;
+          }
+        })();
       }}
       className="font-heading bg-conveniat-green mt-10 w-full rounded-[8px] px-8 py-3 text-center text-lg leading-normal font-bold text-green-100 duration-100 hover:bg-green-700"
     >
