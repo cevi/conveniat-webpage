@@ -224,13 +224,7 @@ export const useAnnotationPolygons = (
 
   // Effect for updating the single polygon outline layer based on selection
   useEffect(() => {
-    const isStyleReady = (): boolean => {
-      try {
-        return map?.isStyleLoaded() ?? map?.getStyle() !== undefined;
-      } catch {
-        return false;
-      }
-    };
+    const isStyleReady = (): boolean => map?.isStyleLoaded() === true;
 
     if (!isStyleReady() || map === undefined) return;
 
