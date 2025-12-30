@@ -295,8 +295,10 @@ export const EmergencyComponent: React.FC = () => {
             return;
           }
 
-          trpcUtils.chat.chats.invalidate().catch(console.error);
-          router.push(data.redirectUrl);
+          trpcUtils.chat.chats
+            .invalidate()
+            .then(() => router.push(data.redirectUrl))
+            .catch(console.error);
         },
         onError: (error) => {
           console.error('Failed to trigger emergency alert:', error);
