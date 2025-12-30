@@ -5,7 +5,7 @@ import { Cookie, i18nConfig } from '@/types/types';
 import Cookies from 'js-cookie';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
-import { useEffect, useState } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 
 const staticCookieString: StaticTranslationString = {
   de: 'conveniat27 speichert Cookies, um richtig zu funktionieren.',
@@ -23,23 +23,25 @@ const shouldShowCookieBanner = (): boolean => {
   return (Cookies.get(Cookie.CONVENIAT_COOKIE_BANNER) ?? 'false') === 'false';
 };
 
+const noopUnsubscribe = (): void => {};
+const emptySubscribe = (): (() => void) => noopUnsubscribe;
+
 export const CookieBanner: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
-  const [showBanner, setShowBanner] = useState(false);
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setIsClient(true);
-  }, []);
+  const isClient = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  );
+  const [accepted, setAccepted] = useState(false);
 
   const acceptCookies = (): void => {
     Cookies.set(Cookie.CONVENIAT_COOKIE_BANNER, 'true', { expires: 90 });
-    setShowBanner(false);
+    setAccepted(true);
   };
 
-  const bannerShouldBeVisible = isClient && showBanner && shouldShowCookieBanner();
+  const bannerShouldBeVisible = isClient && !accepted && shouldShowCookieBanner();
 
   if (!bannerShouldBeVisible) {
     return <></>;
