@@ -59,6 +59,11 @@ async function offlineFallback(request: Request, url: URL, isAppMode: boolean): 
     return Response.error();
   }
 
+  // PostHog Analytics: Fail silently (no cache lookup, no error logs)
+  if (url.pathname.startsWith('/ingest/')) {
+    return Response.error();
+  }
+
   const isRsc = url.searchParams.has('_rsc');
 
   // Strategy A: Cached RSC
