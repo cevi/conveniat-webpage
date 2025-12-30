@@ -3,6 +3,8 @@
 import type React from 'react';
 
 import { Button } from '@/components/ui/buttons/button';
+import { ChatSelectionHeader } from '@/features/chat/components/chat-view/chat-selection-header';
+import { useChatActions } from '@/features/chat/context/chat-actions-context';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -46,6 +48,7 @@ export const ChatHeader: React.FC = () => {
   const chatId = useChatId();
   const { data: user } = trpc.chat.user.useQuery({});
   const { data: chatDetails } = trpc.chat.chatDetails.useQuery({ chatId });
+  const { selectedMessage } = useChatActions();
 
   if (!chatDetails) {
     return <ChatHeaderSkeleton />;
@@ -57,6 +60,10 @@ export const ChatHeader: React.FC = () => {
     .find((p) => p.isOnline);
   const isOneToOne = chatDetails.type === 'ONE_TO_ONE';
   const isGroupChat = chatDetails.type === 'GROUP';
+
+  if (selectedMessage) {
+    return <ChatSelectionHeader />;
+  }
 
   return (
     <>

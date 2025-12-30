@@ -1,5 +1,6 @@
 'use client';
 
+import type { ChatMessage } from '@/features/chat/api/types';
 import React, { createContext, useContext, useState } from 'react';
 
 interface ChatActionsContextType {
@@ -13,6 +14,8 @@ interface ChatActionsContextType {
   cancelQuote: () => void;
   highlightedMessageId: string | undefined;
   scrollToMessage: (messageId: string) => void;
+  selectedMessage: ChatMessage | undefined;
+  setSelectedMessage: (message: ChatMessage | undefined) => void;
 }
 
 const ChatActionsContext = createContext<ChatActionsContextType | undefined>(undefined);
@@ -21,6 +24,7 @@ export const ChatActionsProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [threadHistory, setThreadHistory] = useState<string[]>([]);
   const [quotedMessageId, setQuotedMessageId] = useState<string | undefined>();
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | undefined>();
+  const [selectedMessage, setSelectedMessage] = useState<ChatMessage | undefined>();
 
   const activeThreadId = threadHistory.length > 0 ? threadHistory.at(-1) : undefined;
 
@@ -62,6 +66,8 @@ export const ChatActionsProvider: React.FC<{ children: React.ReactNode }> = ({ c
         cancelQuote,
         highlightedMessageId,
         scrollToMessage,
+        selectedMessage,
+        setSelectedMessage,
       }}
     >
       {children}
