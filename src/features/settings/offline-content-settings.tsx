@@ -1,10 +1,8 @@
 'use client';
 
 import { Button } from '@/components/ui/buttons/button';
-// eslint-disable-next-line import/no-restricted-paths
-import { CACHE_NAMES } from '@/features/service-worker/constants';
+import { useOfflineDownload } from '@/hooks/use-offline-download';
 import type { Locale, StaticTranslationString } from '@/types/types';
-import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
 import { motion } from 'framer-motion';
 import { Download, RefreshCw, Trash2, WifiOff } from 'lucide-react';
 import React from 'react';
@@ -57,85 +55,29 @@ const downloadingText: StaticTranslationString = {
   fr: 'Téléchargement...',
 };
 
+const offlineUnavailableText: StaticTranslationString = {
+  en: 'Offline mode is currently unavailable.',
+  de: 'Der Offline-Modus ist derzeit nicht verfügbar.',
+  fr: 'Le mode hors ligne est actuellement indisponible.',
+};
+
 interface OfflineContentSettingsProperties {
   locale: Locale;
 }
 
 export const OfflineContentSettings: React.FC<OfflineContentSettingsProperties> = ({ locale }) => {
-  const [status, setStatus] = React.useState<'idle' | 'downloading' | 'has-content'>('idle');
-  const [progress, setProgress] = React.useState({ total: 0, current: 0 });
+  const { status, progress, startDownload, deleteContent } = useOfflineDownload({
+    checkCacheOnMount: true,
+  });
 
-  // Check if content is already cached on mount
-  React.useEffect(() => {
-    const checkCache = async (): Promise<void> => {
-      // Simple check: see if pages cache has entries
-      const pagesCache = await caches.open(CACHE_NAMES.PAGES);
-      const keys = await pagesCache.keys();
-      // We can be smarter here, checking for specific offline page keys
-      if (keys.length > 5) {
-        // Arbitrary threshold to assume "downloaded"
-        setStatus('has-content');
-      }
-    };
-    void checkCache();
-  }, []);
-
-  React.useEffect(() => {
-    if (status === 'downloading') {
-      const handleMessage = (event: MessageEvent): void => {
-        const data = event.data as
-          | {
-              type: typeof ServiceWorkerMessages.OFFLINE_DOWNLOAD_PROGRESS;
-              payload: { total: number; current: number };
-            }
-          | { type: typeof ServiceWorkerMessages.OFFLINE_DOWNLOAD_COMPLETE }
-          | undefined;
-
-        if (data?.type === ServiceWorkerMessages.OFFLINE_DOWNLOAD_PROGRESS) {
-          setProgress(data.payload);
-        } else if (data?.type === ServiceWorkerMessages.OFFLINE_DOWNLOAD_COMPLETE) {
-          setStatus('has-content');
-        }
-      };
-
-      navigator.serviceWorker.addEventListener('message', handleMessage);
-      return (): void => {
-        navigator.serviceWorker.removeEventListener('message', handleMessage);
-      };
-    }
-    return;
-  }, [status]);
-
-  const handleDownload = (): void => {
-    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-      setStatus('downloading');
-      navigator.serviceWorker.controller.postMessage({
-        type: ServiceWorkerMessages.START_OFFLINE_DOWNLOAD,
-      });
-    } else {
-      console.warn('Service Worker not active. Cannot download.');
-    }
-  };
-
-  const handleDelete = async (): Promise<void> => {
-    // Manual delete of caches using correct versioned names
-    const cacheNamesToDelete = [
-      CACHE_NAMES.PAGES,
-      CACHE_NAMES.MAP_TILES,
-      CACHE_NAMES.OFFLINE_ASSETS,
-      CACHE_NAMES.RSC,
-    ];
-    for (const name of cacheNamesToDelete) {
-      await caches.delete(name);
-    }
-    setStatus('idle');
-  };
+  // Map success to has-content for settings context
+  const displayStatus = status === 'success' ? 'has-content' : status;
 
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-4">
         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50/50 text-blue-600">
-          {status === 'has-content' ? (
+          {displayStatus === 'has-content' ? (
             <Download className="h-6 w-6" />
           ) : (
             <WifiOff className="h-6 w-6" />
@@ -153,15 +95,17 @@ export const OfflineContentSettings: React.FC<OfflineContentSettingsProperties> 
             Status:{' '}
             <span
               className={
-                status === 'has-content' ? 'font-semibold text-green-600' : 'text-gray-500'
+                displayStatus === 'has-content' ? 'font-semibold text-green-600' : 'text-gray-500'
               }
             >
-              {status === 'has-content' ? statusDownloaded[locale] : statusNotDownloaded[locale]}
+              {displayStatus === 'has-content'
+                ? statusDownloaded[locale]
+                : statusNotDownloaded[locale]}
             </span>
           </span>
         </div>
 
-        {status === 'downloading' && (
+        {displayStatus === 'downloading' && (
           <div className="mb-4 space-y-2">
             <div className="flex justify-between text-xs font-medium text-blue-600">
               <span>{downloadingText[locale]}</span>
@@ -180,32 +124,57 @@ export const OfflineContentSettings: React.FC<OfflineContentSettingsProperties> 
           </div>
         )}
 
-        <div className="flex flex-wrap items-center gap-3">
-          {status === 'idle' || status === 'has-content' ? (
-            <Button
-              onClick={handleDownload}
-              disabled={false}
-              className={`bg-blue-600 text-white shadow-sm transition-all hover:bg-blue-700 ${status === 'has-content' ? 'bg-blue-600' : ''}`}
-            >
-              <Download className="mr-2 h-4 w-4" />
-              {status === 'has-content' ? updateButton[locale] : downloadButton[locale]}
-            </Button>
-          ) : (
-            <Button
-              onClick={handleDownload}
-              disabled
-              variant="outline"
-              className="border-gray-100 bg-gray-50 text-gray-400"
-            >
-              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-              {updateButton[locale]}
-            </Button>
-          )}
+        {displayStatus === 'sw-error' && (
+          <div className="mb-4 rounded-lg bg-gray-100 p-3 text-gray-600">
+            <span className="font-semibold">{offlineUnavailableText[locale]}</span>
+          </div>
+        )}
 
-          {status === 'has-content' && (
+        <div className="flex flex-wrap items-center gap-3">
+          {((): React.ReactNode => {
+            if (displayStatus === 'sw-error') {
+              return (
+                <Button
+                  disabled
+                  variant="outline"
+                  className="border-gray-200 bg-gray-100 text-gray-400"
+                >
+                  <WifiOff className="mr-2 h-4 w-4" />
+                  {downloadButton[locale]}
+                </Button>
+              );
+            }
+
+            if (displayStatus === 'idle' || displayStatus === 'has-content') {
+              return (
+                <Button
+                  onClick={startDownload}
+                  disabled={false}
+                  className={`bg-blue-600 text-white shadow-sm transition-all hover:bg-blue-700 ${displayStatus === 'has-content' ? 'bg-blue-600' : ''}`}
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  {displayStatus === 'has-content' ? updateButton[locale] : downloadButton[locale]}
+                </Button>
+              );
+            }
+
+            return (
+              <Button
+                onClick={startDownload}
+                disabled
+                variant="outline"
+                className="border-gray-100 bg-gray-50 text-gray-400"
+              >
+                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                {updateButton[locale]}
+              </Button>
+            );
+          })()}
+
+          {displayStatus === 'has-content' && (
             <Button
               onClick={() => {
-                void handleDelete();
+                void deleteContent();
               }}
               variant="ghost"
               size="icon"

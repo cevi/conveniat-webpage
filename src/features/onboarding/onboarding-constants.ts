@@ -53,3 +53,15 @@ export const offlineContentError: StaticTranslationString = {
   de: 'Download fehlgeschlagen. Bitte versuchen Sie es später erneut.',
   fr: 'Échec du téléchargement. Veuillez réessayer plus tard.',
 };
+
+export const offlineContentServiceWorkerError: StaticTranslationString = {
+  en: 'Offline mode is currently unavailable.',
+  de: 'Der Offline-Modus ist derzeit nicht verfügbar.',
+  fr: 'Le mode hors ligne est actuellement indisponible.',
+};
+
+export const offlineContentRetryButton: StaticTranslationString = {
+  en: 'Retry',
+  de: 'Erneut versuchen',
+  fr: 'Réessayer',
+};

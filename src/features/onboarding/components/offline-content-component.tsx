@@ -6,12 +6,13 @@ import {
   offlineContentDownloading,
   offlineContentError,
   offlineContentNotNowButton,
+  offlineContentServiceWorkerError,
   offlineContentSuccess,
   offlineContentTitle,
 } from '@/features/onboarding/onboarding-constants';
+import { useOfflineDownload } from '@/hooks/use-offline-download';
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
-import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
 import { motion } from 'framer-motion';
 import React from 'react';
 
@@ -23,102 +24,24 @@ interface OfflineContentEntrypointComponentProperties {
 export const OfflineContentEntrypointComponent: React.FC<
   OfflineContentEntrypointComponentProperties
 > = ({ callback, locale }) => {
-  const [status, setStatus] = React.useState<
-    'idle' | 'checking' | 'downloading' | 'success' | 'error'
-  >('checking');
-  const [progress, setProgress] = React.useState({ total: 0, current: 0 });
-
-  React.useEffect(() => {
-    // 1) Set up message listener for download progress OR check response
-    const handleMessage = (event: MessageEvent): void => {
-      const data = event.data as
-        | {
-            type: typeof ServiceWorkerMessages.OFFLINE_DOWNLOAD_PROGRESS;
-            payload: { total: number; current: number };
-          }
-        | { type: typeof ServiceWorkerMessages.OFFLINE_DOWNLOAD_COMPLETE }
-        | {
-            type: typeof ServiceWorkerMessages.CHECK_OFFLINE_READY;
-            payload: { ready: boolean };
-          }
-        | undefined;
-
-      switch (data?.type) {
-        case ServiceWorkerMessages.OFFLINE_DOWNLOAD_PROGRESS: {
-          setProgress(data.payload);
-
-          break;
-        }
-        case ServiceWorkerMessages.OFFLINE_DOWNLOAD_COMPLETE: {
-          setStatus('success');
-          setTimeout(() => {
-            callback(true);
-          }, 1500); // Wait a bit before proceeding
-
-          break;
-        }
-        case ServiceWorkerMessages.CHECK_OFFLINE_READY: {
-          if (data.payload.ready) {
-            // Previously downloaded -> Skip immediately
-            callback(true);
-          } else {
-            // Not downloaded -> Ask user
-            setStatus('idle');
-          }
-
-          break;
-        }
-        // No default
-      }
-    };
-
-    navigator.serviceWorker.addEventListener('message', handleMessage);
-
-    // 2) If we are in 'checking' state, ask SW if we are ready
-    if (status === 'checking') {
-      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-        // Send check message
-        navigator.serviceWorker.controller.postMessage({
-          type: ServiceWorkerMessages.CHECK_OFFLINE_READY,
-        });
-
-        // Fallback safety: If SW doesn't answer fast enough (e.g. 500ms),
-        // show the UI so the user isn't stuck on a blank screen forever.
-        const timer = setTimeout(() => {
-          setStatus((previous) => (previous === 'checking' ? 'idle' : previous));
-        }, 500);
-
-        return (): void => {
-          clearTimeout(timer);
-          navigator.serviceWorker.removeEventListener('message', handleMessage);
-        };
-      } else {
-        // No SW controller? Just show UI
-        setStatus('idle');
-      }
-    }
-
-    return (): void => {
-      navigator.serviceWorker.removeEventListener('message', handleMessage);
-    };
-  }, [status, callback]);
-
   const trpcUtils = trpc.useUtils();
+
+  const { status, progress, startDownload } = useOfflineDownload({
+    checkSwReadyOnMount: true,
+    onSuccess: () => callback(true),
+  });
+
+  // When hook detects content is already ready, callback immediately
+  React.useEffect(() => {
+    if (status === 'has-content') {
+      callback(true);
+    }
+  }, [status, callback]);
 
   const handleDownload = (): void => {
     // Prefetch emergency alert settings for offline usage
     void trpcUtils.emergency.getAlertSettings.ensureData().catch(console.warn);
-
-    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-      setStatus('downloading');
-      navigator.serviceWorker.controller.postMessage({
-        type: ServiceWorkerMessages.START_OFFLINE_DOWNLOAD,
-      });
-    } else {
-      // Fallback if SW not ready? Just proceed.
-      console.warn('Service Worker not ready, skipping download');
-      callback(false);
-    }
+    startDownload();
   };
 
   const handleNotNow = (): void => {
@@ -188,6 +111,20 @@ export const OfflineContentEntrypointComponent: React.FC<
         {status === 'error' && (
           <div className="flex items-center justify-center gap-2 rounded-lg bg-red-50 p-3 text-red-700">
             <span className="font-semibold">{offlineContentError[locale]}</span>
+          </div>
+        )}
+
+        {status === 'sw-error' && (
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-center gap-2 rounded-lg bg-gray-100 p-3 text-gray-600">
+              <span className="font-semibold">{offlineContentServiceWorkerError[locale]}</span>
+            </div>
+            <button
+              onClick={handleNotNow}
+              className="font-heading w-full transform cursor-pointer rounded-[8px] bg-gray-400 px-8 py-3 text-center text-lg leading-normal font-bold text-white shadow-md duration-100 hover:scale-[1.02] hover:bg-gray-500 active:scale-[0.98]"
+            >
+              {offlineContentNotNowButton[locale]}
+            </button>
           </div>
         )}
       </div>
