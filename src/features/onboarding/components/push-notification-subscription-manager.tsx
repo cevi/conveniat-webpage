@@ -1,7 +1,10 @@
 'use client';
 
 import { environmentVariables } from '@/config/environment-variables';
+import { skipPushNotificationText } from '@/features/onboarding/components/push-notification-manager';
+import { offlineContentNotNowButton } from '@/features/onboarding/onboarding-constants';
 import type { StaticTranslationString } from '@/types/types';
+import { Cookie } from '@/types/types';
 import { subscribeUser, unsubscribeUser } from '@/utils/push-notification-api';
 import {
   getPushSubscription,
@@ -9,15 +12,22 @@ import {
   registerServiceWorker,
 } from '@/utils/push-notification-utils';
 import { urlBase64ToUint8Array } from '@/utils/url-base64-to-uint8-array';
+import Cookies from 'js-cookie';
 import React, { useCallback, useEffect, useState } from 'react';
 import type webpush from 'web-push';
 
 const vapidPublicKey: string | undefined = environmentVariables.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 
-const notSupportedText: StaticTranslationString = {
+const notSupportedBrowserText: StaticTranslationString = {
   en: 'Push notifications are not supported in this browser.',
   de: 'Push-Benachrichtigungen werden in diesem Browser nicht unterstützt.',
   fr: 'Les notifications push ne sont pas prises en charge dans ce navigateur.',
+};
+
+const notSupportedDeviceText: StaticTranslationString = {
+  en: 'Push notifications are not supported on this device.',
+  de: 'Push-Benachrichtigungen werden auf diesem Gerät nicht unterstützt.',
+  fr: 'Les notifications push ne sont pas prises en charge sur cet appareil.',
 };
 
 const notYetSubscribed: StaticTranslationString = {
@@ -153,9 +163,23 @@ export const PushNotificationSubscriptionManager: React.FC<{
   }, [subscription]);
 
   if (!isSupported) {
+    const isStandalone =
+      typeof globalThis !== 'undefined' &&
+      globalThis.matchMedia('(display-mode: standalone)').matches;
+
     return (
-      <div className="mb-8">
-        <p className="mb-4 text-balance text-gray-700">{notSupportedText[locale]}</p>
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-center gap-2 rounded-lg bg-gray-100 p-3 text-gray-600">
+          <span className="font-semibold text-balance">
+            {isStandalone ? notSupportedDeviceText[locale] : notSupportedBrowserText[locale]}
+          </span>
+        </div>
+        <button
+          onClick={callback}
+          className="font-heading w-full transform cursor-pointer rounded-[8px] bg-gray-400 px-8 py-3 text-center text-lg leading-normal font-bold text-white shadow-md duration-100 hover:scale-[1.02] hover:bg-gray-500 active:scale-[0.98]"
+        >
+          {offlineContentNotNowButton[locale]}
+        </button>
       </div>
     );
   }
@@ -180,6 +204,16 @@ export const PushNotificationSubscriptionManager: React.FC<{
             <div className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-white border-t-transparent" />
           )}
           {subscription ? unsubscribeAcceptedText[locale] : subscribeAcceptedText[locale]}
+        </button>
+
+        <button
+          onClick={() => {
+            Cookies.set(Cookie.SKIP_PUSH_NOTIFICATION, 'true', { expires: 7 });
+            callback();
+          }}
+          className="mt-3 cursor-pointer font-semibold text-gray-400 hover:text-gray-600"
+        >
+          {skipPushNotificationText[locale]}
         </button>
       </>
     </div>
