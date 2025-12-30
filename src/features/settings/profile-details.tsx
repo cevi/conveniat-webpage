@@ -1,5 +1,6 @@
 import { LinkComponent } from '@/components/ui/link-component';
 import { environmentVariables } from '@/config/environment-variables';
+import { LoginButton } from '@/features/settings/login-button';
 import { LogoutButton } from '@/features/settings/logout-button';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { StaticTranslationString } from '@/types/types';
@@ -65,6 +66,7 @@ export const ProfileDetails: React.FC = async () => {
   const locale = await getLocaleFromCookies();
   const session = await auth();
   const user = session?.user as HitobitoNextAuthUser | undefined;
+  const isAuthenticated = !!user;
 
   const getDetail = (value: string | number | undefined | null): string =>
     value?.toString() ?? notAvailable[locale];
@@ -81,49 +83,55 @@ export const ProfileDetails: React.FC = async () => {
         {profileDetailsTitle[locale]}
       </h2>
 
-      <p className="mb-8 text-sm text-gray-600">
-        <small>{profileDetailsExplanation[locale]}</small>
-      </p>
+      {isAuthenticated ? (
+        <>
+          <p className="mb-8 text-sm text-gray-600">
+            <small>{profileDetailsExplanation[locale]}</small>
+          </p>
 
-      <div className="space-y-2">
-        {/* Email */}
-        <div className="flex items-center">
-          <strong className="w-24 text-gray-700">E-Mail:</strong>
-          <span className="text-gray-900">{getDetail(user?.email)}</span>
-        </div>
+          <div className="space-y-2">
+            {/* Email */}
+            <div className="flex items-center">
+              <strong className="w-24 text-gray-700">E-Mail:</strong>
+              <span className="text-gray-900">{getDetail(user.email)}</span>
+            </div>
 
-        {/* Name */}
-        <div className="flex items-center">
-          <strong className="w-24 text-gray-700">Name:</strong>
-          <span className="text-gray-900">{getDetail(user?.name)}</span>
-        </div>
+            {/* Name */}
+            <div className="flex items-center">
+              <strong className="w-24 text-gray-700">Name:</strong>
+              <span className="text-gray-900">{getDetail(user.name)}</span>
+            </div>
 
-        {/* Hof */}
-        <div className="flex items-center">
-          <strong className="w-24 text-gray-700">Hof:</strong>
-          <span className="text-gray-900">{getDetail(user?.hof)}</span>
-        </div>
+            {/* Hof */}
+            <div className="flex items-center">
+              <strong className="w-24 text-gray-700">Hof:</strong>
+              <span className="text-gray-900">{getDetail(user.hof)}</span>
+            </div>
 
-        {/* Quartier */}
-        <div className="flex items-center">
-          <strong className="w-24 text-gray-700">Quartier:</strong>
-          <span className="text-gray-900">{getDetail(user?.quartier)}</span>
-        </div>
-      </div>
+            {/* Quartier */}
+            <div className="flex items-center">
+              <strong className="w-24 text-gray-700">Quartier:</strong>
+              <span className="text-gray-900">{getDetail(user.quartier)}</span>
+            </div>
+          </div>
 
-      <LogoutButton />
+          <LogoutButton />
 
-      <hr className="my-2 mt-12 border-gray-200" />
+          <hr className="my-2 mt-12 border-gray-200" />
 
-      <p className="mb-8 text-sm text-gray-600">
-        <small>{supportInformationText[locale]}</small>
-      </p>
+          <p className="mb-8 text-sm text-gray-600">
+            <small>{supportInformationText[locale]}</small>
+          </p>
 
-      {/* UUID */}
-      <div className="flex items-center">
-        <strong className="w-24 text-gray-700">{userIdLabel[locale]}</strong>
-        <span className="text-gray-900">{getDetail(user?.uuid)}</span>
-      </div>
+          {/* UUID */}
+          <div className="flex items-center">
+            <strong className="w-24 text-gray-700">{userIdLabel[locale]}</strong>
+            <span className="text-gray-900">{getDetail(user.uuid)}</span>
+          </div>
+        </>
+      ) : (
+        <LoginButton />
+      )}
 
       <hr className="my-2 mt-12 border-gray-200" />
 
