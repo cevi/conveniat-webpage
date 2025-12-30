@@ -43,7 +43,7 @@ export const AppShell: React.FC<AppShellProperties> = ({ children, header, foote
                 <div className="flex-1">
                   <ErrorBoundary FallbackComponent={AppErrorFallback}>{children}</ErrorBoundary>
                 </div>
-                <FooterClientWrapper>{footer}</FooterClientWrapper>
+                {footer && <FooterClientWrapper>{footer}</FooterClientWrapper>}
               </main>
             </div>
           </DynamicAppTitleProvider>

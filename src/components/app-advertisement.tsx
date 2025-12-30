@@ -1,7 +1,7 @@
 import type { Locale, StaticTranslationString } from '@/types/types';
 import type React from 'react';
 
-const appAdvertisementTextPart1: Record<'map' | 'chat', StaticTranslationString> = {
+const appAdvertisementTextPart1: Record<'map' | 'chat' | 'generic', StaticTranslationString> = {
   map: {
     en: 'This map is part of the',
     de: 'Diese Karte ist Teil der',
@@ -11,6 +11,11 @@ const appAdvertisementTextPart1: Record<'map' | 'chat', StaticTranslationString>
     en: 'This chat is part of the',
     de: 'Dieser Chat ist Teil der',
     fr: 'Cette conversation fait partie de la',
+  },
+  generic: {
+    en: 'This page is part of the',
+    de: 'Diese Seite ist Teil der',
+    fr: 'Cette page fait partie de la',
   },
 };
 
@@ -22,8 +27,8 @@ const appAdvertisementTextPart2: StaticTranslationString = {
 
 export const AppAdvertisement: React.FC<{
   locale: Locale;
-  type?: 'map' | 'chat';
-}> = ({ locale, type = 'map' }) => {
+  type?: 'map' | 'chat' | 'generic';
+}> = ({ locale, type = 'generic' }) => {
   return (
     <div className="fixed bottom-0 left-0 z-40 flex h-20 w-dvw items-center justify-center border-t-2 border-gray-200 bg-[#f8fafc] px-4 text-center xl:left-[480px] xl:w-[calc(100dvw-480px)]">
       <p className="text-sm text-gray-600">

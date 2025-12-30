@@ -6,7 +6,7 @@ import type React from 'react';
  */
 export default function ChatLoading(): React.ReactNode {
   return (
-    <div className="fixed top-0 z-0 flex h-[calc(100dvh-80px)] w-screen flex-col overflow-y-hidden bg-gray-50 xl:top-[62px] xl:left-[480px] xl:h-[calc(100dvh-62px-80px)] xl:w-[calc(100dvw-480px)]">
+    <div className="fixed top-[62px] left-0 z-30 flex h-[calc(100dvh-62px-0px)] w-full flex-col overflow-y-hidden bg-[#f8fafc] xl:left-[480px] xl:w-[calc(100dvw-480px)]">
       <div className="flex-1 overflow-y-auto px-4 py-4">
         <div className="space-y-3">
           {/* Chat list items skeleton */}

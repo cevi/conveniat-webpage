@@ -1,6 +1,9 @@
+import { Suspense } from 'react';
+
 import { AppShell } from '@/app/app-shell';
 import { ChunkErrorHandler } from '@/components/chunk-error-handler';
-import { FooterComponent } from '@/components/footer/footer-component';
+import { FooterAppNavBar } from '@/components/footer/footer-app-nav-bar';
+import { GlobalAppFooterClientWrapper } from '@/components/footer/global-app-footer-client-wrapper';
 import { HideFooterProvider } from '@/components/footer/hide-footer-context';
 import { HeaderComponent } from '@/components/header/header-component';
 import { ServiceWorkerManager } from '@/components/service-worker/service-worker-manager';
@@ -22,12 +25,22 @@ interface LayoutProperties {
   }>;
 }
 
+const GlobalAppFooterWrapper: React.FC<{
+  locale: Locale;
+  design: DesignCodes;
+}> = ({ locale, design }) => {
+  const isInAppDesign = design === DesignCodes.APP_DESIGN;
+
+  return (
+    <GlobalAppFooterClientWrapper locale={locale} isAppMode={isInAppDesign}>
+      <FooterAppNavBar locale={locale} />
+    </GlobalAppFooterClientWrapper>
+  );
+};
+
 const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
   const { locale, design } = await params;
   const isInAppDesign = design === DesignCodes.APP_DESIGN;
-
-  const localePromise = Promise.resolve(locale);
-  const inAppDesignPromise = Promise.resolve(isInAppDesign);
 
   return (
     <html
@@ -52,7 +65,11 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
           <ServiceWorkerManager>
             <AppShell
               header={<HeaderComponent locale={locale} inAppDesign={isInAppDesign} />}
-              footer={<FooterComponent locale={localePromise} inAppDesign={inAppDesignPromise} />}
+              footer={
+                <Suspense fallback={undefined}>
+                  <GlobalAppFooterWrapper locale={locale} design={design} />
+                </Suspense>
+              }
               inAppDesign={isInAppDesign}
             >
               {children}

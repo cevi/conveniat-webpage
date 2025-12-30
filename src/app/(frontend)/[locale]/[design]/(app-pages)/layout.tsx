@@ -1,12 +1,11 @@
-import type { ReactNode } from 'react';
-import React, { Suspense } from 'react';
-
 import { SetHideCopyrightFooter } from '@/components/footer/hide-footer-context';
 import { ClientProviders } from '@/context/client-providers';
 import type { Locale } from '@/types/types';
 import { DesignCodes } from '@/utils/design-codes';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { SessionProvider } from 'next-auth/react';
+import type { ReactNode } from 'react';
+import React, { Suspense } from 'react';
 
 interface LayoutProperties {
   children: ReactNode;
