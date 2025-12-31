@@ -6,9 +6,11 @@ import { DateCarousel } from '@/features/schedule/components/date-carousel';
 import { NoProgramPlaceholder } from '@/features/schedule/components/no-program-placeholder';
 import { ScheduleList } from '@/features/schedule/components/schedule-list';
 import { SearchFilterBar } from '@/features/schedule/components/search-filter-bar';
+import { ScheduleStatusProvider } from '@/features/schedule/context/schedule-status-context';
 import { useSchedule } from '@/features/schedule/hooks/use-schedule';
 import { useScheduleFilters } from '@/features/schedule/hooks/use-schedule-filter';
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
+import { useOnlineStatus } from '@/hooks/use-online-status';
 import { useStar } from '@/hooks/use-star';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -51,6 +53,7 @@ export const ScheduleComponent: React.FC<ScheduleComponentProperties> = ({ sched
   const router = useRouter();
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const { starredEntries } = useStar();
+  const isOnline = useOnlineStatus();
 
   // Get enrolled courses
   const { data: myEnrollments } = trpc.schedule.getMyEnrollments.useQuery();
@@ -121,6 +124,9 @@ export const ScheduleComponent: React.FC<ScheduleComponentProperties> = ({ sched
 
     return grouped;
   }, [currentProgram]);
+
+  // Get visible course IDs for bulk status fetching
+  const visibleCourseIds = useMemo(() => currentProgram.map((entry) => entry.id), [currentProgram]);
 
   const totalEventsCount = currentProgram.length;
 
@@ -230,48 +236,50 @@ export const ScheduleComponent: React.FC<ScheduleComponentProperties> = ({ sched
             className="h-full touch-pan-y"
           >
             {hasProgram ? (
-              <div className="space-y-8">
-                <ScheduleList
-                  groupedEntries={currentProgramGrouped}
-                  enrolledIds={enrolledIds}
-                  onMapClick={handleMapClick}
-                />
+              <ScheduleStatusProvider courseIds={visibleCourseIds} isOnline={isOnline}>
+                <div className="space-y-8">
+                  <ScheduleList
+                    groupedEntries={currentProgramGrouped}
+                    enrolledIds={enrolledIds}
+                    onMapClick={handleMapClick}
+                  />
 
-                {/* Navigation Links */}
-                {(previousDay ?? nextDate) && (
-                  <div className="flex flex-col space-y-3">
-                    {/* Prev Day Link */}
-                    {previousDay && (
-                      <Button
-                        variant="outline"
-                        className="w-full gap-2 border-dashed text-gray-500 hover:text-gray-900"
-                        onClick={() => actions.handleDateSelect(previousDay)}
-                      >
-                        <ArrowLeft className="h-4 w-4" />
-                        <span>{previousDayLabel[locale]}</span>
-                        <span className="font-semibold text-gray-900">
-                          {previousDay.toLocaleDateString(locale, { weekday: 'long' })}
-                        </span>
-                      </Button>
-                    )}
+                  {/* Navigation Links */}
+                  {(previousDay ?? nextDate) && (
+                    <div className="flex flex-col space-y-3">
+                      {/* Prev Day Link */}
+                      {previousDay && (
+                        <Button
+                          variant="outline"
+                          className="w-full gap-2 border-dashed text-gray-500 hover:text-gray-900"
+                          onClick={() => actions.handleDateSelect(previousDay)}
+                        >
+                          <ArrowLeft className="h-4 w-4" />
+                          <span>{previousDayLabel[locale]}</span>
+                          <span className="font-semibold text-gray-900">
+                            {previousDay.toLocaleDateString(locale, { weekday: 'long' })}
+                          </span>
+                        </Button>
+                      )}
 
-                    {/* Next Day Link */}
-                    {nextDate && (
-                      <Button
-                        variant="outline"
-                        className="w-full gap-2 border-dashed text-gray-500 hover:text-gray-900"
-                        onClick={() => actions.handleDateSelect(nextDate)}
-                      >
-                        <span>{nextDayLabel[locale]}</span>
-                        <span className="font-semibold text-gray-900">
-                          {nextDate.toLocaleDateString(locale, { weekday: 'long' })}
-                        </span>
-                        <ArrowRight className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                )}
-              </div>
+                      {/* Next Day Link */}
+                      {nextDate && (
+                        <Button
+                          variant="outline"
+                          className="w-full gap-2 border-dashed text-gray-500 hover:text-gray-900"
+                          onClick={() => actions.handleDateSelect(nextDate)}
+                        >
+                          <span>{nextDayLabel[locale]}</span>
+                          <span className="font-semibold text-gray-900">
+                            {nextDate.toLocaleDateString(locale, { weekday: 'long' })}
+                          </span>
+                          <ArrowRight className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </ScheduleStatusProvider>
             ) : (
               <NoProgramPlaceholder
                 currentDate={currentDate}

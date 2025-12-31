@@ -80,6 +80,89 @@ export const scheduleRouter = createTRPCRouter({
     };
   }),
 
+  /**
+   * Bulk fetch course statuses for multiple course IDs.
+   */
+  getCourseStatuses: trpcBaseProcedure
+    .input(z.object({ courseIds: z.array(z.string()) }))
+    .query(async ({ input, ctx }) => {
+      const { prisma, user } = ctx;
+      const { courseIds } = input;
+
+      if (courseIds.length === 0) {
+        return {};
+      }
+
+      const payload = await getPayload({ config });
+
+      // Batch fetch all courses
+      const coursesResult = await payload.find({
+        collection: 'camp-schedule-entry',
+        where: { id: { in: courseIds } },
+        depth: 1,
+        limit: courseIds.length,
+      });
+
+      const coursesMap = new Map(coursesResult.docs.map((c) => [c.id, c]));
+
+      // Batch fetch all enrollments for these courses
+      const allEnrollments = await prisma.enrollment.findMany({
+        where: { courseId: { in: courseIds } },
+        include: { user: true },
+      });
+
+      // Group enrollments by courseId
+      const enrollmentsByCourse = new Map<string, typeof allEnrollments>();
+      for (const enrollment of allEnrollments) {
+        const existing = enrollmentsByCourse.get(enrollment.courseId) ?? [];
+        existing.push(enrollment);
+        enrollmentsByCourse.set(enrollment.courseId, existing);
+      }
+
+      // Batch fetch all course chats
+      const courseChats = await prisma.chat.findMany({
+        where: { courseId: { in: courseIds } },
+        select: { uuid: true, courseId: true },
+      });
+      const chatsByCourse = new Map(courseChats.map((c) => [c.courseId, c.uuid]));
+
+      // Build the result map
+      const result: Record<
+        string,
+        {
+          enrolledCount: number;
+          maxParticipants: number | undefined;
+          isEnrolled: boolean;
+          isAdmin: boolean;
+          enableEnrolment: boolean | null | undefined;
+          hideList: boolean | null | undefined;
+          chatId: string | undefined;
+        }
+      > = {};
+
+      for (const courseId of courseIds) {
+        const course = coursesMap.get(courseId);
+        if (!course) continue;
+
+        const enrollments = enrollmentsByCourse.get(courseId) ?? [];
+        const isEnrolled = enrollments.some((enrollment_) => enrollment_.userId === user.uuid);
+        const organisers = course.organiser as PayloadUser[];
+        const isAdmin = organisers.some((o) => o.id === user.uuid);
+
+        result[courseId] = {
+          enrolledCount: enrollments.length,
+          maxParticipants: course.participants_max ?? undefined,
+          isEnrolled,
+          isAdmin,
+          enableEnrolment: course.enable_enrolment,
+          hideList: course.hide_participant_list,
+          chatId: chatsByCourse.get(courseId),
+        };
+      }
+
+      return result;
+    }),
+
   getMyEnrollments: trpcBaseProcedure.query(async ({ ctx }) => {
     const { user, prisma } = ctx;
     const enrollments = await prisma.enrollment.findMany({

@@ -13,7 +13,7 @@ import {
 } from '@/features/chat/components/ui/chat-alert-dialog';
 /* eslint-enable import/no-restricted-paths */
 import { Button } from '@/components/ui/buttons/button';
-import { useOnlineStatus } from '@/hooks/use-online-status';
+import { useCourseStatus } from '@/features/schedule/context/schedule-status-context';
 import { useStar } from '@/hooks/use-star';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -117,20 +117,15 @@ export const EnrollmentAction: React.FC<{
   courseId: string;
 }> = ({ courseId }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
-  const isOnline = useOnlineStatus();
+  const { status, isLoading, isOnline } = useCourseStatus(courseId);
   const utils = trpc.useUtils();
   const { isStarred, toggleStar } = useStar();
   const [conflictDialogOpen, setConflictDialogOpen] = useState(false);
   const [conflictInfo, setConflictInfo] = useState<ConflictInfo | undefined>();
 
-  const { data: status, isLoading } = trpc.schedule.getCourseStatus.useQuery(
-    { courseId },
-    { enabled: isOnline },
-  );
-
   const enroll = trpc.schedule.enrollInCourse.useMutation({
     onSuccess: () => {
-      void utils.schedule.getCourseStatus.invalidate({ courseId });
+      void utils.schedule.getCourseStatuses.invalidate();
       void utils.schedule.getMyEnrollments.invalidate();
       // Auto-star when enrolling
       if (!isStarred(courseId)) {
@@ -159,7 +154,7 @@ export const EnrollmentAction: React.FC<{
 
   const switchEnrollment = trpc.schedule.switchEnrollment.useMutation({
     onSuccess: () => {
-      void utils.schedule.getCourseStatus.invalidate();
+      void utils.schedule.getCourseStatuses.invalidate();
       void utils.schedule.getMyEnrollments.invalidate();
       // Auto-star the new course
       if (!isStarred(courseId)) {
@@ -175,13 +170,13 @@ export const EnrollmentAction: React.FC<{
 
   const unenroll = trpc.schedule.unenrollFromCourse.useMutation({
     onSuccess: () => {
-      void utils.schedule.getCourseStatus.invalidate({ courseId });
+      void utils.schedule.getCourseStatuses.invalidate();
       void utils.schedule.getMyEnrollments.invalidate();
     },
   });
 
-  // Show offline warning
-  if (!isOnline) {
+  // Show offline warning only if we don't have cached data
+  if (!isOnline && !status) {
     return (
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-700">
@@ -199,7 +194,7 @@ export const EnrollmentAction: React.FC<{
     );
   }
 
-  if (isLoading)
+  if (isLoading && !status)
     return (
       <div className="flex flex-col gap-3">
         {/* Skeleton for participant count */}
