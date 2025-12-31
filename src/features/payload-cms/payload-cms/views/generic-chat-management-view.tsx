@@ -4,6 +4,7 @@ import { ChatManagementHeader } from '@/features/chat/components/admin/chat-mana
 import { ChatManagementInput } from '@/features/chat/components/admin/chat-management-input';
 import { ChatManagementMessages } from '@/features/chat/components/admin/chat-management-messages';
 import { ChatManagementSidebar } from '@/features/chat/components/admin/chat-management-sidebar';
+import { ChatActionsProvider } from '@/features/chat/context/chat-actions-context';
 import { ChatIdProvider } from '@/features/chat/context/chat-id-context';
 import { useAdminChatManagement } from '@/features/chat/hooks/use-admin-chat-management';
 import { LocationMap } from '@/features/map/components/location-map';
@@ -258,7 +259,9 @@ const GenericChatManagementContent: React.FC<GenericChatManagementViewProperties
 export const GenericChatManagementView: React.FC<GenericChatManagementViewProperties> = (props) => {
   return (
     <TRPCProvider>
-      <GenericChatManagementContent {...props} />
+      <ChatActionsProvider>
+        <GenericChatManagementContent {...props} />
+      </ChatActionsProvider>
     </TRPCProvider>
   );
 };
