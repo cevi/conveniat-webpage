@@ -32,11 +32,11 @@ export const ConfirmationSlider: React.FC<ConfirmationSliderProperties> = ({
     handleReference.current.style.transform = 'translateX(0px)';
     trackReference.current?.style.setProperty('--translate-x-clamped', '0px');
     setDisplayText(text);
-    setIsAnimating(true);
     setTimeout(() => {
       if (handleReference.current) {
         handleReference.current.style.transition = '';
       }
+      setIsAnimating(true);
     }, 200);
     setIsProcessing(false);
   }, [isConfirmed, text]);
