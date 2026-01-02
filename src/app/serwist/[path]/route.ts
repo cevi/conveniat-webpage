@@ -65,6 +65,15 @@ export async function GET(request: NextRequest, context: never): Promise<NextRes
     );
   }
 
+  // in dev mode we cannot use self-fetch as we have no cached sw file, this abort
+  if (process.env['NODE_ENV'] === 'development') {
+    console.warn('[Serwist] Self-fetch not available in dev mode, returning 404');
+    return NextResponse.json(
+      { error: 'Static SW not available (loop prevention)' },
+      { status: 404 },
+    );
+  }
+
   // try to retrieve pre-build file
   const localUrl = `http://127.0.0.1:3000${request.nextUrl.pathname}`;
   console.log(`[Serwist] Bypassing draft mode via self-fetch to: ${localUrl}`);
