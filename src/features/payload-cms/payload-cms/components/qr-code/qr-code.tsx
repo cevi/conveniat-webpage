@@ -165,7 +165,7 @@ export const QRCodeImage: React.FC<QRCodeImageProperties> = ({
   isLoading,
   locale = 'en',
 }) => {
-  const showLoading = isLoading || (qrImageSrc === undefined);
+  const showLoading = isLoading || !qrImageSrc;
 
   if (showLoading) {
     return (
@@ -184,7 +184,7 @@ export const QRCodeImage: React.FC<QRCodeImageProperties> = ({
     );
   }
 
-  if (qrImageSrc != undefined) {
+  if (qrImageSrc) {
     return (
       <>
         <Image
