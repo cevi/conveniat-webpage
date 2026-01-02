@@ -1,20 +1,16 @@
 'use client';
 
-import { environmentVariables } from '@/config/environment-variables';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { subscribeUser, unsubscribeUser } from '@/utils/push-notification-api';
+import { unsubscribeUser } from '@/utils/push-notification-api';
 import {
   getPushSubscription,
   isPushSupported,
-  registerServiceWorker,
+  subscribeToPushNotifications,
 } from '@/utils/push-notification-utils';
-import { urlBase64ToUint8Array } from '@/utils/url-base64-to-uint8-array';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import { useCallback, useEffect, useState } from 'react';
 import type webpush from 'web-push';
-
-const vapidPublicKey: string | undefined = environmentVariables.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 
 const notificationsBlockedText: Record<Locale, string> = {
   en: 'Notifications blocked. Please enable them in your browser settings.',
@@ -63,21 +59,8 @@ export function usePushNotificationState(swUrl: string = '/sw.js'): UsePushNotif
     setIsLoading(true);
     setErrorMessage(undefined);
     try {
-      const registration = await registerServiceWorker(swUrl);
-      if (!registration) {
-        throw new Error('Failed to register service worker for push.');
-      }
-
-      if (!vapidPublicKey) {
-        throw new Error('VAPID public key is not defined.');
-      }
-
-      const sub = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
-      });
+      const sub = await subscribeToPushNotifications(swUrl, locale);
       setSubscription(sub);
-      await subscribeUser(sub.toJSON() as webpush.PushSubscription, locale);
     } catch (error) {
       console.error('Failed to subscribe:', error);
       if (error instanceof DOMException && error.name === 'NotAllowedError') {

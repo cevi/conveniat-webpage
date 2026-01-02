@@ -1,22 +1,18 @@
 'use client';
 
-import { environmentVariables } from '@/config/environment-variables';
 import { skipPushNotificationText } from '@/features/onboarding/components/push-notification-manager';
 import { offlineContentNotNowButton } from '@/features/onboarding/onboarding-constants';
 import type { StaticTranslationString } from '@/types/types';
 import { Cookie } from '@/types/types';
-import { subscribeUser, unsubscribeUser } from '@/utils/push-notification-api';
+import { unsubscribeUser } from '@/utils/push-notification-api';
 import {
   getPushSubscription,
   isPushSupported,
-  registerServiceWorker,
+  subscribeToPushNotifications,
 } from '@/utils/push-notification-utils';
-import { urlBase64ToUint8Array } from '@/utils/url-base64-to-uint8-array';
 import Cookies from 'js-cookie';
 import React, { useCallback, useEffect, useState } from 'react';
 import type webpush from 'web-push';
-
-const vapidPublicKey: string | undefined = environmentVariables.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 
 const notSupportedBrowserText: StaticTranslationString = {
   en: 'Push notifications are not supported in this browser.',
@@ -117,23 +113,9 @@ export const PushNotificationSubscriptionManager: React.FC<{
     setIsLoading(true);
     setErrorMessage(undefined);
     try {
-      // Explicitly register the service worker first (Recovery/Bootstrap)
-      const registration = await registerServiceWorker(swUrl);
-      if (!registration) {
-        throw new Error('Failed to register service worker for push.');
-      }
-
-      if (!vapidPublicKey) {
-        throw new Error('VAPID public key is not defined.');
-      }
-
       // Subscribe using the active registration
-      const sub = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
-      });
+      const sub = await subscribeToPushNotifications(swUrl, locale);
       setSubscription(sub);
-      await subscribeUser(sub.toJSON() as webpush.PushSubscription, locale);
       callback();
     } catch (error) {
       console.error('Failed to subscribe:', error);

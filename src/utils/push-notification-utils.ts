@@ -1,3 +1,10 @@
+import { environmentVariables } from '@/config/environment-variables';
+import { subscribeUser } from '@/utils/push-notification-api';
+import { urlBase64ToUint8Array } from '@/utils/url-base64-to-uint8-array';
+import type webpush from 'web-push';
+
+const vapidPublicKey: string | undefined = environmentVariables.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+
 export const getPushSubscription = async (): Promise<PushSubscription | undefined> => {
   if (
     typeof navigator === 'undefined' ||
@@ -73,4 +80,27 @@ export const isPushSupported = (): boolean => {
 
   // For Android/Desktop, we assume support if APIs exist.
   return true;
+};
+
+export const subscribeToPushNotifications = async (
+  swUrl: string,
+  locale: 'de' | 'fr' | 'en',
+): Promise<PushSubscription> => {
+  const registration = await registerServiceWorker(swUrl);
+  if (!registration) {
+    throw new Error('Failed to register service worker for push.');
+  }
+
+  if (!vapidPublicKey) {
+    throw new Error('VAPID public key is not defined.');
+  }
+
+  const sub = await registration.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+  });
+
+  await subscribeUser(sub.toJSON() as webpush.PushSubscription, locale);
+
+  return sub;
 };
