@@ -23,6 +23,7 @@ import { de } from 'payload/i18n/de';
 import { en } from 'payload/i18n/en';
 import { fr } from 'payload/i18n/fr';
 import sharp from 'sharp';
+import { enabledWidgets, widgetDefaultLayout } from './payload-cms/widgets/widget-configuration';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -130,6 +131,10 @@ export const payloadConfig: RoutableConfig = {
       url: generatePreviewUrl,
       breakpoints: smartphoneBreakpoints,
       collections: ['blog', 'generic-page', 'timeline', 'forms', 'camp-map-annotations'],
+    },
+    dashboard: {
+      widgets: enabledWidgets,
+      defaultLayout: widgetDefaultLayout,
     },
   },
   collections: collectionsConfig,

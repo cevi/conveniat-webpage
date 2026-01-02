@@ -1,0 +1,20 @@
+import { Locale, StaticTranslationString } from '@/types/types';
+import { WidgetServerProps } from 'payload';
+
+const title: StaticTranslationString = {
+  en: 'User Count',
+  de: 'Anzahl Benutzer',
+  fr: 'Nombre d’utilisateurs',
+};
+
+export default async function EmergencyCounterWidget({ req }: WidgetServerProps) {
+  const { payload, locale } = req;
+  const users = await payload.count({ collection: 'users' });
+
+  return (
+    <div className="card">
+      <h3>{title[locale as Locale]}</h3>
+      <p className="font-bold">{users.totalDocs}</p>
+    </div>
+  );
+}
