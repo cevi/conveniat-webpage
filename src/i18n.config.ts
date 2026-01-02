@@ -34,6 +34,8 @@ export const i18nExcludedRoutes: string[] = [
 
   // Static Files (Service Workers, Manifests, SEO)
   'serwist',
+  'sw.js',
+  'sw.js.map',
   'manifest.webmanifest',
   'manifest.json',
   'sitemap.xml',

@@ -17,7 +17,7 @@ interface ServiceWorkerManagerProperties {
  */
 export const ServiceWorkerManager: React.FC<ServiceWorkerManagerProperties> = ({
   children,
-  swUrl = '/serwist/sw.js',
+  swUrl = '/sw.js',
 }) => {
   useAppMode();
 

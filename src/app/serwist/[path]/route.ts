@@ -66,6 +66,7 @@ export async function GET(request: NextRequest, context: never): Promise<NextRes
   }
 
   // in dev mode we cannot use self-fetch as we have no cached sw file, this abort
+  // eslint-disable-next-line n/no-process-env
   if (process.env['NODE_ENV'] === 'development') {
     console.warn('[Serwist] Self-fetch not available in dev mode, returning 404');
     return NextResponse.json(

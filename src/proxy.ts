@@ -1,6 +1,7 @@
 import { designRewriteProxy } from '@/proxy/design-rewrite-proxy';
 import { i18nProxy } from '@/proxy/i18n-proxy';
 import { proxyChain } from '@/proxy/proxy-chain';
+import { serwistProxy } from '@/proxy/serwist-proxy';
 import type { ProxyModule } from '@/proxy/types';
 import { isExcludedFromPathRewrites } from '@/proxy/utils/is-excluded-from-path-rewrites';
 
@@ -19,6 +20,7 @@ const pathnameProxy: ProxyModule = (next) => {
 };
 
 export const proxy = proxyChain([
+  { proxy: serwistProxy, name: 'serwist' },
   { proxy: skipExcludedPaths, name: 'skipExcludedPaths' },
   { proxy: pathnameProxy, name: 'pathname' },
   { proxy: i18nProxy, name: 'i18n' },

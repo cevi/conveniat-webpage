@@ -36,9 +36,7 @@ interface UsePushNotificationStateResult {
   toggleSubscription: () => void;
 }
 
-export function usePushNotificationState(
-  swUrl: string = '/serwist/sw.js',
-): UsePushNotificationStateResult {
+export function usePushNotificationState(swUrl: string = '/sw.js'): UsePushNotificationStateResult {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const [isSupported, setIsSupported] = useState(false);
   const [subscription, setSubscription] = useState<PushSubscription | undefined>();
