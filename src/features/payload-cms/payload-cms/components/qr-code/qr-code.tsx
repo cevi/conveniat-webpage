@@ -187,12 +187,7 @@ export const QRCodeImage: React.FC<QRCodeImageProperties> = ({
   if (qrImageSrc) {
     return (
       <>
-        <Image
-          src={qrImageSrc}
-          height="200"
-          width="200"
-          alt="link-qr-code"
-        />
+        <Image src={qrImageSrc} height="200" width="200" alt="link-qr-code" />
         {fullURL != undefined && (
           <div className="relative w-full">
             <input
