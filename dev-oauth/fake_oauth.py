@@ -1,4 +1,5 @@
-from flask import Flask, render_template, request, redirect, jsonify
+from flask import Flask, render_template, request, redirect, jsonify, send_from_directory
+import os
 
 app = Flask(__name__)
 
@@ -42,6 +43,12 @@ FAKE_USERS = [
 
 # Store issued tokens
 ACTIVE_TOKENS = {}
+
+@app.route('/favicon.ico')
+def favicon():
+    """Favicon"""
+    return send_from_directory(os.path.join(app.root_path, 'static'),
+                               'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
 @app.route("/")
 def home():
