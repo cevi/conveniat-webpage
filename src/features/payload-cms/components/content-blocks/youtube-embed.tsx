@@ -54,6 +54,7 @@ export const YoutubeEmbed: React.FC<YoutubeEmbedType> = ({ links }) => {
     .filter((item) => item.component !== undefined);
 
   if (validEmbeds.length === 0) {
+    console.error('YoutubeEmbed: No valid links provided.');
     return;
   }
 

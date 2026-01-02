@@ -934,15 +934,13 @@ export interface YoutubeEmbedding {
   /**
    * Links to the Youtube videos
    */
-  links?:
-    | {
-        /**
-         * Link to the Youtube video
-         */
-        link: string;
-        id?: string | null;
-      }[]
-    | null;
+  links: {
+    /**
+     * Link to the Youtube video
+     */
+    link: string;
+    id?: string | null;
+  }[];
   id?: string | null;
   blockName?: string | null;
   blockType: 'youtubeEmbed';

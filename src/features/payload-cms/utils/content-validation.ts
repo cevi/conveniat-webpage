@@ -16,11 +16,27 @@ const validateField = (field: Field, value: unknown): boolean => {
     // Special check for relationship/upload fields:
     // 1. They might be empty objects `{}` in draft mode.
     // 2. We want to ensure they are at least somewhat populated objects, not just strings (ids) if the component expects objects.
-    if (typeof value === 'object' && Object.keys(value).length === 0) {
+    if (typeof value === 'object') {
+      if (Array.isArray(value)) {
+        if (value.length === 0) return false;
+      } else if (Object.keys(value).length === 0) {
+        return false;
+      }
+      // For image uploads/relationships to images, we expect usage of sizes or url in components
+      // If it's a relationship, we can check if it has 'url' property (meaning it's expanded)
+      if (
+        (('relationTo' in field && field.relationTo === 'images') || field.type === 'upload') &&
+        !('url' in value)
+      )
+        return false;
+    }
+    // If it is a relationship/upload, and the value is a string (ID) but we expected expansion?
+    if (
+      typeof value === 'string' &&
+      (field.type === 'upload' || ('relationTo' in field && field.relationTo === 'images'))
+    ) {
       return false;
     }
-    // If it is a relationship/upload, and the value is an object, it should probably have more than just 'id' or be a valid ref.
-    // However, checking keys === 0 is the most critical fix for now causing crashes.
   }
   return true;
 };
@@ -64,9 +80,14 @@ export const validateContentBlock = (
   const blockDefinition = blocks.find((b) => b.slug === block.blockType);
   const missingFields: string[] = [];
 
-  // If we can't find the definition, we assume it's valid to avoid false positives
+  // If we can't find the definition, we flag it as invalid to prevent render crashes
   if (!blockDefinition) {
-    return { isValid: true, missingFields: [], blockLabel: block.blockType };
+    console.error(`[ContentValidation] Block definition not found for type: ${block.blockType}`);
+    return {
+      isValid: false,
+      missingFields: ['Block Definition Missing'],
+      blockLabel: block.blockType,
+    };
   }
 
   const blockLabel = getBlockLabel(blockDefinition, locale);
@@ -75,6 +96,7 @@ export const validateContentBlock = (
     if ('name' in field) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
       const value = (block as any)[field.name];
+
       if (!validateField(field, value)) {
         missingFields.push(getFieldLabel(field, locale));
       }

@@ -302,12 +302,14 @@ export const RenderSinglePicture: SectionRenderer<{
       locale={locale}
     >
       <div className="text-conveniat-green relative mt-10 aspect-[16/9] w-[calc(100%+32px)] text-lg max-md:mx-[-16px]">
+        {/* eslint-disable @typescript-eslint/no-unnecessary-condition */}
         <Image
-          src={block.image.sizes?.large?.url ?? block.image.url}
-          alt={(block.image.alt as undefined | string) ?? 'copyright by conveniat27'}
+          src={block.image?.sizes?.large?.url ?? block.image?.url}
+          alt={(block.image?.alt as undefined | string) ?? 'copyright by conveniat27'}
           className="block rounded-2xl object-contain"
           fill
         />
+        {/* eslint-enable @typescript-eslint/no-unnecessary-condition */}
       </div>
     </SectionWrapper>
   );
