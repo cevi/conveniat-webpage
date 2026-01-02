@@ -30,6 +30,7 @@ function parseEnvironmentMapCenter(): [number, number] {
 const initialMapPoseObergoms: InitialMapPose = {
   initialMapCenter: parseEnvironmentMapCenter(),
   zoom: environmentVariables.CAMP_MAP_INITIAL_ZOOM,
+  bearing: environmentVariables.CAMP_MAP_INITIAL_BEARING,
 };
 
 export const CampMapComponent: React.FC<{

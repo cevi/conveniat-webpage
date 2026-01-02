@@ -970,6 +970,7 @@ export interface SwisstopoMapEmbedding {
      * @maxItems 2
      */
     initialMapCenter?: [number, number] | null;
+    bearing?: number | null;
   };
   /**
    * Markers on the map with a small Cevi logo
@@ -2171,6 +2172,7 @@ export interface SwisstopoMapEmbeddingSelect<T extends boolean = true> {
     | {
         zoom?: T;
         initialMapCenter?: T;
+        bearing?: T;
       };
   ceviLogoMarkers?:
     | T

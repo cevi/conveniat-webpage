@@ -30,6 +30,7 @@ export const LocationMessage: React.FC<{ message: ChatMessage }> = ({ message })
   const initialMapPose = {
     initialMapCenter: [longitude, latitude] as [number, number],
     zoom: 15,
+    bearing: 0,
   };
 
   const locationText: StaticTranslationString = {

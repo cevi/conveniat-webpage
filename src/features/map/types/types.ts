@@ -11,6 +11,7 @@ import type {
 export interface InitialMapPose {
   initialMapCenter: [number, number];
   zoom: number;
+  bearing: number;
 }
 
 /**

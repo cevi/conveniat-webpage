@@ -150,6 +150,7 @@ export const ScheduleMiniMap: React.FC<ScheduleMiniMapProperties> = ({ location 
           initialMapPose={{
             initialMapCenter: [longitude, latitude],
             zoom: 13.5,
+            bearing: 0,
           }}
           ceviLogoMarkers={[]}
           campMapAnnotationPoints={

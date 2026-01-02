@@ -22,6 +22,11 @@ export const swisstopoMapEmbedBlock: Block = {
           type: 'point',
           defaultValue: [8.303_628, 46.502_992],
         },
+        {
+          name: 'bearing',
+          type: 'number',
+          defaultValue: 0,
+        }
       ],
     },
     {
