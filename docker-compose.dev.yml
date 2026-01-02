@@ -194,6 +194,8 @@ services:
     image: redis:alpine
     networks:
       - backend-net
+    volumes:
+      - /cluster/dist_storage_insane/service_data/conveniat-dev/redis:/data
     logging:
       driver: none
 
