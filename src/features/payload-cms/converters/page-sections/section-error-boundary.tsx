@@ -44,7 +44,11 @@ const ErrorFallback: React.FC<{
 
       {isDraftMode && (
         <div className="flex flex-col gap-2">
-          {error && <div className="text-sm font-medium text-gray-800">{error.message}</div>}
+          {error &&
+            !error.message.includes('An error occurred in the Server Components render') &&
+            !error.message.includes('Minified React error') && (
+              <div className="text-sm font-medium text-gray-800">{error.message}</div>
+            )}
 
           <div className="text-sm text-gray-600 italic">{draftModeHint[locale]}</div>
 
