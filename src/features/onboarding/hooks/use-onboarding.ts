@@ -54,7 +54,6 @@ export const useOnboarding = (): UseOnboardingReturn => {
   }, []);
 
   const acceptCookiesCallback = useCallback((): void => {
-    router.prefetch('/app/dashboard');
     if (status === 'authenticated') {
       void getPushSubscription()
         .then((subscription: PushSubscription | undefined): void => {
