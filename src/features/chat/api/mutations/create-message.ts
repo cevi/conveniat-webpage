@@ -194,11 +194,14 @@ export const createMessage = trpcBaseProcedure
     //  --> consider using a queue system
 
     // Send push notification (fire-and-forget, with error logging)
-    sendNotification(validatedMessage.content, recipientUserIds, validatedMessage.chatId).catch(
-      (error: unknown) => {
-        console.error('Failed to send push notification:', error);
-      },
-    );
+    sendNotification(
+      validatedMessage.content,
+      recipientUserIds,
+      validatedMessage.chatId,
+      createdMessage.uuid,
+    ).catch((error: unknown) => {
+      console.error('Failed to send push notification:', error);
+    });
 
     // Record DISTRIBUTED event after a successful notification attempt
     await prisma.messageEvent.createMany({

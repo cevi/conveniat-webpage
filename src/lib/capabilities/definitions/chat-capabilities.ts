@@ -38,12 +38,12 @@ export class MessageCapabilities implements Capability {
     const isGlobalEnabled = await getFeatureFlag(FEATURE_FLAG_SEND_MESSAGES);
     if (!isGlobalEnabled) {
       // additional check for chat type
-      if(chatId) {
+      if (chatId) {
         const chat = await prisma.chat.findUnique({
-          where: {uuid: chatId},
-          select: {type: true},
+          where: { uuid: chatId },
+          select: { type: true },
         });
-        if(chat && (chat.type === ChatType.EMERGENCY || chat.type === ChatType.SUPPORT_GROUP)) {
+        if (chat && (chat.type === ChatType.EMERGENCY || chat.type === ChatType.SUPPORT_GROUP)) {
           return true;
         }
       }

@@ -14,6 +14,7 @@ import {
 } from '@/features/service-worker/offline-support/prefetch';
 import {
   notificationClickHandler,
+  notificationCloseHandler,
   pushNotificationHandler,
 } from '@/features/service-worker/push-notifications';
 import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
@@ -40,7 +41,7 @@ declare const self: ServiceWorkerGlobalScope;
 self.addEventListener('push', pushNotificationHandler(self));
 self.addEventListener('pushsubscriptionchange', () => {});
 self.addEventListener('notificationclick', notificationClickHandler(self));
-self.addEventListener('notificationclose', () => {});
+self.addEventListener('notificationclose', notificationCloseHandler);
 
 // Service worker lifecycle events
 self.addEventListener('install', (event) => {

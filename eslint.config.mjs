@@ -29,6 +29,7 @@ const features_folder = [
   'admin',
   'permissions',
   'push-notifications',
+  'push-tracking',
 ];
 
 const featuresDirectory = path.join(__dirname, 'src', 'features');

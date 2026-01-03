@@ -72,6 +72,17 @@ export const PushNotificationSubscriptions: CollectionConfig = asPushNotificatio
     groupBy: true,
     /** this is broken with our localized versions */
     disableCopyToLocale: true,
+    hideAPIURL: true,
+    components: {
+      views: {
+        edit: {
+          default: {
+            Component:
+              '@/features/payload-cms/components/push-notification/push-notification-history.tsx',
+          },
+        },
+      },
+    },
   },
   access: {
     read: canAccessAdminPanel,

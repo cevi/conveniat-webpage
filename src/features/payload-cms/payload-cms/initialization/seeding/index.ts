@@ -19,6 +19,7 @@ import {
   seedPermissionLoggedIn,
   seedPermissionPublic,
 } from '@/features/payload-cms/payload-cms/initialization/seeding/permissions';
+import { seedPushNotifications } from '@/features/payload-cms/payload-cms/initialization/seeding/push-notifications';
 import {
   type CategoryIds,
   generateScheduleEntries,
@@ -141,7 +142,7 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
   contactFormEN.title = 'Contact Form';
   contactFormEN.submitButtonLabel = 'Submit';
 
-  // @ts-ignore
+  // @ts-expect-error
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   contactFormEN.confirmationMessage.root.children[0].children[0].text =
     'The form was submitted successfully.';
@@ -149,7 +150,7 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     contactFormEN.emails[0].subject = 'New Request';
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, @typescript-eslint/prefer-optional-chain
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (contactFormEN.sections?.[0]?.formSection.fields) {
     contactFormEN.sections[0].formSection.sectionTitle = 'Contact Details';
     const fields = contactFormEN.sections[0].formSection.fields;
@@ -160,7 +161,7 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     // @ts-ignore
     if (fields[1]) fields[1].label = 'Email';
   }
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, @typescript-eslint/prefer-optional-chain
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (contactFormEN.sections?.[1]?.formSection.fields) {
     contactFormEN.sections[1].formSection.sectionTitle = 'Message';
     const fields = contactFormEN.sections[1].formSection.fields;
@@ -193,7 +194,7 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     contactFormFR.emails[0].subject = 'Nouvelle demande';
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, @typescript-eslint/prefer-optional-chain
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (contactFormFR.sections?.[0]?.formSection.fields) {
     contactFormFR.sections[0].formSection.sectionTitle = 'Détails du contact';
     const fields = contactFormFR.sections[0].formSection.fields;
@@ -204,7 +205,7 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     // @ts-ignore
     if (fields[1]) fields[1].label = 'Email';
   }
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, @typescript-eslint/prefer-optional-chain
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (contactFormFR.sections?.[1]?.formSection.fields) {
     contactFormFR.sections[1].formSection.sectionTitle = 'Message';
     const fields = contactFormFR.sections[1].formSection.fields;
@@ -696,7 +697,11 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
       context: { disableRevalidation: true },
     });
   }
-  console.log('Seeding: Schedule entries created. Seeding complete.');
+  console.log('Seeding: Schedule entries created.');
+
+  await seedPushNotifications(payload, userIds);
+
+  console.log('Seeding: Seeding complete.');
 
   console.log('Seeding: Flushing cache...');
   try {
