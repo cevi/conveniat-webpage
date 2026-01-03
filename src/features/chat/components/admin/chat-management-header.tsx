@@ -42,14 +42,14 @@ export const ChatManagementHeader: React.FC<ChatManagementHeaderProperties> = ({
         {selectedChat.status === ChatStatus.OPEN ? (
           <button
             onClick={onCloseChat}
-            className="rounded bg-[var(--theme-error-600)] px-4 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[var(--theme-error-700)]"
+            className="cursor-pointer rounded bg-[var(--theme-error-600)] px-4 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[var(--theme-error-700)]"
           >
             {getCloseButtonText(chatType, locale)}
           </button>
         ) : (
           <button
             onClick={onReopenChat}
-            className="rounded bg-[var(--theme-success-600)] px-4 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[var(--theme-success-700)]"
+            className="cursor-pointer rounded bg-[var(--theme-success-600)] px-4 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[var(--theme-success-700)]"
           >
             {getReopenButtonText(chatType, locale)}
           </button>
