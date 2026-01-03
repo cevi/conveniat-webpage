@@ -15,17 +15,3 @@ export const isPWAStandalone = (): boolean => {
     ('standalone' in navigator && (navigator as Navigator & { standalone: boolean }).standalone)
   );
 };
-
-/**
- *
- * Returns the entrypoint URL based on the current app mode.
- * If in standalone mode, returns '/entrypoint?app-mode=true'.
- * Otherwise, returns '/entrypoint'.
- *
- * The `app-mode=true` query parameter is necessary that the app
- * mode is preserved during redirects or reloads of the entrypoint.
- *
- */
-export const getAppModeEntrypointUrl = (): string => {
-  return isPWAStandalone() ? '/entrypoint?app-mode=true' : '/entrypoint';
-};

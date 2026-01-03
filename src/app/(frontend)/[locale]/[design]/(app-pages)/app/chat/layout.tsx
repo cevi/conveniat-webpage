@@ -7,7 +7,6 @@ import React from 'react';
 
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import { auth } from '@/utils/auth';
-import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 interface LayoutProperties {
@@ -29,11 +28,6 @@ const Layout: React.FC<LayoutProperties> = async ({ children, params }) => {
   const user = session?.user as HitobitoNextAuthUser | undefined;
 
   if (user?.uuid === undefined) {
-    const headersList = await headers();
-    const isAppMode = headersList.get('x-app-mode') === 'true';
-    if (isAppMode) {
-      redirect('/entrypoint?app-mode=true');
-    }
     redirect('/entrypoint');
   }
 

@@ -2,7 +2,7 @@
 
 import type { cookieInfoText } from '@/features/onboarding/onboarding-constants';
 import { OnboardingStep } from '@/features/onboarding/types';
-// eslint-disable-next-line import/no-restricted-paths
+import { isSafariOnAppleDevice } from '@/utils/browser-detection';
 import { getPushSubscription } from '@/utils/push-notifications/push-manager-utils';
 
 // eslint-disable-next-line import/no-restricted-paths
@@ -83,7 +83,9 @@ export const useOnboarding = (): UseOnboardingReturn => {
   // Set the design-mode cookie if force-app-mode is present
   useEffect(() => {
     const forceAppMode = searchParameters.get(DesignModeTriggers.QUERY_PARAM_FORCE) === 'true';
-    if (forceAppMode) {
+
+    const isWebkitBasedBrowser = isSafariOnAppleDevice();
+    if (forceAppMode || isWebkitBasedBrowser) {
       Cookies.set(Cookie.DESIGN_MODE, DesignCodes.APP_DESIGN, { expires: 730 });
       console.log('[Onboarding] Force Mode: Setting Cookie Client-side', {
         cookieName: Cookie.DESIGN_MODE,

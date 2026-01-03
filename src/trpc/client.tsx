@@ -3,7 +3,6 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { makeQueryClient } from '@/trpc/query-client';
 import type { AppRouter } from '@/trpc/routers/_app';
-import { getAppModeEntrypointUrl } from '@/utils/standalone-check';
 import type { QueryClient } from '@tanstack/react-query';
 import { QueryClientProvider } from '@tanstack/react-query';
 import type { Persister } from '@tanstack/react-query-persist-client';
@@ -23,7 +22,7 @@ const fetchWithAuthRedirect: typeof fetch = async (input, init) => {
 
   if (response.status === 401) {
     await signOut({ redirect: false });
-    globalThis.location.href = getAppModeEntrypointUrl();
+    globalThis.location.href = '/entrypoint';
     // Return the response anyway to prevent further processing
     return response;
   }

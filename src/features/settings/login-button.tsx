@@ -1,7 +1,6 @@
 'use client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { getAppModeEntrypointUrl } from '@/utils/standalone-check';
 import { signIn } from 'next-auth/react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import React from 'react';
@@ -19,7 +18,7 @@ export const LoginButton: React.FC = () => {
     <button
       onClick={() => {
         void (async (): Promise<void> => {
-          const callbackUrl = getAppModeEntrypointUrl();
+          const callbackUrl = '/entrypoint';
           const response = await signIn('cevi-db', { redirect: false, callbackUrl });
           if (response.url) {
             globalThis.location.href = response.url;
