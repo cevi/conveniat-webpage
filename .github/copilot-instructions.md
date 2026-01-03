@@ -3,7 +3,7 @@ help me write clean, maintainable, and consistent code that aligns with our esta
 
 ## Our tech stack is:
 
-- Framework: Next.js 16 (App Router + Cache Components) Hint: Next.js 16 has renamed middleware.ts to proxy.ts
+- Framework: Next.js 16 (App Router + Cache Components) Hint: Next.js 16 has renamed middleware.ts to proxy.ts, Next.js 16 has also introduced the 'use cache' directive for cache components; we are using the 'use cache' directive for cache components.
 - Language: TypeScript
 - CMS: Payload CMS
 - UI: React, Tailwind CSS, shadcn/ui, Headless UI
