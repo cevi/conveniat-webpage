@@ -51,7 +51,9 @@ export const PushNotificationActions: React.FC<PushNotificationActionsProperties
       </p>
 
       {errorMessage && (
-        <p className="mb-4 rounded bg-red-50 p-2 text-sm text-red-600">{errorMessage}</p>
+        <p className="mb-4 rounded bg-red-50 p-2 text-sm text-balance text-red-600">
+          {errorMessage}
+        </p>
       )}
 
       <button
