@@ -28,6 +28,7 @@ const features_folder = [
   'image-submission',
   'admin',
   'permissions',
+  'push-notifications',
 ];
 
 const featuresDirectory = path.join(__dirname, 'src', 'features');

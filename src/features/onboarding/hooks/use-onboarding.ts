@@ -2,7 +2,9 @@
 
 import type { cookieInfoText } from '@/features/onboarding/onboarding-constants';
 import { OnboardingStep } from '@/features/onboarding/types';
-import { getPushSubscription } from '@/utils/push-notification-utils';
+// eslint-disable-next-line import/no-restricted-paths
+import { getPushSubscription } from '@/utils/push-notifications/push-manager-utils';
+
 // eslint-disable-next-line import/no-restricted-paths
 import { CACHE_NAMES } from '@/features/service-worker/constants';
 import { Cookie } from '@/types/types';
@@ -76,7 +78,7 @@ export const useOnboarding = (): UseOnboardingReturn => {
     } else {
       setOnboardingStep(OnboardingStep.Login);
     }
-  }, [status, router, handlePushNotification]);
+  }, [status, handlePushNotification]);
 
   // Set the design-mode cookie if force-app-mode is present
   useEffect(() => {

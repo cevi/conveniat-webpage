@@ -2,7 +2,8 @@
 
 import { Switch } from '@/components/ui/switch';
 import { SettingsRow } from '@/features/settings/components/settings-row';
-import { usePushNotificationState } from '@/features/settings/hooks/use-push-notification-state';
+import { usePushNotificationState } from '@/hooks/use-push-notification-state';
+
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { Bell } from 'lucide-react';
 import React from 'react';
@@ -38,7 +39,9 @@ export const PushNotificationSettings: React.FC<{ locale: Locale }> = ({ locale 
       action={
         <Switch
           checked={isSubscribed}
-          onCheckedChange={toggleSubscription}
+          onCheckedChange={() => {
+            toggleSubscription().catch(console.error);
+          }}
           disabled={!isSupported || isLoading}
           loading={isLoading}
         />

@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 // eslint-disable-next-line import/no-restricted-paths
 import { CACHE_NAMES } from '@/features/service-worker/constants';
+import { useServiceWorkerMessage } from '@/hooks/use-service-worker-message';
+import { useServiceWorkerStatus } from '@/hooks/use-service-worker-status';
 import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
 
 export type OfflineDownloadStatus =
@@ -75,61 +77,42 @@ export const useOfflineDownload = (
     void checkCache();
   }, [checkCacheOnMount]);
 
-  // Listen for Service Worker messages
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent): void => {
-      const data = event.data as
-        | {
-            type: typeof ServiceWorkerMessages.OFFLINE_DOWNLOAD_PROGRESS;
-            payload: { total: number; current: number };
-          }
-        | { type: typeof ServiceWorkerMessages.OFFLINE_DOWNLOAD_COMPLETE }
-        | {
-            type: typeof ServiceWorkerMessages.CHECK_OFFLINE_READY;
-            payload: { ready: boolean };
-          }
-        | undefined;
+  // Handle messages using the new hook
+  useServiceWorkerMessage<{ total: number; current: number }>(
+    ServiceWorkerMessages.OFFLINE_DOWNLOAD_PROGRESS,
+    (payload) => setProgress(payload),
+  );
 
-      switch (data?.type) {
-        case ServiceWorkerMessages.OFFLINE_DOWNLOAD_PROGRESS: {
-          setProgress(data.payload);
-          break;
-        }
-        case ServiceWorkerMessages.OFFLINE_DOWNLOAD_COMPLETE: {
-          setStatus('success');
-          onSuccessReference.current?.();
-          break;
-        }
-        case ServiceWorkerMessages.CHECK_OFFLINE_READY: {
-          if (data.payload.ready) {
-            // Previously downloaded -> signal via has-content or success based on context
-            setStatus('has-content');
-            onSuccessReference.current?.();
-          } else {
-            // Not downloaded -> Ask user
-            setStatus('idle');
-          }
-          break;
-        }
+  useServiceWorkerMessage(ServiceWorkerMessages.OFFLINE_DOWNLOAD_COMPLETE, () => {
+    setStatus('success');
+    onSuccessReference.current?.();
+  });
+
+  useServiceWorkerMessage<{ ready: boolean }>(
+    ServiceWorkerMessages.CHECK_OFFLINE_READY,
+    (payload) => {
+      if (payload.ready) {
+        setStatus('has-content');
+        onSuccessReference.current?.();
+      } else {
+        setStatus('idle');
       }
-    };
+    },
+  );
 
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.addEventListener('message', handleMessage);
-    }
+  // Use shared hook for readiness check
+  const { isReady: swReady, error: swError } = useServiceWorkerStatus(2000);
 
-    return (): void => {
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.removeEventListener('message', handleMessage);
-      }
-    };
-  }, []);
-
-  // Check SW readiness on mount for onboarding flow
+  // Sync shared hook state to local status
   useEffect(() => {
     if (!checkSwReadyOnMount || status !== 'checking') return;
 
-    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+    if (swError) {
+      setStatus('sw-error');
+      return;
+    }
+
+    if (swReady && navigator.serviceWorker.controller) {
       // Send check message
       navigator.serviceWorker.controller.postMessage({
         type: ServiceWorkerMessages.CHECK_OFFLINE_READY,
@@ -137,18 +120,18 @@ export const useOfflineDownload = (
 
       // Fallback safety: If SW doesn't answer fast enough, show UI
       const timer = setTimeout(() => {
-        setStatus((previous) => (previous === 'checking' ? 'idle' : previous));
-      }, 500);
+        setStatus((previous) => (previous === 'checking' ? 'sw-error' : previous));
+      }, 1000);
 
       return (): void => {
         clearTimeout(timer);
       };
-    } else {
-      // No SW controller? Just show UI
-      setStatus('idle');
+    } else if (swReady && !navigator.serviceWorker.controller) {
+      // Ready but no controller -> claims issue or hard refresh needed
+      setStatus('sw-error');
     }
     return;
-  }, [checkSwReadyOnMount, status]);
+  }, [checkSwReadyOnMount, status, swReady, swError]);
 
   const startDownload = useCallback((): void => {
     if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
@@ -157,7 +140,6 @@ export const useOfflineDownload = (
         type: ServiceWorkerMessages.START_OFFLINE_DOWNLOAD,
       });
     } else {
-      // Service Worker not ready - log to PostHog and disable feature
       console.warn('Service Worker not ready');
       setStatus('sw-error');
 
@@ -180,7 +162,11 @@ export const useOfflineDownload = (
       CACHE_NAMES.RSC,
     ];
     for (const name of cacheNamesToDelete) {
-      await caches.delete(name);
+      try {
+        await caches.delete(name);
+      } catch (error) {
+        console.warn(`Failed to delete cache ${name}`, error);
+      }
     }
     setStatus('idle');
   }, []);
