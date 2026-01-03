@@ -1,3 +1,4 @@
+import { isPWAStandalone } from '@/utils/standalone-check';
 import { useEffect } from 'react';
 
 /**
@@ -6,10 +7,7 @@ import { useEffect } from 'react';
  */
 export const useAppMode = (): void => {
   useEffect(() => {
-    const isStandalone =
-      window.matchMedia('(display-mode: standalone)').matches ||
-      // iOS Safari specific check
-      ('standalone' in navigator && (navigator as Navigator & { standalone: boolean }).standalone);
+    const isStandalone = isPWAStandalone();
 
     if (typeof globalThis !== 'undefined' && isStandalone) {
       // Clear the initial entry cookie as soon as the client-side takes over

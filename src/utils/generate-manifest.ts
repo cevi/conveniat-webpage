@@ -75,7 +75,7 @@ export const cachedManifestGenerator = async (): Promise<MetadataRoute.Manifest>
     scope: '/',
     prefer_related_applications: false,
     share_target: {
-      action: '/entrypoint',
+      action: '/entrypoint?app-mode=true',
       method: 'GET',
       enctype: 'application/x-www-form-urlencoded',
       params: {

@@ -6,6 +6,7 @@ import { auth } from '@/utils/auth';
 import { DesignCodes } from '@/utils/design-codes';
 import type React from 'react';
 
+import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 const ChatPage: React.FC<{
@@ -16,6 +17,11 @@ const ChatPage: React.FC<{
   const user = session?.user as HitobitoNextAuthUser | undefined;
 
   if (user?.uuid === undefined) {
+    const headersList = await headers();
+    const isAppMode = headersList.get('x-app-mode') === 'true';
+    if (isAppMode) {
+      redirect('/entrypoint?app-mode=true');
+    }
     redirect('/entrypoint');
   }
 

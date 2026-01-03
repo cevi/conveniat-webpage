@@ -1,5 +1,6 @@
 import { offlineContentNotNowButton } from '@/features/onboarding/onboarding-constants';
 import type { StaticTranslationString } from '@/types/types';
+import { isPWAStandalone } from '@/utils/standalone-check';
 import React from 'react';
 
 const notSupportedBrowserText: StaticTranslationString = {
@@ -23,9 +24,7 @@ export const PushNotificationNotSupported: React.FC<PushNotificationNotSupported
   locale,
   onSkip,
 }) => {
-  const isStandalone =
-    typeof globalThis !== 'undefined' &&
-    globalThis.matchMedia('(display-mode: standalone)').matches;
+  const isStandalone = isPWAStandalone();
 
   return (
     <div className="flex flex-col gap-3">
