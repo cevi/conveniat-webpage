@@ -21,7 +21,7 @@ export const useScheduleFilters = (
   const [filters, setFilters] = useState<FilterState>({
     searchText: '',
     selectedLocations: [],
-    selectedCategory: '',
+    selectedCategory: undefined,
     starredOnly: false,
   });
 
@@ -88,13 +88,13 @@ export const useScheduleFilters = (
       }
 
       // Category filter
-      if (filters.selectedCategory !== '') {
+      if (filters.selectedCategory !== undefined) {
         const categoryId =
           typeof entry.category === 'object' && entry.category !== null
             ? entry.category.id
             : entry.category;
 
-        if (categoryId !== filters.selectedCategory) {
+        if (categoryId !== filters.selectedCategory.id) {
           return false;
         }
       }
@@ -111,7 +111,7 @@ export const useScheduleFilters = (
     setFilters({
       searchText: '',
       selectedLocations: [],
-      selectedCategory: '',
+      selectedCategory: undefined,
       starredOnly: false,
     });
   }, []);
@@ -120,7 +120,7 @@ export const useScheduleFilters = (
     return (
       filters.searchText !== '' ||
       filters.selectedLocations.length > 0 ||
-      filters.selectedCategory !== '' ||
+      filters.selectedCategory !== undefined ||
       filters.starredOnly
     );
   }, [filters]);
