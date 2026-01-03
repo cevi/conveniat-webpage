@@ -72,7 +72,7 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
   );
 
   const handleCategoryChange = useCallback(
-    (category: { id: string; title: string } | undefined) => {
+    (category?: { id: string; title: string }) => {
       onFiltersChange({
         ...filters,
         selectedCategory: category,
