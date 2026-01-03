@@ -24,6 +24,7 @@ export const i18nExcludedRoutes: string[] = [
   '_next',
   'api',
   'admin',
+  'admin-block-images',
   '.well-known',
 
   // posthog analytics
