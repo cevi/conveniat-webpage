@@ -168,8 +168,6 @@ functionality, enabling PWA features:
 - **Caching:** Improves performance by caching assets and network requests.
 - **Reliability:** Provides a more resilient user experience on flaky networks.
 
-The service worker logic is defined in `src/features/service-worker/index.ts` and configured in `next.config.mjs`.
-
 ### Service Worker in Development
 
 By default, the Service Worker is **disabled** during local development (`docker compose up`) to prevent caching issues

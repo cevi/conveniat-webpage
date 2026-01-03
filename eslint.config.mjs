@@ -289,6 +289,11 @@ const config = defineConfig([
 
     // observability tools
     'observability/**',
+
+    // service worker
+    'public/sw.js',
+    'public/sw.js.map',
+    'serwist.config.js',
   ]),
 ]);
 

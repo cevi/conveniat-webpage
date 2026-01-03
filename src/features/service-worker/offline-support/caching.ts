@@ -1,6 +1,6 @@
 import { CACHE_NAMES, TIMEOUTS } from '@/features/service-worker/constants';
 import { offlineRegistry } from '@/features/service-worker/offline-support/offline-registry';
-import { defaultCache } from '@serwist/turbopack/worker';
+import { defaultCache } from '@serwist/next/worker';
 import type { PrecacheEntry, RuntimeCaching, SerwistGlobalConfig, SerwistPlugin } from 'serwist';
 import {
   CacheableResponsePlugin,
