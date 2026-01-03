@@ -22,6 +22,23 @@ declare const self: ServiceWorkerGlobalScope;
 
 const isDevelopment = process['env'].NODE_ENV === 'development';
 
+const htmlErrorPreventionPlugin: SerwistPlugin = {
+  // Prevent caching HTML error responses as CSS/JS
+  cacheWillUpdate: ({ response }) => {
+    if (response.headers.get('content-type')?.includes('text/html') === true) {
+      return;
+    }
+    return response;
+  },
+  // Validate cached responses before serving - reject HTML error pages
+  cachedResponseWillBeUsed: ({ cachedResponse }) => {
+    if (cachedResponse?.headers.get('content-type')?.includes('text/html') === true) {
+      return;
+    }
+    return cachedResponse;
+  },
+};
+
 const cssCaching: RuntimeCaching = {
   matcher: /\/_next\/static\/.*\.css$/,
   handler: isDevelopment
@@ -32,22 +49,7 @@ const cssCaching: RuntimeCaching = {
           new CacheableResponsePlugin({
             statuses: [200],
           }) as SerwistPlugin,
-          {
-            // Prevent caching HTML error responses as CSS
-            cacheWillUpdate: ({ response }) => {
-              if (response.headers.get('content-type')?.includes('text/html') === true) {
-                return;
-              }
-              return response;
-            },
-            // Validate cached responses before serving - reject HTML error pages
-            cachedResponseWillBeUsed: ({ cachedResponse }) => {
-              if (cachedResponse?.headers.get('content-type')?.includes('text/html') === true) {
-                return;
-              }
-              return cachedResponse;
-            },
-          } as SerwistPlugin,
+          htmlErrorPreventionPlugin,
         ],
       }),
 };
@@ -62,23 +64,7 @@ const jsCaching: RuntimeCaching = {
           new CacheableResponsePlugin({
             statuses: [200],
           }) as SerwistPlugin,
-          {
-            // Prevent caching HTML error responses as JS
-            cacheWillUpdate: ({ response }) => {
-              if (response.headers.get('content-type')?.includes('text/html') === true) {
-                return;
-              }
-              return response;
-            },
-            // Validate cached responses before serving - reject HTML error pages
-            cachedResponseWillBeUsed: ({ cachedResponse }) => {
-              if (cachedResponse?.headers.get('content-type')?.includes('text/html') === true) {
-                // Return undefined to force network fetch instead of serving HTML as JS
-                return;
-              }
-              return cachedResponse;
-            },
-          } as SerwistPlugin,
+          htmlErrorPreventionPlugin,
         ],
       }),
 };
@@ -167,12 +153,18 @@ const pageCaching: RuntimeCaching = {
   }),
 };
 
+const adminBlockImageCaching: RuntimeCaching = {
+  matcher: new RegExp(/\/admin-block-images\//),
+  handler: new NetworkOnly(),
+};
+
 const runtimeCaching: RuntimeCaching[] = [
   cssCaching,
   jsCaching,
   rscCaching,
   fontCaching,
   nextFontCaching,
+  adminBlockImageCaching,
   imageCaching,
   apiCaching,
   pageCaching,
