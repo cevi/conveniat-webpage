@@ -19,11 +19,14 @@ interface UseMessageInputLogicResult {
   isSendButtonDisabled: boolean;
   messageLength: number;
   isGlobalMessagingDisabled: boolean;
+  isOpenEmergencyOrSupportChat: boolean;
   sendError: string | undefined;
 }
 
 import { useChatActions } from '@/features/chat/context/chat-actions-context';
 
+import { ChatStatus } from '@/lib/chat-shared';
+import { ChatType } from '@/lib/prisma';
 import { useSearchParams } from 'next/navigation';
 
 export const useMessageInput = (): UseMessageInputLogicResult => {
@@ -56,8 +59,18 @@ export const useMessageInput = (): UseMessageInputLogicResult => {
   const isGlobalMessagingEnabled =
     featureFlags?.find((f) => f.key === 'send_messages')?.isEnabled ?? true;
 
+  const { data: chatDetails } = trpc.chat.chatDetails.useQuery(
+    { chatId: chatId },
+    {
+      refetchInterval: 5000, // Poll every 5 seconds for closed chats
+    },
+  );
+  const isOpenEmergencyOrSupportChat =
+    chatDetails?.status === ChatStatus.OPEN &&
+    (chatDetails.type === ChatType.EMERGENCY || chatDetails.type === ChatType.SUPPORT_GROUP);
+
   const handleSendMessage = useCallback((): void => {
-    if (!isGlobalMessagingEnabled) return;
+    if (!isGlobalMessagingEnabled && !isOpenEmergencyOrSupportChat) return;
 
     const trimmedMessage = newMessage.trim();
     if (trimmedMessage === '') {
@@ -109,6 +122,7 @@ export const useMessageInput = (): UseMessageInputLogicResult => {
     sendMessageMutation,
     resizeTextarea,
     isGlobalMessagingEnabled,
+    isOpenEmergencyOrSupportChat,
     activeThreadId,
     quotedMessageId,
     cancelQuote,
@@ -140,12 +154,13 @@ export const useMessageInput = (): UseMessageInputLogicResult => {
       onChange: handleInputChange,
       onKeyDown: handleKeyDown,
       ref: messageInputReference,
-      disabled: !isGlobalMessagingEnabled,
+      disabled: !isGlobalMessagingEnabled && !isOpenEmergencyOrSupportChat,
     },
     handleSendMessage,
     isSendButtonDisabled,
     messageLength: newMessage.length,
     isGlobalMessagingDisabled: !isGlobalMessagingEnabled,
+    isOpenEmergencyOrSupportChat: isOpenEmergencyOrSupportChat,
     sendError,
   };
 };
