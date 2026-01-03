@@ -133,7 +133,7 @@ const imageCaching: RuntimeCaching = {
 };
 
 const apiCaching: RuntimeCaching = {
-  matcher: /\/api\/.*/,
+  matcher: (options) => /\/api\/.*/.test(options.url.pathname),
   handler: new NetworkFirst({
     cacheName: CACHE_NAMES.API,
     networkTimeoutSeconds: TIMEOUTS.DEFAULT_FETCH / 1000,
@@ -146,7 +146,8 @@ const apiCaching: RuntimeCaching = {
 };
 
 const pageCaching: RuntimeCaching = {
-  matcher: ({ request }: { request: Request }): boolean => request.destination === 'document',
+  matcher: ({ request }: { request: Request }): boolean =>
+    request.method === 'GET' && request.destination === 'document',
   handler: new NetworkFirst({
     cacheName: CACHE_NAMES.PAGES,
     networkTimeoutSeconds: TIMEOUTS.DEFAULT_FETCH / 1000,

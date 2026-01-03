@@ -139,10 +139,14 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
   const isApi = url.pathname.startsWith('/api/');
   const isDocument = event.request.destination === 'document';
 
+  if (isApi) {
+    return fetch(event.request);
+  }
+
   // 1. App Mode Logic (Optimized)
   // We only block for critical state (Headers) on Documents, API, and RSC.
   // Static assets (images, fonts, scripts) skip this to avoid latency.
-  if (isDocument || isApi || isRsc) {
+  if (isDocument || isRsc) {
     await ensureAppModeInitialized();
   }
 
@@ -174,7 +178,7 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
   if (url.origin === self.location.origin && isAppMode) {
     console.log(`[SW] App Mode Detected for ${url.pathname}. Injecting Header.`);
 
-    if (isDocument || isApi || isRsc) {
+    if (isDocument || isRsc) {
       requestToHandle = new Request(event.request, {
         headers: {
           ...Object.fromEntries(event.request.headers),
