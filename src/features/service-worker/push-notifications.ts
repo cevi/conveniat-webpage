@@ -1,3 +1,5 @@
+import { DesignModeTriggers } from '@/utils/design-codes';
+
 /**
  * Callback function to register the push notification handler.
  * This function is called when a push event is received.
@@ -71,8 +73,9 @@ export const notificationClickHandler =
 
     const notificationData = event.notification.data as NotificationData;
 
-    const urlToOpen =
-      notificationData.url ?? process.env['NEXT_PUBLIC_APP_HOST_URL'] ?? 'https://conveniat27.ch';
+    const urlString = notificationData.url || '/app/dashboard';
+    const url = new URL(urlString, serviceWorkerScope.location.origin);
+    url.searchParams.set(DesignModeTriggers.QUERY_PARAM_IMPLICIT, 'true');
 
-    event.waitUntil(serviceWorkerScope.clients.openWindow(urlToOpen));
+    event.waitUntil(serviceWorkerScope.clients.openWindow(url.toString()));
   };
