@@ -32,6 +32,11 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
 
     return registration;
   } catch (error) {
+
+    // don't throw in dev mode
+    // eslint-disable-next-line n/no-process-env
+    if (process.env.NODE_ENV === 'development') return;
+
     throw new Error('Service Worker registration failed', { cause: error });
   }
 };
