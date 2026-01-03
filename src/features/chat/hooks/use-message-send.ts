@@ -85,7 +85,7 @@ export const useMessageSend = (): UseMessageSendMutation => {
               messages: [optimisticMessage],
               capabilities: [],
               type: ChatType.ONE_TO_ONE,
-              status: previousChatData?.status ?? ChatStatus.OPEN
+              status: previousChatData?.status ?? ChatStatus.OPEN,
             };
           }
           return {

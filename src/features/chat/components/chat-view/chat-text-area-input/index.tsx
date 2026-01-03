@@ -340,7 +340,7 @@ const QuotedMessagePreview: React.FC<{
       </div>
       <button
         onClick={onCancel}
-        className="cursor-pointer ml-4 shrink-0 rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-600"
+        className="ml-4 shrink-0 cursor-pointer rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-600"
       >
         <X className="h-4 w-4" />
       </button>

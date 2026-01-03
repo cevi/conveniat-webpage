@@ -25,9 +25,9 @@ interface UseMessageInputLogicResult {
 
 import { useChatActions } from '@/features/chat/context/chat-actions-context';
 
-import { useSearchParams } from 'next/navigation';
-import { ChatType } from '@/lib/prisma';
 import { ChatStatus } from '@/lib/chat-shared';
+import { ChatType } from '@/lib/prisma';
+import { useSearchParams } from 'next/navigation';
 
 export const useMessageInput = (): UseMessageInputLogicResult => {
   const searchParameters = useSearchParams();
@@ -59,10 +59,15 @@ export const useMessageInput = (): UseMessageInputLogicResult => {
   const isGlobalMessagingEnabled =
     featureFlags?.find((f) => f.key === 'send_messages')?.isEnabled ?? true;
 
-  const {data: chatDetails} = trpc.chat.chatDetails.useQuery({chatId: chatId}, {
-    refetchInterval: 5000, // Poll every 5 seconds for closed chats
-  });
-  const isOpenEmergencyOrSupportChat = chatDetails?.status === ChatStatus.OPEN && ( chatDetails.type === ChatType.EMERGENCY || chatDetails.type === ChatType.SUPPORT_GROUP);
+  const { data: chatDetails } = trpc.chat.chatDetails.useQuery(
+    { chatId: chatId },
+    {
+      refetchInterval: 5000, // Poll every 5 seconds for closed chats
+    },
+  );
+  const isOpenEmergencyOrSupportChat =
+    chatDetails?.status === ChatStatus.OPEN &&
+    (chatDetails.type === ChatType.EMERGENCY || chatDetails.type === ChatType.SUPPORT_GROUP);
 
   const handleSendMessage = useCallback((): void => {
     if (!isGlobalMessagingEnabled && !isOpenEmergencyOrSupportChat) return;

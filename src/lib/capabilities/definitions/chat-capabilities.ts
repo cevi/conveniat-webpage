@@ -43,9 +43,12 @@ export class MessageCapabilities implements Capability {
         select: { capabilities: true, type: true, status: true },
       });
 
-      if(chat && (chat.type === ChatType.EMERGENCY || chat.type === ChatType.SUPPORT_GROUP)) {
+      if (chat && (chat.type === ChatType.EMERGENCY || chat.type === ChatType.SUPPORT_GROUP)) {
         // if it is an emergency, allow messages as long as the chat is "open".
-        return (chat.status as ChatStatus) === ChatStatus.OPEN &&  chat.capabilities.includes(ChatCapability.CAN_SEND_MESSAGES);
+        return (
+          (chat.status as ChatStatus) === ChatStatus.OPEN &&
+          chat.capabilities.includes(ChatCapability.CAN_SEND_MESSAGES)
+        );
       }
 
       if (chat && !chat.capabilities.includes(ChatCapability.CAN_SEND_MESSAGES)) {

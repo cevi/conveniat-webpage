@@ -192,7 +192,7 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
             {filters.selectedCategory.title}
             <button
               onClick={() => handleCategoryChange()}
-              className="cursor-pointer hover:bg-conveniat-green/20 ml-1 rounded-full p-0.5"
+              className="hover:bg-conveniat-green/20 ml-1 cursor-pointer rounded-full p-0.5"
             >
               <X className="h-3 w-3" />
             </button>
