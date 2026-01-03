@@ -29,4 +29,5 @@ export interface ChatDetails {
   messages: ChatMessage[];
   participants: ChatParticipant[];
   capabilities: string[];
+  status: string;
 }

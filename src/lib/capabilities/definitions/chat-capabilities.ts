@@ -12,7 +12,7 @@ import {
   type CapabilityContext,
   CapabilitySubject,
 } from '@/lib/capabilities/types';
-import { ChatCapability } from '@/lib/chat-shared';
+import { ChatCapability, ChatStatus } from '@/lib/chat-shared';
 import prisma from '@/lib/database';
 import { FEATURE_FLAG_CREATE_CHATS_ENABLED, FEATURE_FLAG_SEND_MESSAGES } from '@/lib/feature-flags';
 import { ChatType } from '@/lib/prisma';
@@ -36,33 +36,24 @@ export class MessageCapabilities implements Capability {
 
   private async canSend(chatId?: string): Promise<boolean> {
     const isGlobalEnabled = await getFeatureFlag(FEATURE_FLAG_SEND_MESSAGES);
-    if (!isGlobalEnabled) {
-      // additional check for chat type
-      if(chatId) {
-        const chat = await prisma.chat.findUnique({
-          where: {uuid: chatId},
-          select: {type: true},
-        });
-        if(chat && (chat.type === ChatType.EMERGENCY || chat.type === ChatType.SUPPORT_GROUP)) {
-          return true;
-        }
-      }
-
-      return false;
-    }
 
     if (chatId) {
       const chat = await prisma.chat.findUnique({
         where: { uuid: chatId },
-        select: { capabilities: true },
+        select: { capabilities: true, type: true, status: true },
       });
 
+      if(chat && (chat.type === ChatType.EMERGENCY || chat.type === ChatType.SUPPORT_GROUP)) {
+        // if it is an emergency, allow messages as long as the chat is "open".
+        return (chat.status as ChatStatus) === ChatStatus.OPEN &&  chat.capabilities.includes(ChatCapability.CAN_SEND_MESSAGES);
+      }
+
       if (chat && !chat.capabilities.includes(ChatCapability.CAN_SEND_MESSAGES)) {
-        return false;
+        return isGlobalEnabled;
       }
     }
 
-    return true;
+    return isGlobalEnabled;
   }
 
   private canView(chatId?: string): Promise<boolean> {

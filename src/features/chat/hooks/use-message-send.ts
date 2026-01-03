@@ -1,5 +1,5 @@
 import type { ChatDetails, ChatMessage } from '@/features/chat/api/types';
-import { SYSTEM_SENDER_ID } from '@/lib/chat-shared';
+import { ChatStatus, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import { ChatType, MessageEventType, MessageType } from '@/lib/prisma/client';
 import { toast } from '@/lib/toast';
 import { trpc } from '@/trpc/client';
@@ -85,6 +85,7 @@ export const useMessageSend = (): UseMessageSendMutation => {
               messages: [optimisticMessage],
               capabilities: [],
               type: ChatType.ONE_TO_ONE,
+              status: previousChatData?.status ?? ChatStatus.OPEN
             };
           }
           return {

@@ -388,11 +388,11 @@ export const adminRouter = createTRPCRouter({
             create: {
               payload: {
                 en: isEmergency
-                  ? `${user.name} has marked the emergency alert as completed`
-                  : `${user.name} has marked this issue as resolved`,
+                  ? `${user.name} has marked the emergency alert as completed.`
+                  : `${user.name} has marked this issue as resolved.`,
                 de: isEmergency
-                  ? `${user.name} hat die Notfallmeldung als abgeschlossen markiert`
-                  : `${user.name} hat dieses Problem als gelöst markiert`,
+                  ? `${user.name} hat die Notfallmeldung als abgeschlossen markiert.`
+                  : `${user.name} hat dieses Problem als gelöst markiert.`,
               },
             },
           },
@@ -446,11 +446,11 @@ export const adminRouter = createTRPCRouter({
             create: {
               payload: {
                 en: isEmergency
-                  ? `${user.name} has reopened the emergency alert`
-                  : `${user.name} has reopened this issue`,
+                  ? `${user.name} has reopened the emergency alert.`
+                  : `${user.name} has reopened this issue.`,
                 de: isEmergency
-                  ? `${user.name} hat die Notfallmeldung wiedergeöffnet`
-                  : `${user.name} hat dieses Problem wiedergeöffnet`,
+                  ? `${user.name} hat die Notfallmeldung wieder geöffnet.`
+                  : `${user.name} hat dieses Problem wieder geöffnet.`,
               },
             },
           },

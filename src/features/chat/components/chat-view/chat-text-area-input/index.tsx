@@ -94,6 +94,7 @@ export const ChatTextAreaInput: React.FC = () => {
     isSendButtonDisabled,
     messageLength,
     isGlobalMessagingDisabled,
+    isOpenEmergencyOrSupportChat,
     sendError,
   } = useMessageInput();
 
@@ -204,7 +205,7 @@ export const ChatTextAreaInput: React.FC = () => {
     return <div className="text-balance text-gray-500">{chatIsArchivedMessage[locale]}</div>;
   }
 
-  if (isGlobalMessagingDisabled) {
+  if (!isOpenEmergencyOrSupportChat && isGlobalMessagingDisabled) {
     return (
       <div className="flex w-full items-center justify-center rounded-lg bg-gray-100 p-4 text-center text-sm text-gray-500">
         {messagingDisabledText[locale]}
@@ -212,7 +213,7 @@ export const ChatTextAreaInput: React.FC = () => {
     );
   }
 
-  if (!canSendMessagesInChat) {
+  if (!canSendMessagesInChat && !isOpenEmergencyOrSupportChat) {
     return (
       <div className="flex w-full items-center justify-center rounded-lg border border-red-100 bg-red-50 p-4 text-center text-sm text-red-600">
         {chatLockedText[locale]}
@@ -286,6 +287,7 @@ export const ChatTextAreaInput: React.FC = () => {
             onClick={handleSplitAndSend}
             size="sm"
             className="h-10 shrink-0 rounded-full bg-orange-500 px-3 text-white hover:bg-orange-600"
+            disabled={isSendButtonDisabled && !isOpenEmergencyOrSupportChat}
           >
             {splitAndSendText[locale]}
           </Button>
@@ -294,7 +296,7 @@ export const ChatTextAreaInput: React.FC = () => {
             onClick={handleSendMessage}
             size="icon"
             className="h-10 w-10 shrink-0 rounded-full bg-green-400 text-white hover:bg-green-600 disabled:bg-gray-300 disabled:text-gray-700"
-            disabled={isSendButtonDisabled}
+            disabled={isSendButtonDisabled && !isOpenEmergencyOrSupportChat}
           >
             <Send className="h-5 w-5" />
           </Button>
@@ -338,7 +340,7 @@ const QuotedMessagePreview: React.FC<{
       </div>
       <button
         onClick={onCancel}
-        className="ml-4 shrink-0 rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-600"
+        className="cursor-pointer ml-4 shrink-0 rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-600"
       >
         <X className="h-4 w-4" />
       </button>
