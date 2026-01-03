@@ -93,7 +93,7 @@ export const useOnboarding = (): UseOnboardingReturn => {
       const params = new URLSearchParams(searchParameters.toString());
       params.delete(DesignModeTriggers.QUERY_PARAM_FORCE);
       const queryString = params.toString();
-      const newUrl = `${pathname}${queryString}`;
+      const newUrl = `${pathname}?${queryString}`;
       router.replace(newUrl);
     }
   }, [searchParameters, pathname, router]);
