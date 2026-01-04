@@ -1,4 +1,4 @@
-import type { CampMapAnnotation } from '@/features/payload-cms/payload-types';
+import type { CampCategory, CampMapAnnotation } from '@/features/payload-cms/payload-types';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 
 export interface CampScheduleEntryFrontendType {
@@ -10,14 +10,19 @@ export interface CampScheduleEntryFrontendType {
     time: string;
   };
   location: string | CampMapAnnotation;
-  participants_min?: number | null;
-  participants_max?: number | null;
-  category?: string;
+  participants_min?: number | null | undefined;
+  participants_max?: number | null | undefined;
+  enable_enrolment?: boolean | null | undefined;
+  category?: string | CampCategory | null;
+  target_group?: SerializedEditorState | null | undefined;
   organiser?:
-    | string
+    | (
+        | string
+        | {
+            fullName: string;
+            email: string;
+          }
+      )[]
     | null
-    | {
-        fullName: string;
-        email: string;
-      };
+    | undefined;
 }

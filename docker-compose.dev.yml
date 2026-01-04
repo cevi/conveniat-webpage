@@ -7,7 +7,8 @@ services:
       args:
         - NEXT_PUBLIC_VAPID_PUBLIC_KEY=BLXA-pUY_vYom2sNw8BGmZHgJGUJvyNwwJ6ZomTm3Liv0Gs7rGrqlGMEwBobN9pVwb-OhJFAlxy-UwHI3fCQ250
         - NEXT_PUBLIC_APP_HOST_URL=https://conveniat27.cevi.tools
-        - NEXT_PUBLIC_ENABLE_OFFLINE_SUPPORT=true
+        - NEXT_PUBLIC_POSTHOG_KEY=phc_QXeG5AHoyxCVCcIse8a2rriQKZgAwkk3vO15Zz0aDud
+        - NEXT_PUBLIC_POSTHOG_HOST=https://eu.i.posthog.com
 
     deploy:
       replicas: 2
@@ -68,6 +69,7 @@ services:
 
     depends_on:
       - mongo
+      - redis
     env_file:
       - .env
 
@@ -138,22 +140,6 @@ services:
   postgres:
     image: postgres:17
 
-    deploy:
-      labels:
-        - swarmpit.service.deployment.autoredeploy=true
-
-        # expose the DB via tcp on port 443
-        - traefik.enable=true
-        - traefik.tcp.routers.conveniat27-dev-database.entrypoints=websecure
-        - traefik.tcp.routers.conveniat27-dev-database.rule=HostSNI(`db.conveniat27.cevi.tools`)
-
-        # define TLS
-        - traefik.tcp.routers.conveniat27-dev-database.tls=true
-        - traefik.tcp.routers.conveniat27-dev-database.tls.certresolver=myresolver
-        - traefik.tcp.routers.conveniat27-dev-database.middlewares=vpn-whitelist@file
-
-        - traefik.tcp.services.conveniat27-dev-database.loadbalancer.server.port=5432
-
     env_file:
       - .env
 
@@ -162,7 +148,6 @@ services:
 
     networks:
       - backend-net
-      - traefik-net
 
   prometheus:
     image: prom/prometheus
@@ -204,6 +189,15 @@ services:
         target: /mnt/config/loki-config.yml
     networks:
       - observability-net
+
+  redis:
+    image: redis:alpine
+    networks:
+      - backend-net
+    volumes:
+      - /cluster/dist_storage_insane/service_data/conveniat-dev/redis:/data
+    logging:
+      driver: none
 
 configs:
   loki-config:

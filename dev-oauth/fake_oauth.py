@@ -1,4 +1,5 @@
-from flask import Flask, render_template, request, redirect, jsonify
+from flask import Flask, render_template, request, redirect, jsonify, send_from_directory
+import os
 
 app = Flask(__name__)
 
@@ -43,6 +44,12 @@ FAKE_USERS = [
 # Store issued tokens
 ACTIVE_TOKENS = {}
 
+@app.route('/favicon.ico')
+def favicon():
+    """Favicon"""
+    return send_from_directory(os.path.join(app.root_path, 'static'),
+                               'favicon.ico', mimetype='image/vnd.microsoft.icon')
+
 @app.route("/")
 def home():
     """Homepage with a fake login screen"""
@@ -72,27 +79,55 @@ def login():
 @app.route("/oauth/token", methods=["POST"])
 def token():
     """OAuth2 Token Exchange - Returns a fake access token"""
+    grant_type = request.form.get("grant_type")
+
+    if grant_type == "refresh_token":
+        refresh_token = request.form.get("refresh_token")
+        if not refresh_token:
+             return jsonify({"error": "invalid_request", "error_description": "Missing refresh token"}), 400
+        
+        # Simple extraction
+        user_id = refresh_token.replace("fake-refresh-token-", "")
+        user = next((u for u in FAKE_USERS if u["id"] == user_id), None)
+        if not user:
+            return jsonify({"error": "invalid_grant", "error_description": "Invalid refresh token user"}), 400
+            
+        access_token = f"fake-token-{user['id']}"
+        ACTIVE_TOKENS[access_token] = user
+        
+        return jsonify({
+            "access_token": access_token,
+            "token_type": "bearer",
+            "expires_in": 3600,
+            "refresh_token": refresh_token 
+        })
+
     auth_code = request.form.get("code")
+    if not auth_code:
+        return jsonify({"error": "invalid_request", "error_description": "Missing authorization code"}), 400
 
     # Extract user ID from fake auth code
     try:
         user_id = auth_code.replace("fake-auth-code-", "")
     except ValueError:
-        return "Invalid authorization code", 400
+        return jsonify({"error": "invalid_request", "error_description": "Invalid authorization code"}), 400
 
     user = next((u for u in FAKE_USERS if u["id"] == user_id), None)
     if not user:
-        return "Invalid user", 400
+        return jsonify({"error": "invalid_grant", "error_description": "Invalid user"}), 400
 
     # Generate a fake access token and store it
     access_token = f"fake-token-{user['id']}"
     ACTIVE_TOKENS[access_token] = user
+    
+    refresh_token = f"fake-refresh-token-{user['id']}"
 
     # Simulate OAuth2 token response
     response = {
         "access_token": access_token,
         "token_type": "bearer",
-        "expires_in": 3600
+        "expires_in": 3600,
+        "refresh_token": refresh_token
     }
     return jsonify(response)
 

@@ -1,11 +1,14 @@
 services:
   payload:
+    profiles:
+      - dev
     build:
       context: .
       dockerfile: dev.Dockerfile
     ports:
       - '3000:3000'
-      - '5555:5555'
+      - '51212:51212'
+      - '9464:9464' # Prometheus metrics
     volumes:
       - .:/home/node/app
       - next-cache:/home/node/app/.next
@@ -13,33 +16,22 @@ services:
       - node_modules:/home/node/app/node_modules
     working_dir: /home/node/app/
     command: >
-      sh -c "export PRISMA_OUTPUT='src/lib/prisma/client/' &&
-      npx prisma generate &&
-      npx prisma db push &&
-      npx prisma studio &
-      corepack enable pnpm && pnpm i --frozen-lockfile &&
-      sh /home/node/app/create_build_info.sh &&
-      if [ \"$NEXT_PUBLIC_ENABLE_OFFLINE_SUPPORT\" = \"true\" ]; then
-        echo '' &&
-        echo '**************************************************' &&
-        echo '*   WARNING: SERVICE WORKER ENABLED              *' &&
-        echo '*   Turbopack is DISABLED. Dev server will be    *' &&
-        echo '*   significantly SLOWER.                        *' &&
-        echo '**************************************************' &&
-        echo '' &&
-        pnpm devsafe
-      else
-        echo 'Service worker disabled' &&
-        pnpm dev
-      fi"
+      sh -c "export PRISMA_OUTPUT='src/lib/prisma/client/' && npx prisma generate --no-hints && npx prisma db push --accept-data-loss && npx prisma studio --browser none & corepack enable pnpm && pnpm i --frozen-lockfile && sh /home/node/app/create_build_info.sh && pnpm dev"
     dns:
       - 8.8.8.8
+      - 1.1.1.1
+
     depends_on:
-      - mongo
+      mongo:
+        condition: service_started
+      postgres:
+        condition: service_healthy
     env_file:
       - .env
     environment:
       - NODE_COMPILE_CACHE=/nodecache # see https://nodejs.org/en/blog/release/v22.1.0
+      - NEXT_PUBLIC_DISABLE_SERWIST=true
+      - CI=true
 
     healthcheck:
       test: ['CMD-SHELL', 'curl -f http://localhost:3000/status | grep -q ''"status":"ok"''']
@@ -47,6 +39,64 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+
+  payload-service-worker:
+    profiles:
+      - service-worker
+    build:
+      context: .
+      dockerfile: service-worker.Dockerfile
+    ports:
+      - '3000:3000'
+      - '51212:51212'
+      - '9464:9464' # Prometheus metrics
+    volumes:
+      - next-cache:/home/node/app/.next
+      - node-cache:/nodecache
+      - node_modules:/home/node/app/node_modules
+    working_dir: /home/node/app/
+    command: >
+      sh -c "export PRISMA_OUTPUT='src/lib/prisma/client/' && npx prisma generate --no-hints && npx prisma db push --accept-data-loss && npx prisma studio --browser none & corepack enable pnpm && pnpm i --frozen-lockfile && sh /home/node/app/create_build_info.sh && pnpm build && mkdir -p .next/standalone/.next/cache && cp -r .next/cache/fs-fallback .next/standalone/.next/cache/ && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/ || true && node .next/standalone/server.js"
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+
+    depends_on:
+      mongo:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      - NODE_COMPILE_CACHE=/nodecache # see https://nodejs.org/en/blog/release/v22.1.0
+      - NEXT_PUBLIC_DISABLE_SERWIST=false
+      - ENABLE_TURBOPACK_FS_CACHE=true
+      - CI=true
+
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:3000/status | grep -q ''"status":"ok"''']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./src
+          target: /home/node/app/src
+        - action: sync+restart
+          path: ./public
+          target: /home/node/app/public
+        - action: sync+restart
+          path: ./next.config.ts
+          target: /home/node/app/next.config.ts
+        - action: sync+restart
+          path: ./package.json
+          target: /home/node/app/package.json
+        - action: sync+restart
+          path: ./tsconfig.json
+          target: /home/node/app/tsconfig.json
 
   mongo:
     image: mongo:latest
@@ -57,6 +107,19 @@ services:
       - data:/data/db
     logging:
       driver: none
+
+  mongodb-exporter:
+    profiles:
+      - observability
+    image: percona/mongodb_exporter:0.40
+    command:
+      - '--mongodb.uri=mongodb://mongo:27017'
+      - '--compatible-mode'
+      - '--collect-all'
+    ports:
+      - '9216:9216'
+    depends_on:
+      - mongo
 
   mongo-express:
     image: mongo-express
@@ -76,13 +139,7 @@ services:
 
     entrypoint: sh
     command: >
-      -c "mkdir -p /data/${MINIO_BUCKET_NAME} &&
-      /usr/bin/minio server --console-address ':9001' /data & 
-      sleep 10 &&
-      mc alias set myminio http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD} &&
-      mc admin user svcacct add --access-key '${MINIO_ACCESS_KEY_ID}' --secret-key '${MINIO_SECRET_ACCESS_KEY}' myminio ${MINIO_ROOT_USER} || true &&
-      echo 'minio is ready' &&
-      sleep infinity"
+      -c "mkdir -p /data/${MINIO_BUCKET_NAME} && /usr/bin/minio server --console-address ':9001' /data &  sleep 10 && mc alias set myminio http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD} && mc admin user svcacct add --access-key '${MINIO_ACCESS_KEY_ID}' --secret-key '${MINIO_SECRET_ACCESS_KEY}' myminio ${MINIO_ROOT_USER} || true && echo 'minio is ready' && sleep infinity"
 
     env_file:
       - .env
@@ -101,7 +158,7 @@ services:
     restart: always
 
   postgres:
-    image: postgres:latest
+    image: postgres:17
 
     ports:
       - '5432:5432'
@@ -111,8 +168,42 @@ services:
 
     volumes:
       - postgress-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-exporter:
+    profiles:
+      - observability
+    image: prometheuscommunity/postgres-exporter
+    ports:
+      - '9187:9187'
+    environment:
+      DATA_SOURCE_URI: 'postgres:5432/${POSTGRES_DB}?sslmode=disable'
+      DATA_SOURCE_USER: '${POSTGRES_USER}'
+      DATA_SOURCE_PASS: '${POSTGRES_PASSWORD}'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+
+  redis-exporter:
+    profiles:
+      - observability
+    image: oliver006/redis_exporter
+    ports:
+      - '9121:9121'
+    environment:
+      - REDIS_ADDR=redis:6379
+    depends_on:
+      - redis
 
   prometheus:
+    profiles:
+      - observability
     image: prom/prometheus
     volumes:
       - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
@@ -120,13 +211,18 @@ services:
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--storage.tsdb.retention.size=10GB'
       - '--web.enable-remote-write-receiver'
       - '--enable-feature=exemplar-storage'
       - '--enable-feature=native-histograms'
+      - '--log.level=error'
     ports:
       - '9090:9090'
 
   tempo:
+    profiles:
+      - observability
     user: '0:0'
     image: grafana/tempo:latest
     command: ['-config.file=/etc/tempo/tempo.yml']
@@ -139,6 +235,8 @@ services:
       - '4318' # otlp http
 
   loki:
+    profiles:
+      - observability
     image: grafana/loki
     ports:
       - '3100:3100'
@@ -146,8 +244,23 @@ services:
       - --config.file=/mnt/config/loki-config.yml
     volumes:
       - ./observability/loki/loki-config.yml:/mnt/config/loki-config.yml:ro
+      - logging-loki-data:/loki
+
+  promtail:
+    profiles:
+      - observability
+    image: grafana/promtail:latest
+    volumes:
+      - ./observability/promtail/promtail-config.yml:/etc/promtail/promtail-config.yml
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    command: -config.file=/etc/promtail/promtail-config.yml
+    depends_on:
+      - loki
 
   grafana:
+    profiles:
+      - observability
     image: grafana/grafana
     volumes:
       - logging-grafana-storage:/var/lib/grafana
@@ -157,6 +270,13 @@ services:
       - GF_LOG_LEVEL=error
     ports:
       - '9050:3000' # localhost:9050 for accessing grafana
+
+  redis:
+    image: redis:alpine
+    ports:
+      - '6379:6379'
+    logging:
+      driver: none
 
 volumes:
   data:
@@ -170,3 +290,4 @@ volumes:
   logging-prometheus-storage:
   logging-grafana-storage:
   logging-tempo-data:
+  logging-loki-data:

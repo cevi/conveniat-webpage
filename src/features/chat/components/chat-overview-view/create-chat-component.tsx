@@ -60,7 +60,6 @@ const groupMinMaxLength: StaticTranslationString = {
   fr: 'Le nom du groupe doit comporter entre 2 et 50 caractères',
 };
 
-// eslint-disable-next-line complexity
 export const CreateNewChatPage: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const { data: allContacts, isLoading } = trpc.chat.contacts.useQuery({});
@@ -111,7 +110,7 @@ export const CreateNewChatPage: React.FC = () => {
     });
   };
 
-  const handleCreateChat = async (): Promise<void> => {
+  const handleCreateChat = (): void => {
     if (selectedContacts.length === 0 || isCreating) {
       return;
     }
@@ -152,7 +151,7 @@ export const CreateNewChatPage: React.FC = () => {
   };
 
   return (
-    <div className="fixed top-0 z-[500] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50 xl:top-[62px] xl:left-[480px] xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
+    <div className="fixed top-0 z-[100] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50 xl:top-[62px] xl:left-[480px] xl:z-0 xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
       {/* Header */}
       <div className="flex h-16 items-center gap-3 border-b-2 border-gray-200 bg-white px-4">
         <Link href="/app/chat">
@@ -166,9 +165,7 @@ export const CreateNewChatPage: React.FC = () => {
         </div>
         <div className="ml-auto">
           <Button
-            onClick={() => {
-              handleCreateChat().catch(console.error);
-            }}
+            onClick={handleCreateChat}
             disabled={!isFormValid || isCreating}
             className="bg-conveniat-green font-body text-green-100 hover:bg-green-700 disabled:bg-gray-300"
           >
@@ -267,7 +264,7 @@ export const CreateNewChatPage: React.FC = () => {
                 <div className="flex items-center justify-center py-12">
                   <div className="text-center">
                     <Users className="mx-auto h-12 w-12 text-gray-400" />
-                    <p className="font-body mt-2 text-sm text-gray-500">
+                    <p className="font-body mt-2 text-sm text-balance text-gray-500">
                       {searchQuery === ''
                         ? 'No contacts available'
                         : 'No contacts found matching your search'}

@@ -1,10 +1,14 @@
 import { canAccessDocuments } from '@/features/payload-cms/payload-cms/access-rules/can-access-id-in-collection';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
+import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared-fields/last-edited-by-user-field';
 import { permissionsField } from '@/features/payload-cms/payload-cms/shared-fields/permissions-field';
+import { flushPageCacheOnChange } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import type { CollectionConfig } from 'payload';
 
 export const DocumentsCollection: CollectionConfig = {
   slug: 'documents',
+  ...flushPageCacheOnChange,
+
   labels: {
     singular: {
       en: 'Document',
@@ -26,6 +30,6 @@ export const DocumentsCollection: CollectionConfig = {
   access: {
     read: canAccessDocuments,
   },
-  fields: [permissionsField],
+  fields: [permissionsField, LastEditedByUserField],
   upload: true,
 };

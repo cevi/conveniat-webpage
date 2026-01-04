@@ -1,12 +1,12 @@
 import type { InitialMapPose } from '@/features/map/types/types';
-import { Map as MapLibre } from 'maplibre-gl';
-import type React from 'react';
+import { AttributionControl, Map as MapLibre } from 'maplibre-gl';
+
 import { useEffect, useState } from 'react';
 
 const minZoomLevelForSwitzerland = 4;
 
 export const useMapInitialization = (
-  mapContainerReference: React.RefObject<HTMLDivElement | null>,
+  mapContainer: HTMLElement | null | undefined,
   options: {
     initialMapPose: InitialMapPose;
     limitUsage: boolean;
@@ -17,10 +17,10 @@ export const useMapInitialization = (
   const { initialMapPose, limitUsage, validateStyle } = options;
 
   useEffect(() => {
-    if (!mapContainerReference.current || map) return;
+    if (!mapContainer || map) return;
 
     const mapInstance = new MapLibre({
-      container: mapContainerReference.current,
+      container: mapContainer,
       validateStyle,
       style: '/vector-map/base_style.json',
       ...(!limitUsage && {
@@ -33,7 +33,10 @@ export const useMapInitialization = (
       center: initialMapPose.initialMapCenter,
       zoom: initialMapPose.zoom,
       minZoom: minZoomLevelForSwitzerland,
+      attributionControl: false,
     });
+
+    mapInstance.addControl(new AttributionControl({ compact: true }));
 
     setMap(mapInstance);
 
@@ -43,7 +46,7 @@ export const useMapInitialization = (
       setMap(undefined);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [mapContainer]);
 
   return map as MapLibre;
 };

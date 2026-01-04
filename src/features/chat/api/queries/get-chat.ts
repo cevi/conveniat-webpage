@@ -16,7 +16,7 @@ export const getChat = trpcBaseProcedure
       where: { uuid: chatId },
       include: {
         messages: {
-          orderBy: { createdAt: 'asc' },
+          orderBy: { createdAt: 'desc' }, // Get newest messages first
           take: 25, // limit to the last 25 messages
           include: {
             messageEvents: {
@@ -44,7 +44,7 @@ export const getChat = trpcBaseProcedure
     if (messages.length === 0) {
       throw new TRPCError({
         code: 'NOT_FOUND',
-        message: `No messages found in chat with ID ${chatId}`,
+        message: `No messages found in chat with ID ${chatId} `,
       });
     }
 
@@ -52,7 +52,7 @@ export const getChat = trpcBaseProcedure
     if (lastMessage === undefined) {
       throw new TRPCError({
         code: 'NOT_FOUND',
-        message: `No last message found in chat with ID ${chatId}`,
+        message: `No last message found in chat with ID ${chatId} `,
       });
     }
 
@@ -65,7 +65,9 @@ export const getChat = trpcBaseProcedure
       id: chat.uuid,
       archivedAt: chat.archivedAt,
       type: chat.type,
-      messages: messages.map((message) => ({
+      courseId: chat.courseId,
+      // Reverse to chronological order (we fetched in desc to get newest 25)
+      messages: [...messages].reverse().map((message) => ({
         id: message.uuid,
         createdAt: message.createdAt,
         messagePayload: message.contentVersions[0]?.payload ?? {},
@@ -79,5 +81,6 @@ export const getChat = trpcBaseProcedure
         isOnline: membership.user.lastSeen > new Date(Date.now() - 30 * 1000),
         chatPermission: membership.chatPermission,
       })),
+      capabilities: chat.capabilities,
     };
   });

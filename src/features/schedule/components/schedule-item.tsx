@@ -1,169 +1,137 @@
+'use client';
+
 import { StarButton } from '@/components/star/star';
-import { Button } from '@/components/ui/buttons/button';
-import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
 import type { CampMapAnnotation } from '@/features/payload-cms/payload-types';
+import { EnrollmentAction } from '@/features/schedule/components/enrollment-action';
+import { scheduleLabels } from '@/features/schedule/constants/schedule-labels';
+import { useScrollRestoration } from '@/features/schedule/hooks/use-scroll-restoration';
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
+import { getCategoryDisplayData } from '@/features/schedule/utils/category-utils';
 import { useStar } from '@/hooks/use-star';
-import type { Locale, StaticTranslationString } from '@/types/types';
+import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { formatScheduleDateTime } from '@/utils/format-schedule-date-time';
-import { Calendar, ChevronDown, ChevronUp, Clock, ExternalLink, MapPin } from 'lucide-react';
+import { cn } from '@/utils/tailwindcss-override';
+import { CheckCircle, ChevronRight, Clock, MapPin } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+
 import type React from 'react';
 
 interface ScheduleItemProperties {
   entry: CampScheduleEntryFrontendType;
-  isExpanded: boolean;
-  onToggleExpand: (id: string) => void;
-  onReadMore: (id: string) => void;
+  isEnrolled: boolean;
   onMapClick: (location: CampMapAnnotation) => void;
 }
 
-const readMoreText: StaticTranslationString = {
-  en: 'Read More',
-  de: 'Mehr lesen',
-  fr: 'Lire la suite',
-};
-
-const viewOnMapText: StaticTranslationString = {
-  en: 'View on Map',
-  de: 'Auf der Karte anzeigen',
-  fr: 'Voir sur la carte',
-};
-
 export const ScheduleItem: React.FC<ScheduleItemProperties> = ({
   entry,
-  isExpanded,
-  onToggleExpand,
-  onReadMore,
+  isEnrolled,
   onMapClick,
 }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
-
+  const searchParameters = useSearchParams();
   const { isStarred, toggleStar } = useStar();
+  const { saveScrollPosition } = useScrollRestoration();
   const location = entry.location as CampMapAnnotation;
   const currentlyStarred = isStarred(entry.id);
 
+  const { label: categoryLabel, className: categoryClassName } = getCategoryDisplayData(
+    entry.category,
+  );
+
+  const hasEnrollment = entry.enable_enrolment === true;
+  const href = `/app/schedule/${entry.id}?${searchParameters.toString()}`;
+
   return (
     <div
-      key={entry.id}
-      onClick={() => onToggleExpand(entry.id)}
-      className="rounded-lg border border-gray-200 bg-white shadow-sm transition-all duration-300 select-none hover:border-gray-300 hover:shadow-md"
+      className={cn(
+        'group relative overflow-hidden rounded-xl border bg-white shadow-sm transition-all duration-200',
+        'hover:border-gray-300 hover:shadow-md',
+        isEnrolled && 'border-conveniat-green/50 bg-green-50/30',
+        !isEnrolled && 'border-gray-200',
+      )}
     >
-      <div className="p-4">
+      {/* Clickable header area - Wrapped in Link for soft navigation */}
+      <Link
+        href={href}
+        onClick={saveScrollPosition}
+        className={cn('block cursor-pointer p-4', hasEnrollment && 'pb-2')}
+      >
         <div className="flex items-start justify-between gap-3">
-          {/* Main content on the left */}
           <div className="min-w-0 flex-1">
-            <h3 className="mb-2 text-lg leading-tight font-semibold text-gray-900">
+            {/* Category Tag */}
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              {categoryLabel && (
+                <span
+                  className={cn(
+                    'rounded-full border px-2.5 py-0.5 text-[10px] font-bold tracking-wide uppercase',
+                    categoryClassName,
+                  )}
+                >
+                  {categoryLabel}
+                </span>
+              )}
+              {isEnrolled && (
+                <span className="bg-conveniat-green flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold tracking-wide text-white uppercase">
+                  <CheckCircle className="h-3 w-3" />
+                  {scheduleLabels.enrolledBadge[locale]}
+                </span>
+              )}
+            </div>
+
+            <h3 className="group-hover:text-conveniat-green mb-1 text-base leading-snug font-semibold text-gray-900 transition-colors">
               {entry.title}
             </h3>
 
-            {/* Location and Time Display - single line */}
-            <div className="mb-3 flex flex-wrap items-center gap-4">
-              {/* Location - inline */}
+            {/* Info Row: Time & Location */}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-500">
+              <div className="flex items-center gap-1">
+                <Clock className="h-3.5 w-3.5" />
+                <span className="font-medium text-gray-700">{entry.timeslot.time}</span>
+              </div>
+
               {location.title !== '' && (
-                <div className="flex items-center gap-1.5 text-sm text-gray-600">
-                  <MapPin className="h-3.5 w-3.5 flex-shrink-0 text-gray-500" />
+                <div className="flex items-center gap-1">
+                  <MapPin className="h-3.5 w-3.5" />
+                  {/* Prevent link navigation when clicking map pin */}
                   <button
                     onClick={(event) => {
+                      event.preventDefault(); // Prevent Link navigation
                       event.stopPropagation();
                       onMapClick(location);
                     }}
-                    className="cursor-pointer font-medium text-blue-600 transition-colors hover:text-blue-800 hover:underline"
+                    className="hover:text-conveniat-green relative z-10 font-medium hover:underline"
                   >
                     {location.title}
                   </button>
                 </div>
               )}
-
-              {/* Time slots */}
-
-              <div
-                className={`flex items-center gap-3 text-sm ${isExpanded ? '' : 'flex-shrink-0'}`}
-              >
-                {
-                  <div className="flex flex-shrink-0 items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1 text-blue-700">
-                    <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
-                    <span className="font-medium whitespace-nowrap">
-                      {
-                        formatScheduleDateTime(locale, entry.timeslot.date, entry.timeslot.time)
-                          .formattedDate
-                      }
-                    </span>
-                  </div>
-                }
-
-                {/* Time Slots */}
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <Clock className="h-3.5 w-3.5 flex-shrink-0 text-gray-500" />
-                  <div className="flex flex-wrap gap-1.5">
-                    <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium whitespace-nowrap text-gray-700">
-                      {entry.timeslot.time}
-                    </span>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
 
-          {/* Action buttons on the right */}
-          <div className="flex flex-shrink-0 items-center gap-1">
-            <StarButton id={entry.id} isStared={currentlyStarred} toggleStar={toggleStar} />
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={(event) => {
-                event.stopPropagation();
-                onToggleExpand(entry.id);
-              }}
-              aria-expanded={isExpanded}
-              className="h-8 w-8 hover:bg-gray-100"
-            >
-              {isExpanded ? (
-                <ChevronUp className="h-4 w-4 text-gray-600" />
-              ) : (
-                <ChevronDown className="h-4 w-4 text-gray-600" />
-              )}
-            </Button>
+          {/* Right side: Star and chevron */}
+          <div className="flex items-center gap-1">
+            <StarButton
+              id={entry.id}
+              isStared={currentlyStarred}
+              toggleStar={toggleStar}
+              isLocked={isEnrolled}
+            />
+            <ChevronRight className="h-5 w-5 text-gray-300 transition-colors group-hover:text-gray-500" />
           </div>
         </div>
+      </Link>
 
-        {/* Expandable Section */}
-        {isExpanded && (
-          <div className="animate-in slide-in-from-top-2 mt-4 border-t-2 border-gray-100 pt-4 duration-200">
-            <div className="prose prose-sm mb-4 max-w-none text-gray-700">
-              <LexicalRichTextSection richTextSection={entry.description} />
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onReadMore(entry.id);
-                }}
-                size="sm"
-                className="inline-flex items-center rounded-md border border-transparent bg-blue-100 px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-blue-200 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
-              >
-                <ExternalLink className="h-3.5 w-3.5" />
-                {readMoreText[locale]}
-              </Button>
-              {location.title !== '' && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onMapClick(location);
-                  }}
-                  className="inline-flex items-center rounded-md border border-transparent bg-blue-100 px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-blue-200 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
-                >
-                  <MapPin className="h-3.5 w-3.5" />
-                  {viewOnMapText[locale]}
-                </Button>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
+      {/* Enrollment action area - only shown when enrollment is enabled */}
+      {hasEnrollment && (
+        <div
+          className="border-t border-gray-100 px-4 py-3"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <EnrollmentAction courseId={entry.id} />
+        </div>
+      )}
     </div>
   );
 };

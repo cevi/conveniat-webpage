@@ -8,7 +8,7 @@ export const ParagraphText: React.FC<{
   return (
     <p
       className={cn(
-        'font-body my-2 max-w-2xl text-left text-base font-normal text-gray-500',
+        'font-body my-2 max-w-2xl text-left text-base font-normal break-words text-gray-500',
         className,
       )}
     >

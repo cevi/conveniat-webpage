@@ -6,6 +6,7 @@ import { i18nConfig, type Locale } from '@/types/types';
 import { isPermissionPublic } from '@/utils/has-permissions';
 import config from '@payload-config';
 import type { MetadataRoute } from 'next';
+import { cacheLife, cacheTag } from 'next/cache';
 import type { CollectionSlug } from 'payload';
 import { getPayload } from 'payload';
 
@@ -180,7 +181,11 @@ function processDocumentsForSitemap(
  *
  * @returns A promise that resolves to an array of sitemap entries.
  */
-export const sitemapGenerator = async (): Promise<MetadataRoute.Sitemap> => {
+export const cachedSitemapGenerator = async (): Promise<MetadataRoute.Sitemap> => {
+  'use cache';
+  cacheLife('hours');
+  cacheTag('payload', 'generic-page', 'blog');
+
   const sitemap: MetadataRoute.Sitemap = [];
   const APP_HOST_URL = environmentVariables.APP_HOST_URL;
   const defaultLocale = i18nConfig.defaultLocale as Locale;

@@ -10,11 +10,10 @@ import {
 import { environmentVariables } from '@/config/environment-variables';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { serverSideSlugToUrlResolution } from '@/utils/find-url-prefix';
-import { isProductionHosting } from '@/utils/is-production-hosting';
 import { generatePreviewToken } from '@/utils/preview-token';
-import { FormSubmit, useDocumentInfo, useLocale, useTheme } from '@payloadcms/ui';
+import { useDocumentInfo, useLocale, useTheme } from '@payloadcms/ui';
 import { useQuery } from '@tanstack/react-query'; // Added for TanStack Query
-import { Check, Copy, Eye } from 'lucide-react';
+import { Check, Copy, Share } from 'lucide-react';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import type { CollectionSlug } from 'payload';
@@ -42,12 +41,6 @@ const previewDaysText: StaticTranslationString = {
   en: 'Days',
 };
 
-const previewLinkText: StaticTranslationString = {
-  de: 'Vorschau',
-  fr: 'Aperçu',
-  en: 'Preview',
-};
-
 const previewLinkTextLong: StaticTranslationString = {
   de: 'Vorschau Link für',
   fr: 'lien d’aperçu pour',
@@ -60,7 +53,19 @@ const qrCodeLoadingText: StaticTranslationString = {
   en: 'QR Code',
 };
 
+const localeNames: StaticTranslationString = {
+  de: 'Deutsch',
+  fr: 'Français',
+  en: 'English',
+};
+
 const linkLoadingText: StaticTranslationString = { de: 'Link', fr: 'Lien', en: 'Link' };
+
+const sharePreviewLinkText: StaticTranslationString = {
+  de: 'Vorschau-Link teilen',
+  fr: 'Partager le lien d’aperçu',
+  en: 'Share a preview link',
+};
 
 const qrNotAvailableText: StaticTranslationString = {
   de: 'QR-Code nicht verfügbar',
@@ -73,7 +78,6 @@ const linkNotAvailableText: StaticTranslationString = {
   en: 'Link not available',
 };
 
-// eslint-disable-next-line complexity
 const prepareQRCodeData = async (
   collectionSlug: CollectionSlug,
   locale: Locale,
@@ -116,7 +120,7 @@ const prepareQRCodeData = async (
   const basePreviewURL = `/${locale}${finalCollectionSlug}${finalUrlSlug}`;
 
   if (isRedirectQR) {
-    const redirectURL = isProductionHosting()
+    const redirectURL = environmentVariables.NEXT_PUBLIC_ENABLE_CON27_SHORT_URLS
       ? 'https://con27.ch' + finalCollectionSlug + finalUrlSlug
       : domain + `/${locale}/go` + finalUrlSlug;
     return {
@@ -124,8 +128,6 @@ const prepareQRCodeData = async (
       displayURL: redirectURL,
     };
   }
-
-  const fullURLForToken = domain + basePreviewURL;
 
   const maxExpirySeconds = 86_400 * 7; // 7 days
   const currentExpiry = expirySeconds <= maxExpirySeconds ? expirySeconds : 10_800;
@@ -136,7 +138,9 @@ const prepareQRCodeData = async (
     throw new Error('Failed to generate preview token');
   }
 
-  const previewTokenQueryParameter = `?preview=true&preview-token=${previewToken}`;
+  const previewTokenQueryParameter = `?auth=secret&preview=true&preview-token=${previewToken}&slug=${basePreviewURL}`;
+  const fullURLForToken = `${domain}/api/draft`;
+
   return {
     qrCodeContent: fullURLForToken + previewTokenQueryParameter,
     displayURL: fullURLForToken + previewTokenQueryParameter,
@@ -161,7 +165,9 @@ export const QRCodeImage: React.FC<QRCodeImageProperties> = ({
   isLoading,
   locale = 'en',
 }) => {
-  if (isLoading) {
+  const showLoading = isLoading || !qrImageSrc;
+
+  if (showLoading) {
     return (
       <>
         <div className="flex h-[200px] w-[200px] animate-pulse items-center justify-center rounded-md bg-gray-100 dark:bg-gray-700">
@@ -178,7 +184,7 @@ export const QRCodeImage: React.FC<QRCodeImageProperties> = ({
     );
   }
 
-  if (qrImageSrc != undefined) {
+  if (qrImageSrc) {
     return (
       <>
         <Image src={qrImageSrc} height="200" width="200" alt="link-qr-code" />
@@ -258,7 +264,6 @@ const ExpiryDropdown: React.FC<ExpiryDropdownProperties> = ({
 
 type QRCodeProperties = object;
 
-// eslint-disable-next-line complexity
 const QRCode: React.FC<QRCodeProperties> = () => {
   const { collectionSlug, savedDocumentData } = useDocumentInfo();
   const { code: locale } = useLocale();
@@ -287,7 +292,7 @@ const QRCode: React.FC<QRCodeProperties> = () => {
         setQrInputDataSource(undefined);
         try {
           const data = await prepareQRCodeData(
-            collectionSlug as CollectionSlug,
+            collectionSlug,
             locale as Locale,
             savedDocumentData,
             expirySeconds,
@@ -381,22 +386,21 @@ const QRCode: React.FC<QRCodeProperties> = () => {
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
-        <FormSubmit
-          icon={<Eye className="h-6 w-6" />}
-          iconPosition="left"
-          buttonStyle="tab"
+        <Button
+          variant="outline"
+          size="icon"
+          type="button"
           onClick={() => {
             if (!open) setOpen(true);
           }}
+          title={
+            createRedirectQR
+              ? qrCodeLoadingText[locale as Locale]
+              : sharePreviewLinkText[locale as Locale]
+          }
         >
-          {createRedirectQR ? (
-            <>{qrCodeLoadingText[locale as Locale]}</>
-          ) : (
-            <>
-              {previewLinkText[locale as Locale]}({locale.toUpperCase()})
-            </>
-          )}
-        </FormSubmit>
+          <Share className="h-4 w-4" />
+        </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-96 rounded-md border-gray-200 bg-white text-gray-900 shadow-lg dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100">
         <DropdownMenuLabel className="px-2 py-1.5 font-semibold">
@@ -404,7 +408,7 @@ const QRCode: React.FC<QRCodeProperties> = () => {
             <>{qrCodeLoadingText[locale as Locale]}</>
           ) : (
             <>
-              {previewLinkTextLong[locale as Locale]}({locale.toUpperCase()})
+              {previewLinkTextLong[locale as Locale]} {localeNames[locale as Locale]}
             </>
           )}
         </DropdownMenuLabel>

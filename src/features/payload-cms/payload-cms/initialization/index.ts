@@ -1,7 +1,6 @@
-import { environmentVariables } from '@/config/environment-variables';
-import prisma from '@/features/chat/database';
 import { deleteDatabase } from '@/features/payload-cms/payload-cms/initialization/deleting';
 import { seedDatabase } from '@/features/payload-cms/payload-cms/initialization/seeding';
+import prisma from '@/lib/database';
 import type { Payload } from 'payload';
 
 /**
@@ -9,13 +8,9 @@ import type { Payload } from 'payload';
  * @param payload The Payload instance
  */
 export const onPayloadInit = async (payload: Payload): Promise<void> => {
-  console.log('\n########################\n# Run onPayloadInit...\n########################\n');
-
-  if (environmentVariables.NODE_ENV === 'development') {
-    console.log(environmentVariables);
-  }
-
-  await seedDatabase(payload).catch(console.error);
+  await seedDatabase(payload)
+    .then(() => console.log('Seeding complete.'))
+    .catch(console.error);
 };
 
 export const deleteEverything = async (payload: Payload): Promise<void> => {

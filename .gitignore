@@ -49,10 +49,14 @@ tsconfig.tsbuildinfo
 
 src/build.ts
 
-
-# Serwist
-public/sw*
-public/swe-worker*
-
 # prisma generated files
 src/lib/prisma
+
+# pre build code
+src/cache-handlers/**/*.js
+src/cache-handlers/**/*.cjs
+.eslintcache
+
+# service worker and generated files
+public/sw.js
+public/sw.js.map

@@ -1,5 +1,12 @@
 import { filterOptionsOnlyPublished } from '@/features/payload-cms/payload-cms/utils/filter-options-only-published';
-import type { Blog, GenericPage } from '@/features/payload-cms/payload-types';
+import type {
+  Blog,
+  CampMapAnnotation,
+  CampScheduleEntry,
+  Document,
+  GenericPage,
+  Image,
+} from '@/features/payload-cms/payload-types';
 import type { NamedGroupField, TextFieldSingleValidation } from 'payload';
 
 export interface LinkFieldDataType {
@@ -9,10 +16,26 @@ export interface LinkFieldDataType {
         relationTo: 'blog';
         value: string | Blog;
       } | null)
-    | ({
+    | {
         relationTo: 'generic-page';
         value: string | GenericPage;
-      } | null);
+      }
+    | {
+        relationTo: 'images';
+        value: string | Image;
+      }
+    | {
+        relationTo: 'documents';
+        value: string | Document;
+      }
+    | {
+        relationTo: 'camp-schedule-entry';
+        value: string | CampScheduleEntry;
+      }
+    | {
+        relationTo: 'camp-map-annotations';
+        value: string | CampMapAnnotation;
+      };
   url?: string | null;
   openInNewTab?: boolean | null;
 }
@@ -64,7 +87,14 @@ export const LinkField = (required: boolean = true): NamedGroupField => {
           placeholder: 'Select a document or blog post',
         },
         label: 'Document to redirect to',
-        relationTo: ['blog', 'generic-page'],
+        relationTo: [
+          'blog',
+          'generic-page',
+          'images',
+          'documents',
+          'camp-map-annotations',
+          'camp-schedule-entry',
+        ],
         required: required,
         hasMany: false,
         filterOptions: filterOptionsOnlyPublished,

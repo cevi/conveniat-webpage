@@ -9,6 +9,7 @@ export const environmentVariables = createEnv({
   server: {
     DATABASE_URI: z.string().url(),
     CHAT_DATABASE_URL: z.string().url(),
+    REDIS_URL: z.string().url(),
     PAYLOAD_SECRET: z.string().min(5),
     APP_HOST_URL: z.string().url(),
     NODE_ENV: z.string().default('development'),
@@ -32,6 +33,7 @@ export const environmentVariables = createEnv({
     MINIO_SECRET_ACCESS_KEY: z.string().min(5),
     MINIO_BUCKET_NAME: z.string().min(5),
     MINIO_HOST: z.string().url(),
+    MINIO_PUBLIC_HOST: z.string().url(),
     ENABLE_NODEMAILER: z.string().transform((value) => value === 'true'),
     SMTP_HOST: z.string().optional(),
     SMTP_PORT: z.coerce.number().optional(),
@@ -55,7 +57,8 @@ export const environmentVariables = createEnv({
     NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string(),
     NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
     NEXT_PUBLIC_POSTHOG_HOST: z.string().url(),
-    NEXT_PUBLIC_ENABLE_OFFLINE_SUPPORT: z.boolean().default(false),
+    NEXT_PUBLIC_ENABLE_CON27_SHORT_URLS: z.boolean(),
+    NEXT_PUBLIC_DISABLE_SERWIST: z.boolean().default(false),
   },
 
   experimental__runtimeEnv: {
@@ -63,7 +66,8 @@ export const environmentVariables = createEnv({
     NEXT_PUBLIC_VAPID_PUBLIC_KEY: process.env['NEXT_PUBLIC_VAPID_PUBLIC_KEY'],
     NEXT_PUBLIC_POSTHOG_KEY: process.env['NEXT_PUBLIC_POSTHOG_KEY'],
     NEXT_PUBLIC_POSTHOG_HOST: process.env['NEXT_PUBLIC_POSTHOG_HOST'],
-    NEXT_PUBLIC_ENABLE_OFFLINE_SUPPORT: process.env['ENABLE_SERVICE_WORKER_LOCALLY'] === 'true',
+    NEXT_PUBLIC_ENABLE_CON27_SHORT_URLS: process.env['ENABLE_CON27_SHORT_URLS'] === 'true',
+    NEXT_PUBLIC_DISABLE_SERWIST: process.env['NEXT_PUBLIC_DISABLE_SERWIST'] === 'true',
   },
 
   /**

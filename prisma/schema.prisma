@@ -6,7 +6,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("CHAT_DATABASE_URL")
 }
 
 model User {
@@ -17,7 +16,9 @@ model User {
   messages        Message[]
   chatMemberships ChatMembership[]
   messagesEvents  MessageEvent[]
-  Enrollment      Enrollment?
+  Enrollments     Enrollment[]
+  Stars           Star[]
+  pushNotificationLogs PushNotificationLog[]
 }
 
 enum ChatType {
@@ -29,11 +30,26 @@ enum ChatType {
 
   /// a chat created after triggering an emergency
   EMERGENCY
+
+  /// a support chat for reporting problems
+  SUPPORT_GROUP
+
+  /// an automatically managed group chat for a schedule entry (workshop)
+  COURSE_GROUP
+}
+
+enum ChatCapability {
+  CAN_SEND_MESSAGES
+  PICTURE_UPLOAD
+  THREADS
 }
 
 model Chat {
   uuid String @id @default(uuid())
-  name String
+  name String 
+  
+  description String?
+  status      String   @default("OPEN")
 
   lastUpdate DateTime @default(now())
   createdAt  DateTime @default(now())
@@ -42,11 +58,17 @@ model Chat {
   archivedAt DateTime?
 
   type            ChatType         @default(GROUP)
+  
+  /// links to the objectID in the courses collection in MongoDB (for COURSE_GROUP type)
+  courseId String? @unique
+  
   messages        Message[]
   chatMemberships ChatMembership[]
+  capabilities    ChatCapability[]
 
   @@index([lastUpdate])
 }
+
 
 enum ChatMembershipPermission {
   /// the user who has created the chat
@@ -88,6 +110,12 @@ enum MessageType {
 
   /// an image message, e.g. { url: "https://example.com/image.jpg" }
   IMAGE_MSG
+
+  /// a question asked by the system, e.g. "How many persons are involved?"
+  ALERT_QUESTION
+
+  /// Final response message with instructions and phone number
+  ALERT_RESPONSE
 }
 
 model Message {
@@ -108,6 +136,11 @@ model Message {
 
   // Relation to the MessageContent model is now on the MessageContent side
   contentVersions MessageContent[]
+
+  /// The parent message if this is a reply in a thread
+  parentId String?
+  parent   Message?  @relation("Thread", fields: [parentId], references: [uuid], onDelete: Cascade)
+  replies  Message[] @relation("Thread")
 
   @@index([chatId, createdAt(sort: Asc)])
 }
@@ -179,7 +212,7 @@ model MessageEvent {
 model Enrollment {
   id String @id @default(uuid(7))
 
-  userId String @unique
+  userId String
   user   User   @relation(fields: [userId], references: [uuid])
 
   // links to the objectID in the courses collection in MongoDB
@@ -188,4 +221,44 @@ model Enrollment {
   @@unique([courseId, userId]) // every user can only be enrolled once per course
   @@index([courseId])
   @@index([userId])
+}
+
+model Star {
+  id String @id @default(uuid(7))
+
+  userId String
+  user   User   @relation(fields: [userId], references: [uuid])
+
+  courseId String
+
+  createdAt DateTime @default(now())
+
+  @@unique([courseId, userId])
+  @@index([courseId])
+  @@index([userId])
+}
+
+model PushNotificationLog {
+  id              String    @id @default(uuid(7))
+  
+  userId          String
+  user            User      @relation(fields: [userId], references: [uuid])
+  
+  content         String 
+  
+  sentAt          DateTime  @default(now())
+  deliveredAt     DateTime?
+  interactedAt    DateTime?
+  interactionType String? 
+  userAgent       String?
+  status          PushNotificationStatus @default(PENDING)
+  error           String?
+
+  @@index([userId])
+}
+
+enum PushNotificationStatus {
+  PENDING
+  DELIVERED
+  FAILED
 }

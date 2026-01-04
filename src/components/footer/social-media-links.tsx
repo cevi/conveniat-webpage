@@ -1,13 +1,17 @@
 import { LinkComponent } from '@/components/ui/link-component';
-import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
+import type { Locale } from '@/types/types';
 import { SiInstagram, SiYoutube } from '@icons-pack/react-simple-icons';
 import config from '@payload-config';
+import { cacheLife, cacheTag } from 'next/cache';
 import { getPayload } from 'payload';
 import React from 'react';
 
-export const SocialMediaLinks: React.FC = async () => {
+export const SocialMediaLinks: React.FC<{ locale: Locale }> = async ({ locale }) => {
+  'use cache';
+  cacheLife('hours');
+  cacheTag('payload', 'footer');
+
   const payload = await getPayload({ config });
-  const locale = await getLocaleFromCookies();
   const { socialLinks } = await payload.findGlobal({ slug: 'footer', locale });
 
   const instagramLink = socialLinks?.instagram;

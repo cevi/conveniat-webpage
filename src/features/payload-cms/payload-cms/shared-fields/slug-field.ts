@@ -1,4 +1,5 @@
 import type { CustomSlugComponentProperties } from '@/features/payload-cms/payload-cms/components/slug/types';
+import { beforeDuplicateSlug } from '@/features/payload-cms/payload-cms/shared-fields/hooks/before-duplicate-slug';
 import { slugValidation } from '@/features/payload-cms/payload-cms/utils/slug-validation';
 import { revalidateTag } from 'next/cache';
 import type { TextField } from 'payload';
@@ -22,10 +23,11 @@ export const SlugField = (collectionName: CustomSlugComponentProperties): TextFi
   defaultValue: generateRandomSlug,
 
   hooks: {
+    beforeDuplicate: [beforeDuplicateSlug],
     afterChange: [
       (): void => {
         try {
-          revalidateTag('sitemap');
+          revalidateTag('sitemap', 'max');
           console.log('Slug changed, revalidating sitemap');
         } catch {}
       },

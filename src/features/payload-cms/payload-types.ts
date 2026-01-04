@@ -54,6 +54,7 @@ export interface Config {
     'generic-page': GenericPage;
     timeline: Timeline;
     'camp-map-annotations': CampMapAnnotation;
+    'camp-categories': CampCategory;
     'camp-schedule-entry': CampScheduleEntry;
     images: Image;
     userSubmittedImages: UserSubmittedImage;
@@ -62,10 +63,12 @@ export interface Config {
     permissions: Permission;
     'push-notification-subscriptions': PushNotificationSubscription;
     timelineCategory: TimelineCategory;
+    'chat-images': ChatImage;
     forms: Form;
     'form-submissions': FormSubmission;
     'search-collection': SearchCollection;
     go: Go;
+    'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
@@ -83,6 +86,7 @@ export interface Config {
     'generic-page': GenericPageSelect<false> | GenericPageSelect<true>;
     timeline: TimelineSelect<false> | TimelineSelect<true>;
     'camp-map-annotations': CampMapAnnotationsSelect<false> | CampMapAnnotationsSelect<true>;
+    'camp-categories': CampCategoriesSelect<false> | CampCategoriesSelect<true>;
     'camp-schedule-entry': CampScheduleEntrySelect<false> | CampScheduleEntrySelect<true>;
     images: ImagesSelect<false> | ImagesSelect<true>;
     userSubmittedImages: UserSubmittedImagesSelect<false> | UserSubmittedImagesSelect<true>;
@@ -91,10 +95,12 @@ export interface Config {
     permissions: PermissionsSelect<false> | PermissionsSelect<true>;
     'push-notification-subscriptions': PushNotificationSubscriptionsSelect<false> | PushNotificationSubscriptionsSelect<true>;
     timelineCategory: TimelineCategorySelect<false> | TimelineCategorySelect<true>;
+    'chat-images': ChatImagesSelect<false> | ChatImagesSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     'search-collection': SearchCollectionSelect<false> | SearchCollectionSelect<true>;
     go: GoSelect<false> | GoSelect<true>;
+    'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
@@ -102,17 +108,26 @@ export interface Config {
   db: {
     defaultIDType: string;
   };
+  fallbackLocale: ('false' | 'none' | 'null') | false | null | ('en' | 'de' | 'fr') | ('en' | 'de' | 'fr')[];
   globals: {
     header: Header;
     footer: Footer;
     SEO: SEO;
     PWA: PWA;
+    alert_settings: AlertSetting;
+    'app-feature-flags': AppFeatureFlag;
+    'support-chat-management': SupportChatManagement;
+    'alert-management': AlertManagement;
   };
   globalsSelect: {
     header: HeaderSelect<false> | HeaderSelect<true>;
     footer: FooterSelect<false> | FooterSelect<true>;
     SEO: SEOSelect<false> | SEOSelect<true>;
     PWA: PWASelect<false> | PWASelect<true>;
+    alert_settings: AlertSettingsSelect<false> | AlertSettingsSelect<true>;
+    'app-feature-flags': AppFeatureFlagsSelect<false> | AppFeatureFlagsSelect<true>;
+    'support-chat-management': SupportChatManagementSelect<false> | SupportChatManagementSelect<true>;
+    'alert-management': AlertManagementSelect<false> | AlertManagementSelect<true>;
   };
   locale: 'en' | 'de' | 'fr';
   user: User & {
@@ -214,25 +229,6 @@ export interface Blog {
           blockName?: string | null;
           blockType: 'blogPostsOverview';
         }
-      | {
-          /**
-           * This is the teaser that will be displayed on the page.
-           */
-          pageTeaser: string;
-          callToAction: {
-            /**
-             * This is the call to action that will be displayed on the page.
-             */
-            linkLabel: string;
-            /**
-             * This is the link that the call to action will point to.
-             */
-            link: string;
-          };
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'heroSection';
-        }
       | FormBlock
       | {
           images: (string | Image)[];
@@ -281,6 +277,22 @@ export interface Blog {
               | ({
                   relationTo: 'generic-page';
                   value: string | GenericPage;
+                } | null)
+              | ({
+                  relationTo: 'images';
+                  value: string | Image;
+                } | null)
+              | ({
+                  relationTo: 'documents';
+                  value: string | Document;
+                } | null)
+              | ({
+                  relationTo: 'camp-map-annotations';
+                  value: string | CampMapAnnotation;
+                } | null)
+              | ({
+                  relationTo: 'camp-schedule-entry';
+                  value: string | CampScheduleEntry;
                 } | null);
             url?: string | null;
             openInNewTab?: boolean | null;
@@ -304,6 +316,22 @@ export interface Blog {
               | ({
                   relationTo: 'generic-page';
                   value: string | GenericPage;
+                } | null)
+              | ({
+                  relationTo: 'images';
+                  value: string | Image;
+                } | null)
+              | ({
+                  relationTo: 'documents';
+                  value: string | Document;
+                } | null)
+              | ({
+                  relationTo: 'camp-map-annotations';
+                  value: string | CampMapAnnotation;
+                } | null)
+              | ({
+                  relationTo: 'camp-schedule-entry';
+                  value: string | CampScheduleEntry;
                 } | null);
             url?: string | null;
             openInNewTab?: boolean | null;
@@ -354,6 +382,7 @@ export interface Blog {
      */
     keywords?: string | null;
   };
+  lastEditedByUser?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -400,6 +429,7 @@ export interface User {
    * The Quartier of the user.
    */
   quartier?: number | null;
+  lastEditedByUser?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -434,6 +464,7 @@ export interface Image {
    * Optional text to display below the image (e.g. image source, copyright information, explanatory text) (fr)
    */
   imageCaption_fr?: string | null;
+  lastEditedByUser?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -491,6 +522,7 @@ export interface Permission {
     public?: boolean | null;
     logged_in?: boolean | null;
   };
+  lastEditedByUser?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -902,15 +934,13 @@ export interface YoutubeEmbedding {
   /**
    * Links to the Youtube videos
    */
-  links?:
-    | {
-        /**
-         * Link to the Youtube video
-         */
-        link: string;
-        id?: string | null;
-      }[]
-    | null;
+  links: {
+    /**
+     * Link to the Youtube video
+     */
+    link: string;
+    id?: string | null;
+  }[];
   id?: string | null;
   blockName?: string | null;
   blockType: 'youtubeEmbed';
@@ -973,6 +1003,7 @@ export interface SwisstopoMapEmbedding {
 export interface Document {
   id: string;
   permissions?: (string | null) | Permission;
+  lastEditedByUser?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -1115,6 +1146,22 @@ export interface TeamMembersBlock {
       | ({
           relationTo: 'generic-page';
           value: string | GenericPage;
+        } | null)
+      | ({
+          relationTo: 'images';
+          value: string | Image;
+        } | null)
+      | ({
+          relationTo: 'documents';
+          value: string | Document;
+        } | null)
+      | ({
+          relationTo: 'camp-map-annotations';
+          value: string | CampMapAnnotation;
+        } | null)
+      | ({
+          relationTo: 'camp-schedule-entry';
+          value: string | CampScheduleEntry;
         } | null);
     url?: string | null;
     openInNewTab?: boolean | null;
@@ -1202,25 +1249,6 @@ export interface GenericPage {
           blockName?: string | null;
           blockType: 'blogPostsOverview';
         }
-      | {
-          /**
-           * This is the teaser that will be displayed on the page.
-           */
-          pageTeaser: string;
-          callToAction: {
-            /**
-             * This is the call to action that will be displayed on the page.
-             */
-            linkLabel: string;
-            /**
-             * This is the link that the call to action will point to.
-             */
-            link: string;
-          };
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'heroSection';
-        }
       | FormBlock
       | {
           images: (string | Image)[];
@@ -1269,6 +1297,22 @@ export interface GenericPage {
               | ({
                   relationTo: 'generic-page';
                   value: string | GenericPage;
+                } | null)
+              | ({
+                  relationTo: 'images';
+                  value: string | Image;
+                } | null)
+              | ({
+                  relationTo: 'documents';
+                  value: string | Document;
+                } | null)
+              | ({
+                  relationTo: 'camp-map-annotations';
+                  value: string | CampMapAnnotation;
+                } | null)
+              | ({
+                  relationTo: 'camp-schedule-entry';
+                  value: string | CampScheduleEntry;
                 } | null);
             url?: string | null;
             openInNewTab?: boolean | null;
@@ -1292,6 +1336,22 @@ export interface GenericPage {
               | ({
                   relationTo: 'generic-page';
                   value: string | GenericPage;
+                } | null)
+              | ({
+                  relationTo: 'images';
+                  value: string | Image;
+                } | null)
+              | ({
+                  relationTo: 'documents';
+                  value: string | Document;
+                } | null)
+              | ({
+                  relationTo: 'camp-map-annotations';
+                  value: string | CampMapAnnotation;
+                } | null)
+              | ({
+                  relationTo: 'camp-schedule-entry';
+                  value: string | CampScheduleEntry;
                 } | null);
             url?: string | null;
             openInNewTab?: boolean | null;
@@ -1342,6 +1402,7 @@ export interface GenericPage {
      */
     keywords?: string | null;
   };
+  lastEditedByUser?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -1470,6 +1531,7 @@ export interface Timeline {
       )[]
     | null;
   categories?: (string | TimelineCategory)[] | null;
+  lastEditedByUser?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -1507,6 +1569,8 @@ export interface CampMapAnnotation {
    * The title of the annotation.
    */
   title: string;
+  color?: ('#78909c' | '#fbc02d' | '#ff8126' | '#b56aff' | '#f848c7' | '#16a672' | '#f64955') | null;
+  annotationType: 'marker' | 'polygon';
   icon?:
     | (
         | 'MapPin'
@@ -1521,7 +1585,27 @@ export interface CampMapAnnotation {
         | 'BriefcaseMedical'
       )
     | null;
-  color?: ('#78909c' | '#fbc02d' | '#ff8126' | '#b56aff' | '#f848c7' | '#16a672' | '#f64955') | null;
+  /**
+   * @minItems 2
+   * @maxItems 2
+   */
+  geometry?: [number, number] | null;
+  /**
+   * Enter the coordinates for the polygon. A closed polygon requires at least 3 points.
+   */
+  polygonCoordinates?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * If checked, the polygon will be clickable and show metadata. If unchecked, it will be a background-only shape.
+   */
+  isInteractive?: boolean | null;
   /**
    * A detailed description of the annotation.
    */
@@ -1551,29 +1635,7 @@ export interface CampMapAnnotation {
       }[]
     | null;
   images?: (string | Image)[] | null;
-  annotationType: 'marker' | 'polygon';
-  /**
-   * Coordinates of the annotation on the map.
-   */
-  geometry?: {
-    /**
-     * Coordinates of the annotation on the map.
-     *
-     * @minItems 2
-     * @maxItems 2
-     */
-    coordinates?: [number, number] | null;
-  };
-  /**
-   * Enter the coordinates for the polygon. A closed polygon requires at least 3 points.
-   */
-  polygonCoordinates?:
-    | {
-        latitude: number;
-        longitude: number;
-        id?: string | null;
-      }[]
-    | null;
+  lastEditedByUser?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -1623,12 +1685,42 @@ export interface CampScheduleEntry {
   /**
    * Organiser
    */
-  organiser?: (string | null) | User;
+  organiser?: (string | User)[] | null;
+  enable_enrolment?: boolean | null;
+  hide_participant_list?: boolean | null;
   participants_min?: number | null;
   participants_max?: number | null;
+  target_group?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  category?: (string | null) | CampCategory;
+  lastEditedByUser?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "camp-categories".
+ */
+export interface CampCategory {
+  id: string;
+  title: string;
+  colorTheme: 'purple' | 'green' | 'blue' | 'gray' | 'indigo' | 'amber' | 'rose' | 'cyan' | 'orange';
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1639,6 +1731,7 @@ export interface UserSubmittedImage {
   uploaded_by: string | User;
   original_filename?: string | null;
   user_description: string;
+  lastEditedByUser?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -1685,6 +1778,36 @@ export interface PushNotificationSubscription {
   };
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "chat-images".
+ */
+export interface ChatImage {
+  id: string;
+  chatId: string;
+  uploadedBy: string | User;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+  sizes?: {
+    thumbnail?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+  };
 }
 /**
  * This is a collection of automatically created search results. These results are used by the global site search and will be updated automatically as documents in the CMS are created or updated.
@@ -1739,6 +1862,23 @@ export interface Go {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-kv".
+ */
+export interface PayloadKv {
+  id: string;
+  key: string;
+  data:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-locked-documents".
  */
 export interface PayloadLockedDocument {
@@ -1759,6 +1899,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'camp-map-annotations';
         value: string | CampMapAnnotation;
+      } | null)
+    | ({
+        relationTo: 'camp-categories';
+        value: string | CampCategory;
       } | null)
     | ({
         relationTo: 'camp-schedule-entry';
@@ -1791,6 +1935,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'timelineCategory';
         value: string | TimelineCategory;
+      } | null)
+    | ({
+        relationTo: 'chat-images';
+        value: string | ChatImage;
       } | null)
     | ({
         relationTo: 'forms';
@@ -1886,19 +2034,6 @@ export interface BlogSelect<T extends boolean = true> {
                     id?: T;
                     blockName?: T;
                   };
-              heroSection?:
-                | T
-                | {
-                    pageTeaser?: T;
-                    callToAction?:
-                      | T
-                      | {
-                          linkLabel?: T;
-                          link?: T;
-                        };
-                    id?: T;
-                    blockName?: T;
-                  };
               formBlock?: T | FormBlockSelect<T>;
               photoCarousel?:
                 | T
@@ -1988,6 +2123,7 @@ export interface BlogSelect<T extends boolean = true> {
         metaDescription?: T;
         keywords?: T;
       };
+  lastEditedByUser?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
@@ -2200,19 +2336,6 @@ export interface GenericPageSelect<T extends boolean = true> {
                     id?: T;
                     blockName?: T;
                   };
-              heroSection?:
-                | T
-                | {
-                    pageTeaser?: T;
-                    callToAction?:
-                      | T
-                      | {
-                          linkLabel?: T;
-                          link?: T;
-                        };
-                    id?: T;
-                    blockName?: T;
-                  };
               formBlock?: T | FormBlockSelect<T>;
               photoCarousel?:
                 | T
@@ -2302,6 +2425,7 @@ export interface GenericPageSelect<T extends boolean = true> {
         metaDescription?: T;
         keywords?: T;
       };
+  lastEditedByUser?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
@@ -2342,6 +2466,7 @@ export interface TimelineSelect<T extends boolean = true> {
         instagramEmbed?: T | InstagramEmbeddingSelect<T>;
       };
   categories?: T;
+  lastEditedByUser?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
@@ -2353,8 +2478,12 @@ export interface TimelineSelect<T extends boolean = true> {
  */
 export interface CampMapAnnotationsSelect<T extends boolean = true> {
   title?: T;
-  icon?: T;
   color?: T;
+  annotationType?: T;
+  icon?: T;
+  geometry?: T;
+  polygonCoordinates?: T;
+  isInteractive?: T;
   description?: T;
   openingHours?:
     | T
@@ -2364,22 +2493,20 @@ export interface CampMapAnnotationsSelect<T extends boolean = true> {
         id?: T;
       };
   images?: T;
-  annotationType?: T;
-  geometry?:
-    | T
-    | {
-        coordinates?: T;
-      };
-  polygonCoordinates?:
-    | T
-    | {
-        latitude?: T;
-        longitude?: T;
-        id?: T;
-      };
+  lastEditedByUser?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "camp-categories_select".
+ */
+export interface CampCategoriesSelect<T extends boolean = true> {
+  title?: T;
+  colorTheme?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2396,8 +2523,13 @@ export interface CampScheduleEntrySelect<T extends boolean = true> {
       };
   location?: T;
   organiser?: T;
+  enable_enrolment?: T;
+  hide_participant_list?: T;
   participants_min?: T;
   participants_max?: T;
+  target_group?: T;
+  category?: T;
+  lastEditedByUser?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
@@ -2413,6 +2545,7 @@ export interface ImagesSelect<T extends boolean = true> {
   imageCaption_de?: T;
   imageCaption_en?: T;
   imageCaption_fr?: T;
+  lastEditedByUser?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -2457,6 +2590,7 @@ export interface UserSubmittedImagesSelect<T extends boolean = true> {
   uploaded_by?: T;
   original_filename?: T;
   user_description?: T;
+  lastEditedByUser?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
@@ -2500,6 +2634,7 @@ export interface UserSubmittedImagesSelect<T extends boolean = true> {
  */
 export interface DocumentsSelect<T extends boolean = true> {
   permissions?: T;
+  lastEditedByUser?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -2525,6 +2660,7 @@ export interface UsersSelect<T extends boolean = true> {
   groups?: T;
   hof?: T;
   quartier?: T;
+  lastEditedByUser?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
@@ -2548,6 +2684,7 @@ export interface PermissionsSelect<T extends boolean = true> {
         public?: T;
         logged_in?: T;
       };
+  lastEditedByUser?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
@@ -2579,6 +2716,39 @@ export interface TimelineCategorySelect<T extends boolean = true> {
   relatedTimelineEntries?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "chat-images_select".
+ */
+export interface ChatImagesSelect<T extends boolean = true> {
+  chatId?: T;
+  uploadedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+  sizes?:
+    | T
+    | {
+        thumbnail?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+      };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2897,6 +3067,14 @@ export interface GoSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-kv_select".
+ */
+export interface PayloadKvSelect<T extends boolean = true> {
+  key?: T;
+  data?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-locked-documents_select".
  */
 export interface PayloadLockedDocumentsSelect<T extends boolean = true> {
@@ -2958,6 +3136,22 @@ export interface Header {
             | ({
                 relationTo: 'generic-page';
                 value: string | GenericPage;
+              } | null)
+            | ({
+                relationTo: 'images';
+                value: string | Image;
+              } | null)
+            | ({
+                relationTo: 'documents';
+                value: string | Document;
+              } | null)
+            | ({
+                relationTo: 'camp-map-annotations';
+                value: string | CampMapAnnotation;
+              } | null)
+            | ({
+                relationTo: 'camp-schedule-entry';
+                value: string | CampScheduleEntry;
               } | null);
           url?: string | null;
           openInNewTab?: boolean | null;
@@ -2975,6 +3169,22 @@ export interface Header {
                   | ({
                       relationTo: 'generic-page';
                       value: string | GenericPage;
+                    } | null)
+                  | ({
+                      relationTo: 'images';
+                      value: string | Image;
+                    } | null)
+                  | ({
+                      relationTo: 'documents';
+                      value: string | Document;
+                    } | null)
+                  | ({
+                      relationTo: 'camp-map-annotations';
+                      value: string | CampMapAnnotation;
+                    } | null)
+                  | ({
+                      relationTo: 'camp-schedule-entry';
+                      value: string | CampScheduleEntry;
                     } | null);
                 url?: string | null;
                 openInNewTab?: boolean | null;
@@ -3025,26 +3235,26 @@ export interface Footer {
             | ({
                 relationTo: 'generic-page';
                 value: string | GenericPage;
+              } | null)
+            | ({
+                relationTo: 'images';
+                value: string | Image;
+              } | null)
+            | ({
+                relationTo: 'documents';
+                value: string | Document;
+              } | null)
+            | ({
+                relationTo: 'camp-map-annotations';
+                value: string | CampMapAnnotation;
+              } | null)
+            | ({
+                relationTo: 'camp-schedule-entry';
+                value: string | CampScheduleEntry;
               } | null);
           url?: string | null;
           openInNewTab?: boolean | null;
         };
-        id?: string | null;
-      }[]
-    | null;
-  /**
-   * Menu item in the light area of the footer
-   */
-  footerMenu?:
-    | {
-        menuSubTitle: string;
-        menuItem?:
-          | {
-              label: string;
-              link?: string | null;
-              id?: string | null;
-            }[]
-          | null;
         id?: string | null;
       }[]
     | null;
@@ -3115,6 +3325,64 @@ export interface PWA {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "alert_settings".
+ */
+export interface AlertSetting {
+  id: string;
+  questions?:
+    | {
+        question: string;
+        options: {
+          option: string;
+          id?: string | null;
+        }[];
+        id?: string | null;
+      }[]
+    | null;
+  finalResponseMessage: string;
+  emergencyPhoneNumber: string;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "app-feature-flags".
+ */
+export interface AppFeatureFlag {
+  id: string;
+  /**
+   * Toggles the ability for users to send messages globally.
+   */
+  globalMessagingEnabled?: boolean | null;
+  /**
+   * Toggles the ability for users to create new chats (1-on-1 and Group). Emergency/Support chats are excluded.
+   */
+  createChatsEnabled?: boolean | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "support-chat-management".
+ */
+export interface SupportChatManagement {
+  id: string;
+  dummy?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "alert-management".
+ */
+export interface AlertManagement {
+  id: string;
+  dummy?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "header_select".
  */
 export interface HeaderSelect<T extends boolean = true> {
@@ -3178,19 +3446,6 @@ export interface FooterSelect<T extends boolean = true> {
             };
         id?: T;
       };
-  footerMenu?:
-    | T
-    | {
-        menuSubTitle?: T;
-        menuItem?:
-          | T
-          | {
-              label?: T;
-              link?: T;
-              id?: T;
-            };
-        id?: T;
-      };
   socialLinks?:
     | T
     | {
@@ -3229,6 +3484,60 @@ export interface PWASelect<T extends boolean = true> {
   appName?: T;
   appShortName?: T;
   appDescription?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "alert_settings_select".
+ */
+export interface AlertSettingsSelect<T extends boolean = true> {
+  questions?:
+    | T
+    | {
+        question?: T;
+        options?:
+          | T
+          | {
+              option?: T;
+              id?: T;
+            };
+        id?: T;
+      };
+  finalResponseMessage?: T;
+  emergencyPhoneNumber?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "app-feature-flags_select".
+ */
+export interface AppFeatureFlagsSelect<T extends boolean = true> {
+  globalMessagingEnabled?: T;
+  createChatsEnabled?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "support-chat-management_select".
+ */
+export interface SupportChatManagementSelect<T extends boolean = true> {
+  dummy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "alert-management_select".
+ */
+export interface AlertManagementSelect<T extends boolean = true> {
+  dummy?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

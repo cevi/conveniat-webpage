@@ -1,7 +1,7 @@
 import { NewsCardBlock } from '@/components/news-card';
 import type { LinkFieldDataType } from '@/features/payload-cms/payload-cms/shared-fields/link-field';
 import type { Blog } from '@/features/payload-cms/payload-types';
-import type { LocalizedPageType, StaticTranslationString } from '@/types/types';
+import type { Locale, LocalizedPageType, StaticTranslationString } from '@/types/types';
 import config from '@payload-config';
 import { getPayload } from 'payload';
 import React from 'react';
@@ -12,7 +12,7 @@ const resentBlogsText: StaticTranslationString = {
   fr: 'Articles de blog récents',
 };
 
-export const BlogDisplay: React.FC<{ blog: Blog }> = ({ blog }) => {
+export const BlogDisplay: React.FC<{ locale: Locale; blog: Blog }> = ({ locale, blog }) => {
   if (typeof blog.content.bannerImage === 'string') {
     throw new TypeError(
       'Expected bannerImage to be an object, you may got the ID instead of the object',
@@ -34,7 +34,8 @@ export const BlogDisplay: React.FC<{ blog: Blog }> = ({ blog }) => {
         headline={blog.content.blogH1}
         linkField={linkField}
         image={blog.content.bannerImage}
-      />{' '}
+        locale={locale}
+      />
     </React.Fragment>
   );
 };
@@ -64,7 +65,7 @@ export const ListBlogPosts: React.FC<LocalizedPageType> = async ({ locale }) => 
     limit: 5,
   });
 
-  const blogs = blogsPaged.docs as Blog[];
+  const blogs = blogsPaged.docs;
 
   return (
     <div className="mx-auto my-8 flex flex-col xl:my-16 2xl:my-20 2xl:mr-[-11rem] 2xl:px-8">
@@ -76,7 +77,7 @@ export const ListBlogPosts: React.FC<LocalizedPageType> = async ({ locale }) => 
       </h2>
       <div className="grid gap-6 min-[800px]:grid-cols-2 2xl:grid-cols-3">
         {blogs.map((blog) => {
-          return <BlogDisplay blog={blog} key={blog.seo.urlSlug} />;
+          return <BlogDisplay blog={blog} key={blog.seo.urlSlug} locale={locale} />;
         })}
       </div>
     </div>

@@ -17,6 +17,7 @@ export const s3StorageConfiguration = s3Storage({
     images: true,
     documents: true,
     userSubmittedImages: true,
+    'chat-images': true,
   },
   bucket: MINIO_BUCKET_NAME,
   config: {

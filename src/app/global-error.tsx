@@ -4,7 +4,7 @@ import type React from 'react';
 import { useEffect } from 'react';
 
 import '@/app/globals.scss';
-import { ConveniatLogo } from '@/components/svg-logos/conveniat-logo';
+import { OnboardingLayout } from '@/features/onboarding/components/onboarding-layout';
 
 /**
  * This file is responsible for converting a general runtime error page.
@@ -19,6 +19,19 @@ const GlobalError: React.FC<{
   error: Error & { digest?: string };
 }> = ({ error }) => {
   useEffect(() => {
+    // Check if the error is likely due to being offline (e.g., failed to load a JS chunk)
+    const isOfflineError =
+      !navigator.onLine ||
+      error.name === 'ChunkLoadError' ||
+      error.message.toLowerCase().includes('failed to fetch') ||
+      error.message.toLowerCase().includes('network error');
+
+    if (isOfflineError) {
+      console.log('[GlobalError] Offline error detected, redirecting to /~offline');
+      globalThis.location.href = '/~offline';
+      return;
+    }
+
     console.error('Something went terribly wrong, we are sorry for that.');
 
     const initializePostHogAndCaptureError = async (): Promise<void> => {
@@ -46,21 +59,21 @@ const GlobalError: React.FC<{
   return (
     <html>
       <body>
-        <div className="flex h-dvh w-dvw flex-col items-center justify-center p-8">
-          <ConveniatLogo />
-
-          <h1 className="text-conveniat-green pt-8 text-4xl font-bold md:pt-20">
-            Es ist ein Fehler aufgetreten!
-          </h1>
-          <p className="mt-4 text-lg">
-            Es tut uns leid, aber es ist ein Fehler aufgetreten. Bitte versuche es erneut.
-          </p>
-          <button
-            className="mt-8 rounded bg-blue-600 px-4 py-2 text-white"
-            onClick={() => globalThis.location.reload()}
-          >
-            Nochmals versuchen
-          </button>
+        <div className="flex h-dvh w-dvw flex-col items-center justify-center bg-gray-50 p-4">
+          <OnboardingLayout>
+            <h1 className="text-conveniat-green mb-4 text-xl font-bold">
+              Es ist ein Fehler aufgetreten!
+            </h1>
+            <p className="mb-8 text-balance text-gray-700">
+              Es tut uns leid, aber es ist ein Fehler aufgetreten. Bitte versuche es erneut.
+            </p>
+            <button
+              className="font-heading transform cursor-pointer rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg leading-normal font-bold text-red-100 shadow-md duration-100 hover:scale-[1.02] hover:bg-red-800 active:scale-[0.98]"
+              onClick={() => globalThis.location.reload()}
+            >
+              Nochmals versuchen
+            </button>
+          </OnboardingLayout>
         </div>
       </body>
     </html>

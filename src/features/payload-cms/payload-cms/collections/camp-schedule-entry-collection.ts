@@ -1,11 +1,19 @@
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { mapAnnotationDescriptionLexicalEditorSettings } from '@/features/payload-cms/payload-cms/collections/camp-map-collection';
+import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared-fields/last-edited-by-user-field';
+import { flushPageCacheOnChange } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import type { CollectionConfig } from 'payload';
+
+import { syncOrganisers } from '@/features/payload-cms/payload-cms/utils/sync-organisers';
 
 export const CampScheduleEntryCollection: CollectionConfig = {
   slug: 'camp-schedule-entry',
   trash: true,
+  ...flushPageCacheOnChange,
+  hooks: {
+    afterChange: [syncOrganisers],
+  },
 
   labels: {
     singular: {
@@ -136,6 +144,31 @@ export const CampScheduleEntryCollection: CollectionConfig = {
       type: 'relationship',
       relationTo: 'camp-map-annotations',
       hasMany: false,
+      filterOptions: ({
+        relationTo,
+      }):
+        | boolean
+        | {
+            or: { annotationType?: { equals: string }; isInteractive?: { not_equals: boolean } }[];
+          } => {
+        if (relationTo === 'camp-map-annotations') {
+          return {
+            or: [
+              {
+                annotationType: {
+                  equals: 'marker',
+                },
+              },
+              {
+                isInteractive: {
+                  not_equals: false,
+                },
+              },
+            ],
+          };
+        }
+        return true;
+      },
       required: true,
       admin: {
         description: {
@@ -155,7 +188,7 @@ export const CampScheduleEntryCollection: CollectionConfig = {
       },
       type: 'relationship',
       relationTo: 'users',
-      hasMany: false,
+      hasMany: true,
       required: false,
       admin: {
         description: {
@@ -167,6 +200,33 @@ export const CampScheduleEntryCollection: CollectionConfig = {
       },
     },
     {
+      name: 'enable_enrolment',
+      label: {
+        en: 'Allow User Enrolment',
+        de: 'Benutzeranmeldung erlauben',
+        fr: "Autoriser l'inscription des utilisateurs",
+      },
+      type: 'checkbox',
+      defaultValue: false,
+      admin: {
+        position: 'sidebar',
+      },
+    },
+    {
+      name: 'hide_participant_list',
+      label: {
+        en: 'Hide Participant List',
+        de: 'Teilnehmerliste ausblenden',
+        fr: 'Masquer la liste des participants',
+      },
+      type: 'checkbox',
+      defaultValue: false,
+      admin: {
+        position: 'sidebar',
+        condition: (data) => Boolean(data['enable_enrolment']),
+      },
+    },
+    {
       name: 'participants_min',
       label: {
         en: 'Minimum Participants',
@@ -175,6 +235,9 @@ export const CampScheduleEntryCollection: CollectionConfig = {
       },
       required: false,
       type: 'number',
+      admin: {
+        condition: (data) => Boolean(data['enable_enrolment']),
+      },
     },
     {
       name: 'participants_max',
@@ -185,6 +248,36 @@ export const CampScheduleEntryCollection: CollectionConfig = {
       },
       required: false,
       type: 'number',
+      admin: {
+        condition: (data) => Boolean(data['enable_enrolment']),
+      },
     },
+    {
+      name: 'target_group',
+      label: {
+        en: 'Target Group',
+        de: 'Zielgruppe',
+        fr: 'Groupe cible',
+      },
+      type: 'richText',
+      localized: true,
+      editor: mapAnnotationDescriptionLexicalEditorSettings,
+    },
+    {
+      name: 'category',
+      label: {
+        en: 'Category',
+        de: 'Kategorie',
+        fr: 'Catégorie',
+      },
+      type: 'relationship',
+      relationTo: 'camp-categories',
+      hasMany: false,
+      required: false,
+      admin: {
+        position: 'sidebar',
+      },
+    },
+    LastEditedByUserField,
   ],
 };

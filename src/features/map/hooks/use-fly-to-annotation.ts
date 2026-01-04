@@ -53,13 +53,14 @@ const getPolygonCentroid = (coordinates: [number, number][]): [number, number] =
 
 export const useFlyToAnnotation = (
   annotation: CampMapAnnotationPoint | CampMapAnnotationPolygon | undefined,
+  enabled: boolean = true,
 ): void => {
   const map = useMap();
 
   // center marker
-  // eslint-disable-next-line complexity
+
   useEffect(() => {
-    if (!map || !annotation) return;
+    if (!map || !annotation || !enabled) return;
 
     // abort if the annotation does not have a valid geometry
     if (
@@ -91,12 +92,12 @@ export const useFlyToAnnotation = (
       animate: true,
       duration: 1000,
     });
-  }, [map, annotation]);
+  }, [map, annotation, enabled]);
 
   // center polygon
-  // eslint-disable-next-line complexity
+
   useEffect(() => {
-    if (!map || !annotation) return;
+    if (!map || !annotation || !enabled) return;
 
     if (
       !('coordinates' in annotation.geometry) ||
@@ -113,7 +114,7 @@ export const useFlyToAnnotation = (
     const polygonCoordinates = annotation.geometry.coordinates;
     const centroid = getPolygonCentroid(polygonCoordinates as [number, number][]);
 
-    const projectedCoordinates = map.project(centroid as [number, number]);
+    const projectedCoordinates = map.project(centroid);
 
     const annotationY = projectedCoordinates.y;
     const annotationX = projectedCoordinates.x;
@@ -135,5 +136,5 @@ export const useFlyToAnnotation = (
       animate: true,
       duration: 1000,
     });
-  }, [map, annotation]);
+  }, [map, annotation, enabled]);
 };

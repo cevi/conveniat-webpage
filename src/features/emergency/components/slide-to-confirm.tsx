@@ -9,7 +9,6 @@ interface ConfirmationSliderProperties {
   confirmedText?: string;
 }
 
-// eslint-disable-next-line complexity
 export const ConfirmationSlider: React.FC<ConfirmationSliderProperties> = ({
   onConfirm,
   text = 'Slide to confirm',
@@ -33,14 +32,29 @@ export const ConfirmationSlider: React.FC<ConfirmationSliderProperties> = ({
     handleReference.current.style.transform = 'translateX(0px)';
     trackReference.current?.style.setProperty('--translate-x-clamped', '0px');
     setDisplayText(text);
-    setIsAnimating(true);
     setTimeout(() => {
       if (handleReference.current) {
         handleReference.current.style.transition = '';
       }
+      setIsAnimating(true);
     }, 200);
     setIsProcessing(false);
   }, [isConfirmed, text]);
+
+  // Ensure slider is reset on mount
+  React.useEffect(() => {
+    setIsConfirmed(false);
+    setDisplayText(text);
+    setIsProcessing(false);
+    setIsAnimating(true);
+    if (handleReference.current) {
+      handleReference.current.style.transform = 'translateX(0px)';
+      handleReference.current.style.transition = '';
+    }
+    if (trackReference.current) {
+      trackReference.current.style.setProperty('--translate-x-clamped', '0px');
+    }
+  }, [text]);
 
   const handlePointerMove = useCallback(
     (event: PointerEvent) => {
@@ -68,60 +82,70 @@ export const ConfirmationSlider: React.FC<ConfirmationSliderProperties> = ({
         handleReference.current.style.transform = `translateX(${clampedTranslateX}px)`;
       }
       trackReference.current.style.setProperty('--translate-x-clamped', `${clampedTranslateX}px`);
+
+      if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+        navigator.vibrate(5);
+      }
     },
     [isConfirmed, isProcessing, text, pendingText],
   );
 
-  const handlePointerUp = useCallback(() => {
-    if (!isDraggingReference.current || !trackReference.current || isConfirmed || isProcessing)
-      return;
-    isDraggingReference.current = false;
+  const handlePointerUp = useCallback(
+    function onPointerUp() {
+      if (!isDraggingReference.current || !trackReference.current || isConfirmed || isProcessing)
+        return;
+      isDraggingReference.current = false;
 
-    const handleWidth = handleReference.current?.offsetWidth ?? 64;
-    const trackWidth = trackReference.current.offsetWidth;
-    const triggerThreshold = trackWidth * 0.75 - handleWidth - 16;
+      const handleWidth = handleReference.current?.offsetWidth ?? 64;
+      const trackWidth = trackReference.current.offsetWidth;
+      const triggerThreshold = trackWidth * 0.75 - handleWidth - 16;
 
-    if (currentTranslateXReference.current >= triggerThreshold) {
-      setIsProcessing(true);
-      setDisplayText(pendingText);
-      setIsAnimating(false);
-      if (handleReference.current) {
-        handleReference.current.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-        handleReference.current.style.transform = `translateX(${trackWidth - handleWidth - 16}px)`;
-      }
-      try {
-        onConfirm()
-          .then((): void => {
-            setIsConfirmed(true);
-            setIsProcessing(false);
-            setDisplayText(confirmedText);
-          })
-          .catch(() => {
-            resetSlider();
-            setIsConfirmed(false);
-            setIsProcessing(false);
-            console.error('Confirmation failed, slider reset.');
-          });
-      } catch (error) {
-        console.error('Confirmation failed:', error);
-        setIsConfirmed(false);
+      if (currentTranslateXReference.current >= triggerThreshold) {
+        setIsProcessing(true);
+        setDisplayText(pendingText);
+        setIsAnimating(false);
+        if (handleReference.current) {
+          handleReference.current.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+          handleReference.current.style.transform = `translateX(${trackWidth - handleWidth - 16}px)`;
+        }
+        try {
+          onConfirm()
+            .then((): void => {
+              setIsConfirmed(true);
+              setIsProcessing(false);
+              setDisplayText(confirmedText);
+              if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+                navigator.vibrate(50);
+              }
+            })
+            .catch(() => {
+              resetSlider();
+              setIsConfirmed(false);
+              setIsProcessing(false);
+              console.error('Confirmation failed, slider reset.');
+            });
+        } catch (error) {
+          console.error('Confirmation failed:', error);
+          setIsConfirmed(false);
+          resetSlider();
+        }
+      } else {
         resetSlider();
       }
-    } else {
-      resetSlider();
-    }
 
-    globalThis.removeEventListener('pointermove', handlePointerMove);
-    globalThis.removeEventListener('pointerup', handlePointerUp);
-  }, [
-    handlePointerMove,
-    onConfirm,
-    resetSlider,
-    isConfirmed,
-    isProcessing,
-    confirmedText,
-    pendingText,
-  ]);
+      globalThis.removeEventListener('pointermove', handlePointerMove);
+      globalThis.removeEventListener('pointerup', onPointerUp);
+    },
+    [
+      handlePointerMove,
+      onConfirm,
+      resetSlider,
+      isConfirmed,
+      isProcessing,
+      confirmedText,
+      pendingText,
+    ],
+  );
 
   const handlePointerDown = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { sendNotificationToSubscription } from '@/features/onboarding/api/push-notification';
+import { sendNotificationToSubscription } from '@/utils/push-notification-api';
 import { useDocumentInfo } from '@payloadcms/ui';
 import type webpush from 'web-push';
 
@@ -9,9 +9,38 @@ const SendPushNotification: React.FC = () => {
 
   // check if the document has data
   const hasData =
-    savedDocumentData !== undefined && (savedDocumentData as webpush.PushSubscription);
+    savedDocumentData !== undefined &&
+    (savedDocumentData as webpush.PushSubscription | undefined) !== undefined;
 
   // return a simple button to send a push notification based on the input field "push-content". the field is shown only if the document has data
+
+  const handleSendNotification = async (): Promise<void> => {
+    if (!savedDocumentData) return;
+    const subscription: webpush.PushSubscription = savedDocumentData as webpush.PushSubscription;
+
+    // Extract user ID for logging
+    const userField: unknown = savedDocumentData['user'];
+    let userId: string | undefined;
+    if (typeof userField === 'string') {
+      userId = userField;
+    } else if (typeof userField === 'object' && userField !== null && 'id' in userField) {
+      userId = (userField as { id: string }).id;
+    }
+
+    const success = await sendNotificationToSubscription(
+      subscription,
+      (document.querySelector('#send-push-content') as HTMLInputElement).value,
+      (document.querySelector('#send-push-url') as HTMLInputElement).value,
+      userId,
+    );
+    if (success.success) {
+      (document.querySelector('#send-push-content') as HTMLInputElement).value = '';
+      (document.querySelector('#send-push-url') as HTMLInputElement).value = '';
+      alert('Push notification sent successfully');
+    } else {
+      alert('Failed to send push notification');
+    }
+  };
 
   return (
     <div>
@@ -22,24 +51,8 @@ const SendPushNotification: React.FC = () => {
           <input type="text" placeholder="URL to open" id="send-push-url" />
           <button
             onClick={(event) => {
-              event.preventDefault(); // prevent default form submission
-              void (async (): Promise<void> => {
-                const subscription: webpush.PushSubscription =
-                  savedDocumentData as webpush.PushSubscription;
-
-                const success = await sendNotificationToSubscription(
-                  subscription,
-                  (document.querySelector('#send-push-content') as HTMLInputElement).value,
-                  (document.querySelector('#send-push-url') as HTMLInputElement).value,
-                );
-                if (success.success) {
-                  (document.querySelector('#send-push-content') as HTMLInputElement).value = '';
-                  (document.querySelector('#send-push-url') as HTMLInputElement).value = '';
-                  alert('Push notification sent successfully');
-                } else {
-                  alert('Failed to send push notification');
-                }
-              })();
+              event.preventDefault();
+              void handleSendNotification();
             }}
           >
             Send Push Notification

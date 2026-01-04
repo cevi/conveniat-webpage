@@ -23,7 +23,7 @@ export interface Property {
 }
 
 export interface Data {
-  [key: string]: Property | Property[] | Value;
+  [key: string]: Property | Property[];
 }
 
 const resetFormText: StaticTranslationString = {
@@ -163,8 +163,8 @@ const FormFieldRenderer: React.FC<FormFieldRendererProperties> = ({
 
         if (!conditionMet) {
           for (const field of fieldChild.fields) {
-            if ('name' in field && field.name) {
-              formMethods.resetField(field.name as FieldName<Data>);
+            if ('name' in field && field.name !== '') {
+              formMethods.resetField(field.name);
             }
           }
         }
@@ -205,7 +205,7 @@ const FormFieldRenderer: React.FC<FormFieldRendererProperties> = ({
 
           const fieldID =
             'id' in fieldChild && Boolean(fieldChild.id)
-              ? (fieldChild.id as string)
+              ? fieldChild.id
               : `conditioned-${fieldChild.blockType}-${indexChild}`;
 
           // If the condition is met, we render the conditioned block
@@ -356,7 +356,6 @@ export const FormBlock: React.FC<
     isPreviewMode?: boolean | undefined;
     withBorder?: boolean | undefined;
   }
-  // eslint-disable-next-line complexity
 > = (properties) => {
   const {
     isPreviewMode,
@@ -417,7 +416,7 @@ export const FormBlock: React.FC<
             processFields(field.fields);
           }
         } else if ('name' in field && field.name !== '') {
-          fieldNames.push(field.name as FieldName<Data>);
+          fieldNames.push(field.name);
         }
       }
     };
@@ -428,7 +427,7 @@ export const FormBlock: React.FC<
 
   const handleFinalFormSubmit = (data: Data): void => {
     let loadingTimerID: ReturnType<typeof setTimeout>;
-    // eslint-disable-next-line complexity
+
     const submitForm = async (): Promise<void> => {
       setError(undefined);
       setValidationError(undefined);
@@ -465,12 +464,15 @@ export const FormBlock: React.FC<
         if (Array.isArray(fieldData.value)) {
           dataToSend[index as unknown as number] = {
             ...fieldData,
-            value: fieldData.value.join(', '),
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-expect-error
+            value: fieldData.value.map(String).join(', '),
           };
         }
       }
 
       // remove all fields that have no value (but keep empty strings)
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       dataToSend = dataToSend.filter((fieldData) => fieldData.value !== undefined);
 
       try {
@@ -647,7 +649,7 @@ export const FormBlock: React.FC<
             locale={locale}
             currentStepIndex={currentStepIndex}
             definedSteps={definedSteps}
-            currentActualStep={currentActualStep as FormSection}
+            currentActualStep={currentActualStep}
           />
         )}
 

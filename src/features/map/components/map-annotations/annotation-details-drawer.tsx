@@ -1,3 +1,5 @@
+'use client';
+
 import { environmentVariables } from '@/config/environment-variables';
 import { AnnotationDrawerHeader } from '@/features/map/components/map-annotations/drawer-header';
 import { AnnotationScheduleTableComponent } from '@/features/map/components/map-annotations/sections/annotation-schedule-table-component';
@@ -31,7 +33,8 @@ const shareLocationCallback = async (
     text: annotation.title,
   };
   try {
-    await navigator.share(data);
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function')
+      await navigator.share(data);
   } catch {
     console.error(shareLocationError[locale]);
   }
@@ -176,7 +179,15 @@ export const AnnotationDetailsDrawer: React.FC<{
 
           {schedule && <AnnotationScheduleTableComponent locale={locale} schedule={schedule} />}
 
-          <AnnotationForumAndReportSection />
+          <AnnotationForumAndReportSection
+            coordinates={((): [number, number] | undefined => {
+              if (!('geometry' in annotation)) return undefined;
+              if (Array.isArray(annotation.geometry.coordinates[0])) {
+                return annotation.geometry.coordinates[0];
+              }
+              return annotation.geometry.coordinates as [number, number];
+            })()}
+          />
         </div>
       </div>
     </div>

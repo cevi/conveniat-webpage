@@ -1,11 +1,17 @@
 import { environmentVariables } from '@/config/environment-variables';
 import type { SEO } from '@/features/payload-cms/payload-types';
 import { metadataIconDefinitions } from '@/utils/icon-definitions';
+import { forceDynamicOnBuild } from '@/utils/is-pre-rendering';
 import config from '@payload-config';
 import type { Metadata } from 'next';
+import { cacheLife, cacheTag } from 'next/cache';
 import { getPayload } from 'payload';
 
-export const generateMetadata = async (): Promise<Metadata> => {
+export const generateMetadataCached = async (): Promise<Metadata> => {
+  'use cache';
+  cacheLife('hours');
+  cacheTag('payload', 'PWA-v8', 'SEO');
+
   const payload = await getPayload({ config });
 
   const APP_HOST_URL = environmentVariables.APP_HOST_URL;
@@ -20,10 +26,6 @@ export const generateMetadata = async (): Promise<Metadata> => {
     slug: 'SEO',
   });
 
-  const { appName } = await payload.findGlobal({
-    slug: 'PWA',
-  });
-
   return {
     title: {
       default: defaultTitle,
@@ -35,18 +37,13 @@ export const generateMetadata = async (): Promise<Metadata> => {
     publisher,
 
     verification: {
-      google: (googleSearchConsoleVerification ?? '') as string,
+      google: googleSearchConsoleVerification ?? '',
     },
 
     formatDetection: {
       email: true,
       address: true,
       telephone: true,
-    },
-
-    appleWebApp: {
-      title: appName,
-      statusBarStyle: 'black',
     },
 
     alternates: {
@@ -59,11 +56,15 @@ export const generateMetadata = async (): Promise<Metadata> => {
     },
 
     icons: metadataIconDefinitions,
-    manifest: '/manifest.webmanifest',
 
     twitter: {
       card: 'summary',
       description: defaultDescription,
     },
   };
+};
+
+export const generateMetadata = async (): Promise<Metadata> => {
+  if (await forceDynamicOnBuild()) return {};
+  return generateMetadataCached();
 };

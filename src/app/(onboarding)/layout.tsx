@@ -1,11 +1,15 @@
+import type React from 'react';
 import type { ReactNode } from 'react';
-import React from 'react';
+import { Suspense } from 'react';
 
 // These styles apply to every route in the application
 import '@/app/globals.scss';
+import { ServiceWorkerManager } from '@/components/service-worker/service-worker-manager';
 import { CeviLogo } from '@/components/svg-logos/cevi-logo';
+import { environmentVariables } from '@/config/environment-variables';
 import { PostHogProvider } from '@/providers/post-hog-provider';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
+import { SessionProvider } from 'next-auth/react';
 import { Inter, Montserrat } from 'next/font/google';
 
 interface LayoutProperties {
@@ -22,20 +26,37 @@ const inter = Inter({ subsets: ['latin'] });
  *
  * @constructor
  */
-const AppEntrypointRootLayout: React.FC<LayoutProperties> = async ({ children }) => {
+const AppEntrypointLayout: React.FC<LayoutProperties> = async ({ children }) => {
   const locale = await getLocaleFromCookies();
 
   return (
     <html className={`${montserrat.className} ${inter.className} overscroll-y-none`} lang={locale}>
-      <body className="flex h-screen w-screen flex-col overflow-x-hidden overscroll-y-none bg-[#f8fafc]">
+      <head>
+        {!environmentVariables.NEXT_PUBLIC_DISABLE_SERWIST && (
+          <link rel="manifest" href="/manifest.webmanifest" />
+        )}
+      </head>
+      <body className="flex h-svh w-screen flex-col overflow-x-hidden overflow-y-hidden overscroll-y-none bg-[#f8fafc]">
         <PostHogProvider>
-          <div className="absolute top-0 z-[-999] h-screen w-full p-[56px]">
+          <div className="absolute top-0 z-[-999] h-svh w-full p-[56px]">
             <CeviLogo className="mx-auto h-full w-full max-w-[384px] opacity-10 blur-md" />
           </div>
           {children}
         </PostHogProvider>
       </body>
     </html>
+  );
+};
+
+const AppEntrypointRootLayout: React.FC<LayoutProperties> = ({ children }) => {
+  return (
+    <Suspense>
+      <AppEntrypointLayout>
+        <ServiceWorkerManager>
+          <SessionProvider>{children}</SessionProvider>
+        </ServiceWorkerManager>
+      </AppEntrypointLayout>
+    </Suspense>
   );
 };
 

@@ -5,6 +5,53 @@ import type { NextAuthConfig } from 'next-auth';
 import type { JWT } from 'next-auth/jwt';
 import type { BasePayload } from 'payload';
 import { getPayload } from 'payload';
+import { Agent, setGlobalDispatcher } from 'undici';
+
+/**
+ * Custom Undici Agent to manage HTTP connections efficiently.
+ *
+ * This agent is configured to handle keep-alive connections with
+ * specific timeouts to prevent ECONNRESET errors when the remote
+ * server closes idle connections.
+ *
+ */
+const customAgent = new Agent({
+  keepAliveTimeout: 4000,
+  keepAliveMaxTimeout: 4000,
+  headersTimeout: 5000,
+  bodyTimeout: 10_000,
+  connect: {
+    timeout: 5000,
+    keepAlive: true, // TCP level keep-alive
+  },
+  pipelining: 0,
+  connections: 50,
+});
+setGlobalDispatcher(customAgent);
+
+// Extend the JWT type to include our custom fields
+declare module 'next-auth/jwt' {
+  interface JWT {
+    access_token?: string | undefined;
+    refresh_token?: string | undefined;
+    expires_at?: number | undefined;
+    uuid?: string;
+    group_ids?: number[];
+    nickname?: string;
+    email?: string;
+    name?: string;
+    error?: string;
+  }
+}
+
+interface TokenResponse {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+  refresh_token?: string;
+  scope?: string;
+  error?: string;
+}
 
 const HITOBITO_BASE_URL = environmentVariables.HITOBITO_BASE_URL;
 const HITOBITO_FORWARD_URL = environmentVariables.HITOBITO_FORWARD_URL;
@@ -20,9 +67,17 @@ async function saveAndFetchUserFromPayload(
   payload: BasePayload,
   userProfile: HitobitoProfile,
 ): Promise<User> {
+  // Ensure the id is a number - Hitobito may return it as a string in some cases
+  const ceviDatabaseUuid =
+    typeof userProfile.id === 'string' ? Number.parseInt(userProfile.id, 10) : userProfile.id;
+
+  if (Number.isNaN(ceviDatabaseUuid)) {
+    throw new TypeError(`Invalid user ID from Hitobito: ${userProfile.id}`);
+  }
+
   const matchedUsers = await payload.find({
     collection: 'users',
-    where: { cevi_db_uuid: { equals: userProfile.id } },
+    where: { cevi_db_uuid: { equals: ceviDatabaseUuid } },
   });
 
   if (matchedUsers.totalDocs > 1) {
@@ -34,7 +89,7 @@ async function saveAndFetchUserFromPayload(
   if (matchedUsers.totalDocs === 1 && payloadUserId !== undefined) {
     await payload.update({
       collection: 'users',
-      where: { cevi_db_uuid: { equals: userProfile.id } },
+      where: { cevi_db_uuid: { equals: ceviDatabaseUuid } },
       data: {
         groups: userProfile.roles,
         email: userProfile.email,
@@ -53,7 +108,7 @@ async function saveAndFetchUserFromPayload(
   return await payload.create({
     collection: 'users',
     data: {
-      cevi_db_uuid: userProfile.id,
+      cevi_db_uuid: ceviDatabaseUuid,
       groups: userProfile.roles.map((role) => ({
         id: role.group_id,
         name: role.group_name,
@@ -65,6 +120,121 @@ async function saveAndFetchUserFromPayload(
       nickname: userProfile.nickname,
     },
   });
+}
+
+/**
+ * Helper function to perform fetch with retries for network errors.
+ */
+async function fetchWithRetry(url: string, options: RequestInit, retries = 3): Promise<Response> {
+  let attempt = 0;
+  while (attempt < retries) {
+    try {
+      // @ts-ignore - Undici Agent is handled globally via setGlobalDispatcher,
+      // but we can also pass specific dispatcher options if needed.
+      // For now, the global agent should suffice.
+      return await fetch(url, { ...options, cache: 'no-store' });
+    } catch (error) {
+      attempt++;
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.warn(`[NextAuth] Fetch attempt ${attempt} failed for ${url}: ${errorMessage}`);
+      if (attempt >= retries) throw error;
+      // Exponential backoff: 500ms, 1000ms, 2000ms
+      await new Promise((resolve) => setTimeout(resolve, 500 * Math.pow(2, attempt)));
+    }
+  }
+  throw new Error('Unreachable code in fetchWithRetry');
+}
+
+/**
+ * Refreshes the access token using the refresh token.
+ * returns the new token with updated expiration and access token
+ */
+async function refreshAccessToken(token: JWT): Promise<JWT> {
+  try {
+    console.log('Refreshing access token for user', token.uuid);
+
+    const url = `${HITOBITO_BASE_URL}/oauth/token`;
+    const response = await fetchWithRetry(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        // @ts-ignore
+        client_id: CEVI_DB_CLIENT_ID,
+        // @ts-ignore
+        client_secret: CEVI_DB_CLIENT_SECRET,
+        grant_type: 'refresh_token',
+        refresh_token: token.refresh_token ?? '',
+      }),
+    });
+
+    let refreshedTokens: TokenResponse | undefined;
+    const responseText = await response.text();
+
+    try {
+      refreshedTokens = JSON.parse(responseText) as TokenResponse;
+    } catch {
+      console.error('Failed to parse refresh token response as JSON:', responseText);
+      throw new Error(
+        `Invalid JSON response from token refresh endpoint: ${responseText.slice(0, 100)}...`,
+      );
+    }
+
+    if (!response.ok) {
+      throw new Error(JSON.stringify(refreshedTokens));
+    }
+
+    // After refreshing the token, we re-fetch the user profile to get updated groups
+    const profileUrl = `${HITOBITO_BASE_URL}/oauth/profile`;
+    const profileResponse = await fetchWithRetry(profileUrl, {
+      headers: {
+        Authorization: `Bearer ${refreshedTokens.access_token}`,
+        'X-Scope': 'with_roles',
+      },
+    });
+
+    if (profileResponse.ok) {
+      const profile = (await profileResponse.json()) as HitobitoProfile;
+
+      // Update the user in Payload CMS with the new groups
+      // async loading of payload configuration (to avoid circular dependency)
+      const config = await import('@payload-config');
+      // @ts-ignore
+      const payload = await getPayload({ config });
+      const payloadCMSUser = await saveAndFetchUserFromPayload(payload, profile);
+
+      return {
+        ...token,
+        access_token: refreshedTokens.access_token,
+        // Fall back to old refresh token if new one is not returned
+        refresh_token: refreshedTokens.refresh_token ?? token.refresh_token,
+        expires_at: Math.floor(Date.now() / 1000) + refreshedTokens.expires_in,
+        // Update persisted user data
+        uuid: payloadCMSUser.id,
+        group_ids: profile.roles.map((role) => role.group_id),
+        email: profile.email,
+        name: profile.first_name + ' ' + profile.last_name,
+        nickname: profile.nickname,
+      };
+    } else {
+      console.error('Failed to refetch user profile after token refresh');
+      // If profile fetch fails, we still return the refreshed token but keep old user data (or maybe we should error?)
+      // For now, let's just update the tokens
+      return {
+        ...token,
+        access_token: refreshedTokens.access_token,
+        refresh_token: refreshedTokens.refresh_token ?? token.refresh_token,
+        expires_at: Math.floor(Date.now() / 1000) + refreshedTokens.expires_in,
+      };
+    }
+  } catch (error) {
+    console.error('Error refreshing access token', error);
+    return {
+      ...token,
+      error: 'RefreshAccessTokenError',
+    };
+  }
 }
 
 export const authOptions: NextAuthConfig = {
@@ -95,7 +265,7 @@ export const authOptions: NextAuthConfig = {
       userinfo: {
         async request({ tokens }: { tokens: { access_token: string } }): Promise<HitobitoProfile> {
           const url = `${HITOBITO_BASE_URL}/oauth/profile`;
-          const response = await fetch(url, {
+          const response = await fetchWithRetry(url, {
             headers: {
               Authorization: `Bearer ${tokens.access_token}`,
               'X-Scope': 'with_roles',
@@ -135,26 +305,49 @@ export const authOptions: NextAuthConfig = {
     },
 
     // This callback is called whenever a JSON Web Token is created (i.e. at sign in) or updated (i.e whenever a session is accessed in the client).
-    async jwt({ token, profile: _profile }): Promise<JWT> {
-      if (!_profile) return token;
-      const profile = _profile as unknown as HitobitoProfile;
+    async jwt({ token, account, profile: _profile }): Promise<JWT> {
+      // Initial sign in
+      if (account && _profile) {
+        const profile = _profile as unknown as HitobitoProfile;
 
-      // async loading of payload configuration (to avoid circular dependency)
-      const config = await import('@payload-config');
-      // @ts-ignore
-      const payload = await getPayload({ config });
-      const payloadCMSUser = await saveAndFetchUserFromPayload(payload, profile);
+        // async loading of payload configuration (to avoid circular dependency)
+        const config = await import('@payload-config');
+        // @ts-ignore
+        const payload = await getPayload({ config });
+        const payloadCMSUser = await saveAndFetchUserFromPayload(payload, profile);
 
-      // @ts-ignore
-      token.uuid = payloadCMSUser.id; // the id of the user in the CeviDB
+        return {
+          ...token,
+          // @ts-ignore
+          access_token: account.access_token,
+          // @ts-ignore
+          refresh_token: account.refresh_token,
+          // @ts-ignore
+          expires_at: account.expires_at ?? Math.floor(Date.now() / 1000) + 3600,
+          uuid: payloadCMSUser.id, // the id of the user in the CeviDB
+          group_ids: profile.roles.map((role) => role.group_id),
+          email: profile.email,
+          name: profile.first_name + ' ' + profile.last_name,
+          nickname: profile.nickname,
+        };
+      }
 
-      // @ts-ignore
-      token.group_ids = profile.roles.map((role) => role.group_id);
+      // Return previous token if the access token has not expired yet
+      // buffer time of 10s
+      const expiresAt = token.expires_at as number;
+      if (Date.now() < expiresAt * 1000 - 10_000) {
+        return token;
+      }
 
-      token.email = profile.email;
-      token.name = profile.first_name + ' ' + profile.last_name;
-      token['nickname'] = profile.nickname;
-      return token;
+      // Access token has expired, try to update it
+      if (!token.refresh_token) {
+        return {
+          ...token,
+          error: 'RefreshAccessTokenError',
+        };
+      }
+
+      return refreshAccessToken(token);
     },
   },
 

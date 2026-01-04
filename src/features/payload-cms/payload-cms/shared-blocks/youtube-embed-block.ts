@@ -13,6 +13,7 @@ export const youtubeEmbedBlock: Block = {
       name: 'links',
       type: 'array',
       label: 'Links',
+      required: true,
       admin: {
         description: {
           en: 'Links to the Youtube videos',

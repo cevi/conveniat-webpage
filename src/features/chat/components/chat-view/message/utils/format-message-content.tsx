@@ -1,5 +1,8 @@
+import { environmentVariables } from '@/config/environment-variables';
+import { SYSTEM_MSG_TYPE_EMERGENCY_ALERT } from '@/lib/chat-shared';
 import type { JsonArray, JsonObject } from '@/lib/prisma/runtime/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
+import { isStaticTranslationString } from '@/utils/type-guards';
 import Link from 'next/link';
 import type React from 'react';
 
@@ -9,30 +12,67 @@ const alertMessageText: StaticTranslationString = {
   fr: "🚨 Alerte d'urgence de",
 };
 
-// eslint-disable-next-line complexity
 export const formatMessageContent = (
   text: string | number | boolean | JsonObject | JsonArray,
   locale: Locale,
 ): React.ReactNode[] => {
+  if (isStaticTranslationString(text)) {
+    // We know these values are strings (or undefined from Partial access), so we can use them directly.
+    // Fallback order: current locale -> en -> empty string
+    return [text[locale] ?? text.en ?? ''];
+  }
   // If the payload is a JSON object, handle special message types.
   if (
     typeof text === 'object' &&
     !Array.isArray(text) &&
-    text['system_msg_type'] === 'emergency_alert'
+    text['system_msg_type'] === SYSTEM_MSG_TYPE_EMERGENCY_ALERT
   ) {
     const { userName, userNickname } = text;
+    const userNameString = typeof userName === 'string' ? userName : '';
+    const userNicknameString = typeof userNickname === 'string' ? userNickname : '';
+
     return [
       <div key="emergency-alert" className="rounded-md bg-red-100 p-2 font-bold text-red-600">
-        {alertMessageText[locale]} {userName?.toString() ?? userNickname?.toString() ?? ''} <br />
+        {alertMessageText[locale]} {userNameString || userNicknameString} <br />
       </div>,
     ];
+  }
+
+  // Handle Alert Response (Help is on the way)
+  if (
+    typeof text === 'object' &&
+    !Array.isArray(text) &&
+    'message' in text &&
+    'phoneNumber' in text
+  ) {
+    const messageString = typeof text['message'] === 'string' ? text['message'] : '';
+    return [messageString];
+  }
+
+  // Handle Alert Question
+  if (typeof text === 'object' && !Array.isArray(text) && 'question' in text && 'options' in text) {
+    const questionString = typeof text['question'] === 'string' ? text['question'] : '';
+    return [questionString];
   }
 
   if (typeof text === 'number' || typeof text === 'boolean') {
     return [text.toString()];
   }
 
+  // Handle nested text property (e.g. from messages with citations)
+  if (
+    typeof text === 'object' &&
+    !Array.isArray(text) &&
+    'text' in text &&
+    typeof text['text'] === 'string'
+  ) {
+    return formatMessageContent(text['text'], locale);
+  }
+
   if (typeof text !== 'string') {
+    if (typeof text === 'object' && Object.keys(text).length === 0) {
+      return [''];
+    }
     return [JSON.stringify(text, undefined, 2)];
   }
 
@@ -60,14 +100,28 @@ export const formatMessageContent = (
       match = part.match(urlRegex);
       if (match?.[1] != undefined) {
         const url = match[1];
+        const isInternalLink = url.startsWith(environmentVariables.NEXT_PUBLIC_APP_HOST_URL);
+
+        let linkProperties: { href: string; target?: string; rel?: string };
+
+        if (isInternalLink) {
+          let path = url.replace(environmentVariables.NEXT_PUBLIC_APP_HOST_URL, '');
+          if (!path.startsWith('/')) {
+            path = `/${path}`;
+          }
+          linkProperties = {
+            href: path,
+          };
+        } else {
+          linkProperties = {
+            href: url,
+            target: '_blank',
+            rel: 'noopener noreferrer',
+          };
+        }
+
         return (
-          <Link
-            key={`${lineIndex}-${partIndex}-link`}
-            href={url}
-            className="underline"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
+          <Link key={`${lineIndex}-${partIndex}-link`} className="underline" {...linkProperties}>
             {url}
           </Link>
         );

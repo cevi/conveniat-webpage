@@ -4,9 +4,11 @@ import { PreviewWarningClient } from '@/components/preview-warning-client';
 import { canUserAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { Locale, SearchParameters } from '@/types/types';
-import { auth } from '@/utils/auth-helpers';
+import { auth } from '@/utils/auth';
 import { isPreviewTokenValid } from '@/utils/preview-token';
-import { cookies } from 'next/headers';
+import { draftMode } from 'next/headers';
+import type React from 'react';
+
 /**
  * Checks if the preview token is valid.
  *
@@ -22,15 +24,27 @@ const isValidPreviewToken = async (
   previewToken: string | undefined,
   url: string,
 ): Promise<boolean> => {
-  if (previewToken === undefined) return false;
-  return await isPreviewTokenValid(url, previewToken);
-};
+  if (previewToken === undefined) {
+    console.log('Preview token is undefined');
+    return false;
+  }
 
-export const isCookiePreview = async (): Promise<boolean> => {
-  const cookieStore = await cookies();
-  const previewCookie = cookieStore.get('preview');
-  const isPreviewCookieSet = previewCookie?.value === 'true';
-  return isPreviewCookieSet;
+  // normalize url: remove trailing slash
+  const normalizedUrl = url.endsWith('/') ? url.slice(0, -1) : url;
+
+  const isValid = await isPreviewTokenValid(normalizedUrl, previewToken);
+
+  if (!isValid) {
+    // try with trailing slash
+    const isValidWithSlash = await isPreviewTokenValid(normalizedUrl + '/', previewToken);
+    if (isValidWithSlash) {
+      console.log('Preview token valid with trailing slash');
+      return true;
+    }
+  }
+
+  console.log(`Preview token validation for URL '${normalizedUrl}' (orig: '${url}'): ${isValid}`);
+  return isValid;
 };
 
 /**
@@ -58,10 +72,8 @@ export const canAccessPreviewOfCurrentPage = async (
   if (hasValidPreviewToken) return true;
 
   // check if cookie is set
-  const cookieStore = await cookies();
-  const previewCookie = cookieStore.get('preview');
-  const isPreviewCookieSet = previewCookie?.value === 'true';
-  if (!isPreviewCookieSet) return false;
+  const draft = await draftMode();
+  if (!draft.isEnabled) return false;
 
   const session = await auth();
   if (session === null) return false;
@@ -77,8 +89,9 @@ export const PreviewWarning: React.FC<{
   params: Promise<{
     locale: Locale;
   }>;
-}> = async ({ params }) => {
+  renderInPreviewMode: boolean;
+}> = async ({ params, renderInPreviewMode }) => {
   const { locale } = await params;
 
-  return <PreviewWarningClient locale={locale} />;
+  return <PreviewWarningClient locale={locale} renderInPreviewMode={renderInPreviewMode} />;
 };

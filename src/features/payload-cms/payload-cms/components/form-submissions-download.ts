@@ -8,7 +8,7 @@ import { getPayload } from 'payload';
  * It wraps the value in double quotes if it contains a comma, newline, or double quote.
  * Existing double quotes within the value are also escaped by doubling them.
  */
-const escapeCsvValue = (value: unknown): string => {
+const escapeCsvValue = (value: string | undefined): string => {
   // Handle null/undefined by converting to an empty string
   const stringValue = String(value ?? '');
 

@@ -2,10 +2,10 @@
 # From https://github.com/vercel/next.js/blob/canary/examples/with-docker/Dockerfile
 FROM node:24.4-alpine AS base
 
-# Install curl for healthcheck and build dependencies for sharp, rebuild sharp, and then uninstall build dependencies
-RUN apk add --no-cache curl vips vips-dev fftw-dev gcc g++ make python3 && \
-    npm rebuild sharp --platform=linuxmusl --arch=x64 && \
-    apk del vips-dev fftw-dev gcc g++ make python3
+# Install curl for healthcheck, libc6-compat for native libs, and build dependencies for sharp
+RUN apk add --no-cache curl libc6-compat vips vips-dev fftw-dev gcc g++ make python3 && \
+  npm rebuild sharp --platform=linuxmusl --arch=x64 && \
+  apk del vips-dev fftw-dev gcc g++ make python3
 
 # Install dependencies only when needed
 FROM base AS deps
@@ -14,9 +14,6 @@ WORKDIR /app
 ENV BUILD_TARGET=production
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-
-# Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
-RUN apk add --no-cache libc6-compat
 
 COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
 
@@ -45,10 +42,6 @@ ENV NEXT_PUBLIC_VAPID_PUBLIC_KEY=${NEXT_PUBLIC_VAPID_PUBLIC_KEY}
 ENV NEXT_PUBLIC_POSTHOG_HOST=${NEXT_PUBLIC_POSTHOG_HOST}
 ENV NEXT_PUBLIC_POSTHOG_KEY=${NEXT_PUBLIC_POSTHOG_KEY}
 
-# additional build time feature flags
-ARG NEXT_PUBLIC_ENABLE_OFFLINE_SUPPORT=false
-ENV NEXT_PUBLIC_ENABLE_OFFLINE_SUPPORT=${NEXT_PUBLIC_ENABLE_OFFLINE_SUPPORT}
-
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
@@ -56,22 +49,33 @@ COPY . .
 # if NEXT_PUBLIC_APP_HOST_URL is not set to conveniat27.ch
 RUN \
   if [ "${NEXT_PUBLIC_APP_HOST_URL}" != "https://conveniat27.ch" ]; then \
-    cp /app/public/dev-icons/* /app/public/; \
+  cp /app/public/dev-icons/* /app/public/; \
   fi
 
 RUN sh create_build_info.sh
 
 # generate prisma client
 ENV PRISMA_OUTPUT='src/lib/prisma/client/'
-RUN npx prisma generate
+RUN npx prisma generate --no-hints
 
 RUN \
-  if [ -f yarn.lock ]; then yarn run build; \
+  if [ -f pnpm-lock.yaml ]; then corepack enable pnpm; fi; \
+  if [ -f yarn.lock ]; then yarn build; \
   elif [ -f package-lock.json ]; then npm run build; \
-  elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm run build; \
+  elif [ -f pnpm-lock.yaml ]; then pnpm run build; \
   else echo "Lockfile not found." && exit 1; \
+  fi 2>&1 | tee build.log; \
+  RET=$?; \
+  if [ $RET -ne 0 ]; then \
+  echo "Build failed with exit code $RET"; \
+  cat build.log; \
+  exit $RET; \
   fi
 
+
+
+# Ensure fallback cache directory exists so copy commands don't fail if empty
+RUN mkdir -p .next/cache/fs-fallback
 
 # Production image, copy all the files and run next
 FROM base AS runner
@@ -89,8 +93,6 @@ ENV NEXT_TELEMETRY_DISABLED 1
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Remove this line if you do not have this folder
-COPY --from=builder /app/public ./public
 
 # Set the correct permission for prerender cache
 RUN mkdir .next
@@ -98,8 +100,14 @@ RUN chown nextjs:nodejs .next
 
 # Automatically leverage output traces to reduce image size
 # https://nextjs.org/docs/advanced-features/output-file-tracing
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# copy the fallback cache containing pre-build / static assets
+COPY --from=builder --chown=nextjs:nodejs /app/.next/cache/fs-fallback ./.next/cache/fs-fallback
+
+# copy prisma client
 COPY --from=builder --chown=nextjs:nodejs /app/src/lib/prisma/ /app/src/lib/prisma/
 
 USER nextjs

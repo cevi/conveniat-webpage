@@ -1,20 +1,25 @@
 'use client';
 
+import { Button } from '@/components/ui/buttons/button';
 import type { CampMapAnnotation } from '@/features/payload-cms/payload-types';
 import { DateCarousel } from '@/features/schedule/components/date-carousel';
 import { NoProgramPlaceholder } from '@/features/schedule/components/no-program-placeholder';
-import { ScheduleHeader } from '@/features/schedule/components/schedule-header';
 import { ScheduleList } from '@/features/schedule/components/schedule-list';
 import { SearchFilterBar } from '@/features/schedule/components/search-filter-bar';
+import { ScheduleStatusProvider } from '@/features/schedule/context/schedule-status-context';
 import { useSchedule } from '@/features/schedule/hooks/use-schedule';
 import { useScheduleFilters } from '@/features/schedule/hooks/use-schedule-filter';
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
+import { useOnlineStatus } from '@/hooks/use-online-status';
+import { useStar } from '@/hooks/use-star';
+import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { AnimatePresence, motion } from 'framer-motion';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import { useRouter } from 'next/navigation';
-import type React from 'react';
-import { useMemo } from 'react';
+import React, { useMemo } from 'react';
 
 const noEventsText: StaticTranslationString = {
   en: 'No events match your filters for this date',
@@ -22,56 +27,147 @@ const noEventsText: StaticTranslationString = {
   fr: 'Aucun événement ne correspond à vos filtres pour cette date',
 };
 
-// Corrected pluralization for the German translation
 const foundEventsText: StaticTranslationString = {
   en: 'Found {{count}} event{{plural}} for ',
   de: '{{count}} Veranstaltung{{plural}} gefunden für ',
-  fr: '{{count}} événement{{plural}} trouvé pour ',
+  fr: '{{count}} événement{{plural}} trouvé{{plural}} pour ',
 };
 
-export const ScheduleComponent: React.FC<{
+const nextDayLabel: StaticTranslationString = {
+  en: 'Go to next day',
+  de: 'Zum nächsten Tag',
+  fr: 'Aller au jour suivant',
+};
+
+const previousDayLabel: StaticTranslationString = {
+  en: 'Go to previous day',
+  de: 'Zum vorherigen Tag',
+  fr: 'Aller au jour précédent',
+};
+
+interface ScheduleComponentProperties {
   scheduleEntries: CampScheduleEntryFrontendType[];
-}> = ({ scheduleEntries }) => {
+}
+
+export const ScheduleComponent: React.FC<ScheduleComponentProperties> = ({ scheduleEntries }) => {
   const router = useRouter();
-
-  const { currentDate, allDates, expandedEntries, carouselStartIndex, maxVisibleDays, actions } =
-    useSchedule(scheduleEntries);
-
   const locale = useCurrentLocale(i18nConfig) as Locale;
+  const { starredEntries } = useStar();
+  const isOnline = useOnlineStatus();
+
+  // Get enrolled courses
+  const { data: myEnrollments } = trpc.schedule.getMyEnrollments.useQuery();
+  const enrolledIds = useMemo(() => new Set(myEnrollments ?? []), [myEnrollments]);
+
+  // Hydrate schedule entries into TanStack Query cache for offline access
+  const { data: hydratedScheduleEntries } = trpc.schedule.getScheduleEntries.useQuery(undefined, {
+    initialData: scheduleEntries,
+    staleTime: 1000 * 60 * 60, // 1 hour
+  });
+
+  const {
+    currentDate,
+    allDates,
+    currentProgram: rawCurrentProgram,
+    carouselStartIndex,
+    maxVisibleDays,
+    actions,
+  } = useSchedule(hydratedScheduleEntries);
 
   const {
     filters,
-    filteredEntries,
+    handleFiltersChange,
+    filteredEntries: currentProgram,
+    hasActiveFilters,
     availableLocations,
     availableCategories,
-    hasActiveFilters,
-    handleFiltersChange,
-  } = useScheduleFilters(scheduleEntries);
-
-  // Apply date filter to the already filtered entries
-  const currentProgram = useMemo(() => {
-    const currentDateString = currentDate.toISOString().split('T')[0] ?? '';
-    return filteredEntries.filter((entry) => entry.timeslot.date.startsWith(currentDateString));
-  }, [filteredEntries, currentDate]);
+  } = useScheduleFilters(rawCurrentProgram, starredEntries);
 
   const hasProgram = currentProgram.length > 0;
 
-  const handleReadMore = (entryId: string): void => router.push(`/app/schedule/${entryId}`);
+  // Track previous date to determine slide direction
+  const [previousDate, setPreviousDate] = React.useState(currentDate);
+  const [direction, setDirection] = React.useState(1);
+
+  if (currentDate.getTime() !== previousDate.getTime()) {
+    setDirection(currentDate > previousDate ? 1 : -1);
+    setPreviousDate(currentDate);
+  }
+
+  // Handle Map Click
   const handleMapClick = (location: CampMapAnnotation): void => {
-    if (location.id !== '') router.push(`/app/map?locationId=${location.id}`);
+    router.push(`/app/map?locationId=${location.id}`);
   };
+
+  // Group entries by time and location for display
+  const currentProgramGrouped = useMemo(() => {
+    const grouped: { time: string; entries: CampScheduleEntryFrontendType[] }[] = [];
+    const timeMap = new Map<string, CampScheduleEntryFrontendType[]>();
+
+    for (const entry of currentProgram) {
+      const timeKey = entry.timeslot.time; // e.g. "14:00"
+      if (!timeMap.has(timeKey)) {
+        timeMap.set(timeKey, []);
+      }
+      timeMap.get(timeKey)?.push(entry);
+    }
+
+    // Sort times
+    const sortedTimes = [...timeMap.keys()].sort();
+
+    for (const time of sortedTimes) {
+      grouped.push({
+        time: `${time}`,
+        entries: timeMap.get(time) ?? [],
+      });
+    }
+
+    return grouped;
+  }, [currentProgram]);
+
+  // Get visible course IDs for bulk status fetching
+  const visibleCourseIds = useMemo(() => currentProgram.map((entry) => entry.id), [currentProgram]);
+
+  const totalEventsCount = currentProgram.length;
 
   let pluralSuffix = '';
   if (locale === 'de') {
-    pluralSuffix = currentProgram.length === 1 ? '' : 'en';
+    pluralSuffix = totalEventsCount === 1 ? '' : 'en';
   } else {
-    pluralSuffix = currentProgram.length === 1 ? '' : 's';
+    pluralSuffix = totalEventsCount === 1 ? '' : 's';
   }
 
-  return (
-    <article className="mx-auto my-8 w-full max-w-2xl overflow-hidden px-4">
-      <ScheduleHeader currentDate={currentDate} />
+  const dateKey = currentDate.toISOString().split('T')[0] ?? '';
 
+  // Calculate Next Day logic
+  const currentIndex = allDates.findIndex(
+    (d) => d.toISOString().split('T')[0] === currentDate.toISOString().split('T')[0],
+  );
+  const nextDate =
+    currentIndex !== -1 && currentIndex < allDates.length - 1
+      ? allDates[currentIndex + 1]
+      : undefined;
+
+  const previousDay =
+    currentIndex !== -1 && currentIndex > 0 ? allDates[currentIndex - 1] : undefined;
+
+  const slideVariants = {
+    enter: (direction_: number): { x: number; opacity: number } => ({
+      x: direction_ > 0 ? 50 : -50,
+      opacity: 0,
+    }),
+    center: {
+      x: 0,
+      opacity: 1,
+    },
+    exit: (direction_: number): { x: number; opacity: number } => ({
+      x: direction_ > 0 ? -50 : 50,
+      opacity: 0,
+    }),
+  };
+
+  return (
+    <article className="mx-auto w-full max-w-2xl px-4 py-8">
       <DateCarousel
         allDates={allDates}
         currentDate={currentDate}
@@ -98,7 +194,7 @@ export const ScheduleComponent: React.FC<{
           {hasProgram ? (
             <span>
               {foundEventsText[locale]
-                .replace('{{count}}', String(currentProgram.length))
+                .replace('{{count}}', String(totalEventsCount))
                 .replace('{{plural}}', pluralSuffix)}
               {currentDate.toLocaleDateString(locale, {
                 weekday: 'long',
@@ -112,18 +208,94 @@ export const ScheduleComponent: React.FC<{
         </div>
       )}
 
-      <div className="mt-6">
-        {hasProgram ? (
-          <ScheduleList
-            entries={currentProgram}
-            expandedEntries={expandedEntries}
-            onToggleExpand={actions.toggleExpanded}
-            onReadMore={handleReadMore}
-            onMapClick={handleMapClick}
-          />
-        ) : (
-          <NoProgramPlaceholder currentDate={currentDate} />
-        )}
+      {/* Schedule List with Slide Animation */}
+      <div className="relative min-h-[300px]">
+        <AnimatePresence initial={false} mode="wait" custom={direction}>
+          <motion.div
+            key={dateKey}
+            custom={direction}
+            variants={slideVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{
+              duration: 0.25,
+              ease: 'easeOut',
+            }}
+            drag="x"
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.2}
+            onDragEnd={(_, info) => {
+              const threshold = 50;
+              if (info.offset.x < -threshold && nextDate) {
+                actions.handleDateSelect(nextDate);
+              } else if (info.offset.x > threshold && currentIndex > 0 && previousDay) {
+                actions.handleDateSelect(previousDay);
+              }
+            }}
+            className="h-full touch-pan-y"
+          >
+            {hasProgram ? (
+              <ScheduleStatusProvider courseIds={visibleCourseIds} isOnline={isOnline}>
+                <div className="space-y-8">
+                  <ScheduleList
+                    groupedEntries={currentProgramGrouped}
+                    enrolledIds={enrolledIds}
+                    onMapClick={handleMapClick}
+                  />
+
+                  {/* Navigation Links */}
+                  {(previousDay ?? nextDate) && (
+                    <div className="flex flex-col space-y-3">
+                      {/* Prev Day Link */}
+                      {previousDay && (
+                        <Button
+                          variant="outline"
+                          className="w-full gap-2 border-dashed text-gray-500 hover:text-gray-900"
+                          onClick={() => actions.handleDateSelect(previousDay)}
+                        >
+                          <ArrowLeft className="h-4 w-4" />
+                          <span>{previousDayLabel[locale]}</span>
+                          <span className="font-semibold text-gray-900">
+                            {previousDay.toLocaleDateString(locale, { weekday: 'long' })}
+                          </span>
+                        </Button>
+                      )}
+
+                      {/* Next Day Link */}
+                      {nextDate && (
+                        <Button
+                          variant="outline"
+                          className="w-full gap-2 border-dashed text-gray-500 hover:text-gray-900"
+                          onClick={() => actions.handleDateSelect(nextDate)}
+                        >
+                          <span>{nextDayLabel[locale]}</span>
+                          <span className="font-semibold text-gray-900">
+                            {nextDate.toLocaleDateString(locale, { weekday: 'long' })}
+                          </span>
+                          <ArrowRight className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </ScheduleStatusProvider>
+            ) : (
+              <NoProgramPlaceholder
+                currentDate={currentDate}
+                hasActiveFilters={hasActiveFilters}
+                onClearFilters={() =>
+                  handleFiltersChange({
+                    searchText: '',
+                    selectedLocations: [],
+                    selectedCategory: undefined,
+                    starredOnly: false,
+                  })
+                }
+              />
+            )}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </article>
   );

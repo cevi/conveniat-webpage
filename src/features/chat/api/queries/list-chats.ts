@@ -1,63 +1,17 @@
-import { USER_RELEVANT_MESSAGE_EVENTS } from '@/features/chat/api/definitions';
-import { getStatusFromMessageEvents } from '@/features/chat/api/utils/get-status-from-message-events';
+import { getMessagePreviewText } from '@/features/chat/api/utils/get-message-preview-text';
 import { resolveChatName } from '@/features/chat/api/utils/resolve-chat-name';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
-import { MessageEventType } from '@/lib/prisma';
+import type { ChatStatus } from '@/lib/chat-shared';
+import {
+  SYSTEM_SENDER_ID,
+  USER_RELEVANT_MESSAGE_EVENTS,
+  getStatusFromMessageEvents,
+} from '@/lib/chat-shared';
+import { ChatMembershipPermission, MessageEventType } from '@/lib/prisma';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
-
-/**
- * Extracts a preview text from the last message's content versions.
- * Converts system messages and special messages to a text
- * representation for preview purposes.
- *
- * TODO: how do we handle localization here?
- *
- * @param lastMessage
- */
-// eslint-disable-next-line complexity
-const getMessagePreviewText = (lastMessage: {
-  contentVersions: { payload: unknown }[];
-}): string => {
-  const payload = lastMessage.contentVersions[0]?.payload;
-
-  if (
-    typeof payload === 'object' &&
-    payload !== null &&
-    'system_msg_type' in payload &&
-    typeof payload.system_msg_type === 'string'
-  ) {
-    switch (payload.system_msg_type) {
-      case 'emergency_alert': {
-        return '🚨 Emergency Alert';
-      }
-      default: {
-        return 'System message';
-      }
-    }
-  }
-
-  if (
-    typeof payload === 'object' &&
-    payload !== null &&
-    'location' in payload &&
-    typeof payload.location === 'object' &&
-    payload.location !== null &&
-    'latitude' in payload.location &&
-    'longitude' in payload.location
-  ) {
-    return '📍 Location shared';
-  }
-
-  if (typeof payload === 'string') {
-    return payload;
-  }
-
-  // Fallback for other message types
-  return JSON.stringify(payload ?? {});
-};
 
 export const listChats = trpcBaseProcedure
   .input(z.object({}))
@@ -71,7 +25,7 @@ export const listChats = trpcBaseProcedure
 
     if (prismaUser === null) {
       throw new TRPCError({
-        code: 'NOT_FOUND',
+        code: 'UNAUTHORIZED',
         message: `User with UUID ${user.uuid} not found in the database`,
       });
     }
@@ -100,6 +54,7 @@ export const listChats = trpcBaseProcedure
           },
         },
         chatMemberships: { include: { user: true } },
+        _count: { select: { messages: true } },
       },
       orderBy: { lastUpdate: 'desc' },
     });
@@ -133,15 +88,21 @@ export const listChats = trpcBaseProcedure
           })),
           user,
         ),
+        description: chat.description,
+        status: chat.status as ChatStatus,
         chatType: chat.type,
         id: chat.uuid,
+        messageCount: chat._count.messages,
         lastMessage: {
           id: lastMessage.uuid,
           createdAt: chat.lastUpdate,
           messagePreview: getMessagePreviewText(lastMessage),
-          senderId: lastMessage.senderId ?? undefined,
+          senderId: lastMessage.senderId ?? SYSTEM_SENDER_ID,
           status: getStatusFromMessageEvents(lastMessage.messageEvents),
         },
+        userChatPermission:
+          chat.chatMemberships.find((m) => m.userId === prismaUser.uuid)?.chatPermission ??
+          ChatMembershipPermission.GUEST,
       };
     });
   });

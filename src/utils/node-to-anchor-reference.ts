@@ -1,3 +1,4 @@
+import { ReactDOMServer } from 'next/dist/server/route-modules/app-page/vendored/ssr/entrypoints';
 import type { ReactNode } from 'react';
 
 export const replaceUmlautsAndAccents = (input: string): string => {
@@ -26,10 +27,10 @@ export const replaceUmlautsAndAccents = (input: string): string => {
  * @returns {string | undefined} The anchor reference or undefined if the node is undefined
  */
 export const nodeToAnchorReference = (node: ReactNode): string | undefined => {
-  const string_ = node?.toString();
-  if (string_ === undefined) return undefined;
+  const stringifiedNode = ReactDOMServer.renderToString(node);
+  if (stringifiedNode === '') return undefined;
 
-  return replaceUmlautsAndAccents(string_)
+  return replaceUmlautsAndAccents(stringifiedNode)
     .replaceAll(/\s+/g, '-') // Replace spaces with hyphens
     .replaceAll(/[^a-z0-9-]/g, ''); // Remove non-alphanumerics (except hyphen)
 };

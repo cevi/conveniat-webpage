@@ -1,3 +1,4 @@
+import { SafeErrorBoundary } from '@/components/error-boundary/safe-error-boundary';
 import { FooterBuildInfoText } from '@/components/footer/footer-copyright-area';
 import { MainMenuLanguageSwitcher } from '@/components/menu/main-menu-language-switcher';
 import { SearchComponent } from '@/components/menu/search';
@@ -7,183 +8,20 @@ import {
   hasPermissionsForLinkField,
   openURLInNewTab,
 } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
+import type { Header } from '@/features/payload-cms/payload-types';
 import { specialPagesTable } from '@/features/payload-cms/special-pages-table';
-import { isCookiePreview } from '@/features/payload-cms/utils/preview-utils';
-import type { StaticTranslationString } from '@/types/types';
+import type { Locale } from '@/types/types';
 import { getBuildInfo } from '@/utils/get-build-info';
-import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
-import { renderInAppDesign } from '@/utils/render-in-app-design';
 import { cn } from '@/utils/tailwindcss-override';
 import { Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/react';
 import config from '@payload-config';
-import type { LucideIcon } from 'lucide-react';
-import {
-  Calendar,
-  CalendarCheck2,
-  ChevronDown,
-  ImageUp,
-  LayoutList,
-  LucideMessageCircleQuestion,
-  Map,
-  MessageSquare,
-  OctagonAlert,
-  Settings,
-  Siren,
-  Truck,
-} from 'lucide-react';
+import { ChevronDown, OctagonAlert } from 'lucide-react';
+import { cacheLife, cacheTag } from 'next/cache';
+import { draftMode } from 'next/headers';
 import { getPayload } from 'payload';
 import type React from 'react';
-import { ErrorBoundary } from 'react-error-boundary';
 
-const appFeaturesTitle: StaticTranslationString = {
-  en: 'App Features',
-  de: 'App Funktionen',
-  fr: "Fonctions de l'application",
-};
-
-// Define each feature's translation as a separate StaticTranslationString constant
-const chatFeatureTranslation: StaticTranslationString = {
-  en: 'Chat',
-  de: 'Chat',
-  fr: 'Chat',
-};
-
-const qaForumFeatureTranslation: StaticTranslationString = {
-  en: 'conveniat27 Forum',
-  de: 'conveniat27 Forum',
-  fr: 'Forum conveniat27',
-};
-
-const emergencyInfoFeatureTranslation: StaticTranslationString = {
-  en: 'Emergency Information',
-  de: 'Notfallinformationen',
-  fr: "Informations d'urgence",
-};
-
-const campMapFeatureTranslation: StaticTranslationString = {
-  en: 'Campsite Map',
-  de: 'Lagerplatz Karte',
-  fr: 'Carte du terrain de camp',
-};
-
-const scheduleFeatureTranslation: StaticTranslationString = {
-  en: 'Programm and Story',
-  de: 'Programm und Geschichte',
-  fr: 'Programme et histoire',
-};
-
-const helperShiftsFeatureTranslation: StaticTranslationString = {
-  en: 'Helper Shifts',
-  de: 'Schichteinsätze von Helfenden',
-  fr: 'Services des aides',
-};
-
-const departmentShiftsFeatureTranslation: StaticTranslationString = {
-  en: 'Department Shifts',
-  de: 'Schichteinsätze von Abteilungen',
-  fr: 'Services des départements',
-};
-
-const uploadPicturesFeatureTranslation: StaticTranslationString = {
-  en: 'Upload Pictures',
-  de: 'Bilder hochladen',
-  fr: 'Télécharger des photos',
-};
-
-const reservationsFeatureTranslation: StaticTranslationString = {
-  en: 'Reservations',
-  de: 'Reservationen',
-  fr: 'Réservations',
-};
-
-const settingsFeatureTranslation: StaticTranslationString = {
-  en: 'Settings',
-  de: 'Einstellungen',
-  fr: 'Paramètres',
-};
-
-interface AppFeatureMenuItemProperties {
-  href: string;
-  Icon: LucideIcon;
-  text: string;
-  openInNewTab?: boolean;
-}
-
-const AppFeatureMenuItem: React.FC<AppFeatureMenuItemProperties> = ({
-  href,
-  Icon,
-  text,
-  openInNewTab = false,
-}) => {
-  return (
-    <LinkComponent href={href} openInNewTab={openInNewTab}>
-      <span className="closeNavOnClick -mx-3 flex items-center gap-2 rounded-lg px-3 py-2 text-base/7 font-semibold text-gray-700 hover:bg-gray-50">
-        <Icon aria-hidden="true" className="size-5" />
-        {text}
-      </span>
-    </LinkComponent>
-  );
-};
-
-const AppFeatures: React.FC = async () => {
-  const locale = await getLocaleFromCookies();
-
-  return (
-    <>
-      <div className="py-6">
-        <h3 className="text-conveniat-green mb-2 font-bold">{appFeaturesTitle[locale]}</h3>
-
-        <AppFeatureMenuItem
-          href="/app/chat"
-          Icon={MessageSquare}
-          text={chatFeatureTranslation[locale]}
-        />
-        <AppFeatureMenuItem
-          href="/app/forum"
-          Icon={LucideMessageCircleQuestion}
-          text={qaForumFeatureTranslation[locale]}
-        />
-        <AppFeatureMenuItem
-          href="/app/emergency"
-          Icon={Siren}
-          text={emergencyInfoFeatureTranslation[locale]}
-        />
-        <AppFeatureMenuItem href="/app/map" Icon={Map} text={campMapFeatureTranslation[locale]} />
-        <AppFeatureMenuItem
-          href="/app/schedule"
-          Icon={Calendar}
-          text={scheduleFeatureTranslation[locale]}
-        />
-        <AppFeatureMenuItem
-          href="/app/helper-portal"
-          Icon={CalendarCheck2}
-          text={helperShiftsFeatureTranslation[locale]}
-        />
-        <AppFeatureMenuItem
-          href="/app/helper-portal"
-          Icon={LayoutList}
-          text={departmentShiftsFeatureTranslation[locale]}
-        />
-        <AppFeatureMenuItem
-          href="/app/upload-images"
-          Icon={ImageUp}
-          text={uploadPicturesFeatureTranslation[locale]}
-        />
-        <AppFeatureMenuItem
-          href="/app/reservations"
-          Icon={Truck}
-          text={reservationsFeatureTranslation[locale]}
-        />
-        <AppFeatureMenuItem
-          href="/app/settings"
-          Icon={Settings}
-          text={settingsFeatureTranslation[locale]}
-        />
-      </div>
-      <hr className="border-t-2 text-gray-100" />
-    </>
-  );
-};
+import { AppFeatures } from '@/components/menu/app-features';
 const DeletedMenuEntry: React.FC<{ message: string }> = ({ message }) => {
   return (
     <>
@@ -194,21 +32,35 @@ const DeletedMenuEntry: React.FC<{ message: string }> = ({ message }) => {
   );
 };
 
-export const MainMenu: React.FC = async ({}) => {
+const getMainMenuFromPayloadCached = async (
+  locale: Locale,
+  showPreviewForMainMenu: boolean,
+): Promise<Header['mainMenu']> => {
+  'use cache';
+  cacheLife('hours');
+  cacheTag('header');
+
   const payload = await getPayload({ config });
-  const locale = await getLocaleFromCookies();
-  const isInAppDesign = await renderInAppDesign();
-  const build = await getBuildInfo();
-  const actionURL = specialPagesTable['search']?.alternatives[locale] ?? '/suche';
-
-  // if the user is logged in, we show the preview for the menu
-  const showPreviewForMainMenu = await isCookiePreview();
-
   const { mainMenu } = await payload.findGlobal({
     slug: 'header',
     locale,
     draft: showPreviewForMainMenu,
   });
+
+  return Array.isArray(mainMenu) ? mainMenu : [];
+};
+
+export const MainMenu: React.FC<{
+  locale: Locale;
+  inAppDesign: boolean;
+}> = async ({ locale, inAppDesign }) => {
+  const build = await getBuildInfo(locale);
+  const actionURL = specialPagesTable['search']?.alternatives[locale] ?? '/suche';
+
+  // if the user is logged in, we show the preview for the menu
+  const draft = await draftMode();
+  const showPreviewForMainMenu: boolean = draft.isEnabled;
+  const mainMenu = await getMainMenuFromPayloadCached(locale, showPreviewForMainMenu);
 
   // fallback to an empty array if mainMenu is not an array, to avoid runtime errors
   const mainMenuWithFallback = Array.isArray(mainMenu) ? mainMenu : [];
@@ -217,7 +69,7 @@ export const MainMenu: React.FC = async ({}) => {
     <div
       className={cn(
         'mx-auto mt-8 flex h-[calc(100%-100px)] max-w-md flex-col justify-between divide-gray-100 overflow-x-hidden overflow-y-auto px-4 xl:px-8',
-        { 'pb-16': isInAppDesign },
+        { 'pb-16': inAppDesign },
       )}
     >
       <div>
@@ -227,10 +79,10 @@ export const MainMenu: React.FC = async ({}) => {
           </LinkComponent>
         </span>
 
-        {isInAppDesign && <AppFeatures />}
+        {inAppDesign && <AppFeatures locale={locale} />}
 
         <div className="py-6">
-          {isInAppDesign && <h3 className="text-conveniat-green mb-2 font-bold">Web Inhalte</h3>}
+          {inAppDesign && <h3 className="text-conveniat-green mb-2 font-bold">Web Inhalte</h3>}
           {showPreviewForMainMenu && (
             <div className="closeNavOnClick block cursor-pointer rounded-lg bg-orange-500 py-2 pr-3 pl-6 text-sm/7 font-semibold text-white">
               Preview Menu
@@ -254,7 +106,7 @@ export const MainMenu: React.FC = async ({}) => {
               }
 
               return (
-                <ErrorBoundary fallback={<></>} key={item.id}>
+                <SafeErrorBoundary fallback={<></>} key={item.id}>
                   <Disclosure as="div" className="-mx-3">
                     <DisclosureButton className="group flex w-full cursor-pointer items-center justify-between rounded-lg py-2 pr-3.5 pl-3 text-base/7 font-semibold text-gray-700 hover:bg-gray-50">
                       {item.label}
@@ -282,11 +134,12 @@ export const MainMenu: React.FC = async ({}) => {
                       )}
                     </DisclosurePanel>
                   </Disclosure>
-                </ErrorBoundary>
+                </SafeErrorBoundary>
               );
             }
 
             const itemLink = getURLForLinkField(item.linkField, locale) ?? '/';
+
             const hasPermission = await hasPermissionsForLinkField(item.linkField);
 
             if (!hasPermission) {
@@ -314,7 +167,7 @@ export const MainMenu: React.FC = async ({}) => {
         <MainMenuLanguageSwitcher locale={locale} />
         <SearchComponent locale={locale} actionURL={actionURL} />
 
-        {isInAppDesign && build && (
+        {inAppDesign && build && (
           <div className="flex flex-col py-6 text-center">
             <FooterBuildInfoText>Version {build.version} </FooterBuildInfoText>
             <FooterBuildInfoText>

@@ -43,6 +43,7 @@ html body[data-scroll-locked] {
     transform: none;
     animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
   }
+
   50% {
     transform: translateX(25%);
     animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
@@ -51,4 +52,61 @@ html body[data-scroll-locked] {
 
 .animate-jump-x {
   animation: jump-x 2.5s ease-in-out infinite;
+}
+
+// Loading Animation
+@keyframes loading {
+  0% {
+    left: -50%;
+  }
+
+  100% {
+    left: 100%;
+  }
+}
+
+.animate-loading {
+  animation: loading 1.5s infinite linear;
+}
+
+// Animation for message highlight
+@keyframes message-highlight {
+  0% {
+    background-color: rgba(50, 51, 148, 0.4);
+  }
+
+  100% {
+    background-color: transparent;
+  }
+}
+
+.animate-message-highlight {
+  animation: message-highlight 2s ease-out forwards;
+}
+
+// Window Controls Overlay Support
+:root {
+  --wco-height: env(titlebar-area-height, 0px);
+}
+
+@media (display-mode: window-controls-overlay) {
+  header {
+    height: var(--wco-height) !important;
+    app-region: drag;
+    -webkit-app-region: drag;
+
+    // Interactive elements should not be draggable
+    a,
+    button,
+    .no-drag {
+      app-region: no-drag;
+      -webkit-app-region: no-drag;
+    }
+  }
+
+  // Adjust main content to start below the WCO
+  .wco-content-wrapper {
+    margin-top: var(--wco-height);
+    height: calc(100dvh - var(--wco-height));
+  }
 }

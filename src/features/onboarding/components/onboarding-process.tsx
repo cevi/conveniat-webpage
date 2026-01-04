@@ -1,144 +1,146 @@
 'use client';
 
-import type { cookieInfoText } from '@/features/onboarding/components/accept-cookies-component';
 import { AcceptCookieEntrypointComponent } from '@/features/onboarding/components/accept-cookies-component';
-import { GettingReadyEntrypointComponent } from '@/features/onboarding/components/getting-started';
-import { LoginScreen } from '@/features/onboarding/components/login-screen';
-import { PushNotificationManagerEntrypointComponent } from '@/features/onboarding/components/push-notification-manager';
+import { FancyLoadingScreen } from '@/features/onboarding/components/fancy-loading-screen';
+import { LanguageSwitcher } from '@/features/onboarding/components/language-switcher';
+import { LoginScreen, loginDismissText } from '@/features/onboarding/components/login-screen';
+import { OfflineContentEntrypointComponent } from '@/features/onboarding/components/offline-content-component';
+import { OnboardingLayout } from '@/features/onboarding/components/onboarding-layout';
+import { OnboardingProgress } from '@/features/onboarding/components/onboarding-progress';
+import {
+  PushNotificationManagerEntrypointComponent,
+  skipPushNotificationText,
+} from '@/features/onboarding/components/push-notification-manager';
+import { useOnboarding } from '@/features/onboarding/hooks/use-onboarding';
+import { OnboardingStep } from '@/features/onboarding/types';
+import { TRPCProvider } from '@/trpc/client';
 import { Cookie } from '@/types/types';
+import { AnimatePresence, motion } from 'framer-motion';
 import Cookies from 'js-cookie';
-import { useRouter } from 'next/navigation';
-import type { ChangeEvent } from 'react';
-import React, { useEffect, useState } from 'react';
-
-enum OnboardingStep {
-  Initial = 0,
-  Login = 1,
-  PushNotifications = 2,
-  Loading = 3,
-}
-
-const languageOptions = [
-  { value: 'en', label: 'English' },
-  { value: 'de', label: 'Deutsch' },
-  { value: 'fr', label: 'Français' },
-];
-
-const LanguageSwitcher: React.FC<{
-  onLanguageChange: (lang: string) => void;
-  currentLocale: string;
-}> = ({ onLanguageChange, currentLocale }) => {
-  return (
-    <div className="fixed top-4 right-4 z-50">
-      <select
-        className="pa-4 rounded-md border border-gray-300 bg-gray-50 shadow-md focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
-        value={currentLocale}
-        onChange={(event: ChangeEvent<HTMLSelectElement>) => onLanguageChange(event.target.value)}
-      >
-        {languageOptions.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-};
+import React from 'react';
 
 export const OnboardingProcess: React.FC = () => {
-  const [onboardingStep, setOnboardingStep] = useState<OnboardingStep | undefined>();
-  const [locale, setLocale] = useState<keyof typeof cookieInfoText>(
-    (Cookies.get('NEXT_LOCALE') ?? 'en') as 'en' | 'de' | 'fr',
-  );
-  const router = useRouter();
+  const {
+    locale,
+    onboardingStep,
+    handleLanguageChange,
+    acceptCookiesCallback,
+    handlePushNotification,
+    handleOfflineContent,
+    setOnboardingStep,
+  } = useOnboarding();
 
-  const [hasManuallyChangedLanguage, setHasManuallyChangedLanguage] = useState(false);
+  // Define footer content based on step
+  let footer: React.ReactNode = <div className="invisible h-6">Spacer</div>; // Default spacer
 
-  useEffect(() => {
-    // check if NEXT_LOCALE is set in the cookie
-    const cookieLocale = Cookies.get('NEXT_LOCALE');
-    if (cookieLocale !== undefined) {
-      setLocale(cookieLocale as keyof typeof cookieInfoText);
-      return;
-    }
-
-    // else use the default locale of the OS / browser
-    let _locale = navigator.language.split('-')[0] as keyof typeof cookieInfoText;
-    if (!(_locale in ['en', 'de', 'fr'])) _locale = 'en'; // fallback to english if locale is not supported
-    setLocale(_locale);
-    setHasManuallyChangedLanguage(true);
-  }, []);
-
-  // Set the cookie only if the user has manually changed the language
-  // this prevents that the user needs to select the language again
-  useEffect(() => {
-    if (
-      hasManuallyChangedLanguage &&
-      (onboardingStep ?? OnboardingStep.Initial) >= OnboardingStep.Login
-    ) {
-      Cookies.set('NEXT_LOCALE', locale, { expires: 730 });
-    }
-  }, [hasManuallyChangedLanguage, locale, onboardingStep]);
-
-  const handleLanguageChange = (newLocale: string): void => {
-    setLocale(newLocale as keyof typeof cookieInfoText);
-    setHasManuallyChangedLanguage(true);
-  };
-
-  const acceptCookiesCallback = (): void => {
-    router.prefetch('/app/dashboard');
-    setOnboardingStep(OnboardingStep.Login);
-  };
-
-  const handlePushNotification = (): void => {
-    setOnboardingStep(OnboardingStep.Loading);
-    Cookies.set(Cookie.APP_DESIGN, 'true', { expires: 730 });
-    Cookies.remove(Cookie.HAS_LOGGED_IN);
-  };
-
-  useEffect(() => {
-    if (onboardingStep === OnboardingStep.Loading) {
-      console.log('Redirect to Homepage');
-      router.push('/app/dashboard');
-    } else if (
-      onboardingStep === OnboardingStep.Login &&
-      Cookies.get(Cookie.HAS_LOGGED_IN) === 'true'
-    ) {
-      setOnboardingStep(OnboardingStep.PushNotifications);
-    } else if (
-      onboardingStep === OnboardingStep.Initial &&
-      Cookies.get(Cookie.CONVENIAT_COOKIE_BANNER) === 'true'
-    ) {
-      setOnboardingStep(OnboardingStep.Login);
-    }
-
-    if (onboardingStep === undefined) setOnboardingStep(OnboardingStep.Initial);
-  }, [onboardingStep, router]);
+  if (onboardingStep === OnboardingStep.Login) {
+    footer = (
+      <button
+        onClick={() => setOnboardingStep(OnboardingStep.PushNotifications)}
+        className="cursor-pointer font-semibold text-gray-400 hover:text-gray-600"
+      >
+        {loginDismissText[locale]}
+      </button>
+    );
+  } else if (onboardingStep === OnboardingStep.PushNotifications) {
+    footer = (
+      <button
+        onClick={() => {
+          Cookies.set(Cookie.SKIP_PUSH_NOTIFICATION, 'true', { expires: 7 });
+          handlePushNotification();
+        }}
+        className="cursor-pointer font-semibold text-gray-400 hover:text-gray-600"
+      >
+        {skipPushNotificationText[locale]}
+      </button>
+    );
+  }
 
   return (
-    <div className="relative mx-auto flex h-screen max-w-96 items-center justify-center">
+    <div className="relative mx-auto flex h-svh max-w-96 flex-col items-center justify-center p-4">
       <LanguageSwitcher onLanguageChange={handleLanguageChange} currentLocale={locale} />
-      {onboardingStep === OnboardingStep.Initial && (
-        <AcceptCookieEntrypointComponent locale={locale} callback={acceptCookiesCallback} />
-      )}
 
-      {onboardingStep === OnboardingStep.Login && (
-        <LoginScreen
-          locale={locale}
-          onClick={() => setOnboardingStep(OnboardingStep.PushNotifications)}
-        />
-      )}
+      <div className="flex w-full flex-grow items-center justify-center">
+        <OnboardingLayout footer={footer}>
+          <AnimatePresence mode="wait">
+            {onboardingStep === OnboardingStep.Initial && (
+              <motion.div
+                key="initial"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+                className="w-full"
+              >
+                <AcceptCookieEntrypointComponent locale={locale} callback={acceptCookiesCallback} />
+              </motion.div>
+            )}
 
-      {onboardingStep === OnboardingStep.PushNotifications && (
-        <PushNotificationManagerEntrypointComponent
-          callback={handlePushNotification}
-          locale={locale}
-        />
-      )}
+            {onboardingStep === OnboardingStep.Login && (
+              <motion.div
+                key="login"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+                className="w-full"
+              >
+                <LoginScreen locale={locale} />
+              </motion.div>
+            )}
 
-      {onboardingStep === OnboardingStep.Loading && (
-        <GettingReadyEntrypointComponent locale={locale} />
-      )}
+            {onboardingStep === OnboardingStep.PushNotifications && (
+              <motion.div
+                key="push"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+                className="w-full"
+              >
+                <PushNotificationManagerEntrypointComponent
+                  callback={handlePushNotification}
+                  locale={locale}
+                />
+              </motion.div>
+            )}
+
+            {onboardingStep === OnboardingStep.OfflineContent && (
+              <motion.div
+                key="offline"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+                className="w-full"
+              >
+                <TRPCProvider>
+                  <OfflineContentEntrypointComponent
+                    callback={handleOfflineContent}
+                    locale={locale}
+                  />
+                </TRPCProvider>
+              </motion.div>
+            )}
+
+            {(onboardingStep === OnboardingStep.Loading ||
+              onboardingStep === OnboardingStep.Checking) && (
+              <motion.div
+                key="loading"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="w-full"
+              >
+                <FancyLoadingScreen locale={locale} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </OnboardingLayout>
+      </div>
+
+      <OnboardingProgress currentStep={onboardingStep} onStepClick={setOnboardingStep} />
     </div>
   );
 };

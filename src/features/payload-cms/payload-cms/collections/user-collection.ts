@@ -1,8 +1,9 @@
 import { environmentVariables } from '@/config/environment-variables';
-import prisma from '@/features/chat/database';
 import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
+import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared-fields/last-edited-by-user-field';
 import type { User } from '@/features/payload-cms/payload-types';
+import prisma from '@/lib/database';
 import { getAuthenticateUsingCeviDB } from '@/utils/auth-helpers';
 import type { BaseListFilter, CollectionConfig } from 'payload';
 
@@ -113,7 +114,7 @@ export const UserCollection: CollectionConfig = {
       },
       hooks: {
         afterRead: [
-          async ({ data }): Promise<boolean> => {
+          ({ data }): boolean => {
             if (!data) return false;
             return (data as User).groups.some((group) => GROUPS_WITH_API_ACCESS.has(group.id));
           },
@@ -214,5 +215,6 @@ export const UserCollection: CollectionConfig = {
         description: 'The Quartier of the user.',
       },
     },
+    LastEditedByUserField,
   ],
 };

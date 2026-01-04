@@ -3,6 +3,7 @@ import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import { manifestIconDefinitions } from '@/utils/icon-definitions';
 import config from '@payload-config';
 import type { MetadataRoute } from 'next';
+import { cacheLife, cacheTag } from 'next/cache';
 import { getPayload } from 'payload';
 
 /**
@@ -13,35 +14,77 @@ import { getPayload } from 'payload';
  *
  * @see https://whatpwacando.today/ Capabilities of PWAs
  */
-export const manifestGenerator = async (): Promise<MetadataRoute.Manifest> => {
+export const cachedManifestGenerator = async (): Promise<MetadataRoute.Manifest> => {
+  'use cache';
+  cacheLife('hours');
+  cacheTag('payload', 'PWA-v12');
+
+  console.log('[Manifest] Generating manifest...');
   const payload = await getPayload({ config });
 
-  const { appName, appShortName, appDescription } = await payload.findGlobal({
+  console.log('[Manifest] Fetching PWA globals...');
+  const pwaGlobal = await payload.findGlobal({
     slug: 'PWA',
   });
 
-  const APP_HOST_URL = environmentVariables.APP_HOST_URL;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (!pwaGlobal) {
+    throw new Error('PWA global configuration not found');
+  }
 
+  const { appName, appShortName, appDescription } = pwaGlobal;
   return {
     name: appName,
     short_name: appShortName,
     description: appDescription,
-    id: APP_HOST_URL,
-    start_url: '/entrypoint', // navigates to the app entrypoint on launch
+    id: '/',
+    start_url: environmentVariables.APP_HOST_URL + '/entrypoint?app-mode=true', // navigates to the app entrypoint on launch
     categories: ['kids', 'social', 'news'],
     //  it follows a pre-defined fallback chain: standalone → minimal-ui
     display: 'standalone',
-    display_override: ['standalone', 'minimal-ui'],
+    display_override: ['window-controls-overlay', 'standalone', 'minimal-ui'],
     launch_handler: {
       client_mode: 'auto',
     },
+    protocol_handlers: [
+      {
+        protocol: 'web+conveniat',
+        url: '/entrypoint?app-mode=true&protocol=%s',
+      },
+    ],
+    // @ts-expect-error -- url_handlers is not yet in the types
+    url_handlers: [{ origin: environmentVariables.APP_HOST_URL }],
     background_color: '#f8fafc',
     theme_color: '#FFF',
     icons: manifestIconDefinitions,
+    screenshots: [
+      {
+        src: '/screenshots/main-screenshot.png',
+        sizes: 'any',
+        type: 'image/png',
+        form_factor: 'wide',
+      },
+      {
+        src: '/screenshots/main-screenshot.png',
+        sizes: 'any',
+        type: 'image/png',
+        form_factor: 'narrow',
+      },
+    ],
     dir: 'ltr',
     lang: LOCALE.DE, // TODO: how to support multiple languages?
     orientation: 'portrait-primary',
     scope: '/',
     prefer_related_applications: false,
+    share_target: {
+      action: '/entrypoint',
+      method: 'GET',
+      enctype: 'application/x-www-form-urlencoded',
+      params: {
+        title: 'title',
+        text: 'text',
+        url: 'url',
+      },
+    },
   };
 };

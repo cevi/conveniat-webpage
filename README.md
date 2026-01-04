@@ -10,21 +10,10 @@ Next.js and Payload CMS.
 - [Core Technologies](#core-technologies)
 - [Prerequisites](#prerequisites)
 - [Getting Started](#getting-started)
-  - [Launch Project Locally (Devcontainer Recommended)](#launch-project-locally-devcontainer-recommended)
-  - [Local Development Commands](#local-development-commands)
-  - [Accessing the Payload Admin Panel](#accessing-the-payload-admin-panel)
 - [Project Structure](#project-structure)
-  - [Folder Overview](#folder-overview)
-  - [Feature-Based Modularity](#feature-based-modularity)
 - [Key Concepts](#key-concepts)
-  - [Dynamic Page Rendering](#dynamic-page-rendering)
-  - [Progressive Web App (PWA)](#progressive-web-app-pwa)
-- [Code Quality & Conventions](#code-quality--conventions)
-  - [TypeScript Strictness](#typescript-strictness)
-  - [Linting and Formatting](#linting-and-formatting)
-  - [Import Restrictions](#import-restrictions)
-- [UI Component Library](#ui-component-library)
-- [Environment Variables](#environment-variables)
+- [Database Maintenance](#database-maintenance)
+- [SSH Tunneling / Troubleshooting](#ssh-tunneling--troubleshooting)
 - [License](#license)
 
 ## Core Technologies
@@ -69,7 +58,7 @@ Ensure you have the following installed on your system:
 ### Local Development Commands
 
 - **Install Dependencies:** `pnpm install`
-- **Start Development Server:** `docker compose up --build`
+- **Start Development Server:** `docker compose up --build` (this uses the default `dev` profile defined in `.env`)
 - **Stop Development Server:** `docker compose down`
 - **Clear Database & Volumes:** To completely reset the database and remove Docker volumes (useful for reseeding):
   ```bash
@@ -77,6 +66,15 @@ Ensure you have the following installed on your system:
   ```
   After running this, you'll need to restart the server with `docker compose up --build` to re-initialize and
   potentially re-seed the database based on Payload's configuration.
+
+### Observability Stack
+
+The project includes an optional observability stack (Prometheus, Grafana, Loki, Tempo).
+To start the project with these tools enabled locally:
+
+```bash
+docker compose --profile observability up --build
+```
 
 ### Accessing the Payload Admin Panel
 
@@ -91,7 +89,7 @@ modularity and maintainability.
 ### Folder Overview
 
 ```plaintext
-public/         # Static assets (images, fonts, sw.js, etc.)
+public/         # Static assets (images, fonts, etc.)
 src/
 |
 +-- app/              # Next.js App Router: Layouts, Pages, Route Handlers
@@ -138,9 +136,9 @@ This structure aids scalability, maintainability, and team collaboration by keep
 
 ## Key Concepts
 
-### Dynamic Page Rendering
+### Page Rendering
 
-A core aspect of this project is that most frontend pages are dynamically generated based on data managed within Payload
+A core aspect of this project is that most frontend pages are generated based on data managed within Payload
 CMS.
 
 1. **CMS Configuration (`src/features/payload-cms/payload.config.ts`, `src/features/payload-cms/settings`):** Defines
@@ -153,18 +151,37 @@ CMS.
    `src/features/payload-cms/page-layouts`) is rendered. Complex CMS fields (like Blocks or Rich Text) are mapped
    to React components using converters (`src/features/payload-cms/converters`).
 
+To improve performance, calls to Payload CMS are cached server-side using Next.js 'use cache' functionality.
+
+### Caching in Development
+
+In development mode (`NODE_ENV=development`), the custom cache handler (Redis/FileSystem) is **disabled**. Next.js uses its default in-memory cache in development.
+
 ### Progressive Web App (PWA)
 
 This application utilizes [Serwist](https://serwist.pages.dev/) (`@serwist/next`) to implement Service Worker
 functionality, enabling PWA features:
 
-- **Offline Access:** Pre-cached pages (like the `/offline` page) and potentially other assets allow basic functionality
+- **Offline Access:** Pre-cached pages (like the `/~offline` page) and potentially other assets allow basic
+  functionality
   when the user is offline.
 - **Caching:** Improves performance by caching assets and network requests.
 - **Reliability:** Provides a more resilient user experience on flaky networks.
 
-The service worker logic is defined in `src/features/service-worker/index.ts` and configured in `next.config.mjs`. It's
-generally disabled in development unless `ENABLE_SERVICE_WORKER_LOCALLY=true` is set.
+### Service Worker in Development
+
+By default, the Service Worker is **disabled** during local development (`docker compose up`) to prevent caching issues
+with Hot Module Replacement (HMR).
+
+To enable the Service Worker locally and simulate a production-like environment (including file watching and
+rebuilding), use the `service-worker` profile:
+
+```bash
+docker compose --profile service-worker up --watch --build
+```
+
+This uses `docker watch` to sync file changes and trigger rebuilds, leveraging the Turbopack file system cache for
+faster subsequent builds.
 
 ## Code Quality & Conventions
 
@@ -242,7 +259,7 @@ pnpm install
 bash create_build_info.sh
 
 # Generate Prisma client
-npx prisma generate
+npx prisma generate --no-hints
 
 # Build the Next.js application
 pnpm next build
@@ -290,24 +307,151 @@ use Prisma Migrate.
 
 ```bash
 ###############################################
-# Generate and apply migrations to conveniat27.cevi.tools
+# Generate and apply migrations to remote databases
 ###############################################
-export DB_PASSWORD= # dev deployment database password
-export CHAT_DATABASE_URL="postgres://conveniat27:$DB_PASSWORD@db.conveniat27.cevi.tools:443/conveniat27"
+# 1. Establish SSH Tunnel (separate terminal)
+pnpm db:tunnel-dev # or pnpm db:tunnel-prod
 
-# check status (this will show the current migration status)
-npx prisma migrate diff --from-url $CHAT_DATABASE_URL --to-schema-datamodel prisma/schema.prisma
+# 2. Set password (for the remote database)
+export DB_PASSWORD=
 
-# create a new migration
-npx prisma migrate dev --schema prisma/schema.prisma
+# 3. Connect via the tunnel on localhost:5433
+# (Note: 5433 is used for the tunnel, 5432 is for your local instance)
+export CHAT_DATABASE_URL="postgres://conveniat27:$DB_PASSWORD@localhost:5433/conveniat27"
 
-#############################################
-# Apply migrations to conveniat27.ch
-#############################################
-export DB_PASSWORD= # prod deployment database password
-export CHAT_DATABASE_URL="postgres://conveniat27:$DB_PASSWORD@conveniat27.ch:443/conveniat27"
-npx prisma migrate deploy --schema prisma/schema.prisma
+# for konekta
+pnpm db:tunnel-konekta
+export DB_PASSWORD=
+export CHAT_DATABASE_URL="postgres://konekta:$DB_PASSWORD@localhost:5433/konekta"
+
+# Check status
+npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma
+
+# Create/Apply migrations
+npx prisma migrate dev --schema prisma/schema.prisma # for dev
+npx prisma migrate deploy --schema prisma/schema.prisma # for prod
 ```
+
+### Database Maintenance
+
+If you see warnings about **collation version mismatch** (e.g.,
+`The database was created using collation version 2.36, but the operating system provides version 2.41`), you need to
+update the collation version to match the current OS.
+
+Run the following SQL command against the database:
+
+```sql
+ALTER
+DATABASE conveniat27 REFRESH COLLATION VERSION;
+```
+
+SSH into the server and run the following command to execute the SQL command:
+
+### Production (conveniat.ch)
+
+If asked for a password for the user conveniat27, use the production database password.
+
+```bash
+docker run --rm -it --network conveniat_backend-net postgres:17 \
+  psql -h conveniat_postgres -U conveniat27 -d conveniat27 -c "ALTER DATABASE conveniat27 REFRESH COLLATION VERSION;"
+```
+
+### Development (conveniat27.cevi.tools)
+
+If asked for a password for the user conveniat27, use the development database password.
+
+```bash
+docker run --rm -it --network conveniat-dev_backend-net postgres:17 \
+  psql -h conveniat-dev_postgres -U conveniat27 -d conveniat27 -c "ALTER DATABASE conveniat27 REFRESH COLLATION VERSION;"
+```
+
+### Interactive SQL Console
+
+To open an interactive `psql` shell (instead of running a single command), simply omit the `-c` argument:
+
+**Production:**
+
+```bash
+docker run --rm -it --network conveniat_backend-net postgres:17 \
+  psql -h conveniat_postgres -U conveniat27 -d conveniat27
+```
+
+**Development:**
+
+```bash
+docker run --rm -it --network conveniat-dev_backend-net postgres:17 \
+  psql -h conveniat-dev_postgres -U conveniat27 -d conveniat27
+```
+
+### Connect from Localhost
+
+To directly connect to the database from your local machine, use the provided script to open an **SSH Tunnel**. This
+tunnel supports both Postgres (local 5433) and MongoDB (local 27018).
+
+#### Open Tunnel:
+
+The tunnel runs in the foreground and forwards traffic to the remote infrastructure.
+
+```bash
+pnpm db:tunnel-prod  # For Production
+pnpm db:tunnel-dev   # For Development
+```
+
+### Synchronize Database
+
+You can easily sync the entire database state (Postgres + MongoDB) between your local environment and the remote
+servers.
+
+#### Pull (Remote -> Local)
+
+Copies the state from the remote database to your local Docker instance.
+
+1. Open a tunnel (see above).
+2. Run the pull command:
+   ```bash
+   pnpm db:pull
+   ```
+3. Follow the prompts for the remote database passwords.
+
+#### Push (Local -> Remote DEV)
+
+Updates the remote **Development** state with your local data. **Safety confirmation required.**
+
+1. Open the **dev** tunnel: `pnpm db:tunnel-dev`.
+2. Run the push command:
+   ```bash
+   pnpm db:push-dev
+   ```
+
+### SSH Tunneling / Troubleshooting
+
+If you encounter errors when opening a tunnel, follow these steps:
+
+#### "Bind for 127.0.0.1:5433 failed: port is already allocated"
+
+This usually happens because a previous tunnel container is still running on the remote host. The updated commands above
+automatically attempt to stop the existing container (`db-tunnel-prod` or `db-tunnel-dev`) before starting a new one.
+
+#### Manual Cleanup
+
+If the automatic stopping fails, SSH into the host and run:
+
+```bash
+docker rm -f db-tunnel-prod  # or db-tunnel-dev
+```
+
+#### Signal Propagation
+
+The scripts use the `-t` flag in SSH and `--init` flag in Docker to ensure that when you press `Ctrl+C` on your local
+machine, the signal is propagated correctly to the remote container, allowing it to exit and clean itself up (via
+`--rm`).
+
+**How this works:**
+
+- The tunnel script starts a forwarder container on the manager node.
+- It maps local ports (`5433` for PG, `27018` for Mongo) to the manager, which in turn forwards to the internal network.
+- The sync scripts use `pg_dump`/`psql` and `mongodump`/`mongorestore` to stream data over these ports.
+- Your local machine tunnels to the manager's mapped ports.
 
 ## License
 

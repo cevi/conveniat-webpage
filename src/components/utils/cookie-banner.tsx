@@ -4,7 +4,8 @@ import type { Locale, StaticTranslationString } from '@/types/types';
 import { Cookie, i18nConfig } from '@/types/types';
 import Cookies from 'js-cookie';
 import { useCurrentLocale } from 'next-i18n-router/client';
-import React, { useEffect, useState } from 'react';
+import type React from 'react';
+import { useState, useSyncExternalStore } from 'react';
 
 const staticCookieString: StaticTranslationString = {
   de: 'conveniat27 speichert Cookies, um richtig zu funktionieren.',
@@ -22,21 +23,29 @@ const shouldShowCookieBanner = (): boolean => {
   return (Cookies.get(Cookie.CONVENIAT_COOKIE_BANNER) ?? 'false') === 'false';
 };
 
+const noopUnsubscribe = (): void => {};
+const emptySubscribe = (): (() => void) => noopUnsubscribe;
+
 export const CookieBanner: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
-  const [showBanner, setShowBanner] = useState(false);
-
-  useEffect(() => {
-    setShowBanner(shouldShowCookieBanner());
-  }, []);
+  const isClient = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  );
+  const [accepted, setAccepted] = useState(false);
 
   const acceptCookies = (): void => {
     Cookies.set(Cookie.CONVENIAT_COOKIE_BANNER, 'true', { expires: 90 });
-    setShowBanner(false);
+    setAccepted(true);
   };
 
-  if (!showBanner) return <></>;
+  const bannerShouldBeVisible = isClient && !accepted && shouldShowCookieBanner();
+
+  if (!bannerShouldBeVisible) {
+    return <></>;
+  }
 
   return (
     <div className="fixed right-0 bottom-0 left-0 z-50 p-4">

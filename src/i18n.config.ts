@@ -11,6 +11,7 @@ export const i18nExcludedRoutes: string[] = [
   'web-app-manifest-512x512.png',
   'favicon.svg',
   'notification-icon.png',
+  'screenshots',
 
   // system endpoints
   'status',
@@ -23,6 +24,7 @@ export const i18nExcludedRoutes: string[] = [
   '_next',
   'api',
   'admin',
+  'admin-block-images',
   '.well-known',
 
   // posthog analytics
@@ -32,9 +34,11 @@ export const i18nExcludedRoutes: string[] = [
   'vector-map',
 
   // Static Files (Service Workers, Manifests, SEO)
+  'serwist',
   'sw.js',
-  'swe-worker-',
+  'sw.js.map',
   'manifest.webmanifest',
+  'manifest.json',
   'sitemap.xml',
   'robots.txt',
 ] as const;

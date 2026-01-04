@@ -1,4 +1,5 @@
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
+import { flushPageCacheOnChangeGlobal } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import { localizedDefaultValue } from '@/features/payload-cms/payload-cms/utils/localized-default-value';
 import type { GlobalConfig } from 'payload';
 
@@ -23,6 +24,8 @@ const googleSearchConsoleVerificationValidation = (
 export const SeoGlobal: GlobalConfig = {
   slug: 'SEO',
   label: 'SEO Settings',
+  ...flushPageCacheOnChangeGlobal,
+
   admin: {
     group: AdminPanelDashboardGroups.GlobalSettings,
     description: {

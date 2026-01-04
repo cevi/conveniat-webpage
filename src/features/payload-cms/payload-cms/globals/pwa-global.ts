@@ -10,7 +10,7 @@ export const PWAGlobal: GlobalConfig = {
     afterChange: [
       (): void => {
         console.log('PWA Global afterChange hook triggered --> revalidating manifest');
-        revalidateTag('manifest');
+        revalidateTag('manifest', 'max');
       },
     ],
   },
