@@ -48,7 +48,7 @@ export const cachedManifestGenerator = async (): Promise<MetadataRoute.Manifest>
     },
     protocol_handlers: [
       {
-        protocol: 'web+conveniat27',
+        protocol: 'web+conveniat',
         url: '/entrypoint?app-mode=true&protocol=%s',
       },
     ],
