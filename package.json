@@ -24,6 +24,7 @@
     "start": "cross-env NODE_OPTIONS=--no-deprecation next start",
     "test": "jest",
     "db:tunnel-prod": "bash src/scripts/db/tunnel.sh prod",
+    "db:tunnel-konekta": "bash src/scripts/db/tunnel.sh konekta",
     "db:tunnel-dev": "bash src/scripts/db/tunnel.sh dev",
     "db:pull": "bash src/scripts/db/pull.sh",
     "db:push-dev": "bash src/scripts/db/push-dev.sh"

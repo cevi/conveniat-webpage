@@ -17,6 +17,12 @@ elif [ "$TYPE" == "dev" ]; then
   MONGO_HOST="conveniat-dev_mongo"
   NAME="db-tunnel-dev"
   echo "INFO: Establishing tunnel to DEVELOPMENT..."
+elif [ "$TYPE" == "konekta" ]; then
+  NETWORK="konekta-dev_backend-net"
+  PG_HOST="konekta-dev_postgres"
+  MONGO_HOST="konekta-dev_mongo"
+  NAME="db-tunnel-konekta"
+  echo "INFO: Establishing tunnel to KONEKTA..."
 else
   echo "Usage: $0 {prod|dev}"
   exit 1
