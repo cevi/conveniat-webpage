@@ -1,5 +1,6 @@
 import { AlertManagement } from '@/features/payload-cms/payload-cms/globals/alert-management';
 import { AlertSettingsGlobal } from '@/features/payload-cms/payload-cms/globals/alert-settings-global';
+import { AllChatsManagement } from '@/features/payload-cms/payload-cms/globals/all-chats-management';
 import { AppFeatureFlags } from '@/features/payload-cms/payload-cms/globals/app-feature-flags';
 import { FooterGlobal } from '@/features/payload-cms/payload-cms/globals/footer-global';
 import { HeaderGlobal } from '@/features/payload-cms/payload-cms/globals/header-global';
@@ -17,4 +18,5 @@ export const globalConfig: GlobalConfig[] = [
   AppFeatureFlags,
   SupportChatManagement,
   AlertManagement,
+  AllChatsManagement,
 ];
