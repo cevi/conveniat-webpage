@@ -462,31 +462,31 @@ export const adminRouter = createTRPCRouter({
         data: { capabilities: newCapabilities },
       });
 
-      const closeMessages: Record<ChatType, { en: string; de: string, fr: string }> = {
+      const closeMessages: Record<ChatType, { en: string; de: string; fr: string }> = {
         [ChatType.EMERGENCY]: {
-          en: `${user.name} has marked the emergency alert as completed`,
-          de: `${user.name} hat die Notfallmeldung als abgeschlossen markiert`,
-          fr: `${user.name} a marqué l'alerte d'urgence comme terminée`,
+          en: `${user.name} has marked the emergency alert as completed.`,
+          de: `${user.name} hat die Notfallmeldung als abgeschlossen markiert.`,
+          fr: `${user.name} a marqué l'alerte d'urgence comme terminée.`,
         },
         [ChatType.SUPPORT_GROUP]: {
-          en: `${user.name} has marked this issue as resolved`,
-          de: `${user.name} hat dieses Problem als gelöst markiert`,
-          fr: `${user.name} a marqué ce problème comme résolu`,
+          en: `${user.name} has marked this issue as resolved.`,
+          de: `${user.name} hat dieses Problem als gelöst markiert.`,
+          fr: `${user.name} a marqué ce problème comme résolu.`,
         },
         [ChatType.GROUP]: {
-          en: 'An admin has closed this chat',
-          de: 'Ein Admin hat diesen Chat geschlossen',
-          fr: 'Un administrateur a fermé ce chat',
+          en: 'An admin has closed this chat.',
+          de: 'Ein Admin hat diesen Chat geschlossen.',
+          fr: 'Un administrateur a fermé ce chat.',
         },
         [ChatType.ONE_TO_ONE]: {
-          en: 'An admin has closed this chat',
-          de: 'Ein Admin hat diesen Chat geschlossen',
-          fr: 'Un administrateur a fermé ce chat',
+          en: 'An admin has closed this chat.',
+          de: 'Ein Admin hat diesen Chat geschlossen.',
+          fr: 'Un administrateur a fermé ce chat.',
         },
         [ChatType.COURSE_GROUP]: {
-          en: 'An admin has closed this chat',
-          de: 'Ein Admin hat diesen Chat geschlossen',
-          fr: 'Un administrateur a fermé ce chat',
+          en: 'An admin has closed this chat.',
+          de: 'Ein Admin hat diesen Chat geschlossen.',
+          fr: 'Un administrateur a fermé ce chat.',
         },
       };
 
@@ -539,7 +539,7 @@ export const adminRouter = createTRPCRouter({
         data: { capabilities: newCapabilities },
       });
 
-      const reopenMessages: Record<ChatType, { en: string; de: string, fr: string }> = {
+      const reopenMessages: Record<ChatType, { en: string; de: string; fr: string }> = {
         [ChatType.EMERGENCY]: {
           en: `${user.name} has reopened the emergency alert.`,
           de: `${user.name} hat die Notfallmeldung wieder geöffnet.`,
@@ -553,17 +553,17 @@ export const adminRouter = createTRPCRouter({
         [ChatType.GROUP]: {
           en: 'An admin has reopened this chat.',
           de: 'Ein Admin hat diesen Chat wieder geöffnet.',
-          fr: "Un administrateur a rouvert ce chat.",
+          fr: 'Un administrateur a rouvert ce chat.',
         },
         [ChatType.ONE_TO_ONE]: {
           en: 'An admin has reopened this chat.',
           de: 'Ein Admin hat diesen Chat wieder geöffnet.',
-          fr: "Un administrateur a rouvert ce chat.",
+          fr: 'Un administrateur a rouvert ce chat.',
         },
         [ChatType.COURSE_GROUP]: {
           en: 'An admin has reopened this chat.',
           de: 'Ein Admin hat diesen Chat wieder geöffnet.',
-          fr: "Un administrateur a rouvert ce chat.",
+          fr: 'Un administrateur a rouvert ce chat.',
         },
       };
 
