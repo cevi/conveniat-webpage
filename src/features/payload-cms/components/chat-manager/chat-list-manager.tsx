@@ -179,8 +179,7 @@ export const ChatListManager: React.FC = () => {
     );
   };
 
-  const renderTypeBadge = (type: ChatType): React.ReactNode => {
-    const colors: Record<ChatType, string> = {
+  const renderBadgeColors: Record<ChatType, string> = {
       [ChatType.EMERGENCY]:
         'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800/50',
       [ChatType.SUPPORT_GROUP]:
@@ -192,8 +191,11 @@ export const ChatListManager: React.FC = () => {
       [ChatType.ONE_TO_ONE]:
         'bg-teal-100 text-teal-700 border-teal-200 dark:bg-teal-900/30 dark:text-teal-400 dark:border-teal-800/50',
     };
+  
+  const renderTypeBadge = (type: ChatType): React.ReactNode => {
+    
     return (
-      <Badge variant="outline" className={colors[type]}>
+      <Badge variant="outline" className={renderBadgeColors[type]}>
         {type}
       </Badge>
     );

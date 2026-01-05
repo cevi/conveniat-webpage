@@ -55,7 +55,7 @@ export const adminRouter = createTRPCRouter({
     .input(
       z
         .object({
-          search: z.string().optional(),
+          search: z.string().trim().max(100).optional(),
           type: z.nativeEnum(ChatType).optional(),
           page: z.number().min(1).optional().default(1),
           limit: z.number().min(1).max(100).optional().default(20),
@@ -536,24 +536,24 @@ export const adminRouter = createTRPCRouter({
 
       const reopenMessages: Record<ChatType, { en: string; de: string }> = {
         [ChatType.EMERGENCY]: {
-          en: `${user.name} has reopened the emergency alert`,
-          de: `${user.name} hat die Notfallmeldung wiedergeöffnet`,
+          en: `${user.name} has reopened the emergency alert.`,
+          de: `${user.name} hat die Notfallmeldung wieder geöffnet.`,
         },
         [ChatType.SUPPORT_GROUP]: {
-          en: `${user.name} has reopened this issue`,
-          de: `${user.name} hat dieses Problem wiedergeöffnet`,
+          en: `${user.name} has reopened this issue.`,
+          de: `${user.name} hat dieses Problem wieder geöffnet.`,
         },
         [ChatType.GROUP]: {
-          en: 'An admin has reopened this chat',
-          de: 'Ein Admin hat diesen Chat wiedergeöffnet',
+          en: 'An admin has reopened this chat.',
+          de: 'Ein Admin hat diesen Chat wieder geöffnet.',
         },
         [ChatType.ONE_TO_ONE]: {
-          en: 'An admin has reopened this chat',
-          de: 'Ein Admin hat diesen Chat wiedergeöffnet',
+          en: 'An admin has reopened this chat.',
+          de: 'Ein Admin hat diesen Chat wieder geöffnet.',
         },
         [ChatType.COURSE_GROUP]: {
-          en: 'An admin has reopened this chat',
-          de: 'Ein Admin hat diesen Chat wiedergeöffnet',
+          en: 'An admin has reopened this chat.',
+          de: 'Ein Admin hat diesen Chat wieder geöffnet.',
         },
       };
 
