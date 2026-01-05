@@ -6,10 +6,32 @@ import { ParagraphText } from '@/components/ui/typography/paragraph-text';
 import { TeaserText } from '@/components/ui/typography/teaser-text';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import * as jwt from 'jsonwebtoken';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import { useParams, useSearchParams } from 'next/navigation';
 import type React from 'react';
+/**
+ * Lightweight JWT decode function for client-side use.
+ * Only decodes the payload - does NOT verify signatures.
+ * This avoids bundling the heavy crypto-browserify (~320KB) dependency.
+ */
+function decodeJwtPayload<T>(token: string): T | undefined {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return undefined;
+    const payload = parts[1] as string;
+    // Base64Url decode
+    const base64 = payload.replaceAll('-', '+').replaceAll('_', '/');
+    const jsonPayload = decodeURIComponent(
+      [...atob(base64)]
+        // eslint-disable-next-line unicorn/prefer-code-point
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join(''),
+    );
+    return JSON.parse(jsonPayload) as T;
+  } catch {
+    return undefined;
+  }
+}
 
 interface StaticTranslationString {
   en: string;
@@ -111,7 +133,7 @@ interface DecodedToken {
 interface PreviewTokenAnalysisProperties {
   validPreviewToken: boolean;
   previewTokenExpired: boolean;
-  decoded: DecodedToken | null;
+  decoded: DecodedToken | undefined;
 }
 
 const PreviewTokenAnalysis: React.FC<PreviewTokenAnalysisProperties> = ({
@@ -188,13 +210,13 @@ export const PreviewError: React.FC = () => {
   const searchParameters = useSearchParams();
 
   const previewToken = searchParameters.get('preview-token') ?? '';
-  const decoded = jwt.decode(previewToken) as unknown as {
+  const decoded = decodeJwtPayload<{
     iat: number | string;
     exp: number | string;
     url: string;
-  } | null;
+  }>(previewToken);
 
-  const isValidPreviewToken = decoded !== null && typeof decoded === 'object';
+  const isValidPreviewToken = decoded !== undefined && typeof decoded === 'object';
   const isPreviewTokenExpired =
     decoded?.exp !== undefined && new Date() > new Date(Number(decoded.exp) * 1000);
 
