@@ -2,8 +2,18 @@
 
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { useField, useTranslation } from '@payloadcms/ui';
-import type { LucideIcon } from 'lucide-react';
-import * as Icons from 'lucide-react';
+import {
+  BriefcaseMedical,
+  Flag,
+  GlassWater,
+  HelpCircle,
+  type LucideIcon,
+  MapPin,
+  Recycle,
+  Tent,
+  Toilet,
+  Utensils,
+} from 'lucide-react';
 import type { SelectFieldClientComponent } from 'payload';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -13,6 +23,18 @@ interface SelectOption {
   label: string | LocalizedLabel;
   value: string;
 }
+
+const ICON_MAP: Record<string, LucideIcon> = {
+  MapPin,
+  Tent,
+  Utensils,
+  Flag,
+  HelpCircle,
+  Recycle,
+  GlassWater,
+  Toilet,
+  BriefcaseMedical,
+};
 
 export const IconSelectField: SelectFieldClientComponent = ({ path, field }) => {
   const { value, setValue } = useField<string>({ path });
@@ -36,7 +58,7 @@ export const IconSelectField: SelectFieldClientComponent = ({ path, field }) => 
   };
 
   const renderIcon = (iconName: string, size = 18): React.ReactNode => {
-    const IconComponent = (Icons as unknown as Record<string, LucideIcon>)[iconName];
+    const IconComponent = ICON_MAP[iconName];
     if (!IconComponent) return undefined;
     return <IconComponent size={size} />;
   };
