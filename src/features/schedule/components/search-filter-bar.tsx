@@ -39,7 +39,7 @@ const allCategoriesText: StaticTranslationString = {
 export interface FilterState {
   searchText: string;
   selectedLocations: CampMapAnnotation[];
-  selectedCategory: string;
+  selectedCategory: { id: string; title: string } | undefined;
   starredOnly: boolean;
 }
 
@@ -72,7 +72,7 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
   );
 
   const handleCategoryChange = useCallback(
-    (category: string) => {
+    (category?: { id: string; title: string }) => {
       onFiltersChange({
         ...filters,
         selectedCategory: category,
@@ -86,7 +86,7 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
     onFiltersChange({
       searchText: '',
       selectedLocations: [],
-      selectedCategory: '',
+      selectedCategory: undefined,
       starredOnly: false,
     });
   }, [onFiltersChange]);
@@ -94,10 +94,10 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
   const hasActiveFilters =
     filters.searchText !== '' ||
     filters.selectedLocations.length > 0 ||
-    filters.selectedCategory !== '' ||
+    filters.selectedCategory !== undefined ||
     filters.starredOnly;
 
-  const hasCategoryFilter = filters.selectedCategory !== '';
+  const hasCategoryFilter = filters.selectedCategory !== undefined;
 
   return (
     <div className={`space-y-3 ${className}`}>
@@ -158,10 +158,10 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => handleCategoryChange('')}
+            onClick={() => handleCategoryChange()}
             className={cn(
               'h-8 rounded-full px-3 text-sm',
-              filters.selectedCategory === '' && 'bg-gray-100 font-medium',
+              filters.selectedCategory === undefined && 'bg-gray-100 font-medium',
             )}
           >
             {allCategoriesText[locale]}
@@ -171,10 +171,10 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
               key={category.id}
               variant="ghost"
               size="sm"
-              onClick={() => handleCategoryChange(category.id)}
+              onClick={() => handleCategoryChange({ id: category.id, title: category.title })}
               className={cn(
                 'h-8 rounded-full px-3 text-sm',
-                filters.selectedCategory === category.id &&
+                filters.selectedCategory?.id === category.id &&
                   'bg-conveniat-green/10 text-conveniat-green font-medium',
               )}
             >
@@ -187,13 +187,12 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
       {/* Active Filters / Clear */}
       <div className="flex flex-wrap items-center gap-2">
         {/* Show selected category as a chip */}
-        {hasCategoryFilter && (
+        {hasCategoryFilter && filters.selectedCategory && (
           <span className="animate-in fade-in border-conveniat-green/30 bg-conveniat-green/10 text-conveniat-green flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-medium">
-            {availableCategories.find((c) => c.id === filters.selectedCategory)?.title ??
-              filters.selectedCategory}
+            {filters.selectedCategory.title}
             <button
-              onClick={() => handleCategoryChange('')}
-              className="hover:bg-conveniat-green/20 ml-1 rounded-full p-0.5"
+              onClick={() => handleCategoryChange()}
+              className="hover:bg-conveniat-green/20 ml-1 cursor-pointer rounded-full p-0.5"
             >
               <X className="h-3 w-3" />
             </button>

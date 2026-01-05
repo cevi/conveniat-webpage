@@ -7,11 +7,16 @@ import { LoginScreen, loginDismissText } from '@/features/onboarding/components/
 import { OfflineContentEntrypointComponent } from '@/features/onboarding/components/offline-content-component';
 import { OnboardingLayout } from '@/features/onboarding/components/onboarding-layout';
 import { OnboardingProgress } from '@/features/onboarding/components/onboarding-progress';
-import { PushNotificationManagerEntrypointComponent } from '@/features/onboarding/components/push-notification-manager';
+import {
+  PushNotificationManagerEntrypointComponent,
+  skipPushNotificationText,
+} from '@/features/onboarding/components/push-notification-manager';
 import { useOnboarding } from '@/features/onboarding/hooks/use-onboarding';
 import { OnboardingStep } from '@/features/onboarding/types';
 import { TRPCProvider } from '@/trpc/client';
+import { Cookie } from '@/types/types';
 import { AnimatePresence, motion } from 'framer-motion';
+import Cookies from 'js-cookie';
 import React from 'react';
 
 export const OnboardingProcess: React.FC = () => {
@@ -38,7 +43,17 @@ export const OnboardingProcess: React.FC = () => {
       </button>
     );
   } else if (onboardingStep === OnboardingStep.PushNotifications) {
-    footer = <div className="invisible h-6">Spacer</div>;
+    footer = (
+      <button
+        onClick={() => {
+          Cookies.set(Cookie.SKIP_PUSH_NOTIFICATION, 'true', { expires: 7 });
+          handlePushNotification();
+        }}
+        className="cursor-pointer font-semibold text-gray-400 hover:text-gray-600"
+      >
+        {skipPushNotificationText[locale]}
+      </button>
+    );
   }
 
   return (

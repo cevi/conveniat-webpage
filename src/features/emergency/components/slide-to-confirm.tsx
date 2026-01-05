@@ -83,7 +83,7 @@ export const ConfirmationSlider: React.FC<ConfirmationSliderProperties> = ({
       }
       trackReference.current.style.setProperty('--translate-x-clamped', `${clampedTranslateX}px`);
 
-      if (typeof navigator !== 'undefined') {
+      if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
         navigator.vibrate(5);
       }
     },
@@ -114,7 +114,7 @@ export const ConfirmationSlider: React.FC<ConfirmationSliderProperties> = ({
               setIsConfirmed(true);
               setIsProcessing(false);
               setDisplayText(confirmedText);
-              if (typeof navigator !== 'undefined') {
+              if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
                 navigator.vibrate(50);
               }
             })

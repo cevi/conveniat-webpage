@@ -15,6 +15,7 @@ import {
 import { ChatCapability } from '@/lib/chat-shared';
 import prisma from '@/lib/database';
 import { FEATURE_FLAG_CREATE_CHATS_ENABLED, FEATURE_FLAG_SEND_MESSAGES } from '@/lib/feature-flags';
+import { ChatType } from '@/lib/prisma';
 import { getFeatureFlag } from '@/lib/redis';
 
 /**
@@ -36,6 +37,17 @@ export class MessageCapabilities implements Capability {
   private async canSend(chatId?: string): Promise<boolean> {
     const isGlobalEnabled = await getFeatureFlag(FEATURE_FLAG_SEND_MESSAGES);
     if (!isGlobalEnabled) {
+      // additional check for chat type
+      if (chatId) {
+        const chat = await prisma.chat.findUnique({
+          where: { uuid: chatId },
+          select: { type: true },
+        });
+        if (chat && (chat.type === ChatType.EMERGENCY || chat.type === ChatType.SUPPORT_GROUP)) {
+          return true;
+        }
+      }
+
       return false;
     }
 
@@ -49,6 +61,7 @@ export class MessageCapabilities implements Capability {
         return false;
       }
     }
+
     return true;
   }
 

@@ -18,7 +18,8 @@ export const LoginButton: React.FC = () => {
     <button
       onClick={() => {
         void (async (): Promise<void> => {
-          const response = await signIn('cevi-db', { redirect: false, callbackUrl: '/entrypoint' });
+          const callbackUrl = '/entrypoint';
+          const response = await signIn('cevi-db', { redirect: false, callbackUrl });
           if (response.url) {
             globalThis.location.href = response.url;
           }

@@ -2,7 +2,7 @@ import { BaseCacheHandler } from '@/cache-handlers/handlers/base';
 import type { CacheEntry } from '@/cache-handlers/types';
 import { PHASE_PRODUCTION_BUILD } from 'next/constants';
 import { createHash, randomBytes } from 'node:crypto';
-import { mkdirSync, readdirSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync } from 'node:fs';
 import { access, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
@@ -31,8 +31,12 @@ export class FileSystemCache extends BaseCacheHandler {
 
       // list cache content
       try {
-        const files = readdirSync(FALLBACK_CACHE_DIR);
-        console.log(`${LOG_PREFIX} Cache directory contents:`, files);
+        if (existsSync(FALLBACK_CACHE_DIR)) {
+          const files = readdirSync(FALLBACK_CACHE_DIR);
+          console.log(`${LOG_PREFIX} Cache directory contents:`, files);
+        } else {
+          console.warn(`${LOG_PREFIX} Cache directory does not exist: ${FALLBACK_CACHE_DIR}`);
+        }
       } catch (error) {
         console.error(`${LOG_PREFIX} Failed to read cache dir:`, error);
       }

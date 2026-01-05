@@ -101,7 +101,7 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
     serverURL,
   } = config;
 
-  const isCreating = id === undefined;
+  const isCreating = id === undefined && globalSlug === undefined;
 
   const hasNewerVersions = unpublishedVersionCount > 0;
   const canPublish =

@@ -1,3 +1,4 @@
+import { isPWAStandalone } from '@/utils/standalone-check';
 import { useEffect } from 'react';
 
 /**
@@ -6,10 +7,9 @@ import { useEffect } from 'react';
  */
 export const useAppMode = (): void => {
   useEffect(() => {
-    if (
-      typeof globalThis !== 'undefined' &&
-      globalThis.matchMedia('(display-mode: standalone)').matches
-    ) {
+    const isStandalone = isPWAStandalone();
+
+    if (typeof globalThis !== 'undefined' && isStandalone) {
       // Clear the initial entry cookie as soon as the client-side takes over
       // The Service Worker will handle subsequent requests via headers
       // eslint-disable-next-line unicorn/no-document-cookie

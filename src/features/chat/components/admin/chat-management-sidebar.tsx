@@ -42,7 +42,7 @@ export const ChatManagementSidebar: React.FC<ChatManagementSidebarProperties> = 
           <button
             onClick={onRefresh}
             disabled={loadingChats || loadingMessages}
-            className="rounded p-2 opacity-70 transition-colors hover:bg-[var(--theme-elevation-100)] hover:opacity-100 disabled:opacity-30"
+            className="cursor-pointer rounded p-2 opacity-70 transition-colors hover:bg-[var(--theme-elevation-100)] hover:opacity-100 disabled:opacity-30"
             title="Refresh"
           >
             <RefreshCw
@@ -82,7 +82,7 @@ export const ChatManagementSidebar: React.FC<ChatManagementSidebarProperties> = 
               <button
                 key={chat.id}
                 onClick={() => onSelectChat(chat.id)}
-                className={`w-full rounded-lg border p-4 text-left transition-all ${
+                className={`w-full cursor-pointer rounded-lg border p-4 text-left transition-all ${
                   selectedChatId === chat.id
                     ? 'translate-x-1 border-[var(--theme-elevation-400)] bg-[var(--theme-elevation-100)] shadow-md'
                     : 'border-[var(--theme-elevation-150)] bg-[var(--theme-bg)] hover:border-[var(--theme-elevation-300)] hover:bg-[var(--theme-elevation-50)]'

@@ -52,6 +52,8 @@ export const cachedManifestGenerator = async (): Promise<MetadataRoute.Manifest>
         url: '/entrypoint?app-mode=true&protocol=%s',
       },
     ],
+    // @ts-expect-error -- url_handlers is not yet in the types
+    url_handlers: [{ origin: environmentVariables.APP_HOST_URL }],
     background_color: '#f8fafc',
     theme_color: '#FFF',
     icons: manifestIconDefinitions,

@@ -7,5 +7,8 @@ import type { NextRequest } from 'next/server';
  *  @param request
  */
 export const isExcludedFromPathRewrites = (request: NextRequest): boolean => {
-  return i18nExcludedRoutes.some((path) => request.nextUrl.pathname.startsWith(`/${path}`));
+  return i18nExcludedRoutes.some(
+    (path) =>
+      request.nextUrl.pathname === `/${path}` || request.nextUrl.pathname.startsWith(`/${path}/`),
+  );
 };

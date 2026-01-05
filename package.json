@@ -1,6 +1,6 @@
 {
   "name": "conveniat27",
-  "version": "0.31.0",
+  "version": "0.32.0",
   "author": "Cyrill Püntener v/o JPG (cyrill.puentener@cevi.ch)",
   "maintainers": [
     "Cyrill Püntener v/o JPG (cyrill.puentener@cevi.ch)",
@@ -10,7 +10,7 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "build": "pnpm run build:cache && cross-env NODE_OPTIONS=--no-deprecation next build",
+    "build": "pnpm run build:cache && cross-env NODE_OPTIONS=--no-deprecation next build && serwist build --config serwist.config.js",
     "build:cache": "esbuild src/cache-handlers/default.ts --bundle --platform=node --format=cjs --outfile=src/cache-handlers/default.cjs --external:next --external:ioredis --external:node:crypto --external:node:fs --external:node:path --external:node:fs/promises --external:@opentelemetry/api",
     "dev": "cross-env NODE_OPTIONS=--no-deprecation next dev --turbo",
     "devsafe": "rm -rf .next/* && cross-env NODE_OPTIONS=--no-deprecation next dev",
@@ -24,6 +24,7 @@
     "start": "cross-env NODE_OPTIONS=--no-deprecation next start",
     "test": "jest",
     "db:tunnel-prod": "bash src/scripts/db/tunnel.sh prod",
+    "db:tunnel-konekta": "bash src/scripts/db/tunnel.sh konekta",
     "db:tunnel-dev": "bash src/scripts/db/tunnel.sh dev",
     "db:pull": "bash src/scripts/db/pull.sh",
     "db:push-dev": "bash src/scripts/db/push-dev.sh"
@@ -137,8 +138,8 @@
     "@faker-js/faker": "^9.9.0",
     "@next/eslint-plugin-next": "16.0.1",
     "@serwist/build": "^9.4.2",
+    "@serwist/cli": "^9.4.2",
     "@serwist/next": "^9.4.2",
-    "@serwist/turbopack": "^9.4.2",
     "@swc/helpers": "^0.5.18",
     "@swc/jest": "^0.2.39",
     "@tailwindcss/postcss": "^4.1.18",
@@ -153,6 +154,7 @@
     "@types/react-dom": "19.2.2",
     "@types/web-push": "^3.6.4",
     "baseline-browser-mapping": "^2.9.11",
+    "concurrently": "^9.2.1",
     "dotenv": "^17.2.3",
     "esbuild": "^0.25.12",
     "esbuild-wasm": "^0.27.2",
@@ -210,5 +212,5 @@
       "@types/react-dom": "19.2.2"
     }
   },
-  "packageManager": "pnpm@10.26.2+sha512.0e308ff2005fc7410366f154f625f6631ab2b16b1d2e70238444dd6ae9d630a8482d92a451144debc492416896ed16f7b114a86ec68b8404b2443869e68ffda6"
+  "packageManager": "pnpm@10.27.0+sha512.72d699da16b1179c14ba9e64dc71c9a40988cbdc65c264cb0e489db7de917f20dcf4d64d8723625f2969ba52d4b7e2a1170682d9ac2a5dcaeaab732b7e16f04a"
 }

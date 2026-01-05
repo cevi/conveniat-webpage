@@ -65,11 +65,14 @@ export const createPrefixedRewriteResponse = (config: {
  * @param next
  */
 export const designRewriteProxy: ProxyModule = (next) => async (request, event, response) => {
+  // determine the design mode based on the headers and cookies
   const headerDesign = request.headers.get(Header.DESIGN_MODE);
   const cookieDesign = request.cookies.get(Cookie.DESIGN_MODE)?.value;
+  let designPrefix = headerDesign ?? cookieDesign ?? DesignCodes.WEB_DESIGN;
 
   const initialAppModeCookie = request.cookies.get('x-app-mode-initial')?.value === 'true';
 
+  // force app mode is enabled by visiting /entrypoint?force-app-mode=true
   const forceAppMode =
     request.nextUrl.searchParams.get(DesignModeTriggers.QUERY_PARAM_FORCE) === 'true';
   const implicitAppMode =
@@ -81,13 +84,13 @@ export const designRewriteProxy: ProxyModule = (next) => async (request, event, 
     .pathname;
   const isOfflinePage = pathname.endsWith('/~offline');
 
-  let designPrefix = headerDesign ?? cookieDesign ?? DesignCodes.WEB_DESIGN;
+  const isRefererTrigger = appModeForDashboardBasedOnReferer(pathname, request);
 
-  if (forceAppMode || implicitAppMode || isOfflinePage) {
+  if (forceAppMode || implicitAppMode || isOfflinePage || isRefererTrigger) {
     designPrefix = DesignCodes.APP_DESIGN;
   }
 
-  // use the design of the  header first, then the cookie, then default to DesignCodes.WEB_DESIGN
+  // use the design of the header first, then the cookie, then default to DesignCodes.WEB_DESIGN
   response.headers.set(Header.DESIGN_MODE, designPrefix);
 
   const nextResponse = createPrefixedRewriteResponse({
@@ -111,3 +114,31 @@ export const designRewriteProxy: ProxyModule = (next) => async (request, event, 
 
   return next(request, event, nextResponse);
 };
+
+/**
+ * If the use tries to preload the /app/dashboard page, check if the referer is from the entrypoint
+ * and if it is, set the app mode to app design (if the query param is set). This is to prevent race
+ * conditions mainly in Safari, where the initial loads are not handled by the service worker.
+ *
+ */
+function appModeForDashboardBasedOnReferer(pathname: string, request: NextRequest): boolean {
+  const isDashboardPage = pathname.endsWith('/app/dashboard');
+  let isRefererTrigger = false;
+
+  const referer = request.headers.get('referer');
+  if (isDashboardPage && referer !== null) {
+    try {
+      const refererUrl = new URL(referer);
+      if (
+        refererUrl.pathname.endsWith('/entrypoint') &&
+        (refererUrl.searchParams.get(DesignModeTriggers.QUERY_PARAM_FORCE) === 'true' ||
+          refererUrl.searchParams.get(DesignModeTriggers.QUERY_PARAM_IMPLICIT) === 'true')
+      ) {
+        isRefererTrigger = true;
+      }
+    } catch {
+      // Invalid referer URL, ignore
+    }
+  }
+  return isRefererTrigger;
+}

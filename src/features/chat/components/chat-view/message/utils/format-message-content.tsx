@@ -1,3 +1,4 @@
+import { environmentVariables } from '@/config/environment-variables';
 import { SYSTEM_MSG_TYPE_EMERGENCY_ALERT } from '@/lib/chat-shared';
 import type { JsonArray, JsonObject } from '@/lib/prisma/runtime/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -99,14 +100,28 @@ export const formatMessageContent = (
       match = part.match(urlRegex);
       if (match?.[1] != undefined) {
         const url = match[1];
+        const isInternalLink = url.startsWith(environmentVariables.NEXT_PUBLIC_APP_HOST_URL);
+
+        let linkProperties: { href: string; target?: string; rel?: string };
+
+        if (isInternalLink) {
+          let path = url.replace(environmentVariables.NEXT_PUBLIC_APP_HOST_URL, '');
+          if (!path.startsWith('/')) {
+            path = `/${path}`;
+          }
+          linkProperties = {
+            href: path,
+          };
+        } else {
+          linkProperties = {
+            href: url,
+            target: '_blank',
+            rel: 'noopener noreferrer',
+          };
+        }
+
         return (
-          <Link
-            key={`${lineIndex}-${partIndex}-link`}
-            href={url}
-            className="underline"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
+          <Link key={`${lineIndex}-${partIndex}-link`} className="underline" {...linkProperties}>
             {url}
           </Link>
         );

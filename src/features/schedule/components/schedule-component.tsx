@@ -288,7 +288,7 @@ export const ScheduleComponent: React.FC<ScheduleComponentProperties> = ({ sched
                   handleFiltersChange({
                     searchText: '',
                     selectedLocations: [],
-                    selectedCategory: '',
+                    selectedCategory: undefined,
                     starredOnly: false,
                   })
                 }

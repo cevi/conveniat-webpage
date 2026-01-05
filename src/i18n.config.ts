@@ -24,6 +24,7 @@ export const i18nExcludedRoutes: string[] = [
   '_next',
   'api',
   'admin',
+  'admin-block-images',
   '.well-known',
 
   // posthog analytics
@@ -34,6 +35,8 @@ export const i18nExcludedRoutes: string[] = [
 
   // Static Files (Service Workers, Manifests, SEO)
   'serwist',
+  'sw.js',
+  'sw.js.map',
   'manifest.webmanifest',
   'manifest.json',
   'sitemap.xml',

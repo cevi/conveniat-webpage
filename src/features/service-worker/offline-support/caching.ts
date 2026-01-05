@@ -1,6 +1,6 @@
 import { CACHE_NAMES, TIMEOUTS } from '@/features/service-worker/constants';
 import { offlineRegistry } from '@/features/service-worker/offline-support/offline-registry';
-import { defaultCache } from '@serwist/turbopack/worker';
+import { defaultCache } from '@serwist/next/worker';
 import type { PrecacheEntry, RuntimeCaching, SerwistGlobalConfig, SerwistPlugin } from 'serwist';
 import {
   CacheableResponsePlugin,
@@ -22,6 +22,23 @@ declare const self: ServiceWorkerGlobalScope;
 
 const isDevelopment = process['env'].NODE_ENV === 'development';
 
+const htmlErrorPreventionPlugin: SerwistPlugin = {
+  // Prevent caching HTML error responses as CSS/JS
+  cacheWillUpdate: ({ response }) => {
+    if (response.headers.get('content-type')?.includes('text/html') === true) {
+      return;
+    }
+    return response;
+  },
+  // Validate cached responses before serving - reject HTML error pages
+  cachedResponseWillBeUsed: ({ cachedResponse }) => {
+    if (cachedResponse?.headers.get('content-type')?.includes('text/html') === true) {
+      return;
+    }
+    return cachedResponse;
+  },
+};
+
 const cssCaching: RuntimeCaching = {
   matcher: /\/_next\/static\/.*\.css$/,
   handler: isDevelopment
@@ -32,22 +49,7 @@ const cssCaching: RuntimeCaching = {
           new CacheableResponsePlugin({
             statuses: [200],
           }) as SerwistPlugin,
-          {
-            // Prevent caching HTML error responses as CSS
-            cacheWillUpdate: ({ response }) => {
-              if (response.headers.get('content-type')?.includes('text/html') === true) {
-                return;
-              }
-              return response;
-            },
-            // Validate cached responses before serving - reject HTML error pages
-            cachedResponseWillBeUsed: ({ cachedResponse }) => {
-              if (cachedResponse?.headers.get('content-type')?.includes('text/html') === true) {
-                return;
-              }
-              return cachedResponse;
-            },
-          } as SerwistPlugin,
+          htmlErrorPreventionPlugin,
         ],
       }),
 };
@@ -62,23 +64,7 @@ const jsCaching: RuntimeCaching = {
           new CacheableResponsePlugin({
             statuses: [200],
           }) as SerwistPlugin,
-          {
-            // Prevent caching HTML error responses as JS
-            cacheWillUpdate: ({ response }) => {
-              if (response.headers.get('content-type')?.includes('text/html') === true) {
-                return;
-              }
-              return response;
-            },
-            // Validate cached responses before serving - reject HTML error pages
-            cachedResponseWillBeUsed: ({ cachedResponse }) => {
-              if (cachedResponse?.headers.get('content-type')?.includes('text/html') === true) {
-                // Return undefined to force network fetch instead of serving HTML as JS
-                return;
-              }
-              return cachedResponse;
-            },
-          } as SerwistPlugin,
+          htmlErrorPreventionPlugin,
         ],
       }),
 };
@@ -147,7 +133,7 @@ const imageCaching: RuntimeCaching = {
 };
 
 const apiCaching: RuntimeCaching = {
-  matcher: /\/api\/.*/,
+  matcher: (options) => /\/api\/.*/.test(options.url.pathname),
   handler: new NetworkFirst({
     cacheName: CACHE_NAMES.API,
     networkTimeoutSeconds: TIMEOUTS.DEFAULT_FETCH / 1000,
@@ -160,11 +146,17 @@ const apiCaching: RuntimeCaching = {
 };
 
 const pageCaching: RuntimeCaching = {
-  matcher: ({ request }: { request: Request }): boolean => request.destination === 'document',
+  matcher: ({ request }: { request: Request }): boolean =>
+    request.method === 'GET' && request.destination === 'document',
   handler: new NetworkFirst({
     cacheName: CACHE_NAMES.PAGES,
     networkTimeoutSeconds: TIMEOUTS.DEFAULT_FETCH / 1000,
   }),
+};
+
+const adminBlockImageCaching: RuntimeCaching = {
+  matcher: new RegExp(/\/admin-block-images\//),
+  handler: new NetworkOnly(),
 };
 
 const runtimeCaching: RuntimeCaching[] = [
@@ -173,6 +165,7 @@ const runtimeCaching: RuntimeCaching[] = [
   rscCaching,
   fontCaching,
   nextFontCaching,
+  adminBlockImageCaching,
   imageCaching,
   apiCaching,
   pageCaching,

@@ -4,9 +4,8 @@ import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { Locale } from '@/types/types';
 import { auth } from '@/utils/auth';
 import { DesignCodes } from '@/utils/design-codes';
-import type React from 'react';
-
 import { redirect } from 'next/navigation';
+import type React from 'react';
 
 const ChatPage: React.FC<{
   params: Promise<{ locale: Locale; design: DesignCodes }>;

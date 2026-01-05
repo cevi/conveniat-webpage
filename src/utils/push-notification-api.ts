@@ -87,18 +87,12 @@ export async function subscribeUser(
   }
 
   // send a test notification to the user
-  try {
-    await webpush.sendNotification(
-      sub,
-      JSON.stringify({
-        title: 'conveniat27',
-        body: subscribedConfirmationPush[locale],
-      }),
-    );
-  } catch (error) {
-    console.error('Error sending test notification:', error);
-    throw new Error('Failed to send test notification');
-  }
+  await sendNotificationToSubscription(
+    sub,
+    subscribedConfirmationPush[locale],
+    undefined, // no url
+    payloadUser?.id, // log to user if exists
+  );
 
   return { success: true };
 }
@@ -140,8 +134,31 @@ export async function sendNotificationToSubscription(
   subscription: webpush.PushSubscription,
   message: string,
   url?: string,
+  userId?: string,
+  existingLogId?: string,
+  logContent?: string,
 ): Promise<{ success: boolean; error?: string }> {
   const urlToSend = url && url == '' ? undefined : url; // empty url is undefined
+  const { default: prisma } = await import('@/lib/database');
+  let logId = existingLogId;
+
+  // If userId is provided and no existingLogId, create a new log entry
+  if (userId && !logId) {
+    try {
+      const log = await prisma.pushNotificationLog.create({
+        data: {
+          userId,
+          content: logContent ?? message,
+          status: 'PENDING',
+        },
+      });
+      logId = log.id;
+    } catch (error) {
+      console.error('Failed to create push notification log', error);
+      // We continue even if validation fails, but logging won't happen
+    }
+  }
+
   try {
     await webpush.sendNotification(
       subscription,
@@ -150,13 +167,36 @@ export async function sendNotificationToSubscription(
         body: message,
         data: {
           url: urlToSend,
+          notificationId: logId,
         },
       }),
     );
 
+    if (logId) {
+      await prisma.pushNotificationLog.update({
+        where: { id: logId },
+        data: {
+          status: 'DELIVERED',
+          deliveredAt: new Date(),
+        },
+      });
+    }
+
     return { success: true };
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('Error sending push notification:', error);
+
+    if (logId) {
+      await prisma.pushNotificationLog.update({
+        where: { id: logId },
+        data: {
+          status: 'FAILED',
+          error: errorMessage,
+        },
+      });
+    }
+
     return { success: false, error: 'Failed to send notification' };
   }
 }

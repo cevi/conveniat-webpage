@@ -28,6 +28,8 @@ const features_folder = [
   'image-submission',
   'admin',
   'permissions',
+  'push-notifications',
+  'push-tracking',
 ];
 
 const featuresDirectory = path.join(__dirname, 'src', 'features');
@@ -288,6 +290,11 @@ const config = defineConfig([
 
     // observability tools
     'observability/**',
+
+    // service worker
+    'public/sw.js',
+    'public/sw.js.map',
+    'serwist.config.js',
   ]),
 ]);
 

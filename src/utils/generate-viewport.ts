@@ -28,6 +28,9 @@ export const generateViewport = async ({ params }: Properties): Promise<Viewport
     colorScheme: 'light',
     width: 'device-width',
     viewportFit: 'cover',
+
+    // see https://developer.chrome.com/blog/viewport-resize-behavior
+    // this is only needed for Chrome (on Safari, it will raise an error, which can safely be ignored)
     interactiveWidget: 'resizes-visual',
 
     // disable zooming in the app design

@@ -1,11 +1,11 @@
 import build from '@/build';
 import { diag, DiagConsoleLogger, type DiagLogger, DiagLogLevel } from '@opentelemetry/api';
-import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
 import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { HostMetrics } from '@opentelemetry/host-metrics';
-import { UndiciInstrumentation } from '@opentelemetry/instrumentation-undici';
+import { MongoDBInstrumentation } from '@opentelemetry/instrumentation-mongodb';
+import { MongooseInstrumentation } from '@opentelemetry/instrumentation-mongoose';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { BatchLogRecordProcessor } from '@opentelemetry/sdk-logs';
 import { NodeSDK } from '@opentelemetry/sdk-node';
@@ -158,22 +158,17 @@ export const sdk = new NodeSDK({
   sampler: new TraceIdRatioBasedSampler(0.25),
   autoDetectResources: false,
   instrumentations: [
-    getNodeAutoInstrumentations({
-      '@opentelemetry/instrumentation-mongoose': { enabled: true },
-      '@opentelemetry/instrumentation-http': { enabled: true }, // Re-enabled for RED metrics
-      '@opentelemetry/instrumentation-mongodb': {
-        dbStatementSerializer: (command: Record<string, unknown>) => {
-          try {
-            return JSON.stringify(command);
-          } catch {
-            return 'Statement serialization failed';
-          }
-        },
+    new MongooseInstrumentation(),
+    new MongoDBInstrumentation({
+      dbStatementSerializer: (command: Record<string, unknown>): string => {
+        try {
+          return JSON.stringify(command);
+        } catch {
+          return 'Statement serialization failed';
+        }
       },
-      '@opentelemetry/instrumentation-fs': { enabled: false }, // Reduce noise
     }),
     new PrismaInstrumentation({ enabled: true }),
-    new UndiciInstrumentation({ enabled: true }),
   ],
 });
 

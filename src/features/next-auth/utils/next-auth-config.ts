@@ -5,6 +5,29 @@ import type { NextAuthConfig } from 'next-auth';
 import type { JWT } from 'next-auth/jwt';
 import type { BasePayload } from 'payload';
 import { getPayload } from 'payload';
+import { Agent, setGlobalDispatcher } from 'undici';
+
+/**
+ * Custom Undici Agent to manage HTTP connections efficiently.
+ *
+ * This agent is configured to handle keep-alive connections with
+ * specific timeouts to prevent ECONNRESET errors when the remote
+ * server closes idle connections.
+ *
+ */
+const customAgent = new Agent({
+  keepAliveTimeout: 4000,
+  keepAliveMaxTimeout: 4000,
+  headersTimeout: 5000,
+  bodyTimeout: 10_000,
+  connect: {
+    timeout: 5000,
+    keepAlive: true, // TCP level keep-alive
+  },
+  pipelining: 0,
+  connections: 50,
+});
+setGlobalDispatcher(customAgent);
 
 // Extend the JWT type to include our custom fields
 declare module 'next-auth/jwt' {
@@ -100,13 +123,38 @@ async function saveAndFetchUserFromPayload(
 }
 
 /**
+ * Helper function to perform fetch with retries for network errors.
+ */
+async function fetchWithRetry(url: string, options: RequestInit, retries = 3): Promise<Response> {
+  let attempt = 0;
+  while (attempt < retries) {
+    try {
+      // @ts-ignore - Undici Agent is handled globally via setGlobalDispatcher,
+      // but we can also pass specific dispatcher options if needed.
+      // For now, the global agent should suffice.
+      return await fetch(url, { ...options, cache: 'no-store' });
+    } catch (error) {
+      attempt++;
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.warn(`[NextAuth] Fetch attempt ${attempt} failed for ${url}: ${errorMessage}`);
+      if (attempt >= retries) throw error;
+      // Exponential backoff: 500ms, 1000ms, 2000ms
+      await new Promise((resolve) => setTimeout(resolve, 500 * Math.pow(2, attempt)));
+    }
+  }
+  throw new Error('Unreachable code in fetchWithRetry');
+}
+
+/**
  * Refreshes the access token using the refresh token.
  * returns the new token with updated expiration and access token
  */
 async function refreshAccessToken(token: JWT): Promise<JWT> {
   try {
+    console.log('Refreshing access token for user', token.uuid);
+
     const url = `${HITOBITO_BASE_URL}/oauth/token`;
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -139,7 +187,7 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
 
     // After refreshing the token, we re-fetch the user profile to get updated groups
     const profileUrl = `${HITOBITO_BASE_URL}/oauth/profile`;
-    const profileResponse = await fetch(profileUrl, {
+    const profileResponse = await fetchWithRetry(profileUrl, {
       headers: {
         Authorization: `Bearer ${refreshedTokens.access_token}`,
         'X-Scope': 'with_roles',
@@ -217,7 +265,7 @@ export const authOptions: NextAuthConfig = {
       userinfo: {
         async request({ tokens }: { tokens: { access_token: string } }): Promise<HitobitoProfile> {
           const url = `${HITOBITO_BASE_URL}/oauth/profile`;
-          const response = await fetch(url, {
+          const response = await fetchWithRetry(url, {
             headers: {
               Authorization: `Bearer ${tokens.access_token}`,
               'X-Scope': 'with_roles',

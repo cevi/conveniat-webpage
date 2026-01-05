@@ -50,5 +50,12 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules", ".next", "src/app/(payload)/layout.tsx"]
+  "exclude": [
+    "node_modules",
+    ".next",
+    "src/app/(payload)/layout.tsx",
+    "public/sw.js",
+    "public/sw.js.map",
+    "serwist.config.js"
+  ]
 }

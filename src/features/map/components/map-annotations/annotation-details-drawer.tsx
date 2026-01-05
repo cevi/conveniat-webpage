@@ -33,7 +33,8 @@ const shareLocationCallback = async (
     text: annotation.title,
   };
   try {
-    await navigator.share(data);
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function')
+      await navigator.share(data);
   } catch {
     console.error(shareLocationError[locale]);
   }

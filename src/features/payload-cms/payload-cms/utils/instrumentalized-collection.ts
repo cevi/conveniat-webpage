@@ -1,4 +1,4 @@
-import type { Span } from '@opentelemetry/api';
+import type { Span, Tracer } from '@opentelemetry/api';
 import { SpanStatusCode, trace } from '@opentelemetry/api';
 import type {
   CollectionAfterErrorHook,
@@ -7,12 +7,12 @@ import type {
   CollectionConfig,
 } from 'payload';
 
-const tracer = trace.getTracer('payload-cms-instrumentation');
+const getTracer = (): Tracer => trace.getTracer('payload-cms-instrumentation');
 
 const otelBeforeOperation: CollectionBeforeOperationHook = ({ collection, operation, req }) => {
   // we ignore errors while creating the span, as this has no impact on the operation itself
   try {
-    const span: Span = tracer.startSpan(`payload.${collection.slug}.${operation}`);
+    const span = getTracer().startSpan(`payload.${collection.slug}.${operation}`);
     span.setAttributes({
       'payload.collection.slug': collection.slug,
       'payload.operation': operation,
@@ -21,7 +21,8 @@ const otelBeforeOperation: CollectionBeforeOperationHook = ({ collection, operat
       'payload.locale': req.locale,
     });
 
-    req.context['spans'] = [...((req.context['spans'] as [] | undefined) ?? []), span];
+    req.context['spans'] ??= [];
+    (req.context['spans'] as Span[]).push(span);
   } catch (error) {
     console.error('Error creating OpenTelemetry span:', error);
   }
@@ -30,22 +31,31 @@ const otelBeforeOperation: CollectionBeforeOperationHook = ({ collection, operat
 const otelAfterOperation: CollectionAfterOperationHook = ({ req, result }) => {
   // Retrieve the span from the request context
   const spans = req.context['spans'] as Span[] | undefined;
-  const span = spans?.pop();
-  if (span === undefined) return;
 
-  span.setStatus({ code: SpanStatusCode.OK });
-  span.end();
+  if (!spans || spans.length === 0) return result;
+
+  const span = spans.pop();
+
+  if (span?.isRecording() === true) {
+    span.setStatus({ code: SpanStatusCode.OK });
+    span.end();
+  }
+
   return result;
 };
 
 const otelAfterError: CollectionAfterErrorHook = ({ error, req }) => {
-  // Retrieve the span from the request context
   const spans = req.context['spans'] as Span[] | undefined;
-  const span = spans?.pop();
-  if (span === undefined) return;
 
-  span.recordException(error);
-  span.setStatus({ code: SpanStatusCode.ERROR, message: error.message });
+  if (!spans || spans.length === 0) return;
+  const span = spans.pop();
+
+  if (span?.isRecording() === true) {
+    // Record the exception in the trace
+    span.recordException(error);
+    span.setStatus({ code: SpanStatusCode.ERROR, message: error.message });
+    span.end();
+  }
 };
 /**
  * ==============================================================================================

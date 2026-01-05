@@ -12,7 +12,9 @@
  */
 export const offlinePages = [
   // App entrypoint
+  '/entrypoint',
   '/entrypoint?app-mode=true',
+  '/entrypoint?force-app-mode=true',
 
   // Main application dashboard
   '/app/dashboard',
@@ -26,4 +28,7 @@ export const offlinePages = [
 
   // Map viewer with tile caching
   '/app/map',
+
+  // offline page
+  '/~offline',
 ] as const;

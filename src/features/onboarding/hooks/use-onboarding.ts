@@ -2,7 +2,9 @@
 
 import type { cookieInfoText } from '@/features/onboarding/onboarding-constants';
 import { OnboardingStep } from '@/features/onboarding/types';
-import { getPushSubscription } from '@/utils/push-notification-utils';
+import { isSafariOnAppleDevice } from '@/utils/browser-detection';
+import { getPushSubscription } from '@/utils/push-notifications/push-manager-utils';
+
 // eslint-disable-next-line import/no-restricted-paths
 import { CACHE_NAMES } from '@/features/service-worker/constants';
 import { Cookie } from '@/types/types';
@@ -54,7 +56,6 @@ export const useOnboarding = (): UseOnboardingReturn => {
   }, []);
 
   const acceptCookiesCallback = useCallback((): void => {
-    router.prefetch('/app/dashboard');
     if (status === 'authenticated') {
       void getPushSubscription()
         .then((subscription: PushSubscription | undefined): void => {
@@ -77,12 +78,14 @@ export const useOnboarding = (): UseOnboardingReturn => {
     } else {
       setOnboardingStep(OnboardingStep.Login);
     }
-  }, [status, router, handlePushNotification]);
+  }, [status, handlePushNotification]);
 
   // Set the design-mode cookie if force-app-mode is present
   useEffect(() => {
     const forceAppMode = searchParameters.get(DesignModeTriggers.QUERY_PARAM_FORCE) === 'true';
-    if (forceAppMode) {
+
+    const isWebkitBasedBrowser = isSafariOnAppleDevice();
+    if (forceAppMode || isWebkitBasedBrowser) {
       Cookies.set(Cookie.DESIGN_MODE, DesignCodes.APP_DESIGN, { expires: 730 });
       console.log('[Onboarding] Force Mode: Setting Cookie Client-side', {
         cookieName: Cookie.DESIGN_MODE,
@@ -92,7 +95,7 @@ export const useOnboarding = (): UseOnboardingReturn => {
       const params = new URLSearchParams(searchParameters.toString());
       params.delete(DesignModeTriggers.QUERY_PARAM_FORCE);
       const queryString = params.toString();
-      const newUrl = `${pathname}${queryString}`;
+      const newUrl = `${pathname}?${queryString}`;
       router.replace(newUrl);
     }
   }, [searchParameters, pathname, router]);

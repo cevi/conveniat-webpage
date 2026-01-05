@@ -168,8 +168,6 @@ functionality, enabling PWA features:
 - **Caching:** Improves performance by caching assets and network requests.
 - **Reliability:** Provides a more resilient user experience on flaky networks.
 
-The service worker logic is defined in `src/features/service-worker/index.ts` and configured in `next.config.mjs`.
-
 ### Service Worker in Development
 
 By default, the Service Worker is **disabled** during local development (`docker compose up`) to prevent caching issues
@@ -320,6 +318,11 @@ export DB_PASSWORD=
 # 3. Connect via the tunnel on localhost:5433
 # (Note: 5433 is used for the tunnel, 5432 is for your local instance)
 export CHAT_DATABASE_URL="postgres://conveniat27:$DB_PASSWORD@localhost:5433/conveniat27"
+
+# for konekta
+pnpm db:tunnel-konekta
+export DB_PASSWORD=
+export CHAT_DATABASE_URL="postgres://konekta:$DB_PASSWORD@localhost:5433/konekta"
 
 # Check status
 npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma

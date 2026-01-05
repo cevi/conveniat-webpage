@@ -1,45 +1,84 @@
-import { SafeErrorBoundary } from '@/components/error-boundary/safe-error-boundary';
 import type { ContentBlockTypeNames } from '@/features/payload-cms/converters/page-sections/content-blocks';
+import { SectionErrorBoundary } from '@/features/payload-cms/converters/page-sections/section-error-boundary';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
+import { draftMode } from 'next/headers';
 import React from 'react';
 
 export type ContentBlock<T = object> = { blockType: ContentBlockTypeNames; id: string } & T;
 
-const errorMessageText: StaticTranslationString = {
-  de: 'Der Inhalt konnte nicht geladen werden.',
-  en: 'Failed to load content block.',
-  fr: 'Échec du chargement du bloc de contenu.',
-};
-
-const ErrorFallback: React.FC<{ error: Error; locale: Locale }> = ({ locale, error }) => {
-  return (
-    <div className="rounded-2xl bg-gray-100 px-16 py-4 text-center text-red-700">
-      <b>{errorMessageText[locale]}</b> <br />
-      {error.message}
-    </div>
-  );
-};
-
-const SectionWrapper: React.FC<{
+const SectionWrapper = async ({
+  block,
+  sectionClassName,
+  sectionOverrides,
+  children,
+  errorFallbackMessage,
+  locale,
+}: {
   block: ContentBlock;
   sectionClassName: string | undefined;
   sectionOverrides: { [key in ContentBlockTypeNames]?: string } | undefined;
   children: React.ReactNode;
   errorFallbackMessage: string;
   locale: Locale;
-}> = ({ block, sectionClassName, sectionOverrides, children, errorFallbackMessage, locale }) => {
+}): Promise<React.ReactElement> => {
   const blockTypeOverrideClassName = sectionOverrides?.[block.blockType];
+  const draft = await draftMode();
+  const isDraftMode = draft.isEnabled;
+
+  // Pre-validate block in draft mode to avoid render crashes (e.g. missing required fields)
+  if (isDraftMode) {
+    const { validateContentBlock } =
+      await import('@/features/payload-cms/utils/content-validation');
+    const validationResult = validateContentBlock(block, locale);
+
+    if (!validationResult.isValid) {
+      const missingFieldsText = validationResult.missingFields.join(', ');
+
+      const missingFieldsMessage: StaticTranslationString = {
+        de: `Fehlende Pflichtfelder: ${missingFieldsText}`,
+        en: `Missing required fields: ${missingFieldsText}`,
+        fr: `Champs obligatoires manquants : ${missingFieldsText}`,
+      };
+
+      const errorTitle: StaticTranslationString = {
+        de: `${validationResult.blockLabel}: Inhalt unvollständig`,
+        en: `${validationResult.blockLabel}: Content Incomplete`,
+        fr: `${validationResult.blockLabel} : Contenu incomplet`,
+      };
+
+      return (
+        <section
+          key={block.id}
+          className={cn('mt-8 first:mt-0', sectionClassName, blockTypeOverrideClassName)}
+        >
+          <SectionErrorBoundary
+            locale={locale}
+            errorFallbackMessage={errorFallbackMessage}
+            isDraftMode={isDraftMode}
+            forceError={new Error(missingFieldsMessage[locale])}
+            errorTitle={errorTitle[locale]}
+          >
+            {/* We render nothing here because we forced an error state */}
+            <></>
+          </SectionErrorBoundary>
+        </section>
+      );
+    }
+  }
+
   return (
     <section
       key={block.id}
       className={cn('mt-8 first:mt-0', sectionClassName, blockTypeOverrideClassName)}
     >
-      <SafeErrorBoundary
-        fallback={<ErrorFallback error={new Error(errorFallbackMessage)} locale={locale} />}
+      <SectionErrorBoundary
+        locale={locale}
+        errorFallbackMessage={errorFallbackMessage}
+        isDraftMode={isDraftMode}
       >
         {children}
-      </SafeErrorBoundary>
+      </SectionErrorBoundary>
     </section>
   );
 };

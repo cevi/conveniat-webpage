@@ -70,17 +70,9 @@ RUN \
   echo "Build failed with exit code $RET"; \
   cat build.log; \
   exit $RET; \
-  fi; \
-  if ! grep -F "/serwist/[path]" build.log > /dev/null; then \
-  echo "Error: /serwist/sw.js was not found in build output!"; \
-  echo "Check the build logs above for errors."; \
-  exit 1; \
-  fi; \
-  if ! grep -F "/serwist/[path]" build.log | grep -qE "●|\(SSG\)"; then \
-  echo "Error: /serwist/sw.js was not rendered as SSG!"; \
-  grep -F "/serwist/[path]" build.log; \
-  exit 1; \
   fi
+
+
 
 # Ensure fallback cache directory exists so copy commands don't fail if empty
 RUN mkdir -p .next/cache/fs-fallback

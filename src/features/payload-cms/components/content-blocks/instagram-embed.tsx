@@ -9,14 +9,16 @@ export interface InstagramEmbedType {
 
 export const InstagramEmbed: React.FC<InstagramEmbedType> = ({ link }) => {
   if (link === '') {
-    return <p>No link provided.</p>;
+    console.error('InstagramEmbed: No link provided.');
+    return;
   }
 
   // split by /p/ or /reel/
   const postId = link.split(/\/(p|reel)\//)[2]?.split('/')[0];
 
   if (postId == undefined) {
-    return <p>Invalid Instagram URL.</p>;
+    console.error(`InstagramEmbed: Invalid URL ${link}`);
+    return;
   }
 
   return (
