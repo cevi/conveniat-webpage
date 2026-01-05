@@ -11,10 +11,10 @@ export const enabledWidgets: Widget[] = [
   },
 ];
 
-export const widgetDefaultLayout = async (): Promise<WidgetInstance[]> => {
+export const widgetDefaultLayout = (): WidgetInstance[] => {
   /*
 
-  // Example restriction for default widgets
+  // Example restriction for default widgets, make this function async and import auth if needed
   const session = await auth();
   const user = session?.user as HitobitoNextAuthUser | undefined;
 

@@ -7,7 +7,7 @@ const title: StaticTranslationString = {
   fr: 'Nombre d’utilisateurs',
 };
 
-export default async function EmergencyCounterWidget({ req }: WidgetServerProps) {
+export default async function EmergencyCounterWidget({ req }: WidgetServerProps): Promise<React.ReactElement> {
   const { payload, locale } = req;
   const users = await payload.count({ collection: 'users' });
 

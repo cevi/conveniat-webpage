@@ -18,7 +18,7 @@ const actionButton: StaticTranslationString = {
   fr: 'Voir',
 };
 
-function InternalEmergencyCounter() {
+function InternalEmergencyCounter(): React.ReactElement {
   const { chats } = useAdminChatManagement({
     chatType: ChatType.EMERGENCY,
     showClosed: false,
@@ -37,7 +37,7 @@ function InternalEmergencyCounter() {
   );
 }
 
-export default function EmergencyCounterWidget() {
+export default function EmergencyCounterWidget(): React.ReactElement {
   return (
     <TRPCProvider>
       <InternalEmergencyCounter />

@@ -19,11 +19,14 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { CollectionConfig, Locale } from 'payload';
 
+import {
+  enabledWidgets,
+  widgetDefaultLayout,
+} from '@/features/payload-cms/payload-cms/widgets/widget-configuration';
 import { de } from 'payload/i18n/de';
 import { en } from 'payload/i18n/en';
 import { fr } from 'payload/i18n/fr';
 import sharp from 'sharp';
-import { enabledWidgets, widgetDefaultLayout } from '@/features/payload-cms/payload-cms/widgets/widget-configuration';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
