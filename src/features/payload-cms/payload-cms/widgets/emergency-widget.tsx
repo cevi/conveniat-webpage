@@ -2,7 +2,7 @@
 import { useAdminChatManagement } from '@/features/chat/hooks/use-admin-chat-management';
 import { ChatType } from '@/lib/prisma';
 import { TRPCProvider } from '@/trpc/client';
-import { Locale, StaticTranslationString } from '@/types/types';
+import type { Locale, StaticTranslationString } from '@/types/types';
 import { useLocale } from '@payloadcms/ui';
 import Link from 'next/link';
 

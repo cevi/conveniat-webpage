@@ -1,4 +1,4 @@
-import { Widget, WidgetInstance } from 'payload';
+import type { Widget, WidgetInstance } from 'payload';
 
 export const enabledWidgets: Widget[] = [
   {

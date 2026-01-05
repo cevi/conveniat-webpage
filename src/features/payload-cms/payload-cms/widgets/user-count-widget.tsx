@@ -1,5 +1,5 @@
-import { Locale, StaticTranslationString } from '@/types/types';
-import { WidgetServerProps } from 'payload';
+import type { Locale, StaticTranslationString } from '@/types/types';
+import type { WidgetServerProps } from 'payload';
 
 const title: StaticTranslationString = {
   en: 'User Count',

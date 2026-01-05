@@ -23,7 +23,7 @@ import { de } from 'payload/i18n/de';
 import { en } from 'payload/i18n/en';
 import { fr } from 'payload/i18n/fr';
 import sharp from 'sharp';
-import { enabledWidgets, widgetDefaultLayout } from './payload-cms/widgets/widget-configuration';
+import { enabledWidgets, widgetDefaultLayout } from '@/features/payload-cms/payload-cms/widgets/widget-configuration';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
