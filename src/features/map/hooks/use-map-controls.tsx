@@ -1,4 +1,5 @@
 import { useMap } from '@/features/map/components/maplibre-renderer/map-context-provider';
+import type { MapControlOptions } from '@/features/map/types/types';
 import { reactToDomElement } from '@/utils/react-to-dom-element';
 import { Search } from 'lucide-react';
 import type maplibregl from 'maplibre-gl';
@@ -28,13 +29,6 @@ class SearchButton implements maplibregl.IControl {
     this._container.remove();
     this._map = undefined;
   }
-}
-
-export interface MapControlOptions {
-  showSearch?: boolean;
-  showNavigation?: boolean;
-  showGeolocate?: boolean;
-  showScale?: boolean;
 }
 
 export const useMapControls = (options: MapControlOptions = {}): void => {
