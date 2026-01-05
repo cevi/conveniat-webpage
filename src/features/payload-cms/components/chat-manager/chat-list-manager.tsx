@@ -151,6 +151,16 @@ export const ChatListManager: React.FC = () => {
     onSuccess: () => void utils.admin.listChats.invalidate(),
   });
 
+  const onSearchChange = (value: string): void => {
+    setSearch(value);
+    setPage(1);
+  };
+
+  const onTypeFilterChange = (value: string): void => {
+    setTypeFilter(value);
+    setPage(1);
+  };
+
   const handleToggleCapability = async (
     chatId: string,
     capability: string,
@@ -278,6 +288,7 @@ export const ChatListManager: React.FC = () => {
                     void handleToggleCapability(chat.id, cap, checked);
                   }}
                   disabled={toggleCapabilityMutation.isPending}
+                  aria-label={`${t.capabilityLabels[cap]} – ${getChatDisplayName(chat)}`}
                 />
               </div>
             ))}
@@ -347,12 +358,15 @@ export const ChatListManager: React.FC = () => {
           <Input
             placeholder={t.searchPlaceholder}
             value={search}
-            onChange={(event_) => setSearch(event_.target.value)}
+            onChange={(event_) => onSearchChange(event_.target.value)}
             className="pl-10"
           />
         </div>
         <div className="w-full md:w-48">
-          <Select value={typeFilter} onValueChange={setTypeFilter}>
+          <Select
+            value={typeFilter}
+            onValueChange={(value) => onTypeFilterChange(value)}
+          >
             <SelectTrigger>
               <SelectValue placeholder={t.typeFilter} />
             </SelectTrigger>
