@@ -9,16 +9,16 @@ export interface YoutubeEmbedType {
   }[];
 }
 
-const renderYoutubeEmbed = (link: string, index: number): React.JSX.Element | undefined => {
-  if (!link) {
+const YoutubeEmbedItem: React.FC<{ link: string }> = ({ link }) => {
+  if (link === '') {
     console.error('YoutubeEmbed: Empty link provided.');
-    return undefined;
+    return;
   }
 
   const isShort = link.includes('shorts/');
 
   return (
-    <div key={index} className={isShort ? 'shrink-0' : 'w-full overflow-hidden rounded-xl'}>
+    <div className={isShort ? 'shrink-0' : 'w-full overflow-hidden rounded-xl'}>
       <ClientOnly
         fallback={
           <PlaceholderEmbed
@@ -39,20 +39,20 @@ export const YoutubeEmbed: React.FC<YoutubeEmbedType> = ({ links }) => {
     return;
   }
 
-  const validEmbeds = links
-    .map((item, index) => renderYoutubeEmbed(item.link, index))
-    .filter((component) => component !== undefined);
+  const validLinks = links.filter((item) => item.link !== '');
 
-  if (validEmbeds.length === 0) {
+  if (validLinks.length === 0) {
     console.error('YoutubeEmbed: No valid links provided.');
     return;
   }
 
-  const allShorts = links.every((item) => item.link.includes('shorts/'));
+  const allShorts = validLinks.every((item) => item.link.includes('shorts/'));
 
   return (
     <div className={allShorts ? 'flex gap-4 overflow-x-auto' : 'flex flex-col gap-4'}>
-      {validEmbeds}
+      {validLinks.map((item, index) => (
+        <YoutubeEmbedItem key={index} link={item.link} />
+      ))}
     </div>
   );
 };
