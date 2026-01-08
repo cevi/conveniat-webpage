@@ -363,10 +363,7 @@ export const ChatListManager: React.FC = () => {
           />
         </div>
         <div className="w-full md:w-48">
-          <Select
-            value={typeFilter}
-            onValueChange={(value) => onTypeFilterChange(value)}
-          >
+          <Select value={typeFilter} onValueChange={(value) => onTypeFilterChange(value)}>
             <SelectTrigger>
               <SelectValue placeholder={t.typeFilter} />
             </SelectTrigger>
