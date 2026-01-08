@@ -19,6 +19,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { CollectionConfig, Locale } from 'payload';
 
+import {
+  enabledWidgets,
+  widgetDefaultLayout,
+} from '@/features/payload-cms/payload-cms/widgets/widget-configuration';
 import { de } from 'payload/i18n/de';
 import { en } from 'payload/i18n/en';
 import { fr } from 'payload/i18n/fr';
@@ -130,6 +134,10 @@ export const payloadConfig: RoutableConfig = {
       url: generatePreviewUrl,
       breakpoints: smartphoneBreakpoints,
       collections: ['blog', 'generic-page', 'timeline', 'forms', 'camp-map-annotations'],
+    },
+    dashboard: {
+      widgets: enabledWidgets,
+      defaultLayout: widgetDefaultLayout,
     },
   },
   collections: collectionsConfig,
