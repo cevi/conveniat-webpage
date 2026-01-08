@@ -9,6 +9,15 @@ const withBundleAnalyzer = bundleAnalyzer({
   openAnalyzer: true,
 });
 
+/**
+ * PostHog rewrites are required for the PostHog integration to work.
+ *
+ * In out production deployment we are using traefik as the reverse proxy
+ * redirects to PostHog are directly handled by traefik and will never
+ * reach the Next.js server. We keep these rewrites here for development
+ * and testing purposes.
+ *
+ */
 const postHogRewrites = (): Rewrite[] => {
   return [
     {
@@ -35,8 +44,11 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   cacheComponents: true,
 
-  // enable gzip compression for all responses
-  compress: true,
+  /**
+   * Our production deployment uses traefik as the reverse proxy and nginx for serving / caching
+   * static files. We compress the response in nginx to save CPU cycles on the Next.js server.
+   */
+  compress: false,
 
   ...(process.env['NODE_ENV'] !== 'development' && {
     cacheHandlers: {
