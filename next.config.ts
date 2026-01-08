@@ -12,7 +12,7 @@ const withBundleAnalyzer = bundleAnalyzer({
 /**
  * PostHog rewrites are required for the PostHog integration to work.
  *
- * In out production deployment we are using traefik as the reverse proxy
+ * In our production deployment we are using traefik as the reverse proxy
  * redirects to PostHog are directly handled by traefik and will never
  * reach the Next.js server. We keep these rewrites here for development
  * and testing purposes.
