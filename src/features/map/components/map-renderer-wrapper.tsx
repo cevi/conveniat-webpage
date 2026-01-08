@@ -1,6 +1,7 @@
 'use client';
 
 import { Skeleton } from '@/components/ui/skeleton';
+import { useIntersectionObserver } from '@/features/map/hooks/use-intersection-observer';
 import type {
   CampMapAnnotationPoint,
   CampMapAnnotationPolygon,
@@ -13,7 +14,8 @@ import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import dynamic from 'next/dynamic';
-import React, { useEffect, useRef, useState } from 'react';
+import type React from 'react';
+import { useRef } from 'react';
 
 const mapLoadingText: StaticTranslationString = {
   en: 'Loading map...',
@@ -50,29 +52,6 @@ const LazyMiniMapLibreRenderer = dynamic(
     loading: () => <MiniMapLoadingFallback />,
   },
 );
-
-const useIntersectionObserver = (reference: React.RefObject<Element | null>): boolean => {
-  const [isIntersecting, setIsIntersecting] = useState(false);
-
-  useEffect(() => {
-    const element = reference.current;
-    if (!element) return;
-
-    const observer = new IntersectionObserver((entries) => {
-      const entry = entries[0];
-      if (entry?.isIntersecting === true) {
-        setIsIntersecting(true);
-        observer.disconnect();
-      }
-    });
-
-    observer.observe(element);
-
-    return (): void => observer.disconnect();
-  }, [reference]);
-
-  return isIntersecting;
-};
 
 /**
  * This component is a wrapper for the MapLibreRenderer that allows for dynamic loading. This
