@@ -41,5 +41,20 @@ export const cachingHeaders = (): Header[] => {
         },
       ],
     },
+
+    /**
+     * Our production deployment uses traefik as the reverse proxy and nginx for serving / caching
+     * static files. This tells nginx to disable proxy_buffering for this request, which allows
+     * us to stream the response to the client as soon as it is available.
+     */
+    {
+      source: '/:path*', // apply to all routes
+      headers: [
+        {
+          key: 'X-Accel-Buffering',
+          value: 'no', // tells Nginx to disable proxy_buffering
+        },
+      ],
+    },
   ];
 };

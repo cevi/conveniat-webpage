@@ -4,12 +4,12 @@ import { useAnnotationPointMarkers } from '@/features/map/hooks/use-annotation-p
 import { useAnnotationPolygons } from '@/features/map/hooks/use-annotation-polygons';
 import { useCeviLogoMarkers } from '@/features/map/hooks/use-cevi-logo-markers';
 import { useFlyToAnnotation } from '@/features/map/hooks/use-fly-to-annotation';
-import type { MapControlOptions } from '@/features/map/hooks/use-map-controls';
 import { useMapControls } from '@/features/map/hooks/use-map-controls';
 import type {
   CampMapAnnotationPoint,
   CampMapAnnotationPolygon,
   CeviLogoMarker,
+  MapControlOptions,
 } from '@/features/map/types/types';
 import type React from 'react';
 
