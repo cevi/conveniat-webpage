@@ -3,6 +3,7 @@ import { useAdminChatManagement } from '@/features/chat/hooks/use-admin-chat-man
 import { ChatType } from '@/lib/prisma';
 import { TRPCProvider } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
 import { useLocale } from '@payloadcms/ui';
 import Link from 'next/link';
 
@@ -29,7 +30,7 @@ function InternalEmergencyCounter(): React.ReactElement {
   const { code: locale } = useLocale();
 
   return (
-    <div className={`card ${chats.length > 0 ? 'bg-red-300' : ''}`}>
+    <div className={cn('card', { 'bg-red-300': chats.length > 0 })}>
       <h3>{title[locale as Locale]}</h3>
       <p className="font-bold">{chats.length}</p>
       <Link href="/admin/globals/alert-management">{actionButton[locale as Locale]}</Link>
