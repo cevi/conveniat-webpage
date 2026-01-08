@@ -20,7 +20,8 @@ declare global {
 
 declare const self: ServiceWorkerGlobalScope;
 
-const isDevelopment = process['env'].NODE_ENV === 'development';
+// eslint-disable-next-line no-process-env
+const isDevelopment = process.env.NODE_ENV === 'development';
 
 const htmlErrorPreventionPlugin: SerwistPlugin = {
   // Prevent caching HTML error responses as CSS/JS
@@ -44,14 +45,14 @@ const cssCaching: RuntimeCaching = {
   handler: isDevelopment
     ? new NetworkOnly()
     : new StaleWhileRevalidate({
-        cacheName: CACHE_NAMES.CSS,
-        plugins: [
-          new CacheableResponsePlugin({
-            statuses: [200],
-          }) as SerwistPlugin,
-          htmlErrorPreventionPlugin,
-        ],
-      }),
+      cacheName: CACHE_NAMES.CSS,
+      plugins: [
+        new CacheableResponsePlugin({
+          statuses: [200],
+        }) as SerwistPlugin,
+        htmlErrorPreventionPlugin,
+      ],
+    }),
 };
 
 const jsCaching: RuntimeCaching = {
@@ -59,14 +60,14 @@ const jsCaching: RuntimeCaching = {
   handler: isDevelopment
     ? new NetworkOnly()
     : new StaleWhileRevalidate({
-        cacheName: CACHE_NAMES.JS,
-        plugins: [
-          new CacheableResponsePlugin({
-            statuses: [200],
-          }) as SerwistPlugin,
-          htmlErrorPreventionPlugin,
-        ],
-      }),
+      cacheName: CACHE_NAMES.JS,
+      plugins: [
+        new CacheableResponsePlugin({
+          statuses: [200],
+        }) as SerwistPlugin,
+        htmlErrorPreventionPlugin,
+      ],
+    }),
 };
 
 const rscCaching: RuntimeCaching = {
@@ -127,9 +128,9 @@ const imageCaching: RuntimeCaching = {
   handler: isDevelopment
     ? new NetworkOnly()
     : new StaleWhileRevalidate({
-        cacheName: CACHE_NAMES.IMAGES,
-        plugins: [new CacheableResponsePlugin({ statuses: [200] }) as SerwistPlugin],
-      }),
+      cacheName: CACHE_NAMES.IMAGES,
+      plugins: [new CacheableResponsePlugin({ statuses: [200] }) as SerwistPlugin],
+    }),
 };
 
 const apiCaching: RuntimeCaching = {
