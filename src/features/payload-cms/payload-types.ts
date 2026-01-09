@@ -118,6 +118,7 @@ export interface Config {
     'app-feature-flags': AppFeatureFlag;
     'support-chat-management': SupportChatManagement;
     'alert-management': AlertManagement;
+    'all-chats-management': AllChatsManagement;
   };
   globalsSelect: {
     header: HeaderSelect<false> | HeaderSelect<true>;
@@ -128,6 +129,7 @@ export interface Config {
     'app-feature-flags': AppFeatureFlagsSelect<false> | AppFeatureFlagsSelect<true>;
     'support-chat-management': SupportChatManagementSelect<false> | SupportChatManagementSelect<true>;
     'alert-management': AlertManagementSelect<false> | AlertManagementSelect<true>;
+    'all-chats-management': AllChatsManagementSelect<false> | AllChatsManagementSelect<true>;
   };
   locale: 'en' | 'de' | 'fr';
   user: User & {
@@ -3383,6 +3385,16 @@ export interface AlertManagement {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "all-chats-management".
+ */
+export interface AllChatsManagement {
+  id: string;
+  dummy?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "header_select".
  */
 export interface HeaderSelect<T extends boolean = true> {
@@ -3537,6 +3549,16 @@ export interface SupportChatManagementSelect<T extends boolean = true> {
  * via the `definition` "alert-management_select".
  */
 export interface AlertManagementSelect<T extends boolean = true> {
+  dummy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "all-chats-management_select".
+ */
+export interface AllChatsManagementSelect<T extends boolean = true> {
   dummy?: T;
   updatedAt?: T;
   createdAt?: T;

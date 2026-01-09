@@ -58,3 +58,10 @@ export interface CampMapAnnotationPolygon {
   color: string;
   isInteractive: boolean;
 }
+
+export interface MapControlOptions {
+  showSearch?: boolean;
+  showNavigation?: boolean;
+  showGeolocate?: boolean;
+  showScale?: boolean;
+}

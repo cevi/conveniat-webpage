@@ -6,25 +6,32 @@
 TYPE=$1 # prod or dev
 
 if [ "$TYPE" == "prod" ]; then
-  NETWORK="conveniat_backend-net"
-  PG_HOST="conveniat_postgres"
-  MONGO_HOST="conveniat_mongo"
+  # CHANGE THIS LINE:
+  NETWORK="conveniat_maintenance-net"
+
+  PG_HOST="postgres"
+  MONGO_HOST="mongo"
   NAME="db-tunnel-prod"
   echo "INFO: Establishing tunnel to PRODUCTION..."
+
 elif [ "$TYPE" == "dev" ]; then
-  NETWORK="conveniat-dev_backend-net"
-  PG_HOST="conveniat-dev_postgres"
-  MONGO_HOST="conveniat-dev_mongo"
+  # UPDATED: Use the attachable maintenance network
+  NETWORK="conveniat-dev_maintenance-net"
+  PG_HOST="postgres"
+  MONGO_HOST="mongo"
   NAME="db-tunnel-dev"
-  echo "INFO: Establishing tunnel to DEVELOPMENT..."
+  echo "INFO: Establishing tunnel to DEVELOPMENT (Network: $NETWORK)..."
+
 elif [ "$TYPE" == "konekta" ]; then
-  NETWORK="konekta-dev_backend-net"
-  PG_HOST="konekta-dev_postgres"
-  MONGO_HOST="konekta-dev_mongo"
+  # UPDATED: Use the attachable maintenance network
+  NETWORK="konekta-dev_maintenance-net"
+  PG_HOST="postgres"
+  MONGO_HOST="mongo"
   NAME="db-tunnel-konekta"
-  echo "INFO: Establishing tunnel to KONEKTA..."
+  echo "INFO: Establishing tunnel to KONEKTA (Network: $NETWORK)..."
+
 else
-  echo "Usage: $0 {prod|dev}"
+  echo "Usage: $0 {prod|dev|konekta}"
   exit 1
 fi
 

@@ -1,0 +1,5 @@
+#!/bin/bash
+
+pnpm lint-staged
+
+exit 0

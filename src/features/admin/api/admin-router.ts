@@ -50,7 +50,92 @@ export const adminRouter = createTRPCRouter({
     return result;
   }),
 
-  toggleFeatureFlag: trpcBaseProcedure
+  // Generic Chat Management
+  getChatList: adminProcedure
+    .input(
+      z
+        .object({
+          search: z.string().trim().max(100).optional(),
+          type: z.nativeEnum(ChatType).optional(),
+          page: z.number().min(1).optional().default(1),
+          limit: z.number().min(1).max(100).optional().default(20),
+        })
+        .optional(),
+    )
+    .query(async ({ ctx, input }) => {
+      const { prisma } = ctx;
+
+      const filters: Prisma.ChatWhereInput[] = [];
+
+      if (input?.type) {
+        filters.push({ type: input.type });
+      }
+
+      if (input?.search) {
+        const search = input.search;
+        filters.push({
+          OR: [
+            { name: { contains: search, mode: 'insensitive' } },
+            { description: { contains: search, mode: 'insensitive' } },
+            {
+              chatMemberships: {
+                some: {
+                  user: {
+                    name: { contains: search, mode: 'insensitive' },
+                  },
+                },
+              },
+            },
+          ],
+        });
+      }
+
+      const whereClause: Prisma.ChatWhereInput = filters.length > 0 ? { AND: filters } : {};
+
+      const page = input?.page ?? 1;
+      const limit = input?.limit ?? 20;
+      const skip = (page - 1) * limit;
+
+      const [chats, total] = await Promise.all([
+        prisma.chat.findMany({
+          where: whereClause,
+          include: {
+            chatMemberships: {
+              include: {
+                user: { select: { name: true, uuid: true } },
+              },
+            },
+            _count: { select: { messages: true } },
+          },
+          orderBy: { lastUpdate: 'desc' },
+          skip,
+          take: limit,
+        }),
+        prisma.chat.count({ where: whereClause }),
+      ]);
+
+      return {
+        chats: chats.map((chat) => ({
+          id: chat.uuid,
+          name: chat.name,
+          description: chat.description,
+          status: chat.status,
+          type: chat.type,
+          capabilities: chat.capabilities,
+          lastUpdate: chat.lastUpdate,
+          messageCount: chat._count.messages,
+          members: chat.chatMemberships.map((m) => ({
+            name: m.user.name,
+            uuid: m.userId,
+          })),
+        })),
+        total,
+        page,
+        limit,
+      };
+    }),
+
+  toggleFeatureFlag: adminProcedure
     .input(z.object({ key: z.string(), isEnabled: z.boolean() }))
     .mutation(async ({ input }) => {
       await setFeatureFlag(input.key, input.isEnabled);
@@ -229,7 +314,7 @@ export const adminRouter = createTRPCRouter({
       });
     }),
 
-  toggleChatCapability: trpcBaseProcedure
+  toggleChatCapability: adminProcedure
     .input(
       z.object({
         chatId: z.string().uuid(),
@@ -256,7 +341,7 @@ export const adminRouter = createTRPCRouter({
       });
     }),
 
-  getChatMessages: trpcBaseProcedure
+  getChatMessages: adminProcedure
     .input(z.object({ chatId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       const { prisma } = ctx;
@@ -287,7 +372,7 @@ export const adminRouter = createTRPCRouter({
       }));
     }),
 
-  postAdminMessage: trpcBaseProcedure
+  postAdminMessage: adminProcedure
     .input(
       z.object({
         chatId: z.string().uuid(),
@@ -356,7 +441,7 @@ export const adminRouter = createTRPCRouter({
       };
     }),
 
-  closeChat: trpcBaseProcedure
+  closeChat: adminProcedure
     .input(z.object({ chatId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const { prisma, user } = ctx;
@@ -377,7 +462,33 @@ export const adminRouter = createTRPCRouter({
         data: { capabilities: newCapabilities },
       });
 
-      const isEmergency = chat.type === ChatType.EMERGENCY;
+      const closeMessages: Record<ChatType, { en: string; de: string; fr: string }> = {
+        [ChatType.EMERGENCY]: {
+          en: `${user.name} has marked the emergency alert as completed.`,
+          de: `${user.name} hat die Notfallmeldung als abgeschlossen markiert.`,
+          fr: `${user.name} a marqué l'alerte d'urgence comme terminée.`,
+        },
+        [ChatType.SUPPORT_GROUP]: {
+          en: `${user.name} has marked this issue as resolved.`,
+          de: `${user.name} hat dieses Problem als gelöst markiert.`,
+          fr: `${user.name} a marqué ce problème comme résolu.`,
+        },
+        [ChatType.GROUP]: {
+          en: 'An admin has closed this chat.',
+          de: 'Ein Admin hat diesen Chat geschlossen.',
+          fr: 'Un administrateur a fermé ce chat.',
+        },
+        [ChatType.ONE_TO_ONE]: {
+          en: 'An admin has closed this chat.',
+          de: 'Ein Admin hat diesen Chat geschlossen.',
+          fr: 'Un administrateur a fermé ce chat.',
+        },
+        [ChatType.COURSE_GROUP]: {
+          en: 'An admin has closed this chat.',
+          de: 'Ein Admin hat diesen Chat geschlossen.',
+          fr: 'Un administrateur a fermé ce chat.',
+        },
+      };
 
       // Add system message
       await prisma.message.create({
@@ -386,14 +497,7 @@ export const adminRouter = createTRPCRouter({
           type: MessageType.SYSTEM_MSG,
           contentVersions: {
             create: {
-              payload: {
-                en: isEmergency
-                  ? `${user.name} has marked the emergency alert as completed`
-                  : `${user.name} has marked this issue as resolved`,
-                de: isEmergency
-                  ? `${user.name} hat die Notfallmeldung als abgeschlossen markiert`
-                  : `${user.name} hat dieses Problem als gelöst markiert`,
-              },
+              payload: closeMessages[chat.type],
             },
           },
           messageEvents: {
@@ -414,7 +518,7 @@ export const adminRouter = createTRPCRouter({
       });
     }),
 
-  reopenChat: trpcBaseProcedure
+  reopenChat: adminProcedure
     .input(z.object({ chatId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const { prisma, user } = ctx;
@@ -435,7 +539,33 @@ export const adminRouter = createTRPCRouter({
         data: { capabilities: newCapabilities },
       });
 
-      const isEmergency = chat.type === ChatType.EMERGENCY;
+      const reopenMessages: Record<ChatType, { en: string; de: string; fr: string }> = {
+        [ChatType.EMERGENCY]: {
+          en: `${user.name} has reopened the emergency alert.`,
+          de: `${user.name} hat die Notfallmeldung wieder geöffnet.`,
+          fr: `${user.name} a rouvert l'alerte d'urgence.`,
+        },
+        [ChatType.SUPPORT_GROUP]: {
+          en: `${user.name} has reopened this issue.`,
+          de: `${user.name} hat dieses Problem wieder geöffnet.`,
+          fr: `${user.name} a rouvert ce problème.`,
+        },
+        [ChatType.GROUP]: {
+          en: 'An admin has reopened this chat.',
+          de: 'Ein Admin hat diesen Chat wieder geöffnet.',
+          fr: 'Un administrateur a rouvert ce chat.',
+        },
+        [ChatType.ONE_TO_ONE]: {
+          en: 'An admin has reopened this chat.',
+          de: 'Ein Admin hat diesen Chat wieder geöffnet.',
+          fr: 'Un administrateur a rouvert ce chat.',
+        },
+        [ChatType.COURSE_GROUP]: {
+          en: 'An admin has reopened this chat.',
+          de: 'Ein Admin hat diesen Chat wieder geöffnet.',
+          fr: 'Un administrateur a rouvert ce chat.',
+        },
+      };
 
       // Add system message
       await prisma.message.create({
@@ -444,14 +574,7 @@ export const adminRouter = createTRPCRouter({
           type: MessageType.SYSTEM_MSG,
           contentVersions: {
             create: {
-              payload: {
-                en: isEmergency
-                  ? `${user.name} has reopened the emergency alert`
-                  : `${user.name} has reopened this issue`,
-                de: isEmergency
-                  ? `${user.name} hat die Notfallmeldung wiedergeöffnet`
-                  : `${user.name} hat dieses Problem wiedergeöffnet`,
-              },
+              payload: reopenMessages[chat.type],
             },
           },
           messageEvents: {

@@ -15,7 +15,7 @@ import { getDownloadUrl } from '@/features/chat/api/queries/get-download-url';
 import { getFeatureFlags } from '@/features/chat/api/queries/get-feature-flags';
 import { getMessage } from '@/features/chat/api/queries/get-message';
 import { getUser } from '@/features/chat/api/queries/get-user';
-import { listChats } from '@/features/chat/api/queries/list-chats';
+import { getChatList } from '@/features/chat/api/queries/list-chats';
 import { listContacts } from '@/features/chat/api/queries/list-contacts';
 import { checkCapability } from '@/lib/capabilities';
 import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
@@ -30,7 +30,7 @@ export const chatRouter = createTRPCRouter({
   contacts: listContacts,
   onlinePing,
   renameChat,
-  chats: listChats,
+  chats: getChatList,
   chatDetails: getChat,
   sendMessage: createMessage,
   infiniteMessages: getChatMessages,

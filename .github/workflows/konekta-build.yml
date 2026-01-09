@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Trigger Workflow in Konekta Repository
-        uses: peter-evans/workflow-dispatch@v4
+        uses: peter-evans/repository-dispatch@v4
         with:
           repository: cevi/konekta-webpage
           event-type: build-konekta-deployment-image
