@@ -26,7 +26,6 @@ export const useAnnotationPolygons = (
 ): void => {
   const map = useMap();
 
-  // eslint-disable-next-line react-naming-convention/use-state
   const [clickedPolygonState, setClickedPolygonState] = useState<
     ClickedFeaturesState | undefined
   >();
@@ -113,8 +112,8 @@ export const useAnnotationPolygons = (
         selectedPolygon === undefined
           ? undefined
           : ([
-              [...selectedPolygon.geometry.coordinates, selectedPolygon.geometry.coordinates[0]],
-            ] as [number, number][][]);
+            [...selectedPolygon.geometry.coordinates, selectedPolygon.geometry.coordinates[0]],
+          ] as [number, number][][]);
 
       if (!map.getSource(SELECTED_POLYGON_SOURCE_ID)) {
         map.addSource(SELECTED_POLYGON_SOURCE_ID, {
@@ -125,15 +124,15 @@ export const useAnnotationPolygons = (
               selectedCoordinates === undefined
                 ? []
                 : [
-                    {
-                      type: 'Feature',
-                      properties: {},
-                      geometry: {
-                        type: 'Polygon',
-                        coordinates: selectedCoordinates,
-                      },
+                  {
+                    type: 'Feature',
+                    properties: {},
+                    geometry: {
+                      type: 'Polygon',
+                      coordinates: selectedCoordinates,
                     },
-                  ],
+                  },
+                ],
           },
         });
       }
@@ -318,8 +317,7 @@ export const useAnnotationPolygons = (
       const newIds = sortedClickedPolygons.map((p: CampMapAnnotationPolygon) => p.id).sort();
 
       const isSameSetOfPolygons =
-        currentIds &&
-        newIds.length === currentIds.length &&
+        newIds.length === currentIds?.length &&
         newIds.every((id, index) => id === currentIds[index]);
 
       let nextState: ClickedFeaturesState;
