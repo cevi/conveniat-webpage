@@ -20,7 +20,8 @@ declare global {
 
 declare const self: ServiceWorkerGlobalScope;
 
-const isDevelopment = process['env'].NODE_ENV === 'development';
+// eslint-disable-next-line no-process-env
+const isDevelopment = process.env.NODE_ENV === 'development';
 
 const htmlErrorPreventionPlugin: SerwistPlugin = {
   // Prevent caching HTML error responses as CSS/JS
