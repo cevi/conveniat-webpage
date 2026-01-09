@@ -13,7 +13,7 @@ import { databaseTransactionWrapper } from '@/trpc/middleware/database-transacti
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
-export const listChats = trpcBaseProcedure
+export const getChatList = trpcBaseProcedure
   .input(z.object({}))
   .use(databaseTransactionWrapper)
   .query(async ({ ctx }): Promise<ChatWithMessagePreview[]> => {

@@ -1,3 +1,5 @@
+'use client';
+
 import { cn } from '@/utils/tailwindcss-override';
 import { motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
@@ -29,21 +31,20 @@ const Switch = React.forwardRef<HTMLButtonElement, SwitchProperties>(
         onClick={handleClick}
         ref={reference}
         className={cn(
-          'peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:ring-2 focus-visible:ring-gray-950 focus-visible:ring-offset-2 focus-visible:ring-offset-white focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50',
-          checked ? 'bg-green-600' : 'bg-gray-200',
+          'peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full p-0.5 transition-colors focus-visible:ring-2 focus-visible:ring-gray-950 focus-visible:ring-offset-2 focus-visible:ring-offset-white focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50',
+          checked ? 'bg-green-600' : 'bg-gray-200 dark:bg-gray-800',
           className,
         )}
         {...properties}
       >
         <motion.span
-          layout
           transition={{
             type: 'spring',
             stiffness: 500,
             damping: 30,
           }}
           animate={{
-            x: checked ? 20 : 0,
+            x: checked ? '1.25rem' : '0rem',
           }}
           className={cn(
             'pointer-events-none flex h-5 w-5 items-center justify-center rounded-full bg-white shadow-lg ring-0',
