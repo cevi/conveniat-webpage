@@ -229,8 +229,10 @@ export const ScheduleComponent: React.FC<ScheduleComponentProperties> = ({ sched
               const threshold = 50;
               if (info.offset.x < -threshold && nextDate) {
                 actions.handleDateSelect(nextDate);
+                actions.handleCarouselNext();
               } else if (info.offset.x > threshold && currentIndex > 0 && previousDay) {
                 actions.handleDateSelect(previousDay);
+                actions.handleCarouselPrevious();
               }
             }}
             className="h-full touch-pan-y"
