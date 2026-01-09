@@ -51,7 +51,7 @@ export const adminRouter = createTRPCRouter({
   }),
 
   // Generic Chat Management
-  listChats: adminProcedure
+  getChatList: adminProcedure
     .input(
       z
         .object({

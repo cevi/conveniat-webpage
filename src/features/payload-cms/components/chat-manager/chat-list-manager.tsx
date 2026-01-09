@@ -23,6 +23,7 @@ import {
 import { ChatCapability } from '@/lib/chat-shared';
 import { ChatType } from '@/lib/prisma/client';
 import { trpc } from '@/trpc/client';
+import type { Locale } from '@/types/types';
 import { useTranslation } from '@payloadcms/ui';
 import { format } from 'date-fns';
 import { RefreshCw, Search, Users } from 'lucide-react';
@@ -53,9 +54,10 @@ interface Translation {
   pageOf: string;
   showing: string;
   capabilityLabels: Record<ChatCapability, string>;
+  one_to_one: string;
 }
 
-const translations: Record<'en' | 'de', Translation> = {
+const translations: Record<Locale, Translation> = {
   en: {
     title: 'Chat Management',
     description: 'Manage all chats, members, and capabilities.',
@@ -85,6 +87,7 @@ const translations: Record<'en' | 'de', Translation> = {
       [ChatCapability.PICTURE_UPLOAD]: 'Pictures',
       [ChatCapability.THREADS]: 'Threads',
     },
+    one_to_one: 'One-To-One',
   },
   de: {
     title: 'Chat-Verwaltung',
@@ -115,12 +118,45 @@ const translations: Record<'en' | 'de', Translation> = {
       [ChatCapability.PICTURE_UPLOAD]: 'Bilder',
       [ChatCapability.THREADS]: 'Threads',
     },
+    one_to_one: 'Eins-zu-Eins',
+  },
+  fr: {
+    title: 'Gestion des chats',
+    description: 'Gérez tous les chats, membres et fonctionnalités.',
+    refresh: 'Rafraîchir',
+    searchPlaceholder: 'Rechercher des chats ou des membres...',
+    typeFilter: 'Tous les types',
+    chatName: 'Nom du chat',
+    members: 'Membres',
+    type: 'Type',
+    status: 'Statut',
+    capabilities: 'Fonctionnalités',
+    actions: 'Actions',
+    noChats: 'Aucun chat trouvé.',
+    loading: 'Chargement des chats...',
+    open: 'Ouvert',
+    closed: 'Fermé',
+    unknown: 'Inconnu',
+    viewDetails: 'Voir',
+    closeChat: 'Fermer',
+    reopenChat: 'Rouvrir',
+    previous: 'Précédent',
+    next: 'Suivant',
+    pageOf: 'Page {page} sur {total}',
+    showing: '{count} sur {total} chats affichés',
+    capabilityLabels: {
+      [ChatCapability.CAN_SEND_MESSAGES]: 'Messages',
+      [ChatCapability.PICTURE_UPLOAD]: 'Images',
+      [ChatCapability.THREADS]: 'Threads',
+    },
+    one_to_one: 'Un-à-un',
   },
 };
 
 export const ChatListManager: React.FC = () => {
   const { i18n } = useTranslation();
-  const t = i18n.language === 'de' ? translations.de : translations.en;
+
+  const t = translations[i18n.language as Locale];
 
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
@@ -128,7 +164,7 @@ export const ChatListManager: React.FC = () => {
   const limit = 10;
 
   const utils = trpc.useUtils();
-  const { data, isLoading, refetch, isRefetching } = trpc.admin.listChats.useQuery({
+  const { data, isLoading, refetch, isRefetching } = trpc.admin.getChatList.useQuery({
     search: search || undefined,
     type: typeFilter === 'ALL' ? undefined : (typeFilter as ChatType),
     page,
@@ -140,15 +176,15 @@ export const ChatListManager: React.FC = () => {
   const totalPages = Math.ceil(total / limit);
 
   const toggleCapabilityMutation = trpc.admin.toggleChatCapability.useMutation({
-    onSuccess: () => void utils.admin.listChats.invalidate(),
+    onSuccess: () => void utils.admin.getChatList.invalidate(),
   });
 
   const closeChatMutation = trpc.admin.closeChat.useMutation({
-    onSuccess: () => void utils.admin.listChats.invalidate(),
+    onSuccess: () => void utils.admin.getChatList.invalidate(),
   });
 
   const reopenChatMutation = trpc.admin.reopenChat.useMutation({
-    onSuccess: () => void utils.admin.listChats.invalidate(),
+    onSuccess: () => void utils.admin.getChatList.invalidate(),
   });
 
   const onSearchChange = (value: string): void => {
@@ -212,7 +248,7 @@ export const ChatListManager: React.FC = () => {
 
   const getChatDisplayName = (chat: (typeof chats)[0]): string => {
     if (chat.name) return chat.name;
-    if (chat.type === ChatType.ONE_TO_ONE) return 'One-To-One';
+    if (chat.type === ChatType.ONE_TO_ONE) return t.one_to_one;
     return t.unknown;
   };
 
