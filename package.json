@@ -1,33 +1,42 @@
 {
   "name": "conveniat27",
   "version": "0.32.0",
+  "description": "The official website of conveniat27",
+  "license": "MIT",
   "author": "Cyrill Püntener v/o JPG (cyrill.puentener@cevi.ch)",
   "maintainers": [
     "Cyrill Püntener v/o JPG (cyrill.puentener@cevi.ch)",
     "Matthias Hüppi v/o Scirocco (scirocco@cevi.ch)"
   ],
-  "description": "The official website of conveniat27",
-  "license": "MIT",
   "type": "module",
   "scripts": {
     "build": "pnpm run build:cache && cross-env NODE_OPTIONS=--no-deprecation next build && serwist build --config serwist.config.js",
     "build:cache": "esbuild src/cache-handlers/default.ts --bundle --platform=node --format=cjs --outfile=src/cache-handlers/default.cjs --external:next --external:ioredis --external:node:crypto --external:node:fs --external:node:path --external:node:fs/promises --external:@opentelemetry/api",
+    "db:pull": "bash src/scripts/db/pull.sh",
+    "db:push-dev": "bash src/scripts/db/push-dev.sh",
+    "db:tunnel-dev": "bash src/scripts/db/tunnel.sh dev",
+    "db:tunnel-konekta": "bash src/scripts/db/tunnel.sh konekta",
+    "db:tunnel-prod": "bash src/scripts/db/tunnel.sh prod",
     "dev": "cross-env NODE_OPTIONS=--no-deprecation next dev --turbo",
     "devsafe": "rm -rf .next/* && cross-env NODE_OPTIONS=--no-deprecation next dev",
     "generate:importmap": "cross-env NODE_OPTIONS=--no-deprecation payload generate:importmap",
     "generate:types": "cross-env NODE_OPTIONS=--no-deprecation payload generate:types",
     "lint": "(tsc --noemit --project ./tsconfig.json); eslint -c eslint.config.mjs --fix --quiet --cache .",
-    "lint:warnings": "(tsc --noemit --project ./tsconfig.json); eslint -c eslint.config.mjs  --fix .",
     "lint:check": "(tsc --noemit --project ./tsconfig.json); eslint -c eslint.config.mjs .",
+    "lint:warnings": "(tsc --noemit --project ./tsconfig.json); eslint -c eslint.config.mjs  --fix .",
+    "lint-staged": "lint-staged",
     "prettier": "prettier --config-path .prettierrc.json --write --cache --experimental-cli .",
     "prettier:check": "prettier  --config .prettierrc.json --check .",
     "start": "cross-env NODE_OPTIONS=--no-deprecation next start",
-    "test": "jest",
-    "db:tunnel-prod": "bash src/scripts/db/tunnel.sh prod",
-    "db:tunnel-konekta": "bash src/scripts/db/tunnel.sh konekta",
-    "db:tunnel-dev": "bash src/scripts/db/tunnel.sh dev",
-    "db:pull": "bash src/scripts/db/pull.sh",
-    "db:push-dev": "bash src/scripts/db/push-dev.sh"
+    "test": "jest"
+  },
+  "lint-staged": {
+    "**/package.json": "sort-package-json",
+    "*.{md,mdx,yml,json}": "prettier --write",
+    "*.{js,jsx,ts,tsx}": [
+      "prettier --write",
+      "eslint --cache --fix"
+    ]
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.965.0",
@@ -175,12 +184,14 @@
     "globals": "^15.15.0",
     "jest": "^30.2.0",
     "jest-environment-jsdom": "^30.2.0",
+    "lint-staged": "^16.2.7",
     "postcss": "^8.5.6",
     "prettier": "^3.7.4",
     "prettier-plugin-organize-imports": "^4.3.0",
     "prettier-plugin-tailwindcss": "^0.6.14",
     "prisma": "7.2.0",
     "sharp": "^0.34.5",
+    "sort-package-json": "^3.6.0",
     "tailwindcss": "^4.1.18",
     "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
@@ -189,6 +200,7 @@
     "undici": "^7.18.2",
     "unrs-resolver": "^1.11.1"
   },
+  "packageManager": "pnpm@10.27.0+sha512.72d699da16b1179c14ba9e64dc71c9a40988cbdc65c264cb0e489db7de917f20dcf4d64d8723625f2969ba52d4b7e2a1170682d9ac2a5dcaeaab732b7e16f04a",
   "engines": {
     "node": ">=24.1.0"
   },
@@ -204,13 +216,12 @@
       "protobufjs",
       "sharp"
     ],
-    "ignoredBuiltDependencies": [
-      "unrs-resolver"
-    ],
     "overrides": {
       "@types/react": "19.2.2",
       "@types/react-dom": "19.2.2"
-    }
-  },
-  "packageManager": "pnpm@10.27.0+sha512.72d699da16b1179c14ba9e64dc71c9a40988cbdc65c264cb0e489db7de917f20dcf4d64d8723625f2969ba52d4b7e2a1170682d9ac2a5dcaeaab732b7e16f04a"
+    },
+    "ignoredBuiltDependencies": [
+      "unrs-resolver"
+    ]
+  }
 }
