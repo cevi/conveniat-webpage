@@ -112,8 +112,8 @@ export const useAnnotationPolygons = (
         selectedPolygon === undefined
           ? undefined
           : ([
-            [...selectedPolygon.geometry.coordinates, selectedPolygon.geometry.coordinates[0]],
-          ] as [number, number][][]);
+              [...selectedPolygon.geometry.coordinates, selectedPolygon.geometry.coordinates[0]],
+            ] as [number, number][][]);
 
       if (!map.getSource(SELECTED_POLYGON_SOURCE_ID)) {
         map.addSource(SELECTED_POLYGON_SOURCE_ID, {
@@ -124,15 +124,15 @@ export const useAnnotationPolygons = (
               selectedCoordinates === undefined
                 ? []
                 : [
-                  {
-                    type: 'Feature',
-                    properties: {},
-                    geometry: {
-                      type: 'Polygon',
-                      coordinates: selectedCoordinates,
+                    {
+                      type: 'Feature',
+                      properties: {},
+                      geometry: {
+                        type: 'Polygon',
+                        coordinates: selectedCoordinates,
+                      },
                     },
-                  },
-                ],
+                  ],
           },
         });
       }
