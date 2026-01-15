@@ -26,7 +26,6 @@ export const useAnnotationPolygons = (
 ): void => {
   const map = useMap();
 
-  // eslint-disable-next-line react-naming-convention/use-state
   const [clickedPolygonState, setClickedPolygonState] = useState<
     ClickedFeaturesState | undefined
   >();
@@ -318,8 +317,7 @@ export const useAnnotationPolygons = (
       const newIds = sortedClickedPolygons.map((p: CampMapAnnotationPolygon) => p.id).sort();
 
       const isSameSetOfPolygons =
-        currentIds &&
-        newIds.length === currentIds.length &&
+        newIds.length === currentIds?.length &&
         newIds.every((id, index) => id === currentIds[index]);
 
       let nextState: ClickedFeaturesState;

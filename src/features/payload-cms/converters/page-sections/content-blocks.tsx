@@ -362,7 +362,7 @@ export const RenderInstagramEmbed: SectionRenderer<InstagramEmbedType> = ({
       )}
       locale={locale}
     >
-      <InstagramEmbed link={block.link} />
+      <InstagramEmbed link={block.link} locale={locale} />
     </SectionWrapper>
   );
 };

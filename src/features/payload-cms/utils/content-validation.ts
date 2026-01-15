@@ -24,13 +24,17 @@ const validateField = (field: Field, value: unknown): boolean => {
       }
       // For image uploads/relationships to images, we expect usage of sizes or url in components
       // If it's a relationship, we can check if it has 'url' property (meaning it's expanded)
-      if (
-        (('relationTo' in field && field.relationTo === 'images') || field.type === 'upload') &&
-        !('url' in value)
-      )
-        return false;
+      if (('relationTo' in field && field.relationTo === 'images') || field.type === 'upload') {
+        if (Array.isArray(value)) {
+          if (value.some((item) => typeof item !== 'object' || item === null || !('url' in item))) {
+            return false;
+          }
+        } else if (!('url' in value)) {
+          return false;
+        }
+      }
     }
-    // If it is a relationship/upload, and the value is a string (ID) but we expected expansion?
+
     if (
       typeof value === 'string' &&
       (field.type === 'upload' || ('relationTo' in field && field.relationTo === 'images'))
@@ -97,7 +101,19 @@ export const validateContentBlock = (
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
       const value = (block as any)[field.name];
 
-      if (!validateField(field, value)) {
+      let isValid = validateField(field, value);
+
+      // Special requirement for photoCarousel: needs at least 4 images
+      if (
+        block.blockType === 'photoCarousel' &&
+        field.name === 'images' &&
+        isValid &&
+        (!Array.isArray(value) || value.length < 4)
+      ) {
+        isValid = false;
+      }
+
+      if (!isValid) {
         missingFields.push(getFieldLabel(field, locale));
       }
     }

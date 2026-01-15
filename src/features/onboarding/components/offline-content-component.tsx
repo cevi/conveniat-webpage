@@ -88,7 +88,8 @@ export const OfflineContentEntrypointComponent: React.FC<
         {status === 'downloading' && (
           <div className="w-full space-y-2">
             <div className="text-center text-sm font-medium text-red-700">
-              {offlineContentDownloading[locale]} ({progress.current}/{progress.total})
+              {offlineContentDownloading[locale]} (
+              {Math.round((progress.current / progress.total) * 100)}%)
             </div>
             <div className="h-2 w-full overflow-hidden rounded-full bg-red-100">
               <motion.div

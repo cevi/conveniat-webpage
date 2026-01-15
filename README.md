@@ -298,6 +298,14 @@ We follow a standard Git workflow for managing changes:
 4. **Hotfixes:** For urgent fixes, create a hotfix branch from `main`, apply the fix, and merge it back into both `main`
    and `dev`. Hotfix branches should be named like `hotfix/fix-issue`.
 
+### Pre-Commit Hook
+
+To use the linter to clean up the staged files, install the pre-commit hook:
+
+```
+git config core.hooksPath .githooks
+```
+
 ## Migrate Production Database
 
 The following commands are used to generate and apply migrations to the postgreSQL database.
