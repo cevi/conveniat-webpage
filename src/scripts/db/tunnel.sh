@@ -6,7 +6,6 @@
 TYPE=$1 # prod or dev
 
 if [ "$TYPE" == "prod" ]; then
-  # CHANGE THIS LINE:
   NETWORK="conveniat_maintenance-net"
 
   PG_HOST="postgres"
