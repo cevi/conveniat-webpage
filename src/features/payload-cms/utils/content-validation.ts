@@ -103,15 +103,10 @@ export const validateContentBlock = (
 
       let isValid = validateField(field, value);
 
-      // Special requirement for photoCarousel: needs at least 4 images
-      if (
-        block.blockType === 'photoCarousel' &&
-        field.name === 'images' &&
-        isValid &&
-        (!Array.isArray(value) || value.length < 4)
-      ) {
-        isValid = false;
-      }
+      // Special requirement for photoCarousel: needs at least 5 images
+      if (block.blockType === 'photoCarousel' && field.name === 'images' && isValid && (!Array.isArray(value) || value.length < 5)) {
+          isValid = false;
+        }
 
       if (!isValid) {
         missingFields.push(getFieldLabel(field, locale));
