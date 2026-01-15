@@ -6,7 +6,7 @@ import { DescriptionInput } from '@/features/image-submission/description-input'
 import { FilePreviewList } from '@/features/image-submission/file-preview-list';
 import { FileUploadZone } from '@/features/image-submission/file-upload-zone';
 import { SubmitButton } from '@/features/image-submission/submit-button';
-import { uploadUserImage } from '@/features/payload-cms/components/user-upload/upload-user-image';
+import { useUserUpload } from '@/features/payload-cms/components/user-upload/use-user-upload';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { Image as LucideImageIcon } from 'lucide-react';
@@ -90,6 +90,8 @@ const ImageUploadPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [showSuccessView, setShowSuccessView] = useState(false);
+
+  const { uploadImage } = useUserUpload();
 
   const checkImageDimensions = (file: File): Promise<boolean> => {
     return new Promise((resolve) => {
@@ -200,7 +202,7 @@ const ImageUploadPage: React.FC = () => {
       const uploadResults = await Promise.all(
         selectedFiles.map(async (file) => {
           const description = fileDescriptions[file.name]?.trim() ?? '';
-          const response = await uploadUserImage(file, description);
+          const response = await uploadImage(file, description);
           return response;
         }),
       );
