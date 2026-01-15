@@ -6,7 +6,7 @@ import { DescriptionInput } from '@/features/image-submission/description-input'
 import { FilePreviewList } from '@/features/image-submission/file-preview-list';
 import { FileUploadZone } from '@/features/image-submission/file-upload-zone';
 import { SubmitButton } from '@/features/image-submission/submit-button';
-import { uploadUserImage } from '@/features/payload-cms/components/user-upload/upload-user-image';
+import { useUserUpload } from '@/features/payload-cms/components/user-upload/use-user-upload';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { Image as LucideImageIcon } from 'lucide-react';
@@ -90,6 +90,8 @@ const ImageUploadPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [showSuccessView, setShowSuccessView] = useState(false);
+
+  const { uploadImage } = useUserUpload();
 
   const checkImageDimensions = (file: File): Promise<boolean> => {
     return new Promise((resolve) => {
@@ -202,18 +204,7 @@ const ImageUploadPage: React.FC = () => {
       const uploadResults = await Promise.all(
         selectedFiles.map(async (file) => {
           const description = fileDescriptions[file.name]?.trim() ?? '';
-
-          // Next.js (via Node.js undici) crashes when receiving a File in a Server Action
-          // if the filename contains non-ASCII characters (like umlauts äöü).
-          // We sanitize the filename here to avoid the "Failed to parse body as FormData" error.
-          const safeName = file.name.replaceAll(/[^\u0020-\u007E]/g, '').replaceAll(/\s/g, '_');
-          const finalName =
-            safeName === ''
-              ? `upload-${Date.now().toString()}.${file.type.split('/')[1] ?? 'bin'}`
-              : safeName;
-          const safeFile = new File([file], finalName, { type: file.type });
-
-          const response = await uploadUserImage(safeFile, description);
+          const response = await uploadImage(file, description);
           return response;
         }),
       );

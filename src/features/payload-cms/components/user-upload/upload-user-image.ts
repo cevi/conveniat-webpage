@@ -8,7 +8,7 @@ import fromBuffer from 'image-size';
 import { randomUUID } from 'node:crypto';
 import { getPayload } from 'payload';
 
-interface UploadReturnType {
+export interface UploadReturnType {
   error: boolean;
   message: string;
 }
