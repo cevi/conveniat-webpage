@@ -476,8 +476,8 @@ importers:
         specifier: ^8.50.1
         version: 8.50.1(eslint@9.39.2(jiti@2.6.1))(typescript@5.7.2)
       undici:
-        specifier: ^7.16.0
-        version: 7.16.0
+        specifier: ^7.18.2
+        version: 7.18.2
       unrs-resolver:
         specifier: ^1.11.1
         version: 1.11.1
@@ -6735,8 +6735,8 @@ packages:
   lexical@0.35.0:
     resolution: {integrity: sha512-3VuV8xXhh5xJA6tzvfDvE0YBCMkIZUmxtRilJQDDdCgJCc+eut6qAv2qbN+pbqvarqcQqPN1UF+8YvsjmyOZpw==}
 
-  lib0@0.2.116:
-    resolution: {integrity: sha512-4zsosjzmt33rx5XjmFVYUAeLNh+BTeDTiwGdLt4muxiir2btsc60Nal0EvkvDRizg+pnlK1q+BtYi7M+d4eStw==}
+  lib0@0.2.117:
+    resolution: {integrity: sha512-DeXj9X5xDCjgKLU/7RR+/HQEVzuuEUiwldwOGsHK/sfAfELGWEyTcf0x+uOvCvK3O2zPmZePXWL85vtia6GyZw==}
     engines: {node: '>=16'}
     hasBin: true
 
@@ -8721,8 +8721,8 @@ packages:
     resolution: {integrity: sha512-u5otvFBOBZvmdjWLVW+5DAc9Nkq8f24g0O9oY7qw2JVIF1VocIFoyz9JFkuVOS2j41AufeO0xnlweJ2RLT8nGw==}
     engines: {node: '>=20.18.1'}
 
-  undici@7.16.0:
-    resolution: {integrity: sha512-QEg3HPMll0o3t2ourKwOeUAZ159Kn9mx5pnzHRQO8+Wixmh88YdZRiIwat0iNzNNXn0yoEtXJqFpyW7eM8BV7g==}
+  undici@7.18.2:
+    resolution: {integrity: sha512-y+8YjDFzWdQlSE9N5nzKMT3g4a5UBX1HKowfdXh0uvAnTaqqwqB92Jt4UXBAeKekDs5IaDKyJFR4X1gYVCgXcw==}
     engines: {node: '>=20.18.1'}
 
   unist-util-is@6.0.1:
@@ -8874,6 +8874,7 @@ packages:
   whatwg-encoding@3.1.1:
     resolution: {integrity: sha512-6qN4hJdMwfYBtE3YBTTHhoeuUrDBPZmbQaxWAqSALV/MeEnR5z1xd8UKud2RAkFoPkmB+hli1TZSnyi84xz1vQ==}
     engines: {node: '>=18'}
+    deprecated: Use @exodus/bytes instead for a more spec-conformant and faster implementation
 
   whatwg-mimetype@4.0.0:
     resolution: {integrity: sha512-QaKxh0eNIi2mE9p2vEdzfagOKHCcj1pJ56EEHGQOVxp8r9/iszLUUV7v89x9O1p/T+NlTM5W7jW6+cz4Fq1YVg==}
@@ -17390,7 +17391,7 @@ snapshots:
 
   lexical@0.35.0: {}
 
-  lib0@0.2.116:
+  lib0@0.2.117:
     dependencies:
       isomorphic.js: 0.2.5
 
@@ -19541,7 +19542,7 @@ snapshots:
 
   undici@7.10.0: {}
 
-  undici@7.16.0: {}
+  undici@7.18.2: {}
 
   unist-util-is@6.0.1:
     dependencies:
@@ -19867,7 +19868,7 @@ snapshots:
 
   yjs@13.6.27:
     dependencies:
-      lib0: 0.2.116
+      lib0: 0.2.117
 
   yn@3.1.1: {}
 
