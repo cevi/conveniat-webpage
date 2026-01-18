@@ -69,7 +69,7 @@ export const useOnboardingStorage = (): UseOnboardingStorageResult => {
     });
 
     // Store skip preference in cookies as well for a fast secondary check
-    Cookies.set(Cookie.SKIP_OFFLINE_CONTENT, 'true', { expires: 730 });
+    Cookies.set(Cookie.OFFLINE_CONTENT_HANDLED, 'true', { expires: 730 });
 
     // Optimistic update
     setOfflineContentHandled(true);

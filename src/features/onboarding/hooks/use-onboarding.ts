@@ -56,7 +56,7 @@ export const useOnboarding = (): UseOnboardingReturn => {
     const hasAcceptedCookieBanner = hasCookie(Cookie.CONVENIAT_COOKIE_BANNER);
     const hasSkippedAuth = hasCookie(Cookie.HAS_SKIPPED_AUTH);
     const hasSkippedPush = hasCookie(Cookie.SKIP_PUSH_NOTIFICATION);
-    const hasSkippedOffline = hasCookie(Cookie.SKIP_OFFLINE_CONTENT);
+    const hasSkippedOffline = hasCookie(Cookie.OFFLINE_CONTENT_HANDLED);
 
     // Get Push Permission synchronously if possible, or assume 'default' until checked
     let pushPermission: NotificationPermission = 'default';
