@@ -59,7 +59,7 @@ export const uploadRouter = createTRPCRouter({
   completeUserUpload: trpcBaseProcedure
     .input(
       z.object({
-        key: z.string(),
+        key: z.string().startsWith('temp/'),
         description: z.string().max(1000),
         originalFilename: z.string(),
       }),
