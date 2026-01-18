@@ -65,7 +65,7 @@ export const LoginScreen: React.FC<{ locale: 'de' | 'fr' | 'en' }> = ({ locale }
     }, REDIRECT_TIMEOUT_MS);
 
     // Trigger the OAuth redirect
-    handleLogin();
+    handleLogin('/entrypoint');
   }, []);
 
   return (

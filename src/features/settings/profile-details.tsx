@@ -1,3 +1,4 @@
+import { Card } from '@/components/ui/card';
 import { LinkComponent } from '@/components/ui/link-component';
 import { environmentVariables } from '@/config/environment-variables';
 import { LoginButton } from '@/features/settings/login-button';
@@ -83,7 +84,7 @@ export const ProfileDetails: React.FC = async () => {
   return (
     <div className="space-y-6">
       {/* Profile Header */}
-      <div className="rounded-xl bg-white p-6 shadow-sm">
+      <Card contentClassName="p-6">
         <div className="flex items-center gap-4">
           <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-100">
             {isAuthenticated ? (
@@ -125,11 +126,10 @@ export const ProfileDetails: React.FC = async () => {
         ) : (
           <LoginButton />
         )}
-      </div>
+      </Card>
 
       {/* Support Section */}
-      <div className="rounded-xl bg-white p-6 shadow-sm">
-        <h3 className="mb-4 text-lg font-semibold text-gray-900">{supportTitle[locale]}</h3>
+      <Card title={supportTitle[locale]} showBorder={false} contentClassName="p-6 pt-0">
         <LinkComponent
           href={mailSupportLink}
           className="-mx-3 block rounded-lg px-3 transition-colors hover:bg-gray-50"
@@ -141,7 +141,7 @@ export const ProfileDetails: React.FC = async () => {
             action={<ExternalLink className="h-4 w-4 text-gray-400" />}
           />
         </LinkComponent>
-      </div>
+      </Card>
     </div>
   );
 };

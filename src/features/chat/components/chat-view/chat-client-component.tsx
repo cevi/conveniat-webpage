@@ -1,5 +1,5 @@
 'use client';
-import { SetHideFooter } from '@/components/footer/hide-footer-context';
+import { AppFooterController } from '@/components/footer/hide-footer-context';
 import { ChatHeader, ChatHeaderSkeleton } from '@/features/chat/components/chat-view/chat-header';
 import { ChatSkeleton } from '@/features/chat/components/chat-view/chat-skeleton';
 import { ChatTextAreaInput } from '@/features/chat/components/chat-view/chat-text-area-input';
@@ -103,13 +103,13 @@ const ChatClientContent: React.FC = () => {
 
   return (
     <div className="fixed top-0 z-[100] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50 xl:top-[62px] xl:left-[480px] xl:z-0 xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
-      <SetHideFooter value />
+      <AppFooterController hideAppFooter />
       <ChatHeader />
       {isPaused && <OfflineBanner />}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-x-hidden overflow-y-auto">
         <MessageList />
       </div>
-      <div className="border-t border-gray-200 bg-white p-2">
+      <div className="border-t border-gray-200 bg-white p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         <ChatTextAreaInput />
       </div>
 

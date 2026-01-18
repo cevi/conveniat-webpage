@@ -1,4 +1,5 @@
 import { SetDynamicPageTitle } from '@/components/header/set-dynamic-app-title';
+import { Card } from '@/components/ui/card';
 import { LanguageSettings } from '@/features/settings/language-settings';
 import { OfflineContentSettings } from '@/features/settings/offline-content-settings';
 import { ProfileDetails } from '@/features/settings/profile-details';
@@ -28,33 +29,27 @@ const Settings: React.FC<{ params: Promise<{ locale: Locale }> }> = async ({ par
 
       {/* Main content section */}
       <section className="container mx-auto my-6 py-6">
-        <div className="mx-auto w-full max-w-2xl space-y-8 px-4">
+        <div className="mx-auto w-full max-w-2xl space-y-6 px-4">
           {/* Profile Section */}
           <ProfileDetails />
 
           {/* App Preferences Section */}
-          <div className="rounded-xl bg-white shadow-sm">
-            <h3 className="border-b border-gray-100 px-6 py-4 text-lg font-semibold text-gray-900">
-              {appPreferencesTitle[locale]}
-            </h3>
-
-            <div className="divide-y divide-gray-100">
-              {/* Push Notifications Row */}
-              <div className="px-6 py-4">
-                <PushNotificationSettings locale={locale} />
-              </div>
-
-              {/* Language Row */}
-              <div className="px-6 py-4">
-                <LanguageSettings locale={locale} />
-              </div>
-
-              {/* Offline Content Row */}
-              <div className="px-6 py-4">
-                <OfflineContentSettings locale={locale} />
-              </div>
+          <Card title={appPreferencesTitle[locale]} divided>
+            {/* Push Notifications Row */}
+            <div className="px-6 py-4">
+              <PushNotificationSettings locale={locale} />
             </div>
-          </div>
+
+            {/* Language Row */}
+            <div className="px-6 py-4">
+              <LanguageSettings locale={locale} />
+            </div>
+
+            {/* Offline Content Row */}
+            <div className="px-6 py-4">
+              <OfflineContentSettings locale={locale} />
+            </div>
+          </Card>
         </div>
       </section>
     </>

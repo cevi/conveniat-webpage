@@ -10,7 +10,7 @@ import {
 } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import type { Header } from '@/features/payload-cms/payload-types';
 import { specialPagesTable } from '@/features/payload-cms/special-pages-table';
-import type { Locale } from '@/types/types';
+import type { Locale, StaticTranslationString } from '@/types/types';
 import { getBuildInfo } from '@/utils/get-build-info';
 import { cn } from '@/utils/tailwindcss-override';
 import { Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/react';
@@ -50,6 +50,12 @@ const getMainMenuFromPayloadCached = async (
   return Array.isArray(mainMenu) ? mainMenu : [];
 };
 
+const webContentTitle: StaticTranslationString = {
+  en: 'Web Content',
+  de: 'Web Inhalte',
+  fr: 'Contenu Web',
+};
+
 export const MainMenu: React.FC<{
   locale: Locale;
   inAppDesign: boolean;
@@ -82,7 +88,9 @@ export const MainMenu: React.FC<{
         {inAppDesign && <AppFeatures locale={locale} />}
 
         <div className="py-6">
-          {inAppDesign && <h3 className="text-conveniat-green mb-2 font-bold">Web Inhalte</h3>}
+          {inAppDesign && (
+            <h3 className="text-conveniat-green mb-2 font-bold">{webContentTitle[locale]}</h3>
+          )}
           {showPreviewForMainMenu && (
             <div className="closeNavOnClick block cursor-pointer rounded-lg bg-orange-500 py-2 pr-3 pl-6 text-sm/7 font-semibold text-white">
               Preview Menu
