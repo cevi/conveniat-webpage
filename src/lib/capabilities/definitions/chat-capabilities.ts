@@ -34,7 +34,7 @@ export class MessageCapabilities implements Capability {
   }
 
   private async canSend(chatId?: string): Promise<boolean> {
-    const isGlobalEnabled = await getFeatureFlag(FEATURE_FLAG_SEND_MESSAGES);
+    const isGlobalEnabled = await getFeatureFlag(FEATURE_FLAG_SEND_MESSAGES, true);
 
     if (!isGlobalEnabled) {
       return false;
