@@ -212,13 +212,28 @@ export const useOnboarding = (): UseOnboardingReturn => {
         }
       } else {
         const hasSkippedAuth = Cookies.get(Cookie.HAS_SKIPPED_AUTH) === 'true';
+        const hasSkippedPush = Cookies.get(Cookie.SKIP_PUSH_NOTIFICATION) === 'true';
+
         setTimeout(() => {
-          if (isMounted.current) {
-            if (hasSkippedAuth) {
-              setOnboardingStep(OnboardingStep.PushNotifications);
+          if (!isMounted.current) return;
+
+          if (hasSkippedAuth) {
+            if (hasSkippedPush) {
+              // If we skipped both, check for offline content handling
+              void (async (): Promise<void> => {
+                const { userPreferencesCollection } = await import('@/lib/tanstack-db');
+                const offlineHandled = userPreferencesCollection.get('offline-content-handled');
+                if (offlineHandled) {
+                  setOnboardingStep(OnboardingStep.Loading);
+                } else {
+                  setOnboardingStep(OnboardingStep.OfflineContent);
+                }
+              })();
             } else {
-              setOnboardingStep(OnboardingStep.Login);
+              setOnboardingStep(OnboardingStep.PushNotifications);
             }
+          } else {
+            setOnboardingStep(OnboardingStep.Login);
           }
         }, 0);
       }
