@@ -24,6 +24,8 @@ const ALLOWED_EXTENSIONS = [
   'arw',
 ];
 
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+
 export const uploadRouter = createTRPCRouter({
   getPresignedUrl: trpcBaseProcedure
     .input(
@@ -69,6 +71,13 @@ export const uploadRouter = createTRPCRouter({
 
       try {
         const s3Response = await s3Client.send(getCommand);
+
+        if (s3Response.ContentLength && s3Response.ContentLength > MAX_FILE_SIZE) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'File size exceeds 50MB limit',
+          });
+        }
         const fileBody = await s3Response.Body?.transformToByteArray();
 
         if (!fileBody) {
@@ -97,9 +106,7 @@ export const uploadRouter = createTRPCRouter({
             throw new Error('Invalid image format');
           }
 
-          // Validate file size (max 50MB)
-          const MAX_SIZE = 50 * 1024 * 1024; // 50MB
-          if (buffer.length > MAX_SIZE) {
+          if (buffer.length > MAX_FILE_SIZE) {
             throw new Error('File size exceeds 50MB limit');
           }
 
