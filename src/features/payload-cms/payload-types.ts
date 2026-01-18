@@ -1733,6 +1733,7 @@ export interface UserSubmittedImage {
   uploaded_by: string | User;
   original_filename?: string | null;
   user_description: string;
+  content_hash?: string | null;
   lastEditedByUser?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
@@ -2592,6 +2593,7 @@ export interface UserSubmittedImagesSelect<T extends boolean = true> {
   uploaded_by?: T;
   original_filename?: T;
   user_description?: T;
+  content_hash?: T;
   lastEditedByUser?: T;
   updatedAt?: T;
   createdAt?: T;

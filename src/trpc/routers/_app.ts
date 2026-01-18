@@ -2,6 +2,7 @@ import { adminRouter } from '@/features/admin/api/admin-router';
 import { chatRouter } from '@/features/chat/api/chat-router';
 import { emergencyRouter } from '@/features/emergency/api/emergency-router';
 import { mapRouter } from '@/features/map/api/map-router';
+import { uploadRouter } from '@/features/payload-cms/api/upload-router';
 import { pushTrackingRouter } from '@/features/push-tracking/api/push-tracking-router';
 import { scheduleRouter } from '@/features/schedule/api/schedule-router';
 import { createTRPCRouter } from '@/trpc/init';
@@ -13,6 +14,7 @@ export const appRouter = createTRPCRouter({
   schedule: scheduleRouter,
   admin: adminRouter,
   pushTracking: pushTrackingRouter,
+  upload: uploadRouter,
 });
 
 // export type definition of API

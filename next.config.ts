@@ -76,10 +76,6 @@ const nextConfig: NextConfig = {
       dynamic: 0, // this must be set to 0 for payload to work correctly
       static: 300, // 5 minutes for static pages, default
     },
-
-    serverActions: {
-      bodySizeLimit: '10mb',
-    },
   },
 
   logging: { fetches: { fullUrl: true } },

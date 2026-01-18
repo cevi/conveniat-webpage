@@ -32,7 +32,7 @@ export const SubmitButton: React.FC<SubmitButtonProperties> = ({
       className={`w-full rounded-lg px-4 py-3 text-sm font-medium transition-all duration-200 focus:ring-2 focus:ring-offset-2 focus:outline-none ${
         isDisabled || isLoading
           ? 'cursor-not-allowed bg-gray-300 text-gray-500'
-          : 'transform cursor-pointer bg-blue-600 text-white hover:scale-[1.02] hover:bg-blue-700 focus:ring-blue-500 active:scale-[0.98]'
+          : 'bg-conveniat-green hover:bg-conveniat-green-dark focus:ring-conveniat-green transform cursor-pointer text-white hover:scale-[1.02] active:scale-[0.98]'
       }`}
     >
       {isLoading ? (

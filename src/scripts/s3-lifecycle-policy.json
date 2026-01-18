@@ -1,0 +1,14 @@
+{
+  "Rules": [
+    {
+      "ID": "DeleteTempFilesAfter24Hours",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": "temp/"
+      },
+      "Expiration": {
+        "Days": 1
+      }
+    }
+  ]
+}
