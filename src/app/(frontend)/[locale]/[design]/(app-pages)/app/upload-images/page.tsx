@@ -74,12 +74,6 @@ const submitMoreButton: StaticTranslationString = {
   fr: "Soumettre plus d'images",
 };
 
-const imageSizeTooSmall: StaticTranslationString = {
-  en: 'Your uploaded image size is too small',
-  de: 'Dein Bild hat eine zu geringe Auflösung',
-  fr: 'Votre image téléchargée est trop petite',
-};
-
 const imageTooBig: StaticTranslationString = {
   en: 'Your uploaded image is too big',
   de: 'Dein Bild ist zu gross',
@@ -117,15 +111,21 @@ const ImageUploadPage: React.FC = () => {
 
   const { uploadImage, isUploading } = useUserUpload();
 
-  const checkImageDimensions = (file: File): Promise<boolean> => {
+  const checkImageDimensions = (
+    file: File,
+  ): Promise<{ isValid: boolean; width: number; height: number }> => {
     return new Promise((resolve) => {
       const reader = new FileReader();
       reader.addEventListener('load', (event) => {
         const img = new Image();
         img.addEventListener('load', () => {
-          resolve(
-            (img.width >= 1920 && img.height >= 1080) || (img.height >= 1920 && img.width >= 1080),
-          );
+          const width = img.width;
+          const height = img.height;
+          resolve({
+            isValid: (width >= 1920 && height >= 1080) || (height >= 1920 && width >= 1080),
+            width,
+            height,
+          });
         });
         img.src = event.target?.result as string;
       });
@@ -144,12 +144,21 @@ const ImageUploadPage: React.FC = () => {
     void (async (): Promise<void> => {
       const newFileItems: FileItem[] = await Promise.all(
         newFiles.map(async (file) => {
-          const isValidDimensions = await checkImageDimensions(file);
+          const { isValid: isValidDimensions, width, height } = await checkImageDimensions(file);
           const isValidSize = file.size < 10 * 1024 * 1024;
           let error: string | undefined;
 
           if (!isValidDimensions) {
-            error = imageSizeTooSmall[locale];
+            const minRequest = '1920x1080px';
+            const current = `${width}x${height}px`;
+
+            if (locale === 'de') {
+              error = `Auflösung zu gering: ${current}. Mindestanforderung: ${minRequest}.`;
+            } else if (locale === 'fr') {
+              error = `Résolution trop faible: ${current}. Minimum requis: ${minRequest}.`;
+            } else {
+              error = `Resolution too low: ${current}. Minimum required: ${minRequest}.`;
+            }
           } else if (!isValidSize) {
             error = imageTooBig[locale];
           }
