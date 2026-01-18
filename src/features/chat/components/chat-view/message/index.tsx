@@ -213,10 +213,10 @@ export const MessageComponent: React.FC<MessageProperties> = ({
             userSelect: 'none',
           }}
           className="cursor-pointer select-none"
-          onClick={(e) => {
+          onClick={(event) => {
             if (selectedMessage && selectedMessage.id !== message.id) {
-              e.preventDefault();
-              e.stopPropagation(); // Prevent opening thread or other click actions
+              event.preventDefault();
+              event.stopPropagation(); // Prevent opening thread or other click actions
               setSelectedMessage(message);
             }
           }}
