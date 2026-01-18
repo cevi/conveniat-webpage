@@ -15,7 +15,7 @@ const ChatPage: React.FC<{
   const user = session?.user as HitobitoNextAuthUser | undefined;
 
   if (user?.uuid === undefined) {
-    redirect('/entrypoint');
+    redirect('/entrypoint?clearSkip=true');
   }
 
   return (
