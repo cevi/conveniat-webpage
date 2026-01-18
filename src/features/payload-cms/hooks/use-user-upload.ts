@@ -8,14 +8,15 @@ interface UseUserUploadResult {
 }
 
 export const useUserUpload = (): UseUserUploadResult => {
-  const [isUploading, setIsUploading] = useState(false);
+  const [activeUploads, setActiveUploads] = useState(0);
+  const isUploading = activeUploads > 0;
   const getPresignedUrlMutation = trpc.upload.createUploadUrl.useMutation();
   const completeUploadMutation = trpc.upload.completeUserUpload.useMutation();
 
   const uploadImage = useCallback(
     async (file: File, description: string): Promise<UploadReturnType> => {
       try {
-        setIsUploading(true);
+        setActiveUploads((previous) => previous + 1);
 
         // Get presigned URL
         const { url, key } = await getPresignedUrlMutation.mutateAsync({
@@ -55,7 +56,7 @@ export const useUserUpload = (): UseUserUploadResult => {
           message: error instanceof Error ? error.message : 'Unknown upload error',
         };
       } finally {
-        setIsUploading(false);
+        setActiveUploads((previous) => previous - 1);
       }
     },
     [getPresignedUrlMutation, completeUploadMutation],
