@@ -30,7 +30,22 @@ export const useOnboarding = (): UseOnboardingReturn => {
   const { locale, handleLanguageChange } = useOnboardingLocale(onboardingStep);
 
   // 2. Storage Logic (DB & Cache)
-  const { offlineContentHandled, hasCachedContent, handleOfflineContent } = useOnboardingStorage();
+  const {
+    offlineContentHandled,
+    hasCachedContent,
+    handleOfflineContent: handleOfflineContentStorage,
+  } = useOnboardingStorage();
+
+  const handleOfflineContent = useCallback(
+    (accepted: boolean): void => {
+      handleOfflineContentStorage(accepted);
+      dispatch({
+        type: OnboardingAction.USER_ACTION_HANDLE_OFFLINE,
+        accepted,
+      });
+    },
+    [handleOfflineContentStorage],
+  );
 
   // 3. Online Status (Reusing existing hook)
   const isOnline = useOnlineStatus();
