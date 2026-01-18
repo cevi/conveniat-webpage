@@ -114,7 +114,7 @@ export const uploadRouter = createTRPCRouter({
           },
           file: {
             data: buffer,
-            mimetype: s3Response.ContentType || 'application/octet-stream',
+            mimetype: s3Response.ContentType ?? 'application/octet-stream',
             name: `${randomUUID()}.${extension}`,
             size: buffer.length,
           },
