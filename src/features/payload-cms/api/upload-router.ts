@@ -4,7 +4,7 @@ import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand } from '@aws-sd
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import config from '@payload-config';
 import { TRPCError } from '@trpc/server';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { getPayload } from 'payload';
 import sharp from 'sharp';
@@ -90,6 +90,7 @@ export const uploadRouter = createTRPCRouter({
         }
 
         const buffer = Buffer.from(fileBody);
+        const hash = createHash('sha256').update(buffer).digest('hex');
 
         // Validate file extension
         const extension = path.extname(input.originalFilename).toLowerCase().slice(1);
@@ -132,6 +133,24 @@ export const uploadRouter = createTRPCRouter({
 
         const payload = await getPayload({ config });
 
+        // Check for duplicates
+        const existingImages = await payload.find({
+          collection: 'userSubmittedImages',
+          where: {
+            content_hash: {
+              equals: hash,
+            },
+          },
+          depth: 0,
+        });
+
+        if (existingImages.totalDocs > 0) {
+          throw new TRPCError({
+            code: 'CONFLICT',
+            message: 'This image has already been uploaded.',
+          });
+        }
+
         // Create Payload entry
         await payload.create({
           collection: 'userSubmittedImages',
@@ -139,6 +158,7 @@ export const uploadRouter = createTRPCRouter({
             uploaded_by: ctx.user.uuid,
             user_description: input.description,
             original_filename: input.originalFilename,
+            content_hash: hash,
           },
           file: {
             data: buffer,
