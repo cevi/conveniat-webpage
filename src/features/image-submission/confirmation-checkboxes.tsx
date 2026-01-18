@@ -6,9 +6,7 @@ import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 
 interface ConfirmationCheckboxesProperties {
-  privacyAccepted: boolean;
   rightsTransferred: boolean;
-  onPrivacyChange: (checked: boolean) => void;
   onRightsChange: (checked: boolean) => void;
 }
 
@@ -16,18 +14,6 @@ const requiredConfirmations: StaticTranslationString = {
   en: 'Required Confirmations',
   de: 'Erforderliche Bestätigungen',
   fr: 'Confirmations requises',
-};
-
-const privacyTitle: StaticTranslationString = {
-  en: 'Data Privacy Agreement',
-  de: 'Datenschutzvereinbarung',
-  fr: 'Accord de confidentialité des données',
-};
-
-const privacyDescription: StaticTranslationString = {
-  en: 'I acknowledge that my uploaded images will be processed and stored securely. I understand that my data will be handled in accordance with applicable privacy laws and will not be shared with third parties without my explicit consent.',
-  de: 'Ich bestätige, dass meine hochgeladenen Bilder sicher verarbeitet und gespeichert werden. Ich verstehe, dass meine Daten gemäß den geltenden Datenschutzgesetzen behandelt werden und nicht ohne meine ausdrückliche Zustimmung an Dritte weitergegeben werden.',
-  fr: 'Je reconnais que mes images téléchargées seront traitées et stockées en toute sécurité. Je comprends que mes données seront traitées conformément aux lois applicables sur la confidentialité et ne seront pas partagées avec des tiers sans mon consentement explicite.',
 };
 
 const rightsTitle: StaticTranslationString = {
@@ -43,51 +29,30 @@ const rightsDescription: StaticTranslationString = {
 };
 
 export const ConfirmationCheckboxes: React.FC<ConfirmationCheckboxesProperties> = ({
-  privacyAccepted,
   rightsTransferred,
-  onPrivacyChange,
   onRightsChange,
 }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
   return (
     <div className="space-y-4">
-      <label className="block text-base font-medium text-gray-700">
+      <label className="block text-lg font-semibold text-gray-800">
         {requiredConfirmations[locale]}
       </label>
 
-      {/* Data Privacy Confirmation */}
-      <div className="flex items-start space-x-3">
-        <div className="flex h-5 items-center">
-          <input
-            id="privacy"
-            type="checkbox"
-            checked={privacyAccepted}
-            onChange={(event) => onPrivacyChange(event.target.checked)}
-            className="h-4 w-4 rounded border-gray-300 bg-gray-100 text-blue-600 transition-colors focus:outline-none"
-          />
-        </div>
-        <div className="ml-3 text-sm">
-          <label htmlFor="privacy" className="cursor-pointer font-medium text-gray-700">
-            {privacyTitle[locale]} <span className="text-cevi-red">*</span>
-          </label>
-          <p className="mt-1 text-xs leading-relaxed text-gray-500">{privacyDescription[locale]}</p>
-        </div>
-      </div>
-
       {/* Rights Transfer Confirmation */}
-      <div className="flex items-start space-x-3">
-        <div className="flex h-5 items-center">
+      <div className="flex items-start rounded-xl border border-transparent p-3 transition-colors hover:bg-gray-50">
+        <div className="flex h-6 items-center">
           <input
             id="rights"
             type="checkbox"
             checked={rightsTransferred}
             onChange={(event) => onRightsChange(event.target.checked)}
-            className="h-4 w-4 rounded border-gray-300 bg-gray-100 text-blue-600 transition-colors focus:outline-none"
+            className="h-5 w-5 rounded border-gray-300 text-blue-600 transition focus:ring-blue-500 focus:ring-offset-0"
           />
         </div>
-        <div className="ml-3 text-sm">
-          <label htmlFor="rights" className="cursor-pointer font-medium text-gray-700">
+        <div className="ml-4">
+          <label htmlFor="rights" className="cursor-pointer text-sm font-semibold text-gray-800">
             {rightsTitle[locale]} <span className="text-cevi-red">*</span>
           </label>
           <p className="mt-1 text-xs leading-relaxed text-gray-500">{rightsDescription[locale]}</p>
