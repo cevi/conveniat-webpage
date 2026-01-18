@@ -24,15 +24,15 @@ const moreEventsTitle: StaticTranslationString = {
 };
 
 const noStarredItemsText: StaticTranslationString = {
-  en: 'No items in watchlist',
-  de: 'Keine Elemente in Merkliste',
-  fr: 'Aucun élément dans la liste de surveillance',
+  en: 'Your schedule is open!',
+  de: 'Dein Programm ist noch leer!',
+  fr: 'Ton programme est encore vide !',
 };
 
 const exploreProgramText: StaticTranslationString = {
-  en: 'Explore the program to like Program elements',
-  de: 'Entdecke das Programm und like Programmpunkte',
-  fr: 'Explorez le programme pour like les éléments',
+  en: 'Plan your adventure now.',
+  de: 'Plane jetzt dein Abenteuer.',
+  fr: 'Planifie ton aventure dès maintenant.',
 };
 
 const EventCard: React.FC<{
