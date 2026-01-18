@@ -19,7 +19,7 @@ import { getPushSubscription } from '@/utils/push-notifications/push-manager-uti
 import Cookies from 'js-cookie';
 import { useSession } from 'next-auth/react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import type { Dispatch, SetStateAction } from 'react';
+
 import { useCallback, useEffect, useReducer, useRef } from 'react';
 
 export const useOnboarding = (): UseOnboardingReturn => {
@@ -123,7 +123,7 @@ export const useOnboarding = (): UseOnboardingReturn => {
     }
   }, [searchParameters, pathname, router]);
 
-  const setOnboardingStep: Dispatch<SetStateAction<OnboardingStep>> = useCallback(() => {
+  const setOnboardingStep = useCallback((): void => {
     // Manual step forcing is ignored in favor of FSM context evaluation
     dispatch({ type: OnboardingAction.EVALUATE_NEXT_STEP });
   }, []);
@@ -171,6 +171,6 @@ export interface UseOnboardingReturn {
   acceptCookiesCallback: () => void;
   handlePushNotification: () => void;
   handleOfflineContent: (accepted: boolean) => void;
-  setOnboardingStep: Dispatch<SetStateAction<OnboardingStep>>;
+  setOnboardingStep: () => void;
   handleSkipLogin: () => void;
 }
