@@ -6,7 +6,7 @@ import { DescriptionInput } from '@/features/image-submission/description-input'
 import { FilePreviewList } from '@/features/image-submission/file-preview-list';
 import { FileUploadZone } from '@/features/image-submission/file-upload-zone';
 import { SubmitButton } from '@/features/image-submission/submit-button';
-import { useUserUpload } from '@/features/payload-cms/components/user-upload/use-user-upload';
+import { useUserUpload } from '@/features/payload-cms/hooks/use-user-upload';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { Image as LucideImageIcon } from 'lucide-react';
