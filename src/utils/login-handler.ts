@@ -28,7 +28,9 @@ export const handleLogin = (callbackUrl?: string): void => {
  */
 export const handleSkipLogin = (): void => {
   // Clear any existing auth state
-  void signOut({ redirect: false });
+  void signOut({ redirect: false }).catch((error: unknown) => {
+    console.error('Sign-out error', error);
+  });
   Cookies.remove(Cookie.HAS_LOGGED_IN);
 
   // Set skip auth cookie
