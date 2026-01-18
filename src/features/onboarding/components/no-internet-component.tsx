@@ -1,6 +1,6 @@
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { WifiOff } from 'lucide-react';
-import React from 'react';
+import type React from 'react';
 
 const noInternetTitle: StaticTranslationString = {
   de: 'Keine Internetverbindung',
