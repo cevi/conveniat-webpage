@@ -4,7 +4,7 @@ import {
   initialOnboardingState,
   onboardingReducer,
 } from '@/features/onboarding/state/onboarding-finite-state-machine';
-import { OnboardingStep } from '@/features/onboarding/types';
+import { OnboardingAction, OnboardingStep } from '@/features/onboarding/types';
 
 describe('Onboarding Finite State Machine', () => {
   describe('determineNextStep', () => {
@@ -83,14 +83,14 @@ describe('Onboarding Finite State Machine', () => {
   describe('onboardingReducer', () => {
     it('should handle USER_ACTION_ACCEPT_COOKIES', () => {
       const state = onboardingReducer(initialOnboardingState, {
-        type: 'USER_ACTION_ACCEPT_COOKIES',
+        type: OnboardingAction.USER_ACTION_ACCEPT_COOKIES,
       });
       expect(state.context.hasAcceptedCookieBanner).toBe(true);
       // Expected next step depends on auth, which defaults to loading
       expect(state.step).toBe(OnboardingStep.Checking);
     });
 
-    it('should transition to Login when auth finishes and is unauthenticated', () => {
+    it('transition to Login when auth finishes and is unauthenticated', () => {
       const startState = {
         step: OnboardingStep.Checking,
         context: {
@@ -101,7 +101,7 @@ describe('Onboarding Finite State Machine', () => {
       };
 
       const newState = onboardingReducer(startState, {
-        type: 'UPDATE_CONTEXT',
+        type: OnboardingAction.UPDATE_CONTEXT,
         payload: { authStatus: 'unauthenticated' },
       });
 
@@ -118,7 +118,9 @@ describe('Onboarding Finite State Machine', () => {
         },
       };
 
-      const newState = onboardingReducer(startState, { type: 'USER_ACTION_SKIP_LOGIN' });
+      const newState = onboardingReducer(startState, {
+        type: OnboardingAction.USER_ACTION_SKIP_LOGIN,
+      });
       expect(newState.context.hasSkippedLogin).toBe(true);
       expect(newState.step).toBe(OnboardingStep.PushNotifications);
     });
@@ -136,7 +138,9 @@ describe('Onboarding Finite State Machine', () => {
         },
       };
 
-      const newState = onboardingReducer(startState, { type: 'USER_ACTION_SKIP_PUSH' });
+      const newState = onboardingReducer(startState, {
+        type: OnboardingAction.USER_ACTION_SKIP_PUSH,
+      });
       expect(newState.context.hasSkippedPush).toBe(true);
       expect(newState.step).toBe(OnboardingStep.OfflineContent);
     });
@@ -154,7 +158,7 @@ describe('Onboarding Finite State Machine', () => {
       };
 
       const newState = onboardingReducer(startState, {
-        type: 'USER_ACTION_HANDLE_OFFLINE',
+        type: OnboardingAction.USER_ACTION_HANDLE_OFFLINE,
         accepted: true,
       });
       expect(newState.context.offlineContentHandled).toBe(true);

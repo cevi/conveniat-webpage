@@ -1,4 +1,4 @@
-import { OnboardingStep } from '@/features/onboarding/types';
+import { OnboardingAction, OnboardingStep } from '@/features/onboarding/types';
 
 export interface OnboardingContext {
   hasAcceptedCookieBanner: boolean;
@@ -19,12 +19,12 @@ export interface OnboardingState {
 }
 
 export type OnboardingEvent =
-  | { type: 'UPDATE_CONTEXT'; payload: Partial<OnboardingContext> }
-  | { type: 'EVALUATE_NEXT_STEP' }
-  | { type: 'USER_ACTION_ACCEPT_COOKIES' }
-  | { type: 'USER_ACTION_SKIP_LOGIN' }
-  | { type: 'USER_ACTION_SKIP_PUSH' }
-  | { type: 'USER_ACTION_HANDLE_OFFLINE'; accepted: boolean };
+  | { type: OnboardingAction.UPDATE_CONTEXT; payload: Partial<OnboardingContext> }
+  | { type: OnboardingAction.EVALUATE_NEXT_STEP }
+  | { type: OnboardingAction.USER_ACTION_ACCEPT_COOKIES }
+  | { type: OnboardingAction.USER_ACTION_SKIP_LOGIN }
+  | { type: OnboardingAction.USER_ACTION_SKIP_PUSH }
+  | { type: OnboardingAction.USER_ACTION_HANDLE_OFFLINE; accepted: boolean };
 
 export const initialOnboardingContext: OnboardingContext = {
   hasAcceptedCookieBanner: false,
@@ -111,7 +111,7 @@ export const onboardingReducer = (
   event: OnboardingEvent,
 ): OnboardingState => {
   switch (event.type) {
-    case 'UPDATE_CONTEXT': {
+    case OnboardingAction.UPDATE_CONTEXT: {
       const newContext = { ...state.context, ...event.payload };
       const nextStep = determineNextStep(newContext);
       return {
@@ -120,14 +120,14 @@ export const onboardingReducer = (
       };
     }
 
-    case 'EVALUATE_NEXT_STEP': {
+    case OnboardingAction.EVALUATE_NEXT_STEP: {
       return {
         ...state,
         step: determineNextStep(state.context),
       };
     }
 
-    case 'USER_ACTION_ACCEPT_COOKIES': {
+    case OnboardingAction.USER_ACTION_ACCEPT_COOKIES: {
       const newContext = { ...state.context, hasAcceptedCookieBanner: true };
       return {
         step: determineNextStep(newContext),
@@ -135,7 +135,7 @@ export const onboardingReducer = (
       };
     }
 
-    case 'USER_ACTION_SKIP_LOGIN': {
+    case OnboardingAction.USER_ACTION_SKIP_LOGIN: {
       const newContext = { ...state.context, hasSkippedLogin: true };
       return {
         step: determineNextStep(newContext),
@@ -143,7 +143,7 @@ export const onboardingReducer = (
       };
     }
 
-    case 'USER_ACTION_SKIP_PUSH': {
+    case OnboardingAction.USER_ACTION_SKIP_PUSH: {
       const newContext = { ...state.context, hasSkippedPush: true };
       return {
         step: determineNextStep(newContext),
@@ -151,7 +151,7 @@ export const onboardingReducer = (
       };
     }
 
-    case 'USER_ACTION_HANDLE_OFFLINE': {
+    case OnboardingAction.USER_ACTION_HANDLE_OFFLINE: {
       const newContext = {
         ...state.context,
         offlineContentHandled: true,
