@@ -1,7 +1,7 @@
 'use client';
 
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
-import { ConfirmationCheckboxes } from '@/features/image-submission/confirmation-checkboxes';
+import { CopyrightModal } from '@/features/image-submission/copyright-modal';
 import { DescriptionInput } from '@/features/image-submission/description-input';
 import { FilePreviewList } from '@/features/image-submission/file-preview-list';
 import { FileUploadZone } from '@/features/image-submission/file-upload-zone';
@@ -9,6 +9,7 @@ import { SubmitButton } from '@/features/image-submission/submit-button';
 import { useUserUpload } from '@/features/payload-cms/hooks/use-user-upload';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
 import { Image as LucideImageIcon, Sparkles } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
@@ -24,12 +25,6 @@ const descriptionRequired: StaticTranslationString = {
   en: 'Please write a short description of the image',
   de: 'Bitte schreibe eine kurze Beschreibung des Bildes',
   fr: "Veuillez écrire une courte description de l'image",
-};
-
-const confirmationsRequired: StaticTranslationString = {
-  en: 'Please accept both confirmations to proceed',
-  de: 'Bitte akzeptiere beide Bestätigungen, um fortzufahren',
-  fr: 'Veuillez accepter les deux confirmations pour continuer',
 };
 
 const uploadError: StaticTranslationString = {
@@ -103,8 +98,7 @@ const ImageUploadPage: React.FC = () => {
 
   const [selectedFiles, setSelectedFiles] = useState<FileItem[]>([]);
   const [fileDescriptions, setFileDescriptions] = useState<Record<string, string>>({});
-  // Privacy accepted is removed as it is covered by onboarding
-  const [rightsTransferred, setRightsTransferred] = useState(false);
+  const [showCopyrightModal, setShowCopyrightModal] = useState(false);
 
   const [errorMessage, setErrorMessage] = useState('');
   const [showSuccessView, setShowSuccessView] = useState(false);
@@ -210,7 +204,7 @@ const ImageUploadPage: React.FC = () => {
   const clearForm = (): void => {
     setSelectedFiles([]);
     setFileDescriptions({});
-    setRightsTransferred(false);
+
     setErrorMessage('');
   };
 
@@ -219,7 +213,7 @@ const ImageUploadPage: React.FC = () => {
     clearForm();
   };
 
-  const handleSubmit = async (event: React.FormEvent): Promise<void> => {
+  const handleFormSubmit = (event: React.FormEvent): void => {
     event.preventDefault();
     setErrorMessage('');
 
@@ -260,10 +254,11 @@ const ImageUploadPage: React.FC = () => {
       return;
     }
 
-    if (!rightsTransferred) {
-      setErrorMessage(confirmationsRequired[locale]);
-      return;
-    }
+    setShowCopyrightModal(true);
+  };
+
+  const handleFinalUpload = async (): Promise<void> => {
+    const validFiles = selectedFiles.filter((item) => !item.error);
 
     try {
       const uploadResults = await Promise.all(
@@ -276,17 +271,20 @@ const ImageUploadPage: React.FC = () => {
       const failedUploads = uploadResults.filter((response) => response.error);
       if (failedUploads.length === 0) {
         setShowSuccessView(true);
+        setShowCopyrightModal(false);
       } else {
         setErrorMessage(`${uploadError[locale]}: ${failedUploads[0]?.message ?? ''}`);
+        setShowCopyrightModal(false);
       }
     } catch (error) {
       setErrorMessage(
         `${uploadError[locale]}: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
+      setShowCopyrightModal(false);
     }
   };
 
-  const isSubmitDisabled = selectedFiles.filter((f) => !f.error).length === 0 || !rightsTransferred;
+  const isSubmitDisabled = selectedFiles.filter((f) => !f.error).length === 0;
 
   if (showSuccessView) {
     return (
@@ -337,7 +335,7 @@ const ImageUploadPage: React.FC = () => {
         <p className="mt-2 text-base text-gray-500">{pageDescription[locale]}</p>
       </div>
 
-      <form onSubmit={(event) => void handleSubmit(event)} className="space-y-8">
+      <form onSubmit={(event) => void handleFormSubmit(event)} className="space-y-8">
         {errorMessage !== '' && (
           <div className="flex items-center gap-4 rounded-xl border border-red-100 bg-red-50 p-4 text-red-800">
             <LucideImageIcon className="h-6 w-6 flex-shrink-0 opacity-80" />
@@ -380,19 +378,35 @@ const ImageUploadPage: React.FC = () => {
 
         {/* Upload Zone - Turns into 'Add more' area if files exist */}
         <div className="space-y-6">
-          <FileUploadZone onFileSelect={handleFileSelect} />
+          <FileUploadZone onFileSelect={handleFileSelect} compact={selectedFiles.length > 0} />
         </div>
 
         <hr className="border-gray-200" />
-        <ConfirmationCheckboxes
-          rightsTransferred={rightsTransferred}
-          onRightsChange={setRightsTransferred}
-        />
-        <hr className="border-gray-200" />
-        <SubmitButton
-          isDisabled={isSubmitDisabled}
-          fileCount={selectedFiles.filter((f) => !f.error).length}
-          isLoading={isUploading}
+        <div
+          className={cn(
+            selectedFiles.length > 0
+              ? 'pointer-events-none fixed right-0 bottom-20 left-0 z-10 p-4 md:static md:p-0'
+              : '',
+          )}
+        >
+          <div className="pointer-events-auto container mx-auto -mb-8 max-w-2xl md:mb-0 md:px-0">
+            <div className="rounded-lg shadow-xl">
+              <SubmitButton
+                isDisabled={isSubmitDisabled}
+                fileCount={selectedFiles.filter((f) => !f.error).length}
+                isLoading={isUploading}
+              />
+            </div>
+          </div>
+        </div>
+        {/* Spacer for sticky button on mobile */}
+        {selectedFiles.length > 0 && <div className="h-48 md:hidden" />}
+
+        <CopyrightModal
+          open={showCopyrightModal}
+          onOpenChange={setShowCopyrightModal}
+          onConfirm={() => void handleFinalUpload()}
+          isUploading={isUploading}
         />
       </form>
     </div>
