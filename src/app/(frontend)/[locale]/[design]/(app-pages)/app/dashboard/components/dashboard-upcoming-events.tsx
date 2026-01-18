@@ -15,7 +15,7 @@ import type React from 'react';
 const upcomingProgramElementsTitle: StaticTranslationString = {
   en: 'My Program Today',
   de: 'Programm von heute',
-  fr: "Programme de aujourd'hui",
+  fr: "Programme d'aujourd'hui",
 };
 
 const moreEventsTitle: StaticTranslationString = {
