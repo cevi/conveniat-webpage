@@ -106,7 +106,7 @@ const ChatClientContent: React.FC = () => {
       <AppFooterController hideAppFooter />
       <ChatHeader />
       {isPaused && <OfflineBanner />}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-x-hidden overflow-y-auto">
         <MessageList />
       </div>
       <div className="border-t border-gray-200 bg-white p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
