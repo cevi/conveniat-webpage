@@ -73,5 +73,11 @@ export const getMessagePreviewText = (lastMessage: {
     return p['question'];
   }
 
+  // Handle system messages with translations (e.g., closed chat messages)
+  // Check if this is a StaticTranslationString object with en, de, fr keys
+  if ('en' in p && 'de' in p && 'fr' in p) {
+    return p as unknown as StaticTranslationString;
+  }
+
   return JSON.stringify(p);
 };
