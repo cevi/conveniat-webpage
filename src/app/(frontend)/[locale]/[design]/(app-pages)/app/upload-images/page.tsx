@@ -93,11 +93,11 @@ const ImageUploadPage: React.FC = () => {
   const [fileDescriptions, setFileDescriptions] = useState<Record<string, string>>({});
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [rightsTransferred, setRightsTransferred] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+
   const [errorMessage, setErrorMessage] = useState('');
   const [showSuccessView, setShowSuccessView] = useState(false);
 
-  const { uploadImage } = useUserUpload();
+  const { uploadImage, isUploading } = useUserUpload();
 
   const checkImageDimensions = (file: File): Promise<boolean> => {
     return new Promise((resolve) => {
@@ -213,8 +213,6 @@ const ImageUploadPage: React.FC = () => {
       return;
     }
 
-    setIsLoading(true);
-
     try {
       const uploadResults = await Promise.all(
         selectedFiles.map(async (file) => {
@@ -233,8 +231,6 @@ const ImageUploadPage: React.FC = () => {
       setErrorMessage(
         `${uploadError[locale]}: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -330,7 +326,7 @@ const ImageUploadPage: React.FC = () => {
           <SubmitButton
             isDisabled={isSubmitDisabled}
             fileCount={selectedFiles.length}
-            isLoading={isLoading}
+            isLoading={isUploading}
           />
         </form>
       </div>
