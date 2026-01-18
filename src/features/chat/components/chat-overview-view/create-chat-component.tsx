@@ -1,4 +1,5 @@
 'use client';
+import { AppFooterController } from '@/components/footer/hide-footer-context';
 import { Button } from '@/components/ui/buttons/button';
 import { Input } from '@/components/ui/input';
 import type { Contact } from '@/features/chat/api/queries/list-contacts';
@@ -152,6 +153,8 @@ export const CreateNewChatPage: React.FC = () => {
 
   return (
     <div className="fixed top-0 z-[100] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50 xl:top-[62px] xl:left-[480px] xl:z-0 xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
+      <AppFooterController hideAppFooter />
+
       {/* Header */}
       <div className="flex h-16 items-center gap-3 border-b-2 border-gray-200 bg-white px-4">
         <Link href="/app/chat">
