@@ -39,6 +39,16 @@ export const ScheduleModalWrapper: React.FC<ScheduleModalWrapperProperties> = ({
     return (): void => document.removeEventListener('keydown', handleEscape);
   }, [handleClose]);
 
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    const originalStyle = globalThis.getComputedStyle(document.body).overflow;
+    document.body.style.overflow = 'hidden';
+
+    return (): void => {
+      document.body.style.overflow = originalStyle;
+    };
+  }, []);
+
   return (
     <div className="fixed inset-0 z-[200] flex flex-col">
       {/* Backdrop */}
