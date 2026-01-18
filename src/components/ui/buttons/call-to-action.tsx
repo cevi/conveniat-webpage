@@ -10,10 +10,7 @@ export const CallToAction: React.FC<{
 }> = ({ children, href, inverted = false, useMargin = true }) => {
   if (href === undefined) return;
 
-  const containerClasses = cn(
-    'flex h-fit min-h-full justify-end',
-    useMargin && 'mt-[16px] mb-[24px]',
-  );
+  const containerClasses = cn('flex h-fit min-h-full justify-end', useMargin && 'mt-4 mb-6');
 
   if (inverted) {
     return (
