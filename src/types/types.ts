@@ -14,6 +14,7 @@ export enum Cookie {
   CONVENIAT_COOKIE_BANNER = 'conveniat-cookie-banner',
   LOCALE_COOKIE = 'next-locale',
   SKIP_PUSH_NOTIFICATION = 'skip-push-notification',
+  HAS_SKIPPED_AUTH = 'has-skipped-auth',
 }
 
 export enum Header {

@@ -15,6 +15,7 @@ import { useOnboarding } from '@/features/onboarding/hooks/use-onboarding';
 import { OnboardingStep } from '@/features/onboarding/types';
 import { TRPCProvider } from '@/trpc/client';
 import { Cookie } from '@/types/types';
+import { handleSkipLogin } from '@/utils/login-handler';
 import { AnimatePresence, motion } from 'framer-motion';
 import Cookies from 'js-cookie';
 import React from 'react';
@@ -36,7 +37,10 @@ export const OnboardingProcess: React.FC = () => {
   if (onboardingStep === OnboardingStep.Login) {
     footer = (
       <button
-        onClick={() => setOnboardingStep(OnboardingStep.PushNotifications)}
+        onClick={() => {
+          handleSkipLogin();
+          setOnboardingStep(OnboardingStep.PushNotifications);
+        }}
         className="cursor-pointer font-semibold text-gray-400 hover:text-gray-600"
       >
         {loginDismissText[locale]}

@@ -147,6 +147,11 @@ export const useOnboarding = (): UseOnboardingReturn => {
   // Check Onboarding State
   useEffect(() => {
     const checkOnboarding = async (): Promise<void> => {
+      // Clear skip auth cookie if signalled by query param
+      if (searchParameters.get('clearSkip') === 'true') {
+        Cookies.remove(Cookie.HAS_SKIPPED_AUTH);
+      }
+
       const hasAcceptedCookies = Cookies.get(Cookie.CONVENIAT_COOKIE_BANNER) === 'true';
 
       if (!hasAcceptedCookies) {
@@ -206,14 +211,21 @@ export const useOnboarding = (): UseOnboardingReturn => {
           setOnboardingStep(OnboardingStep.Loading);
         }
       } else {
+        const hasSkippedAuth = Cookies.get(Cookie.HAS_SKIPPED_AUTH) === 'true';
         setTimeout(() => {
-          if (isMounted.current) setOnboardingStep(OnboardingStep.Login);
+          if (isMounted.current) {
+            if (hasSkippedAuth) {
+              setOnboardingStep(OnboardingStep.PushNotifications);
+            } else {
+              setOnboardingStep(OnboardingStep.Login);
+            }
+          }
         }, 0);
       }
     };
 
     void checkOnboarding();
-  }, [status, handlePushNotification]);
+  }, [status, handlePushNotification, searchParameters]);
 
   // Handle Push Notification Step Transitions
   const handlePushNotificationWithNextStep = useCallback(async () => {
