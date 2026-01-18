@@ -82,11 +82,16 @@ export const uploadRouter = createTRPCRouter({
         });
 
         // Cleanup temp file
-        const deleteCommand = new DeleteObjectCommand({
-          Bucket: MINIO_BUCKET_NAME,
-          Key: input.key,
-        });
-        await s3Client.send(deleteCommand);
+        try {
+          const deleteCommand = new DeleteObjectCommand({
+            Bucket: MINIO_BUCKET_NAME,
+            Key: input.key,
+          });
+          await s3Client.send(deleteCommand);
+        } catch (cleanupError) {
+          console.error('Failed to cleanup temporary file:', cleanupError);
+          // We don't throw here because the main operation succeeded
+        }
 
         return { success: true };
       } catch (error) {
