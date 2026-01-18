@@ -22,9 +22,9 @@ const dragDropText: StaticTranslationString = {
 };
 
 const fileTypeText: StaticTranslationString = {
-  en: 'PNG, JPG, GIF up to 10MB each',
-  de: 'PNG, JPG, GIF bis zu 10MB pro Datei',
-  fr: "PNG, JPG, GIF jusqu'à 10 Mo chacun",
+  en: 'PNG, JPG, GIF up to 50MB each',
+  de: 'PNG, JPG, GIF bis zu 50MB pro Datei',
+  fr: "PNG, JPG, GIF jusqu'à 50 Mo chacun",
 };
 
 export const FileUploadZone: React.FC<FileUploadZoneProperties> = ({ onFileSelect }) => {

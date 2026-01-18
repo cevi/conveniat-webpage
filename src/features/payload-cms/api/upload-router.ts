@@ -94,6 +94,22 @@ export const uploadRouter = createTRPCRouter({
           if (metadata.format === 'svg') {
             throw new Error('Invalid image format');
           }
+
+          // Validate file size (max 50MB)
+          const MAX_SIZE = 50 * 1024 * 1024; // 50MB
+          if (buffer.length > MAX_SIZE) {
+            throw new Error('File size exceeds 50MB limit');
+          }
+
+          // Validate dimensions (min 1920x1080)
+          if (
+            !metadata.width ||
+            !metadata.height ||
+            metadata.width < 1920 ||
+            metadata.height < 1080
+          ) {
+            throw new Error('Image dimensions must be at least 1920x1080');
+          }
         } catch (error) {
           console.error('Image validation failed:', error);
           throw new TRPCError({
