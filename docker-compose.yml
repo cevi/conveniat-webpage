@@ -139,7 +139,7 @@ services:
 
     entrypoint: sh
     command: >
-      -c "mkdir -p /data/${MINIO_BUCKET_NAME} && /usr/bin/minio server --console-address ':9001' /data &  sleep 10 && mc alias set myminio http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD} && mc admin user svcacct add --access-key '${MINIO_ACCESS_KEY_ID}' --secret-key '${MINIO_SECRET_ACCESS_KEY}' myminio ${MINIO_ROOT_USER} || true && echo 'minio is ready' && sleep infinity"
+      -c "mkdir -p /data/${MINIO_BUCKET_NAME} && /usr/bin/minio server --console-address ':9001' /data &  sleep 10 && mc alias set myminio http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD} && mc admin user svcacct add --access-key '${MINIO_ACCESS_KEY_ID}' --secret-key '${MINIO_SECRET_ACCESS_KEY}' myminio ${MINIO_ROOT_USER} || true && echo 'minio is ready' && mc ilm import myminio/${MINIO_BUCKET_NAME} < /lifecycle.json || true && sleep infinity"
 
     env_file:
       - .env
@@ -150,6 +150,7 @@ services:
 
     volumes:
       - minio-data:/data
+      - ./src/scripts/s3-lifecycle-policy.json:/lifecycle.json
 
   fake-oauth:
     build: dev-oauth

@@ -5,8 +5,8 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import config from '@payload-config';
 import { TRPCError } from '@trpc/server';
 import { randomUUID } from 'node:crypto';
-import { getPayload } from 'payload';
 import path from 'node:path';
+import { getPayload } from 'payload';
 import sharp from 'sharp';
 import { z } from 'zod';
 
@@ -91,14 +91,15 @@ export const uploadRouter = createTRPCRouter({
         try {
           const metadata = await sharp(buffer).metadata();
           // Ensure sharp recognized it as a valid image and it's not an SVG (for security)
-          if (!metadata.format || metadata.format === 'svg') {
+          if (metadata.format === 'svg') {
             throw new Error('Invalid image format');
           }
         } catch (error) {
           console.error('Image validation failed:', error);
           throw new TRPCError({
             code: 'BAD_REQUEST',
-            message: 'Invalid image data. The file appears to be corrupted or not a supported image.',
+            message:
+              'Invalid image data. The file appears to be corrupted or not a supported image.',
           });
         }
 
