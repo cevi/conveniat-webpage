@@ -75,7 +75,7 @@ export const ThreadView: React.FC<ThreadViewProperties> = ({ threadId, onClose }
       </div>
 
       {/* Input */}
-      <div className="border-t border-gray-200 bg-white p-2">
+      <div className="border-t border-gray-200 bg-white p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         <ChatTextAreaInput />
       </div>
     </div>
