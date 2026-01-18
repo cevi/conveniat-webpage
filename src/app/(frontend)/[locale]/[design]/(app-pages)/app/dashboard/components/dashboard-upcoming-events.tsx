@@ -102,6 +102,8 @@ const SpotIllustration: React.FC = () => (
     viewBox="0 0 200 200"
     className="mx-auto mb-4 h-auto w-32"
     style={{ width: '100%', height: 'auto', maxWidth: '160px' }}
+    role="img"
+    aria-hidden="true"
   >
     <g fill="none" stroke="#47564c" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round">
       {/* Base Ring */}
