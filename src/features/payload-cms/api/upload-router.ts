@@ -58,7 +58,7 @@ export const uploadRouter = createTRPCRouter({
     .input(
       z.object({
         key: z.string(),
-        description: z.string(),
+        description: z.string().max(1000),
         originalFilename: z.string(),
       }),
     )

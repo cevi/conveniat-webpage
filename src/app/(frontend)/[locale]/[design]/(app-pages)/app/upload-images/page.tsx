@@ -80,6 +80,12 @@ const imageTooBig: StaticTranslationString = {
   fr: 'Votre image téléchargée est trop grande',
 };
 
+const descriptionTooLong: StaticTranslationString = {
+  en: 'Description too long (max 1000 characters)',
+  de: 'Beschreibung zu lang (max. 1000 Zeichen)',
+  fr: 'Description trop longue (max 1000 caractères)',
+};
+
 const ImageUploadPage: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
@@ -188,6 +194,15 @@ const ImageUploadPage: React.FC = () => {
 
     if (missingDescriptions) {
       setErrorMessage(descriptionRequired[locale]);
+      return;
+    }
+
+    const longDescriptions = selectedFiles.some(
+      (file) => (fileDescriptions[file.name]?.trim().length ?? 0) > 1000,
+    );
+
+    if (longDescriptions) {
+      setErrorMessage(descriptionTooLong[locale]);
       return;
     }
 
