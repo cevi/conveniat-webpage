@@ -9,7 +9,7 @@ interface UseUserUploadResult {
 
 export const useUserUpload = (): UseUserUploadResult => {
   const [isUploading, setIsUploading] = useState(false);
-  const getPresignedUrlMutation = trpc.upload.getPresignedUrl.useMutation();
+  const getPresignedUrlMutation = trpc.upload.createUploadUrl.useMutation();
   const completeUploadMutation = trpc.upload.completeUserUpload.useMutation();
 
   const uploadImage = useCallback(

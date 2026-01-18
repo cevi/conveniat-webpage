@@ -27,7 +27,7 @@ const ALLOWED_EXTENSIONS = [
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
 export const uploadRouter = createTRPCRouter({
-  getPresignedUrl: trpcBaseProcedure
+  createUploadUrl: trpcBaseProcedure
     .input(
       z.object({
         filename: z.string(),
