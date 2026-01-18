@@ -87,6 +87,12 @@ const selectedImages: StaticTranslationString = {
   fr: 'Images sélectionnées',
 };
 
+const duplicateImageError: StaticTranslationString = {
+  en: 'This image has already been uploaded.',
+  de: 'Dieses Bild wurde bereits hochgeladen.',
+  fr: 'Cette image a déjà été téléchargée.',
+};
+
 const ImageUploadPage: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
@@ -261,19 +267,34 @@ const ImageUploadPage: React.FC = () => {
     const validFiles = selectedFiles.filter((item) => !item.error);
 
     try {
-      const uploadResults = await Promise.all(
+      const results = await Promise.all(
         validFiles.map(async (item) => {
           const description = fileDescriptions[item.file.name]?.trim() ?? '';
           const response = await uploadImage(item.file, description);
-          return response;
+          return { fileName: item.file.name, response };
         }),
       );
-      const failedUploads = uploadResults.filter((response) => response.error);
+
+      const failedUploads = results.filter((r) => r.response.error);
+
       if (failedUploads.length === 0) {
         setShowSuccessView(true);
         setShowCopyrightModal(false);
       } else {
-        setErrorMessage(`${uploadError[locale]}: ${failedUploads[0]?.message ?? ''}`);
+        // Update state with errors for specific files
+        setSelectedFiles((previous) =>
+          previous.map((item) => {
+            const failure = failedUploads.find((f) => f.fileName === item.file.name);
+            if (failure) {
+              let errorMessage = failure.response.message;
+              if (errorMessage === 'This image has already been uploaded.') {
+                errorMessage = duplicateImageError[locale];
+              }
+              return { ...item, error: errorMessage };
+            }
+            return item;
+          }),
+        );
         setShowCopyrightModal(false);
       }
     } catch (error) {

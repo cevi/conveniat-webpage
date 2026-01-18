@@ -67,6 +67,20 @@ export const UserSubmittedImagesCollection: CollectionConfig = {
         fr: "La description soumise par l'utilisateur",
       },
     },
+    {
+      name: 'content_hash',
+      type: 'text',
+      required: false, // Optional for existing images
+      index: true, // Indexed for faster lookup
+      admin: {
+        readOnly: true,
+      },
+      label: {
+        en: 'Image Content Hash (SHA-256)',
+        de: 'Bildinhalt-Hash (SHA-256)',
+        fr: "Hash du contenu de l'image (SHA-256)",
+      },
+    },
     LastEditedByUserField,
   ],
   upload: {

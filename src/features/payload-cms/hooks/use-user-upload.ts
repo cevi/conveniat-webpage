@@ -50,7 +50,7 @@ export const useUserUpload = (): UseUserUploadResult => {
           message: 'Ok',
         };
       } catch (error) {
-        console.error('Upload flow failed:', error);
+        // console.error('Upload flow failed:', error);
         return {
           error: true,
           message: error instanceof Error ? error.message : 'Unknown upload error',
