@@ -9,7 +9,7 @@ import { SubmitButton } from '@/features/image-submission/submit-button';
 import { useUserUpload } from '@/features/payload-cms/hooks/use-user-upload';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { Image as LucideImageIcon } from 'lucide-react';
+import { Image as LucideImageIcon, Sparkles } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 import { useState } from 'react';
@@ -60,6 +60,12 @@ const successMessage: StaticTranslationString = {
   en: 'Thank you for your submission. Your images have been uploaded successfully.',
   de: 'Vielen Dank für deine Einreichung. Deine Bilder wurden erfolgreich hochgeladen.',
   fr: 'Merci pour votre soumission. Vos images ont été téléchargées avec succès.',
+};
+
+const uploadSecurelyTransferred: StaticTranslationString = {
+  en: 'Your images have been securely transferred.',
+  de: 'Deine Bilder wurden sicher übertragen.',
+  fr: 'Vos images ont été transférées en toute sécurité.',
 };
 
 const submitMoreButton: StaticTranslationString = {
@@ -244,28 +250,27 @@ const ImageUploadPage: React.FC = () => {
         <div className="border-b border-gray-200 px-6 py-4">
           <HeadlineH1>{successTitle[locale]}</HeadlineH1>
         </div>
-        <div className="px-6 py-12 text-center">
-          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-            <svg
-              className="h-8 w-8 text-green-600"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 13l4 4L19 7"
+        <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
+          <div className="relative mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-blue-50">
+            <div className="absolute inset-0 animate-ping rounded-full bg-blue-100 opacity-20 duration-1000" />
+            <LucideImageIcon className="h-10 w-10 text-blue-500" />
+            <div className="absolute -top-2 -right-2">
+              <Sparkles className="h-8 w-8 animate-pulse text-yellow-400" fill="currentColor" />
+            </div>
+            <div className="absolute -bottom-1 -left-1">
+              <Sparkles
+                className="h-5 w-5 animate-bounce text-yellow-400 delay-150"
+                fill="currentColor"
               />
-            </svg>
+            </div>
           </div>
-          <h2 className="mb-4 text-xl font-semibold text-gray-900">{successMessage[locale]}</h2>
+          <h2 className="mb-2 text-xl font-semibold text-gray-900">{successMessage[locale]}</h2>
+          <p className="mb-8 text-gray-500">{uploadSecurelyTransferred[locale]}</p>
           <button
             onClick={resetToForm}
-            className="rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
+            className="flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
           >
+            <LucideImageIcon className="h-4 w-4" />
             {submitMoreButton[locale]}
           </button>
         </div>
