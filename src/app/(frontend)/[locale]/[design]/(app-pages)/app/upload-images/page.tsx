@@ -92,12 +92,24 @@ const descriptionTooLong: StaticTranslationString = {
   fr: 'Description trop longue (max 1000 caractères)',
 };
 
+const selectedImages: StaticTranslationString = {
+  en: 'Selected Images',
+  de: 'Ausgewählte Bilder',
+  fr: 'Images sélectionnées',
+};
+
 const ImageUploadPage: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  interface FileItem {
+    file: File;
+    error?: string;
+    descriptionError?: string;
+  }
+
+  const [selectedFiles, setSelectedFiles] = useState<FileItem[]>([]);
   const [fileDescriptions, setFileDescriptions] = useState<Record<string, string>>({});
-  const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  // Privacy accepted is removed as it is covered by onboarding
   const [rightsTransferred, setRightsTransferred] = useState(false);
 
   const [errorMessage, setErrorMessage] = useState('');
@@ -130,29 +142,31 @@ const ImageUploadPage: React.FC = () => {
     const newFiles = [...files].filter((file) => file.type.startsWith('image/'));
 
     void (async (): Promise<void> => {
-      const results = await Promise.all(
-        newFiles.map(async (file) => ({
-          file,
-          isValidDimensions: await checkImageDimensions(file),
-          isValidSize: file.size < 10 * 1024 * 1024,
-        })),
+      const newFileItems: FileItem[] = await Promise.all(
+        newFiles.map(async (file) => {
+          const isValidDimensions = await checkImageDimensions(file);
+          const isValidSize = file.size < 10 * 1024 * 1024;
+          let error: string | undefined;
+
+          if (!isValidDimensions) {
+            error = imageSizeTooSmall[locale];
+          } else if (!isValidSize) {
+            error = imageTooBig[locale];
+          }
+
+          if (error) {
+            return { file, error };
+          }
+          return { file };
+        }),
       );
 
-      const validFiles = results
-        .filter((r) => r.isValidDimensions && r.isValidSize)
-        .map((r) => r.file);
+      // Filter out files that are already selected to prevent duplicates
+      const nonDuplicateItems = newFileItems.filter(
+        (newItem) => !selectedFiles.some((existing) => existing.file.name === newItem.file.name),
+      );
 
-      const nonValidDimensions = results.some((r) => !r.isValidDimensions);
-      if (nonValidDimensions) {
-        setErrorMessage(imageSizeTooSmall[locale]);
-      }
-
-      const nonValidSize = results.some((r) => !r.isValidSize);
-      if (nonValidSize) {
-        setErrorMessage(imageTooBig[locale]);
-      }
-
-      setSelectedFiles((previous) => [...previous, ...validFiles]);
+      setSelectedFiles((previous) => [...previous, ...nonDuplicateItems]);
     })();
   };
 
@@ -161,7 +175,7 @@ const ImageUploadPage: React.FC = () => {
       const fileToRemove = previous[index];
       setFileDescriptions((previous_) => {
         const updated = { ...previous_ };
-        delete updated[fileToRemove?.name ?? ''];
+        delete updated[fileToRemove?.file.name ?? ''];
         return updated;
       });
       return previous.filter((_, index_) => index_ !== index);
@@ -170,12 +184,21 @@ const ImageUploadPage: React.FC = () => {
 
   const handleDescriptionChange = (fileName: string, description: string): void => {
     setFileDescriptions((previous) => ({ ...previous, [fileName]: description }));
+    // Clear description error for this file if needed
+    setSelectedFiles((previous) =>
+      previous.map((item) => {
+        if (item.file.name === fileName) {
+          const { descriptionError, ...rest } = item;
+          return rest;
+        }
+        return item;
+      }),
+    );
   };
 
   const clearForm = (): void => {
     setSelectedFiles([]);
     setFileDescriptions({});
-    setPrivacyAccepted(false);
     setRightsTransferred(false);
     setErrorMessage('');
   };
@@ -189,39 +212,52 @@ const ImageUploadPage: React.FC = () => {
     event.preventDefault();
     setErrorMessage('');
 
-    if (selectedFiles.length === 0) {
+    const validFiles = selectedFiles.filter((item) => !item.error);
+
+    if (validFiles.length === 0) {
       setErrorMessage(selectAtLeastOne[locale]);
       return;
     }
 
-    const missingDescriptions = selectedFiles.some(
-      (file) => !fileDescriptions[file.name] || fileDescriptions[file.name]?.trim() === '',
-    );
+    // Validate descriptions per file
+    let hasDescriptionErrors = false;
+    const filesWithValidation = selectedFiles.map((item) => {
+      if (item.error) return item;
 
-    if (missingDescriptions) {
-      setErrorMessage(descriptionRequired[locale]);
+      const description = fileDescriptions[item.file.name]?.trim() ?? '';
+      let descriptionError: string | undefined;
+
+      if (description === '') {
+        descriptionError = descriptionRequired[locale];
+        hasDescriptionErrors = true;
+      } else if (description.length > 1000) {
+        descriptionError = descriptionTooLong[locale];
+        hasDescriptionErrors = true;
+      }
+
+      if (descriptionError) {
+        return { ...item, descriptionError };
+      }
+
+      const { descriptionError: _, ...rest } = item;
+      return rest;
+    });
+
+    if (hasDescriptionErrors) {
+      setSelectedFiles(filesWithValidation);
       return;
     }
 
-    const longDescriptions = selectedFiles.some(
-      (file) => (fileDescriptions[file.name]?.trim().length ?? 0) > 1000,
-    );
-
-    if (longDescriptions) {
-      setErrorMessage(descriptionTooLong[locale]);
-      return;
-    }
-
-    if (!privacyAccepted || !rightsTransferred) {
+    if (!rightsTransferred) {
       setErrorMessage(confirmationsRequired[locale]);
       return;
     }
 
     try {
       const uploadResults = await Promise.all(
-        selectedFiles.map(async (file) => {
-          const description = fileDescriptions[file.name]?.trim() ?? '';
-          const response = await uploadImage(file, description);
+        validFiles.map(async (item) => {
+          const description = fileDescriptions[item.file.name]?.trim() ?? '';
+          const response = await uploadImage(item.file, description);
           return response;
         }),
       );
@@ -238,39 +274,42 @@ const ImageUploadPage: React.FC = () => {
     }
   };
 
-  const isSubmitDisabled =
-    selectedFiles.length === 0 ||
-    Object.values(fileDescriptions).some((desc) => desc.trim() === '') ||
-    !privacyAccepted ||
-    !rightsTransferred;
+  const isSubmitDisabled = selectedFiles.filter((f) => !f.error).length === 0 || !rightsTransferred;
 
   if (showSuccessView) {
     return (
-      <div className="container mx-auto max-w-2xl px-4">
-        <div className="border-b border-gray-200 px-6 py-4">
+      <div className="container mx-auto max-w-2xl px-4 py-12">
+        <div className="mb-8 border-b border-gray-200 pb-6 text-center">
           <HeadlineH1>{successTitle[locale]}</HeadlineH1>
         </div>
-        <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
-          <div className="relative mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-blue-50">
-            <div className="absolute inset-0 animate-ping rounded-full bg-blue-100 opacity-20 duration-1000" />
-            <LucideImageIcon className="h-10 w-10 text-blue-500" />
-            <div className="absolute -top-2 -right-2">
-              <Sparkles className="h-8 w-8 animate-pulse text-yellow-400" fill="currentColor" />
-            </div>
-            <div className="absolute -bottom-1 -left-1">
+        <div className="flex flex-col items-center justify-center text-center">
+          <div className="relative mb-8 flex h-32 w-32 items-center justify-center rounded-full bg-gradient-to-tr from-blue-50 to-blue-100 shadow-inner">
+            <div className="absolute inset-0 animate-ping rounded-full bg-blue-400 opacity-10 duration-[2000ms]" />
+            <LucideImageIcon className="h-12 w-12 text-blue-600" />
+            <div className="absolute -top-3 -right-3">
               <Sparkles
-                className="h-5 w-5 animate-bounce text-yellow-400 delay-150"
+                className="h-10 w-10 animate-pulse text-yellow-400 drop-shadow-sm"
+                fill="currentColor"
+              />
+            </div>
+            <div className="absolute -bottom-2 -left-2">
+              <Sparkles
+                className="h-6 w-6 animate-bounce text-yellow-400 drop-shadow-sm delay-150"
                 fill="currentColor"
               />
             </div>
           </div>
-          <h2 className="mb-2 text-xl font-semibold text-gray-900">{successMessage[locale]}</h2>
-          <p className="mb-8 text-gray-500">{uploadSecurelyTransferred[locale]}</p>
+          <h2 className="mb-3 text-2xl font-bold tracking-tight text-gray-900">
+            {successMessage[locale]}
+          </h2>
+          <p className="mb-8 text-lg font-medium text-gray-600">
+            {uploadSecurelyTransferred[locale]}
+          </p>
           <button
             onClick={resetToForm}
-            className="flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
+            className="flex transform items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-4 text-base font-semibold text-white shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl focus:ring-4 focus:ring-blue-500/30"
           >
-            <LucideImageIcon className="h-4 w-4" />
+            <LucideImageIcon className="h-5 w-5" />
             {submitMoreButton[locale]}
           </button>
         </div>
@@ -279,60 +318,71 @@ const ImageUploadPage: React.FC = () => {
   }
 
   return (
-    <div className="container mx-auto max-w-2xl px-4">
+    <div className="container mx-auto max-w-2xl px-4 py-8">
       {/* Header */}
-      <div className="border-b border-gray-200 px-6 py-4">
+      <div className="mb-8 border-b border-gray-200 pb-6">
         <HeadlineH1>{pageTitle[locale]}</HeadlineH1>
-        <p className="mt-1 text-sm text-gray-600">{pageDescription[locale]}</p>
+        <p className="mt-2 text-base text-gray-500">{pageDescription[locale]}</p>
       </div>
 
-      {/* Content */}
-      <div className="px-6 py-6">
-        <form onSubmit={(event) => void handleSubmit(event)} className="space-y-6">
-          {errorMessage !== '' && (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <LucideImageIcon
-                    className="h-10 w-10 text-red-800 opacity-65"
-                    aria-hidden="true"
+      <form onSubmit={(event) => void handleSubmit(event)} className="space-y-8">
+        {errorMessage !== '' && (
+          <div className="flex items-center gap-4 rounded-xl border border-red-100 bg-red-50 p-4 text-red-800">
+            <LucideImageIcon className="h-6 w-6 flex-shrink-0 opacity-80" />
+            <p className="text-sm font-medium">{errorMessage}</p>
+          </div>
+        )}
+
+        {/* Selected Files List - Rendered FIRST as requested */}
+        {selectedFiles.length > 0 && (
+          <div className="space-y-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <label className="block text-lg font-semibold text-gray-800">
+              {selectedImages[locale]} ({selectedFiles.length})
+            </label>
+            {selectedFiles.map((fileItem, index) => (
+              <div key={fileItem.file.name} className="group">
+                <div className="mb-4">
+                  <FilePreviewList
+                    files={[fileItem.file]}
+                    onRemoveFile={() => removeFile(index)}
+                    {...(fileItem.error ? { errorMessage: fileItem.error } : {})}
                   />
                 </div>
-                <div className="ml-3">
-                  <p className="text-sm text-red-800">{errorMessage}</p>
-                </div>
+                {/* Only show description input if there is no error on the file */}
+                {!fileItem.error && (
+                  <div className="pl-14">
+                    <DescriptionInput
+                      value={fileDescriptions[fileItem.file.name] || ''}
+                      onChange={(desc) => handleDescriptionChange(fileItem.file.name, desc)}
+                    />
+                    {fileItem.descriptionError && (
+                      <p className="mt-1 text-sm text-red-600">{fileItem.descriptionError}</p>
+                    )}
+                  </div>
+                )}
+                {index < selectedFiles.length - 1 && <hr className="my-6 border-gray-100" />}
               </div>
-            </div>
-          )}
+            ))}
+          </div>
+        )}
 
+        {/* Upload Zone - Turns into 'Add more' area if files exist */}
+        <div className="space-y-6">
           <FileUploadZone onFileSelect={handleFileSelect} />
-          {selectedFiles.map((file, index) => (
-            <div key={file.name} className="mb-6">
-              <FilePreviewList files={[file]} onRemoveFile={() => removeFile(index)} />
-              <div className="mt-3">
-                <DescriptionInput
-                  value={fileDescriptions[file.name] || ''}
-                  onChange={(desc) => handleDescriptionChange(file.name, desc)}
-                />
-              </div>
-              <hr className="my-4 border-gray-200" />
-            </div>
-          ))}
-          <hr className="border-gray-200" />
-          <ConfirmationCheckboxes
-            privacyAccepted={privacyAccepted}
-            rightsTransferred={rightsTransferred}
-            onPrivacyChange={setPrivacyAccepted}
-            onRightsChange={setRightsTransferred}
-          />
-          <hr className="border-gray-200" />
-          <SubmitButton
-            isDisabled={isSubmitDisabled}
-            fileCount={selectedFiles.length}
-            isLoading={isUploading}
-          />
-        </form>
-      </div>
+        </div>
+
+        <hr className="border-gray-200" />
+        <ConfirmationCheckboxes
+          rightsTransferred={rightsTransferred}
+          onRightsChange={setRightsTransferred}
+        />
+        <hr className="border-gray-200" />
+        <SubmitButton
+          isDisabled={isSubmitDisabled}
+          fileCount={selectedFiles.filter((f) => !f.error).length}
+          isLoading={isUploading}
+        />
+      </form>
     </div>
   );
 };
