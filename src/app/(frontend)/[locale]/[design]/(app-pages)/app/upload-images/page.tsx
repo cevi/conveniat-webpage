@@ -286,11 +286,11 @@ const ImageUploadPage: React.FC = () => {
           previous.map((item) => {
             const failure = failedUploads.find((f) => f.fileName === item.file.name);
             if (failure) {
-              let errorMessage = failure.response.message;
-              if (errorMessage === 'This image has already been uploaded.') {
-                errorMessage = duplicateImageError[locale];
+              let uploadFailureMessage = failure.response.message;
+              if (uploadFailureMessage === 'This image has already been uploaded.') {
+                uploadFailureMessage = duplicateImageError[locale];
               }
-              return { ...item, error: errorMessage };
+              return { ...item, error: uploadFailureMessage };
             }
             return item;
           }),
