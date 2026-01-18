@@ -31,7 +31,7 @@ export const uploadRouter = createTRPCRouter({
     .input(
       z.object({
         filename: z.string(),
-        contentType: z.string(),
+        contentType: z.string().regex(/^image\//),
       }),
     )
     .mutation(async ({ input }) => {
