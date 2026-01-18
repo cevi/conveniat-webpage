@@ -188,8 +188,10 @@ const ImageUploadPage: React.FC = () => {
     setSelectedFiles((previous) =>
       previous.map((item) => {
         if (item.file.name === fileName) {
-          const { descriptionError, ...rest } = item;
-          return rest;
+          return {
+            file: item.file,
+            ...(item.error ? { error: item.error } : {}),
+          };
         }
         return item;
       }),
@@ -220,8 +222,7 @@ const ImageUploadPage: React.FC = () => {
     }
 
     // Validate descriptions per file
-    let hasDescriptionErrors = false;
-    const filesWithValidation = selectedFiles.map((item) => {
+    const filesWithValidation: FileItem[] = selectedFiles.map((item) => {
       if (item.error) return item;
 
       const description = fileDescriptions[item.file.name]?.trim() ?? '';
@@ -229,19 +230,21 @@ const ImageUploadPage: React.FC = () => {
 
       if (description === '') {
         descriptionError = descriptionRequired[locale];
-        hasDescriptionErrors = true;
       } else if (description.length > 1000) {
         descriptionError = descriptionTooLong[locale];
-        hasDescriptionErrors = true;
       }
 
       if (descriptionError) {
         return { ...item, descriptionError };
       }
 
-      const { descriptionError: _, ...rest } = item;
-      return rest;
+      return {
+        file: item.file,
+        ...(item.error ? { error: item.error } : {}),
+      };
     });
+
+    const hasDescriptionErrors = filesWithValidation.some((item) => !!item.descriptionError);
 
     if (hasDescriptionErrors) {
       setSelectedFiles(filesWithValidation);
