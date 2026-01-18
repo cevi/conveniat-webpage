@@ -5,4 +5,5 @@ export enum OnboardingStep {
   Loading = 3,
   Checking = 4,
   OfflineContent = 5,
+  NoInternet = 6,
 }

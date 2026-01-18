@@ -5,15 +5,20 @@ import { OnboardingStep } from '@/features/onboarding/types';
 import { isSafariOnAppleDevice } from '@/utils/browser-detection';
 import { getPushSubscription } from '@/utils/push-notifications/push-manager-utils';
 
+import {
+  initialOnboardingState,
+  onboardingReducer,
+} from '@/features/onboarding/state/onboarding-finite-state-machine';
 // eslint-disable-next-line import/no-restricted-paths
 import { CACHE_NAMES } from '@/features/service-worker/constants';
 import { Cookie } from '@/types/types';
+import { hasCookie, isCookieUnset } from '@/utils/cookie-utils';
 import { DesignCodes, DesignModeTriggers } from '@/utils/design-codes';
 import Cookies from 'js-cookie';
 import { useSession } from 'next-auth/react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type { Dispatch, SetStateAction } from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 
 const getInitialLocale = (): 'en' | 'de' | 'fr' => {
   // Always return 'de' initially to match the server-side default and avoid hydration mismatch.
@@ -21,13 +26,10 @@ const getInitialLocale = (): 'en' | 'de' | 'fr' => {
   return 'de';
 };
 
-const getInitialOnboardingStep = (): OnboardingStep => {
-  return OnboardingStep.Checking;
-};
-
 export const useOnboarding = (): UseOnboardingReturn => {
   const [locale, setLocale] = useState<keyof typeof cookieInfoText>(getInitialLocale);
-  const [onboardingStep, setOnboardingStep] = useState<OnboardingStep>(getInitialOnboardingStep);
+  const [state, dispatch] = useReducer(onboardingReducer, initialOnboardingState);
+  const { step: onboardingStep } = state; // Derived from FSM state for return
   const { status } = useSession();
   const searchParameters = useSearchParams();
   const pathname = usePathname();
@@ -36,7 +38,7 @@ export const useOnboarding = (): UseOnboardingReturn => {
 
   const [hasManuallyChangedLanguage, setHasManuallyChangedLanguage] = useState(() => {
     if (typeof globalThis === 'undefined') return false;
-    return Cookies.get(Cookie.LOCALE_COOKIE) === undefined;
+    return isCookieUnset(Cookie.LOCALE_COOKIE);
   });
 
   useEffect(() => {
@@ -45,58 +47,148 @@ export const useOnboarding = (): UseOnboardingReturn => {
     };
   }, []);
 
+  // Sync Auth Status & Cookies to FSM Context
+  useEffect(() => {
+    const hasAcceptedCookieBanner = hasCookie(Cookie.CONVENIAT_COOKIE_BANNER);
+    const hasSkippedAuth = hasCookie(Cookie.HAS_SKIPPED_AUTH);
+    const hasSkippedPush = hasCookie(Cookie.SKIP_PUSH_NOTIFICATION);
+    const hasSkippedOffline = hasCookie(Cookie.SKIP_OFFLINE_CONTENT);
+
+    dispatch({
+      type: 'UPDATE_CONTEXT',
+      payload: {
+        hasAcceptedCookieBanner,
+        authStatus: status,
+        hasSkippedLogin: hasSkippedAuth,
+        hasSkippedPush,
+        hasSkippedOffline,
+      },
+    });
+  }, [status, searchParameters]); // searchParameters included to re-check if query params clear cookies (handled below)
+
+  // Clear skip auth cookie if signalled by query param
+  useEffect(() => {
+    if (searchParameters.get('clearSkip') === 'true') {
+      Cookies.remove(Cookie.HAS_SKIPPED_AUTH);
+      dispatch({
+        type: 'UPDATE_CONTEXT',
+        payload: { hasSkippedLogin: false },
+      });
+    }
+  }, [searchParameters]);
+
+  // Async Checks: Push Subscription & Offline Content
+  useEffect(() => {
+    const checkAsyncState = async (): Promise<void> => {
+      // 1. Push Subscription
+      let hasPushSubscription = false;
+      let pushPermission: NotificationPermission = 'default';
+
+      try {
+        const subscription = await getPushSubscription();
+        hasPushSubscription = !!subscription;
+        if (typeof Notification !== 'undefined') {
+          pushPermission = Notification.permission;
+        }
+      } catch (error) {
+        console.warn('Failed to check push subscription', error);
+      }
+
+      // 2. Offline Content (DB)
+      let offlineContentHandled = false;
+      try {
+        const { userPreferencesCollection } = await import('@/lib/tanstack-db');
+        const handled = userPreferencesCollection.get('offline-content-handled');
+        offlineContentHandled = !!handled;
+      } catch (error) {
+        console.warn('Failed to check offline preferences', error);
+      }
+
+      // 3. Cache Content
+      let hasCachedContent = false;
+      if (typeof caches !== 'undefined') {
+        try {
+          const pagesCache = await caches.open(CACHE_NAMES.PAGES);
+          const keys = await pagesCache.keys();
+          if (keys.length > 5) {
+            hasCachedContent = true;
+          }
+        } catch (error) {
+          console.warn('Failed to check cache', error);
+        }
+      }
+
+      if (isMounted.current) {
+        dispatch({
+          type: 'UPDATE_CONTEXT',
+          payload: {
+            hasPushSubscription,
+            pushPermission,
+            offlineContentHandled,
+            hasCachedContent,
+          },
+        });
+      }
+    };
+
+    // Only run if we are past the initial checks to save resources, or run always?
+    // Run always to be safe and reactive.
+    void checkAsyncState();
+  }, [status]); // Re-run on auth change as push sub might depend on user? (Usually not, but good trigger)
+
+  // Network Status Listeners
+  useEffect(() => {
+    const updateOnlineStatus = (): void => {
+      dispatch({
+        type: 'UPDATE_CONTEXT',
+        payload: { isOnline: navigator.onLine },
+      });
+    };
+
+    globalThis.addEventListener('online', updateOnlineStatus);
+    globalThis.addEventListener('offline', updateOnlineStatus);
+
+    // Set initial status
+    updateOnlineStatus();
+
+    return (): void => {
+      globalThis.removeEventListener('online', updateOnlineStatus);
+      globalThis.removeEventListener('offline', updateOnlineStatus);
+    };
+  }, []);
+
   const handleLanguageChange = useCallback((newLocale: string): void => {
     setLocale(newLocale as keyof typeof cookieInfoText);
     setHasManuallyChangedLanguage(true);
   }, []);
 
-  const handlePushNotification = useCallback((): void => {
-    setOnboardingStep(OnboardingStep.Loading);
-    Cookies.remove(Cookie.HAS_LOGGED_IN);
+  const acceptCookiesCallback = useCallback((): void => {
+    dispatch({ type: 'USER_ACTION_ACCEPT_COOKIES' });
   }, []);
 
-  const acceptCookiesCallback = useCallback((): void => {
-    if (status === 'authenticated') {
-      void getPushSubscription()
-        .then((subscription: PushSubscription | undefined): void => {
-          if (!isMounted.current) return;
-          const hasSkipped = Cookies.get(Cookie.SKIP_PUSH_NOTIFICATION) === 'true';
-          const isDenied =
-            typeof Notification !== 'undefined' && Notification.permission === 'denied';
-
-          if (subscription || hasSkipped || isDenied) {
-            handlePushNotification();
-          } else {
-            setOnboardingStep(OnboardingStep.PushNotifications);
-          }
-        })
-        .catch((): void => {
-          // If error checking subscription, default to showing push step or skipping strictly?
-          // Safest is to show step, let user try/skip.
-          setOnboardingStep(OnboardingStep.PushNotifications);
-        });
+  const handlePushNotification = useCallback((): void => {
+    const hasSkipped = hasCookie(Cookie.SKIP_PUSH_NOTIFICATION);
+    if (hasSkipped) {
+      dispatch({ type: 'USER_ACTION_SKIP_PUSH' });
     } else {
-      setOnboardingStep(OnboardingStep.Login);
+      void getPushSubscription().then((sub) => {
+        dispatch({
+          type: 'UPDATE_CONTEXT',
+          payload: { hasPushSubscription: !!sub },
+        });
+      });
     }
-  }, [status, handlePushNotification]);
+  }, []);
 
-  // Set the design-mode cookie if force-app-mode is present
+  // Design Mode Effect
   useEffect(() => {
     const forceAppMode = searchParameters.get(DesignModeTriggers.QUERY_PARAM_FORCE) === 'true';
-
     const isWebkitBasedBrowser = isSafariOnAppleDevice();
     if (forceAppMode || isWebkitBasedBrowser) {
       Cookies.set(Cookie.DESIGN_MODE, DesignCodes.APP_DESIGN, { expires: 730 });
-      console.log('[Onboarding] Force Mode: Setting Cookie Client-side', {
-        cookieName: Cookie.DESIGN_MODE,
-        cookieValue: DesignCodes.APP_DESIGN,
-      });
-
       const params = new URLSearchParams(searchParameters.toString());
       params.delete(DesignModeTriggers.QUERY_PARAM_FORCE);
-      const queryString = params.toString();
-      const newUrl = `${pathname}?${queryString}`;
-      router.replace(newUrl);
+      router.replace(`${pathname}?${params.toString()}`);
     }
   }, [searchParameters, pathname, router]);
 
@@ -144,128 +236,13 @@ export const useOnboarding = (): UseOnboardingReturn => {
     // Store skip preference in cookies as well for a fast secondary check
     Cookies.set(Cookie.SKIP_OFFLINE_CONTENT, 'true', { expires: 730 });
 
-    setOnboardingStep(OnboardingStep.Loading);
+    dispatch({ type: 'USER_ACTION_HANDLE_OFFLINE', accepted });
   }, []);
 
-  // Check Onboarding State
-  useEffect(() => {
-    const checkOnboarding = async (): Promise<void> => {
-      // Clear skip auth cookie if signalled by query param
-      if (searchParameters.get('clearSkip') === 'true') {
-        Cookies.remove(Cookie.HAS_SKIPPED_AUTH);
-      }
-
-      const hasAcceptedCookies = Cookies.get(Cookie.CONVENIAT_COOKIE_BANNER) === 'true';
-
-      if (!hasAcceptedCookies) {
-        if (isMounted.current) setOnboardingStep(OnboardingStep.Initial);
-        return;
-      }
-
-      if (status === 'loading') return;
-
-      if (status === 'authenticated') {
-        try {
-          const subscription = await getPushSubscription();
-          if (!isMounted.current) return;
-
-          const hasSkippedPush = Cookies.get(Cookie.SKIP_PUSH_NOTIFICATION) === 'true';
-          const isDeniedPush =
-            typeof Notification !== 'undefined' && Notification.permission === 'denied';
-
-          if (!subscription && !hasSkippedPush && !isDeniedPush) {
-            setOnboardingStep(OnboardingStep.PushNotifications);
-            return;
-          }
-
-          // Check Offline Content Preference from TanStack DB
-          const { userPreferencesCollection } = await import('@/lib/tanstack-db');
-          const offlineHandled = userPreferencesCollection.get('offline-content-handled');
-
-          // ALSO check if content is already cached (e.g. from previous session)
-          let hasCachedContent = false;
-          if (typeof caches !== 'undefined') {
-            try {
-              const pagesCache = await caches.open(CACHE_NAMES.PAGES);
-              const keys = await pagesCache.keys();
-              if (keys.length > 5) {
-                hasCachedContent = true;
-              }
-            } catch (error) {
-              console.warn('Failed to check cache', error);
-            }
-          }
-
-          const hasSkippedOffline = Cookies.get(Cookie.SKIP_OFFLINE_CONTENT) === 'true';
-
-          if (!offlineHandled && !hasCachedContent && !hasSkippedOffline) {
-            setOnboardingStep(OnboardingStep.OfflineContent);
-            return;
-          }
-
-          // If we have content but database is out of sync, sync it?
-          if (hasCachedContent && !offlineHandled) {
-            void userPreferencesCollection.insert({ key: 'offline-content-handled', value: true });
-            void userPreferencesCollection.insert({ key: 'offline-content-accepted', value: true });
-          }
-
-          setOnboardingStep(OnboardingStep.Loading);
-        } catch (error) {
-          console.error('Onboarding check failed', error);
-          // Default to dashboard on error to avoid active blocking
-          setOnboardingStep(OnboardingStep.Loading);
-        }
-      } else {
-        const hasSkippedAuth = Cookies.get(Cookie.HAS_SKIPPED_AUTH) === 'true';
-        const hasSkippedPush = Cookies.get(Cookie.SKIP_PUSH_NOTIFICATION) === 'true';
-
-        setTimeout(() => {
-          if (!isMounted.current) return;
-
-          if (hasSkippedAuth) {
-            if (hasSkippedPush) {
-              // If we skipped both, check for offline content handling
-              void (async (): Promise<void> => {
-                const { userPreferencesCollection } = await import('@/lib/tanstack-db');
-                const offlineHandled = userPreferencesCollection.get('offline-content-handled');
-                const hasSkippedOffline = Cookies.get(Cookie.SKIP_OFFLINE_CONTENT) === 'true';
-
-                if (offlineHandled || hasSkippedOffline) {
-                  setOnboardingStep(OnboardingStep.Loading);
-                } else {
-                  setOnboardingStep(OnboardingStep.OfflineContent);
-                }
-              })();
-            } else {
-              setOnboardingStep(OnboardingStep.PushNotifications);
-            }
-          } else {
-            setOnboardingStep(OnboardingStep.Login);
-          }
-        }, 0);
-      }
-    };
-
-    void checkOnboarding();
-  }, [status, handlePushNotification, searchParameters]);
-
-  // Handle Push Notification Step Transitions
-  const handlePushNotificationWithNextStep = useCallback(async () => {
-    // Check if we need to show Offline Content step
-    const { userPreferencesCollection } = await import('@/lib/tanstack-db');
-    const offlineHandled = userPreferencesCollection.get('offline-content-handled');
-
-    if (offlineHandled) {
-      setOnboardingStep(OnboardingStep.Loading);
-    } else {
-      setOnboardingStep(OnboardingStep.OfflineContent);
-    }
+  const setOnboardingStep: Dispatch<SetStateAction<OnboardingStep>> = useCallback(() => {
+    // Manual step forcing is ignored in favor of FSM context evaluation
+    dispatch({ type: 'EVALUATE_NEXT_STEP' });
   }, []);
-
-  const handlePushNotificationNext = useCallback(() => {
-    Cookies.remove(Cookie.HAS_LOGGED_IN);
-    void handlePushNotificationWithNextStep();
-  }, [handlePushNotificationWithNextStep]);
 
   // Redirect to dashboard when finished
   useEffect(() => {
@@ -274,11 +251,11 @@ export const useOnboarding = (): UseOnboardingReturn => {
       const shareTitle = searchParameters.get('title');
       const shareUrl = searchParameters.get('url');
 
-      if (shareText || shareTitle || shareUrl) {
+      if (shareText !== null || shareTitle !== null || shareUrl !== null) {
         const params = new URLSearchParams();
-        if (shareText) params.set('text', shareText);
-        if (shareTitle) params.set('title', shareTitle);
-        if (shareUrl) params.set('url', shareUrl);
+        if (shareText !== null) params.set('text', shareText);
+        if (shareTitle !== null) params.set('title', shareTitle);
+        if (shareUrl !== null) params.set('url', shareUrl);
         router.push(`/app/chat?${params.toString()}`);
       } else {
         router.push('/app/dashboard');
@@ -291,7 +268,7 @@ export const useOnboarding = (): UseOnboardingReturn => {
     onboardingStep,
     handleLanguageChange,
     acceptCookiesCallback,
-    handlePushNotification: handlePushNotificationNext,
+    handlePushNotification,
     handleOfflineContent,
     setOnboardingStep,
   };
