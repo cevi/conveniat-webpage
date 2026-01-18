@@ -34,7 +34,7 @@ export class MessageCapabilities implements Capability {
   }
 
   private async canSend(chatId?: string): Promise<boolean> {
-    const isGlobalEnabled = await getFeatureFlag(FEATURE_FLAG_SEND_MESSAGES, true);
+    const isGlobalEnabled = await getFeatureFlag(FEATURE_FLAG_SEND_MESSAGES);
 
     if (!isGlobalEnabled) {
       return false;
@@ -102,7 +102,7 @@ export class ChatCreationCapabilities implements Capability {
   }
 
   private async canCreate(): Promise<boolean> {
-    const isCreateChatsEnabled = await getFeatureFlag(FEATURE_FLAG_CREATE_CHATS_ENABLED, true);
+    const isCreateChatsEnabled = await getFeatureFlag(FEATURE_FLAG_CREATE_CHATS_ENABLED);
     return isCreateChatsEnabled;
   }
 }

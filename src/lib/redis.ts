@@ -3,6 +3,7 @@ import Redis from 'ioredis';
 
 const globalForRedis = globalThis as unknown as { redis: Redis | undefined };
 
+import { FEATURE_FLAG_DEFAULTS } from '@/lib/feature-flags';
 import { PHASE_PRODUCTION_BUILD } from 'next/constants';
 
 const isBuild =
@@ -14,8 +15,7 @@ const isBuild =
 export const redis =
   globalForRedis.redis ??
   (isBuild
-    ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (new Proxy(
+    ? (new Proxy(
         {},
         {
           get: (_target, property): unknown => {
@@ -44,9 +44,9 @@ if (environmentVariables.NODE_ENV !== 'production') globalForRedis.redis = redis
 
 export const FEATURE_FLAG_PREFIX = 'feature-flag:';
 
-export const getFeatureFlag = async (key: string, defaultValue = false): Promise<boolean> => {
+export const getFeatureFlag = async (key: string): Promise<boolean> => {
   const value = await redis.get(`${FEATURE_FLAG_PREFIX}${key}`);
-  if (value === null) return defaultValue;
+  if (value === null) return FEATURE_FLAG_DEFAULTS[key] ?? false;
   return value === 'true';
 };
 
