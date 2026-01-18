@@ -3,6 +3,7 @@
 import { useArchiveChatMutation } from '@/features/chat/hooks/use-archive-chat-mutation';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { ChatMembershipPermission, ChatType } from '@/lib/prisma';
+import { cn } from '@/utils/tailwindcss-override';
 import { animate, motion, useMotionValue, useTransform } from 'framer-motion';
 import { Trash2 } from 'lucide-react';
 import type React from 'react';
@@ -59,11 +60,14 @@ export const SwipeToDeleteChat: React.FC<SwipeToDeleteChatProperties> = ({ chat,
   return (
     <div ref={containerReference} className="relative overflow-hidden">
       <div
-        className={`absolute inset-y-0 left-0 flex w-full items-center justify-start rounded-md pl-6 ${canDelete ? 'bg-red-100' : 'bg-gray-100'}`}
+        className={cn(
+          'absolute inset-y-0 left-0 flex w-full items-center justify-start rounded-md pl-6',
+          canDelete ? 'bg-red-100' : 'bg-gray-100',
+        )}
       >
         <motion.div style={{ opacity: binOpacity, scale: binScale }}>
           <div className="relative">
-            <Trash2 className={`h-6 w-6 ${canDelete ? 'text-red-600' : 'text-gray-400'}`} />
+            <Trash2 className={cn('h-6 w-6', canDelete ? 'text-red-600' : 'text-gray-400')} />
             {!canDelete && (
               <svg
                 className="absolute inset-0 h-6 w-6 text-gray-400"
