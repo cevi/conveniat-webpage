@@ -79,14 +79,7 @@ export const useOnboarding = (): UseOnboardingReturn => {
         hasPushSubscription,
       },
     });
-  }, [
-    status,
-    searchParameters,
-    isOnline,
-    offlineContentHandled,
-    hasCachedContent,
-    hasPushSubscription,
-  ]);
+  }, [status, isOnline, offlineContentHandled, hasCachedContent, hasPushSubscription]);
 
   // Clear skip auth cookie if signalled by query param
   useEffect(() => {
