@@ -6,7 +6,23 @@ import config from '@payload-config';
 import { TRPCError } from '@trpc/server';
 import { randomUUID } from 'node:crypto';
 import { getPayload } from 'payload';
+import path from 'node:path';
+import sharp from 'sharp';
 import { z } from 'zod';
+
+const ALLOWED_EXTENSIONS = [
+  'jpg',
+  'jpeg',
+  'png',
+  'gif',
+  'webp',
+  'heic',
+  'heif',
+  'dng',
+  'cr2',
+  'nef',
+  'arw',
+];
 
 export const uploadRouter = createTRPCRouter({
   getPresignedUrl: trpcBaseProcedure
@@ -62,8 +78,31 @@ export const uploadRouter = createTRPCRouter({
 
         const buffer = Buffer.from(fileBody);
 
+        // Validate file extension
+        const extension = path.extname(input.originalFilename).toLowerCase().slice(1);
+        if (!extension || !ALLOWED_EXTENSIONS.includes(extension)) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: `Invalid file extension .${extension}. Only images (${ALLOWED_EXTENSIONS.join(', ')}) are allowed.`,
+          });
+        }
+
+        // Validate image content using sharp
+        try {
+          const metadata = await sharp(buffer).metadata();
+          // Ensure sharp recognized it as a valid image and it's not an SVG (for security)
+          if (!metadata.format || metadata.format === 'svg') {
+            throw new Error('Invalid image format');
+          }
+        } catch (error) {
+          console.error('Image validation failed:', error);
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'Invalid image data. The file appears to be corrupted or not a supported image.',
+          });
+        }
+
         const payload = await getPayload({ config });
-        const extension = input.originalFilename.split('.').pop();
 
         // Create Payload entry
         await payload.create({
@@ -95,6 +134,7 @@ export const uploadRouter = createTRPCRouter({
 
         return { success: true };
       } catch (error) {
+        if (error instanceof TRPCError) throw error;
         console.error('Failed to complete upload:', error);
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
