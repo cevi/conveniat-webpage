@@ -141,6 +141,9 @@ export const useOnboarding = (): UseOnboardingReturn => {
       }
     });
 
+    // Store skip preference in cookies as well for a fast secondary check
+    Cookies.set(Cookie.SKIP_OFFLINE_CONTENT, 'true', { expires: 730 });
+
     setOnboardingStep(OnboardingStep.Loading);
   }, []);
 
@@ -193,7 +196,9 @@ export const useOnboarding = (): UseOnboardingReturn => {
             }
           }
 
-          if (!offlineHandled && !hasCachedContent) {
+          const hasSkippedOffline = Cookies.get(Cookie.SKIP_OFFLINE_CONTENT) === 'true';
+
+          if (!offlineHandled && !hasCachedContent && !hasSkippedOffline) {
             setOnboardingStep(OnboardingStep.OfflineContent);
             return;
           }
@@ -223,7 +228,9 @@ export const useOnboarding = (): UseOnboardingReturn => {
               void (async (): Promise<void> => {
                 const { userPreferencesCollection } = await import('@/lib/tanstack-db');
                 const offlineHandled = userPreferencesCollection.get('offline-content-handled');
-                if (offlineHandled) {
+                const hasSkippedOffline = Cookies.get(Cookie.SKIP_OFFLINE_CONTENT) === 'true';
+
+                if (offlineHandled || hasSkippedOffline) {
                   setOnboardingStep(OnboardingStep.Loading);
                 } else {
                   setOnboardingStep(OnboardingStep.OfflineContent);

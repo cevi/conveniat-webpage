@@ -15,6 +15,7 @@ export enum Cookie {
   LOCALE_COOKIE = 'next-locale',
   SKIP_PUSH_NOTIFICATION = 'skip-push-notification',
   HAS_SKIPPED_AUTH = 'has-skipped-auth',
+  SKIP_OFFLINE_CONTENT = 'skip-offline-content',
 }
 
 export enum Header {
