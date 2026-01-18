@@ -155,8 +155,7 @@ export const onboardingReducer = (
       const newContext = {
         ...state.context,
         offlineContentHandled: true,
-        // If accepted is false, it might mean they skipped or just said no.
-        // If accepted is true, we might update other flags, but `handled` is the main gate.
+        hasSkippedOffline: !event.accepted,
       };
       return {
         step: determineNextStep(newContext),
