@@ -1,4 +1,4 @@
-import type { StaticTranslationString } from '@/types/types';
+import type { Locale, StaticTranslationString } from '@/types/types';
 import { WifiOff } from 'lucide-react';
 import React from 'react';
 
@@ -21,7 +21,7 @@ const tryAgainButton: StaticTranslationString = {
 };
 
 interface NoInternetComponentProperties {
-  locale: 'de' | 'fr' | 'en';
+  locale: Locale;
 }
 
 export const NoInternetComponent: React.FC<NoInternetComponentProperties> = ({ locale }) => {
