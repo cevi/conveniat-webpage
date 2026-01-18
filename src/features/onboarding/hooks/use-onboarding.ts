@@ -12,7 +12,7 @@ import { useOnlineStatus } from '@/hooks/use-online-status';
 import { usePushNotificationState } from '@/hooks/use-push-notification-state';
 import { Cookie } from '@/types/types';
 import { isSafariOnAppleDevice } from '@/utils/browser-detection';
-import { hasCookie } from '@/utils/cookie-utils';
+import { isCookieTrue } from '@/utils/cookie-utils';
 import { DesignCodes, DesignModeTriggers } from '@/utils/design-codes';
 import { handleSkipLogin as skipLoginUtil } from '@/utils/login-handler';
 import { getPushSubscription } from '@/utils/push-notifications/push-manager-utils';
@@ -53,10 +53,10 @@ export const useOnboarding = (): UseOnboardingReturn => {
 
   // Sync Auth Status & Cookies to FSM Context
   useEffect(() => {
-    const hasAcceptedCookieBanner = hasCookie(Cookie.CONVENIAT_COOKIE_BANNER);
-    const hasSkippedAuth = hasCookie(Cookie.HAS_SKIPPED_AUTH);
-    const hasSkippedPush = hasCookie(Cookie.SKIP_PUSH_NOTIFICATION);
-    const hasSkippedOffline = hasCookie(Cookie.OFFLINE_CONTENT_HANDLED);
+    const hasAcceptedCookieBanner = isCookieTrue(Cookie.CONVENIAT_COOKIE_BANNER);
+    const hasSkippedAuth = isCookieTrue(Cookie.HAS_SKIPPED_AUTH);
+    const hasSkippedPush = isCookieTrue(Cookie.SKIP_PUSH_NOTIFICATION);
+    const hasSkippedOffline = isCookieTrue(Cookie.OFFLINE_CONTENT_HANDLED);
 
     // Get Push Permission synchronously if possible, or assume 'default' until checked
     let pushPermission: NotificationPermission = 'default';
@@ -97,7 +97,7 @@ export const useOnboarding = (): UseOnboardingReturn => {
   }, []);
 
   const handlePushNotification = useCallback((): void => {
-    const hasSkipped = hasCookie(Cookie.SKIP_PUSH_NOTIFICATION);
+    const hasSkipped = isCookieTrue(Cookie.SKIP_PUSH_NOTIFICATION);
     if (hasSkipped) {
       dispatch({ type: OnboardingAction.USER_ACTION_SKIP_PUSH });
     } else {

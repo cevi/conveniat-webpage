@@ -8,7 +8,7 @@ import Cookies from 'js-cookie';
  * @param cookieName - The name of the cookie to check (from Cookie enum or string)
  * @returns true if the cookie value is strictly 'true', false otherwise.
  */
-export const hasCookie = (cookieName: Cookie | string): boolean => {
+export const isCookieTrue = (cookieName: Cookie | string): boolean => {
   return Cookies.get(cookieName) === 'true';
 };
 
