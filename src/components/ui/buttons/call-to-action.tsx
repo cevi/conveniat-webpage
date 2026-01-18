@@ -8,7 +8,7 @@ export const CallToAction: React.FC<{
   inverted?: boolean;
   useMargin?: boolean;
 }> = ({ children, href, inverted = false, useMargin = true }) => {
-  if (href == undefined) return;
+  if (href === undefined) return;
 
   const containerClasses = cn(
     'flex h-fit min-h-full justify-end',
