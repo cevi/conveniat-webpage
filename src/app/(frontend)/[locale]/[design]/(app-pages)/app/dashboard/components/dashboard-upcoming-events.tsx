@@ -100,8 +100,7 @@ const SpotIllustration: React.FC = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 200 200"
-    className="mx-auto mb-4 h-auto w-32"
-    style={{ width: '100%', height: 'auto', maxWidth: '160px' }}
+    className="mx-auto mb-4 h-auto w-full max-w-40"
     role="img"
     aria-hidden="true"
   >
