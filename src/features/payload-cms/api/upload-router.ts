@@ -34,7 +34,9 @@ export const uploadRouter = createTRPCRouter({
     )
     .mutation(async ({ input }) => {
       const uuid = randomUUID();
-      const key = `temp/${uuid}-${input.filename}`;
+      // Sanitize filename to prevent path traversal
+      const sanitizedFilename = input.filename.replaceAll(/[^a-zA-Z0-9.\-_]/g, '_');
+      const key = `temp/${uuid}-${sanitizedFilename}`;
 
       const command = new PutObjectCommand({
         Bucket: MINIO_BUCKET_NAME,
