@@ -22,7 +22,6 @@ export const buildSecureConfig = (config: Config): Promise<SanitizedConfig> => {
         read: canAccessAPI,
         update: canAccessAPI,
         readVersions: canAccessAPI,
-        readDrafts: canAccessAPI,
         ...global.access,
       };
     }
