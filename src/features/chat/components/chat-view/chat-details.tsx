@@ -1,5 +1,6 @@
 'use client';
 
+import { AppFooterController } from '@/components/footer/hide-footer-context';
 import type React from 'react';
 import { useMemo, useState } from 'react';
 
@@ -73,6 +74,8 @@ export const ChatDetails: React.FC = () => {
 
   return (
     <div className="fixed top-0 z-[100] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50 xl:top-[62px] xl:left-[480px] xl:z-0 xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
+      <AppFooterController hideAppFooter />
+
       {/* Header */}
       <ChatDetailsHeader
         chatId={chatId}

@@ -9,7 +9,10 @@ import type {
 import { EnrollmentAction } from '@/features/schedule/components/enrollment-action';
 import { ScheduleMiniMap } from '@/features/schedule/components/schedule-mini-map';
 import { WorkshopAdminActions } from '@/features/schedule/components/workshop-admin-actions';
-import { ScheduleStatusProvider } from '@/features/schedule/context/schedule-status-context';
+import {
+  ScheduleStatusProvider,
+  useCourseStatus,
+} from '@/features/schedule/context/schedule-status-context';
 import { useOnlineStatus } from '@/hooks/use-online-status';
 import { TRPCProvider } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -45,6 +48,29 @@ const labels = {
   dateTime: { de: 'Datum & Zeit', en: 'Date & Time', fr: 'Date & Heure' },
   enrollment: { de: 'Anmeldung', en: 'Enrollment', fr: 'Inscription' },
 } as const;
+
+const EnrollmentSection: React.FC<{
+  courseId: string;
+  locale: Locale;
+}> = ({ courseId, locale }) => {
+  const { status, isLoading } = useCourseStatus(courseId);
+
+  if (!isLoading && status && !status.enableEnrolment) {
+    return <></>;
+  }
+
+  return (
+    <div className="border-t border-gray-100 pt-5">
+      <div className="mb-3 flex items-center gap-2">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
+          <UserPlus className="h-5 w-5" />
+        </div>
+        <h3 className="text-sm font-semibold text-gray-900">{labels.enrollment[locale]}</h3>
+      </div>
+      <EnrollmentAction courseId={courseId} />
+    </div>
+  );
+};
 
 interface EditData {
   description: string;
@@ -280,19 +306,7 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
                 )}
 
                 {/* Enrollment Action Section - Hide when editing */}
-                {!isEditing && (
-                  <div className="border-t border-gray-100 pt-5">
-                    <div className="mb-3 flex items-center gap-2">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
-                        <UserPlus className="h-5 w-5" />
-                      </div>
-                      <h3 className="text-sm font-semibold text-gray-900">
-                        {labels.enrollment[locale]}
-                      </h3>
-                    </div>
-                    <EnrollmentAction courseId={entry.id} />
-                  </div>
-                )}
+                {!isEditing && <EnrollmentSection courseId={entry.id} locale={locale} />}
               </div>
             </aside>
           </div>

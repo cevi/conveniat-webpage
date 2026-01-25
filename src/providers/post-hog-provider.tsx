@@ -58,11 +58,11 @@ export const PostHogProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   useEffect(() => {
     const init = async (): Promise<void> => {
-      const posthogModule = await import('posthog-js');
-      const posthog = posthogModule.default;
-      // PostHog is already initialized in instrumentation-client.ts
-      // Just set the client reference for the React context
-      setClient(posthog);
+      const { initPostHog } = await import('@/lib/posthog-client');
+      const posthog = initPostHog();
+      if (posthog) {
+        setClient(posthog);
+      }
     };
     void init();
   }, []);
