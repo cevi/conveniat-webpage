@@ -8,7 +8,7 @@ import fromBuffer from 'image-size';
 import { randomUUID } from 'node:crypto';
 import { getPayload } from 'payload';
 
-interface UploadReturnType {
+export interface UploadReturnType {
   error: boolean;
   message: string;
 }
@@ -26,9 +26,9 @@ const notAnImageError: StaticTranslationString = {
 };
 
 const imageTooBig: StaticTranslationString = {
-  en: 'Image too big (>10mb).',
-  de: 'Bild zu gross (>10mb).',
-  fr: 'Image trop grande (>10mb).',
+  en: 'Image too big (>50mb).',
+  de: 'Bild zu gross (>50mb).',
+  fr: 'Image trop grande (>50mb).',
 };
 
 export const checkImageDimensions = async (file: File): Promise<boolean> => {
