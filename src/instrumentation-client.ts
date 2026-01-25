@@ -1,13 +1,6 @@
-import { environmentVariables } from '@/config/environment-variables';
-import posthog from 'posthog-js';
+import { initPostHog } from '@/lib/posthog-client';
 
-// Initialize PostHog early in the client lifecycle
-if (typeof globalThis !== 'undefined' && environmentVariables.NEXT_PUBLIC_POSTHOG_KEY) {
-  posthog.init(environmentVariables.NEXT_PUBLIC_POSTHOG_KEY, {
-    api_host: '/ingest',
-    ui_host: 'https://eu.posthog.com',
-    capture_pageview: false, // We capture pageviews manually
-    capture_pageleave: true, // Enable pageleave capture
-    disable_session_recording: false, // Ensure session recording is enabled
-  });
-}
+// Initialize PostHog early in the client lifecycle (skip for bots)
+// This is used by Next.js as an instrumentation hook if configured,
+// or as a side-effect import in some layouts.
+initPostHog();
