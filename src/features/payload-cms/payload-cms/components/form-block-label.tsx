@@ -12,8 +12,14 @@ import type React from 'react';
 export const FormBlockLabel: React.FC<{
   label: StaticTranslationString;
 }> = ({ label }) => {
-  const { data } = useRowLabel<{ name?: string }>();
+  const rowLabel = useRowLabel<{ name?: string }>() as { data: { name?: string } } | undefined;
   const { code } = useLocale();
+
+  if (!rowLabel) {
+    return;
+  }
+
+  const { data } = rowLabel;
   const customLabel = `${data.name ?? ''}`;
 
   if (customLabel !== '') {
