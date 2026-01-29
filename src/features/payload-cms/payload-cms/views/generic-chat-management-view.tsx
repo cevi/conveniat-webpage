@@ -36,9 +36,10 @@ const GenericChatManagementContent: React.FC<GenericChatManagementViewProperties
 }) => {
   const { code: locale } = useLocale() as { code: Config['locale'] };
   const [selectedChatId, setSelectedChatId] = useState<string | undefined>(() => {
-    if (typeof globalThis !== 'undefined') {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, @typescript-eslint/strict-boolean-expressions
+    if (typeof globalThis !== 'undefined' && globalThis.location) {
       const params = new URLSearchParams(globalThis.location.search);
-      return params.get('selectedChatId') || undefined;
+      return params.get('selectedChatId') ?? undefined;
     }
     return;
   });
@@ -52,7 +53,8 @@ const GenericChatManagementContent: React.FC<GenericChatManagementViewProperties
 
   // Sync to URL
   useEffect((): void => {
-    if (typeof globalThis !== 'undefined') {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, @typescript-eslint/strict-boolean-expressions
+    if (typeof globalThis !== 'undefined' && globalThis.location) {
       const url = new URL(globalThis.location.href);
       if (selectedChatId) {
         url.searchParams.set('selectedChatId', selectedChatId);

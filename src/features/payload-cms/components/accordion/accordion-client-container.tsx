@@ -60,7 +60,7 @@ const createTitleElement = (
 
   return (
     <button className="group flex w-full cursor-pointer flex-col items-center gap-4 rounded-md px-2 py-4 text-center transition-colors md:flex-row md:py-2 md:text-left">
-      <div className="relative h-48 w-48 flex-shrink-0 overflow-hidden rounded-full md:h-24 md:w-24">
+      <div className="relative h-48 w-48 shrink-0 overflow-hidden rounded-full md:h-24 md:w-24">
         {<TeamLeaderPortrait name={name} portrait={portrait} hoverEffect={false} />}
       </div>
       <div className="w-full">
@@ -83,7 +83,8 @@ const AccordionClientContainer: React.FC<{
 
   // Helper functions that depend on component state/props remain inside
   const updateURLFragment = useCallback((fragment?: string) => {
-    if (typeof globalThis !== 'undefined') {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, @typescript-eslint/strict-boolean-expressions
+    if (typeof globalThis !== 'undefined' && globalThis.location) {
       if (fragment === undefined) {
         const newUrl = globalThis.location.pathname + globalThis.location.search;
         globalThis.history.replaceState(undefined, '', newUrl);
@@ -120,7 +121,8 @@ const AccordionClientContainer: React.FC<{
   );
 
   useEffect((): void | (() => void) => {
-    if (typeof globalThis !== 'undefined') {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, @typescript-eslint/strict-boolean-expressions
+    if (typeof globalThis !== 'undefined' && globalThis.location) {
       const hash = globalThis.location.hash.slice(1); // Remove the '#'
       if (hash !== '') {
         const isValidFragment = accordionBlocks?.some(
