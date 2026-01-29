@@ -21,6 +21,8 @@ import { useCurrentLocale } from 'next-i18n-router/client';
 import { useRouter } from 'next/navigation';
 import React, { useMemo } from 'react';
 
+import { ScheduleLoadingSkeleton } from '@/features/schedule/components/schedule-loading-skeleton';
+
 const noEventsText: StaticTranslationString = {
   en: 'No events match your filters for this date',
   de: 'Keine Veranstaltungen entsprechen deinen Filtern für dieses Datum',
@@ -45,25 +47,27 @@ const previousDayLabel: StaticTranslationString = {
   fr: 'Aller au jour précédent',
 };
 
-interface ScheduleComponentProperties {
-  scheduleEntries: CampScheduleEntryFrontendType[];
-}
-
-export const ScheduleComponent: React.FC<ScheduleComponentProperties> = ({ scheduleEntries }) => {
+/**
+ * Schedule component - fully client-side rendered.
+ * Fetches data via tRPC and shows loading skeleton during fetch.
+ */
+export const ScheduleComponent: React.FC = () => {
   const router = useRouter();
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const { starredEntries } = useStar();
   const isOnline = useOnlineStatus();
 
+  // Fetch schedule entries via tRPC (CSR)
+  const { data: scheduleEntries, isLoading } = trpc.schedule.getScheduleEntries.useQuery(
+    undefined,
+    {
+      staleTime: 1000 * 60 * 60, // 1 hour
+    },
+  );
+
   // Get enrolled courses
   const { data: myEnrollments } = trpc.schedule.getMyEnrollments.useQuery();
   const enrolledIds = useMemo(() => new Set(myEnrollments ?? []), [myEnrollments]);
-
-  // Hydrate schedule entries into TanStack Query cache for offline access
-  const { data: hydratedScheduleEntries } = trpc.schedule.getScheduleEntries.useQuery(undefined, {
-    initialData: scheduleEntries,
-    staleTime: 1000 * 60 * 60, // 1 hour
-  });
 
   const {
     currentDate,
@@ -72,7 +76,7 @@ export const ScheduleComponent: React.FC<ScheduleComponentProperties> = ({ sched
     carouselStartIndex,
     maxVisibleDays,
     actions,
-  } = useSchedule(hydratedScheduleEntries);
+  } = useSchedule(scheduleEntries ?? []);
 
   const {
     filters,
@@ -165,6 +169,11 @@ export const ScheduleComponent: React.FC<ScheduleComponentProperties> = ({ sched
       opacity: 0,
     }),
   };
+
+  // Show loading skeleton while fetching data
+  if (isLoading) {
+    return <ScheduleLoadingSkeleton />;
+  }
 
   return (
     <article className="mx-auto w-full max-w-2xl px-4 py-8">

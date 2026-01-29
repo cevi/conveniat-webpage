@@ -18,14 +18,14 @@ interface LayoutProperties {
 const AppLayout: React.FC<LayoutProperties> = ({ children }) => {
   return (
     <Suspense fallback={undefined}>
-      <ClientProviders>
-        <ReactQueryDevtools initialIsOpen={false} buttonPosition="top-right" />
-        <SetHideCopyrightFooter value />
-        <SessionProvider>
+      <SessionProvider>
+        <ClientProviders>
+          <ReactQueryDevtools initialIsOpen={false} buttonPosition="top-right" />
+          <SetHideCopyrightFooter value />
           <div className="mb-20">{children}</div>
-        </SessionProvider>
-        <div></div>
-      </ClientProviders>
+          <div></div>
+        </ClientProviders>
+      </SessionProvider>
     </Suspense>
   );
 };

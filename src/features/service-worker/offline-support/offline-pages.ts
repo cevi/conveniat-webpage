@@ -21,7 +21,6 @@ export const offlinePages = [
 
   // Schedule page with local DB offline support
   '/app/schedule',
-  '/app/schedule/offline-entry',
 
   // emergency information page
   '/app/emergency',

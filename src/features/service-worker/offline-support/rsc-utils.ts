@@ -4,9 +4,12 @@ import { CACHE_NAMES } from '@/features/service-worker/constants';
  * CONFIGURATION
  * Map specific route prefixes to their "Offline Shell" RSC representation.
  * This allows O(1) fallback lookups without scanning the cache.
+ *
+ * Note: Schedule pages are now fully client-side rendered and don't need
+ * a separate offline shell - the main page works offline via tRPC cache.
  */
 const RSC_SHELL_MAPPINGS: Record<string, string> = {
-  '/app/schedule': '/app/schedule/offline-entry',
+  // Add route mappings here if needed for SSR pages with offline support
 };
 
 /**

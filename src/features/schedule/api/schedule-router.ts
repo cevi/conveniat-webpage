@@ -34,11 +34,20 @@ export const scheduleRouter = createTRPCRouter({
     const { courseId } = input;
 
     const payload = await getPayload({ config });
-    const course = await payload.findByID({
-      collection: 'camp-schedule-entry',
-      id: courseId,
-      depth: 1,
-    });
+
+    // Try to find the course, return null if not found
+    let course;
+    try {
+      course = await payload.findByID({
+        collection: 'camp-schedule-entry',
+        id: courseId,
+        depth: 1,
+      });
+    } catch {
+      // Course not found - return null instead of throwing
+      // eslint-disable-next-line unicorn/no-null
+      return null;
+    }
 
     const enrollments = await prisma.enrollment.findMany({
       where: { courseId },
