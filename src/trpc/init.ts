@@ -11,7 +11,7 @@ export const createTRPCContext = cache(async () => {
   const sessionUser = session?.user as HitobitoNextAuthUser | undefined;
 
   const locale = await getLocaleFromCookies();
-  return { user: sessionUser as HitobitoNextAuthUser, locale, prisma: prisma };
+  return { user: sessionUser, locale, prisma: prisma };
 });
 
 export type Context = Awaited<ReturnType<typeof createTRPCContext>>;
@@ -26,7 +26,6 @@ export const createCallerFactory = t.createCallerFactory;
 export const publicProcedure = t.procedure;
 
 const isAuthed = t.middleware(({ ctx, next }) => {
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (!ctx.user) {
     throw new TRPCError({
       code: 'FORBIDDEN',
@@ -34,11 +33,10 @@ const isAuthed = t.middleware(({ ctx, next }) => {
     });
   }
 
-  const user = ctx.user;
-
   return next({
     ctx: {
-      user,
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+      user: ctx.user as HitobitoNextAuthUser,
     },
   });
 });

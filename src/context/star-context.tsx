@@ -93,7 +93,7 @@ export const StarProvider: React.FC<StarProviderProperties> = ({ children }) => 
           onError: (error): void => {
             // Reset lastSyncedIds so we retry on next change
             lastSyncedIdsReference.current = '';
-            if (error.data?.code !== 'UNAUTHORIZED') {
+            if (error.data?.code !== 'UNAUTHORIZED' && error.data?.code !== 'FORBIDDEN') {
               console.error('Star sync failed', error);
             }
           },
