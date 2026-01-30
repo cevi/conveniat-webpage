@@ -37,6 +37,7 @@ import { default as default_b1f955abb547154f4667abb221790e2b } from '@/features/
 import { ConveniatLogo as ConveniatLogo_1dcd95bfbb6787f73675c94df91c942d } from '@/components/svg-logos/conveniat-logo.tsx'
 import { default as default_d432a7de1921f0e10a01eefbe71b022a } from '@/features/payload-cms/payload-cms/components/login-page/admin-panel-login-page'
 import { default as default_a79319ae20aa3b9aa7415044aaf68603 } from '@/features/payload-cms/payload-cms/components/dashboard-welcome-banner'
+import { LivePreviewResizer as LivePreviewResizer_384e84ecc617d0783c4228e0bb26e0a1 } from '@/features/payload-cms/payload-cms/components/live-preview-resizer/live-preview-resizer'
 import { S3ClientUploadHandler as S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24 } from '@payloadcms/storage-s3/client'
 import { default as default_e7ca4c1ba39ad98f5b6b68aa103e80ee } from '@/features/payload-cms/payload-cms/widgets/emergency-widget'
 import { default as default_264aa1452821b700131c9a40a3b93a91 } from '@/features/payload-cms/payload-cms/widgets/user-count-widget'
@@ -82,6 +83,7 @@ export const importMap = {
   "@/components/svg-logos/conveniat-logo.tsx#ConveniatLogo": ConveniatLogo_1dcd95bfbb6787f73675c94df91c942d,
   "@/features/payload-cms/payload-cms/components/login-page/admin-panel-login-page#default": default_d432a7de1921f0e10a01eefbe71b022a,
   "@/features/payload-cms/payload-cms/components/dashboard-welcome-banner#default": default_a79319ae20aa3b9aa7415044aaf68603,
+  "@/features/payload-cms/payload-cms/components/live-preview-resizer/live-preview-resizer#LivePreviewResizer": LivePreviewResizer_384e84ecc617d0783c4228e0bb26e0a1,
   "@payloadcms/storage-s3/client#S3ClientUploadHandler": S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24,
   "@/features/payload-cms/payload-cms/widgets/emergency-widget#default": default_e7ca4c1ba39ad98f5b6b68aa103e80ee,
   "@/features/payload-cms/payload-cms/widgets/user-count-widget#default": default_264aa1452821b700131c9a40a3b93a91,

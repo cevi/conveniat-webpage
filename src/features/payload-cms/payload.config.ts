@@ -120,6 +120,11 @@ export const payloadConfig: RoutableConfig = {
           path: '@/features/payload-cms/payload-cms/components/login-page/admin-panel-login-page',
         },
       ],
+      providers: [
+        {
+          path: '@/features/payload-cms/payload-cms/components/live-preview-resizer/live-preview-resizer#LivePreviewResizer',
+        },
+      ],
     },
     user: UserCollection.slug,
     importMap: {

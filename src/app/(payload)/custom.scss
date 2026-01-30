@@ -38,3 +38,68 @@ button#action-unpublish,
 div#action-unpublish-popup {
   display: none;
 }
+
+/**
+ * Live Preview Resizer
+ *
+ * Override the default 60% width of the live preview window to use a custom
+ * CSS property that can be set dynamically by the resizer component.
+ */
+.live-preview-window {
+  width: calc(var(--live-preview-custom-width-val, 60) * 1vw) !important;
+}
+
+.live-preview-window__main {
+  div {
+    height: 90% !important;
+  }
+}
+
+/**
+ * Live Preview Resize Handle
+ */
+.live-preview-resize-handle {
+  --current-width: calc(var(--live-preview-custom-width-val, 60) * 1vw);
+  position: fixed;
+  top: var(--doc-controls-height, 0);
+  right: calc(var(--current-width) - 4px);
+  width: 8px;
+  height: calc(100vh - var(--doc-controls-height, 0));
+  cursor: col-resize;
+  z-index: 10000;
+  background: transparent;
+  transition: background-color 0.2s;
+
+  &:hover,
+  &.live-preview-resize-handle--active {
+    background-color: var(--theme-elevation-200);
+  }
+
+  // Subtle visual line
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 1px;
+    height: 100%;
+    background-color: var(--theme-elevation-300);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  &:hover::after,
+  &.live-preview-resize-handle--active::after {
+    opacity: 1;
+  }
+}
+
+// Only show the resize handle when live preview is active
+.live-preview-resize-handle {
+  display: none !important;
+}
+
+body:has(.live-preview-window--is-live-previewing) .live-preview-resize-handle {
+  display: block !important;
+}
