@@ -162,7 +162,9 @@ export const payloadConfig: RoutableConfig = {
   },
   db: mongooseAdapter({
     url: environmentVariables.DATABASE_URI,
-    connectOptions: {},
+    connectOptions: {
+      maxPoolSize: 50,
+    },
   }),
   sharp: sharp,
   telemetry: false,

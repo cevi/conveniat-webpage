@@ -102,7 +102,7 @@ export class ChatCreationCapabilities implements Capability {
   }
 
   private async canCreate(): Promise<boolean> {
-    const isCreateChatsEnabled = await getFeatureFlag(FEATURE_FLAG_CREATE_CHATS_ENABLED, true);
+    const isCreateChatsEnabled = await getFeatureFlag(FEATURE_FLAG_CREATE_CHATS_ENABLED);
     return isCreateChatsEnabled;
   }
 }

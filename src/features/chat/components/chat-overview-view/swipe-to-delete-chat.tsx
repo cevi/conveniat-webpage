@@ -3,6 +3,7 @@
 import { useArchiveChatMutation } from '@/features/chat/hooks/use-archive-chat-mutation';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { ChatMembershipPermission, ChatType } from '@/lib/prisma';
+import { cn } from '@/utils/tailwindcss-override';
 import { animate, motion, useMotionValue, useTransform } from 'framer-motion';
 import { Trash2 } from 'lucide-react';
 import type React from 'react';
@@ -31,35 +32,56 @@ export const SwipeToDeleteChat: React.FC<SwipeToDeleteChatProperties> = ({ chat,
   const binScale = useTransform(draggingX, [0, 100], [0.8, 1.2]);
 
   const handleDragEnd = async (_: unknown, info: { offset: { x: number } }): Promise<void> => {
-    if (!canDelete || isDeleting) return;
+    if (isDeleting) return;
 
     const containerWidth = containerReference.current?.offsetWidth ?? 0;
     const threshold = containerWidth * DELETE_THRESHOLD_PERCENT;
 
     if (info.offset.x >= threshold) {
-      setIsDeleting(true);
-      // Animate off-screen to the right
-      await animate(draggingX, containerWidth + 50, {
-        type: 'spring',
-        stiffness: 300,
-        damping: 30,
-      });
-      deleteChatMutation.mutate({ chatUuid: chat.id });
+      if (canDelete) {
+        setIsDeleting(true);
+        // Animate off-screen to the right
+        await animate(draggingX, containerWidth + 50, {
+          type: 'spring',
+          stiffness: 300,
+          damping: 30,
+        });
+        deleteChatMutation.mutate({ chatUuid: chat.id });
+      } else {
+        // Snap back if not allowed to delete
+        animate(draggingX, 0, { type: 'spring', stiffness: 500, damping: 30 });
+      }
     } else {
       // Snap back
       animate(draggingX, 0, { type: 'spring', stiffness: 500, damping: 30 });
     }
   };
 
-  if (!canDelete) {
-    return <>{children}</>;
-  }
-
   return (
     <div ref={containerReference} className="relative overflow-hidden">
-      <div className="absolute inset-y-0 left-0 flex w-full items-center justify-start rounded-md bg-red-100 pl-6">
+      <div
+        className={cn(
+          'absolute inset-y-0 left-0 flex w-full items-center justify-start rounded-md pl-6',
+          canDelete ? 'bg-red-100' : 'bg-gray-100',
+        )}
+      >
         <motion.div style={{ opacity: binOpacity, scale: binScale }}>
-          <Trash2 className="h-6 w-6 text-red-600" />
+          <div className="relative">
+            <Trash2 className={cn('h-6 w-6', canDelete ? 'text-red-600' : 'text-gray-400')} />
+            {!canDelete && (
+              <svg
+                className="absolute inset-0 h-6 w-6 text-gray-400"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <line x1="4" y1="4" x2="20" y2="20" />
+              </svg>
+            )}
+          </div>
         </motion.div>
       </div>
 

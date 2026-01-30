@@ -1,6 +1,6 @@
 import prisma from '@/lib/database';
-import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import { auth } from '@/utils/auth';
+import { isValidNextAuthUser } from '@/utils/auth-helpers';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { initTRPC, TRPCError } from '@trpc/server';
 import { cache } from 'react';
@@ -8,10 +8,10 @@ import superjson from 'superjson';
 
 export const createTRPCContext = cache(async () => {
   const session = await auth();
-  const sessionUser = session?.user as HitobitoNextAuthUser | undefined;
+  const sessionUser = isValidNextAuthUser(session?.user) ? session.user : undefined;
 
   const locale = await getLocaleFromCookies();
-  return { user: sessionUser as HitobitoNextAuthUser, locale, prisma: prisma };
+  return { user: sessionUser, locale, prisma: prisma };
 });
 
 export type Context = Awaited<ReturnType<typeof createTRPCContext>>;
@@ -26,7 +26,6 @@ export const createCallerFactory = t.createCallerFactory;
 export const publicProcedure = t.procedure;
 
 const isAuthed = t.middleware(({ ctx, next }) => {
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (!ctx.user) {
     throw new TRPCError({
       code: 'FORBIDDEN',
@@ -34,11 +33,9 @@ const isAuthed = t.middleware(({ ctx, next }) => {
     });
   }
 
-  const user = ctx.user;
-
   return next({
     ctx: {
-      user,
+      user: ctx.user,
     },
   });
 });

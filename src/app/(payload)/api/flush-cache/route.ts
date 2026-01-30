@@ -1,6 +1,6 @@
 import { canUserAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
-import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import { auth } from '@/utils/auth';
+import { isValidNextAuthUser } from '@/utils/auth-helpers';
 import { revalidateTag } from 'next/cache';
 
 /**
@@ -12,7 +12,7 @@ const GET = async (): Promise<Response> => {
   if (!session) return new Response('No valid session found!', { status: 401 });
 
   // check user exists
-  const user = session.user as HitobitoNextAuthUser | undefined;
+  const user = isValidNextAuthUser(session.user) ? session.user : undefined;
   if (!user) return new Response('No valid user found!', { status: 401 });
 
   const isAuthenticated = await canUserAccessAdminPanel({

@@ -1,6 +1,6 @@
 import { canUserAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
-import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import { auth } from '@/utils/auth';
+import { isValidNextAuthUser } from '@/utils/auth-helpers';
 import { isPreviewTokenValid } from '@/utils/preview-token';
 import { draftMode } from 'next/headers';
 import { redirect } from 'next/navigation';
@@ -30,7 +30,7 @@ import { redirect } from 'next/navigation';
  * This must be a GET request to allow simple redirects from preview links.
  *
  */
-// eslint-disable-next-line complexity
+
 const GET = async (request: Request): Promise<Response> => {
   const { searchParams } = new URL(request.url);
   const authMethod = searchParams.get('auth');
@@ -56,7 +56,7 @@ const GET = async (request: Request): Promise<Response> => {
     if (!session) return new Response('No valid session found!', { status: 401 });
 
     // check user exists
-    const user = session.user as HitobitoNextAuthUser | undefined;
+    const user = isValidNextAuthUser(session.user) ? session.user : undefined;
     if (!user) return new Response('No valid user found!', { status: 401 });
 
     // check if user has permissions to access the admin panel

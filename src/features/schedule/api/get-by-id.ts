@@ -7,11 +7,12 @@ import { forceDynamicOnBuild } from '@/utils/is-pre-rendering';
 import config from '@payload-config';
 import { getPayload } from 'payload';
 
+/* eslint-disable unicorn/no-null */
 export const getById = async (
   id: string,
   locale?: Locale,
-): Promise<CampScheduleEntryFrontendType | undefined> => {
-  if (await forceDynamicOnBuild()) return undefined;
+): Promise<CampScheduleEntryFrontendType | null> => {
+  if (await forceDynamicOnBuild()) return null;
 
   const currentLocale = locale ?? (await getLocaleFromCookies());
   const payload = await getPayload({ config });
@@ -27,6 +28,6 @@ export const getById = async (
 
     return entry as unknown as CampScheduleEntryFrontendType;
   } catch {
-    return undefined;
+    return null;
   }
 };

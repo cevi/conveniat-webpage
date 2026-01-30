@@ -1,37 +1,17 @@
-import { environmentVariables } from '@/config/environment-variables';
 import type { User } from '@/features/payload-cms/payload-types';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
+import { HitobitoNextAuthUserSchema } from '@/types/hitobito-next-auth-user';
+import { auth } from '@/utils/auth';
 import type { AuthStrategyFunction, BasePayload } from 'payload';
 
 /**
- * Checks if the provided NextAuth user object is considered valid based on specific criteria.
+ * Checks if the provided NextAuth user object is considered valid based on the Zod schema.
  *
- * A user is considered valid if:
- * 1. The user object itself is not `undefined`.
- * 2. The `name` property is not an empty string.
- * 3. The `email` property is not an empty string.
- * 4. The `uuid` property is set (not an empty string).
- *
- * @param {HitobitoNextAuthUser} user - The NextAuth user object to validate. Might be `undefined`.
- * @returns {boolean} `true` if the user meets all validity criteria, `false` otherwise.
+ * @param {unknown} user - The NextAuth user object to validate.
+ * @returns {user is HitobitoNextAuthUser} `true` if the user meets all validity criteria, `false` otherwise.
  */
-export const isValidNextAuthUser = (user?: HitobitoNextAuthUser): boolean => {
-  return user !== undefined && user.name !== '' && user.email !== '' && user.uuid !== '';
-};
-
-/**
- * Fetches the session from the CeviDB API
- * @param cookie the cookie to use for the request
- */
-const fetchSessionFromCeviDB = async (
-  cookie: string,
-): Promise<{ user?: HitobitoNextAuthUser } | null> => {
-  const APP_HOST_URL = environmentVariables.APP_HOST_URL;
-  return (await fetch(APP_HOST_URL + '/api/auth/session', {
-    headers: {
-      cookie,
-    },
-  }).then((response) => response.json())) as { user?: HitobitoNextAuthUser } | null;
+export const isValidNextAuthUser = (user?: unknown): user is HitobitoNextAuthUser => {
+  return HitobitoNextAuthUserSchema.safeParse(user).success;
 };
 
 /**
@@ -60,16 +40,15 @@ export async function getPayloadUserFromNextAuthUser(
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-expect-error
-export const getAuthenticateUsingCeviDB: AuthStrategyFunction = async ({ headers, payload }) => {
-  const cookie = headers.get('cookie');
-  if (cookie === null) return { user: undefined };
+export const getAuthenticateUsingCeviDB: AuthStrategyFunction = async ({ payload }) => {
+  const session = await auth();
+  const validationResult = HitobitoNextAuthUserSchema.safeParse(session?.user);
 
-  const session = await fetchSessionFromCeviDB(cookie);
-  if (!session?.user || !isValidNextAuthUser(session.user)) {
+  if (!validationResult.success) {
     return { user: undefined };
   }
 
-  const nextAuthUser = session.user;
+  const nextAuthUser = validationResult.data;
   const user = await getPayloadUserFromNextAuthUser(payload, nextAuthUser);
 
   return {

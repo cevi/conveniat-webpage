@@ -23,3 +23,18 @@
 .admin-panel-blur {
   filter: blur(12px);
 }
+
+/**
+ *
+ * Due to our custom implementation of the multi-lang publishing feature,
+ * we need to disable the default "Unpublish" action. 
+ *
+ * We don't need to secure the actions on the backend, as an authenticated user
+ * would have anyway the necessary permissions to publish/unpublish documents
+ * (i.e., we assume that we can trust the user in that regard).
+ *
+ */
+button#action-unpublish,
+div#action-unpublish-popup {
+  display: none;
+}

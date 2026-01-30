@@ -6,7 +6,7 @@ import { RefreshCw, X } from 'lucide-react';
 import type { User } from 'next-auth';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import { useSearchParams } from 'next/navigation';
-import React from 'react';
+import React, { useState } from 'react';
 
 interface PreviewModeBannerProperties {
   user: User | undefined;
@@ -38,6 +38,7 @@ export const PreviewModeBanner: React.FC<PreviewModeBannerProperties> = ({
 }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const searchParameters = useSearchParams();
+  const [isReloading, setIsReloading] = useState(false);
 
   const tokenParameter = searchParameters.get('preview-token');
   const accessWithToken = tokenParameter !== null && tokenParameter.length > 0;
@@ -69,8 +70,13 @@ export const PreviewModeBanner: React.FC<PreviewModeBannerProperties> = ({
   // we set the email to 'anonymous' if the user is not signed
   const { email: userEmail } = user ?? { email: StaticTranslationStrings.anonymous[locale] };
 
+  const handleReload = (): void => {
+    setIsReloading(true);
+    globalThis.location.reload();
+  };
+
   return (
-    <div className="relative z-[200] flex h-[32px] items-center justify-between overflow-hidden bg-gray-900 px-4 md:px-8">
+    <div className="relative z-200 flex h-[32px] items-center justify-between overflow-hidden bg-gray-900 px-4 md:px-8">
       <span className="flex items-center text-xs text-gray-100">
         <span className="text-gray-300 max-sm:hidden">
           {StaticTranslationStrings.account[locale]}
@@ -86,8 +92,8 @@ export const PreviewModeBanner: React.FC<PreviewModeBannerProperties> = ({
 
       <div className="flex flex-row gap-x-4">
         <RefreshCw
-          className="h-4 w-4 cursor-pointer text-gray-300"
-          onClick={() => globalThis.location.reload()}
+          className={`h-4 w-4 cursor-pointer text-gray-300 ${isReloading ? 'animate-spin' : ''}`}
+          onClick={handleReload}
         />
 
         <X className="h-4 w-4 cursor-pointer text-gray-300" onClick={() => removePreviewCookie()} />

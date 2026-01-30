@@ -1,5 +1,5 @@
 import { GenericPageConverter } from '@/features/payload-cms/converters/generic-page';
-import type { GenericPage, Permission } from '@/features/payload-cms/payload-types';
+import type { Permission } from '@/features/payload-cms/payload-types';
 import { buildMetadata, findAlternatives } from '@/features/payload-cms/utils/metadata-helper';
 import type { Locale, LocalizedCollectionComponent } from '@/types/types';
 import { i18nConfig } from '@/types/types';
@@ -8,82 +8,38 @@ import config from '@payload-config';
 import type { Metadata } from 'next';
 import { cacheLife, cacheTag } from 'next/cache';
 import { forbidden, notFound, redirect } from 'next/navigation';
-import type { PaginatedDocs } from 'payload';
 import { getPayload } from 'payload';
 
-const getArticlesInPrimaryLanguageCached = async (
+import {
+  getGenericPageByIDCached,
+  getGenericPageBySlugCached,
+} from '@/features/payload-cms/api/cached-generic-pages';
+import type { GenericPage as GenericPageType } from '@/features/payload-cms/payload-types';
+
+// Wrapper for persistent caching of the slug fetch
+const getArticlesCachedPersistent = async (
   slug: string,
   locale: Locale,
   renderInPreviewMode: boolean,
-): Promise<PaginatedDocs<GenericPage>> => {
+): Promise<{ docs: GenericPageType[] }> => {
   'use cache';
   cacheLife('hours');
   cacheTag('payload', 'generic-page', `collection:generic-page`);
 
-  const payload = await getPayload({ config });
-
-  return payload.find({
-    depth: 1,
-    collection: 'generic-page',
-    pagination: false,
-    locale: locale,
-    fallbackLocale: false,
-    draft: renderInPreviewMode,
-    where: {
-      and: [
-        { 'seo.urlSlug': { equals: slug } },
-        // we only resolve published pages unless in preview mode
-        renderInPreviewMode ? {} : { _localized_status: { equals: { published: true } } },
-      ],
-    },
-  });
+  return getGenericPageBySlugCached(slug, locale, renderInPreviewMode);
 };
 
-const getArticlesCached = async (
-  slug: string,
-  locale: Locale,
-  renderInPreviewMode: boolean,
-): Promise<PaginatedDocs<GenericPage>> => {
-  'use cache';
-  cacheLife('hours');
-  cacheTag('payload', 'generic-page', `collection:generic-page`);
-
-  const payload = await getPayload({ config });
-
-  return payload.find({
-    depth: 1,
-    collection: 'generic-page',
-    pagination: false,
-    draft: renderInPreviewMode,
-    locale: locale,
-    where: {
-      and: [
-        { 'seo.urlSlug': { equals: slug } },
-        // we only resolve published pages unless in preview mode
-        renderInPreviewMode ? {} : { _localized_status: { equals: { published: true } } },
-      ],
-    },
-  });
-};
-
-const getFallbackArticleCached = async (
+// Wrapper for persistent caching of the ID fetch
+const getFallbackArticleCachedPersistent = async (
   id: string,
   locale: Locale,
   renderInPreviewMode: boolean,
-): Promise<GenericPage> => {
+): Promise<GenericPageType> => {
   'use cache';
   cacheLife('hours');
   cacheTag('payload', 'generic-page', `doc:generic-page:${id}`);
 
-  const payload = await getPayload({ config });
-
-  return payload.findByID({
-    collection: 'generic-page',
-    depth: 1,
-    id,
-    locale,
-    draft: renderInPreviewMode,
-  });
+  return getGenericPageByIDCached(id, locale, renderInPreviewMode);
 };
 
 const GenericPage: LocalizedCollectionComponent = async ({
@@ -97,7 +53,7 @@ const GenericPage: LocalizedCollectionComponent = async ({
     console.log('Preview mode enabled');
   }
 
-  const articlesInPrimaryLanguage = await getArticlesInPrimaryLanguageCached(
+  const articlesInPrimaryLanguage = await getArticlesCachedPersistent(
     slug,
     locale,
     renderInPreviewMode,
@@ -125,7 +81,7 @@ const GenericPage: LocalizedCollectionComponent = async ({
   const locales: Locale[] = i18nConfig.locales.filter((l) => l !== locale) as Locale[];
 
   const articles = await Promise.all(
-    locales.map((l) => getArticlesCached(slug, l, renderInPreviewMode)),
+    locales.map((l) => getArticlesCachedPersistent(slug, l, renderInPreviewMode)),
   )
     .then((results) =>
       results
@@ -163,7 +119,11 @@ const GenericPage: LocalizedCollectionComponent = async ({
 
   if (fallbackDocumentId === undefined) notFound();
 
-  const article = await getFallbackArticleCached(fallbackDocumentId, locale, renderInPreviewMode);
+  const article = await getFallbackArticleCachedPersistent(
+    fallbackDocumentId,
+    locale,
+    renderInPreviewMode,
+  );
 
   // check if published in target locale
   if (article._localized_status.published !== true) {
@@ -175,31 +135,23 @@ const GenericPage: LocalizedCollectionComponent = async ({
   redirect(`/${locale}/${article.seo.urlSlug}`);
 };
 
-GenericPage.generateMetadata = async ({ locale, slugs }): Promise<Metadata> => {
+const generateMetadataInternal = async (
+  locale: Locale,
+  slugs: string[] | undefined,
+): Promise<Metadata> => {
   'use cache';
   cacheLife('hours');
   cacheTag('payload', 'generic-page', `collection:generic-page`);
 
-  const payload = await getPayload({ config });
   const slug = slugs?.join('/') ?? '';
 
-  const result = await payload.find({
-    collection: 'generic-page',
-    pagination: false,
-    locale,
-    fallbackLocale: false,
-    draft: false,
-    where: {
-      and: [
-        { 'seo.urlSlug': { equals: slug } },
-        { _localized_status: { equals: { published: true } } },
-      ],
-    },
-  });
+  // Use the SAME cached fetcher as the component to deduplicate the request
+  const result = await getGenericPageBySlugCached(slug, locale, false);
 
   const page = result.docs[0];
   if (!page) return {};
 
+  const payload = await getPayload({ config });
   const pageAlternatives = await findAlternatives({
     payload,
     collection: 'generic-page',
@@ -229,6 +181,10 @@ GenericPage.generateMetadata = async ({ locale, slugs }): Promise<Metadata> => {
       description: page.seo.metaDescription ?? undefined,
     },
   };
+};
+
+GenericPage.generateMetadata = async ({ locale, slugs }): Promise<Metadata> => {
+  return generateMetadataInternal(locale, slugs);
 };
 
 export default GenericPage;

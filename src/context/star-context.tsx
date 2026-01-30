@@ -4,6 +4,7 @@ import { starsCollection } from '@/lib/tanstack-db';
 import { trpc } from '@/trpc/client';
 import type { StarContextType } from '@/types/types';
 import { useLiveQuery } from '@tanstack/react-db';
+import { useSession } from 'next-auth/react';
 import type React from 'react';
 import { createContext, type ReactNode, useCallback, useEffect, useMemo, useRef } from 'react';
 
@@ -18,7 +19,9 @@ export const StarContext = createContext<StarContextType | undefined>(undefined)
 export const StarProvider: React.FC<StarProviderProperties> = ({ children }) => {
   const syncTimerReference = useRef<NodeJS.Timeout | null>(null);
   const lastSyncedIdsReference = useRef<string>('');
+  const isSyncedReference = useRef(false);
   const isInitializedReference = useRef(false);
+  const { status } = useSession();
 
   // Use TanStack DB's useLiveQuery for reactive data
   const { data: starItems } = useLiveQuery((q) => q.from({ star: starsCollection }), []);
@@ -39,7 +42,7 @@ export const StarProvider: React.FC<StarProviderProperties> = ({ children }) => 
     const currentItems = [...starsCollection.state.values()];
     if (currentItems.length === 0) {
       const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
+      if (stored !== null) {
         try {
           const ids = JSON.parse(stored) as string[];
           for (const id of ids) starsCollection.insert({ id, starredAt: Date.now() });
@@ -55,21 +58,27 @@ export const StarProvider: React.FC<StarProviderProperties> = ({ children }) => 
     if (!isInitializedReference.current || typeof navigator === 'undefined' || !navigator.onLine)
       return;
 
+    if (status !== 'authenticated') {
+      isSyncedReference.current = false;
+      return;
+    }
+
     const currentIds = [...starredEntries].sort().join(',');
 
-    // Skip if nothing has changed since last sync
-    if (currentIds === lastSyncedIdsReference.current) return;
+    // Skip if nothing has changed since last sync AND we have synced at least once
+    if (currentIds === lastSyncedIdsReference.current && isSyncedReference.current) return;
 
     if (syncTimerReference.current) clearTimeout(syncTimerReference.current);
 
     syncTimerReference.current = setTimeout(() => {
-      const idsArray = currentIds ? currentIds.split(',') : [];
+      const idsArray = currentIds === '' ? [] : currentIds.split(',');
       lastSyncedIdsReference.current = currentIds;
 
       syncStarsMutation.mutate(
         { courseIds: idsArray },
         {
           onSuccess: (remoteIds): void => {
+            isSyncedReference.current = true;
             const remoteSet = new Set(remoteIds);
             const currentItems = [...starsCollection.state.values()];
             const currentSet = new Set(currentItems.map((index) => index.id));
@@ -80,9 +89,9 @@ export const StarProvider: React.FC<StarProviderProperties> = ({ children }) => 
               currentItems.some((index) => !remoteSet.has(index.id));
 
             if (needsUpdate) {
-              for (const item of currentItems) {
-                if (!remoteSet.has(item.id)) starsCollection.delete(item.id);
-              }
+              // We only ADD stars from remote, we NEVER delete local stars
+              // This is a safety measure to ensure we never lose user data
+              // if the server is temporarily out of sync or returns a partial list.
               for (const id of remoteIds) {
                 if (!currentSet.has(id)) {
                   starsCollection.insert({ id, starredAt: Date.now() });
@@ -91,9 +100,10 @@ export const StarProvider: React.FC<StarProviderProperties> = ({ children }) => 
             }
           },
           onError: (error): void => {
-            // Reset lastSyncedIds so we retry on next change
+            // Reset lastSyncedIds and isSynced so we retry on next change
+            isSyncedReference.current = false;
             lastSyncedIdsReference.current = '';
-            if (error.data?.code !== 'UNAUTHORIZED') {
+            if (error.data?.code !== 'UNAUTHORIZED' && error.data?.code !== 'FORBIDDEN') {
               console.error('Star sync failed', error);
             }
           },
@@ -104,7 +114,7 @@ export const StarProvider: React.FC<StarProviderProperties> = ({ children }) => 
     return (): void => {
       if (syncTimerReference.current) clearTimeout(syncTimerReference.current);
     };
-  }, [starredEntries, syncStarsMutation]);
+  }, [starredEntries, syncStarsMutation, status]);
 
   const toggleStar = useCallback(
     (id: string) => {

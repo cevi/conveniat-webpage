@@ -9,7 +9,14 @@ import type React from 'react';
  * @constructor
  */
 export const FormSectionRowLabel: React.FC = () => {
-  const { data } = useRowLabel<{ formSection: { sectionTitle?: string } }>();
-  const customLabel = `${data.formSection.sectionTitle ?? ''}`;
+  const rowLabel = useRowLabel<{ formSection?: { sectionTitle?: string } }>() as
+    | { data?: { formSection?: { sectionTitle?: string } } }
+    | undefined;
+
+  if (rowLabel?.data === undefined) {
+    return <></>;
+  }
+
+  const customLabel = `${rowLabel.data.formSection?.sectionTitle ?? ''}`;
   return <div>Section: {customLabel}</div>;
 };

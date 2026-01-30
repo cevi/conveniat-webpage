@@ -59,6 +59,7 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
         className={cn('flex h-dvh w-dvw flex-col overflow-x-hidden bg-[#f8fafc]', {
           'overscroll-y-none': isInAppDesign,
         })}
+        suppressHydrationWarning
       >
         <HideFooterProvider>
           <ChunkErrorHandler />

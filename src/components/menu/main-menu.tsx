@@ -3,6 +3,7 @@ import { FooterBuildInfoText } from '@/components/footer/footer-copyright-area';
 import { MainMenuLanguageSwitcher } from '@/components/menu/main-menu-language-switcher';
 import { SearchComponent } from '@/components/menu/search';
 import { LinkComponent } from '@/components/ui/link-component';
+import { getHeaderCached } from '@/features/payload-cms/api/cached-globals';
 import {
   getURLForLinkField,
   hasPermissionsForLinkField,
@@ -10,15 +11,13 @@ import {
 } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import type { Header } from '@/features/payload-cms/payload-types';
 import { specialPagesTable } from '@/features/payload-cms/special-pages-table';
-import type { Locale } from '@/types/types';
+import type { Locale, StaticTranslationString } from '@/types/types';
 import { getBuildInfo } from '@/utils/get-build-info';
 import { cn } from '@/utils/tailwindcss-override';
 import { Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/react';
-import config from '@payload-config';
 import { ChevronDown, OctagonAlert } from 'lucide-react';
 import { cacheLife, cacheTag } from 'next/cache';
 import { draftMode } from 'next/headers';
-import { getPayload } from 'payload';
 import type React from 'react';
 
 import { AppFeatures } from '@/components/menu/app-features';
@@ -40,14 +39,14 @@ const getMainMenuFromPayloadCached = async (
   cacheLife('hours');
   cacheTag('header');
 
-  const payload = await getPayload({ config });
-  const { mainMenu } = await payload.findGlobal({
-    slug: 'header',
-    locale,
-    draft: showPreviewForMainMenu,
-  });
-
+  const { mainMenu } = await getHeaderCached(locale, showPreviewForMainMenu);
   return Array.isArray(mainMenu) ? mainMenu : [];
+};
+
+const webContentTitle: StaticTranslationString = {
+  en: 'Web Content',
+  de: 'Web Inhalte',
+  fr: 'Contenu Web',
 };
 
 export const MainMenu: React.FC<{
@@ -82,7 +81,9 @@ export const MainMenu: React.FC<{
         {inAppDesign && <AppFeatures locale={locale} />}
 
         <div className="py-6">
-          {inAppDesign && <h3 className="text-conveniat-green mb-2 font-bold">Web Inhalte</h3>}
+          {inAppDesign && (
+            <h3 className="text-conveniat-green mb-2 font-bold">{webContentTitle[locale]}</h3>
+          )}
           {showPreviewForMainMenu && (
             <div className="closeNavOnClick block cursor-pointer rounded-lg bg-orange-500 py-2 pr-3 pl-6 text-sm/7 font-semibold text-white">
               Preview Menu

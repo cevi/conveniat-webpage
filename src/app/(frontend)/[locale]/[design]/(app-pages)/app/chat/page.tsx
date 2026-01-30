@@ -1,8 +1,8 @@
 import { AppAdvertisement } from '@/components/app-advertisement';
 import { ChatsOverviewClientComponent } from '@/features/chat/components/chat-overview-view/chats-overview-client-component';
-import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { Locale } from '@/types/types';
 import { auth } from '@/utils/auth';
+import { isValidNextAuthUser } from '@/utils/auth-helpers';
 import { DesignCodes } from '@/utils/design-codes';
 import { redirect } from 'next/navigation';
 import type React from 'react';
@@ -12,10 +12,10 @@ const ChatPage: React.FC<{
 }> = async ({ params }) => {
   const { locale, design } = await params;
   const session = await auth();
-  const user = session?.user as HitobitoNextAuthUser | undefined;
+  const user = isValidNextAuthUser(session?.user) ? session.user : undefined;
 
   if (user?.uuid === undefined) {
-    redirect('/entrypoint');
+    redirect('/entrypoint?clearSkip=true');
   }
 
   return (

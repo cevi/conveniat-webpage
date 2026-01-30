@@ -2,7 +2,7 @@ import { createNewChat } from '@/features/chat/api/database-interactions/create-
 import type { User as PayloadUser } from '@/features/payload-cms/payload-types';
 import { isOverlapping } from '@/features/schedule/utils/time-utils';
 import { ChatMembershipPermission, ChatType, MessageEventType, MessageType } from '@/lib/prisma';
-import { createTRPCRouter, trpcBaseProcedure } from '@/trpc/init';
+import { createTRPCRouter, publicProcedure, trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { ensureUserExistsMiddleware } from '@/trpc/middleware/ensure-user-exists';
 import { convertLexicalToMarkdown, convertMarkdownToLexical } from '@/utils/markdown-to-lexical';
@@ -17,37 +17,48 @@ const enrollInCourseSchema = z.object({
 });
 
 export const scheduleRouter = createTRPCRouter({
-  getScheduleEntries: trpcBaseProcedure.query(async ({ ctx }) => {
+  getScheduleEntries: publicProcedure.query(async ({ ctx }) => {
     const { locale } = ctx;
     const { getScheduleEntries } = await import('./get-schedule-entries');
     return getScheduleEntries({}, locale);
   }),
 
-  getById: trpcBaseProcedure.input(z.object({ id: z.string() })).query(async ({ input, ctx }) => {
+  getById: publicProcedure.input(z.object({ id: z.string() })).query(async ({ input, ctx }) => {
     const { locale } = ctx;
     const { getById } = await import('./get-by-id');
     return getById(input.id, locale);
   }),
 
-  getCourseStatus: trpcBaseProcedure.input(enrollInCourseSchema).query(async ({ input, ctx }) => {
+  getCourseStatus: publicProcedure.input(enrollInCourseSchema).query(async ({ input, ctx }) => {
     const { prisma, user } = ctx;
     const { courseId } = input;
 
     const payload = await getPayload({ config });
-    const course = await payload.findByID({
-      collection: 'camp-schedule-entry',
-      id: courseId,
-      depth: 1,
-    });
+
+    // Try to find the course, return null if not found
+    let course;
+    try {
+      course = await payload.findByID({
+        collection: 'camp-schedule-entry',
+        id: courseId,
+        depth: 1,
+      });
+    } catch {
+      // Course not found - return null instead of throwing
+      // eslint-disable-next-line unicorn/no-null
+      return null;
+    }
 
     const enrollments = await prisma.enrollment.findMany({
       where: { courseId },
       include: { user: true },
     });
 
-    const isEnrolled = enrollments.some((enrollment_) => enrollment_.userId === user.uuid);
+    const isEnrolled = user
+      ? enrollments.some((enrollment_) => enrollment_.userId === user.uuid)
+      : false;
     const organisers = course.organiser as PayloadUser[];
-    const isAdmin = organisers.some((o) => o.id === user.uuid);
+    const isAdmin = user ? organisers.some((o) => o.id === user.uuid) : false;
 
     // Check if a group chat exists for this course
     const courseChat = await prisma.chat.findUnique({
@@ -64,7 +75,7 @@ export const scheduleRouter = createTRPCRouter({
       hideList: course.hide_participant_list,
       chatId: courseChat?.uuid,
       participants:
-        isAdmin || !course.hide_participant_list
+        isAdmin || course.hide_participant_list === false
           ? enrollments.map((enrollment_) => ({
               uuid: enrollment_.user.uuid,
               name: enrollment_.user.name,
@@ -83,7 +94,7 @@ export const scheduleRouter = createTRPCRouter({
   /**
    * Bulk fetch course statuses for multiple course IDs.
    */
-  getCourseStatuses: trpcBaseProcedure
+  getCourseStatuses: publicProcedure
     .input(z.object({ courseIds: z.array(z.string()) }))
     .query(async ({ input, ctx }) => {
       const { prisma, user } = ctx;
@@ -145,9 +156,11 @@ export const scheduleRouter = createTRPCRouter({
         if (!course) continue;
 
         const enrollments = enrollmentsByCourse.get(courseId) ?? [];
-        const isEnrolled = enrollments.some((enrollment_) => enrollment_.userId === user.uuid);
+        const isEnrolled = user
+          ? enrollments.some((enrollment_) => enrollment_.userId === user.uuid)
+          : false;
         const organisers = course.organiser as PayloadUser[];
-        const isAdmin = organisers.some((o) => o.id === user.uuid);
+        const isAdmin = user ? organisers.some((o) => o.id === user.uuid) : false;
 
         result[courseId] = {
           enrolledCount: enrollments.length,
@@ -163,8 +176,10 @@ export const scheduleRouter = createTRPCRouter({
       return result;
     }),
 
-  getMyEnrollments: trpcBaseProcedure.query(async ({ ctx }) => {
+  getMyEnrollments: publicProcedure.query(async ({ ctx }) => {
     const { user, prisma } = ctx;
+    if (!user) return [];
+
     const enrollments = await prisma.enrollment.findMany({
       where: { userId: user.uuid },
       select: { courseId: true },
@@ -178,6 +193,7 @@ export const scheduleRouter = createTRPCRouter({
     .use(databaseTransactionWrapper)
     .mutation(async ({ input, ctx }) => {
       const { user, prisma } = ctx;
+
       const { courseId } = input;
 
       const payload = await getPayload({ config });
@@ -188,7 +204,7 @@ export const scheduleRouter = createTRPCRouter({
       });
 
       // Check if user is an organizer of this course
-      const organisers = (course.organiser || []) as string[];
+      const organisers = (course.organiser ?? []) as string[];
       const isOrganiser = organisers.includes(user.uuid);
 
       if (course.enable_enrolment === false) {
@@ -204,7 +220,11 @@ export const scheduleRouter = createTRPCRouter({
 
       // Check capacity
       const currentCount = await prisma.enrollment.count({ where: { courseId } });
-      if (course.participants_max && currentCount >= course.participants_max) {
+      if (
+        course.participants_max !== null &&
+        course.participants_max !== undefined &&
+        currentCount >= course.participants_max
+      ) {
         throw new TRPCError({ code: 'BAD_REQUEST', message: 'Course is already full.' });
       }
 
@@ -312,6 +332,7 @@ export const scheduleRouter = createTRPCRouter({
     .use(databaseTransactionWrapper)
     .mutation(async ({ input, ctx }) => {
       const { user, prisma } = ctx;
+
       const { fromCourseId, toCourseId } = input;
 
       const payload = await getPayload({ config });
@@ -331,8 +352,8 @@ export const scheduleRouter = createTRPCRouter({
       ]);
 
       // Check if user is an organizer of each course
-      const fromOrganisers = (fromCourse.organiser || []) as string[];
-      const toOrganisers = (toCourse.organiser || []) as string[];
+      const fromOrganisers = (fromCourse.organiser ?? []) as string[];
+      const toOrganisers = (toCourse.organiser ?? []) as string[];
       const isFromOrganiser = fromOrganisers.includes(user.uuid);
       const isToOrganiser = toOrganisers.includes(user.uuid);
 
@@ -354,7 +375,7 @@ export const scheduleRouter = createTRPCRouter({
       }
 
       // Verify enrollment is enabled for the target course
-      if (!toCourse.enable_enrolment) {
+      if (toCourse.enable_enrolment === false) {
         throw new TRPCError({
           code: 'BAD_REQUEST',
           message: 'Enrollment is not enabled for the target course.',
@@ -367,7 +388,11 @@ export const scheduleRouter = createTRPCRouter({
 
       // Check capacity of target course
       const currentCount = await prisma.enrollment.count({ where: { courseId: toCourseId } });
-      if (toCourse.participants_max && currentCount >= toCourse.participants_max) {
+      if (
+        toCourse.participants_max !== null &&
+        toCourse.participants_max !== undefined &&
+        currentCount >= toCourse.participants_max
+      ) {
         throw new TRPCError({
           code: 'BAD_REQUEST',
           message: 'Target course is already full.',
@@ -535,6 +560,7 @@ export const scheduleRouter = createTRPCRouter({
     .use(databaseTransactionWrapper)
     .mutation(async ({ input, ctx }) => {
       const { user, prisma } = ctx;
+
       const { courseId } = input;
 
       await prisma.enrollment.deleteMany({
@@ -554,7 +580,7 @@ export const scheduleRouter = createTRPCRouter({
           id: courseId,
           depth: 0,
         });
-        const organisers = (course.organiser || []) as string[];
+        const organisers = (course.organiser ?? []) as string[];
 
         // Check if user is a member
         const membership = await prisma.chatMembership.findUnique({
@@ -613,6 +639,7 @@ export const scheduleRouter = createTRPCRouter({
     )
     .mutation(async ({ input, ctx }) => {
       const { user, prisma } = ctx;
+
       const payload = await getPayload({ config });
 
       const course = await payload.findByID({
@@ -663,6 +690,7 @@ export const scheduleRouter = createTRPCRouter({
     .use(databaseTransactionWrapper)
     .mutation(async ({ input, ctx }) => {
       const { user, prisma, locale } = ctx;
+
       const payload = await getPayload({ config });
 
       const course = await payload.findByID({
@@ -738,6 +766,7 @@ export const scheduleRouter = createTRPCRouter({
       .use(ensureUserExistsMiddleware)
       .mutation(async ({ input, ctx }) => {
         const { user, prisma } = ctx;
+
         const { courseId } = input;
 
         const existingStar = await prisma.star.findUnique({
@@ -769,6 +798,7 @@ export const scheduleRouter = createTRPCRouter({
 
     getMyStars: trpcBaseProcedure.query(async ({ ctx }) => {
       const { user, prisma } = ctx;
+
       const stars = await prisma.star.findMany({
         where: {
           userId: user.uuid,
@@ -785,6 +815,7 @@ export const scheduleRouter = createTRPCRouter({
       .use(ensureUserExistsMiddleware)
       .mutation(async ({ input, ctx }) => {
         const { user, prisma } = ctx;
+
         const { courseIds } = input;
 
         for (const courseId of courseIds) {

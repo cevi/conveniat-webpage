@@ -36,13 +36,13 @@ export const useHideFooter = (): HideFooterContextValue => {
  * Component to set the hide footer state.
  * Place this in layouts where you want to hide the footer.
  */
-export const SetHideFooter: React.FC<{ value: boolean }> = ({ value }) => {
+export const AppFooterController: React.FC<{ hideAppFooter: boolean }> = ({ hideAppFooter }) => {
   const { setHideFooter } = useHideFooter();
 
   React.useEffect(() => {
-    setHideFooter(value);
+    setHideFooter(hideAppFooter);
     return (): void => setHideFooter(false); // Reset on unmount
-  }, [value, setHideFooter]);
+  }, [hideAppFooter, setHideFooter]);
 
   return <></>;
 };

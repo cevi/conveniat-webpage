@@ -44,7 +44,7 @@ export const adminRouter = createTRPCRouter({
     const result = await Promise.all(
       flags.map(async (key) => ({
         key,
-        isEnabled: await getFeatureFlag(key, true),
+        isEnabled: await getFeatureFlag(key),
       })),
     );
     return result;

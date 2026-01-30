@@ -198,7 +198,9 @@ export const MessageList: React.FC<{
     <div
       ref={scrollContainerReference}
       onScroll={handleScroll}
-      className={cn('flex flex-col', !isThread && 'h-full overflow-y-auto bg-gray-50')}
+      className={cn('flex flex-col overflow-x-hidden', {
+        'h-full overflow-y-auto bg-gray-50': !isThread,
+      })}
     >
       {!isThread && <div className="flex-1" />}
       <div className={cn('px-2', isThread ? 'space-y-3 py-1' : 'space-y-6 py-4')}>

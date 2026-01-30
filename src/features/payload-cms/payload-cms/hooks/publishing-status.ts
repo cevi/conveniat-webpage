@@ -374,21 +374,22 @@ export const getPublishingStatusGlobal =
       const getLocaleState = async (
         locale: Config['locale'],
       ): Promise<{ pendingChanges: boolean; published: boolean }> => {
-        const originalDocument = (await payload.findGlobal({
-          slug: config.slug as GlobalSlug,
-          select: { publishingStatus: false },
-          depth: 0,
-          locale: locale,
-          draft: false,
-        })) as unknown as PayloadDocument;
-
-        const draftDocument = (await payload.findGlobal({
-          slug: config.slug as GlobalSlug,
-          select: { publishingStatus: false },
-          depth: 0,
-          locale: locale,
-          draft: true,
-        })) as unknown as PayloadDocument;
+        const [originalDocument, draftDocument] = (await Promise.all([
+          payload.findGlobal({
+            slug: config.slug as GlobalSlug,
+            select: { publishingStatus: false },
+            depth: 0,
+            locale: locale,
+            draft: false,
+          }),
+          payload.findGlobal({
+            slug: config.slug as GlobalSlug,
+            select: { publishingStatus: false },
+            depth: 0,
+            locale: locale,
+            draft: true,
+          }),
+        ])) as unknown as [PayloadDocument, PayloadDocument];
 
         return {
           pendingChanges: hasDiffs(locale, fieldDefinition, draftDocument, originalDocument),
@@ -400,11 +401,13 @@ export const getPublishingStatusGlobal =
         };
       };
 
-      return {
-        de: await getLocaleState(LOCALE.DE),
-        en: await getLocaleState(LOCALE.EN),
-        fr: await getLocaleState(LOCALE.FR),
-      };
+      const [de, en, fr] = await Promise.all([
+        getLocaleState(LOCALE.DE),
+        getLocaleState(LOCALE.EN),
+        getLocaleState(LOCALE.FR),
+      ]);
+
+      return { de, en, fr };
     } catch {
       // if the document is not found, we return an empty publishing status
       // this may happen if the document was just created and has no draft yet
@@ -433,27 +436,28 @@ export const getPublishingStatus =
     if (id == undefined) return {};
 
     try {
-      const originalDocument = (await payload.findByID({
-        collection: config.slug as CollectionSlug,
-        id,
-        // avoid infinite recursion
-        select: { publishingStatus: false },
-        depth: 0,
-        locale: 'all',
-        trash: true, // include trashed documents
-        draft: false,
-      })) as unknown as PayloadDocument;
-
-      const draftDocument = (await payload.findByID({
-        collection: config.slug as CollectionSlug,
-        id,
-        // avoid infinite recursion
-        select: { publishingStatus: false },
-        locale: 'all',
-        depth: 0,
-        trash: true, // include trashed documents
-        draft: true,
-      })) as unknown as PayloadDocument;
+      const [originalDocument, draftDocument] = (await Promise.all([
+        payload.findByID({
+          collection: config.slug as CollectionSlug,
+          id,
+          // avoid infinite recursion
+          select: { publishingStatus: false },
+          depth: 0,
+          locale: 'all',
+          trash: true, // include trashed documents
+          draft: false,
+        }),
+        payload.findByID({
+          collection: config.slug as CollectionSlug,
+          id,
+          // avoid infinite recursion
+          select: { publishingStatus: false },
+          locale: 'all',
+          depth: 0,
+          trash: true, // include trashed documents
+          draft: true,
+        }),
+      ])) as unknown as [PayloadDocument, PayloadDocument];
 
       const fieldDefinition = (collection?.fields as unknown as Field[] | undefined) ?? undefined;
       if (fieldDefinition === undefined) throw new Error('Field definitions are undefined');

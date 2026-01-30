@@ -1,7 +1,7 @@
 'use client';
 
 import { SafeErrorBoundary } from '@/components/error-boundary/safe-error-boundary';
-import { SetHideFooter } from '@/components/footer/hide-footer-context';
+import { AppFooterController } from '@/components/footer/hide-footer-context';
 import { SetHideHeader } from '@/components/header/hide-header-context';
 import { Button } from '@/components/ui/buttons/button';
 import type { CampScheduleEntry } from '@/features/payload-cms/payload-types';
@@ -80,7 +80,7 @@ const DetailContent: React.FC<{ id: string }> = ({ id }) => {
   } = useScheduleEdit({
     courseId: id,
     locale,
-    courseStatus,
+    courseStatus: courseStatus ?? undefined,
   });
 
   if (isLoading && !cachedEntry) {
@@ -114,7 +114,7 @@ const DetailContent: React.FC<{ id: string }> = ({ id }) => {
   return (
     <>
       <SetHideHeader value />
-      <SetHideFooter value />
+      <AppFooterController hideAppFooter />
 
       {/* Full-screen container */}
       <div className="fixed inset-0 z-[100] flex flex-col overflow-hidden bg-gray-50">
@@ -164,7 +164,7 @@ const DetailContent: React.FC<{ id: string }> = ({ id }) => {
               locale={locale}
               isEditing={isEditing}
               isAdmin={isAdmin}
-              courseStatus={courseStatus}
+              courseStatus={courseStatus ?? undefined}
               editData={editData}
               onEditDataChange={setEditData}
               editError={editError}

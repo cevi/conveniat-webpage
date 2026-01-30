@@ -4,6 +4,7 @@ import { AcceptCookieEntrypointComponent } from '@/features/onboarding/component
 import { FancyLoadingScreen } from '@/features/onboarding/components/fancy-loading-screen';
 import { LanguageSwitcher } from '@/features/onboarding/components/language-switcher';
 import { LoginScreen, loginDismissText } from '@/features/onboarding/components/login-screen';
+import { NoInternetComponent } from '@/features/onboarding/components/no-internet-component';
 import { OfflineContentEntrypointComponent } from '@/features/onboarding/components/offline-content-component';
 import { OnboardingLayout } from '@/features/onboarding/components/onboarding-layout';
 import { OnboardingProgress } from '@/features/onboarding/components/onboarding-progress';
@@ -28,6 +29,7 @@ export const OnboardingProcess: React.FC = () => {
     handlePushNotification,
     handleOfflineContent,
     setOnboardingStep,
+    handleSkipLogin,
   } = useOnboarding();
 
   // Define footer content based on step
@@ -36,7 +38,7 @@ export const OnboardingProcess: React.FC = () => {
   if (onboardingStep === OnboardingStep.Login) {
     footer = (
       <button
-        onClick={() => setOnboardingStep(OnboardingStep.PushNotifications)}
+        onClick={handleSkipLogin}
         className="cursor-pointer font-semibold text-gray-400 hover:text-gray-600"
       >
         {loginDismissText[locale]}
@@ -134,6 +136,19 @@ export const OnboardingProcess: React.FC = () => {
                 className="w-full"
               >
                 <FancyLoadingScreen locale={locale} />
+              </motion.div>
+            )}
+
+            {onboardingStep === OnboardingStep.NoInternet && (
+              <motion.div
+                key="no-internet"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+                className="w-full"
+              >
+                <NoInternetComponent locale={locale} />
               </motion.div>
             )}
           </AnimatePresence>

@@ -1,4 +1,5 @@
 import { middleware } from '@/trpc/init';
+import { TRPCError } from '@trpc/server';
 
 /**
  * Middleware that ensures the current user exists in the Prisma database.
@@ -8,19 +9,26 @@ import { middleware } from '@/trpc/init';
 export const ensureUserExistsMiddleware = middleware(async ({ ctx, next }) => {
   const { user, prisma } = ctx;
 
+  if (!user) {
+    throw new TRPCError({
+      code: 'UNAUTHORIZED',
+      message: 'User must be authenticated',
+    });
+  }
+
   // Upsert user to ensure they exist in Prisma
   await prisma.user.upsert({
     where: { uuid: user.uuid },
     update: {
-      name: user.name || user.email || 'Unknown',
+      name: user.name,
       lastSeen: new Date(),
     },
     create: {
       uuid: user.uuid,
-      name: user.name || user.email || 'Unknown',
+      name: user.name,
       lastSeen: new Date(),
     },
   });
 
-  return next({ ctx });
+  return next({ ctx: { ...ctx, user } });
 });

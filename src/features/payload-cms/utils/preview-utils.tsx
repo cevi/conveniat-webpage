@@ -2,9 +2,9 @@ import 'server-only';
 
 import { PreviewWarningClient } from '@/components/preview-warning-client';
 import { canUserAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
-import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { Locale, SearchParameters } from '@/types/types';
 import { auth } from '@/utils/auth';
+import { isValidNextAuthUser } from '@/utils/auth-helpers';
 import { isPreviewTokenValid } from '@/utils/preview-token';
 import { draftMode } from 'next/headers';
 import type React from 'react';
@@ -80,9 +80,9 @@ export const canAccessPreviewOfCurrentPage = async (
 
   // check if user is an admin
   const user = session.user;
-  if (user === undefined) return false;
+  if (!isValidNextAuthUser(user)) return false;
 
-  return canUserAccessAdminPanel({ user: user as HitobitoNextAuthUser });
+  return canUserAccessAdminPanel({ user });
 };
 
 export const PreviewWarning: React.FC<{

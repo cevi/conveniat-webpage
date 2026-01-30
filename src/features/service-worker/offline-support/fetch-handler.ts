@@ -11,6 +11,7 @@ import {
   sanitizeRscResponse,
 } from '@/features/service-worker/offline-support/rsc-utils';
 import { DesignModeTriggers } from '@/utils/design-codes';
+import { isDraftMode } from '@/utils/draft-mode';
 import type { Serwist } from 'serwist';
 
 async function matchCachedPage(originalUrl: string): Promise<Response | undefined> {
@@ -34,13 +35,11 @@ async function matchCachedPage(originalUrl: string): Promise<Response | undefine
   if (cleanMatch) return cleanMatch;
 
   // 4. SCHEDULE FALLBACK (For Hard Reloads)
-  if (
-    urlObject.pathname.startsWith('/app/schedule/') &&
-    !urlObject.pathname.includes('offline-entry')
-  ) {
-    const offlineEntryUrl = `${urlObject.origin}/app/schedule/offline-entry`;
-    const offlineEntry = await pagesCache.match(offlineEntryUrl, { ignoreVary: true });
-    if (offlineEntry) return offlineEntry;
+  // Schedule pages are now fully CSR with tRPC cache - the main page works as its own offline shell
+  if (urlObject.pathname.startsWith('/app/schedule/')) {
+    const scheduleListUrl = `${urlObject.origin}/app/schedule`;
+    const schedulePage = await pagesCache.match(scheduleListUrl, { ignoreVary: true });
+    if (schedulePage) return schedulePage;
   }
 
   // 5. MAP FALLBACK
@@ -237,6 +236,11 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
 export const handleFetchEvent =
   (serwist: Serwist): ((event: FetchEvent) => void) =>
   (event: FetchEvent): void => {
+    // Bypass service worker entirely in draft mode
+    if (isDraftMode(event.request.headers.get('cookie'))) {
+      return; // Let the browser handle the request directly
+    }
+
     event.respondWith(
       router(event, serwist).catch((criticalError: unknown) => {
         console.error('[SW] Critical Error:', criticalError);
