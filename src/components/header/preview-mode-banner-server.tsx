@@ -1,6 +1,6 @@
 import { PreviewModeBanner } from '@/components/header/preview-mode-banner';
 import { canUserAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
-import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
+import { isValidNextAuthUser } from '@/utils/auth-helpers';
 import { cookies } from 'next/headers';
 import React from 'react';
 
@@ -27,7 +27,7 @@ export const PreviewModeBannerServerComponent: React.FC = async () => {
   const previewModeActive = serverCookies.get('__prerender_bypass')?.value !== undefined;
 
   const canAccessAdminDashboard = await canUserAccessAdminPanel({
-    user: session?.user as HitobitoNextAuthUser,
+    user: isValidNextAuthUser(session?.user) ? session.user : undefined,
   });
 
   return (

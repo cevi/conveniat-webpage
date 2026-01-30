@@ -1,10 +1,9 @@
 'use server';
 
 import { environmentVariables } from '@/config/environment-variables';
-import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { StaticTranslationString } from '@/types/types';
 import { auth } from '@/utils/auth';
-import { getPayloadUserFromNextAuthUser } from '@/utils/auth-helpers';
+import { getPayloadUserFromNextAuthUser, isValidNextAuthUser } from '@/utils/auth-helpers';
 import config from '@payload-config';
 import type { Where } from 'payload';
 import { getPayload } from 'payload';
@@ -42,7 +41,11 @@ export async function subscribeUser(
   const payload = await getPayload({ config });
   const session = await auth();
 
-  const hitobito_user = session?.user as HitobitoNextAuthUser;
+  if (!isValidNextAuthUser(session?.user)) {
+    return { success: false };
+  }
+
+  const hitobito_user = session.user;
 
   // eslint-disable-next-line unicorn/no-null
   const payloadUser = (await getPayloadUserFromNextAuthUser(payload, hitobito_user)) ?? null;

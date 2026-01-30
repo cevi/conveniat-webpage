@@ -1,5 +1,6 @@
 import type { Footer, Header, SEO } from '@/features/payload-cms/payload-types';
 import type { Locale } from '@/types/types';
+import { withSpan } from '@/utils/tracing-helpers';
 import config from '@payload-config';
 import { getPayload } from 'payload';
 import { cache } from 'react';
@@ -11,10 +12,12 @@ import { cache } from 'react';
  * request will share the same database query result.
  */
 export const getFooterCached = cache(async (locale: Locale): Promise<Footer> => {
-  const payload = await getPayload({ config });
-  return await payload.findGlobal({
-    slug: 'footer',
-    locale,
+  return await withSpan('getFooterCached', async () => {
+    const payload = await getPayload({ config });
+    return await payload.findGlobal({
+      slug: 'footer',
+      locale,
+    });
   });
 });
 
@@ -23,11 +26,13 @@ export const getFooterCached = cache(async (locale: Locale): Promise<Footer> => 
  */
 export const getHeaderCached = cache(
   async (locale: Locale, draft: boolean = false): Promise<Header> => {
-    const payload = await getPayload({ config });
-    return await payload.findGlobal({
-      slug: 'header',
-      locale,
-      draft,
+    return await withSpan('getHeaderCached', async () => {
+      const payload = await getPayload({ config });
+      return await payload.findGlobal({
+        slug: 'header',
+        locale,
+        draft,
+      });
     });
   },
 );
@@ -36,8 +41,10 @@ export const getHeaderCached = cache(
  * Fetches the SEO global with request-level memoization.
  */
 export const getSEOCached = cache(async (): Promise<SEO> => {
-  const payload = await getPayload({ config });
-  return await payload.findGlobal({
-    slug: 'SEO',
+  return await withSpan('getSEOCached', async () => {
+    const payload = await getPayload({ config });
+    return await payload.findGlobal({
+      slug: 'SEO',
+    });
   });
 });

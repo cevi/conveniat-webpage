@@ -1,5 +1,6 @@
 import type { Timeline } from '@/features/payload-cms/payload-types';
 import type { Locale } from '@/types/types';
+import { withSpan } from '@/utils/tracing-helpers';
 import config from '@payload-config';
 import { getPayload } from 'payload';
 import { cache } from 'react';
@@ -11,24 +12,26 @@ import { cache } from 'react';
  */
 export const getTimelineEntriesCached = cache(
   async (ids: string[], locale: Locale): Promise<{ docs: Timeline[] }> => {
-    if (ids.length === 0) return { docs: [] };
+    return await withSpan('getTimelineEntriesCached', async () => {
+      if (ids.length === 0) return { docs: [] };
 
-    const payload = await getPayload({ config });
-    const now = new Date();
+      const payload = await getPayload({ config });
+      const now = new Date();
 
-    const result = await payload.find({
-      collection: 'timeline',
-      locale: locale,
-      pagination: false,
-      where: {
-        and: [
-          { id: { in: ids } },
-          { _localized_status: { equals: { published: true } } },
-          { date: { less_than_equal: now } },
-        ],
-      },
+      const result = await payload.find({
+        collection: 'timeline',
+        locale: locale,
+        pagination: false,
+        where: {
+          and: [
+            { id: { in: ids } },
+            { _localized_status: { equals: { published: true } } },
+            { date: { less_than_equal: now } },
+          ],
+        },
+      });
+
+      return { docs: result.docs };
     });
-
-    return { docs: result.docs };
   },
 );

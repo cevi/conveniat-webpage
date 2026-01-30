@@ -1,7 +1,7 @@
 import { trpc } from '@/trpc/server';
-import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { StaticTranslationString } from '@/types/types';
 import { auth } from '@/utils/auth';
+import { isValidNextAuthUser } from '@/utils/auth-helpers';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { isRedirectError } from 'next/dist/client/components/redirect-error';
 import Link from 'next/link';
@@ -56,7 +56,7 @@ const NewChatWithUserPage: React.FC<{
     const { userId } = await params;
 
     const session = await auth();
-    const user = session?.user as HitobitoNextAuthUser | undefined;
+    const user = isValidNextAuthUser(session?.user) ? session.user : undefined;
 
     // Check if user is authenticated
     if (user?.uuid === undefined) {

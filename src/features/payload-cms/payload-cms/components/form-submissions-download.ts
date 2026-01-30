@@ -1,5 +1,6 @@
 'use server';
 
+import { withSpan } from '@/utils/tracing-helpers';
 import config from '@payload-config';
 import { getPayload } from 'payload';
 
@@ -28,49 +29,51 @@ const escapeCsvValue = (value: string | undefined): string => {
  * @returns A promise that resolves to a string containing the CSV data.
  */
 export const downloadFormSubmissionsAsCSV = async (formId: string): Promise<string> => {
-  const payload = await getPayload({ config });
+  return await withSpan('downloadFormSubmissionsAsCSV', async () => {
+    const payload = await getPayload({ config });
 
-  console.log('Downloading form submissions for form ID:', formId);
-  const formSubmissions = await payload.find({
-    collection: 'form-submissions',
-    where: {
-      form: {
-        equals: formId,
+    console.log('Downloading form submissions for form ID:', formId);
+    const formSubmissions = await payload.find({
+      collection: 'form-submissions',
+      where: {
+        form: {
+          equals: formId,
+        },
       },
-    },
-    limit: 1000,
-  });
-
-  const { docs: submissions } = formSubmissions;
-
-  if (submissions.length === 0) {
-    console.log('No submissions found for this form.');
-    return '';
-  }
-
-  // 1. Create headers dynamically from all unique field names across all submissions.
-  // This ensures all columns are included even if forms evolve over time.
-  const headerSet = new Set<string>();
-  for (const sub of submissions) {
-    for (const field of sub.submissionData ?? []) {
-      headerSet.add(field.field);
-    }
-  }
-  const headers = ['submissionId', 'createdAt', ...headerSet];
-
-  // 2. Map each submission to a CSV row.
-  const rows = submissions.map((sub) => {
-    const dataMap = new Map(sub.submissionData?.map((field) => [field.field, field.value]) ?? []);
-    const rowData = headers.map((header) => {
-      if (header === 'submissionId') return sub.id;
-      if (header === 'createdAt') return sub.createdAt;
-      return dataMap.get(header) ?? '';
+      limit: 1000,
     });
 
-    return rowData.map((element) => escapeCsvValue(element)).join(',');
-  });
+    const { docs: submissions } = formSubmissions;
 
-  // 3. Combine the header and all data rows into a single string.
-  const csvHeader = headers.map((element) => escapeCsvValue(element)).join(',');
-  return [csvHeader, ...rows].join('\n');
+    if (submissions.length === 0) {
+      console.log('No submissions found for this form.');
+      return '';
+    }
+
+    // 1. Create headers dynamically from all unique field names across all submissions.
+    // This ensures all columns are included even if forms evolve over time.
+    const headerSet = new Set<string>();
+    for (const sub of submissions) {
+      for (const field of sub.submissionData ?? []) {
+        headerSet.add(field.field);
+      }
+    }
+    const headers = ['submissionId', 'createdAt', ...headerSet];
+
+    // 2. Map each submission to a CSV row.
+    const rows = submissions.map((sub) => {
+      const dataMap = new Map(sub.submissionData?.map((field) => [field.field, field.value]) ?? []);
+      const rowData = headers.map((header) => {
+        if (header === 'submissionId') return sub.id;
+        if (header === 'createdAt') return sub.createdAt;
+        return dataMap.get(header) ?? '';
+      });
+
+      return rowData.map((element) => escapeCsvValue(element)).join(',');
+    });
+
+    // 3. Combine the header and all data rows into a single string.
+    const csvHeader = headers.map((element) => escapeCsvValue(element)).join(',');
+    return [csvHeader, ...rows].join('\n');
+  });
 };

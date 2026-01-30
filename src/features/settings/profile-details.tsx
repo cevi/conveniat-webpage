@@ -3,9 +3,9 @@ import { LinkComponent } from '@/components/ui/link-component';
 import { environmentVariables } from '@/config/environment-variables';
 import { LoginButton } from '@/features/settings/login-button';
 import { LogoutButton } from '@/features/settings/logout-button';
-import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { StaticTranslationString } from '@/types/types';
 import { auth } from '@/utils/auth';
+import { isValidNextAuthUser } from '@/utils/auth-helpers';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { ExternalLink, Hash, LifeBuoy, LogIn, Mail, MapPin, User } from 'lucide-react';
 import React from 'react';
@@ -69,7 +69,7 @@ const supportMailSubject: StaticTranslationString = {
 export const ProfileDetails: React.FC = async () => {
   const locale = await getLocaleFromCookies();
   const session = await auth();
-  const user = session?.user as HitobitoNextAuthUser | undefined;
+  const user = isValidNextAuthUser(session?.user) ? session.user : undefined;
   const isAuthenticated = !!user;
 
   const getDetail = (value: string | number | undefined | null): string =>

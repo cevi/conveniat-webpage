@@ -1,6 +1,6 @@
 import prisma from '@/lib/database';
-import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import { auth } from '@/utils/auth';
+import { isValidNextAuthUser } from '@/utils/auth-helpers';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { initTRPC, TRPCError } from '@trpc/server';
 import { cache } from 'react';
@@ -8,7 +8,7 @@ import superjson from 'superjson';
 
 export const createTRPCContext = cache(async () => {
   const session = await auth();
-  const sessionUser = session?.user as HitobitoNextAuthUser | undefined;
+  const sessionUser = isValidNextAuthUser(session?.user) ? session.user : undefined;
 
   const locale = await getLocaleFromCookies();
   return { user: sessionUser, locale, prisma: prisma };
@@ -35,8 +35,7 @@ const isAuthed = t.middleware(({ ctx, next }) => {
 
   return next({
     ctx: {
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-      user: ctx.user as HitobitoNextAuthUser,
+      user: ctx.user,
     },
   });
 });

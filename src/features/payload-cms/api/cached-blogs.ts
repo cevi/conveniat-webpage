@@ -1,5 +1,6 @@
 import type { Blog } from '@/features/payload-cms/payload-types';
 import type { Locale } from '@/types/types';
+import { withSpan } from '@/utils/tracing-helpers';
 import config from '@payload-config';
 import { getPayload } from 'payload';
 import { cache } from 'react';
@@ -13,32 +14,34 @@ import { cache } from 'react';
  */
 export const getRecentBlogPostsCached = cache(
   async (locale: Locale, limit?: number): Promise<{ docs: Blog[] }> => {
-    const payload = await getPayload({ config });
-    const currentDate = new Date().toISOString();
+    return await withSpan('getRecentBlogPostsCached', async () => {
+      const payload = await getPayload({ config });
+      const currentDate = new Date().toISOString();
 
-    const result = await payload.find({
-      collection: 'blog',
-      where: {
-        and: [
-          {
-            _localized_status: {
-              equals: {
-                published: true,
+      const result = await payload.find({
+        collection: 'blog',
+        where: {
+          and: [
+            {
+              _localized_status: {
+                equals: {
+                  published: true,
+                },
               },
             },
-          },
-          {
-            'content.releaseDate': {
-              less_than_equal: currentDate,
+            {
+              'content.releaseDate': {
+                less_than_equal: currentDate,
+              },
             },
-          },
-        ],
-      },
-      locale: locale,
-      limit: limit ?? 5,
-    });
+          ],
+        },
+        locale: locale,
+        limit: limit ?? 5,
+      });
 
-    return { docs: result.docs };
+      return { docs: result.docs };
+    });
   },
 );
 
@@ -47,31 +50,33 @@ export const getRecentBlogPostsCached = cache(
  */
 export const getBlogArticleBySlugCached = cache(
   async (slug: string, locale: Locale, draft: boolean = false): Promise<{ docs: Blog[] }> => {
-    const payload = await getPayload({ config });
-    const currentDate = new Date().toISOString();
+    return await withSpan('getBlogArticleBySlugCached', async () => {
+      const payload = await getPayload({ config });
+      const currentDate = new Date().toISOString();
 
-    const result = await payload.find({
-      collection: 'blog',
-      pagination: false,
-      locale: locale,
-      fallbackLocale: false,
-      draft: draft,
-      where: {
-        and: [
-          { 'seo.urlSlug': { equals: slug } },
-          // we only resolve published pages unless in preview mode
-          draft ? {} : { _localized_status: { equals: { published: true } } },
-          draft
-            ? {}
-            : {
-                'content.releaseDate': {
-                  less_than_equal: currentDate,
+      const result = await payload.find({
+        collection: 'blog',
+        pagination: false,
+        locale: locale,
+        fallbackLocale: false,
+        draft: draft,
+        where: {
+          and: [
+            { 'seo.urlSlug': { equals: slug } },
+            // we only resolve published pages unless in preview mode
+            draft ? {} : { _localized_status: { equals: { published: true } } },
+            draft
+              ? {}
+              : {
+                  'content.releaseDate': {
+                    less_than_equal: currentDate,
+                  },
                 },
-              },
-        ],
-      },
-    });
+          ],
+        },
+      });
 
-    return { docs: result.docs };
+      return { docs: result.docs };
+    });
   },
 );

@@ -99,6 +99,31 @@ const ensureCollectionLocalizedIndices = async (
 };
 
 /**
+ * Ensures compound indices for routable collections using internalPageName.
+ *
+ * Why: findAlternatives query in metadata-helper.ts filters by internalPageName
+ * and localized publishing status across all locales.
+ *
+ * @param connection The MongoDB connection
+ * @param collectionName The name of the collection
+ * @param locales The available locales
+ */
+const ensureInternalPageNameIndices = async (
+  connection: MongooseAdapter['connection'],
+  collectionName: string,
+  locales: string[],
+): Promise<void> => {
+  const collection = connection.collection(collectionName);
+
+  const tasks: IndexTask[] = locales.map((locale) => ({
+    name: `internalNameStatus_${locale}`,
+    spec: { internalPageName: 1, [`_localized_status.${locale}.published`]: 1 },
+  }));
+
+  await processIndexes(collection, tasks, collectionName);
+};
+
+/**
  * Ensures indices for version collections, including general and localized publishing status.
  *
  * Why:
@@ -173,6 +198,61 @@ const ensureUploadCollectionIndexes = async (
   await processIndexes(collection, tasks, collectionName);
 };
 
+/**
+ * Ensures indices for the globals collection.
+ *
+ * Why: The globals collection stores various global documents. Some queries filter by 'globalType'.
+ *
+ * @param connection The MongoDB connection
+ */
+const ensureGlobalsCollectionIndexes = async (
+  connection: MongooseAdapter['connection'],
+): Promise<void> => {
+  const collection = connection.collection('globals');
+
+  const tasks: IndexTask[] = [
+    {
+      name: 'globalType',
+      spec: { globalType: 1 },
+    },
+  ];
+
+  await processIndexes(collection, tasks, 'globals');
+};
+
+/**
+ * Prints a beautified list of all existing indexes in the database.
+ *
+ * @param connection The MongoDB connection
+ */
+const printAllIndexes = async (connection: MongooseAdapter['connection']): Promise<void> => {
+  const db = connection.db;
+  if (db === undefined) return;
+
+  const collections = await db.listCollections().toArray();
+  console.log(`\n${LOG_PREFIX} --- Current Database Indexes ---`);
+
+  // Sort collections by name for better readability
+  const sortedCollections = collections.sort((a, b) => a.name.localeCompare(b.name));
+
+  for (const colInfo of sortedCollections) {
+    const col = connection.collection(colInfo.name);
+    const indexes = await col.listIndexes().toArray();
+
+    process.stdout.write(`  [${colInfo.name}]\n`);
+
+    for (const index of indexes) {
+      const typedIndex = index as unknown as { key: Record<string, number | string>; name: string };
+      const keys = Object.entries(typedIndex.key)
+        .map(([key, val]) => `${key}: ${String(val)}`)
+        .join(', ');
+      process.stdout.write(`    - ${typedIndex.name.padEnd(30)} { ${keys} }\n`);
+    }
+  }
+
+  console.log(`${LOG_PREFIX} ----------------------------------\n`);
+};
+
 export const ensureIndexes = async (payload: Payload): Promise<void> => {
   const { db, config } = payload;
 
@@ -185,8 +265,10 @@ export const ensureIndexes = async (payload: Payload): Promise<void> => {
 
   // Normalize locales efficiently
   let locales: string[] = [];
-  if (localization && typeof localization === 'object') {
-    locales = localization.locales.map((l) => (typeof l === 'string' ? l : l.code));
+  if (Boolean(localization)) {
+    locales = (localization as { locales: (string | { code: string })[] }).locales.map((l) =>
+      typeof l === 'string' ? l : l.code,
+    );
   }
 
   // Prepare Entity List
@@ -194,8 +276,13 @@ export const ensureIndexes = async (payload: Payload): Promise<void> => {
   const globals = config.globals.map((g) => ({ ...g, type: 'global' as const }));
   const entities = [...collections, ...globals];
 
+  if (entities.length === 0) return;
+
   // Kick off Form Submissions (Promise)
   const formPromise = ensureFormSubmissionIndexes(connection, locales);
+
+  // Kick off Globals (Promise)
+  const globalsPromise = ensureGlobalsCollectionIndexes(connection);
 
   // Kick off Entity Processing (Promise)
   const entityPromises = entities.map(async (entity) => {
@@ -207,6 +294,14 @@ export const ensureIndexes = async (payload: Payload): Promise<void> => {
     // Main Collection Indices
     if (isLocalized && entity.type === 'collection') {
       entityTasks.push(ensureCollectionLocalizedIndices(connection, entity.slug, locales));
+    }
+
+    // internalPageName compound indices for routable collections
+    const hasInternalPageName = entity.fields.some(
+      (f) => 'name' in f && f.name === 'internalPageName',
+    );
+    if (hasInternalPageName && entity.type === 'collection') {
+      entityTasks.push(ensureInternalPageNameIndices(connection, entity.slug, locales));
     }
 
     // Upload Collection Indices
@@ -224,7 +319,9 @@ export const ensureIndexes = async (payload: Payload): Promise<void> => {
     await Promise.all(entityTasks);
   });
 
-  await Promise.all([formPromise, ...entityPromises]);
+  await Promise.all([formPromise, globalsPromise, ...entityPromises]);
+
+  await printAllIndexes(connection);
 
   console.log(`${LOG_PREFIX} Finished ensuring indices.`);
 };
