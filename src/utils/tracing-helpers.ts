@@ -5,7 +5,7 @@ import { trace, type Attributes, type Span } from '@opentelemetry/api';
  * Automatically handles error recording and span ending.
  *
  * @param name The name of the span
- * @param fn The async function to execute
+ * @param callback The async function to execute
  * @param attributes Optional attributes to add to the span
  */
 export async function withSpan<T>(
