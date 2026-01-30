@@ -232,9 +232,24 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
   }
 }
 
+/**
+ * Checks if the request is in Next.js draft mode by looking for the __prerender_bypass cookie.
+ * In draft mode, we bypass the service worker entirely so Payload admin works correctly.
+ */
+function isDraftMode(request: Request): boolean {
+  const cookieHeader = request.headers.get('cookie');
+  if (cookieHeader === null || cookieHeader === '') return false;
+  return cookieHeader.includes('__prerender_bypass');
+}
+
 export const handleFetchEvent =
   (serwist: Serwist): ((event: FetchEvent) => void) =>
   (event: FetchEvent): void => {
+    // Bypass service worker entirely in draft mode
+    if (isDraftMode(event.request)) {
+      return; // Let the browser handle the request directly
+    }
+
     event.respondWith(
       router(event, serwist).catch((criticalError: unknown) => {
         console.error('[SW] Critical Error:', criticalError);
