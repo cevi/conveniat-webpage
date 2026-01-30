@@ -5,11 +5,8 @@ import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { HostMetrics } from '@opentelemetry/host-metrics';
 import { MongoDBInstrumentation } from '@opentelemetry/instrumentation-mongodb';
-import type {
-  SerializerPayload} from '@opentelemetry/instrumentation-mongoose';
-import {
-  MongooseInstrumentation
-} from '@opentelemetry/instrumentation-mongoose';
+import type { SerializerPayload } from '@opentelemetry/instrumentation-mongoose';
+import { MongooseInstrumentation } from '@opentelemetry/instrumentation-mongoose';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { BatchLogRecordProcessor } from '@opentelemetry/sdk-logs';
 import { NodeSDK } from '@opentelemetry/sdk-node';
@@ -171,16 +168,23 @@ export const sdk = new NodeSDK({
     new MongooseInstrumentation({
       dbStatementSerializer: (operation: string, payload: SerializerPayload): string => {
         try {
-          return `${operation} ${JSON.stringify(payload)}`;
+          const payloadString = JSON.stringify(payload);
+          return payloadString.length > 500
+            ? `${operation} ${payloadString.slice(0, 500)}...`
+            : `${operation} ${payloadString}`;
         } catch {
           return 'Statement serialization failed';
         }
       },
     }),
     new MongoDBInstrumentation({
+      enhancedDatabaseReporting: true,
       dbStatementSerializer: (command: Record<string, unknown>): string => {
         try {
-          return JSON.stringify(command);
+          const commandString = JSON.stringify(command);
+          return commandString.length > 500
+            ? `${commandString.slice(0, 500)}...`
+            : `${commandString}`;
         } catch {
           return 'Statement serialization failed';
         }
