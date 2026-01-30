@@ -11,6 +11,7 @@ import {
   sanitizeRscResponse,
 } from '@/features/service-worker/offline-support/rsc-utils';
 import { DesignModeTriggers } from '@/utils/design-codes';
+import { isDraftMode } from '@/utils/draft-mode';
 import type { Serwist } from 'serwist';
 
 async function matchCachedPage(originalUrl: string): Promise<Response | undefined> {
@@ -235,6 +236,11 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
 export const handleFetchEvent =
   (serwist: Serwist): ((event: FetchEvent) => void) =>
   (event: FetchEvent): void => {
+    // Bypass service worker entirely in draft mode
+    if (isDraftMode(event.request.headers.get('cookie'))) {
+      return; // Let the browser handle the request directly
+    }
+
     event.respondWith(
       router(event, serwist).catch((criticalError: unknown) => {
         console.error('[SW] Critical Error:', criticalError);

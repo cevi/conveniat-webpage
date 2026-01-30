@@ -152,6 +152,8 @@ self.addEventListener('message', (event) => {
 });
 
 // Suppress network errors that occur during offline operation.
+// Note: Draft mode requests bypass the fetch handler entirely (via __prerender_bypass cookie check),
+// so these cache-related errors will only occur from non-draft-mode operations.
 self.addEventListener('unhandledrejection', (event) => {
   const error: unknown = event.reason;
   if (
