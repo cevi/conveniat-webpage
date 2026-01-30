@@ -1,22 +1,17 @@
 import type { User } from '@/features/payload-cms/payload-types';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
+import { HitobitoNextAuthUserSchema } from '@/types/hitobito-next-auth-user';
 import { auth } from '@/utils/auth';
 import type { AuthStrategyFunction, BasePayload } from 'payload';
 
 /**
- * Checks if the provided NextAuth user object is considered valid based on specific criteria.
+ * Checks if the provided NextAuth user object is considered valid based on the Zod schema.
  *
- * A user is considered valid if:
- * 1. The user object itself is not `undefined`.
- * 2. The `name` property is not an empty string.
- * 3. The `email` property is not an empty string.
- * 4. The `uuid` property is set (not an empty string).
- *
- * @param {HitobitoNextAuthUser} user - The NextAuth user object to validate. Might be `undefined`.
- * @returns {boolean} `true` if the user meets all validity criteria, `false` otherwise.
+ * @param {unknown} user - The NextAuth user object to validate.
+ * @returns {user is HitobitoNextAuthUser} `true` if the user meets all validity criteria, `false` otherwise.
  */
-export const isValidNextAuthUser = (user?: HitobitoNextAuthUser): boolean => {
-  return user !== undefined && user.name !== '' && user.email !== '' && user.uuid !== '';
+export const isValidNextAuthUser = (user?: unknown): user is HitobitoNextAuthUser => {
+  return HitobitoNextAuthUserSchema.safeParse(user).success;
 };
 
 /**
@@ -47,11 +42,13 @@ export async function getPayloadUserFromNextAuthUser(
 // @ts-expect-error
 export const getAuthenticateUsingCeviDB: AuthStrategyFunction = async ({ payload }) => {
   const session = await auth();
-  if (!session?.user || !isValidNextAuthUser(session.user as HitobitoNextAuthUser)) {
+  const validationResult = HitobitoNextAuthUserSchema.safeParse(session?.user);
+
+  if (!validationResult.success) {
     return { user: undefined };
   }
 
-  const nextAuthUser = session.user as HitobitoNextAuthUser;
+  const nextAuthUser = validationResult.data;
   const user = await getPayloadUserFromNextAuthUser(payload, nextAuthUser);
 
   return {

@@ -16,7 +16,8 @@ export const widgetDefaultLayout = (): WidgetInstance[] => {
 
   // Example restriction for default widgets, make this function async and import auth if needed
   const session = await auth();
-  const user = session?.user as HitobitoNextAuthUser | undefined;
+  // import { isValidNextAuthUser } from '@/utils/auth-helpers';
+  const user = isValidNextAuthUser(session?.user) ? session.user : undefined;
 
   if (user?.group_ids.includes(541)) {
     return [{ widgetSlug: 'emergency-alerts', width: 'small' }];

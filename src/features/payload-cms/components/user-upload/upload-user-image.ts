@@ -1,7 +1,7 @@
 'use server';
-import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { StaticTranslationString } from '@/types/types';
 import { auth } from '@/utils/auth';
+import { isValidNextAuthUser } from '@/utils/auth-helpers';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import config from '@payload-config';
 import fromBuffer from 'image-size';
@@ -47,14 +47,13 @@ export const uploadUserImage = async (
   const payload = await getPayload({ config });
   const session = await auth();
   const locale = await getLocaleFromCookies();
-  const hitobito_user = session?.user as HitobitoNextAuthUser;
-
-  if (!session?.user) {
+  if (!isValidNextAuthUser(session?.user)) {
     return {
       error: true,
       message: notAuthenticatedError[locale],
     };
   }
+  const hitobito_user = session.user;
 
   if (!image.type.startsWith('image')) {
     return {
