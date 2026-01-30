@@ -1,5 +1,6 @@
 import { LinkComponent } from '@/components/ui/link-component';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
+import { getBlogArticleBySlugCached } from '@/features/payload-cms/api/cached-blogs';
 import { BlogArticleConverter } from '@/features/payload-cms/converters/blog-article';
 import type { Blog, Image, Permission } from '@/features/payload-cms/payload-types';
 import { buildMetadata, findAlternatives } from '@/features/payload-cms/utils/metadata-helper';
@@ -11,7 +12,6 @@ import config from '@payload-config';
 import type { Metadata } from 'next';
 import { cacheLife, cacheTag } from 'next/cache';
 import { notFound, redirect } from 'next/navigation';
-import type { PaginatedDocs } from 'payload';
 import { getPayload } from 'payload';
 
 const languageChooseText: StaticTranslationString = {
@@ -26,74 +26,16 @@ const languagePreposition: StaticTranslationString = {
   fr: 'en',
 };
 
-const getBlogArticlesInPrimaryLanguageCached = async (
+const getBlogArticlesCachedPersistent = async (
   slug: string,
   locale: Locale,
   renderInPreviewMode: boolean,
-): Promise<PaginatedDocs<Blog>> => {
+): Promise<{ docs: Blog[] }> => {
   'use cache';
   cacheLife('hours');
   cacheTag('payload', 'blog', 'collection:blog');
 
-  const currentDate = new Date().toISOString();
-
-  const payload = await getPayload({ config });
-  return payload.find({
-    collection: 'blog',
-    pagination: false,
-    locale: locale,
-    fallbackLocale: false,
-    draft: renderInPreviewMode,
-    where: {
-      and: [
-        { 'seo.urlSlug': { equals: slug } },
-        // we only resolve published pages unless in preview mode
-        renderInPreviewMode ? {} : { _localized_status: { equals: { published: true } } },
-        renderInPreviewMode
-          ? {}
-          : {
-              'content.releaseDate': {
-                less_than_equal: currentDate,
-              },
-            },
-      ],
-    },
-  });
-};
-
-const getBlogArticlesCached = async (
-  slug: string,
-  locale: Locale,
-  renderInPreviewMode: boolean,
-): Promise<PaginatedDocs<Blog>> => {
-  'use cache';
-  cacheLife('hours');
-  cacheTag('payload', 'blog', 'collection:blog');
-
-  const currentDate = new Date().toISOString();
-
-  const payload = await getPayload({ config });
-
-  return payload.find({
-    collection: 'blog',
-    pagination: false,
-    draft: renderInPreviewMode,
-    locale: locale,
-    where: {
-      and: [
-        { 'seo.urlSlug': { equals: slug } },
-        // we only resolve published pages unless in preview mode
-        renderInPreviewMode ? {} : { _localized_status: { equals: { published: true } } },
-        renderInPreviewMode
-          ? {}
-          : {
-              'content.releaseDate': {
-                less_than_equal: currentDate,
-              },
-            },
-      ],
-    },
-  });
+  return getBlogArticleBySlugCached(slug, locale, renderInPreviewMode);
 };
 
 const BlogPostPage: LocalizedCollectionComponent = async ({
@@ -103,7 +45,7 @@ const BlogPostPage: LocalizedCollectionComponent = async ({
 }) => {
   const slug = slugs.join('/');
 
-  const articlesInPrimaryLanguage = await getBlogArticlesInPrimaryLanguageCached(
+  const articlesInPrimaryLanguage = await getBlogArticlesCachedPersistent(
     slug,
     locale,
     renderInPreviewMode,
@@ -130,7 +72,7 @@ const BlogPostPage: LocalizedCollectionComponent = async ({
   const locales: Locale[] = i18nConfig.locales.filter((l) => l !== locale) as Locale[];
 
   const articles = await Promise.all(
-    locales.map((l) => getBlogArticlesCached(slug, l, renderInPreviewMode)),
+    locales.map((l) => getBlogArticlesCachedPersistent(slug, l, renderInPreviewMode)),
   )
     .then((results) =>
       results
@@ -170,32 +112,23 @@ const BlogPostPage: LocalizedCollectionComponent = async ({
   );
 };
 
-BlogPostPage.generateMetadata = async ({ locale, slugs }): Promise<Metadata> => {
+const generateMetadataInternal = async (
+  locale: Locale,
+  slugs: string[] | undefined,
+): Promise<Metadata> => {
   'use cache';
   cacheLife('hours');
   cacheTag('payload', 'blog', 'collection:blog');
 
-  const payload = await getPayload({ config });
   const slug = slugs?.join('/') ?? '';
-  const currentDate = new Date().toISOString();
 
-  const result = await payload.find({
-    collection: 'blog',
-    pagination: false,
-    fallbackLocale: false,
-    locale,
-    draft: false,
-    where: {
-      and: [
-        { 'seo.urlSlug': { equals: slug } },
-        { _localized_status: { equals: { published: true } } },
-        { 'content.releaseDate': { less_than_equal: currentDate } },
-      ],
-    },
-  });
+  const result = await getBlogArticleBySlugCached(slug, locale, false);
 
   const article = result.docs[0];
   if (!article) return {};
+
+  const payload = await getPayload({ config });
+  const currentDate = new Date().toISOString();
 
   const blogAlternatives = await findAlternatives({
     payload,
@@ -229,6 +162,10 @@ BlogPostPage.generateMetadata = async ({ locale, slugs }): Promise<Metadata> => 
       description: article.seo.metaDescription ?? undefined,
     },
   };
+};
+
+BlogPostPage.generateMetadata = async ({ locale, slugs }): Promise<Metadata> => {
+  return generateMetadataInternal(locale, slugs);
 };
 
 export default BlogPostPage;

@@ -2,6 +2,7 @@ import { FooterGraphic } from '@/components/footer/footer-graphics';
 import { SocialMediaLinks } from '@/components/footer/social-media-links';
 import { CeviSchweiz } from '@/components/svg-logos/cevi-schweiz';
 import { LinkComponent } from '@/components/ui/link-component';
+import { getFooterCached } from '@/features/payload-cms/api/cached-globals';
 import {
   getURLForLinkField,
   openURLInNewTab,
@@ -10,9 +11,7 @@ import type { Locale, StaticTranslationString } from '@/types/types';
 import { getBuildInfo } from '@/utils/get-build-info';
 import { ForceDynamicOnBuild } from '@/utils/is-pre-rendering';
 import { cn } from '@/utils/tailwindcss-override';
-import config from '@payload-config';
 import { cacheLife, cacheTag } from 'next/cache';
-import { getPayload } from 'payload';
 import type React from 'react';
 import { Fragment } from 'react';
 
@@ -25,9 +24,8 @@ const FooterMinimalMenu: React.FC<{ locale: Locale }> = async ({ locale }) => {
   cacheLife('hours');
   cacheTag('payload', 'footer');
 
-  const payload = await getPayload({ config });
-
-  const { minimalFooterMenu } = await payload.findGlobal({ slug: 'footer', locale });
+  // use the cached getter to ensure we only fetch the footer once per request
+  const { minimalFooterMenu } = await getFooterCached(locale);
   if (minimalFooterMenu === undefined || minimalFooterMenu === null) return <></>;
 
   if (minimalFooterMenu.length === 0) return <></>;

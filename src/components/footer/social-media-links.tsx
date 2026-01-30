@@ -1,9 +1,8 @@
 import { LinkComponent } from '@/components/ui/link-component';
+import { getFooterCached } from '@/features/payload-cms/api/cached-globals';
 import type { Locale } from '@/types/types';
 import { SiInstagram, SiYoutube } from '@icons-pack/react-simple-icons';
-import config from '@payload-config';
 import { cacheLife, cacheTag } from 'next/cache';
-import { getPayload } from 'payload';
 import React from 'react';
 
 export const SocialMediaLinks: React.FC<{ locale: Locale }> = async ({ locale }) => {
@@ -11,8 +10,8 @@ export const SocialMediaLinks: React.FC<{ locale: Locale }> = async ({ locale })
   cacheLife('hours');
   cacheTag('payload', 'footer');
 
-  const payload = await getPayload({ config });
-  const { socialLinks } = await payload.findGlobal({ slug: 'footer', locale });
+  // use the cached getter to ensure we only fetch the footer once per request
+  const { socialLinks } = await getFooterCached(locale);
 
   const instagramLink = socialLinks?.instagram;
   const youTubeLink = socialLinks?.youtube;

@@ -185,6 +185,7 @@
     "jest": "^30.2.0",
     "jest-environment-jsdom": "^30.2.0",
     "lint-staged": "^16.2.7",
+    "mongodb": "^7.0.0",
     "postcss": "^8.5.6",
     "prettier": "^3.8.1",
     "prettier-plugin-organize-imports": "^4.3.0",

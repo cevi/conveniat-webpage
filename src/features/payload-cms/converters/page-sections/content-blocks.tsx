@@ -3,6 +3,7 @@ import type { PhotoCarouselBlock } from '@/components/gallery';
 import { PhotoCarousel } from '@/components/gallery';
 import type { NewsCardType } from '@/components/news-card';
 import { NewsCardBlock } from '@/components/news-card';
+import { getTimelineEntriesCached } from '@/features/payload-cms/api/cached-timeline';
 import { Accordion } from '@/features/payload-cms/components/accordion/accordion';
 import type { CallToActionType } from '@/features/payload-cms/components/content-blocks/call-to-action';
 import { CallToActionBlock } from '@/features/payload-cms/components/content-blocks/call-to-action';
@@ -35,10 +36,9 @@ import type {
   TimelineEntries,
 } from '@/features/payload-cms/payload-types';
 import type { Locale, LocalizedPageType, StaticTranslationString } from '@/types/types';
-import config from '@payload-config';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
+import { cacheLife, cacheTag } from 'next/cache';
 import Image from 'next/image';
-import { getPayload } from 'payload';
 import type React from 'react';
 import { Fragment } from 'react';
 
@@ -93,6 +93,16 @@ const errorMessageForType = (type: StaticTranslationString, locale: Locale): str
 
   return combined[locale];
 };
+const getTimelineEntriesCachedPersistent = async (
+  ids: string[],
+  locale: Locale,
+): Promise<{ docs: Timeline[] }> => {
+  'use cache';
+  cacheLife('hours');
+  cacheTag('payload', 'timeline', 'collection:timeline');
+
+  return getTimelineEntriesCached(ids, locale);
+};
 
 export const RenderTimelineEntries: SectionRenderer<TimelineEntries> = async ({
   block,
@@ -109,27 +119,14 @@ export const RenderTimelineEntries: SectionRenderer<TimelineEntries> = async ({
     .flat()
     .filter((entry: string | Timeline) => typeof entry === 'string');
 
-  const payload = await getPayload({ config });
-  const now = new Date();
-  const timelineQueryResult = timelineEntryUuids.map((uuid) =>
-    payload.find({
-      collection: 'timeline',
-      locale: locale, // current locale
-      where: {
-        id: { equals: uuid },
-        // only show news entries that are published in the current locale
-        _localized_status: { equals: { published: true } },
-        // only show news entries that lay in the past
-        date: { less_than_equal: now },
-      },
-    }),
+  const { docs: timelineEntriesUnsorted } = await getTimelineEntriesCachedPersistent(
+    timelineEntryUuids,
+    locale,
   );
 
-  const timelineEntriesPaginated = await Promise.all(timelineQueryResult);
-  const timelineEntries = timelineEntriesPaginated
-    .flatMap((element) => element.docs)
-    // order timeline entries by date
-    .sort((entry1: Timeline, entry2: Timeline) => entry2.date.localeCompare(entry1.date));
+  const timelineEntries = timelineEntriesUnsorted.sort((entry1: Timeline, entry2: Timeline) =>
+    entry2.date.localeCompare(entry1.date),
+  );
 
   return (
     <SectionWrapper
