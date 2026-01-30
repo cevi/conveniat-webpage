@@ -1,4 +1,5 @@
 import { deleteDatabase } from '@/features/payload-cms/payload-cms/initialization/deleting';
+import { ensureIndexes } from '@/features/payload-cms/payload-cms/initialization/ensure-indexes';
 import { seedDatabase } from '@/features/payload-cms/payload-cms/initialization/seeding';
 import prisma from '@/lib/database';
 import type { Payload } from 'payload';
@@ -11,6 +12,8 @@ export const onPayloadInit = async (payload: Payload): Promise<void> => {
   await seedDatabase(payload)
     .then(() => console.log('Seeding complete.'))
     .catch(console.error);
+
+  await ensureIndexes(payload).catch(console.error);
 };
 
 export const deleteEverything = async (payload: Payload): Promise<void> => {
