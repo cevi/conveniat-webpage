@@ -1,6 +1,7 @@
 import { environmentVariables } from '@/config/environment-variables';
 import type { HitobitoProfile } from '@/features/next-auth/types/hitobito-profile';
 import type { User } from '@/features/payload-cms/payload-types';
+import { withSpan } from '@/utils/tracing-helpers';
 import type { NextAuthConfig } from 'next-auth';
 import type { JWT } from 'next-auth/jwt';
 import type { BasePayload } from 'payload';
@@ -67,58 +68,60 @@ async function saveAndFetchUserFromPayload(
   payload: BasePayload,
   userProfile: HitobitoProfile,
 ): Promise<User> {
-  // Ensure the id is a number - Hitobito may return it as a string in some cases
-  const ceviDatabaseUuid =
-    typeof userProfile.id === 'string' ? Number.parseInt(userProfile.id, 10) : userProfile.id;
+  return await withSpan('saveAndFetchUserFromPayload', async () => {
+    // Ensure the id is a number - Hitobito may return it as a string in some cases
+    const ceviDatabaseUuid =
+      typeof userProfile.id === 'string' ? Number.parseInt(userProfile.id, 10) : userProfile.id;
 
-  if (Number.isNaN(ceviDatabaseUuid)) {
-    throw new TypeError(`Invalid user ID from Hitobito: ${userProfile.id}`);
-  }
+    if (Number.isNaN(ceviDatabaseUuid)) {
+      throw new TypeError(`Invalid user ID from Hitobito: ${userProfile.id}`);
+    }
 
-  const matchedUsers = await payload.find({
-    collection: 'users',
-    where: { cevi_db_uuid: { equals: ceviDatabaseUuid } },
-  });
-
-  if (matchedUsers.totalDocs > 1) {
-    throw new Error('Multiple users found with the same UUID');
-  }
-
-  // abort if the user already exists but still update user data
-  const payloadUserId = matchedUsers.docs[0]?.id;
-  if (matchedUsers.totalDocs === 1 && payloadUserId !== undefined) {
-    await payload.update({
+    const matchedUsers = await payload.find({
       collection: 'users',
       where: { cevi_db_uuid: { equals: ceviDatabaseUuid } },
+    });
+
+    if (matchedUsers.totalDocs > 1) {
+      throw new Error('Multiple users found with the same UUID');
+    }
+
+    // abort if the user already exists but still update user data
+    const payloadUserId = matchedUsers.docs[0]?.id;
+    if (matchedUsers.totalDocs === 1 && payloadUserId !== undefined) {
+      await payload.update({
+        collection: 'users',
+        where: { cevi_db_uuid: { equals: ceviDatabaseUuid } },
+        data: {
+          groups: userProfile.roles,
+          email: userProfile.email,
+          fullName: userProfile.first_name + ' ' + userProfile.last_name,
+          nickname: userProfile.nickname,
+        },
+      });
+
+      return await payload.findByID({
+        collection: 'users',
+        id: payloadUserId,
+      });
+    }
+
+    // save the new user to the database
+    return await payload.create({
+      collection: 'users',
       data: {
-        groups: userProfile.roles,
+        cevi_db_uuid: ceviDatabaseUuid,
+        groups: userProfile.roles.map((role) => ({
+          id: role.group_id,
+          name: role.group_name,
+          role_name: role.role_name,
+          role_class: role.role_class,
+        })),
         email: userProfile.email,
         fullName: userProfile.first_name + ' ' + userProfile.last_name,
         nickname: userProfile.nickname,
       },
     });
-
-    return await payload.findByID({
-      collection: 'users',
-      id: payloadUserId,
-    });
-  }
-
-  // save the new user to the database
-  return await payload.create({
-    collection: 'users',
-    data: {
-      cevi_db_uuid: ceviDatabaseUuid,
-      groups: userProfile.roles.map((role) => ({
-        id: role.group_id,
-        name: role.group_name,
-        role_name: role.role_name,
-        role_class: role.role_class,
-      })),
-      email: userProfile.email,
-      fullName: userProfile.first_name + ' ' + userProfile.last_name,
-      nickname: userProfile.nickname,
-    },
   });
 }
 
