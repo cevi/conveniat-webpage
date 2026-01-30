@@ -11,6 +11,7 @@ import {
   sanitizeRscResponse,
 } from '@/features/service-worker/offline-support/rsc-utils';
 import { DesignModeTriggers } from '@/utils/design-codes';
+import { isDraftMode } from '@/utils/draft-mode';
 import type { Serwist } from 'serwist';
 
 async function matchCachedPage(originalUrl: string): Promise<Response | undefined> {
@@ -232,23 +233,11 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
   }
 }
 
-/**
- * Checks if the request is in Next.js draft mode by looking for the __prerender_bypass cookie.
- * In draft mode, we bypass the service worker entirely so Payload admin works correctly.
- */
-const DRAFT_MODE_COOKIE_REGEX = /(?:^|;\s*)__prerender_bypass(?:=|;|$)/;
-
-function isDraftMode(request: Request): boolean {
-  const cookieHeader = request.headers.get('cookie');
-  if (cookieHeader === null || cookieHeader === '') return false;
-  return DRAFT_MODE_COOKIE_REGEX.test(cookieHeader);
-}
-
 export const handleFetchEvent =
   (serwist: Serwist): ((event: FetchEvent) => void) =>
   (event: FetchEvent): void => {
     // Bypass service worker entirely in draft mode
-    if (isDraftMode(event.request)) {
+    if (isDraftMode(event.request.headers.get('cookie'))) {
       return; // Let the browser handle the request directly
     }
 

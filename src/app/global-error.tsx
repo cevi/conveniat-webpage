@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 
 import '@/app/globals.scss';
 import { OnboardingLayout } from '@/features/onboarding/components/onboarding-layout';
+import { isDraftOrPreviewMode } from '@/utils/draft-mode';
 
 /**
  * This file is responsible for converting a general runtime error page.
@@ -19,6 +20,13 @@ const GlobalError: React.FC<{
   error: Error & { digest?: string };
 }> = ({ error }) => {
   useEffect(() => {
+    // Skip offline redirect in draft mode (Payload admin panel) or preview mode (?preview=true)
+    // In these modes, errors should be handled by the backend
+    if (isDraftOrPreviewMode()) {
+      console.error('[GlobalError] Error in draft mode, not redirecting to offline page:', error);
+      return;
+    }
+
     // Check if the error is likely due to being offline (e.g., failed to load a JS chunk)
     const isOfflineError =
       !navigator.onLine ||
