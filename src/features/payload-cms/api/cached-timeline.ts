@@ -5,8 +5,9 @@ import { getPayload } from 'payload';
 import { cache } from 'react';
 
 /**
- * Fetches multiple timeline entries by ID with request-level memoization.
- * Used to batch queries and avoid N+1 issues in content blocks.
+ * Fetches multiple timeline entries by their IDs in a single
+ * batched query with request-level memoization.
+ * Used to avoid N+1 issues in content blocks.
  */
 export const getTimelineEntriesCached = cache(
   async (ids: string[], locale: Locale): Promise<{ docs: Timeline[] }> => {

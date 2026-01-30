@@ -3,6 +3,7 @@ import type { PhotoCarouselBlock } from '@/components/gallery';
 import { PhotoCarousel } from '@/components/gallery';
 import type { NewsCardType } from '@/components/news-card';
 import { NewsCardBlock } from '@/components/news-card';
+import { getTimelineEntriesCached } from '@/features/payload-cms/api/cached-timeline';
 import { Accordion } from '@/features/payload-cms/components/accordion/accordion';
 import type { CallToActionType } from '@/features/payload-cms/components/content-blocks/call-to-action';
 import { CallToActionBlock } from '@/features/payload-cms/components/content-blocks/call-to-action';
@@ -36,6 +37,7 @@ import type {
 } from '@/features/payload-cms/payload-types';
 import type { Locale, LocalizedPageType, StaticTranslationString } from '@/types/types';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
+import { cacheLife, cacheTag } from 'next/cache';
 import Image from 'next/image';
 import type React from 'react';
 import { Fragment } from 'react';
@@ -91,10 +93,6 @@ const errorMessageForType = (type: StaticTranslationString, locale: Locale): str
 
   return combined[locale];
 };
-
-import { getTimelineEntriesCached } from '@/features/payload-cms/api/cached-timeline';
-import { cacheLife, cacheTag } from 'next/cache';
-
 const getTimelineEntriesCachedPersistent = async (
   ids: string[],
   locale: Locale,

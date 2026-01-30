@@ -7,6 +7,9 @@ import { cache } from 'react';
 /**
  * Fetches recent blog posts with request-level memoization.
  * Only returns published posts from the past.
+ *
+ * @param locale - The locale used to fetch localized blog posts.
+ * @param limit - Maximum number of blog posts to return (defaults to 5 if not specified).
  */
 export const getRecentBlogPostsCached = cache(
   async (locale: Locale, limit?: number): Promise<{ docs: Blog[] }> => {
