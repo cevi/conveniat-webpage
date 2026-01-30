@@ -60,7 +60,7 @@ export const slugValidation: TextFieldSingleValidation = async (value, arguments
     if (value.length < slugMinLength)
       return `Slug must be at least ${slugMinLength} characters long`;
     if (value.length > slugMaxLength)
-      return 'Slug cannot be longer than ${slugMaxLength} characters';
+      return `Slug cannot be longer than ${slugMaxLength} characters`;
 
     // check if the slug is unique
     const { payload, locale } = arguments_.req;
