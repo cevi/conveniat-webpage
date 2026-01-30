@@ -1,7 +1,11 @@
 import { ReactDOMServer } from 'next/dist/server/route-modules/app-page/vendored/ssr/entrypoints';
 import type { ReactNode } from 'react';
 
-export const replaceUmlautsAndAccents = (input: string): string => {
+export const replaceUmlautsAndAccents = (input: string | undefined | null): string => {
+  // while creating a new page in the payload cms admin panel
+  // the input may be undefined or null, after publishing the page
+  // this should no longer be the case
+  if (input === undefined || input === null) return '';
   return input
     .toLowerCase()
     .replaceAll('ä', 'ae')
