@@ -1,6 +1,6 @@
-import { environmentVariables } from '@/config/environment-variables';
 import type { User } from '@/features/payload-cms/payload-types';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
+import { auth } from '@/utils/auth';
 import type { AuthStrategyFunction, BasePayload } from 'payload';
 
 /**
@@ -17,21 +17,6 @@ import type { AuthStrategyFunction, BasePayload } from 'payload';
  */
 export const isValidNextAuthUser = (user?: HitobitoNextAuthUser): boolean => {
   return user !== undefined && user.name !== '' && user.email !== '' && user.uuid !== '';
-};
-
-/**
- * Fetches the session from the CeviDB API
- * @param cookie the cookie to use for the request
- */
-const fetchSessionFromCeviDB = async (
-  cookie: string,
-): Promise<{ user?: HitobitoNextAuthUser } | null> => {
-  const APP_HOST_URL = environmentVariables.APP_HOST_URL;
-  return (await fetch(APP_HOST_URL + '/api/auth/session', {
-    headers: {
-      cookie,
-    },
-  }).then((response) => response.json())) as { user?: HitobitoNextAuthUser } | null;
 };
 
 /**
@@ -60,16 +45,13 @@ export async function getPayloadUserFromNextAuthUser(
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-expect-error
-export const getAuthenticateUsingCeviDB: AuthStrategyFunction = async ({ headers, payload }) => {
-  const cookie = headers.get('cookie');
-  if (cookie === null) return { user: undefined };
-
-  const session = await fetchSessionFromCeviDB(cookie);
-  if (!session?.user || !isValidNextAuthUser(session.user)) {
+export const getAuthenticateUsingCeviDB: AuthStrategyFunction = async ({ payload }) => {
+  const session = await auth();
+  if (!session?.user || !isValidNextAuthUser(session.user as HitobitoNextAuthUser)) {
     return { user: undefined };
   }
 
-  const nextAuthUser = session.user;
+  const nextAuthUser = session.user as HitobitoNextAuthUser;
   const user = await getPayloadUserFromNextAuthUser(payload, nextAuthUser);
 
   return {
