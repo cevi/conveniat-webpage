@@ -1,5 +1,6 @@
 import type { GenericPage } from '@/features/payload-cms/payload-types';
 import type { Locale } from '@/types/types';
+import { withSpan } from '@/utils/tracing-helpers';
 import config from '@payload-config';
 import { getPayload } from 'payload';
 import { cache } from 'react';
@@ -14,25 +15,27 @@ export const getGenericPageBySlugCached = cache(
     locale: Locale,
     draft: boolean = false,
   ): Promise<{ docs: GenericPage[] }> => {
-    const payload = await getPayload({ config });
+    return await withSpan('getGenericPageBySlugCached', async () => {
+      const payload = await getPayload({ config });
 
-    const result = await payload.find({
-      depth: 1,
-      collection: 'generic-page',
-      pagination: false,
-      locale: locale,
-      fallbackLocale: false,
-      draft: draft,
-      where: {
-        and: [
-          { 'seo.urlSlug': { equals: slug } },
-          // we only resolve published pages unless in preview mode
-          draft ? {} : { _localized_status: { equals: { published: true } } },
-        ],
-      },
+      const result = await payload.find({
+        depth: 1,
+        collection: 'generic-page',
+        pagination: false,
+        locale: locale,
+        fallbackLocale: false,
+        draft: draft,
+        where: {
+          and: [
+            { 'seo.urlSlug': { equals: slug } },
+            // we only resolve published pages unless in preview mode
+            draft ? {} : { _localized_status: { equals: { published: true } } },
+          ],
+        },
+      });
+
+      return { docs: result.docs };
     });
-
-    return { docs: result.docs };
   },
 );
 
@@ -42,14 +45,16 @@ export const getGenericPageBySlugCached = cache(
  */
 export const getGenericPageByIDCached = cache(
   async (id: string, locale: Locale, draft: boolean = false): Promise<GenericPage> => {
-    const payload = await getPayload({ config });
+    return await withSpan('getGenericPageByIDCached', async () => {
+      const payload = await getPayload({ config });
 
-    return payload.findByID({
-      collection: 'generic-page',
-      depth: 1,
-      id,
-      locale,
-      draft,
+      return payload.findByID({
+        collection: 'generic-page',
+        depth: 1,
+        id,
+        locale,
+        draft,
+      });
     });
   },
 );

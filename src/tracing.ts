@@ -5,7 +5,11 @@ import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { HostMetrics } from '@opentelemetry/host-metrics';
 import { MongoDBInstrumentation } from '@opentelemetry/instrumentation-mongodb';
-import { MongooseInstrumentation } from '@opentelemetry/instrumentation-mongoose';
+import type {
+  SerializerPayload} from '@opentelemetry/instrumentation-mongoose';
+import {
+  MongooseInstrumentation
+} from '@opentelemetry/instrumentation-mongoose';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { BatchLogRecordProcessor } from '@opentelemetry/sdk-logs';
 import { NodeSDK } from '@opentelemetry/sdk-node';
@@ -164,7 +168,15 @@ export const sdk = new NodeSDK({
   }),
   autoDetectResources: false,
   instrumentations: [
-    new MongooseInstrumentation(),
+    new MongooseInstrumentation({
+      dbStatementSerializer: (operation: string, payload: SerializerPayload): string => {
+        try {
+          return `${operation} ${JSON.stringify(payload)}`;
+        } catch {
+          return 'Statement serialization failed';
+        }
+      },
+    }),
     new MongoDBInstrumentation({
       dbStatementSerializer: (command: Record<string, unknown>): string => {
         try {
