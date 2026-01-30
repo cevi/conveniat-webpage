@@ -236,10 +236,12 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
  * Checks if the request is in Next.js draft mode by looking for the __prerender_bypass cookie.
  * In draft mode, we bypass the service worker entirely so Payload admin works correctly.
  */
+const DRAFT_MODE_COOKIE_REGEX = /(?:^|;\s*)__prerender_bypass(?:=|;|$)/;
+
 function isDraftMode(request: Request): boolean {
   const cookieHeader = request.headers.get('cookie');
   if (cookieHeader === null || cookieHeader === '') return false;
-  return cookieHeader.includes('__prerender_bypass');
+  return DRAFT_MODE_COOKIE_REGEX.test(cookieHeader);
 }
 
 export const handleFetchEvent =
