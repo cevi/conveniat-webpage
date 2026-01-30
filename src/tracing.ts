@@ -9,17 +9,21 @@ import { MongooseInstrumentation } from '@opentelemetry/instrumentation-mongoose
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { BatchLogRecordProcessor } from '@opentelemetry/sdk-logs';
 import { NodeSDK } from '@opentelemetry/sdk-node';
-import { BatchSpanProcessor, TraceIdRatioBasedSampler } from '@opentelemetry/sdk-trace-base';
+import {
+  AlwaysOnSampler,
+  BatchSpanProcessor,
+  ParentBasedSampler,
+} from '@opentelemetry/sdk-trace-base';
 import { PrismaInstrumentation } from '@prisma/instrumentation';
 
 // Environment variables with fallbacks
 const TRACE_URL =
   // eslint-disable-next-line n/no-process-env
-  process.env['OTEL_EXPORTER_OTLP_TRACES_ENDPOINT'] || 'http://tempo:4318/v1/traces';
+  process.env['OTEL_EXPORTER_OTLP_TRACES_ENDPOINT'] ?? 'http://tempo:4318/v1/traces';
 // eslint-disable-next-line n/no-process-env
-const LOG_URL = process.env['OTEL_EXPORTER_OTLP_LOGS_ENDPOINT'] || 'http://loki:3100/otlp/v1/logs';
+const LOG_URL = process.env['OTEL_EXPORTER_OTLP_LOGS_ENDPOINT'] ?? 'http://loki:3100/otlp/v1/logs';
 // eslint-disable-next-line n/no-process-env
-const METRICS_PORT = Number.parseInt(process.env['OTEL_EXPORTER_PROMETHEUS_PORT'] || '9464', 10);
+const METRICS_PORT = Number.parseInt(process.env['OTEL_EXPORTER_PROMETHEUS_PORT'] ?? '9464', 10);
 
 const traceExporter = new OTLPTraceExporter({
   url: TRACE_URL,
@@ -155,7 +159,9 @@ export const sdk = new NodeSDK({
     branch: build.git.branch,
   }),
   serviceName: 'conveniat27-app',
-  sampler: new TraceIdRatioBasedSampler(0.25),
+  sampler: new ParentBasedSampler({
+    root: new AlwaysOnSampler(),
+  }),
   autoDetectResources: false,
   instrumentations: [
     new MongooseInstrumentation(),
