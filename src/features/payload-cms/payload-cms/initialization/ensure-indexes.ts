@@ -99,6 +99,31 @@ const ensureCollectionLocalizedIndices = async (
 };
 
 /**
+ * Ensures compound indices for routable collections using internalPageName.
+ *
+ * Why: findAlternatives query in metadata-helper.ts filters by internalPageName
+ * and localized publishing status across all locales.
+ *
+ * @param connection The MongoDB connection
+ * @param collectionName The name of the collection
+ * @param locales The available locales
+ */
+const ensureInternalPageNameIndices = async (
+  connection: MongooseAdapter['connection'],
+  collectionName: string,
+  locales: string[],
+): Promise<void> => {
+  const collection = connection.collection(collectionName);
+
+  const tasks: IndexTask[] = locales.map((locale) => ({
+    name: `internalNameStatus_${locale}`,
+    spec: { internalPageName: 1, [`_localized_status.${locale}.published`]: 1 },
+  }));
+
+  await processIndexes(collection, tasks, collectionName);
+};
+
+/**
  * Ensures indices for version collections, including general and localized publishing status.
  *
  * Why:
@@ -240,14 +265,18 @@ export const ensureIndexes = async (payload: Payload): Promise<void> => {
 
   // Normalize locales efficiently
   let locales: string[] = [];
-  if (localization && typeof localization === 'object') {
-    locales = localization.locales.map((l) => (typeof l === 'string' ? l : l.code));
+  if (Boolean(localization)) {
+    locales = (localization as { locales: (string | { code: string })[] }).locales.map((l) =>
+      typeof l === 'string' ? l : l.code,
+    );
   }
 
   // Prepare Entity List
   const collections = config.collections.map((c) => ({ ...c, type: 'collection' as const }));
   const globals = config.globals.map((g) => ({ ...g, type: 'global' as const }));
   const entities = [...collections, ...globals];
+
+  if (entities.length === 0) return;
 
   // Kick off Form Submissions (Promise)
   const formPromise = ensureFormSubmissionIndexes(connection, locales);
@@ -265,6 +294,14 @@ export const ensureIndexes = async (payload: Payload): Promise<void> => {
     // Main Collection Indices
     if (isLocalized && entity.type === 'collection') {
       entityTasks.push(ensureCollectionLocalizedIndices(connection, entity.slug, locales));
+    }
+
+    // internalPageName compound indices for routable collections
+    const hasInternalPageName = entity.fields.some(
+      (f) => 'name' in f && f.name === 'internalPageName',
+    );
+    if (hasInternalPageName && entity.type === 'collection') {
+      entityTasks.push(ensureInternalPageNameIndices(connection, entity.slug, locales));
     }
 
     // Upload Collection Indices
