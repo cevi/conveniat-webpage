@@ -35,10 +35,8 @@ import type {
   TimelineEntries,
 } from '@/features/payload-cms/payload-types';
 import type { Locale, LocalizedPageType, StaticTranslationString } from '@/types/types';
-import config from '@payload-config';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import Image from 'next/image';
-import { getPayload } from 'payload';
 import type React from 'react';
 import { Fragment } from 'react';
 
@@ -94,6 +92,20 @@ const errorMessageForType = (type: StaticTranslationString, locale: Locale): str
   return combined[locale];
 };
 
+import { getTimelineEntriesCached } from '@/features/payload-cms/api/cached-timeline';
+import { cacheLife, cacheTag } from 'next/cache';
+
+const getTimelineEntriesCachedPersistent = async (
+  ids: string[],
+  locale: Locale,
+): Promise<{ docs: Timeline[] }> => {
+  'use cache';
+  cacheLife('hours');
+  cacheTag('payload', 'timeline', 'collection:timeline');
+
+  return getTimelineEntriesCached(ids, locale);
+};
+
 export const RenderTimelineEntries: SectionRenderer<TimelineEntries> = async ({
   block,
   locale,
@@ -109,27 +121,14 @@ export const RenderTimelineEntries: SectionRenderer<TimelineEntries> = async ({
     .flat()
     .filter((entry: string | Timeline) => typeof entry === 'string');
 
-  const payload = await getPayload({ config });
-  const now = new Date();
-  const timelineQueryResult = timelineEntryUuids.map((uuid) =>
-    payload.find({
-      collection: 'timeline',
-      locale: locale, // current locale
-      where: {
-        id: { equals: uuid },
-        // only show news entries that are published in the current locale
-        _localized_status: { equals: { published: true } },
-        // only show news entries that lay in the past
-        date: { less_than_equal: now },
-      },
-    }),
+  const { docs: timelineEntriesUnsorted } = await getTimelineEntriesCachedPersistent(
+    timelineEntryUuids,
+    locale,
   );
 
-  const timelineEntriesPaginated = await Promise.all(timelineQueryResult);
-  const timelineEntries = timelineEntriesPaginated
-    .flatMap((element) => element.docs)
-    // order timeline entries by date
-    .sort((entry1: Timeline, entry2: Timeline) => entry2.date.localeCompare(entry1.date));
+  const timelineEntries = timelineEntriesUnsorted.sort((entry1: Timeline, entry2: Timeline) =>
+    entry2.date.localeCompare(entry1.date),
+  );
 
   return (
     <SectionWrapper

@@ -1,9 +1,9 @@
 import { NewsCardBlock } from '@/components/news-card';
+import { getRecentBlogPostsCached } from '@/features/payload-cms/api/cached-blogs';
 import type { LinkFieldDataType } from '@/features/payload-cms/payload-cms/shared-fields/link-field';
 import type { Blog } from '@/features/payload-cms/payload-types';
 import type { Locale, LocalizedPageType, StaticTranslationString } from '@/types/types';
-import config from '@payload-config';
-import { getPayload } from 'payload';
+import { cacheLife, cacheTag } from 'next/cache';
 import React from 'react';
 
 const resentBlogsText: StaticTranslationString = {
@@ -40,30 +40,19 @@ export const BlogDisplay: React.FC<{ locale: Locale; blog: Blog }> = ({ locale, 
   );
 };
 
+const getRecentBlogPostsCachedPersistent = async (
+  locale: Locale,
+  limit: number,
+): Promise<{ docs: Blog[] }> => {
+  'use cache';
+  cacheLife('hours');
+  cacheTag('payload', 'blog', 'collection:blog');
+
+  return getRecentBlogPostsCached(locale, limit);
+};
+
 export const ListBlogPosts: React.FC<LocalizedPageType> = async ({ locale }) => {
-  const payload = await getPayload({ config });
-  const currentDate = new Date().toISOString();
-  const blogsPaged = await payload.find({
-    collection: 'blog',
-    where: {
-      and: [
-        {
-          _localized_status: {
-            equals: {
-              published: true,
-            },
-          },
-        },
-        {
-          'content.releaseDate': {
-            less_than_equal: currentDate,
-          },
-        },
-      ],
-    },
-    locale: locale,
-    limit: 5,
-  });
+  const blogsPaged = await getRecentBlogPostsCachedPersistent(locale, 5);
 
   const blogs = blogsPaged.docs;
 

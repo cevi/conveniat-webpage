@@ -1,18 +1,15 @@
 import { environmentVariables } from '@/config/environment-variables';
+import { getSEOCached } from '@/features/payload-cms/api/cached-globals';
 import type { SEO } from '@/features/payload-cms/payload-types';
 import { metadataIconDefinitions } from '@/utils/icon-definitions';
 import { forceDynamicOnBuild } from '@/utils/is-pre-rendering';
-import config from '@payload-config';
 import type { Metadata } from 'next';
 import { cacheLife, cacheTag } from 'next/cache';
-import { getPayload } from 'payload';
 
 export const generateMetadataCached = async (): Promise<Metadata> => {
   'use cache';
   cacheLife('hours');
   cacheTag('payload', 'PWA-v8', 'SEO');
-
-  const payload = await getPayload({ config });
 
   const APP_HOST_URL = environmentVariables.APP_HOST_URL;
 
@@ -22,9 +19,7 @@ export const generateMetadataCached = async (): Promise<Metadata> => {
     defaultKeywords,
     publisher,
     googleSearchConsoleVerification,
-  }: SEO = await payload.findGlobal({
-    slug: 'SEO',
-  });
+  }: SEO = await getSEOCached();
 
   return {
     title: {
