@@ -30,7 +30,7 @@ import { redirect } from 'next/navigation';
  * This must be a GET request to allow simple redirects from preview links.
  *
  */
- 
+
 const GET = async (request: Request): Promise<Response> => {
   const { searchParams } = new URL(request.url);
   const authMethod = searchParams.get('auth');
