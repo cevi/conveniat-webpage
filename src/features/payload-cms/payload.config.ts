@@ -81,6 +81,7 @@ const generatePreviewUrl = ({
 export const payloadConfig: RoutableConfig = {
   onInit: onPayloadInit,
   admin: {
+    suppressHydrationWarning: true,
     avatar: 'default',
     meta: {
       title: 'Admin Panel',
