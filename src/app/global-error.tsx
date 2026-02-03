@@ -35,7 +35,16 @@ const GlobalError: React.FC<{
       error.message.toLowerCase().includes('network error');
 
     if (isOfflineError) {
-      console.log('[GlobalError] Offline error detected, redirecting to /~offline');
+      console.error('[GlobalError] Network/Offline error detected:', {
+        message: error.message,
+        name: error.name,
+        stack: error.stack,
+        digest: error.digest,
+        navigatorOnline: navigator.onLine,
+        userAgent: navigator.userAgent,
+        timestamp: new Date().toISOString(),
+      });
+      console.log('[GlobalError] Redirecting to /~offline');
       globalThis.location.href = '/~offline';
       return;
     }
