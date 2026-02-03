@@ -51,26 +51,13 @@ const GlobalError: React.FC<{
 
     console.error('Something went terribly wrong, we are sorry for that.');
 
-    const initializePostHogAndCaptureError = async (): Promise<void> => {
-      try {
-        const { initPostHog } = await import('@/lib/posthog-client');
-        const posthog = initPostHog();
-
-        if (posthog) {
-          posthog.captureException(error, {
-            properties: {
-              digest: error.digest,
-              message: `Global error on init: ${error.message}`,
-              stack: error.stack,
-            },
-          });
-        }
-      } catch (error_: unknown) {
-        console.error('Failed to initialize PostHog or capture error:', error_);
-      }
-    };
-
-    void initializePostHogAndCaptureError();
+    if (typeof globalThis !== 'undefined') {
+      import('posthog-js')
+        .then(({ default: posthog }) => {
+          posthog.captureException(error);
+        })
+        .catch((error_: unknown) => console.error('Failed to capture error with PostHog', error_));
+    }
   }, [error]);
 
   return (

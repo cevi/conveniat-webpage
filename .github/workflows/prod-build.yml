@@ -21,6 +21,9 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build Docker Image
+        env:
+          POSTHOG_API_KEY: ${{ secrets.POSTHOG_API_KEY }}
+          POSTHOG_ENV_ID: ${{ secrets.POSTHOG_ENV_ID }}
         run: docker compose -f docker-compose.prod.yml build
 
       - name: Push Docker Image

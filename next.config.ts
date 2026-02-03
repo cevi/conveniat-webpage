@@ -1,6 +1,7 @@
 import { cachingHeaders, optimizedImageMinimumCacheTTL } from '@/cache-control';
 import bundleAnalyzer from '@next/bundle-analyzer';
 import { withPayload } from '@payloadcms/next/withPayload';
+import { withPostHogConfig } from '@posthog/nextjs-config';
 import type { NextConfig } from 'next';
 import type { Rewrite } from 'next/dist/lib/load-custom-routes';
 
@@ -109,4 +110,13 @@ const nextConfig: NextConfig = {
   headers: cachingHeaders,
 };
 
-export default withBundleAnalyzer(withPayload(nextConfig, { devBundleServerPackages: false }));
+const config = withBundleAnalyzer(withPayload(nextConfig, { devBundleServerPackages: false }));
+
+export default process.env['POSTHOG_API_KEY']
+  ?  
+    withPostHogConfig(config, {
+      personalApiKey: process.env['POSTHOG_API_KEY'],
+      envId: process.env['POSTHOG_ENV_ID'] ?? '',
+      host: process.env['NEXT_PUBLIC_POSTHOG_HOST'] ?? 'https://eu.posthog.com',
+    })
+  : config;
