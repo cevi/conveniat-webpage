@@ -58,7 +58,6 @@ export const PostHogProvider: React.FC<{ children: React.ReactNode }> = ({ child
   useEffect(() => {
     if (
       typeof globalThis !== 'undefined' &&
-      typeof globalThis !== 'undefined' &&
       environmentVariables.NEXT_PUBLIC_POSTHOG_KEY !== '' &&
       environmentVariables.NEXT_PUBLIC_POSTHOG_HOST !== ''
     ) {
