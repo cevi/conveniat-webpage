@@ -113,8 +113,7 @@ const nextConfig: NextConfig = {
 const config = withBundleAnalyzer(withPayload(nextConfig, { devBundleServerPackages: false }));
 
 export default process.env['POSTHOG_API_KEY']
-  ?  
-    withPostHogConfig(config, {
+  ? withPostHogConfig(config, {
       personalApiKey: process.env['POSTHOG_API_KEY'],
       envId: process.env['POSTHOG_ENV_ID'] ?? '',
       host: process.env['NEXT_PUBLIC_POSTHOG_HOST'] ?? 'https://eu.posthog.com',
