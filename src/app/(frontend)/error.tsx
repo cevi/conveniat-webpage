@@ -7,7 +7,6 @@ import { i18nConfig } from '@/types/types';
 import { isDraftOrPreviewMode } from '@/utils/draft-mode';
 import { Loader2 } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
-import posthog from 'posthog-js';
 import React, { useEffect, useState } from 'react';
 
 const errorMessage: StaticTranslationString = {
@@ -96,7 +95,9 @@ const ErrorPage: React.FC<{
     console.error(error);
     console.error(error.stack);
     if (!isPreviewMode) {
-      posthog.captureException(error);
+      void import('posthog-js').then(({ default: ph }) => {
+        ph.captureException(error);
+      });
     }
   }, [error, isPreviewMode]);
 

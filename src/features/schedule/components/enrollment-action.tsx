@@ -20,6 +20,7 @@ import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { CheckCircle, Loader2, MessageSquare, Users, WifiOff } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
 import React, { useState } from 'react';
@@ -116,6 +117,8 @@ interface ConflictInfo {
 export const EnrollmentAction: React.FC<{
   courseId: string;
 }> = ({ courseId }) => {
+  const { status: authStatus } = useSession();
+  const isAuthorized = authStatus === 'authenticated';
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const { status, isLoading, isOnline } = useCourseStatus(courseId);
   const utils = trpc.useUtils();
@@ -269,12 +272,12 @@ export const EnrollmentAction: React.FC<{
         <Button
           className={cn(
             'h-12 text-lg font-bold transition-all duration-200 active:scale-95',
-            isFull
+            isFull || !isAuthorized
               ? 'cursor-not-allowed bg-gray-200 text-gray-500'
               : 'bg-conveniat-green hover:bg-conveniat-green-dark text-white hover:scale-[1.02]',
             enroll.isPending && 'opacity-80',
           )}
-          disabled={isFull || enroll.isPending}
+          disabled={isFull || enroll.isPending || !isAuthorized}
           onClick={() => enroll.mutate({ courseId })}
         >
           {enroll.isPending && (

@@ -32,6 +32,22 @@ const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
 
 /**
+ * Database configuration for PayloadCMS.
+ *
+ * We use the mongoose adapter to connect to the MongoDB database.
+ * Important is the minPoolSize and maxPoolSize to ensure that we avoid
+ * high latency and connection pool exhaustion.
+ *
+ */
+const dbConfig = mongooseAdapter({
+  url: environmentVariables.DATABASE_URI,
+  connectOptions: {
+    minPoolSize: 5,
+    maxPoolSize: 100,
+  },
+});
+
+/**
  * Generates the preview URL for the live preview feature.
  *
  * @param data
@@ -81,6 +97,7 @@ const generatePreviewUrl = ({
 export const payloadConfig: RoutableConfig = {
   onInit: onPayloadInit,
   admin: {
+    suppressHydrationWarning: true,
     avatar: 'default',
     meta: {
       title: 'Admin Panel',
@@ -160,12 +177,7 @@ export const payloadConfig: RoutableConfig = {
     autoGenerate: true,
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },
-  db: mongooseAdapter({
-    url: environmentVariables.DATABASE_URI,
-    connectOptions: {
-      maxPoolSize: 50,
-    },
-  }),
+  db: dbConfig,
   sharp: sharp,
   telemetry: false,
   plugins: [

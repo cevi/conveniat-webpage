@@ -65,7 +65,8 @@ export const ListBlogPosts: React.FC<LocalizedPageType> = async ({ locale }) => 
         {resentBlogsText[locale]}
       </h2>
       <div className="grid gap-6 min-[800px]:grid-cols-2 2xl:grid-cols-3">
-        {blogs.map((blog) => {
+        {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */}
+        {blogs?.map((blog) => {
           return <BlogDisplay blog={blog} key={blog.seo.urlSlug} locale={locale} />;
         })}
       </div>
