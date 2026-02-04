@@ -27,4 +27,18 @@ jobs:
         run: docker compose -f docker-compose.dev.yml build
 
       - name: Push Docker Image
-        run: docker push registry.cevi.tools/cevi/conveniat27-webpage:dev
+        # Retry docker push up to 5 times with exponential
+        # backoff to handle transient network issues
+        run: |
+          n=0
+          until [ "$n" -ge 5 ]
+          do
+             docker push registry.cevi.tools/cevi/conveniat27-webpage:dev && break
+             n=$((n+1))
+             echo "Push failed. Retrying in $((2**n)) seconds..."
+             sleep $((2**n))
+          done
+          if [ "$n" -ge 5 ]; then
+             echo "Push failed after 5 attempts."
+             exit 1
+          fi
