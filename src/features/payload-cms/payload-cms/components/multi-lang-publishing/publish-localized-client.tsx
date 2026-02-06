@@ -26,7 +26,7 @@ const unpublishingActionString: StaticTranslationString = {
   fr: 'Dépublier en',
 };
 
-const publishActionAstring: StaticTranslationString = {
+const publishActionString: StaticTranslationString = {
   en: 'Publish in',
   de: 'Veröffentlichen auf',
   fr: 'Publier en',
@@ -292,7 +292,7 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
         locale={code}
         title={
           modalType === 'publish'
-            ? `${publishActionAstring[code]} ${languageNames[code]}`
+            ? `${publishActionString[code]} ${languageNames[code]}`
             : `${unpublishingActionString[code]} ${languageNames[code]}`
         }
         confirmLabel={confirmButtonString[code]}
@@ -322,7 +322,7 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
             size="medium"
             type="button"
           >
-            {publishActionAstring[code]} {languageNames[code]}
+            {publishActionString[code]} {languageNames[code]}
           </FormSubmit>
           {(isLockedPublished || isCreating) && (
             <span className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 w-max max-w-xs -translate-x-1/2 transform rounded-md bg-gray-800 px-3 py-2 text-sm text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
