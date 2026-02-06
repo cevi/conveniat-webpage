@@ -26,6 +26,7 @@ import { default as default_c9f917d9608a57eb8358fce7a7898bd3 } from '@/features/
 import { default as default_7d02a833b9164544e9c8d7653b246eb7 } from '@/features/payload-cms/components/push-notification/push-notification-history.tsx'
 import { FormBlockLabel as FormBlockLabel_38d14c2698379009ac744a1a2c27c19b } from '@/features/payload-cms/payload-cms/components/form-block-label'
 import { FormSectionRowLabel as FormSectionRowLabel_95958b8088bc2dff497e1d7f3b2a3955 } from '@/features/payload-cms/payload-cms/components/form-section-row-label'
+import { WorkflowFieldMapping as WorkflowFieldMapping_250a2659e1c657e86d416a8a839c97c5 } from '@/features/payload-cms/payload-cms/plugins/form/components/workflow-field-mapping'
 import { FormExportButton as FormExportButton_fe5d55229fbe6ce6db571a8c425d41f4 } from '@/features/payload-cms/payload-cms/components/form-export-button'
 import { LinkToDoc as LinkToDoc_aead06e4cbf6b2620c5c51c9ab283634 } from '@payloadcms/plugin-search/client'
 import { ReindexButton as ReindexButton_aead06e4cbf6b2620c5c51c9ab283634 } from '@payloadcms/plugin-search/client'
@@ -34,6 +35,8 @@ import { FeatureFlagToggle as FeatureFlagToggle_970a7ebdf4155aada53759bd86956a49
 import { default as default_54174459954867e20e36ce19080dde49 } from '@/features/payload-cms/payload-cms/views/chat-management'
 import { default as default_ab019a1f47fb69008664ade9a2845503 } from '@/features/payload-cms/payload-cms/views/alert-management'
 import { default as default_b1f955abb547154f4667abb221790e2b } from '@/features/payload-cms/payload-cms/views/all-chats-management'
+import { default as default_a77c604b4ed076fec72f698268103ca5 } from '@/features/registration_process/components/management-view'
+import { default as default_8d520ff6bc17ad01077b15db1b6b9440 } from '@/features/registration_process/components/enrollment-view'
 import { ConveniatLogo as ConveniatLogo_1dcd95bfbb6787f73675c94df91c942d } from '@/components/svg-logos/conveniat-logo.tsx'
 import { default as default_d432a7de1921f0e10a01eefbe71b022a } from '@/features/payload-cms/payload-cms/components/login-page/admin-panel-login-page'
 import { default as default_a79319ae20aa3b9aa7415044aaf68603 } from '@/features/payload-cms/payload-cms/components/dashboard-welcome-banner'
@@ -71,6 +74,7 @@ export const importMap = {
   "@/features/payload-cms/components/push-notification/push-notification-history.tsx#default": default_7d02a833b9164544e9c8d7653b246eb7,
   "@/features/payload-cms/payload-cms/components/form-block-label#FormBlockLabel": FormBlockLabel_38d14c2698379009ac744a1a2c27c19b,
   "@/features/payload-cms/payload-cms/components/form-section-row-label#FormSectionRowLabel": FormSectionRowLabel_95958b8088bc2dff497e1d7f3b2a3955,
+  "@/features/payload-cms/payload-cms/plugins/form/components/workflow-field-mapping#WorkflowFieldMapping": WorkflowFieldMapping_250a2659e1c657e86d416a8a839c97c5,
   "@/features/payload-cms/payload-cms/components/form-export-button#FormExportButton": FormExportButton_fe5d55229fbe6ce6db571a8c425d41f4,
   "@payloadcms/plugin-search/client#LinkToDoc": LinkToDoc_aead06e4cbf6b2620c5c51c9ab283634,
   "@payloadcms/plugin-search/client#ReindexButton": ReindexButton_aead06e4cbf6b2620c5c51c9ab283634,
@@ -79,6 +83,8 @@ export const importMap = {
   "@/features/payload-cms/payload-cms/views/chat-management#default": default_54174459954867e20e36ce19080dde49,
   "@/features/payload-cms/payload-cms/views/alert-management#default": default_ab019a1f47fb69008664ade9a2845503,
   "@/features/payload-cms/payload-cms/views/all-chats-management#default": default_b1f955abb547154f4667abb221790e2b,
+  "@/features/registration_process/components/management-view#default": default_a77c604b4ed076fec72f698268103ca5,
+  "@/features/registration_process/components/enrollment-view#default": default_8d520ff6bc17ad01077b15db1b6b9440,
   "@/components/svg-logos/conveniat-logo.tsx#ConveniatLogo": ConveniatLogo_1dcd95bfbb6787f73675c94df91c942d,
   "@/features/payload-cms/payload-cms/components/login-page/admin-panel-login-page#default": default_d432a7de1921f0e10a01eefbe71b022a,
   "@/features/payload-cms/payload-cms/components/dashboard-welcome-banner#default": default_a79319ae20aa3b9aa7415044aaf68603,
