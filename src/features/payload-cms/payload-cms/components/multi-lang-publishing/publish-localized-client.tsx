@@ -181,7 +181,7 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
 
       const action = `${serverURL}${api}${
         globalSlug === undefined
-          ? `/${collectionSlug}/${id === undefined ? '' : `/${id}`}`
+          ? `/${collectionSlug}/${id === undefined ? '' : `${id}`}`
           : `/globals/${globalSlug}`
       }${parameters === '' ? '' : '?' + parameters}`;
 
