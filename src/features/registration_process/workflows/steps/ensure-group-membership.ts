@@ -33,7 +33,9 @@ export const ensureGroupMembershipStep: TaskConfig<{
 
       for (const role of existingRoles) {
         if (role.attributes.end_on === TARGET_END_DATE) {
-          logger.info(`User ${userId} already has correct role ${role.id} in group ${groupId}`);
+          logger.info(
+            `Match found: User ${userId} already has correct role ${role.id} in group ${groupId} until ${TARGET_END_DATE}`,
+          );
           correctRoleExists = true;
           break;
         }

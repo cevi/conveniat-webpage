@@ -111,7 +111,37 @@ export const createNewUser = async ({
 
   const hitobito = Hitobito.create(HITOBITO_CONFIG, logger);
 
-  // Try creation
+  // 1. Guarded Transition: Check if user already exists before registration
+  const existing = await hitobito.people.lookupByEmail({ email: input.email });
+  if (existing !== undefined) {
+    logger.info(`User with email ${input.email} already exists (found via lookup)`);
+
+    // Ensure they have a support group role (idempotent update)
+    const roleId = await hitobito.groups.checkActiveRole({
+      personId: existing.id,
+      groupId: HITOBITO_CONFIG.supportGroupId,
+    });
+
+    if (roleId !== undefined && roleId !== '') {
+      const endOn = new Date();
+      endOn.setDate(endOn.getDate() + 30);
+      const endOnString = endOn.toISOString().split('T')[0];
+
+      await hitobito.client.apiRequest('PATCH', `/api/roles/${roleId}`, {
+        body: {
+          data: {
+            type: 'roles',
+            id: String(roleId),
+            attributes: { end_on: endOnString },
+          },
+        },
+      });
+    }
+
+    return { peopleId: existing.id, status: 'created', reason: 'Created (verified by lookup)' };
+  }
+
+  // 2. Perform Mutation: Try creation
   const createdId = await hitobito.registrations.createUserSelfRegistration({
     userData: input,
     groupId: HITOBITO_CONFIG.supportGroupId,
@@ -141,32 +171,13 @@ export const createNewUser = async ({
     return { peopleId: createdId, status: 'created', reason: 'Created new user' };
   }
 
-  // Safety net
-  const verifyResult = await hitobito.people.lookupByEmail({ email: input.email });
-  if (verifyResult !== undefined) {
-    const roleId = await hitobito.groups.checkActiveRole({
-      personId: verifyResult.id,
-      groupId: HITOBITO_CONFIG.supportGroupId,
-    });
-    if (roleId !== undefined && roleId !== '') {
-      const endOn = new Date();
-      endOn.setDate(endOn.getDate() + 30);
-      const endOnString = endOn.toISOString().split('T')[0];
-      await hitobito.client.apiRequest('PATCH', `/api/roles/${roleId}`, {
-        body: {
-          data: {
-            type: 'roles',
-            id: String(roleId),
-            attributes: { end_on: endOnString },
-          },
-        },
-      });
-    }
-
+  // Final Safety net (in case registration succeeded but returned empty)
+  const finalVerify = await hitobito.people.lookupByEmail({ email: input.email });
+  if (finalVerify !== undefined) {
     return {
-      peopleId: verifyResult.id,
+      peopleId: finalVerify.id,
       status: 'created',
-      reason: 'Created (verified by lookup)',
+      reason: 'Created (verified by final lookup)',
     };
   }
 
