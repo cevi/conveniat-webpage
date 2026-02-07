@@ -1,93 +1,129 @@
+import {
+  RegistrationWorkflowInputSchema,
+  type ResolveUserByDetails,
+  type ResolveUserOutput,
+} from '@/features/registration_process/hitobito-api/schemas';
 import type { WorkflowConfig } from 'payload';
 
-interface RegistrationInput {
-  resolvedUserId?: string;
-  [key: string]: unknown;
+interface CreateUserOutput {
+  personId: string;
+  success: boolean;
+  error?: string | null;
+}
+
+interface BlockJobOutput {
+  blocked: boolean;
 }
 
 export const registrationWorkflow: WorkflowConfig<'registrationWorkflow'> = {
   slug: 'registrationWorkflow',
-  inputSchema: [
-    {
-      name: 'input',
-      type: 'json',
-      required: true,
-    },
-  ],
+  retries: 1,
+  inputSchema: [{ name: 'input', type: 'json', required: true }],
   handler: async ({ job, tasks }) => {
-    const jobInput = job.input as unknown as { input: RegistrationInput };
-    const registrationData = jobInput.input;
+    // 1. Validate Input
+    const parseResult = RegistrationWorkflowInputSchema.safeParse(job.input);
+    if (!parseResult.success) {
+      throw new Error(`[registrationWorkflow] Invalid Input: ${parseResult.error.message}`);
+    }
 
-    const typedTasks = tasks as unknown as {
-      resolveUser: (
-        taskId: string,
-        options: { input: unknown },
-      ) => Promise<{ reason: string; status: 'ambiguous' | 'created' | 'found'; userId: string }>;
-      blockJob: (
-        taskId: string,
-        options: {
+    const { input: workflowInput } = parseResult.data;
+
+    // 2. Determine User ID (Resumed, Resolved, or Forced Create)
+    let currentUserId: string | undefined = workflowInput.resolvedUserId;
+
+    if (currentUserId === undefined) {
+      if (workflowInput.forceCreateUser === true && 'email' in workflowInput) {
+        // 2a. Force Create User
+        const details = workflowInput as ResolveUserByDetails;
+        const creation = (await tasks.createUser('1', {
           input: {
-            workflowSlug: string;
-            originalInput: unknown;
-          };
-        },
-      ) => Promise<{ blocked: boolean }>;
-      ensureGroupMembership: (
-        taskId: string,
-        options: { input: { userId: string } },
-      ) => Promise<{ success: boolean }>;
-      ensureEventMembership: (
-        taskId: string,
-        options: { input: { userId: string } },
-      ) => Promise<{ success: boolean }>;
-      confirmationMessage: (
-        taskId: string,
-        options: { input: { userId: string } },
-      ) => Promise<{ sent: boolean }>;
-    };
-
-    let currentUserId: string;
-
-    // Check if we have a resolvedUserId (this is a resumed workflow after resolution)
-    if (registrationData.resolvedUserId !== undefined && registrationData.resolvedUserId !== '') {
-      currentUserId = registrationData.resolvedUserId;
-    } else {
-      // Phase 1: Resolve User
-      const resolveResult = await typedTasks.resolveUser('1', {
-        input: registrationData,
-      });
-
-      currentUserId = resolveResult.userId;
-
-      // Phase 1.1: Block job if ambiguous
-      if (resolveResult.status === 'ambiguous') {
-        const blockResult = await typedTasks.blockJob('2', {
-          input: {
-            workflowSlug: 'registrationWorkflow',
-            originalInput: registrationData,
+            firstName: details.firstName,
+            lastName: details.lastName,
+            email: details.email,
+            nickname: details.nickname ?? '',
           },
-        });
+        })) as unknown as CreateUserOutput;
 
-        // If blocked, end workflow gracefully (a new job will be triggered upon resolution)
-        if (blockResult.blocked) {
-          return;
+        if (creation.success) {
+          currentUserId = creation.personId;
+        } else {
+          throw new Error(`[registrationWorkflow] Forced user creation failed: ${creation.error}`);
+        }
+      } else {
+        // 2b. Automated/Manual Resolution
+        /* eslint-disable unicorn/no-null */
+        const resolution = (await tasks.resolveUser('1', {
+          input: {
+            peopleId: workflowInput.peopleId ?? null,
+            firstName:
+              'firstName' in workflowInput && typeof workflowInput.firstName === 'string'
+                ? workflowInput.firstName
+                : null,
+            lastName:
+              'lastName' in workflowInput && typeof workflowInput.lastName === 'string'
+                ? workflowInput.lastName
+                : null,
+            email:
+              'email' in workflowInput && typeof workflowInput.email === 'string'
+                ? workflowInput.email
+                : null,
+            nickname:
+              'nickname' in workflowInput && typeof workflowInput.nickname === 'string'
+                ? workflowInput.nickname
+                : null,
+            birthDate:
+              'birthDate' in workflowInput && typeof workflowInput.birthDate === 'string'
+                ? workflowInput.birthDate
+                : null,
+            address:
+              'address' in workflowInput && typeof workflowInput.address === 'string'
+                ? workflowInput.address
+                : null,
+            company:
+              'company' in workflowInput && typeof workflowInput.company === 'string'
+                ? workflowInput.company
+                : null,
+          },
+        })) as unknown as ResolveUserOutput;
+        /* eslint-enable unicorn/no-null */
+        currentUserId = resolution.peopleId;
+
+        console.log('user details', resolution);
+
+        // 2c. Handle Ambiguity
+        if (resolution.status === 'ambiguous') {
+          const blockResult = (await tasks.blockJob('2', {
+            input: {
+              workflowSlug: 'registrationWorkflow',
+              originalInput: workflowInput,
+              reason: resolution.reason,
+            },
+          })) as unknown as BlockJobOutput;
+
+          if (blockResult.blocked === true) return;
         }
       }
     }
 
-    // Phase 2: Ensure Group Membership
-    await typedTasks.ensureGroupMembership('3', {
-      input: { userId: currentUserId },
-    });
+    // 3. Execute Post-Resolution Steps
+    if (currentUserId.length === 0) {
+      throw new Error('[registrationWorkflow] User ID missing after resolution');
+    }
 
-    // Phase 3: Ensure Event Membership
-    await typedTasks.ensureEventMembership('4', {
-      input: { userId: currentUserId },
+    await tasks.ensureGroupMembership('3', {
+      input: {
+        userId: currentUserId,
+      },
     });
-
-    // Phase 4: Confirmation Message
-    await typedTasks.confirmationMessage('5', {
-      input: { userId: currentUserId },
+    await tasks.ensureEventMembership('4', {
+      input: {
+        userId: currentUserId,
+      },
+    });
+    await tasks.confirmationMessage('5', {
+      input: {
+        userId: currentUserId,
+      },
     });
   },
 };

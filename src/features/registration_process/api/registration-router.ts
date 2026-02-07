@@ -148,7 +148,27 @@ export const registrationRouter = createTRPCRouter({
       });
 
       if (!isInMemorySort) {
-        return result;
+        // Fetch blocked jobs for the returned docs
+        const jobIds = result.docs.map((d) => d.id);
+        const blockedJobs = await payload.find({
+          collection: 'blocked-jobs',
+          where: {
+            and: [{ originalJobId: { in: jobIds } }, { status: { equals: 'pending' } }],
+          },
+          limit: 0,
+        });
+
+        // Merge blocked info
+        const documents = result.docs.map((document_) => {
+          const blocked = blockedJobs.docs.find((bj) => bj.originalJobId === document_.id);
+          return {
+            ...document_,
+            blockedJobId: blocked?.id,
+            blockedReason: blocked ? (blocked['reason'] as string | undefined) : undefined,
+          };
+        });
+
+        return { ...result, docs: documents };
       }
 
       // --- In-Memory Sorting Logic ---
@@ -189,9 +209,28 @@ export const registrationRouter = createTRPCRouter({
       const endIndex = startIndex + input.limit;
       const pagedDocuments = sortedDocuments.slice(startIndex, endIndex);
 
+      // Fetch blocked jobs for the returned docs
+      const jobIds = pagedDocuments.map((d) => d.id);
+      const blockedJobs = await payload.find({
+        collection: 'blocked-jobs',
+        where: {
+          and: [{ originalJobId: { in: jobIds } }, { status: { equals: 'pending' } }],
+        },
+        limit: 0,
+      });
+
+      const documentsWithBlocked = pagedDocuments.map((document_) => {
+        const blocked = blockedJobs.docs.find((bj) => bj.originalJobId === document_.id);
+        return {
+          ...document_,
+          blockedJobId: blocked?.id,
+          blockedReason: blocked ? (blocked['reason'] as string | undefined) : undefined,
+        };
+      });
+
       return {
         ...result,
-        docs: pagedDocuments,
+        docs: documentsWithBlocked,
         totalDocs: result.totalDocs, // Total matches from DB
         limit: input.limit,
         page: input.page,
@@ -234,8 +273,30 @@ export const registrationRouter = createTRPCRouter({
         collection: 'blocked-jobs',
         id: input.jobId,
         data: {
-          status: 'resolved',
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
+          status: 'resolved' as any,
           resolutionData: input.resolutionData ?? {},
+        },
+      });
+
+      return updatedJob;
+    }),
+
+  rejectBlockedJob: adminProcedure
+    .input(
+      z.object({
+        jobId: z.string(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const payload = await getPayload({ config });
+
+      const updatedJob = await payload.update({
+        collection: 'blocked-jobs',
+        id: input.jobId,
+        data: {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
+          status: 'rejected' as any,
         },
       });
 

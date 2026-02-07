@@ -38,6 +38,7 @@ export const workflowTriggerOnFormSubmission: CollectionAfterChangeHook<FormSubm
     }
 
     // Update event with workflow context
+
      
     event['workflow'] = form.workflow;
 
