@@ -17,6 +17,7 @@ export interface RegistrationJob {
     error?: unknown;
     output?: unknown;
     input?: unknown;
+    id?: string;
   }[];
   input?: unknown;
   totalTried?: number;

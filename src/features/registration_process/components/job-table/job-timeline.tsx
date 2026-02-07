@@ -6,7 +6,17 @@ import { formatDistanceToNow } from 'date-fns';
 import { Check, Clock, X } from 'lucide-react';
 import React from 'react';
 
-export const JobTimeline: React.FC<{ job: RegistrationJob }> = ({ job }) => {
+export interface JobTimelineProperties {
+  job: RegistrationJob;
+  selectedStepIndex: number;
+  onSelectStep: (index: number) => void;
+}
+
+export const JobTimeline: React.FC<JobTimelineProperties> = ({
+  job,
+  selectedStepIndex,
+  onSelectStep,
+}) => {
   // Use log if available, otherwise fallback to taskStatus keys?
   // The log array contains the history. taskStatus contains current state of each.
   // Ideally we use logs for a timeline.
@@ -16,10 +26,6 @@ export const JobTimeline: React.FC<{ job: RegistrationJob }> = ({ job }) => {
     return <div className="p-4 text-xs text-zinc-400">No logs available for timeline.</div>;
   }
 
-  // Reverse logs to show newest first? Or oldest first?
-  // Timeline usually goes top (newest) to bottom (oldest) or vice versa.
-  // Let's do Oldest -> Newest (Top -> Bottom) as a process flow.
-
   return (
     <div className="relative flex flex-col gap-6 pl-2">
       {/* Connector Line */}
@@ -28,6 +34,7 @@ export const JobTimeline: React.FC<{ job: RegistrationJob }> = ({ job }) => {
       {logs.map((logEntry, index) => {
         const isError = logEntry.error !== undefined || logEntry.state === 'failed';
         const isCompleted = logEntry.completedAt !== undefined || logEntry.state === 'completed';
+        const isSelected = selectedStepIndex === index;
         const mapping = STEP_MAPPING[logEntry.taskSlug];
         const label = mapping?.label ?? logEntry.taskSlug;
 
@@ -43,7 +50,16 @@ export const JobTimeline: React.FC<{ job: RegistrationJob }> = ({ job }) => {
         }
 
         return (
-          <div key={index} className="relative z-10 flex gap-4">
+          <div
+            key={index}
+            className={cn(
+              'relative z-10 -ml-2 flex cursor-pointer gap-4 rounded-lg px-2 py-0.5 transition-colors',
+              isSelected
+                ? 'bg-zinc-100 dark:bg-zinc-800'
+                : 'hover:bg-zinc-50 dark:hover:bg-zinc-900/50',
+            )}
+            onClick={() => onSelectStep(index)}
+          >
             {/* Icon */}
             <div
               className={cn(
