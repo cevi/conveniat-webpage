@@ -78,10 +78,10 @@ export const BlockedJobs: CollectionConfig = {
     },
   },
   access: {
-    read: () => true,
-    create: () => true,
-    update: () => true,
-    delete: () => true,
+    read: () => false,
+    create: () => false,
+    update: () => false,
+    delete: () => false,
   },
   hooks: {
     afterChange: [afterChangeHook],
