@@ -5,7 +5,7 @@ const WORKFLOW_DEFINITIONS = {
     label: {
       en: 'Helper Registration Workflow',
       de: 'Helfer:innen-Anmeldung Workflow',
-      fr: 'Workflow de registraion',
+      fr: "Workflow d'inscription des bénévoles",
     },
     inputs: [
       {
