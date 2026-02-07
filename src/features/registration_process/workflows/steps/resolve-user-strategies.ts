@@ -1,16 +1,7 @@
-import type { Logger } from '@/features/registration_process/hitobito-api/client';
-import { HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api/config';
-import { checkGroupRoleApi, patchRole } from '@/features/registration_process/hitobito-api/groups';
-import {
-  type MatchCandidateResult,
-  matchCandidate,
-} from '@/features/registration_process/hitobito-api/matcher';
-import { createUserSelfRegistration } from '@/features/registration_process/hitobito-api/registrations';
+import { HITOBITO_CONFIG, Hitobito } from '@/features/registration_process/hitobito-api';
 import type { ResolveUserInput } from '@/features/registration_process/hitobito-api/schemas';
-import {
-  lookupByEmail,
-  searchUser,
-} from '@/features/registration_process/hitobito-api/user-search';
+import type { MatchCandidateResult } from '@/features/registration_process/hitobito-api/services/matcher.service';
+import type { Logger } from '@/features/registration_process/hitobito-api/types';
 
 export interface StrategyContext {
   logger: Logger;
@@ -39,6 +30,8 @@ export const resolveBySearch = async ({
 }: StrategyContext): Promise<StrategyResult> => {
   if (!('email' in input)) return undefined;
 
+  const hitobito = Hitobito.create(HITOBITO_CONFIG, logger);
+
   const queries = [
     [input.firstName, input.lastName, input.email, 'nickname' in input ? input.nickname : undefined]
       .filter((v): v is string => typeof v === 'string' && v !== '')
@@ -49,24 +42,25 @@ export const resolveBySearch = async ({
   const results: MatchCandidateResult[] = [];
 
   for (const query of queries) {
-    const candidates = await searchUser(query, logger);
+    const candidates = await hitobito.people.search({ query: query });
 
     for (const candidate of candidates) {
-      if (results.some((r) => r.personId === candidate.id)) continue;
+      if (results.some((r) => r.personId === String(candidate.id))) continue;
 
-      const match = await matchCandidate(
-        candidate,
-        {
-          firstName: input.firstName,
-          lastName: input.lastName,
-          email: input.email,
-          nickname: 'nickname' in input ? input.nickname : undefined,
-          birthDate: 'birthDate' in input ? input.birthDate : undefined,
-        },
-        logger,
-      );
+      const userData = {
+        firstName: input.firstName,
+        lastName: input.lastName,
+        email: input.email,
+        nickname: 'nickname' in input ? input.nickname : undefined,
+        birthDate: 'birthDate' in input ? input.birthDate : undefined,
+      };
 
-      if (match.matched) {
+      const match = await hitobito.matcher.matchCandidate({
+        candidate: { id: String(candidate.id), label: candidate.label ?? candidate.text ?? '' },
+        userData,
+      });
+
+      if (match.matched === true) {
         results.push(match);
       }
     }
@@ -74,9 +68,8 @@ export const resolveBySearch = async ({
 
   if (results.length === 0) return undefined;
 
-  // If we have a single "perfect" match, return it
-  const perfectMatch = results.find((r) => !r.needsReview);
-  if (perfectMatch) {
+  const perfectMatch = results.find((r) => r.needsReview === false);
+  if (perfectMatch !== undefined) {
     return {
       peopleId: perfectMatch.personId,
       status: 'found',
@@ -85,9 +78,8 @@ export const resolveBySearch = async ({
     };
   }
 
-  // Otherwise, return first match but as ambiguous
   const firstFoundCandidate = results[0];
-  if (!firstFoundCandidate) return undefined;
+  if (firstFoundCandidate === undefined) return undefined;
 
   return {
     peopleId: firstFoundCandidate.personId,
@@ -103,9 +95,10 @@ export const resolveByEmailLookup = async ({
 }: StrategyContext): Promise<StrategyResult> => {
   if (!('email' in input)) return undefined;
 
-  const result = await lookupByEmail(input.email, logger);
-  if (result.personId != undefined) {
-    return { peopleId: result.personId, status: 'found', reason: 'Matched by email API lookup' };
+  const hitobito = Hitobito.create(HITOBITO_CONFIG, logger);
+  const result = await hitobito.people.lookupByEmail({ email: input.email });
+  if (result !== undefined) {
+    return { peopleId: result.id, status: 'found', reason: 'Matched by email API lookup' };
   }
   return undefined;
 };
@@ -116,43 +109,62 @@ export const createNewUser = async ({
 }: StrategyContext): Promise<StrategyResult> => {
   if (!('email' in input)) return undefined;
 
-  // Try creation
-  const createdId = await createUserSelfRegistration(input, HITOBITO_CONFIG.supportGroupId, logger);
+  const hitobito = Hitobito.create(HITOBITO_CONFIG, logger);
 
-  if (createdId != undefined) {
-    // Patch role end date to 30 days
-    const roleId = await checkGroupRoleApi(createdId, HITOBITO_CONFIG.supportGroupId, logger);
+  // Try creation
+  const createdId = await hitobito.registrations.createUserSelfRegistration({
+    userData: input,
+    groupId: HITOBITO_CONFIG.supportGroupId,
+  });
+
+  if (createdId !== undefined && createdId !== '') {
+    const roleId = await hitobito.groups.checkActiveRole({
+      personId: createdId,
+      groupId: HITOBITO_CONFIG.supportGroupId,
+    });
     if (roleId !== undefined && roleId !== '') {
       const endOn = new Date();
       endOn.setDate(endOn.getDate() + 30);
-      const endOnString = endOn.toISOString().split('T')[0]; // YYYY-MM-DD
-      /* eslint-disable-next-line unicorn/no-null */
-      await patchRole(roleId, { end_on: endOnString ?? null }, logger);
+      const endOnString = endOn.toISOString().split('T')[0];
+
+      await hitobito.client.apiRequest('PATCH', `/api/roles/${roleId}`, {
+        body: {
+          data: {
+            type: 'roles',
+            id: String(roleId),
+            attributes: { end_on: endOnString },
+          },
+        },
+      });
     }
 
     return { peopleId: createdId, status: 'created', reason: 'Created new user' };
   }
 
-  // Double check: sometimes creation "fails" because they exist but weren't found earlier?
-  // Retry email lookup as a safety net
-  const verifyResult = await lookupByEmail(input.email, logger);
-  if (verifyResult.personId != undefined) {
-    // Also patch for existing user found during "fail"
-    const roleId = await checkGroupRoleApi(
-      verifyResult.personId,
-      HITOBITO_CONFIG.supportGroupId,
-      logger,
-    );
+  // Safety net
+  const verifyResult = await hitobito.people.lookupByEmail({ email: input.email });
+  if (verifyResult !== undefined) {
+    const roleId = await hitobito.groups.checkActiveRole({
+      personId: verifyResult.id,
+      groupId: HITOBITO_CONFIG.supportGroupId,
+    });
     if (roleId !== undefined && roleId !== '') {
       const endOn = new Date();
       endOn.setDate(endOn.getDate() + 30);
-      const endOnString = endOn.toISOString().split('T')[0]; // YYYY-MM-DD
-      /* eslint-disable-next-line unicorn/no-null */
-      await patchRole(roleId, { end_on: endOnString ?? null }, logger);
+      const endOnString = endOn.toISOString().split('T')[0];
+      await hitobito.client.apiRequest('PATCH', `/api/roles/${roleId}`, {
+        body: {
+          data: {
+            type: 'roles',
+            id: String(roleId),
+            attributes: { end_on: endOnString },
+          },
+        },
+      });
     }
 
     return {
-      peopleId: verifyResult.personId,
+      peopleId: verifyResult.id,
       status: 'created',
       reason: 'Created (verified by lookup)',
     };

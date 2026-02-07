@@ -1,9 +1,9 @@
-import { HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api/config';
-
-interface RequestOptions extends RequestInit {
-  cookies?: string;
-  params?: Record<string, string>;
-}
+import {
+  extractAuthenticityToken,
+  extractCsrfMetaToken,
+  extractFormFields,
+} from '@/features/registration_process/hitobito-api/html-parser';
+import type { Logger, RequestOptions } from '@/features/registration_process/hitobito-api/types';
 
 export class FatalError extends Error {
   constructor(message: string) {
@@ -12,213 +12,221 @@ export class FatalError extends Error {
   }
 }
 
-export interface Logger {
-  info(message: string, ...args: unknown[]): void;
-  warn(message: string, ...args: unknown[]): void;
-  error(message: string, ...args: unknown[]): void;
-}
+export class HitobitoClient {
+  constructor(
+    public readonly config: {
+      baseUrl: string;
+      apiToken: string;
+      browserCookie: string;
+    },
+    private readonly logger?: Logger,
+  ) {}
 
-async function fetchWithTimeout(
-  url: string,
-  options: RequestInit = {},
-  timeoutMs = 20_000,
-): Promise<Response> {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeoutMs);
+  private async fetchWithTimeout(
+    url: string,
+    options: RequestInit = {},
+    timeoutMs = 20_000,
+  ): Promise<Response> {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeoutMs);
 
-  try {
-    const config: RequestInit = {
-      ...options,
-      signal: options.signal ?? controller.signal,
-    };
-    const response = await fetch(url, config);
-    clearTimeout(id);
-    return response;
-  } catch (error) {
-    clearTimeout(id);
-    throw error;
-  }
-}
-
-function buildUrl(base: string, path: string, params?: Record<string, string>): string {
-  const url = new URL(path, base);
-  if (params) {
-    for (const [key, value] of Object.entries(params)) {
-      url.searchParams.append(key, value);
+    try {
+      const config: RequestInit = {
+        ...options,
+        signal: options.signal ?? controller.signal,
+      };
+      const response = await fetch(url, config);
+      clearTimeout(id);
+      return response;
+    } catch (error) {
+      clearTimeout(id);
+      throw error;
     }
   }
-  return url.toString();
-}
 
-// JSON API Client
-export async function apiGet<T>(
-  path: string,
-  params?: Record<string, string>,
-  signal?: AbortSignal,
-  logger?: Logger,
-): Promise<T> {
-  const url = buildUrl(HITOBITO_CONFIG.baseUrl, path, params);
-
-  if (logger) logger.info(`GET ${url}`);
-
-  const response = await fetchWithTimeout(url, {
-    method: 'GET',
-    headers: {
-      'X-TOKEN': HITOBITO_CONFIG.apiToken,
-      'Content-Type': 'application/vnd.api+json',
-      Accept: 'application/vnd.api+json',
-    },
-    ...(signal ? { signal } : {}),
-  });
-
-  if (!response.ok) {
-    throw new Error(`API GET failed: ${response.status} ${response.statusText} ${url}`);
+  private buildUrl(base: string, path: string, params?: Record<string, string>): string {
+    const url = new URL(path, base.endsWith('/') ? base : `${base}/`);
+    if (params) {
+      for (const [key, value] of Object.entries(params)) {
+        url.searchParams.append(key, value);
+      }
+    }
+    return url.toString();
   }
 
-  return response.json() as Promise<T>;
-}
+  // Official JSON API Methods
+  async apiRequest<T>(
+    method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
+    path: string,
+    options: {
+      params?: Record<string, string>;
+      body?: unknown;
+      signal?: AbortSignal;
+    } = {},
+  ): Promise<T> {
+    const url = this.buildUrl(this.config.baseUrl, path, options.params);
+    this.logger?.info(`${method} ${url}`);
 
-export async function apiPost<T>(path: string, body: unknown, logger?: Logger): Promise<T> {
-  const url = buildUrl(HITOBITO_CONFIG.baseUrl, path);
+    const response = await this.fetchWithTimeout(url, {
+      method,
+      headers: {
+        'X-TOKEN': this.config.apiToken,
+        'Content-Type': 'application/vnd.api+json',
+        Accept: 'application/vnd.api+json',
+      },
+      body:
+        options.body !== undefined && options.body !== null
+          ? (JSON.stringify(options.body) as BodyInit)
+          : undefined,
+      signal: options.signal,
+    } as RequestInit);
 
-  if (logger) logger.info(`POST ${url}`);
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(
+        `API ${method} failed: ${response.status} ${response.statusText} - ${text} at ${url}`,
+      );
+    }
 
-  const response = await fetchWithTimeout(url, {
-    method: 'POST',
-    headers: {
-      'X-TOKEN': HITOBITO_CONFIG.apiToken,
-      'Content-Type': 'application/vnd.api+json',
-      Accept: 'application/vnd.api+json',
-    },
-    body: JSON.stringify(body),
-  });
+    if (method === 'DELETE' || response.status === 204) {
+      return {} as T;
+    }
 
-  if (!response.ok) {
-    // Try to read error body
     const text = await response.text();
-    throw new Error(`API POST failed: ${response.status} ${response.statusText} - ${text}`);
+    if (text.length === 0) return {} as T;
+
+    try {
+      return JSON.parse(text) as T;
+    } catch {
+      return {} as T;
+    }
   }
 
-  // Some endpoints might return empty body
-  const text = await response.text();
-  if (text.length === 0) return {} as T; // Changed from !text to text.length === 0
+  // Frontend / Browser based Methods (Scraping & Internal JSON)
+  async frontendRequest(
+    method: 'GET' | 'POST',
+    urlOrPath: string,
+    options: RequestOptions = {},
+  ): Promise<{ response: Response; body: string }> {
+    const url = urlOrPath.startsWith('http')
+      ? urlOrPath
+      : this.buildUrl(this.config.baseUrl, urlOrPath, options.params);
 
-  try {
-    return JSON.parse(text) as T;
-  } catch {
-    return {} as T;
-  }
-}
+    const headers = new Headers(options.headers);
+    if (this.config.browserCookie.length > 0) {
+      headers.set('Cookie', this.config.browserCookie);
+    }
 
-export async function apiPatch<T>(path: string, body: unknown, logger?: Logger): Promise<T> {
-  const url = buildUrl(HITOBITO_CONFIG.baseUrl, path);
+    if (method === 'POST' && !headers.has('Content-Type')) {
+      headers.set('Content-Type', 'application/x-www-form-urlencoded');
+    }
 
-  if (logger) logger.info(`PATCH ${url}`);
+    if (!headers.has('User-Agent')) {
+      headers.set('User-Agent', 'Mozilla/5.0 (compatible; conveniat27-bot/1.0)');
+    }
 
-  const response = await fetchWithTimeout(url, {
-    method: 'PATCH',
-    headers: {
-      'X-TOKEN': HITOBITO_CONFIG.apiToken,
-      'Content-Type': 'application/vnd.api+json',
-      Accept: 'application/vnd.api+json',
-    },
-    body: JSON.stringify(body),
-  });
+    this.logger?.info(`Frontend ${method} ${url}`);
 
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`API PATCH failed: ${response.status} ${response.statusText} - ${text}`);
-  }
-
-  const text = await response.text();
-  if (text.length === 0) return {} as T; // Changed from !text to text.length === 0
-
-  try {
-    return JSON.parse(text) as T;
-  } catch {
-    return {} as T;
-  }
-}
-
-export async function apiDelete(path: string, logger?: Logger): Promise<boolean> {
-  const url = buildUrl(HITOBITO_CONFIG.baseUrl, path);
-
-  if (logger) logger.info(`DELETE ${url}`);
-
-  const response = await fetchWithTimeout(url, {
-    method: 'DELETE',
-    headers: {
-      'X-TOKEN': HITOBITO_CONFIG.apiToken,
-      'Content-Type': 'application/vnd.api+json',
-      Accept: 'application/vnd.api+json',
-    },
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`API DELETE failed: ${response.status} ${response.statusText} - ${text}`);
-  }
-
-  return true;
-}
-
-// Frontend Client (Cookie based)
-export async function httpGet(
-  url: string,
-  options: RequestOptions = {},
-): Promise<{ response: Response; body: string }> {
-  const headers = new Headers(options.headers);
-  if (options.cookies !== undefined) {
-    headers.set('Cookie', options.cookies);
-  }
-
-  const response = await fetchWithTimeout(
-    url,
-    {
+    const response = await this.fetchWithTimeout(url, {
       ...options,
+      method,
       headers,
-    },
-    20_000,
-  );
+    });
 
-  const body = await response.text();
-  return { response, body };
-}
-
-export async function httpPost(
-  url: string,
-  options: RequestOptions = {},
-): Promise<{ response: Response; body: string }> {
-  const headers = new Headers(options.headers);
-  if (options.cookies !== undefined) {
-    headers.set('Cookie', options.cookies);
-  }
-  // Default content type if not set
-  if (!headers.has('Content-Type')) {
-    headers.set('Content-Type', 'application/x-www-form-urlencoded');
+    const body = await response.text();
+    return { response, body };
   }
 
-  const response = await fetchWithTimeout(
-    url,
-    {
-      ...options,
-      method: 'POST',
-      headers,
-    },
-    20_000,
-  );
+  getFrontendHeaders(referer?: string): HeadersInit {
+    return {
+      'User-Agent': 'Mozilla/5.0 (compatible; conveniat27-bot/1.0)',
+      Referer: referer ?? this.config.baseUrl,
+    };
+  }
 
-  const body = await response.text();
-  return { response, body };
-}
+  /**
+   * Abstracted logic for Rails form submission (GET form -> Extact token -> POST data)
+   */
+  async submitRailsForm({
+    getFormUrl,
+    postUrl,
+    formData,
+    params,
+    method = 'POST',
+    extractExtraFields = false,
+    extraHeaders = {},
+  }: {
+    getFormUrl: string;
+    postUrl: string;
+    formData: Record<string, string | string[]>;
+    params?: Record<string, string>;
+    method?: 'POST' | 'PATCH' | 'PUT';
+    extractExtraFields?: boolean;
+    extraHeaders?: Record<string, string>;
+  }): Promise<{ response: Response; body: string; finalUrl: string }> {
+    // 1. Get Form
+    const { response: formResponse, body: html } = await this.frontendRequest('GET', getFormUrl, {
+      ...(params ? { params } : {}),
+    });
+    if (!formResponse.ok) {
+      throw new Error(`Failed to fetch form from ${getFormUrl}: ${formResponse.status}`);
+    }
 
-export function getBrowserCookie(): string {
-  return HITOBITO_CONFIG.browserCookie;
-}
+    // 2. Extract Tokens
+    const token = extractAuthenticityToken(html);
+    const metaToken = extractCsrfMetaToken(html);
 
-export function getFrontendHeaders(referer?: string): HeadersInit {
-  return {
-    'User-Agent': 'Mozilla/5.0 (compatible; ConveniatBot/1.0)',
-    Referer: referer ?? HITOBITO_CONFIG.frontendUrl,
-  };
+    // 3. Prepare Payload
+    const payload = new URLSearchParams();
+
+    // Handle Rails method override
+    if (method !== 'POST') {
+      payload.append('_method', method.toLowerCase());
+    }
+
+    payload.append('authenticity_token', token);
+
+    // Extract pre-existing fields if requested
+    if (extractExtraFields) {
+      const existingFields = extractFormFields(html);
+      for (const [key, value] of Object.entries(existingFields)) {
+        payload.append(key, value);
+      }
+    }
+
+    // Append provided form data (this can overwrite extracted fields)
+    for (const [key, value] of Object.entries(formData)) {
+      if (Array.isArray(value)) {
+        for (const val of value) {
+          payload.append(key, val);
+        }
+      } else {
+        // Only overwrite if not empty or if explicitly provided?
+        // Actually, URLSearchParams.set would overwrite. append adds multiple.
+        // We probably want to OVERWRITE extracted fields with provided data.
+        if (payload.has(key)) {
+          payload.delete(key);
+        }
+        payload.append(key, value);
+      }
+    }
+
+    // 4. Submit
+    const referer = new URL(getFormUrl, this.config.baseUrl).toString();
+    const finalHeaders = {
+      ...(this.getFrontendHeaders(referer) as Record<string, string>),
+      ...extraHeaders,
+    };
+
+    if (metaToken !== '' && finalHeaders['x-csrf-token'] === undefined) {
+      finalHeaders['x-csrf-token'] = metaToken;
+    }
+
+    const result = await this.frontendRequest('POST', postUrl, {
+      headers: finalHeaders,
+      body: payload.toString(),
+    });
+
+    return { ...result, finalUrl: result.response.url };
+  }
 }
