@@ -88,7 +88,7 @@ export const StepDetails: React.FC<StepDetailsProperties> = ({ step }) => {
                 <DetailRow
                   key={key}
                   label={key}
-                  value={<span className="font-mono break-words">{renderValue(value)}</span>}
+                  value={<span className="font-mono wrap-break-word">{renderValue(value)}</span>}
                 />
               ),
             )}

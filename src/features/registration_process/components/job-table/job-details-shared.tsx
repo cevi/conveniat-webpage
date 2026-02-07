@@ -87,7 +87,7 @@ export const InputViewer: React.FC<{ data: unknown }> = ({ data }) => {
                       >
                         <Badge
                           variant="secondary"
-                          className="cursor-pointer font-normal text-zinc-700 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                          className="cursor-pointer font-normal text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
                         >
                           {label}
                         </Badge>
