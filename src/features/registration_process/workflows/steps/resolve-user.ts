@@ -80,12 +80,14 @@ export const resolveUserStep: TaskConfig<'resolveUser'> = {
               const endOnString = `${futureDate.getDate().toString().padStart(2, '0')}.${(futureDate.getMonth() + 1).toString().padStart(2, '0')}.${futureDate.getFullYear()}`;
 
               try {
+                const personName = [input.firstName, input.lastName].filter(Boolean).join(' ');
                 const added = await addPersonToGroup(
                   candidate.peopleId,
                   HITOBITO_CONFIG.supportGroupId,
                   EXTERNAL_ROLE_TYPE,
                   endOnString,
                   logger,
+                  personName,
                 );
 
                 if (added) {
@@ -124,7 +126,7 @@ export const resolveUserStep: TaskConfig<'resolveUser'> = {
 
     // 2. Fallback if all strategies (including search/email) failed
     result ??= {
-      peopleId: 'generated-temp-id',
+      peopleId: '',
       status: 'ambiguous',
       reason: 'All automated resolution strategies failed or returned inaccessible IDs.',
     };

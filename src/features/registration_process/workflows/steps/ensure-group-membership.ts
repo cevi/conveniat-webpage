@@ -1,11 +1,10 @@
-import { apiGet } from '@/features/registration_process/hitobito-api/client';
 import {
   EXTERNAL_ROLE_TYPE,
   HITOBITO_CONFIG,
 } from '@/features/registration_process/hitobito-api/config';
 import {
   addPersonToGroup,
-  checkGroupRoleApi,
+  getPersonGroupRoles,
   patchRole,
 } from '@/features/registration_process/hitobito-api/groups';
 import type { TaskConfig } from 'payload';
@@ -44,27 +43,29 @@ export const ensureGroupMembershipStep: TaskConfig<{
     logger.info(`Ensuring group membership for user ${userId} in group ${groupId}...`);
 
     try {
-      // 1. Check if user already has a role in the group
-      const existingRoleId = await checkGroupRoleApi(userId, groupId, logger);
+      // 1. Check all existing roles in the group (active or inactive)
+      const existingRoles = await getPersonGroupRoles(userId, groupId, logger);
 
-      if (typeof existingRoleId === 'string') {
-        // Role exists, check if end_on needs update
-        const response = await apiGet<{
-          data: { id: string; attributes: { end_on?: string; group_id: number } }[];
-        }>('/roles', { 'filter[person_id]': userId }, undefined, logger);
+      let correctRoleExists = false;
 
-        const role = response.data.find((r) => String(r.attributes.group_id) === String(groupId));
-
-        if (role) {
-          if (role.attributes.end_on === TARGET_END_DATE) {
-            logger.info(`User ${userId} already has correct role in group ${groupId}`);
-          } else {
-            logger.info(`Updating role ${role.id} end date to ${TARGET_END_DATE}`);
-            await patchRole(role.id, { end_on: TARGET_END_DATE }, logger);
-          }
+      for (const role of existingRoles) {
+        // If we found a role that is already correct, we are done
+        if (role.attributes.end_on === TARGET_END_DATE) {
+          logger.info(`User ${userId} already has correct role ${role.id} in group ${groupId}`);
+          correctRoleExists = true;
+          break;
         }
-      } else {
-        // Role does not exist, create it
+
+        // Otherwise, update the role to be active until target date
+        logger.info(`Updating existing role ${role.id} end date to ${TARGET_END_DATE}`);
+        await patchRole(String(role.id), { end_on: TARGET_END_DATE }, logger);
+        correctRoleExists = true;
+        // We only need one valid role, so we can stop after patching one
+        break;
+      }
+
+      if (!correctRoleExists) {
+        // No role exists at all, create it
         logger.info(`Adding user ${userId} to group ${groupId}`);
         await addPersonToGroup(userId, groupId, EXTERNAL_ROLE_TYPE, TARGET_END_DATE, logger);
       }

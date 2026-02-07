@@ -13,15 +13,37 @@ import {
   extractCsrfMetaToken,
 } from '@/features/registration_process/hitobito-api/html-parser';
 
-interface RoleAttributes {
+export interface RoleAttributes {
   group_id: number | string;
+  event_id?: number | string | null;
+  type: string;
+  label?: string | null;
   end_on?: string | null;
   [key: string]: unknown;
 }
 
-interface RoleResource {
+export interface RoleResource {
   id: string | number;
+  type: string;
   attributes: RoleAttributes;
+}
+
+export async function getPersonGroupRoles(
+  personId: string,
+  groupId: string,
+  logger?: Logger,
+): Promise<RoleResource[]> {
+  try {
+    const response = await apiGet<{ data: RoleResource[] }>('/api/roles', {
+      'filter[person_id][eq]': personId,
+      'filter[group_id][eq]': groupId,
+    });
+
+    return response.data;
+  } catch (error) {
+    if (logger) logger.warn(`getPersonGroupRoles failed: ${String(error)}`, error);
+    return [];
+  }
 }
 
 export async function checkGroupRoleApi(
@@ -31,8 +53,11 @@ export async function checkGroupRoleApi(
 ): Promise<string | undefined> {
   try {
     const response = await apiGet<{ data: RoleResource[] }>(
-      '/roles',
-      { 'filter[person_id]': personId },
+      '/api/roles',
+      {
+        'filter[person_id][eq]': personId,
+        'filter[group_id][eq]': groupId,
+      },
       undefined,
       logger,
     );
@@ -40,16 +65,114 @@ export async function checkGroupRoleApi(
     if (response.data.length === 0) return undefined;
 
     for (const role of response.data) {
-      if (String(role.attributes.group_id) === String(groupId)) {
-        // Check if active
-        const endOn = role.attributes.end_on;
-        const isActive = !endOn || new Date(endOn) >= new Date(new Date().setHours(0, 0, 0, 0));
-        if (isActive) return String(role.id);
-      }
+      // Check if active
+      const endOn = role.attributes.end_on;
+      const isActive =
+        endOn === undefined ||
+        endOn === null ||
+        endOn === '' ||
+        (typeof endOn === 'string' && new Date(endOn) >= new Date(new Date().setHours(0, 0, 0, 0)));
+      if (isActive) return String(role.id);
     }
     return undefined;
   } catch (error) {
-    if (logger) logger.warn(`checkGroupRoleApi failed`, error);
+    if (logger) logger.warn(`checkGroupRoleApi failed: ${String(error)}`, error);
+    return undefined;
+  }
+}
+
+/**
+ * Robustly find a participation ID (Role ID) for a person in an event using the JSON API.
+ * This is more reliable than scraping and avoids name-matching issues.
+ */
+export async function findParticipationIdViaApi(
+  personId: string,
+  eventId: string,
+  logger?: Logger,
+): Promise<string | undefined> {
+  const targetEventId = String(eventId);
+
+  // Strategy 1: Direct role search with filters (usually most specific and performant)
+  try {
+    const rolesResponse = await apiGet<{ data: RoleResource[] }>(
+      '/api/roles',
+      {
+        'filter[person_id][eq]': personId,
+        'filter[group_id][eq]': targetEventId,
+      },
+      undefined,
+      logger,
+    );
+
+    if (rolesResponse.data.length > 0) {
+      // Find active if possible, otherwise take the first
+      const activeRole = rolesResponse.data.find((role) => {
+        const endOn = role.attributes.end_on;
+        return (
+          endOn === undefined ||
+          endOn === null ||
+          endOn === '' ||
+          (typeof endOn === 'string' &&
+            new Date(endOn) >= new Date(new Date().setHours(0, 0, 0, 0)))
+        );
+      });
+      const role = activeRole ?? rolesResponse.data[0];
+      if (role && logger)
+        logger.info(
+          `[Workflow] Found participation ID ${role.id} for person ${personId} in event ${eventId} via direct API filter`,
+        );
+      return role ? String(role.id) : undefined;
+    }
+  } catch (error) {
+    if (logger) logger.warn(`Direct API check failed: ${String(error)}`);
+  }
+
+  // Strategy 2: Fetch person with roles included (fallback)
+  try {
+    const response = await apiGet<{ data: unknown; included?: RoleResource[] }>(
+      `/api/people/${personId}`,
+      { include: 'roles' },
+      undefined,
+      logger,
+    );
+
+    if (logger) {
+      const debugRoles = (response.included ?? [])
+        .filter((r) => r.type === 'roles')
+        .map((resource) => {
+          const attributes = resource.attributes;
+          const context = Object.entries(attributes)
+            .filter(([key]) => ['group_id', 'event_id', 'type', 'label'].includes(key))
+            .map(([key, value]) => `${key}: ${String(value)}`)
+            .join(', ');
+          return `Role ${resource.id} (${context})`;
+        })
+        .join(' | ');
+      if (debugRoles !== '') logger.info(`[Debug] Person ${personId} roles: ${debugRoles}`);
+    }
+
+    if (response.included && Array.isArray(response.included)) {
+      const participationRole = response.included.find((resource) => {
+        if (resource.type !== 'roles') return false;
+        const gid = String(resource.attributes.group_id);
+        const eid = resource.attributes.event_id ? String(resource.attributes.event_id) : undefined;
+        return gid === targetEventId || (eid !== undefined && eid === targetEventId);
+      });
+
+      if (participationRole) {
+        if (logger)
+          logger.info(
+            `[Workflow] Found participation ID ${participationRole.id} for person ${personId} in event ${eventId} via Person API include`,
+          );
+        return String(participationRole.id);
+      }
+    }
+
+    if (logger)
+      logger.info(`No participation found via API for person ${personId} in event ${eventId}`);
+    return undefined;
+  } catch (error) {
+    if (logger) logger.warn(`findParticipationIdViaApi failed: ${String(error)}`);
     return undefined;
   }
 }
@@ -60,6 +183,7 @@ export async function addPersonToGroup(
   roleType: string,
   roleEndOn: string | undefined, // YYYY-MM-DD
   logger?: Logger,
+  personName?: string,
 ): Promise<boolean> {
   // 1. Check existence
   const existingId = await checkGroupRoleApi(personId, groupId, logger);
@@ -90,6 +214,15 @@ export async function addPersonToGroup(
     formData.append('authenticity_token', token);
     formData.append('return_url', '');
     formData.append('role[person_id]', personId);
+    formData.append('role[person]', personName ?? '');
+    formData.append('role[new_person][first_name]', '');
+    formData.append('role[new_person][last_name]', '');
+    formData.append('role[new_person][nickname]', '');
+    formData.append('role[new_person][company_name]', '');
+    formData.append('role[new_person][company]', '0');
+    formData.append('role[new_person][email]', '');
+    formData.append('role[new_person][privacy_policy_accepted]', '0');
+
     formData.append('role[group_id]', groupId);
     formData.append('role[type]', roleType);
     formData.append('role[label]', '');
@@ -119,7 +252,10 @@ export async function addPersonToGroup(
     });
 
     if (response.status >= 400) {
-      throw new Error(`Frontend returned ${response.status}`);
+      const errorMessage = `Frontend returned ${response.status} ${response.statusText}`;
+      if (logger)
+        logger.warn(`addPersonToGroup failed with status ${response.status}: ${errorMessage}`);
+      throw new Error(errorMessage);
     }
 
     return true;
@@ -135,14 +271,31 @@ export async function removeGroupRole(
   logger?: Logger,
 ): Promise<boolean> {
   try {
-    const roleId = await checkGroupRoleApi(personId, groupId, logger);
-    if (roleId === undefined) {
+    const roles = await getPersonGroupRoles(personId, groupId, logger);
+    const activeRoles = roles.filter((role) => {
+      const endOn = role.attributes.end_on;
+      return (
+        endOn === undefined ||
+        endOn === null ||
+        endOn === '' ||
+        (typeof endOn === 'string' && new Date(endOn) >= new Date(new Date().setHours(0, 0, 0, 0)))
+      );
+    });
+
+    if (activeRoles.length === 0) {
       if (logger) logger.info(`User ${personId} not in group ${groupId}, nothing to remove.`);
       return true;
     }
 
-    if (logger) logger.info(`Removing role ${roleId} (User ${personId}, Group ${groupId})`);
-    await apiDelete(`/api/roles/${roleId}`, logger);
+    if (logger)
+      logger.info(
+        `Removing ${activeRoles.length} role(s) for User ${personId} from Group ${groupId}`,
+      );
+
+    for (const role of activeRoles) {
+      if (logger) logger.info(`Removing role ${role.id}`);
+      await apiDelete(`/api/roles/${role.id}`, logger);
+    }
     return true;
   } catch (error) {
     if (logger) logger.warn(`removeGroupRole failed: ${String(error)}`);

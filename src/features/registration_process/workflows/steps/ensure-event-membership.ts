@@ -6,9 +6,12 @@ import {
 } from '@/features/registration_process/hitobito-api/client';
 import { HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api/config';
 import {
+  findParticipationIdViaApi,
+  removeGroupRole,
+} from '@/features/registration_process/hitobito-api/groups';
+import {
   extractAuthenticityToken,
   extractFormFields,
-  extractParticipationIdFromUrl,
 } from '@/features/registration_process/hitobito-api/html-parser';
 import { getPersonDetails } from '@/features/registration_process/hitobito-api/user-details';
 import type { TaskConfig } from 'payload';
@@ -84,15 +87,23 @@ export const ensureEventMembershipStep: TaskConfig<{
       const safeLastName = scrapeLastName ?? '';
 
       // 1. Check / Find Participation (Idempotency)
-      let participationId = await getParticipationIdFrontend(
-        userId,
-        safeFirstName,
-        safeLastName,
-        groupId,
-        eventId,
-        baseUrl,
-        logger,
-      );
+      // Attempt 1: API (Preferred)
+      let participationId = await findParticipationIdViaApi(userId, eventId, logger);
+
+      // Attempt 2: Internal JSON (Idempotency Fallback)
+      // If API fails to find it, check the internal JSON endpoint which is more reliable in this env
+      if (participationId === undefined) {
+        logger.info(`Participation not found via API, checking internal JSON for idempotency...`);
+        participationId = await findParticipationIdFrontend(
+          userId,
+          safeFirstName,
+          safeLastName,
+          groupId,
+          eventId,
+          baseUrl,
+          logger,
+        );
+      }
 
       let status: 'exists' | 'created' | 'updated' | 'failed' = 'exists';
 
@@ -108,12 +119,61 @@ export const ensureEventMembershipStep: TaskConfig<{
           eventId,
           baseUrl,
           logger,
+          safeFirstName,
+          safeLastName,
         );
         status = 'created';
+
+        // 2b. Verify addition via API (Crucial for reliability)
+        if (participationId === undefined) {
+          // Final attempt: check API one more time if addition seemed to fail to extract ID
+          logger.info(`No ID extracted from addition result, checking API as last-ditch effort...`);
+          // Try a few times with increasing delay for eventual consistency
+          for (let index = 0; index < 3; index++) {
+            await new Promise((resolve) => setTimeout(resolve, 1500 * (index + 1)));
+            participationId = await findParticipationIdViaApi(userId, eventId, logger);
+            if (participationId !== undefined) break;
+          }
+
+          // If API still fails, try internal JSON as the very last resort
+          if (participationId === undefined) {
+            participationId = await findParticipationIdFrontend(
+              userId,
+              safeFirstName,
+              safeLastName,
+              groupId,
+              eventId,
+              baseUrl,
+              logger,
+            );
+          }
+        } else {
+          // Wait a bit for backend consistency
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+
+          const verifiedId = await findParticipationIdViaApi(userId, eventId, logger);
+          if (verifiedId === undefined) {
+            logger.warn(
+              `Could not verify membership in event ${eventId} for user ${userId} via API after addition. Scrape ID was ${participationId}.`,
+            );
+          } else {
+            logger.info(
+              `Successfully verified membership in event ${eventId} for user ${userId} via API.`,
+            );
+            participationId = verifiedId;
+          }
+        }
       }
 
       if (participationId === undefined) {
         throw new Error('Failed to create participation');
+      }
+
+      // Cleanup support group once we have confirmed participation (either existing or created)
+      try {
+        await removeGroupRole(userId, HITOBITO_CONFIG.supportGroupId, logger);
+      } catch (error) {
+        logger.warn(`Failed to cleanup support group for user ${userId}: ${String(error)}`);
       }
 
       // 3. Update Details (if needed)
@@ -150,8 +210,11 @@ export const ensureEventMembershipStep: TaskConfig<{
   },
 };
 
-// Internal Helper: Get Participation ID (Scraping with search optimization)
-async function getParticipationIdFrontend(
+/**
+ * Find a participation ID using Hitobito's internal JSON endpoints.
+ * This is faster and more precise than HTML scraping.
+ */
+async function findParticipationIdFrontend(
   personId: string,
   firstName: string,
   lastName: string,
@@ -160,52 +223,44 @@ async function getParticipationIdFrontend(
   baseUrl: string,
   logger: Logger,
 ): Promise<string | undefined> {
-  // Optimization: use the 'search' parameter to filter by personId.
-  const url = `${baseUrl}/groups/${groupId}/events/${eventId}/participations?search=${personId}`;
   const cookie = HITOBITO_CONFIG.browserCookie;
 
-  logger.info(
-    `[Workflow] Scraping participations from ${url} for ${firstName} ${lastName} (personId: ${personId})`,
-  );
+  try {
+    // 1. Fetch participant list in JSON format (appending .json)
+    const query = encodeURIComponent(`${firstName} ${lastName}`);
+    const listUrl = `${baseUrl}/groups/${groupId}/events/${eventId}/participations.json?returning=true&page=1&q=${query}`;
+    const { response, body } = await httpGet(listUrl, { cookies: cookie });
 
-  const { response, body } = (await httpGet(url, { cookies: cookie })) as {
-    response: Response;
-    body: string;
-  };
+    if (!response.ok) {
+      logger.warn(`Failed to fetch internal JSON participation list: ${response.status}`);
+      return undefined;
+    }
 
-  if (!response.ok) {
-    if (response.status >= 500)
-      throw new Error(`Server error fetching participations: ${response.status}`);
-    return undefined;
-  }
+    const data = JSON.parse(body) as {
+      event_participations?: Array<{
+        id: string;
+        links: {
+          person: string;
+        };
+      }>;
+    };
 
-  // Simple scraping using regex instead of generic parser to find row with name and link
-  // We need to find a table row or list item that contains the name AND a link to participation
-  // Strategy: split by <tr> or <li>, then regex match
-  const items = body.split(/<\/?(tr|li)[^>]*>/);
-  const fnameLower = firstName.toLowerCase();
-  const lnameLower = lastName.toLowerCase();
-
-  for (const item of items) {
-    const itemLower = item.toLowerCase();
-    if (itemLower.includes(fnameLower) && itemLower.includes(lnameLower)) {
-      // Found potential match, look for link
-      const linkMatch = item.match(/href="([^"]*\/participations\/[^"]*)"/);
-      const urlMatch = linkMatch?.[1];
-      if (urlMatch !== undefined) {
-        const id = extractParticipationIdFromUrl(urlMatch);
-        if (id) {
-          logger.info(
-            `[Workflow] Found existing participation ID ${id} for ${firstName} ${lastName} via scraping`,
-          );
-          return id;
-        }
+    if (data.event_participations && Array.isArray(data.event_participations)) {
+      // 2. Match the person ID exactly within the JSON structure
+      const match = data.event_participations.find((p) => String(p.links.person) === personId);
+      if (match) {
+        logger.info(
+          `[Workflow] Found matching participation ${match.id} for person ${personId} via internal JSON.`,
+        );
+        return match.id;
       }
     }
-  }
 
-  logger.info(`[Workflow] Participation ID not found in list for ${firstName} ${lastName}`);
-  return undefined;
+    return undefined;
+  } catch (error) {
+    logger.warn(`Error in findParticipationIdFrontend: ${String(error)}`);
+    return undefined;
+  }
 }
 
 // Internal Helper: Add User to Event (Scraping)
@@ -216,6 +271,8 @@ async function addUserToEventFrontend(
   eventId: string,
   baseUrl: string,
   logger: Logger,
+  firstName?: string,
+  lastName?: string,
 ): Promise<string | undefined> {
   const cookie = HITOBITO_CONFIG.browserCookie;
   const formUrl = `${baseUrl}/groups/${groupId}/events/${eventId}/roles/new`;
@@ -252,18 +309,68 @@ async function addUserToEventFrontend(
     throw new Error(errorMessage);
   }
 
+  logger.info(`[Workflow] Final URL: ${finalUrl}`);
+
   if (finalUrl.includes('/participations/')) {
     const parts = finalUrl.split('/');
     const index = parts.indexOf('participations');
 
-    if (index === -1) return undefined;
-    if (parts.length <= index + 1) return undefined;
+    if (index === -1) {
+      logger.warn(`[Workflow] Could not find "participations" in final URL: ${finalUrl}`);
+      return undefined;
+    }
+    if (parts.length <= index + 1) {
+      logger.warn(`[Workflow] No ID part found after "participations" in URL: ${finalUrl}`);
+      return undefined;
+    }
 
     const idPart = parts[index + 1];
     const id = idPart === undefined ? undefined : idPart.split('?')[0];
     if (id !== undefined && /^\d+$/.test(id)) {
       return id;
     }
+    logger.warn(
+      `[Workflow] Extracted ID part ${String(idPart)} is not numeric in URL: ${finalUrl}`,
+    );
+  }
+
+  // Strategy 2: Scrape from response body (Fallback for missed redirects or Turbo results)
+  const links = [...postBody.matchAll(/\/participations\/(\d+)/g)];
+  if (links.length > 0) {
+    for (const link of links) {
+      const id = link[1];
+      const linkIndex = link.index;
+      // Check if this ID is near the person's name or a success indicator in the HTML
+      const contextStart = Math.max(0, linkIndex - 200);
+      const contextEnd = Math.min(postBody.length, linkIndex + 400);
+      const context = postBody.slice(contextStart, contextEnd);
+
+      const hasName =
+        context.toLowerCase().includes(personId.toLowerCase()) ||
+        context.toLowerCase().includes(personLabel.toLowerCase()) ||
+        (lastName !== undefined && context.toLowerCase().includes(lastName.toLowerCase())) ||
+        (firstName !== undefined && context.toLowerCase().includes(firstName.toLowerCase()));
+
+      const isSuccess = postBody.includes('erfolgreich erstellt') || postBody.includes('Rolle');
+
+      if (hasName) {
+        logger.info(
+          `[Workflow] Extracted participation ID ${id} from response body context (fallback). Success indicator: ${isSuccess}`,
+        );
+        return id;
+      }
+    }
+  }
+
+  if (finalUrl !== '') {
+    logger.info(
+      `[Workflow] Final URL does not contain "/participations/": ${finalUrl}. Status: ${postResponse.status}`,
+    );
+  }
+
+  // If we're on a page with errors, that's why it failed
+  if (postBody.includes('alert-danger') || postBody.includes('has-error')) {
+    logger.warn(`[Workflow] Possible validation errors found in response body.`);
   }
 
   return undefined;

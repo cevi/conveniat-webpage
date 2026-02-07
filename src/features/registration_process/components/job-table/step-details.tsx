@@ -3,6 +3,8 @@ import { JsonBlock } from '@/components/ui/json-block';
 import {
   DetailRow,
   InputViewer,
+  flattenObject,
+  renderValue,
 } from '@/features/registration_process/components/job-table/job-details-shared';
 import type { RegistrationJob } from '@/features/registration_process/components/job-table/types';
 import { AlertCircle, Calendar, Clock, Hash, RotateCw } from 'lucide-react';
@@ -81,7 +83,15 @@ export const StepDetails: React.FC<StepDetailsProperties> = ({ step }) => {
             <h3 className="text-xs font-bold tracking-wider text-zinc-500 uppercase">Input</h3>
           </div>
           <div className="p-4">
-            <InputViewer data={step.input} />
+            {Object.entries(flattenObject(step.input as Record<string, unknown>)).map(
+              ([key, value]) => (
+                <DetailRow
+                  key={key}
+                  label={key}
+                  value={<span className="font-mono break-words">{renderValue(value)}</span>}
+                />
+              ),
+            )}
           </div>
         </div>
 
