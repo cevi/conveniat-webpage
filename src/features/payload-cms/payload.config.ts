@@ -15,6 +15,7 @@ import { searchPluginConfiguration } from '@/features/payload-cms/payload-cms/pl
 import { smartphoneBreakpoints } from '@/features/payload-cms/utils/smartphone-breakpoints';
 import { registrationWorkflow } from '@/features/registration_process/workflows/registration-workflow';
 import { blockJobStep } from '@/features/registration_process/workflows/steps/block-job';
+import { cleanupTemporaryRolesStep } from '@/features/registration_process/workflows/steps/cleanup-temporary-roles';
 import { confirmationMessageStep } from '@/features/registration_process/workflows/steps/confirmation-message';
 import { createUserStep } from '@/features/registration_process/workflows/steps/create-user';
 import { ensureEventMembershipStep } from '@/features/registration_process/workflows/steps/ensure-event-membership';
@@ -199,6 +200,7 @@ export const payloadConfig: RoutableConfig = {
       resolveUserStep,
       createUserStep,
       blockJobStep,
+      cleanupTemporaryRolesStep,
       ensureGroupMembershipStep,
       ensureEventMembershipStep,
       confirmationMessageStep,
