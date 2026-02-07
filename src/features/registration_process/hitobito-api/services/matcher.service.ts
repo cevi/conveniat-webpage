@@ -1,6 +1,7 @@
 import { EXTERNAL_ROLE_TYPE, HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api';
 import type { Hitobito } from '@/features/registration_process/hitobito-api/index';
 import type { Logger, PersonAttributes } from '@/features/registration_process/hitobito-api/types';
+import type { MismatchDetail } from '@/features/registration_process/hitobito-api/utils';
 import { poll, verifyUserData } from '@/features/registration_process/hitobito-api/utils';
 
 export interface MatchCandidateParameters {
@@ -21,6 +22,8 @@ export interface MatchCandidateResult {
   personLabel: string;
   reason?: string;
   mismatches?: string[];
+  structuredMismatches?: MismatchDetail[];
+  score?: number;
   addedToSupportGroup?: boolean;
   details?: PersonAttributes;
 }
@@ -136,6 +139,8 @@ export class MatcherService {
         personId: candidate.id,
         personLabel: candidate.label,
         details: detailsResult.attributes,
+        score: verification.score,
+        structuredMismatches: verification.structuredMismatches,
       };
     }
 
@@ -149,6 +154,8 @@ export class MatcherService {
         personLabel: candidate.label,
         reason: 'data_mismatch',
         mismatches: verification.mismatches,
+        structuredMismatches: verification.structuredMismatches,
+        score: verification.score,
         addedToSupportGroup,
         details: detailsResult.attributes,
       };
@@ -172,6 +179,8 @@ export class MatcherService {
       personLabel: candidate.label,
       reason: 'significant_mismatch',
       mismatches: verification.mismatches,
+      structuredMismatches: verification.structuredMismatches,
+      score: verification.score,
       details: detailsResult.attributes,
     };
   }

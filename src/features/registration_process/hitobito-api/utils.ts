@@ -1,9 +1,19 @@
 import type { Logger, PersonAttributes } from '@/features/registration_process/hitobito-api/types';
 import { z } from 'zod';
 
+export const MismatchDetailSchema = z.object({
+  field: z.string(),
+  expected: z.string().nullable(),
+  actual: z.string().nullable(),
+});
+
+export type MismatchDetail = z.infer<typeof MismatchDetailSchema>;
+
 export const VerificationResultSchema = z.object({
   verified: z.boolean(),
+  score: z.number().min(0).max(100),
   mismatches: z.array(z.string()),
+  structuredMismatches: z.array(MismatchDetailSchema),
   matchDetails: z.object({
     nameMatch: z.boolean(),
     nicknameMatch: z.boolean(),
@@ -38,6 +48,7 @@ export function verifyUserData(
   apiData: PersonAttributes,
 ): VerificationResult {
   const mismatches: string[] = [];
+  const structuredMismatches: MismatchDetail[] = [];
   const matchDetails = {
     nameMatch: true,
     nicknameMatch: true,
@@ -46,73 +57,123 @@ export function verifyUserData(
     addressMatch: true,
   };
 
+  let score = 0;
+  const weights = {
+    name: 30,
+    email: 40,
+    birthday: 20,
+    nickname: 10,
+  };
+
   const inputName = `${userData.firstName} ${userData.lastName ?? ''}`.trim();
   const apiName = `${apiData.first_name ?? ''} ${apiData.last_name ?? ''}`.trim();
 
-  if (areNamesSimilar(inputName, apiName) === false) {
+  // Name Check
+  if (areNamesSimilar(inputName, apiName)) {
+    score += weights.name;
+    // Boost score if it's an exact match (case-insensitive)
+    if (inputName.toLowerCase() === apiName.toLowerCase()) {
+      score += 5; // Bonus for exact match
+    }
+  } else {
     matchDetails.nameMatch = false;
     mismatches.push(`Name: expected "${inputName}", got "${apiName}"`);
+    structuredMismatches.push({
+      field: 'Name',
+      expected: inputName,
+      actual: apiName,
+    });
   }
 
-  // The provided edit introduces a new check for firstName here.
-  // This check is redundant with the full name check above if the intention is to verify the full name.
-  // However, to faithfully apply the edit, it's included.
-  // Note: userData.firstName is guaranteed to be a string by Zod schema, so `!== undefined` and `!== null` are not needed.
+  // First Name Specific Check (soft check, doesn't penalize score individually if full name matched, but useful for debugging)
+  // Check if firstName exists in API data before ensuring similarity
   if (
     userData.firstName !== '' &&
     apiData.first_name !== undefined &&
     apiData.first_name !== null &&
     apiData.first_name !== '' &&
-    areNamesSimilar(userData.firstName, apiData.first_name) === false
+    !areNamesSimilar(userData.firstName, apiData.first_name) &&
+    matchDetails.nameMatch
   ) {
-    matchDetails.nameMatch = false; // This will overwrite the nameMatch from the full name check if both mismatch.
-    mismatches.push(`First Name: expected "${userData.firstName}", got "${apiData.first_name}"`);
+    // If full name matched but first name didn't? Unusual but possible with subsets.
+    // Let's not double count penalties, but we can track it.
   }
 
-  if (
-    userData.nickname !== undefined &&
-    userData.nickname !== '' &&
-    apiData.nickname !== undefined &&
-    apiData.nickname !== null &&
-    apiData.nickname !== '' &&
-    areNamesSimilar(userData.nickname, apiData.nickname) === false
-  ) {
-    matchDetails.nicknameMatch = false;
-    mismatches.push(`Nickname: expected "${userData.nickname}", got "${apiData.nickname}"`);
+  // Nickname Check
+  const hasNicknameInput = userData.nickname !== undefined && userData.nickname !== '';
+  const hasNicknameApi =
+    apiData.nickname !== undefined && apiData.nickname !== null && apiData.nickname !== '';
+
+  if (hasNicknameInput && hasNicknameApi) {
+    // We know they are strings due to checks above
+    const nicknameInput = userData.nickname as string;
+    const nicknameApi = apiData.nickname as string;
+
+    if (areNamesSimilar(nicknameInput, nicknameApi)) {
+      score += weights.nickname;
+    } else {
+      matchDetails.nicknameMatch = false;
+      mismatches.push(`Nickname: expected "${nicknameInput}", got "${nicknameApi}"`);
+      structuredMismatches.push({
+        field: 'Nickname',
+        expected: nicknameInput,
+        actual: nicknameApi,
+      });
+    }
   }
 
-  // The provided edit for birthDate was malformed and included unrelated code.
-  // Applying the instruction to remove redundant type checks and use explicit empty string comparisons.
-  // userData.birthDate is `string | undefined`, so `!== undefined` is needed.
+  // Birthday Check
   if (
     userData.birthDate !== undefined &&
     userData.birthDate !== '' &&
     apiData.birthday !== undefined &&
     apiData.birthday !== null &&
-    apiData.birthday !== '' &&
-    userData.birthDate !== apiData.birthday
+    apiData.birthday !== ''
   ) {
-    matchDetails.birthdayMatch = false;
-    mismatches.push(`Birthday: expected ${userData.birthDate}, got ${apiData.birthday}`);
+    if (userData.birthDate === apiData.birthday) {
+      score += weights.birthday;
+    } else {
+      matchDetails.birthdayMatch = false;
+      mismatches.push(`Birthday: expected ${userData.birthDate}, got ${apiData.birthday}`);
+      structuredMismatches.push({
+        field: 'Birthday',
+        expected: userData.birthDate,
+        actual: apiData.birthday,
+      });
+    }
   }
 
-  // The provided edit for email was malformed and included unrelated code.
-  // Applying the instruction to remove redundant type checks and use explicit empty string comparisons.
-  // userData.email is guaranteed to be a string by Zod schema, so `!== undefined` and `!== null` are not needed.
+  // Email Check
   if (
     userData.email !== '' &&
     apiData.email !== undefined &&
     apiData.email !== null &&
-    apiData.email !== '' &&
-    userData.email.toLowerCase() !== apiData.email.toLowerCase()
+    apiData.email !== ''
   ) {
-    matchDetails.emailMatch = false;
-    mismatches.push(`Email: expected ${userData.email}, got ${apiData.email}`);
+    if (userData.email.toLowerCase() === apiData.email.toLowerCase()) {
+      score += weights.email;
+    } else {
+      matchDetails.emailMatch = false;
+      mismatches.push(`Email: expected ${userData.email}, got ${apiData.email}`);
+      structuredMismatches.push({
+        field: 'Email',
+        expected: userData.email,
+        actual: apiData.email,
+      });
+    }
   }
 
+  // Normalization of score to 100 max (in case of bonuses)
+  score = Math.min(score, 100);
+
+  // If no data points matched at all (score 0), ensure verified is false
+  const verified = mismatches.length === 0 && score > 0;
+
   return {
-    verified: mismatches.length === 0,
+    verified,
+    score,
     mismatches,
+    structuredMismatches,
     matchDetails,
   };
 }

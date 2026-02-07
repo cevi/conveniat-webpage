@@ -61,11 +61,19 @@ export const WORKFLOW_STEPS = [
   'confirmationMessage',
 ];
 // --- Candidate Types ---
+export interface MismatchDetail {
+  field: string;
+  expected: string | null;
+  actual: string | null;
+}
+
 export interface Candidate {
   personId: string;
   personLabel: string;
   reason?: string;
   mismatches?: string[];
+  structuredMismatches?: MismatchDetail[];
+  score?: number;
   details?: {
     first_name?: string | null;
     last_name?: string | null;

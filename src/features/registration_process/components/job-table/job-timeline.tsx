@@ -62,12 +62,21 @@ export const JobTimeline: React.FC<JobTimelineProperties> = ({
         const mapping = STEP_MAPPING[lastEntry.taskSlug];
         const label = mapping?.label ?? lastEntry.taskSlug;
 
+        // Custom State Logic
+        const isHumanIntervention =
+          lastEntry.taskSlug === 'resolveUser' || lastEntry.taskSlug === 'blockJob';
+
         let iconClasses = 'border-zinc-100 text-zinc-400 dark:border-zinc-800';
         let textClasses = 'text-zinc-500';
 
         if (isError) {
           iconClasses = 'border-red-100 text-red-500 dark:border-red-900/30';
           textClasses = 'text-red-600';
+        } else if (isHumanIntervention && isCompleted) {
+          // Needs Review / Intervention state
+          iconClasses =
+            'border-amber-100 text-amber-600 dark:border-amber-900/30 dark:text-amber-500';
+          textClasses = 'text-amber-700 dark:text-amber-400 font-medium';
         } else if (isCompleted) {
           iconClasses = 'border-emerald-100 text-emerald-500 dark:border-emerald-900/30';
           textClasses = 'text-zinc-900 dark:text-zinc-100';
@@ -143,13 +152,14 @@ export const JobTimeline: React.FC<JobTimelineProperties> = ({
                   const realIndex = group.indices[subIndex];
                   const isSubSelected = selectedStepIndex === realIndex;
                   // Only show executedAt time or similar for retries
-                  const retryTime = entry.executedAt
-                    ? new Date(entry.executedAt).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit',
-                      })
-                    : '';
+                  const retryTime =
+                    entry.executedAt === undefined
+                      ? ''
+                      : new Date(entry.executedAt).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit',
+                        });
 
                   return (
                     <div
