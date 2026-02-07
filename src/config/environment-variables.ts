@@ -19,6 +19,10 @@ export const environmentVariables = createEnv({
     JWT_SECRET: z.string().min(5),
     HITOBITO_BASE_URL: z.string().url(),
     HITOBITO_FORWARD_URL: z.string().url(),
+    API_TOKEN: z.string().default(''),
+    BROWSER_COOKIE: z.string().default(''),
+    HELPER_GROUP: z.string().optional(),
+    EVENT_ID: z.string().optional(),
     GROUPS_WITH_API_ACCESS: z.string().transform((value) =>
       value
         .split(',')
@@ -59,6 +63,8 @@ export const environmentVariables = createEnv({
     NEXT_PUBLIC_POSTHOG_HOST: z.string().url(),
     NEXT_PUBLIC_ENABLE_CON27_SHORT_URLS: z.boolean(),
     NEXT_PUBLIC_DISABLE_SERWIST: z.boolean().default(false),
+    NEXT_PUBLIC_HITOBITO_API_URL: z.string().url().optional(),
+    NEXT_PUBLIC_SUPPORT_GROUP_ID: z.string().min(1).optional(),
   },
 
   experimental__runtimeEnv: {
@@ -68,6 +74,8 @@ export const environmentVariables = createEnv({
     NEXT_PUBLIC_POSTHOG_HOST: process.env['NEXT_PUBLIC_POSTHOG_HOST'],
     NEXT_PUBLIC_ENABLE_CON27_SHORT_URLS: process.env['ENABLE_CON27_SHORT_URLS'] === 'true',
     NEXT_PUBLIC_DISABLE_SERWIST: process.env['NEXT_PUBLIC_DISABLE_SERWIST'] === 'true',
+    NEXT_PUBLIC_HITOBITO_API_URL: process.env['NEXT_PUBLIC_HITOBITO_API_URL'],
+    NEXT_PUBLIC_SUPPORT_GROUP_ID: process.env['NEXT_PUBLIC_SUPPORT_GROUP_ID'],
   },
 
   /**

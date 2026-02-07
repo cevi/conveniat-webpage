@@ -58,10 +58,11 @@ export const PostHogProvider: React.FC<{ children: React.ReactNode }> = ({ child
   useEffect(() => {
     if (
       typeof globalThis !== 'undefined' &&
+      environmentVariables.NEXT_PUBLIC_POSTHOG_KEY !== undefined &&
       environmentVariables.NEXT_PUBLIC_POSTHOG_KEY !== '' &&
       environmentVariables.NEXT_PUBLIC_POSTHOG_HOST !== ''
     ) {
-      posthog.init(environmentVariables.NEXT_PUBLIC_POSTHOG_KEY ?? '', {
+      posthog.init(environmentVariables.NEXT_PUBLIC_POSTHOG_KEY, {
         api_host: '/ingest',
         ui_host: 'https://eu.posthog.com',
         person_profiles: 'identified_only',

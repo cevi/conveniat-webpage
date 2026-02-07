@@ -64,11 +64,13 @@ export interface Config {
     'push-notification-subscriptions': PushNotificationSubscription;
     timelineCategory: TimelineCategory;
     'chat-images': ChatImage;
+    'blocked-jobs': BlockedJob;
     forms: Form;
     'form-submissions': FormSubmission;
     'search-collection': SearchCollection;
     go: Go;
     'payload-kv': PayloadKv;
+    'payload-jobs': PayloadJob;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
@@ -96,11 +98,13 @@ export interface Config {
     'push-notification-subscriptions': PushNotificationSubscriptionsSelect<false> | PushNotificationSubscriptionsSelect<true>;
     timelineCategory: TimelineCategorySelect<false> | TimelineCategorySelect<true>;
     'chat-images': ChatImagesSelect<false> | ChatImagesSelect<true>;
+    'blocked-jobs': BlockedJobsSelect<false> | BlockedJobsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     'search-collection': SearchCollectionSelect<false> | SearchCollectionSelect<true>;
     go: GoSelect<false> | GoSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
+    'payload-jobs': PayloadJobsSelect<false> | PayloadJobsSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
@@ -119,6 +123,7 @@ export interface Config {
     'support-chat-management': SupportChatManagement;
     'alert-management': AlertManagement;
     'all-chats-management': AllChatsManagement;
+    'registration-management': RegistrationManagement;
   };
   globalsSelect: {
     header: HeaderSelect<false> | HeaderSelect<true>;
@@ -130,14 +135,29 @@ export interface Config {
     'support-chat-management': SupportChatManagementSelect<false> | SupportChatManagementSelect<true>;
     'alert-management': AlertManagementSelect<false> | AlertManagementSelect<true>;
     'all-chats-management': AllChatsManagementSelect<false> | AllChatsManagementSelect<true>;
+    'registration-management': RegistrationManagementSelect<false> | RegistrationManagementSelect<true>;
   };
   locale: 'en' | 'de' | 'fr';
   user: User & {
     collection: 'users';
   };
   jobs: {
-    tasks: unknown;
-    workflows: unknown;
+    tasks: {
+      resolveUser: TaskResolveUser;
+      createUser: CreateUserInputOutput;
+      blockJob: TaskBlockJob;
+      cleanupTemporaryRoles: TaskCleanupTemporaryRoles;
+      ensureGroupMembership: TaskEnsureGroupMembership;
+      ensureEventMembership: TaskEnsureEventMembership;
+      confirmationMessage: TaskConfirmationMessage;
+      inline: {
+        input: unknown;
+        output: unknown;
+      };
+    };
+    workflows: {
+      registrationWorkflow: WorkflowRegistrationWorkflow;
+    };
   };
 }
 export interface UserAuthOperations {
@@ -888,6 +908,19 @@ export interface Form {
         } | null;
         id?: string | null;
       }[]
+    | null;
+  /**
+   * Select a workflow to trigger after form submission.
+   */
+  workflow?: 'registrationWorkflow' | null;
+  workflowMapping?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
     | null;
   submissions?: {
     docs?: (string | FormSubmission)[];
@@ -1812,6 +1845,52 @@ export interface ChatImage {
   };
 }
 /**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "blocked-jobs".
+ */
+export interface BlockedJob {
+  id: string;
+  /**
+   * The original payload job ID that was blocked.
+   */
+  originalJobId: string;
+  /**
+   * The workflow that will be re-queued upon resolution.
+   */
+  workflowSlug: string;
+  /**
+   * The original input data for the workflow.
+   */
+  input:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  status: 'pending' | 'resolved' | 'rejected';
+  /**
+   * The reason why the job was blocked.
+   */
+  reason?: string | null;
+  /**
+   * Resolution data to merge into the workflow input when re-queued.
+   */
+  resolutionData?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This is a collection of automatically created search results. These results are used by the global site search and will be updated automatically as documents in the CMS are created or updated.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1881,6 +1960,118 @@ export interface PayloadKv {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-jobs".
+ */
+export interface PayloadJob {
+  id: string;
+  /**
+   * Input data provided to the job
+   */
+  input?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  taskStatus?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  completedAt?: string | null;
+  totalTried?: number | null;
+  /**
+   * If hasError is true this job will not be retried
+   */
+  hasError?: boolean | null;
+  /**
+   * If hasError is true, this is the error that caused it
+   */
+  error?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Task execution log
+   */
+  log?:
+    | {
+        executedAt: string;
+        completedAt: string;
+        taskSlug:
+          | 'inline'
+          | 'resolveUser'
+          | 'createUser'
+          | 'blockJob'
+          | 'cleanupTemporaryRoles'
+          | 'ensureGroupMembership'
+          | 'ensureEventMembership'
+          | 'confirmationMessage';
+        taskID: string;
+        input?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        output?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        state: 'failed' | 'succeeded';
+        error?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        id?: string | null;
+      }[]
+    | null;
+  workflowSlug?: 'registrationWorkflow' | null;
+  taskSlug?:
+    | (
+        | 'inline'
+        | 'resolveUser'
+        | 'createUser'
+        | 'blockJob'
+        | 'cleanupTemporaryRoles'
+        | 'ensureGroupMembership'
+        | 'ensureEventMembership'
+        | 'confirmationMessage'
+      )
+    | null;
+  queue?: string | null;
+  waitUntil?: string | null;
+  processing?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-locked-documents".
  */
 export interface PayloadLockedDocument {
@@ -1941,6 +2132,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'chat-images';
         value: string | ChatImage;
+      } | null)
+    | ({
+        relationTo: 'blocked-jobs';
+        value: string | BlockedJob;
       } | null)
     | ({
         relationTo: 'forms';
@@ -2754,6 +2949,20 @@ export interface ChatImagesSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "blocked-jobs_select".
+ */
+export interface BlockedJobsSelect<T extends boolean = true> {
+  originalJobId?: T;
+  workflowSlug?: T;
+  input?: T;
+  status?: T;
+  reason?: T;
+  resolutionData?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "forms_select".
  */
 export interface FormsSelect<T extends boolean = true> {
@@ -3011,6 +3220,8 @@ export interface FormsSelect<T extends boolean = true> {
         message?: T;
         id?: T;
       };
+  workflow?: T;
+  workflowMapping?: T;
   submissions?: T;
   publishingStatus?: T;
   _localized_status?: T;
@@ -3074,6 +3285,38 @@ export interface GoSelect<T extends boolean = true> {
 export interface PayloadKvSelect<T extends boolean = true> {
   key?: T;
   data?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-jobs_select".
+ */
+export interface PayloadJobsSelect<T extends boolean = true> {
+  input?: T;
+  taskStatus?: T;
+  completedAt?: T;
+  totalTried?: T;
+  hasError?: T;
+  error?: T;
+  log?:
+    | T
+    | {
+        executedAt?: T;
+        completedAt?: T;
+        taskSlug?: T;
+        taskID?: T;
+        input?: T;
+        output?: T;
+        state?: T;
+        error?: T;
+        id?: T;
+      };
+  workflowSlug?: T;
+  taskSlug?: T;
+  queue?: T;
+  waitUntil?: T;
+  processing?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -3395,6 +3638,16 @@ export interface AllChatsManagement {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "registration-management".
+ */
+export interface RegistrationManagement {
+  id: string;
+  dummy?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "header_select".
  */
 export interface HeaderSelect<T extends boolean = true> {
@@ -3563,6 +3816,169 @@ export interface AllChatsManagementSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "registration-management_select".
+ */
+export interface RegistrationManagementSelect<T extends boolean = true> {
+  dummy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskResolveUser".
+ */
+export interface TaskResolveUser {
+  input: {
+    peopleId?: string | null;
+    email?: string | null;
+    firstName?: string | null;
+    lastName?: string | null;
+    nickname?: string | null;
+    birthDate?: string | null;
+    address?: string | null;
+    company?: string | null;
+  };
+  output: {
+    peopleId: string;
+    firstName: string;
+    lastName: string;
+    nickname: string;
+    birthDate: string;
+    address: string;
+    status: 'found' | 'created' | 'ambiguous';
+    reason: string;
+    candidates?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "CreateUserInputOutput".
+ */
+export interface CreateUserInputOutput {
+  input: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    nickname?: string | null;
+  };
+  output: {
+    personId: string;
+    success: boolean;
+    error?: string | null;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskBlockJob".
+ */
+export interface TaskBlockJob {
+  input: {
+    workflowSlug?: string | null;
+    reason?: string | null;
+    originalInput?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+  };
+  output: {
+    blocked?: boolean | null;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskCleanupTemporaryRoles".
+ */
+export interface TaskCleanupTemporaryRoles {
+  input: {
+    userId: string;
+  };
+  output: {
+    success?: boolean | null;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskEnsureGroupMembership".
+ */
+export interface TaskEnsureGroupMembership {
+  input: {
+    userId: string;
+  };
+  output: {
+    success?: boolean | null;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskEnsureEventMembership".
+ */
+export interface TaskEnsureEventMembership {
+  input: {
+    userId: string;
+    firstName?: string | null;
+    lastName?: string | null;
+    answers?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+    internalComment?: string | null;
+  };
+  output: {
+    success?: boolean | null;
+    participationId?: string | null;
+    status?: string | null;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskConfirmationMessage".
+ */
+export interface TaskConfirmationMessage {
+  input: {
+    userId: string;
+  };
+  output: {
+    sent?: boolean | null;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "WorkflowRegistrationWorkflow".
+ */
+export interface WorkflowRegistrationWorkflow {
+  input: {
+    input:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+  };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
