@@ -19,6 +19,12 @@ export const environmentVariables = createEnv({
     JWT_SECRET: z.string().min(5),
     HITOBITO_BASE_URL: z.string().url(),
     HITOBITO_FORWARD_URL: z.string().url(),
+    HITOBITO_API_URL: z.string().url(),
+    API_TOKEN: z.string().default(''),
+    BROWSER_COOKIE: z.string().default(''),
+    SUPPORT_GROUP_ID: z.string().min(1),
+    HELPER_GROUP: z.string().optional(),
+    EVENT_ID: z.string().optional(),
     GROUPS_WITH_API_ACCESS: z.string().transform((value) =>
       value
         .split(',')

@@ -35,6 +35,12 @@ export const ensureGroupMembershipStep: TaskConfig<{
     const groupId = HITOBITO_CONFIG.helperGroupId;
     const TARGET_END_DATE = '2027-09-01';
 
+    if (groupId === undefined || groupId === '') {
+      const error = new Error('Configuration Error: HELPER_GROUP is missing');
+      logger.error(String(error));
+      throw error;
+    }
+
     logger.info(`Ensuring group membership for user ${userId} in group ${groupId}...`);
 
     try {

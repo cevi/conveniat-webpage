@@ -46,6 +46,18 @@ export const ensureEventMembershipStep: TaskConfig<{
     const { userId, firstName, lastName, answers, internalComment } = input;
     const { helperGroupId: groupId, eventId, baseUrl } = HITOBITO_CONFIG;
 
+    if (groupId === undefined || groupId === '') {
+      const error = new Error('Configuration Error: HELPER_GROUP is missing');
+      logger.error(String(error));
+      throw error;
+    }
+
+    if (eventId === undefined || eventId === '') {
+      const error = new Error('Configuration Error: EVENT_ID is missing');
+      logger.error(String(error));
+      throw error;
+    }
+
     logger.info(`Ensuring event membership for user ${userId} in event ${eventId}...`);
 
     try {
