@@ -40,17 +40,10 @@ export const ensureGroupMembershipStep: TaskConfig<{
           break;
         }
 
-        logger.info(`Updating existing role ${role.id} end date to ${TARGET_END_DATE}`);
-        await hitobito.client.apiRequest('PATCH', `/api/roles/${role.id}`, {
-          body: {
-            data: {
-              type: 'roles',
-              id: String(role.id),
-              attributes: { end_on: TARGET_END_DATE },
-            },
-          },
-        });
-        correctRoleExists = true;
+        logger.info(`Replacing existing role ${role.id} to update end date to ${TARGET_END_DATE}`);
+        await hitobito.groups.removeRole({ roleId: String(role.id) });
+        // CorrectRoleExists stays false, so it will fall through to the add logic
+        correctRoleExists = false;
         break;
       }
 

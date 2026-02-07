@@ -2,9 +2,12 @@
  * Extract the rails authenticity token from input value
  */
 export function extractAuthenticityToken(html: string): string {
-  const match = html.match(/<input type="hidden" name="authenticity_token" value="([^"]+)"/);
-  if (match === null) return '';
-  return match[1] ?? '';
+  // Find the input tag with name="authenticity_token"
+  const tagMatch = html.match(/<input[^>]*name="authenticity_token"[^>]*>/);
+  if (tagMatch === null) return '';
+
+  const valueMatch = tagMatch[0].match(/value="([^"]+)"/);
+  return valueMatch?.[1] ?? '';
 }
 
 /**

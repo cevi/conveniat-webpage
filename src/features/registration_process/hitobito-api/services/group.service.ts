@@ -85,14 +85,17 @@ export class GroupService {
         'role[person]': options.personName ?? '',
         'role[group_id]': groupId,
         'role[type]': roleType,
+        'role[label]': '',
         'role[start_on]': todayString,
-        'role[end_on]': options.endOn ?? '',
+        'role[end_on]': options.endOn
+          ? options.endOn.replace(/^(\d{4})-(\d{2})-(\d{2})$/, '$3.$2.$1')
+          : '',
         button: '',
+        return_url: '',
       };
 
       // Add missing fields usually required by the form
       const missingFields = [
-        'return_url',
         'role[new_person][first_name]',
         'role[new_person][last_name]',
         'role[new_person][nickname]',
@@ -102,10 +105,16 @@ export class GroupService {
         'role[new_person][privacy_policy_accepted]',
       ];
       for (const field of missingFields) {
-        formData[field] = field.includes('company') ? '0' : '';
+        if (field === 'role[new_person][company]') {
+          formData[field] = '0';
+        } else if (field === 'role[new_person][privacy_policy_accepted]') {
+          formData[field] = '0';
+        } else {
+          formData[field] = '';
+        }
       }
 
-      const { response } = await this.client.submitRailsForm({
+      const { response, body } = await this.client.submitRailsForm({
         getFormUrl: formPath,
         postUrl: `/groups/${groupId}/roles`,
         formData,
@@ -116,6 +125,9 @@ export class GroupService {
       });
 
       if (response.status >= 400) {
+        this.logger?.error(
+          `Frontend returned ${response.status} ${response.statusText}. Body preview: ${body.slice(0, 500)}`,
+        );
         throw new Error(`Frontend returned ${response.status} ${response.statusText}`);
       }
 
