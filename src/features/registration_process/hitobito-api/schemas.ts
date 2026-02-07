@@ -32,13 +32,34 @@ export const SearchResponseSchema = z.union([
 
 export const ResolveUserByDetailsSchema = z.object({
   peopleId: z.string().optional(),
-  firstName: z.string().min(1),
-  lastName: z.string().min(1),
-  nickname: z.string().optional(),
-  email: z.string().email(),
-  birthDate: z.string().optional(),
-  address: z.string().optional(),
-  company: z.string().optional(),
+  firstName: z
+    .string()
+    .min(1)
+    .transform((s) => s.trim()),
+  lastName: z
+    .string()
+    .min(1)
+    .transform((s) => s.trim()),
+  nickname: z
+    .string()
+    .optional()
+    .transform((s) => s?.trim()),
+  email: z
+    .string()
+    .email()
+    .transform((s) => s.trim().toLowerCase()),
+  birthDate: z
+    .string()
+    .optional()
+    .transform((s) => s?.trim()),
+  address: z
+    .string()
+    .optional()
+    .transform((s) => s?.trim()),
+  company: z
+    .string()
+    .optional()
+    .transform((s) => s?.trim()),
 });
 
 export const ResolveUserByIdSchema = z.object({

@@ -356,7 +356,7 @@ export const JobOverview: React.FC<JobOverviewProperties> = ({
               <DetailRow
                 key={key}
                 label={key}
-                value={<span className="break-words">{renderValue(value)}</span>}
+                value={<span className="wrap-break-word">{renderValue(value)}</span>}
               />
             ))}
           </div>

@@ -1,4 +1,4 @@
-import type { PersonAttributes } from '@/features/registration_process/hitobito-api/types';
+import type { Logger, PersonAttributes } from '@/features/registration_process/hitobito-api/types';
 import { z } from 'zod';
 
 export const VerificationResultSchema = z.object({
@@ -115,4 +115,46 @@ export function verifyUserData(
     mismatches,
     matchDetails,
   };
+}
+
+export interface PollOptions {
+  maxAttempts?: number;
+  initialDelay?: number;
+  backoff?: boolean;
+  logger?: Logger;
+  label?: string;
+}
+
+/**
+ * Executes an async action until the predicate returns true or max attempts reached.
+ */
+export async function poll<T>(
+  action: () => Promise<T>,
+  predicate: (result: T) => boolean,
+  options: PollOptions = {},
+): Promise<T> {
+  const { maxAttempts = 5, initialDelay = 500, backoff = true, logger, label = 'Action' } = options;
+  let attempts = 0;
+  let lastResult: T | undefined;
+
+  while (attempts < maxAttempts) {
+    attempts++;
+    lastResult = await action();
+    if (predicate(lastResult)) {
+      if (attempts > 1) {
+        logger?.info(`${label} successful after ${attempts} attempts`);
+      }
+      return lastResult;
+    }
+
+    if (attempts < maxAttempts) {
+      const delay = backoff ? initialDelay * attempts : initialDelay;
+      logger?.info(
+        `${label} not ready (attempt ${attempts}/${maxAttempts}), waiting ${delay}ms...`,
+      );
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+
+  return lastResult as T;
 }

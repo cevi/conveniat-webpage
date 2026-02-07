@@ -4,6 +4,7 @@ import {
   Hitobito,
 } from '@/features/registration_process/hitobito-api';
 import type { PersonAttributes } from '@/features/registration_process/hitobito-api/schemas';
+import { poll } from '@/features/registration_process/hitobito-api/utils';
 import {
   resolveByEmailLookup,
   resolveById,
@@ -76,10 +77,17 @@ export const resolveUserStep: TaskConfig<'resolveUser'> = {
               });
 
               if (added) {
-                await new Promise((r) => setTimeout(r, 2000));
-                const detailsRetry = await hitobito.people.getDetails({
-                  personId: candidate.peopleId,
-                });
+                const detailsRetry = await poll(
+                  () => hitobito.people.getDetails({ personId: candidate.peopleId }),
+                  (response) => response.success,
+                  {
+                    maxAttempts: 5,
+                    initialDelay: 500,
+                    logger,
+                    label: `Support group propagation for ${candidate.peopleId}`,
+                  },
+                );
+
                 if (detailsRetry.success && detailsRetry.attributes) {
                   result = candidate;
                   apiAttributes = detailsRetry.attributes;
@@ -131,19 +139,6 @@ export const resolveUserStep: TaskConfig<'resolveUser'> = {
           birthDate: apiAttributes['birthday'] ?? finalDetails.birthDate,
           address: apiAttributes['address'] ?? finalDetails.address,
         };
-      }
-
-      // Cleanup support group
-      try {
-        const roles = await hitobito.groups.getPersonRoles({
-          personId: result.peopleId,
-          groupId: HITOBITO_CONFIG.supportGroupId,
-        });
-        for (const role of roles) {
-          await hitobito.groups.removeRole({ roleId: String(role.id) });
-        }
-      } catch (error) {
-        logger.warn(`Failed to cleanup support group role: ${String(error)}`);
       }
     }
 

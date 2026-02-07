@@ -1,5 +1,6 @@
 import { Hitobito } from '@/features/registration_process/hitobito-api';
 import { HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api/config';
+import { poll } from '@/features/registration_process/hitobito-api/utils';
 import type { TaskConfig } from 'payload';
 
 export const ensureEventMembershipStep: TaskConfig<{
@@ -89,32 +90,25 @@ export const ensureEventMembershipStep: TaskConfig<{
 
         // Verify addition
         if (participationId === undefined || participationId === '') {
-          for (let index = 0; index < 3; index++) {
-            await new Promise((r) => setTimeout(r, 1500 * (index + 1)));
-            participationId = await hitobito.events.findParticipationId({
-              personId: userId,
-              eventId,
-            });
-            if (participationId !== undefined && participationId !== '') break;
-          }
+          participationId = await poll(
+            () =>
+              hitobito.events.findParticipationId({
+                personId: userId,
+                eventId,
+              }),
+            (id) => id !== undefined && id !== '',
+            {
+              maxAttempts: 5,
+              initialDelay: 500,
+              logger,
+              label: `Event participation verification for ${userId}`,
+            },
+          );
         }
       }
 
       if (participationId === undefined || participationId === '')
         throw new Error('Failed to create participation');
-
-      // Cleanup support group
-      try {
-        const roles = await hitobito.groups.getPersonRoles({
-          personId: userId,
-          groupId: HITOBITO_CONFIG.supportGroupId,
-        });
-        for (const role of roles) {
-          await hitobito.groups.removeRole({ roleId: String(role.id) });
-        }
-      } catch (error) {
-        logger.warn(`Failed to cleanup support group for user ${userId}: ${String(error)}`);
-      }
 
       // 3. Update Details
       if (answers !== undefined || (internalComment !== undefined && internalComment !== '')) {
