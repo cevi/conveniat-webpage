@@ -73,7 +73,11 @@ export const StepIndicator: React.FC<{ job: RegistrationJob }> = ({ job }) => {
                     className={cn(
                       'h-1.5 w-6 rounded-full transition-all',
                       ((): string => {
-                        if (state === 'completed') return 'bg-emerald-500';
+                        if (state === 'completed') {
+                          if (stepSlug === 'blockJob' && lastTaskSlug === 'blockJob')
+                            return 'bg-amber-500';
+                          return 'bg-emerald-500';
+                        }
                         if (state === 'active') return 'animate-pulse bg-blue-500';
                         if (state === 'failed') return 'bg-red-500';
                         return 'bg-zinc-200 dark:bg-zinc-800';

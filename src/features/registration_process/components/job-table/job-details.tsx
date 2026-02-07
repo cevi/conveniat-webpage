@@ -1,3 +1,4 @@
+import { SafeErrorBoundary } from '@/components/error-boundary/safe-error-boundary';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/buttons/button';
 import type { Config as PayloadConfig } from '@/features/payload-cms/payload-types';
@@ -5,6 +6,7 @@ import { JobOverview } from '@/features/registration_process/components/job-tabl
 import { JobTimeline } from '@/features/registration_process/components/job-table/job-timeline';
 import { StepDetails } from '@/features/registration_process/components/job-table/step-details';
 import type { RegistrationJob } from '@/features/registration_process/components/job-table/types';
+import { STEP_MAPPING } from '@/features/registration_process/components/job-table/types';
 import { toast } from '@/lib/toast';
 import { trpc } from '@/trpc/client';
 import { useLocale } from '@payloadcms/ui';
@@ -16,11 +18,11 @@ interface JobDetailsProperties {
 }
 
 export const JobDetails: React.FC<JobDetailsProperties> = ({ job }) => {
-  // Always default to the last step (log entry)
-  const defaultStepIndex = (job.log?.length ?? 0) - 1;
-  const [selectedStepIndex, setSelectedStepIndex] = React.useState<number>(
-    Math.max(defaultStepIndex, 0),
-  );
+  // Default to the last step unless the job is blocked (needs review),
+  // in which case we show the overview/action panel.
+  const defaultStepIndex = job.blockedJobId === undefined ? (job.log?.length ?? 0) - 1 : -1;
+
+  const [selectedStepIndex, setSelectedStepIndex] = React.useState<number>(defaultStepIndex);
 
   const [isResolving, setIsResolving] = React.useState(false);
   const { code: locale } = useLocale() as { code: PayloadConfig['locale'] };
@@ -93,7 +95,9 @@ export const JobDetails: React.FC<JobDetailsProperties> = ({ job }) => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
-              {selectedStep ? `Step: ${selectedStep.taskSlug}` : 'Job Details'}
+              {selectedStep
+                ? (STEP_MAPPING[selectedStep.taskSlug]?.label ?? `Step: ${selectedStep.taskSlug}`)
+                : 'Job Details'}
             </h3>
             {selectedStep && (
               <Button variant="outline" size="sm" onClick={() => setSelectedStepIndex(-1)}>
@@ -114,7 +118,16 @@ export const JobDetails: React.FC<JobDetailsProperties> = ({ job }) => {
         </div>
 
         {selectedStep ? (
-          <StepDetails step={selectedStep} />
+          <SafeErrorBoundary
+            fallback={
+              <div className="rounded-md border border-red-100 bg-red-50 p-4 text-sm text-red-600 dark:border-red-900/30 dark:bg-red-950/20 dark:text-red-400">
+                <p className="font-bold">Something went wrong showing this step.</p>
+                <p className="mt-1 text-xs opacity-80">Please check the logs for details.</p>
+              </div>
+            }
+          >
+            <StepDetails step={selectedStep} />
+          </SafeErrorBoundary>
         ) : (
           <JobOverview
             job={job}

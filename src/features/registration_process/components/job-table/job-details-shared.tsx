@@ -99,7 +99,7 @@ export const InputViewer: React.FC<{ data: unknown }> = ({ data }) => {
                     <Badge
                       key={index}
                       variant="secondary"
-                      className="font-normal text-zinc-700 dark:text-zinc-300"
+                      className="font-normal text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
                     >
                       {label}
                     </Badge>

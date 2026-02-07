@@ -1,6 +1,7 @@
 import { JsonBlock } from '@/components/ui/json-block';
 import { ConfirmationModal } from '@/features/payload-cms/payload-cms/components/shared/confirmation-modal';
 import type { Config as PayloadConfig } from '@/features/payload-cms/payload-types';
+import { DiffView } from '@/features/registration_process/components/job-table/diff-view';
 import {
   DetailRow,
   flattenObject,
@@ -11,11 +12,14 @@ import type {
   RegistrationJob,
 } from '@/features/registration_process/components/job-table/types';
 import type { StaticTranslationString } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
 import {
   AlertCircle,
   AlertTriangle,
   Calendar,
   Check,
+  ChevronDown,
+  ChevronRight,
   Clock,
   Copy,
   Database,
@@ -67,13 +71,18 @@ export const JobOverview: React.FC<JobOverviewProperties> = ({
   const [copiedError, setCopiedError] = React.useState(false);
   const [isRejectModalOpen, setIsRejectModalOpen] = React.useState(false);
   const [manualPersonId, setManualPersonId] = React.useState('');
+  const [isOtherActionsOpen, setIsOtherActionsOpen] = React.useState(false);
 
   // Extract candidates from resolveUser task output
   const resolveUserLog = job.log?.find((l) => l.taskSlug === 'resolveUser');
   const candidatesOutput = resolveUserLog?.output as
     | { candidates?: Candidate[] | null }
     | undefined;
-  const candidates = candidatesOutput?.candidates ?? [];
+  const candidates = [...(candidatesOutput?.candidates ?? [])].sort((a, b) => {
+    const scoreA = a.score ?? 0;
+    const scoreB = b.score ?? 0;
+    return scoreB - scoreA;
+  });
 
   // Parse error if it exists and looks like the Zod/Validation error from the user's screenshot
   const errorObject = job.log?.find((l) => l.state === 'failed')?.error as
@@ -160,15 +169,15 @@ export const JobOverview: React.FC<JobOverviewProperties> = ({
       )}
       {/* Approval Section */}
       {job.blockedJobId !== undefined && (
-        <div className="rounded-xl border border-orange-100 bg-orange-50/20 dark:border-orange-900/30 dark:bg-orange-900/10">
-          <div className="px-6 py-3 pb-2">
-            <h3 className="flex items-center gap-2 text-sm font-bold text-orange-600 dark:text-orange-400">
-              <AlertTriangle className="h-4 w-4" />
+        <div className="rounded-xl border border-zinc-200 bg-transparent dark:border-zinc-800">
+          <div className="border-b border-zinc-100 bg-zinc-50/50 px-6 py-3 dark:border-zinc-800 dark:bg-zinc-900/30">
+            <h3 className="flex items-center gap-2 text-sm font-bold text-zinc-900 dark:text-zinc-100">
+              <AlertTriangle className="h-4 w-4 text-amber-500" />
               Approval Required
             </h3>
           </div>
-          <div className="px-6 pb-4">
-            <p className="mb-4 text-xs font-medium text-orange-700 dark:text-orange-300">
+          <div className="p-6">
+            <p className="mb-6 text-xs font-medium text-zinc-600 dark:text-zinc-400">
               {job.blockedReason ?? 'This job requires manual review before it can proceed.'}
             </p>
 
@@ -176,142 +185,154 @@ export const JobOverview: React.FC<JobOverviewProperties> = ({
               {/* Candidates List */}
               {candidates.length > 0 && (
                 <div className="flex flex-col gap-3">
-                  <h4 className="text-[10px] font-bold tracking-wider text-orange-600/70 uppercase dark:text-orange-400/50">
-                    Potential Matches Found
+                  <h4 className="flex items-center justify-between text-[10px] font-bold tracking-wider text-zinc-500 uppercase">
+                    <span>Potential Matches Found ({candidates.length})</span>
                   </h4>
                   <div className="grid gap-3 sm:grid-cols-2">
-                    {candidates.map((candidate) => (
-                      <div
-                        key={candidate.personId}
-                        className="flex flex-col gap-3 rounded-lg border border-orange-100 bg-white/60 p-3 shadow-sm dark:border-orange-900/30 dark:bg-black/40"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-2">
-                            <div className="rounded-full bg-orange-100 p-1.5 dark:bg-orange-900/40">
-                              <User className="h-3.5 w-3.5 text-orange-600 dark:text-orange-400" />
-                            </div>
-                            <div className="flex flex-col">
-                              <span className="text-xs font-bold text-zinc-900 dark:text-white">
-                                {candidate.personLabel}
-                              </span>
-                              <span className="font-mono text-[10px] text-zinc-500">
-                                ID: {candidate.personId}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {candidate.details && (
-                          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[10px]">
-                            {typeof candidate.details.email === 'string' &&
-                              candidate.details.email !== '' && (
-                                <div className="flex flex-col">
-                                  <span className="text-zinc-400 uppercase">Email</span>
-                                  <span className="truncate text-zinc-700 dark:text-zinc-300">
-                                    {candidate.details.email}
-                                  </span>
-                                </div>
-                              )}
-                            {typeof candidate.details.birthday === 'string' &&
-                              candidate.details.birthday !== '' && (
-                                <div className="flex flex-col">
-                                  <span className="text-zinc-400 uppercase">Birthday</span>
-                                  <span className="text-zinc-700 dark:text-zinc-300">
-                                    {candidate.details.birthday}
-                                  </span>
-                                </div>
-                              )}
-                          </div>
-                        )}
-
-                        {candidate.mismatches && candidate.mismatches.length > 0 && (
-                          <div className="rounded border border-red-50 bg-red-50/30 px-2 py-1 dark:border-red-900/20 dark:bg-red-900/10">
-                            <p className="text-[10px] font-medium text-red-600 dark:text-red-400">
-                              Mismatches: {candidate.mismatches.join(', ')}
-                            </p>
-                          </div>
-                        )}
-
-                        <button
-                          type="button"
-                          onClick={() => void onResolve({ resolvedUserId: candidate.personId })}
-                          disabled={isResolving}
-                          className="w-full rounded-md bg-orange-500 py-1.5 text-[11px] font-bold text-white transition-colors hover:bg-orange-600 disabled:opacity-50"
+                    {candidates.map((candidate) => {
+                      return (
+                        <div
+                          key={candidate.personId}
+                          className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
                         >
-                          Select & Continue
-                        </button>
-                      </div>
-                    ))}
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <div className="rounded-full bg-zinc-100 p-1.5 dark:bg-zinc-800">
+                                <User className="h-3.5 w-3.5 text-zinc-500 dark:text-zinc-400" />
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-xs font-bold text-zinc-900 dark:text-white">
+                                  {candidate.personLabel}
+                                </span>
+                                <span className="font-mono text-[10px] text-zinc-500">
+                                  ID: {candidate.personId}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {candidate.details && (
+                            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[10px]">
+                              {typeof candidate.details.email === 'string' &&
+                                candidate.details.email !== '' && (
+                                  <div className="flex flex-col">
+                                    <span className="text-zinc-400 uppercase">Email</span>
+                                    <span className="truncate text-zinc-700 dark:text-zinc-300">
+                                      {candidate.details.email}
+                                    </span>
+                                  </div>
+                                )}
+                              {typeof candidate.details.birthday === 'string' &&
+                                candidate.details.birthday !== '' && (
+                                  <div className="flex flex-col">
+                                    <span className="text-zinc-400 uppercase">Birthday</span>
+                                    <span className="text-zinc-700 dark:text-zinc-300">
+                                      {candidate.details.birthday}
+                                    </span>
+                                  </div>
+                                )}
+                            </div>
+                          )}
+
+                          <DiffView candidate={candidate} inputData={inputData} />
+
+                          <button
+                            type="button"
+                            onClick={() => void onResolve({ resolvedUserId: candidate.personId })}
+                            disabled={isResolving}
+                            className="w-full rounded-md bg-emerald-600 py-1.5 text-[11px] font-bold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
+                          >
+                            Select & Continue
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
 
               <div className="flex flex-col gap-3">
-                <h4 className="text-[10px] font-bold tracking-wider text-orange-600/70 uppercase dark:text-orange-400/50">
+                <button
+                  type="button"
+                  onClick={() => setIsOtherActionsOpen(!isOtherActionsOpen)}
+                  className="flex items-center gap-2 text-[10px] font-bold tracking-wider text-zinc-500 uppercase hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300"
+                >
+                  {isOtherActionsOpen ? (
+                    <ChevronDown className="h-3 w-3" />
+                  ) : (
+                    <ChevronRight className="h-3 w-3" />
+                  )}
                   Other Actions
-                </h4>
-                <div className="flex flex-col gap-4 rounded-lg border border-orange-100/50 bg-orange-50/30 p-4 dark:border-orange-900/20 dark:bg-orange-950/20">
-                  <div className="flex flex-col gap-2">
-                    <label
-                      htmlFor="manualPersonId"
-                      className="text-[10px] font-bold text-orange-600/80 uppercase"
-                    >
-                      Link Manual People ID
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        id="manualPersonId"
-                        type="text"
-                        value={manualPersonId}
-                        onChange={(event_) => setManualPersonId(event_.target.value)}
-                        placeholder="e.g. 12345"
-                        className="flex-1 rounded-lg border border-orange-200 bg-white px-3 py-2 text-xs text-orange-900 placeholder:text-orange-300 focus:border-orange-400 focus:ring-0 focus:outline-none dark:border-orange-900/50 dark:bg-black/40 dark:text-orange-100"
+                </button>
+                {isOtherActionsOpen && (
+                  <div className="flex flex-col gap-4 rounded-lg border border-zinc-200 bg-transparent p-4 dark:border-zinc-800">
+                    <div className="flex flex-col gap-2">
+                      <label
+                        htmlFor="manualPersonId"
+                        className="text-[10px] font-bold text-zinc-500 uppercase dark:text-zinc-400"
+                      >
+                        Link Manual People ID
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          id="manualPersonId"
+                          type="text"
+                          value={manualPersonId}
+                          onChange={(event_) => setManualPersonId(event_.target.value)}
+                          placeholder="e.g. 12345"
+                          className="flex-1 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-400 focus:ring-0 focus:outline-none dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => void onResolve({ resolvedUserId: manualPersonId })}
+                          disabled={isResolving || manualPersonId.trim() === ''}
+                          className="inline-flex cursor-pointer items-center justify-center rounded-lg bg-zinc-900 px-4 py-2 text-xs font-bold text-white shadow-none transition-all hover:bg-zinc-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+                        >
+                          {isResolving ? 'Processing...' : 'Link & Continue'}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-2 border-t border-zinc-100 pt-3 sm:grid-cols-2 dark:border-zinc-800">
+                      <div className="flex flex-col gap-1">
+                        <button
+                          type="button"
+                          onClick={() => void onResolve({ forceCreateUser: true })}
+                          disabled={isResolving}
+                          className={cn(
+                            'inline-flex cursor-pointer items-center justify-center rounded-lg px-4 py-2 text-xs font-bold transition-all disabled:opacity-50',
+                            'border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-400 dark:hover:bg-emerald-950/40',
+                          )}
+                        >
+                          {isResolving ? 'Processing...' : 'Create New User'}
+                        </button>
+                      </div>
+                      <ConfirmationModal
+                        isOpen={isRejectModalOpen}
+                        onClose={() => setIsRejectModalOpen(false)}
+                        onConfirm={() => {
+                          void onReject();
+                          setIsRejectModalOpen(false);
+                        }}
+                        message={rejectMessageString[locale]}
+                        isSubmitting={isResolving}
+                        locale={locale}
+                        title={rejectTitleString[locale]}
+                        confirmLabel={rejectConfirmLabelString[locale]}
+                        submittingText={rejectingTextString[locale]}
+                        confirmVariant="danger"
                       />
                       <button
                         type="button"
-                        onClick={() => void onResolve({ resolvedUserId: manualPersonId })}
-                        disabled={isResolving || manualPersonId.trim() === ''}
-                        className="inline-flex cursor-pointer items-center justify-center rounded-lg bg-zinc-900 px-4 py-2 text-xs font-bold text-white shadow-none transition-all hover:bg-zinc-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+                        onClick={() => setIsRejectModalOpen(true)}
+                        disabled={isResolving}
+                        className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-xs font-bold text-red-700 transition-all hover:bg-red-100 disabled:opacity-50 dark:border-red-900/30 dark:bg-red-950/20 dark:text-red-400 dark:hover:bg-red-950/40"
                       >
-                        {isResolving ? 'Processing...' : 'Link & Continue'}
+                        Reject Workflow
                       </button>
                     </div>
                   </div>
-
-                  <div className="grid gap-2 border-t border-orange-100/50 pt-3 sm:grid-cols-2 dark:border-orange-900/20">
-                    <button
-                      type="button"
-                      onClick={() => void onResolve({ forceCreateUser: true })}
-                      disabled={isResolving}
-                      className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-bold text-emerald-700 transition-all hover:bg-emerald-100 disabled:opacity-50 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-400 dark:hover:bg-emerald-950/40"
-                    >
-                      {isResolving ? 'Processing...' : 'Create New User'}
-                    </button>
-                    <ConfirmationModal
-                      isOpen={isRejectModalOpen}
-                      onClose={() => setIsRejectModalOpen(false)}
-                      onConfirm={() => {
-                        void onReject();
-                        setIsRejectModalOpen(false);
-                      }}
-                      message={rejectMessageString[locale]}
-                      isSubmitting={isResolving}
-                      locale={locale}
-                      title={rejectTitleString[locale]}
-                      confirmLabel={rejectConfirmLabelString[locale]}
-                      submittingText={rejectingTextString[locale]}
-                      confirmVariant="danger"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setIsRejectModalOpen(true)}
-                      disabled={isResolving}
-                      className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-xs font-bold text-red-700 transition-all hover:bg-red-100 disabled:opacity-50 dark:border-red-900/30 dark:bg-red-950/20 dark:text-red-400 dark:hover:bg-red-950/40"
-                    >
-                      Reject Workflow
-                    </button>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
           </div>
