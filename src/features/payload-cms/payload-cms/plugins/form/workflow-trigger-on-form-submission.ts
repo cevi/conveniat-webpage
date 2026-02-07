@@ -39,7 +39,6 @@ export const workflowTriggerOnFormSubmission: CollectionAfterChangeHook<FormSubm
 
     // Update event with workflow context
 
-     
     event['workflow'] = form.workflow;
 
     const submissionMap = new Map(doc.submissionData.map((item) => [item.field, item.value]));
