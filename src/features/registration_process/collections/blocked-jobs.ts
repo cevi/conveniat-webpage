@@ -2,10 +2,11 @@ import type { CollectionAfterChangeHook, CollectionConfig } from 'payload';
 
 interface BlockedJobDocument {
   id: number | string;
-  status: 'pending' | 'resolved';
+  status: 'pending' | 'resolved' | 'rejected';
   originalJobId: string;
   workflowSlug: string;
   input: Record<string, unknown>;
+  reason?: string;
   resolutionData?: Record<string, unknown>;
 }
 
@@ -16,24 +17,32 @@ const afterChangeHook: CollectionAfterChangeHook<BlockedJobDocument> = async ({
 }) => {
   const { payload } = req;
 
-  // Only trigger if status changed to 'resolved'
-  if (doc.status === 'resolved' && previousDoc.status !== 'resolved') {
-    const workflowSlug = doc.workflowSlug;
-    const input = doc.input;
+  // Handle status changes from pending
+  if (previousDoc.status === 'pending') {
+    if (doc.status === 'resolved') {
+      const workflowSlug = doc.workflowSlug;
+      const input = doc.input;
 
-    // Merge resolution data into input
-    const newInput: Record<string, unknown> = {
-      ...input,
-      ...doc.resolutionData,
-    };
+      // Merge resolution data into input
+      const newInput: Record<string, unknown> = {
+        ...input,
+        ...doc.resolutionData,
+      };
 
-    await payload.jobs.queue({
-      workflow: workflowSlug as 'registrationWorkflow',
-      input: { input: newInput },
-    });
+      await payload.jobs.queue({
+        workflow: workflowSlug as 'registrationWorkflow',
+        input: { input: newInput },
+      });
 
-    payload.logger.info(`Blocked job resolved. Queued new job for workflow '${workflowSlug}'.`);
+      payload.logger.info(`Blocked job resolved. Queued new job for workflow '${workflowSlug}'.`);
+    } else if (doc.status === 'rejected') {
+      payload.logger.info(`Blocked job rejected for workflow '${doc.workflowSlug}'.`);
+    } else {
+      // No transition
+      return doc;
+    }
 
+    // Cleanup for both resolved and rejected
     // Delete the original blocked job record from payload-jobs
     try {
       await payload.delete({
@@ -60,7 +69,7 @@ const afterChangeHook: CollectionAfterChangeHook<BlockedJobDocument> = async ({
 export const BlockedJobs: CollectionConfig = {
   slug: 'blocked-jobs',
   admin: {
-    hidden: false,
+    hidden: true,
     useAsTitle: 'id',
     group: {
       en: 'Backoffice App Features',
@@ -124,8 +133,21 @@ export const BlockedJobs: CollectionConfig = {
       options: [
         { label: 'Awaiting Approval', value: 'pending' },
         { label: 'Resolved', value: 'resolved' },
+        { label: 'Rejected', value: 'rejected' },
       ],
       required: true,
+    },
+    {
+      name: 'reason',
+      type: 'text',
+      admin: {
+        readOnly: true,
+        description: {
+          en: 'The reason why the job was blocked.',
+          de: 'Der Grund, warum die Aufgabe blockiert wurde.',
+          fr: 'La raison pour laquelle la tâche a été bloquée.',
+        },
+      },
     },
     {
       name: 'resolutionData',

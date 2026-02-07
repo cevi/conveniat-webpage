@@ -144,6 +144,7 @@ export interface Config {
   jobs: {
     tasks: {
       resolveUser: TaskResolveUser;
+      createUser: CreateUserInputOutput;
       blockJob: TaskBlockJob;
       ensureGroupMembership: TaskEnsureGroupMembership;
       ensureEventMembership: TaskEnsureEventMembership;
@@ -1868,7 +1869,11 @@ export interface BlockedJob {
     | number
     | boolean
     | null;
-  status: 'pending' | 'resolved';
+  status: 'pending' | 'resolved' | 'rejected';
+  /**
+   * The reason why the job was blocked.
+   */
+  reason?: string | null;
   /**
    * Resolution data to merge into the workflow input when re-queued.
    */
@@ -2007,6 +2012,7 @@ export interface PayloadJob {
         taskSlug:
           | 'inline'
           | 'resolveUser'
+          | 'createUser'
           | 'blockJob'
           | 'ensureGroupMembership'
           | 'ensureEventMembership'
@@ -2048,6 +2054,7 @@ export interface PayloadJob {
     | (
         | 'inline'
         | 'resolveUser'
+        | 'createUser'
         | 'blockJob'
         | 'ensureGroupMembership'
         | 'ensureEventMembership'
@@ -2946,6 +2953,7 @@ export interface BlockedJobsSelect<T extends boolean = true> {
   workflowSlug?: T;
   input?: T;
   status?: T;
+  reason?: T;
   resolutionData?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -3822,7 +3830,25 @@ export interface RegistrationManagementSelect<T extends boolean = true> {
  */
 export interface TaskResolveUser {
   input: {
-    input:
+    peopleId?: string | null;
+    email?: string | null;
+    firstName?: string | null;
+    lastName?: string | null;
+    nickname?: string | null;
+    birthDate?: string | null;
+    address?: string | null;
+    company?: string | null;
+  };
+  output: {
+    peopleId: string;
+    firstName: string;
+    lastName: string;
+    nickname: string;
+    birthDate: string;
+    address: string;
+    status: 'found' | 'created' | 'ambiguous';
+    reason: string;
+    candidates?:
       | {
           [k: string]: unknown;
         }
@@ -3832,10 +3858,22 @@ export interface TaskResolveUser {
       | boolean
       | null;
   };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "CreateUserInputOutput".
+ */
+export interface CreateUserInputOutput {
+  input: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    nickname?: string | null;
+  };
   output: {
-    userId?: string | null;
-    status?: ('found' | 'created' | 'ambiguous') | null;
-    reason?: string | null;
+    personId: string;
+    success: boolean;
+    error?: string | null;
   };
 }
 /**
@@ -3845,6 +3883,7 @@ export interface TaskResolveUser {
 export interface TaskBlockJob {
   input: {
     workflowSlug?: string | null;
+    reason?: string | null;
     originalInput?:
       | {
           [k: string]: unknown;
@@ -3878,9 +3917,23 @@ export interface TaskEnsureGroupMembership {
 export interface TaskEnsureEventMembership {
   input: {
     userId: string;
+    firstName?: string | null;
+    lastName?: string | null;
+    answers?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+    internalComment?: string | null;
   };
   output: {
     success?: boolean | null;
+    participationId?: string | null;
+    status?: string | null;
   };
 }
 /**

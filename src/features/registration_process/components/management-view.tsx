@@ -1,16 +1,11 @@
 'use client';
 
 import {
-  BlockedJobAlert,
-  type BlockedJob,
-} from '@/features/registration_process/components/blocked-job-alert';
-import {
   JobTable,
   type JobStatusFilter,
   type RegistrationJob,
 } from '@/features/registration_process/components/job-table';
 import { useJobFilters } from '@/features/registration_process/hooks/use-job-filters';
-import { toast } from '@/lib/toast';
 import { trpc, TRPCProvider } from '@/trpc/client';
 import { Loader2 } from 'lucide-react';
 import React from 'react';
@@ -33,45 +28,12 @@ const ManagementContent: React.FC = () => {
     },
   );
 
-  const pendingReviewsQuery = trpc.registration.getPendingReviews.useQuery(undefined, {
-    refetchInterval: 5000,
-  });
-
-  const resolveJobMutation = trpc.registration.resolveBlockedJob.useMutation();
-
-  const handleResolveJob = async (
-    jobId: string,
-    resolutionData?: Record<string, unknown>,
-  ): Promise<void> => {
-    try {
-      await resolveJobMutation.mutateAsync({
-        jobId,
-        resolutionData,
-      });
-      toast.success('Resolution confirmed');
-      void pendingReviewsQuery.refetch();
-    } catch (error) {
-      console.error('Resolution failed:', error);
-      toast.error('Failed to resolve');
-    }
-  };
-
   return (
     <div className="flex flex-col gap-12">
-      {/* Attention Items (Blocked Jobs) */}
-      {pendingReviewsQuery.data !== undefined && pendingReviewsQuery.data.length > 0 && (
-        <section className="animate-in fade-in slide-in-from-top-2 duration-500">
-          <BlockedJobAlert
-            jobs={pendingReviewsQuery.data as unknown as BlockedJob[]}
-            onResolve={handleResolveJob}
-          />
-        </section>
-      )}
-
       {/* History Table */}
       <section className="animate-in fade-in slide-in-from-bottom-2 duration-500">
         {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */}
-        {recentJobsQuery.data ? (
+        {recentJobsQuery.data !== undefined && recentJobsQuery.data !== null ? (
           <JobTable
             jobs={recentJobsQuery.data.docs as unknown as RegistrationJob[]}
             totalDocs={recentJobsQuery.data.totalDocs}

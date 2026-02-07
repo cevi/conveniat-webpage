@@ -5,6 +5,7 @@ export const confirmationMessageStep: TaskConfig<{
   output: { sent: boolean };
 }> = {
   slug: 'confirmationMessage',
+  retries: 3,
   inputSchema: [
     {
       name: 'userId',

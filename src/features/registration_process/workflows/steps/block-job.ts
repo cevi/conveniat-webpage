@@ -1,13 +1,18 @@
 import type { TaskConfig } from 'payload';
 
 export const blockJobStep: TaskConfig<{
-  input: { workflowSlug: string; originalInput: unknown };
+  input: { workflowSlug: string; originalInput: unknown; reason: string };
   output: { blocked: boolean };
 }> = {
   slug: 'blockJob',
+  retries: 3,
   inputSchema: [
     {
       name: 'workflowSlug',
+      type: 'text',
+    },
+    {
+      name: 'reason',
       type: 'text',
     },
     {
@@ -31,6 +36,7 @@ export const blockJobStep: TaskConfig<{
         originalJobId: job.id,
         workflowSlug: input.workflowSlug,
         input: input.originalInput as Record<string, unknown>,
+        reason: input.reason,
         status: 'pending',
       },
     });

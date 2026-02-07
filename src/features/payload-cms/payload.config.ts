@@ -16,6 +16,7 @@ import { smartphoneBreakpoints } from '@/features/payload-cms/utils/smartphone-b
 import { registrationWorkflow } from '@/features/registration_process/workflows/registration-workflow';
 import { blockJobStep } from '@/features/registration_process/workflows/steps/block-job';
 import { confirmationMessageStep } from '@/features/registration_process/workflows/steps/confirmation-message';
+import { createUserStep } from '@/features/registration_process/workflows/steps/create-user';
 import { ensureEventMembershipStep } from '@/features/registration_process/workflows/steps/ensure-event-membership';
 import { ensureGroupMembershipStep } from '@/features/registration_process/workflows/steps/ensure-group-membership';
 import { resolveUserStep } from '@/features/registration_process/workflows/steps/resolve-user';
@@ -196,6 +197,7 @@ export const payloadConfig: RoutableConfig = {
     deleteJobOnComplete: false,
     tasks: [
       resolveUserStep,
+      createUserStep,
       blockJobStep,
       ensureGroupMembershipStep,
       ensureEventMembershipStep,
