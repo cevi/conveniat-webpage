@@ -146,6 +146,7 @@ export interface Config {
       resolveUser: TaskResolveUser;
       createUser: CreateUserInputOutput;
       blockJob: TaskBlockJob;
+      cleanupTemporaryRoles: TaskCleanupTemporaryRoles;
       ensureGroupMembership: TaskEnsureGroupMembership;
       ensureEventMembership: TaskEnsureEventMembership;
       confirmationMessage: TaskConfirmationMessage;
@@ -2014,6 +2015,7 @@ export interface PayloadJob {
           | 'resolveUser'
           | 'createUser'
           | 'blockJob'
+          | 'cleanupTemporaryRoles'
           | 'ensureGroupMembership'
           | 'ensureEventMembership'
           | 'confirmationMessage';
@@ -2056,6 +2058,7 @@ export interface PayloadJob {
         | 'resolveUser'
         | 'createUser'
         | 'blockJob'
+        | 'cleanupTemporaryRoles'
         | 'ensureGroupMembership'
         | 'ensureEventMembership'
         | 'confirmationMessage'
@@ -3896,6 +3899,18 @@ export interface TaskBlockJob {
   };
   output: {
     blocked?: boolean | null;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskCleanupTemporaryRoles".
+ */
+export interface TaskCleanupTemporaryRoles {
+  input: {
+    userId: string;
+  };
+  output: {
+    success?: boolean | null;
   };
 }
 /**

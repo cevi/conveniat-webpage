@@ -82,6 +82,12 @@ export class HitobitoClient {
     } as RequestInit);
 
     if (!response.ok) {
+      // Treat 404 on DELETE as success (idempotency)
+      if (method === 'DELETE' && response.status === 404) {
+        this.logger?.warn(`DELETE ${url} returned 404 (Not Found). Treating as success.`);
+        return {} as T;
+      }
+
       const text = await response.text();
       throw new Error(
         `API ${method} failed: ${response.status} ${response.statusText} - ${text} at ${url}`,
