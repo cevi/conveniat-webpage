@@ -77,7 +77,7 @@ export async function lookupByEmail(
 ): Promise<{ personId: string | undefined; personLabel: string | undefined }> {
   try {
     const response = await apiGet<{ data: unknown[] }>(
-      '/people',
+      '/api/people',
       { 'filter[email]': email },
       undefined,
       logger,

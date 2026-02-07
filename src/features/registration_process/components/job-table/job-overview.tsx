@@ -3,7 +3,8 @@ import { ConfirmationModal } from '@/features/payload-cms/payload-cms/components
 import type { Config as PayloadConfig } from '@/features/payload-cms/payload-types';
 import {
   DetailRow,
-  InputViewer,
+  flattenObject,
+  renderValue,
 } from '@/features/registration_process/components/job-table/job-details-shared';
 import type {
   Candidate,
@@ -351,7 +352,13 @@ export const JobOverview: React.FC<JobOverviewProperties> = ({
             <h3 className="text-xs font-bold tracking-wider text-zinc-500 uppercase">Input Data</h3>
           </div>
           <div className="p-4">
-            <InputViewer data={inputData} />
+            {Object.entries(flattenObject(inputData)).map(([key, value]) => (
+              <DetailRow
+                key={key}
+                label={key}
+                value={<span className="break-words">{renderValue(value)}</span>}
+              />
+            ))}
           </div>
         </div>
       </div>
