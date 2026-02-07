@@ -88,8 +88,6 @@ export const registrationWorkflow: WorkflowConfig<'registrationWorkflow'> = {
         /* eslint-enable unicorn/no-null */
         currentUserId = resolution.peopleId;
 
-        console.log('user details', resolution);
-
         // 2c. Handle Ambiguity
         if (resolution.status === 'ambiguous') {
           const blockResult = (await tasks.blockJob('2', {

@@ -1,3 +1,4 @@
+import type { Dispatch, SetStateAction } from 'react';
 import { useEffect, useState } from 'react';
 
 export type JobStatus = 'queued' | 'processing' | 'completed' | 'failed' | 'awaiting_approval';
@@ -11,9 +12,9 @@ export const useJobFilters = (): {
     sort: string;
   };
   actions: {
-    setPage: React.Dispatch<React.SetStateAction<number>>;
+    setPage: Dispatch<SetStateAction<number>>;
     setStatus: (newStatus?: JobStatus) => void;
-    setSearch: React.Dispatch<React.SetStateAction<string>>;
+    setSearch: Dispatch<SetStateAction<string>>;
     setSort: (field: string) => void;
   };
 } => {
