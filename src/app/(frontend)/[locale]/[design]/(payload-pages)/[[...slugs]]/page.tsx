@@ -84,7 +84,10 @@ const generateMetadataCached = cache(
     }
 
     if (collectionPage?.component.generateMetadata) {
-      return await collectionPage.component.generateMetadata({ locale, slugs: remainingSlugs });
+      return await collectionPage.component.generateMetadata({
+        locale,
+        slugs: remainingSlugs,
+      });
     }
 
     return {};
@@ -95,14 +98,21 @@ export const generateMetadata = async ({
   params,
 }: {
   params: Promise<{
-    locale: Locale;
+    locale: string;
+    design: string;
     slugs: string[] | undefined;
   }>;
 }): Promise<Metadata> => {
-  const { slugs, locale } = await params;
+  const { slugs, locale, design } = await params;
   const awaitedParameters = await params;
+
+  const displaySlug =
+    locale === '_next'
+      ? `/_next/${design}/${(slugs ?? []).join('/')}`
+      : `/${(slugs ?? []).join('/')}`;
+
   console.log(
-    `Render page with slug: ${slugs === undefined ? '/' : slugs.join(', ')}, from: ${JSON.stringify(awaitedParameters)}`,
+    `Generate metadata for page with slug: ${displaySlug}, from: ${JSON.stringify(awaitedParameters)}`,
   );
 
   // During build, 'await connection()' signals that this function depends on
@@ -110,7 +120,7 @@ export const generateMetadata = async ({
   // for this specific execution if it were truly dynamic.
   // HOWEVER, preventing the DB connection manually via our helper is safer for avoiding build errors.
   await connection();
-  return await generateMetadataCached(locale, slugs);
+  return await generateMetadataCached(locale as Locale, slugs);
 };
 
 /**
@@ -127,7 +137,8 @@ export const generateMetadata = async ({
 const CMSPage: React.FC<{
   params: Promise<{
     slugs: string[] | undefined;
-    locale: Locale;
+    locale: string;
+    design: string;
   }>;
   searchParams: Promise<SearchParameters>;
 }> = async ({ params, searchParams: searchParametersPromise }) => {
@@ -141,11 +152,12 @@ const CMSPage: React.FC<{
   // this logic is needed for the case the do not have set
   // we only treat valid locales as a valid locale, otherwise we use the default locale
   // and unshift the locale to the slugs array
-  if (!Object.values(LOCALE).includes(locale)) {
+  if (!(Object.values(LOCALE) as string[]).includes(locale)) {
     slugs ??= [];
     slugs.unshift(locale);
-    locale = i18nConfig.defaultLocale as Locale;
+    locale = i18nConfig.defaultLocale;
   }
+  const validatedLocale = locale as Locale;
 
   const draft = await draftMode();
 
@@ -187,11 +199,14 @@ const CMSPage: React.FC<{
           <specialPage.component
             slugs={remainingSlugs}
             renderInPreviewMode={renderInPreviewMode}
-            locale={locale}
+            locale={validatedLocale}
             searchParams={searchParametersPromise}
           />
           {isDraftSession && (
-            <PreviewWarning params={params} renderInPreviewMode={renderInPreviewMode} />
+            <PreviewWarning
+              params={Promise.resolve({ locale: validatedLocale })}
+              renderInPreviewMode={renderInPreviewMode}
+            />
           )}
 
           <CookieBanner />
@@ -200,7 +215,7 @@ const CMSPage: React.FC<{
     } else {
       // redirect to the alternative locale
       console.log('Redirecting to alternative locale for special page');
-      redirect(`/${locale}/${specialPage.alternatives[locale]}`);
+      redirect(`/${validatedLocale}/${specialPage.alternatives[validatedLocale]}`);
     }
   }
 
@@ -212,7 +227,7 @@ const CMSPage: React.FC<{
   }
 
   if (collectionPage !== undefined) {
-    if (collectionPage.locales.includes(locale)) {
+    if (collectionPage.locales.includes(validatedLocale)) {
       return (
         <>
           {renderInPreviewMode && (
@@ -220,13 +235,16 @@ const CMSPage: React.FC<{
           )}
 
           <collectionPage.component
-            locale={locale}
+            locale={validatedLocale}
             slugs={remainingSlugs}
             renderInPreviewMode={renderInPreviewMode}
           />
 
           {isDraftSession && (
-            <PreviewWarning params={params} renderInPreviewMode={renderInPreviewMode} />
+            <PreviewWarning
+              params={Promise.resolve({ locale: validatedLocale })}
+              renderInPreviewMode={renderInPreviewMode}
+            />
           )}
 
           <CookieBanner />
@@ -234,9 +252,9 @@ const CMSPage: React.FC<{
       );
     } else {
       // redirect to alternative collectionPage if available
-      const alternative = collectionPage.alternatives[locale];
+      const alternative = collectionPage.alternatives[validatedLocale];
       console.log('Redirecting to alternative locale for collection page');
-      redirect(`/${locale}/${alternative}}`);
+      redirect(`/${validatedLocale}/${alternative}}`);
     }
   }
 
