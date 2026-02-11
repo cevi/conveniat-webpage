@@ -56,11 +56,13 @@ const SuspendedPostHogPageView: React.FC = () => {
 
 export const PostHogProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   useEffect(() => {
-    if (
+    const isConfigured =
       typeof globalThis !== 'undefined' &&
+      environmentVariables.NEXT_PUBLIC_POSTHOG_KEY !== undefined &&
       environmentVariables.NEXT_PUBLIC_POSTHOG_KEY !== '' &&
-      environmentVariables.NEXT_PUBLIC_POSTHOG_HOST !== ''
-    ) {
+      environmentVariables.NEXT_PUBLIC_POSTHOG_HOST !== '';
+
+    if (isConfigured) {
       posthog.init(environmentVariables.NEXT_PUBLIC_POSTHOG_KEY ?? '', {
         api_host: '/ingest',
         ui_host: 'https://eu.posthog.com',
@@ -68,6 +70,8 @@ export const PostHogProvider: React.FC<{ children: React.ReactNode }> = ({ child
         capture_pageview: false, // page views are captured manually
         capture_pageleave: true,
       });
+    } else {
+      console.warn('PostHog is not configured. Skipping initialization.');
     }
   }, []);
 
