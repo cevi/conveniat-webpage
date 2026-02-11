@@ -42,7 +42,7 @@ export interface LinkFields {
  *
  */
 
-const resolveInternalLink = (fields: LinkFields): string => {
+const resolveInternalLink = (fields: LinkFields, currentLocale?: Locale): string => {
   const url = fields.url ?? '';
 
   if (typeof fields.doc.value === 'string') {
@@ -58,7 +58,7 @@ const resolveInternalLink = (fields: LinkFields): string => {
         // We cast to any to access _locale because it might not be present on all types in the union
         // or the specific generated type might differ slightly.
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-        const locale = (documentValue as any)._locale as Locale;
+        const locale = currentLocale ?? ((documentValue as any)._locale as Locale);
         let langPrefix = getLanguagePrefix(locale);
         langPrefix = langPrefix === '' ? '' : `${langPrefix}/`;
 
@@ -107,50 +107,56 @@ const resolveInternalLink = (fields: LinkFields): string => {
   return `/${url}`;
 };
 
-const linkConverter: JSXConverters<SerializedParagraphNode>['link'] = ({ node, nodesToJSX }) => {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access
-  const children = nodesToJSX({ nodes: node.children });
+const createLinkConverter =
+  (locale?: Locale): JSXConverters<SerializedParagraphNode>['link'] =>
+  ({ node, nodesToJSX }) => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access
+    const children = nodesToJSX({ nodes: node.children });
 
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const fields = node.fields as unknown as LinkFields;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      const fields = node.fields as unknown as LinkFields;
 
-    let url = fields.url ?? '';
+      let url = fields.url ?? '';
 
-    if (fields.linkType === 'internal') {
-      url = resolveInternalLink(fields);
+      if (fields.linkType === 'internal') {
+        url = resolveInternalLink(fields, locale);
+      }
+
+      return (
+        <LinkComponent
+          href={url}
+          className="font-extrabold text-red-600"
+          openInNewTab={fields.newTab ?? false}
+        >
+          {children}
+        </LinkComponent>
+      );
+    } catch (error) {
+      console.error('Error converting link node:', error);
+      if (typeof globalThis !== 'undefined') {
+        void import('posthog-js').then(({ default: posthog }) => {
+          posthog.captureException(error);
+        });
+      }
+      return <>{children}</>;
     }
-
-    return (
-      <LinkComponent
-        href={url}
-        className="font-extrabold text-red-600"
-        openInNewTab={fields.newTab ?? false}
-      >
-        {children}
-      </LinkComponent>
-    );
-  } catch (error) {
-    console.error('Error converting link node:', error);
-    if (typeof globalThis !== 'undefined') {
-      void import('posthog-js').then(({ default: posthog }) => {
-        posthog.captureException(error);
-      });
-    }
-    return <>{children}</>;
-  }
-};
+  };
 
 /**
  *
  * Converts a link node to JSX.
  * Resolves external and internal links to the correct URL.
  *
- * @param node - The link node to convert.
- * @param nodesToJSX - The function to convert the children of the link node to JSX.
+ * @param locale - The locale used for resolving internal links.
  *
  */
-export const LinkJSXConverter: JSXConverters<SerializedParagraphNode> = {
-  link: linkConverter,
-  autolink: linkConverter, // this is used to resolve copy-pasted links
+export const getLinkJSXConverter = (locale?: Locale): JSXConverters<SerializedParagraphNode> => {
+  const linkConverter = createLinkConverter(locale);
+  return {
+    link: linkConverter,
+    autolink: linkConverter, // this is used to resolve copy-pasted links
+  };
 };
+
+export const LinkJSXConverter = getLinkJSXConverter();

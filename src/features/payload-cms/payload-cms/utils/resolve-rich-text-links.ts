@@ -1,17 +1,19 @@
 import type { Locale } from '@/types/types';
-import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
+import type {
+  SerializedEditorState,
+  SerializedLexicalNode,
+} from '@payloadcms/richtext-lexical/lexical';
 import type { BasePayload } from 'payload';
 
-interface LinkNode {
-  type: string;
+interface LinkNode extends SerializedLexicalNode {
   fields?: {
     linkType?: string;
     doc?: {
-      value: string | any;
+      value: string | object;
       relationTo: string;
     };
   };
-  children?: any[];
+  children?: SerializedLexicalNode[];
 }
 
 /**
@@ -23,23 +25,20 @@ export async function resolveRichTextLinks(
   payload: BasePayload,
   locale: Locale,
 ): Promise<SerializedEditorState> {
-  if (!richText || !richText.root || !richText.root.children) {
-    return richText;
-  }
-
   const linksToResolve: Array<{ node: LinkNode }> = [];
 
-  const walk = (nodes: any[]): void => {
+  const walk = (nodes: SerializedLexicalNode[]): void => {
     for (const node of nodes) {
+      const linkNode = node as unknown as LinkNode;
       if (
-        (node.type === 'link' || node.type === 'autolink') &&
-        node.fields?.linkType === 'internal' &&
-        typeof node.fields.doc?.value === 'string'
+        (linkNode.type === 'link' || linkNode.type === 'autolink') &&
+        linkNode.fields?.linkType === 'internal' &&
+        typeof linkNode.fields.doc?.value === 'string'
       ) {
-        linksToResolve.push({ node: node as LinkNode });
+        linksToResolve.push({ node: linkNode });
       }
-      if (node.children) {
-        walk(node.children as any[]);
+      if (linkNode.children) {
+        walk(linkNode.children);
       }
     }
   };
@@ -58,17 +57,15 @@ export async function resolveRichTextLinks(
 
       try {
         const fetchedDocument = await payload.findByID({
-          collection: documentInfo.relationTo as any,
+          collection: documentInfo.relationTo as never,
           id: documentInfo.value,
           depth: 1,
           locale,
           fallbackLocale: false,
         });
 
-        if (fetchedDocument) {
-          // Inject the fetched document back into the node
-          documentInfo.value = fetchedDocument;
-        }
+        // Inject the fetched document back into the node
+        documentInfo.value = fetchedDocument;
       } catch (error) {
         console.error(
           `Failed to resolve link for ${documentInfo.relationTo}:${documentInfo.value}`,
@@ -84,7 +81,7 @@ export async function resolveRichTextLinks(
 /**
  * Utility to resolve links in an array of objects that have a description field.
  */
-export async function resolveLinksInArray<T extends { description?: any }>(
+export async function resolveLinksInArray<T extends { description?: SerializedEditorState }>(
   items: T[],
   payload: BasePayload,
   locale: Locale,
@@ -92,7 +89,7 @@ export async function resolveLinksInArray<T extends { description?: any }>(
   await Promise.all(
     items.map(async (item) => {
       if (item.description) {
-        await resolveRichTextLinks(item.description as SerializedEditorState, payload, locale);
+        await resolveRichTextLinks(item.description, payload, locale);
       }
     }),
   );

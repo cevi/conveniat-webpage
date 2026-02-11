@@ -1,4 +1,4 @@
-import { jsxConverters } from '@/features/payload-cms/converters/richtext-lexical';
+import { getJsxConverters } from '@/features/payload-cms/converters/richtext-lexical';
 import type { Locale } from '@/types/types';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import { RichText } from '@payloadcms/richtext-lexical/react';
@@ -20,6 +20,8 @@ export const LexicalRichTextSection: React.FC<{
   locale?: Locale;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   converters?: Record<string, any>;
-}> = ({ richTextSection, converters }) => {
-  return <RichText converters={{ ...jsxConverters, ...converters }} data={richTextSection} />;
+}> = ({ richTextSection, locale, converters }) => {
+  return (
+    <RichText converters={{ ...getJsxConverters(locale), ...converters }} data={richTextSection} />
+  );
 };

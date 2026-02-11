@@ -146,8 +146,7 @@ export const RenderTimelineEntries: SectionRenderer<TimelineEntries> = async ({
       )}
       locale={locale}
     >
-      {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */}
-      {timelineEntries?.map((timelineEntry, index) => (
+      {timelineEntries.map((timelineEntry, index) => (
         <Fragment key={index}>
           <TimelineEntry timeline={timelineEntry} locale={locale} />
         </Fragment>
@@ -226,8 +225,8 @@ export const SummaryBlock: SectionRenderer<LexicalRichTextSectionType> = async (
 };
 
 export const DetailsTable: SectionRenderer<{
-  introduction: SerializedEditorState;
-  detailsTableBlocks: { label: string; value: SerializedEditorState }[];
+  introduction?: SerializedEditorState;
+  detailsTableBlocks?: { label: string; value: SerializedEditorState }[];
 }> = async ({ block, sectionClassName, sectionOverrides, locale }) => {
   const payload = await getPayload({ config });
 
@@ -257,11 +256,12 @@ export const DetailsTable: SectionRenderer<{
       )}
       locale={locale}
     >
-      <LexicalRichTextSection richTextSection={block.introduction} locale={locale} />
+      {block.introduction && (
+        <LexicalRichTextSection richTextSection={block.introduction} locale={locale} />
+      )}
 
       <div className="mt-4">
         <hr className="border border-gray-100" />
-        {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */}
         {block.detailsTableBlocks?.map((detailsTableEntry, index) => (
           <Fragment key={index}>
             <div className="grid gap-x-2 p-2 hyphens-auto md:grid-cols-[1fr_2fr]">
@@ -305,7 +305,7 @@ export const SwisstopoInlineMapSection: SectionRenderer<InlineSwisstopoMapEmbedT
 };
 
 export const RenderSinglePicture: SectionRenderer<{
-  image: {
+  image?: {
     url: string;
     sizes?: { large?: { url: string } };
     alt: string;
@@ -328,14 +328,12 @@ export const RenderSinglePicture: SectionRenderer<{
       locale={locale}
     >
       <div className="text-conveniat-green relative mt-10 aspect-video w-[calc(100%+32px)] text-lg max-md:mx-[-16px]">
-        {/* eslint-disable @typescript-eslint/no-unnecessary-condition */}
         <Image
-          src={block.image?.sizes?.large?.url ?? block.image?.url}
-          alt={(block.image?.alt as undefined | string) ?? 'copyright by conveniat27'}
+          src={block.image?.sizes?.large?.url ?? block.image?.url ?? ''}
+          alt={block.image?.alt ?? 'copyright by conveniat27'}
           className="block rounded-2xl object-contain"
           fill
         />
-        {/* eslint-enable @typescript-eslint/no-unnecessary-condition */}
       </div>
     </SectionWrapper>
   );
