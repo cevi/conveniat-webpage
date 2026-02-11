@@ -29,6 +29,7 @@ import { YoutubeEmbed } from '@/features/payload-cms/components/content-blocks/y
 import type { FormBlockType } from '@/features/payload-cms/components/form';
 import type { ContentBlock } from '@/features/payload-cms/converters/page-sections/section-wrapper';
 import SectionWrapper from '@/features/payload-cms/converters/page-sections/section-wrapper';
+import { resolveRichTextLinks } from '@/features/payload-cms/payload-cms/utils/resolve-rich-text-links';
 import type {
   AccordionBlocks,
   Timeline,
@@ -36,9 +37,11 @@ import type {
   TimelineEntries,
 } from '@/features/payload-cms/payload-types';
 import type { Locale, LocalizedPageType, StaticTranslationString } from '@/types/types';
+import config from '@payload-config';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import { cacheLife, cacheTag } from 'next/cache';
 import Image from 'next/image';
+import { getPayload } from 'payload';
 import type React from 'react';
 import { Fragment } from 'react';
 
@@ -153,12 +156,18 @@ export const RenderTimelineEntries: SectionRenderer<TimelineEntries> = async ({
   );
 };
 
-export const AccordionBlock: SectionRenderer<AccordionBlocks> = ({
+export const AccordionBlock: SectionRenderer<AccordionBlocks> = async ({
   block,
   sectionClassName,
   sectionOverrides,
   locale,
 }) => {
+  const payload = await getPayload({ config });
+
+  if (block.introduction) {
+    await resolveRichTextLinks(block.introduction, payload, locale);
+  }
+
   return (
     <SectionWrapper
       block={block}
@@ -174,7 +183,9 @@ export const AccordionBlock: SectionRenderer<AccordionBlocks> = ({
       )}
       locale={locale}
     >
-      {block.introduction && <LexicalRichTextSection richTextSection={block.introduction} />}
+      {block.introduction && (
+        <LexicalRichTextSection richTextSection={block.introduction} locale={locale} />
+      )}
 
       <div className="mt-4">
         <Accordion block={block} locale={locale} />
@@ -183,12 +194,15 @@ export const AccordionBlock: SectionRenderer<AccordionBlocks> = ({
   );
 };
 
-export const SummaryBlock: SectionRenderer<LexicalRichTextSectionType> = ({
+export const SummaryBlock: SectionRenderer<LexicalRichTextSectionType> = async ({
   block,
   sectionClassName,
   sectionOverrides,
   locale,
 }) => {
+  const payload = await getPayload({ config });
+  await resolveRichTextLinks(block.richTextSection, payload, locale);
+
   return (
     <SectionWrapper
       block={block}
@@ -205,7 +219,7 @@ export const SummaryBlock: SectionRenderer<LexicalRichTextSectionType> = ({
       locale={locale}
     >
       <div className="border-t-conveniat-green mx-0 my-8 border-t-[4px] bg-green-100 p-6 md:mx-12">
-        <LexicalRichTextSection richTextSection={block.richTextSection} />
+        <LexicalRichTextSection richTextSection={block.richTextSection} locale={locale} />
       </div>
     </SectionWrapper>
   );
@@ -214,7 +228,20 @@ export const SummaryBlock: SectionRenderer<LexicalRichTextSectionType> = ({
 export const DetailsTable: SectionRenderer<{
   introduction: SerializedEditorState;
   detailsTableBlocks: { label: string; value: SerializedEditorState }[];
-}> = ({ block, sectionClassName, sectionOverrides, locale }) => {
+}> = async ({ block, sectionClassName, sectionOverrides, locale }) => {
+  const payload = await getPayload({ config });
+
+  if (block.introduction) {
+    await resolveRichTextLinks(block.introduction, payload, locale);
+  }
+
+  if (block.detailsTableBlocks) {
+    await Promise.all(
+      block.detailsTableBlocks.map((tableBlock) =>
+        resolveRichTextLinks(tableBlock.value, payload, locale),
+      ),
+    );
+  }
   return (
     <SectionWrapper
       block={block}
@@ -230,7 +257,7 @@ export const DetailsTable: SectionRenderer<{
       )}
       locale={locale}
     >
-      <LexicalRichTextSection richTextSection={block.introduction} />
+      <LexicalRichTextSection richTextSection={block.introduction} locale={locale} />
 
       <div className="mt-4">
         <hr className="border border-gray-100" />
@@ -241,7 +268,7 @@ export const DetailsTable: SectionRenderer<{
               <div className="text-conveniat-green my-2 font-semibold">
                 {detailsTableEntry.label}
               </div>
-              <LexicalRichTextSection richTextSection={detailsTableEntry.value} />
+              <LexicalRichTextSection richTextSection={detailsTableEntry.value} locale={locale} />
             </div>
             <hr className="grid-cols-2 border border-gray-100" />
           </Fragment>
@@ -300,7 +327,7 @@ export const RenderSinglePicture: SectionRenderer<{
       )}
       locale={locale}
     >
-      <div className="text-conveniat-green relative mt-10 aspect-[16/9] w-[calc(100%+32px)] text-lg max-md:mx-[-16px]">
+      <div className="text-conveniat-green relative mt-10 aspect-video w-[calc(100%+32px)] text-lg max-md:mx-[-16px]">
         {/* eslint-disable @typescript-eslint/no-unnecessary-condition */}
         <Image
           src={block.image?.sizes?.large?.url ?? block.image?.url}
@@ -444,12 +471,15 @@ export const RenderBlogPostsOverview: SectionRenderer = ({
   );
 };
 
-export const RenderRichTextSection: SectionRenderer<LexicalRichTextSectionType> = ({
+export const RenderRichTextSection: SectionRenderer<LexicalRichTextSectionType> = async ({
   block,
   sectionClassName,
   sectionOverrides,
   locale,
 }) => {
+  const payload = await getPayload({ config });
+  await resolveRichTextLinks(block.richTextSection, payload, locale);
+
   return (
     <SectionWrapper
       block={block}
@@ -465,7 +495,7 @@ export const RenderRichTextSection: SectionRenderer<LexicalRichTextSectionType> 
       )}
       locale={locale}
     >
-      <LexicalRichTextSection richTextSection={block.richTextSection} />
+      <LexicalRichTextSection richTextSection={block.richTextSection} locale={locale} />
     </SectionWrapper>
   );
 };

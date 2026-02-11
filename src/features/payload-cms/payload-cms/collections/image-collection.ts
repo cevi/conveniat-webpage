@@ -67,7 +67,7 @@ const imageCaption = (locale: string): Field => {
 
 export const ImageCollection: CollectionConfig = {
   slug: 'images',
-  ...flushPageCacheOnChange,
+  hooks: { afterChange: [flushPageCacheOnChange] },
 
   labels: {
     singular: {

@@ -7,6 +7,7 @@ import type {
   CampScheduleEntry,
   InitialMapPose,
 } from '@/features/map/types/types';
+import { resolveLinksInArray } from '@/features/payload-cms/payload-cms/utils/resolve-rich-text-links';
 import type { CampMapAnnotation as CampMapAnnotationPayloadDocumentType } from '@/features/payload-cms/payload-types';
 import type { Locale } from '@/types/types';
 import config from '@payload-config';
@@ -53,6 +54,10 @@ export const CampMapComponent: React.FC<{
     limit: 100,
     depth: 1,
   });
+
+  // Resolve links in annotations and schedule entries
+  await resolveLinksInArray(annotations.docs, payload, locale);
+  await resolveLinksInArray(scheduleEntries.docs, payload, locale);
 
   const simplifiedScheduleEntries = scheduleEntries.docs as CampScheduleEntry[];
 

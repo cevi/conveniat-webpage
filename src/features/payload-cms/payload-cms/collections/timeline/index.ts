@@ -13,7 +13,7 @@ import type { CollectionConfig } from 'payload';
 export const TimelineCollection: CollectionConfig = asLocalizedCollection({
   slug: 'timeline',
   trash: true,
-  ...flushPageCacheOnChange,
+  hooks: { afterChange: [flushPageCacheOnChange] },
 
   labels: {
     singular: {

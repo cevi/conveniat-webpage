@@ -1,18 +1,13 @@
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
+import { flushManifestCacheOnChange } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import { localizedDefaultValue } from '@/features/payload-cms/payload-cms/utils/localized-default-value';
-import { revalidateTag } from 'next/cache';
 import type { GlobalConfig } from 'payload';
 
 export const PWAGlobal: GlobalConfig = {
   slug: 'PWA',
 
   hooks: {
-    afterChange: [
-      (): void => {
-        console.log('PWA Global afterChange hook triggered --> revalidating manifest');
-        revalidateTag('manifest', 'max');
-      },
-    ],
+    afterChange: [flushManifestCacheOnChange],
   },
 
   label: {

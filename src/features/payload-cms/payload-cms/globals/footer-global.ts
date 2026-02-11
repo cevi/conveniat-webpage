@@ -5,8 +5,7 @@ import type { GlobalConfig } from 'payload';
 
 export const FooterGlobal: GlobalConfig = asLocalizedGlobal({
   slug: 'footer',
-  ...flushPageCacheOnChangeGlobal,
-
+  hooks: { afterChange: [flushPageCacheOnChangeGlobal] },
   label: {
     en: 'Footer',
     de: 'Fusszeile',

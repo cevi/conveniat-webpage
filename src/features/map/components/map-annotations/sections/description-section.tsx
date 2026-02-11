@@ -26,7 +26,7 @@ export const AnnotationDescriptionSection: React.FC<AnnotationDescriptionSection
   return (
     <div className="border-b-2 border-gray-100 p-4">
       <SafeErrorBoundary fallback={<div>{errorLoadingAnnotation[locale]}</div>}>
-        <LexicalRichTextSection richTextSection={description} />
+        <LexicalRichTextSection richTextSection={description} locale={locale} />
       </SafeErrorBoundary>
     </div>
   );

@@ -24,7 +24,7 @@ const AccordionContent: React.FC<AccordionContentProperties> = ({ valueBlocks, l
             return (
               <Fragment key={index}>
                 <div className="mb-4 hyphens-auto sm:hyphens-none">
-                  <LexicalRichTextSection richTextSection={_block.value} />
+                  <LexicalRichTextSection richTextSection={_block.value} locale={locale} />
                 </div>
                 {index !== valueBlocks.length - 1 && <hr className="my-6 border border-gray-100" />}
               </Fragment>

@@ -24,7 +24,7 @@ const googleSearchConsoleVerificationValidation = (
 export const SeoGlobal: GlobalConfig = {
   slug: 'SEO',
   label: 'SEO Settings',
-  ...flushPageCacheOnChangeGlobal,
+  hooks: { afterChange: [flushPageCacheOnChangeGlobal] },
 
   admin: {
     group: AdminPanelDashboardGroups.GlobalSettings,
