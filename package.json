@@ -1,6 +1,6 @@
 {
   "name": "conveniat27",
-  "version": "0.33.0",
+  "version": "0.34.0",
   "description": "The official website of conveniat27",
   "license": "MIT",
   "author": "Cyrill Püntener v/o JPG (cyrill.puentener@cevi.ch)",
@@ -76,6 +76,7 @@
     "@payloadcms/richtext-slate": "^3.73.0",
     "@payloadcms/storage-s3": "^3.73.0",
     "@payloadcms/ui": "^3.73.0",
+    "@posthog/nextjs-config": "^1.8.10",
     "@prisma/adapter-pg": "7.3.0",
     "@prisma/client": "7.3.0",
     "@prisma/client-runtime-utils": "^7.3.0",

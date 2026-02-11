@@ -143,7 +143,8 @@ export const RenderTimelineEntries: SectionRenderer<TimelineEntries> = async ({
       )}
       locale={locale}
     >
-      {timelineEntries.map((timelineEntry, index) => (
+      {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */}
+      {timelineEntries?.map((timelineEntry, index) => (
         <Fragment key={index}>
           <TimelineEntry timeline={timelineEntry} locale={locale} />
         </Fragment>
@@ -233,7 +234,8 @@ export const DetailsTable: SectionRenderer<{
 
       <div className="mt-4">
         <hr className="border border-gray-100" />
-        {block.detailsTableBlocks.map((detailsTableEntry, index) => (
+        {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */}
+        {block.detailsTableBlocks?.map((detailsTableEntry, index) => (
           <Fragment key={index}>
             <div className="grid gap-x-2 p-2 hyphens-auto md:grid-cols-[1fr_2fr]">
               <div className="text-conveniat-green my-2 font-semibold">
