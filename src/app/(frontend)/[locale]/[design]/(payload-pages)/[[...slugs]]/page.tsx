@@ -254,7 +254,7 @@ const CMSPage: React.FC<{
       // redirect to alternative collectionPage if available
       const alternative = collectionPage.alternatives[validatedLocale];
       console.log('Redirecting to alternative locale for collection page');
-      redirect(`/${validatedLocale}/${alternative}}`);
+      redirect(`/${validatedLocale}/${alternative}`);
     }
   }
 
