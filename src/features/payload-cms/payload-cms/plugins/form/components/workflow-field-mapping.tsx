@@ -47,7 +47,7 @@ export const WorkflowFieldMapping: React.FC<WorkflowFieldMappingProperties> = ({
 
   // If no workflow selected or workflow not in definitions, return nothing
   if (!selectedWorkflow || !workflowDefinitions[selectedWorkflow]) {
-    return undefined;
+    return <></>;
   }
 
   const currentWorkflowDefinition = workflowDefinitions[selectedWorkflow];
