@@ -1,4 +1,8 @@
 import prisma from '@/lib/database';
+import {
+  type HitobitoNextAuthUser,
+  HitobitoNextAuthUserSchema,
+} from '@/types/hitobito-next-auth-user';
 import { auth } from '@/utils/auth';
 import { isValidNextAuthUser } from '@/utils/auth-helpers';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
@@ -8,7 +12,21 @@ import superjson from 'superjson';
 
 export const createTRPCContext = cache(async () => {
   const session = await auth();
-  const sessionUser = isValidNextAuthUser(session?.user) ? session.user : undefined;
+  let sessionUser: HitobitoNextAuthUser | undefined;
+
+  if (session?.user) {
+    if (isValidNextAuthUser(session.user)) {
+      sessionUser = session.user;
+    } else {
+      const result = HitobitoNextAuthUserSchema.safeParse(session.user);
+      if (!result.success) {
+        console.warn(
+          '[createTRPCContext] Session invalid (Schema Mismatch):',
+          JSON.stringify(result.error.format()),
+        );
+      }
+    }
+  }
 
   const locale = await getLocaleFromCookies();
   return { user: sessionUser, locale, prisma: prisma };
@@ -29,7 +47,7 @@ const isAuthed = t.middleware(({ ctx, next }) => {
   if (!ctx.user) {
     throw new TRPCError({
       code: 'FORBIDDEN',
-      message: 'User not authenticated',
+      message: `User not authenticated. User: ${ctx.user}`,
     });
   }
 
