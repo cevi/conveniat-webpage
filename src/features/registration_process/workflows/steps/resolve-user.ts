@@ -59,43 +59,52 @@ export const resolveUserStep: TaskConfig<'resolveUser'> = {
             apiAttributes = details.attributes;
             break;
           } else if (details.error === 'forbidden') {
-            logger.info(
-              `403 Forbidden for ${candidate.peopleId}, attempting support group workaround`,
-            );
+            if (
+              typeof HITOBITO_CONFIG.supportGroupId === 'string' &&
+              HITOBITO_CONFIG.supportGroupId.length > 0
+            ) {
+              logger.info(
+                `403 Forbidden for ${candidate.peopleId}, attempting support group workaround`,
+              );
 
-            const futureDate = new Date();
-            futureDate.setDate(futureDate.getDate() + 30);
-            const endOnString = `${futureDate.getFullYear()}-${(futureDate.getMonth() + 1).toString().padStart(2, '0')}-${futureDate.getDate().toString().padStart(2, '0')}`;
+              const futureDate = new Date();
+              futureDate.setDate(futureDate.getDate() + 30);
+              const endOnString = `${futureDate.getFullYear()}-${(futureDate.getMonth() + 1).toString().padStart(2, '0')}-${futureDate.getDate().toString().padStart(2, '0')}`;
 
-            try {
-              const personName = [input.firstName, input.lastName].filter(Boolean).join(' ');
-              const added = await hitobito.groups.addPerson({
-                personId: candidate.peopleId,
-                groupId: HITOBITO_CONFIG.supportGroupId,
-                roleType: EXTERNAL_ROLE_TYPE,
-                options: { endOn: endOnString, personName },
-              });
+              try {
+                const personName = [input.firstName, input.lastName].filter(Boolean).join(' ');
+                const added = await hitobito.groups.addPerson({
+                  personId: candidate.peopleId,
+                  groupId: HITOBITO_CONFIG.supportGroupId,
+                  roleType: EXTERNAL_ROLE_TYPE,
+                  options: { endOn: endOnString, personName },
+                });
 
-              if (added) {
-                const detailsRetry = await poll(
-                  () => hitobito.people.getDetails({ personId: candidate.peopleId }),
-                  (response) => response.success,
-                  {
-                    maxAttempts: 5,
-                    initialDelay: 500,
-                    logger,
-                    label: `Support group propagation for ${candidate.peopleId}`,
-                  },
-                );
+                if (added) {
+                  const detailsRetry = await poll(
+                    () => hitobito.people.getDetails({ personId: candidate.peopleId }),
+                    (response) => response.success,
+                    {
+                      maxAttempts: 5,
+                      initialDelay: 500,
+                      logger,
+                      label: `Support group propagation for ${candidate.peopleId}`,
+                    },
+                  );
 
-                if (detailsRetry.success && detailsRetry.attributes) {
-                  result = candidate;
-                  apiAttributes = detailsRetry.attributes;
-                  break;
+                  if (detailsRetry.success && detailsRetry.attributes) {
+                    result = candidate;
+                    apiAttributes = detailsRetry.attributes;
+                    break;
+                  }
                 }
+              } catch (error) {
+                logger.warn(`Support group workaround failed: ${String(error)}`);
               }
-            } catch (error) {
-              logger.warn(`Support group workaround failed: ${String(error)}`);
+            } else {
+              logger.warn(
+                'Skipping support group workaround: HITOBITO_SUPPORT_GROUP_ID not configured',
+              );
             }
           }
 
