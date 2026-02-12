@@ -61,7 +61,7 @@ export const useMessageInfiniteScroll = ({
     if (sentinel) observer.observe(sentinel);
 
     return (): void => {
-      if (sentinel) observer.unobserve(sentinel);
+      observer.disconnect();
     };
   }, [hasNextPage, isFetchingNextPage, fetchNextPage, chatId, parentId]);
 
