@@ -5,14 +5,14 @@ declare module 'next-auth' {
     user: {
       uuid?: string | undefined;
       group_ids?: number[] | undefined;
-      nickname?: string | undefined;
+      nickname?: string | null | undefined;
     } & DefaultSession['user'];
   }
 
   interface User {
     uuid?: string | undefined;
     group_ids?: number[] | undefined;
-    nickname?: string | undefined;
+    nickname?: string | null | undefined;
   }
 }
 
@@ -23,7 +23,7 @@ declare module 'next-auth/jwt' {
     expires_at?: number | undefined;
     uuid?: string | undefined;
     group_ids?: number[] | undefined;
-    nickname?: string | undefined;
+    nickname?: string | null | undefined;
     error?: string | undefined;
     email?: string | undefined;
     name?: string | undefined;
