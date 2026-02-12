@@ -14,6 +14,24 @@ interface TokenResponse {
 }
 
 /**
+ * Parses the token response as JSON, with error handling for non-JSON responses.
+ *
+ * @param response - The response from the token endpoint.
+ * @returns The parsed token response.
+ * @throws Error if the response is not a valid JSON response, i.e. 500 Internal Server Error
+ *
+ */
+async function parseTokenResponse(response: Response): Promise<TokenResponse> {
+  const responseText = await response.text();
+  try {
+    return JSON.parse(responseText) as TokenResponse;
+  } catch {
+    console.error('Failed to parse token response as JSON:', responseText);
+    throw new Error(`Invalid JSON response from token endpoint: ${responseText.slice(0, 100)}...`);
+  }
+}
+
+/**
  * Refreshes the access token using the refresh token.
  * returns the new token with updated expiration and access token
  */
@@ -35,7 +53,7 @@ export async function refreshAccessToken(token: JWT): Promise<JWT> {
       }),
     });
 
-    const refreshedTokens = (await response.json()) as TokenResponse;
+    const refreshedTokens = await parseTokenResponse(response);
 
     if (!response.ok) {
       throw new Error(JSON.stringify(refreshedTokens));
