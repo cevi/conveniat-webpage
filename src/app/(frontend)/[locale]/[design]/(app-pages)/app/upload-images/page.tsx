@@ -338,7 +338,7 @@ const ImageUploadPage: React.FC = () => {
           </p>
           <button
             onClick={resetToForm}
-            className="flex transform items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-4 text-base font-semibold text-white shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl focus:ring-4 focus:ring-blue-500/30"
+            className="flex transform items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-4 text-base font-semibold text-white shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl focus:ring-4 focus:ring-blue-500/30 cursor-pointer"
           >
             <LucideImageIcon className="h-5 w-5" />
             {submitMoreButton[locale]}
