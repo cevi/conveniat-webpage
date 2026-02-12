@@ -39,7 +39,10 @@ export async function syncUserWithCeviDB(profile: HitobitoProfile): Promise<Payl
     });
 
     if (matchedUsers.totalDocs > 1) {
-      throw new Error('Multiple users found with the same UUID');
+      const matchedIds = matchedUsers.docs.map((userDocument) => userDocument.id).join(', ');
+      throw new Error(
+        `Multiple users found with the same UUID (cevi_db_uuid: ${ceviDatabaseUuid}). Matched Payload IDs: ${matchedIds}`,
+      );
     }
 
     if (matchedUsers.totalDocs === 1 && matchedUsers.docs[0]?.id !== undefined) {
