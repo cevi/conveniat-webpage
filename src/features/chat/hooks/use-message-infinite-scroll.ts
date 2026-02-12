@@ -28,12 +28,7 @@ export const useMessageInfiniteScroll = ({
   } = trpc.chat.infiniteMessages.useInfiniteQuery(
     { chatId, limit: 25, parentId: parentId ?? undefined },
     {
-      getNextPageParam: (lastPage, allPages): string | undefined => {
-        console.log('getNextPageParam check:', {
-          itemsCount: lastPage.items.length,
-          nextCursor: lastPage.nextCursor,
-          allPagesCount: allPages.length,
-        });
+      getNextPageParam: (lastPage): string | undefined => {
         return lastPage.nextCursor ?? undefined;
       },
       refetchOnWindowFocus: true,
@@ -45,17 +40,9 @@ export const useMessageInfiniteScroll = ({
   const topSentinelReference = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    console.log('InfiniteScroll effect:', { hasNextPage, isFetchingNextPage });
     const observer = new IntersectionObserver(
       (entries) => {
         const firstEntry = entries[0];
-        console.log('Sentinel intersection:', {
-          isIntersecting: firstEntry?.isIntersecting,
-          hasNextPage,
-          isFetchingNextPage,
-          chatId,
-          parentId,
-        });
 
         if (
           typeof firstEntry?.isIntersecting === 'boolean' &&
@@ -64,7 +51,6 @@ export const useMessageInfiniteScroll = ({
           hasNextPage &&
           !isFetchingNextPage
         ) {
-          console.log('Triggering fetchNextPage');
           fetchNextPage().catch(console.error);
         }
       },
