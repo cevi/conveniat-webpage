@@ -1,4 +1,4 @@
-import { isBuildPhase } from '@/utils/is-pre-rendering';
+import { isBuildPhase } from '@/utils/build-phase';
 import { trace, type Attributes, type Span } from '@opentelemetry/api';
 
 /**
