@@ -1,6 +1,7 @@
 'use client';
 
 import type { ChatMessage } from '@/features/chat/api/types';
+import type React from 'react';
 import { useEffect, useLayoutEffect, useRef } from 'react';
 
 interface ChatScrollManagerProperties {
