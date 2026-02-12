@@ -73,7 +73,7 @@ export const ChatDetails: React.FC = () => {
   };
 
   return (
-    <div className="fixed top-0 z-[100] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50 xl:top-[62px] xl:left-[480px] xl:z-0 xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
+    <div className="fixed top-0 z-100 flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50 xl:top-[62px] xl:left-[480px] xl:z-0 xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
       <AppFooterController hideAppFooter />
 
       {/* Header */}
@@ -88,7 +88,7 @@ export const ChatDetails: React.FC = () => {
       />
 
       {/* Main Content */}
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto px-4 py-12">
         <div className="mx-auto max-w-2xl space-y-6">
           <ChatNameSection
             currentName={chatDetails.name}
