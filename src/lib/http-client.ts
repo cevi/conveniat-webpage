@@ -1,17 +1,20 @@
+import 'server-only';
 import { Agent, setGlobalDispatcher } from 'undici';
 
 // Configure Global Agent once
-setGlobalDispatcher(
-  new Agent({
-    keepAliveTimeout: 10_000,
-    keepAliveMaxTimeout: 10_000,
-    headersTimeout: 10_000,
-    bodyTimeout: 30_000,
-    connect: { timeout: 10_000, keepAlive: true },
-    pipelining: 0,
-    connections: 50,
-  }),
-);
+export function initHttpClient(): void {
+  setGlobalDispatcher(
+    new Agent({
+      keepAliveTimeout: 10_000,
+      keepAliveMaxTimeout: 10_000,
+      headersTimeout: 10_000,
+      bodyTimeout: 30_000,
+      connect: { timeout: 10_000, keepAlive: true },
+      pipelining: 0,
+      connections: 50,
+    }),
+  );
+}
 
 /**
  * Helper function to perform fetch with retries for network errors.
