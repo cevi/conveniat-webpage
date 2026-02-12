@@ -217,7 +217,7 @@ export const SummaryBlock: SectionRenderer<LexicalRichTextSectionType> = async (
       )}
       locale={locale}
     >
-      <div className="border-t-conveniat-green mx-0 my-8 border-t-[4px] bg-green-100 p-6 md:mx-12">
+      <div className="border-t-conveniat-green mx-0 my-8 border-t-4 bg-green-100 p-6 md:mx-12">
         <LexicalRichTextSection richTextSection={block.richTextSection} locale={locale} />
       </div>
     </SectionWrapper>
@@ -312,6 +312,8 @@ export const RenderSinglePicture: SectionRenderer<{
     imageCaption?: string;
   };
 }> = ({ block, sectionClassName, sectionOverrides, locale }) => {
+  const imageUrl = block.image?.sizes?.large?.url ?? block.image?.url;
+
   return (
     <SectionWrapper
       block={block}
@@ -328,12 +330,14 @@ export const RenderSinglePicture: SectionRenderer<{
       locale={locale}
     >
       <div className="text-conveniat-green relative mt-10 aspect-video w-[calc(100%+32px)] text-lg max-md:mx-[-16px]">
-        <Image
-          src={block.image?.sizes?.large?.url ?? block.image?.url ?? ''}
-          alt={block.image?.alt ?? 'copyright by conveniat27'}
-          className="block rounded-2xl object-contain"
-          fill
-        />
+        {imageUrl !== undefined && imageUrl !== '' && (
+          <Image
+            src={imageUrl}
+            alt={block.image?.alt ?? 'copyright by conveniat27'}
+            className="block rounded-2xl object-contain"
+            fill
+          />
+        )}
       </div>
     </SectionWrapper>
   );
