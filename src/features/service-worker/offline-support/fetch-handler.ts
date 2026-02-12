@@ -243,7 +243,7 @@ export const handleFetchEvent =
 
     event.respondWith(
       router(event, serwist).catch((criticalError: unknown) => {
-        console.error('[SW] Critical Error:', criticalError);
+        console.error(`[SW] Critical Error while Fetching ${event.request.url}:`, criticalError);
         return new Response('Critical SW Error', { status: 500 });
       }),
     );
