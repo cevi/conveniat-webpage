@@ -1,4 +1,5 @@
 import type { CampMapAnnotation } from '@/features/payload-cms/payload-types';
+import { cn } from '@/utils/tailwindcss-override';
 import type { LucideProps } from 'lucide-react';
 import {
   BriefcaseMedical,
@@ -20,27 +21,20 @@ interface CirclePinProperties {
   isStarred?: boolean;
 }
 
-const starGlowKeyframes = `
-@keyframes star-glow-pulse {
-  0%, 100% { box-shadow: 0 0 8px 3px rgba(250, 204, 21, 0.6); }
-  50% { box-shadow: 0 0 14px 6px rgba(250, 204, 21, 0.9); }
-}
-`;
-
 const CirclePin = ({
   color,
   children,
   isStarred = false,
 }: CirclePinProperties): React.JSX.Element => (
   <div className="flex flex-col items-center" style={{ width: 'fit-content' }}>
-    {isStarred && <style>{starGlowKeyframes}</style>}
-    {/* Pin Head */}
     <div
-      className="z-10 flex h-9 w-9 items-center justify-center rounded-full border-2 border-white shadow-lg"
+      className={cn(
+        'z-10 flex h-9 w-9 items-center justify-center rounded-full border-2 border-white shadow-lg',
+        isStarred && 'animate-star-glow-pulse',
+      )}
       style={{
         backgroundColor: color,
         ...(isStarred && {
-          animation: 'star-glow-pulse 2s ease-in-out infinite',
           boxShadow: '0 0 10px 4px rgba(250, 204, 21, 0.7)',
         }),
       }}
