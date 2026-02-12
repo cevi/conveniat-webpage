@@ -126,7 +126,9 @@ services:
         - traefik.http.services.conveniat27-dev-minio.loadbalancer.server.port=9000
         - traefik.http.services.conveniat27-dev-console-minio.loadbalancer.server.port=9001
 
-    command: server --console-address ":9001" /data
+    entrypoint: sh
+    command: >
+      -c "mkdir -p /data/${MINIO_BUCKET_NAME} && /usr/bin/minio server --console-address ':9001' /data &  sleep 10 && mc alias set myminio http://localhost:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD} && mc admin user svcacct add --access-key '${MINIO_ACCESS_KEY_ID}' --secret-key '${MINIO_SECRET_ACCESS_KEY}' myminio ${MINIO_ROOT_USER} || true && echo 'minio is ready' && echo '{\"Rules\":[{\"ID\":\"DeleteTempFilesAfter24Hours\",\"Status\":\"Enabled\",\"Filter\":{\"Prefix\":\"temp/\"},\"Expiration\":{\"Days\":1}}]}' > /lifecycle.json && mc ilm import myminio/${MINIO_BUCKET_NAME} < /lifecycle.json || true && sleep infinity"
 
     env_file:
       - .env
