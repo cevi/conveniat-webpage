@@ -13,12 +13,14 @@ model User {
   lastSeen DateTime @default(now())
   name     String
 
-  messages        Message[]
-  chatMemberships ChatMembership[]
-  messagesEvents  MessageEvent[]
-  Enrollments     Enrollment[]
-  Stars           Star[]
+  messages             Message[]
+  chatMemberships      ChatMembership[]
+  messagesEvents       MessageEvent[]
+  Enrollments          Enrollment[]
+  Stars                Star[]
   pushNotificationLogs PushNotificationLog[]
+
+  @@index([name])
 }
 
 enum ChatType {
@@ -46,10 +48,10 @@ enum ChatCapability {
 
 model Chat {
   uuid String @id @default(uuid())
-  name String 
-  
+  name String
+
   description String?
-  status      String   @default("OPEN")
+  status      String  @default("OPEN")
 
   lastUpdate DateTime @default(now())
   createdAt  DateTime @default(now())
@@ -57,18 +59,19 @@ model Chat {
   /// the time when the chat was archived, null if the chat is not archived
   archivedAt DateTime?
 
-  type            ChatType         @default(GROUP)
-  
+  type ChatType @default(GROUP)
+
   /// links to the objectID in the courses collection in MongoDB (for COURSE_GROUP type)
   courseId String? @unique
-  
+
   messages        Message[]
   chatMemberships ChatMembership[]
   capabilities    ChatCapability[]
 
+  @@index([name])
+  @@index([description])
   @@index([lastUpdate])
 }
-
 
 enum ChatMembershipPermission {
   /// the user who has created the chat
@@ -239,17 +242,17 @@ model Star {
 }
 
 model PushNotificationLog {
-  id              String    @id @default(uuid(7))
-  
-  userId          String
-  user            User      @relation(fields: [userId], references: [uuid])
-  
-  content         String 
-  
-  sentAt          DateTime  @default(now())
+  id String @id @default(uuid(7))
+
+  userId String
+  user   User   @relation(fields: [userId], references: [uuid])
+
+  content String
+
+  sentAt          DateTime               @default(now())
   deliveredAt     DateTime?
   interactedAt    DateTime?
-  interactionType String? 
+  interactionType String?
   userAgent       String?
   status          PushNotificationStatus @default(PENDING)
   error           String?
