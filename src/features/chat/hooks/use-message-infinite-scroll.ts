@@ -2,6 +2,7 @@
 
 import type { ChatMessage } from '@/features/chat/api/types';
 import { trpc } from '@/trpc/client';
+import type React from 'react';
 import { useEffect, useRef } from 'react';
 
 interface MessageInfiniteScrollProperties {
