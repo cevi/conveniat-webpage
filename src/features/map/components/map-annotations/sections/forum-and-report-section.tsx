@@ -1,9 +1,10 @@
 'use client';
 
+import { useOnlineStatus } from '@/hooks/use-online-status';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { Flag, Loader2, MessageCircleQuestion } from 'lucide-react';
+import { Flag, Loader2, MessageCircleQuestion, WifiOff } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import { useRouter } from 'next/navigation';
 import React from 'react';
@@ -20,11 +21,18 @@ const reportIssueDescription: StaticTranslationString = {
   fr: 'Toilettes cassées, maintenance nécessaire, etc.',
 };
 
+const offlineText: StaticTranslationString = {
+  de: 'Offline',
+  en: 'Offline',
+  fr: 'Hors ligne',
+};
+
 export const AnnotationForumAndReportSection: React.FC<{
   coordinates: [number, number] | undefined;
 }> = ({ coordinates }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const router = useRouter();
+  const isOnline = useOnlineStatus();
   const [isRedirecting, setIsRedirecting] = React.useState(false);
   const { mutate: createReport, isPending } = trpc.chat.reportProblem.useMutation({
     onSuccess: (chat) => {
@@ -38,6 +46,16 @@ export const AnnotationForumAndReportSection: React.FC<{
     },
   });
 
+  const getButtonIcon = (): React.ReactNode => {
+    if (isPending || isRedirecting) {
+      return <Loader2 className="animate-spin text-orange-600" size={16} />;
+    }
+    if (isOnline) {
+      return <Flag size={16} className="text-orange-600" />;
+    }
+    return <WifiOff size={16} className="text-gray-500" />;
+  };
+
   return (
     <div className="p-4">
       <div className="mb-3 flex items-center gap-2">
@@ -47,16 +65,14 @@ export const AnnotationForumAndReportSection: React.FC<{
       <div className="space-y-2">
         <button
           onClick={() => createReport({ location: coordinates })}
-          disabled={isPending || isRedirecting}
-          className="flex w-full items-center gap-3 rounded-lg border border-gray-200 p-3 text-left hover:border-gray-300 hover:bg-gray-50 disabled:opacity-50"
+          disabled={!isOnline || isPending || isRedirecting}
+          className="flex w-full items-center gap-3 rounded-lg border border-gray-200 p-3 text-left hover:border-gray-300 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {isPending || isRedirecting ? (
-            <Loader2 className="animate-spin text-orange-600" size={16} />
-          ) : (
-            <Flag size={16} className="text-orange-600" />
-          )}
+          {getButtonIcon()}
           <div>
-            <div className="font-medium text-gray-900"> {reportIssueText[locale]}</div>
+            <div className="font-medium text-gray-900">
+              {isOnline ? reportIssueText[locale] : offlineText[locale]}
+            </div>
             <div className="text-sm text-gray-600">{reportIssueDescription[locale]}</div>
           </div>
         </button>
