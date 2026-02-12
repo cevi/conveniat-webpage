@@ -93,6 +93,18 @@ const duplicateImageError: StaticTranslationString = {
   fr: 'Cette image a déjà été téléchargée.',
 };
 
+const resolutionTooLow: StaticTranslationString = {
+  en: 'Resolution too low',
+  de: 'Auflösung zu gering',
+  fr: 'Résolution trop faible',
+};
+
+const minimumRequired: StaticTranslationString = {
+  en: 'Minimum required',
+  de: 'Mindestanforderung',
+  fr: 'Minimum requis',
+};
+
 const ImageUploadPage: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
@@ -151,14 +163,7 @@ const ImageUploadPage: React.FC = () => {
           if (!isValidDimensions) {
             const minRequest = '1920x1080px';
             const current = `${width}x${height}px`;
-
-            if (locale === 'de') {
-              error = `Auflösung zu gering: ${current}. Mindestanforderung: ${minRequest}.`;
-            } else if (locale === 'fr') {
-              error = `Résolution trop faible: ${current}. Minimum requis: ${minRequest}.`;
-            } else {
-              error = `Resolution too low: ${current}. Minimum required: ${minRequest}.`;
-            }
+            error = `${resolutionTooLow[locale]}: ${current}. ${minimumRequired[locale]}: ${minRequest}.`;
           } else if (!isValidSize) {
             error = imageTooBig[locale];
           }
