@@ -1,3 +1,4 @@
+import { isBuildPhase } from '@/utils/is-pre-rendering';
 import { trace, type Attributes, type Span } from '@opentelemetry/api';
 
 /**
@@ -13,6 +14,16 @@ export async function withSpan<T>(
   callback: (span: Span) => Promise<T>,
   attributes?: Attributes,
 ): Promise<T> {
+  // If we are in the build phase, we skip tracing to avoid Date.now() errors
+  // during prerendering in Next.js Server Components.
+  if (isBuildPhase()) {
+    const dummySpan = {
+      end: () => {},
+      recordException: () => {},
+    } as unknown as Span;
+    return await callback(dummySpan);
+  }
+
   const tracer = trace.getTracer('conveniat-app');
   return await tracer.startActiveSpan(name, { attributes: attributes ?? {} }, async (span) => {
     try {
