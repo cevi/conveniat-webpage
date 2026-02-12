@@ -93,14 +93,14 @@ const duplicateImageError: StaticTranslationString = {
   fr: 'Cette image a déjà été téléchargée.',
 };
 
+interface FileItem {
+  file: File;
+  error?: string;
+  descriptionError?: string;
+}
+
 const ImageUploadPage: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
-
-  interface FileItem {
-    file: File;
-    error?: string;
-    descriptionError?: string;
-  }
 
   const [selectedFiles, setSelectedFiles] = useState<FileItem[]>([]);
   const [fileDescriptions, setFileDescriptions] = useState<Record<string, string>>({});
