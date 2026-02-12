@@ -241,6 +241,12 @@ export const handleFetchEvent =
       return; // Let the browser handle the request directly
     }
 
+    // Bypass service worker for auth requests and trpc requests
+    // trpc request are cached using tanstack query
+    if (event.request.url.includes('/api/auth/') || event.request.url.includes('/api/trpc/')) {
+      return;
+    }
+
     event.respondWith(
       router(event, serwist).catch((criticalError: unknown) => {
         console.error(`[SW] Critical Error while Fetching ${event.request.url}:`, criticalError);
