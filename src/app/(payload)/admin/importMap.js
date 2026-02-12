@@ -40,7 +40,7 @@ import { default as default_a79319ae20aa3b9aa7415044aaf68603 } from '@/features/
 import { S3ClientUploadHandler as S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24 } from '@payloadcms/storage-s3/client'
 import { default as default_e7ca4c1ba39ad98f5b6b68aa103e80ee } from '@/features/payload-cms/payload-cms/widgets/emergency-widget'
 import { default as default_264aa1452821b700131c9a40a3b93a91 } from '@/features/payload-cms/payload-cms/widgets/user-count-widget'
-import { CollectionCards as CollectionCards_ab83ff7e88da8d3530831f296ec4756a } from '@payloadcms/ui/rsc'
+import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 
 export const importMap = {
   "@/features/payload-cms/payload-cms/components/multi-lang-publishing/publishing-status#default": default_a7ff98973d56a39b3183d8ad49f7b649,
@@ -85,5 +85,5 @@ export const importMap = {
   "@payloadcms/storage-s3/client#S3ClientUploadHandler": S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24,
   "@/features/payload-cms/payload-cms/widgets/emergency-widget#default": default_e7ca4c1ba39ad98f5b6b68aa103e80ee,
   "@/features/payload-cms/payload-cms/widgets/user-count-widget#default": default_264aa1452821b700131c9a40a3b93a91,
-  "@payloadcms/ui/rsc#CollectionCards": CollectionCards_ab83ff7e88da8d3530831f296ec4756a
+  "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1
 }

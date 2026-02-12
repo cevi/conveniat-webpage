@@ -132,9 +132,7 @@ export interface Config {
     'all-chats-management': AllChatsManagementSelect<false> | AllChatsManagementSelect<true>;
   };
   locale: 'en' | 'de' | 'fr';
-  user: User & {
-    collection: 'users';
-  };
+  user: User;
   jobs: {
     tasks: unknown;
     workflows: unknown;
@@ -435,6 +433,7 @@ export interface User {
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
+  collection: 'users';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
