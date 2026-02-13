@@ -9,6 +9,7 @@ export const countdownBlock: Block = {
     {
       name: 'endDate',
       type: 'date',
+      timezone: true,
       label: {
         en: 'End Date',
         de: 'Enddatum',

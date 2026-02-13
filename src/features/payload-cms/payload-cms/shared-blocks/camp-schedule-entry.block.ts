@@ -8,6 +8,7 @@ export const campScheduleEntryBlock: Block = {
     {
       name: 'date',
       type: 'date',
+      timezone: true,
       label: {
         en: 'Date for which to show the entries for',
         de: 'Datum, für welches das Programm angezeigt werden soll',

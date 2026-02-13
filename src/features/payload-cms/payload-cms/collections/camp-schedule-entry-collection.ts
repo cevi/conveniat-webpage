@@ -100,6 +100,7 @@ export const CampScheduleEntryCollection: CollectionConfig = {
             fr: 'Date',
           },
           type: 'date',
+          timezone: true,
           required: true,
           admin: {
             date: {

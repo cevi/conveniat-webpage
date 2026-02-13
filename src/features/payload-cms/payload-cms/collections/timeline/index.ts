@@ -64,6 +64,7 @@ export const TimelineCollection: CollectionConfig = asLocalizedCollection({
         {
           name: 'date',
           type: 'date',
+          timezone: true,
           label: {
             en: 'Date',
             de: 'Datum',

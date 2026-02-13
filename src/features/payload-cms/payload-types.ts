@@ -197,6 +197,7 @@ export interface Blog {
     blogH1: string;
     bannerImage: string | Image;
     releaseDate: string;
+    releaseDate_tz: SupportedTimezones;
     permissions?: (string | null) | Permission;
     /**
      * This is the text that will be displayed as a teaser on the blog overview page.
@@ -340,6 +341,7 @@ export interface Blog {
           };
           headline: string;
           date: string;
+          date_tz: SupportedTimezones;
           image?: (string | null) | Image;
           paragraph?: {
             root: {
@@ -362,6 +364,7 @@ export interface Blog {
         }
       | {
           date: string;
+          date_tz: SupportedTimezones;
           location?: (string | null) | CampMapAnnotation;
           id?: string | null;
           blockName?: string | null;
@@ -679,6 +682,7 @@ export interface Form {
                 name: string;
                 label: string;
                 defaultValue?: string | null;
+                defaultValue_tz?: SupportedTimezones;
                 required?: boolean | null;
                 id?: string | null;
                 blockName?: string | null;
@@ -818,6 +822,7 @@ export interface Form {
                           name: string;
                           label: string;
                           defaultValue?: string | null;
+                          defaultValue_tz?: SupportedTimezones;
                           required?: boolean | null;
                           id?: string | null;
                           blockName?: string | null;
@@ -1222,6 +1227,7 @@ export interface GenericPage {
     pageTitle: string;
     permissions?: (string | null) | Permission;
     releaseDate: string;
+    releaseDate_tz: SupportedTimezones;
     /**
      * The main content of the page
      */
@@ -1360,6 +1366,7 @@ export interface GenericPage {
           };
           headline: string;
           date: string;
+          date_tz: SupportedTimezones;
           image?: (string | null) | Image;
           paragraph?: {
             root: {
@@ -1382,6 +1389,7 @@ export interface GenericPage {
         }
       | {
           date: string;
+          date_tz: SupportedTimezones;
           location?: (string | null) | CampMapAnnotation;
           id?: string | null;
           blockName?: string | null;
@@ -1493,6 +1501,7 @@ export interface Timeline {
    */
   internalStatus: 'draft' | 'translation' | 'review' | 'approved' | 'archived';
   date: string;
+  date_tz: SupportedTimezones;
   dateFormat?: ('fullDateAndTime' | 'fullDate' | 'yearAndMonth') | null;
   /**
    * This is the title that will be displayed on the page.
@@ -1545,6 +1554,7 @@ export interface Timeline {
  */
 export interface Countdown {
   endDate: string;
+  endDate_tz: SupportedTimezones;
   /**
    * Optional title for the countdown block.
    */
@@ -1675,6 +1685,7 @@ export interface CampScheduleEntry {
    */
   timeslot: {
     date: string;
+    date_tz: SupportedTimezones;
     /**
      * Time slots in HH:mm format (e.g., 08:00 - 18:00)
      */
@@ -2018,6 +2029,7 @@ export interface BlogSelect<T extends boolean = true> {
         blogH1?: T;
         bannerImage?: T;
         releaseDate?: T;
+        releaseDate_tz?: T;
         permissions?: T;
         blogShortTitle?: T;
         mainContent?:
@@ -2102,6 +2114,7 @@ export interface BlogSelect<T extends boolean = true> {
                         };
                     headline?: T;
                     date?: T;
+                    date_tz?: T;
                     image?: T;
                     paragraph?: T;
                     id?: T;
@@ -2111,6 +2124,7 @@ export interface BlogSelect<T extends boolean = true> {
                 | T
                 | {
                     date?: T;
+                    date_tz?: T;
                     location?: T;
                     id?: T;
                     blockName?: T;
@@ -2298,6 +2312,7 @@ export interface TimelineEntriesSelect<T extends boolean = true> {
  */
 export interface CountdownSelect<T extends boolean = true> {
   endDate?: T;
+  endDate_tz?: T;
   title?: T;
   descriptionAbove?: T;
   descriptionBelow?: T;
@@ -2322,6 +2337,7 @@ export interface GenericPageSelect<T extends boolean = true> {
         pageTitle?: T;
         permissions?: T;
         releaseDate?: T;
+        releaseDate_tz?: T;
         mainContent?:
           | T
           | {
@@ -2404,6 +2420,7 @@ export interface GenericPageSelect<T extends boolean = true> {
                         };
                     headline?: T;
                     date?: T;
+                    date_tz?: T;
                     image?: T;
                     paragraph?: T;
                     id?: T;
@@ -2413,6 +2430,7 @@ export interface GenericPageSelect<T extends boolean = true> {
                 | T
                 | {
                     date?: T;
+                    date_tz?: T;
                     location?: T;
                     id?: T;
                     blockName?: T;
@@ -2446,6 +2464,7 @@ export interface TimelineSelect<T extends boolean = true> {
   authors?: T;
   internalStatus?: T;
   date?: T;
+  date_tz?: T;
   dateFormat?: T;
   title?: T;
   mainContent?:
@@ -2521,6 +2540,7 @@ export interface CampScheduleEntrySelect<T extends boolean = true> {
     | T
     | {
         date?: T;
+        date_tz?: T;
         time?: T;
       };
   location?: T;
@@ -2866,6 +2886,7 @@ export interface FormsSelect<T extends boolean = true> {
                           name?: T;
                           label?: T;
                           defaultValue?: T;
+                          defaultValue_tz?: T;
                           required?: T;
                           id?: T;
                           blockName?: T;
@@ -2979,6 +3000,7 @@ export interface FormsSelect<T extends boolean = true> {
                                       name?: T;
                                       label?: T;
                                       defaultValue?: T;
+                                      defaultValue_tz?: T;
                                       required?: T;
                                       id?: T;
                                       blockName?: T;

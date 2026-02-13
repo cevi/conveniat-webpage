@@ -278,6 +278,7 @@ const formDateBlock: Block = {
     {
       name: 'defaultValue',
       type: 'date',
+      timezone: true,
       label: 'Default Value',
     },
     {

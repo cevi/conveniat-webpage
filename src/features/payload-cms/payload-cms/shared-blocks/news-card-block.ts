@@ -17,6 +17,7 @@ export const newsCardBlock: Block = {
     },
     {
       type: 'date',
+      timezone: true,
       name: 'date',
       required: true,
     },

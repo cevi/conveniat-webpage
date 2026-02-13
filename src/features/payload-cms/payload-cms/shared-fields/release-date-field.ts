@@ -8,6 +8,7 @@ export const releaseDate: Field = {
     fr: 'Date de publication',
   },
   type: 'date',
+  timezone: true,
   required: true,
   defaultValue: () => new Date().toISOString(),
   admin: {
