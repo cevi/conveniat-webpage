@@ -43,7 +43,6 @@ export const TimelineCollection: CollectionConfig = asLocalizedCollection({
       'internalStatus',
       'authors',
       'publishingStatus',
-      'releaseDate',
       'updatedAt',
     ],
   },
@@ -53,66 +52,60 @@ export const TimelineCollection: CollectionConfig = asLocalizedCollection({
     internalAuthorsField,
     internalStatusField,
 
+    // this should be moved inside an unnamed group, but then
+    // storing the date field does not work.
+    // Hotfix: move the next few fields into the root scope.
     {
+      name: 'date',
+      type: 'date',
       label: {
-        en: 'Release Date',
-        de: 'Veröffentlichungsdatum',
-        fr: 'Date de publication',
+        en: 'Shown Date',
+        de: 'Angezeigte Datum',
+        fr: 'Date affichée',
       },
-      type: 'group',
-      fields: [
+      admin: {
+        date: {
+          pickerAppearance: 'dayAndTime',
+          displayFormat: 'yyyy-MM-dd HH:mm',
+          timeIntervals: 15,
+        },
+      },
+      required: true,
+      index: true,
+    },
+    {
+      name: 'dateFormat',
+      type: 'select',
+      label: {
+        en: 'Date Format',
+        de: 'Datumsformat',
+        fr: 'Format de la date',
+      },
+      defaultValue: 'fullDateAndTime',
+      options: [
         {
-          name: 'date',
-          type: 'date',
           label: {
-            en: 'Date',
-            de: 'Datum',
-            fr: 'Date',
+            en: 'Full Date including Time',
+            de: 'Vollständiges Datum inkl. Zeit',
+            fr: "Date complète y compris l'heure",
           },
-          admin: {
-            date: {
-              pickerAppearance: 'dayAndTime',
-              displayFormat: 'yyyy-MM-dd HH:mm',
-              timeIntervals: 15,
-            },
-          },
-          required: true,
+          value: 'fullDateAndTime',
         },
         {
-          name: 'dateFormat',
-          type: 'select',
           label: {
-            en: 'Date Format',
-            de: 'Datumsformat',
-            fr: 'Format de la date',
+            en: 'Full Date (Without Time)',
+            de: 'Vollständiges Datum (ohne Zeit)',
+            fr: 'Date complète (sans heure)',
           },
-          defaultValue: 'fullDateAndTime',
-          options: [
-            {
-              label: {
-                en: 'Full Date including Time',
-                de: 'Vollständiges Datum inkl. Zeit',
-                fr: "Date complète y compris l'heure",
-              },
-              value: 'fullDateAndTime',
-            },
-            {
-              label: {
-                en: 'Full Date (Without Time)',
-                de: 'Vollständiges Datum (ohne Zeit)',
-                fr: 'Date complète (sans heure)',
-              },
-              value: 'fullDate',
-            },
-            {
-              label: {
-                en: 'Year and Month',
-                de: 'Jahr und Monat',
-                fr: 'Année et mois',
-              },
-              value: 'yearAndMonth',
-            },
-          ],
+          value: 'fullDate',
+        },
+        {
+          label: {
+            en: 'Year and Month',
+            de: 'Jahr und Monat',
+            fr: 'Année et mois',
+          },
+          value: 'yearAndMonth',
         },
       ],
     },
