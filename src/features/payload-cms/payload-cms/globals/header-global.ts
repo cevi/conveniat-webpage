@@ -57,7 +57,6 @@ const MainMenu: Field = {
 export const HeaderGlobal: GlobalConfig = asLocalizedGlobal({
   slug: 'header',
   label: 'Header Navigation',
-  ...flushPageCacheOnChangeGlobal,
-
+  hooks: { afterChange: [flushPageCacheOnChangeGlobal] },
   fields: [MainMenu],
 });

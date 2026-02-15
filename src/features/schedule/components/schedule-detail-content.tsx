@@ -168,7 +168,7 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
                 />
               ) : (
                 <div className="prose prose-gray max-w-none">
-                  <LexicalRichTextSection richTextSection={entry.description} />
+                  <LexicalRichTextSection richTextSection={entry.description} locale={locale} />
                 </div>
               )}
 
@@ -271,7 +271,10 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
                       ) : undefined}
                       {!isEditing && entry.target_group && (
                         <div className="text-sm text-gray-700">
-                          <LexicalRichTextSection richTextSection={entry.target_group} />
+                          <LexicalRichTextSection
+                            richTextSection={entry.target_group}
+                            locale={locale}
+                          />
                         </div>
                       )}
                     </div>

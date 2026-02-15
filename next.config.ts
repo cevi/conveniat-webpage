@@ -4,6 +4,9 @@ import { withPayload } from '@payloadcms/next/withPayload';
 import { withPostHogConfig } from '@posthog/nextjs-config';
 import type { NextConfig } from 'next';
 import type { Rewrite } from 'next/dist/lib/load-custom-routes';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
 
 const withBundleAnalyzer = bundleAnalyzer({
   enabled: process.env['ANALYZE'] === 'true',
@@ -53,7 +56,6 @@ const nextConfig: NextConfig = {
 
   ...(process.env['NODE_ENV'] !== 'development' && {
     cacheHandlers: {
-      // eslint-disable-next-line unicorn/prefer-module
       default: require.resolve('./src/cache-handlers/default.cjs'),
     },
   }),

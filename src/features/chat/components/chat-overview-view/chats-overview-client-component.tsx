@@ -1,6 +1,7 @@
 'use client';
 import { AppSearchBar } from '@/components/ui/app-search-bar';
 import { Button } from '@/components/ui/buttons/button';
+import { PullToRefresh } from '@/components/ui/pull-to-refresh';
 import { ChatPreview } from '@/features/chat/components/chat-overview-view/chat-preview';
 import { SwipeToDeleteChat } from '@/features/chat/components/chat-overview-view/swipe-to-delete-chat';
 import { QRCodeClientComponent } from '@/features/chat/components/qr-component';
@@ -77,12 +78,17 @@ export const ChatsOverviewClientComponent: React.FC<{ user: HitobitoNextAuthUser
   user,
 }) => {
   const { data: chats, isLoading } = useChats();
+  const trpcUtils = trpc.useUtils();
 
   // Check capability instead of raw feature flag
   const { data: createChatsEnabled } = trpc.chat.checkCapability.useQuery({
     action: CapabilityAction.Create,
     subject: CapabilitySubject.Chat,
   });
+
+  const handleRefresh = async (): Promise<void> => {
+    await trpcUtils.chat.chats.invalidate();
+  };
 
   const [searchQuery, setSearchQuery] = useState('');
   const locale = useCurrentLocale(i18nConfig) as Locale;
@@ -131,55 +137,59 @@ export const ChatsOverviewClientComponent: React.FC<{ user: HitobitoNextAuthUser
       {/* Loading State */}
       {isLoading && <ChatsOverviewLoadingPlaceholder />}
 
-      {/* Empty State */}
-      {!isLoading && filteredChats.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-200">
-            <MessageSquare className="h-8 w-8 text-gray-500" />
-          </div>
-          <p className="font-heading text-lg font-semibold text-gray-700">
-            {searchQuery === '' ? noChatsYetText[locale] : noChatsFoundText[locale]}
-          </p>
-          <p className="font-body mt-2 text-sm text-balance text-gray-500">
-            {searchQuery === '' ? newConversationText[locale] : adjustingSearchTermsText[locale]}
-          </p>
-          {searchQuery !== '' && (
-            <Button
-              variant="outline"
-              className="font-body mt-4 border-gray-300 hover:bg-gray-100"
-              onClick={() => setSearchQuery('')}
-            >
-              {clearSearchText[locale]}
-            </Button>
-          )}
-        </div>
-      )}
-
       {/* Chat List */}
-      {!isLoading && filteredChats.length > 0 && (
-        <div className="space-y-2">
-          {filteredChats.map((chat) => (
-            <SwipeToDeleteChat key={chat.id} chat={chat}>
-              <div
-                className={cn(
-                  'rounded-md border-2 border-gray-200 bg-white transition-shadow',
-                  'hover:bg-gray-100 hover:shadow-md',
-                  {
-                    'bg-white': !(chat.unreadCount > 0),
-                    'border-l-conveniat-green border-l-4 bg-green-50':
-                      chat.unreadCount > 0 && chat.chatType !== ChatType.EMERGENCY,
-                    'bg-gradient-to-r from-red-50 to-orange-50 hover:from-red-100 hover:to-orange-100':
-                      chat.chatType === ChatType.EMERGENCY,
-                    'border-l-4 border-l-red-500':
-                      chat.chatType === ChatType.EMERGENCY && chat.unreadCount > 0,
-                  },
-                )}
-              >
-                <ChatPreview chat={chat} />
+      {!isLoading && (
+        <PullToRefresh onRefresh={handleRefresh}>
+          {filteredChats.length > 0 ? (
+            <div className="space-y-2">
+              {filteredChats.map((chat) => (
+                <SwipeToDeleteChat key={chat.id} chat={chat}>
+                  <div
+                    className={cn(
+                      'rounded-md border-2 border-gray-200 bg-white transition-shadow',
+                      'hover:bg-gray-100 hover:shadow-md',
+                      {
+                        'bg-white': !(chat.unreadCount > 0),
+                        'border-l-conveniat-green border-l-4 bg-green-50':
+                          chat.unreadCount > 0 && chat.chatType !== ChatType.EMERGENCY,
+                        'bg-linear-to-r from-red-50 to-orange-50 hover:from-red-100 hover:to-orange-100':
+                          chat.chatType === ChatType.EMERGENCY,
+                        'border-l-4 border-l-red-500':
+                          chat.chatType === ChatType.EMERGENCY && chat.unreadCount > 0,
+                      },
+                    )}
+                  >
+                    <ChatPreview chat={chat} />
+                  </div>
+                </SwipeToDeleteChat>
+              ))}
+            </div>
+          ) : (
+            /* Empty State (inside PullToRefresh to allow refreshing when empty) */
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-200">
+                <MessageSquare className="h-8 w-8 text-gray-500" />
               </div>
-            </SwipeToDeleteChat>
-          ))}
-        </div>
+              <p className="font-heading text-lg font-semibold text-gray-700">
+                {searchQuery === '' ? noChatsYetText[locale] : noChatsFoundText[locale]}
+              </p>
+              <p className="font-body mt-2 text-sm text-balance text-gray-500">
+                {searchQuery === ''
+                  ? newConversationText[locale]
+                  : adjustingSearchTermsText[locale]}
+              </p>
+              {searchQuery !== '' && (
+                <Button
+                  variant="outline"
+                  className="font-body mt-4 border-gray-300 hover:bg-gray-100"
+                  onClick={() => setSearchQuery('')}
+                >
+                  {clearSearchText[locale]}
+                </Button>
+              )}
+            </div>
+          )}
+        </PullToRefresh>
       )}
     </div>
   );

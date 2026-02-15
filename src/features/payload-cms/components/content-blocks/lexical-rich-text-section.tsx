@@ -1,4 +1,5 @@
-import { jsxConverters } from '@/features/payload-cms/converters/richtext-lexical';
+import { getJsxConverters } from '@/features/payload-cms/converters/richtext-lexical';
+import type { Locale } from '@/types/types';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import { RichText } from '@payloadcms/richtext-lexical/react';
 import type React from 'react';
@@ -11,10 +12,16 @@ export interface LexicalRichTextSectionType {
  * Renders the page content from an editor state.
  *
  * @param richTextSection
- *
+ * @param locale - The locale used for resolving internal links.
+ * @param converters - Optional custom converters (e.g. for server-side async link resolution).
  */
 export const LexicalRichTextSection: React.FC<{
   richTextSection: SerializedEditorState;
-}> = ({ richTextSection }) => {
-  return <RichText converters={jsxConverters} data={richTextSection} />;
+  locale?: Locale;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  converters?: Record<string, any>;
+}> = ({ richTextSection, locale, converters }) => {
+  return (
+    <RichText converters={{ ...getJsxConverters(locale), ...converters }} data={richTextSection} />
+  );
 };

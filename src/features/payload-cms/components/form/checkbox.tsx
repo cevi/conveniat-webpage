@@ -38,10 +38,10 @@ export const Checkbox: React.FC<
         />
 
         <label
-          className="ml-2 block inline-flex items-center font-['Inter'] text-sm font-medium text-gray-500 hover:text-gray-900"
+          className="ml-2 inline-flex items-center font-['Inter'] text-sm font-medium text-gray-500 hover:text-gray-900"
           htmlFor={name}
         >
-          <LexicalRichTextSection richTextSection={label} />
+          <LexicalRichTextSection richTextSection={label} locale={locale as Locale} />
           {requiredFromProperties && <Required />}
         </label>
       </div>

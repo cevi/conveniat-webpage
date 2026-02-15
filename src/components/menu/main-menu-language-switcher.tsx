@@ -37,7 +37,8 @@ export const MainMenuLanguageSwitcher: React.FC<{ locale: Locale }> = ({ locale 
     } else {
       const path = pathname.replace(/\/(de|en|fr)\/?$/, '');
       const cleanPath = path.startsWith('//') ? path.slice(1) : path;
-      newPath = `/${lang}/${cleanPath}${searchParameterPrefixed}`;
+      const pathWithoutLeadingSlash = cleanPath.replace(/^\//, '');
+      newPath = `/${lang}/${pathWithoutLeadingSlash}${searchParameterPrefixed}`;
     }
 
     // drop tailing slash if exists

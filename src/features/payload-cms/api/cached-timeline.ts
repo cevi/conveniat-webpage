@@ -2,6 +2,7 @@ import type { Timeline } from '@/features/payload-cms/payload-types';
 import type { Locale } from '@/types/types';
 import { withSpan } from '@/utils/tracing-helpers';
 import config from '@payload-config';
+import { draftMode } from 'next/headers';
 import { getPayload } from 'payload';
 import { cache } from 'react';
 
@@ -16,17 +17,17 @@ export const getTimelineEntriesCached = cache(
       if (ids.length === 0) return { docs: [] };
 
       const payload = await getPayload({ config });
-      const now = new Date();
+      const draft = await draftMode();
 
       const result = await payload.find({
         collection: 'timeline',
         locale: locale,
+        draft: draft.isEnabled,
         pagination: false,
         where: {
           and: [
             { id: { in: ids } },
-            { _localized_status: { equals: { published: true } } },
-            { date: { less_than_equal: now } },
+            draft.isEnabled ? {} : { _localized_status: { equals: { published: true } } },
           ],
         },
       });

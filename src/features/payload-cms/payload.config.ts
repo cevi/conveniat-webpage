@@ -13,6 +13,14 @@ import { redirectsPluginConfiguration } from '@/features/payload-cms/payload-cms
 import { s3StorageConfiguration } from '@/features/payload-cms/payload-cms/plugins/s3-storage-plugin-configuration';
 import { searchPluginConfiguration } from '@/features/payload-cms/payload-cms/plugins/search/search-plugin-configuration';
 import { smartphoneBreakpoints } from '@/features/payload-cms/utils/smartphone-breakpoints';
+import { registrationWorkflow } from '@/features/registration_process/workflows/registration-workflow';
+import { blockJobStep } from '@/features/registration_process/workflows/steps/block-job';
+import { cleanupTemporaryRolesStep } from '@/features/registration_process/workflows/steps/cleanup-temporary-roles';
+import { confirmationMessageStep } from '@/features/registration_process/workflows/steps/confirmation-message';
+import { createUserStep } from '@/features/registration_process/workflows/steps/create-user';
+import { ensureEventMembershipStep } from '@/features/registration_process/workflows/steps/ensure-event-membership';
+import { ensureGroupMembershipStep } from '@/features/registration_process/workflows/steps/ensure-group-membership';
+import { resolveUserStep } from '@/features/registration_process/workflows/steps/resolve-user';
 import type { Locale as LocaleType, RoutableConfig, StaticTranslationString } from '@/types/types';
 import { mongooseAdapter } from '@payloadcms/db-mongodb';
 import path from 'node:path';
@@ -186,6 +194,25 @@ export const payloadConfig: RoutableConfig = {
     searchPluginConfiguration,
     redirectsPluginConfiguration,
   ],
+  jobs: {
+    deleteJobOnComplete: false,
+    tasks: [
+      resolveUserStep,
+      createUserStep,
+      blockJobStep,
+      cleanupTemporaryRolesStep,
+      ensureGroupMembershipStep,
+      ensureEventMembershipStep,
+      confirmationMessageStep,
+    ],
+    workflows: [registrationWorkflow],
+    autoRun: [
+      {
+        cron: '*/10 * * * * *', // Every 10 seconds
+        limit: 10,
+      },
+    ],
+  },
   i18n: {
     fallbackLanguage: LOCALE.DE,
     supportedLanguages: { en, de, fr },

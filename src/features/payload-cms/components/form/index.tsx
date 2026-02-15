@@ -617,6 +617,7 @@ export const FormBlock: React.FC<
             <div className="max-w-md">
               <LexicalRichTextSection
                 richTextSection={confirmationMessage as SerializedEditorState}
+                locale={locale as Locale}
               />
               <ResetFormButton
                 onClick={() => {

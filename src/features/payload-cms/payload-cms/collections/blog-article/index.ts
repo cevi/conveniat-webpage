@@ -20,7 +20,7 @@ export const BlogArticleCollection: CollectionConfig = asLocalizedCollection({
   // Unique, URL-friendly string that will act as an identifier for this Collection.
   slug: 'blog',
   trash: true,
-  ...flushPageCacheOnChange,
+  hooks: { afterChange: [flushPageCacheOnChange] },
 
   labels: {
     singular: {

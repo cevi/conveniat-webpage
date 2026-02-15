@@ -42,7 +42,7 @@ export const PushNotificationSettings: React.FC<{ locale: Locale }> = ({ locale 
           onCheckedChange={() => {
             toggleSubscription().catch(console.error);
           }}
-          disabled={!isSupported || isLoading}
+          disabled={!isSupported || isLoading || !!errorMessage}
           loading={isLoading}
         />
       }

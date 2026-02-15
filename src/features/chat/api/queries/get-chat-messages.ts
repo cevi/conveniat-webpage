@@ -37,6 +37,8 @@ export const getChatMessages = trpcBaseProcedure
         });
       }
 
+      console.error('getChatMessages called:', { chatId, cursor, limit, parentId });
+
       const messages = await prisma.message.findMany({
         take: limit + 1, // Get an extra item at the end to know if there's a next page
         where: {
@@ -44,10 +46,8 @@ export const getChatMessages = trpcBaseProcedure
           // eslint-disable-next-line unicorn/no-null
           parentId: parentId ?? null,
         },
-        ...(cursor == undefined ? {} : { cursor: { uuid: cursor } }),
-        orderBy: {
-          createdAt: 'desc',
-        },
+        ...(cursor == undefined ? {} : { cursor: { uuid: cursor }, skip: 1 }),
+        orderBy: [{ createdAt: 'desc' }, { uuid: 'desc' }],
         include: {
           messageEvents: {
             where: { type: { in: USER_RELEVANT_MESSAGE_EVENTS } },
@@ -78,11 +78,14 @@ export const getChatMessages = trpcBaseProcedure
         },
       });
 
+      console.error('Messages fetched:', { count: messages.length, limit });
+
       let nextCursor: typeof cursor | undefined = undefined;
       if (messages.length > limit) {
         const nextItem = messages.pop();
         nextCursor = nextItem?.uuid;
       }
+      console.error('Final nextCursor:', nextCursor);
 
       const mappedMessages = messages.map((message) => ({
         id: message.uuid,

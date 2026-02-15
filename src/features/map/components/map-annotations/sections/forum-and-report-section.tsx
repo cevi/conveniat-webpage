@@ -26,6 +26,10 @@ export const AnnotationForumAndReportSection: React.FC<{
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const router = useRouter();
   const [isRedirecting, setIsRedirecting] = React.useState(false);
+
+  // ensure the report button state is reset on every mount
+  React.useEffect(() => setIsRedirecting(false), []);
+
   const { mutate: createReport, isPending } = trpc.chat.reportProblem.useMutation({
     onSuccess: (chat) => {
       setIsRedirecting(true);

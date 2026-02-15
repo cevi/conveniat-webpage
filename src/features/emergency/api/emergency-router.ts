@@ -150,7 +150,7 @@ export const emergencyRouter = createTRPCRouter({
       // set up the emergency alert in the Payload CMS
       const chat = await prisma.chat.create({
         data: {
-          name: resolveEmergencyChatName(ctx.locale, user.nickname),
+          name: resolveEmergencyChatName(ctx.locale, user.nickname ?? user.name),
           type: ChatType.EMERGENCY,
 
           messages: {

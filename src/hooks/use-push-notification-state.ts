@@ -91,13 +91,26 @@ export function usePushNotificationState(): UsePushNotificationStateResult {
 
       setIsSubscribed(true);
       return true;
-    } catch (error) {
-      console.error('Failed to subscribe:', error);
-      // Simplify error checking logic
+    } catch (error: unknown) {
+      // Check for known errors (Incognito, blocked) to avoid console.error
       const message = error instanceof Error ? error.message : String(error);
+      const cause = error instanceof Error ? (error as { cause?: unknown }).cause : undefined;
+      const causeMessage = cause instanceof Error ? cause.message : '';
+
       const isBlocked =
         message.toLowerCase().includes('blocked') ||
         (error instanceof DOMException && error.name === 'NotAllowedError');
+
+      const isIncognito =
+        message.toLowerCase().includes('failed to subscribe to push manager') &&
+        (causeMessage.toLowerCase().includes('permission denied') ||
+          causeMessage.toLowerCase().includes('registration failed'));
+
+      if (isBlocked || isIncognito) {
+        console.warn('Push subscription failed (expected):', error);
+      } else {
+        console.error('Failed to subscribe:', error);
+      }
 
       setErrorMessage(
         isBlocked ? notificationsBlockedText[locale] : notificationsIncognitoText[locale],

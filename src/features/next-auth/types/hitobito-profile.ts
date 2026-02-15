@@ -4,7 +4,7 @@ export interface HitobitoProfile {
   email: string;
   first_name: string;
   last_name: string;
-  nickname: string;
+  nickname: string | null;
   roles: {
     group_id: number;
     group_name: string;

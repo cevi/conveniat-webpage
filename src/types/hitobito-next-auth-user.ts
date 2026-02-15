@@ -5,7 +5,7 @@ export const HitobitoNextAuthUserSchema = z.object({
   group_ids: z.array(z.number()),
   email: z.string().email(),
   name: z.string().min(1),
-  nickname: z.string(),
+  nickname: z.string().nullish(),
   hof: z.number().optional(),
   quartier: z.number().optional(),
 });

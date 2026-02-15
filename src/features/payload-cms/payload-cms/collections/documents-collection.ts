@@ -7,7 +7,7 @@ import type { CollectionConfig } from 'payload';
 
 export const DocumentsCollection: CollectionConfig = {
   slug: 'documents',
-  ...flushPageCacheOnChange,
+  hooks: { afterChange: [flushPageCacheOnChange] },
 
   labels: {
     singular: {

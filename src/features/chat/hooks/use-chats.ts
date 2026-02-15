@@ -21,7 +21,8 @@ export const useChats = (): UseTRPCQueryResult<
 
   useServiceWorkerListener(handleMessage);
 
-  return trpc.chat.chats.useQuery({});
+  // ensures that we refresh the chats overview on mount
+  return trpc.chat.chats.useQuery({}, { refetchOnMount: 'always' });
 };
 
 export const useChatDetail = (

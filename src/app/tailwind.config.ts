@@ -16,9 +16,14 @@ module.exports = {
           '50%': { left: '25%', width: '75%' },
           '100%': { left: '100%', width: '50%' },
         },
+        'star-glow-pulse': {
+          '0%, 100%': { boxShadow: '0 0 8px 3px rgba(250, 204, 21, 0.6)' },
+          '50%': { boxShadow: '0 0 14px 6px rgba(250, 204, 21, 0.9)' },
+        },
       },
       animation: {
         loading: 'loading 1.5s ease-in-out infinite',
+        'star-glow-pulse': 'star-glow-pulse 2s ease-in-out infinite',
       },
     },
     fontFamily: {

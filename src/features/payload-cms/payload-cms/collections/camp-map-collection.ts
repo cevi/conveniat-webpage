@@ -33,7 +33,7 @@ AnnotationPointField.admin = {
 export const CampMapAnnotationsCollection: CollectionConfig = {
   slug: 'camp-map-annotations',
   trash: true,
-  ...flushPageCacheOnChange,
+  hooks: { afterChange: [flushPageCacheOnChange] },
 
   labels: {
     singular: {

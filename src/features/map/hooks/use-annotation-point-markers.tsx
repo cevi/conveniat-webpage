@@ -2,6 +2,7 @@ import { DynamicLucidIconRenderer } from '@/features/map/components/maplibre-ren
 
 import type { CampMapAnnotationPoint, CampMapAnnotationPolygon } from '@/features/map/types/types';
 
+import { useStar } from '@/hooks/use-star';
 import { reactToDomElement } from '@/utils/react-to-dom-element';
 
 import { Marker, Popup } from 'maplibre-gl';
@@ -17,6 +18,7 @@ export const useAnnotationPointMarkers = (
 ): void => {
   const activeMarkers = useRef<Marker[]>([]);
   const map = useMap();
+  const { starredEntries } = useStar();
 
   useEffect(() => {
     if (!map) return;
@@ -31,11 +33,16 @@ export const useAnnotationPointMarkers = (
 
       // Determine if this is the selected annotation
       const isSelected = annotation.id === currentAnnotation?.id;
+      const starred = starredEntries.has(annotation.id);
       const markerElement = reactToDomElement(
         isSelected ? (
           <MapPin className="h-12 w-12 text-red-300" fill="#e11d3c" />
         ) : (
-          <DynamicLucidIconRenderer icon={annotation.icon} color={annotation.color} />
+          <DynamicLucidIconRenderer
+            icon={annotation.icon}
+            color={annotation.color}
+            isStarred={starred}
+          />
         ),
       );
       markerElement.id = `marker-${annotation.id}`;
@@ -52,6 +59,6 @@ export const useAnnotationPointMarkers = (
       activeMarkers.current.push(marker);
     }
 
-    // Re-run effect when selectedAnnotationId changes to update markers
-  }, [map, annotations, setCurrentAnnotation, currentAnnotation]);
+    // Re-run effect when selectedAnnotationId or starredEntries changes to update markers
+  }, [map, annotations, setCurrentAnnotation, currentAnnotation, starredEntries]);
 };

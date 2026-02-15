@@ -7,6 +7,7 @@ import { HeaderGlobal } from '@/features/payload-cms/payload-cms/globals/header-
 import { PWAGlobal } from '@/features/payload-cms/payload-cms/globals/pwa-global';
 import { SeoGlobal } from '@/features/payload-cms/payload-cms/globals/seo-global';
 import { SupportChatManagement } from '@/features/payload-cms/payload-cms/globals/support-chat-management';
+import { RegistrationManagement } from '@/features/registration_process/api/registration-management';
 import type { GlobalConfig } from 'payload';
 
 export const globalConfig: GlobalConfig[] = [
@@ -19,4 +20,5 @@ export const globalConfig: GlobalConfig[] = [
   SupportChatManagement,
   AlertManagement,
   AllChatsManagement,
+  RegistrationManagement,
 ];

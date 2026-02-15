@@ -53,7 +53,7 @@ export const ConfirmationModal: React.FC<{
   );
 
   const modalContent = (
-    <div className="fixed inset-0 z-[2147483647] flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
+    <div className="fixed inset-0 z-900 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
       <div className="w-full max-w-md rounded-lg border border-gray-200 bg-white p-6 shadow-2xl dark:border-gray-800 dark:bg-gray-900">
         <h3 className="mb-4 text-xl font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
         <p className="mb-6 text-gray-600 dark:text-gray-400">{message}</p>

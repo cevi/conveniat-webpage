@@ -14,7 +14,6 @@ const isBuild =
   // eslint-disable-next-line n/no-process-env
   process.env['NEXT_PHASE'] === 'phase-production-build';
 
-// eslint-disable-next-line import/no-mutable-exports
 let prisma: PrismaClient;
 
 if (isBuild) {

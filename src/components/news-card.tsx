@@ -1,5 +1,5 @@
 import { LinkComponent } from '@/components/ui/link-component';
-import { jsxConverters } from '@/features/payload-cms/converters/richtext-lexical';
+import { getJsxConverters } from '@/features/payload-cms/converters/richtext-lexical';
 import type { LinkFieldDataType } from '@/features/payload-cms/payload-cms/shared-fields/link-field';
 import { getImageAltInLocale } from '@/features/payload-cms/payload-cms/utils/images-meta-fields';
 import {
@@ -45,7 +45,7 @@ export const NewsCardBlock: React.FC<NewsCardType> = ({
             timeZone: 'Europe/Zurich',
           })}
         </span>
-        <h4 className="font-heading text-conveniat-green mb-6 line-clamp-3 min-h-[1.5rem] text-base font-extrabold text-ellipsis">
+        <h4 className="font-heading text-conveniat-green mb-6 line-clamp-3 min-h-6 text-base font-extrabold text-ellipsis">
           {headline}
         </h4>
       </div>
@@ -63,7 +63,11 @@ export const NewsCardBlock: React.FC<NewsCardType> = ({
             <></>
           )}
         </div>
-        {paragraph ? <RichText data={paragraph} converters={jsxConverters}></RichText> : <></>}
+        {paragraph ? (
+          <RichText data={paragraph} converters={getJsxConverters(locale)}></RichText>
+        ) : (
+          <></>
+        )}
 
         {children}
       </div>

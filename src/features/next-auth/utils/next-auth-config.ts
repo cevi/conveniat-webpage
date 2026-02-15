@@ -38,7 +38,7 @@ declare module 'next-auth/jwt' {
     expires_at?: number | undefined;
     uuid?: string;
     group_ids?: number[];
-    nickname?: string;
+    nickname?: string | null;
     email?: string;
     name?: string;
     error?: string;
