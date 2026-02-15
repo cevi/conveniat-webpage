@@ -3,7 +3,6 @@ import { ClientProviders } from '@/context/client-providers';
 import type { Locale } from '@/types/types';
 import { DesignCodes } from '@/utils/design-codes';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { SessionProvider } from 'next-auth/react';
 import type { ReactNode } from 'react';
 import React, { Suspense } from 'react';
 
@@ -18,14 +17,12 @@ interface LayoutProperties {
 const AppLayout: React.FC<LayoutProperties> = ({ children }) => {
   return (
     <Suspense fallback={undefined}>
-      <SessionProvider>
-        <ClientProviders>
-          <ReactQueryDevtools initialIsOpen={false} buttonPosition="top-right" />
-          <SetHideCopyrightFooter value />
-          <div className="mb-20">{children}</div>
-          <div></div>
-        </ClientProviders>
-      </SessionProvider>
+      <ClientProviders>
+        <ReactQueryDevtools initialIsOpen={false} buttonPosition="top-right" />
+        <SetHideCopyrightFooter value />
+        <div className="mb-20">{children}</div>
+        <div></div>
+      </ClientProviders>
     </Suspense>
   );
 };
