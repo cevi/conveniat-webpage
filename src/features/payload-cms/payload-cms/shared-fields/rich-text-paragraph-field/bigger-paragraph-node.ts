@@ -1,12 +1,9 @@
-'use client';
-
 import type {
   EditorConfig,
   LexicalNode,
   SerializedParagraphNode,
 } from '@payloadcms/richtext-lexical/lexical';
 import { $applyNodeReplacement, ParagraphNode } from '@payloadcms/richtext-lexical/lexical';
-
 /**
  * This class extends the ParagraphNode to create a BiggerParagraphNode.
  * It is used to create a paragraph with a larger font size.
