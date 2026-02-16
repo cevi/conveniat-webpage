@@ -87,7 +87,7 @@ export const useFormSteps = (
 
     // Trigger validation for visible fields
     const fields = getVisibleFields();
-     
+
     const isValid = await formMethods.trigger(fields, { shouldFocus: true });
 
     if (isValid && !isLastStep) {

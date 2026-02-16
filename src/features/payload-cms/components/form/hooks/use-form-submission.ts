@@ -69,7 +69,7 @@ export const useFormSubmission = ({
     let dataToSend: SubmissionField[] = [...initialData];
 
     // convert multi-select values to comma-separated strings
-     
+
     for (let index = 0; index < dataToSend.length; index++) {
       const fieldData = dataToSend[index];
       if (!fieldData) continue;

@@ -36,7 +36,7 @@ export const FormBlock: React.FC<
       if (savedState) {
         try {
           const parsedState = JSON.parse(savedState) as Record<string, unknown>;
-           
+
           formMethods.reset({ ...formMethods.getValues(), ...parsedState });
           // Note: We do NOT remove items here immediately,
           // because if the user navigates away and back again (e.g. login failed or multiple redirects), we might want it.

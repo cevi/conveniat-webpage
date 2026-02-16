@@ -61,7 +61,6 @@ const SingleField: React.FC<{
   currentStepIndex: number;
   formId: string | undefined;
 }> = ({ field, currentStepIndex, formId }) => {
-   
   const Component = fieldComponents[field.blockType];
   const {
     register,

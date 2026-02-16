@@ -89,7 +89,6 @@ export const CeviDatabaseLogin: React.FC<CeviDatabaseLoginProperties> = ({
     }
   }, [session, saveField, setValue, name]);
 
-   
   const errorMessage = errors[name]?.message as string | undefined;
 
   const nickname = session?.user.nickname;
@@ -118,7 +117,7 @@ export const CeviDatabaseLogin: React.FC<CeviDatabaseLoginProperties> = ({
             <button
               type="button"
               onClick={handleChangeUser}
-              className="text-conveniat-green shrink-0 text-sm font-medium hover:underline"
+              className="text-conveniat-green shrink-0 cursor-pointer text-sm font-medium hover:underline"
             >
               {changeUserText[locale]}
             </button>
