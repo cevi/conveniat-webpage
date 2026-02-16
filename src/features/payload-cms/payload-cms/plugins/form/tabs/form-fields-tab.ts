@@ -537,6 +537,72 @@ const formTextareaBlock: Block = {
   labels: { plural: 'Text Area Fields', singular: 'Text Area' },
 };
 
+const formCeviDatabaseLoginBlock: Block = {
+  slug: 'ceviDbLogin',
+  admin: {
+    components: {
+      Label: {
+        path: '@/features/payload-cms/payload-cms/components/form-block-label#FormBlockLabel',
+        clientProps: {
+          label: {
+            en: 'Login with Cevi DB',
+            de: 'Login mit Cevi DB',
+            fr: 'Connexion avec Cevi DB',
+          },
+        },
+      },
+    },
+  },
+  fields: [
+    {
+      type: 'row',
+      fields: [
+        {
+          name: 'name',
+          type: 'text',
+          label: 'Name (lowercase, no special characters)',
+          validate: formNameValidation,
+          required: true,
+          admin: { width: '50%' },
+        },
+        {
+          name: 'label',
+          required: true,
+          type: 'text',
+          label: 'Label',
+          localized: true,
+          admin: { width: '50%' },
+        },
+      ],
+    },
+    {
+      name: 'skippable',
+      type: 'checkbox',
+      label: 'Skippable',
+      defaultValue: false,
+      admin: {
+        description: 'If checked, the user can skip this step without logging in.',
+      },
+    },
+    {
+      name: 'saveField',
+      type: 'select',
+      label: 'Save Field',
+      defaultValue: 'email',
+      options: [
+        { label: 'Name', value: 'name' },
+        { label: 'UUID', value: 'uuid' },
+        { label: 'Email', value: 'email' },
+        { label: 'Nickname', value: 'nickname' },
+      ],
+      admin: {
+        description: 'Which field from the user should be saved.',
+      },
+    },
+  ],
+  labels: { plural: 'Cevi DB Login Blocks', singular: 'Cevi DB Login' },
+};
+
 const formBlocks: Block[] = [
   formCheckboxBlock,
   formCountryBlock,
@@ -547,6 +613,7 @@ const formBlocks: Block[] = [
   formTextBlock,
   formTextareaBlock,
   formDateBlock,
+  formCeviDatabaseLoginBlock,
 ];
 
 const conditionedBlock: Block = {

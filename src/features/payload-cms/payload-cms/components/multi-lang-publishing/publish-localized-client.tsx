@@ -180,9 +180,7 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
       });
 
       const action = `${serverURL}${api}${
-        globalSlug === undefined
-          ? `/${collectionSlug}/${id === undefined ? '' : `${id}`}`
-          : `/globals/${globalSlug}`
+        globalSlug === undefined ? `/${collectionSlug}/${id ?? ''}` : `/globals/${globalSlug}`
       }${parameters === '' ? '' : '?' + parameters}`;
 
       await submit({

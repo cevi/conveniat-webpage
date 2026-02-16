@@ -704,6 +704,21 @@ export interface Form {
                 blockType: 'date';
               }
             | {
+                name: string;
+                label: string;
+                /**
+                 * If checked, the user can skip this step without logging in.
+                 */
+                skippable?: boolean | null;
+                /**
+                 * Which field from the user should be saved.
+                 */
+                saveField?: ('name' | 'uuid' | 'email' | 'nickname') | null;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'ceviDbLogin';
+              }
+            | {
                 displayCondition?: {
                   field?: string | null;
                   value?: string | null;
@@ -841,6 +856,21 @@ export interface Form {
                           id?: string | null;
                           blockName?: string | null;
                           blockType: 'date';
+                        }
+                      | {
+                          name: string;
+                          label: string;
+                          /**
+                           * If checked, the user can skip this step without logging in.
+                           */
+                          skippable?: boolean | null;
+                          /**
+                           * Which field from the user should be saved.
+                           */
+                          saveField?: ('name' | 'uuid' | 'email' | 'nickname') | null;
+                          id?: string | null;
+                          blockName?: string | null;
+                          blockType: 'ceviDbLogin';
                         }
                     )[]
                   | null;
@@ -3078,6 +3108,16 @@ export interface FormsSelect<T extends boolean = true> {
                           id?: T;
                           blockName?: T;
                         };
+                    ceviDbLogin?:
+                      | T
+                      | {
+                          name?: T;
+                          label?: T;
+                          skippable?: T;
+                          saveField?: T;
+                          id?: T;
+                          blockName?: T;
+                        };
                     conditionedBlock?:
                       | T
                       | {
@@ -3188,6 +3228,16 @@ export interface FormsSelect<T extends boolean = true> {
                                       label?: T;
                                       defaultValue?: T;
                                       required?: T;
+                                      id?: T;
+                                      blockName?: T;
+                                    };
+                                ceviDbLogin?:
+                                  | T
+                                  | {
+                                      name?: T;
+                                      label?: T;
+                                      skippable?: T;
+                                      saveField?: T;
                                       id?: T;
                                       blockName?: T;
                                     };

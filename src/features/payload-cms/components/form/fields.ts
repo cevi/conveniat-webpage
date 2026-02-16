@@ -1,3 +1,4 @@
+import { CeviDatabaseLogin } from '@/features/payload-cms/components/form/cevi-db-login';
 import { Checkbox } from '@/features/payload-cms/components/form/checkbox';
 import { Country } from '@/features/payload-cms/components/form/country';
 import { Date } from '@/features/payload-cms/components/form/date';
@@ -20,4 +21,5 @@ export const fields: Record<string, React.FC<any>> = {
   textarea: TextArea,
   message: Message,
   date: Date,
+  ceviDbLogin: CeviDatabaseLogin,
 };
