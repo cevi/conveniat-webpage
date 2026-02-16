@@ -1,5 +1,5 @@
+import { getFeatureFlag } from '@/lib/db/redis';
 import { FEATURE_FLAG_CREATE_CHATS_ENABLED, FEATURE_FLAG_SEND_MESSAGES } from '@/lib/feature-flags';
-import { getFeatureFlag } from '@/lib/redis';
 import { trpcBaseProcedure } from '@/trpc/init';
 
 export const getFeatureFlags = trpcBaseProcedure.query(async () => {

@@ -1,4 +1,4 @@
-import { setFeatureFlag } from '@/lib/redis';
+import { setFeatureFlag } from '@/lib/db/redis';
 import type { GlobalConfig } from 'payload';
 
 export const AppFeatureFlags: GlobalConfig = {

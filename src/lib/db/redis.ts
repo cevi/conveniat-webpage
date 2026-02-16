@@ -1,4 +1,4 @@
-import { environmentVariables } from '@/config/environment-variables';
+import { environmentVariables as env } from '@/config/environment-variables';
 import Redis from 'ioredis';
 
 const globalForRedis = globalThis as unknown as { redis: Redis | undefined };
@@ -35,12 +35,12 @@ export const redis =
           },
         },
       ) as unknown as Redis)
-    : new Redis(environmentVariables.REDIS_URL, {
+    : new Redis(env.REDIS_URL, {
         // eslint-disable-next-line unicorn/no-null
         maxRetriesPerRequest: null,
       }));
 
-if (environmentVariables.NODE_ENV !== 'production') globalForRedis.redis = redis;
+if (env.NODE_ENV !== 'production') globalForRedis.redis = redis;
 
 export const FEATURE_FLAG_PREFIX = 'feature-flag:';
 
