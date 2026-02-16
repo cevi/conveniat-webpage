@@ -179,12 +179,14 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
         publishSpecificLocale: code,
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const action = `${serverURL}${api}${
         globalSlug === undefined ? `/${collectionSlug}/${id ?? ''}` : `/globals/${globalSlug}`
       }${parameters === '' ? '' : '?' + parameters}`;
 
       await submit({
-        action,
+        // TODO: temporary fix for https://github.com/payloadcms/payload/issues/15642
+        // action,
         overrides: {
           _status: 'published',
           _localized_status: {
@@ -211,6 +213,7 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
         publishSpecificLocale: code,
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const action = `${serverURL}${api}${
         globalSlug === undefined
           ? `/${collectionSlug}/${id === undefined ? '' : `/${id}`}`
@@ -218,7 +221,8 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
       }${parameters === '' ? '' : '?' + parameters}`;
 
       await submit({
-        action,
+        // TODO: temporary fix for https://github.com/payloadcms/payload/issues/15642
+        // action,
         overrides: {
           _status: 'published',
           _localized_status: {
