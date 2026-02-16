@@ -707,13 +707,13 @@ export interface Form {
                 name: string;
                 label: string;
                 /**
-                 * If checked, the user can skip this step without logging in.
-                 */
-                skippable?: boolean | null;
-                /**
                  * Which field from the user should be saved.
                  */
                 saveField?: ('name' | 'uuid' | 'email' | 'nickname') | null;
+                /**
+                 * If checked, the user must log in to proceed.
+                 */
+                required?: boolean | null;
                 id?: string | null;
                 blockName?: string | null;
                 blockType: 'ceviDbLogin';
@@ -861,13 +861,13 @@ export interface Form {
                           name: string;
                           label: string;
                           /**
-                           * If checked, the user can skip this step without logging in.
-                           */
-                          skippable?: boolean | null;
-                          /**
                            * Which field from the user should be saved.
                            */
                           saveField?: ('name' | 'uuid' | 'email' | 'nickname') | null;
+                          /**
+                           * If checked, the user must log in to proceed.
+                           */
+                          required?: boolean | null;
                           id?: string | null;
                           blockName?: string | null;
                           blockType: 'ceviDbLogin';
@@ -3113,8 +3113,8 @@ export interface FormsSelect<T extends boolean = true> {
                       | {
                           name?: T;
                           label?: T;
-                          skippable?: T;
                           saveField?: T;
+                          required?: T;
                           id?: T;
                           blockName?: T;
                         };
@@ -3236,8 +3236,8 @@ export interface FormsSelect<T extends boolean = true> {
                                   | {
                                       name?: T;
                                       label?: T;
-                                      skippable?: T;
                                       saveField?: T;
+                                      required?: T;
                                       id?: T;
                                       blockName?: T;
                                     };

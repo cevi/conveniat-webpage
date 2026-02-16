@@ -575,15 +575,7 @@ const formCeviDatabaseLoginBlock: Block = {
         },
       ],
     },
-    {
-      name: 'skippable',
-      type: 'checkbox',
-      label: 'Skippable',
-      defaultValue: false,
-      admin: {
-        description: 'If checked, the user can skip this step without logging in.',
-      },
-    },
+
     {
       name: 'saveField',
       type: 'select',
@@ -597,6 +589,15 @@ const formCeviDatabaseLoginBlock: Block = {
       ],
       admin: {
         description: 'Which field from the user should be saved.',
+      },
+    },
+    {
+      name: 'required',
+      type: 'checkbox',
+      label: 'Required',
+      defaultValue: false,
+      admin: {
+        description: 'If checked, the user must log in to proceed.',
       },
     },
   ],
