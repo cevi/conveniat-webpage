@@ -5,7 +5,7 @@ import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import { routeResolutionTable } from '@/features/payload-cms/route-resolution-table';
 import type { SpecialRouteResolutionEntry } from '@/features/payload-cms/special-pages-table';
 import { getSpecialPage, isSpecialPage } from '@/features/payload-cms/special-pages-table';
-import { PreviewWarning } from '@/features/payload-cms/utils/preview-utils';
+import { PreviewWarning } from '@/features/payload-cms/utils/preview/preview-utils';
 import type { Locale, SearchParameters } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { forceDynamicOnBuild } from '@/utils/is-pre-rendering';
@@ -165,7 +165,7 @@ const CMSPage: React.FC<{
   let previewModeAllowed = false;
   if (draft.isEnabled) {
     const { canAccessPreviewOfCurrentPage } =
-      await import('@/features/payload-cms/utils/preview-utils');
+      await import('@/features/payload-cms/utils/preview/preview-utils');
 
     const url = `/${locale}/${slugs?.join('/') ?? ''}`;
     previewModeAllowed = await canAccessPreviewOfCurrentPage(searchParameters, url);

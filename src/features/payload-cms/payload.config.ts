@@ -21,16 +21,16 @@ import { createUserStep } from '@/features/registration_process/workflows/steps/
 import { ensureEventMembershipStep } from '@/features/registration_process/workflows/steps/ensure-event-membership';
 import { ensureGroupMembershipStep } from '@/features/registration_process/workflows/steps/ensure-group-membership';
 import { resolveUserStep } from '@/features/registration_process/workflows/steps/resolve-user';
-import type { Locale as LocaleType, RoutableConfig, StaticTranslationString } from '@/types/types';
+import type { RoutableConfig } from '@/types/types';
 import { mongooseAdapter } from '@payloadcms/db-mongodb';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { CollectionConfig, Locale } from 'payload';
 
 import {
   enabledWidgets,
   widgetDefaultLayout,
 } from '@/features/payload-cms/payload-cms/widgets/widget-configuration';
+import { generatePreviewUrl } from '@/features/payload-cms/utils/preview/generate-preview-url';
 import { de } from 'payload/i18n/de';
 import { en } from 'payload/i18n/en';
 import { fr } from 'payload/i18n/fr';
@@ -54,53 +54,6 @@ const dbConfig = mongooseAdapter({
     maxPoolSize: 100,
   },
 });
-
-/**
- * Generates the preview URL for the live preview feature.
- *
- * @param data
- * @param collectionConfig
- * @param locale
- */
-const generatePreviewUrl = ({
-  data,
-  collectionConfig,
-  locale,
-}: {
-  data: { seo?: { urlSlug?: string }; id?: string } | null | undefined;
-  collectionConfig?: CollectionConfig;
-  locale: Locale;
-}): string => {
-  if (data === undefined || data === null) return '';
-
-  if (collectionConfig) {
-    if (collectionConfig.slug === 'timeline' && data.id !== undefined) {
-      return `${environmentVariables.APP_HOST_URL}/${locale.code}/timeline-preview/${data.id}?preview=true`;
-    }
-
-    if (collectionConfig.slug === 'forms' && data.id !== undefined) {
-      const urlSlugs: StaticTranslationString = {
-        en: 'form-preview',
-        de: 'formular-vorschau',
-        fr: 'apercu-du-formulaire',
-      };
-
-      return `${environmentVariables.APP_HOST_URL}/${locale.code}/${urlSlugs[locale.code as LocaleType]}/${data.id}?preview=true`;
-    }
-
-    if (collectionConfig.slug === 'camp-map-annotations' && data.id !== undefined) {
-      return `${environmentVariables.APP_HOST_URL}/app/map?locationId=${data.id}&preview=true`;
-    }
-  }
-
-  if (!data.seo) return '';
-  const urlSlug: string | undefined = data.seo.urlSlug;
-  if (urlSlug == undefined) return '';
-
-  return `${environmentVariables.APP_HOST_URL}/${locale.code}/${
-    collectionConfig?.slug === 'blog' ? `blog/` : ''
-  }${urlSlug}?preview=true`;
-};
 
 export const payloadConfig: RoutableConfig = {
   onInit: onPayloadInit,
