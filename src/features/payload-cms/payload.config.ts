@@ -1,4 +1,4 @@
-import { environmentVariables } from '@/config/environment-variables';
+import { environmentVariables as env } from '@/config/environment-variables';
 import { buildSecureConfig } from '@/features/payload-cms/payload-cms/access-rules/build-secure-config';
 import { collectionsConfig } from '@/features/payload-cms/payload-cms/collections';
 import { UserCollection } from '@/features/payload-cms/payload-cms/collections/user-collection';
@@ -31,6 +31,7 @@ import {
   widgetDefaultLayout,
 } from '@/features/payload-cms/payload-cms/widgets/widget-configuration';
 import { generatePreviewUrl } from '@/features/payload-cms/utils/preview/generate-preview-url';
+import type { JobsConfig, MetaConfig } from 'payload';
 import { de } from 'payload/i18n/de';
 import { en } from 'payload/i18n/en';
 import { fr } from 'payload/i18n/fr';
@@ -48,76 +49,100 @@ const dirname = path.dirname(filename);
  *
  */
 const dbConfig = mongooseAdapter({
-  url: environmentVariables.DATABASE_URI,
+  url: env.DATABASE_URI,
   connectOptions: {
     minPoolSize: 5,
     maxPoolSize: 100,
   },
 });
 
+const defaultMetaConfig: MetaConfig = {
+  title: 'Admin Panel',
+  description: 'conveniat27 - Admin Panel',
+  icons: [
+    {
+      rel: 'icon',
+      type: 'image/svg+xml',
+      url: '/favicon.svg',
+    },
+  ],
+  titleSuffix: ' | conveniat27',
+  openGraph: {
+    title: 'conveniat27 - Admin Panel',
+    description: 'conveniat27 - Admin Panel',
+    images: [
+      {
+        url: '/favicon.svg',
+        width: 75,
+        height: 75,
+      },
+    ],
+  },
+};
+
+const payloadConfigAdminSettings: RoutableConfig['admin'] = {
+  suppressHydrationWarning: true,
+  avatar: 'default',
+  meta: defaultMetaConfig,
+  components: {
+    graphics: {
+      Icon: '@/components/svg-logos/conveniat-logo.tsx#ConveniatLogo',
+      Logo: '@/components/svg-logos/conveniat-logo.tsx#ConveniatLogo',
+    },
+    beforeDashboard: [
+      {
+        path: '@/features/payload-cms/payload-cms/components/dashboard-welcome-banner',
+      },
+    ],
+    afterLogin: [
+      {
+        path: '@/features/payload-cms/payload-cms/components/login-page/admin-panel-login-page',
+      },
+    ],
+  },
+  user: UserCollection.slug,
+  importMap: {
+    baseDir: path.resolve(dirname),
+  },
+  dateFormat: 'yyyy-MM-dd HH:mm',
+  timezones: {
+    supportedTimezones: [{ label: 'Europe/Zurich', value: 'Europe/Zurich' }],
+    defaultTimezone: 'Europe/Zurich',
+  },
+  livePreview: {
+    url: generatePreviewUrl,
+    breakpoints: smartphoneBreakpoints,
+    collections: ['blog', 'generic-page', 'timeline', 'forms', 'camp-map-annotations'],
+  },
+  dashboard: {
+    widgets: enabledWidgets,
+    defaultLayout: widgetDefaultLayout,
+  },
+};
+
+const jobsConfig: JobsConfig = {
+  deleteJobOnComplete: false,
+  tasks: [
+    resolveUserStep,
+    createUserStep,
+    blockJobStep,
+    cleanupTemporaryRolesStep,
+    ensureGroupMembershipStep,
+    ensureEventMembershipStep,
+    confirmationMessageStep,
+  ],
+  workflows: [registrationWorkflow],
+  autoRun: [
+    {
+      cron: '*/10 * * * * *', // Every 10 seconds
+      limit: 10,
+    },
+  ],
+};
+
 export const payloadConfig: RoutableConfig = {
   onInit: onPayloadInit,
-  admin: {
-    suppressHydrationWarning: true,
-    avatar: 'default',
-    meta: {
-      title: 'Admin Panel',
-      description: 'conveniat27 - Admin Panel',
-      icons: [
-        {
-          rel: 'icon',
-          type: 'image/svg+xml',
-          url: '/favicon.svg',
-        },
-      ],
-      titleSuffix: ' | conveniat27',
-      openGraph: {
-        title: 'conveniat27 - Admin Panel',
-        description: 'conveniat27 - Admin Panel',
-        images: [
-          {
-            url: '/favicon.svg',
-            width: 75,
-            height: 75,
-          },
-        ],
-      },
-    },
-    components: {
-      graphics: {
-        Icon: '@/components/svg-logos/conveniat-logo.tsx#ConveniatLogo',
-        Logo: '@/components/svg-logos/conveniat-logo.tsx#ConveniatLogo',
-      },
-      beforeDashboard: [
-        {
-          path: '@/features/payload-cms/payload-cms/components/dashboard-welcome-banner',
-        },
-      ],
-      afterLogin: [
-        {
-          path: '@/features/payload-cms/payload-cms/components/login-page/admin-panel-login-page',
-        },
-      ],
-    },
-    user: UserCollection.slug,
-    importMap: {
-      baseDir: path.resolve(dirname),
-    },
-    dateFormat: 'yyyy-MM-dd HH:mm',
-    timezones: {
-      supportedTimezones: [{ label: 'Europe/Zurich', value: 'Europe/Zurich' }],
-      defaultTimezone: 'Europe/Zurich',
-    },
-    livePreview: {
-      url: generatePreviewUrl,
-      breakpoints: smartphoneBreakpoints,
-      collections: ['blog', 'generic-page', 'timeline', 'forms', 'camp-map-annotations'],
-    },
-    dashboard: {
-      widgets: enabledWidgets,
-      defaultLayout: widgetDefaultLayout,
-    },
-  },
+  admin: payloadConfigAdminSettings,
   collections: collectionsConfig,
   editor: lexicalEditor,
   globals: globalConfig,
@@ -130,10 +155,10 @@ export const payloadConfig: RoutableConfig = {
     disable: true, // we don't need GraphQL for this project
     disablePlaygroundInProduction: true,
   },
-  secret: environmentVariables.PAYLOAD_SECRET,
+  secret: env.PAYLOAD_SECRET,
   // helps prevent CSRF attacks
   // (see https://payloadcms.com/docs/authentication/cookies#csrf-prevention)
-  csrf: [environmentVariables.APP_HOST_URL],
+  csrf: [env.APP_HOST_URL],
   typescript: {
     autoGenerate: true,
     outputFile: path.resolve(dirname, 'payload-types.ts'),
@@ -147,25 +172,7 @@ export const payloadConfig: RoutableConfig = {
     searchPluginConfiguration,
     redirectsPluginConfiguration,
   ],
-  jobs: {
-    deleteJobOnComplete: false,
-    tasks: [
-      resolveUserStep,
-      createUserStep,
-      blockJobStep,
-      cleanupTemporaryRolesStep,
-      ensureGroupMembershipStep,
-      ensureEventMembershipStep,
-      confirmationMessageStep,
-    ],
-    workflows: [registrationWorkflow],
-    autoRun: [
-      {
-        cron: '*/10 * * * * *', // Every 10 seconds
-        limit: 10,
-      },
-    ],
-  },
+  jobs: jobsConfig,
   i18n: {
     fallbackLanguage: LOCALE.DE,
     supportedLanguages: { en, de, fr },
