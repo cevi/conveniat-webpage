@@ -22,6 +22,7 @@ import { ensureEventMembershipStep } from '@/features/registration_process/workf
 import { ensureGroupMembershipStep } from '@/features/registration_process/workflows/steps/ensure-group-membership';
 import { resolveUserStep } from '@/features/registration_process/workflows/steps/resolve-user';
 import type { RoutableConfig } from '@/types/types';
+import { redirectsTranslations } from '@payloadcms/plugin-redirects';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -159,7 +160,12 @@ export const payloadConfig: RoutableConfig = {
   jobs: jobsConfig,
   i18n: {
     fallbackLanguage: LOCALE.DE,
-    supportedLanguages: { en, de, fr },
+    supportedLanguages: {
+      // patch that the redirect plugin has no german translations
+      en: { ...en, ...redirectsTranslations.en },
+      de: { ...de, ...redirectsTranslations.en },
+      fr: { ...fr, ...redirectsTranslations.fr },
+    },
   },
   ...emailSettings,
 };
