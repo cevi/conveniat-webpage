@@ -1,7 +1,7 @@
 import { deleteDatabase } from '@/features/payload-cms/payload-cms/initialization/deleting';
 import { ensureIndexes } from '@/features/payload-cms/payload-cms/initialization/ensure-indexes';
 import { seedDatabase } from '@/features/payload-cms/payload-cms/initialization/seeding';
-import prisma from '@/lib/database';
+import prisma from '@/lib/db/prisma';
 import { withSpan } from '@/utils/tracing-helpers';
 import type { Payload } from 'payload';
 

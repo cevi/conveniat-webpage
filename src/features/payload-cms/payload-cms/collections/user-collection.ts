@@ -3,7 +3,7 @@ import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-r
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared-fields/last-edited-by-user-field';
 import type { User } from '@/features/payload-cms/payload-types';
-import prisma from '@/lib/database';
+import prisma from '@/lib/db/prisma';
 import { getAuthenticateUsingCeviDB } from '@/utils/auth-helpers';
 import type { BaseListFilter, CollectionConfig } from 'payload';
 

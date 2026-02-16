@@ -13,7 +13,7 @@ import {
   CapabilitySubject,
 } from '@/lib/capabilities/types';
 import { ChatCapability } from '@/lib/chat-shared';
-import prisma from '@/lib/database';
+import prisma from '@/lib/db/prisma';
 import { FEATURE_FLAG_CREATE_CHATS_ENABLED, FEATURE_FLAG_SEND_MESSAGES } from '@/lib/feature-flags';
 import { getFeatureFlag } from '@/lib/redis';
 

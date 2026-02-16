@@ -1,4 +1,4 @@
-import prisma from '@/lib/database';
+import prisma from '@/lib/db/prisma';
 import {
   type HitobitoNextAuthUser,
   HitobitoNextAuthUserSchema,

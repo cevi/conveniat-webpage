@@ -22,7 +22,6 @@ import { ensureEventMembershipStep } from '@/features/registration_process/workf
 import { ensureGroupMembershipStep } from '@/features/registration_process/workflows/steps/ensure-group-membership';
 import { resolveUserStep } from '@/features/registration_process/workflows/steps/resolve-user';
 import type { RoutableConfig } from '@/types/types';
-import { mongooseAdapter } from '@payloadcms/db-mongodb';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -31,6 +30,7 @@ import {
   widgetDefaultLayout,
 } from '@/features/payload-cms/payload-cms/widgets/widget-configuration';
 import { generatePreviewUrl } from '@/features/payload-cms/utils/preview/generate-preview-url';
+import { dbConfig } from '@/lib/db/mongodb';
 import type { JobsConfig, MetaConfig } from 'payload';
 import { de } from 'payload/i18n/de';
 import { en } from 'payload/i18n/en';
@@ -39,22 +39,6 @@ import sharp from 'sharp';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
-
-/**
- * Database configuration for PayloadCMS.
- *
- * We use the mongoose adapter to connect to the MongoDB database.
- * Important is the minPoolSize and maxPoolSize to ensure that we avoid
- * high latency and connection pool exhaustion.
- *
- */
-const dbConfig = mongooseAdapter({
-  url: env.DATABASE_URI,
-  connectOptions: {
-    minPoolSize: 5,
-    maxPoolSize: 100,
-  },
-});
 
 const defaultMetaConfig: MetaConfig = {
   title: 'Admin Panel',

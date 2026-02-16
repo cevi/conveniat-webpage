@@ -142,7 +142,7 @@ export async function sendNotificationToSubscription(
   logContent?: string,
 ): Promise<{ success: boolean; error?: string }> {
   const urlToSend = url && url == '' ? undefined : url; // empty url is undefined
-  const { default: prisma } = await import('@/lib/database');
+  const { default: prisma } = await import('@/lib/db/prisma');
   let logId = existingLogId;
 
   // If userId is provided and no existingLogId, create a new log entry

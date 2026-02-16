@@ -1,5 +1,5 @@
 import type { CampScheduleEntry } from '@/features/payload-cms/payload-types';
-import prisma from '@/lib/database';
+import prisma from '@/lib/db/prisma';
 import { ChatMembershipPermission, MessageEventType, MessageType } from '@prisma/client';
 import type { CollectionAfterChangeHook } from 'payload';
 
