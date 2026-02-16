@@ -17,7 +17,7 @@
     "db:tunnel-dev": "bash src/scripts/db/tunnel.sh dev",
     "db:tunnel-konekta": "bash src/scripts/db/tunnel.sh konekta",
     "db:tunnel-prod": "bash src/scripts/db/tunnel.sh prod",
-    "dev": "cross-env NODE_OPTIONS=--no-deprecation next dev --turbo",
+    "dev": "docker compose up --build --scale payload=0 -d && cross-env NODE_OPTIONS=--no-deprecation next dev --turbo",
     "devsafe": "rm -rf .next/* && cross-env NODE_OPTIONS=--no-deprecation next dev",
     "generate:importmap": "cross-env NODE_OPTIONS=--no-deprecation payload generate:importmap",
     "generate:types": "cross-env NODE_OPTIONS=--no-deprecation payload generate:types",
