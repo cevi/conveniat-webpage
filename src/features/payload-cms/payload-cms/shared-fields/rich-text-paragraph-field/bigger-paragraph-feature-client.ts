@@ -5,7 +5,6 @@ import {
   $isParagraphNode,
   BiggerParagraphNode,
 } from '@/features/payload-cms/payload-cms/shared-fields/rich-text-paragraph-field/bigger-paragraph-node';
-import { $setBlocksType } from '@lexical/selection';
 import type { ToolbarGroup } from '@payloadcms/richtext-lexical';
 import {
   createClientFeature,
@@ -13,6 +12,7 @@ import {
   toolbarTextDropdownGroupWithItems,
 } from '@payloadcms/richtext-lexical/client';
 import { $getSelection, $isRangeSelection } from '@payloadcms/richtext-lexical/lexical';
+import { $setBlocksType } from '@payloadcms/richtext-lexical/lexical/selection';
 import { LetterText } from 'lucide-react';
 
 const toolbarGroups: ToolbarGroup[] = [
