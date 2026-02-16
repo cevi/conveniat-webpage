@@ -70,8 +70,6 @@ export const PostHogProvider: React.FC<{ children: React.ReactNode }> = ({ child
         capture_pageview: false, // page views are captured manually
         capture_pageleave: true,
       });
-    } else {
-      console.warn('PostHog is not configured. Skipping initialization.');
     }
   }, []);
 
