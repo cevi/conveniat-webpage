@@ -25,6 +25,7 @@ import {
   generateScheduleEntries,
 } from '@/features/payload-cms/payload-cms/initialization/seeding/schedule-entries';
 import { seedAlertSettings } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-alert-settings';
+import { seedJobs } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-jobs';
 import { createRandomUser } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-users';
 import {
   generateTimelineEntries,
@@ -80,9 +81,8 @@ const getFallbackImageBuffer = async (): Promise<Buffer> => {
   </svg>
   `;
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+  // sharp is an optional dependency
   const { default: sharp } = await import('sharp');
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return
   return await sharp(Buffer.from(svg)).toFormat('png').toBuffer();
 };
 
@@ -142,7 +142,7 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
   contactFormEN.title = 'Contact Form';
   contactFormEN.submitButtonLabel = 'Submit';
 
-  // @ts-expect-error
+  // @ts-expect-error - confirmationMessage structure is complex and hard to type correctly here
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   contactFormEN.confirmationMessage.root.children[0].children[0].text =
     'The form was submitted successfully.';
@@ -155,7 +155,7 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     contactFormEN.sections[0].formSection.sectionTitle = 'Contact Details';
     const fields = contactFormEN.sections[0].formSection.fields;
     // Name
-    // @ts-ignore
+    // @ts-expect-error - fields might be undefined or have different structure in localized version
     if (fields[0]) fields[0].label = 'My Name';
     // Email
     // @ts-ignore
@@ -166,11 +166,11 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     contactFormEN.sections[1].formSection.sectionTitle = 'Message';
     const fields = contactFormEN.sections[1].formSection.fields;
     // Checkbox
-    // @ts-ignore
+    // @ts-expect-error - label structure is complex and hard to type correctly here
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (fields[0]) fields[0].label.root.children[0].children[0].text = 'I am in.';
     // Comment
-    // @ts-ignore
+    // @ts-expect-error - fields might be undefined or have different structure in localized version
     if (fields[1]) fields[1].label = 'Comment';
   }
 
@@ -186,7 +186,7 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
   const contactFormFR = structuredClone(contactForm);
   contactFormFR.title = 'Formulaire de contact';
   contactFormFR.submitButtonLabel = 'Envoyer';
-  // @ts-ignore
+  // @ts-expect-error - confirmationMessage structure is complex and hard to type correctly here
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   contactFormFR.confirmationMessage.root.children[0].children[0].text =
     'Le formulaire a été envoyé avec succès.';
@@ -199,7 +199,7 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     contactFormFR.sections[0].formSection.sectionTitle = 'Détails du contact';
     const fields = contactFormFR.sections[0].formSection.fields;
     // Name
-    // @ts-ignore
+    // @ts-expect-error - fields might be undefined or have different structure in localized version
     if (fields[0]) fields[0].label = 'Mon Nom';
     // Email
     // @ts-ignore
@@ -210,11 +210,11 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     contactFormFR.sections[1].formSection.sectionTitle = 'Message';
     const fields = contactFormFR.sections[1].formSection.fields;
     // Checkbox
-    // @ts-ignore
+    // @ts-expect-error - label structure is complex and hard to type correctly here
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (fields[0]) fields[0].label.root.children[0].children[0].text = 'Je participe.';
     // Comment
-    // @ts-ignore
+    // @ts-expect-error - fields might be undefined or have different structure in localized version
     if (fields[1]) fields[1].label = 'Commentaire';
   }
 
@@ -700,6 +700,8 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
   console.log('Seeding: Schedule entries created.');
 
   await seedPushNotifications(payload, userIds);
+
+  await seedJobs(payload);
 
   console.log('Seeding: Seeding complete.');
 
