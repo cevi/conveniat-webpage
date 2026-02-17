@@ -4,6 +4,7 @@ declare module 'next-auth' {
   interface Session {
     user: {
       uuid?: string | undefined;
+      cevi_db_uuid?: number | undefined;
       group_ids?: number[] | undefined;
       nickname?: string | null | undefined;
     } & DefaultSession['user'];
@@ -11,6 +12,7 @@ declare module 'next-auth' {
 
   interface User {
     uuid?: string | undefined;
+    cevi_db_uuid?: number | undefined;
     group_ids?: number[] | undefined;
     nickname?: string | null | undefined;
   }
@@ -22,6 +24,7 @@ declare module 'next-auth/jwt' {
     refresh_token?: string | undefined;
     expires_at?: number | undefined;
     uuid?: string | undefined;
+    cevi_db_uuid?: number | undefined;
     group_ids?: number[] | undefined;
     nickname?: string | null | undefined;
     error?: string | undefined;

@@ -179,6 +179,8 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
         publishSpecificLocale: code,
       });
 
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const action = `${serverURL}${api}${
         globalSlug === undefined ? `/${collectionSlug}/${id ?? ''}` : `/globals/${globalSlug}`
@@ -213,6 +215,8 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
         publishSpecificLocale: code,
       });
 
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const action = `${serverURL}${api}${
         globalSlug === undefined

@@ -2,6 +2,7 @@ import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-r
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { getPublishingStatus } from '@/features/payload-cms/payload-cms/hooks/publishing-status';
 import { beforeEmailChangeHook } from '@/features/payload-cms/payload-cms/plugins/form/fix-links-in-mails';
+import { linkJobSubmission } from '@/features/payload-cms/payload-cms/plugins/form/hooks/link-job-submission';
 import { validateCeviDatabaseLogin } from '@/features/payload-cms/payload-cms/plugins/form/hooks/validate-cevi-db-login';
 import { confirmationSettingsTab } from '@/features/payload-cms/payload-cms/plugins/form/tabs/confirmation-settings-tab';
 import { formFieldsTab } from '@/features/payload-cms/payload-cms/plugins/form/tabs/form-fields-tab';
@@ -140,8 +141,30 @@ export const formPluginConfiguration = formBuilderPlugin({
       update: () => false, // disable update for submissions
       delete: () => false, // disable delete for submissions
     },
+    fields: ({ defaultFields }) => [
+      ...defaultFields,
+      {
+        name: 'helper-job',
+        type: 'relationship',
+        relationTo: 'helper-jobs',
+        admin: {
+          readOnly: true,
+          position: 'sidebar',
+        },
+      },
+      {
+        name: 'helper-jobs',
+        type: 'relationship',
+        relationTo: 'helper-jobs',
+        hasMany: true,
+        admin: {
+          readOnly: true,
+          position: 'sidebar',
+        },
+      },
+    ],
     hooks: {
-      beforeChange: [validateCeviDatabaseLogin],
+      beforeChange: [validateCeviDatabaseLogin, linkJobSubmission],
       afterChange: [workflowTriggerOnFormSubmission],
     },
   },

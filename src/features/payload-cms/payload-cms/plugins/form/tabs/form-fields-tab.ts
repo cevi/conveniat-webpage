@@ -1,3 +1,4 @@
+import { RESSORT_OPTIONS } from '@/features/payload-cms/constants/ressort-options';
 import { minimalEditorFeatures } from '@/features/payload-cms/payload-cms/plugins/lexical-editor';
 import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import { defaultEditorLexicalConfig, lexicalEditor } from '@payloadcms/richtext-lexical';
@@ -28,6 +29,21 @@ const validateRegex: TextFieldSingleValidation = (value) => {
     return 'Invalid regular expression';
   }
 };
+
+const placementField = (defaultValue: 'sidebar' | 'main' = 'sidebar'): Field => ({
+  name: 'placement',
+  type: 'select',
+  label: 'Layout Placement (Split Layout only)',
+  defaultValue,
+  options: [
+    { label: 'Sidebar (Left)', value: 'sidebar' },
+    { label: 'Main (Right)', value: 'main' },
+  ],
+  admin: {
+    description: 'Where this field is rendered when "Split" layout is selected for the section.',
+    width: '50%',
+  },
+});
 
 const formCheckboxBlock: Block = {
   slug: 'checkbox',
@@ -73,7 +89,8 @@ const formCheckboxBlock: Block = {
       ],
     },
     { name: 'required', type: 'checkbox', label: 'Required', admin: { width: '50%' } },
-    { name: 'defaultValue', type: 'checkbox', label: 'Default Value' },
+    { name: 'defaultValue', type: 'checkbox', label: 'Default Value', admin: { width: '50%' } },
+    placementField(),
   ],
   labels: { plural: 'Checkbox Fields', singular: 'Checkbox' },
 };
@@ -126,6 +143,7 @@ const formDateBlock: Block = {
       type: 'checkbox',
       label: 'Required',
     },
+    placementField(),
   ],
 };
 
@@ -172,6 +190,7 @@ const formCountryBlock: Block = {
       type: 'checkbox',
       label: 'Required',
     },
+    placementField(),
   ],
   labels: { plural: 'Country Fields', singular: 'Country' },
 };
@@ -220,6 +239,7 @@ const formEmailBlock: Block = {
       type: 'checkbox',
       label: 'Required',
     },
+    placementField(),
   ],
   labels: { plural: 'Email Fields', singular: 'Email' },
 };
@@ -283,6 +303,7 @@ const formNumberBlock: Block = {
     },
     { name: 'placeholder', type: 'text', label: 'Placeholder' },
     { name: 'required', type: 'checkbox', label: 'Required' },
+    placementField(),
   ],
   labels: { plural: 'Number Fields', singular: 'Number' },
 };
@@ -387,6 +408,7 @@ const formSelectBlock: Block = {
       labels: { plural: 'Options', singular: 'Option' },
     },
     { name: 'required', type: 'checkbox', label: 'Required' },
+    placementField(),
   ],
   labels: { plural: 'Select Fields', singular: 'Select' },
 };
@@ -477,6 +499,7 @@ const formTextBlock: Block = {
         },
       ],
     },
+    placementField(),
   ],
   labels: { plural: 'Text Fields', singular: 'Text' },
 };
@@ -533,6 +556,7 @@ const formTextareaBlock: Block = {
       ],
     },
     { name: 'required', type: 'checkbox', label: 'Required' },
+    placementField(),
   ],
   labels: { plural: 'Text Area Fields', singular: 'Text Area' },
 };
@@ -575,15 +599,7 @@ const formCeviDatabaseLoginBlock: Block = {
         },
       ],
     },
-    {
-      name: 'skippable',
-      type: 'checkbox',
-      label: 'Skippable',
-      defaultValue: false,
-      admin: {
-        description: 'If checked, the user can skip this step without logging in.',
-      },
-    },
+
     {
       name: 'saveField',
       type: 'select',
@@ -599,8 +615,100 @@ const formCeviDatabaseLoginBlock: Block = {
         description: 'Which field from the user should be saved.',
       },
     },
+    {
+      name: 'required',
+      type: 'checkbox',
+      label: 'Required',
+      defaultValue: false,
+      admin: {
+        description: 'If checked, the user must log in to proceed.',
+      },
+    },
+    placementField(),
   ],
   labels: { plural: 'Cevi DB Login Blocks', singular: 'Cevi DB Login' },
+};
+
+const formJobSelectionBlock: Block = {
+  slug: 'jobSelection',
+  admin: {
+    components: {
+      Label: {
+        path: '@/features/payload-cms/payload-cms/components/form-block-label#FormBlockLabel',
+        clientProps: {
+          label: {
+            en: 'Job Selection',
+            de: 'Job Auswahl',
+            fr: 'Sélection de Job',
+          },
+        },
+      },
+    },
+  },
+  fields: [
+    {
+      type: 'row',
+      fields: [
+        {
+          name: 'name',
+          type: 'text',
+          label: 'Name (lowercase, no special characters)',
+          validate: formNameValidation,
+          required: true,
+          admin: { width: '50%' },
+        },
+        {
+          name: 'label',
+          required: true,
+          type: 'text',
+          label: 'Label',
+          localized: true,
+          admin: { width: '50%' },
+        },
+      ],
+    },
+    {
+      name: 'dateRangeCategory',
+      type: 'select',
+      required: true,
+      options: [
+        { label: 'Aufbaulager Infrastruktur', value: 'setup' },
+        { label: 'Hauptlager', value: 'main' },
+        { label: 'Abbaulager Infrastruktur', value: 'teardown' },
+      ],
+      label: {
+        en: 'Date Range Category',
+        de: 'Zeitraum Kategorie',
+        fr: 'Catégorie de période',
+      },
+      admin: {
+        description: {
+          en: 'Filter jobs by this category.',
+          de: 'Jobs nach einer Kategorie filtern.',
+          fr: 'Filtrer les jobs par une catégorie.',
+        },
+      },
+    },
+    {
+      name: 'category',
+      type: 'select',
+      options: RESSORT_OPTIONS,
+      label: {
+        en: 'Job Category',
+        de: 'Job Kategorie',
+        fr: 'Catégorie de job',
+      },
+      admin: {
+        description: {
+          en: 'Optionally filter jobs by this category.',
+          de: 'Jobs optional nach dieser Kategorie filtern.',
+          fr: 'Filtrer éventuellement les jobs par cette catégorie.',
+        },
+      },
+    },
+    { name: 'required', type: 'checkbox', label: 'Required' },
+  ],
+  labels: { plural: 'Job Selection Blocks', singular: 'Job Selection' },
 };
 
 const formBlocks: Block[] = [
@@ -614,6 +722,7 @@ const formBlocks: Block[] = [
   formTextareaBlock,
   formDateBlock,
   formCeviDatabaseLoginBlock,
+  formJobSelectionBlock,
 ];
 
 const conditionedBlock: Block = {
@@ -648,6 +757,7 @@ const conditionedBlock: Block = {
       },
       blocks: formBlocks,
     },
+    placementField(),
   ],
 };
 
@@ -667,6 +777,20 @@ const formSection: Field = {
       },
       required: true,
       localized: true,
+    },
+    {
+      name: 'layout',
+      type: 'select',
+      defaultValue: 'standard',
+      options: [
+        { label: 'Single Column Layout', value: 'standard' },
+        { label: 'Two Column Layout', value: 'split' },
+      ],
+      label: {
+        en: 'Section Layout',
+        de: 'Abschnitts-Layout',
+        fr: 'Disposition de la section',
+      },
     },
     {
       type: 'blocks',
