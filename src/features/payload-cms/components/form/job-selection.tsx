@@ -130,7 +130,7 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
     if (!jobs) return [];
     const counts: Record<string, number> = {};
     for (const job of jobs) {
-      const categoryValue = (job as unknown as { category: string | undefined }).category;
+      const categoryValue = job.category;
       if (typeof categoryValue === 'string') {
         counts[categoryValue] = (counts[categoryValue] ?? 0) + 1;
       }
@@ -155,12 +155,9 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
       const description = String(job.description).toLowerCase();
       const matchesSearch = title.includes(searchLower) || description.includes(searchLower);
 
-      const jobCategory = (job as unknown as { category: string | undefined }).category;
+      const jobCategory = job.category;
       const matchesRessort =
-        selectedRessorts.size === 0 ||
-        typeof jobCategory !== 'string' ||
-        selectedRessorts.has(jobCategory) ||
-        jobCategory === 'other';
+        selectedRessorts.size === 0 || selectedRessorts.has(jobCategory) || jobCategory === 'other';
 
       return matchesSearch && matchesRessort;
     });
@@ -169,16 +166,8 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
   // Sort jobs by start date
   const sortedJobs = useMemo((): JobWithQuota[] => {
     return [...filteredJobs].sort((a, b) => {
-      const dateRangeA = a.dateRange as { startDate?: string | null } | undefined;
-      const dateRangeB = b.dateRange as { startDate?: string | null } | undefined;
-      const startA =
-        dateRangeA && typeof dateRangeA.startDate === 'string'
-          ? new Date(dateRangeA.startDate).getTime()
-          : 0;
-      const startB =
-        dateRangeB && typeof dateRangeB.startDate === 'string'
-          ? new Date(dateRangeB.startDate).getTime()
-          : 0;
+      const startA = new Date(a.dateRange.startDate).getTime();
+      const startB = new Date(b.dateRange.startDate).getTime();
       return startA - startB;
     });
   }, [filteredJobs]);
@@ -359,16 +348,9 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
 
                         <div className="mt-auto flex items-center justify-between text-[10px] font-medium tracking-tight uppercase">
                           <span className="text-gray-400">
-                            {new Date(
-                              (job.dateRange as { startDate: string }).startDate,
-                            ).toLocaleDateString(locale)}
+                            {new Date(job.dateRange.startDate).toLocaleDateString(locale)}
                             {' - '}
-                            {typeof (job.dateRange as { endDate?: string | null } | undefined)
-                              ?.endDate === 'string'
-                              ? new Date(
-                                  (job.dateRange as { endDate: string }).endDate,
-                                ).toLocaleDateString(locale)
-                              : ''}
+                            {new Date(job.dateRange.endDate).toLocaleDateString(locale)}
                           </span>
                           {typeof job.availableQuota === 'number' && (
                             <span

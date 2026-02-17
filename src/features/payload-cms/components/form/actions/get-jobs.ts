@@ -8,6 +8,7 @@ import { getPayload } from 'payload';
 // JobWithQuota extends the generated HelperJob type
 export interface JobWithQuota extends HelperJob {
   availableQuota?: number | undefined;
+  category: HelperJob['category'];
 }
 
 export const getJobs = async (
