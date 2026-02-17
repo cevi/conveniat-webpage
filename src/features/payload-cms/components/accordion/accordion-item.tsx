@@ -28,7 +28,7 @@ const AccordionItem: React.FC<AccordionItemProperties> = ({
       className={cn(
         'rounded-lg border-2 border-gray-200 shadow-xs',
         'transition-transform duration-300',
-        isNested === true ? 'bg-white' : 'bg-gray-50',
+        isNested === true ? 'bg-gray-50' : 'bg-white',
         {
           'hover:scale-[1.01]': !isExpanded,
           'scale-100': isExpanded,
