@@ -21,6 +21,7 @@ export const getJobs = async (
     dateRangeCategory: {
       equals: dateRangeCategory,
     },
+    _localized_status: { equals: { published: true } },
   };
 
   if (typeof category === 'string' && category !== 'all') {
@@ -48,6 +49,7 @@ export const getJobs = async (
             'helper-job': {
               equals: job.id,
             },
+            _localized_status: { equals: { published: true } },
           },
         });
         availableQuota = Math.max(0, job.maxQuota - currentSubmissionsCount.totalDocs);

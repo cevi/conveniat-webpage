@@ -1143,7 +1143,20 @@ export interface FormSubmission {
  */
 export interface HelperJob {
   id: string;
+  publishingStatus?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  _localized_status: LocalizedPublishingStatus;
+  _disable_unpublishing?: boolean | null;
+  _locale: string;
   title: string;
+  description: string;
   category:
     | 'infrastruktur'
     | 'finanzen'
@@ -1158,16 +1171,25 @@ export interface HelperJob {
     | 'international'
     | 'glaube'
     | 'other';
-  description: string;
   /**
-   * Maximum number of submissions allowed for this job.
+   * Maximum number of helpers allowed for this job (Empty = Unlimited).
    */
   maxQuota?: number | null;
   dateRange: {
+    /**
+     * Start date of the job.
+     */
     startDate: string;
+    /**
+     * End date of the job.
+     */
     endDate: string;
   };
   dateRangeCategory: 'setup' | 'main' | 'teardown';
+  /**
+   * Prerequisites for the job (e.g. Minimum age, specific skills, etc.).
+   */
+  prerequisites?: string | null;
   submissions?: {
     docs?: (string | FormSubmission)[];
     hasNextPage?: boolean;
@@ -1175,6 +1197,7 @@ export interface HelperJob {
   };
   updatedAt: string;
   createdAt: string;
+  _status?: ('draft' | 'published') | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2955,9 +2978,13 @@ export interface CampScheduleEntrySelect<T extends boolean = true> {
  * via the `definition` "helper-jobs_select".
  */
 export interface HelperJobsSelect<T extends boolean = true> {
+  publishingStatus?: T;
+  _localized_status?: T;
+  _disable_unpublishing?: T;
+  _locale?: T;
   title?: T;
-  category?: T;
   description?: T;
+  category?: T;
   maxQuota?: T;
   dateRange?:
     | T
@@ -2966,9 +2993,11 @@ export interface HelperJobsSelect<T extends boolean = true> {
         endDate?: T;
       };
   dateRangeCategory?: T;
+  prerequisites?: T;
   submissions?: T;
   updatedAt?: T;
   createdAt?: T;
+  _status?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

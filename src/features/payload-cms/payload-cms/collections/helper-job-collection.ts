@@ -1,9 +1,10 @@
 import { RESSORT_OPTIONS } from '@/features/payload-cms/constants/ressort-options';
 import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
+import { asLocalizedCollection } from '@/features/payload-cms/payload-cms/utils/localized-collection';
 import type { CollectionConfig } from 'payload';
 
-export const JobCollection: CollectionConfig = {
+export const JobCollection: CollectionConfig = asLocalizedCollection({
   slug: 'helper-jobs',
 
   labels: {
@@ -36,20 +37,9 @@ export const JobCollection: CollectionConfig = {
       required: true,
       localized: true,
       label: {
-        en: 'Title',
-        de: 'Titel',
-        fr: 'Titre',
-      },
-    },
-    {
-      name: 'category',
-      type: 'select',
-      required: true,
-      options: RESSORT_OPTIONS,
-      label: {
-        en: 'Category',
-        de: 'Kategorie',
-        fr: 'Catégorie',
+        en: 'Helper Job Title',
+        de: 'Helfendenfunktion Job Titel',
+        fr: "Titre du poste d'assistant",
       },
     },
     {
@@ -58,24 +48,36 @@ export const JobCollection: CollectionConfig = {
       required: true,
       localized: true,
       label: {
-        en: 'Description',
-        de: 'Beschreibung',
-        fr: 'Description',
+        en: 'Job Description',
+        de: 'Job-Beschreibung',
+        fr: 'Description du poste',
       },
     },
+    {
+      name: 'category',
+      type: 'select',
+      required: true,
+      options: RESSORT_OPTIONS,
+      label: {
+        en: 'Ressort',
+        de: 'Ressort',
+        fr: 'Ressort',
+      },
+    },
+
     {
       name: 'maxQuota',
       type: 'number',
       label: {
-        en: 'Max Quota (Empty = Unlimited)',
-        de: 'Maximale Anzahl (Leer = Unbegrenzt)',
-        fr: 'Quota maximum (Vide = Illimité)',
+        en: 'Max Helper Quota',
+        de: 'Maximale Anzahl Helfenden',
+        fr: "Quota maximum d'assistants",
       },
       admin: {
         description: {
-          en: 'Maximum number of submissions allowed for this job.',
-          de: 'Maximale Anzahl der erlaubten Einreichungen für diesen Job.',
-          fr: 'Nombre maximum de soumissions autorisées pour ce poste.',
+          en: 'Maximum number of helpers allowed for this job (Empty = Unlimited).',
+          de: 'Maximale Anzahl der erlaubten Helfenden für diesen Job (Leer = Unbegrenzt).',
+          fr: "Nombre maximum d'assistants autorisés pour ce poste (Vide = Illimité).",
         },
       },
     },
@@ -97,6 +99,13 @@ export const JobCollection: CollectionConfig = {
             de: 'Startdatum',
             fr: 'Date de début',
           },
+          admin: {
+            description: {
+              en: 'Start date of the job.',
+              de: 'Startdatum des Jobs.',
+              fr: 'Date de début du poste.',
+            },
+          },
         },
         {
           name: 'endDate',
@@ -106,6 +115,13 @@ export const JobCollection: CollectionConfig = {
             en: 'End Date',
             de: 'Enddatum',
             fr: 'Date de fin',
+          },
+          admin: {
+            description: {
+              en: 'End date of the job.',
+              de: 'Enddatum des Jobs.',
+              fr: 'Date de fin du poste.',
+            },
           },
         },
       ],
@@ -126,6 +142,23 @@ export const JobCollection: CollectionConfig = {
       },
     },
     {
+      name: 'prerequisites',
+      type: 'text',
+      localized: true,
+      label: {
+        en: 'Prerequisites',
+        de: 'Voraussetzungen',
+        fr: 'Prérequis',
+      },
+      admin: {
+        description: {
+          en: 'Prerequisites for the job (e.g. Minimum age, specific skills, etc.).',
+          de: 'Voraussetzungen für den Job (z.B. Mindestalter, spezielle Fähigkeiten, etc.).',
+          fr: 'Prérequis pour le poste (par exemple, âge minimum, compétences spécifiques, etc.).',
+        },
+      },
+    },
+    {
       name: 'submissions',
       type: 'join',
       collection: 'form-submissions',
@@ -140,4 +173,4 @@ export const JobCollection: CollectionConfig = {
       },
     },
   ],
-};
+});
