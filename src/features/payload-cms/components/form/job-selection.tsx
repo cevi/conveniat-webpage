@@ -71,7 +71,7 @@ const RESSORT_OPTIONS = [
   { label: 'Ressort Logistik', value: 'logistik' },
   { label: 'Ressort Sicherheit', value: 'sicherheit' },
   { label: 'Ressort Admin', value: 'admin' },
-  { label: 'Ressort Sponsoing, Fundraising und Interactions', value: 'sponsoring' },
+  { label: 'Ressort Sponsoring, Fundraising und Interactions', value: 'sponsoring' },
   { label: 'Ressort International', value: 'international' },
   { label: 'Ressort Glaube', value: 'glaube' },
 ];
