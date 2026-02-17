@@ -285,6 +285,7 @@ export const seedJobs = async (payload: Payload): Promise<void> => {
       const { id } = await payload.create({
         collection: 'helper-jobs',
         locale: LOCALE.DE,
+        draft: true,
         data: {
           title: job.title,
           description: job.description,
@@ -303,6 +304,7 @@ export const seedJobs = async (payload: Payload): Promise<void> => {
         collection: 'helper-jobs',
         id,
         locale: LOCALE.EN,
+        draft: true,
         data: {
           title: job.title,
           description: job.description,
@@ -313,6 +315,7 @@ export const seedJobs = async (payload: Payload): Promise<void> => {
         collection: 'helper-jobs',
         id,
         locale: LOCALE.FR,
+        draft: true,
         data: {
           title: job.title,
           description: job.description,
