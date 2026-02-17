@@ -6,6 +6,18 @@ import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical
 
 export type FormFieldBlock = PayloadFormFieldBlock;
 
+// field types
+// ...
+
+export interface JobSelectionBlock {
+  blockType: 'jobSelection';
+  name: string;
+  label?: string;
+  required?: boolean;
+  dateRangeCategory: 'setup' | 'main' | 'teardown';
+  category?: string;
+}
+
 export interface ConditionedBlock {
   blockType: 'conditionedBlock';
   id?: string;
@@ -13,13 +25,13 @@ export interface ConditionedBlock {
     field: string;
     value: string;
   };
-  fields: FormFieldBlock[];
+  fields: (FormFieldBlock | JobSelectionBlock)[];
 }
 
 export interface FormSection {
   id: string;
   sectionTitle: string;
-  fields: (FormFieldBlock | ConditionedBlock)[];
+  fields: (FormFieldBlock | ConditionedBlock | JobSelectionBlock)[];
 }
 
 export type ExtendedFormType = PayloadFormType & {

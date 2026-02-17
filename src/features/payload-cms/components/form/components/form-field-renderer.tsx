@@ -4,6 +4,7 @@ import type {
   ConditionedBlock,
   FormFieldBlock,
   FormSection,
+  JobSelectionBlock,
 } from '@/features/payload-cms/components/form/types';
 import React, { useEffect } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
@@ -57,7 +58,7 @@ const ConditionedField: React.FC<{
 };
 
 const SingleField: React.FC<{
-  field: FormFieldBlock & { required?: boolean };
+  field: (FormFieldBlock | JobSelectionBlock) & { required?: boolean };
   currentStepIndex: number;
   formId: string | undefined;
 }> = ({ field, currentStepIndex, formId }) => {

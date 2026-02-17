@@ -604,6 +604,102 @@ const formCeviDatabaseLoginBlock: Block = {
   labels: { plural: 'Cevi DB Login Blocks', singular: 'Cevi DB Login' },
 };
 
+const formJobSelectionBlock: Block = {
+  slug: 'jobSelection',
+  admin: {
+    components: {
+      Label: {
+        path: '@/features/payload-cms/payload-cms/components/form-block-label#FormBlockLabel',
+        clientProps: {
+          label: {
+            en: 'Job Selection',
+            de: 'Job Auswahl',
+            fr: 'Sélection de Job',
+          },
+        },
+      },
+    },
+  },
+  fields: [
+    {
+      type: 'row',
+      fields: [
+        {
+          name: 'name',
+          type: 'text',
+          label: 'Name (lowercase, no special characters)',
+          validate: formNameValidation,
+          required: true,
+          admin: { width: '50%' },
+        },
+        {
+          name: 'label',
+          required: true,
+          type: 'text',
+          label: 'Label',
+          localized: true,
+          admin: { width: '50%' },
+        },
+      ],
+    },
+    {
+      name: 'dateRangeCategory',
+      type: 'select',
+      required: true,
+      options: [
+        { label: 'Aufbaulager Infrastruktur', value: 'setup' },
+        { label: 'Hauptlager', value: 'main' },
+        { label: 'Abbaulager Infrastruktur', value: 'teardown' },
+      ],
+      label: {
+        en: 'Date Range Category',
+        de: 'Zeitraum Kategorie',
+        fr: 'Catégorie de période',
+      },
+      admin: {
+        description: {
+          en: 'Filter jobs by this category.',
+          de: 'Jobs nach einer Kategorie filtern.',
+          fr: 'Filtrer les jobs par une catégorie.',
+        },
+      },
+    },
+    {
+      name: 'category',
+      type: 'select',
+      options: [
+        { label: 'Ressort Infrastruktur', value: 'infrastruktur' },
+        { label: 'Ressort Finanzen', value: 'finanzen' },
+        { label: 'Ressort Programm', value: 'programm' },
+        { label: 'Ressort Kommunikation und Marketing', value: 'marketing' },
+        { label: 'Ressort Verpflegung', value: 'verpflegung' },
+        { label: 'Ressort Relations', value: 'relations' },
+        { label: 'Ressort Logistik', value: 'logistik' },
+        { label: 'Ressort Sicherheit', value: 'sicherheit' },
+        { label: 'Ressort Admin', value: 'admin' },
+        { label: 'Ressort Sponsoring, Fundraising und Interactions', value: 'sponsoring' },
+        { label: 'Ressort International', value: 'international' },
+        { label: 'Ressort Glaube', value: 'glaube' },
+        { label: 'Other', value: 'other' },
+      ],
+      label: {
+        en: 'Job Category',
+        de: 'Job Kategorie',
+        fr: 'Catégorie de job',
+      },
+      admin: {
+        description: {
+          en: 'Optionally filter jobs by this category.',
+          de: 'Jobs optional nach dieser Kategorie filtern.',
+          fr: 'Filtrer éventuellement les jobs par cette catégorie.',
+        },
+      },
+    },
+    { name: 'required', type: 'checkbox', label: 'Required' },
+  ],
+  labels: { plural: 'Job Selection Blocks', singular: 'Job Selection' },
+};
+
 const formBlocks: Block[] = [
   formCheckboxBlock,
   formCountryBlock,
@@ -615,6 +711,7 @@ const formBlocks: Block[] = [
   formTextareaBlock,
   formDateBlock,
   formCeviDatabaseLoginBlock,
+  formJobSelectionBlock,
 ];
 
 const conditionedBlock: Block = {

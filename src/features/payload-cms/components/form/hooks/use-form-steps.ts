@@ -2,6 +2,7 @@ import type {
   ConditionedBlock,
   FormFieldBlock,
   FormSection,
+  JobSelectionBlock,
 } from '@/features/payload-cms/components/form/types';
 import { useEffect, useState } from 'react';
 import type { FieldName, UseFormReturn } from 'react-hook-form';
@@ -58,7 +59,9 @@ export const useFormSteps = (
     }
 
     // Explicitly define recursive function to avoid "processFields is undefined" issues if declared as const fn
-    function processFields(fieldsToProcess: (FormFieldBlock | ConditionedBlock)[]): void {
+    function processFields(
+      fieldsToProcess: (FormFieldBlock | ConditionedBlock | JobSelectionBlock)[],
+    ): void {
       for (const field of fieldsToProcess) {
         if (field.blockType === 'conditionedBlock') {
           const { field: conditionField, value: targetValue } = field.displayCondition;

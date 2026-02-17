@@ -31,9 +31,9 @@ export const FormBlock: React.FC<
 
   // Restore form state from sessionStorage on mount
   useEffect(() => {
-    if (typeof config.id === 'string' && config.id !== '') {
+    if (typeof config.id === 'string' && config.id.length > 0) {
       const savedState = sessionStorage.getItem(`form-state-${config.id}`);
-      if (savedState) {
+      if (typeof savedState === 'string' && savedState.length > 0) {
         try {
           const parsedState = JSON.parse(savedState) as Record<string, unknown>;
 
@@ -51,15 +51,35 @@ export const FormBlock: React.FC<
   // 2. Initialize Hooks
   // Map config.sections (wrappers) to FormSection[]
   const formSections = config.sections.map((s) => s.formSection);
-  const { currentStepIndex, steps, isFirstStep, isLastStep, next, prev, currentActualStep } =
-    useFormSteps(formSections, formMethods, config.id);
+  const {
+    currentStepIndex,
+    setCurrentStepIndex,
+    steps,
+    isFirstStep,
+    isLastStep,
+    next,
+    prev,
+    currentActualStep,
+  } = useFormSteps(formSections, formMethods, config.id);
 
-  const { submit, status, errorMessage, previewData, reset } = useFormSubmission({
+  const {
+    submit,
+    status,
+    errorMessage,
+    previewData,
+    reset: resetSubmission,
+  } = useFormSubmission({
     formId: config.id,
     config,
     isPreviewMode: isPreviewMode ?? false,
     locale,
   });
+
+  const handleReset = (): void => {
+    resetSubmission();
+    formMethods.reset({});
+    setCurrentStepIndex(0);
+  };
 
   if (!config._localized_status.published) return <></>;
 
@@ -97,7 +117,7 @@ export const FormBlock: React.FC<
         <SubmissionMessage
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           content={confirmationMessage}
-          onReset={reset}
+          onReset={handleReset}
           locale={locale}
         />
       ) : (

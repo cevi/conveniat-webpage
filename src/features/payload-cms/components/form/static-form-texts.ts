@@ -47,3 +47,15 @@ export const skippedText: StaticTranslationString = {
   de: 'Übersprungen',
   fr: 'Ignoré',
 };
+
+export const spotsLeftText: StaticTranslationString = {
+  en: 'spots left',
+  de: 'Plätze übrig',
+  fr: 'places restantes',
+};
+
+export const spotLeftText: StaticTranslationString = {
+  en: 'spot left',
+  de: 'Platz übrig',
+  fr: 'place restante',
+};

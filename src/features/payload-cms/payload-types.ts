@@ -56,6 +56,7 @@ export interface Config {
     'camp-map-annotations': CampMapAnnotation;
     'camp-categories': CampCategory;
     'camp-schedule-entry': CampScheduleEntry;
+    jobs: Job;
     images: Image;
     userSubmittedImages: UserSubmittedImage;
     documents: Document;
@@ -76,6 +77,9 @@ export interface Config {
     'payload-migrations': PayloadMigration;
   };
   collectionsJoins: {
+    jobs: {
+      submissions: 'form-submissions';
+    };
     timelineCategory: {
       relatedTimelineEntries: 'timeline';
     };
@@ -90,6 +94,7 @@ export interface Config {
     'camp-map-annotations': CampMapAnnotationsSelect<false> | CampMapAnnotationsSelect<true>;
     'camp-categories': CampCategoriesSelect<false> | CampCategoriesSelect<true>;
     'camp-schedule-entry': CampScheduleEntrySelect<false> | CampScheduleEntrySelect<true>;
+    jobs: JobsSelect<false> | JobsSelect<true>;
     images: ImagesSelect<false> | ImagesSelect<true>;
     userSubmittedImages: UserSubmittedImagesSelect<false> | UserSubmittedImagesSelect<true>;
     documents: DocumentsSelect<false> | DocumentsSelect<true>;
@@ -719,6 +724,38 @@ export interface Form {
                 blockType: 'ceviDbLogin';
               }
             | {
+                name: string;
+                label: string;
+                /**
+                 * Filter jobs by this category.
+                 */
+                dateRangeCategory: 'setup' | 'main' | 'teardown';
+                /**
+                 * Optionally filter jobs by this category.
+                 */
+                category?:
+                  | (
+                      | 'infrastruktur'
+                      | 'finanzen'
+                      | 'programm'
+                      | 'marketing'
+                      | 'verpflegung'
+                      | 'relations'
+                      | 'logistik'
+                      | 'sicherheit'
+                      | 'admin'
+                      | 'sponsoring'
+                      | 'international'
+                      | 'glaube'
+                      | 'other'
+                    )
+                  | null;
+                required?: boolean | null;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'jobSelection';
+              }
+            | {
                 displayCondition?: {
                   field?: string | null;
                   value?: string | null;
@@ -872,6 +909,38 @@ export interface Form {
                           blockName?: string | null;
                           blockType: 'ceviDbLogin';
                         }
+                      | {
+                          name: string;
+                          label: string;
+                          /**
+                           * Filter jobs by this category.
+                           */
+                          dateRangeCategory: 'setup' | 'main' | 'teardown';
+                          /**
+                           * Optionally filter jobs by this category.
+                           */
+                          category?:
+                            | (
+                                | 'infrastruktur'
+                                | 'finanzen'
+                                | 'programm'
+                                | 'marketing'
+                                | 'verpflegung'
+                                | 'relations'
+                                | 'logistik'
+                                | 'sicherheit'
+                                | 'admin'
+                                | 'sponsoring'
+                                | 'international'
+                                | 'glaube'
+                                | 'other'
+                              )
+                            | null;
+                          required?: boolean | null;
+                          id?: string | null;
+                          blockName?: string | null;
+                          blockType: 'jobSelection';
+                        }
                     )[]
                   | null;
                 id?: string | null;
@@ -987,6 +1056,46 @@ export interface FormSubmission {
         id?: string | null;
       }[]
     | null;
+  job?: (string | null) | Job;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "jobs".
+ */
+export interface Job {
+  id: string;
+  title: string;
+  category:
+    | 'infrastruktur'
+    | 'finanzen'
+    | 'programm'
+    | 'marketing'
+    | 'verpflegung'
+    | 'relations'
+    | 'logistik'
+    | 'sicherheit'
+    | 'admin'
+    | 'sponsoring'
+    | 'international'
+    | 'glaube'
+    | 'other';
+  description: string;
+  /**
+   * Maximum number of submissions allowed for this job.
+   */
+  maxQuota?: number | null;
+  dateRange: {
+    startDate: string;
+    endDate: string;
+  };
+  dateRangeCategory: 'setup' | 'main' | 'teardown';
+  submissions?: {
+    docs?: (string | FormSubmission)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
   updatedAt: string;
   createdAt: string;
 }
@@ -2131,6 +2240,10 @@ export interface PayloadLockedDocument {
         value: string | CampScheduleEntry;
       } | null)
     | ({
+        relationTo: 'jobs';
+        value: string | Job;
+      } | null)
+    | ({
         relationTo: 'images';
         value: string | Image;
       } | null)
@@ -2762,6 +2875,26 @@ export interface CampScheduleEntrySelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "jobs_select".
+ */
+export interface JobsSelect<T extends boolean = true> {
+  title?: T;
+  category?: T;
+  description?: T;
+  maxQuota?: T;
+  dateRange?:
+    | T
+    | {
+        startDate?: T;
+        endDate?: T;
+      };
+  dateRangeCategory?: T;
+  submissions?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "images_select".
  */
 export interface ImagesSelect<T extends boolean = true> {
@@ -3118,6 +3251,17 @@ export interface FormsSelect<T extends boolean = true> {
                           id?: T;
                           blockName?: T;
                         };
+                    jobSelection?:
+                      | T
+                      | {
+                          name?: T;
+                          label?: T;
+                          dateRangeCategory?: T;
+                          category?: T;
+                          required?: T;
+                          id?: T;
+                          blockName?: T;
+                        };
                     conditionedBlock?:
                       | T
                       | {
@@ -3241,6 +3385,17 @@ export interface FormsSelect<T extends boolean = true> {
                                       id?: T;
                                       blockName?: T;
                                     };
+                                jobSelection?:
+                                  | T
+                                  | {
+                                      name?: T;
+                                      label?: T;
+                                      dateRangeCategory?: T;
+                                      category?: T;
+                                      required?: T;
+                                      id?: T;
+                                      blockName?: T;
+                                    };
                               };
                           id?: T;
                           blockName?: T;
@@ -3294,6 +3449,7 @@ export interface FormSubmissionsSelect<T extends boolean = true> {
         value?: T;
         id?: T;
       };
+  job?: T;
   updatedAt?: T;
   createdAt?: T;
 }
