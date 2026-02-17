@@ -10,9 +10,9 @@ export const AdminPanelDashboardGroups = {
     fr: "2 Contenu de l'application",
   },
   InternalCollections: {
-    en: '3 Collections',
-    de: '3 Sammlungen',
-    fr: '3 Collections',
+    en: '4 Collections',
+    de: '4 Sammlungen',
+    fr: '4 Collections',
   },
   HelferAnmeldung: {
     en: '3 Helper Registration',
@@ -20,13 +20,13 @@ export const AdminPanelDashboardGroups = {
     fr: '3 Inscription des helpers',
   },
   BackofficeAppFeatures: {
-    en: '4 Backoffice App Features',
-    de: '4 Backoffice App Funktionen',
-    fr: '4 Fonctionnalités Backoffice',
+    en: '5 Backoffice App Features',
+    de: '5 Backoffice App Funktionen',
+    fr: '5 Fonctionnalités Backoffice',
   },
   GlobalSettings: {
-    en: '5 Global Settings',
-    de: '5 Globale Einstellungen',
-    fr: '5 Paramètres globaux',
+    en: '6 Global Settings',
+    de: '6 Globale Einstellungen',
+    fr: '6 Paramètres globaux',
   },
 };
