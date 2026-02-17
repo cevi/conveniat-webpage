@@ -4,8 +4,8 @@ import type { Locale } from '@/types/types'; // Import Locale
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { useCurrentLocale } from 'next-i18n-router/client';
-import React, { useEffect } from 'react';
-import { FormProvider, useForm } from 'react-hook-form';
+import React, { useEffect, useMemo } from 'react';
+import { FormProvider, useForm, useWatch, type FieldValues } from 'react-hook-form';
 
 // Custom Hooks & Components
 import { FormControls } from '@/features/payload-cms/components/form/components/form-controls';
@@ -15,7 +15,7 @@ import { SubmissionMessage } from '@/features/payload-cms/components/form/compon
 import { useFormSteps } from '@/features/payload-cms/components/form/hooks/use-form-steps';
 import { useFormSubmission } from '@/features/payload-cms/components/form/hooks/use-form-submission';
 import { JobSelectionProvider } from '@/features/payload-cms/components/form/job-selection';
-import type { FormBlockType } from '@/features/payload-cms/components/form/types';
+import type { ConditionedBlock, FormBlockType } from '@/features/payload-cms/components/form/types';
 export type { FormBlockType } from '@/features/payload-cms/components/form/types';
 
 export const FormBlock: React.FC<
@@ -25,7 +25,7 @@ export const FormBlock: React.FC<
   const locale = (currentLocale ?? 'en') as Locale;
 
   // 1. Initialize Form
-  const formMethods = useForm({
+  const formMethods = useForm<FieldValues>({
     mode: 'onChange',
     defaultValues: {},
   });
@@ -82,24 +82,76 @@ export const FormBlock: React.FC<
     setCurrentStepIndex(0);
   };
 
-  if (!config._localized_status.published) return <></>;
-
   // 3. Render
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const confirmationMessage = config.confirmationMessage;
+
+  const isSplit = currentActualStep?.layout === 'split';
+
+  // Calculate if the main column has any content to display
+  const mainPlacementFields = useMemo(() => {
+    if (!currentActualStep) return [];
+    return currentActualStep.fields.filter((f) => {
+      if (f.blockType === 'conditionedBlock') {
+        const hasMainSub = f.fields.some(
+          (sub) =>
+            (sub.placement ?? (sub.blockType === 'jobSelection' ? 'main' : 'sidebar')) === 'main',
+        );
+        return f.placement === 'main' || hasMainSub;
+      }
+      const effectivePlacement =
+        f.placement ?? (f.blockType === 'jobSelection' ? 'main' : 'sidebar');
+      return effectivePlacement === 'main';
+    });
+  }, [currentActualStep]);
+
+  const conditionedMainBlocks = useMemo(() => {
+    return mainPlacementFields.filter(
+      (f): f is ConditionedBlock => f.blockType === 'conditionedBlock',
+    );
+  }, [mainPlacementFields]);
+
+  const { control } = formMethods;
+
+  // Watch the fields that trigger these blocks
+  const triggerValues = useWatch({
+    control,
+    name: conditionedMainBlocks.map((b) => b.displayCondition.field),
+  });
+
+  const hasVisibleConditionedMainBlock = useMemo(() => {
+    if (conditionedMainBlocks.length === 0) return false;
+    return conditionedMainBlocks.some((block, index) => {
+      const vals = triggerValues as (string | boolean | number | undefined)[];
+      const val = vals[index];
+      return val !== undefined && String(val) === block.displayCondition.value;
+    });
+  }, [conditionedMainBlocks, triggerValues]);
+
+  const hasStaticMainContent = useMemo(() => {
+    return mainPlacementFields.some((f) => f.blockType !== 'conditionedBlock');
+  }, [mainPlacementFields]);
+
+  const shouldRenderMain = isSplit && !!(hasStaticMainContent || hasVisibleConditionedMainBlock);
+
+  // Layout-based styles
+  const isDualCardLayout = isSplit && shouldRenderMain;
+  const showOuterCardStyle = withBorder && !isDualCardLayout;
 
   const handleSubmit = (event: React.FormEvent): void => {
     void formMethods.handleSubmit(submit)(event);
   };
 
-  const isSplit = currentActualStep?.layout === 'split';
+  if (!config._localized_status.published) return <></>;
 
   return (
     <div
       className={cn(
         'relative mx-auto transition-all duration-300',
-        isSplit ? 'max-w-screen-2xl' : 'max-w-xl',
-        withBorder ? 'rounded-md border-2 border-gray-200 bg-white p-6' : '',
+        isDualCardLayout ? 'max-w-screen-2xl' : 'max-w-xl',
+        showOuterCardStyle
+          ? 'rounded-xl border-2 border-gray-100 bg-white p-8 shadow-sm'
+          : 'min-h-[100px]', // Ensure some height even if content is loading or hidden
       )}
     >
       {/* ... existing error and preview logic ... */}
@@ -128,9 +180,19 @@ export const FormBlock: React.FC<
           <FormProvider {...formMethods}>
             <form id={config.id} onSubmit={handleSubmit} noValidate>
               <div
-                className={cn(isSplit ? 'grid grid-cols-1 gap-8 min-[1440px]:grid-cols-12' : '')}
+                className={cn(
+                  isDualCardLayout
+                    ? 'grid grid-cols-1 gap-8 min-[1440px]:grid-cols-12 min-[1440px]:gap-12'
+                    : 'flex flex-col gap-6',
+                )}
               >
-                <aside className={cn(isSplit ? 'space-y-6 min-[1440px]:col-span-5' : 'contents')}>
+                <aside
+                  className={cn(
+                    isDualCardLayout ? 'col-span-1 min-[1440px]:col-span-5' : 'w-full',
+                    isDualCardLayout &&
+                      'space-y-6 rounded-xl border-2 border-gray-100 bg-white p-8 shadow-sm',
+                  )}
+                >
                   {steps.length > 1 && currentActualStep && (
                     <ProgressBar
                       locale={locale}
@@ -139,32 +201,51 @@ export const FormBlock: React.FC<
                       currentActualStep={currentActualStep}
                     />
                   )}
-                  {isSplit && (
+                  {currentActualStep && (
                     <FormFieldRenderer
                       section={currentActualStep}
                       currentStepIndex={currentStepIndex}
                       formId={config.id}
-                      renderMode="sidebar"
+                      renderMode={isDualCardLayout ? 'sidebar' : 'all'}
                     />
+                  )}
+                  {isDualCardLayout && (
+                    <div className="border-t border-gray-100 pt-4">
+                      <FormControls
+                        locale={locale}
+                        isFirst={isFirstStep}
+                        isLast={isLastStep}
+                        isSubmitting={status === 'loading'}
+                        // eslint-disable-next-line @typescript-eslint/no-misused-promises
+                        onNext={next}
+                        onPrev={prev}
+                        submitLabel={config.submitButtonLabel ?? ''}
+                        formId={config.id}
+                      />
+                    </div>
                   )}
                 </aside>
 
-                <main
-                  className={cn(
-                    isSplit ? 'min-[1440px]:col-span-7 min-[1440px]:mt-[140px]' : 'contents',
-                  )}
-                >
-                  <div className={status === 'loading' ? 'pointer-events-none opacity-50' : ''}>
-                    {currentActualStep && (
+                {isDualCardLayout && (
+                  <main
+                    className={cn(
+                      'col-span-1 rounded-xl border-2 border-gray-100 bg-white p-8 shadow-sm min-[1440px]:col-span-7',
+                    )}
+                  >
+                    <div className={status === 'loading' ? 'pointer-events-none opacity-50' : ''}>
                       <FormFieldRenderer
                         section={currentActualStep}
                         currentStepIndex={currentStepIndex}
                         formId={config.id}
-                        renderMode={isSplit ? 'main' : 'all'}
+                        renderMode="main"
                       />
-                    )}
-                  </div>
+                    </div>
+                  </main>
+                )}
+              </div>
 
+              {!isDualCardLayout && (
+                <div className="mt-8 border-t border-gray-100 pt-4">
                   <FormControls
                     locale={locale}
                     isFirst={isFirstStep}
@@ -176,8 +257,8 @@ export const FormBlock: React.FC<
                     submitLabel={config.submitButtonLabel ?? ''}
                     formId={config.id}
                   />
-                </main>
-              </div>
+                </div>
+              )}
             </form>
           </FormProvider>
         </JobSelectionProvider>

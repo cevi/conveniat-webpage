@@ -48,6 +48,8 @@ export const CeviDatabaseLogin: React.FC<CeviDatabaseLoginProperties> = ({
         sessionStorage.setItem(`form_step_${formId}`, String(currentStepIndex));
       }
     }
+    // Inform browser to replace the current history entry so the back button skips the login trigger
+    globalThis.history.replaceState(undefined, '', globalThis.location.href);
     void signIn('cevi-db', { callbackUrl: globalThis.location.href });
   };
 

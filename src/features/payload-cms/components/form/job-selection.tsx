@@ -8,7 +8,7 @@ import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, Search, SearchX } from 'lucide-react';
+import { Loader2, Search, X } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import type { Control, FieldErrors, FieldValues, UseFormRegister } from 'react-hook-form';
@@ -20,6 +20,8 @@ interface JobSelectionContextType {
   setSearchTerm: (s: string) => void;
   selectedRessorts: Set<string>;
   setSelectedRessorts: (s: Set<string>) => void;
+  isSearchOpen: boolean;
+  setIsSearchOpen: (b: boolean) => void;
 }
 
 const JobSelectionContext = createContext<JobSelectionContextType | undefined>(undefined);
@@ -27,6 +29,7 @@ const JobSelectionContext = createContext<JobSelectionContextType | undefined>(u
 export const JobSelectionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRessorts, setSelectedRessorts] = useState<Set<string>>(new Set());
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   const value = useMemo(
     () => ({
@@ -34,8 +37,10 @@ export const JobSelectionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setSearchTerm,
       selectedRessorts,
       setSelectedRessorts,
+      isSearchOpen,
+      setIsSearchOpen,
     }),
-    [searchTerm, selectedRessorts],
+    [searchTerm, selectedRessorts, isSearchOpen],
   );
 
   return <JobSelectionContext.Provider value={value}>{children}</JobSelectionContext.Provider>;
@@ -75,7 +80,14 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
   const { control, name, label, required, dateRangeCategory, category, renderMode = 'all' } = props;
 
   const locale = (useCurrentLocale(i18nConfig) ?? 'de') as Locale;
-  const { searchTerm, setSearchTerm, selectedRessorts, setSelectedRessorts } = useJobSelection();
+  const {
+    searchTerm,
+    setSearchTerm,
+    selectedRessorts,
+    setSelectedRessorts,
+    isSearchOpen,
+    setIsSearchOpen,
+  } = useJobSelection();
 
   const { data: jobs, isLoading } = useQuery<JobWithQuota[]>({
     queryKey: ['jobs', dateRangeCategory, category, locale],
@@ -90,7 +102,7 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
     if (!jobs) return [];
     const counts: Record<string, number> = {};
     for (const job of jobs) {
-      const categoryValue = job.category;
+      const categoryValue = (job as unknown as { category: string | undefined }).category;
       if (typeof categoryValue === 'string') {
         counts[categoryValue] = (counts[categoryValue] ?? 0) + 1;
       }
@@ -108,7 +120,7 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
     if (availableRessorts.length > 0 && selectedRessorts.size === 0) {
       setSelectedRessorts(new Set(availableRessorts.map((r) => r.value)));
     }
-  }, [availableRessorts, setSelectedRessorts]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [availableRessorts, selectedRessorts, setSelectedRessorts]);
 
   const filteredJobs = useMemo((): JobWithQuota[] => {
     if (!Array.isArray(jobs)) return [];
@@ -118,7 +130,7 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
       const description = String(job.description).toLowerCase();
       const matchesSearch = title.includes(searchLower) || description.includes(searchLower);
 
-      const jobCategory = job.category as string | undefined;
+      const jobCategory = (job as unknown as { category: string | undefined }).category;
       const matchesRessort =
         typeof jobCategory !== 'string' ||
         selectedRessorts.has(jobCategory) ||
@@ -147,62 +159,93 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
 
   const renderFiltersAndSearch = (): React.ReactElement => (
     <div className="flex flex-col gap-6">
-      <div className="relative">
-        <label className="font-body mb-2 block text-sm font-medium text-gray-700">
-          {locale === 'de' ? 'Jobs durchsuchen...' : 'Search jobs...'}
+      <div className="flex items-center justify-between gap-4">
+        <label className="font-heading text-sm font-bold text-gray-900">
+          {locale === 'de' ? 'Ressort Filter' : 'Department Filter'}
         </label>
-        <div className="relative">
-          <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder={locale === 'de' ? 'Jobs durchsuchen...' : 'Search jobs...'}
-            className="w-full rounded-lg border border-gray-300 py-2 pr-4 pl-10 text-sm focus:ring-2 focus:ring-green-500 focus:outline-none"
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
-          />
+        <div className="flex items-center gap-2">
+          {isSearchOpen ? (
+            <div className="animate-in fade-in slide-in-from-right-2 relative duration-200">
+              <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <input
+                autoFocus
+                type="text"
+                placeholder={locale === 'de' ? 'Jobs durchsuchen...' : 'Search jobs...'}
+                className="w-48 rounded-full border border-gray-200 bg-gray-50 py-1.5 pr-8 pl-9 text-xs transition-all focus:w-64 focus:border-green-500 focus:bg-white focus:ring-2 focus:ring-green-500/20 focus:outline-none"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                onBlur={(event) => {
+                  // Prevent closing if we clicked the clear button
+                  const relatedTarget = event.relatedTarget as HTMLElement | null;
+                  if (relatedTarget?.closest('.clear-search-button')) {
+                    return;
+                  }
+                  if (searchTerm === '') {
+                    setIsSearchOpen(false);
+                  }
+                }}
+              />
+              {searchTerm !== '' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchTerm('');
+                    // We don't necessarily want to close it immediately,
+                    // the user might want to type something else.
+                  }}
+                  className="clear-search-button absolute top-1/2 right-2.5 flex h-4 w-4 -translate-y-1/2 items-center justify-center rounded-full text-gray-400 hover:bg-gray-200 hover:text-gray-600 focus:outline-none"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={() => setIsSearchOpen(true)}
+              className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+              title={locale === 'de' ? 'Suche' : 'Search'}
+            >
+              <Search className="h-4 w-4" />
+            </button>
+          )}
         </div>
       </div>
 
-      <div>
-        <label className="font-body mb-2 block text-sm font-bold text-gray-900">
-          {locale === 'de' ? 'Ressort Filter' : 'Ressort Filter'}
-        </label>
-        <div className="flex flex-wrap gap-2">
-          {availableRessorts.map((ressort) => {
-            const isActive = selectedRessorts.has(ressort.value);
-            return (
-              <button
-                key={ressort.value}
-                type="button"
-                onClick={() => {
-                  const newSet = new Set(selectedRessorts);
-                  if (isActive) {
-                    newSet.delete(ressort.value);
-                  } else {
-                    newSet.add(ressort.value);
-                  }
-                  setSelectedRessorts(newSet);
-                }}
+      <div className="flex flex-wrap gap-2">
+        {availableRessorts.map((ressort) => {
+          const isActive = selectedRessorts.has(ressort.value);
+          return (
+            <button
+              key={ressort.value}
+              type="button"
+              onClick={() => {
+                const newSet = new Set(selectedRessorts);
+                if (isActive) {
+                  newSet.delete(ressort.value);
+                } else {
+                  newSet.add(ressort.value);
+                }
+                setSelectedRessorts(newSet);
+              }}
+              className={cn(
+                'flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-200 hover:scale-105 hover:shadow-md active:scale-95',
+                isActive
+                  ? 'bg-green-600 text-white shadow-sm hover:bg-green-700'
+                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700',
+              )}
+            >
+              <span>{ressort.cleanLabel}</span>
+              <span
                 className={cn(
-                  'flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-all duration-200',
-                  isActive
-                    ? 'bg-green-600 text-white shadow-sm hover:bg-green-700'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900',
+                  'flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px]',
+                  isActive ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-400',
                 )}
               >
-                <span>{ressort.cleanLabel}</span>
-                <span
-                  className={cn(
-                    'flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px]',
-                    isActive ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-500',
-                  )}
-                >
-                  {ressort.count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+                {ressort.count}
+              </span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -261,8 +304,7 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
                         type="button"
                         onClick={() => {
                           if (!isDisabled) {
-                            const oc = onChange as (val: unknown) => void;
-                            oc(job.id);
+                            (onChange as (val: unknown) => void)(job.id);
                           }
                         }}
                         disabled={isDisabled}
@@ -338,7 +380,7 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
                 ) : (
                   <div className="col-span-full flex flex-col items-center justify-center py-12 text-center">
                     <div className="mb-4 rounded-full bg-gray-50 p-6 text-gray-400">
-                      <SearchX className="h-12 w-12" strokeWidth={1.5} />
+                      <Search className="mx-auto h-12 w-12 text-gray-400" />
                     </div>
                     <h3 className="font-heading mb-1 text-lg font-bold text-gray-900">
                       {locale === 'de' ? 'Keine Jobs gefunden' : 'No jobs found'}
