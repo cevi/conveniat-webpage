@@ -1,4 +1,5 @@
 import type { FormSubmission } from '@/features/payload-cms/payload-types';
+import type { Locale, StaticTranslationString } from '@/types/types';
 import type { CollectionBeforeChangeHook } from 'payload';
 import { APIError } from 'payload';
 
@@ -6,6 +7,18 @@ interface SubmissionField {
   field: string;
   value: unknown;
 }
+
+const jobFullMessage: StaticTranslationString = {
+  en: 'This job is already full.',
+  de: 'Dieser Job ist bereits voll.',
+  fr: 'Ce job est déjà complet.',
+};
+
+const selectedJobNotFoundMessage: StaticTranslationString = {
+  en: 'Selected job not found.',
+  de: 'Ausgewählter Job nicht gefunden.',
+  fr: 'Job sélectionné non trouvé.',
+};
 
 export const linkJobSubmission: CollectionBeforeChangeHook<FormSubmission> = async ({
   data,
@@ -16,7 +29,7 @@ export const linkJobSubmission: CollectionBeforeChangeHook<FormSubmission> = asy
     return data;
   }
 
-  if (!data.form) {
+  if (data.form === undefined) {
     return data;
   }
 
@@ -52,26 +65,29 @@ export const linkJobSubmission: CollectionBeforeChangeHook<FormSubmission> = asy
 
   for (const block of jobSelectionBlocks) {
     const submissionEntry = submissionData.find((entry) => entry.field === block.name);
-    if (submissionEntry?.value) {
-      foundJobId = submissionEntry.value as string;
+    if (
+      submissionEntry &&
+      typeof submissionEntry.value === 'string' &&
+      submissionEntry.value !== ''
+    ) {
+      foundJobId = submissionEntry.value;
       break; // Assuming only one job selection per form for now, or take the first one
     }
   }
 
-  if (!foundJobId) {
+  if (foundJobId === undefined || foundJobId === '') {
     return data;
   }
 
   // Fetch the Job
-
   const job = (await req.payload.findByID({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    collection: 'jobs' as any,
+    collection: 'helper-jobs',
     id: foundJobId,
   })) as unknown as { maxQuota?: number; id: string } | null;
 
   if (!job) {
-    throw new APIError('Selected job not found.', 400);
+    const locale = (req.locale as Locale | undefined) ?? 'en';
+    throw new APIError(selectedJobNotFoundMessage[locale], 400);
   }
 
   // Check Quota
@@ -79,21 +95,20 @@ export const linkJobSubmission: CollectionBeforeChangeHook<FormSubmission> = asy
     const currentSubmissionsCount = await req.payload.count({
       collection: 'form-submissions',
       where: {
-        job: {
+        'helper-job': {
           equals: foundJobId,
         },
       },
     });
 
     if (currentSubmissionsCount.totalDocs >= job.maxQuota) {
-      throw new APIError('This job is already full.', 400);
+      const locale = (req.locale as Locale | undefined) ?? 'en';
+      throw new APIError(jobFullMessage[locale], 400);
     }
   }
 
   // Link the job to the submission
-  // We need to cast data to any because 'job' might not be in the type definition yet if we haven't generated types
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  (data as any).job = foundJobId;
+  data['helper-job'] = foundJobId;
 
   return data;
 };

@@ -4,6 +4,7 @@ import type { JobWithQuota } from '@/features/payload-cms/components/form/action
 import { getJobs } from '@/features/payload-cms/components/form/actions/get-jobs';
 import { Required } from '@/features/payload-cms/components/form/required';
 import type { JobSelectionBlock } from '@/features/payload-cms/components/form/types';
+import { RESSORT_OPTIONS } from '@/features/payload-cms/constants/ressort-options';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -61,25 +62,46 @@ interface JobSelectionProperties extends JobSelectionBlock {
   renderMode?: 'all' | 'sidebar' | 'main';
 }
 
-const RESSORT_OPTIONS = [
-  { label: 'Ressort Infrastruktur', value: 'infrastruktur' },
-  { label: 'Ressort Finanzen', value: 'finanzen' },
-  { label: 'Ressort Programm', value: 'programm' },
-  { label: 'Ressort Kommunikation und Marketing', value: 'marketing' },
-  { label: 'Ressort Verpflegung', value: 'verpflegung' },
-  { label: 'Ressort Relations', value: 'relations' },
-  { label: 'Ressort Logistik', value: 'logistik' },
-  { label: 'Ressort Sicherheit', value: 'sicherheit' },
-  { label: 'Ressort Admin', value: 'admin' },
-  { label: 'Ressort Sponsoring, Fundraising und Interactions', value: 'sponsoring' },
-  { label: 'Ressort International', value: 'international' },
-  { label: 'Ressort Glaube', value: 'glaube' },
-];
-
 const requiredFieldMessage: StaticTranslationString = {
   de: 'Dieses Feld ist erforderlich',
   en: 'This field is required',
   fr: 'Ce champ est obligatoire',
+};
+
+const loadingJobsMessage: StaticTranslationString = {
+  de: 'Jobs werden geladen...',
+  en: 'Loading jobs...',
+  fr: 'Chargement des jobs...',
+};
+
+const searchPlaceholderText: StaticTranslationString = {
+  de: 'Jobs durchsuchen...',
+  en: 'Search jobs...',
+  fr: 'Rechercher des jobs...',
+};
+
+const searchTitleText: StaticTranslationString = {
+  de: 'Suche',
+  en: 'Search',
+  fr: 'Rechercher',
+};
+
+const spotsLeftSuffix: StaticTranslationString = {
+  de: 'Spots übrig',
+  en: 'Spots left',
+  fr: 'Places restantes',
+};
+
+const noJobsFoundText: StaticTranslationString = {
+  de: 'Keine Jobs gefunden',
+  en: 'No jobs found',
+  fr: 'Aucun job trouvé',
+};
+
+const noJobsFoundDescriptionText: StaticTranslationString = {
+  de: 'Versuche es mit einem anderen Suchbegriff oder passe deine Filter an.',
+  en: 'Try adjusting your search or filters to find what you are looking for.',
+  fr: "Essayez d'ajuster votre recherche ou vos filtres pour trouver ce que vous cherchez.",
 };
 
 export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
@@ -96,7 +118,7 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
   } = useJobSelection();
 
   const { data: jobs, isLoading } = useQuery<JobWithQuota[]>({
-    queryKey: ['jobs', dateRangeCategory, category, locale],
+    queryKey: ['helper-jobs', dateRangeCategory, category, locale],
     queryFn: async () => {
       const result = await getJobs(dateRangeCategory, locale, category);
       return result;
@@ -114,12 +136,16 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
       }
     }
 
-    return RESSORT_OPTIONS.filter((opt) => (counts[opt.value] ?? 0) > 0).map((opt) => ({
-      ...opt,
-      count: counts[opt.value] ?? 0,
-      cleanLabel: opt.label.replace(/^Ressort\s+/, ''),
-    }));
-  }, [jobs]);
+    return RESSORT_OPTIONS.filter((opt) => (counts[opt.value] ?? 0) > 0).map((opt) => {
+      const currentLabel = opt.label[locale];
+      return {
+        ...opt,
+        label: currentLabel,
+        count: counts[opt.value] ?? 0,
+        cleanLabel: currentLabel.replace(/^(Ressort|Department|Département)\s+/, ''),
+      };
+    });
+  }, [jobs, locale]);
 
   const filteredJobs = useMemo((): JobWithQuota[] => {
     if (!Array.isArray(jobs)) return [];
@@ -165,7 +191,7 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
           <input
             autoFocus
             type="text"
-            placeholder={locale === 'de' ? 'Jobs durchsuchen...' : 'Search jobs...'}
+            placeholder={searchPlaceholderText[locale]}
             className="w-48 rounded-full border border-gray-200 bg-gray-50 py-1.5 pr-8 pl-9 text-xs shadow-sm transition-all focus:w-64 focus:border-green-500 focus:bg-white focus:ring-2 focus:ring-green-500/20 focus:outline-none"
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
@@ -195,7 +221,7 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
         <button
           onClick={() => setIsSearchOpen(true)}
           className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
-          title={locale === 'de' ? 'Suche' : 'Search'}
+          title={searchTitleText[locale]}
         >
           <Search className="h-4 w-4" />
         </button>
@@ -275,7 +301,7 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
         {isLoading && (
           <div className="text-muted-foreground flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin" />
-            <span>Loading jobs...</span>
+            <span>{loadingJobsMessage[locale]}</span>
           </div>
         )}
         <Controller
@@ -284,14 +310,14 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
           rules={{ required: required === true ? requiredFieldMessage[locale] : false }}
           render={({ field: { onChange, value }, fieldState: { error } }) => (
             <div className="@container flex flex-col gap-4">
-              <div className={cn('grid grid-cols-1 gap-4 @xl:grid-cols-2 @3xl:grid-cols-3')}>
+              <div className={cn('grid grid-cols-1 gap-4 @xl:grid-cols-2')}>
                 {sortedJobs.length > 0 ? (
-                  sortedJobs.map((job) => {
+                  sortedJobs.map((job: JobWithQuota) => {
                     const isSelected = value === job.id;
                     const quota = job.availableQuota;
                     const isFull = typeof quota === 'number' && quota <= 0;
                     const isDisabled = isFull && !isSelected;
-                    const hasError = Boolean(error);
+                    const hasError = !!error;
 
                     return (
                       <button
@@ -299,7 +325,8 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
                         type="button"
                         onClick={() => {
                           if (!isDisabled) {
-                            (onChange as (val: unknown) => void)(job.id);
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            (onChange as (val: any) => void)(job.id);
                           }
                         }}
                         disabled={isDisabled}
@@ -321,7 +348,12 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
                             {job.title}
                           </span>
                         </div>
-                        <div className="mb-4 line-clamp-2 text-xs text-gray-500">
+                        <div
+                          className={cn(
+                            'mb-4 text-xs text-gray-500',
+                            isSelected ? 'line-clamp-none' : 'line-clamp-2',
+                          )}
+                        >
                           {job.description}
                         </div>
 
@@ -344,9 +376,7 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
                                 job.availableQuota > 0 ? 'text-green-600' : 'text-red-600',
                               )}
                             >
-                              {locale === 'de'
-                                ? `${job.availableQuota} Spots übrig`
-                                : `${job.availableQuota} Spots left`}
+                              {`${job.availableQuota} ${spotsLeftSuffix[locale]}`}
                             </span>
                           )}
                         </div>
@@ -378,12 +408,10 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
                       <Search className="mx-auto h-12 w-12 text-gray-400" />
                     </div>
                     <h3 className="font-heading mb-1 text-lg font-bold text-gray-900">
-                      {locale === 'de' ? 'Keine Jobs gefunden' : 'No jobs found'}
+                      {noJobsFoundText[locale]}
                     </h3>
                     <p className="max-w-[280px] text-sm text-gray-500">
-                      {locale === 'de'
-                        ? 'Versuche es mit einem anderen Suchbegriff oder passe deine Filter an.'
-                        : 'Try adjusting your search or filters to find what you are looking for.'}
+                      {noJobsFoundDescriptionText[locale]}
                     </p>
                   </div>
                 )}

@@ -1,9 +1,10 @@
+import { RESSORT_OPTIONS } from '@/features/payload-cms/constants/ressort-options';
 import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import type { CollectionConfig } from 'payload';
 
 export const JobCollection: CollectionConfig = {
-  slug: 'jobs',
+  slug: 'helper-jobs',
   labels: {
     singular: {
       de: 'Helfender Job',
@@ -43,21 +44,7 @@ export const JobCollection: CollectionConfig = {
       name: 'category',
       type: 'select',
       required: true,
-      options: [
-        { label: 'Ressort Infrastruktur', value: 'infrastruktur' },
-        { label: 'Ressort Finanzen', value: 'finanzen' },
-        { label: 'Ressort Programm', value: 'programm' },
-        { label: 'Ressort Kommunikation und Marketing', value: 'marketing' },
-        { label: 'Ressort Verpflegung', value: 'verpflegung' },
-        { label: 'Ressort Relations', value: 'relations' },
-        { label: 'Ressort Logistik', value: 'logistik' },
-        { label: 'Ressort Sicherheit', value: 'sicherheit' },
-        { label: 'Ressort Admin', value: 'admin' },
-        { label: 'Ressort Sponsoing, Fundraising und Interactions', value: 'sponsoring' },
-        { label: 'Ressort International', value: 'international' },
-        { label: 'Ressort Glaube', value: 'glaube' },
-        { label: 'Other', value: 'other' },
-      ],
+      options: RESSORT_OPTIONS,
       label: {
         en: 'Category',
         de: 'Kategorie',
@@ -141,7 +128,7 @@ export const JobCollection: CollectionConfig = {
       name: 'submissions',
       type: 'join',
       collection: 'form-submissions',
-      on: 'job',
+      on: 'helper-job',
       admin: {
         allowCreate: false,
       },

@@ -56,7 +56,7 @@ export interface Config {
     'camp-map-annotations': CampMapAnnotation;
     'camp-categories': CampCategory;
     'camp-schedule-entry': CampScheduleEntry;
-    jobs: Job;
+    'helper-jobs': HelperJob;
     images: Image;
     userSubmittedImages: UserSubmittedImage;
     documents: Document;
@@ -77,7 +77,7 @@ export interface Config {
     'payload-migrations': PayloadMigration;
   };
   collectionsJoins: {
-    jobs: {
+    'helper-jobs': {
       submissions: 'form-submissions';
     };
     timelineCategory: {
@@ -94,7 +94,7 @@ export interface Config {
     'camp-map-annotations': CampMapAnnotationsSelect<false> | CampMapAnnotationsSelect<true>;
     'camp-categories': CampCategoriesSelect<false> | CampCategoriesSelect<true>;
     'camp-schedule-entry': CampScheduleEntrySelect<false> | CampScheduleEntrySelect<true>;
-    jobs: JobsSelect<false> | JobsSelect<true>;
+    'helper-jobs': HelperJobsSelect<false> | HelperJobsSelect<true>;
     images: ImagesSelect<false> | ImagesSelect<true>;
     userSubmittedImages: UserSubmittedImagesSelect<false> | UserSubmittedImagesSelect<true>;
     documents: DocumentsSelect<false> | DocumentsSelect<true>;
@@ -1133,15 +1133,15 @@ export interface FormSubmission {
         id?: string | null;
       }[]
     | null;
-  job?: (string | null) | Job;
+  'helper-job'?: (string | null) | HelperJob;
   updatedAt: string;
   createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "jobs".
+ * via the `definition` "helper-jobs".
  */
-export interface Job {
+export interface HelperJob {
   id: string;
   title: string;
   category:
@@ -2317,8 +2317,8 @@ export interface PayloadLockedDocument {
         value: string | CampScheduleEntry;
       } | null)
     | ({
-        relationTo: 'jobs';
-        value: string | Job;
+        relationTo: 'helper-jobs';
+        value: string | HelperJob;
       } | null)
     | ({
         relationTo: 'images';
@@ -2952,9 +2952,9 @@ export interface CampScheduleEntrySelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "jobs_select".
+ * via the `definition` "helper-jobs_select".
  */
-export interface JobsSelect<T extends boolean = true> {
+export interface HelperJobsSelect<T extends boolean = true> {
   title?: T;
   category?: T;
   description?: T;
@@ -3546,7 +3546,7 @@ export interface FormSubmissionsSelect<T extends boolean = true> {
         value?: T;
         id?: T;
       };
-  job?: T;
+  'helper-job'?: T;
   updatedAt?: T;
   createdAt?: T;
 }

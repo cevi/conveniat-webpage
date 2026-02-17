@@ -144,9 +144,9 @@ export const formPluginConfiguration = formBuilderPlugin({
     fields: ({ defaultFields }) => [
       ...defaultFields,
       {
-        name: 'job',
+        name: 'helper-job',
         type: 'relationship',
-        relationTo: 'jobs',
+        relationTo: 'helper-jobs',
         admin: {
           readOnly: true,
           position: 'sidebar',

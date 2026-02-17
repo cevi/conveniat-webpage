@@ -48,7 +48,7 @@ const rawCollectionsConfig: CollectionConfig[] = [
 /**
  * The configuration for the routable collections.
  *
- * This mapping defines the URLs prefixes for the collections that should be routable.
+ * This mapping defines the URL prefixes for the collections that should be routable.
  *
  */
 export const collectionsConfig: RoutableCollectionConfigs = rawCollectionsConfig.map(

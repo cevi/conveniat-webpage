@@ -6,6 +6,7 @@ import {
   loggedInAsText,
   loginWithCeviDatabaseText,
 } from '@/features/payload-cms/components/form/static-form-texts';
+import type { StaticTranslationString } from '@/types/types';
 import { i18nConfig, type Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { signIn, signOut, useSession } from 'next-auth/react';
@@ -21,6 +22,12 @@ interface CeviDatabaseLoginProperties {
   required?: boolean;
   currentStepIndex?: number;
 }
+
+const loginRequiredMessage: StaticTranslationString = {
+  en: 'You must log in to proceed',
+  de: 'Sie müssen sich anmelden, um fortzufahren',
+  fr: 'Vous devez vous connecter pour continuer',
+};
 
 export const CeviDatabaseLogin: React.FC<CeviDatabaseLoginProperties> = ({
   name,
@@ -144,7 +151,9 @@ export const CeviDatabaseLogin: React.FC<CeviDatabaseLoginProperties> = ({
       {/* Hidden input to hold the actual value for form submission/validation */}
       <input
         type="hidden"
-        {...register(name, { required: required === true ? 'You must log in to proceed' : false })}
+        {...register(name, {
+          required: required === true ? loginRequiredMessage[locale] : false,
+        })}
       />
 
       {Boolean(errorMessage) && <div className="mt-1 text-sm text-red-600">{errorMessage}</div>}

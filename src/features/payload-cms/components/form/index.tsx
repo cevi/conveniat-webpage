@@ -8,6 +8,7 @@ import React, { useEffect, useMemo } from 'react';
 import { FormProvider, useForm, useWatch, type FieldValues } from 'react-hook-form';
 
 // Custom Hooks & Components
+import { buildEmptyFormState } from '@/features/payload-cms/components/form/build-initial-form-state';
 import { FormControls } from '@/features/payload-cms/components/form/components/form-controls';
 import { FormFieldRenderer } from '@/features/payload-cms/components/form/components/form-field-renderer';
 import { ProgressBar } from '@/features/payload-cms/components/form/components/progress-bar';
@@ -78,7 +79,7 @@ export const FormBlock: React.FC<
 
   const handleReset = (): void => {
     resetSubmission();
-    formMethods.reset({});
+    formMethods.reset(buildEmptyFormState(config));
     setCurrentStepIndex(0);
   };
 
