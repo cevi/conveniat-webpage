@@ -49,8 +49,10 @@ const HITOBITO_BASE_URL = environmentVariables.HITOBITO_BASE_URL;
 const HITOBITO_FORWARD_URL = environmentVariables.HITOBITO_FORWARD_URL;
 const CEVI_DB_CLIENT_ID = environmentVariables.CEVI_DB_CLIENT_ID;
 const CEVI_DB_CLIENT_SECRET = environmentVariables.CEVI_DB_CLIENT_SECRET;
+const NEXTAUTH_SECRET = environmentVariables.NEXTAUTH_SECRET;
 
 export const authOptions: NextAuthConfig = {
+  secret: NEXTAUTH_SECRET,
   providers: [
     {
       id: 'cevi-db',
@@ -88,6 +90,7 @@ export const authOptions: NextAuthConfig = {
   debug: false,
   session: {
     strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
 
   callbacks: {
