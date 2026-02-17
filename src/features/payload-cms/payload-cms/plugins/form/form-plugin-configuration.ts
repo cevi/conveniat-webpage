@@ -152,6 +152,16 @@ export const formPluginConfiguration = formBuilderPlugin({
           position: 'sidebar',
         },
       },
+      {
+        name: 'helper-jobs',
+        type: 'relationship',
+        relationTo: 'helper-jobs',
+        hasMany: true,
+        admin: {
+          readOnly: true,
+          position: 'sidebar',
+        },
+      },
     ],
     hooks: {
       beforeChange: [validateCeviDatabaseLogin, linkJobSubmission],

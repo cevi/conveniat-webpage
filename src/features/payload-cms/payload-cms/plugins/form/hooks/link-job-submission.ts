@@ -61,7 +61,7 @@ export const linkJobSubmission: CollectionBeforeChangeHook<FormSubmission> = asy
   }
 
   const submissionData = (data.submissionData as SubmissionField[] | undefined) ?? [];
-  let foundJobId: string | undefined;
+  const foundJobIds: string[] = [];
 
   for (const block of jobSelectionBlocks) {
     const submissionEntry = submissionData.find((entry) => entry.field === block.name);
@@ -70,45 +70,60 @@ export const linkJobSubmission: CollectionBeforeChangeHook<FormSubmission> = asy
       typeof submissionEntry.value === 'string' &&
       submissionEntry.value !== ''
     ) {
-      foundJobId = submissionEntry.value;
-      break; // Assuming only one job selection per form for now, or take the first one
+      foundJobIds.push(submissionEntry.value);
     }
   }
 
-  if (foundJobId === undefined || foundJobId === '') {
+  if (foundJobIds.length === 0) {
     return data;
   }
 
-  // Fetch the Job
-  const job = (await req.payload.findByID({
-    collection: 'helper-jobs',
-    id: foundJobId,
-  })) as unknown as { maxQuota?: number; id: string } | null;
+  const locale = (req.locale as Locale | undefined) ?? 'en';
 
-  if (!job) {
-    const locale = (req.locale as Locale | undefined) ?? 'en';
-    throw new APIError(selectedJobNotFoundMessage[locale], 400);
-  }
+  for (const foundJobId of foundJobIds) {
+    // Fetch the Job
+    const job = (await req.payload.findByID({
+      collection: 'helper-jobs',
+      id: foundJobId,
+    })) as unknown as { maxQuota?: number; id: string } | null;
 
-  // Check Quota
-  if (typeof job.maxQuota === 'number') {
-    const currentSubmissionsCount = await req.payload.count({
-      collection: 'form-submissions',
-      where: {
-        'helper-job': {
-          equals: foundJobId,
+    if (!job) {
+      throw new APIError(selectedJobNotFoundMessage[locale], 400);
+    }
+
+    // Check Quota
+    if (typeof job.maxQuota === 'number') {
+      const currentSubmissionsCount = await req.payload.count({
+        collection: 'form-submissions',
+        where: {
+          or: [
+            {
+              'helper-job': {
+                equals: foundJobId,
+              },
+            },
+            {
+              'helper-jobs': {
+                contains: foundJobId,
+              },
+            },
+          ],
         },
-      },
-    });
+      });
 
-    if (currentSubmissionsCount.totalDocs >= job.maxQuota) {
-      const locale = (req.locale as Locale | undefined) ?? 'en';
-      throw new APIError(jobFullMessage[locale], 400);
+      if (currentSubmissionsCount.totalDocs >= job.maxQuota) {
+        throw new APIError(jobFullMessage[locale], 400);
+      }
     }
   }
 
-  // Link the job to the submission
-  data['helper-job'] = foundJobId;
+  // Link the jobs to the submission
+  data['helper-jobs'] = foundJobIds;
+  // For backward compatibility/consistency with old field if only one job is selected
+  const firstJobId = foundJobIds[0];
+  if (typeof firstJobId === 'string' && firstJobId !== '') {
+    data['helper-job'] = firstJobId;
+  }
 
   return data;
 };

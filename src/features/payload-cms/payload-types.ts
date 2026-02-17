@@ -1134,6 +1134,7 @@ export interface FormSubmission {
       }[]
     | null;
   'helper-job'?: (string | null) | HelperJob;
+  'helper-jobs'?: (string | HelperJob)[] | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -3576,6 +3577,7 @@ export interface FormSubmissionsSelect<T extends boolean = true> {
         id?: T;
       };
   'helper-job'?: T;
+  'helper-jobs'?: T;
   updatedAt?: T;
   createdAt?: T;
 }

@@ -47,9 +47,18 @@ export const getJobs = async (
         const currentSubmissionsCount = await payload.count({
           collection: 'form-submissions',
           where: {
-            'helper-job': {
-              equals: job.id,
-            },
+            or: [
+              {
+                'helper-job': {
+                  equals: job.id,
+                },
+              },
+              {
+                'helper-jobs': {
+                  contains: job.id,
+                },
+              },
+            ],
             _localized_status: { equals: { published: true } },
           },
         });
