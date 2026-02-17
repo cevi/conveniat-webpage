@@ -302,9 +302,6 @@ export const useAnnotationPolygons = (
       if (clickedPolygons.length === 0) {
         setClickedPolygonState(undefined);
         setCurrentAnnotation(undefined);
-        const url = new URL(globalThis.location.href);
-        url.searchParams.delete('locationId');
-        globalThis.history.pushState({}, '', url.toString());
         return;
       }
 
@@ -333,9 +330,6 @@ export const useAnnotationPolygons = (
       const selectedPolygon = nextState.polygons[nextState.currentIndex];
       if (selectedPolygon) {
         setCurrentAnnotation(selectedPolygon);
-        const url = new URL(globalThis.location.href);
-        url.searchParams.set('locationId', selectedPolygon.id);
-        globalThis.history.pushState({}, '', url.toString());
       }
     };
 

@@ -12,6 +12,7 @@ import type { Locale } from '@/types/types';
 import { DesignCodes } from '@/utils/design-codes';
 import { sharedFontClassName } from '@/utils/fonts';
 import { cn } from '@/utils/tailwindcss-override';
+import { SessionProvider } from 'next-auth/react';
 import type { ReactNode } from 'react';
 
 // These styles apply to every route in the application
@@ -61,22 +62,24 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
         })}
         suppressHydrationWarning
       >
-        <HideFooterProvider>
-          <ChunkErrorHandler />
-          <ServiceWorkerManager>
-            <AppShell
-              header={<HeaderComponent locale={locale} inAppDesign={isInAppDesign} />}
-              footer={
-                <Suspense fallback={undefined}>
-                  <GlobalAppFooterWrapper locale={locale} design={design} />
-                </Suspense>
-              }
-              inAppDesign={isInAppDesign}
-            >
-              {children}
-            </AppShell>
-          </ServiceWorkerManager>
-        </HideFooterProvider>
+        <SessionProvider>
+          <HideFooterProvider>
+            <ChunkErrorHandler />
+            <ServiceWorkerManager>
+              <AppShell
+                header={<HeaderComponent locale={locale} inAppDesign={isInAppDesign} />}
+                footer={
+                  <Suspense fallback={undefined}>
+                    <GlobalAppFooterWrapper locale={locale} design={design} />
+                  </Suspense>
+                }
+                inAppDesign={isInAppDesign}
+              >
+                {children}
+              </AppShell>
+            </ServiceWorkerManager>
+          </HideFooterProvider>
+        </SessionProvider>
       </body>
     </html>
   );

@@ -38,3 +38,8 @@ button#action-unpublish,
 div#action-unpublish-popup {
   display: none;
 }
+
+.live-preview-window {
+  width: 45%;
+  height: calc(100vh - var(--doc-controls-height) - 130px);
+}

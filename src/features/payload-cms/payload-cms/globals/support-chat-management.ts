@@ -1,3 +1,4 @@
+import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import type { GlobalConfig } from 'payload';
 
 export const SupportChatManagement: GlobalConfig = {
@@ -11,11 +12,7 @@ export const SupportChatManagement: GlobalConfig = {
     read: () => true,
   },
   admin: {
-    group: {
-      en: 'Backoffice App Features',
-      de: 'Backoffice App Funktionen',
-      fr: 'Fonctionnalités Backoffice',
-    },
+    group: AdminPanelDashboardGroups.BackofficeAppFeatures,
     hideAPIURL: true,
     components: {
       views: {

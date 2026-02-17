@@ -1,15 +1,20 @@
 import { ClientOnly } from '@/components/client-only';
 import { SafeErrorBoundary } from '@/components/error-boundary/safe-error-boundary';
+import { FormBlock } from '@/features/payload-cms/components/form';
+import type { ExtendedFormType } from '@/features/payload-cms/components/form/types';
 import React from 'react';
-import type { FormBlockType } from 'src/features/payload-cms/components/form';
-import { FormBlock } from 'src/features/payload-cms/components/form';
 
-export const ShowForm: React.FC<
-  FormBlockType & {
-    isPreviewMode?: boolean | undefined;
-    withBorder?: boolean | undefined;
-  }
-> = ({ isPreviewMode, withBorder, ...block }) => {
+// This component is only a wrapper to show the form block
+// It is used in the frontend to render the form block
+
+export const ShowForm: React.FC<{
+  form: ExtendedFormType;
+  blockType?: 'formBlock';
+  blockName?: string;
+  isPreviewMode?: boolean;
+  withBorder?: boolean;
+}> = (props) => {
+  const { isPreviewMode, withBorder, ...rest } = props;
   return (
     <ClientOnly
       fallback={
@@ -17,7 +22,7 @@ export const ShowForm: React.FC<
       }
     >
       <SafeErrorBoundary fallback={<div className="text-red-500">Error loading form</div>}>
-        <FormBlock {...block} isPreviewMode={isPreviewMode} withBorder={withBorder} />
+        <FormBlock {...rest} isPreviewMode={!!isPreviewMode} withBorder={withBorder ?? true} />
       </SafeErrorBoundary>
     </ClientOnly>
   );

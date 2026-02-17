@@ -40,6 +40,7 @@ export const AnnotationScheduleTableComponent: React.FC<{
                 <SafeErrorBoundary fallback={<span>{errorLoadingEntry[locale]}</span>}>
                   <LexicalRichTextSection
                     richTextSection={entry.description as SerializedEditorState}
+                    locale={locale}
                   />
                 </SafeErrorBoundary>
               </div>

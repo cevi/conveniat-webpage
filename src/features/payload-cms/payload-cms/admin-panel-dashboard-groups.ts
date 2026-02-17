@@ -14,9 +14,19 @@ export const AdminPanelDashboardGroups = {
     de: '3 Sammlungen',
     fr: '3 Collections',
   },
+  HelferAnmeldung: {
+    en: '3 Helper Registration',
+    de: '3 Helferanmeldung',
+    fr: '3 Inscription des helpers',
+  },
+  BackofficeAppFeatures: {
+    en: '4 Backoffice App Features',
+    de: '4 Backoffice App Funktionen',
+    fr: '4 Fonctionnalités Backoffice',
+  },
   GlobalSettings: {
-    en: '4 Global Settings',
-    de: '4 Globale Einstellungen',
-    fr: '4 Paramètres globaux',
+    en: '5 Global Settings',
+    de: '5 Globale Einstellungen',
+    fr: '5 Paramètres globaux',
   },
 };

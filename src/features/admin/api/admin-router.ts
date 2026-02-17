@@ -13,13 +13,13 @@ import { resolveChatName } from '@/features/chat/api/utils/resolve-chat-name';
 // eslint-disable-next-line import/no-restricted-paths
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { canUserAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
+import { getFeatureFlag, setFeatureFlag } from '@/lib/db/redis';
 import {
   ChatMembershipPermission,
   ChatType,
   MessageEventType,
   MessageType,
 } from '@/lib/prisma/client';
-import { getFeatureFlag, setFeatureFlag } from '@/lib/redis';
 import { MINIO_BUCKET_NAME, s3ClientPublic } from '@/lib/s3';
 import { createTRPCRouter, trpcBaseProcedure } from '@/trpc/init';
 import { PutObjectCommand } from '@aws-sdk/client-s3';

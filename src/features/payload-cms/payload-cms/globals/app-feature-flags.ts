@@ -1,4 +1,5 @@
-import { setFeatureFlag } from '@/lib/redis';
+import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
+import { setFeatureFlag } from '@/lib/db/redis';
 import type { GlobalConfig } from 'payload';
 
 export const AppFeatureFlags: GlobalConfig = {
@@ -9,11 +10,7 @@ export const AppFeatureFlags: GlobalConfig = {
     fr: 'Indicateurs de fonctionnalités',
   },
   admin: {
-    group: {
-      en: 'Backoffice App Features',
-      de: 'Backoffice App Funktionen',
-      fr: 'Fonctionnalités Backoffice',
-    },
+    group: AdminPanelDashboardGroups.BackofficeAppFeatures,
   },
   access: {
     read: () => true,

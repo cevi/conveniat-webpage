@@ -53,7 +53,7 @@ export const ThreadView: React.FC<ThreadViewProperties> = ({ threadId, onClose }
       </div>
 
       {/* Message List with Parent */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-hidden">
         {isLoadingParent && (
           <div className="flex h-full items-center justify-center text-gray-400">
             Loading thread...

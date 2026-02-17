@@ -56,6 +56,7 @@ export interface Config {
     'camp-map-annotations': CampMapAnnotation;
     'camp-categories': CampCategory;
     'camp-schedule-entry': CampScheduleEntry;
+    'helper-jobs': HelperJob;
     images: Image;
     userSubmittedImages: UserSubmittedImage;
     documents: Document;
@@ -64,16 +65,21 @@ export interface Config {
     'push-notification-subscriptions': PushNotificationSubscription;
     timelineCategory: TimelineCategory;
     'chat-images': ChatImage;
+    'blocked-jobs': BlockedJob;
     forms: Form;
     'form-submissions': FormSubmission;
     'search-collection': SearchCollection;
     go: Go;
     'payload-kv': PayloadKv;
+    'payload-jobs': PayloadJob;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
   };
   collectionsJoins: {
+    'helper-jobs': {
+      submissions: 'form-submissions';
+    };
     timelineCategory: {
       relatedTimelineEntries: 'timeline';
     };
@@ -88,6 +94,7 @@ export interface Config {
     'camp-map-annotations': CampMapAnnotationsSelect<false> | CampMapAnnotationsSelect<true>;
     'camp-categories': CampCategoriesSelect<false> | CampCategoriesSelect<true>;
     'camp-schedule-entry': CampScheduleEntrySelect<false> | CampScheduleEntrySelect<true>;
+    'helper-jobs': HelperJobsSelect<false> | HelperJobsSelect<true>;
     images: ImagesSelect<false> | ImagesSelect<true>;
     userSubmittedImages: UserSubmittedImagesSelect<false> | UserSubmittedImagesSelect<true>;
     documents: DocumentsSelect<false> | DocumentsSelect<true>;
@@ -96,11 +103,13 @@ export interface Config {
     'push-notification-subscriptions': PushNotificationSubscriptionsSelect<false> | PushNotificationSubscriptionsSelect<true>;
     timelineCategory: TimelineCategorySelect<false> | TimelineCategorySelect<true>;
     'chat-images': ChatImagesSelect<false> | ChatImagesSelect<true>;
+    'blocked-jobs': BlockedJobsSelect<false> | BlockedJobsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     'search-collection': SearchCollectionSelect<false> | SearchCollectionSelect<true>;
     go: GoSelect<false> | GoSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
+    'payload-jobs': PayloadJobsSelect<false> | PayloadJobsSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
@@ -119,6 +128,7 @@ export interface Config {
     'support-chat-management': SupportChatManagement;
     'alert-management': AlertManagement;
     'all-chats-management': AllChatsManagement;
+    'registration-management': RegistrationManagement;
   };
   globalsSelect: {
     header: HeaderSelect<false> | HeaderSelect<true>;
@@ -130,14 +140,27 @@ export interface Config {
     'support-chat-management': SupportChatManagementSelect<false> | SupportChatManagementSelect<true>;
     'alert-management': AlertManagementSelect<false> | AlertManagementSelect<true>;
     'all-chats-management': AllChatsManagementSelect<false> | AllChatsManagementSelect<true>;
+    'registration-management': RegistrationManagementSelect<false> | RegistrationManagementSelect<true>;
   };
   locale: 'en' | 'de' | 'fr';
-  user: User & {
-    collection: 'users';
-  };
+  user: User;
   jobs: {
-    tasks: unknown;
-    workflows: unknown;
+    tasks: {
+      resolveUser: TaskResolveUser;
+      createUser: CreateUserInputOutput;
+      blockJob: TaskBlockJob;
+      cleanupTemporaryRoles: TaskCleanupTemporaryRoles;
+      ensureGroupMembership: TaskEnsureGroupMembership;
+      ensureEventMembership: TaskEnsureEventMembership;
+      confirmationMessage: TaskConfirmationMessage;
+      inline: {
+        input: unknown;
+        output: unknown;
+      };
+    };
+    workflows: {
+      registrationWorkflow: WorkflowRegistrationWorkflow;
+    };
   };
 }
 export interface UserAuthOperations {
@@ -435,6 +458,7 @@ export interface User {
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
+  collection: 'users';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -550,6 +574,7 @@ export interface Form {
   sections: {
     formSection: {
       sectionTitle: string;
+      layout?: ('standard' | 'split') | null;
       fields?:
         | (
             | {
@@ -571,6 +596,10 @@ export interface Form {
                 };
                 required?: boolean | null;
                 defaultValue?: boolean | null;
+                /**
+                 * Where this field is rendered when "Split" layout is selected for the section.
+                 */
+                placement?: ('sidebar' | 'main') | null;
                 id?: string | null;
                 blockName?: string | null;
                 blockType: 'checkbox';
@@ -579,6 +608,10 @@ export interface Form {
                 name: string;
                 label: string;
                 required?: boolean | null;
+                /**
+                 * Where this field is rendered when "Split" layout is selected for the section.
+                 */
+                placement?: ('sidebar' | 'main') | null;
                 id?: string | null;
                 blockName?: string | null;
                 blockType: 'country';
@@ -588,6 +621,10 @@ export interface Form {
                 label: string;
                 placeholder?: string | null;
                 required?: boolean | null;
+                /**
+                 * Where this field is rendered when "Split" layout is selected for the section.
+                 */
+                placement?: ('sidebar' | 'main') | null;
                 id?: string | null;
                 blockName?: string | null;
                 blockType: 'email';
@@ -618,6 +655,10 @@ export interface Form {
                 defaultValue?: number | null;
                 placeholder?: string | null;
                 required?: boolean | null;
+                /**
+                 * Where this field is rendered when "Split" layout is selected for the section.
+                 */
+                placement?: ('sidebar' | 'main') | null;
                 id?: string | null;
                 blockName?: string | null;
                 blockType: 'number';
@@ -640,6 +681,10 @@ export interface Form {
                     }[]
                   | null;
                 required?: boolean | null;
+                /**
+                 * Where this field is rendered when "Split" layout is selected for the section.
+                 */
+                placement?: ('sidebar' | 'main') | null;
                 id?: string | null;
                 blockName?: string | null;
                 blockType: 'select';
@@ -661,6 +706,10 @@ export interface Form {
                  * Custom error message to display when the input does not match the validation regex.
                  */
                 inputValidationErrorMessage?: string | null;
+                /**
+                 * Where this field is rendered when "Split" layout is selected for the section.
+                 */
+                placement?: ('sidebar' | 'main') | null;
                 id?: string | null;
                 blockName?: string | null;
                 blockType: 'text';
@@ -671,6 +720,10 @@ export interface Form {
                 placeholder?: string | null;
                 defaultValue?: string | null;
                 required?: boolean | null;
+                /**
+                 * Where this field is rendered when "Split" layout is selected for the section.
+                 */
+                placement?: ('sidebar' | 'main') | null;
                 id?: string | null;
                 blockName?: string | null;
                 blockType: 'textarea';
@@ -680,9 +733,64 @@ export interface Form {
                 label: string;
                 defaultValue?: string | null;
                 required?: boolean | null;
+                /**
+                 * Where this field is rendered when "Split" layout is selected for the section.
+                 */
+                placement?: ('sidebar' | 'main') | null;
                 id?: string | null;
                 blockName?: string | null;
                 blockType: 'date';
+              }
+            | {
+                name: string;
+                label: string;
+                /**
+                 * Which field from the user should be saved.
+                 */
+                saveField?: ('name' | 'uuid' | 'email' | 'nickname') | null;
+                /**
+                 * If checked, the user must log in to proceed.
+                 */
+                required?: boolean | null;
+                /**
+                 * Where this field is rendered when "Split" layout is selected for the section.
+                 */
+                placement?: ('sidebar' | 'main') | null;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'ceviDbLogin';
+              }
+            | {
+                name: string;
+                label: string;
+                /**
+                 * Filter jobs by this category.
+                 */
+                dateRangeCategory: 'setup' | 'main' | 'teardown';
+                /**
+                 * Optionally filter jobs by this category.
+                 */
+                category?:
+                  | (
+                      | 'infrastruktur'
+                      | 'finanzen'
+                      | 'programm'
+                      | 'marketing'
+                      | 'verpflegung'
+                      | 'relations'
+                      | 'logistik'
+                      | 'sicherheit'
+                      | 'admin'
+                      | 'sponsoring'
+                      | 'international'
+                      | 'glaube'
+                      | 'other'
+                    )
+                  | null;
+                required?: boolean | null;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'jobSelection';
               }
             | {
                 displayCondition?: {
@@ -710,6 +818,10 @@ export interface Form {
                           };
                           required?: boolean | null;
                           defaultValue?: boolean | null;
+                          /**
+                           * Where this field is rendered when "Split" layout is selected for the section.
+                           */
+                          placement?: ('sidebar' | 'main') | null;
                           id?: string | null;
                           blockName?: string | null;
                           blockType: 'checkbox';
@@ -718,6 +830,10 @@ export interface Form {
                           name: string;
                           label: string;
                           required?: boolean | null;
+                          /**
+                           * Where this field is rendered when "Split" layout is selected for the section.
+                           */
+                          placement?: ('sidebar' | 'main') | null;
                           id?: string | null;
                           blockName?: string | null;
                           blockType: 'country';
@@ -727,6 +843,10 @@ export interface Form {
                           label: string;
                           placeholder?: string | null;
                           required?: boolean | null;
+                          /**
+                           * Where this field is rendered when "Split" layout is selected for the section.
+                           */
+                          placement?: ('sidebar' | 'main') | null;
                           id?: string | null;
                           blockName?: string | null;
                           blockType: 'email';
@@ -757,6 +877,10 @@ export interface Form {
                           defaultValue?: number | null;
                           placeholder?: string | null;
                           required?: boolean | null;
+                          /**
+                           * Where this field is rendered when "Split" layout is selected for the section.
+                           */
+                          placement?: ('sidebar' | 'main') | null;
                           id?: string | null;
                           blockName?: string | null;
                           blockType: 'number';
@@ -779,6 +903,10 @@ export interface Form {
                               }[]
                             | null;
                           required?: boolean | null;
+                          /**
+                           * Where this field is rendered when "Split" layout is selected for the section.
+                           */
+                          placement?: ('sidebar' | 'main') | null;
                           id?: string | null;
                           blockName?: string | null;
                           blockType: 'select';
@@ -800,6 +928,10 @@ export interface Form {
                            * Custom error message to display when the input does not match the validation regex.
                            */
                           inputValidationErrorMessage?: string | null;
+                          /**
+                           * Where this field is rendered when "Split" layout is selected for the section.
+                           */
+                          placement?: ('sidebar' | 'main') | null;
                           id?: string | null;
                           blockName?: string | null;
                           blockType: 'text';
@@ -810,6 +942,10 @@ export interface Form {
                           placeholder?: string | null;
                           defaultValue?: string | null;
                           required?: boolean | null;
+                          /**
+                           * Where this field is rendered when "Split" layout is selected for the section.
+                           */
+                          placement?: ('sidebar' | 'main') | null;
                           id?: string | null;
                           blockName?: string | null;
                           blockType: 'textarea';
@@ -819,12 +955,71 @@ export interface Form {
                           label: string;
                           defaultValue?: string | null;
                           required?: boolean | null;
+                          /**
+                           * Where this field is rendered when "Split" layout is selected for the section.
+                           */
+                          placement?: ('sidebar' | 'main') | null;
                           id?: string | null;
                           blockName?: string | null;
                           blockType: 'date';
                         }
+                      | {
+                          name: string;
+                          label: string;
+                          /**
+                           * Which field from the user should be saved.
+                           */
+                          saveField?: ('name' | 'uuid' | 'email' | 'nickname') | null;
+                          /**
+                           * If checked, the user must log in to proceed.
+                           */
+                          required?: boolean | null;
+                          /**
+                           * Where this field is rendered when "Split" layout is selected for the section.
+                           */
+                          placement?: ('sidebar' | 'main') | null;
+                          id?: string | null;
+                          blockName?: string | null;
+                          blockType: 'ceviDbLogin';
+                        }
+                      | {
+                          name: string;
+                          label: string;
+                          /**
+                           * Filter jobs by this category.
+                           */
+                          dateRangeCategory: 'setup' | 'main' | 'teardown';
+                          /**
+                           * Optionally filter jobs by this category.
+                           */
+                          category?:
+                            | (
+                                | 'infrastruktur'
+                                | 'finanzen'
+                                | 'programm'
+                                | 'marketing'
+                                | 'verpflegung'
+                                | 'relations'
+                                | 'logistik'
+                                | 'sicherheit'
+                                | 'admin'
+                                | 'sponsoring'
+                                | 'international'
+                                | 'glaube'
+                                | 'other'
+                              )
+                            | null;
+                          required?: boolean | null;
+                          id?: string | null;
+                          blockName?: string | null;
+                          blockType: 'jobSelection';
+                        }
                     )[]
                   | null;
+                /**
+                 * Where this field is rendered when "Split" layout is selected for the section.
+                 */
+                placement?: ('sidebar' | 'main') | null;
                 id?: string | null;
                 blockName?: string | null;
                 blockType: 'conditionedBlock';
@@ -889,6 +1084,19 @@ export interface Form {
         id?: string | null;
       }[]
     | null;
+  /**
+   * Select a workflow to trigger after form submission.
+   */
+  workflow?: 'registrationWorkflow' | null;
+  workflowMapping?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   submissions?: {
     docs?: (string | FormSubmission)[];
     hasNextPage?: boolean;
@@ -925,8 +1133,72 @@ export interface FormSubmission {
         id?: string | null;
       }[]
     | null;
+  'helper-job'?: (string | null) | HelperJob;
+  'helper-jobs'?: (string | HelperJob)[] | null;
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "helper-jobs".
+ */
+export interface HelperJob {
+  id: string;
+  publishingStatus?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  _localized_status: LocalizedPublishingStatus;
+  _disable_unpublishing?: boolean | null;
+  _locale: string;
+  title: string;
+  description: string;
+  category:
+    | 'infrastruktur'
+    | 'finanzen'
+    | 'programm'
+    | 'marketing'
+    | 'verpflegung'
+    | 'relations'
+    | 'logistik'
+    | 'sicherheit'
+    | 'admin'
+    | 'sponsoring'
+    | 'international'
+    | 'glaube'
+    | 'other';
+  /**
+   * Maximum number of helpers allowed for this job (Empty = Unlimited).
+   */
+  maxQuota?: number | null;
+  dateRange: {
+    /**
+     * Start date of the job.
+     */
+    startDate: string;
+    /**
+     * End date of the job.
+     */
+    endDate: string;
+  };
+  dateRangeCategory: 'setup' | 'main' | 'teardown';
+  /**
+   * Prerequisites for the job (e.g. Minimum age, specific skills, etc.).
+   */
+  prerequisites?: string | null;
+  submissions?: {
+    docs?: (string | FormSubmission)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1101,7 +1373,19 @@ export interface AccordionBlocks {
         /**
          * This is the content of the accordion block. It will be displayed when the block is expanded.
          */
-        valueBlocks: (PlainTextBlock | TeamMembersBlock | FormBlock)[];
+        valueBlocks: (
+          | PlainTextBlock
+          | TeamMembersBlock
+          | FormBlock
+          | NestedAccordionBlocks
+          | {
+              file: string | Document;
+              openInNewTab?: boolean | null;
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'fileDownload';
+            }
+        )[];
         id?: string | null;
       }[]
     | null;
@@ -1726,6 +2010,33 @@ export interface CampCategory {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "NestedAccordionBlocks".
+ */
+export interface NestedAccordionBlocks {
+  accordionBlocks?:
+    | {
+        title: string;
+        valueBlocks: (
+          | PlainTextBlock
+          | TeamMembersBlock
+          | FormBlock
+          | {
+              file: string | Document;
+              openInNewTab?: boolean | null;
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'fileDownload';
+            }
+        )[];
+        id?: string | null;
+      }[]
+    | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'nestedAccordion';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "userSubmittedImages".
  */
 export interface UserSubmittedImage {
@@ -1812,6 +2123,52 @@ export interface ChatImage {
   };
 }
 /**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "blocked-jobs".
+ */
+export interface BlockedJob {
+  id: string;
+  /**
+   * The original payload job ID that was blocked.
+   */
+  originalJobId: string;
+  /**
+   * The workflow that will be re-queued upon resolution.
+   */
+  workflowSlug: string;
+  /**
+   * The original input data for the workflow.
+   */
+  input:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  status: 'pending' | 'resolved' | 'rejected';
+  /**
+   * The reason why the job was blocked.
+   */
+  reason?: string | null;
+  /**
+   * Resolution data to merge into the workflow input when re-queued.
+   */
+  resolutionData?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This is a collection of automatically created search results. These results are used by the global site search and will be updated automatically as documents in the CMS are created or updated.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1881,6 +2238,118 @@ export interface PayloadKv {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-jobs".
+ */
+export interface PayloadJob {
+  id: string;
+  /**
+   * Input data provided to the job
+   */
+  input?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  taskStatus?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  completedAt?: string | null;
+  totalTried?: number | null;
+  /**
+   * If hasError is true this job will not be retried
+   */
+  hasError?: boolean | null;
+  /**
+   * If hasError is true, this is the error that caused it
+   */
+  error?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Task execution log
+   */
+  log?:
+    | {
+        executedAt: string;
+        completedAt: string;
+        taskSlug:
+          | 'inline'
+          | 'resolveUser'
+          | 'createUser'
+          | 'blockJob'
+          | 'cleanupTemporaryRoles'
+          | 'ensureGroupMembership'
+          | 'ensureEventMembership'
+          | 'confirmationMessage';
+        taskID: string;
+        input?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        output?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        state: 'failed' | 'succeeded';
+        error?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        id?: string | null;
+      }[]
+    | null;
+  workflowSlug?: 'registrationWorkflow' | null;
+  taskSlug?:
+    | (
+        | 'inline'
+        | 'resolveUser'
+        | 'createUser'
+        | 'blockJob'
+        | 'cleanupTemporaryRoles'
+        | 'ensureGroupMembership'
+        | 'ensureEventMembership'
+        | 'confirmationMessage'
+      )
+    | null;
+  queue?: string | null;
+  waitUntil?: string | null;
+  processing?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-locked-documents".
  */
 export interface PayloadLockedDocument {
@@ -1909,6 +2378,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'camp-schedule-entry';
         value: string | CampScheduleEntry;
+      } | null)
+    | ({
+        relationTo: 'helper-jobs';
+        value: string | HelperJob;
       } | null)
     | ({
         relationTo: 'images';
@@ -1941,6 +2414,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'chat-images';
         value: string | ChatImage;
+      } | null)
+    | ({
+        relationTo: 'blocked-jobs';
+        value: string | BlockedJob;
       } | null)
     | ({
         relationTo: 'forms';
@@ -2228,6 +2705,15 @@ export interface AccordionBlocksSelect<T extends boolean = true> {
               accordionPlainTextBlock?: T | PlainTextBlockSelect<T>;
               accordionTeamMembersBlock?: T | TeamMembersBlockSelect<T>;
               formBlock?: T | FormBlockSelect<T>;
+              nestedAccordion?: T | NestedAccordionBlocksSelect<T>;
+              fileDownload?:
+                | T
+                | {
+                    file?: T;
+                    openInNewTab?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
             };
         id?: T;
       };
@@ -2269,6 +2755,35 @@ export interface TeamMembersBlockSelect<T extends boolean = true> {
         name?: T;
         ceviname?: T;
         function?: T;
+        id?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "NestedAccordionBlocks_select".
+ */
+export interface NestedAccordionBlocksSelect<T extends boolean = true> {
+  accordionBlocks?:
+    | T
+    | {
+        title?: T;
+        valueBlocks?:
+          | T
+          | {
+              accordionPlainTextBlock?: T | PlainTextBlockSelect<T>;
+              accordionTeamMembersBlock?: T | TeamMembersBlockSelect<T>;
+              formBlock?: T | FormBlockSelect<T>;
+              fileDownload?:
+                | T
+                | {
+                    file?: T;
+                    openInNewTab?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+            };
         id?: T;
       };
   id?: T;
@@ -2538,6 +3053,32 @@ export interface CampScheduleEntrySelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "helper-jobs_select".
+ */
+export interface HelperJobsSelect<T extends boolean = true> {
+  publishingStatus?: T;
+  _localized_status?: T;
+  _disable_unpublishing?: T;
+  _locale?: T;
+  title?: T;
+  description?: T;
+  category?: T;
+  maxQuota?: T;
+  dateRange?:
+    | T
+    | {
+        startDate?: T;
+        endDate?: T;
+      };
+  dateRangeCategory?: T;
+  prerequisites?: T;
+  submissions?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "images_select".
  */
 export interface ImagesSelect<T extends boolean = true> {
@@ -2754,6 +3295,20 @@ export interface ChatImagesSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "blocked-jobs_select".
+ */
+export interface BlockedJobsSelect<T extends boolean = true> {
+  originalJobId?: T;
+  workflowSlug?: T;
+  input?: T;
+  status?: T;
+  reason?: T;
+  resolutionData?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "forms_select".
  */
 export interface FormsSelect<T extends boolean = true> {
@@ -2766,6 +3321,7 @@ export interface FormsSelect<T extends boolean = true> {
           | T
           | {
               sectionTitle?: T;
+              layout?: T;
               fields?:
                 | T
                 | {
@@ -2776,6 +3332,7 @@ export interface FormsSelect<T extends boolean = true> {
                           label?: T;
                           required?: T;
                           defaultValue?: T;
+                          placement?: T;
                           id?: T;
                           blockName?: T;
                         };
@@ -2785,6 +3342,7 @@ export interface FormsSelect<T extends boolean = true> {
                           name?: T;
                           label?: T;
                           required?: T;
+                          placement?: T;
                           id?: T;
                           blockName?: T;
                         };
@@ -2795,6 +3353,7 @@ export interface FormsSelect<T extends boolean = true> {
                           label?: T;
                           placeholder?: T;
                           required?: T;
+                          placement?: T;
                           id?: T;
                           blockName?: T;
                         };
@@ -2813,6 +3372,7 @@ export interface FormsSelect<T extends boolean = true> {
                           defaultValue?: T;
                           placeholder?: T;
                           required?: T;
+                          placement?: T;
                           id?: T;
                           blockName?: T;
                         };
@@ -2833,6 +3393,7 @@ export interface FormsSelect<T extends boolean = true> {
                                 id?: T;
                               };
                           required?: T;
+                          placement?: T;
                           id?: T;
                           blockName?: T;
                         };
@@ -2846,6 +3407,7 @@ export interface FormsSelect<T extends boolean = true> {
                           required?: T;
                           inputValidation?: T;
                           inputValidationErrorMessage?: T;
+                          placement?: T;
                           id?: T;
                           blockName?: T;
                         };
@@ -2857,6 +3419,7 @@ export interface FormsSelect<T extends boolean = true> {
                           placeholder?: T;
                           defaultValue?: T;
                           required?: T;
+                          placement?: T;
                           id?: T;
                           blockName?: T;
                         };
@@ -2866,6 +3429,29 @@ export interface FormsSelect<T extends boolean = true> {
                           name?: T;
                           label?: T;
                           defaultValue?: T;
+                          required?: T;
+                          placement?: T;
+                          id?: T;
+                          blockName?: T;
+                        };
+                    ceviDbLogin?:
+                      | T
+                      | {
+                          name?: T;
+                          label?: T;
+                          saveField?: T;
+                          required?: T;
+                          placement?: T;
+                          id?: T;
+                          blockName?: T;
+                        };
+                    jobSelection?:
+                      | T
+                      | {
+                          name?: T;
+                          label?: T;
+                          dateRangeCategory?: T;
+                          category?: T;
                           required?: T;
                           id?: T;
                           blockName?: T;
@@ -2889,6 +3475,7 @@ export interface FormsSelect<T extends boolean = true> {
                                       label?: T;
                                       required?: T;
                                       defaultValue?: T;
+                                      placement?: T;
                                       id?: T;
                                       blockName?: T;
                                     };
@@ -2898,6 +3485,7 @@ export interface FormsSelect<T extends boolean = true> {
                                       name?: T;
                                       label?: T;
                                       required?: T;
+                                      placement?: T;
                                       id?: T;
                                       blockName?: T;
                                     };
@@ -2908,6 +3496,7 @@ export interface FormsSelect<T extends boolean = true> {
                                       label?: T;
                                       placeholder?: T;
                                       required?: T;
+                                      placement?: T;
                                       id?: T;
                                       blockName?: T;
                                     };
@@ -2926,6 +3515,7 @@ export interface FormsSelect<T extends boolean = true> {
                                       defaultValue?: T;
                                       placeholder?: T;
                                       required?: T;
+                                      placement?: T;
                                       id?: T;
                                       blockName?: T;
                                     };
@@ -2946,6 +3536,7 @@ export interface FormsSelect<T extends boolean = true> {
                                             id?: T;
                                           };
                                       required?: T;
+                                      placement?: T;
                                       id?: T;
                                       blockName?: T;
                                     };
@@ -2959,6 +3550,7 @@ export interface FormsSelect<T extends boolean = true> {
                                       required?: T;
                                       inputValidation?: T;
                                       inputValidationErrorMessage?: T;
+                                      placement?: T;
                                       id?: T;
                                       blockName?: T;
                                     };
@@ -2970,6 +3562,7 @@ export interface FormsSelect<T extends boolean = true> {
                                       placeholder?: T;
                                       defaultValue?: T;
                                       required?: T;
+                                      placement?: T;
                                       id?: T;
                                       blockName?: T;
                                     };
@@ -2980,10 +3573,34 @@ export interface FormsSelect<T extends boolean = true> {
                                       label?: T;
                                       defaultValue?: T;
                                       required?: T;
+                                      placement?: T;
+                                      id?: T;
+                                      blockName?: T;
+                                    };
+                                ceviDbLogin?:
+                                  | T
+                                  | {
+                                      name?: T;
+                                      label?: T;
+                                      saveField?: T;
+                                      required?: T;
+                                      placement?: T;
+                                      id?: T;
+                                      blockName?: T;
+                                    };
+                                jobSelection?:
+                                  | T
+                                  | {
+                                      name?: T;
+                                      label?: T;
+                                      dateRangeCategory?: T;
+                                      category?: T;
+                                      required?: T;
                                       id?: T;
                                       blockName?: T;
                                     };
                               };
+                          placement?: T;
                           id?: T;
                           blockName?: T;
                         };
@@ -3011,6 +3628,8 @@ export interface FormsSelect<T extends boolean = true> {
         message?: T;
         id?: T;
       };
+  workflow?: T;
+  workflowMapping?: T;
   submissions?: T;
   publishingStatus?: T;
   _localized_status?: T;
@@ -3034,6 +3653,8 @@ export interface FormSubmissionsSelect<T extends boolean = true> {
         value?: T;
         id?: T;
       };
+  'helper-job'?: T;
+  'helper-jobs'?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -3074,6 +3695,38 @@ export interface GoSelect<T extends boolean = true> {
 export interface PayloadKvSelect<T extends boolean = true> {
   key?: T;
   data?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-jobs_select".
+ */
+export interface PayloadJobsSelect<T extends boolean = true> {
+  input?: T;
+  taskStatus?: T;
+  completedAt?: T;
+  totalTried?: T;
+  hasError?: T;
+  error?: T;
+  log?:
+    | T
+    | {
+        executedAt?: T;
+        completedAt?: T;
+        taskSlug?: T;
+        taskID?: T;
+        input?: T;
+        output?: T;
+        state?: T;
+        error?: T;
+        id?: T;
+      };
+  workflowSlug?: T;
+  taskSlug?: T;
+  queue?: T;
+  waitUntil?: T;
+  processing?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -3395,6 +4048,16 @@ export interface AllChatsManagement {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "registration-management".
+ */
+export interface RegistrationManagement {
+  id: string;
+  dummy?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "header_select".
  */
 export interface HeaderSelect<T extends boolean = true> {
@@ -3563,6 +4226,169 @@ export interface AllChatsManagementSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "registration-management_select".
+ */
+export interface RegistrationManagementSelect<T extends boolean = true> {
+  dummy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskResolveUser".
+ */
+export interface TaskResolveUser {
+  input: {
+    peopleId?: string | null;
+    email?: string | null;
+    firstName?: string | null;
+    lastName?: string | null;
+    nickname?: string | null;
+    birthDate?: string | null;
+    address?: string | null;
+    company?: string | null;
+  };
+  output: {
+    peopleId: string;
+    firstName: string;
+    lastName: string;
+    nickname: string;
+    birthDate: string;
+    address: string;
+    status: 'found' | 'created' | 'ambiguous';
+    reason: string;
+    candidates?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "CreateUserInputOutput".
+ */
+export interface CreateUserInputOutput {
+  input: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    nickname?: string | null;
+  };
+  output: {
+    personId: string;
+    success: boolean;
+    error?: string | null;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskBlockJob".
+ */
+export interface TaskBlockJob {
+  input: {
+    workflowSlug?: string | null;
+    reason?: string | null;
+    originalInput?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+  };
+  output: {
+    blocked?: boolean | null;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskCleanupTemporaryRoles".
+ */
+export interface TaskCleanupTemporaryRoles {
+  input: {
+    userId: string;
+  };
+  output: {
+    success?: boolean | null;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskEnsureGroupMembership".
+ */
+export interface TaskEnsureGroupMembership {
+  input: {
+    userId: string;
+  };
+  output: {
+    success?: boolean | null;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskEnsureEventMembership".
+ */
+export interface TaskEnsureEventMembership {
+  input: {
+    userId: string;
+    firstName?: string | null;
+    lastName?: string | null;
+    answers?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+    internalComment?: string | null;
+  };
+  output: {
+    success?: boolean | null;
+    participationId?: string | null;
+    status?: string | null;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskConfirmationMessage".
+ */
+export interface TaskConfirmationMessage {
+  input: {
+    userId: string;
+  };
+  output: {
+    sent?: boolean | null;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "WorkflowRegistrationWorkflow".
+ */
+export interface WorkflowRegistrationWorkflow {
+  input: {
+    input:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+  };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

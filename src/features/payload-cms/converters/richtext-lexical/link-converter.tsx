@@ -1,4 +1,12 @@
 import { LinkComponent } from '@/components/ui/link-component';
+import type {
+  Blog,
+  CampMapAnnotation,
+  CampScheduleEntry,
+  Document,
+  GenericPage,
+  Image as PayloadImage,
+} from '@/features/payload-cms/payload-types';
 import { slugToUrlMapping } from '@/features/payload-cms/slug-to-url-mapping';
 import { getLanguagePrefix } from '@/features/payload-cms/utils/get-language-prefix';
 import type { Locale } from '@/types/types';
@@ -8,19 +16,19 @@ import type { JSXConverters } from '@payloadcms/richtext-lexical/react';
 /**
  * The fields of a link node.
  */
-interface LinkFields {
+export interface LinkFields {
   url: string | undefined;
   linkType: string;
   newTab?: boolean;
   doc: {
-    value: {
-      seo: {
-        urlSlug: string;
-      };
-      _locale: Locale;
-      id?: string;
-      url?: string; // images, documents
-    };
+    value:
+      | string
+      | Blog
+      | GenericPage
+      | CampMapAnnotation
+      | CampScheduleEntry
+      | Document
+      | PayloadImage;
     relationTo: string;
   };
 }
@@ -34,23 +42,34 @@ interface LinkFields {
  *
  */
 
-const resolveInternalLink = (fields: LinkFields): string => {
+const resolveInternalLink = (fields: LinkFields, currentLocale?: Locale): string => {
   const url = fields.url ?? '';
 
-  const locale = fields.doc.value._locale;
-  let langPrefix = getLanguagePrefix(locale);
-  langPrefix = langPrefix === '' ? '' : `${langPrefix}/`;
+  if (typeof fields.doc.value === 'string') {
+    return `/${url}`;
+  }
+
+  const documentValue = fields.doc.value;
 
   if (fields.linkType === 'internal') {
     switch (fields.doc.relationTo) {
       case 'generic-page':
       case 'blog': {
-        const urlSlug = `${fields.doc.value.seo.urlSlug}`;
+        // We cast to any to access _locale because it might not be present on all types in the union
+        // or the specific generated type might differ slightly.
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+        const locale = currentLocale ?? ((documentValue as any)._locale as Locale);
+        let langPrefix = getLanguagePrefix(locale);
+        langPrefix = langPrefix === '' ? '' : `${langPrefix}/`;
+
+        // Cast to a type that has seo.urlSlug. Blog and GenericPage both have it.
+        const valueWithSeo = documentValue as Blog | GenericPage;
+        const urlSlug = `${valueWithSeo.seo.urlSlug}`;
         const collectionName = fields.doc.relationTo as string;
-        for (const value of Object.values(slugToUrlMapping)) {
-          if (value.slug === collectionName) {
+        for (const mappingValue of Object.values(slugToUrlMapping)) {
+          if (mappingValue.slug === collectionName) {
             // might be undefined if locale is undefined
-            const urlPrefix = value.urlPrefix[locale] as string | undefined;
+            const urlPrefix = mappingValue.urlPrefix[locale] as string | undefined;
             return urlPrefix === '' || urlPrefix === undefined
               ? `/${langPrefix}${urlSlug}`
               : `/${langPrefix}${urlPrefix}/${urlSlug}`;
@@ -60,60 +79,84 @@ const resolveInternalLink = (fields: LinkFields): string => {
         break;
       }
       case 'camp-map-annotations': {
-        const campAnnotationId = fields.doc.value.id;
-        if (campAnnotationId == undefined) return `/${url}`;
-        return `/app/map?locationId=${campAnnotationId}`;
+        const campAnnotation = documentValue as CampMapAnnotation;
+        return `/app/map?locationId=${campAnnotation.id}`;
       }
       case 'images':
       case 'documents': {
-        // for media files, we just return the URL as is
-        return `${fields.doc.value.url}`;
+        const media = documentValue as Document | PayloadImage;
+        return `${media.url ?? ''}`;
       }
       case 'camp-schedule-entry': {
-        return `/app/schedule/${fields.doc.value.id}`;
+        const entry = documentValue as CampScheduleEntry;
+        return `/app/schedule/${entry.id}`;
       }
-      default:
-      // No default
+      default: {
+        console.warn(`Unhandled link relationTo: ${fields.doc.relationTo}`);
+        if (typeof globalThis !== 'undefined') {
+          void import('posthog-js').then(({ default: posthog }) => {
+            posthog.capture('rich_text_link_unhandled_relation', {
+              relationTo: fields.doc.relationTo,
+            });
+          });
+        }
+      }
     }
   }
 
   return `/${url}`;
 };
 
-const linkConverter: JSXConverters<SerializedParagraphNode>['link'] = ({ node, nodesToJSX }) => {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access
-  const children = nodesToJSX({ nodes: node.children });
+const createLinkConverter =
+  (locale?: Locale): JSXConverters<SerializedParagraphNode>['link'] =>
+  ({ node, nodesToJSX }) => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access
+    const children = nodesToJSX({ nodes: node.children });
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  const fields = node.fields as unknown as LinkFields;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      const fields = node.fields as unknown as LinkFields;
 
-  let url = fields.url ?? '';
+      let url = fields.url ?? '';
 
-  if (fields.linkType === 'internal') {
-    url = resolveInternalLink(fields);
-  }
+      if (fields.linkType === 'internal') {
+        url = resolveInternalLink(fields, locale);
+      }
 
-  return (
-    <LinkComponent
-      href={url}
-      className="font-extrabold text-red-600"
-      openInNewTab={fields.newTab ?? false}
-    >
-      {children}
-    </LinkComponent>
-  );
-};
+      return (
+        <LinkComponent
+          href={url}
+          className="font-extrabold text-red-600"
+          openInNewTab={fields.newTab ?? false}
+        >
+          {children}
+        </LinkComponent>
+      );
+    } catch (error) {
+      console.error('Error converting link node:', error);
+      if (typeof globalThis !== 'undefined') {
+        void import('posthog-js').then(({ default: posthog }) => {
+          posthog.captureException(error);
+        });
+      }
+      return <>{children}</>;
+    }
+  };
 
 /**
  *
  * Converts a link node to JSX.
  * Resolves external and internal links to the correct URL.
  *
- * @param node - The link node to convert.
- * @param nodesToJSX - The function to convert the children of the link node to JSX.
+ * @param locale - The locale used for resolving internal links.
  *
  */
-export const LinkJSXConverter: JSXConverters<SerializedParagraphNode> = {
-  link: linkConverter,
-  autolink: linkConverter, // this is used to resolve copy-pasted links
+export const getLinkJSXConverter = (locale?: Locale): JSXConverters<SerializedParagraphNode> => {
+  const linkConverter = createLinkConverter(locale);
+  return {
+    link: linkConverter,
+    autolink: linkConverter, // this is used to resolve copy-pasted links
+  };
 };
+
+export const LinkJSXConverter = getLinkJSXConverter();

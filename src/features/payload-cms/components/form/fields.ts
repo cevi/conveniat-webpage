@@ -1,7 +1,9 @@
+import { CeviDatabaseLogin } from '@/features/payload-cms/components/form/cevi-db-login';
 import { Checkbox } from '@/features/payload-cms/components/form/checkbox';
 import { Country } from '@/features/payload-cms/components/form/country';
 import { Date } from '@/features/payload-cms/components/form/date';
 import { Email } from '@/features/payload-cms/components/form/email';
+import { JobSelection } from '@/features/payload-cms/components/form/job-selection';
 import { Message } from '@/features/payload-cms/components/form/message';
 import { Number } from '@/features/payload-cms/components/form/number';
 import { Select } from '@/features/payload-cms/components/form/select';
@@ -20,4 +22,6 @@ export const fields: Record<string, React.FC<any>> = {
   textarea: TextArea,
   message: Message,
   date: Date,
+  ceviDbLogin: CeviDatabaseLogin,
+  jobSelection: JobSelection,
 };

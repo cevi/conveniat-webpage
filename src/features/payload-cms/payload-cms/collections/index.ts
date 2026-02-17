@@ -5,6 +5,7 @@ import { CampScheduleEntryCollection } from '@/features/payload-cms/payload-cms/
 import { ChatImagesCollection } from '@/features/payload-cms/payload-cms/collections/chat-images-collection';
 import { DocumentsCollection } from '@/features/payload-cms/payload-cms/collections/documents-collection';
 import { GenericPage as GenericPageCollection } from '@/features/payload-cms/payload-cms/collections/generic-page';
+import { JobCollection } from '@/features/payload-cms/payload-cms/collections/helper-job-collection';
 import { ImageCollection } from '@/features/payload-cms/payload-cms/collections/image-collection';
 import { PermissionsCollection } from '@/features/payload-cms/payload-cms/collections/permission-collection';
 import { PushNotificationSubscriptions } from '@/features/payload-cms/payload-cms/collections/push-notification-subscriptions';
@@ -14,6 +15,7 @@ import { UserCollection } from '@/features/payload-cms/payload-cms/collections/u
 import { UserSubmittedImagesCollection } from '@/features/payload-cms/payload-cms/collections/user-submitted-images-collection';
 import { asInstrumentalCollection } from '@/features/payload-cms/payload-cms/utils/instrumentalized-collection';
 import { slugToUrlMapping } from '@/features/payload-cms/slug-to-url-mapping';
+import { BlockedJobs } from '@/features/registration_process/collections/blocked-jobs';
 import type { RoutableCollectionConfigs } from '@/types/types';
 import type { CollectionConfig } from 'payload';
 
@@ -29,6 +31,7 @@ const rawCollectionsConfig: CollectionConfig[] = [
   CampMapAnnotationsCollection,
   CampCategoryCollection,
   CampScheduleEntryCollection,
+  JobCollection,
 
   // general purpose collections, not routable
   ImageCollection,
@@ -39,6 +42,7 @@ const rawCollectionsConfig: CollectionConfig[] = [
   PushNotificationSubscriptions,
   TimelineEntryCategory,
   ChatImagesCollection,
+  BlockedJobs,
 ];
 
 /**

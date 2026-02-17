@@ -56,6 +56,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const [isLongPressing, setIsLongPressing] = useState(false);
   const [swipeX, setSwipeX] = useState(0);
+  const isPointerDown = useRef(false);
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
   const longPressTimerReference = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -84,9 +85,13 @@ export const MessageComponent: React.FC<MessageProperties> = ({
     // Only handle primary button
     if (event.button !== 0) return;
 
+    isPointerDown.current = true;
     touchStartX.current = event.clientX;
     touchStartY.current = event.clientY;
     setIsLongPressing(true);
+
+    // Capture the pointer to ensure we receive events even if the pointer leaves the element
+    event.currentTarget.setPointerCapture(event.pointerId);
 
     longPressTimerReference.current = setTimeout(() => {
       console.log('Long press triggered', { messageId: message.id });
@@ -97,7 +102,12 @@ export const MessageComponent: React.FC<MessageProperties> = ({
     }, 500); // 500ms for long press selection
   };
 
-  const handlePointerUp = (): void => {
+  const handlePointerUp = (event: React.PointerEvent): void => {
+    if (!isPointerDown.current) return;
+    isPointerDown.current = false;
+
+    // Release the pointer capture
+    event.currentTarget.releasePointerCapture(event.pointerId);
     if (longPressTimerReference.current) {
       clearTimeout(longPressTimerReference.current);
       longPressTimerReference.current = undefined;
@@ -115,6 +125,8 @@ export const MessageComponent: React.FC<MessageProperties> = ({
   };
 
   const handlePointerMove = (event: React.PointerEvent): void => {
+    if (!isPointerDown.current) return;
+
     const deltaX = event.clientX - touchStartX.current;
     const deltaY = event.clientY - touchStartY.current;
 
@@ -130,11 +142,13 @@ export const MessageComponent: React.FC<MessageProperties> = ({
     }
   };
 
-  const handlePointerCancel = (): void => {
+  const handlePointerCancel = (event: React.PointerEvent): void => {
     if (longPressTimerReference.current) {
       clearTimeout(longPressTimerReference.current);
       longPressTimerReference.current = undefined;
     }
+    isPointerDown.current = false;
+    event.currentTarget.releasePointerCapture(event.pointerId);
     setIsLongPressing(false);
     setSwipeX(0);
   };
@@ -258,7 +272,9 @@ export const MessageComponent: React.FC<MessageProperties> = ({
                 )}
               >
                 <span className="line-clamp-2 text-[0.8rem] leading-snug">
-                  {quotedSnippet || replyToMessageText[locale]}
+                  {typeof quotedSnippet === 'string' && quotedSnippet.length > 0
+                    ? quotedSnippet
+                    : replyToMessageText[locale]}
                 </span>
               </div>
             )}

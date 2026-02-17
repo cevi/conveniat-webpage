@@ -1,5 +1,5 @@
 import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
-import prisma from '@/lib/database';
+import prisma from '@/lib/db/prisma';
 import { fakerDE as faker } from '@faker-js/faker';
 import type { Payload } from 'payload';
 

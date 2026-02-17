@@ -26,7 +26,7 @@ const unpublishingActionString: StaticTranslationString = {
   fr: 'Dépublier en',
 };
 
-const publishActionAstring: StaticTranslationString = {
+const publishActionString: StaticTranslationString = {
   en: 'Publish in',
   de: 'Veröffentlichen auf',
   fr: 'Publier en',
@@ -179,14 +179,16 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
         publishSpecificLocale: code,
       });
 
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-expect-error
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const action = `${serverURL}${api}${
-        globalSlug === undefined
-          ? `/${collectionSlug}/${id === undefined ? '' : `/${id}`}`
-          : `/globals/${globalSlug}`
+        globalSlug === undefined ? `/${collectionSlug}/${id ?? ''}` : `/globals/${globalSlug}`
       }${parameters === '' ? '' : '?' + parameters}`;
 
       await submit({
-        action,
+        // TODO: temporary fix for https://github.com/payloadcms/payload/issues/15642
+        // action,
         overrides: {
           _status: 'published',
           _localized_status: {
@@ -213,6 +215,9 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
         publishSpecificLocale: code,
       });
 
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-expect-error
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const action = `${serverURL}${api}${
         globalSlug === undefined
           ? `/${collectionSlug}/${id === undefined ? '' : `/${id}`}`
@@ -220,7 +225,8 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
       }${parameters === '' ? '' : '?' + parameters}`;
 
       await submit({
-        action,
+        // TODO: temporary fix for https://github.com/payloadcms/payload/issues/15642
+        // action,
         overrides: {
           _status: 'published',
           _localized_status: {
@@ -292,7 +298,7 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
         locale={code}
         title={
           modalType === 'publish'
-            ? `${publishActionAstring[code]} ${languageNames[code]}`
+            ? `${publishActionString[code]} ${languageNames[code]}`
             : `${unpublishingActionString[code]} ${languageNames[code]}`
         }
         confirmLabel={confirmButtonString[code]}
@@ -322,7 +328,7 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
             size="medium"
             type="button"
           >
-            {publishActionAstring[code]} {languageNames[code]}
+            {publishActionString[code]} {languageNames[code]}
           </FormSubmit>
           {(isLockedPublished || isCreating) && (
             <span className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 w-max max-w-xs -translate-x-1/2 transform rounded-md bg-gray-800 px-3 py-2 text-sm text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">

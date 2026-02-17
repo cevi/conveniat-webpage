@@ -18,7 +18,7 @@ const Layout: React.FC<LayoutProperties> = async ({ children, params }) => {
   return (
     <>
       <SetDynamicPageTitle newTitle="conveniat27" />
-      <div className="min-h-[calc(100dvh-280px)] min-w-full overflow-x-hidden pt-8 pb-24 min-[1280px]:px-12 min-[1800px]:px-18 min-[2400px]:px-96">
+      <div className="min-h-[calc(100dvh-280px)] min-w-full overflow-x-hidden pt-8 pb-24 xl:px-12">
         {children}
       </div>
       <footer className="w-full">

@@ -1,4 +1,5 @@
-import { createServerFeature } from '@payloadcms/richtext-lexical';
+import { BiggerParagraphNode } from '@/features/payload-cms/payload-cms/shared-fields/rich-text-paragraph-field/bigger-paragraph-node';
+import { createNode, createServerFeature } from '@payloadcms/richtext-lexical';
 
 /**
  * Feature to create a bigger paragraph in the rich text editor.
@@ -27,6 +28,7 @@ export const biggerParagraphFeature = createServerFeature({
         label2: 'Paragraphe plus grand',
       },
     },
+    nodes: [createNode({ node: BiggerParagraphNode })],
   },
   key: 'biggerParagraph',
 });

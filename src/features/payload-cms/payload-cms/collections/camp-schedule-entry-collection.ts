@@ -10,9 +10,8 @@ import { syncOrganisers } from '@/features/payload-cms/payload-cms/utils/sync-or
 export const CampScheduleEntryCollection: CollectionConfig = {
   slug: 'camp-schedule-entry',
   trash: true,
-  ...flushPageCacheOnChange,
   hooks: {
-    afterChange: [syncOrganisers],
+    afterChange: [flushPageCacheOnChange, syncOrganisers],
   },
 
   labels: {

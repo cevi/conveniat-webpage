@@ -42,8 +42,10 @@ const hasFieldDifferentValue = (
   value1: unknown,
   value2: unknown,
 ): boolean => {
-  if (value1 === undefined || value2 === undefined) return false;
-  if (value1 === null || value2 === null) return false;
+  if (value1 === undefined && value2 === undefined) return false;
+  if (value1 === null && value2 === null) return false;
+  if (value1 === undefined || value2 === undefined) return true;
+  if (value1 === null || value2 === null) return true;
 
   if (field.localized) {
     if (locale === undefined) throw new Error('Locale is undefined but field is localized');
@@ -129,7 +131,8 @@ const hasDiffs = (
   document1: PayloadDocument | undefined,
   document2: PayloadDocument | undefined,
 ): boolean => {
-  if (document1 === undefined || document2 === undefined) return false;
+  if (document1 === undefined && document2 === undefined) return false;
+  if (document1 === undefined || document2 === undefined) return true;
 
   for (const field of fieldDefs) {
     if (ignoredFields.has(field.name ?? '')) continue; // skip ignored fields
@@ -225,26 +228,33 @@ const hasDiffs = (
       case 'collapsible':
       case 'array': {
         if (fields === undefined) throw new Error('Fields are undefined');
-        const isValue1Iterable = Array.isArray(value1);
-        if (isValue1Iterable) {
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-expect-error
+
+        if (type === 'group' && field.localized) {
+          const v1 = (
+            value1 as Record<Config['locale'], PayloadDocument | undefined> | undefined
+          )?.[locale];
+          const v2 = (
+            value2 as Record<Config['locale'], PayloadDocument | undefined> | undefined
+          )?.[locale];
+          if (hasDiffs(locale, fields, v1, v2)) return true;
+          break;
+        }
+
+        if (Array.isArray(value1)) {
+          if (value2 === undefined || !Array.isArray(value2)) return true;
           if (value1.length !== value2.length) return true;
 
-          for (const _value1 of value1 as { id: string }[]) {
+          for (const _value1 of value1 as ({ id: string } & Record<string, unknown>)[]) {
             const idV1 = _value1.id;
 
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-expect-error
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
-            const _value2 = value2.find((v) => v.id === idV1);
+            const _value2 = (value2 as { id: string }[]).find((v) => v.id === idV1);
             if (_value2 === undefined) return true; // value isn't found in document2
             if (
               hasDiffs(
                 locale,
                 fields,
                 _value1 as unknown as PayloadDocument,
-                _value2 as PayloadDocument,
+                _value2 as unknown as PayloadDocument,
               )
             ) {
               return true;
@@ -252,15 +262,10 @@ const hasDiffs = (
           }
 
           // verify that the array elements are in the same order
-
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-expect-error
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-          for (const [index, element] of value1.entries()) {
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-expect-error
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            if (element.id !== value2[index].id) return true;
+          for (const [index, element] of (
+            value1 as ({ id: string } & Record<string, unknown>)[]
+          ).entries()) {
+            if (element.id !== (value2 as { id: string }[])[index]?.id) return true;
           }
         } else {
           if (hasDiffs(locale, fields, value1 as PayloadDocument, value2 as PayloadDocument))

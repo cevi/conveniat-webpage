@@ -15,7 +15,7 @@ import type { CollectionConfig } from 'payload';
 export const GenericPage: CollectionConfig = asLocalizedCollection({
   slug: 'generic-page',
   trash: true,
-  ...flushPageCacheOnChange,
+  hooks: { afterChange: [flushPageCacheOnChange] },
 
   labels: {
     singular: {

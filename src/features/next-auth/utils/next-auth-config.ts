@@ -37,8 +37,9 @@ declare module 'next-auth/jwt' {
     refresh_token?: string | undefined;
     expires_at?: number | undefined;
     uuid?: string;
+    cevi_db_uuid?: number;
     group_ids?: number[];
-    nickname?: string;
+    nickname?: string | null;
     email?: string;
     name?: string;
     error?: string;
@@ -132,7 +133,7 @@ async function fetchWithRetry(url: string, options: RequestInit, retries = 3): P
   let attempt = 0;
   while (attempt < retries) {
     try {
-      // @ts-ignore - Undici Agent is handled globally via setGlobalDispatcher,
+      // Undici Agent is handled globally via setGlobalDispatcher,
       // but we can also pass specific dispatcher options if needed.
       // For now, the global agent should suffice.
       return await fetch(url, { ...options, cache: 'no-store' });
@@ -163,7 +164,7 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: new URLSearchParams({
-        // @ts-ignore
+        // @ts-ignore - Env vars might be undefined but we trust them here
         client_id: CEVI_DB_CLIENT_ID,
         // @ts-ignore
         client_secret: CEVI_DB_CLIENT_SECRET,
@@ -215,6 +216,7 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
         expires_at: Math.floor(Date.now() / 1000) + refreshedTokens.expires_in,
         // Update persisted user data
         uuid: payloadCMSUser.id,
+        cevi_db_uuid: payloadCMSUser.cevi_db_uuid, // Update cevi_db_uuid
         group_ids: profile.roles.map((role) => role.group_id),
         email: profile.email,
         name: profile.first_name + ' ' + profile.last_name,
@@ -297,11 +299,9 @@ export const authOptions: NextAuthConfig = {
     session({ session, token }) {
       session.user = {
         ...session.user,
-        // @ts-ignore
         uuid: token.uuid,
-        // @ts-ignore
+        cevi_db_uuid: token.cevi_db_uuid,
         group_ids: token.group_ids,
-        // @ts-ignore
         nickname: token.nickname,
       };
       return session;
@@ -327,7 +327,8 @@ export const authOptions: NextAuthConfig = {
           refresh_token: account.refresh_token,
           // @ts-ignore
           expires_at: account.expires_at ?? Math.floor(Date.now() / 1000) + 3600,
-          uuid: payloadCMSUser.id, // the id of the user in the CeviDB
+          uuid: payloadCMSUser.id,
+          cevi_db_uuid: payloadCMSUser.cevi_db_uuid, // the id of the user in the CeviDB as number
           group_ids: profile.roles.map((role) => role.group_id),
           email: profile.email,
           name: profile.first_name + ' ' + profile.last_name,

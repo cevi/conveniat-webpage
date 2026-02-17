@@ -256,14 +256,8 @@ export const Select: React.FC<
     );
   }
 
-  const maxContentLength = Math.max(...options.map((option) => option.label.length));
-  const gridColsClass =
-    maxContentLength > 5
-      ? 'grid-cols-1 sm:grid-cols-2'
-      : 'grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6';
-
   return (
-    <div className="mb-4">
+    <div className="@container mb-4">
       <div>
         <label className="font-body mb-3 block text-sm font-medium text-gray-500">
           {label}
@@ -277,7 +271,7 @@ export const Select: React.FC<
             required: requiredFromProperties ? fieldIsRequiredText[locale as Locale] : false,
           }}
           render={({ field: { onChange, value } }) => (
-            <div className={cn('grid gap-3', gridColsClass)}>
+            <div className="grid grid-cols-2 gap-3 @md:grid-cols-4 @lg:grid-cols-5">
               {options.map((option) => {
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                 const isSelected: boolean = allowMultiple
@@ -311,9 +305,9 @@ export const Select: React.FC<
                           isSelected && !hasError,
                         'border-red-500 bg-red-50 text-red-700 ring-red-600':
                           isSelected && hasError,
-                        'border-gray-300 bg-white text-gray-700 hover:border-gray-400 hover:bg-gray-50 focus:ring-green-600':
+                        'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50 focus:ring-green-600':
                           !isSelected && !hasError,
-                        'border-red-300 bg-white text-gray-700 hover:border-red-400 hover:bg-red-50 focus:ring-red-600':
+                        'border-red-200 bg-white text-gray-700 hover:border-red-300 hover:bg-red-50 focus:ring-red-600':
                           !isSelected && hasError,
                       },
                     )}

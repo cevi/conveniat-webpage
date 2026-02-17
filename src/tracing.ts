@@ -78,8 +78,13 @@ class IgnoreTempoErrorLogger implements DiagLogger {
   }
 
   private shouldIgnore(message: string, args: unknown[]): boolean {
-    // Suppress tempo connection errors
-    if (message.includes('getaddrinfo ENOTFOUND tempo') || message.includes('ECONNREFUSED tempo')) {
+    // Suppress tempo and localhost/127.0.0.1 OTLP connection errors
+    if (
+      message.includes('getaddrinfo ENOTFOUND tempo') ||
+      message.includes('ECONNREFUSED tempo') ||
+      message.includes('ECONNREFUSED 127.0.0.1:4318') ||
+      message.includes('ECONNREFUSED localhost:4318')
+    ) {
       return true;
     }
 
@@ -106,14 +111,19 @@ class IgnoreTempoErrorLogger implements DiagLogger {
 
     if (typeof argument === 'string') {
       return (
-        argument.includes('getaddrinfo ENOTFOUND tempo') || argument.includes('ECONNREFUSED tempo')
+        argument.includes('getaddrinfo ENOTFOUND tempo') ||
+        argument.includes('ECONNREFUSED tempo') ||
+        argument.includes('ECONNREFUSED 127.0.0.1:4318') ||
+        argument.includes('ECONNREFUSED localhost:4318')
       );
     }
 
     if (argument instanceof Error) {
       return (
         argument.message.includes('getaddrinfo ENOTFOUND tempo') ||
-        argument.message.includes('ECONNREFUSED tempo')
+        argument.message.includes('ECONNREFUSED tempo') ||
+        argument.message.includes('ECONNREFUSED 127.0.0.1:4318') ||
+        argument.message.includes('ECONNREFUSED localhost:4318')
       );
     }
 
@@ -122,7 +132,13 @@ class IgnoreTempoErrorLogger implements DiagLogger {
       return (
         (record['code'] === 'ENOTFOUND' && record['hostname'] === 'tempo') ||
         (record['code'] === 'ECONNREFUSED' && record['address'] === 'tempo') ||
-        (typeof record['message'] === 'string' && record['message'].includes('tempo'))
+        (record['code'] === 'ECONNREFUSED' &&
+          record['address'] === '127.0.0.1' &&
+          record['port'] === 4318) ||
+        (typeof record['message'] === 'string' &&
+          (record['message'].includes('tempo') ||
+            record['message'].includes('127.0.0.1:4318') ||
+            record['message'].includes('localhost:4318')))
       );
     }
 

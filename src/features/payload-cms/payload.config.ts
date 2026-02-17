@@ -1,4 +1,4 @@
-import { environmentVariables } from '@/config/environment-variables';
+import { environmentVariables as env } from '@/config/environment-variables';
 import { buildSecureConfig } from '@/features/payload-cms/payload-cms/access-rules/build-secure-config';
 import { collectionsConfig } from '@/features/payload-cms/payload-cms/collections';
 import { UserCollection } from '@/features/payload-cms/payload-cms/collections/user-collection';
@@ -13,16 +13,26 @@ import { redirectsPluginConfiguration } from '@/features/payload-cms/payload-cms
 import { s3StorageConfiguration } from '@/features/payload-cms/payload-cms/plugins/s3-storage-plugin-configuration';
 import { searchPluginConfiguration } from '@/features/payload-cms/payload-cms/plugins/search/search-plugin-configuration';
 import { smartphoneBreakpoints } from '@/features/payload-cms/utils/smartphone-breakpoints';
-import type { Locale as LocaleType, RoutableConfig, StaticTranslationString } from '@/types/types';
-import { mongooseAdapter } from '@payloadcms/db-mongodb';
+import { registrationWorkflow } from '@/features/registration_process/workflows/registration-workflow';
+import { blockJobStep } from '@/features/registration_process/workflows/steps/block-job';
+import { cleanupTemporaryRolesStep } from '@/features/registration_process/workflows/steps/cleanup-temporary-roles';
+import { confirmationMessageStep } from '@/features/registration_process/workflows/steps/confirmation-message';
+import { createUserStep } from '@/features/registration_process/workflows/steps/create-user';
+import { ensureEventMembershipStep } from '@/features/registration_process/workflows/steps/ensure-event-membership';
+import { ensureGroupMembershipStep } from '@/features/registration_process/workflows/steps/ensure-group-membership';
+import { resolveUserStep } from '@/features/registration_process/workflows/steps/resolve-user';
+import type { RoutableConfig } from '@/types/types';
+import { redirectsTranslations } from '@payloadcms/plugin-redirects';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { CollectionConfig, Locale } from 'payload';
 
 import {
   enabledWidgets,
   widgetDefaultLayout,
 } from '@/features/payload-cms/payload-cms/widgets/widget-configuration';
+import { generatePreviewUrl } from '@/features/payload-cms/utils/preview/generate-preview-url';
+import { dbConfig } from '@/lib/db/mongodb';
+import type { JobsConfig, MetaConfig } from 'payload';
 import { de } from 'payload/i18n/de';
 import { en } from 'payload/i18n/en';
 import { fr } from 'payload/i18n/fr';
@@ -31,132 +41,93 @@ import sharp from 'sharp';
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
 
-/**
- * Database configuration for PayloadCMS.
- *
- * We use the mongoose adapter to connect to the MongoDB database.
- * Important is the minPoolSize and maxPoolSize to ensure that we avoid
- * high latency and connection pool exhaustion.
- *
- */
-const dbConfig = mongooseAdapter({
-  url: environmentVariables.DATABASE_URI,
-  connectOptions: {
-    minPoolSize: 5,
-    maxPoolSize: 100,
+const defaultMetaConfig: MetaConfig = {
+  title: 'Admin Panel',
+  description: 'conveniat27 - Admin Panel',
+  icons: [
+    {
+      rel: 'icon',
+      type: 'image/svg+xml',
+      url: '/favicon.svg',
+    },
+  ],
+  titleSuffix: ' | conveniat27',
+  openGraph: {
+    title: 'conveniat27 - Admin Panel',
+    description: 'conveniat27 - Admin Panel',
+    images: [
+      {
+        url: '/favicon.svg',
+        width: 75,
+        height: 75,
+      },
+    ],
   },
-});
+};
 
-/**
- * Generates the preview URL for the live preview feature.
- *
- * @param data
- * @param collectionConfig
- * @param locale
- */
-const generatePreviewUrl = ({
-  data,
-  collectionConfig,
-  locale,
-}: {
-  data: { seo?: { urlSlug?: string }; id?: string } | null | undefined;
-  collectionConfig?: CollectionConfig;
-  locale: Locale;
-}): string => {
-  if (data === undefined || data === null) return '';
+const payloadConfigAdminSettings: RoutableConfig['admin'] = {
+  suppressHydrationWarning: true,
+  avatar: 'default',
+  meta: defaultMetaConfig,
+  components: {
+    graphics: {
+      Icon: '@/components/svg-logos/conveniat-logo.tsx#ConveniatLogo',
+      Logo: '@/components/svg-logos/conveniat-logo.tsx#ConveniatLogo',
+    },
+    beforeDashboard: [
+      {
+        path: '@/features/payload-cms/payload-cms/components/dashboard-welcome-banner',
+      },
+    ],
+    afterLogin: [
+      {
+        path: '@/features/payload-cms/payload-cms/components/login-page/admin-panel-login-page',
+      },
+    ],
+  },
+  user: UserCollection.slug,
+  importMap: {
+    baseDir: path.resolve(dirname),
+  },
+  dateFormat: 'yyyy-MM-dd HH:mm',
+  timezones: {
+    supportedTimezones: [{ label: 'Europe/Zurich', value: 'Europe/Zurich' }],
+    defaultTimezone: 'Europe/Zurich',
+  },
+  livePreview: {
+    url: generatePreviewUrl,
+    breakpoints: smartphoneBreakpoints,
+    collections: ['blog', 'generic-page', 'timeline', 'forms', 'camp-map-annotations'],
+  },
+  dashboard: {
+    widgets: enabledWidgets,
+    defaultLayout: widgetDefaultLayout,
+  },
+};
 
-  if (collectionConfig) {
-    if (collectionConfig.slug === 'timeline' && data.id !== undefined) {
-      return `${environmentVariables.APP_HOST_URL}/${locale.code}/timeline-preview/${data.id}?preview=true`;
-    }
-
-    if (collectionConfig.slug === 'forms' && data.id !== undefined) {
-      const urlSlugs: StaticTranslationString = {
-        en: 'form-preview',
-        de: 'formular-vorschau',
-        fr: 'apercu-du-formulaire',
-      };
-
-      return `${environmentVariables.APP_HOST_URL}/${locale.code}/${urlSlugs[locale.code as LocaleType]}/${data.id}?preview=true`;
-    }
-
-    if (collectionConfig.slug === 'camp-map-annotations' && data.id !== undefined) {
-      return `${environmentVariables.APP_HOST_URL}/app/map?locationId=${data.id}&preview=true`;
-    }
-  }
-
-  if (!data.seo) return '';
-  const urlSlug: string | undefined = data.seo.urlSlug;
-  if (urlSlug == undefined) return '';
-
-  return `${environmentVariables.APP_HOST_URL}/${locale.code}/${
-    collectionConfig?.slug === 'blog' ? `blog/` : ''
-  }${urlSlug}?preview=true`;
+const jobsConfig: JobsConfig = {
+  deleteJobOnComplete: false,
+  tasks: [
+    resolveUserStep,
+    createUserStep,
+    blockJobStep,
+    cleanupTemporaryRolesStep,
+    ensureGroupMembershipStep,
+    ensureEventMembershipStep,
+    confirmationMessageStep,
+  ],
+  workflows: [registrationWorkflow],
+  autoRun: [
+    {
+      cron: '*/10 * * * * *', // Every 10 seconds
+      limit: 10,
+    },
+  ],
 };
 
 export const payloadConfig: RoutableConfig = {
   onInit: onPayloadInit,
-  admin: {
-    suppressHydrationWarning: true,
-    avatar: 'default',
-    meta: {
-      title: 'Admin Panel',
-      description: 'conveniat27 - Admin Panel',
-      icons: [
-        {
-          rel: 'icon',
-          type: 'image/svg+xml',
-          url: '/favicon.svg',
-        },
-      ],
-      titleSuffix: ' | conveniat27',
-      openGraph: {
-        title: 'conveniat27 - Admin Panel',
-        description: 'conveniat27 - Admin Panel',
-        images: [
-          {
-            url: '/favicon.svg',
-            width: 75,
-            height: 75,
-          },
-        ],
-      },
-    },
-    components: {
-      graphics: {
-        Icon: '@/components/svg-logos/conveniat-logo.tsx#ConveniatLogo',
-        Logo: '@/components/svg-logos/conveniat-logo.tsx#ConveniatLogo',
-      },
-      beforeDashboard: [
-        {
-          path: '@/features/payload-cms/payload-cms/components/dashboard-welcome-banner',
-        },
-      ],
-      afterLogin: [
-        {
-          path: '@/features/payload-cms/payload-cms/components/login-page/admin-panel-login-page',
-        },
-      ],
-    },
-    user: UserCollection.slug,
-    importMap: {
-      baseDir: path.resolve(dirname),
-    },
-    dateFormat: 'yyyy-MM-dd HH:mm',
-    timezones: {
-      supportedTimezones: [{ label: 'Europe/Zurich', value: 'Europe/Zurich' }],
-      defaultTimezone: 'Europe/Zurich',
-    },
-    livePreview: {
-      url: generatePreviewUrl,
-      breakpoints: smartphoneBreakpoints,
-      collections: ['blog', 'generic-page', 'timeline', 'forms', 'camp-map-annotations'],
-    },
-    dashboard: {
-      widgets: enabledWidgets,
-      defaultLayout: widgetDefaultLayout,
-    },
-  },
+  admin: payloadConfigAdminSettings,
   collections: collectionsConfig,
   editor: lexicalEditor,
   globals: globalConfig,
@@ -169,10 +140,10 @@ export const payloadConfig: RoutableConfig = {
     disable: true, // we don't need GraphQL for this project
     disablePlaygroundInProduction: true,
   },
-  secret: environmentVariables.PAYLOAD_SECRET,
+  secret: env.PAYLOAD_SECRET,
   // helps prevent CSRF attacks
   // (see https://payloadcms.com/docs/authentication/cookies#csrf-prevention)
-  csrf: [environmentVariables.APP_HOST_URL],
+  csrf: [env.APP_HOST_URL],
   typescript: {
     autoGenerate: true,
     outputFile: path.resolve(dirname, 'payload-types.ts'),
@@ -186,9 +157,15 @@ export const payloadConfig: RoutableConfig = {
     searchPluginConfiguration,
     redirectsPluginConfiguration,
   ],
+  jobs: jobsConfig,
   i18n: {
     fallbackLanguage: LOCALE.DE,
-    supportedLanguages: { en, de, fr },
+    supportedLanguages: {
+      // patch that the redirect plugin has no german translations
+      en: { ...en, ...redirectsTranslations.en },
+      de: { ...de, ...redirectsTranslations.en },
+      fr: { ...fr, ...redirectsTranslations.fr },
+    },
   },
   ...emailSettings,
 };

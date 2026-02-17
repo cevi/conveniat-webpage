@@ -19,7 +19,7 @@ interface ConditionType {
 export const PermissionsCollection: CollectionConfig = {
   slug: 'permissions',
   trash: true,
-  ...flushPageCacheOnChange,
+  hooks: { afterChange: [flushPageCacheOnChange] },
 
   labels: {
     singular: {
