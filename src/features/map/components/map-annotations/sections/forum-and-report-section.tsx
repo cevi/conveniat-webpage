@@ -27,6 +27,12 @@ const offlineText: StaticTranslationString = {
   fr: 'Hors ligne',
 };
 
+const offlineDescription: StaticTranslationString = {
+  en: 'Internet connection required to report issues.',
+  de: 'Internetverbindung erforderlich, um Probleme zu melden.',
+  fr: 'Connexion Internet requise pour signaler des problèmes.',
+};
+
 export const AnnotationForumAndReportSection: React.FC<{
   coordinates: [number, number] | undefined;
 }> = ({ coordinates }) => {
@@ -77,7 +83,9 @@ export const AnnotationForumAndReportSection: React.FC<{
             <div className="font-medium text-gray-900">
               {isOnline ? reportIssueText[locale] : offlineText[locale]}
             </div>
-            <div className="text-sm text-gray-600">{reportIssueDescription[locale]}</div>
+            <div className="text-sm text-gray-600">
+              {isOnline ? reportIssueDescription[locale] : offlineDescription[locale]}
+            </div>
           </div>
         </button>
       </div>
