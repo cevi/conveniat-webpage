@@ -41,13 +41,13 @@ export const getJobs = async (
     jobs.map(async (job) => {
       let availableQuota: number | undefined;
 
-      const maxQuota = (job as any).maxQuota;
+      const maxQuota = job.maxQuota;
       if (typeof maxQuota === 'number') {
         const currentSubmissionsCount = await payload.count({
           collection: 'form-submissions',
           where: {
             'helper-job': {
-              equals: (job as any).id,
+              equals: job.id,
             },
           },
         });

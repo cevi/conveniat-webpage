@@ -5,8 +5,8 @@ import { CampScheduleEntryCollection } from '@/features/payload-cms/payload-cms/
 import { ChatImagesCollection } from '@/features/payload-cms/payload-cms/collections/chat-images-collection';
 import { DocumentsCollection } from '@/features/payload-cms/payload-cms/collections/documents-collection';
 import { GenericPage as GenericPageCollection } from '@/features/payload-cms/payload-cms/collections/generic-page';
+import { JobCollection } from '@/features/payload-cms/payload-cms/collections/helper-job-collection';
 import { ImageCollection } from '@/features/payload-cms/payload-cms/collections/image-collection';
-import { JobCollection } from '@/features/payload-cms/payload-cms/collections/job-collection';
 import { PermissionsCollection } from '@/features/payload-cms/payload-cms/collections/permission-collection';
 import { PushNotificationSubscriptions } from '@/features/payload-cms/payload-cms/collections/push-notification-subscriptions';
 import { TimelineCollection } from '@/features/payload-cms/payload-cms/collections/timeline';
