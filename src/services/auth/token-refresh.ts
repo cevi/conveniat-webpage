@@ -77,6 +77,7 @@ export async function refreshAccessToken(token: JWT): Promise<JWT> {
         email: profile.email,
         name: profile.first_name + ' ' + profile.last_name,
         nickname: profile.nickname,
+        error: undefined, // Clear any previous errors
       };
     } catch (profileError) {
       console.error('Failed to refetch user profile after token refresh', profileError);
@@ -86,12 +87,15 @@ export async function refreshAccessToken(token: JWT): Promise<JWT> {
         access_token: refreshedTokens.access_token,
         refresh_token: refreshedTokens.refresh_token ?? token.refresh_token,
         expires_at: Math.floor(Date.now() / 1000) + refreshedTokens.expires_in,
+        error: undefined, // Clear any previous errors
       };
     }
   } catch (error) {
     console.error('Error refreshing access token', error);
+    // Return token with error and push expiry time forward to avoid immediate retry
     return {
       ...token,
+      expires_at: Math.floor(Date.now() / 1000) + 300, // Retry after 5 minutes
       error: 'RefreshAccessTokenError',
     };
   }

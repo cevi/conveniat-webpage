@@ -135,7 +135,7 @@ export const authOptions: NextAuthConfig = {
       // Return previous token if the access token has not expired yet
       // buffer time of 10s
       const expiresAt = token.expires_at as number;
-      if (Date.now() < expiresAt * 1000 - 10_000) {
+      if (expiresAt && Date.now() < expiresAt * 1000 - 10_000) {
         return token;
       }
 
