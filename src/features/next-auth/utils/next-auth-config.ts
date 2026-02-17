@@ -108,13 +108,14 @@ export const authOptions: NextAuthConfig = {
     },
 
     // This callback is called whenever a JSON Web Token is created (i.e. at sign in) or updated (i.e whenever a session is accessed in the client).
-    async jwt({ token, account, profile: _profile }): Promise<JWT> {
+    async jwt({ token, account, profile: _profile, trigger }): Promise<JWT> {
       // Initial sign in
       if (account && _profile) {
         const profile = _profile as unknown as HitobitoProfile;
 
         const payloadCMSUser = await syncUserWithCeviDB(profile);
 
+        console.log('[JWT Callback] Initial sign in for user', payloadCMSUser.id);
         return {
           ...token,
           // @ts-ignore
@@ -141,13 +142,17 @@ export const authOptions: NextAuthConfig = {
 
       // Access token has expired, try to update it
       if (!token.refresh_token) {
+        console.error('[JWT Callback] No refresh token available for user', token.uuid);
         return {
           ...token,
           error: 'RefreshAccessTokenError',
         };
       }
 
-      return refreshAccessToken(token);
+      console.log('[JWT Callback] Token expired, refreshing for user', token.uuid, 'trigger:', trigger);
+      const refreshedToken = await refreshAccessToken(token);
+      console.log('[JWT Callback] Token refreshed for user', refreshedToken.uuid, 'new expires_at:', refreshedToken.expires_at);
+      return refreshedToken;
     },
   },
 

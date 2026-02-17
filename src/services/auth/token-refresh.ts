@@ -31,72 +31,95 @@ async function parseTokenResponse(response: Response): Promise<TokenResponse> {
   }
 }
 
+// Track ongoing refresh operations to prevent concurrent refreshes
+const refreshPromises = new Map<string, Promise<JWT>>();
+
 /**
  * Refreshes the access token using the refresh token.
  * returns the new token with updated expiration and access token
  */
 export async function refreshAccessToken(token: JWT): Promise<JWT> {
-  try {
-    console.log('Refreshing access token for user', token.uuid);
-
-    const url = `${env.HITOBITO_BASE_URL}/oauth/token`;
-    const response = await fetchWithRetry(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        client_id: env.CEVI_DB_CLIENT_ID,
-        client_secret: env.CEVI_DB_CLIENT_SECRET,
-        grant_type: 'refresh_token',
-        refresh_token: token.refresh_token ?? '',
-      }),
-    });
-
-    const refreshedTokens = await parseTokenResponse(response);
-
-    if (!response.ok) {
-      throw new Error(JSON.stringify(refreshedTokens));
-    }
-
-    // After refreshing the token, we re-fetch the user profile to get updated groups
-    try {
-      const profile = await fetchHitobitoProfile(refreshedTokens.access_token);
-      const payloadCMSUser = await syncUserWithCeviDB(profile);
-
-      return {
-        ...token,
-        access_token: refreshedTokens.access_token,
-        // Fall back to old refresh token if new one is not returned
-        refresh_token: refreshedTokens.refresh_token ?? token.refresh_token,
-        expires_at: Math.floor(Date.now() / 1000) + refreshedTokens.expires_in,
-        // Update persisted user data
-        uuid: payloadCMSUser.id,
-        cevi_db_uuid: payloadCMSUser.cevi_db_uuid,
-        group_ids: profile.roles.map((role) => role.group_id),
-        email: profile.email,
-        name: profile.first_name + ' ' + profile.last_name,
-        nickname: profile.nickname,
-        error: undefined, // Clear any previous errors
-      };
-    } catch (profileError) {
-      console.error('Failed to refetch user profile after token refresh', profileError);
-      // If profile fetch fails, we still return the refreshed token but keep old user data
-      return {
-        ...token,
-        access_token: refreshedTokens.access_token,
-        refresh_token: refreshedTokens.refresh_token ?? token.refresh_token,
-        expires_at: Math.floor(Date.now() / 1000) + refreshedTokens.expires_in,
-        error: undefined, // Clear any previous errors
-      };
-    }
-  } catch (error) {
-    console.error('Error refreshing access token', error);
-    // Return token with error and push expiry time forward to avoid immediate retry
-    return {
-      ...token,
-      expires_at: Math.floor(Date.now() / 1000) + 300, // Retry after 5 minutes
-      error: 'RefreshAccessTokenError',
-    };
+  // Use uuid as the key to prevent concurrent refreshes for the same user
+  const refreshKey = token.uuid as string;
+  
+  // If there's already a refresh in progress for this user, return that promise
+  if (refreshPromises.has(refreshKey)) {
+    console.log('Refresh already in progress for user', token.uuid, '- waiting for it to complete');
+    return refreshPromises.get(refreshKey)!;
   }
+
+  // Create a new refresh promise
+  const refreshPromise = (async (): Promise<JWT> => {
+    try {
+      console.log('Refreshing access token for user', token.uuid);
+
+      const url = `${env.HITOBITO_BASE_URL}/oauth/token`;
+      const response = await fetchWithRetry(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          client_id: env.CEVI_DB_CLIENT_ID,
+          client_secret: env.CEVI_DB_CLIENT_SECRET,
+          grant_type: 'refresh_token',
+          refresh_token: token.refresh_token ?? '',
+        }),
+      });
+
+      const refreshedTokens = await parseTokenResponse(response);
+
+      if (!response.ok) {
+        throw new Error(JSON.stringify(refreshedTokens));
+      }
+
+      // After refreshing the token, we re-fetch the user profile to get updated groups
+      try {
+        const profile = await fetchHitobitoProfile(refreshedTokens.access_token);
+        const payloadCMSUser = await syncUserWithCeviDB(profile);
+
+        return {
+          ...token,
+          access_token: refreshedTokens.access_token,
+          // Fall back to old refresh token if new one is not returned
+          refresh_token: refreshedTokens.refresh_token ?? token.refresh_token,
+          expires_at: Math.floor(Date.now() / 1000) + refreshedTokens.expires_in,
+          // Update persisted user data
+          uuid: payloadCMSUser.id,
+          cevi_db_uuid: payloadCMSUser.cevi_db_uuid,
+          group_ids: profile.roles.map((role) => role.group_id),
+          email: profile.email,
+          name: profile.first_name + ' ' + profile.last_name,
+          nickname: profile.nickname,
+          error: undefined, // Clear any previous errors
+        };
+      } catch (profileError) {
+        console.error('Failed to refetch user profile after token refresh', profileError);
+        // If profile fetch fails, we still return the refreshed token but keep old user data
+        return {
+          ...token,
+          access_token: refreshedTokens.access_token,
+          refresh_token: refreshedTokens.refresh_token ?? token.refresh_token,
+          expires_at: Math.floor(Date.now() / 1000) + refreshedTokens.expires_in,
+          error: undefined, // Clear any previous errors
+        };
+      }
+    } catch (error) {
+      console.error('Error refreshing access token', error);
+      // Return token with error and push expiry time forward to avoid immediate retry
+      return {
+        ...token,
+        expires_at: Math.floor(Date.now() / 1000) + 300, // Retry after 5 minutes
+        error: 'RefreshAccessTokenError',
+      };
+    } finally {
+      // Clean up the promise from the map after completion
+      refreshPromises.delete(refreshKey);
+    }
+  })();
+
+  // Store the promise in the map
+  refreshPromises.set(refreshKey, refreshPromise);
+
+  return refreshPromise;
 }
