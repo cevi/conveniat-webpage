@@ -47,7 +47,6 @@ export const validateCeviDatabaseLogin: CollectionBeforeChangeHook<FormSubmissio
   }
 
   // Check session
-  // Check session
   const session = await auth();
 
   interface SubmissionField {
