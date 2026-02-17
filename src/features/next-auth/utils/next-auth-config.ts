@@ -136,7 +136,22 @@ export const authOptions: NextAuthConfig = {
       // Return previous token if the access token has not expired yet
       // buffer time of 10s
       const expiresAt = token.expires_at as number;
-      if (expiresAt && Date.now() < expiresAt * 1000 - 10_000) {
+      const now = Date.now();
+      const expiryTimeMs = expiresAt * 1000;
+      const bufferMs = 10_000;
+      const timeUntilExpiry = expiryTimeMs - now;
+      
+      console.log('[JWT Callback] Token check for user', token.uuid, {
+        now: now,
+        expiresAt: expiresAt,
+        expiryTimeMs: expiryTimeMs,
+        timeUntilExpiry: timeUntilExpiry,
+        bufferMs: bufferMs,
+        isExpired: !expiresAt || timeUntilExpiry < bufferMs,
+      });
+      
+      if (expiresAt && now < expiryTimeMs - bufferMs) {
+        console.log('[JWT Callback] Token is still valid, returning existing token');
         return token;
       }
 
