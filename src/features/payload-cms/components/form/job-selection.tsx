@@ -208,6 +208,7 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
         </div>
       ) : (
         <button
+          type="button"
           onClick={() => setIsSearchOpen(true)}
           className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
           title={searchTitleText[locale]}
