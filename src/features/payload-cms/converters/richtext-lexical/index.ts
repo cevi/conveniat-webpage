@@ -1,3 +1,4 @@
+import { BiggerParagraphJSXConverter } from '@/features/payload-cms/converters/richtext-lexical/bigger-paragraph-converter';
 import { HeadingJSXConverter } from '@/features/payload-cms/converters/richtext-lexical/heading-converter';
 import { getLinkJSXConverter } from '@/features/payload-cms/converters/richtext-lexical/link-converter';
 import {
@@ -28,7 +29,7 @@ export const getJsxConverters = (locale?: Locale): JSXConverters<SerializedHeadi
   ...ListItemJSXConverter,
   ...QuoteJSXConverter,
   ...LinebreakJSXConverter,
-  // ...BiggerParagraphJSXConverter,
+  ...BiggerParagraphJSXConverter,
 });
 
 /**
