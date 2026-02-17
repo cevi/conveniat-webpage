@@ -1,3 +1,4 @@
+import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import type { CollectionAfterChangeHook, CollectionConfig } from 'payload';
 
 interface BlockedJobDocument {
@@ -71,11 +72,7 @@ export const BlockedJobs: CollectionConfig = {
   admin: {
     hidden: true,
     useAsTitle: 'id',
-    group: {
-      en: 'Backoffice App Features',
-      de: 'Backoffice App Funktionen',
-      fr: 'Fonctionnalités Backoffice',
-    },
+    group: AdminPanelDashboardGroups.HelferAnmeldung,
   },
   access: {
     read: () => false,

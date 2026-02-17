@@ -1,3 +1,4 @@
+import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import type { GlobalConfig } from 'payload';
 
 export const RegistrationManagement: GlobalConfig = {
@@ -12,11 +13,7 @@ export const RegistrationManagement: GlobalConfig = {
     update: () => true,
   },
   admin: {
-    group: {
-      en: 'Backoffice App Features',
-      de: 'Backoffice App Funktionen',
-      fr: 'Fonctionnalités Backoffice',
-    },
+    group: AdminPanelDashboardGroups.HelferAnmeldung,
     hideAPIURL: true,
     components: {
       views: {

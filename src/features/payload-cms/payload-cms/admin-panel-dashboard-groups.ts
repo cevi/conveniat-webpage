@@ -14,6 +14,11 @@ export const AdminPanelDashboardGroups = {
     de: '3 Sammlungen',
     fr: '3 Collections',
   },
+  HelferAnmeldung: {
+    en: '3 Helfer Anmeldung',
+    de: '3 Helfer Anmeldung',
+    fr: '3 Inscription aux assistants',
+  },
   GlobalSettings: {
     en: '4 Global Settings',
     de: '4 Globale Einstellungen',

@@ -1,6 +1,21 @@
 import type { StaticTranslationString } from '@/types/types';
 
-export const RESSORT_OPTIONS: { label: StaticTranslationString; value: string }[] = [
+export type RessortCategory =
+  | 'infrastruktur'
+  | 'finanzen'
+  | 'programm'
+  | 'marketing'
+  | 'verpflegung'
+  | 'relations'
+  | 'logistik'
+  | 'sicherheit'
+  | 'admin'
+  | 'sponsoring'
+  | 'international'
+  | 'glaube'
+  | 'other';
+
+export const RESSORT_OPTIONS: { label: StaticTranslationString; value: RessortCategory }[] = [
   {
     label: {
       de: 'Ressort Infrastruktur',

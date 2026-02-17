@@ -5,6 +5,7 @@ import type { CollectionConfig } from 'payload';
 
 export const JobCollection: CollectionConfig = {
   slug: 'helper-jobs',
+
   labels: {
     singular: {
       de: 'Helfender Job',
@@ -19,7 +20,7 @@ export const JobCollection: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'title',
-    group: AdminPanelDashboardGroups.AppContent,
+    group: AdminPanelDashboardGroups.HelferAnmeldung,
     defaultColumns: ['title', 'category', 'dateRangeCategory', 'maxQuota'],
   },
   access: {

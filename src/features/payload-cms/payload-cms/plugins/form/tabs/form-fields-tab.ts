@@ -1,3 +1,4 @@
+import { RESSORT_OPTIONS } from '@/features/payload-cms/constants/ressort-options';
 import { minimalEditorFeatures } from '@/features/payload-cms/payload-cms/plugins/lexical-editor';
 import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import { defaultEditorLexicalConfig, lexicalEditor } from '@payloadcms/richtext-lexical';
@@ -691,21 +692,7 @@ const formJobSelectionBlock: Block = {
     {
       name: 'category',
       type: 'select',
-      options: [
-        { label: 'Ressort Infrastruktur', value: 'infrastruktur' },
-        { label: 'Ressort Finanzen', value: 'finanzen' },
-        { label: 'Ressort Programm', value: 'programm' },
-        { label: 'Ressort Kommunikation und Marketing', value: 'marketing' },
-        { label: 'Ressort Verpflegung', value: 'verpflegung' },
-        { label: 'Ressort Relations', value: 'relations' },
-        { label: 'Ressort Logistik', value: 'logistik' },
-        { label: 'Ressort Sicherheit', value: 'sicherheit' },
-        { label: 'Ressort Admin', value: 'admin' },
-        { label: 'Ressort Sponsoring, Fundraising und Interactions', value: 'sponsoring' },
-        { label: 'Ressort International', value: 'international' },
-        { label: 'Ressort Glaube', value: 'glaube' },
-        { label: 'Other', value: 'other' },
-      ],
+      options: RESSORT_OPTIONS,
       label: {
         en: 'Job Category',
         de: 'Job Kategorie',

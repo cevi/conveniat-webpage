@@ -1,11 +1,11 @@
 'use server';
-
 import type { HelperJob } from '@/features/payload-cms/payload-types';
 import type { Locale } from '@/types/types';
 import config from '@payload-config';
 import type { Where } from 'payload';
 import { getPayload } from 'payload';
 
+// JobWithQuota extends the generated HelperJob type
 export interface JobWithQuota extends HelperJob {
   availableQuota?: number | undefined;
 }
@@ -23,13 +23,13 @@ export const getJobs = async (
     },
   };
 
-  if (category && category !== 'all') {
+  if (typeof category === 'string' && category !== 'all') {
     where['category'] = {
       equals: category,
     };
   }
 
-  const jobs = await payload.find({
+  const { docs: jobs } = await payload.find({
     collection: 'helper-jobs',
     where,
     locale,
@@ -38,25 +38,26 @@ export const getJobs = async (
   });
 
   const jobsWithQuota = await Promise.all(
-    jobs.docs.map(async (job) => {
+    jobs.map(async (job) => {
       let availableQuota: number | undefined;
 
-      if (typeof job.maxQuota === 'number') {
+      const maxQuota = (job as any).maxQuota;
+      if (typeof maxQuota === 'number') {
         const currentSubmissionsCount = await payload.count({
           collection: 'form-submissions',
           where: {
             'helper-job': {
-              equals: job.id,
+              equals: (job as any).id,
             },
           },
         });
-        availableQuota = Math.max(0, job.maxQuota - currentSubmissionsCount.totalDocs);
+        availableQuota = Math.max(0, maxQuota - currentSubmissionsCount.totalDocs);
       }
 
       return {
         ...job,
         availableQuota,
-      };
+      } as JobWithQuota;
     }),
   );
 
