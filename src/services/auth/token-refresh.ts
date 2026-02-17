@@ -72,6 +72,7 @@ export async function refreshAccessToken(token: JWT): Promise<JWT> {
         expires_at: Math.floor(Date.now() / 1000) + refreshedTokens.expires_in,
         // Update persisted user data
         uuid: payloadCMSUser.id,
+        cevi_db_uuid: payloadCMSUser.cevi_db_uuid,
         group_ids: profile.roles.map((role) => role.group_id),
         email: profile.email,
         name: profile.first_name + ' ' + profile.last_name,
