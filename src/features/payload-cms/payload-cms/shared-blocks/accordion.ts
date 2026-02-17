@@ -1,4 +1,5 @@
 import { minimalEditorFeatures } from '@/features/payload-cms/payload-cms/plugins/lexical-editor';
+import { fileDownloadBlock } from '@/features/payload-cms/payload-cms/shared-blocks/file-download-block';
 import { formBlock } from '@/features/payload-cms/payload-cms/shared-blocks/form-block';
 import { LinkField } from '@/features/payload-cms/payload-cms/shared-fields/link-field';
 import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
@@ -140,14 +141,20 @@ const nestedAccordion: Block = {
           name: 'valueBlocks',
           type: 'blocks',
           required: true,
-          blocks: [plainTextBlock, teamMembersBlock, formBlock],
+          blocks: [plainTextBlock, teamMembersBlock, formBlock, fileDownloadBlock],
         },
       ],
     },
   ],
 };
 
-const valueBlocks: Block[] = [plainTextBlock, teamMembersBlock, formBlock, nestedAccordion];
+const valueBlocks: Block[] = [
+  plainTextBlock,
+  teamMembersBlock,
+  formBlock,
+  nestedAccordion,
+  fileDownloadBlock,
+];
 
 export const accordion: Block = {
   slug: 'accordion',

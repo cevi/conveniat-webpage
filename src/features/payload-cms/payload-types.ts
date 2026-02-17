@@ -1373,7 +1373,19 @@ export interface AccordionBlocks {
         /**
          * This is the content of the accordion block. It will be displayed when the block is expanded.
          */
-        valueBlocks: (PlainTextBlock | TeamMembersBlock | FormBlock | NestedAccordionBlocks)[];
+        valueBlocks: (
+          | PlainTextBlock
+          | TeamMembersBlock
+          | FormBlock
+          | NestedAccordionBlocks
+          | {
+              file: string | Document;
+              openInNewTab?: boolean | null;
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'fileDownload';
+            }
+        )[];
         id?: string | null;
       }[]
     | null;
@@ -2004,7 +2016,18 @@ export interface NestedAccordionBlocks {
   accordionBlocks?:
     | {
         title: string;
-        valueBlocks: (PlainTextBlock | TeamMembersBlock | FormBlock)[];
+        valueBlocks: (
+          | PlainTextBlock
+          | TeamMembersBlock
+          | FormBlock
+          | {
+              file: string | Document;
+              openInNewTab?: boolean | null;
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'fileDownload';
+            }
+        )[];
         id?: string | null;
       }[]
     | null;
@@ -2683,6 +2706,14 @@ export interface AccordionBlocksSelect<T extends boolean = true> {
               accordionTeamMembersBlock?: T | TeamMembersBlockSelect<T>;
               formBlock?: T | FormBlockSelect<T>;
               nestedAccordion?: T | NestedAccordionBlocksSelect<T>;
+              fileDownload?:
+                | T
+                | {
+                    file?: T;
+                    openInNewTab?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
             };
         id?: T;
       };
@@ -2744,6 +2775,14 @@ export interface NestedAccordionBlocksSelect<T extends boolean = true> {
               accordionPlainTextBlock?: T | PlainTextBlockSelect<T>;
               accordionTeamMembersBlock?: T | TeamMembersBlockSelect<T>;
               formBlock?: T | FormBlockSelect<T>;
+              fileDownload?:
+                | T
+                | {
+                    file?: T;
+                    openInNewTab?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
             };
         id?: T;
       };
