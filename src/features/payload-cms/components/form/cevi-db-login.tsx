@@ -56,8 +56,16 @@ export const CeviDatabaseLogin: React.FC<CeviDatabaseLoginProperties> = ({
       }
     }
     // Inform browser to replace the current history entry so the back button skips the login trigger
-    globalThis.history.replaceState(undefined, '', globalThis.location.href);
-    void signIn('cevi-db', { callbackUrl: globalThis.location.href });
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, @typescript-eslint/strict-boolean-expressions
+    if (typeof globalThis !== 'undefined' && globalThis.history) {
+      globalThis.history.replaceState(undefined, '', globalThis.location.href);
+    }
+    const callbackUrl = typeof globalThis === 'undefined' ? undefined : globalThis.location.href;
+    const signInOptions: { callbackUrl?: string } = {};
+    if (typeof callbackUrl === 'string' && callbackUrl !== '') {
+      signInOptions.callbackUrl = callbackUrl;
+    }
+    void signIn('cevi-db', signInOptions);
   };
 
   const handleChangeUser = (): void => {
@@ -68,8 +76,13 @@ export const CeviDatabaseLogin: React.FC<CeviDatabaseLoginProperties> = ({
         sessionStorage.setItem(`form_step_${formId}`, String(currentStepIndex));
       }
     }
+    const callbackUrl = typeof globalThis === 'undefined' ? undefined : globalThis.location.href;
+    const signInOptions: { callbackUrl?: string } = {};
+    if (typeof callbackUrl === 'string' && callbackUrl !== '') {
+      signInOptions.callbackUrl = callbackUrl;
+    }
     void signOut({ redirect: false }).then(() => {
-      void signIn('cevi-db', { callbackUrl: globalThis.location.href });
+      void signIn('cevi-db', signInOptions);
     });
   };
 
