@@ -25,7 +25,7 @@ export const JobCollection: CollectionConfig = asLocalizedCollection({
     defaultColumns: ['title', 'category', 'dateRangeCategory', 'maxQuota'],
   },
   access: {
-    read: () => true, // Publicly readable for the form
+    read: canAccessAdminPanel,
     create: canAccessAdminPanel,
     update: canAccessAdminPanel,
     delete: canAccessAdminPanel,
