@@ -9,14 +9,14 @@ export const JobCollection: CollectionConfig = asLocalizedCollection({
 
   labels: {
     singular: {
-      de: 'Helfender Job',
+      de: 'Helfer-Job',
       en: 'Helper Job',
-      fr: 'Helfender Job',
+      fr: "Job d'assistant",
     },
     plural: {
-      de: 'Helfender Jobs',
+      de: 'Helfende Jobs',
       en: 'Helper Jobs',
-      fr: 'Helfender Jobs',
+      fr: "Jobs d'assistant",
     },
   },
   admin: {

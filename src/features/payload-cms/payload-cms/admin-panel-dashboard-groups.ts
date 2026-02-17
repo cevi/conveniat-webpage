@@ -15,9 +15,9 @@ export const AdminPanelDashboardGroups = {
     fr: '3 Collections',
   },
   HelferAnmeldung: {
-    en: '3 Helfer Anmeldung',
-    de: '3 Helfer Anmeldung',
-    fr: '3 Inscription aux assistants',
+    en: '3 Helper Registration',
+    de: '3 Helferanmeldung',
+    fr: '3 Inscription des helpers',
   },
   BackofficeAppFeatures: {
     en: '4 Backoffice App Features',
