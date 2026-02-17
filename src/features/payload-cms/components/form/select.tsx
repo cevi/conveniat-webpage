@@ -305,9 +305,9 @@ export const Select: React.FC<
                           isSelected && !hasError,
                         'border-red-500 bg-red-50 text-red-700 ring-red-600':
                           isSelected && hasError,
-                        'border-gray-300 bg-white text-gray-700 hover:border-gray-400 hover:bg-gray-50 focus:ring-green-600':
+                        'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50 focus:ring-green-600':
                           !isSelected && !hasError,
-                        'border-red-300 bg-white text-gray-700 hover:border-red-400 hover:bg-red-50 focus:ring-red-600':
+                        'border-red-200 bg-white text-gray-700 hover:border-red-300 hover:bg-red-50 focus:ring-red-600':
                           !isSelected && hasError,
                       },
                     )}

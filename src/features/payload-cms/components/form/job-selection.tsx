@@ -4,13 +4,13 @@ import type { JobWithQuota } from '@/features/payload-cms/components/form/action
 import { getJobs } from '@/features/payload-cms/components/form/actions/get-jobs';
 import { Required } from '@/features/payload-cms/components/form/required';
 import type { JobSelectionBlock } from '@/features/payload-cms/components/form/types';
-import type { Locale } from '@/types/types';
+import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2, Search, X } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useContext, useMemo, useState } from 'react';
 import type { Control, FieldErrors, FieldValues, UseFormRegister } from 'react-hook-form';
 import { Controller } from 'react-hook-form';
 
@@ -76,6 +76,12 @@ const RESSORT_OPTIONS = [
   { label: 'Ressort Glaube', value: 'glaube' },
 ];
 
+const requiredFieldMessage: StaticTranslationString = {
+  de: 'Dieses Feld ist erforderlich',
+  en: 'This field is required',
+  fr: 'Ce champ est obligatoire',
+};
+
 export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
   const { control, name, label, required, dateRangeCategory, category, renderMode = 'all' } = props;
 
@@ -115,13 +121,6 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
     }));
   }, [jobs]);
 
-  // Initialize selectedRessorts with all available once loaded
-  useEffect(() => {
-    if (availableRessorts.length > 0 && selectedRessorts.size === 0) {
-      setSelectedRessorts(new Set(availableRessorts.map((r) => r.value)));
-    }
-  }, [availableRessorts, selectedRessorts, setSelectedRessorts]);
-
   const filteredJobs = useMemo((): JobWithQuota[] => {
     if (!Array.isArray(jobs)) return [];
     return jobs.filter((job) => {
@@ -132,6 +131,7 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
 
       const jobCategory = (job as unknown as { category: string | undefined }).category;
       const matchesRessort =
+        selectedRessorts.size === 0 ||
         typeof jobCategory !== 'string' ||
         selectedRessorts.has(jobCategory) ||
         jobCategory === 'other';
@@ -157,62 +157,56 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
     });
   }, [filteredJobs]);
 
-  const renderFiltersAndSearch = (): React.ReactElement => (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between gap-4">
-        <label className="font-heading text-sm font-bold text-gray-900">
-          {locale === 'de' ? 'Ressort Filter' : 'Department Filter'}
-        </label>
-        <div className="flex items-center gap-2">
-          {isSearchOpen ? (
-            <div className="animate-in fade-in slide-in-from-right-2 relative duration-200">
-              <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
-              <input
-                autoFocus
-                type="text"
-                placeholder={locale === 'de' ? 'Jobs durchsuchen...' : 'Search jobs...'}
-                className="w-48 rounded-full border border-gray-200 bg-gray-50 py-1.5 pr-8 pl-9 text-xs transition-all focus:w-64 focus:border-green-500 focus:bg-white focus:ring-2 focus:ring-green-500/20 focus:outline-none"
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-                onBlur={(event) => {
-                  // Prevent closing if we clicked the clear button
-                  const relatedTarget = event.relatedTarget as HTMLElement | null;
-                  if (relatedTarget?.closest('.clear-search-button')) {
-                    return;
-                  }
-                  if (searchTerm === '') {
-                    setIsSearchOpen(false);
-                  }
-                }}
-              />
-              {searchTerm !== '' && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSearchTerm('');
-                    // We don't necessarily want to close it immediately,
-                    // the user might want to type something else.
-                  }}
-                  className="clear-search-button absolute top-1/2 right-2.5 flex h-4 w-4 -translate-y-1/2 items-center justify-center rounded-full text-gray-400 hover:bg-gray-200 hover:text-gray-600 focus:outline-none"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              )}
-            </div>
-          ) : (
+  const renderSearch = (): React.ReactElement => (
+    <div className="relative flex h-8 w-8 shrink-0 items-center justify-end">
+      {isSearchOpen ? (
+        <div className="animate-in fade-in slide-in-from-right-2 absolute top-0 right-0 z-10 duration-200">
+          <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <input
+            autoFocus
+            type="text"
+            placeholder={locale === 'de' ? 'Jobs durchsuchen...' : 'Search jobs...'}
+            className="w-48 rounded-full border border-gray-200 bg-gray-50 py-1.5 pr-8 pl-9 text-xs shadow-sm transition-all focus:w-64 focus:border-green-500 focus:bg-white focus:ring-2 focus:ring-green-500/20 focus:outline-none"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            onBlur={(event) => {
+              const relatedTarget = event.relatedTarget as HTMLElement | null;
+              if (relatedTarget?.closest('.clear-search-button')) {
+                return;
+              }
+              if (searchTerm === '') {
+                setIsSearchOpen(false);
+              }
+            }}
+          />
+          {searchTerm !== '' && (
             <button
-              onClick={() => setIsSearchOpen(true)}
-              className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
-              title={locale === 'de' ? 'Suche' : 'Search'}
+              type="button"
+              onClick={() => {
+                setSearchTerm('');
+              }}
+              className="clear-search-button absolute top-1/2 right-2.5 flex h-4 w-4 -translate-y-1/2 items-center justify-center rounded-full text-gray-400 hover:bg-gray-200 hover:text-gray-600 focus:outline-none"
             >
-              <Search className="h-4 w-4" />
+              <X className="h-3 w-3" />
             </button>
           )}
         </div>
-      </div>
+      ) : (
+        <button
+          onClick={() => setIsSearchOpen(true)}
+          className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+          title={locale === 'de' ? 'Suche' : 'Search'}
+        >
+          <Search className="h-4 w-4" />
+        </button>
+      )}
+    </div>
+  );
 
-      <div className="flex flex-wrap gap-2">
-        {availableRessorts.map((ressort) => {
+  const renderFilters = (): React.ReactElement => (
+    <div className="flex flex-wrap gap-2">
+      {availableRessorts.map(
+        (ressort: { value: string; label: string; count: number; cleanLabel: string }) => {
           const isActive = selectedRessorts.has(ressort.value);
           return (
             <button
@@ -245,33 +239,39 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
               </span>
             </button>
           );
-        })}
-      </div>
+        },
+      )}
     </div>
   );
 
   if (renderMode === 'sidebar') {
     return (
-      <div className="mb-4 w-full">
-        <label className="font-body mb-4 block text-sm font-bold text-gray-900">
-          {label}
-          {Boolean(required) && <Required />}
-        </label>
-        <div className="mb-6">{renderFiltersAndSearch()}</div>
+      <div className="@container mb-4 w-full">
+        <div className="mb-4 flex flex-col gap-4 @lg:flex-row @lg:items-center @lg:justify-between">
+          <label className="font-body mb-0 block text-sm font-bold text-gray-900">
+            {label}
+            {Boolean(required) && <Required />}
+          </label>
+          <div className="flex items-center justify-end">{renderSearch()}</div>
+        </div>
+        <div className="mb-6">{renderFilters()}</div>
       </div>
     );
   }
 
   return (
-    <div className="mb-4 w-full">
+    <div className="@container mb-4 w-full">
       <div className="flex flex-col gap-4">
-        <>
-          <label className="font-body mb-1 block text-sm font-medium text-gray-500">
-            {label}
-            {Boolean(required) && <Required />}
-          </label>
-          <div className="mb-6">{renderFiltersAndSearch()}</div>
-        </>
+        <div className="mb-6">
+          <div className="mb-4 flex flex-col gap-4 @lg:flex-row @lg:items-center @lg:justify-between">
+            <label className="font-body block text-sm font-bold text-gray-900">
+              {label}
+              {Boolean(required) && <Required />}
+            </label>
+            <div className="flex items-center justify-end">{renderSearch()}</div>
+          </div>
+          {renderFilters()}
+        </div>
         {isLoading && (
           <div className="text-muted-foreground flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -281,15 +281,10 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
         <Controller
           control={control}
           name={name}
-          rules={{ required: required === true ? 'This field is required' : false }}
+          rules={{ required: required === true ? requiredFieldMessage[locale] : false }}
           render={({ field: { onChange, value }, fieldState: { error } }) => (
-            <div className="flex flex-col gap-4">
-              <div
-                className={cn('grid grid-cols-1 gap-4', {
-                  'md:grid-cols-2': renderMode === 'all',
-                  'min-[1440px]:grid-cols-2 min-[1600px]:grid-cols-3': renderMode === 'main',
-                })}
-              >
+            <div className="@container flex flex-col gap-4">
+              <div className={cn('grid grid-cols-1 gap-4 @xl:grid-cols-2 @3xl:grid-cols-3')}>
                 {sortedJobs.length > 0 ? (
                   sortedJobs.map((job) => {
                     const isSelected = value === job.id;

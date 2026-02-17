@@ -136,7 +136,6 @@ export const FormBlock: React.FC<
 
   // Layout-based styles
   const isDualCardLayout = isSplit && shouldRenderMain;
-  const showOuterCardStyle = withBorder && !isDualCardLayout;
 
   const handleSubmit = (event: React.FormEvent): void => {
     void formMethods.handleSubmit(submit)(event);
@@ -145,72 +144,71 @@ export const FormBlock: React.FC<
   if (!config._localized_status.published) return <></>;
 
   return (
-    <div
-      className={cn(
-        'relative mx-auto transition-all duration-300',
-        isDualCardLayout ? 'max-w-screen-2xl' : 'max-w-xl',
-        showOuterCardStyle
-          ? 'rounded-xl border-2 border-gray-100 bg-white p-8 shadow-sm'
-          : 'min-h-[100px]', // Ensure some height even if content is loading or hidden
-      )}
-    >
-      {/* ... existing error and preview logic ... */}
-      {status === 'error' && (
-        <div className="mb-4 rounded border border-red-400 bg-red-100 p-4 text-red-700">
-          {errorMessage}
-        </div>
-      )}
+    <div className="@container w-full">
+      <div
+        className={cn(
+          'relative w-full',
+          isDualCardLayout ? 'max-w-2xl @[1600px]:max-w-full' : 'max-w-2xl',
+          'min-h-[100px] bg-transparent p-0 shadow-none',
+        )}
+      >
+        {/* ... existing error and preview logic ... */}
+        {status === 'error' && (
+          <div className="mb-4 rounded border border-red-400 bg-red-100 p-4 text-red-700">
+            {errorMessage}
+          </div>
+        )}
 
-      {Boolean(previewData) && (
-        <div className="mb-4 rounded border border-gray-400 bg-gray-100 p-4">
-          Preview Data: <pre>{JSON.stringify(previewData, undefined, 2)}</pre>
-        </div>
-      )}
+        {Boolean(previewData) && (
+          <div className="mb-4 rounded border border-gray-400 bg-gray-100 p-4">
+            Preview Data: <pre>{JSON.stringify(previewData, undefined, 2)}</pre>
+          </div>
+        )}
 
-      {/* Success Message / Confirmation */}
-      {status === 'success' && config.confirmationType === 'message' ? (
-        <SubmissionMessage
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          content={confirmationMessage}
-          onReset={handleReset}
-          locale={locale}
-        />
-      ) : (
-        <JobSelectionProvider>
-          <FormProvider {...formMethods}>
-            <form id={config.id} onSubmit={handleSubmit} noValidate>
-              <div
-                className={cn(
-                  isDualCardLayout
-                    ? 'grid grid-cols-1 gap-8 min-[1440px]:grid-cols-12 min-[1440px]:gap-12'
-                    : 'flex flex-col gap-6',
-                )}
-              >
-                <aside
+        {/* Success Message / Confirmation */}
+        {status === 'success' && config.confirmationType === 'message' ? (
+          <SubmissionMessage
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            content={confirmationMessage}
+            onReset={handleReset}
+            locale={locale}
+          />
+        ) : (
+          <JobSelectionProvider>
+            <FormProvider {...formMethods}>
+              <form id={config.id} onSubmit={handleSubmit} noValidate>
+                <div
                   className={cn(
-                    isDualCardLayout ? 'col-span-1 min-[1440px]:col-span-5' : 'w-full',
-                    isDualCardLayout &&
-                      'space-y-6 rounded-xl border-2 border-gray-100 bg-white p-8 shadow-sm',
+                    '',
+                    isDualCardLayout
+                      ? 'grid grid-cols-1 items-start gap-8 @[1600px]:grid-cols-[36rem_1fr] @[1600px]:gap-12'
+                      : 'flex flex-col gap-6',
                   )}
                 >
-                  {steps.length > 1 && currentActualStep && (
-                    <ProgressBar
-                      locale={locale}
-                      currentStepIndex={currentStepIndex}
-                      definedSteps={steps}
-                      currentActualStep={currentActualStep}
-                    />
-                  )}
-                  {currentActualStep && (
-                    <FormFieldRenderer
-                      section={currentActualStep}
-                      currentStepIndex={currentStepIndex}
-                      formId={config.id}
-                      renderMode={isDualCardLayout ? 'sidebar' : 'all'}
-                    />
-                  )}
-                  {isDualCardLayout && (
-                    <div className="border-t border-gray-100 pt-4">
+                  <aside
+                    className={cn(
+                      'w-full',
+                      (isDualCardLayout || withBorder) &&
+                        'space-y-6 rounded-xl border border-gray-100 bg-white p-8 shadow-sm',
+                    )}
+                  >
+                    {steps.length > 1 && currentActualStep && (
+                      <ProgressBar
+                        locale={locale}
+                        currentStepIndex={currentStepIndex}
+                        definedSteps={steps}
+                        currentActualStep={currentActualStep}
+                      />
+                    )}
+                    {currentActualStep && (
+                      <FormFieldRenderer
+                        section={currentActualStep}
+                        currentStepIndex={currentStepIndex}
+                        formId={config.id}
+                        renderMode={isDualCardLayout ? 'sidebar' : 'all'}
+                      />
+                    )}
+                    <div className="pt-4">
                       <FormControls
                         locale={locale}
                         isFirst={isFirstStep}
@@ -223,46 +221,29 @@ export const FormBlock: React.FC<
                         formId={config.id}
                       />
                     </div>
-                  )}
-                </aside>
+                  </aside>
 
-                {isDualCardLayout && (
-                  <main
-                    className={cn(
-                      'col-span-1 rounded-xl border-2 border-gray-100 bg-white p-8 shadow-sm min-[1440px]:col-span-7',
-                    )}
-                  >
-                    <div className={status === 'loading' ? 'pointer-events-none opacity-50' : ''}>
-                      <FormFieldRenderer
-                        section={currentActualStep}
-                        currentStepIndex={currentStepIndex}
-                        formId={config.id}
-                        renderMode="main"
-                      />
+                  {isDualCardLayout && (
+                    <div
+                      key="main-column"
+                      className="animate-in fade-in fill-mode-backwards rounded-xl border border-gray-100 bg-white p-8 shadow-sm duration-300"
+                    >
+                      <div className={status === 'loading' ? 'pointer-events-none opacity-50' : ''}>
+                        <FormFieldRenderer
+                          section={currentActualStep}
+                          currentStepIndex={currentStepIndex}
+                          formId={config.id}
+                          renderMode="main"
+                        />
+                      </div>
                     </div>
-                  </main>
-                )}
-              </div>
-
-              {!isDualCardLayout && (
-                <div className="mt-8 border-t border-gray-100 pt-4">
-                  <FormControls
-                    locale={locale}
-                    isFirst={isFirstStep}
-                    isLast={isLastStep}
-                    isSubmitting={status === 'loading'}
-                    // eslint-disable-next-line @typescript-eslint/no-misused-promises
-                    onNext={next}
-                    onPrev={prev}
-                    submitLabel={config.submitButtonLabel ?? ''}
-                    formId={config.id}
-                  />
+                  )}
                 </div>
-              )}
-            </form>
-          </FormProvider>
-        </JobSelectionProvider>
-      )}
+              </form>
+            </FormProvider>
+          </JobSelectionProvider>
+        )}
+      </div>
     </div>
   );
 };
