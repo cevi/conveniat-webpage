@@ -156,8 +156,7 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
       const matchesSearch = title.includes(searchLower) || description.includes(searchLower);
 
       const jobCategory = job.category;
-      const matchesRessort =
-        selectedRessorts.size === 0 || selectedRessorts.has(jobCategory) || jobCategory === 'other';
+      const matchesRessort = selectedRessorts.size === 0 || selectedRessorts.has(jobCategory);
 
       return matchesSearch && matchesRessort;
     });
