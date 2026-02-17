@@ -14,6 +14,7 @@ import { ProgressBar } from '@/features/payload-cms/components/form/components/p
 import { SubmissionMessage } from '@/features/payload-cms/components/form/components/submission-message';
 import { useFormSteps } from '@/features/payload-cms/components/form/hooks/use-form-steps';
 import { useFormSubmission } from '@/features/payload-cms/components/form/hooks/use-form-submission';
+import { JobSelectionProvider } from '@/features/payload-cms/components/form/job-selection';
 import type { FormBlockType } from '@/features/payload-cms/components/form/types';
 export type { FormBlockType } from '@/features/payload-cms/components/form/types';
 
@@ -91,21 +92,23 @@ export const FormBlock: React.FC<
     void formMethods.handleSubmit(submit)(event);
   };
 
+  const isSplit = currentActualStep?.layout === 'split';
+
   return (
     <div
       className={cn(
-        'relative mx-auto max-w-xl',
+        'relative mx-auto transition-all duration-300',
+        isSplit ? 'max-w-screen-2xl' : 'max-w-xl',
         withBorder ? 'rounded-md border-2 border-gray-200 bg-white p-6' : '',
       )}
     >
-      {/* Global Error State */}
+      {/* ... existing error and preview logic ... */}
       {status === 'error' && (
         <div className="mb-4 rounded border border-red-400 bg-red-100 p-4 text-red-700">
           {errorMessage}
         </div>
       )}
 
-      {/* Preview Mode Success */}
       {Boolean(previewData) && (
         <div className="mb-4 rounded border border-gray-400 bg-gray-100 p-4">
           Preview Data: <pre>{JSON.stringify(previewData, undefined, 2)}</pre>
@@ -121,40 +124,63 @@ export const FormBlock: React.FC<
           locale={locale}
         />
       ) : (
-        <FormProvider {...formMethods}>
-          <form id={config.id} onSubmit={handleSubmit} noValidate>
-            {steps.length > 1 && currentActualStep && (
-              <ProgressBar
-                locale={locale}
-                currentStepIndex={currentStepIndex}
-                definedSteps={steps}
-                currentActualStep={currentActualStep}
-              />
-            )}
+        <JobSelectionProvider>
+          <FormProvider {...formMethods}>
+            <form id={config.id} onSubmit={handleSubmit} noValidate>
+              <div
+                className={cn(isSplit ? 'grid grid-cols-1 gap-8 min-[1440px]:grid-cols-12' : '')}
+              >
+                <aside className={cn(isSplit ? 'space-y-6 min-[1440px]:col-span-5' : 'contents')}>
+                  {steps.length > 1 && currentActualStep && (
+                    <ProgressBar
+                      locale={locale}
+                      currentStepIndex={currentStepIndex}
+                      definedSteps={steps}
+                      currentActualStep={currentActualStep}
+                    />
+                  )}
+                  {isSplit && (
+                    <FormFieldRenderer
+                      section={currentActualStep}
+                      currentStepIndex={currentStepIndex}
+                      formId={config.id}
+                      renderMode="sidebar"
+                    />
+                  )}
+                </aside>
 
-            <div className={status === 'loading' ? 'pointer-events-none opacity-50' : ''}>
-              {currentActualStep && (
-                <FormFieldRenderer
-                  section={currentActualStep}
-                  currentStepIndex={currentStepIndex}
-                  formId={config.id}
-                />
-              )}
-            </div>
+                <main
+                  className={cn(
+                    isSplit ? 'min-[1440px]:col-span-7 min-[1440px]:mt-[140px]' : 'contents',
+                  )}
+                >
+                  <div className={status === 'loading' ? 'pointer-events-none opacity-50' : ''}>
+                    {currentActualStep && (
+                      <FormFieldRenderer
+                        section={currentActualStep}
+                        currentStepIndex={currentStepIndex}
+                        formId={config.id}
+                        renderMode={isSplit ? 'main' : 'all'}
+                      />
+                    )}
+                  </div>
 
-            <FormControls
-              locale={locale}
-              isFirst={isFirstStep}
-              isLast={isLastStep}
-              isSubmitting={status === 'loading'}
-              // eslint-disable-next-line @typescript-eslint/no-misused-promises
-              onNext={next}
-              onPrev={prev}
-              submitLabel={config.submitButtonLabel ?? ''}
-              formId={config.id}
-            />
-          </form>
-        </FormProvider>
+                  <FormControls
+                    locale={locale}
+                    isFirst={isFirstStep}
+                    isLast={isLastStep}
+                    isSubmitting={status === 'loading'}
+                    // eslint-disable-next-line @typescript-eslint/no-misused-promises
+                    onNext={next}
+                    onPrev={prev}
+                    submitLabel={config.submitButtonLabel ?? ''}
+                    formId={config.id}
+                  />
+                </main>
+              </div>
+            </form>
+          </FormProvider>
+        </JobSelectionProvider>
       )}
     </div>
   );

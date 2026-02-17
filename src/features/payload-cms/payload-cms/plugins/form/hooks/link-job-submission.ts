@@ -63,7 +63,7 @@ export const linkJobSubmission: CollectionBeforeChangeHook<FormSubmission> = asy
   }
 
   // Fetch the Job
-   
+
   const job = (await req.payload.findByID({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     collection: 'jobs' as any,

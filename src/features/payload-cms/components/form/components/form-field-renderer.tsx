@@ -13,13 +13,15 @@ interface FormFieldRendererProperties {
   section: FormSection;
   currentStepIndex: number;
   formId: string | undefined;
+  renderMode?: 'all' | 'sidebar' | 'main';
 }
 
 const ConditionedField: React.FC<{
   block: ConditionedBlock;
   currentStepIndex: number;
   formId: string | undefined;
-}> = ({ block, currentStepIndex, formId }) => {
+  renderMode: 'all' | 'sidebar' | 'main';
+}> = ({ block, currentStepIndex, formId, renderMode }) => {
   const { control, resetField } = useFormContext();
 
   // Use useWatch for performance instead of watch() which re-renders the root
@@ -51,6 +53,7 @@ const ConditionedField: React.FC<{
           field={field}
           currentStepIndex={currentStepIndex}
           formId={formId}
+          renderMode={renderMode}
         />
       ))}
     </>
@@ -61,7 +64,8 @@ const SingleField: React.FC<{
   field: (FormFieldBlock | JobSelectionBlock) & { required?: boolean };
   currentStepIndex: number;
   formId: string | undefined;
-}> = ({ field, currentStepIndex, formId }) => {
+  renderMode: 'all' | 'sidebar' | 'main';
+}> = ({ field, currentStepIndex, formId, renderMode }) => {
   const Component = fieldComponents[field.blockType];
   const {
     register,
@@ -74,10 +78,14 @@ const SingleField: React.FC<{
     return null; // eslint-disable-line unicorn/no-null
   }
 
-  // Pass strictly necessary props
-  // We pass registerAction as 'register' because the original components expect 'registerAction'
-  // (based on index.tsx: registerAction={register})
-  // And 'required' boolean.
+  // Placement logic
+  const effectivePlacement =
+    field.placement ?? (field.blockType === 'jobSelection' ? 'main' : 'sidebar');
+
+  if (renderMode !== 'all' && renderMode !== effectivePlacement) {
+    return null; // eslint-disable-line unicorn/no-null
+  }
+
   return (
     <Component
       {...field}
@@ -87,6 +95,7 @@ const SingleField: React.FC<{
       required={field.required}
       currentStepIndex={currentStepIndex}
       formId={formId}
+      renderMode={renderMode}
     />
   );
 };
@@ -95,10 +104,13 @@ export const FormFieldRenderer: React.FC<FormFieldRendererProperties> = ({
   section,
   currentStepIndex,
   formId,
+  renderMode = 'all',
 }) => {
   return (
     <div className="space-y-4">
-      {section.sectionTitle && <SubheadingH3 className="mt-0">{section.sectionTitle}</SubheadingH3>}
+      {renderMode !== 'main' && section.sectionTitle && (
+        <SubheadingH3 className="mt-0">{section.sectionTitle}</SubheadingH3>
+      )}
 
       {section.fields.map((field, index) => {
         if (field.blockType === 'conditionedBlock') {
@@ -108,6 +120,7 @@ export const FormFieldRenderer: React.FC<FormFieldRendererProperties> = ({
               block={field}
               currentStepIndex={currentStepIndex}
               formId={formId}
+              renderMode={renderMode}
             />
           );
         }
@@ -117,6 +130,7 @@ export const FormFieldRenderer: React.FC<FormFieldRendererProperties> = ({
             field={field}
             currentStepIndex={currentStepIndex}
             formId={formId}
+            renderMode={renderMode}
           />
         );
       })}

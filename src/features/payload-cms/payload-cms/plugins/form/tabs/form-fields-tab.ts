@@ -29,6 +29,21 @@ const validateRegex: TextFieldSingleValidation = (value) => {
   }
 };
 
+const placementField = (defaultValue: 'sidebar' | 'main' = 'sidebar'): Field => ({
+  name: 'placement',
+  type: 'select',
+  label: 'Layout Placement (Split Layout only)',
+  defaultValue,
+  options: [
+    { label: 'Sidebar (Left)', value: 'sidebar' },
+    { label: 'Main (Right)', value: 'main' },
+  ],
+  admin: {
+    description: 'Where this field is rendered when "Split" layout is selected for the section.',
+    width: '50%',
+  },
+});
+
 const formCheckboxBlock: Block = {
   slug: 'checkbox',
   admin: {
@@ -73,7 +88,8 @@ const formCheckboxBlock: Block = {
       ],
     },
     { name: 'required', type: 'checkbox', label: 'Required', admin: { width: '50%' } },
-    { name: 'defaultValue', type: 'checkbox', label: 'Default Value' },
+    { name: 'defaultValue', type: 'checkbox', label: 'Default Value', admin: { width: '50%' } },
+    placementField(),
   ],
   labels: { plural: 'Checkbox Fields', singular: 'Checkbox' },
 };
@@ -126,6 +142,7 @@ const formDateBlock: Block = {
       type: 'checkbox',
       label: 'Required',
     },
+    placementField(),
   ],
 };
 
@@ -172,6 +189,7 @@ const formCountryBlock: Block = {
       type: 'checkbox',
       label: 'Required',
     },
+    placementField(),
   ],
   labels: { plural: 'Country Fields', singular: 'Country' },
 };
@@ -220,6 +238,7 @@ const formEmailBlock: Block = {
       type: 'checkbox',
       label: 'Required',
     },
+    placementField(),
   ],
   labels: { plural: 'Email Fields', singular: 'Email' },
 };
@@ -283,6 +302,7 @@ const formNumberBlock: Block = {
     },
     { name: 'placeholder', type: 'text', label: 'Placeholder' },
     { name: 'required', type: 'checkbox', label: 'Required' },
+    placementField(),
   ],
   labels: { plural: 'Number Fields', singular: 'Number' },
 };
@@ -387,6 +407,7 @@ const formSelectBlock: Block = {
       labels: { plural: 'Options', singular: 'Option' },
     },
     { name: 'required', type: 'checkbox', label: 'Required' },
+    placementField(),
   ],
   labels: { plural: 'Select Fields', singular: 'Select' },
 };
@@ -477,6 +498,7 @@ const formTextBlock: Block = {
         },
       ],
     },
+    placementField(),
   ],
   labels: { plural: 'Text Fields', singular: 'Text' },
 };
@@ -533,6 +555,7 @@ const formTextareaBlock: Block = {
       ],
     },
     { name: 'required', type: 'checkbox', label: 'Required' },
+    placementField(),
   ],
   labels: { plural: 'Text Area Fields', singular: 'Text Area' },
 };
@@ -600,6 +623,7 @@ const formCeviDatabaseLoginBlock: Block = {
         description: 'If checked, the user must log in to proceed.',
       },
     },
+    placementField(),
   ],
   labels: { plural: 'Cevi DB Login Blocks', singular: 'Cevi DB Login' },
 };
@@ -746,6 +770,7 @@ const conditionedBlock: Block = {
       },
       blocks: formBlocks,
     },
+    placementField(),
   ],
 };
 
@@ -765,6 +790,20 @@ const formSection: Field = {
       },
       required: true,
       localized: true,
+    },
+    {
+      name: 'layout',
+      type: 'select',
+      defaultValue: 'standard',
+      options: [
+        { label: 'Single Column Layout', value: 'standard' },
+        { label: 'Two Column Layout', value: 'split' },
+      ],
+      label: {
+        en: 'Section Layout',
+        de: 'Abschnitts-Layout',
+        fr: 'Disposition de la section',
+      },
     },
     {
       type: 'blocks',

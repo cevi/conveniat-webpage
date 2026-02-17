@@ -256,14 +256,8 @@ export const Select: React.FC<
     );
   }
 
-  const maxContentLength = Math.max(...options.map((option) => option.label.length));
-  const gridColsClass =
-    maxContentLength > 5
-      ? 'grid-cols-1 sm:grid-cols-2'
-      : 'grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6';
-
   return (
-    <div className="mb-4">
+    <div className="@container mb-4">
       <div>
         <label className="font-body mb-3 block text-sm font-medium text-gray-500">
           {label}
@@ -277,7 +271,7 @@ export const Select: React.FC<
             required: requiredFromProperties ? fieldIsRequiredText[locale as Locale] : false,
           }}
           render={({ field: { onChange, value } }) => (
-            <div className={cn('grid gap-3', gridColsClass)}>
+            <div className="grid grid-cols-2 gap-3 @md:grid-cols-4 @lg:grid-cols-5">
               {options.map((option) => {
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                 const isSelected: boolean = allowMultiple

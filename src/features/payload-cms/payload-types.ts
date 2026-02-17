@@ -574,6 +574,7 @@ export interface Form {
   sections: {
     formSection: {
       sectionTitle: string;
+      layout?: ('standard' | 'split') | null;
       fields?:
         | (
             | {
@@ -595,6 +596,10 @@ export interface Form {
                 };
                 required?: boolean | null;
                 defaultValue?: boolean | null;
+                /**
+                 * Where this field is rendered when "Split" layout is selected for the section.
+                 */
+                placement?: ('sidebar' | 'main') | null;
                 id?: string | null;
                 blockName?: string | null;
                 blockType: 'checkbox';
@@ -603,6 +608,10 @@ export interface Form {
                 name: string;
                 label: string;
                 required?: boolean | null;
+                /**
+                 * Where this field is rendered when "Split" layout is selected for the section.
+                 */
+                placement?: ('sidebar' | 'main') | null;
                 id?: string | null;
                 blockName?: string | null;
                 blockType: 'country';
@@ -612,6 +621,10 @@ export interface Form {
                 label: string;
                 placeholder?: string | null;
                 required?: boolean | null;
+                /**
+                 * Where this field is rendered when "Split" layout is selected for the section.
+                 */
+                placement?: ('sidebar' | 'main') | null;
                 id?: string | null;
                 blockName?: string | null;
                 blockType: 'email';
@@ -642,6 +655,10 @@ export interface Form {
                 defaultValue?: number | null;
                 placeholder?: string | null;
                 required?: boolean | null;
+                /**
+                 * Where this field is rendered when "Split" layout is selected for the section.
+                 */
+                placement?: ('sidebar' | 'main') | null;
                 id?: string | null;
                 blockName?: string | null;
                 blockType: 'number';
@@ -664,6 +681,10 @@ export interface Form {
                     }[]
                   | null;
                 required?: boolean | null;
+                /**
+                 * Where this field is rendered when "Split" layout is selected for the section.
+                 */
+                placement?: ('sidebar' | 'main') | null;
                 id?: string | null;
                 blockName?: string | null;
                 blockType: 'select';
@@ -685,6 +706,10 @@ export interface Form {
                  * Custom error message to display when the input does not match the validation regex.
                  */
                 inputValidationErrorMessage?: string | null;
+                /**
+                 * Where this field is rendered when "Split" layout is selected for the section.
+                 */
+                placement?: ('sidebar' | 'main') | null;
                 id?: string | null;
                 blockName?: string | null;
                 blockType: 'text';
@@ -695,6 +720,10 @@ export interface Form {
                 placeholder?: string | null;
                 defaultValue?: string | null;
                 required?: boolean | null;
+                /**
+                 * Where this field is rendered when "Split" layout is selected for the section.
+                 */
+                placement?: ('sidebar' | 'main') | null;
                 id?: string | null;
                 blockName?: string | null;
                 blockType: 'textarea';
@@ -704,6 +733,10 @@ export interface Form {
                 label: string;
                 defaultValue?: string | null;
                 required?: boolean | null;
+                /**
+                 * Where this field is rendered when "Split" layout is selected for the section.
+                 */
+                placement?: ('sidebar' | 'main') | null;
                 id?: string | null;
                 blockName?: string | null;
                 blockType: 'date';
@@ -719,6 +752,10 @@ export interface Form {
                  * If checked, the user must log in to proceed.
                  */
                 required?: boolean | null;
+                /**
+                 * Where this field is rendered when "Split" layout is selected for the section.
+                 */
+                placement?: ('sidebar' | 'main') | null;
                 id?: string | null;
                 blockName?: string | null;
                 blockType: 'ceviDbLogin';
@@ -781,6 +818,10 @@ export interface Form {
                           };
                           required?: boolean | null;
                           defaultValue?: boolean | null;
+                          /**
+                           * Where this field is rendered when "Split" layout is selected for the section.
+                           */
+                          placement?: ('sidebar' | 'main') | null;
                           id?: string | null;
                           blockName?: string | null;
                           blockType: 'checkbox';
@@ -789,6 +830,10 @@ export interface Form {
                           name: string;
                           label: string;
                           required?: boolean | null;
+                          /**
+                           * Where this field is rendered when "Split" layout is selected for the section.
+                           */
+                          placement?: ('sidebar' | 'main') | null;
                           id?: string | null;
                           blockName?: string | null;
                           blockType: 'country';
@@ -798,6 +843,10 @@ export interface Form {
                           label: string;
                           placeholder?: string | null;
                           required?: boolean | null;
+                          /**
+                           * Where this field is rendered when "Split" layout is selected for the section.
+                           */
+                          placement?: ('sidebar' | 'main') | null;
                           id?: string | null;
                           blockName?: string | null;
                           blockType: 'email';
@@ -828,6 +877,10 @@ export interface Form {
                           defaultValue?: number | null;
                           placeholder?: string | null;
                           required?: boolean | null;
+                          /**
+                           * Where this field is rendered when "Split" layout is selected for the section.
+                           */
+                          placement?: ('sidebar' | 'main') | null;
                           id?: string | null;
                           blockName?: string | null;
                           blockType: 'number';
@@ -850,6 +903,10 @@ export interface Form {
                               }[]
                             | null;
                           required?: boolean | null;
+                          /**
+                           * Where this field is rendered when "Split" layout is selected for the section.
+                           */
+                          placement?: ('sidebar' | 'main') | null;
                           id?: string | null;
                           blockName?: string | null;
                           blockType: 'select';
@@ -871,6 +928,10 @@ export interface Form {
                            * Custom error message to display when the input does not match the validation regex.
                            */
                           inputValidationErrorMessage?: string | null;
+                          /**
+                           * Where this field is rendered when "Split" layout is selected for the section.
+                           */
+                          placement?: ('sidebar' | 'main') | null;
                           id?: string | null;
                           blockName?: string | null;
                           blockType: 'text';
@@ -881,6 +942,10 @@ export interface Form {
                           placeholder?: string | null;
                           defaultValue?: string | null;
                           required?: boolean | null;
+                          /**
+                           * Where this field is rendered when "Split" layout is selected for the section.
+                           */
+                          placement?: ('sidebar' | 'main') | null;
                           id?: string | null;
                           blockName?: string | null;
                           blockType: 'textarea';
@@ -890,6 +955,10 @@ export interface Form {
                           label: string;
                           defaultValue?: string | null;
                           required?: boolean | null;
+                          /**
+                           * Where this field is rendered when "Split" layout is selected for the section.
+                           */
+                          placement?: ('sidebar' | 'main') | null;
                           id?: string | null;
                           blockName?: string | null;
                           blockType: 'date';
@@ -905,6 +974,10 @@ export interface Form {
                            * If checked, the user must log in to proceed.
                            */
                           required?: boolean | null;
+                          /**
+                           * Where this field is rendered when "Split" layout is selected for the section.
+                           */
+                          placement?: ('sidebar' | 'main') | null;
                           id?: string | null;
                           blockName?: string | null;
                           blockType: 'ceviDbLogin';
@@ -943,6 +1016,10 @@ export interface Form {
                         }
                     )[]
                   | null;
+                /**
+                 * Where this field is rendered when "Split" layout is selected for the section.
+                 */
+                placement?: ('sidebar' | 'main') | null;
                 id?: string | null;
                 blockName?: string | null;
                 blockType: 'conditionedBlock';
@@ -3137,6 +3214,7 @@ export interface FormsSelect<T extends boolean = true> {
           | T
           | {
               sectionTitle?: T;
+              layout?: T;
               fields?:
                 | T
                 | {
@@ -3147,6 +3225,7 @@ export interface FormsSelect<T extends boolean = true> {
                           label?: T;
                           required?: T;
                           defaultValue?: T;
+                          placement?: T;
                           id?: T;
                           blockName?: T;
                         };
@@ -3156,6 +3235,7 @@ export interface FormsSelect<T extends boolean = true> {
                           name?: T;
                           label?: T;
                           required?: T;
+                          placement?: T;
                           id?: T;
                           blockName?: T;
                         };
@@ -3166,6 +3246,7 @@ export interface FormsSelect<T extends boolean = true> {
                           label?: T;
                           placeholder?: T;
                           required?: T;
+                          placement?: T;
                           id?: T;
                           blockName?: T;
                         };
@@ -3184,6 +3265,7 @@ export interface FormsSelect<T extends boolean = true> {
                           defaultValue?: T;
                           placeholder?: T;
                           required?: T;
+                          placement?: T;
                           id?: T;
                           blockName?: T;
                         };
@@ -3204,6 +3286,7 @@ export interface FormsSelect<T extends boolean = true> {
                                 id?: T;
                               };
                           required?: T;
+                          placement?: T;
                           id?: T;
                           blockName?: T;
                         };
@@ -3217,6 +3300,7 @@ export interface FormsSelect<T extends boolean = true> {
                           required?: T;
                           inputValidation?: T;
                           inputValidationErrorMessage?: T;
+                          placement?: T;
                           id?: T;
                           blockName?: T;
                         };
@@ -3228,6 +3312,7 @@ export interface FormsSelect<T extends boolean = true> {
                           placeholder?: T;
                           defaultValue?: T;
                           required?: T;
+                          placement?: T;
                           id?: T;
                           blockName?: T;
                         };
@@ -3238,6 +3323,7 @@ export interface FormsSelect<T extends boolean = true> {
                           label?: T;
                           defaultValue?: T;
                           required?: T;
+                          placement?: T;
                           id?: T;
                           blockName?: T;
                         };
@@ -3248,6 +3334,7 @@ export interface FormsSelect<T extends boolean = true> {
                           label?: T;
                           saveField?: T;
                           required?: T;
+                          placement?: T;
                           id?: T;
                           blockName?: T;
                         };
@@ -3281,6 +3368,7 @@ export interface FormsSelect<T extends boolean = true> {
                                       label?: T;
                                       required?: T;
                                       defaultValue?: T;
+                                      placement?: T;
                                       id?: T;
                                       blockName?: T;
                                     };
@@ -3290,6 +3378,7 @@ export interface FormsSelect<T extends boolean = true> {
                                       name?: T;
                                       label?: T;
                                       required?: T;
+                                      placement?: T;
                                       id?: T;
                                       blockName?: T;
                                     };
@@ -3300,6 +3389,7 @@ export interface FormsSelect<T extends boolean = true> {
                                       label?: T;
                                       placeholder?: T;
                                       required?: T;
+                                      placement?: T;
                                       id?: T;
                                       blockName?: T;
                                     };
@@ -3318,6 +3408,7 @@ export interface FormsSelect<T extends boolean = true> {
                                       defaultValue?: T;
                                       placeholder?: T;
                                       required?: T;
+                                      placement?: T;
                                       id?: T;
                                       blockName?: T;
                                     };
@@ -3338,6 +3429,7 @@ export interface FormsSelect<T extends boolean = true> {
                                             id?: T;
                                           };
                                       required?: T;
+                                      placement?: T;
                                       id?: T;
                                       blockName?: T;
                                     };
@@ -3351,6 +3443,7 @@ export interface FormsSelect<T extends boolean = true> {
                                       required?: T;
                                       inputValidation?: T;
                                       inputValidationErrorMessage?: T;
+                                      placement?: T;
                                       id?: T;
                                       blockName?: T;
                                     };
@@ -3362,6 +3455,7 @@ export interface FormsSelect<T extends boolean = true> {
                                       placeholder?: T;
                                       defaultValue?: T;
                                       required?: T;
+                                      placement?: T;
                                       id?: T;
                                       blockName?: T;
                                     };
@@ -3372,6 +3466,7 @@ export interface FormsSelect<T extends boolean = true> {
                                       label?: T;
                                       defaultValue?: T;
                                       required?: T;
+                                      placement?: T;
                                       id?: T;
                                       blockName?: T;
                                     };
@@ -3382,6 +3477,7 @@ export interface FormsSelect<T extends boolean = true> {
                                       label?: T;
                                       saveField?: T;
                                       required?: T;
+                                      placement?: T;
                                       id?: T;
                                       blockName?: T;
                                     };
@@ -3397,6 +3493,7 @@ export interface FormsSelect<T extends boolean = true> {
                                       blockName?: T;
                                     };
                               };
+                          placement?: T;
                           id?: T;
                           blockName?: T;
                         };

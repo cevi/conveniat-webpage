@@ -4,10 +4,9 @@ import type {
 } from '@payloadcms/plugin-form-builder/types';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 
-export type FormFieldBlock = PayloadFormFieldBlock;
-
-// field types
-// ...
+export type FormFieldBlock = PayloadFormFieldBlock & {
+  placement?: 'sidebar' | 'main';
+};
 
 export interface JobSelectionBlock {
   blockType: 'jobSelection';
@@ -16,6 +15,7 @@ export interface JobSelectionBlock {
   required?: boolean;
   dateRangeCategory: 'setup' | 'main' | 'teardown';
   category?: string;
+  placement?: 'sidebar' | 'main';
 }
 
 export interface ConditionedBlock {
@@ -26,11 +26,13 @@ export interface ConditionedBlock {
     value: string;
   };
   fields: (FormFieldBlock | JobSelectionBlock)[];
+  placement?: 'sidebar' | 'main';
 }
 
 export interface FormSection {
   id: string;
   sectionTitle: string;
+  layout: 'standard' | 'split';
   fields: (FormFieldBlock | ConditionedBlock | JobSelectionBlock)[];
 }
 
