@@ -123,6 +123,32 @@ const teamMembersBlock: Block = {
   ],
 };
 
+const nestedAccordion: Block = {
+  slug: 'nestedAccordion',
+  interfaceName: 'NestedAccordionBlocks',
+  fields: [
+    {
+      type: 'array',
+      name: 'accordionBlocks',
+      fields: [
+        {
+          name: 'title',
+          type: 'text',
+          required: true,
+        },
+        {
+          name: 'valueBlocks',
+          type: 'blocks',
+          required: true,
+          blocks: [plainTextBlock, teamMembersBlock, formBlock],
+        },
+      ],
+    },
+  ],
+};
+
+const valueBlocks: Block[] = [plainTextBlock, teamMembersBlock, formBlock, nestedAccordion];
+
 export const accordion: Block = {
   slug: 'accordion',
   interfaceName: 'AccordionBlocks',
@@ -241,7 +267,7 @@ export const accordion: Block = {
           },
           type: 'blocks',
           required: true,
-          blocks: [plainTextBlock, teamMembersBlock, formBlock],
+          blocks: valueBlocks,
         },
       ],
     },

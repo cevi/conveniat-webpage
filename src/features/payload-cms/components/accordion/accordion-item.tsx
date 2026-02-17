@@ -9,6 +9,7 @@ interface AccordionItemProperties {
   children: React.ReactNode;
   onToggle: () => void;
   showChevron: boolean;
+  isNested?: boolean;
 }
 
 const AccordionItem: React.FC<AccordionItemProperties> = ({
@@ -18,14 +19,16 @@ const AccordionItem: React.FC<AccordionItemProperties> = ({
   isExpanded,
   onToggle,
   showChevron,
+  isNested,
 }) => {
   const blockId = accordionId;
 
   return (
     <div
       className={cn(
-        'rounded-lg border-2 border-gray-200 bg-white shadow-xs',
+        'rounded-lg border-2 border-gray-200 shadow-xs',
         'transition-transform duration-300',
+        isNested === true ? 'bg-white' : 'bg-gray-50',
         {
           'hover:scale-[1.01]': !isExpanded,
           'scale-100': isExpanded,
@@ -49,7 +52,7 @@ const AccordionItem: React.FC<AccordionItemProperties> = ({
       <div
         id={`content-${blockId}`}
         className={cn(
-          'transition-transform duration-300 ease-in-out',
+          'overflow-hidden transition-transform duration-300 ease-in-out',
           isExpanded ? 'opacity-100' : 'max-h-0 opacity-0',
         )}
       >

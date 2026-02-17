@@ -8,7 +8,8 @@ import type React from 'react';
 export const Accordion: React.FC<{
   block: AccordionBlocks;
   locale: Locale;
-}> = ({ locale, block }) => {
+  isNested?: boolean;
+}> = ({ locale, block, isNested }) => {
   if (block.accordionBlocks === undefined || block.accordionBlocks === null) {
     return <></>;
   }
@@ -37,7 +38,11 @@ export const Accordion: React.FC<{
 
   return (
     <div>
-      <AccordionClientContainer accordionBlocks={accordionBlocks} childs={children} />
+      <AccordionClientContainer
+        accordionBlocks={accordionBlocks}
+        childs={children}
+        isNested={isNested ?? false}
+      />
     </div>
   );
 };

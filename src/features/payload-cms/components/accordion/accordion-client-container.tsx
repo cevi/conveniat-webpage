@@ -32,8 +32,9 @@ const getFragmentFromBlock = (
     return sanitizeTitle(teamLeaderGroup.name);
   }
 
+  // Default to title behavior if 'portrait' is not explicitly selected
   const title = (accordionBlock.title as string | undefined) ?? '';
-  return accordionBlock.title === '' ? '' : sanitizeTitle(title);
+  return title === '' ? '' : sanitizeTitle(title);
 };
 
 /**
@@ -42,33 +43,34 @@ const getFragmentFromBlock = (
 const createTitleElement = (
   accordionBlock: NonNullable<AccordionBlocks['accordionBlocks']>[number],
 ): React.ReactNode => {
-  if (accordionBlock.titleOrPortrait === 'title') {
-    return <h3 className="text-lg font-medium text-gray-900">{accordionBlock.title}</h3>;
+  if (accordionBlock.titleOrPortrait === 'portrait') {
+    if (accordionBlock.teamLeaderGroup === undefined) return <></>;
+
+    const teamLeaderGroup = accordionBlock.teamLeaderGroup as {
+      name: string;
+      ceviname?: string | null;
+      portrait?: string | null | Image;
+    };
+
+    const name: string = teamLeaderGroup.name;
+    const ceviname: string = teamLeaderGroup.ceviname ?? '';
+    const portrait: string | Image | null | undefined = teamLeaderGroup.portrait;
+
+    return (
+      <button className="group flex w-full cursor-pointer flex-col items-center gap-4 rounded-md px-2 py-4 text-center transition-colors md:flex-row md:py-2 md:text-left">
+        <div className="relative h-48 w-48 shrink-0 overflow-hidden rounded-full md:h-24 md:w-24">
+          {<TeamLeaderPortrait name={name} portrait={portrait} hoverEffect={false} />}
+        </div>
+        <div className="w-full">
+          <p className="font-medium text-gray-900">{name}</p>
+          {ceviname !== '' && <p className="text-sm text-gray-500">{ceviname}</p>}
+        </div>
+      </button>
+    );
   }
 
-  if (accordionBlock.teamLeaderGroup === undefined) return <></>;
-
-  const teamLeaderGroup = accordionBlock.teamLeaderGroup as {
-    name: string;
-    ceviname?: string | null;
-    portrait?: string | null | Image;
-  };
-
-  const name: string = teamLeaderGroup.name;
-  const ceviname: string = teamLeaderGroup.ceviname ?? '';
-  const portrait: string | Image | null | undefined = teamLeaderGroup.portrait;
-
-  return (
-    <button className="group flex w-full cursor-pointer flex-col items-center gap-4 rounded-md px-2 py-4 text-center transition-colors md:flex-row md:py-2 md:text-left">
-      <div className="relative h-48 w-48 shrink-0 overflow-hidden rounded-full md:h-24 md:w-24">
-        {<TeamLeaderPortrait name={name} portrait={portrait} hoverEffect={false} />}
-      </div>
-      <div className="w-full">
-        <p className="font-medium text-gray-900">{name}</p>
-        {ceviname !== '' && <p className="text-sm text-gray-500">{ceviname}</p>}
-      </div>
-    </button>
-  );
+  // Default to rendering title if 'portrait' is not selected or if title exists
+  return <h3 className="text-lg font-medium text-gray-900">{accordionBlock.title}</h3>;
 };
 
 const AccordionClientContainer: React.FC<{
@@ -76,7 +78,8 @@ const AccordionClientContainer: React.FC<{
   childs: {
     [key: string]: React.ReactNode;
   };
-}> = ({ accordionBlocks, childs }) => {
+  isNested?: boolean;
+}> = ({ accordionBlocks, childs, isNested }) => {
   // Change expandedId to an array to hold multiple expanded fragments
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
   const accordionItemReferences = useRef<Record<string, HTMLDivElement | null>>({});
@@ -121,6 +124,9 @@ const AccordionClientContainer: React.FC<{
   );
 
   useEffect((): void | (() => void) => {
+    // Only handle hash-based expansion for non-nested accordions to avoid auto-expansion bugs
+    if (isNested === true) return;
+
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, @typescript-eslint/strict-boolean-expressions
     if (typeof globalThis !== 'undefined' && globalThis.location) {
       const hash = globalThis.location.hash.slice(1); // Remove the '#'
@@ -144,7 +150,7 @@ const AccordionClientContainer: React.FC<{
         }
       }
     }
-  }, [accordionBlocks, scrollToElement]);
+  }, [accordionBlocks, scrollToElement, isNested]);
 
   return (
     <div className="space-y-4">
@@ -161,10 +167,11 @@ const AccordionClientContainer: React.FC<{
             {accordionBlock.id !== undefined && accordionBlock.id !== null && (
               <AccordionItem
                 titleElement={createTitleElement(accordionBlock)}
-                showChevron={accordionBlock.titleOrPortrait === 'title'}
+                showChevron={accordionBlock.titleOrPortrait !== 'portrait'}
                 accordionId={accordionBlock.id}
                 isExpanded={expandedIds.includes(fragment)}
                 onToggle={() => toggleExpand(accordionBlock)}
+                isNested={isNested ?? false}
               >
                 {expandedIds.includes(fragment) && childs[accordionBlock.id ?? '']}
               </AccordionItem>

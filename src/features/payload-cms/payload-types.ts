@@ -1373,7 +1373,7 @@ export interface AccordionBlocks {
         /**
          * This is the content of the accordion block. It will be displayed when the block is expanded.
          */
-        valueBlocks: (PlainTextBlock | TeamMembersBlock | FormBlock)[];
+        valueBlocks: (PlainTextBlock | TeamMembersBlock | FormBlock | NestedAccordionBlocks)[];
         id?: string | null;
       }[]
     | null;
@@ -1995,6 +1995,22 @@ export interface CampCategory {
   colorTheme: 'purple' | 'green' | 'blue' | 'gray' | 'indigo' | 'amber' | 'rose' | 'cyan' | 'orange';
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "NestedAccordionBlocks".
+ */
+export interface NestedAccordionBlocks {
+  accordionBlocks?:
+    | {
+        title: string;
+        valueBlocks: (PlainTextBlock | TeamMembersBlock | FormBlock)[];
+        id?: string | null;
+      }[]
+    | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'nestedAccordion';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2666,6 +2682,7 @@ export interface AccordionBlocksSelect<T extends boolean = true> {
               accordionPlainTextBlock?: T | PlainTextBlockSelect<T>;
               accordionTeamMembersBlock?: T | TeamMembersBlockSelect<T>;
               formBlock?: T | FormBlockSelect<T>;
+              nestedAccordion?: T | NestedAccordionBlocksSelect<T>;
             };
         id?: T;
       };
@@ -2707,6 +2724,27 @@ export interface TeamMembersBlockSelect<T extends boolean = true> {
         name?: T;
         ceviname?: T;
         function?: T;
+        id?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "NestedAccordionBlocks_select".
+ */
+export interface NestedAccordionBlocksSelect<T extends boolean = true> {
+  accordionBlocks?:
+    | T
+    | {
+        title?: T;
+        valueBlocks?:
+          | T
+          | {
+              accordionPlainTextBlock?: T | PlainTextBlockSelect<T>;
+              accordionTeamMembersBlock?: T | TeamMembersBlockSelect<T>;
+              formBlock?: T | FormBlockSelect<T>;
+            };
         id?: T;
       };
   id?: T;
