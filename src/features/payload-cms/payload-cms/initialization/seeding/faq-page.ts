@@ -266,8 +266,11 @@ export const faqPageContent = (
           twoColumnLayout: false,
           accordionBlocks: [
             {
-              titleOrPortrait: 'title',
-              title: t.q3Title,
+              titleOrPortrait: 'portrait',
+              teamLeaderGroup: {
+                name: 'Leonie Loher',
+                ceviname: 'Vivace',
+              },
               valueBlocks: [
                 {
                   blockType: 'accordionPlainTextBlock',
@@ -310,38 +313,87 @@ export const faqPageContent = (
               title: t.q4Title,
               valueBlocks: [
                 {
-                  blockType: 'accordionPlainTextBlock',
-                  value: {
-                    root: {
-                      children: [
+                  blockType: 'nestedAccordion',
+                  accordionBlocks: [
+                    {
+                      title: 'Teil 1',
+                      valueBlocks: [
                         {
-                          children: [
-                            {
-                              detail: 0,
-                              format: 0,
-                              mode: 'normal',
-                              style: '',
-                              text: t.q4Answer,
-                              type: 'text',
+                          blockType: 'accordionPlainTextBlock',
+                          value: {
+                            root: {
+                              children: [
+                                {
+                                  children: [
+                                    {
+                                      detail: 0,
+                                      format: 0,
+                                      mode: 'normal',
+                                      style: '',
+                                      text: t.q4Answer,
+                                      type: 'text',
+                                      version: 1,
+                                    },
+                                  ],
+                                  direction: 'ltr',
+                                  format: '',
+                                  indent: 0,
+                                  type: 'paragraph',
+                                  version: 1,
+                                  textFormat: 0,
+                                  textStyle: '',
+                                },
+                              ],
+                              direction: 'ltr',
+                              format: '',
+                              indent: 0,
+                              type: 'root',
                               version: 1,
                             },
-                          ],
-                          direction: 'ltr',
-                          format: '',
-                          indent: 0,
-                          type: 'paragraph',
-                          version: 1,
-                          textFormat: 0,
-                          textStyle: '',
+                          },
                         },
                       ],
-                      direction: 'ltr',
-                      format: '',
-                      indent: 0,
-                      type: 'root',
-                      version: 1,
                     },
-                  },
+                    {
+                      title: 'Teil 2',
+                      valueBlocks: [
+                        {
+                          blockType: 'accordionPlainTextBlock',
+                          value: {
+                            root: {
+                              children: [
+                                {
+                                  children: [
+                                    {
+                                      detail: 0,
+                                      format: 0,
+                                      mode: 'normal',
+                                      style: '',
+                                      text: 'Zusatzinformationen zum zweiten Teil',
+                                      type: 'text',
+                                      version: 1,
+                                    },
+                                  ],
+                                  direction: 'ltr',
+                                  format: '',
+                                  indent: 0,
+                                  type: 'paragraph',
+                                  version: 1,
+                                  textFormat: 0,
+                                  textStyle: '',
+                                },
+                              ],
+                              direction: 'ltr',
+                              format: '',
+                              indent: 0,
+                              type: 'root',
+                              version: 1,
+                            },
+                          },
+                        },
+                      ],
+                    },
+                  ],
                 },
               ],
             },
