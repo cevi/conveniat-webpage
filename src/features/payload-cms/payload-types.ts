@@ -1355,6 +1355,10 @@ export interface AccordionBlocks {
     };
     [k: string]: unknown;
   } | null;
+  /**
+   * If enabled, the introduction text will be displayed on the left and the accordion on the right (only on large screens).
+   */
+  twoColumnLayout?: boolean | null;
   accordionBlocks?:
     | {
         /**
@@ -2687,6 +2691,7 @@ export interface DetailsTableSelect<T extends boolean = true> {
  */
 export interface AccordionBlocksSelect<T extends boolean = true> {
   introduction?: T;
+  twoColumnLayout?: T;
   accordionBlocks?:
     | T
     | {

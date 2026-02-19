@@ -70,7 +70,11 @@ const SectionWrapper = async ({
   return (
     <section
       key={block.id}
-      className={cn('mt-8 first:mt-0', sectionClassName, blockTypeOverrideClassName)}
+      className={cn(
+        'mt-8 first:mt-0',
+        sectionClassName ?? 'mx-auto max-w-2xl',
+        blockTypeOverrideClassName,
+      )}
     >
       <SectionErrorBoundary
         locale={locale}

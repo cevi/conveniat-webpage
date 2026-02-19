@@ -184,6 +184,23 @@ export const accordion: Block = {
       }),
       hooks: patchRichTextLinkHook,
     },
+    {
+      name: 'twoColumnLayout',
+      label: {
+        de: 'Zweispaltiges Layout',
+        en: 'Two Column Layout',
+        fr: 'Mise en page sur deux colonnes',
+      },
+      type: 'checkbox',
+      defaultValue: false,
+      admin: {
+        description: {
+          de: 'Wenn aktiviert, wird der Einleitungstext links und das Akkordeon rechts angezeigt (nur auf grossen Bildschirmen).',
+          en: 'If enabled, the introduction text will be displayed on the left and the accordion on the right (only on large screens).',
+          fr: 'Si activé, le texte d’introduction s’affichera à gauche et l’accordéon à droite (uniquement sur les écrans larges).',
+        },
+      },
+    },
 
     {
       type: 'array',
