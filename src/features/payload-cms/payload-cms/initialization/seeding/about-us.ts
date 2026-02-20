@@ -86,6 +86,7 @@ export const aboutUsContent = (
         {
           blockType: 'twoColumnBlock',
           splitRatio: 'rightLarger',
+          verticalAlignment: 'top',
           leftColumn: [
             {
               blockType: 'richTextSection',

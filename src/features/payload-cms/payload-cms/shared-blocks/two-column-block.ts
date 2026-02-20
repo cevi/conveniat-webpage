@@ -92,6 +92,50 @@ export const twoColumnBlock: Block = {
       },
     },
     {
+      name: 'verticalAlignment',
+      type: 'select',
+      required: true,
+      defaultValue: 'top',
+      options: [
+        {
+          label: {
+            de: 'Oben bündig',
+            en: 'Top aligned',
+            fr: 'Aligné en haut',
+          },
+          value: 'top',
+        },
+        {
+          label: {
+            de: 'Mittig zentriert',
+            en: 'Centered vertically',
+            fr: 'Centré verticalement',
+          },
+          value: 'center',
+        },
+        {
+          label: {
+            de: 'Unten bündig',
+            en: 'Bottom aligned',
+            fr: 'Aligné en bas',
+          },
+          value: 'bottom',
+        },
+      ],
+      label: {
+        de: 'Vertikale Ausrichtung',
+        en: 'Vertical Alignment',
+        fr: 'Alignement vertical',
+      },
+      admin: {
+        description: {
+          de: 'Wähle aus, wie die Spalten vertikal zueinander ausgerichtet sein sollen.',
+          en: 'Choose how the columns should be aligned vertically to each other.',
+          fr: 'Choisissez comment les colonnes doivent être alignées verticalement les unes par rapport aux autres.',
+        },
+      },
+    },
+    {
       name: 'leftColumn',
       type: 'blocks',
       required: true,

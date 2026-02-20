@@ -2005,6 +2005,10 @@ export interface TwoColumnBlock {
    */
   splitRatio: 'rightLarger' | 'leftLarger' | 'equal';
   /**
+   * Choose how the columns should be aligned vertically to each other.
+   */
+  verticalAlignment: 'top' | 'center' | 'bottom';
+  /**
    * Content for the left column.
    */
   leftColumn: (
@@ -3157,6 +3161,7 @@ export interface CountdownSelect<T extends boolean = true> {
  */
 export interface TwoColumnBlockSelect<T extends boolean = true> {
   splitRatio?: T;
+  verticalAlignment?: T;
   leftColumn?:
     | T
     | {

@@ -127,6 +127,7 @@ export const faqPageContent = (
         {
           blockType: 'twoColumnBlock' as const,
           splitRatio: 'rightLarger',
+          verticalAlignment: 'top',
           leftColumn: [
             {
               blockType: 'richTextSection' as const,

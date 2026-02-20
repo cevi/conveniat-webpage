@@ -13,6 +13,7 @@ export const RenderTwoColumnBlock: SectionRenderer<TwoColumnBlock> = ({
   locale,
 }) => {
   const ratio = block.splitRatio;
+  const verticalAlignment = block.verticalAlignment;
 
   return (
     <SectionWrapper
@@ -34,6 +35,9 @@ export const RenderTwoColumnBlock: SectionRenderer<TwoColumnBlock> = ({
           'min-[1632px]:grid-cols-[1fr_1.618fr]': ratio === 'rightLarger',
           'min-[1632px]:grid-cols-[1.618fr_1fr]': ratio === 'leftLarger',
           'min-[1632px]:grid-cols-2': ratio === 'equal',
+          'min-[1632px]:items-start': verticalAlignment === 'top',
+          'min-[1632px]:items-center': verticalAlignment === 'center',
+          'min-[1632px]:items-end': verticalAlignment === 'bottom',
         })}
       >
         <div>
