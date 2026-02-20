@@ -40,14 +40,14 @@ export const RenderTwoColumnBlock: SectionRenderer<TwoColumnBlock> = ({
           'min-[1632px]:items-end': verticalAlignment === 'bottom',
         })}
       >
-        <div>
+        <div className="[&>div>section:first-child_*:first-child]:mt-0!">
           <PageSectionsConverter
             blocks={block.leftColumn as ContentBlock[]}
             locale={locale}
             sectionClassName="!mt-0 mb-8 min-[1632px]:mb-0" // removing top margin for inner blocks and adding bottom margin for mobile
           />
         </div>
-        <div className="min-[1632px]:mt-2">
+        <div className="[&>div>section:first-child_*:first-child]:mt-0!">
           <PageSectionsConverter
             blocks={block.rightColumn as ContentBlock[]}
             locale={locale}
