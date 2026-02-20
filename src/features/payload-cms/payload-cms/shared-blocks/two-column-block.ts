@@ -42,22 +42,71 @@ export const genericBlocks = [
 export const twoColumnBlock: Block = {
   slug: 'twoColumnBlock',
   interfaceName: 'TwoColumnBlock',
+
+  imageURL: '/admin-block-images/two-column-block.png',
+  imageAltText: 'Two column block',
+
   fields: [
+    {
+      name: 'splitRatio',
+      type: 'select',
+      required: true,
+      defaultValue: 'rightLarger',
+      options: [
+        {
+          label: {
+            de: 'Rechte Spalte grösser (Goldener Schnitt)',
+            en: 'Right Column larger (Golden Ratio)',
+            fr: "Colonne droite plus grande (Nombre d'or)",
+          },
+          value: 'rightLarger',
+        },
+        {
+          label: {
+            de: 'Linke Spalte grösser (Goldener Schnitt)',
+            en: 'Left Column larger (Golden Ratio)',
+            fr: "Colonne gauche plus grande (Nombre d'or)",
+          },
+          value: 'leftLarger',
+        },
+        {
+          label: {
+            de: 'Gleich gross (50/50)',
+            en: 'Equal size (50/50)',
+            fr: 'Taille égale (50/50)',
+          },
+          value: 'equal',
+        },
+      ],
+      label: {
+        de: 'Spaltenaufteilung',
+        en: 'Column Split Ratio',
+        fr: 'Répartition des colonnes',
+      },
+      admin: {
+        description: {
+          de: 'Wähle das Breitenverhältnis der beiden Spalten zueinander aus.',
+          en: 'Choose the width ratio of the two columns to each other.',
+          fr: 'Choisissez le rapport de largeur des deux colonnes entre elles.',
+        },
+        layout: 'horizontal',
+      },
+    },
     {
       name: 'leftColumn',
       type: 'blocks',
       required: true,
       blocks: genericBlocks,
       label: {
-        de: 'Linke Spalte (kleiner)',
-        en: 'Left Column (smaller)',
-        fr: 'Colonne gauche (plus petit)',
+        de: 'Linke Spalte',
+        en: 'Left Column',
+        fr: 'Colonne gauche',
       },
       admin: {
         description: {
-          de: 'Inhalt für die schmalere, linke Spalte.',
-          en: 'Content for the narrower, left column.',
-          fr: 'Contenu de la colonne de gauche, plus étroite',
+          de: 'Inhalt für die linke Spalte.',
+          en: 'Content for the left column.',
+          fr: 'Contenu de la colonne de gauche.',
         },
       },
     },
@@ -67,15 +116,15 @@ export const twoColumnBlock: Block = {
       required: true,
       blocks: genericBlocks,
       label: {
-        de: 'Rechte Spalte (grösser)',
-        en: 'Right Column (larger)',
-        fr: 'Colonne droite (plus grand)',
+        de: 'Rechte Spalte',
+        en: 'Right Column',
+        fr: 'Colonne droite',
       },
       admin: {
         description: {
-          de: 'Inhalt für die breitere, rechte Spalte.',
-          en: 'Content for the wider, right column.',
-          fr: 'Contenu de la colonne de droite, plus large',
+          de: 'Inhalt für die rechte Spalte.',
+          en: 'Content for the right column.',
+          fr: 'Contenu de la colonne de droite.',
         },
       },
     },

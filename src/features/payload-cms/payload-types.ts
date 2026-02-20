@@ -2001,7 +2001,11 @@ export interface CampCategory {
  */
 export interface TwoColumnBlock {
   /**
-   * Content for the narrower, left column.
+   * Choose the width ratio of the two columns to each other.
+   */
+  splitRatio: 'rightLarger' | 'leftLarger' | 'equal';
+  /**
+   * Content for the left column.
    */
   leftColumn: (
     | {
@@ -2167,7 +2171,7 @@ export interface TwoColumnBlock {
       }
   )[];
   /**
-   * Content for the wider, right column.
+   * Content for the right column.
    */
   rightColumn: (
     | {
@@ -3152,6 +3156,7 @@ export interface CountdownSelect<T extends boolean = true> {
  * via the `definition` "TwoColumnBlock_select".
  */
 export interface TwoColumnBlockSelect<T extends boolean = true> {
+  splitRatio?: T;
   leftColumn?:
     | T
     | {

@@ -3,18 +3,17 @@ import { errorMessageForType } from '@/features/payload-cms/converters/page-sect
 import { PageSectionsConverter } from '@/features/payload-cms/converters/page-sections/index';
 import type { ContentBlock } from '@/features/payload-cms/converters/page-sections/section-wrapper';
 import SectionWrapper from '@/features/payload-cms/converters/page-sections/section-wrapper';
+import type { TwoColumnBlock } from '@/features/payload-cms/payload-types';
+import { cn } from '@/utils/tailwindcss-override';
 
-interface TwoColumnBlockType {
-  leftColumn: ContentBlock[];
-  rightColumn: ContentBlock[];
-}
-
-export const RenderTwoColumnBlock: SectionRenderer<TwoColumnBlockType> = ({
+export const RenderTwoColumnBlock: SectionRenderer<TwoColumnBlock> = ({
   block,
   sectionClassName,
   sectionOverrides,
   locale,
 }) => {
+  const ratio = block.splitRatio;
+
   return (
     <SectionWrapper
       block={block}
@@ -30,17 +29,23 @@ export const RenderTwoColumnBlock: SectionRenderer<TwoColumnBlockType> = ({
       )}
       locale={locale}
     >
-      <div className="min-[1632px]:grid min-[1632px]:grid-cols-[1fr_1.618fr] min-[1632px]:gap-8">
+      <div
+        className={cn('min-[1632px]:grid min-[1632px]:gap-8', {
+          'min-[1632px]:grid-cols-[1fr_1.618fr]': ratio === 'rightLarger',
+          'min-[1632px]:grid-cols-[1.618fr_1fr]': ratio === 'leftLarger',
+          'min-[1632px]:grid-cols-2': ratio === 'equal',
+        })}
+      >
         <div>
           <PageSectionsConverter
-            blocks={block.leftColumn}
+            blocks={block.leftColumn as ContentBlock[]}
             locale={locale}
             sectionClassName="!mt-0 mb-8 min-[1632px]:mb-0" // removing top margin for inner blocks and adding bottom margin for mobile
           />
         </div>
         <div className="min-[1632px]:mt-2">
           <PageSectionsConverter
-            blocks={block.rightColumn}
+            blocks={block.rightColumn as ContentBlock[]}
             locale={locale}
             sectionClassName="!mt-0" // removing top margin for inner blocks
           />

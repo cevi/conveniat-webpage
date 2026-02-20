@@ -126,6 +126,7 @@ export const faqPageContent = (
         // Two Column Block containing the introductory text and the Accordion Block
         {
           blockType: 'twoColumnBlock' as const,
+          splitRatio: 'rightLarger',
           leftColumn: [
             {
               blockType: 'richTextSection' as const,
