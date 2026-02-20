@@ -37,7 +37,6 @@ import type {
   TimelineEntries,
 } from '@/features/payload-cms/payload-types';
 import type { Locale, LocalizedPageType, StaticTranslationString } from '@/types/types';
-import { cn } from '@/utils/tailwindcss-override';
 import config from '@payload-config';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import { cacheLife, cacheTag } from 'next/cache';
@@ -64,7 +63,8 @@ export type ContentBlockTypeNames =
   | 'whiteSpace'
   | 'callToAction'
   | 'newsCard'
-  | 'campScheduleEntryBlock';
+  | 'campScheduleEntryBlock'
+  | 'twoColumnBlock';
 
 export type SectionRenderer<T = object> = React.FC<
   LocalizedPageType & {
@@ -75,7 +75,7 @@ export type SectionRenderer<T = object> = React.FC<
   }
 >;
 
-const errorMessageForType = (type: StaticTranslationString, locale: Locale): string => {
+export const errorMessageForType = (type: StaticTranslationString, locale: Locale): string => {
   const part1: StaticTranslationString = {
     de: '',
     en: 'Failed to load ',
@@ -157,50 +157,12 @@ export const RenderTimelineEntries: SectionRenderer<TimelineEntries> = async ({
   );
 };
 
-/**
- *
- * Calculates the margin for the right column of an accordion block.
- *
- * @param isTwoColumn Whether the accordion block has a two-column layout.
- * @param introduction The introduction of the accordion block.
- * @returns The margin for the right column of an accordion block.
- */
-const getAccordionRightColumnMargin = (
-  isTwoColumn: boolean,
-  introduction?: SerializedEditorState | null,
-): string => {
-  let rightColumnDesktopMargin = 'min-[1632px]:mt-0';
-  if (isTwoColumn && introduction && introduction.root.children.length > 0) {
-    const firstChild = introduction.root.children[0] as {
-      type: string;
-      tag?: string;
-    };
-    if (firstChild.type === 'heading') {
-      if (firstChild.tag === 'h1') rightColumnDesktopMargin = 'min-[1632px]:mt-6';
-      else if (firstChild.tag === 'h2' || firstChild.tag === 'h3')
-        rightColumnDesktopMargin = 'min-[1632px]:mt-8';
-    } else if (firstChild.type === 'paragraph') {
-      rightColumnDesktopMargin = 'min-[1632px]:mt-2';
-    }
-  }
-  return rightColumnDesktopMargin;
-};
-
-export const AccordionBlock: SectionRenderer<AccordionBlocks> = async ({
+export const AccordionBlock: SectionRenderer<AccordionBlocks> = ({
   block,
   sectionClassName,
   sectionOverrides,
   locale,
 }) => {
-  const payload = await getPayload({ config });
-
-  if (block.introduction) {
-    await resolveRichTextLinks(block.introduction, payload, locale);
-  }
-
-  const isTwoColumn = block.twoColumnLayout === true;
-  const rightColumnDesktopMargin = getAccordionRightColumnMargin(isTwoColumn, block.introduction);
-
   return (
     <SectionWrapper
       block={block}
@@ -216,19 +178,7 @@ export const AccordionBlock: SectionRenderer<AccordionBlocks> = async ({
       )}
       locale={locale}
     >
-      <div
-        className={cn({
-          'min-[1632px]:grid min-[1632px]:grid-cols-[1fr_1.618fr] min-[1632px]:gap-8': isTwoColumn,
-        })}
-      >
-        {block.introduction && (
-          <LexicalRichTextSection richTextSection={block.introduction} locale={locale} />
-        )}
-
-        <div className={cn('mt-4', rightColumnDesktopMargin)}>
-          <Accordion block={block} locale={locale} />
-        </div>
-      </div>
+      <Accordion block={block} locale={locale} />
     </SectionWrapper>
   );
 };

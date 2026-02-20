@@ -14,78 +14,70 @@ import { singlePictureBlock } from '@/features/payload-cms/payload-cms/shared-bl
 import { summaryBoxBlock } from '@/features/payload-cms/payload-cms/shared-blocks/summary-box-block';
 import { swisstopoMapEmbedBlock } from '@/features/payload-cms/payload-cms/shared-blocks/swisstopo-embed-block';
 import { timelineEntries } from '@/features/payload-cms/payload-cms/shared-blocks/timeline-entries';
-import { twoColumnBlock } from '@/features/payload-cms/payload-cms/shared-blocks/two-column-block';
 import { whiteSpaceBlock } from '@/features/payload-cms/payload-cms/shared-blocks/white-space-block';
 import { youtubeEmbedBlock } from '@/features/payload-cms/payload-cms/shared-blocks/youtube-embed-block';
-import type { Field } from 'payload';
+import type { Block } from 'payload';
 
-export const mainContentField: Field = {
-  name: 'mainContent',
-  type: 'blocks',
-  required: true,
-  localized: true,
-  admin: {
-    initCollapsed: true,
-    description: {
-      en: 'The main content of the page',
-      de: 'Der Hauptinhalt der Seite',
-      fr: 'Le contenu principal de la page',
-    },
-  },
-  defaultValue: [
+export const genericBlocks = [
+  richTextArticleBlock,
+  blockPostsOverview,
+  formBlock,
+  photoCarouselBlock,
+  singlePictureBlock,
+  youtubeEmbedBlock,
+  instagramEmbedBlock,
+  swisstopoMapEmbedBlock,
+  fileDownloadBlock,
+  detailsTable,
+  accordion,
+  summaryBoxBlock,
+  timelineEntries,
+  countdownBlock,
+  whiteSpaceBlock,
+  callToActionBlock,
+  newsCardBlock,
+  campScheduleEntryBlock,
+];
+
+export const twoColumnBlock: Block = {
+  slug: 'twoColumnBlock',
+  interfaceName: 'TwoColumnBlock',
+  fields: [
     {
-      blockType: 'richTextSection',
-      richTextSection: {
-        root: {
-          children: [
-            {
-              children: [
-                {
-                  detail: 0,
-                  format: 0,
-                  mode: 'normal',
-                  style: '',
-                  text: 'This is a new page, please edit me!',
-                  type: 'text',
-                  version: 1,
-                },
-              ],
-              format: '',
-              indent: 0,
-              type: 'paragraph',
-              version: 1,
-              textFormat: 0,
-              textStyle: '',
-            },
-          ],
-          format: '',
-          indent: 0,
-          type: 'root',
-          version: 1,
+      name: 'leftColumn',
+      type: 'blocks',
+      required: true,
+      blocks: genericBlocks,
+      label: {
+        de: 'Linke Spalte (kleiner)',
+        en: 'Left Column (smaller)',
+        fr: 'Colonne gauche (plus petit)',
+      },
+      admin: {
+        description: {
+          de: 'Inhalt für die schmalere, linke Spalte.',
+          en: 'Content for the narrower, left column.',
+          fr: 'Contenu de la colonne de gauche, plus étroite',
         },
       },
-      blockName: 'Main Page Content',
     },
-  ],
-  blocks: [
-    richTextArticleBlock,
-    blockPostsOverview,
-    formBlock,
-    photoCarouselBlock,
-    singlePictureBlock,
-    youtubeEmbedBlock,
-    instagramEmbedBlock,
-    swisstopoMapEmbedBlock,
-    fileDownloadBlock,
-    detailsTable,
-    accordion,
-    summaryBoxBlock,
-    timelineEntries,
-    countdownBlock,
-    whiteSpaceBlock,
-    callToActionBlock,
-    newsCardBlock,
-    campScheduleEntryBlock,
-    twoColumnBlock,
+    {
+      name: 'rightColumn',
+      type: 'blocks',
+      required: true,
+      blocks: genericBlocks,
+      label: {
+        de: 'Rechte Spalte (grösser)',
+        en: 'Right Column (larger)',
+        fr: 'Colonne droite (plus grand)',
+      },
+      admin: {
+        description: {
+          de: 'Inhalt für die breitere, rechte Spalte.',
+          en: 'Content for the wider, right column.',
+          fr: 'Contenu de la colonne de droite, plus large',
+        },
+      },
+    },
   ],
 };

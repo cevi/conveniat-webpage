@@ -3,12 +3,7 @@ import { fileDownloadBlock } from '@/features/payload-cms/payload-cms/shared-blo
 import { formBlock } from '@/features/payload-cms/payload-cms/shared-blocks/form-block';
 import { LinkField } from '@/features/payload-cms/payload-cms/shared-fields/link-field';
 import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
-import {
-  defaultEditorLexicalConfig,
-  HeadingFeature,
-  lexicalEditor,
-  UnorderedListFeature,
-} from '@payloadcms/richtext-lexical';
+import { defaultEditorLexicalConfig, lexicalEditor } from '@payloadcms/richtext-lexical';
 import type { Block, Field } from 'payload';
 
 const plainTextBlock: Block = {
@@ -164,44 +159,6 @@ export const accordion: Block = {
   imageAltText: 'Accordion Block',
 
   fields: [
-    {
-      name: 'introduction',
-      type: 'richText',
-      label: {
-        de: 'Einleitungstext',
-        en: 'Introduction Text',
-        fr: "Texte d'introduction",
-      },
-      editor: lexicalEditor({
-        features: [
-          ...minimalEditorFeatures,
-          HeadingFeature({
-            enabledHeadingSizes: ['h2', 'h3'],
-          }),
-          UnorderedListFeature(),
-        ],
-        lexical: defaultEditorLexicalConfig,
-      }),
-      hooks: patchRichTextLinkHook,
-    },
-    {
-      name: 'twoColumnLayout',
-      label: {
-        de: 'Zweispaltiges Layout',
-        en: 'Two Column Layout',
-        fr: 'Mise en page sur deux colonnes',
-      },
-      type: 'checkbox',
-      defaultValue: false,
-      admin: {
-        description: {
-          de: 'Wenn aktiviert, wird der Einleitungstext links und das Akkordeon rechts angezeigt (nur auf grossen Bildschirmen).',
-          en: 'If enabled, the introduction text will be displayed on the left and the accordion on the right (only on large screens).',
-          fr: 'Si activé, le texte d’introduction s’affichera à gauche et l’accordéon à droite (uniquement sur les écrans larges).',
-        },
-      },
-    },
-
     {
       type: 'array',
       name: 'accordionBlocks',

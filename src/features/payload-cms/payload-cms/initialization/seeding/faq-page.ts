@@ -123,138 +123,147 @@ export const faqPageContent = (
             },
           },
         },
-        // Two Column Accordion Block
+        // Two Column Block containing the introductory text and the Accordion Block
         {
-          blockType: 'accordion' as const,
-          twoColumnLayout: true,
-          introduction: {
-            root: {
-              children: [
-                {
-                  children: [
-                    {
-                      detail: 0,
-                      format: 0,
-                      mode: 'normal',
-                      style: '',
-                      text: 'Das Lager',
-                      type: 'text',
-                      version: 1,
-                    },
-                  ],
-                  direction: 'ltr',
-                  format: '',
-                  indent: 0,
-                  tag: 'h2',
-                  type: 'heading',
-                  version: 1,
-                },
-                {
-                  children: [
-                    {
-                      detail: 0,
-                      format: 0,
-                      mode: 'normal',
-                      style: '',
-                      text: t.accordionIntro,
-                      type: 'text',
-                      version: 1,
-                    },
-                  ],
-                  direction: 'ltr',
-                  format: '',
-                  indent: 0,
-                  type: 'paragraph',
-                  version: 1,
-                  textFormat: 0,
-                  textStyle: '',
-                },
-              ],
-              direction: 'ltr',
-              format: '',
-              indent: 0,
-              type: 'root',
-              version: 1,
-            },
-          },
-          accordionBlocks: [
+          blockType: 'twoColumnBlock' as const,
+          leftColumn: [
             {
-              titleOrPortrait: 'title',
-              title: t.q1Title,
-              valueBlocks: [
-                {
-                  blockType: 'accordionPlainTextBlock',
-                  value: {
-                    root: {
+              blockType: 'richTextSection' as const,
+              richTextSection: {
+                root: {
+                  children: [
+                    {
                       children: [
                         {
-                          children: [
-                            {
-                              detail: 0,
-                              format: 0,
-                              mode: 'normal',
-                              style: '',
-                              text: t.q1Answer,
-                              type: 'text',
-                              version: 1,
-                            },
-                          ],
-                          direction: 'ltr',
-                          format: '',
-                          indent: 0,
-                          type: 'paragraph',
+                          detail: 0,
+                          format: 0,
+                          mode: 'normal',
+                          style: '',
+                          text: 'Das Lager',
+                          type: 'text',
                           version: 1,
-                          textFormat: 0,
-                          textStyle: '',
                         },
                       ],
                       direction: 'ltr',
                       format: '',
                       indent: 0,
-                      type: 'root',
+                      tag: 'h2',
+                      type: 'heading',
                       version: 1,
                     },
-                  },
-                },
-              ],
-            },
-            {
-              titleOrPortrait: 'title',
-              title: t.q2Title,
-              valueBlocks: [
-                {
-                  blockType: 'accordionPlainTextBlock',
-                  value: {
-                    root: {
+                    {
                       children: [
                         {
-                          children: [
-                            {
-                              detail: 0,
-                              format: 0,
-                              mode: 'normal',
-                              style: '',
-                              text: t.q2Answer,
-                              type: 'text',
-                              version: 1,
-                            },
-                          ],
-                          direction: 'ltr',
-                          format: '',
-                          indent: 0,
-                          type: 'paragraph',
+                          detail: 0,
+                          format: 0,
+                          mode: 'normal',
+                          style: '',
+                          text: t.accordionIntro,
+                          type: 'text',
                           version: 1,
-                          textFormat: 0,
-                          textStyle: '',
                         },
                       ],
                       direction: 'ltr',
                       format: '',
                       indent: 0,
-                      type: 'root',
+                      type: 'paragraph',
                       version: 1,
+                      textFormat: 0,
+                      textStyle: '',
                     },
-                  },
+                  ],
+                  direction: 'ltr',
+                  format: '',
+                  indent: 0,
+                  type: 'root',
+                  version: 1,
+                },
+              },
+            },
+          ],
+          rightColumn: [
+            {
+              blockType: 'accordion' as const,
+              accordionBlocks: [
+                {
+                  titleOrPortrait: 'title',
+                  title: t.q1Title,
+                  valueBlocks: [
+                    {
+                      blockType: 'accordionPlainTextBlock',
+                      value: {
+                        root: {
+                          children: [
+                            {
+                              children: [
+                                {
+                                  detail: 0,
+                                  format: 0,
+                                  mode: 'normal',
+                                  style: '',
+                                  text: t.q1Answer,
+                                  type: 'text',
+                                  version: 1,
+                                },
+                              ],
+                              direction: 'ltr',
+                              format: '',
+                              indent: 0,
+                              type: 'paragraph',
+                              version: 1,
+                              textFormat: 0,
+                              textStyle: '',
+                            },
+                          ],
+                          direction: 'ltr',
+                          format: '',
+                          indent: 0,
+                          type: 'root',
+                          version: 1,
+                        },
+                      },
+                    },
+                  ],
+                },
+                {
+                  titleOrPortrait: 'title',
+                  title: t.q2Title,
+                  valueBlocks: [
+                    {
+                      blockType: 'accordionPlainTextBlock',
+                      value: {
+                        root: {
+                          children: [
+                            {
+                              children: [
+                                {
+                                  detail: 0,
+                                  format: 0,
+                                  mode: 'normal',
+                                  style: '',
+                                  text: t.q2Answer,
+                                  type: 'text',
+                                  version: 1,
+                                },
+                              ],
+                              direction: 'ltr',
+                              format: '',
+                              indent: 0,
+                              type: 'paragraph',
+                              version: 1,
+                              textFormat: 0,
+                              textStyle: '',
+                            },
+                          ],
+                          direction: 'ltr',
+                          format: '',
+                          indent: 0,
+                          type: 'root',
+                          version: 1,
+                        },
+                      },
+                    },
+                  ],
                 },
               ],
             },
@@ -263,7 +272,6 @@ export const faqPageContent = (
         // Single Column Accordion Block
         {
           blockType: 'accordion' as const,
-          twoColumnLayout: false,
           accordionBlocks: [
             {
               titleOrPortrait: 'portrait',

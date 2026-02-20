@@ -390,6 +390,7 @@ export interface Blog {
           blockName?: string | null;
           blockType: 'campScheduleEntryBlock';
         }
+      | TwoColumnBlock
     )[];
   };
   seo: {
@@ -1340,25 +1341,6 @@ export interface DetailsTable {
  * via the `definition` "AccordionBlocks".
  */
 export interface AccordionBlocks {
-  introduction?: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  } | null;
-  /**
-   * If enabled, the introduction text will be displayed on the left and the accordion on the right (only on large screens).
-   */
-  twoColumnLayout?: boolean | null;
   accordionBlocks?:
     | {
         /**
@@ -1675,6 +1657,7 @@ export interface GenericPage {
           blockName?: string | null;
           blockType: 'campScheduleEntryBlock';
         }
+      | TwoColumnBlock
     )[];
   };
   seo: {
@@ -2011,6 +1994,347 @@ export interface CampCategory {
   colorTheme: 'purple' | 'green' | 'blue' | 'gray' | 'indigo' | 'amber' | 'rose' | 'cyan' | 'orange';
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TwoColumnBlock".
+ */
+export interface TwoColumnBlock {
+  /**
+   * Content for the narrower, left column.
+   */
+  leftColumn: (
+    | {
+        richTextSection: {
+          root: {
+            type: string;
+            children: {
+              type: any;
+              version: number;
+              [k: string]: unknown;
+            }[];
+            direction: ('ltr' | 'rtl') | null;
+            format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+            indent: number;
+            version: number;
+          };
+          [k: string]: unknown;
+        };
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'richTextSection';
+      }
+    | {
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'blogPostsOverview';
+      }
+    | FormBlock
+    | {
+        images: (string | Image)[];
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'photoCarousel';
+      }
+    | {
+        image: string | Image;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'singlePicture';
+      }
+    | YoutubeEmbedding
+    | InstagramEmbedding
+    | SwisstopoMapEmbedding
+    | {
+        file: string | Document;
+        openInNewTab?: boolean | null;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'fileDownload';
+      }
+    | DetailsTable
+    | AccordionBlocks
+    | SummaryBox
+    | TimelineEntries
+    | Countdown
+    | {
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'whiteSpace';
+      }
+    | {
+        /**
+         * Label for the button
+         */
+        label?: string | null;
+        linkField?: {
+          type?: ('reference' | 'custom') | null;
+          reference?:
+            | ({
+                relationTo: 'blog';
+                value: string | Blog;
+              } | null)
+            | ({
+                relationTo: 'generic-page';
+                value: string | GenericPage;
+              } | null)
+            | ({
+                relationTo: 'images';
+                value: string | Image;
+              } | null)
+            | ({
+                relationTo: 'documents';
+                value: string | Document;
+              } | null)
+            | ({
+                relationTo: 'camp-map-annotations';
+                value: string | CampMapAnnotation;
+              } | null)
+            | ({
+                relationTo: 'camp-schedule-entry';
+                value: string | CampScheduleEntry;
+              } | null);
+          url?: string | null;
+          openInNewTab?: boolean | null;
+        };
+        /**
+         * Show inverted colors
+         */
+        inverted?: boolean | null;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'callToAction';
+      }
+    | {
+        linkField?: {
+          type?: ('reference' | 'custom') | null;
+          reference?:
+            | ({
+                relationTo: 'blog';
+                value: string | Blog;
+              } | null)
+            | ({
+                relationTo: 'generic-page';
+                value: string | GenericPage;
+              } | null)
+            | ({
+                relationTo: 'images';
+                value: string | Image;
+              } | null)
+            | ({
+                relationTo: 'documents';
+                value: string | Document;
+              } | null)
+            | ({
+                relationTo: 'camp-map-annotations';
+                value: string | CampMapAnnotation;
+              } | null)
+            | ({
+                relationTo: 'camp-schedule-entry';
+                value: string | CampScheduleEntry;
+              } | null);
+          url?: string | null;
+          openInNewTab?: boolean | null;
+        };
+        headline: string;
+        date: string;
+        image?: (string | null) | Image;
+        paragraph?: {
+          root: {
+            type: string;
+            children: {
+              type: any;
+              version: number;
+              [k: string]: unknown;
+            }[];
+            direction: ('ltr' | 'rtl') | null;
+            format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+            indent: number;
+            version: number;
+          };
+          [k: string]: unknown;
+        } | null;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'newsCard';
+      }
+    | {
+        date: string;
+        location?: (string | null) | CampMapAnnotation;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'campScheduleEntryBlock';
+      }
+  )[];
+  /**
+   * Content for the wider, right column.
+   */
+  rightColumn: (
+    | {
+        richTextSection: {
+          root: {
+            type: string;
+            children: {
+              type: any;
+              version: number;
+              [k: string]: unknown;
+            }[];
+            direction: ('ltr' | 'rtl') | null;
+            format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+            indent: number;
+            version: number;
+          };
+          [k: string]: unknown;
+        };
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'richTextSection';
+      }
+    | {
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'blogPostsOverview';
+      }
+    | FormBlock
+    | {
+        images: (string | Image)[];
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'photoCarousel';
+      }
+    | {
+        image: string | Image;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'singlePicture';
+      }
+    | YoutubeEmbedding
+    | InstagramEmbedding
+    | SwisstopoMapEmbedding
+    | {
+        file: string | Document;
+        openInNewTab?: boolean | null;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'fileDownload';
+      }
+    | DetailsTable
+    | AccordionBlocks
+    | SummaryBox
+    | TimelineEntries
+    | Countdown
+    | {
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'whiteSpace';
+      }
+    | {
+        /**
+         * Label for the button
+         */
+        label?: string | null;
+        linkField?: {
+          type?: ('reference' | 'custom') | null;
+          reference?:
+            | ({
+                relationTo: 'blog';
+                value: string | Blog;
+              } | null)
+            | ({
+                relationTo: 'generic-page';
+                value: string | GenericPage;
+              } | null)
+            | ({
+                relationTo: 'images';
+                value: string | Image;
+              } | null)
+            | ({
+                relationTo: 'documents';
+                value: string | Document;
+              } | null)
+            | ({
+                relationTo: 'camp-map-annotations';
+                value: string | CampMapAnnotation;
+              } | null)
+            | ({
+                relationTo: 'camp-schedule-entry';
+                value: string | CampScheduleEntry;
+              } | null);
+          url?: string | null;
+          openInNewTab?: boolean | null;
+        };
+        /**
+         * Show inverted colors
+         */
+        inverted?: boolean | null;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'callToAction';
+      }
+    | {
+        linkField?: {
+          type?: ('reference' | 'custom') | null;
+          reference?:
+            | ({
+                relationTo: 'blog';
+                value: string | Blog;
+              } | null)
+            | ({
+                relationTo: 'generic-page';
+                value: string | GenericPage;
+              } | null)
+            | ({
+                relationTo: 'images';
+                value: string | Image;
+              } | null)
+            | ({
+                relationTo: 'documents';
+                value: string | Document;
+              } | null)
+            | ({
+                relationTo: 'camp-map-annotations';
+                value: string | CampMapAnnotation;
+              } | null)
+            | ({
+                relationTo: 'camp-schedule-entry';
+                value: string | CampScheduleEntry;
+              } | null);
+          url?: string | null;
+          openInNewTab?: boolean | null;
+        };
+        headline: string;
+        date: string;
+        image?: (string | null) | Image;
+        paragraph?: {
+          root: {
+            type: string;
+            children: {
+              type: any;
+              version: number;
+              [k: string]: unknown;
+            }[];
+            direction: ('ltr' | 'rtl') | null;
+            format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+            indent: number;
+            version: number;
+          };
+          [k: string]: unknown;
+        } | null;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'newsCard';
+      }
+    | {
+        date: string;
+        location?: (string | null) | CampMapAnnotation;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'campScheduleEntryBlock';
+      }
+  )[];
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'twoColumnBlock';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2596,6 +2920,7 @@ export interface BlogSelect<T extends boolean = true> {
                     id?: T;
                     blockName?: T;
                   };
+              twoColumnBlock?: T | TwoColumnBlockSelect<T>;
             };
       };
   seo?:
@@ -2690,8 +3015,6 @@ export interface DetailsTableSelect<T extends boolean = true> {
  * via the `definition` "AccordionBlocks_select".
  */
 export interface AccordionBlocksSelect<T extends boolean = true> {
-  introduction?: T;
-  twoColumnLayout?: T;
   accordionBlocks?:
     | T
     | {
@@ -2826,6 +3149,206 @@ export interface CountdownSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TwoColumnBlock_select".
+ */
+export interface TwoColumnBlockSelect<T extends boolean = true> {
+  leftColumn?:
+    | T
+    | {
+        richTextSection?:
+          | T
+          | {
+              richTextSection?: T;
+              id?: T;
+              blockName?: T;
+            };
+        blogPostsOverview?:
+          | T
+          | {
+              id?: T;
+              blockName?: T;
+            };
+        formBlock?: T | FormBlockSelect<T>;
+        photoCarousel?:
+          | T
+          | {
+              images?: T;
+              id?: T;
+              blockName?: T;
+            };
+        singlePicture?:
+          | T
+          | {
+              image?: T;
+              id?: T;
+              blockName?: T;
+            };
+        youtubeEmbed?: T | YoutubeEmbeddingSelect<T>;
+        instagramEmbed?: T | InstagramEmbeddingSelect<T>;
+        swisstopoEmbed?: T | SwisstopoMapEmbeddingSelect<T>;
+        fileDownload?:
+          | T
+          | {
+              file?: T;
+              openInNewTab?: T;
+              id?: T;
+              blockName?: T;
+            };
+        detailsTable?: T | DetailsTableSelect<T>;
+        accordion?: T | AccordionBlocksSelect<T>;
+        summaryBox?: T | SummaryBoxSelect<T>;
+        timelineEntries?: T | TimelineEntriesSelect<T>;
+        countdown?: T | CountdownSelect<T>;
+        whiteSpace?:
+          | T
+          | {
+              id?: T;
+              blockName?: T;
+            };
+        callToAction?:
+          | T
+          | {
+              label?: T;
+              linkField?:
+                | T
+                | {
+                    type?: T;
+                    reference?: T;
+                    url?: T;
+                    openInNewTab?: T;
+                  };
+              inverted?: T;
+              id?: T;
+              blockName?: T;
+            };
+        newsCard?:
+          | T
+          | {
+              linkField?:
+                | T
+                | {
+                    type?: T;
+                    reference?: T;
+                    url?: T;
+                    openInNewTab?: T;
+                  };
+              headline?: T;
+              date?: T;
+              image?: T;
+              paragraph?: T;
+              id?: T;
+              blockName?: T;
+            };
+        campScheduleEntryBlock?:
+          | T
+          | {
+              date?: T;
+              location?: T;
+              id?: T;
+              blockName?: T;
+            };
+      };
+  rightColumn?:
+    | T
+    | {
+        richTextSection?:
+          | T
+          | {
+              richTextSection?: T;
+              id?: T;
+              blockName?: T;
+            };
+        blogPostsOverview?:
+          | T
+          | {
+              id?: T;
+              blockName?: T;
+            };
+        formBlock?: T | FormBlockSelect<T>;
+        photoCarousel?:
+          | T
+          | {
+              images?: T;
+              id?: T;
+              blockName?: T;
+            };
+        singlePicture?:
+          | T
+          | {
+              image?: T;
+              id?: T;
+              blockName?: T;
+            };
+        youtubeEmbed?: T | YoutubeEmbeddingSelect<T>;
+        instagramEmbed?: T | InstagramEmbeddingSelect<T>;
+        swisstopoEmbed?: T | SwisstopoMapEmbeddingSelect<T>;
+        fileDownload?:
+          | T
+          | {
+              file?: T;
+              openInNewTab?: T;
+              id?: T;
+              blockName?: T;
+            };
+        detailsTable?: T | DetailsTableSelect<T>;
+        accordion?: T | AccordionBlocksSelect<T>;
+        summaryBox?: T | SummaryBoxSelect<T>;
+        timelineEntries?: T | TimelineEntriesSelect<T>;
+        countdown?: T | CountdownSelect<T>;
+        whiteSpace?:
+          | T
+          | {
+              id?: T;
+              blockName?: T;
+            };
+        callToAction?:
+          | T
+          | {
+              label?: T;
+              linkField?:
+                | T
+                | {
+                    type?: T;
+                    reference?: T;
+                    url?: T;
+                    openInNewTab?: T;
+                  };
+              inverted?: T;
+              id?: T;
+              blockName?: T;
+            };
+        newsCard?:
+          | T
+          | {
+              linkField?:
+                | T
+                | {
+                    type?: T;
+                    reference?: T;
+                    url?: T;
+                    openInNewTab?: T;
+                  };
+              headline?: T;
+              date?: T;
+              image?: T;
+              paragraph?: T;
+              id?: T;
+              blockName?: T;
+            };
+        campScheduleEntryBlock?:
+          | T
+          | {
+              date?: T;
+              location?: T;
+              id?: T;
+              blockName?: T;
+            };
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "generic-page_select".
  */
 export interface GenericPageSelect<T extends boolean = true> {
@@ -2937,6 +3460,7 @@ export interface GenericPageSelect<T extends boolean = true> {
                     id?: T;
                     blockName?: T;
                   };
+              twoColumnBlock?: T | TwoColumnBlockSelect<T>;
             };
       };
   seo?:

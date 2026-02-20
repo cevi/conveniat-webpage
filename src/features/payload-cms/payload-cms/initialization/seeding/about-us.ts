@@ -84,51 +84,61 @@ export const aboutUsContent = (
           },
         },
         {
-          blockType: 'accordion',
-          introduction: {
-            root: {
-              children: [
-                {
+          blockType: 'twoColumnBlock',
+          leftColumn: [
+            {
+              blockType: 'richTextSection',
+              richTextSection: {
+                root: {
                   children: [
                     {
-                      detail: 0,
-                      format: 0,
-                      mode: 'normal',
-                      style: '',
-                      text: t.accordionIntro,
-                      type: 'text',
+                      children: [
+                        {
+                          detail: 0,
+                          format: 0,
+                          mode: 'normal',
+                          style: '',
+                          text: t.accordionIntro,
+                          type: 'text',
+                          version: 1,
+                        },
+                      ],
+                      direction: 'ltr',
+                      format: '',
+                      indent: 0,
+                      type: 'paragraph',
                       version: 1,
+                      textFormat: 0,
+                      textStyle: '',
                     },
                   ],
                   direction: 'ltr',
                   format: '',
                   indent: 0,
-                  type: 'paragraph',
+                  type: 'root',
                   version: 1,
-                  textFormat: 0,
-                  textStyle: '',
                 },
-              ],
-              direction: 'ltr',
-              format: '',
-              indent: 0,
-              type: 'root',
-              version: 1,
+              },
             },
-          },
-          accordionBlocks: [
+          ],
+          rightColumn: [
             {
-              titleOrPortrait: 'title',
-              title: t.role,
-              valueBlocks: [
+              blockType: 'accordion',
+              accordionBlocks: [
                 {
-                  blockType: 'accordionTeamMembersBlock',
-                  teamLeaderGroup: {
-                    name: 'Max Muster',
-                    ceviname: 'Müsterli',
-                    portrait: teamLeaderImage,
-                  },
-                } as TeamMembersBlock,
+                  titleOrPortrait: 'title',
+                  title: t.role,
+                  valueBlocks: [
+                    {
+                      blockType: 'accordionTeamMembersBlock',
+                      teamLeaderGroup: {
+                        name: 'Max Muster',
+                        ceviname: 'Müsterli',
+                        portrait: teamLeaderImage,
+                      },
+                    } as TeamMembersBlock,
+                  ],
+                },
               ],
             },
           ],
