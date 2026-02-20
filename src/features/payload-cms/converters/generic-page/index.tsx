@@ -11,8 +11,8 @@ export const GenericPageConverter: React.FC<{
 }> = ({ page, locale }) => {
   return (
     <>
-      <article className="my-8 w-full px-8 max-xl:mx-auto">
-        <div className="mx-auto max-w-2xl">
+      <article className="my-8 w-full">
+        <div className="mx-auto w-full max-w-[1920px] px-4 md:px-8 xl:px-16">
           <HeadlineH1>{page.content.pageTitle}</HeadlineH1>
         </div>
         <PageSectionsConverter

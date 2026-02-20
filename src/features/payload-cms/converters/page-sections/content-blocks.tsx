@@ -204,7 +204,7 @@ export const AccordionBlock: SectionRenderer<AccordionBlocks> = async ({
   return (
     <SectionWrapper
       block={block}
-      sectionClassName={cn({ 'mx-auto max-w-screen-2xl': isTwoColumn }, sectionClassName)}
+      sectionClassName={sectionClassName}
       sectionOverrides={sectionOverrides}
       errorFallbackMessage={errorMessageForType(
         {
@@ -218,7 +218,7 @@ export const AccordionBlock: SectionRenderer<AccordionBlocks> = async ({
     >
       <div
         className={cn({
-          'min-[1632px]:grid min-[1632px]:grid-cols-2 min-[1632px]:gap-8': isTwoColumn,
+          'min-[1632px]:grid min-[1632px]:grid-cols-[1fr_1.618fr] min-[1632px]:gap-8': isTwoColumn,
         })}
       >
         {block.introduction && (

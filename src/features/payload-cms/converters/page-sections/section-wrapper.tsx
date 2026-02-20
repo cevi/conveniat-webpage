@@ -72,7 +72,7 @@ const SectionWrapper = async ({
       key={block.id}
       className={cn(
         'mt-8 first:mt-0',
-        sectionClassName ?? 'mx-auto max-w-2xl',
+        sectionClassName ?? 'mx-auto w-full max-w-[1920px] px-4 md:px-8 xl:px-16',
         blockTypeOverrideClassName,
       )}
     >
