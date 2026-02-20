@@ -81,7 +81,17 @@ const SectionWrapper = async ({
         errorFallbackMessage={errorFallbackMessage}
         isDraftMode={isDraftMode}
       >
-        {children}
+        <div
+          className={cn('w-full', {
+            'max-w-[840px]': block.blockType === 'richTextSection',
+            'max-w-[1120px]':
+              block.blockType !== 'richTextSection' &&
+              block.blockType !== 'twoColumnBlock' &&
+              block.blockType !== 'formBlock',
+          })}
+        >
+          {children}
+        </div>
       </SectionErrorBoundary>
     </section>
   );

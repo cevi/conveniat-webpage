@@ -89,7 +89,6 @@ export const twoColumnBlock: Block = {
           en: 'Choose the width ratio of the two columns to each other.',
           fr: 'Choisissez le rapport de largeur des deux colonnes entre elles.',
         },
-        layout: 'horizontal',
       },
     },
     {
