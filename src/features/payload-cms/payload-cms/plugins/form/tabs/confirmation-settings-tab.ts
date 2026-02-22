@@ -107,7 +107,11 @@ const formEmailField: Field = {
                 {
                   path: '@/features/payload-cms/payload-cms/components/fields/email-from-warning',
                   clientProps: {
-                    smtpDomain: environmentVariables.SMTP_USER?.split('@')[1] ?? 'cevi.tools',
+                    smtpDomain:
+                      typeof environmentVariables.SMTP_USER === 'string' &&
+                      (environmentVariables.SMTP_USER.split('@')[1] ?? '').length > 0
+                        ? environmentVariables.SMTP_USER.split('@')[1]
+                        : 'cevi.tools',
                   },
                 },
               ],
