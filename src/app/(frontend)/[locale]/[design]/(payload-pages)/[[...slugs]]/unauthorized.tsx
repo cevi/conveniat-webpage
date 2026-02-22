@@ -5,7 +5,7 @@ import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { handleLogin } from '@/utils/login-handler';
 import { useCurrentLocale } from 'next-i18n-router/client';
-import React from 'react';
+import type React from 'react';
 
 const loginText: StaticTranslationString = {
   en: 'This page requires authentication, please log in.',
@@ -19,7 +19,7 @@ const loginButtonText: StaticTranslationString = {
   fr: 'Connexion avec Cevi.DB',
 };
 
-export const UnauthorizedPage: React.FC = () => {
+export const UnauthorizedPage = (): React.JSX.Element => {
   const currentLocale = useCurrentLocale(i18nConfig);
   const locale = (currentLocale ?? 'en') as Locale;
 

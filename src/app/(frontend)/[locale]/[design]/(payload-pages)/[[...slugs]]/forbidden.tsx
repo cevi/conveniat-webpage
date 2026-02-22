@@ -3,7 +3,7 @@ import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { TeaserText } from '@/components/ui/typography/teaser-text';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
-import React from 'react';
+import type React from 'react';
 
 const errorForbidden: StaticTranslationString = {
   de: '403 - Kein Zugriff',
@@ -44,9 +44,11 @@ const errorForbiddenDescription: Record<Locale, React.JSX.Element> = {
   ),
 };
 
-export const Forbidden: React.FC<{
+export const Forbidden = async ({
+  locale: localePromise,
+}: {
   locale?: Promise<Locale>;
-}> = async ({ locale: localePromise }) => {
+}): Promise<React.JSX.Element> => {
   let locale = await localePromise;
   locale ??= await getLocaleFromCookies();
 
@@ -60,7 +62,7 @@ export const Forbidden: React.FC<{
   );
 };
 
-export const ForbiddenPage: React.FC = () => {
+export const ForbiddenPage = (): React.JSX.Element => {
   return (
     <>
       <Forbidden />
