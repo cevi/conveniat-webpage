@@ -28,6 +28,7 @@ import { FormBlockLabel as FormBlockLabel_38d14c2698379009ac744a1a2c27c19b } fro
 import { FormSectionRowLabel as FormSectionRowLabel_95958b8088bc2dff497e1d7f3b2a3955 } from '@/features/payload-cms/payload-cms/components/form-section-row-label'
 import { WorkflowFieldMapping as WorkflowFieldMapping_250a2659e1c657e86d416a8a839c97c5 } from '@/features/payload-cms/payload-cms/plugins/form/components/workflow-field-mapping'
 import { FormExportButton as FormExportButton_fe5d55229fbe6ce6db571a8c425d41f4 } from '@/features/payload-cms/payload-cms/components/form-export-button'
+import { default as default_a06f68e0cdad6b2fba6e2223cd5b6303 } from '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-field'
 import { LinkToDoc as LinkToDoc_aead06e4cbf6b2620c5c51c9ab283634 } from '@payloadcms/plugin-search/client'
 import { ReindexButton as ReindexButton_aead06e4cbf6b2620c5c51c9ab283634 } from '@payloadcms/plugin-search/client'
 import { MainEntryRowLabel as MainEntryRowLabel_576220226adef27d36922a63f8de9abd } from '@/features/payload-cms/payload-cms/components/main-menu-row-label'
@@ -76,6 +77,7 @@ export const importMap = {
   "@/features/payload-cms/payload-cms/components/form-section-row-label#FormSectionRowLabel": FormSectionRowLabel_95958b8088bc2dff497e1d7f3b2a3955,
   "@/features/payload-cms/payload-cms/plugins/form/components/workflow-field-mapping#WorkflowFieldMapping": WorkflowFieldMapping_250a2659e1c657e86d416a8a839c97c5,
   "@/features/payload-cms/payload-cms/components/form-export-button#FormExportButton": FormExportButton_fe5d55229fbe6ce6db571a8c425d41f4,
+  "@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-field#default": default_a06f68e0cdad6b2fba6e2223cd5b6303,
   "@payloadcms/plugin-search/client#LinkToDoc": LinkToDoc_aead06e4cbf6b2620c5c51c9ab283634,
   "@payloadcms/plugin-search/client#ReindexButton": ReindexButton_aead06e4cbf6b2620c5c51c9ab283634,
   "@/features/payload-cms/payload-cms/components/main-menu-row-label#MainEntryRowLabel": MainEntryRowLabel_576220226adef27d36922a63f8de9abd,

@@ -5,6 +5,7 @@ import { getPayload } from 'payload';
 
 export const beforeEmailChangeHook: BeforeEmail = async (
   emailsToSend,
+  beforeChangeParameters: unknown,
 ): Promise<FormattedEmail[]> => {
   const payload = await getPayload({ config });
 
@@ -65,5 +66,51 @@ export const beforeEmailChangeHook: BeforeEmail = async (
     }),
   );
 
-  return finalEmails;
+  const smtpResults: Record<string, unknown>[] = [];
+
+  await Promise.all(
+    finalEmails.map(async (email) => {
+      const { to } = email;
+      try {
+        const emailPromise = await payload.sendEmail(email);
+        smtpResults.push({
+          success: true,
+          to,
+          response: emailPromise,
+        });
+      } catch (error: unknown) {
+        payload.logger.error({
+          err: error,
+          msg: `Error while sending email to address: ${to}. Email not sent.`,
+        });
+        smtpResults.push({
+          success: false,
+          to,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }),
+  );
+
+  const formSubmissionId = (beforeChangeParameters as { doc?: { id?: string } } | undefined)?.doc
+    ?.id;
+  if (typeof formSubmissionId === 'string' && formSubmissionId.length > 0) {
+    try {
+      await payload.update({
+        collection: 'form-submissions',
+        id: formSubmissionId,
+        data: {
+          smtpResults,
+        } as Record<string, unknown>,
+      });
+    } catch (error: unknown) {
+      payload.logger.error({
+        err: error,
+        msg: 'Failed to update form submission with smtpResults',
+      });
+    }
+  }
+
+  // Return empty array so the plugin doesn't send duplicate emails
+  return [];
 };

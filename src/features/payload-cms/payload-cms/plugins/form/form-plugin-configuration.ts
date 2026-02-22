@@ -144,6 +144,17 @@ export const formPluginConfiguration = formBuilderPlugin({
     fields: ({ defaultFields }) => [
       ...defaultFields,
       {
+        name: 'smtpResults',
+        type: 'json',
+        admin: {
+          readOnly: true,
+          position: 'sidebar',
+          components: {
+            Field: '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-field',
+          },
+        },
+      },
+      {
         name: 'helper-job',
         type: 'relationship',
         relationTo: 'helper-jobs',

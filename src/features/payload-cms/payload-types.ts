@@ -1133,6 +1133,15 @@ export interface FormSubmission {
         id?: string | null;
       }[]
     | null;
+  smtpResults?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   'helper-job'?: (string | null) | HelperJob;
   'helper-jobs'?: (string | HelperJob)[] | null;
   updatedAt: string;
@@ -3653,6 +3662,7 @@ export interface FormSubmissionsSelect<T extends boolean = true> {
         value?: T;
         id?: T;
       };
+  smtpResults?: T;
   'helper-job'?: T;
   'helper-jobs'?: T;
   updatedAt?: T;
