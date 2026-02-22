@@ -47,10 +47,9 @@ export const SmtpResultsField: React.FC<{ path: string; smtpDomain?: string }> =
           let hasError = false;
           if (result.success === false) hasError = true;
           if (typeof result.error === 'string' && result.error.length > 0) hasError = true;
-
-          let statusLabel = labels.smtpEmpty;
-          let statusType: 'empty' | 'pending' | 'success' | 'error' = 'empty';
-          let badgePrefix = 'SMTP';
+          let statusLabel: string;
+          let statusType: 'empty' | 'pending' | 'success' | 'error';
+          let badgePrefix: 'SMTP' | 'DSN';
 
           const isBounce = result.bounceReport === true;
           if (isBounce) {
