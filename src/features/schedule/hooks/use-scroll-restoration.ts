@@ -40,7 +40,6 @@ export const useScrollRestoration = (
     }
   }, [pathname, containerReference]);
 
-  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const restoreScrollPosition = useCallback((): void => {
     try {
       const stored = sessionStorage.getItem(SCROLL_STORAGE_KEY);

@@ -3,12 +3,7 @@ import { fileDownloadBlock } from '@/features/payload-cms/payload-cms/shared-blo
 import { formBlock } from '@/features/payload-cms/payload-cms/shared-blocks/form-block';
 import { LinkField } from '@/features/payload-cms/payload-cms/shared-fields/link-field';
 import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
-import {
-  defaultEditorLexicalConfig,
-  HeadingFeature,
-  lexicalEditor,
-  UnorderedListFeature,
-} from '@payloadcms/richtext-lexical';
+import { defaultEditorLexicalConfig, lexicalEditor } from '@payloadcms/richtext-lexical';
 import type { Block, Field } from 'payload';
 
 const plainTextBlock: Block = {
@@ -164,27 +159,6 @@ export const accordion: Block = {
   imageAltText: 'Accordion Block',
 
   fields: [
-    {
-      name: 'introduction',
-      type: 'richText',
-      label: {
-        de: 'Einleitungstext',
-        en: 'Introduction Text',
-        fr: "Texte d'introduction",
-      },
-      editor: lexicalEditor({
-        features: [
-          ...minimalEditorFeatures,
-          HeadingFeature({
-            enabledHeadingSizes: ['h2', 'h3'],
-          }),
-          UnorderedListFeature(),
-        ],
-        lexical: defaultEditorLexicalConfig,
-      }),
-      hooks: patchRichTextLinkHook,
-    },
-
     {
       type: 'array',
       name: 'accordionBlocks',

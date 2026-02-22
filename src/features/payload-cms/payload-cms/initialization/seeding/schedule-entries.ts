@@ -13,7 +13,6 @@ const CAMP_DAYS = 6; // Monday to Saturday
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const createRichText = (text: string): { root: any } => ({
-  // eslint-disable-line @typescript-eslint/no-explicit-any
   root: {
     type: 'root',
     children: [

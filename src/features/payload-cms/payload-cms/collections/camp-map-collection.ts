@@ -89,6 +89,24 @@ export const CampMapAnnotationsCollection: CollectionConfig = {
                     fr: 'Couleur',
                   },
                   type: 'select',
+                  hooks: {
+                    beforeValidate: [
+                      ({ value }: { value?: unknown }): unknown => {
+                        if (typeof value === 'string' && value.startsWith('#')) {
+                          return value.slice(1);
+                        }
+                        return value;
+                      },
+                    ],
+                    afterRead: [
+                      ({ value }: { value?: unknown }): unknown => {
+                        if (typeof value === 'string' && value.startsWith('#')) {
+                          return value.slice(1);
+                        }
+                        return value;
+                      },
+                    ],
+                  },
                   options: [
                     {
                       label: {
@@ -96,7 +114,7 @@ export const CampMapAnnotationsCollection: CollectionConfig = {
                         de: 'Grau',
                         fr: 'Gris',
                       },
-                      value: '#78909c',
+                      value: '78909c',
                     },
                     {
                       label: {
@@ -104,7 +122,7 @@ export const CampMapAnnotationsCollection: CollectionConfig = {
                         de: 'Yellow',
                         fr: 'Yellow',
                       },
-                      value: '#fbc02d',
+                      value: 'fbc02d',
                     },
                     {
                       label: {
@@ -112,7 +130,7 @@ export const CampMapAnnotationsCollection: CollectionConfig = {
                         de: 'Orange',
                         fr: 'Orange',
                       },
-                      value: '#ff8126',
+                      value: 'ff8126',
                     },
                     {
                       label: {
@@ -120,7 +138,7 @@ export const CampMapAnnotationsCollection: CollectionConfig = {
                         de: 'Violett',
                         fr: 'Violet',
                       },
-                      value: '#b56aff',
+                      value: 'b56aff',
                     },
                     {
                       label: {
@@ -128,7 +146,7 @@ export const CampMapAnnotationsCollection: CollectionConfig = {
                         de: 'Rosa',
                         fr: 'Rose',
                       },
-                      value: '#f848c7',
+                      value: 'f848c7',
                     },
                     {
                       label: {
@@ -136,7 +154,7 @@ export const CampMapAnnotationsCollection: CollectionConfig = {
                         de: 'Grün',
                         fr: 'Vert',
                       },
-                      value: '#16a672',
+                      value: '16a672',
                     },
                     {
                       label: {
@@ -144,7 +162,7 @@ export const CampMapAnnotationsCollection: CollectionConfig = {
                         de: 'Rot',
                         fr: 'Rouge',
                       },
-                      value: '#f64955',
+                      value: 'f64955',
                     },
                   ],
                 },

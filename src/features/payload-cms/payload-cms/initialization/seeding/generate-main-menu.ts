@@ -4,15 +4,13 @@ export const generateMainMenu = (
   contactPageId: string,
   aboutUsPageId: string,
   internalPageId: string,
+  faqPageId: string,
 ): {
   label: string;
   linkField?: LinkFieldDataType;
   subMenu: { label: string; linkField: LinkFieldDataType }[];
 }[] => {
-  const menuItems = [];
-
-  // push contact page
-  menuItems.push(
+  return [
     {
       label: 'Kontakt',
       linkField: {
@@ -27,7 +25,6 @@ export const generateMainMenu = (
     },
     {
       label: 'conveniat27',
-      linkField: {},
       subMenu: [
         {
           label: 'Über uns',
@@ -36,6 +33,16 @@ export const generateMainMenu = (
             reference: {
               relationTo: 'generic-page',
               value: aboutUsPageId,
+            },
+          } as LinkFieldDataType,
+        },
+        {
+          label: 'FAQ',
+          linkField: {
+            type: 'reference',
+            reference: {
+              relationTo: 'generic-page',
+              value: faqPageId,
             },
           } as LinkFieldDataType,
         },
@@ -61,7 +68,5 @@ export const generateMainMenu = (
       } as LinkFieldDataType,
       subMenu: [],
     },
-  );
-
-  return menuItems;
+  ];
 };

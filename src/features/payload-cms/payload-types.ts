@@ -66,6 +66,8 @@ export interface Config {
     timelineCategory: TimelineCategory;
     'chat-images': ChatImage;
     'blocked-jobs': BlockedJob;
+    'smtp-bounce-mail-tracking': SmtpBounceMailTracking;
+    'outgoing-emails': OutgoingEmail;
     forms: Form;
     'form-submissions': FormSubmission;
     'search-collection': SearchCollection;
@@ -104,6 +106,8 @@ export interface Config {
     timelineCategory: TimelineCategorySelect<false> | TimelineCategorySelect<true>;
     'chat-images': ChatImagesSelect<false> | ChatImagesSelect<true>;
     'blocked-jobs': BlockedJobsSelect<false> | BlockedJobsSelect<true>;
+    'smtp-bounce-mail-tracking': SmtpBounceMailTrackingSelect<false> | SmtpBounceMailTrackingSelect<true>;
+    'outgoing-emails': OutgoingEmailsSelect<false> | OutgoingEmailsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     'search-collection': SearchCollectionSelect<false> | SearchCollectionSelect<true>;
@@ -129,6 +133,7 @@ export interface Config {
     'alert-management': AlertManagement;
     'all-chats-management': AllChatsManagement;
     'registration-management': RegistrationManagement;
+    'payload-jobs-stats': PayloadJobsStat;
   };
   globalsSelect: {
     header: HeaderSelect<false> | HeaderSelect<true>;
@@ -141,6 +146,7 @@ export interface Config {
     'alert-management': AlertManagementSelect<false> | AlertManagementSelect<true>;
     'all-chats-management': AllChatsManagementSelect<false> | AllChatsManagementSelect<true>;
     'registration-management': RegistrationManagementSelect<false> | RegistrationManagementSelect<true>;
+    'payload-jobs-stats': PayloadJobsStatsSelect<false> | PayloadJobsStatsSelect<true>;
   };
   locale: 'en' | 'de' | 'fr';
   user: User;
@@ -153,6 +159,7 @@ export interface Config {
       ensureGroupMembership: TaskEnsureGroupMembership;
       ensureEventMembership: TaskEnsureEventMembership;
       confirmationMessage: TaskConfirmationMessage;
+      fetchSmtpBounces: TaskFetchSmtpBounces;
       inline: {
         input: unknown;
         output: unknown;
@@ -390,6 +397,7 @@ export interface Blog {
           blockName?: string | null;
           blockType: 'campScheduleEntryBlock';
         }
+      | TwoColumnBlock
     )[];
   };
   seo: {
@@ -1114,6 +1122,15 @@ export interface Form {
   _localized_status: LocalizedPublishingStatus;
   _disable_unpublishing?: boolean | null;
   _locale: string;
+  emailReferencedIds?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -1132,6 +1149,15 @@ export interface FormSubmission {
         value: string;
         id?: string | null;
       }[]
+    | null;
+  smtpResults?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
     | null;
   'helper-job'?: (string | null) | HelperJob;
   'helper-jobs'?: (string | HelperJob)[] | null;
@@ -1340,21 +1366,6 @@ export interface DetailsTable {
  * via the `definition` "AccordionBlocks".
  */
 export interface AccordionBlocks {
-  introduction?: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  } | null;
   accordionBlocks?:
     | {
         /**
@@ -1671,6 +1682,7 @@ export interface GenericPage {
           blockName?: string | null;
           blockType: 'campScheduleEntryBlock';
         }
+      | TwoColumnBlock
     )[];
   };
   seo: {
@@ -1855,7 +1867,7 @@ export interface CampMapAnnotation {
    * The title of the annotation.
    */
   title: string;
-  color?: ('#78909c' | '#fbc02d' | '#ff8126' | '#b56aff' | '#f848c7' | '#16a672' | '#f64955') | null;
+  color?: ('78909c' | 'fbc02d' | 'ff8126' | 'b56aff' | 'f848c7' | '16a672' | 'f64955') | null;
   annotationType: 'marker' | 'polygon';
   icon?:
     | (
@@ -2007,6 +2019,355 @@ export interface CampCategory {
   colorTheme: 'purple' | 'green' | 'blue' | 'gray' | 'indigo' | 'amber' | 'rose' | 'cyan' | 'orange';
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TwoColumnBlock".
+ */
+export interface TwoColumnBlock {
+  /**
+   * Choose the width ratio of the two columns to each other.
+   */
+  splitRatio: 'rightLarger' | 'leftLarger' | 'equal';
+  /**
+   * Choose how the columns should be aligned vertically to each other.
+   */
+  verticalAlignment: 'top' | 'center' | 'bottom';
+  /**
+   * Content for the left column.
+   */
+  leftColumn: (
+    | {
+        richTextSection: {
+          root: {
+            type: string;
+            children: {
+              type: any;
+              version: number;
+              [k: string]: unknown;
+            }[];
+            direction: ('ltr' | 'rtl') | null;
+            format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+            indent: number;
+            version: number;
+          };
+          [k: string]: unknown;
+        };
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'richTextSection';
+      }
+    | {
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'blogPostsOverview';
+      }
+    | FormBlock
+    | {
+        images: (string | Image)[];
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'photoCarousel';
+      }
+    | {
+        image: string | Image;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'singlePicture';
+      }
+    | YoutubeEmbedding
+    | InstagramEmbedding
+    | SwisstopoMapEmbedding
+    | {
+        file: string | Document;
+        openInNewTab?: boolean | null;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'fileDownload';
+      }
+    | DetailsTable
+    | AccordionBlocks
+    | SummaryBox
+    | TimelineEntries
+    | Countdown
+    | {
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'whiteSpace';
+      }
+    | {
+        /**
+         * Label for the button
+         */
+        label?: string | null;
+        linkField?: {
+          type?: ('reference' | 'custom') | null;
+          reference?:
+            | ({
+                relationTo: 'blog';
+                value: string | Blog;
+              } | null)
+            | ({
+                relationTo: 'generic-page';
+                value: string | GenericPage;
+              } | null)
+            | ({
+                relationTo: 'images';
+                value: string | Image;
+              } | null)
+            | ({
+                relationTo: 'documents';
+                value: string | Document;
+              } | null)
+            | ({
+                relationTo: 'camp-map-annotations';
+                value: string | CampMapAnnotation;
+              } | null)
+            | ({
+                relationTo: 'camp-schedule-entry';
+                value: string | CampScheduleEntry;
+              } | null);
+          url?: string | null;
+          openInNewTab?: boolean | null;
+        };
+        /**
+         * Show inverted colors
+         */
+        inverted?: boolean | null;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'callToAction';
+      }
+    | {
+        linkField?: {
+          type?: ('reference' | 'custom') | null;
+          reference?:
+            | ({
+                relationTo: 'blog';
+                value: string | Blog;
+              } | null)
+            | ({
+                relationTo: 'generic-page';
+                value: string | GenericPage;
+              } | null)
+            | ({
+                relationTo: 'images';
+                value: string | Image;
+              } | null)
+            | ({
+                relationTo: 'documents';
+                value: string | Document;
+              } | null)
+            | ({
+                relationTo: 'camp-map-annotations';
+                value: string | CampMapAnnotation;
+              } | null)
+            | ({
+                relationTo: 'camp-schedule-entry';
+                value: string | CampScheduleEntry;
+              } | null);
+          url?: string | null;
+          openInNewTab?: boolean | null;
+        };
+        headline: string;
+        date: string;
+        image?: (string | null) | Image;
+        paragraph?: {
+          root: {
+            type: string;
+            children: {
+              type: any;
+              version: number;
+              [k: string]: unknown;
+            }[];
+            direction: ('ltr' | 'rtl') | null;
+            format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+            indent: number;
+            version: number;
+          };
+          [k: string]: unknown;
+        } | null;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'newsCard';
+      }
+    | {
+        date: string;
+        location?: (string | null) | CampMapAnnotation;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'campScheduleEntryBlock';
+      }
+  )[];
+  /**
+   * Content for the right column.
+   */
+  rightColumn: (
+    | {
+        richTextSection: {
+          root: {
+            type: string;
+            children: {
+              type: any;
+              version: number;
+              [k: string]: unknown;
+            }[];
+            direction: ('ltr' | 'rtl') | null;
+            format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+            indent: number;
+            version: number;
+          };
+          [k: string]: unknown;
+        };
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'richTextSection';
+      }
+    | {
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'blogPostsOverview';
+      }
+    | FormBlock
+    | {
+        images: (string | Image)[];
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'photoCarousel';
+      }
+    | {
+        image: string | Image;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'singlePicture';
+      }
+    | YoutubeEmbedding
+    | InstagramEmbedding
+    | SwisstopoMapEmbedding
+    | {
+        file: string | Document;
+        openInNewTab?: boolean | null;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'fileDownload';
+      }
+    | DetailsTable
+    | AccordionBlocks
+    | SummaryBox
+    | TimelineEntries
+    | Countdown
+    | {
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'whiteSpace';
+      }
+    | {
+        /**
+         * Label for the button
+         */
+        label?: string | null;
+        linkField?: {
+          type?: ('reference' | 'custom') | null;
+          reference?:
+            | ({
+                relationTo: 'blog';
+                value: string | Blog;
+              } | null)
+            | ({
+                relationTo: 'generic-page';
+                value: string | GenericPage;
+              } | null)
+            | ({
+                relationTo: 'images';
+                value: string | Image;
+              } | null)
+            | ({
+                relationTo: 'documents';
+                value: string | Document;
+              } | null)
+            | ({
+                relationTo: 'camp-map-annotations';
+                value: string | CampMapAnnotation;
+              } | null)
+            | ({
+                relationTo: 'camp-schedule-entry';
+                value: string | CampScheduleEntry;
+              } | null);
+          url?: string | null;
+          openInNewTab?: boolean | null;
+        };
+        /**
+         * Show inverted colors
+         */
+        inverted?: boolean | null;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'callToAction';
+      }
+    | {
+        linkField?: {
+          type?: ('reference' | 'custom') | null;
+          reference?:
+            | ({
+                relationTo: 'blog';
+                value: string | Blog;
+              } | null)
+            | ({
+                relationTo: 'generic-page';
+                value: string | GenericPage;
+              } | null)
+            | ({
+                relationTo: 'images';
+                value: string | Image;
+              } | null)
+            | ({
+                relationTo: 'documents';
+                value: string | Document;
+              } | null)
+            | ({
+                relationTo: 'camp-map-annotations';
+                value: string | CampMapAnnotation;
+              } | null)
+            | ({
+                relationTo: 'camp-schedule-entry';
+                value: string | CampScheduleEntry;
+              } | null);
+          url?: string | null;
+          openInNewTab?: boolean | null;
+        };
+        headline: string;
+        date: string;
+        image?: (string | null) | Image;
+        paragraph?: {
+          root: {
+            type: string;
+            children: {
+              type: any;
+              version: number;
+              [k: string]: unknown;
+            }[];
+            direction: ('ltr' | 'rtl') | null;
+            format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+            indent: number;
+            version: number;
+          };
+          [k: string]: unknown;
+        } | null;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'newsCard';
+      }
+    | {
+        date: string;
+        location?: (string | null) | CampMapAnnotation;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'campScheduleEntryBlock';
+      }
+  )[];
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'twoColumnBlock';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2169,6 +2530,52 @@ export interface BlockedJob {
   createdAt: string;
 }
 /**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "smtp-bounce-mail-tracking".
+ */
+export interface SmtpBounceMailTracking {
+  id: string;
+  uid: string;
+  failureCount: number;
+  lastAttempt: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "outgoing-emails".
+ */
+export interface OutgoingEmail {
+  id: string;
+  deliveryStatus?: ('pending' | 'success' | 'error') | null;
+  dsnReceivedAt?: string | null;
+  smtpReceivedAt?: string | null;
+  to: string;
+  subject: string;
+  formSubmission?: (string | null) | FormSubmission;
+  smtpResults?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  rawSmtpResults?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  rawDsnEmail?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This is a collection of automatically created search results. These results are used by the global site search and will be updated automatically as documents in the CMS are created or updated.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2296,7 +2703,8 @@ export interface PayloadJob {
           | 'cleanupTemporaryRoles'
           | 'ensureGroupMembership'
           | 'ensureEventMembership'
-          | 'confirmationMessage';
+          | 'confirmationMessage'
+          | 'fetchSmtpBounces';
         taskID: string;
         input?:
           | {
@@ -2340,11 +2748,21 @@ export interface PayloadJob {
         | 'ensureGroupMembership'
         | 'ensureEventMembership'
         | 'confirmationMessage'
+        | 'fetchSmtpBounces'
       )
     | null;
   queue?: string | null;
   waitUntil?: string | null;
   processing?: boolean | null;
+  meta?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -2418,6 +2836,14 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'blocked-jobs';
         value: string | BlockedJob;
+      } | null)
+    | ({
+        relationTo: 'smtp-bounce-mail-tracking';
+        value: string | SmtpBounceMailTracking;
+      } | null)
+    | ({
+        relationTo: 'outgoing-emails';
+        value: string | OutgoingEmail;
       } | null)
     | ({
         relationTo: 'forms';
@@ -2592,6 +3018,7 @@ export interface BlogSelect<T extends boolean = true> {
                     id?: T;
                     blockName?: T;
                   };
+              twoColumnBlock?: T | TwoColumnBlockSelect<T>;
             };
       };
   seo?:
@@ -2686,7 +3113,6 @@ export interface DetailsTableSelect<T extends boolean = true> {
  * via the `definition` "AccordionBlocks_select".
  */
 export interface AccordionBlocksSelect<T extends boolean = true> {
-  introduction?: T;
   accordionBlocks?:
     | T
     | {
@@ -2821,6 +3247,208 @@ export interface CountdownSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TwoColumnBlock_select".
+ */
+export interface TwoColumnBlockSelect<T extends boolean = true> {
+  splitRatio?: T;
+  verticalAlignment?: T;
+  leftColumn?:
+    | T
+    | {
+        richTextSection?:
+          | T
+          | {
+              richTextSection?: T;
+              id?: T;
+              blockName?: T;
+            };
+        blogPostsOverview?:
+          | T
+          | {
+              id?: T;
+              blockName?: T;
+            };
+        formBlock?: T | FormBlockSelect<T>;
+        photoCarousel?:
+          | T
+          | {
+              images?: T;
+              id?: T;
+              blockName?: T;
+            };
+        singlePicture?:
+          | T
+          | {
+              image?: T;
+              id?: T;
+              blockName?: T;
+            };
+        youtubeEmbed?: T | YoutubeEmbeddingSelect<T>;
+        instagramEmbed?: T | InstagramEmbeddingSelect<T>;
+        swisstopoEmbed?: T | SwisstopoMapEmbeddingSelect<T>;
+        fileDownload?:
+          | T
+          | {
+              file?: T;
+              openInNewTab?: T;
+              id?: T;
+              blockName?: T;
+            };
+        detailsTable?: T | DetailsTableSelect<T>;
+        accordion?: T | AccordionBlocksSelect<T>;
+        summaryBox?: T | SummaryBoxSelect<T>;
+        timelineEntries?: T | TimelineEntriesSelect<T>;
+        countdown?: T | CountdownSelect<T>;
+        whiteSpace?:
+          | T
+          | {
+              id?: T;
+              blockName?: T;
+            };
+        callToAction?:
+          | T
+          | {
+              label?: T;
+              linkField?:
+                | T
+                | {
+                    type?: T;
+                    reference?: T;
+                    url?: T;
+                    openInNewTab?: T;
+                  };
+              inverted?: T;
+              id?: T;
+              blockName?: T;
+            };
+        newsCard?:
+          | T
+          | {
+              linkField?:
+                | T
+                | {
+                    type?: T;
+                    reference?: T;
+                    url?: T;
+                    openInNewTab?: T;
+                  };
+              headline?: T;
+              date?: T;
+              image?: T;
+              paragraph?: T;
+              id?: T;
+              blockName?: T;
+            };
+        campScheduleEntryBlock?:
+          | T
+          | {
+              date?: T;
+              location?: T;
+              id?: T;
+              blockName?: T;
+            };
+      };
+  rightColumn?:
+    | T
+    | {
+        richTextSection?:
+          | T
+          | {
+              richTextSection?: T;
+              id?: T;
+              blockName?: T;
+            };
+        blogPostsOverview?:
+          | T
+          | {
+              id?: T;
+              blockName?: T;
+            };
+        formBlock?: T | FormBlockSelect<T>;
+        photoCarousel?:
+          | T
+          | {
+              images?: T;
+              id?: T;
+              blockName?: T;
+            };
+        singlePicture?:
+          | T
+          | {
+              image?: T;
+              id?: T;
+              blockName?: T;
+            };
+        youtubeEmbed?: T | YoutubeEmbeddingSelect<T>;
+        instagramEmbed?: T | InstagramEmbeddingSelect<T>;
+        swisstopoEmbed?: T | SwisstopoMapEmbeddingSelect<T>;
+        fileDownload?:
+          | T
+          | {
+              file?: T;
+              openInNewTab?: T;
+              id?: T;
+              blockName?: T;
+            };
+        detailsTable?: T | DetailsTableSelect<T>;
+        accordion?: T | AccordionBlocksSelect<T>;
+        summaryBox?: T | SummaryBoxSelect<T>;
+        timelineEntries?: T | TimelineEntriesSelect<T>;
+        countdown?: T | CountdownSelect<T>;
+        whiteSpace?:
+          | T
+          | {
+              id?: T;
+              blockName?: T;
+            };
+        callToAction?:
+          | T
+          | {
+              label?: T;
+              linkField?:
+                | T
+                | {
+                    type?: T;
+                    reference?: T;
+                    url?: T;
+                    openInNewTab?: T;
+                  };
+              inverted?: T;
+              id?: T;
+              blockName?: T;
+            };
+        newsCard?:
+          | T
+          | {
+              linkField?:
+                | T
+                | {
+                    type?: T;
+                    reference?: T;
+                    url?: T;
+                    openInNewTab?: T;
+                  };
+              headline?: T;
+              date?: T;
+              image?: T;
+              paragraph?: T;
+              id?: T;
+              blockName?: T;
+            };
+        campScheduleEntryBlock?:
+          | T
+          | {
+              date?: T;
+              location?: T;
+              id?: T;
+              blockName?: T;
+            };
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "generic-page_select".
  */
 export interface GenericPageSelect<T extends boolean = true> {
@@ -2932,6 +3560,7 @@ export interface GenericPageSelect<T extends boolean = true> {
                     id?: T;
                     blockName?: T;
                   };
+              twoColumnBlock?: T | TwoColumnBlockSelect<T>;
             };
       };
   seo?:
@@ -3309,6 +3938,34 @@ export interface BlockedJobsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "smtp-bounce-mail-tracking_select".
+ */
+export interface SmtpBounceMailTrackingSelect<T extends boolean = true> {
+  uid?: T;
+  failureCount?: T;
+  lastAttempt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "outgoing-emails_select".
+ */
+export interface OutgoingEmailsSelect<T extends boolean = true> {
+  deliveryStatus?: T;
+  dsnReceivedAt?: T;
+  smtpReceivedAt?: T;
+  to?: T;
+  subject?: T;
+  formSubmission?: T;
+  smtpResults?: T;
+  rawSmtpResults?: T;
+  rawDsnEmail?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "forms_select".
  */
 export interface FormsSelect<T extends boolean = true> {
@@ -3635,6 +4292,7 @@ export interface FormsSelect<T extends boolean = true> {
   _localized_status?: T;
   _disable_unpublishing?: T;
   _locale?: T;
+  emailReferencedIds?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
@@ -3653,6 +4311,7 @@ export interface FormSubmissionsSelect<T extends boolean = true> {
         value?: T;
         id?: T;
       };
+  smtpResults?: T;
   'helper-job'?: T;
   'helper-jobs'?: T;
   updatedAt?: T;
@@ -3725,6 +4384,7 @@ export interface PayloadJobsSelect<T extends boolean = true> {
   queue?: T;
   waitUntil?: T;
   processing?: T;
+  meta?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -4058,6 +4718,24 @@ export interface RegistrationManagement {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-jobs-stats".
+ */
+export interface PayloadJobsStat {
+  id: string;
+  stats?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "header_select".
  */
 export interface HeaderSelect<T extends boolean = true> {
@@ -4239,6 +4917,16 @@ export interface RegistrationManagementSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-jobs-stats_select".
+ */
+export interface PayloadJobsStatsSelect<T extends boolean = true> {
+  stats?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskResolveUser".
  */
 export interface TaskResolveUser {
@@ -4372,6 +5060,14 @@ export interface TaskConfirmationMessage {
   output: {
     sent?: boolean | null;
   };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskFetchSmtpBounces".
+ */
+export interface TaskFetchSmtpBounces {
+  input?: unknown;
+  output?: unknown;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

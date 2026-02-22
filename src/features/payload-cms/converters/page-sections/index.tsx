@@ -23,6 +23,7 @@ import {
   SwisstopoInlineMapSection,
 } from '@/features/payload-cms/converters/page-sections/content-blocks';
 import type { ContentBlock } from '@/features/payload-cms/converters/page-sections/section-wrapper';
+import { RenderTwoColumnBlock } from '@/features/payload-cms/converters/page-sections/two-column-block';
 import type { LocalizedPageType } from '@/types/types';
 import React from 'react';
 
@@ -60,6 +61,7 @@ export const PageSectionsConverter: React.FC<
     callToAction: RenderCallToAction,
     newsCard: RenderNewsCard,
     campScheduleEntryBlock: RenderCampScheduleEntry,
+    twoColumnBlock: RenderTwoColumnBlock,
   };
 
   return (

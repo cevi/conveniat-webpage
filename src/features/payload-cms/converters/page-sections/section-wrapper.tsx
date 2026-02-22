@@ -70,14 +70,28 @@ const SectionWrapper = async ({
   return (
     <section
       key={block.id}
-      className={cn('mt-8 first:mt-0', sectionClassName, blockTypeOverrideClassName)}
+      className={cn(
+        'mt-8 first:mt-0',
+        sectionClassName ?? 'mx-auto w-full max-w-[1920px] px-4 md:px-8 xl:px-16',
+        blockTypeOverrideClassName,
+      )}
     >
       <SectionErrorBoundary
         locale={locale}
         errorFallbackMessage={errorFallbackMessage}
         isDraftMode={isDraftMode}
       >
-        {children}
+        <div
+          className={cn('w-full', {
+            'max-w-[840px]': block.blockType === 'richTextSection',
+            'max-w-[1120px]':
+              block.blockType !== 'richTextSection' &&
+              block.blockType !== 'twoColumnBlock' &&
+              block.blockType !== 'formBlock',
+          })}
+        >
+          {children}
+        </div>
       </SectionErrorBoundary>
     </section>
   );

@@ -73,6 +73,11 @@ const SingleField: React.FC<{
     formState: { errors },
   } = useFormContext();
 
+  const fieldName = 'name' in field && typeof field.name === 'string' ? field.name : undefined;
+
+  // Force React Hook Form to track the error for this specific field by reading the proxy
+  void (fieldName ? Boolean(errors[fieldName]) : false);
+
   if (!Component) {
     console.error(`Field type ${field.blockType} is not supported`);
     return null; // eslint-disable-line unicorn/no-null

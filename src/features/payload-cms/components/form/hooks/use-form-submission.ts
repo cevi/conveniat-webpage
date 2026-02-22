@@ -1,6 +1,7 @@
 import type { ExtendedFormType } from '@/features/payload-cms/components/form/types';
 import { type Locale, type StaticTranslationString } from '@/types/types';
 import { useRouter } from 'next/navigation';
+import { usePostHog } from 'posthog-js/react';
 import { useState } from 'react';
 
 interface UseFormSubmissionProperties {
@@ -52,6 +53,7 @@ export const useFormSubmission = ({
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
   const [previewData, setPreviewData] = useState<PreviewData | undefined>();
   const router = useRouter();
+  const posthog = usePostHog();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const submit = async (data: Record<string, any>): Promise<void> => {
@@ -133,7 +135,18 @@ export const useFormSubmission = ({
     } catch (error: any) {
       setStatus('error');
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      setErrorMessage((error.message as string) || 'Submission failed');
+      const message = (error.message as string) || 'Submission failed';
+
+      if (message.includes('initializing Payload')) {
+        posthog.capture('form_submission_error', {
+          error_type: 'payload_initialization',
+          form_id: formId,
+          original_message: message,
+        });
+        setErrorMessage(failedToSubmitText[locale]);
+      } else {
+        setErrorMessage(message);
+      }
     }
   };
 

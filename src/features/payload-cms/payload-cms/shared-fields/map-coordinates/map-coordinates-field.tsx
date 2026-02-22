@@ -53,10 +53,11 @@ const MapCoordinatesField: PointFieldClientComponent = ({ path }) => {
     (lngLat: [number, number]) => {
       if (!mapReference.current) return;
 
+      const hexColor = (color?.startsWith('#') ?? false) ? color : `#${color}`;
       const markerElement = reactToDomElement(
         <DynamicLucidIconRenderer
           icon={icon as CampMapAnnotation['icon']}
-          {...(color ? { color } : {})}
+          {...(hexColor ? { color: hexColor } : {})}
         />,
       );
       markerElement.style.width = 'fit-content';
