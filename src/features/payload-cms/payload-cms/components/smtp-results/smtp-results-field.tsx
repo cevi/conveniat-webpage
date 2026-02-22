@@ -2,6 +2,7 @@
 
 import {
   LOCALIZED_SMTP_LABELS,
+  extractEmailAddress,
   type SmtpResult,
 } from '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-shared';
 import type { StaticTranslationString } from '@/types/types';
@@ -63,7 +64,8 @@ export const SmtpResultsField: React.FC<{ path: string; smtpDomain?: string }> =
             }
           } else {
             badgePrefix = 'SMTP';
-            const fromAddress = result.response?.envelope?.from ?? '';
+            const rawFromAddress = result.response?.envelope?.from ?? '';
+            const fromAddress = extractEmailAddress(rawFromAddress);
             if (hasError) {
               statusType = 'error';
               statusLabel = labels.smtpError;
@@ -118,7 +120,8 @@ export const SmtpResultsField: React.FC<{ path: string; smtpDomain?: string }> =
 
           let titleContent = 'No additional details';
           const messageId = result.response?.messageId;
-          const fromAddress = result.response?.envelope?.from ?? '';
+          const rawFromAddress = result.response?.envelope?.from ?? '';
+          const fromAddress = extractEmailAddress(rawFromAddress);
           if (typeof messageId === 'string' && messageId.length > 0) {
             titleContent = `Message ID: ${messageId}\nFrom: ${fromAddress}`;
           } else if (typeof result.error === 'string' && result.error.length > 0) {

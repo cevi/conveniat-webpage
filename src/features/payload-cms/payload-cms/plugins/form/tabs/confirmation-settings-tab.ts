@@ -1,3 +1,4 @@
+import { environmentVariables } from '@/config/environment-variables';
 import { minimalEditorFeatures } from '@/features/payload-cms/payload-cms/plugins/lexical-editor';
 import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import {
@@ -98,7 +99,20 @@ const formEmailField: Field = {
         {
           name: 'emailFrom',
           type: 'text',
-          admin: { placeholder: '"Email From" <email-from@email.com>', width: '50%' },
+          admin: {
+            placeholder: '"Email From" <email-from@email.com>',
+            width: '50%',
+            components: {
+              afterInput: [
+                {
+                  path: '@/features/payload-cms/payload-cms/components/fields/email-from-warning',
+                  clientProps: {
+                    smtpDomain: environmentVariables.SMTP_USER?.split('@')[1] ?? 'cevi.tools',
+                  },
+                },
+              ],
+            },
+          },
           label: 'Email From',
         },
       ],

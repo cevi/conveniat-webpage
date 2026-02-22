@@ -1,5 +1,29 @@
 import React from 'react';
 
+/**
+ * Extracts the email address from a potentially formatted string like:
+ * "Name" <email@domain.com>
+ * @param email - The email string to parse.
+ * @returns The extracted email address or the original string.
+ */
+export const extractEmailAddress = (email: string): string => {
+  const trimmed = email.trim();
+  const hasBrackets = trimmed.includes('<') || trimmed.includes('>');
+
+  if (hasBrackets) {
+    const match = trimmed.match(/<([^>]+)>$/);
+    const extracted = match?.[1];
+
+    if (typeof extracted === 'string' && extracted.length > 0) {
+      return extracted.trim();
+    }
+    // malformed bracketed email
+    return '';
+  }
+
+  return trimmed;
+};
+
 export interface SmtpResult {
   success: boolean;
   to: string;
