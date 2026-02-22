@@ -3,6 +3,8 @@ import { Suspense } from 'react';
 import { AppShell } from '@/app/app-shell';
 import { ChunkErrorHandler } from '@/components/chunk-error-handler';
 import { FooterAppNavBar } from '@/components/footer/footer-app-nav-bar';
+import { FooterCopyrightArea } from '@/components/footer/footer-copyright-area';
+import { FooterCopyrightClientWrapper } from '@/components/footer/footer-copyright-client-wrapper';
 import { GlobalAppFooterClientWrapper } from '@/components/footer/global-app-footer-client-wrapper';
 import { HideFooterProvider } from '@/components/footer/hide-footer-context';
 import { HeaderComponent } from '@/components/header/header-component';
@@ -33,9 +35,16 @@ const GlobalAppFooterWrapper: React.FC<{
   const isInAppDesign = design === DesignCodes.APP_DESIGN;
 
   return (
-    <GlobalAppFooterClientWrapper locale={locale} isAppMode={isInAppDesign}>
-      <FooterAppNavBar locale={locale} />
-    </GlobalAppFooterClientWrapper>
+    <GlobalAppFooterClientWrapper
+      locale={locale}
+      isAppMode={isInAppDesign}
+      appNavBar={<FooterAppNavBar locale={locale} />}
+      copyrightArea={
+        <FooterCopyrightClientWrapper>
+          <FooterCopyrightArea locale={locale} inAppDesign={isInAppDesign} />
+        </FooterCopyrightClientWrapper>
+      }
+    />
   );
 };
 

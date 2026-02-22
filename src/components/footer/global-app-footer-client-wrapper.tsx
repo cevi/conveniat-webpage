@@ -6,7 +6,8 @@ import { usePathname } from 'next/navigation';
 import React from 'react';
 
 interface Properties {
-  children: React.ReactNode;
+  appNavBar: React.ReactNode;
+  copyrightArea: React.ReactNode;
   locale: Locale;
   isAppMode: boolean;
 }
@@ -16,7 +17,8 @@ interface Properties {
  * It ensures the App Advertisement disappears when navigating away from /app/* routes.
  */
 export const GlobalAppFooterClientWrapper: React.FC<Properties> = ({
-  children,
+  appNavBar,
+  copyrightArea,
   locale,
   isAppMode,
 }) => {
@@ -25,7 +27,7 @@ export const GlobalAppFooterClientWrapper: React.FC<Properties> = ({
 
   // If we are in real app mode, the Navbar is always visible globally
   if (isAppMode) {
-    return <>{children}</>;
+    return <>{appNavBar}</>;
   }
 
   // If we are on an app path in browser mode, show the advertisement
@@ -37,9 +39,14 @@ export const GlobalAppFooterClientWrapper: React.FC<Properties> = ({
       type = 'chat';
     }
 
-    return <AppAdvertisement locale={locale} type={type} />;
+    return (
+      <>
+        <AppAdvertisement locale={locale} type={type} />
+        {copyrightArea}
+      </>
+    );
   }
 
-  // Otherwise, render nothing (normal browser CMS pages)
-  return;
+  // Otherwise, render normal browser CMS footer
+  return <>{copyrightArea}</>;
 };
