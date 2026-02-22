@@ -76,8 +76,7 @@ const SingleField: React.FC<{
   const fieldName = 'name' in field && typeof field.name === 'string' ? field.name : undefined;
 
   // Force React Hook Form to track the error for this specific field by reading the proxy
-  // We use this in a wrapper div to avoid 'unused variable' lint errors.
-  const hasError = fieldName ? Boolean(errors[fieldName]) : false;
+  void (fieldName ? Boolean(errors[fieldName]) : false);
 
   if (!Component) {
     console.error(`Field type ${field.blockType} is not supported`);
@@ -93,18 +92,16 @@ const SingleField: React.FC<{
   }
 
   return (
-    <div className={hasError ? 'form-field-error' : 'form-field-valid'}>
-      <Component
-        {...field}
-        registerAction={register}
-        control={control}
-        errors={errors}
-        required={field.required}
-        currentStepIndex={currentStepIndex}
-        formId={formId}
-        renderMode={renderMode}
-      />
-    </div>
+    <Component
+      {...field}
+      registerAction={register}
+      control={control}
+      errors={errors}
+      required={field.required}
+      currentStepIndex={currentStepIndex}
+      formId={formId}
+      renderMode={renderMode}
+    />
   );
 };
 

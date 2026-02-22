@@ -1,7 +1,7 @@
 'use client';
 
 import type { EmailField } from '@payloadcms/plugin-form-builder/types';
-import type { FieldErrorsImpl, FieldValues, UseFormRegister } from 'react-hook-form';
+import type { Control, FieldErrorsImpl, FieldValues, UseFormRegister } from 'react-hook-form';
 
 import { Required } from '@/features/payload-cms/components/form/required';
 import { fieldIsRequiredText } from '@/features/payload-cms/components/form/static-form-texts';
@@ -9,7 +9,7 @@ import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
-import { useFormContext, useWatch } from 'react-hook-form';
+import { useWatch } from 'react-hook-form';
 
 const isNotAValidEmailText: StaticTranslationString = {
   en: 'Please enter a valid email address',
@@ -19,6 +19,7 @@ const isNotAValidEmailText: StaticTranslationString = {
 
 export const Email: React.FC<
   {
+    control: Control<FieldValues>;
     errors: Partial<
       FieldErrorsImpl<{
         [x: string]: never;
@@ -27,13 +28,20 @@ export const Email: React.FC<
     registerAction: UseFormRegister<string & FieldValues>;
     placeholder?: string;
   } & EmailField
-> = ({ name, label, registerAction, required: requiredFromProperties, errors, placeholder }) => {
+> = ({
+  name,
+  label,
+  registerAction,
+  control,
+  required: requiredFromProperties,
+  errors,
+  placeholder,
+}) => {
   // set default values
   requiredFromProperties ??= false;
   const hasError = errors[name];
 
   const locale = useCurrentLocale(i18nConfig);
-  const { control } = useFormContext();
   useWatch({ control, name }); // Force re-render on every keystroke
 
   return (
