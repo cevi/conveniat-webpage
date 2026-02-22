@@ -1121,6 +1121,15 @@ export interface Form {
   _localized_status: LocalizedPublishingStatus;
   _disable_unpublishing?: boolean | null;
   _locale: string;
+  emailReferencedIds?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -2202,6 +2211,9 @@ export interface SmtpBounceMailTracking {
  */
 export interface OutgoingEmail {
   id: string;
+  deliveryStatus?: ('pending' | 'success' | 'error') | null;
+  dsnReceivedAt?: string | null;
+  smtpReceivedAt?: string | null;
   to: string;
   subject: string;
   formSubmission?: (string | null) | FormSubmission;
@@ -3401,6 +3413,9 @@ export interface SmtpBounceMailTrackingSelect<T extends boolean = true> {
  * via the `definition` "outgoing-emails_select".
  */
 export interface OutgoingEmailsSelect<T extends boolean = true> {
+  deliveryStatus?: T;
+  dsnReceivedAt?: T;
+  smtpReceivedAt?: T;
   to?: T;
   subject?: T;
   formSubmission?: T;
@@ -3738,6 +3753,7 @@ export interface FormsSelect<T extends boolean = true> {
   _localized_status?: T;
   _disable_unpublishing?: T;
   _locale?: T;
+  emailReferencedIds?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;

@@ -28,40 +28,24 @@ export default async function EmailStatsWidget({
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-  const { docs } = await payload.find({
-    collection: 'form-submissions',
+  const sentCountResponse = await payload.count({
+    collection: 'outgoing-emails',
     where: {
       createdAt: { greater_than: sevenDaysAgo.toISOString() },
+      deliveryStatus: { equals: 'success' },
     },
-    limit: 1000,
-    depth: 0,
   });
 
-  let sentCount = 0;
-  let errorCount = 0;
+  const errorCountResponse = await payload.count({
+    collection: 'outgoing-emails',
+    where: {
+      createdAt: { greater_than: sevenDaysAgo.toISOString() },
+      deliveryStatus: { equals: 'error' },
+    },
+  });
 
-  for (const document_ of docs) {
-    if (Array.isArray(document_.smtpResults)) {
-      // Determine final status of each email dispatch recorded
-      // Note: A single form submission can have multiple email dispatches
-      for (const result of document_.smtpResults) {
-        if (result === null || typeof result !== 'object') continue;
-
-        const r = result as Record<string, unknown>;
-        let hasError = false;
-
-        if (r['success'] === false) hasError = true;
-        if (typeof r['error'] === 'string' && r['error'].length > 0) hasError = true;
-        if (r['bounceReport'] === true && r['success'] !== true) hasError = true;
-
-        if (hasError) {
-          errorCount++;
-        } else if (r['success'] === true) {
-          sentCount++;
-        }
-      }
-    }
-  }
+  const sentCount = sentCountResponse.totalDocs;
+  const errorCount = errorCountResponse.totalDocs;
 
   return (
     <div className="card">

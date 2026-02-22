@@ -4,6 +4,7 @@ import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/ad
 
 import { getPublishingStatus } from '@/features/payload-cms/payload-cms/hooks/publishing-status';
 import { beforeEmailChangeHook } from '@/features/payload-cms/payload-cms/plugins/form/fix-links-in-mails';
+import { extractEmailLinksHook } from '@/features/payload-cms/payload-cms/plugins/form/hooks/extract-email-links';
 import { linkJobSubmission } from '@/features/payload-cms/payload-cms/plugins/form/hooks/link-job-submission';
 import { validateCeviDatabaseLogin } from '@/features/payload-cms/payload-cms/plugins/form/hooks/validate-cevi-db-login';
 import { confirmationSettingsTab } from '@/features/payload-cms/payload-cms/plugins/form/tabs/confirmation-settings-tab';
@@ -244,7 +245,18 @@ export const formPluginConfiguration = formBuilderPlugin({
       maxPerDoc: 100,
       drafts: { autosave: { interval: 300 } },
     },
-    fields: () => [...formFields, ...formLocalizationFields],
+    fields: () => [
+      ...formFields,
+      ...formLocalizationFields,
+      {
+        name: 'emailReferencedIds',
+        type: 'json',
+        admin: { hidden: true },
+      },
+    ],
+    hooks: {
+      beforeChange: [extractEmailLinksHook],
+    },
   },
   beforeEmail: beforeEmailChangeHook,
 });

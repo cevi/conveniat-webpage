@@ -24,9 +24,11 @@ export const sendTrackedEmail = async (
     to: string;
     subject: string;
     formSubmission?: string;
+    deliveryStatus: 'pending' | 'success' | 'error';
   } = {
     to,
     subject,
+    deliveryStatus: 'pending',
   };
 
   if (typeof formSubmissionId === 'string' && formSubmissionId.length > 0) {
@@ -109,6 +111,8 @@ export const sendTrackedEmail = async (
       data: {
         smtpResults: results,
         rawSmtpResults: results,
+        deliveryStatus: success ? 'success' : 'error',
+        smtpReceivedAt: new Date().toISOString(),
       },
     });
   } catch (error) {

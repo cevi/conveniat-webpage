@@ -5,10 +5,29 @@ import type { CollectionConfig } from 'payload';
 
 export const OutgoingEmails: CollectionConfig = {
   slug: 'outgoing-emails',
+  labels: {
+    singular: {
+      en: 'Outgoing Email',
+      de: 'Ausgehende E-Mail',
+      fr: 'E-mail sortant',
+    },
+    plural: {
+      en: 'Outgoing Emails',
+      de: 'Ausgehende E-Mails',
+      fr: 'E-mails sortants',
+    },
+  },
   admin: {
     useAsTitle: 'subject',
     group: AdminPanelDashboardGroups.GlobalSettings,
-    defaultColumns: ['subject', 'to', 'createdAt'],
+    defaultColumns: [
+      'subject',
+      'to',
+      'deliveryStatus',
+      'smtpReceivedAt',
+      'dsnReceivedAt',
+      'createdAt',
+    ],
   },
   access: {
     // read only for admins, only access programmatically
@@ -18,6 +37,37 @@ export const OutgoingEmails: CollectionConfig = {
     delete: () => false,
   },
   fields: [
+    {
+      name: 'deliveryStatus',
+      type: 'select',
+      options: [
+        { label: 'Pending', value: 'pending' },
+        { label: 'Success', value: 'success' },
+        { label: 'Error', value: 'error' },
+      ],
+      defaultValue: 'pending',
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+      },
+      index: true,
+    },
+    {
+      name: 'dsnReceivedAt',
+      type: 'date',
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+      },
+    },
+    {
+      name: 'smtpReceivedAt',
+      type: 'date',
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+      },
+    },
     {
       name: 'to',
       type: 'text',

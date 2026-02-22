@@ -166,6 +166,8 @@ const updateTrackingRecords = async (
         smtpResults: results,
         rawSmtpResults: results,
         rawDsnEmail: newRawDsnEmail,
+        deliveryStatus: isSuccess ? 'success' : 'error',
+        dsnReceivedAt: new Date().toISOString(),
       },
     });
 
