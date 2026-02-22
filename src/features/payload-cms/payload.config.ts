@@ -108,6 +108,13 @@ const payloadConfigAdminSettings: RoutableConfig['admin'] = {
 
 const jobsConfig: JobsConfig = {
   deleteJobOnComplete: false,
+  jobsCollectionOverrides: ({ defaultJobsCollection }) => ({
+    ...defaultJobsCollection,
+    admin: {
+      ...defaultJobsCollection.admin,
+      hidden: false,
+    },
+  }),
   tasks: [
     resolveUserStep,
     createUserStep,
@@ -123,6 +130,7 @@ const jobsConfig: JobsConfig = {
     {
       cron: '*/10 * * * * *', // Every 10 seconds
       limit: 10,
+      queue: 'default',
     },
   ],
 };

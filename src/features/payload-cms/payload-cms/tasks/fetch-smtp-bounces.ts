@@ -1,168 +1,225 @@
 import { environmentVariables } from '@/config/environment-variables';
+import type { ParsedMail } from 'mailparser';
 import { simpleParser } from 'mailparser';
 import POP3Command from 'node-pop3';
-import type { PayloadRequest } from 'payload';
+import type { Payload, PayloadRequest, TaskConfig } from 'payload';
+import { countRunnableOrActiveJobsForQueue } from 'payload';
 
-export const fetchSmtpBouncesTask = {
+const getOriginalEnvelopeId = (parsed: ParsedMail): string | undefined => {
+  const headerValue = parsed.headers.get('original-envelope-id');
+
+  if (headerValue !== undefined) {
+    const rawValue = Array.isArray(headerValue) ? headerValue[0] : headerValue;
+    if (typeof rawValue === 'object' && 'value' in rawValue) {
+      const val = (rawValue as { value?: unknown }).value;
+      if (typeof val === 'string' && val.length > 0) {
+        return val.trim();
+      }
+    } else if (typeof rawValue === 'string' && rawValue.length > 0) {
+      return rawValue.trim();
+    }
+  }
+
+  // Fallback to body parsing
+  const text = typeof parsed.text === 'string' ? parsed.text : '';
+  if (text.length > 0) {
+    const match = /Original-Envelope-Id:\s*([a-zA-Z0-9]+)/i.exec(text);
+    const id = match?.[1];
+    if (typeof id === 'string' && id.length > 0) return id;
+  }
+
+  return undefined;
+};
+
+const determineDeliveryStatus = (parsed: ParsedMail): { isSuccess: boolean; dsnString: string } => {
+  const subject = (parsed.subject ?? '').toLowerCase();
+  let rawText = typeof parsed.text === 'string' ? parsed.text : '';
+  if (rawText.length === 0) rawText = typeof parsed.html === 'string' ? parsed.html : '';
+  if (rawText.length === 0)
+    rawText = typeof parsed.textAsHtml === 'string' ? parsed.textAsHtml : '';
+
+  const text = rawText.toLowerCase();
+
+  const isSuccess =
+    subject.includes('successful') ||
+    subject.includes('delivered') ||
+    text.includes('successfully delivered') ||
+    text.includes('status: 2.0.0') ||
+    text.includes('action: relayed') ||
+    text.includes('action: delivered');
+
+  return {
+    isSuccess,
+    dsnString: `Delivery Status Notification. Subject: ${parsed.subject ?? ''}.\n\nReason:\n${text.trim()}`,
+  };
+};
+
+const parsePop3MessageIds = (rawResponse: unknown): number[] => {
+  const messages: number[] = [];
+
+  if (typeof rawResponse === 'string') {
+    const lines = rawResponse.split('\r\n').filter(Boolean);
+    for (const line of lines) {
+      const parts = line.split(' ');
+      const rawId = parts[0];
+      if (typeof rawId === 'string') {
+        const id = Number.parseInt(rawId, 10);
+        if (!Number.isNaN(id)) messages.push(id);
+      }
+    }
+  } else if (Array.isArray(rawResponse)) {
+    for (const item of rawResponse as unknown[]) {
+      const rawId = Array.isArray(item) ? (item[0] as unknown) : item;
+      const id = Number.parseInt(String(rawId), 10);
+      if (!Number.isNaN(id)) messages.push(id);
+    }
+  }
+
+  return messages;
+};
+
+const updateSubmissionRecord = async (
+  payload: Payload,
+  envelopeId: string,
+  isSuccess: boolean,
+  dsnString: string,
+): Promise<void> => {
+  const submission = (await payload.findByID({
+    collection: 'form-submissions',
+    id: envelopeId,
+  })) as { smtpResults?: unknown[] };
+
+  const results = Array.isArray(submission.smtpResults) ? [...submission.smtpResults] : [];
+
+  const newResult: Record<string, unknown> = {
+    bounceReport: true,
+    receivedAt: new Date().toISOString(),
+    success: isSuccess,
+    to: 'unknown',
+  };
+
+  if (isSuccess) {
+    newResult['response'] = { response: dsnString };
+  } else {
+    newResult['error'] = dsnString;
+  }
+
+  results.push(newResult);
+
+  await payload.update({
+    collection: 'form-submissions',
+    id: envelopeId,
+    data: { smtpResults: results },
+  });
+};
+
+export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
   slug: 'fetchSmtpBounces',
   retries: 0,
+  schedule: [
+    {
+      cron: '* * * * *', // Every minute
+      queue: 'default',
+      hooks: {
+        beforeSchedule: async ({
+          queueable,
+          req,
+        }): Promise<{ shouldSchedule: boolean; input: Record<string, never> }> => {
+          const runnableOrActiveJobsForQueue = await countRunnableOrActiveJobsForQueue({
+            queue: queueable.scheduleConfig.queue,
+            req,
+            taskSlug: 'fetchSmtpBounces',
+            onlyScheduled: true,
+          });
+
+          req.payload.logger.info(
+            `Scheduler evaluated fetchSmtpBounces. Active/Runnable jobs: ${runnableOrActiveJobsForQueue}`,
+          );
+
+          // Allow up to 2 simultaneous scheduled jobs in case one gets stuck
+          return {
+            shouldSchedule: runnableOrActiveJobsForQueue < 2,
+            input: {},
+          };
+        },
+      },
+    },
+  ],
   inputSchema: [],
   handler: async ({ req }: { req: PayloadRequest }): Promise<{ output: { status: string } }> => {
     const { payload } = req;
-    const logger = payload.logger;
-
-    const host = environmentVariables.SMTP_HOST;
-    const user = environmentVariables.SMTP_USER;
-    const password = environmentVariables.SMTP_PASS;
+    const { logger } = payload;
+    const host =
+      typeof environmentVariables.SMTP_HOST === 'string'
+        ? environmentVariables.SMTP_HOST
+        : undefined;
+    const user =
+      typeof environmentVariables.SMTP_USER === 'string'
+        ? environmentVariables.SMTP_USER
+        : undefined;
+    const password =
+      typeof environmentVariables.SMTP_PASS === 'string'
+        ? environmentVariables.SMTP_PASS
+        : undefined;
 
     if (
-      typeof user !== 'string' ||
-      typeof password !== 'string' ||
-      typeof host !== 'string' ||
+      host === undefined ||
+      host.length === 0 ||
+      user === undefined ||
       user.length === 0 ||
-      password.length === 0 ||
-      host.length === 0
+      password === undefined ||
+      password.length === 0
     ) {
       logger.info('Skipping fetchSmtpBounces: Missing POP3/SMTP credentials.');
       return { output: { status: 'skipped' } };
     }
 
+    const pop3 = new POP3Command({ host, port: 995, tls: true, user, password });
+
     try {
-      // Connect to POP3 securely on port 995
-      const pop3 = new POP3Command({
-        host,
-        port: 995,
-        tls: true,
-        user,
-        password,
-      });
+      const listResponseRaw = await pop3.UIDL();
+      const messageIds = parsePop3MessageIds(listResponseRaw);
 
-      // Check for POP3 response format securely
-      const listResponseRaw: unknown = await pop3.UIDL();
-      const messages: string[] = [];
-
-      if (typeof listResponseRaw === 'string') {
-        const lines = listResponseRaw.split('\r\n').filter(Boolean);
-        for (const line of lines) {
-          const parts = line.split(' ');
-          const id = parts[0];
-          if (typeof id === 'string' && id.length > 0) {
-            messages.push(id);
-          }
-        }
-      } else if (Array.isArray(listResponseRaw)) {
-        for (const item of listResponseRaw) {
-          if (Array.isArray(item) && typeof item[0] === 'string' && item[0].length > 0) {
-            messages.push(item[0]);
-          } else if (typeof item === 'string' && item.length > 0) {
-            messages.push(item);
-          }
-        }
-      }
-
-      if (messages.length === 0) {
-        await pop3.QUIT();
+      if (messageIds.length === 0) {
+        logger.info('No messages found in inbox while checking for bounces.');
         return { output: { status: 'empty' } };
       }
 
-      logger.info(`Found ${messages.length} messages in inbox. Processing...`);
+      logger.info(
+        `Found ${messageIds.length} messages in inbox while checking for bounces. Processing...`,
+      );
 
-      for (const messageIdString of messages) {
-        const messageNumber_ = Number.parseInt(messageIdString, 10);
-        if (Number.isNaN(messageNumber_)) continue;
-
+      for (const messageId of messageIds) {
         try {
-          const rawEmail: unknown = await pop3.RETR(messageNumber_);
-          const parsed = await simpleParser(String(rawEmail));
+          const rawEmail = await pop3.RETR(messageId);
+          const parsedEmail = await simpleParser(String(rawEmail));
 
-          let originalEnvelopeId: string | undefined;
+          const envelopeId = getOriginalEnvelopeId(parsedEmail);
 
-          // mailparser exposes headers as a Map
-          const originalHeaderValue = parsed.headers.get('original-envelope-id');
-          if (typeof originalHeaderValue === 'string') {
-            originalEnvelopeId = originalHeaderValue.trim();
-          } else if (Array.isArray(originalHeaderValue) && originalHeaderValue.length > 0) {
-            const first = originalHeaderValue[0];
-            if (typeof first === 'string') {
-              originalEnvelopeId = first.trim();
-            } else if (typeof first === 'object') {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-              originalEnvelopeId = String((first as any).value ?? '').trim();
-            }
+          // Standard Payload ID length check (24 chars for ObjectID)
+          if (envelopeId?.length === 24) {
+            const { isSuccess, dsnString } = determineDeliveryStatus(parsedEmail);
+            await updateSubmissionRecord(payload, envelopeId, isSuccess, dsnString);
+            logger.info(`Processed bounce for submission ${envelopeId} successfully.`);
           }
 
-          if (
-            typeof originalEnvelopeId !== 'string' &&
-            typeof parsed.text === 'string' &&
-            parsed.text.length > 0
-          ) {
-            // Fallback: look for "Original-Envelope-Id: <id>" strings in the bounce report body
-            const match = /Original-Envelope-Id:\s*([a-zA-Z0-9]+)/i.exec(parsed.text);
-            if (match !== null && typeof match[1] === 'string') {
-              originalEnvelopeId = match[1];
-            }
-          }
-
-          if (typeof originalEnvelopeId === 'string' && originalEnvelopeId.length === 24) {
-            // Probably a payload form submission ID
-            try {
-              const submission = (await payload.findByID({
-                collection: 'form-submissions',
-                id: originalEnvelopeId,
-              })) as { smtpResults?: unknown[] };
-
-              const results = Array.isArray(submission.smtpResults)
-                ? [...submission.smtpResults]
-                : [];
-
-              const fullText = parsed.text ?? '';
-              const subject = parsed.subject ?? '';
-
-              const isSuccess =
-                subject.toLowerCase().includes('successful') ||
-                fullText.toLowerCase().includes('successfully delivered');
-              const dsnString = `Delivery Status Notification. Subject: ${subject}.\n\nReason: ${fullText.trim()}`;
-
-              const newResult: Record<string, unknown> = {
-                success: isSuccess,
-                to: 'unknown',
-                bounceReport: true,
-                receivedAt: new Date().toISOString(),
-              };
-
-              if (isSuccess) {
-                newResult['response'] = { response: dsnString };
-              } else {
-                newResult['error'] = dsnString;
-              }
-
-              results.push(newResult);
-
-              await payload.update({
-                collection: 'form-submissions',
-                id: originalEnvelopeId,
-                data: { smtpResults: results },
-              });
-
-              logger.info(`Processed bounce for submission ${originalEnvelopeId} successfully.`);
-            } catch (error: unknown) {
-              logger.error({
-                err: error,
-                msg: `Could not process bounce for formSubmission ${originalEnvelopeId}`,
-              });
-            }
-          }
-
-          // Always delete explicitly parsed bounces/autoreplies directed to noreply securely
-          await pop3.DELE(messageNumber_);
+          // Always delete explicitly parsed messages
+          await pop3.DELE(messageId);
         } catch (error: unknown) {
-          logger.error({ err: error, msg: `Failed to process message ${messageNumber_}` });
+          // We isolate individual message failures so the loop continues
+          logger.error({ err: error, msg: `Failed to process message ${messageId}` });
         }
       }
-
-      await pop3.QUIT();
     } catch (error: unknown) {
       logger.error({ err: error, msg: 'POP3 fetch error in fetchSmtpBounces' });
+      return { output: { status: 'error' } };
+    } finally {
+      // Guaranteed resource cleanup, even if exceptions are thrown early
+      await pop3
+        .QUIT()
+        .catch((error: unknown) =>
+          logger.error({ err: error, msg: 'Failed to close POP3 connection safely' }),
+        );
     }
 
     return { output: { status: 'processed' } };

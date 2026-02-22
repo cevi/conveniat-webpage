@@ -18,16 +18,6 @@ export const onPayloadInit = async (payload: Payload): Promise<void> => {
   await withSpan('payload.init.ensureIndexes', async () => {
     await ensureIndexes(payload);
   }).catch(console.error);
-
-  setInterval(
-    () => {
-      payload.jobs
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
-        .queue({ task: 'fetchSmtpBounces', input: {} } as any)
-        .catch((error: unknown) => console.error('Failed to queue fetchSmtpBounces task:', error));
-    },
-    5 * 60 * 1000,
-  );
 };
 
 export const deleteEverything = async (payload: Payload): Promise<void> => {
