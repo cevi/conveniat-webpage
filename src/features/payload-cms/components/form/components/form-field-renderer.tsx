@@ -7,7 +7,7 @@ import type {
   JobSelectionBlock,
 } from '@/features/payload-cms/components/form/types';
 import React, { useEffect } from 'react';
-import { useFormContext, useFormState, useWatch } from 'react-hook-form';
+import { useFormContext, useWatch } from 'react-hook-form';
 
 interface FormFieldRendererProperties {
   section: FormSection;
@@ -67,9 +67,17 @@ const SingleField: React.FC<{
   renderMode: 'all' | 'sidebar' | 'main';
 }> = ({ field, currentStepIndex, formId, renderMode }) => {
   const Component = fieldComponents[field.blockType];
-  const { register, control } = useFormContext();
+  const {
+    register,
+    control,
+    formState: { errors },
+  } = useFormContext();
+
   const fieldName = 'name' in field && typeof field.name === 'string' ? field.name : undefined;
-  const { errors } = useFormState({ control, ...(fieldName ? { name: fieldName } : {}) });
+
+  // Force React Hook Form to track the error for this specific field by reading the proxy
+  // We use this in a wrapper div to avoid 'unused variable' lint errors.
+  const hasError = fieldName ? Boolean(errors[fieldName]) : false;
 
   if (!Component) {
     console.error(`Field type ${field.blockType} is not supported`);
@@ -85,16 +93,18 @@ const SingleField: React.FC<{
   }
 
   return (
-    <Component
-      {...field}
-      registerAction={register}
-      control={control}
-      errors={errors}
-      required={field.required}
-      currentStepIndex={currentStepIndex}
-      formId={formId}
-      renderMode={renderMode}
-    />
+    <div className={hasError ? 'form-field-error' : 'form-field-valid'}>
+      <Component
+        {...field}
+        registerAction={register}
+        control={control}
+        errors={errors}
+        required={field.required}
+        currentStepIndex={currentStepIndex}
+        formId={formId}
+        renderMode={renderMode}
+      />
+    </div>
   );
 };
 
