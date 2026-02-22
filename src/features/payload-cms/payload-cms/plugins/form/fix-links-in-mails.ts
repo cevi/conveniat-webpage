@@ -70,10 +70,12 @@ export const beforeEmailChangeHook: BeforeEmail = async (
 
   const formSubmissionId = (beforeChangeParameters as { doc?: { id?: string } } | undefined)?.doc
     ?.id;
-  const envid =
-    typeof formSubmissionId === 'string' && formSubmissionId.length > 0
-      ? formSubmissionId
-      : 'unknown-id';
+
+  if (typeof formSubmissionId !== 'string' || formSubmissionId.length === 0) {
+    throw new Error('formSubmissionId is required to send emails but was not provided.');
+  }
+
+  const envid = formSubmissionId;
 
   await Promise.all(
     finalEmails.map(async (email) => {
