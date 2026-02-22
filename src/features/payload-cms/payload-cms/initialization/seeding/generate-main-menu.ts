@@ -10,10 +10,7 @@ export const generateMainMenu = (
   linkField?: LinkFieldDataType;
   subMenu: { label: string; linkField: LinkFieldDataType }[];
 }[] => {
-  const menuItems = [];
-
-  // push contact page
-  menuItems.push(
+  return [
     {
       label: 'Kontakt',
       linkField: {
@@ -28,7 +25,6 @@ export const generateMainMenu = (
     },
     {
       label: 'conveniat27',
-      linkField: {},
       subMenu: [
         {
           label: 'Über uns',
@@ -72,7 +68,5 @@ export const generateMainMenu = (
       } as LinkFieldDataType,
       subMenu: [],
     },
-  );
-
-  return menuItems;
+  ];
 };
