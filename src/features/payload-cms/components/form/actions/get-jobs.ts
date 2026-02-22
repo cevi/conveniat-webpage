@@ -59,7 +59,6 @@ export const getJobs = async (
                 },
               },
             ],
-            _localized_status: { equals: { published: true } },
           },
         });
         availableQuota = Math.max(0, job.maxQuota - currentSubmissionsCount.totalDocs);

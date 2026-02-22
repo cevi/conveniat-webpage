@@ -5,6 +5,9 @@ import POP3Command from 'node-pop3';
 import type { Payload, PayloadRequest, TaskConfig } from 'payload';
 import { countRunnableOrActiveJobsForQueue } from 'payload';
 
+const MAX_RAW_EMAIL_LENGTH = 20_000;
+const MAX_TOTAL_DSN_EMAIL_LENGTH = 39_000;
+
 const getOriginalEnvelopeId = (parsed: ParsedMail): string | undefined => {
   const headerValue = parsed.headers.get('original-envelope-id');
 
@@ -146,8 +149,8 @@ const updateTrackingRecords = async (
 
     const currentRawEmail = String(rawEmail);
     const croppedRawEmail =
-      currentRawEmail.length > 20_000
-        ? currentRawEmail.slice(0, 20_000) + '\n... [truncated]'
+      currentRawEmail.length > MAX_RAW_EMAIL_LENGTH
+        ? currentRawEmail.slice(0, MAX_RAW_EMAIL_LENGTH) + '\n... [truncated]'
         : currentRawEmail;
 
     let newRawDsnEmail =
@@ -155,8 +158,9 @@ const updateTrackingRecords = async (
         ? `${croppedRawEmail}\n\n---\n\n${outgoingEmail.rawDsnEmail}`
         : croppedRawEmail;
 
-    if (newRawDsnEmail.length > 39_000) {
-      newRawDsnEmail = newRawDsnEmail.slice(0, 39_000) + '\n... [truncated early bounces] ...';
+    if (newRawDsnEmail.length > MAX_TOTAL_DSN_EMAIL_LENGTH) {
+      newRawDsnEmail =
+        newRawDsnEmail.slice(0, MAX_TOTAL_DSN_EMAIL_LENGTH) + '\n... [truncated early bounces] ...';
     }
 
     await payload.update({

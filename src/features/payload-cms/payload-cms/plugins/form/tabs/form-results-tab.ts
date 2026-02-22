@@ -20,6 +20,18 @@ export const formResultsTab: Tab = {
       },
     },
     {
+      name: 'submissionCount',
+      type: 'ui',
+      admin: {
+        disableListColumn: true,
+        components: {
+          Field: {
+            path: '@/features/payload-cms/payload-cms/components/form-submission-count#FormSubmissionCount',
+          },
+        },
+      },
+    },
+    {
       type: 'group',
       label: {
         en: 'Submissions',

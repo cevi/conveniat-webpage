@@ -43,6 +43,11 @@ export async function resolveRichTextLinks(
     }
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, @typescript-eslint/strict-boolean-expressions
+  if (!richText?.root?.children) {
+    return richText;
+  }
+
   walk(richText.root.children);
 
   if (linksToResolve.length === 0) {

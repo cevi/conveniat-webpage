@@ -31,6 +31,7 @@ import { FormSectionRowLabel as FormSectionRowLabel_95958b8088bc2dff497e1d7f3b2a
 import { default as default_3be47662410c932a09263aa429c0578f } from '@/features/payload-cms/payload-cms/components/fields/email-from-warning'
 import { WorkflowFieldMapping as WorkflowFieldMapping_250a2659e1c657e86d416a8a839c97c5 } from '@/features/payload-cms/payload-cms/plugins/form/components/workflow-field-mapping'
 import { FormExportButton as FormExportButton_fe5d55229fbe6ce6db571a8c425d41f4 } from '@/features/payload-cms/payload-cms/components/form-export-button'
+import { FormSubmissionCount as FormSubmissionCount_fa7a19089a3d6737b1d85b7fdf6c8f81 } from '@/features/payload-cms/payload-cms/components/form-submission-count'
 import { LinkToDoc as LinkToDoc_aead06e4cbf6b2620c5c51c9ab283634 } from '@payloadcms/plugin-search/client'
 import { ReindexButton as ReindexButton_aead06e4cbf6b2620c5c51c9ab283634 } from '@payloadcms/plugin-search/client'
 import { MainEntryRowLabel as MainEntryRowLabel_576220226adef27d36922a63f8de9abd } from '@/features/payload-cms/payload-cms/components/main-menu-row-label'
@@ -83,6 +84,7 @@ export const importMap = {
   "@/features/payload-cms/payload-cms/components/fields/email-from-warning#default": default_3be47662410c932a09263aa429c0578f,
   "@/features/payload-cms/payload-cms/plugins/form/components/workflow-field-mapping#WorkflowFieldMapping": WorkflowFieldMapping_250a2659e1c657e86d416a8a839c97c5,
   "@/features/payload-cms/payload-cms/components/form-export-button#FormExportButton": FormExportButton_fe5d55229fbe6ce6db571a8c425d41f4,
+  "@/features/payload-cms/payload-cms/components/form-submission-count#FormSubmissionCount": FormSubmissionCount_fa7a19089a3d6737b1d85b7fdf6c8f81,
   "@payloadcms/plugin-search/client#LinkToDoc": LinkToDoc_aead06e4cbf6b2620c5c51c9ab283634,
   "@payloadcms/plugin-search/client#ReindexButton": ReindexButton_aead06e4cbf6b2620c5c51c9ab283634,
   "@/features/payload-cms/payload-cms/components/main-menu-row-label#MainEntryRowLabel": MainEntryRowLabel_576220226adef27d36922a63f8de9abd,

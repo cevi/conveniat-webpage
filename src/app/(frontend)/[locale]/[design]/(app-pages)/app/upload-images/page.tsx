@@ -181,7 +181,9 @@ const ImageUploadPage: React.FC = () => {
     }
 
     const missingDescriptions = selectedFiles.some(
-      (file) => !fileDescriptions[file.name] || fileDescriptions[file.name]?.trim() === '',
+      (file) =>
+        fileDescriptions[file.name] === undefined ||
+        (fileDescriptions[file.name] ?? '').trim() === '',
     );
 
     if (missingDescriptions) {
@@ -200,7 +202,18 @@ const ImageUploadPage: React.FC = () => {
       const uploadResults = await Promise.all(
         selectedFiles.map(async (file) => {
           const description = fileDescriptions[file.name]?.trim() ?? '';
-          const response = await uploadUserImage(file, description);
+
+          // Next.js (via Node.js undici) crashes when receiving a File in a Server Action
+          // if the filename contains non-ASCII characters (like umlauts äöü).
+          // We sanitize the filename here to avoid the "Failed to parse body as FormData" error.
+          const safeName = file.name.replaceAll(/[^\u0020-\u007E]/g, '').replaceAll(/\s/g, '_');
+          const finalName =
+            safeName === ''
+              ? `upload-${Date.now().toString()}.${file.type.split('/')[1] ?? 'bin'}`
+              : safeName;
+          const safeFile = new File([file], finalName, { type: file.type });
+
+          const response = await uploadUserImage(safeFile, description);
           return response;
         }),
       );
@@ -274,7 +287,7 @@ const ImageUploadPage: React.FC = () => {
           {errorMessage !== '' && (
             <div className="rounded-lg border border-red-200 bg-red-50 p-4">
               <div className="flex">
-                <div className="flex-shrink-0">
+                <div className="shrink-0">
                   <LucideImageIcon
                     className="h-10 w-10 text-red-800 opacity-65"
                     aria-hidden="true"
@@ -293,7 +306,7 @@ const ImageUploadPage: React.FC = () => {
               <FilePreviewList files={[file]} onRemoveFile={() => removeFile(index)} />
               <div className="mt-3">
                 <DescriptionInput
-                  value={fileDescriptions[file.name] || ''}
+                  value={fileDescriptions[file.name] ?? ''}
                   onChange={(desc) => handleDescriptionChange(file.name, desc)}
                 />
               </div>
