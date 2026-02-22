@@ -66,6 +66,7 @@ export interface Config {
     timelineCategory: TimelineCategory;
     'chat-images': ChatImage;
     'blocked-jobs': BlockedJob;
+    'smtp-bounce-mail-tracking': SmtpBounceMailTracking;
     forms: Form;
     'form-submissions': FormSubmission;
     'search-collection': SearchCollection;
@@ -104,6 +105,7 @@ export interface Config {
     timelineCategory: TimelineCategorySelect<false> | TimelineCategorySelect<true>;
     'chat-images': ChatImagesSelect<false> | ChatImagesSelect<true>;
     'blocked-jobs': BlockedJobsSelect<false> | BlockedJobsSelect<true>;
+    'smtp-bounce-mail-tracking': SmtpBounceMailTrackingSelect<false> | SmtpBounceMailTrackingSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     'search-collection': SearchCollectionSelect<false> | SearchCollectionSelect<true>;
@@ -2181,6 +2183,18 @@ export interface BlockedJob {
   createdAt: string;
 }
 /**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "smtp-bounce-mail-tracking".
+ */
+export interface SmtpBounceMailTracking {
+  id: string;
+  uid: string;
+  failureCount: number;
+  lastAttempt: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This is a collection of automatically created search results. These results are used by the global site search and will be updated automatically as documents in the CMS are created or updated.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2441,6 +2455,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'blocked-jobs';
         value: string | BlockedJob;
+      } | null)
+    | ({
+        relationTo: 'smtp-bounce-mail-tracking';
+        value: string | SmtpBounceMailTracking;
       } | null)
     | ({
         relationTo: 'forms';
@@ -3327,6 +3345,17 @@ export interface BlockedJobsSelect<T extends boolean = true> {
   status?: T;
   reason?: T;
   resolutionData?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "smtp-bounce-mail-tracking_select".
+ */
+export interface SmtpBounceMailTrackingSelect<T extends boolean = true> {
+  uid?: T;
+  failureCount?: T;
+  lastAttempt?: T;
   updatedAt?: T;
   createdAt?: T;
 }

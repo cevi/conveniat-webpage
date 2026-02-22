@@ -54,24 +54,27 @@ const determineDeliveryStatus = (parsed: ParsedMail): { isSuccess: boolean; dsnS
   };
 };
 
-const parsePop3MessageIds = (rawResponse: unknown): number[] => {
-  const messages: number[] = [];
+const parsePop3Messages = (rawResponse: unknown): { id: number; uid: string }[] => {
+  const messages: { id: number; uid: string }[] = [];
 
   if (typeof rawResponse === 'string') {
     const lines = rawResponse.split('\r\n').filter(Boolean);
     for (const line of lines) {
       const parts = line.split(' ');
       const rawId = parts[0];
-      if (typeof rawId === 'string') {
+      const uid = parts[1];
+      if (typeof rawId === 'string' && typeof uid === 'string') {
         const id = Number.parseInt(rawId, 10);
-        if (!Number.isNaN(id)) messages.push(id);
+        if (!Number.isNaN(id)) messages.push({ id, uid });
       }
     }
   } else if (Array.isArray(rawResponse)) {
     for (const item of rawResponse as unknown[]) {
-      const rawId = Array.isArray(item) ? (item[0] as unknown) : item;
-      const id = Number.parseInt(String(rawId), 10);
-      if (!Number.isNaN(id)) messages.push(id);
+      if (Array.isArray(item) && item.length >= 2) {
+        const id = Number.parseInt(String(item[0]), 10);
+        const uid = String(item[1]);
+        if (!Number.isNaN(id)) messages.push({ id, uid });
+      }
     }
   }
 
@@ -178,18 +181,40 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
 
     try {
       const listResponseRaw = await pop3.UIDL();
-      const messageIds = parsePop3MessageIds(listResponseRaw);
+      const messages = parsePop3Messages(listResponseRaw);
 
-      if (messageIds.length === 0) {
+      if (messages.length === 0) {
         logger.info('No messages found in inbox while checking for bounces.');
         return { output: { status: 'empty' } };
       }
 
       logger.info(
-        `Found ${messageIds.length} messages in inbox while checking for bounces. Processing...`,
+        `Found ${messages.length} messages in inbox while checking for bounces. Processing...`,
       );
 
-      for (const messageId of messageIds) {
+      for (const { id: messageId, uid } of messages) {
+        // Check for previous failures
+        const trackingResults = await payload.find({
+          collection: 'smtp-bounce-mail-tracking',
+          where: { uid: { equals: uid } },
+          limit: 1,
+        });
+
+        const trackingRecord = trackingResults.docs[0];
+        const failureCount = trackingRecord?.failureCount ?? 0;
+
+        if (failureCount >= 3) {
+          logger.error({
+            msg: `Message ${uid} (ID ${messageId}) failed ${failureCount} times. Poison pill detected. Deleting from inbox.`,
+          });
+          await pop3.DELE(messageId);
+          await payload.delete({
+            collection: 'smtp-bounce-mail-tracking',
+            where: { uid: { equals: uid } },
+          });
+          continue;
+        }
+
         try {
           const rawEmail = await pop3.RETR(messageId);
           const parsedEmail = await simpleParser(String(rawEmail));
@@ -205,25 +230,57 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
 
           // Only delete if successfully processed or if it doesn't match our expected ID format
           await pop3.DELE(messageId);
+
+          // Clear failure tracking if successful
+          if (trackingRecord?.id) {
+            await payload.delete({
+              collection: 'smtp-bounce-mail-tracking',
+              id: trackingRecord.id,
+            });
+          }
         } catch (error: unknown) {
           // We isolate individual message failures so the loop continues
           // We DO NOT delete the message here so it can be retried on the next run
           logger.error({
-            err: error,
-            msg: `Failed to process message ${messageId}, leaving in inbox for retry`,
+            err: error instanceof Error ? error : new Error(String(error)),
+            msg: `Failed to process message ${messageId} (UID ${uid}), leaving in inbox for retry`,
           });
+
+          // Increment failure count
+          const data = {
+            failureCount: failureCount + 1,
+            lastAttempt: new Date().toISOString(),
+          };
+
+          trackingRecord?.id
+            ? await payload.update({
+                collection: 'smtp-bounce-mail-tracking',
+                id: trackingRecord.id,
+                data,
+              })
+            : await payload.create({
+                collection: 'smtp-bounce-mail-tracking',
+                data: {
+                  ...data,
+                  uid,
+                },
+              });
         }
       }
     } catch (error: unknown) {
-      logger.error({ err: error, msg: 'POP3 fetch error in fetchSmtpBounces' });
+      logger.error({
+        err: error instanceof Error ? error : new Error(String(error)),
+        msg: 'POP3 fetch error in fetchSmtpBounces',
+      });
       return { output: { status: 'error' } };
     } finally {
       // Guaranteed resource cleanup, even if exceptions are thrown early
-      await pop3
-        .QUIT()
-        .catch((error: unknown) =>
-          logger.error({ err: error, msg: 'Failed to close POP3 connection safely' }),
-        );
+      await pop3.QUIT().catch((error: unknown) =>
+        logger.error({
+          err: error instanceof Error ? error : new Error(String(error)),
+          msg: 'Failed to close POP3 connection safely',
+        }),
+      );
     }
 
     return { output: { status: 'processed' } };
