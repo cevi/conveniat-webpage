@@ -1,4 +1,5 @@
 import { environmentVariables } from '@/config/environment-variables';
+import { sendTrackedEmail } from '@/features/payload-cms/payload-cms/utils/send-tracked-email';
 import config from '@payload-config';
 import type { BeforeEmail, FormattedEmail } from '@payloadcms/plugin-form-builder/types';
 import { getPayload } from 'payload';
@@ -21,20 +22,24 @@ export const beforeEmailChangeHook: BeforeEmail = async (
         const id = match[1] as string;
 
         // Try to find the document in "generic-page"
-        const genericDocument = await payload
-          .findByID({
+        let genericDocument;
+        try {
+          genericDocument = await payload.findByID({
             collection: 'generic-page',
             id,
-          })
-          .catch(() => {});
+          });
+        } catch {}
 
         // If not found, try in "blog"
-        const blogDocument = genericDocument
-          ? undefined
-          : await payload.findByID({ collection: 'blog', id }).catch(() => {});
+        let blogDocument;
+        if (genericDocument === undefined) {
+          try {
+            blogDocument = await payload.findByID({ collection: 'blog', id });
+          } catch {}
+        }
 
         // If a document was found, construct the URL
-        const document_ = genericDocument || blogDocument;
+        const document_ = genericDocument ?? blogDocument;
         if (document_) {
           const slug = document_.seo.urlSlug;
           const collectionPath = genericDocument ? '' : 'blog';
@@ -49,9 +54,11 @@ export const beforeEmailChangeHook: BeforeEmail = async (
         }
 
         if (environmentVariables.FEATURE_ENABLE_APP_FEATURE) {
-          const campAnnotation = await payload
-            .findByID({ collection: 'camp-map-annotations', id })
-            .catch(() => {});
+          let campAnnotation;
+          try {
+            campAnnotation = await payload.findByID({ collection: 'camp-map-annotations', id });
+          } catch {}
+
           if (campAnnotation) {
             const finalURL = `${environmentVariables.APP_HOST_URL}/app/map?locationId=${campAnnotation.id}`;
             updatedHtml = updatedHtml.replace(`href="${id}"`, `href="${finalURL}"`);
@@ -66,8 +73,6 @@ export const beforeEmailChangeHook: BeforeEmail = async (
     }),
   );
 
-  const smtpResults: Record<string, unknown>[] = [];
-
   const formSubmissionId = (beforeChangeParameters as { doc?: { id?: string } } | undefined)?.doc
     ?.id;
 
@@ -75,53 +80,14 @@ export const beforeEmailChangeHook: BeforeEmail = async (
     throw new Error('formSubmissionId is required to send emails but was not provided.');
   }
 
-  const envid = formSubmissionId;
-
-  await Promise.all(
-    finalEmails.map(async (email) => {
-      const { to } = email;
-      try {
-        const emailPromise = await payload.sendEmail({
-          ...email,
-          dsn: {
-            id: envid, // the envid
-            return: 'headers',
-            notify: ['success', 'failure', 'delay'],
-            recipient: environmentVariables.SMTP_USER,
-          },
-        });
-        smtpResults.push({
-          success: true,
-          to,
-          response: emailPromise,
-        });
-      } catch (error: unknown) {
-        payload.logger.error({
-          err: error,
-          msg: `Error while sending email to address: ${to}. Email not sent.`,
-        });
-        smtpResults.push({
-          success: false,
-          to,
-          error: error instanceof Error ? error.message : String(error),
-        });
-      }
-    }),
-  );
-
-  if (typeof formSubmissionId === 'string' && formSubmissionId.length > 0) {
+  // Use a sequential loop to avoid race conditions when updating form submission documents
+  for (const email of finalEmails) {
     try {
-      await payload.update({
-        collection: 'form-submissions',
-        id: formSubmissionId,
-        data: {
-          smtpResults,
-        } as Record<string, unknown>,
-      });
+      await sendTrackedEmail(payload, email, formSubmissionId);
     } catch (error: unknown) {
       payload.logger.error({
-        err: error,
-        msg: 'Failed to update form submission with smtpResults',
+        err: error instanceof Error ? error : new Error(String(error)),
+        msg: `sendTrackedEmail failed for email to: ${email.to}`,
       });
     }
   }

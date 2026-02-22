@@ -81,18 +81,29 @@ const parsePop3Messages = (rawResponse: unknown): { id: number; uid: string }[] 
   return messages;
 };
 
-const updateSubmissionRecord = async (
+const updateTrackingRecords = async (
   payload: Payload,
   envelopeId: string,
   isSuccess: boolean,
   dsnString: string,
+  rawEmail: string,
 ): Promise<void> => {
-  const submission = (await payload.findByID({
-    collection: 'form-submissions',
-    id: envelopeId,
-  })) as { smtpResults?: unknown[] };
+  let outgoingEmail:
+    | { smtpResults?: unknown[]; formSubmission?: string | { id: string }; rawDsnEmail?: string }
+    | undefined;
 
-  const results = Array.isArray(submission.smtpResults) ? [...submission.smtpResults] : [];
+  try {
+    outgoingEmail = (await payload.findByID({
+      collection: 'outgoing-emails',
+      id: envelopeId,
+    })) as {
+      smtpResults?: unknown[];
+      formSubmission?: string | { id: string };
+      rawDsnEmail?: string;
+    };
+  } catch {
+    // Fail silently here, we will try form-submissions directly as a fallback
+  }
 
   const newResult: Record<string, unknown> = {
     bounceReport: true,
@@ -107,13 +118,76 @@ const updateSubmissionRecord = async (
     newResult['error'] = dsnString;
   }
 
-  results.push(newResult);
+  if (outgoingEmail === undefined) {
+    // Fallback: it might be an old email tracking ID (form submission ID directly)
+    try {
+      const submission = (await payload.findByID({
+        collection: 'form-submissions',
+        id: envelopeId,
+      })) as { smtpResults?: unknown[] };
 
-  await payload.update({
-    collection: 'form-submissions',
-    id: envelopeId,
-    data: { smtpResults: results },
-  });
+      const subResults = Array.isArray(submission.smtpResults) ? [...submission.smtpResults] : [];
+      subResults.push(newResult);
+
+      await payload.update({
+        collection: 'form-submissions',
+        id: envelopeId,
+        data: { smtpResults: subResults } as Record<string, unknown>,
+      });
+    } catch (error: unknown) {
+      payload.logger.error({
+        err: error instanceof Error ? error : new Error(String(error)),
+        msg: `Failed to update record for bounce tracking ID ${envelopeId}`,
+      });
+    }
+  } else {
+    const results = Array.isArray(outgoingEmail.smtpResults) ? [...outgoingEmail.smtpResults] : [];
+    results.push(newResult);
+
+    const newRawDsnEmail =
+      typeof outgoingEmail.rawDsnEmail === 'string' && outgoingEmail.rawDsnEmail.length > 0
+        ? `${outgoingEmail.rawDsnEmail}\n\n---\n\n${rawEmail}`
+        : rawEmail;
+
+    await payload.update({
+      collection: 'outgoing-emails',
+      id: envelopeId,
+      data: {
+        smtpResults: results,
+        rawSmtpResults: results,
+        rawDsnEmail: newRawDsnEmail,
+      },
+    });
+
+    const formSubmissionRelated = outgoingEmail.formSubmission;
+    const formSubmissionId =
+      typeof formSubmissionRelated === 'string'
+        ? formSubmissionRelated
+        : (formSubmissionRelated as { id?: string } | undefined)?.id;
+
+    if (typeof formSubmissionId === 'string' && formSubmissionId.length > 0) {
+      try {
+        const submission = (await payload.findByID({
+          collection: 'form-submissions',
+          id: formSubmissionId,
+        })) as { smtpResults?: unknown[] };
+
+        const subResults = Array.isArray(submission.smtpResults) ? [...submission.smtpResults] : [];
+        subResults.push(newResult);
+
+        await payload.update({
+          collection: 'form-submissions',
+          id: formSubmissionId,
+          data: { smtpResults: subResults } as Record<string, unknown>,
+        });
+      } catch (error: unknown) {
+        payload.logger.error({
+          err: error instanceof Error ? error : new Error(String(error)),
+          msg: `Failed to update form-submission ${formSubmissionId} for bounce`,
+        });
+      }
+    }
+  }
 };
 
 export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
@@ -219,13 +293,13 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
           const rawEmail = await pop3.RETR(messageId);
           const parsedEmail = await simpleParser(String(rawEmail));
 
-          const envelopeId = getOriginalEnvelopeId(parsedEmail);
+          const envId = getOriginalEnvelopeId(parsedEmail);
 
           // Standard Payload ID length check (24 chars for ObjectID)
-          if (envelopeId?.length === 24) {
+          if (envId?.length === 24) {
             const { isSuccess, dsnString } = determineDeliveryStatus(parsedEmail);
-            await updateSubmissionRecord(payload, envelopeId, isSuccess, dsnString);
-            logger.info(`Processed bounce for submission ${envelopeId} successfully.`);
+            await updateTrackingRecords(payload, envId, isSuccess, dsnString, String(rawEmail));
+            logger.info(`Processed bounce for submission/outgoing email ${envId} successfully.`);
           }
 
           // Only delete if successfully processed or if it doesn't match our expected ID format

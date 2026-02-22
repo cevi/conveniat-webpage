@@ -189,7 +189,7 @@ export const parseSmtpStats = (
   // Derive Box 2 (DSN) State
   let dsnState: SmtpStatusType = 'empty';
   if (dsnErrors > 0) dsnState = 'error';
-  else if (dsnSuccess > 0) dsnState = 'success';
+  else if (dsnSuccess > 0 && dsnSuccess >= smtpSuccess) dsnState = 'success';
   else if (smtpSuccess > 0 || smtpErrors > 0) dsnState = 'pending';
 
   const smtpCount = smtpErrors > 0 ? smtpErrors : smtpSuccess;

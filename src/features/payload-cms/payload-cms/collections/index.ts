@@ -7,6 +7,7 @@ import { DocumentsCollection } from '@/features/payload-cms/payload-cms/collecti
 import { GenericPage as GenericPageCollection } from '@/features/payload-cms/payload-cms/collections/generic-page';
 import { JobCollection } from '@/features/payload-cms/payload-cms/collections/helper-job-collection';
 import { ImageCollection } from '@/features/payload-cms/payload-cms/collections/image-collection';
+import { OutgoingEmails } from '@/features/payload-cms/payload-cms/collections/outgoing-emails';
 import { PermissionsCollection } from '@/features/payload-cms/payload-cms/collections/permission-collection';
 import { PushNotificationSubscriptions } from '@/features/payload-cms/payload-cms/collections/push-notification-subscriptions';
 import { SmtpBounceMailTracking } from '@/features/payload-cms/payload-cms/collections/smtp-bounce-tracking';
@@ -45,6 +46,7 @@ const rawCollectionsConfig: CollectionConfig[] = [
   ChatImagesCollection,
   BlockedJobs,
   SmtpBounceMailTracking,
+  OutgoingEmails,
 ];
 
 /**

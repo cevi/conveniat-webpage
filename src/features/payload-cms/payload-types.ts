@@ -67,6 +67,7 @@ export interface Config {
     'chat-images': ChatImage;
     'blocked-jobs': BlockedJob;
     'smtp-bounce-mail-tracking': SmtpBounceMailTracking;
+    'outgoing-emails': OutgoingEmail;
     forms: Form;
     'form-submissions': FormSubmission;
     'search-collection': SearchCollection;
@@ -106,6 +107,7 @@ export interface Config {
     'chat-images': ChatImagesSelect<false> | ChatImagesSelect<true>;
     'blocked-jobs': BlockedJobsSelect<false> | BlockedJobsSelect<true>;
     'smtp-bounce-mail-tracking': SmtpBounceMailTrackingSelect<false> | SmtpBounceMailTrackingSelect<true>;
+    'outgoing-emails': OutgoingEmailsSelect<false> | OutgoingEmailsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     'search-collection': SearchCollectionSelect<false> | SearchCollectionSelect<true>;
@@ -2195,6 +2197,37 @@ export interface SmtpBounceMailTracking {
   createdAt: string;
 }
 /**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "outgoing-emails".
+ */
+export interface OutgoingEmail {
+  id: string;
+  to: string;
+  subject: string;
+  formSubmission?: (string | null) | FormSubmission;
+  smtpResults?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  rawSmtpResults?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  rawDsnEmail?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This is a collection of automatically created search results. These results are used by the global site search and will be updated automatically as documents in the CMS are created or updated.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2459,6 +2492,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'smtp-bounce-mail-tracking';
         value: string | SmtpBounceMailTracking;
+      } | null)
+    | ({
+        relationTo: 'outgoing-emails';
+        value: string | OutgoingEmail;
       } | null)
     | ({
         relationTo: 'forms';
@@ -3356,6 +3393,20 @@ export interface SmtpBounceMailTrackingSelect<T extends boolean = true> {
   uid?: T;
   failureCount?: T;
   lastAttempt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "outgoing-emails_select".
+ */
+export interface OutgoingEmailsSelect<T extends boolean = true> {
+  to?: T;
+  subject?: T;
+  formSubmission?: T;
+  smtpResults?: T;
+  rawSmtpResults?: T;
+  rawDsnEmail?: T;
   updatedAt?: T;
   createdAt?: T;
 }
