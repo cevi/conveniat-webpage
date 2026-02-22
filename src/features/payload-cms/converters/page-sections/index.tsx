@@ -35,12 +35,14 @@ import React from 'react';
  */
 export const PageSectionsConverter: React.FC<
   LocalizedPageType & {
-    blocks: ContentBlock[];
+    blocks?: ContentBlock[] | null;
     sectionClassName?: string;
     sectionOverrides?: { [key in ContentBlockTypeNames]?: string };
   }
 > = (sectionProperties) => {
   const { blocks } = sectionProperties;
+
+  if (!blocks) return <></>;
 
   const componentMap: Record<ContentBlockTypeNames, SectionRenderer<never> | undefined> = {
     richTextSection: RenderRichTextSection,
