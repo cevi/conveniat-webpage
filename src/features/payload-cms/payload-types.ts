@@ -1867,7 +1867,7 @@ export interface CampMapAnnotation {
    * The title of the annotation.
    */
   title: string;
-  color?: ('#78909c' | '#fbc02d' | '#ff8126' | '#b56aff' | '#f848c7' | '#16a672' | '#f64955') | null;
+  color?: ('78909c' | 'fbc02d' | 'ff8126' | 'b56aff' | 'f848c7' | '16a672' | 'f64955') | null;
   annotationType: 'marker' | 'polygon';
   icon?:
     | (

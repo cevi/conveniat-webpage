@@ -64,7 +64,8 @@ export const DynamicLucidIconRenderer: React.FC<{
   icon: CampMapAnnotation['icon'];
   color?: string;
   isStarred?: boolean;
-}> = ({ icon, color = '#78909c', isStarred = false }): React.JSX.Element => {
+}> = ({ icon, color = '78909c', isStarred = false }): React.JSX.Element => {
+  const hexColor = color.startsWith('#') ? color : `#${color}`;
   const iconMap: Record<string, React.ElementType<LucideProps>> = {
     MapPin: MapPin,
     Tent: Tent,
@@ -83,7 +84,7 @@ export const DynamicLucidIconRenderer: React.FC<{
 
   // Fallback if the icon is not recognized
   return (
-    <CirclePin color={color} isStarred={isStarred}>
+    <CirclePin color={hexColor} isStarred={isStarred}>
       <IconComponent size={24} className="text-white" />
     </CirclePin>
   );

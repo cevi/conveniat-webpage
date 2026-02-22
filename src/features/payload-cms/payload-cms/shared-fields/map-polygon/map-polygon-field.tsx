@@ -372,8 +372,9 @@ const MapPolygonField: FieldClientComponent = ({ path }) => {
     if (!mapReference.current || !mapLoaded) return;
     const map = mapReference.current;
 
-    const activeColor = color || '#fbb03b';
-    const inactiveColor = color || '#3bb2d0';
+    const hexColor = (color?.startsWith('#') ?? false) ? color : `#${color}`;
+    const activeColor = color ? hexColor : '#fbb03b';
+    const inactiveColor = color ? hexColor : '#3bb2d0';
 
     const themeLayers = [
       { id: 'gl-draw-polygon-fill-inactive', type: 'fill', color: inactiveColor },
