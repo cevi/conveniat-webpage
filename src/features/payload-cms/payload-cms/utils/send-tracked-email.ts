@@ -58,12 +58,17 @@ export const sendTrackedEmail = async (
   try {
     const emailPromise = await payload.sendEmail({
       ...emailOptions,
-      dsn: {
-        id: String(outgoingEmailId),
-        return: 'headers',
-        notify: ['success', 'failure', 'delay'],
-        recipient: environmentVariables.SMTP_USER,
-      },
+      ...(typeof environmentVariables.SMTP_USER === 'string' &&
+      environmentVariables.SMTP_USER.length > 0
+        ? {
+            dsn: {
+              id: String(outgoingEmailId),
+              return: 'headers',
+              notify: ['success', 'failure', 'delay'],
+              recipient: environmentVariables.SMTP_USER,
+            },
+          }
+        : {}),
     });
 
     success = true;
