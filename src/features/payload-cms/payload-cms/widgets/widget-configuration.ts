@@ -9,6 +9,10 @@ export const enabledWidgets: Widget[] = [
     slug: 'user-count',
     ComponentPath: '@/features/payload-cms/payload-cms/widgets/user-count-widget#default',
   },
+  {
+    slug: 'email-stats',
+    ComponentPath: '@/features/payload-cms/payload-cms/widgets/email-stats-widget#default',
+  },
 ];
 
 export const widgetDefaultLayout = (): WidgetInstance[] => {
@@ -27,6 +31,7 @@ export const widgetDefaultLayout = (): WidgetInstance[] => {
   return [
     { widgetSlug: 'emergency-alerts', width: 'small' },
     { widgetSlug: 'user-count', width: 'small' },
+    { widgetSlug: 'email-stats', width: 'small' },
     { widgetSlug: 'collections', width: 'full' },
   ];
 };

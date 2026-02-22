@@ -12,6 +12,7 @@ import { lexicalEditor } from '@/features/payload-cms/payload-cms/plugins/lexica
 import { redirectsPluginConfiguration } from '@/features/payload-cms/payload-cms/plugins/redirects/redirects-plugin-configuration';
 import { s3StorageConfiguration } from '@/features/payload-cms/payload-cms/plugins/s3-storage-plugin-configuration';
 import { searchPluginConfiguration } from '@/features/payload-cms/payload-cms/plugins/search/search-plugin-configuration';
+import { fetchSmtpBouncesTask } from '@/features/payload-cms/payload-cms/tasks/fetch-smtp-bounces';
 import { smartphoneBreakpoints } from '@/features/payload-cms/utils/smartphone-breakpoints';
 import { registrationWorkflow } from '@/features/registration_process/workflows/registration-workflow';
 import { blockJobStep } from '@/features/registration_process/workflows/steps/block-job';
@@ -107,6 +108,13 @@ const payloadConfigAdminSettings: RoutableConfig['admin'] = {
 
 const jobsConfig: JobsConfig = {
   deleteJobOnComplete: false,
+  jobsCollectionOverrides: ({ defaultJobsCollection }) => ({
+    ...defaultJobsCollection,
+    admin: {
+      ...defaultJobsCollection.admin,
+      hidden: false,
+    },
+  }),
   tasks: [
     resolveUserStep,
     createUserStep,
@@ -115,12 +123,14 @@ const jobsConfig: JobsConfig = {
     ensureGroupMembershipStep,
     ensureEventMembershipStep,
     confirmationMessageStep,
+    fetchSmtpBouncesTask,
   ],
   workflows: [registrationWorkflow],
   autoRun: [
     {
       cron: '*/10 * * * * *', // Every 10 seconds
       limit: 10,
+      queue: 'default',
     },
   ],
 };
