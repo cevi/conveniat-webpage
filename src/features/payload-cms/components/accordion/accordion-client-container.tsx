@@ -109,6 +109,7 @@ const AccordionClientContainer: React.FC<{
   const toggleExpand = useCallback(
     (accordionBlock: NonNullable<AccordionBlocks['accordionBlocks']>[number]): void => {
       const fragment = getFragmentFromBlock(accordionBlock);
+      const isClosing = expandedIds.includes(fragment);
 
       setExpandedIds((previousExpandedIds) => {
         // eslint-disable-next-line unicorn/prefer-ternary
@@ -118,9 +119,10 @@ const AccordionClientContainer: React.FC<{
           return [...previousExpandedIds, fragment];
         }
       });
-      updateURLFragment(fragment);
+
+      updateURLFragment(isClosing ? undefined : fragment);
     },
-    [updateURLFragment],
+    [expandedIds, updateURLFragment],
   );
 
   useEffect((): void | (() => void) => {

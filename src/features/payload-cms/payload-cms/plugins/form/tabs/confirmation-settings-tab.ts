@@ -143,16 +143,9 @@ export const confirmationSettingsTab: Tab = {
   },
   fields: [
     formSubmitButtonLabelField,
-    {
-      type: 'group',
-      label: {
-        en: 'Confirmation Settings',
-        de: 'Bestätigungs-Einstellungen',
-        fr: 'Paramètres de confirmation',
-      },
-      virtual: true,
-      fields: [formConfirmationTypeField, formConfirmationMessageField, formRedirectField],
-    },
+    formConfirmationTypeField,
+    formConfirmationMessageField,
+    formRedirectField,
     formEmailField,
   ],
 };

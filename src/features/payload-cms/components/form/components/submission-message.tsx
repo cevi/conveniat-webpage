@@ -21,13 +21,13 @@ export const SubmissionMessage: React.FC<SubmissionMessageProperties> = ({
   locale,
 }) => {
   return (
-    <div className="bg-opacity-95 absolute inset-0 z-10 flex flex-col items-center justify-center bg-white p-6 text-center">
+    <div className="flex w-full flex-col items-center justify-center space-y-6 rounded-xl border border-gray-100 bg-white p-8 text-center shadow-sm">
       <div className="max-w-md">
         {content && <LexicalRichTextSection richTextSection={content} locale={locale} />}
         <button
           type="button"
           onClick={onReset}
-          className="bg-conveniat-green mt-4 h-10 w-full rounded-lg px-4 font-['Montserrat'] text-base font-bold text-[#e1e6e2] transition duration-300 hover:bg-[#3b4a3f] sm:w-auto"
+          className="bg-conveniat-green mt-4 h-10 w-full rounded-lg px-4 font-['Montserrat'] text-base font-bold text-green-100 transition duration-300 hover:bg-green-600 sm:w-auto"
         >
           {resetFormText[locale]}
         </button>
