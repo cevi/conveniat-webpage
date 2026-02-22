@@ -56,6 +56,27 @@ const SuspendedPostHogPageView: React.FC = () => {
 
 export const PostHogProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   useEffect(() => {
+    // Suppress ResizeObserver loop errors (often caused by browser extensions)
+    const handleError = (errorEvent: ErrorEvent): void => {
+      if (
+        errorEvent.message === 'ResizeObserver loop completed with undelivered notifications.' ||
+        errorEvent.message === 'ResizeObserver loop limit exceeded'
+      ) {
+        const resizeObserverErrorDiv = document.querySelector(
+          '#webpack-dev-server-client-overlay-div',
+        );
+        const resizeObserverError = document.querySelector('#webpack-dev-server-client-overlay');
+        if (resizeObserverError) {
+          resizeObserverError.setAttribute('style', 'display: none');
+        }
+        if (resizeObserverErrorDiv) {
+          resizeObserverErrorDiv.setAttribute('style', 'display: none');
+        }
+        errorEvent.stopImmediatePropagation();
+      }
+    };
+    globalThis.addEventListener('error', handleError);
+
     const isConfigured =
       typeof globalThis !== 'undefined' &&
       environmentVariables.NEXT_PUBLIC_POSTHOG_KEY !== undefined &&
@@ -71,6 +92,10 @@ export const PostHogProvider: React.FC<{ children: React.ReactNode }> = ({ child
         capture_pageleave: true,
       });
     }
+
+    return (): void => {
+      globalThis.removeEventListener('error', handleError);
+    };
   }, []);
 
   return (
