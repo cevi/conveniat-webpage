@@ -343,7 +343,8 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
               }
             };
 
-            const messageIdRegex = /Message-ID:\s*(<[^>]+>)/gi;
+            // Normalize extracted IDs by removing angle brackets and domain parts for robust comparison
+            const messageIdRegex = /Message-ID:\s*<?([^@>\s]+)/gi;
             extractMatches(messageIdRegex, rawEmailString);
             extractMatches(messageIdRegex, textForRegex);
 
@@ -362,16 +363,30 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
             const extractedIds = [...possibleIds];
 
             if (extractedIds.length > 0) {
-              // Scan recent outgoing emails (up to 1000) for these IDs in their smtpResults
+              // Scan recent outgoing emails (up to 1000, within the last 30 days) for these IDs in their smtpResults
+              const thirtyDaysAgo = new Date();
+              thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
               const recentOutgoing = await payload.find({
                 collection: 'outgoing-emails',
+                where: {
+                  createdAt: {
+                    greater_than_equal: thirtyDaysAgo.toISOString(),
+                  },
+                },
                 limit: 1000,
                 sort: '-createdAt',
               });
 
               for (const outgoingDocument of recentOutgoing.docs) {
                 const stringifiedResults = JSON.stringify(outgoingDocument.smtpResults ?? []);
-                const foundMatch = extractedIds.some((id) => stringifiedResults.includes(id));
+                const foundMatch = extractedIds.some((id) => {
+                  // Only match if the ID appears as a complete token, not as a substring
+                  const regex = new RegExp(
+                    `\\b${id.replaceAll(/[.*+?^${}()|[\\]\\\\]/g, String.raw`\\$&`)}\\b`,
+                  );
+                  return regex.test(stringifiedResults);
+                });
 
                 if (foundMatch) {
                   matched = await updateTrackingRecords(
