@@ -309,41 +309,104 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
 
         try {
           const rawEmail = await pop3.RETR(messageId);
-          const parsedEmail = await simpleParser(String(rawEmail));
+          const rawEmailString = String(rawEmail);
+          const parsedEmail = await simpleParser(rawEmailString);
 
+          const { isSuccess, dsnString } = determineDeliveryStatus(parsedEmail);
           const envId = getOriginalEnvelopeId(parsedEmail);
 
+          let matched = false;
+
           // Standard Payload ID length check (24 chars for ObjectID)
-          if (envId?.length === 24) {
-            const { isSuccess, dsnString } = determineDeliveryStatus(parsedEmail);
-            const matched = await updateTrackingRecords(
+          if (typeof envId === 'string' && envId.length === 24) {
+            matched = await updateTrackingRecords(
               payload,
               envId,
               isSuccess,
               dsnString,
-              String(rawEmail),
+              rawEmailString,
             );
+          }
 
-            if (matched) {
-              logger.info(`Processed bounce for submission/outgoing email ${envId} successfully.`);
+          // Fallback matching if Original-Envelope-Id matching fails or doesn't exist
+          if (!matched) {
+            const possibleIds = new Set<string>();
 
-              // Only delete if successfully processed and matches an ID in our database
-              await pop3.DELE(messageId);
+            const textForRegex = typeof parsedEmail.text === 'string' ? parsedEmail.text : '';
 
-              // Clear failure tracking if successful
-              if (trackingRecord?.id !== undefined) {
-                await payload.delete({
-                  collection: 'smtp-bounce-mail-tracking',
-                  id: trackingRecord.id,
-                });
+            const extractMatches = (regex: RegExp, sourceString: string): void => {
+              let m;
+              // reset regex state if global
+              regex.lastIndex = 0;
+              while ((m = regex.exec(sourceString)) !== null) {
+                if (m[1] !== undefined) possibleIds.add(m[1].trim());
               }
-            } else {
-              logger.info(
-                `Ignored message ${messageId} as envId ${envId} was not found in this instance.`,
-              );
+            };
+
+            const messageIdRegex = /Message-ID:\s*(<[^>]+>)/gi;
+            extractMatches(messageIdRegex, rawEmailString);
+            extractMatches(messageIdRegex, textForRegex);
+
+            const queuedRegex = /queued as\s*([a-zA-Z0-9]+)/gi;
+            extractMatches(queuedRegex, rawEmailString);
+            extractMatches(queuedRegex, textForRegex);
+
+            const postfixRegex = /X-Postfix-Queue-ID:\s*([a-zA-Z0-9]+)/gi;
+            extractMatches(postfixRegex, rawEmailString);
+            extractMatches(postfixRegex, textForRegex);
+
+            // Also check the Received header that contains the Queue ID before sending
+            const receivedRegex = /with ESMTPSA id\s*([a-zA-Z0-9]+)/gi;
+            extractMatches(receivedRegex, rawEmailString);
+
+            const extractedIds = [...possibleIds];
+
+            if (extractedIds.length > 0) {
+              // Scan recent outgoing emails (up to 1000) for these IDs in their smtpResults
+              const recentOutgoing = await payload.find({
+                collection: 'outgoing-emails',
+                limit: 1000,
+                sort: '-createdAt',
+              });
+
+              for (const outgoingDocument of recentOutgoing.docs) {
+                const stringifiedResults = JSON.stringify(outgoingDocument.smtpResults ?? []);
+                const foundMatch = extractedIds.some((id) => stringifiedResults.includes(id));
+
+                if (foundMatch) {
+                  matched = await updateTrackingRecords(
+                    payload,
+                    String(outgoingDocument.id),
+                    isSuccess,
+                    dsnString,
+                    rawEmailString,
+                  );
+
+                  if (matched) {
+                    logger.info(
+                      `Fallback processed bounce for outgoing email ${String(outgoingDocument.id)} using ID(s) ${extractedIds.join(',')}`,
+                    );
+                    break;
+                  }
+                }
+              }
+            }
+          }
+          if (matched) {
+            // Only delete if successfully processed and matches an ID in our database
+            await pop3.DELE(messageId);
+
+            // Clear failure tracking if successful
+            if (trackingRecord?.id !== undefined) {
+              await payload.delete({
+                collection: 'smtp-bounce-mail-tracking',
+                id: trackingRecord.id,
+              });
             }
           } else {
-            logger.info(`Ignored message ${messageId} as it lacks our expected ID format.`);
+            logger.info(
+              `Ignored message ${messageId} as envId ${envId} and fallback IDs were not found in this instance.`,
+            );
           }
         } catch (error: unknown) {
           // We isolate individual message failures so the loop continues
