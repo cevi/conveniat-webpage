@@ -6,14 +6,12 @@ export function GET(): Response {
   try {
     const responsePayload = {
       status: 'ok',
-      timestamp: new Date().toISOString(),
     };
 
     return new Response(JSON.stringify(responsePayload), {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Cache-Control': 'no-cache, no-store, max-age=0, must-revalidate',
       },
     });
   } catch (error) {

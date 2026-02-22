@@ -21,14 +21,11 @@ export function register(): void {
 export const onRequestError = async (
   error: unknown,
   request: { headers: Record<string, string | string[] | undefined> },
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _context: unknown,
+  context: unknown,
 ): Promise<void> => {
   // eslint-disable-next-line n/no-process-env
   if (process.env['NEXT_RUNTIME'] === 'nodejs') {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports, unicorn/prefer-module, @typescript-eslint/no-unsafe-assignment
-    const { getPostHogServer } = require('./lib/posthog-server');
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
+    const { getPostHogServer } = await import('./lib/posthog-server');
     const posthog = getPostHogServer();
     let distinctId: string | undefined;
 
@@ -43,10 +40,10 @@ export const onRequestError = async (
         try {
           const decodedCookie = decodeURIComponent(postHogCookieMatch[1]);
           if (posthog !== undefined) {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-            const postHogData = JSON.parse(decodedCookie);
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-            distinctId = postHogData.distinct_id;
+            const postHogData = JSON.parse(decodedCookie) as Record<string, unknown>;
+            if (typeof postHogData['distinct_id'] === 'string') {
+              distinctId = postHogData['distinct_id'];
+            }
           }
         } catch (error_) {
           console.error('Error parsing PostHog cookie:', error_);
@@ -55,10 +52,34 @@ export const onRequestError = async (
     }
 
     if (posthog !== undefined) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      posthog.captureException(error, { distinctId });
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      await posthog.shutdown();
+      // Extract properties for better tracing
+      const properties: Record<string, unknown> = {};
+
+      if (context !== null && typeof context === 'object' && !Array.isArray(context)) {
+        Object.assign(properties, context);
+      }
+
+      if (request.headers['referer'] !== undefined)
+        properties['referer'] = request.headers['referer'];
+      if (request.headers['user-agent'] !== undefined)
+        properties['user-agent'] = request.headers['user-agent'];
+      if (request.headers['x-forwarded-for'] !== undefined)
+        properties['x-forwarded-for'] = request.headers['x-forwarded-for'];
+
+      if (error !== null && typeof error === 'object') {
+        if ('digest' in error) properties['digest'] = error.digest;
+        if ('message' in error && typeof error.message === 'string') {
+          properties['errorMessage'] = error.message;
+        }
+      }
+
+      posthog.captureException(error, distinctId, properties);
+
+      try {
+        await posthog.flush();
+      } catch (flushError) {
+        console.error('Error flushing PostHog events:', flushError);
+      }
     }
   }
 };
