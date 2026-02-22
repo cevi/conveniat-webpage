@@ -90,7 +90,7 @@ const updateTrackingRecords = async (
   isSuccess: boolean,
   dsnString: string,
   rawEmail: string,
-): Promise<void> => {
+): Promise<boolean> => {
   let outgoingEmail:
     | { smtpResults?: unknown[]; formSubmission?: string | { id: string }; rawDsnEmail?: string }
     | undefined;
@@ -137,11 +137,12 @@ const updateTrackingRecords = async (
         id: envelopeId,
         data: { smtpResults: subResults } as Record<string, unknown>,
       });
-    } catch (error: unknown) {
-      payload.logger.error({
-        err: error instanceof Error ? error : new Error(String(error)),
-        msg: `Failed to update record for bounce tracking ID ${envelopeId}`,
+      return true;
+    } catch {
+      payload.logger.info({
+        msg: `Bounce tracking ID ${envelopeId} not found, likely belongs to another instance`,
       });
+      return false;
     }
   } else {
     const results = Array.isArray(outgoingEmail.smtpResults) ? [...outgoingEmail.smtpResults] : [];
@@ -203,6 +204,7 @@ const updateTrackingRecords = async (
         });
       }
     }
+    return true;
   }
 };
 
@@ -314,19 +316,34 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
           // Standard Payload ID length check (24 chars for ObjectID)
           if (envId?.length === 24) {
             const { isSuccess, dsnString } = determineDeliveryStatus(parsedEmail);
-            await updateTrackingRecords(payload, envId, isSuccess, dsnString, String(rawEmail));
-            logger.info(`Processed bounce for submission/outgoing email ${envId} successfully.`);
-          }
+            const matched = await updateTrackingRecords(
+              payload,
+              envId,
+              isSuccess,
+              dsnString,
+              String(rawEmail),
+            );
 
-          // Only delete if successfully processed or if it doesn't match our expected ID format
-          await pop3.DELE(messageId);
+            if (matched) {
+              logger.info(`Processed bounce for submission/outgoing email ${envId} successfully.`);
 
-          // Clear failure tracking if successful
-          if (trackingRecord?.id !== undefined) {
-            await payload.delete({
-              collection: 'smtp-bounce-mail-tracking',
-              id: trackingRecord.id,
-            });
+              // Only delete if successfully processed and matches an ID in our database
+              await pop3.DELE(messageId);
+
+              // Clear failure tracking if successful
+              if (trackingRecord?.id !== undefined) {
+                await payload.delete({
+                  collection: 'smtp-bounce-mail-tracking',
+                  id: trackingRecord.id,
+                });
+              }
+            } else {
+              logger.info(
+                `Ignored message ${messageId} as envId ${envId} was not found in this instance.`,
+              );
+            }
+          } else {
+            logger.info(`Ignored message ${messageId} as it lacks our expected ID format.`);
           }
         } catch (error: unknown) {
           // We isolate individual message failures so the loop continues

@@ -220,39 +220,6 @@ const ensureGlobalsCollectionIndexes = async (
   await processIndexes(collection, tasks, 'globals');
 };
 
-/**
- * Prints a beautified list of all existing indexes in the database.
- *
- * @param connection The MongoDB connection
- */
-const printAllIndexes = async (connection: MongooseAdapter['connection']): Promise<void> => {
-  const db = connection.db;
-  if (db === undefined) return;
-
-  const collections = await db.listCollections().toArray();
-  console.log(`\n${LOG_PREFIX} --- Current Database Indexes ---`);
-
-  // Sort collections by name for better readability
-  const sortedCollections = collections.sort((a, b) => a.name.localeCompare(b.name));
-
-  for (const colInfo of sortedCollections) {
-    const col = connection.collection(colInfo.name);
-    const indexes = await col.listIndexes().toArray();
-
-    process.stdout.write(`  [${colInfo.name}]\n`);
-
-    for (const index of indexes) {
-      const typedIndex = index as unknown as { key: Record<string, number | string>; name: string };
-      const keys = Object.entries(typedIndex.key)
-        .map(([key, val]) => `${key}: ${String(val)}`)
-        .join(', ');
-      process.stdout.write(`    - ${typedIndex.name.padEnd(30)} { ${keys} }\n`);
-    }
-  }
-
-  console.log(`${LOG_PREFIX} ----------------------------------\n`);
-};
-
 export const ensureIndexes = async (payload: Payload): Promise<void> => {
   const { db, config } = payload;
 
@@ -320,8 +287,6 @@ export const ensureIndexes = async (payload: Payload): Promise<void> => {
   });
 
   await Promise.all([formPromise, globalsPromise, ...entityPromises]);
-
-  await printAllIndexes(connection);
 
   console.log(`${LOG_PREFIX} Finished ensuring indices.`);
 };
