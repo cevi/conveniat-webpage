@@ -9,13 +9,17 @@ import { useField, useTranslation } from '@payloadcms/ui';
 import React from 'react';
 
 const WARNING_MESSAGES: StaticTranslationString = {
-  en: "Warning: Sender is '{fromAddress}' instead of @cevi.tools.",
-  de: "Warnung: Absender ist '{fromAddress}' anstelle von @cevi.tools.",
-  fr: "Attention: L'expéditeur est '{fromAddress}' au lieu de @cevi.tools.",
+  en: "Warning: Sender is '{fromAddress}' instead of @{smtpDomain}.",
+  de: "Warnung: Absender ist '{fromAddress}' anstelle von @{smtpDomain}.",
+  fr: "Attention: L'expéditeur est '{fromAddress}' au lieu de @{smtpDomain}.",
 };
 
-export const SmtpResultsField: React.FC<{ path: string }> = ({ path }) => {
+export const SmtpResultsField: React.FC<{ path: string; smtpDomain?: string }> = ({
+  path,
+  smtpDomain = 'cevi.tools',
+}) => {
   const { value } = useField<SmtpResult[]>({ path });
+
   const { i18n } = useTranslation();
 
   const langRaw = i18n.language;
@@ -63,7 +67,7 @@ export const SmtpResultsField: React.FC<{ path: string }> = ({ path }) => {
             if (hasError) {
               statusType = 'error';
               statusLabel = labels.smtpError;
-            } else if (fromAddress.endsWith('@cevi.tools') || fromAddress.length === 0) {
+            } else if (fromAddress.endsWith(`@${smtpDomain}`) || fromAddress.length === 0) {
               statusType = 'success';
               statusLabel = labels.smtpSuccess;
             } else {
@@ -122,7 +126,9 @@ export const SmtpResultsField: React.FC<{ path: string }> = ({ path }) => {
           }
 
           const responseText = result.response?.response ?? result.error ?? 'No response details';
-          const warningText = WARNING_MESSAGES[lang].replace('{fromAddress}', fromAddress);
+          const warningText = WARNING_MESSAGES[lang]
+            .replace('{fromAddress}', fromAddress)
+            .replace('{smtpDomain}', smtpDomain);
 
           return (
             <div

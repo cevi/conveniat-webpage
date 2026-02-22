@@ -1,5 +1,7 @@
+import { environmentVariables } from '@/config/environment-variables';
 import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
+
 import { getPublishingStatus } from '@/features/payload-cms/payload-cms/hooks/publishing-status';
 import { beforeEmailChangeHook } from '@/features/payload-cms/payload-cms/plugins/form/fix-links-in-mails';
 import { linkJobSubmission } from '@/features/payload-cms/payload-cms/plugins/form/hooks/link-job-submission';
@@ -150,11 +152,18 @@ export const formPluginConfiguration = formBuilderPlugin({
           readOnly: true,
           position: 'sidebar',
           components: {
-            Field: '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-field',
+            Field: {
+              path: '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-field',
+              clientProps: {
+                smtpDomain: environmentVariables.SMTP_USER?.split('@')[1] ?? 'cevi.tools',
+              },
+            },
+
             Cell: '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-cell',
           },
         },
       },
+
       {
         name: 'helper-job',
         type: 'relationship',
