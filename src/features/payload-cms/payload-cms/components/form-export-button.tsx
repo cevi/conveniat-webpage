@@ -58,7 +58,8 @@ export const FormExportButton: React.FC = () => {
         const byteCharacters = atob(base64Content);
         const byteNumbers: number[] = Array.from({ length: byteCharacters.length });
         for (let index = 0; index < byteCharacters.length; index++) {
-          byteNumbers[index] = byteCharacters.codePointAt(index) ?? 0;
+          // eslint-disable-next-line unicorn/prefer-code-point -- explicitly required for base64 decoding
+          byteNumbers[index] = byteCharacters.charCodeAt(index);
         }
         const byteArray = new Uint8Array(byteNumbers);
         const blob = new Blob([byteArray], {
