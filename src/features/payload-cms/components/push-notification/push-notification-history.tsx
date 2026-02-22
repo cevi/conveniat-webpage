@@ -338,7 +338,7 @@ function NotificationHistory({ userId }: { userId: string }): JSX.Element {
 
                 let displayMessage = log.content;
                 try {
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
+                  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                   const parsed = JSON.parse(log.content);
                   if (
                     parsed &&

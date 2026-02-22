@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-non-null-assertion, unicorn/no-null, @typescript-eslint/no-unnecessary-condition */
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, unicorn/no-null, @typescript-eslint/no-unnecessary-condition */
 import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import type { Payload } from 'payload';
 
