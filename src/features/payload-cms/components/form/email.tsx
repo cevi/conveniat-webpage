@@ -9,6 +9,7 @@ import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
+import { useFormContext, useWatch } from 'react-hook-form';
 
 const isNotAValidEmailText: StaticTranslationString = {
   en: 'Please enter a valid email address',
@@ -32,6 +33,8 @@ export const Email: React.FC<
   const hasError = errors[name];
 
   const locale = useCurrentLocale(i18nConfig);
+  const { control } = useFormContext();
+  useWatch({ control, name }); // Force re-render on every keystroke
 
   return (
     <div className="mb-4">
