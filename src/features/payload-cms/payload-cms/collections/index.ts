@@ -7,8 +7,10 @@ import { DocumentsCollection } from '@/features/payload-cms/payload-cms/collecti
 import { GenericPage as GenericPageCollection } from '@/features/payload-cms/payload-cms/collections/generic-page';
 import { JobCollection } from '@/features/payload-cms/payload-cms/collections/helper-job-collection';
 import { ImageCollection } from '@/features/payload-cms/payload-cms/collections/image-collection';
+import { OutgoingEmails } from '@/features/payload-cms/payload-cms/collections/outgoing-emails';
 import { PermissionsCollection } from '@/features/payload-cms/payload-cms/collections/permission-collection';
 import { PushNotificationSubscriptions } from '@/features/payload-cms/payload-cms/collections/push-notification-subscriptions';
+import { SmtpBounceMailTracking } from '@/features/payload-cms/payload-cms/collections/smtp-bounce-tracking';
 import { TimelineCollection } from '@/features/payload-cms/payload-cms/collections/timeline';
 import { TimelineEntryCategory } from '@/features/payload-cms/payload-cms/collections/timeline/timeline-entry-category';
 import { UserCollection } from '@/features/payload-cms/payload-cms/collections/user-collection';
@@ -43,6 +45,8 @@ const rawCollectionsConfig: CollectionConfig[] = [
   TimelineEntryCategory,
   ChatImagesCollection,
   BlockedJobs,
+  SmtpBounceMailTracking,
+  OutgoingEmails,
 ];
 
 /**

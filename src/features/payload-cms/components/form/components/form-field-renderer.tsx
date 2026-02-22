@@ -7,7 +7,7 @@ import type {
   JobSelectionBlock,
 } from '@/features/payload-cms/components/form/types';
 import React, { useEffect } from 'react';
-import { useFormContext, useWatch } from 'react-hook-form';
+import { useFormContext, useFormState, useWatch } from 'react-hook-form';
 
 interface FormFieldRendererProperties {
   section: FormSection;
@@ -67,11 +67,9 @@ const SingleField: React.FC<{
   renderMode: 'all' | 'sidebar' | 'main';
 }> = ({ field, currentStepIndex, formId, renderMode }) => {
   const Component = fieldComponents[field.blockType];
-  const {
-    register,
-    control,
-    formState: { errors },
-  } = useFormContext();
+  const { register, control } = useFormContext();
+  const fieldName = 'name' in field && typeof field.name === 'string' ? field.name : undefined;
+  const { errors } = useFormState({ control, ...(fieldName ? { name: fieldName } : {}) });
 
   if (!Component) {
     console.error(`Field type ${field.blockType} is not supported`);

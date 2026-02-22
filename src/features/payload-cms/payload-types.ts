@@ -66,6 +66,8 @@ export interface Config {
     timelineCategory: TimelineCategory;
     'chat-images': ChatImage;
     'blocked-jobs': BlockedJob;
+    'smtp-bounce-mail-tracking': SmtpBounceMailTracking;
+    'outgoing-emails': OutgoingEmail;
     forms: Form;
     'form-submissions': FormSubmission;
     'search-collection': SearchCollection;
@@ -104,6 +106,8 @@ export interface Config {
     timelineCategory: TimelineCategorySelect<false> | TimelineCategorySelect<true>;
     'chat-images': ChatImagesSelect<false> | ChatImagesSelect<true>;
     'blocked-jobs': BlockedJobsSelect<false> | BlockedJobsSelect<true>;
+    'smtp-bounce-mail-tracking': SmtpBounceMailTrackingSelect<false> | SmtpBounceMailTrackingSelect<true>;
+    'outgoing-emails': OutgoingEmailsSelect<false> | OutgoingEmailsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     'search-collection': SearchCollectionSelect<false> | SearchCollectionSelect<true>;
@@ -129,6 +133,7 @@ export interface Config {
     'alert-management': AlertManagement;
     'all-chats-management': AllChatsManagement;
     'registration-management': RegistrationManagement;
+    'payload-jobs-stats': PayloadJobsStat;
   };
   globalsSelect: {
     header: HeaderSelect<false> | HeaderSelect<true>;
@@ -141,6 +146,7 @@ export interface Config {
     'alert-management': AlertManagementSelect<false> | AlertManagementSelect<true>;
     'all-chats-management': AllChatsManagementSelect<false> | AllChatsManagementSelect<true>;
     'registration-management': RegistrationManagementSelect<false> | RegistrationManagementSelect<true>;
+    'payload-jobs-stats': PayloadJobsStatsSelect<false> | PayloadJobsStatsSelect<true>;
   };
   locale: 'en' | 'de' | 'fr';
   user: User;
@@ -153,6 +159,7 @@ export interface Config {
       ensureGroupMembership: TaskEnsureGroupMembership;
       ensureEventMembership: TaskEnsureEventMembership;
       confirmationMessage: TaskConfirmationMessage;
+      fetchSmtpBounces: TaskFetchSmtpBounces;
       inline: {
         input: unknown;
         output: unknown;
@@ -1114,6 +1121,15 @@ export interface Form {
   _localized_status: LocalizedPublishingStatus;
   _disable_unpublishing?: boolean | null;
   _locale: string;
+  emailReferencedIds?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -1132,6 +1148,15 @@ export interface FormSubmission {
         value: string;
         id?: string | null;
       }[]
+    | null;
+  smtpResults?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
     | null;
   'helper-job'?: (string | null) | HelperJob;
   'helper-jobs'?: (string | HelperJob)[] | null;
@@ -2169,6 +2194,52 @@ export interface BlockedJob {
   createdAt: string;
 }
 /**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "smtp-bounce-mail-tracking".
+ */
+export interface SmtpBounceMailTracking {
+  id: string;
+  uid: string;
+  failureCount: number;
+  lastAttempt: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "outgoing-emails".
+ */
+export interface OutgoingEmail {
+  id: string;
+  deliveryStatus?: ('pending' | 'success' | 'error') | null;
+  dsnReceivedAt?: string | null;
+  smtpReceivedAt?: string | null;
+  to: string;
+  subject: string;
+  formSubmission?: (string | null) | FormSubmission;
+  smtpResults?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  rawSmtpResults?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  rawDsnEmail?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This is a collection of automatically created search results. These results are used by the global site search and will be updated automatically as documents in the CMS are created or updated.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2296,7 +2367,8 @@ export interface PayloadJob {
           | 'cleanupTemporaryRoles'
           | 'ensureGroupMembership'
           | 'ensureEventMembership'
-          | 'confirmationMessage';
+          | 'confirmationMessage'
+          | 'fetchSmtpBounces';
         taskID: string;
         input?:
           | {
@@ -2340,11 +2412,21 @@ export interface PayloadJob {
         | 'ensureGroupMembership'
         | 'ensureEventMembership'
         | 'confirmationMessage'
+        | 'fetchSmtpBounces'
       )
     | null;
   queue?: string | null;
   waitUntil?: string | null;
   processing?: boolean | null;
+  meta?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -2418,6 +2500,14 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'blocked-jobs';
         value: string | BlockedJob;
+      } | null)
+    | ({
+        relationTo: 'smtp-bounce-mail-tracking';
+        value: string | SmtpBounceMailTracking;
+      } | null)
+    | ({
+        relationTo: 'outgoing-emails';
+        value: string | OutgoingEmail;
       } | null)
     | ({
         relationTo: 'forms';
@@ -3309,6 +3399,34 @@ export interface BlockedJobsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "smtp-bounce-mail-tracking_select".
+ */
+export interface SmtpBounceMailTrackingSelect<T extends boolean = true> {
+  uid?: T;
+  failureCount?: T;
+  lastAttempt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "outgoing-emails_select".
+ */
+export interface OutgoingEmailsSelect<T extends boolean = true> {
+  deliveryStatus?: T;
+  dsnReceivedAt?: T;
+  smtpReceivedAt?: T;
+  to?: T;
+  subject?: T;
+  formSubmission?: T;
+  smtpResults?: T;
+  rawSmtpResults?: T;
+  rawDsnEmail?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "forms_select".
  */
 export interface FormsSelect<T extends boolean = true> {
@@ -3635,6 +3753,7 @@ export interface FormsSelect<T extends boolean = true> {
   _localized_status?: T;
   _disable_unpublishing?: T;
   _locale?: T;
+  emailReferencedIds?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
@@ -3653,6 +3772,7 @@ export interface FormSubmissionsSelect<T extends boolean = true> {
         value?: T;
         id?: T;
       };
+  smtpResults?: T;
   'helper-job'?: T;
   'helper-jobs'?: T;
   updatedAt?: T;
@@ -3725,6 +3845,7 @@ export interface PayloadJobsSelect<T extends boolean = true> {
   queue?: T;
   waitUntil?: T;
   processing?: T;
+  meta?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -4058,6 +4179,24 @@ export interface RegistrationManagement {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-jobs-stats".
+ */
+export interface PayloadJobsStat {
+  id: string;
+  stats?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "header_select".
  */
 export interface HeaderSelect<T extends boolean = true> {
@@ -4239,6 +4378,16 @@ export interface RegistrationManagementSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-jobs-stats_select".
+ */
+export interface PayloadJobsStatsSelect<T extends boolean = true> {
+  stats?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskResolveUser".
  */
 export interface TaskResolveUser {
@@ -4372,6 +4521,14 @@ export interface TaskConfirmationMessage {
   output: {
     sent?: boolean | null;
   };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskFetchSmtpBounces".
+ */
+export interface TaskFetchSmtpBounces {
+  input?: unknown;
+  output?: unknown;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
