@@ -144,10 +144,20 @@ const updateTrackingRecords = async (
     const results = Array.isArray(outgoingEmail.smtpResults) ? [...outgoingEmail.smtpResults] : [];
     results.push(newResult);
 
-    const newRawDsnEmail =
+    const currentRawEmail = String(rawEmail);
+    const croppedRawEmail =
+      currentRawEmail.length > 20_000
+        ? currentRawEmail.slice(0, 20_000) + '\n... [truncated]'
+        : currentRawEmail;
+
+    let newRawDsnEmail =
       typeof outgoingEmail.rawDsnEmail === 'string' && outgoingEmail.rawDsnEmail.length > 0
-        ? `${outgoingEmail.rawDsnEmail}\n\n---\n\n${rawEmail}`
-        : rawEmail;
+        ? `${croppedRawEmail}\n\n---\n\n${outgoingEmail.rawDsnEmail}`
+        : croppedRawEmail;
+
+    if (newRawDsnEmail.length > 39_000) {
+      newRawDsnEmail = newRawDsnEmail.slice(0, 39_000) + '\n... [truncated early bounces] ...';
+    }
 
     await payload.update({
       collection: 'outgoing-emails',
@@ -306,7 +316,7 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
           await pop3.DELE(messageId);
 
           // Clear failure tracking if successful
-          if (trackingRecord?.id) {
+          if (trackingRecord?.id !== undefined) {
             await payload.delete({
               collection: 'smtp-bounce-mail-tracking',
               id: trackingRecord.id,
@@ -326,19 +336,22 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
             lastAttempt: new Date().toISOString(),
           };
 
-          trackingRecord?.id
-            ? await payload.update({
-                collection: 'smtp-bounce-mail-tracking',
-                id: trackingRecord.id,
-                data,
-              })
-            : await payload.create({
-                collection: 'smtp-bounce-mail-tracking',
-                data: {
-                  ...data,
-                  uid,
-                },
-              });
+          // eslint-disable-next-line unicorn/prefer-ternary
+          if (trackingRecord?.id === undefined) {
+            await payload.create({
+              collection: 'smtp-bounce-mail-tracking',
+              data: {
+                ...data,
+                uid,
+              },
+            });
+          } else {
+            await payload.update({
+              collection: 'smtp-bounce-mail-tracking',
+              id: trackingRecord.id,
+              data,
+            });
+          }
         }
       }
     } catch (error: unknown) {
