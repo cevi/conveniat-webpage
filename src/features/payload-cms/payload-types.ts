@@ -153,6 +153,7 @@ export interface Config {
       ensureGroupMembership: TaskEnsureGroupMembership;
       ensureEventMembership: TaskEnsureEventMembership;
       confirmationMessage: TaskConfirmationMessage;
+      fetchSmtpBounces: TaskFetchSmtpBounces;
       inline: {
         input: unknown;
         output: unknown;
@@ -2305,7 +2306,8 @@ export interface PayloadJob {
           | 'cleanupTemporaryRoles'
           | 'ensureGroupMembership'
           | 'ensureEventMembership'
-          | 'confirmationMessage';
+          | 'confirmationMessage'
+          | 'fetchSmtpBounces';
         taskID: string;
         input?:
           | {
@@ -2349,6 +2351,7 @@ export interface PayloadJob {
         | 'ensureGroupMembership'
         | 'ensureEventMembership'
         | 'confirmationMessage'
+        | 'fetchSmtpBounces'
       )
     | null;
   queue?: string | null;
@@ -4382,6 +4385,14 @@ export interface TaskConfirmationMessage {
   output: {
     sent?: boolean | null;
   };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskFetchSmtpBounces".
+ */
+export interface TaskFetchSmtpBounces {
+  input?: unknown;
+  output?: unknown;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

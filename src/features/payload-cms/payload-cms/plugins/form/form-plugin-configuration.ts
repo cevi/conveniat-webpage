@@ -151,6 +151,7 @@ export const formPluginConfiguration = formBuilderPlugin({
           position: 'sidebar',
           components: {
             Field: '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-field',
+            Cell: '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-cell',
           },
         },
       },

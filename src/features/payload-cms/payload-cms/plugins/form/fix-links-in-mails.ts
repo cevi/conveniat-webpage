@@ -68,11 +68,26 @@ export const beforeEmailChangeHook: BeforeEmail = async (
 
   const smtpResults: Record<string, unknown>[] = [];
 
+  const formSubmissionId = (beforeChangeParameters as { doc?: { id?: string } } | undefined)?.doc
+    ?.id;
+  const envid =
+    typeof formSubmissionId === 'string' && formSubmissionId.length > 0
+      ? formSubmissionId
+      : 'unknown-id';
+
   await Promise.all(
     finalEmails.map(async (email) => {
       const { to } = email;
       try {
-        const emailPromise = await payload.sendEmail(email);
+        const emailPromise = await payload.sendEmail({
+          ...email,
+          dsn: {
+            id: envid, // the envid
+            return: 'headers',
+            notify: ['success', 'failure', 'delay'],
+            recipient: environmentVariables.SMTP_USER,
+          },
+        });
         smtpResults.push({
           success: true,
           to,
@@ -92,8 +107,6 @@ export const beforeEmailChangeHook: BeforeEmail = async (
     }),
   );
 
-  const formSubmissionId = (beforeChangeParameters as { doc?: { id?: string } } | undefined)?.doc
-    ?.id;
   if (typeof formSubmissionId === 'string' && formSubmissionId.length > 0) {
     try {
       await payload.update({

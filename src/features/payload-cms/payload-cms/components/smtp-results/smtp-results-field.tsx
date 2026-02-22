@@ -1,51 +1,9 @@
 'use client';
 
+import type { SmtpResult } from '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-shared';
+import { LOCALIZED_SMTP_LABELS } from '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-shared';
 import { useField, useTranslation } from '@payloadcms/ui';
 import React from 'react';
-
-// Type definitions for the smtpResult
-interface SmtpResult {
-  success: boolean;
-  to: string;
-  response?: {
-    accepted?: string[];
-    rejected?: string[];
-    envelopeTime?: number;
-    messageTime?: number;
-    messageSize?: number;
-    response?: string;
-    messageId?: string;
-    envelope?: {
-      from: string;
-      to: string[];
-    };
-  };
-  error?: string;
-}
-
-const LOCALIZED_LABELS = {
-  en: {
-    sent: 'Sent',
-    unknown: 'Unknown',
-    error: 'Error',
-    noResults: 'No SMTP results available.',
-    details: 'Hover for details',
-  },
-  de: {
-    sent: 'Gesendet',
-    unknown: 'Unbekannt',
-    error: 'Fehler',
-    noResults: 'Keine SMTP-Ergebnisse verfügbar.',
-    details: 'Hover für Details',
-  },
-  fr: {
-    sent: 'Envoyé',
-    unknown: 'Inconnu',
-    error: 'Erreur',
-    noResults: 'Aucun résultat SMTP disponible.',
-    details: 'Survoler pour les détails',
-  },
-};
 
 const WARNING_MESSAGES = {
   en: "Warning: Sender is '{fromAddress}' instead of @cevi.tools.",
@@ -62,12 +20,12 @@ export const SmtpResultsField: React.FC<{ path: string }> = ({ path }) => {
   const isValidLang = currentLang === 'en' || currentLang === 'de' || currentLang === 'fr';
   const lang: 'en' | 'de' | 'fr' = isValidLang ? currentLang : 'de';
 
-  const labels = LOCALIZED_LABELS[lang];
+  const labels = LOCALIZED_SMTP_LABELS[lang];
 
   if (!Array.isArray(value) || value.length === 0) {
     return (
       <div className="field-type textarea">
-        <label className="field-label">SMTP Results</label>
+        <label className="field-label">{labels.sectionTitle}</label>
         <div className="text-gray-500">{labels.noResults}</div>
       </div>
     );
@@ -75,23 +33,67 @@ export const SmtpResultsField: React.FC<{ path: string }> = ({ path }) => {
 
   return (
     <div className="field-type custom-field mb-4">
-      <label className="field-label">SMTP Results</label>
+      <label className="field-label">{labels.sectionTitle}</label>
       <div className="flex flex-col gap-2">
         {value.map((result, index) => {
-          // Determine status
-          const isSuccess = result.success === true;
-          const fromAddress = result.response?.envelope?.from ?? '';
+          let hasError = false;
+          if (result.success === false) hasError = true;
+          if (typeof result.error === 'string' && result.error.length > 0) hasError = true;
 
-          let status: 'sent' | 'unknown' | 'error' = 'error';
-          let bgColor = 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200';
+          let statusLabel = labels.smtpEmpty;
+          let statusType: 'empty' | 'pending' | 'success' | 'error' = 'empty';
+          let badgePrefix = 'SMTP';
 
-          if (isSuccess) {
-            if (fromAddress.endsWith('@cevi.tools')) {
-              status = 'sent';
-              bgColor = 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200';
+          const isBounce = result.bounceReport === true;
+          if (isBounce) {
+            badgePrefix = 'DSN';
+            if (hasError) {
+              statusType = 'error';
+              statusLabel = labels.dsnError;
             } else {
-              status = 'unknown';
-              bgColor = 'bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-200';
+              statusType = 'success';
+              statusLabel = labels.dsnSuccess;
+            }
+          } else {
+            badgePrefix = 'SMTP';
+            const fromAddress = result.response?.envelope?.from ?? '';
+            if (hasError) {
+              statusType = 'error';
+              statusLabel = labels.smtpError;
+            } else if (fromAddress.endsWith('@cevi.tools') || fromAddress.length === 0) {
+              statusType = 'success';
+              statusLabel = labels.smtpSuccess;
+            } else {
+              statusType = 'pending';
+              statusLabel = labels.smtpPending;
+            }
+          }
+
+          let badgeColorClasses =
+            'border-gray-200 bg-transparent text-gray-400 dark:border-gray-700 dark:text-gray-500';
+          let badgeSymbol = '-';
+
+          switch (statusType) {
+            case 'pending': {
+              badgeColorClasses =
+                'border-orange-200 bg-orange-100 text-orange-800 dark:border-orange-800 dark:bg-orange-900/40 dark:text-orange-200';
+              badgeSymbol = '?';
+              break;
+            }
+            case 'success': {
+              badgeColorClasses =
+                'border-green-200 bg-green-100 text-green-800 dark:border-green-800 dark:bg-green-900/40 dark:text-green-200';
+              badgeSymbol = '✓';
+              break;
+            }
+            case 'error': {
+              badgeColorClasses =
+                'border-red-200 bg-red-100 text-red-800 dark:border-red-800 dark:bg-red-900/40 dark:text-red-200';
+              badgeSymbol = '✗';
+              break;
+            }
+            default: {
+              break;
             }
           }
 
@@ -102,13 +104,14 @@ export const SmtpResultsField: React.FC<{ path: string }> = ({ path }) => {
           if (envelopeTime !== undefined && messageTime !== undefined) {
             timeString = `${envelopeTime + messageTime}ms`;
           } else if (envelopeTime !== undefined) {
-            timeString = `${envelopeTime}ms`;
+            timeString = `${String(envelopeTime)}ms`;
           } else if (messageTime !== undefined) {
-            timeString = `${messageTime}ms`;
+            timeString = `${String(messageTime)}ms`;
           }
 
           let titleContent = 'No additional details';
           const messageId = result.response?.messageId;
+          const fromAddress = result.response?.envelope?.from ?? '';
           if (typeof messageId === 'string' && messageId.length > 0) {
             titleContent = `Message ID: ${messageId}\nFrom: ${fromAddress}`;
           } else if (typeof result.error === 'string' && result.error.length > 0) {
@@ -125,8 +128,11 @@ export const SmtpResultsField: React.FC<{ path: string }> = ({ path }) => {
               title={titleContent}
             >
               <div className="mb-1 flex items-center gap-2">
-                <span className={`rounded px-2 py-0.5 font-medium ${bgColor}`}>
-                  {labels[status]}
+                <span
+                  className={`rounded border px-2 py-0.5 font-medium ${badgeColorClasses}`}
+                  title={statusLabel}
+                >
+                  {badgePrefix} {badgeSymbol}
                 </span>
                 <span className="flex items-center gap-1 text-xs text-gray-500">
                   <svg
@@ -148,7 +154,7 @@ export const SmtpResultsField: React.FC<{ path: string }> = ({ path }) => {
               <div className="font-mono text-xs break-all text-gray-700 dark:text-gray-300">
                 {responseText}
               </div>
-              {status === 'unknown' && (
+              {statusType === 'pending' && !isBounce && fromAddress.length > 0 && (
                 <div className="mt-1 text-xs text-orange-600 dark:text-orange-400">
                   {warningText}
                 </div>
