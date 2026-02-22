@@ -50,7 +50,7 @@ const determineDeliveryStatus = (parsed: ParsedMail): { isSuccess: boolean; dsnS
 
   return {
     isSuccess,
-    dsnString: `Delivery Status Notification. Subject: ${parsed.subject ?? ''}.\n\nReason:\n${text.trim()}`,
+    dsnString: `Delivery Status Notification. Subject: ${parsed.subject ?? ''}.\n\nReason:\n${rawText.trim()}`,
   };
 };
 
@@ -213,9 +213,9 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
             `Scheduler evaluated fetchSmtpBounces. Active/Runnable jobs: ${runnableOrActiveJobsForQueue}`,
           );
 
-          // Allow up to 2 simultaneous scheduled jobs in case one gets stuck
+          // Prevent concurrent job execution to avoid read-modify-write race conditions when updating smtpResults
           return {
-            shouldSchedule: runnableOrActiveJobsForQueue < 2,
+            shouldSchedule: runnableOrActiveJobsForQueue < 1,
             input: {},
           };
         },
