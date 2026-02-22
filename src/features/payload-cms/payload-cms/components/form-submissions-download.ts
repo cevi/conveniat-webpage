@@ -84,7 +84,6 @@ export const downloadFormSubmissionsAsCSV = async (formId: string): Promise<stri
  * @param formId The ID of the form to download submissions for.
  * @returns A promise that resolves to a base64 encoded string containing the Excel file.
  */
-// Import xlsx specifically as any, or explicitly cast to proper return types.
 export const downloadFormSubmissionsAsExcel = async (formId: string): Promise<string> => {
   return await withSpan('downloadFormSubmissionsAsExcel', async () => {
     const payload = await getPayload({ config });
@@ -122,8 +121,7 @@ export const downloadFormSubmissionsAsExcel = async (formId: string): Promise<st
         (sub.submissionData ?? []).map((field) => [field.field, field.value]),
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const rowObject: Record<string, any> = {};
+      const rowObject: Record<string, unknown> = {};
       for (const header of headers) {
         if (header === 'submissionId') {
           rowObject[header] = sub.id;
@@ -143,8 +141,7 @@ export const downloadFormSubmissionsAsExcel = async (formId: string): Promise<st
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Submissions');
 
     // 4. Write to base64 string
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const base64Excel = XLSX.write(workbook, { type: 'base64', bookType: 'xlsx' });
-    return String(base64Excel);
+    const base64Excel = XLSX.write(workbook, { type: 'base64', bookType: 'xlsx' }) as string;
+    return base64Excel;
   });
 };
