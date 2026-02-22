@@ -151,5 +151,14 @@ export const OutgoingEmails: CollectionConfig = {
         },
       ],
     },
+    {
+      name: 'createdAt',
+      type: 'date',
+      index: true,
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+      },
+    },
   ],
 };

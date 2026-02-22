@@ -2572,8 +2572,8 @@ export interface OutgoingEmail {
     | boolean
     | null;
   rawDsnEmail?: string | null;
-  updatedAt: string;
   createdAt: string;
+  updatedAt: string;
 }
 /**
  * This is a collection of automatically created search results. These results are used by the global site search and will be updated automatically as documents in the CMS are created or updated.
@@ -3961,8 +3961,8 @@ export interface OutgoingEmailsSelect<T extends boolean = true> {
   smtpResults?: T;
   rawSmtpResults?: T;
   rawDsnEmail?: T;
-  updatedAt?: T;
   createdAt?: T;
+  updatedAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
