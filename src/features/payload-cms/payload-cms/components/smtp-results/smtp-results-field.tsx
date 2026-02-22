@@ -1,11 +1,14 @@
 'use client';
 
-import type { SmtpResult } from '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-shared';
-import { LOCALIZED_SMTP_LABELS } from '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-shared';
+import {
+  LOCALIZED_SMTP_LABELS,
+  type SmtpResult,
+} from '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-shared';
+import type { StaticTranslationString } from '@/types/types';
 import { useField, useTranslation } from '@payloadcms/ui';
 import React from 'react';
 
-const WARNING_MESSAGES = {
+const WARNING_MESSAGES: StaticTranslationString = {
   en: "Warning: Sender is '{fromAddress}' instead of @cevi.tools.",
   de: "Warnung: Absender ist '{fromAddress}' anstelle von @cevi.tools.",
   fr: "Attention: L'expéditeur est '{fromAddress}' au lieu de @cevi.tools.",
