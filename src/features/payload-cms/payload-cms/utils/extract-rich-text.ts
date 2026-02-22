@@ -4,15 +4,12 @@ import type {
   AccordionBlocks,
   DetailsTable,
   SummaryBox,
+  TwoColumnBlock,
 } from '@/features/payload-cms/payload-types';
-import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import { convertLexicalToPlaintext } from '@payloadcms/richtext-lexical/plaintext';
 
 const extractAccordionBlock = (accordion: AccordionBlocks): string => {
   let text = '';
-  text +=
-    convertLexicalToPlaintext({ data: accordion.introduction ?? ({} as SerializedEditorState) }) +
-    '\n';
   text +=
     accordion.accordionBlocks
       ?.map((accordionBlock) => {
@@ -73,6 +70,12 @@ export const extractTextContent = (mainContent: ContentBlock[]): string => {
             })
             .join('\n') ?? '';
 
+        break;
+      }
+      case 'twoColumnBlock': {
+        const twoCol = block as ContentBlock<TwoColumnBlock>;
+        searchContent += extractTextContent(twoCol.leftColumn as ContentBlock[]) + '\n';
+        searchContent += extractTextContent(twoCol.rightColumn as ContentBlock[]) + '\n';
         break;
       }
       // No default

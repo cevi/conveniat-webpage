@@ -63,7 +63,8 @@ export type ContentBlockTypeNames =
   | 'whiteSpace'
   | 'callToAction'
   | 'newsCard'
-  | 'campScheduleEntryBlock';
+  | 'campScheduleEntryBlock'
+  | 'twoColumnBlock';
 
 export type SectionRenderer<T = object> = React.FC<
   LocalizedPageType & {
@@ -74,7 +75,7 @@ export type SectionRenderer<T = object> = React.FC<
   }
 >;
 
-const errorMessageForType = (type: StaticTranslationString, locale: Locale): string => {
+export const errorMessageForType = (type: StaticTranslationString, locale: Locale): string => {
   const part1: StaticTranslationString = {
     de: '',
     en: 'Failed to load ',
@@ -156,18 +157,12 @@ export const RenderTimelineEntries: SectionRenderer<TimelineEntries> = async ({
   );
 };
 
-export const AccordionBlock: SectionRenderer<AccordionBlocks> = async ({
+export const AccordionBlock: SectionRenderer<AccordionBlocks> = ({
   block,
   sectionClassName,
   sectionOverrides,
   locale,
 }) => {
-  const payload = await getPayload({ config });
-
-  if (block.introduction) {
-    await resolveRichTextLinks(block.introduction, payload, locale);
-  }
-
   return (
     <SectionWrapper
       block={block}
@@ -183,13 +178,7 @@ export const AccordionBlock: SectionRenderer<AccordionBlocks> = async ({
       )}
       locale={locale}
     >
-      {block.introduction && (
-        <LexicalRichTextSection richTextSection={block.introduction} locale={locale} />
-      )}
-
-      <div className="mt-4">
-        <Accordion block={block} locale={locale} />
-      </div>
+      <Accordion block={block} locale={locale} />
     </SectionWrapper>
   );
 };

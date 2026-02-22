@@ -4,6 +4,7 @@ export const generateMainMenu = (
   contactPageId: string,
   aboutUsPageId: string,
   internalPageId: string,
+  faqPageId: string,
 ): {
   label: string;
   linkField?: LinkFieldDataType;
@@ -36,6 +37,16 @@ export const generateMainMenu = (
             reference: {
               relationTo: 'generic-page',
               value: aboutUsPageId,
+            },
+          } as LinkFieldDataType,
+        },
+        {
+          label: 'FAQ',
+          linkField: {
+            type: 'reference',
+            reference: {
+              relationTo: 'generic-page',
+              value: faqPageId,
             },
           } as LinkFieldDataType,
         },

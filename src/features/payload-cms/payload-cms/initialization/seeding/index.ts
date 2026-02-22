@@ -10,6 +10,7 @@ import {
   generatePlaygroundPolygons,
 } from '@/features/payload-cms/payload-cms/initialization/seeding/camp-map';
 import { contactPageContent } from '@/features/payload-cms/payload-cms/initialization/seeding/contact-page';
+import { faqPageContent } from '@/features/payload-cms/payload-cms/initialization/seeding/faq-page';
 import { contactForm } from '@/features/payload-cms/payload-cms/initialization/seeding/form';
 import { generateMainMenu } from '@/features/payload-cms/payload-cms/initialization/seeding/generate-main-menu';
 import { internalPageContent } from '@/features/payload-cms/payload-cms/initialization/seeding/internal-page';
@@ -429,6 +430,38 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     context: { disableRevalidation: true },
   });
 
+  const { id: faqPageId } = await payload.create({
+    collection: 'generic-page',
+    locale: LOCALE.DE,
+    data: {
+      ...faqPageContent(publicPermission, LOCALE.DE),
+      _locale: LOCALE.DE,
+    },
+    context: { disableRevalidation: true },
+  });
+
+  await payload.update({
+    collection: 'generic-page',
+    id: faqPageId,
+    locale: LOCALE.EN,
+    data: {
+      ...faqPageContent(publicPermission, LOCALE.EN),
+      _locale: LOCALE.EN,
+    },
+    context: { disableRevalidation: true },
+  });
+
+  await payload.update({
+    collection: 'generic-page',
+    id: faqPageId,
+    locale: LOCALE.FR,
+    data: {
+      ...faqPageContent(publicPermission, LOCALE.FR),
+      _locale: LOCALE.FR,
+    },
+    context: { disableRevalidation: true },
+  });
+
   // Create Landing Page with links to subpages
   const subpageIds = {
     contact: contactPageId,
@@ -544,7 +577,7 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     }
   }
 
-  const mainMenu = generateMainMenu(contactPageId, aboutUsPageId, internalPageId);
+  const mainMenu = generateMainMenu(contactPageId, aboutUsPageId, internalPageId, faqPageId);
   await payload.updateGlobal({
     slug: 'header',
     locale: LOCALE.DE,

@@ -14,6 +14,7 @@ import { singlePictureBlock } from '@/features/payload-cms/payload-cms/shared-bl
 import { summaryBoxBlock } from '@/features/payload-cms/payload-cms/shared-blocks/summary-box-block';
 import { swisstopoMapEmbedBlock } from '@/features/payload-cms/payload-cms/shared-blocks/swisstopo-embed-block';
 import { timelineEntries } from '@/features/payload-cms/payload-cms/shared-blocks/timeline-entries';
+import { twoColumnBlock } from '@/features/payload-cms/payload-cms/shared-blocks/two-column-block';
 import { whiteSpaceBlock } from '@/features/payload-cms/payload-cms/shared-blocks/white-space-block';
 import { youtubeEmbedBlock } from '@/features/payload-cms/payload-cms/shared-blocks/youtube-embed-block';
 import type { Field } from 'payload';
@@ -85,5 +86,6 @@ export const mainContentField: Field = {
     callToActionBlock,
     newsCardBlock,
     campScheduleEntryBlock,
+    twoColumnBlock,
   ],
 };
