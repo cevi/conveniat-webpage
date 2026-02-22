@@ -7,7 +7,7 @@ import { hasPermissions } from '@/utils/has-permissions';
 import config from '@payload-config';
 import type { Metadata } from 'next';
 import { cacheLife, cacheTag } from 'next/cache';
-import { forbidden, notFound, redirect } from 'next/navigation';
+import { forbidden, notFound, redirect, unauthorized } from 'next/navigation';
 import { getPayload } from 'payload';
 
 import {
@@ -72,8 +72,14 @@ const GenericPage: LocalizedCollectionComponent = async ({
     ) {
       return <GenericPageConverter page={articleInPrimaryLanguage} locale={locale} />;
     } else {
-      console.log('Access denied: Redirecting to 403');
-      forbidden();
+      console.log('Access denied: Redirecting to 401 or 403');
+      const { auth } = await import('@/utils/auth');
+      const session = await auth();
+      if (session) {
+        forbidden();
+      } else {
+        unauthorized();
+      }
     }
   }
 
