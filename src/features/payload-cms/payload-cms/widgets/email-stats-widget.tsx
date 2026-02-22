@@ -52,7 +52,7 @@ export default async function EmailStatsWidget({
 
         if (r['success'] === false) hasError = true;
         if (typeof r['error'] === 'string' && r['error'].length > 0) hasError = true;
-        if (r['bounceReport'] === true) hasError = true;
+        if (r['bounceReport'] === true && r['success'] !== true) hasError = true;
 
         if (hasError) {
           errorCount++;
