@@ -55,7 +55,7 @@ export const landingPageContent = (
 
   const t = content[locale];
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mainContent: any[] = [
     {
       blockType: 'richTextSection',

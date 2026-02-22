@@ -1,14 +1,5 @@
 import type { Permission } from '@/features/payload-cms/payload-types';
 
-interface UserWithGroup {
-  groups:
-    | {
-        id: number;
-        role: string;
-      }[]
-    | undefined;
-}
-
 export const isPermissionPublic = (permission: Permission | null | undefined): boolean => {
   return permission?.special_permissions?.public === true;
 };
@@ -26,16 +17,21 @@ const isPermissionLoggedInRequired = async (
 
 const hasGroupPermissions = (
   permission: Permission | null | undefined,
-  userGroups: { id: number; role: string }[] | undefined,
+  userGroupIds: number[] | undefined,
 ): boolean => {
-  if (!permission?.permissions || !userGroups) {
+  if (!permission?.permissions || permission.permissions.length === 0) {
     return true;
   }
 
-  const userGroupIds = new Set(userGroups.map((group) => group.id));
-  return permission.permissions.some((permissionGroup) =>
-    userGroupIds.has(permissionGroup.group_id),
+  if (!userGroupIds || userGroupIds.length === 0) {
+    return false;
+  }
+
+  const userGroupsSet = new Set(userGroupIds);
+  const hasAccess = permission.permissions.some((permissionGroup) =>
+    userGroupsSet.has(permissionGroup.group_id),
   );
+  return hasAccess;
 };
 
 export const hasPermissions = async (
@@ -55,9 +51,8 @@ export const hasPermissions = async (
     return false;
   }
 
-  // @ts-ignore
-  const userGroups = (userPerm.user as UserWithGroup).groups;
-  return (
-    (await isPermissionLoggedInRequired(permission)) && hasGroupPermissions(permission, userGroups)
-  );
+  const userGroupIds = userPerm.user.group_ids;
+  const isLoggedInOk = await isPermissionLoggedInRequired(permission);
+  const isGroupOk = hasGroupPermissions(permission, userGroupIds);
+  return isLoggedInOk && isGroupOk;
 };

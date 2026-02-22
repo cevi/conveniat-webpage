@@ -19,6 +19,12 @@ export const flushPageCacheOnChange: CollectionAfterChangeHook = ({
       revalidateTag('payload', 'max');
       revalidateTag(`collection:${collectionSlug}`, 'max');
       revalidateTag(`doc:${collectionSlug}:${id}`, 'max');
+
+      // If permissions change, flush generic pages since they rely on auth checks
+      if (collectionSlug === 'permissions') {
+        console.log('Permission changed -> Flushing generic-page cache entirely.');
+        revalidateTag('collection:generic-page', 'max');
+      }
     } catch {
       console.warn('Revalidate failed (non-critical)');
     }
