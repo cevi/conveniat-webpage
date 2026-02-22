@@ -348,16 +348,16 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
             extractMatches(messageIdRegex, rawEmailString);
             extractMatches(messageIdRegex, textForRegex);
 
-            const queuedRegex = /queued as\s*([a-zA-Z0-9]+)/gi;
+            const queuedRegex = /queued as\s*([a-zA-Z0-9_-]+)/gi;
             extractMatches(queuedRegex, rawEmailString);
             extractMatches(queuedRegex, textForRegex);
 
-            const postfixRegex = /X-Postfix-Queue-ID:\s*([a-zA-Z0-9]+)/gi;
+            const postfixRegex = /X-Postfix-Queue-ID:\s*([a-zA-Z0-9_-]+)/gi;
             extractMatches(postfixRegex, rawEmailString);
             extractMatches(postfixRegex, textForRegex);
 
             // Also check the Received header that contains the Queue ID before sending
-            const receivedRegex = /with ESMTPSA id\s*([a-zA-Z0-9]+)/gi;
+            const receivedRegex = /with ESMTPSA id\s*([a-zA-Z0-9_-]+)/gi;
             extractMatches(receivedRegex, rawEmailString);
 
             const extractedIds = [...possibleIds];
