@@ -203,11 +203,15 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
             logger.info(`Processed bounce for submission ${envelopeId} successfully.`);
           }
 
-          // Always delete explicitly parsed messages
+          // Only delete if successfully processed or if it doesn't match our expected ID format
           await pop3.DELE(messageId);
         } catch (error: unknown) {
           // We isolate individual message failures so the loop continues
-          logger.error({ err: error, msg: `Failed to process message ${messageId}` });
+          // We DO NOT delete the message here so it can be retried on the next run
+          logger.error({
+            err: error,
+            msg: `Failed to process message ${messageId}, leaving in inbox for retry`,
+          });
         }
       }
     } catch (error: unknown) {
