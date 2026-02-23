@@ -211,6 +211,27 @@ const updateTrackingRecords = async (
 export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
   slug: 'fetchSmtpBounces',
   retries: 0,
+  /**
+   * We selectively auto-delete only the `fetchSmtpBounces` job upon successful completion
+   * to keep the `payload-jobs` collection clean, as this task runs very frequently (every minute).
+   * We do this here instead of using the global `deleteJobOnComplete: true` in the JobsConfig
+   * to preserve the execution history and observability for other critical workflows.
+   */
+  onSuccess: async ({ job, req }) => {
+    try {
+      if ((typeof job.id === 'string' && job.id.length > 0) || typeof job.id === 'number') {
+        await req.payload.delete({
+          collection: 'payload-jobs',
+          id: job.id,
+        });
+      }
+    } catch (error: unknown) {
+      req.payload.logger.error({
+        err: error instanceof Error ? error : new Error(String(error)),
+        msg: `Failed to auto-delete completed fetchSmtpBounces job: ${String(job.id)}`,
+      });
+    }
+  },
   schedule: [
     {
       cron: '* * * * *', // Every minute

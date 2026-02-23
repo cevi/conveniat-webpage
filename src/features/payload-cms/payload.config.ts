@@ -107,6 +107,14 @@ const payloadConfigAdminSettings: RoutableConfig['admin'] = {
 };
 
 const jobsConfig: JobsConfig = {
+  /**
+   * IMPORTANT: Keep `deleteJobOnComplete` as `false`.
+   *
+   * Setting this to `true` is a global setting that will automatically delete all completed jobs
+   * for every type of task across the entire application, which makes debugging other workflows harder.
+   * If a specific task needs to clean up its own jobs (e.g. `fetchSmtpBounces`), it should handle
+   * deletion locally within its own `onSuccess` hook instead.
+   */
   deleteJobOnComplete: false,
   jobsCollectionOverrides: ({ defaultJobsCollection }) => ({
     ...defaultJobsCollection,
