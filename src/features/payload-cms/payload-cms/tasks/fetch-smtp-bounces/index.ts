@@ -226,7 +226,7 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
                 const foundMatch = extractedIds.some((id) => {
                   // Only match if the ID appears as a complete token, not as a substring
                   const regex = new RegExp(
-                    `\\b${id.replaceAll(/[.*+?^${}()|[\\]\\\\]/g, String.raw`\\$&`)}\\b`,
+                    `\\b${id.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\\$&`)}\\b`,
                   );
                   return regex.test(stringifiedResults);
                 });
