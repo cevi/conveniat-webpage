@@ -9,6 +9,7 @@ export const updateTrackingRecords = async (
   isSuccess: boolean,
   dsnString: string,
   rawEmail: string,
+  recipientEmail?: string,
 ): Promise<boolean> => {
   let outgoingEmail:
     | {
@@ -28,14 +29,18 @@ export const updateTrackingRecords = async (
     // Fail silently here, we will try form-submissions directly as a fallback
   }
 
+  let toAddress = 'unknown';
+  if (typeof recipientEmail === 'string' && recipientEmail.length > 0) {
+    toAddress = recipientEmail;
+  } else if (typeof outgoingEmail?.to === 'string' && outgoingEmail.to.length > 0) {
+    toAddress = outgoingEmail.to;
+  }
+
   const newResult: Record<string, unknown> = {
     bounceReport: true,
     receivedAt: new Date().toISOString(),
     success: isSuccess,
-    to:
-      typeof outgoingEmail?.to === 'string' && outgoingEmail.to.length > 0
-        ? outgoingEmail.to
-        : 'unknown',
+    to: toAddress,
   };
 
   if (isSuccess) {

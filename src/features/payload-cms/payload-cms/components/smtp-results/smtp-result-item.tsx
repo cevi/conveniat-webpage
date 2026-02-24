@@ -12,6 +12,8 @@ import type {
 import {
   extractEmailAddress,
   formatTimeDifference,
+  isSystemEmail,
+  parseSimplifiedRejectionReason,
 } from '@/features/payload-cms/payload-cms/components/smtp-results/utils';
 import React from 'react';
 
@@ -20,6 +22,7 @@ export interface SmtpResultItemProperties {
   lang: SmtpLanguage;
   smtpDomain: string;
   toAddress?: string | undefined;
+  systemEmails?: string[];
   createdAtDate?: Date | undefined;
   dsnReceivedAtDate?: Date | undefined;
   currentTimeMs: number;
@@ -30,6 +33,7 @@ export const SmtpResultItem: React.FC<SmtpResultItemProperties> = ({
   lang,
   smtpDomain,
   toAddress,
+  systemEmails = [],
   createdAtDate,
   dsnReceivedAtDate,
   currentTimeMs,
@@ -189,7 +193,7 @@ export const SmtpResultItem: React.FC<SmtpResultItemProperties> = ({
     if (typeof result.response?.response === 'string') raw = result.response.response;
     else if (typeof result.error === 'string') raw = result.error;
 
-    const { action, finalRecipient, originalRecipient, forwardedTo } = result.parsedDsn;
+    const { action = 'Unknown', finalRecipient, originalRecipient, forwardedTo } = result.parsedDsn;
 
     if (
       (typeof finalRecipient === 'string' && finalRecipient.length > 0) ||
@@ -218,15 +222,15 @@ export const SmtpResultItem: React.FC<SmtpResultItemProperties> = ({
         .map((email) => extractEmailAddress(email))
         .filter((email) => email.length > 0);
 
-      // Remove noreply addresses from the chain if they are not the only participant
+      // Remove system/noreply addresses from the chain if they are not the only participant
       // This hides noisy internal forwards back to the system return-path
       if (cleanedChain.length > 1) {
-        const withoutNoreply = cleanedChain.filter(
-          (emailAddress) => !emailAddress.toLowerCase().includes('noreply'),
+        const withoutSystem = cleanedChain.filter(
+          (emailAddress) => !isSystemEmail(emailAddress, systemEmails),
         );
         // If filtering wiped everything (shouldn't happen, but fallback)
-        if (withoutNoreply.length > 0) {
-          cleanedChain = withoutNoreply;
+        if (withoutSystem.length > 0) {
+          cleanedChain = withoutSystem;
         }
       }
 
@@ -249,8 +253,22 @@ export const SmtpResultItem: React.FC<SmtpResultItemProperties> = ({
         responseText = `Action: ${action} | Recipient: ${recipientChainString}`;
       }
 
+      const act = String(action).toLowerCase();
+
+      if (act === 'failed') {
+        const rejectionKey = parseSimplifiedRejectionReason(
+          result.parsedDsn.status,
+          result.parsedDsn.diagnosticCode,
+        );
+        if (rejectionKey !== undefined) {
+          const localizedReason = labels[rejectionKey as keyof typeof labels];
+          if (typeof localizedReason === 'string') {
+            responseText += `\n${localizedReason}`;
+          }
+        }
+      }
+
       let explanation = '';
-      const act = action.toLowerCase();
       switch (act) {
         case 'relayed': {
           explanation = labels.dsnActionRelayed;
@@ -351,7 +369,12 @@ export const SmtpResultItem: React.FC<SmtpResultItemProperties> = ({
         </span>
       </div>
       <div className="font-mono text-xs break-all text-gray-700 dark:text-gray-300">
-        {responseText}
+        {responseText.split('\n').map((line, index, array) => (
+          <React.Fragment key={index}>
+            {line}
+            {index < array.length - 1 && <br />}
+          </React.Fragment>
+        ))}
       </div>
       {statusType === 'pending' && !isBounce && fromAddress.length > 0 && (
         <div className="mt-1 text-xs text-orange-600 dark:text-orange-400">{warningText}</div>

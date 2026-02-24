@@ -26,9 +26,21 @@ export const getOriginalEnvelopeId = (parsed: ParsedMail): string | undefined =>
   return undefined;
 };
 
+export interface RecipientBounce {
+  email?: string;
+  action?: string;
+  status?: string;
+  isSuccess: boolean;
+}
+
 export const determineDeliveryStatus = (
   parsed: ParsedMail,
-): { isSuccess: boolean; dsnString: string } => {
+): {
+  isSuccess: boolean;
+  dsnString: string;
+  recipientBounces: RecipientBounce[];
+  dsnText: string;
+} => {
   const subject = (parsed.subject ?? '').toLowerCase();
   let rawText = typeof parsed.text === 'string' ? parsed.text : '';
   if (rawText.length === 0) rawText = typeof parsed.html === 'string' ? parsed.html : '';
@@ -43,7 +55,7 @@ export const determineDeliveryStatus = (
     subject.includes('failure') ||
     subject.includes('returned to sender');
 
-  const isSuccess =
+  const isSuccessGlobal =
     !isFailure &&
     (subject.includes('successful') ||
       subject.includes('delivered') ||
@@ -52,9 +64,55 @@ export const determineDeliveryStatus = (
       text.includes('action: relayed') ||
       text.includes('action: delivered'));
 
+  const dsnString = `Delivery Status Notification. Subject: ${parsed.subject ?? ''}.\n\nReason:\n${rawText.trim()}`;
+
+  let dsnText = rawText;
+  const dsnAttachment = parsed.attachments.find((a) => a.contentType === 'message/delivery-status');
+  if (dsnAttachment && Buffer.isBuffer(dsnAttachment.content)) {
+    dsnText = dsnAttachment.content.toString('utf8');
+  }
+
+  const recipientBounces: RecipientBounce[] = [];
+  const lines = dsnText.split(/\r?\n/);
+
+  let currentBounce: Partial<RecipientBounce> | undefined = undefined;
+
+  for (const line of lines) {
+    const finalRecpMatch = line.match(/^(?:Final|Original)-Recipient:\s*(?:rfc822;\s*)?([^\s;]+)/i);
+    if (finalRecpMatch) {
+      if (currentBounce?.email !== undefined && currentBounce.email.length > 0) {
+        currentBounce.isSuccess ??= isSuccessGlobal;
+        recipientBounces.push(currentBounce as RecipientBounce);
+      }
+      currentBounce = { email: finalRecpMatch[1] as string };
+      continue;
+    }
+
+    if (currentBounce !== undefined) {
+      const actionMatch = line.match(/^Action:\s*([^\s]+)/i);
+      if (actionMatch) {
+        currentBounce.action = (actionMatch[1] as string).toLowerCase();
+        currentBounce.isSuccess =
+          currentBounce.action === 'delivered' || currentBounce.action === 'relayed';
+      }
+
+      const statusMatch = line.match(/^Status:\s*([^\s]+)/i);
+      if (statusMatch) {
+        currentBounce.status = statusMatch[1] as string;
+      }
+    }
+  }
+
+  if (currentBounce?.email !== undefined && currentBounce.email.length > 0) {
+    currentBounce.isSuccess ??= isSuccessGlobal;
+    recipientBounces.push(currentBounce as RecipientBounce);
+  }
+
   return {
-    isSuccess,
-    dsnString: `Delivery Status Notification. Subject: ${parsed.subject ?? ''}.\n\nReason:\n${rawText.trim()}`,
+    isSuccess: isSuccessGlobal,
+    dsnString,
+    dsnText,
+    recipientBounces,
   };
 };
 

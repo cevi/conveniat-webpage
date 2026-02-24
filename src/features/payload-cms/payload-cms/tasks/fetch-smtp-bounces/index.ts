@@ -135,20 +135,40 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
           const rawEmailString = String(rawEmail);
           const parsedEmail = await simpleParser(rawEmailString);
 
-          const { isSuccess, dsnString } = determineDeliveryStatus(parsedEmail);
+          const { isSuccess, dsnString, recipientBounces } = determineDeliveryStatus(parsedEmail);
           const envId = getOriginalEnvelopeId(parsedEmail);
 
           let matched = false;
 
-          // Process if a valid envId was extracted
-          if (typeof envId === 'string' && envId.length > 0) {
-            matched = await updateTrackingRecords(
+          const processTrackingUpdate = async (idToMatch: string): Promise<boolean> => {
+            if (recipientBounces.length > 0) {
+              let updatedAny = false;
+              for (const bounce of recipientBounces) {
+                const response = await updateTrackingRecords(
+                  payload,
+                  idToMatch,
+                  bounce.isSuccess,
+                  dsnString,
+                  rawEmailString,
+                  bounce.email,
+                );
+                if (response) updatedAny = true;
+              }
+              return updatedAny;
+            }
+
+            return await updateTrackingRecords(
               payload,
-              envId,
+              idToMatch,
               isSuccess,
               dsnString,
               rawEmailString,
             );
+          };
+
+          // Process if a valid envId was extracted
+          if (typeof envId === 'string' && envId.length > 0) {
+            matched = await processTrackingUpdate(envId);
           }
 
           // Fallback matching if Original-Envelope-Id matching fails or doesn't exist
@@ -212,13 +232,7 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
                 });
 
                 if (foundMatch) {
-                  matched = await updateTrackingRecords(
-                    payload,
-                    String(outgoingDocument.id),
-                    isSuccess,
-                    dsnString,
-                    rawEmailString,
-                  );
+                  matched = await processTrackingUpdate(String(outgoingDocument.id));
 
                   if (matched) {
                     logger.info(

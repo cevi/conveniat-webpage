@@ -23,6 +23,11 @@ export const LOCALIZED_SMTP_LABELS = {
     dsnActionFailed: 'The email could not be delivered (Bounced).',
     dsnActionDelayed: 'Delivery is delayed, the server will keep trying.',
     dsnActionExpanded: 'The email was sent to a distribution list and forwarded to its members.',
+    rejectionUserUnknown: 'Mailbox not found.',
+    rejectionDomainNotFound: 'Domain not found or not accepting mail.',
+    rejectionMailboxFull: 'Mailbox full.',
+    rejectionSpamPolicy: 'Rejected due to spam or server policy.',
+    rejectionGeneric: 'Delivery failed.',
   },
   de: {
     smtpSuccess: 'SMTP: Erfolgreich versendet',
@@ -45,6 +50,11 @@ export const LOCALIZED_SMTP_LABELS = {
     dsnActionDelayed: 'Die Zustellung ist verzögert, der Server versucht es weiter.',
     dsnActionExpanded:
       'Die E-Mail wurde an eine Verteilerliste gesendet und an deren Mitglieder weitergeleitet.',
+    rejectionUserUnknown: 'Postfach nicht gefunden.',
+    rejectionDomainNotFound: 'Domain nicht gefunden oder nimmt keine E-Mails an.',
+    rejectionMailboxFull: 'Postfach voll.',
+    rejectionSpamPolicy: 'Wegen Spam oder Server-Richtlinien abgelehnt.',
+    rejectionGeneric: 'Zustellung fehlgeschlagen.',
   },
   fr: {
     smtpSuccess: 'SMTP: Envoyé avec succès',
@@ -67,6 +77,11 @@ export const LOCALIZED_SMTP_LABELS = {
     dsnActionFailed: "L'e-mail n'a pas pu être livré (Rebondi).",
     dsnActionDelayed: 'La livraison est retardée, le serveur va réessayer.',
     dsnActionExpanded: "L'e-mail a été envoyé à une liste de diffusion et transféré à ses membres.",
+    rejectionUserUnknown: 'Boîte aux lettres introuvable.',
+    rejectionDomainNotFound: "Domaine introuvable ou n'accepte pas les e-mails.",
+    rejectionMailboxFull: 'Boîte aux lettres pleine.',
+    rejectionSpamPolicy: 'Rejeté pour cause de spam ou politique du serveur.',
+    rejectionGeneric: 'Échec de la livraison.',
   },
 };
 

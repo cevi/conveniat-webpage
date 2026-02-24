@@ -165,6 +165,11 @@ export const formPluginConfiguration = formBuilderPlugin({
                   (environmentVariables.SMTP_USER.split('@')[1] ?? '').length > 0
                     ? environmentVariables.SMTP_USER.split('@')[1]
                     : 'cevi.tools',
+                systemEmails: [
+                  typeof environmentVariables.SMTP_USER === 'string'
+                    ? environmentVariables.SMTP_USER
+                    : 'no-reply@cevi.tools',
+                ].filter((email) => email.length > 0),
               },
             },
 

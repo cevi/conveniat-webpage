@@ -1,8 +1,10 @@
 import type { SmtpResult } from '@/features/payload-cms/payload-cms/components/smtp-results/types';
+import { isSystemEmail } from '@/features/payload-cms/payload-cms/components/smtp-results/utils';
 
 export const deriveSmtpItems = (
   items: SmtpResult[],
   toAddress?: string,
+  systemEmails: string[] = [],
 ): (SmtpResult & { _isPendingPlaceholder?: boolean })[] => {
   const finalItems: (SmtpResult & { _isPendingPlaceholder?: boolean })[] = [];
   const expectedRecipients = new Set<string>();
@@ -55,6 +57,7 @@ export const deriveSmtpItems = (
     }
   }
 
+  const originalExpectedRecipients = new Set(expectedRecipients);
   const dsnMap = new Map<string, SmtpResult[]>();
   const availableFallbackRecipients = new Set(expectedRecipients);
 
@@ -62,7 +65,11 @@ export const deriveSmtpItems = (
     let recipient = 'unknown';
 
     // 1. Trust explicitly stored `to` field (e.g. from newer outgoing-emails injections)
-    if (typeof item.to === 'string' && item.to.includes('@') && !item.to.includes('noreply')) {
+    if (
+      typeof item.to === 'string' &&
+      item.to.includes('@') &&
+      !isSystemEmail(item.to, systemEmails)
+    ) {
       recipient = item.to.toLowerCase();
     }
     // 2. Try to match historical DSNs via Queue ID or Message ID found in their raw text
@@ -106,7 +113,7 @@ export const deriveSmtpItems = (
     // (e.g. noreply), but we have orphaned expected recipients, assign one to them.
     if (
       !expectedRecipients.has(recipient) &&
-      recipient.includes('noreply') &&
+      isSystemEmail(recipient, systemEmails) &&
       availableFallbackRecipients.size > 0
     ) {
       recipient = [...availableFallbackRecipients][0] as string;
@@ -122,12 +129,24 @@ export const deriveSmtpItems = (
 
   // Add the grouped DSNs
   let hasValidMemberDsn = false;
+  const unexpectedDsnRecipients = new Set<string>();
+
   for (const [recipient, historyItems] of dsnMap.entries()) {
     expectedRecipients.delete(recipient);
+
+    for (const dsn of historyItems) {
+      if (typeof dsn.parsedDsn?.originalRecipient === 'string') {
+        expectedRecipients.delete(dsn.parsedDsn.originalRecipient.toLowerCase());
+      }
+    }
+
     // If a DSN was matched to an actual email address instead of the raw system address or 'unknown',
     // we can assume the email was processed downstream.
-    if (recipient !== 'unknown' && !recipient.includes('noreply')) {
+    if (recipient !== 'unknown' && !isSystemEmail(recipient, systemEmails)) {
       hasValidMemberDsn = true;
+      if (!originalExpectedRecipients.has(recipient)) {
+        unexpectedDsnRecipients.add(recipient);
+      }
     }
 
     // Sort items chronologically by receivedAt (if we assume array order is roughly chronological, we can just use the last one)
@@ -154,9 +173,25 @@ export const deriveSmtpItems = (
 
     // Group forwarding fallback: If the system received a DSN from a downstream group member,
     // the top-level group address (e.g., conveniat@) will never receive a unified DSN.
-    // Skip generating a pending placeholder for the group address itself.
+
+    // 1. If we know the exact `toAddress` (e.g. from outgoing-emails UI view)
     if (hasValidMemberDsn && missingRecipient === normalizedToAddress) {
       continue;
+    }
+
+    // 2. If we don't have an exact `toAddress` (e.g. from form-submissions view),
+    // but we know we received unexpected member DSNs (group was expanded),
+    // and the missing recipient shares a domain with one of the unexpected DSNs,
+    // OR if it's the only missing recipient left.
+    if (unexpectedDsnRecipients.size > 0 && normalizedToAddress === undefined) {
+      const missingDomain = missingRecipient.split('@')[1];
+      const hasMatchingDomainMember = [...unexpectedDsnRecipients].some(
+        (member) => member.split('@')[1] === missingDomain,
+      );
+
+      if (hasMatchingDomainMember || expectedRecipients.size === 1) {
+        continue;
+      }
     }
 
     finalItems.push({

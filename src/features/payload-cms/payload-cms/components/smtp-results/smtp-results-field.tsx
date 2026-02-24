@@ -9,10 +9,11 @@ import { extractEmailAddress } from '@/features/payload-cms/payload-cms/componen
 import { useField, useFormFields } from '@payloadcms/ui';
 import React from 'react';
 
-export const SmtpResultsField: React.FC<{ path: string; smtpDomain?: string }> = ({
-  path,
-  smtpDomain = 'cevi.tools',
-}) => {
+export const SmtpResultsField: React.FC<{
+  path: string;
+  smtpDomain?: string;
+  systemEmails?: string[];
+}> = ({ path, smtpDomain = 'cevi.tools', systemEmails = [] }) => {
   const { value } = useField<SmtpResult[]>({ path });
 
   const toField = useFormFields(([fields]) => fields['to']);
@@ -47,7 +48,7 @@ export const SmtpResultsField: React.FC<{ path: string; smtpDomain?: string }> =
     );
   }
 
-  const finalItems = deriveSmtpItems(value, toAddress);
+  const finalItems = deriveSmtpItems(value, toAddress, systemEmails);
 
   return (
     <div className="field-type custom-field mb-4">
@@ -59,6 +60,7 @@ export const SmtpResultsField: React.FC<{ path: string; smtpDomain?: string }> =
             result={result}
             lang={lang}
             smtpDomain={smtpDomain}
+            systemEmails={systemEmails}
             toAddress={toAddress}
             createdAtDate={createdAtDate}
             dsnReceivedAtDate={dsnReceivedAtDate}
