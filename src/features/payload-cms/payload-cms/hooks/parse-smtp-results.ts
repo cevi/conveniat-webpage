@@ -19,6 +19,11 @@ export const parseDsnFromText = (raw: string): ParsedDsnInfo => {
     /Diagnostic-Code:\s*.*?<([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})>/i,
   );
 
+  const actionDateMatch =
+    raw.match(/Last-Attempt-Date:\s*(.+)/i) ??
+    raw.match(/Action-Date:\s*(.+)/i) ??
+    raw.match(/^Date:\s*(.+)/im);
+
   const arrivalMatch = raw.match(/Arrival-Date:\s*(.+)/i);
 
   return {
@@ -29,7 +34,8 @@ export const parseDsnFromText = (raw: string): ParsedDsnInfo => {
     remoteMta: remoteMtaMatch?.[1],
     diagnosticCode: diagCodeMatch?.[1]?.trim(),
     forwardedTo: diagForwardMatch?.[1],
-    arrivalDate: arrivalMatch?.[1],
+    arrivalDate: arrivalMatch?.[1]?.trim(),
+    actionDate: actionDateMatch?.[1]?.trim(),
   };
 };
 

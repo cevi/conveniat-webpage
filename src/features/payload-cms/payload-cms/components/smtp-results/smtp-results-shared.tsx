@@ -33,12 +33,14 @@ export interface ParsedDsnInfo {
   diagnosticCode?: string | undefined;
   forwardedTo?: string | undefined;
   arrivalDate?: string | undefined;
+  actionDate?: string | undefined;
 }
 
 export interface SmtpResult {
   success: boolean;
   to: string;
   bounceReport?: boolean;
+  receivedAt?: string;
   parsedDsn?: ParsedDsnInfo;
   response?: {
     accepted?: string[];

@@ -253,14 +253,23 @@ export const SmtpResultsField: React.FC<{ path: string; smtpDomain?: string }> =
             if (isPendingPlaceholder) {
               timeString = '-';
             } else {
-              let dsnArrivalDate: Date | undefined;
-              if (typeof result.parsedDsn?.arrivalDate === 'string') {
-                const parsed = new Date(result.parsedDsn.arrivalDate);
+              let dsnActionDate: Date | undefined;
+              const actionDateString =
+                result.parsedDsn?.actionDate ?? result.parsedDsn?.arrivalDate;
+              if (typeof actionDateString === 'string') {
+                const parsed = new Date(actionDateString);
                 if (!Number.isNaN(parsed.getTime())) {
-                  dsnArrivalDate = parsed;
+                  dsnActionDate = parsed;
                 }
               }
-              const finalArrivalDate = dsnArrivalDate ?? dsnReceivedAtDate;
+              let itemReceivedAt: Date | undefined;
+              if (typeof result.receivedAt === 'string') {
+                const parsed = new Date(result.receivedAt);
+                if (!Number.isNaN(parsed.getTime())) {
+                  itemReceivedAt = parsed;
+                }
+              }
+              const finalArrivalDate = itemReceivedAt ?? dsnActionDate ?? dsnReceivedAtDate;
               if (
                 finalArrivalDate &&
                 createdAtDate &&
