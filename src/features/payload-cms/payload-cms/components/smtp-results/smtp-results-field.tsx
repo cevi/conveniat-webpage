@@ -1,9 +1,10 @@
 'use client';
 
 import {
-  LOCALIZED_SMTP_LABELS,
+  DSN_TIMEOUT_MS,
   extractEmailAddress,
   formatTimeDifference,
+  LOCALIZED_SMTP_LABELS,
   type SmtpResult,
 } from '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-shared';
 import type { StaticTranslationString } from '@/types/types';
@@ -60,22 +61,12 @@ export const SmtpResultsField: React.FC<{ path: string; smtpDomain?: string }> =
 
   // Pre-process items to group DSNs by recipient
   const finalItems: (SmtpResult & { _isPendingPlaceholder?: boolean })[] = [];
-  const dsnMap = new Map<string, SmtpResult[]>();
   const expectedRecipients = new Set<string>();
+  const dsnItems: SmtpResult[] = [];
 
   for (const item of value) {
     if (item.bounceReport === true) {
-      // try to extract recipient
-      let recipient = 'unknown';
-      if (item.parsedDsn) {
-        recipient = item.parsedDsn.finalRecipient ?? item.parsedDsn.originalRecipient ?? 'unknown';
-      }
-
-      recipient = recipient.toLowerCase();
-
-      const existing = dsnMap.get(recipient) ?? [];
-      existing.push(item);
-      dsnMap.set(recipient, existing);
+      dsnItems.push(item);
     } else {
       finalItems.push(item);
       // Collect all expected recipients from SMTP responses
@@ -91,6 +82,30 @@ export const SmtpResultsField: React.FC<{ path: string; smtpDomain?: string }> =
     }
   }
 
+  const dsnMap = new Map<string, SmtpResult[]>();
+
+  for (const item of dsnItems) {
+    let recipient = 'unknown';
+    if (item.parsedDsn) {
+      recipient = item.parsedDsn.originalRecipient ?? item.parsedDsn.finalRecipient ?? 'unknown';
+    }
+    recipient = recipient.toLowerCase();
+
+    // SRS/Forwarding fallback: If the DSN addresses the system return-path (e.g., noreply),
+    // but the email was sent to exactly one expected recipient, assume the DSN belongs to them.
+    if (
+      !expectedRecipients.has(recipient) &&
+      recipient.includes('noreply') &&
+      expectedRecipients.size === 1
+    ) {
+      recipient = [...expectedRecipients][0] as string;
+    }
+
+    const existing = dsnMap.get(recipient) ?? [];
+    existing.push(item);
+    dsnMap.set(recipient, existing);
+  }
+
   // Add the grouped DSNs
   for (const [recipient, items] of dsnMap.entries()) {
     expectedRecipients.delete(recipient);
@@ -103,6 +118,7 @@ export const SmtpResultsField: React.FC<{ path: string; smtpDomain?: string }> =
       // Create a modified item that stores the history for the tooltip
       const extendedItem: SmtpResult & { _dsnHistory?: SmtpResult[] } = {
         ...finalState,
+        to: recipient, // Inject resolved grouping recipient to overwrite 'unknown'
         success: finalState.success === true,
       };
       extendedItem._dsnHistory = items;
@@ -145,7 +161,7 @@ export const SmtpResultsField: React.FC<{ path: string; smtpDomain?: string }> =
           let timeElapsedMs = 0;
           if (createdAtDate && !Number.isNaN(createdAtDate.getTime())) {
             timeElapsedMs = currentTimeMs - createdAtDate.getTime();
-            if (timeElapsedMs > 48 * 60 * 60 * 1000) {
+            if (timeElapsedMs > DSN_TIMEOUT_MS) {
               isDsnTimeout = true;
             }
           }
@@ -270,7 +286,10 @@ export const SmtpResultsField: React.FC<{ path: string; smtpDomain?: string }> =
               responseText = `Action: - | Recipient: ${result.to}`;
             }
           } else if (isBounce && result.parsedDsn) {
-            const raw = result.response?.response ?? '';
+            let raw = '';
+            if (typeof result.response?.response === 'string') raw = result.response.response;
+            else if (typeof result.error === 'string') raw = result.error;
+
             const { action, finalRecipient, originalRecipient, forwardedTo } = result.parsedDsn;
 
             if (
@@ -278,27 +297,47 @@ export const SmtpResultsField: React.FC<{ path: string; smtpDomain?: string }> =
               action !== 'Unknown' ||
               (typeof originalRecipient === 'string' && originalRecipient.length > 0)
             ) {
-              const recipient = finalRecipient ?? originalRecipient ?? 'Unknown';
+              const rawChain: string[] = [];
+              if (typeof toAddress === 'string' && toAddress.length > 0) {
+                rawChain.push(toAddress);
+              }
+              if (typeof originalRecipient === 'string' && originalRecipient.length > 0) {
+                rawChain.push(originalRecipient);
+              }
+              if (typeof finalRecipient === 'string' && finalRecipient.length > 0) {
+                rawChain.push(finalRecipient);
+              }
+              if (typeof forwardedTo === 'string' && forwardedTo.length > 0) {
+                rawChain.push(forwardedTo);
+              }
 
+              // First clean emails and remove empty ones
+              let cleanedChain = rawChain
+                .map((email) => extractEmailAddress(email))
+                .filter((email) => email.length > 0);
+
+              // Remove noreply addresses from the chain if they are not the only participant
+              // This hides noisy internal forwards back to the system return-path
+              if (cleanedChain.length > 1) {
+                const withoutNoreply = cleanedChain.filter(
+                  (emailAddress) => !emailAddress.toLowerCase().includes('noreply'),
+                );
+                // If filtering wiped everything (shouldn't happen, but fallback)
+                if (withoutNoreply.length > 0) {
+                  cleanedChain = withoutNoreply;
+                }
+              }
+
+              // Deduplicate sequential entries
               const chain: string[] = [];
-              if (
-                typeof toAddress === 'string' &&
-                toAddress.length > 0 &&
-                toAddress.toLowerCase() !== recipient.toLowerCase()
-              ) {
-                chain.push(toAddress);
-              }
-              chain.push(recipient);
-
-              if (
-                typeof forwardedTo === 'string' &&
-                forwardedTo.length > 0 &&
-                forwardedTo.toLowerCase() !== recipient.toLowerCase()
-              ) {
-                chain.push(forwardedTo);
+              for (const email of cleanedChain) {
+                const lower = email.toLowerCase();
+                if ((chain.at(-1)?.toLowerCase() ?? '') !== lower) {
+                  chain.push(email);
+                }
               }
 
-              const recipientChainString = chain.join(' -> ');
+              const recipientChainString = chain.length > 0 ? chain.join(' -> ') : 'Unknown';
 
               if (lang === 'de') {
                 responseText = `Aktion: ${action} | Empfänger: ${recipientChainString}`;

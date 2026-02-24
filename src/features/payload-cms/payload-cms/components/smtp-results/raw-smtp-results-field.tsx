@@ -1,21 +1,39 @@
 'use client';
 
-import { useField } from '@payloadcms/ui';
+import { LOCALIZED_SMTP_LABELS } from '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-shared';
+import { useField, useTranslation } from '@payloadcms/ui';
 import React from 'react';
 
 export const RawSmtpResultsField: React.FC<{
   path: string;
   label?: Record<string, string> | string;
-}> = ({ path }) => {
+}> = ({ path, label }) => {
   const { value } = useField<Record<string, unknown> | null | undefined>({ path });
 
-  const labelText = 'Raw SMTP Results';
+  const { i18n } = useTranslation();
+  const langRaw = i18n.language;
+  const currentLang = typeof langRaw === 'string' && langRaw.length > 0 ? langRaw : 'de';
+  const isValidLang = currentLang === 'en' || currentLang === 'de' || currentLang === 'fr';
+  const lang: 'en' | 'de' | 'fr' = isValidLang ? currentLang : 'de';
+
+  const labels = LOCALIZED_SMTP_LABELS[lang];
+
+  let labelText: string = labels.rawSmtpResults;
+  if (typeof label === 'string') {
+    labelText = label;
+  } else if (label !== undefined && typeof label === 'object') {
+    const typedLabel = label;
+    if (typeof typedLabel[lang] === 'string') {
+      labelText = typedLabel[lang];
+    }
+  }
+
   // Attempt to translate or provide a fallback if needed
   if (!value) {
     return (
       <div className="field-type custom-field mb-4">
         <label className="field-label">{labelText}</label>
-        <div className="text-gray-500">No data</div>
+        <div className="text-gray-500">{labels.noData}</div>
       </div>
     );
   }

@@ -26,7 +26,7 @@ const getOriginalEnvelopeId = (parsed: ParsedMail): string | undefined => {
   // Fallback to body parsing
   const text = typeof parsed.text === 'string' ? parsed.text : '';
   if (text.length > 0) {
-    const match = /Original-Envelope-Id:\s*([a-zA-Z0-9]+)/i.exec(text);
+    const match = /Original-Envelope-Id:\s*([a-zA-Z0-9-]+)/i.exec(text);
     const id = match?.[1];
     if (typeof id === 'string' && id.length > 0) return id;
   }
@@ -43,13 +43,20 @@ const determineDeliveryStatus = (parsed: ParsedMail): { isSuccess: boolean; dsnS
 
   const text = rawText.toLowerCase();
 
+  const isFailure =
+    text.includes('action: failed') ||
+    subject.includes('undelivered') ||
+    subject.includes('failure') ||
+    subject.includes('returned to sender');
+
   const isSuccess =
-    subject.includes('successful') ||
-    subject.includes('delivered') ||
-    text.includes('successfully delivered') ||
-    text.includes('status: 2.0.0') ||
-    text.includes('action: relayed') ||
-    text.includes('action: delivered');
+    !isFailure &&
+    (subject.includes('successful') ||
+      subject.includes('delivered') ||
+      text.includes('successfully delivered') ||
+      text.includes('status: 2.0.0') ||
+      text.includes('action: relayed') ||
+      text.includes('action: delivered'));
 
   return {
     isSuccess,
@@ -338,8 +345,8 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
 
           let matched = false;
 
-          // Standard Payload ID length check (24 chars for ObjectID)
-          if (typeof envId === 'string' && envId.length === 24) {
+          // Process if a valid envId was extracted
+          if (typeof envId === 'string' && envId.length > 0) {
             matched = await updateTrackingRecords(
               payload,
               envId,

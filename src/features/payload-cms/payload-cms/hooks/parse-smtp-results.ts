@@ -37,12 +37,29 @@ export const parseSmtpResultsHook: FieldHook = ({ value }) => {
   if (!Array.isArray(value)) return value as unknown;
 
   return value.map((result: SmtpResult) => {
-    if (result.bounceReport === true && typeof result.response?.response === 'string') {
-      const parsedDsn = parseDsnFromText(result.response.response);
-      return {
-        ...result,
-        parsedDsn,
-      };
+    if (result.bounceReport === true) {
+      let rawText: string | undefined;
+      if (typeof result.response?.response === 'string') {
+        rawText = result.response.response;
+      } else if (typeof result.error === 'string') {
+        rawText = result.error;
+      }
+
+      if (typeof rawText === 'string' && rawText.length > 0) {
+        const parsedDsn = parseDsnFromText(rawText);
+        let derivedSuccess = result.success;
+        if (parsedDsn.action === 'failed') {
+          derivedSuccess = false;
+        } else if (parsedDsn.action === 'delivered' || parsedDsn.action === 'relayed') {
+          derivedSuccess = true;
+        }
+
+        return {
+          ...result,
+          parsedDsn,
+          success: derivedSuccess,
+        };
+      }
     }
     return result;
   });

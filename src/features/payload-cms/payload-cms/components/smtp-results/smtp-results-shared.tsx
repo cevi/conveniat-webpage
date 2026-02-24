@@ -56,19 +56,23 @@ export interface SmtpResult {
   error?: string;
 }
 
+export const DSN_TIMEOUT_MS = 48 * 60 * 60 * 1000; // 48 hours
+
 export const LOCALIZED_SMTP_LABELS = {
   en: {
-    smtpSuccess: 'SMTP: Successfully Sent',
-    smtpError: 'SMTP: Error Sending',
+    smtpSuccess: 'SMTP: Sent Successfully',
+    smtpError: 'SMTP: Failed to send',
     smtpEmpty: 'SMTP: No data',
-    smtpPending: 'SMTP: Status Unknown (Pending)',
-    dsnSuccess: 'DSN: Successfully Delivered',
+    smtpPending: 'SMTP: Unknown Status (Pending)',
+    dsnSuccess: 'DSN: Delivered Successfully',
     dsnError: 'DSN: Delivery Error (Bounce)',
-    dsnPending: 'DSN: Status Unknown (Pending)',
+    dsnPending: 'DSN: Unknown Status (Pending)',
     dsnEmpty: 'DSN: No data',
     noResults: 'No SMTP results available.',
     details: 'Hover for details',
     sectionTitle: 'Mail Status',
+    rawSmtpResults: 'Raw SMTP Results',
+    noData: 'No data',
     dsnActionRelayed:
       'The email was successfully forwarded to the next server, but that server does not send back a final delivery confirmation.',
     dsnActionDelivered: "The email was successfully delivered to the recipient's inbox.",
@@ -83,11 +87,13 @@ export const LOCALIZED_SMTP_LABELS = {
     smtpPending: 'SMTP: Status Unbekannt (Ausstehend)',
     dsnSuccess: 'DSN: Erfolgreich zugestellt',
     dsnError: 'DSN: Zustellfehler (Bounce)',
-    dsnPending: 'DSN: Status Unbekannt (Ausstehend)',
+    dsnPending: 'DSN: Unbekannter Status (Ausstehend)',
     dsnEmpty: 'DSN: Keine Daten',
     noResults: 'Keine SMTP-Ergebnisse verfügbar.',
-    details: 'Hover für Details',
+    details: 'Schweben für Details',
     sectionTitle: 'Mail Status',
+    rawSmtpResults: 'Raw SMTP Results',
+    noData: 'Keine Daten',
     dsnActionRelayed:
       'Die E-Mail wurde erfolgreich an den nächsten Server weitergeleitet, aber dieser sendet keine finale Zustellbestätigung zurück.',
     dsnActionDelivered: 'Die E-Mail wurde erfolgreich in das Postfach des Empfängers zugestellt.',
@@ -108,6 +114,8 @@ export const LOCALIZED_SMTP_LABELS = {
     noResults: 'Aucun résultat SMTP disponible.',
     details: 'Survoler pour les détails',
     sectionTitle: 'Statut du Courrier',
+    rawSmtpResults: 'Résultats SMTP Bruts',
+    noData: 'Aucune donnée',
     dsnActionRelayed:
       "L'e-mail a été transféré avec succès au serveur suivant, mais ce dernier ne renvoie pas de confirmation de livraison finale.",
     dsnActionDelivered:
@@ -227,7 +235,7 @@ export const parseSmtpStats = (
     }
   }
 
-  const isDsnTimeout = timeElapsedMs > 48 * 60 * 60 * 1000;
+  const isDsnTimeout = timeElapsedMs > DSN_TIMEOUT_MS;
 
   // Derive Box 2 (DSN) State
   let dsnState: SmtpStatusType = 'empty';
