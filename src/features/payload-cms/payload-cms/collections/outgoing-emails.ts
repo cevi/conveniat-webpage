@@ -138,6 +138,10 @@ export const OutgoingEmails: CollectionConfig = {
               type: 'json',
               admin: {
                 readOnly: true,
+                components: {
+                  Field:
+                    '@/features/payload-cms/payload-cms/components/smtp-results/raw-smtp-results-field',
+                },
               },
             },
             {

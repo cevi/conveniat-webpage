@@ -3,10 +3,11 @@
 import {
   LOCALIZED_SMTP_LABELS,
   extractEmailAddress,
+  formatTimeDifference,
   type SmtpResult,
 } from '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-shared';
 import type { StaticTranslationString } from '@/types/types';
-import { useField, useTranslation } from '@payloadcms/ui';
+import { useField, useFormFields, useTranslation } from '@payloadcms/ui';
 import React from 'react';
 
 const WARNING_MESSAGES: StaticTranslationString = {
@@ -20,6 +21,21 @@ export const SmtpResultsField: React.FC<{ path: string; smtpDomain?: string }> =
   smtpDomain = 'cevi.tools',
 }) => {
   const { value } = useField<SmtpResult[]>({ path });
+
+  const toField = useFormFields(([fields]) => fields['to']);
+  const toAddress =
+    typeof toField?.value === 'string' ? extractEmailAddress(toField.value) : undefined;
+
+  const createdAtField = useFormFields(([fields]) => fields['createdAt']);
+  const createdAtString =
+    typeof createdAtField?.value === 'string' ? createdAtField.value : undefined;
+  const createdAtDate = createdAtString === undefined ? undefined : new Date(createdAtString);
+
+  const dsnReceivedAtField = useFormFields(([fields]) => fields['dsnReceivedAt']);
+  const dsnReceivedAtString =
+    typeof dsnReceivedAtField?.value === 'string' ? dsnReceivedAtField.value : undefined;
+  const dsnReceivedAtDate =
+    dsnReceivedAtString === undefined ? undefined : new Date(dsnReceivedAtString);
 
   const { i18n } = useTranslation();
 
@@ -39,21 +55,72 @@ export const SmtpResultsField: React.FC<{ path: string; smtpDomain?: string }> =
     );
   }
 
+  // Pre-process items to group DSNs by recipient
+  const finalItems: SmtpResult[] = [];
+  const dsnMap = new Map<string, SmtpResult[]>();
+
+  for (const item of value) {
+    if (item.bounceReport === true) {
+      // try to extract recipient
+      let recipient = 'unknown';
+      if (typeof item.response?.response === 'string') {
+        const raw = item.response.response;
+        const finalMatch = raw.match(/Final-Recipient:\s*(?:rfc822;\s*)?([^\s;]+)/i);
+        const origMatch = raw.match(/Original-Recipient:\s*(?:rfc822;\s*)?([^\s;]+)/i);
+        if (finalMatch || origMatch) {
+          recipient = finalMatch?.[1] ?? origMatch?.[1] ?? 'unknown';
+        }
+      }
+
+      recipient = recipient.toLowerCase();
+
+      const existing = dsnMap.get(recipient) ?? [];
+      existing.push(item);
+      dsnMap.set(recipient, existing);
+    } else {
+      finalItems.push(item);
+    }
+  }
+
+  // Add the grouped DSNs
+  for (const items of dsnMap.values()) {
+    // Sort items chronologically by receivedAt (if we assume array order is roughly chronological, we can just use the last one)
+    // Actually, payload usually returns them in the order they were inserted, with newer ones later.
+    // For now, let's just pick the last item as the "final" state for this recipient.
+    const finalState = items.at(-1);
+
+    if (finalState) {
+      // Create a modified item that stores the history for the tooltip
+      const extendedItem: SmtpResult & { _dsnHistory?: SmtpResult[] } = {
+        ...finalState,
+        success: finalState.success === true,
+      };
+      extendedItem._dsnHistory = items;
+      finalItems.push(extendedItem);
+    }
+  }
+
   return (
     <div className="field-type custom-field mb-4">
       <label className="field-label">{labels.sectionTitle}</label>
       <div className="flex flex-col gap-2">
-        {value.map((result, index) => {
+        {finalItems.map((result, index) => {
           let hasError = false;
           if (result.success === false) hasError = true;
           if (typeof result.error === 'string' && result.error.length > 0) hasError = true;
-          let statusLabel: string;
-          let statusType: 'empty' | 'pending' | 'success' | 'error';
-          let badgePrefix: 'SMTP' | 'DSN';
+          let statusLabel: string = '';
+          let statusType: 'empty' | 'pending' | 'success' | 'error' = 'empty';
+          let badgePrefix: 'SMTP' | 'DSN' = 'SMTP';
 
           const isBounce = result.bounceReport === true;
+          const historyItems = (result as SmtpResult & { _dsnHistory?: SmtpResult[] })._dsnHistory;
+          let dsnBadgeCount = '';
+
           if (isBounce) {
             badgePrefix = 'DSN';
+            if (historyItems && historyItems.length > 1) {
+              dsnBadgeCount = `(${historyItems.length})`; // indicate there are multiple nested items
+            }
             if (hasError) {
               statusType = 'error';
               statusLabel = labels.dsnError;
@@ -109,7 +176,25 @@ export const SmtpResultsField: React.FC<{ path: string; smtpDomain?: string }> =
           const envelopeTime = result.response?.envelopeTime;
           const messageTime = result.response?.messageTime;
 
-          if (envelopeTime !== undefined && messageTime !== undefined) {
+          if (isBounce) {
+            let dsnArrivalDate: Date | undefined;
+            const arrivalMatch = result.response?.response?.match(/Arrival-Date:\s*(.+)/i);
+            if (typeof arrivalMatch?.[1] === 'string') {
+              const parsed = new Date(arrivalMatch[1]);
+              if (!Number.isNaN(parsed.getTime())) {
+                dsnArrivalDate = parsed;
+              }
+            }
+            const finalArrivalDate = dsnArrivalDate ?? dsnReceivedAtDate;
+            if (
+              finalArrivalDate &&
+              createdAtDate &&
+              !Number.isNaN(createdAtDate.getTime()) &&
+              !Number.isNaN(finalArrivalDate.getTime())
+            ) {
+              timeString = formatTimeDifference(createdAtDate, finalArrivalDate);
+            }
+          } else if (envelopeTime !== undefined && messageTime !== undefined) {
             timeString = `${envelopeTime + messageTime}ms`;
           } else if (envelopeTime !== undefined) {
             timeString = `${String(envelopeTime)}ms`;
@@ -127,7 +212,124 @@ export const SmtpResultsField: React.FC<{ path: string; smtpDomain?: string }> =
             titleContent = result.error;
           }
 
-          const responseText = result.response?.response ?? result.error ?? 'No response details';
+          let responseText = result.response?.response ?? result.error ?? 'No response details';
+
+          if (
+            isBounce &&
+            typeof result.response?.response === 'string' &&
+            result.response.response.length > 0
+          ) {
+            const raw = result.response.response;
+            const finalRecipientMatch = raw.match(/Final-Recipient:\s*(?:rfc822;\s*)?([^\s;]+)/i);
+            const originalRecipientMatch = raw.match(
+              /Original-Recipient:\s*(?:rfc822;\s*)?([^\s;]+)/i,
+            );
+            const actionMatch = raw.match(/Action:\s*([^\s]+)/i);
+
+            if (finalRecipientMatch || actionMatch || originalRecipientMatch) {
+              const recipient =
+                finalRecipientMatch?.[1] ?? originalRecipientMatch?.[1] ?? 'Unknown';
+              const action = actionMatch?.[1] ?? 'Unknown';
+
+              const chain: string[] = [];
+              if (toAddress && toAddress.toLowerCase() !== recipient.toLowerCase()) {
+                chain.push(toAddress);
+              }
+              chain.push(recipient);
+
+              // Check for diagnostic-code forwarded email
+              const diagMatch = raw.match(
+                /Diagnostic-Code:\s*.*?<([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})>/i,
+              );
+              if (diagMatch && typeof diagMatch[1] === 'string') {
+                const forwarded = diagMatch[1];
+                if (forwarded.toLowerCase() !== recipient.toLowerCase()) {
+                  chain.push(forwarded);
+                }
+              }
+
+              const recipientChainString = chain.join(' -> ');
+
+              if (lang === 'de') {
+                responseText = `Aktion: ${action} | Empfänger: ${recipientChainString}`;
+              } else if (lang === 'fr') {
+                responseText = `Action: ${action} | Destinataire: ${recipientChainString}`;
+              } else {
+                responseText = `Action: ${action} | Recipient: ${recipientChainString}`;
+              }
+
+              let explanation = '';
+              const act = action.toLowerCase();
+              switch (act) {
+                case 'relayed': {
+                  explanation = labels.dsnActionRelayed;
+                  break;
+                }
+                case 'delivered': {
+                  explanation = labels.dsnActionDelivered;
+                  break;
+                }
+                case 'failed': {
+                  explanation = labels.dsnActionFailed;
+                  break;
+                }
+                case 'delayed': {
+                  explanation = labels.dsnActionDelayed;
+                  break;
+                }
+                case 'expanded': {
+                  explanation = labels.dsnActionExpanded;
+                  break;
+                }
+                default: {
+                  break;
+                }
+              }
+
+              const explanationBlock = explanation.length > 0 ? `\n\nInfo: ${explanation}` : '';
+
+              titleContent =
+                titleContent === 'No additional details'
+                  ? raw
+                  : `${titleContent}${explanationBlock}\n\nRaw DSN:\n${raw}`;
+
+              if (historyItems && historyItems.length > 1) {
+                const itemsWithoutCurrent = historyItems.filter((h) => h !== result);
+                if (itemsWithoutCurrent.length > 0) {
+                  const eventStrings: string[] = [];
+                  for (const hItem of [...itemsWithoutCurrent].reverse()) {
+                    const hAction =
+                      hItem.response?.response?.match(/Action:\s*([^\s]+)/i)?.[1] ?? 'Unknown';
+                    let extraInfo = '';
+                    const hAct = hAction.toLowerCase();
+                    if (hAct === 'relayed') {
+                      const serverMatch =
+                        hItem.response?.response?.match(/Remote-MTA:\s*dns;\s*([^\s]+)/i) ??
+                        hItem.response?.response?.match(/Reporting-MTA:\s*dns;\s*([^\s]+)/i);
+                      if (serverMatch) extraInfo = ` | Server: ${serverMatch[1]}`;
+                    } else if (hAct === 'delivered' || hAct === 'failed') {
+                      const emailMatch =
+                        hItem.response?.response?.match(
+                          /Final-Recipient:\s*(?:rfc822;\s*)?([^\s;]+)/i,
+                        ) ??
+                        hItem.response?.response?.match(
+                          /Original-Recipient:\s*(?:rfc822;\s*)?([^\s;]+)/i,
+                        );
+                      if (emailMatch) extraInfo = ` | Email: ${emailMatch[1]}`;
+                    }
+                    const eventString = `>> Action: ${hAction}${extraInfo}`;
+                    if (!eventStrings.includes(eventString)) {
+                      eventStrings.push(eventString);
+                    }
+                  }
+                  if (eventStrings.length > 0) {
+                    titleContent += `\n\n--- Previous Events (${String(eventStrings.length)}) ---\n`;
+                    titleContent += eventStrings.join('\n');
+                  }
+                }
+              }
+            }
+          }
           const warningText = WARNING_MESSAGES[lang]
             .replace('{fromAddress}', fromAddress)
             .replace('{smtpDomain}', smtpDomain);
@@ -143,7 +345,7 @@ export const SmtpResultsField: React.FC<{ path: string; smtpDomain?: string }> =
                   className={`rounded border px-2 py-0.5 font-medium ${badgeColorClasses}`}
                   title={statusLabel}
                 >
-                  {badgePrefix} {badgeSymbol}
+                  {badgePrefix} {badgeSymbol} {dsnBadgeCount}
                 </span>
                 <span className="flex items-center gap-1 text-xs text-gray-500">
                   <svg

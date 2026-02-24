@@ -57,6 +57,12 @@ export const LOCALIZED_SMTP_LABELS = {
     noResults: 'No SMTP results available.',
     details: 'Hover for details',
     sectionTitle: 'Mail Status',
+    dsnActionRelayed:
+      'The email was successfully forwarded to the next server, but that server does not send back a final delivery confirmation.',
+    dsnActionDelivered: "The email was successfully delivered to the recipient's inbox.",
+    dsnActionFailed: 'The email could not be delivered (Bounced).',
+    dsnActionDelayed: 'Delivery is delayed, the server will keep trying.',
+    dsnActionExpanded: 'The email was sent to a distribution list and forwarded to its members.',
   },
   de: {
     smtpSuccess: 'SMTP: Erfolgreich versendet',
@@ -70,6 +76,13 @@ export const LOCALIZED_SMTP_LABELS = {
     noResults: 'Keine SMTP-Ergebnisse verfügbar.',
     details: 'Hover für Details',
     sectionTitle: 'Mail Status',
+    dsnActionRelayed:
+      'Die E-Mail wurde erfolgreich an den nächsten Server weitergeleitet, aber dieser sendet keine finale Zustellbestätigung zurück.',
+    dsnActionDelivered: 'Die E-Mail wurde erfolgreich in das Postfach des Empfängers zugestellt.',
+    dsnActionFailed: 'Die E-Mail konnte nicht zugestellt werden (Bounced).',
+    dsnActionDelayed: 'Die Zustellung ist verzögert, der Server versucht es weiter.',
+    dsnActionExpanded:
+      'Die E-Mail wurde an eine Verteilerliste gesendet und an deren Mitglieder weitergeleitet.',
   },
   fr: {
     smtpSuccess: 'SMTP: Envoyé avec succès',
@@ -83,6 +96,13 @@ export const LOCALIZED_SMTP_LABELS = {
     noResults: 'Aucun résultat SMTP disponible.',
     details: 'Survoler pour les détails',
     sectionTitle: 'Statut du Courrier',
+    dsnActionRelayed:
+      "L'e-mail a été transféré avec succès au serveur suivant, mais ce dernier ne renvoie pas de confirmation de livraison finale.",
+    dsnActionDelivered:
+      "L'e-mail a été livré avec succès dans la boîte de réception du destinataire.",
+    dsnActionFailed: "L'e-mail n'a pas pu être livré (Rebondi).",
+    dsnActionDelayed: 'La livraison est retardée, le serveur va réessayer.',
+    dsnActionExpanded: "L'e-mail a été envoyé à une liste de diffusion et transféré à ses membres.",
   },
 };
 
@@ -204,4 +224,16 @@ export const parseSmtpStats = (
   }
 
   return { smtpState, smtpCount, dsnState, dsnCount };
+};
+
+export const formatTimeDifference = (start: Date, end: Date): string => {
+  const diffMs = Math.abs(end.getTime() - start.getTime());
+  const diffSecs = Math.floor(diffMs / 1000);
+  if (diffSecs < 60) return `${diffSecs}s`;
+  const diffMins = Math.floor(diffSecs / 60);
+  if (diffMins < 60) return `${diffMins}m`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h`;
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays}d`;
 };
