@@ -125,7 +125,7 @@ export const OutgoingEmails: CollectionConfig = {
                       systemEmails: [
                         typeof environmentVariables.SMTP_USER === 'string'
                           ? environmentVariables.SMTP_USER
-                          : 'no-reply@cevi.tools',
+                          : 'noreply@cevi.tools',
                       ].filter((email) => email.length > 0),
                     },
                   },

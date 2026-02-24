@@ -15,7 +15,7 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
   retries: 0,
   /**
    * We selectively auto-delete only the `fetchSmtpBounces` job upon successful completion
-   * to keep the `payload-jobs` collection clean, as this task runs very frequently (every minute).
+   * to keep the `payload-jobs` collection clean, as this task runs very frequently (every 5 minutes).
    * We do this here instead of using the global `deleteJobOnComplete: true` in the JobsConfig
    * to preserve the execution history and observability for other critical workflows.
    */
