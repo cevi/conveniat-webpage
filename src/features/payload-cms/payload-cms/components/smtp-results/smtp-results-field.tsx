@@ -46,6 +46,9 @@ export const SmtpResultsField: React.FC<{ path: string; smtpDomain?: string }> =
 
   const labels = LOCALIZED_SMTP_LABELS[lang];
 
+  // Use a stable 'now' value for date comparisons during render to avoid impurity lints
+  const [currentTimeMs] = React.useState(() => Date.now());
+
   if (!Array.isArray(value) || value.length === 0) {
     return (
       <div className="field-type textarea">
@@ -56,8 +59,9 @@ export const SmtpResultsField: React.FC<{ path: string; smtpDomain?: string }> =
   }
 
   // Pre-process items to group DSNs by recipient
-  const finalItems: SmtpResult[] = [];
+  const finalItems: (SmtpResult & { _isPendingPlaceholder?: boolean })[] = [];
   const dsnMap = new Map<string, SmtpResult[]>();
+  const expectedRecipients = new Set<string>();
 
   for (const item of value) {
     if (item.bounceReport === true) {
@@ -74,11 +78,22 @@ export const SmtpResultsField: React.FC<{ path: string; smtpDomain?: string }> =
       dsnMap.set(recipient, existing);
     } else {
       finalItems.push(item);
+      // Collect all expected recipients from SMTP responses
+      if (Array.isArray(item.response?.accepted)) {
+        for (const rec of item.response.accepted) {
+          if (typeof rec === 'string' && rec.length > 0) expectedRecipients.add(rec.toLowerCase());
+        }
+      } else if (Array.isArray(item.response?.envelope?.to)) {
+        for (const rec of item.response.envelope.to) {
+          if (typeof rec === 'string' && rec.length > 0) expectedRecipients.add(rec.toLowerCase());
+        }
+      }
     }
   }
 
   // Add the grouped DSNs
-  for (const items of dsnMap.values()) {
+  for (const [recipient, items] of dsnMap.entries()) {
+    expectedRecipients.delete(recipient);
     // Sort items chronologically by receivedAt (if we assume array order is roughly chronological, we can just use the last one)
     // Actually, payload usually returns them in the order they were inserted, with newer ones later.
     // For now, let's just pick the last item as the "final" state for this recipient.
@@ -95,6 +110,18 @@ export const SmtpResultsField: React.FC<{ path: string; smtpDomain?: string }> =
     }
   }
 
+  // Add placeholder items for missing DSNs
+  for (const missingRecipient of expectedRecipients) {
+    if (missingRecipient === 'unknown' || missingRecipient.length === 0) continue;
+
+    finalItems.push({
+      success: true, // true to map hasError to false
+      to: missingRecipient,
+      bounceReport: true,
+      _isPendingPlaceholder: true,
+    } as SmtpResult & { _isPendingPlaceholder?: boolean });
+  }
+
   return (
     <div className="field-type custom-field mb-4">
       <label className="field-label">{labels.sectionTitle}</label>
@@ -109,14 +136,34 @@ export const SmtpResultsField: React.FC<{ path: string; smtpDomain?: string }> =
 
           const isBounce = result.bounceReport === true;
           const historyItems = (result as SmtpResult & { _dsnHistory?: SmtpResult[] })._dsnHistory;
+          const isPendingPlaceholder =
+            (result as SmtpResult & { _isPendingPlaceholder?: boolean })._isPendingPlaceholder ===
+            true;
           let dsnBadgeCount = '';
+
+          let isDsnTimeout = false;
+          let timeElapsedMs = 0;
+          if (createdAtDate && !Number.isNaN(createdAtDate.getTime())) {
+            timeElapsedMs = currentTimeMs - createdAtDate.getTime();
+            if (timeElapsedMs > 48 * 60 * 60 * 1000) {
+              isDsnTimeout = true;
+            }
+          }
 
           if (isBounce) {
             badgePrefix = 'DSN';
             if (historyItems && historyItems.length > 1) {
               dsnBadgeCount = `(${historyItems.length})`; // indicate there are multiple nested items
             }
-            if (hasError) {
+            if (isPendingPlaceholder) {
+              if (isDsnTimeout) {
+                statusType = 'error';
+                statusLabel = labels.dsnError;
+              } else {
+                statusType = 'pending';
+                statusLabel = labels.dsnPending;
+              }
+            } else if (hasError) {
               statusType = 'error';
               statusLabel = labels.dsnError;
             } else {
@@ -172,21 +219,25 @@ export const SmtpResultsField: React.FC<{ path: string; smtpDomain?: string }> =
           const messageTime = result.response?.messageTime;
 
           if (isBounce) {
-            let dsnArrivalDate: Date | undefined;
-            if (typeof result.parsedDsn?.arrivalDate === 'string') {
-              const parsed = new Date(result.parsedDsn.arrivalDate);
-              if (!Number.isNaN(parsed.getTime())) {
-                dsnArrivalDate = parsed;
+            if (isPendingPlaceholder) {
+              timeString = '-';
+            } else {
+              let dsnArrivalDate: Date | undefined;
+              if (typeof result.parsedDsn?.arrivalDate === 'string') {
+                const parsed = new Date(result.parsedDsn.arrivalDate);
+                if (!Number.isNaN(parsed.getTime())) {
+                  dsnArrivalDate = parsed;
+                }
               }
-            }
-            const finalArrivalDate = dsnArrivalDate ?? dsnReceivedAtDate;
-            if (
-              finalArrivalDate &&
-              createdAtDate &&
-              !Number.isNaN(createdAtDate.getTime()) &&
-              !Number.isNaN(finalArrivalDate.getTime())
-            ) {
-              timeString = formatTimeDifference(createdAtDate, finalArrivalDate);
+              const finalArrivalDate = dsnArrivalDate ?? dsnReceivedAtDate;
+              if (
+                finalArrivalDate &&
+                createdAtDate &&
+                !Number.isNaN(createdAtDate.getTime()) &&
+                !Number.isNaN(finalArrivalDate.getTime())
+              ) {
+                timeString = formatTimeDifference(createdAtDate, finalArrivalDate);
+              }
             }
           } else if (envelopeTime !== undefined && messageTime !== undefined) {
             timeString = `${envelopeTime + messageTime}ms`;
@@ -200,7 +251,9 @@ export const SmtpResultsField: React.FC<{ path: string; smtpDomain?: string }> =
           const messageId = result.response?.messageId;
           const rawFromAddress = result.response?.envelope?.from ?? '';
           const fromAddress = extractEmailAddress(rawFromAddress);
-          if (typeof messageId === 'string' && messageId.length > 0) {
+          if (isPendingPlaceholder) {
+            titleContent = labels.dsnPending;
+          } else if (typeof messageId === 'string' && messageId.length > 0) {
             titleContent = `Message ID: ${messageId}\nFrom: ${fromAddress}`;
           } else if (typeof result.error === 'string' && result.error.length > 0) {
             titleContent = result.error;
@@ -208,7 +261,15 @@ export const SmtpResultsField: React.FC<{ path: string; smtpDomain?: string }> =
 
           let responseText = result.response?.response ?? result.error ?? 'No response details';
 
-          if (isBounce && result.parsedDsn) {
+          if (isPendingPlaceholder) {
+            if (lang === 'de') {
+              responseText = `Aktion: - | Empfänger: ${result.to}`;
+            } else if (lang === 'fr') {
+              responseText = `Action: - | Destinataire: ${result.to}`;
+            } else {
+              responseText = `Action: - | Recipient: ${result.to}`;
+            }
+          } else if (isBounce && result.parsedDsn) {
             const raw = result.response?.response ?? '';
             const { action, finalRecipient, originalRecipient, forwardedTo } = result.parsedDsn;
 

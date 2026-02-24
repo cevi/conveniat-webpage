@@ -9,7 +9,10 @@ import {
 import { useTranslation } from '@payloadcms/ui';
 import React from 'react';
 
-export const SmtpResultsCell: React.FC<{ cellData: unknown }> = ({ cellData }) => {
+export const SmtpResultsCell: React.FC<{
+  cellData: unknown;
+  rowData?: { createdAt?: string } & Record<string, unknown>;
+}> = ({ cellData, rowData }) => {
   const { i18n } = useTranslation();
 
   const langRaw = i18n.language;
@@ -19,7 +22,7 @@ export const SmtpResultsCell: React.FC<{ cellData: unknown }> = ({ cellData }) =
 
   const titles = LOCALIZED_SMTP_LABELS[lang];
 
-  const { smtpState, smtpCount, dsnState, dsnCount } = parseSmtpStats(cellData);
+  const { smtpState, smtpCount, dsnState, dsnCount } = parseSmtpStats(cellData, rowData?.createdAt);
 
   return (
     <div className="flex items-center gap-1">

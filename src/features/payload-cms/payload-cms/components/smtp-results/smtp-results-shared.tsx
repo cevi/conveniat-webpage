@@ -186,6 +186,7 @@ export const SmtpBadge: React.FC<{
 
 export const parseSmtpStats = (
   cellData: unknown,
+  createdAtString?: string,
 ): { smtpState: SmtpStatusType; smtpCount: number; dsnState: SmtpStatusType; dsnCount: number } => {
   let smtpSuccess = 0;
   let smtpErrors = 0;
@@ -218,11 +219,23 @@ export const parseSmtpStats = (
   if (smtpErrors > 0) smtpState = 'error';
   else if (smtpSuccess > 0) smtpState = 'success';
 
+  let timeElapsedMs = 0;
+  if (typeof createdAtString === 'string' && createdAtString.length > 0) {
+    const createdAtDate = new Date(createdAtString);
+    if (!Number.isNaN(createdAtDate.getTime())) {
+      timeElapsedMs = Date.now() - createdAtDate.getTime();
+    }
+  }
+
+  const isDsnTimeout = timeElapsedMs > 48 * 60 * 60 * 1000;
+
   // Derive Box 2 (DSN) State
   let dsnState: SmtpStatusType = 'empty';
   if (dsnErrors > 0) dsnState = 'error';
   else if (dsnSuccess > 0 && dsnSuccess >= smtpSuccess) dsnState = 'success';
-  else if (smtpSuccess > 0 || smtpErrors > 0) dsnState = 'pending';
+  else if (smtpSuccess > 0 || smtpErrors > 0) {
+    dsnState = isDsnTimeout ? 'error' : 'pending';
+  }
 
   const smtpCount = smtpErrors > 0 ? smtpErrors : smtpSuccess;
 
