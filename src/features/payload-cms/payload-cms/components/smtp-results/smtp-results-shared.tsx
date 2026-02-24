@@ -24,10 +24,22 @@ export const extractEmailAddress = (email: string): string => {
   return trimmed;
 };
 
+export interface ParsedDsnInfo {
+  action: string;
+  finalRecipient?: string | undefined;
+  originalRecipient?: string | undefined;
+  status?: string | undefined;
+  remoteMta?: string | undefined;
+  diagnosticCode?: string | undefined;
+  forwardedTo?: string | undefined;
+  arrivalDate?: string | undefined;
+}
+
 export interface SmtpResult {
   success: boolean;
   to: string;
   bounceReport?: boolean;
+  parsedDsn?: ParsedDsnInfo;
   response?: {
     accepted?: string[];
     rejected?: string[];

@@ -1,6 +1,7 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
+import { parseSmtpResultsHook } from '@/features/payload-cms/payload-cms/hooks/parse-smtp-results';
 import type { CollectionConfig } from 'payload';
 
 export const OutgoingEmails: CollectionConfig = {
@@ -107,6 +108,9 @@ export const OutgoingEmails: CollectionConfig = {
             {
               name: 'smtpResults',
               type: 'json',
+              hooks: {
+                afterRead: [parseSmtpResultsHook],
+              },
               admin: {
                 readOnly: true,
                 components: {

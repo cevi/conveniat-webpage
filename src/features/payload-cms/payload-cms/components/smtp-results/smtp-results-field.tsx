@@ -63,13 +63,8 @@ export const SmtpResultsField: React.FC<{ path: string; smtpDomain?: string }> =
     if (item.bounceReport === true) {
       // try to extract recipient
       let recipient = 'unknown';
-      if (typeof item.response?.response === 'string') {
-        const raw = item.response.response;
-        const finalMatch = raw.match(/Final-Recipient:\s*(?:rfc822;\s*)?([^\s;]+)/i);
-        const origMatch = raw.match(/Original-Recipient:\s*(?:rfc822;\s*)?([^\s;]+)/i);
-        if (finalMatch || origMatch) {
-          recipient = finalMatch?.[1] ?? origMatch?.[1] ?? 'unknown';
-        }
+      if (item.parsedDsn) {
+        recipient = item.parsedDsn.finalRecipient ?? item.parsedDsn.originalRecipient ?? 'unknown';
       }
 
       recipient = recipient.toLowerCase();
@@ -178,9 +173,8 @@ export const SmtpResultsField: React.FC<{ path: string; smtpDomain?: string }> =
 
           if (isBounce) {
             let dsnArrivalDate: Date | undefined;
-            const arrivalMatch = result.response?.response?.match(/Arrival-Date:\s*(.+)/i);
-            if (typeof arrivalMatch?.[1] === 'string') {
-              const parsed = new Date(arrivalMatch[1]);
+            if (typeof result.parsedDsn?.arrivalDate === 'string') {
+              const parsed = new Date(result.parsedDsn.arrivalDate);
               if (!Number.isNaN(parsed.getTime())) {
                 dsnArrivalDate = parsed;
               }
@@ -214,38 +208,33 @@ export const SmtpResultsField: React.FC<{ path: string; smtpDomain?: string }> =
 
           let responseText = result.response?.response ?? result.error ?? 'No response details';
 
-          if (
-            isBounce &&
-            typeof result.response?.response === 'string' &&
-            result.response.response.length > 0
-          ) {
-            const raw = result.response.response;
-            const finalRecipientMatch = raw.match(/Final-Recipient:\s*(?:rfc822;\s*)?([^\s;]+)/i);
-            const originalRecipientMatch = raw.match(
-              /Original-Recipient:\s*(?:rfc822;\s*)?([^\s;]+)/i,
-            );
-            const actionMatch = raw.match(/Action:\s*([^\s]+)/i);
+          if (isBounce && result.parsedDsn) {
+            const raw = result.response?.response ?? '';
+            const { action, finalRecipient, originalRecipient, forwardedTo } = result.parsedDsn;
 
-            if (finalRecipientMatch || actionMatch || originalRecipientMatch) {
-              const recipient =
-                finalRecipientMatch?.[1] ?? originalRecipientMatch?.[1] ?? 'Unknown';
-              const action = actionMatch?.[1] ?? 'Unknown';
+            if (
+              (typeof finalRecipient === 'string' && finalRecipient.length > 0) ||
+              action !== 'Unknown' ||
+              (typeof originalRecipient === 'string' && originalRecipient.length > 0)
+            ) {
+              const recipient = finalRecipient ?? originalRecipient ?? 'Unknown';
 
               const chain: string[] = [];
-              if (toAddress && toAddress.toLowerCase() !== recipient.toLowerCase()) {
+              if (
+                typeof toAddress === 'string' &&
+                toAddress.length > 0 &&
+                toAddress.toLowerCase() !== recipient.toLowerCase()
+              ) {
                 chain.push(toAddress);
               }
               chain.push(recipient);
 
-              // Check for diagnostic-code forwarded email
-              const diagMatch = raw.match(
-                /Diagnostic-Code:\s*.*?<([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})>/i,
-              );
-              if (diagMatch && typeof diagMatch[1] === 'string') {
-                const forwarded = diagMatch[1];
-                if (forwarded.toLowerCase() !== recipient.toLowerCase()) {
-                  chain.push(forwarded);
-                }
+              if (
+                typeof forwardedTo === 'string' &&
+                forwardedTo.length > 0 &&
+                forwardedTo.toLowerCase() !== recipient.toLowerCase()
+              ) {
+                chain.push(forwardedTo);
               }
 
               const recipientChainString = chain.join(' -> ');
@@ -298,24 +287,20 @@ export const SmtpResultsField: React.FC<{ path: string; smtpDomain?: string }> =
                 if (itemsWithoutCurrent.length > 0) {
                   const eventStrings: string[] = [];
                   for (const hItem of [...itemsWithoutCurrent].reverse()) {
-                    const hAction =
-                      hItem.response?.response?.match(/Action:\s*([^\s]+)/i)?.[1] ?? 'Unknown';
+                    const hAction = hItem.parsedDsn?.action ?? 'Unknown';
                     let extraInfo = '';
                     const hAct = hAction.toLowerCase();
                     if (hAct === 'relayed') {
-                      const serverMatch =
-                        hItem.response?.response?.match(/Remote-MTA:\s*dns;\s*([^\s]+)/i) ??
-                        hItem.response?.response?.match(/Reporting-MTA:\s*dns;\s*([^\s]+)/i);
-                      if (serverMatch) extraInfo = ` | Server: ${serverMatch[1]}`;
+                      if (
+                        typeof hItem.parsedDsn?.remoteMta === 'string' &&
+                        hItem.parsedDsn.remoteMta.length > 0
+                      )
+                        extraInfo = ` | Server: ${hItem.parsedDsn.remoteMta}`;
                     } else if (hAct === 'delivered' || hAct === 'failed') {
                       const emailMatch =
-                        hItem.response?.response?.match(
-                          /Final-Recipient:\s*(?:rfc822;\s*)?([^\s;]+)/i,
-                        ) ??
-                        hItem.response?.response?.match(
-                          /Original-Recipient:\s*(?:rfc822;\s*)?([^\s;]+)/i,
-                        );
-                      if (emailMatch) extraInfo = ` | Email: ${emailMatch[1]}`;
+                        hItem.parsedDsn?.finalRecipient ?? hItem.parsedDsn?.originalRecipient;
+                      if (typeof emailMatch === 'string' && emailMatch.length > 0)
+                        extraInfo = ` | Email: ${emailMatch}`;
                     }
                     const eventString = `>> Action: ${hAction}${extraInfo}`;
                     if (!eventStrings.includes(eventString)) {
