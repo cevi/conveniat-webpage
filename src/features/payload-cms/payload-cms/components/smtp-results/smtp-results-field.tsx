@@ -107,8 +107,15 @@ export const SmtpResultsField: React.FC<{ path: string; smtpDomain?: string }> =
   }
 
   // Add the grouped DSNs
+  let hasValidMemberDsn = false;
   for (const [recipient, items] of dsnMap.entries()) {
     expectedRecipients.delete(recipient);
+    // If a DSN was matched to an actual email address instead of the raw system address or 'unknown',
+    // we can assume the email was processed downstream.
+    if (recipient !== 'unknown' && !recipient.includes('noreply')) {
+      hasValidMemberDsn = true;
+    }
+
     // Sort items chronologically by receivedAt (if we assume array order is roughly chronological, we can just use the last one)
     // Actually, payload usually returns them in the order they were inserted, with newer ones later.
     // For now, let's just pick the last item as the "final" state for this recipient.
@@ -127,8 +134,16 @@ export const SmtpResultsField: React.FC<{ path: string; smtpDomain?: string }> =
   }
 
   // Add placeholder items for missing DSNs
+  const normalizedToAddress = toAddress?.toLowerCase();
   for (const missingRecipient of expectedRecipients) {
     if (missingRecipient === 'unknown' || missingRecipient.length === 0) continue;
+
+    // Group forwarding fallback: If the system received a DSN from a downstream group member,
+    // the top-level group address (e.g., conveniat@) will never receive a unified DSN.
+    // Skip generating a pending placeholder for the group address itself.
+    if (hasValidMemberDsn && missingRecipient === normalizedToAddress) {
+      continue;
+    }
 
     finalItems.push({
       success: true, // true to map hasError to false
