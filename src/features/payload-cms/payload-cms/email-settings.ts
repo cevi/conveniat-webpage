@@ -18,7 +18,10 @@ import { nodemailerAdapter } from '@payloadcms/email-nodemailer';
 export const emailSettings = environmentVariables.ENABLE_NODEMAILER
   ? {
       email: nodemailerAdapter({
-        defaultFromAddress: 'no-reply@conveniat27.ch',
+        defaultFromAddress:
+          typeof environmentVariables.SMTP_USER === 'string'
+            ? environmentVariables.SMTP_USER
+            : 'noreply@cevi.tools',
         defaultFromName: 'conveniat27',
         transportOptions: {
           host: environmentVariables.SMTP_HOST,

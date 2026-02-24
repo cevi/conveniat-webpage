@@ -2,6 +2,7 @@ import { environmentVariables } from '@/config/environment-variables';
 import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 
+import { parseSmtpResultsHook } from '@/features/payload-cms/payload-cms/hooks/parse-smtp-results';
 import { getPublishingStatus } from '@/features/payload-cms/payload-cms/hooks/publishing-status';
 import { beforeEmailChangeHook } from '@/features/payload-cms/payload-cms/plugins/form/fix-links-in-mails';
 import { extractEmailLinksHook } from '@/features/payload-cms/payload-cms/plugins/form/hooks/extract-email-links';
@@ -149,6 +150,9 @@ export const formPluginConfiguration = formBuilderPlugin({
       {
         name: 'smtpResults',
         type: 'json',
+        hooks: {
+          afterRead: [parseSmtpResultsHook],
+        },
         admin: {
           readOnly: true,
           position: 'sidebar',
@@ -161,6 +165,11 @@ export const formPluginConfiguration = formBuilderPlugin({
                   (environmentVariables.SMTP_USER.split('@')[1] ?? '').length > 0
                     ? environmentVariables.SMTP_USER.split('@')[1]
                     : 'cevi.tools',
+                systemEmails: [
+                  typeof environmentVariables.SMTP_USER === 'string'
+                    ? environmentVariables.SMTP_USER
+                    : 'noreply@cevi.tools',
+                ].filter((email) => email.length > 0),
               },
             },
 

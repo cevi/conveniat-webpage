@@ -1,6 +1,6 @@
 'use client';
 
-import { extractEmailAddress } from '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-shared';
+import { extractEmailAddress } from '@/features/payload-cms/payload-cms/components/smtp-results/utils';
 import type { StaticTranslationString } from '@/types/types';
 import { useField, useTranslation } from '@payloadcms/ui';
 import React from 'react';

@@ -1,25 +1,22 @@
 'use client';
 
+import { LOCALIZED_SMTP_LABELS } from '@/features/payload-cms/payload-cms/components/smtp-results/constants';
 import {
   getSmtpTooltip,
-  LOCALIZED_SMTP_LABELS,
-  parseSmtpStats,
   SmtpBadge,
 } from '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-shared';
-import { useTranslation } from '@payloadcms/ui';
+import { useSmtpTranslation } from '@/features/payload-cms/payload-cms/components/smtp-results/use-smtp-translation';
+import { parseSmtpStats } from '@/features/payload-cms/payload-cms/components/smtp-results/utils';
 import React from 'react';
 
-export const SmtpResultsCell: React.FC<{ cellData: unknown }> = ({ cellData }) => {
-  const { i18n } = useTranslation();
-
-  const langRaw = i18n.language;
-  const currentLang = typeof langRaw === 'string' && langRaw.length > 0 ? langRaw : 'de';
-  const isValidLang = currentLang === 'en' || currentLang === 'de' || currentLang === 'fr';
-  const lang: 'en' | 'de' | 'fr' = isValidLang ? currentLang : 'de';
-
+export const SmtpResultsCell: React.FC<{
+  cellData: unknown;
+  rowData?: { createdAt?: string } & Record<string, unknown>;
+}> = ({ cellData, rowData }) => {
+  const { lang } = useSmtpTranslation();
   const titles = LOCALIZED_SMTP_LABELS[lang];
 
-  const { smtpState, smtpCount, dsnState, dsnCount } = parseSmtpStats(cellData);
+  const { smtpState, smtpCount, dsnState, dsnCount } = parseSmtpStats(cellData, rowData?.createdAt);
 
   return (
     <div className="flex items-center gap-1">

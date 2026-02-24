@@ -1,219 +1,42 @@
 import { environmentVariables } from '@/config/environment-variables';
-import type { ParsedMail } from 'mailparser';
+import { updateTrackingRecords } from '@/features/payload-cms/payload-cms/tasks/fetch-smtp-bounces/db';
+import {
+  determineDeliveryStatus,
+  getOriginalEnvelopeId,
+  parsePop3Messages,
+} from '@/features/payload-cms/payload-cms/tasks/fetch-smtp-bounces/email-parser';
 import { simpleParser } from 'mailparser';
 import POP3Command from 'node-pop3';
-import type { Payload, PayloadRequest, TaskConfig } from 'payload';
+import type { PayloadRequest, TaskConfig } from 'payload';
 import { countRunnableOrActiveJobsForQueue } from 'payload';
-
-const MAX_RAW_EMAIL_LENGTH = 20_000;
-const MAX_TOTAL_DSN_EMAIL_LENGTH = 39_000;
-
-const getOriginalEnvelopeId = (parsed: ParsedMail): string | undefined => {
-  const headerValue = parsed.headers.get('original-envelope-id');
-
-  if (headerValue !== undefined) {
-    const rawValue = Array.isArray(headerValue) ? headerValue[0] : headerValue;
-    if (typeof rawValue === 'object' && 'value' in rawValue) {
-      const val = (rawValue as { value?: unknown }).value;
-      if (typeof val === 'string' && val.length > 0) {
-        return val.trim();
-      }
-    } else if (typeof rawValue === 'string' && rawValue.length > 0) {
-      return rawValue.trim();
-    }
-  }
-
-  // Fallback to body parsing
-  const text = typeof parsed.text === 'string' ? parsed.text : '';
-  if (text.length > 0) {
-    const match = /Original-Envelope-Id:\s*([a-zA-Z0-9]+)/i.exec(text);
-    const id = match?.[1];
-    if (typeof id === 'string' && id.length > 0) return id;
-  }
-
-  return undefined;
-};
-
-const determineDeliveryStatus = (parsed: ParsedMail): { isSuccess: boolean; dsnString: string } => {
-  const subject = (parsed.subject ?? '').toLowerCase();
-  let rawText = typeof parsed.text === 'string' ? parsed.text : '';
-  if (rawText.length === 0) rawText = typeof parsed.html === 'string' ? parsed.html : '';
-  if (rawText.length === 0)
-    rawText = typeof parsed.textAsHtml === 'string' ? parsed.textAsHtml : '';
-
-  const text = rawText.toLowerCase();
-
-  const isSuccess =
-    subject.includes('successful') ||
-    subject.includes('delivered') ||
-    text.includes('successfully delivered') ||
-    text.includes('status: 2.0.0') ||
-    text.includes('action: relayed') ||
-    text.includes('action: delivered');
-
-  return {
-    isSuccess,
-    dsnString: `Delivery Status Notification. Subject: ${parsed.subject ?? ''}.\n\nReason:\n${rawText.trim()}`,
-  };
-};
-
-const parsePop3Messages = (rawResponse: unknown): { id: number; uid: string }[] => {
-  const messages: { id: number; uid: string }[] = [];
-
-  if (typeof rawResponse === 'string') {
-    const lines = rawResponse.split('\r\n').filter(Boolean);
-    for (const line of lines) {
-      const parts = line.split(' ');
-      const rawId = parts[0];
-      const uid = parts[1];
-      if (typeof rawId === 'string' && typeof uid === 'string') {
-        const id = Number.parseInt(rawId, 10);
-        if (!Number.isNaN(id)) messages.push({ id, uid });
-      }
-    }
-  } else if (Array.isArray(rawResponse)) {
-    for (const item of rawResponse as unknown[]) {
-      if (Array.isArray(item) && item.length >= 2) {
-        const id = Number.parseInt(String(item[0]), 10);
-        const uid = String(item[1]);
-        if (!Number.isNaN(id)) messages.push({ id, uid });
-      }
-    }
-  }
-
-  return messages;
-};
-
-const updateTrackingRecords = async (
-  payload: Payload,
-  envelopeId: string,
-  isSuccess: boolean,
-  dsnString: string,
-  rawEmail: string,
-): Promise<boolean> => {
-  let outgoingEmail:
-    | { smtpResults?: unknown[]; formSubmission?: string | { id: string }; rawDsnEmail?: string }
-    | undefined;
-
-  try {
-    outgoingEmail = (await payload.findByID({
-      collection: 'outgoing-emails',
-      id: envelopeId,
-    })) as {
-      smtpResults?: unknown[];
-      formSubmission?: string | { id: string };
-      rawDsnEmail?: string;
-    };
-  } catch {
-    // Fail silently here, we will try form-submissions directly as a fallback
-  }
-
-  const newResult: Record<string, unknown> = {
-    bounceReport: true,
-    receivedAt: new Date().toISOString(),
-    success: isSuccess,
-    to: 'unknown',
-  };
-
-  if (isSuccess) {
-    newResult['response'] = { response: dsnString };
-  } else {
-    newResult['error'] = dsnString;
-  }
-
-  if (outgoingEmail === undefined) {
-    // Fallback: it might be an old email tracking ID (form submission ID directly)
-    try {
-      const submission = (await payload.findByID({
-        collection: 'form-submissions',
-        id: envelopeId,
-      })) as { smtpResults?: unknown[] };
-
-      const subResults = Array.isArray(submission.smtpResults) ? [...submission.smtpResults] : [];
-      subResults.push(newResult);
-
-      await payload.update({
-        collection: 'form-submissions',
-        id: envelopeId,
-        data: { smtpResults: subResults } as Record<string, unknown>,
-      });
-      return true;
-    } catch {
-      payload.logger.info({
-        msg: `Bounce tracking ID ${envelopeId} not found, likely belongs to another instance`,
-      });
-      return false;
-    }
-  } else {
-    const results = Array.isArray(outgoingEmail.smtpResults) ? [...outgoingEmail.smtpResults] : [];
-    results.push(newResult);
-
-    const currentRawEmail = String(rawEmail);
-    const croppedRawEmail =
-      currentRawEmail.length > MAX_RAW_EMAIL_LENGTH
-        ? currentRawEmail.slice(0, MAX_RAW_EMAIL_LENGTH) + '\n... [truncated]'
-        : currentRawEmail;
-
-    let newRawDsnEmail =
-      typeof outgoingEmail.rawDsnEmail === 'string' && outgoingEmail.rawDsnEmail.length > 0
-        ? `${croppedRawEmail}\n\n---\n\n${outgoingEmail.rawDsnEmail}`
-        : croppedRawEmail;
-
-    if (newRawDsnEmail.length > MAX_TOTAL_DSN_EMAIL_LENGTH) {
-      newRawDsnEmail =
-        newRawDsnEmail.slice(0, MAX_TOTAL_DSN_EMAIL_LENGTH) + '\n... [truncated early bounces] ...';
-    }
-
-    await payload.update({
-      collection: 'outgoing-emails',
-      id: envelopeId,
-      data: {
-        smtpResults: results,
-        rawSmtpResults: results,
-        rawDsnEmail: newRawDsnEmail,
-        deliveryStatus: isSuccess ? 'success' : 'error',
-        dsnReceivedAt: new Date().toISOString(),
-      },
-    });
-
-    const formSubmissionRelated = outgoingEmail.formSubmission;
-    const formSubmissionId =
-      typeof formSubmissionRelated === 'string'
-        ? formSubmissionRelated
-        : (formSubmissionRelated as { id?: string } | undefined)?.id;
-
-    if (typeof formSubmissionId === 'string' && formSubmissionId.length > 0) {
-      try {
-        const submission = (await payload.findByID({
-          collection: 'form-submissions',
-          id: formSubmissionId,
-        })) as { smtpResults?: unknown[] };
-
-        const subResults = Array.isArray(submission.smtpResults) ? [...submission.smtpResults] : [];
-        subResults.push(newResult);
-
-        await payload.update({
-          collection: 'form-submissions',
-          id: formSubmissionId,
-          data: { smtpResults: subResults } as Record<string, unknown>,
-        });
-      } catch (error: unknown) {
-        payload.logger.error({
-          err: error instanceof Error ? error : new Error(String(error)),
-          msg: `Failed to update form-submission ${formSubmissionId} for bounce`,
-        });
-      }
-    }
-    return true;
-  }
-};
 
 export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
   slug: 'fetchSmtpBounces',
   retries: 0,
+  /**
+   * We selectively auto-delete only the `fetchSmtpBounces` job upon successful completion
+   * to keep the `payload-jobs` collection clean, as this task runs very frequently (every 5 minutes).
+   * We do this here instead of using the global `deleteJobOnComplete: true` in the JobsConfig
+   * to preserve the execution history and observability for other critical workflows.
+   */
+  onSuccess: async ({ job, req }) => {
+    try {
+      if ((typeof job.id === 'string' && job.id.length > 0) || typeof job.id === 'number') {
+        await req.payload.delete({
+          collection: 'payload-jobs',
+          id: job.id,
+        });
+      }
+    } catch (error: unknown) {
+      req.payload.logger.error({
+        err: error instanceof Error ? error : new Error(String(error)),
+        msg: `Failed to auto-delete completed fetchSmtpBounces job: ${String(job.id)}`,
+      });
+    }
+  },
   schedule: [
     {
-      cron: '* * * * *', // Every minute
+      cron: '*/5 * * * *', // Every 5 minutes
       queue: 'default',
       hooks: {
         beforeSchedule: async ({
@@ -312,20 +135,40 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
           const rawEmailString = String(rawEmail);
           const parsedEmail = await simpleParser(rawEmailString);
 
-          const { isSuccess, dsnString } = determineDeliveryStatus(parsedEmail);
+          const { isSuccess, dsnString, recipientBounces } = determineDeliveryStatus(parsedEmail);
           const envId = getOriginalEnvelopeId(parsedEmail);
 
           let matched = false;
 
-          // Standard Payload ID length check (24 chars for ObjectID)
-          if (typeof envId === 'string' && envId.length === 24) {
-            matched = await updateTrackingRecords(
+          const processTrackingUpdate = async (idToMatch: string): Promise<boolean> => {
+            if (recipientBounces.length > 0) {
+              let updatedAny = false;
+              for (const bounce of recipientBounces) {
+                const response = await updateTrackingRecords(
+                  payload,
+                  idToMatch,
+                  bounce.isSuccess,
+                  dsnString,
+                  rawEmailString,
+                  bounce.email,
+                );
+                if (response) updatedAny = true;
+              }
+              return updatedAny;
+            }
+
+            return await updateTrackingRecords(
               payload,
-              envId,
+              idToMatch,
               isSuccess,
               dsnString,
               rawEmailString,
             );
+          };
+
+          // Process if a valid envId was extracted
+          if (typeof envId === 'string' && envId.length > 0) {
+            matched = await processTrackingUpdate(envId);
           }
 
           // Fallback matching if Original-Envelope-Id matching fails or doesn't exist
@@ -383,19 +226,13 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
                 const foundMatch = extractedIds.some((id) => {
                   // Only match if the ID appears as a complete token, not as a substring
                   const regex = new RegExp(
-                    `\\b${id.replaceAll(/[.*+?^${}()|[\\]\\\\]/g, String.raw`\\$&`)}\\b`,
+                    `\\b${id.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\\$&`)}\\b`,
                   );
                   return regex.test(stringifiedResults);
                 });
 
                 if (foundMatch) {
-                  matched = await updateTrackingRecords(
-                    payload,
-                    String(outgoingDocument.id),
-                    isSuccess,
-                    dsnString,
-                    rawEmailString,
-                  );
+                  matched = await processTrackingUpdate(String(outgoingDocument.id));
 
                   if (matched) {
                     logger.info(
