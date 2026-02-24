@@ -1,7 +1,8 @@
 'use client';
 
-import { LOCALIZED_SMTP_LABELS } from '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-shared';
-import { useField, useTranslation } from '@payloadcms/ui';
+import { LOCALIZED_SMTP_LABELS } from '@/features/payload-cms/payload-cms/components/smtp-results/constants';
+import { useSmtpTranslation } from '@/features/payload-cms/payload-cms/components/smtp-results/use-smtp-translation';
+import { useField } from '@payloadcms/ui';
 import React from 'react';
 
 export const RawSmtpResultsField: React.FC<{
@@ -10,11 +11,7 @@ export const RawSmtpResultsField: React.FC<{
 }> = ({ path, label }) => {
   const { value } = useField<Record<string, unknown> | null | undefined>({ path });
 
-  const { i18n } = useTranslation();
-  const langRaw = i18n.language;
-  const currentLang = typeof langRaw === 'string' && langRaw.length > 0 ? langRaw : 'de';
-  const isValidLang = currentLang === 'en' || currentLang === 'de' || currentLang === 'fr';
-  const lang: 'en' | 'de' | 'fr' = isValidLang ? currentLang : 'de';
+  const { lang } = useSmtpTranslation();
 
   const labels = LOCALIZED_SMTP_LABELS[lang];
 

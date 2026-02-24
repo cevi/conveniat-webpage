@@ -1,7 +1,7 @@
 import type {
   ParsedDsnInfo,
   SmtpResult,
-} from '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-shared';
+} from '@/features/payload-cms/payload-cms/components/smtp-results/types';
 import type { FieldHook } from 'payload';
 
 export const parseDsnFromText = (raw: string): ParsedDsnInfo => {
