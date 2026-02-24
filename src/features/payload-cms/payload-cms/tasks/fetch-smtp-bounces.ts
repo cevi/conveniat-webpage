@@ -241,7 +241,7 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
   },
   schedule: [
     {
-      cron: '* * * * *', // Every minute
+      cron: '*/5 * * * *', // Every 5 minutes
       queue: 'default',
       hooks: {
         beforeSchedule: async ({
