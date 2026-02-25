@@ -121,10 +121,19 @@ export const JobTable: React.FC<JobTableProperties> = ({
             <input
               type="text"
               placeholder="Filter tasks..."
-              className="block w-full rounded-md border border-zinc-200 bg-white py-1.5 pr-3 pl-9 text-xs transition-all placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none dark:border-zinc-800 dark:bg-transparent dark:text-white dark:placeholder:text-zinc-600 dark:focus:border-white"
+              className="block w-full rounded-md border border-zinc-200 bg-white py-1.5 pr-8 pl-9 text-xs transition-all placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none dark:border-zinc-800 dark:bg-transparent dark:text-white dark:placeholder:text-zinc-600 dark:focus:border-white"
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
             />
+            {searchQuery !== '' && (
+              <button
+                type="button"
+                className="absolute inset-y-0 right-0 flex cursor-pointer items-center border-none bg-transparent pr-3 pl-2 text-zinc-400 transition-colors hover:text-zinc-900 focus:outline-none dark:text-zinc-500 dark:hover:text-zinc-300"
+                onClick={() => setSearchQuery('')}
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
@@ -137,18 +146,6 @@ export const JobTable: React.FC<JobTableProperties> = ({
                   onClick={() => setStatusFilter(statusFilter === status ? undefined : status)}
                 />
               ),
-            )}
-
-            {(statusFilter !== undefined || searchQuery !== '') && (
-              <button
-                onClick={() => {
-                  setStatusFilter(undefined);
-                  setSearchQuery('');
-                }}
-                className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-zinc-200 px-2.5 py-1 text-xs font-bold text-zinc-500 transition-colors hover:bg-zinc-50 hover:text-zinc-900 dark:border-zinc-800 dark:text-zinc-400 dark:hover:bg-white/5 dark:hover:text-white"
-              >
-                Clear all <X className="h-3.5 w-3.5" />
-              </button>
             )}
           </div>
 
