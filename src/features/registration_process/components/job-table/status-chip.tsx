@@ -24,8 +24,6 @@ export const StatusChip: React.FC<{
     >
       {active ? <Plus className="h-3 w-3 rotate-45" /> : <Plus className="h-3 w-3" />}
       <span>{config.label}</span>
-      {active && <span className="ml-1 h-3.5 w-px bg-white/20 dark:bg-black/20" />}
-      {active && <span className="ml-0.5 text-[10px] italic opacity-80">active</span>}
     </button>
   );
 };
