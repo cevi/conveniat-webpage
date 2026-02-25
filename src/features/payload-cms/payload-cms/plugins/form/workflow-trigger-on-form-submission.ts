@@ -58,7 +58,13 @@ export const workflowTriggerOnFormSubmission: CollectionAfterChangeHook<FormSubm
 
     await req.payload.jobs.queue({
       workflow: form.workflow as keyof TypedJobs['workflows'],
-      input: { input: inputData },
+      input: {
+        input: {
+          ...inputData,
+          formSubmissionId: doc.id,
+          locale: req.locale ?? 'en',
+        },
+      },
     });
 
     event['status'] = 'success';

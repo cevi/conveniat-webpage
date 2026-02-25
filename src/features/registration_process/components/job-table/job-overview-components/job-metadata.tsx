@@ -22,7 +22,7 @@ export const JobMetadata: React.FC<JobMetadataProperties> = ({ job }) => {
           label="Created"
           value={new Date(job.createdAt).toLocaleString()}
         />
-        {job.completedAt !== undefined && (
+        {job.completedAt !== undefined && job.completedAt !== null && (
           <DetailRow
             icon={Clock}
             label="Completed"

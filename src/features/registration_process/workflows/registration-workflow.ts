@@ -118,7 +118,25 @@ export const registrationWorkflow: WorkflowConfig<'registrationWorkflow'> = {
         userId: currentUserId,
       },
     });
-    await tasks.confirmationMessage('5', {
+
+    // Only send temporary confirmation if email is present in the input (from form submission)
+    if (
+      'email' in workflowInput &&
+      typeof workflowInput.email === 'string' &&
+      workflowInput.email.length > 0
+    ) {
+      await tasks.temporaryConfirmationMessage('5', {
+        input: {
+          email: workflowInput.email,
+          ...(typeof workflowInput.formSubmissionId === 'string'
+            ? { formSubmissionId: workflowInput.formSubmissionId }
+            : {}),
+          ...(typeof workflowInput.locale === 'string' ? { locale: workflowInput.locale } : {}),
+        },
+      });
+    }
+
+    await tasks.confirmationMessage('6', {
       input: {
         userId: currentUserId,
       },

@@ -25,8 +25,12 @@ const JobStatusIndicator: React.FC<{ job: RegistrationJob }> = ({ job }) => {
 
   if (job.hasError === true) status = 'failed';
   else if (isCurrentlyBlocked) status = 'awaiting_approval';
-  else if (job.completedAt !== undefined) status = 'completed';
+  else if (job.completedAt !== undefined && job.completedAt !== null) status = 'completed';
   else if (job.processing === true) status = 'processing';
+  else {
+    const lastLog = job.log?.at(-1);
+    if (lastLog?.state === 'failed') status = 'retrying';
+  }
 
   const config = STATUS_CONFIG[status];
   const Icon = config.icon;

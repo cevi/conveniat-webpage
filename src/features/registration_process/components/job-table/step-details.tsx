@@ -36,10 +36,12 @@ export const StepDetails: React.FC<StepDetailsProperties> = ({ step }) => {
             icon={Calendar}
             label="Executed"
             value={
-              step.executedAt === undefined ? 'Pending' : new Date(step.executedAt).toLocaleString()
+              step.executedAt === undefined || step.executedAt === null
+                ? 'Pending'
+                : new Date(step.executedAt).toLocaleString()
             }
           />
-          {step.completedAt !== undefined && (
+          {step.completedAt !== undefined && step.completedAt !== null && (
             <DetailRow
               icon={Clock}
               label="Completed"

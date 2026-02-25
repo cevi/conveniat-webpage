@@ -37,7 +37,7 @@ export const TriggerRegistrationForm: React.FC<TriggerRegistrationFormProperties
   });
   const [mode, setMode] = useState<'id' | 'details'>('id');
 
-  const handleSubmit = (event: React.FormEvent): void => {
+  const handleSubmit = async (event: React.FormEvent): Promise<void> => {
     event.preventDefault();
 
     let submitPeopleId: string | undefined = undefined;
@@ -45,11 +45,28 @@ export const TriggerRegistrationForm: React.FC<TriggerRegistrationFormProperties
       submitPeopleId = peopleId;
     }
 
-    void onSubmit({
-      mode,
-      peopleId: submitPeopleId,
-      details: mode === 'details' ? details : undefined,
-    });
+    try {
+      await onSubmit({
+        mode,
+        peopleId: submitPeopleId,
+        details: mode === 'details' ? details : undefined,
+      });
+
+      // Clear the form upon success
+      if (mode === 'id') {
+        setPeopleId('');
+      } else {
+        setDetails({
+          firstName: '',
+          lastName: '',
+          nickname: '',
+          email: '',
+          birthDate: '',
+        });
+      }
+    } catch {
+      // Handled upstream, nothing to do here
+    }
   };
 
   return (
@@ -88,7 +105,7 @@ export const TriggerRegistrationForm: React.FC<TriggerRegistrationFormProperties
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-6">
+      <form onSubmit={(event) => void handleSubmit(event)} className="grid grid-cols-1 gap-6">
         {mode === 'id' ? (
           <div className="animate-in fade-in slide-in-from-top-1 duration-300">
             <input

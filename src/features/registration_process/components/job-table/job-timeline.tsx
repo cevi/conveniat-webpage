@@ -115,7 +115,7 @@ export const JobTimeline: React.FC<JobTimelineProperties> = ({
               <div className="flex flex-col pt-1">
                 <div className="flex items-center gap-2">
                   <span className={cn('text-sm font-bold', textClasses)}>{label}</span>
-                  {lastEntry.completedAt !== undefined && (
+                  {lastEntry.completedAt !== undefined && lastEntry.completedAt !== null && (
                     <Badge
                       variant="secondary"
                       className="bg-zinc-100 text-[10px] text-zinc-500 dark:bg-zinc-800"
@@ -129,7 +129,7 @@ export const JobTimeline: React.FC<JobTimelineProperties> = ({
                 </div>
 
                 <div className="mt-1 text-xs text-zinc-500">
-                  {lastEntry.executedAt !== undefined && (
+                  {lastEntry.executedAt !== undefined && lastEntry.executedAt !== null && (
                     <span title={new Date(lastEntry.executedAt).toLocaleString()}>
                       Started{' '}
                       {formatDistanceToNow(new Date(lastEntry.executedAt), { addSuffix: true })}
@@ -153,7 +153,7 @@ export const JobTimeline: React.FC<JobTimelineProperties> = ({
                   const isSubSelected = selectedStepIndex === realIndex;
                   // Only show executedAt time or similar for retries
                   const retryTime =
-                    entry.executedAt === undefined
+                    entry.executedAt === undefined || entry.executedAt === null
                       ? ''
                       : new Date(entry.executedAt).toLocaleTimeString([], {
                           hour: '2-digit',
