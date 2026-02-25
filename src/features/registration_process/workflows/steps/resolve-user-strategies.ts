@@ -1,4 +1,5 @@
-import { HITOBITO_CONFIG, Hitobito } from '@/features/registration_process/hitobito-api';
+import { HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api';
+import type { Hitobito } from '@/features/registration_process/hitobito-api/index';
 import type { ResolveUserInput } from '@/features/registration_process/hitobito-api/schemas';
 import type { MatchCandidateResult } from '@/features/registration_process/hitobito-api/services/matcher.service';
 import type { Logger } from '@/features/registration_process/hitobito-api/types';
@@ -6,6 +7,7 @@ import type { Logger } from '@/features/registration_process/hitobito-api/types'
 export interface StrategyContext {
   logger: Logger;
   input: ResolveUserInput;
+  hitobito: Hitobito;
 }
 
 export type StrategyResult =
@@ -26,11 +28,9 @@ export const resolveById = ({ input }: StrategyContext): StrategyResult => {
 
 export const resolveBySearch = async ({
   input,
-  logger,
+  hitobito,
 }: StrategyContext): Promise<StrategyResult> => {
   if (!('email' in input)) return undefined;
-
-  const hitobito = Hitobito.create(HITOBITO_CONFIG, logger);
 
   const queries = [
     [input.firstName, input.lastName, input.email, 'nickname' in input ? input.nickname : undefined]
@@ -91,11 +91,9 @@ export const resolveBySearch = async ({
 
 export const resolveByEmailLookup = async ({
   input,
-  logger,
+  hitobito,
 }: StrategyContext): Promise<StrategyResult> => {
   if (!('email' in input)) return undefined;
-
-  const hitobito = Hitobito.create(HITOBITO_CONFIG, logger);
   const result = await hitobito.people.lookupByEmail({ email: input.email });
   if (result !== undefined) {
     return { peopleId: result.id, status: 'found', reason: 'Matched by email API lookup' };
@@ -106,10 +104,9 @@ export const resolveByEmailLookup = async ({
 export const createNewUser = async ({
   input,
   logger,
+  hitobito,
 }: StrategyContext): Promise<StrategyResult> => {
   if (!('email' in input)) return undefined;
-
-  const hitobito = Hitobito.create(HITOBITO_CONFIG, logger);
 
   // 1. Guarded Transition: Check if user already exists before registration
   const existing = await hitobito.people.lookupByEmail({ email: input.email });

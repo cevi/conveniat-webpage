@@ -119,6 +119,7 @@ export class HitobitoClient {
       : this.buildUrl(this.config.baseUrl, urlOrPath, options.params);
 
     const headers = new Headers(options.headers);
+
     if (this.config.browserCookie.length > 0) {
       headers.set('Cookie', this.config.browserCookie);
     }

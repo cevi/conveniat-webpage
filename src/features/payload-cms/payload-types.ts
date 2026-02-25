@@ -158,7 +158,6 @@ export interface Config {
       cleanupTemporaryRoles: TaskCleanupTemporaryRoles;
       ensureGroupMembership: TaskEnsureGroupMembership;
       ensureEventMembership: TaskEnsureEventMembership;
-      temporaryConfirmationMessage: TaskTemporaryConfirmationMessage;
       confirmationMessage: TaskConfirmationMessage;
       fetchSmtpBounces: TaskFetchSmtpBounces;
       inline: {
@@ -2704,7 +2703,6 @@ export interface PayloadJob {
           | 'cleanupTemporaryRoles'
           | 'ensureGroupMembership'
           | 'ensureEventMembership'
-          | 'temporaryConfirmationMessage'
           | 'confirmationMessage'
           | 'fetchSmtpBounces';
         taskID: string;
@@ -2749,7 +2747,6 @@ export interface PayloadJob {
         | 'cleanupTemporaryRoles'
         | 'ensureGroupMembership'
         | 'ensureEventMembership'
-        | 'temporaryConfirmationMessage'
         | 'confirmationMessage'
         | 'fetchSmtpBounces'
       )
@@ -4718,7 +4715,7 @@ export interface RegistrationManagement {
   /**
    * Email sent to the helper after registration. This email confirms a provisional registration. The final confirmation is sent by the responsible department.
    */
-  temporaryConfirmationEmail?: {
+  confirmationEmail?: {
     root: {
       type: string;
       children: {
@@ -4733,6 +4730,10 @@ export interface RegistrationManagement {
     };
     [k: string]: unknown;
   } | null;
+  /**
+   * Session cookie for the hitobito API. Highly sensitive, write-only. Value will never be shown after saving. Leave empty to keep the current value. Type "CLEAR" to delete the cookie.
+   */
+  browserCookie?: string | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -4930,7 +4931,8 @@ export interface AllChatsManagementSelect<T extends boolean = true> {
  * via the `definition` "registration-management_select".
  */
 export interface RegistrationManagementSelect<T extends boolean = true> {
-  temporaryConfirmationEmail?: T;
+  confirmationEmail?: T;
+  browserCookie?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
@@ -5071,25 +5073,13 @@ export interface TaskEnsureEventMembership {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "TaskTemporaryConfirmationMessage".
- */
-export interface TaskTemporaryConfirmationMessage {
-  input: {
-    email: string;
-    formSubmissionId?: string | null;
-    locale?: string | null;
-  };
-  output: {
-    sent?: boolean | null;
-  };
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskConfirmationMessage".
  */
 export interface TaskConfirmationMessage {
   input: {
-    userId: string;
+    email: string;
+    formSubmissionId?: string | null;
+    locale?: string | null;
   };
   output: {
     sent?: boolean | null;

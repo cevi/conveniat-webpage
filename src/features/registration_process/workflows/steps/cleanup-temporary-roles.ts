@@ -1,4 +1,4 @@
-import { Hitobito, HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api';
+import { HITOBITO_CONFIG, getHitobito } from '@/features/registration_process/hitobito-api';
 import type { TaskConfig } from 'payload';
 
 export const cleanupTemporaryRolesStep: TaskConfig<{
@@ -12,7 +12,7 @@ export const cleanupTemporaryRolesStep: TaskConfig<{
   handler: async ({ input, req }) => {
     const { logger } = req.payload;
     const { userId } = input;
-    const hitobito = Hitobito.create(HITOBITO_CONFIG, logger);
+    const hitobito = await getHitobito(req.payload, logger);
 
     logger.info(`Cleaning up temporary roles for user ${userId}...`);
 

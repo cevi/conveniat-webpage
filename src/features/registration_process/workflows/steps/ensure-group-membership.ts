@@ -1,7 +1,7 @@
 import {
   EXTERNAL_ROLE_TYPE,
-  Hitobito,
   HITOBITO_CONFIG,
+  getHitobito,
 } from '@/features/registration_process/hitobito-api';
 import type { TaskConfig } from 'payload';
 
@@ -22,7 +22,7 @@ export const ensureGroupMembershipStep: TaskConfig<{
     if (groupId === undefined || groupId === '')
       throw new Error('Configuration Error: HELPER_GROUP is missing');
 
-    const hitobito = Hitobito.create(HITOBITO_CONFIG, logger);
+    const hitobito = await getHitobito(req.payload, logger);
 
     logger.info(`Ensuring group membership for user ${userId} in group ${groupId}...`);
 

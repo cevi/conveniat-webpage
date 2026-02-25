@@ -22,7 +22,6 @@ import { createUserStep } from '@/features/registration_process/workflows/steps/
 import { ensureEventMembershipStep } from '@/features/registration_process/workflows/steps/ensure-event-membership';
 import { ensureGroupMembershipStep } from '@/features/registration_process/workflows/steps/ensure-group-membership';
 import { resolveUserStep } from '@/features/registration_process/workflows/steps/resolve-user';
-import { temporaryConfirmationMessageStep } from '@/features/registration_process/workflows/steps/temporary-confirmation-message';
 import type { RoutableConfig } from '@/types/types';
 import { redirectsTranslations } from '@payloadcms/plugin-redirects';
 import path from 'node:path';
@@ -131,12 +130,16 @@ const jobsConfig: JobsConfig = {
     cleanupTemporaryRolesStep,
     ensureGroupMembershipStep,
     ensureEventMembershipStep,
-    temporaryConfirmationMessageStep,
     confirmationMessageStep,
     fetchSmtpBouncesTask,
   ],
   workflows: [registrationWorkflow],
   autoRun: [
+    {
+      cron: '*/10 * * * * *', // Every 10 seconds
+      limit: 10,
+      queue: 'workflows',
+    },
     {
       cron: '*/10 * * * * *', // Every 10 seconds
       limit: 10,

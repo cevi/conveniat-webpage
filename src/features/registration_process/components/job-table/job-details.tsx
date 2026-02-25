@@ -110,18 +110,21 @@ export const JobDetails: React.FC<JobDetailsProperties> = ({ job }) => {
             className="text-[10px] tracking-wider uppercase"
           >
             {((): string => {
+              if (job.hasError === true) return 'Failed';
+
               const taskKeys = Object.keys(job.taskStatus ?? {});
               const lastTask = taskKeys.at(-1);
               const isCurrentlyBlocked = lastTask === 'blockJob';
 
-              if (job.hasError === true) return 'Failed';
               if (isCurrentlyBlocked) return 'Await Approval';
               if (job.completedAt !== undefined && job.completedAt !== null) return 'Completed';
-              if (job.processing === true) return 'Processing';
 
-              // If last log entry was a failure, but job itself is not failed, it's retrying
+              // If last log entry was a failure, but job is not definitively failed (job.hasError = false),
+              // it means Payload is passively queueing it for a retry.
               const lastLog = job.log?.at(-1);
               if (lastLog?.state === 'failed') return 'Retrying';
+
+              if (job.processing === true) return 'Processing';
 
               return 'Queued';
             })()}

@@ -20,7 +20,6 @@ export const environmentVariables = createEnv({
     HITOBITO_BASE_URL: z.string().url(),
     HITOBITO_FORWARD_URL: z.string().url(),
     API_TOKEN: z.string().default(''),
-    BROWSER_COOKIE: z.string().default(''),
     HELPER_GROUP: z.string().optional(),
     EVENT_ID: z.string().optional(),
     GROUPS_WITH_API_ACCESS: z.string().transform((value) =>

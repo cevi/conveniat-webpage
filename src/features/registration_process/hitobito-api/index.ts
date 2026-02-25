@@ -34,6 +34,7 @@ export class Hitobito {
 export { FatalError } from '@/features/registration_process/hitobito-api/client';
 export {
   EXTERNAL_ROLE_TYPE,
+  getHitobito,
   HITOBITO_CONFIG,
 } from '@/features/registration_process/hitobito-api/config';
 export * from '@/features/registration_process/hitobito-api/schemas';

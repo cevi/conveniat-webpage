@@ -23,6 +23,6 @@ export interface RegistrationWorkflowTasks {
 
   confirmationMessage: (
     taskId: string,
-    options: { input: { userId: string } },
+    options: { input: { email: string; formSubmissionId?: string; locale?: string } },
   ) => Promise<{ sent: boolean }>;
 }

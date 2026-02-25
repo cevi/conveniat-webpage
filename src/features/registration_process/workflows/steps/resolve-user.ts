@@ -1,7 +1,7 @@
 import {
   EXTERNAL_ROLE_TYPE,
   HITOBITO_CONFIG,
-  Hitobito,
+  getHitobito,
 } from '@/features/registration_process/hitobito-api';
 import type { PersonAttributes } from '@/features/registration_process/hitobito-api/schemas';
 import { poll } from '@/features/registration_process/hitobito-api/utils';
@@ -40,9 +40,9 @@ export const resolveUserStep: TaskConfig<'resolveUser'> = {
   ],
   handler: async ({ input, req }) => {
     const { logger } = req.payload;
-    const hitobito = Hitobito.create(HITOBITO_CONFIG, logger);
-    const context = { logger, input };
-    const resolutionStrategies = [resolveById, resolveBySearch, resolveByEmailLookup];
+    const hitobito = await getHitobito(req.payload, logger);
+    const context = { logger, input, hitobito };
+    const resolutionStrategies = [resolveById, resolveByEmailLookup, resolveBySearch];
 
     const tryHandleSupportGroupWorkaround = async (
       candidateId: string,

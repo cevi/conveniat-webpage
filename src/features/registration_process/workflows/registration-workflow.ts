@@ -17,6 +17,7 @@ interface BlockJobOutput {
 
 export const registrationWorkflow: WorkflowConfig<'registrationWorkflow'> = {
   slug: 'registrationWorkflow',
+  queue: 'workflows',
   retries: 1,
   inputSchema: [{ name: 'input', type: 'json', required: true }],
   handler: async ({ job, tasks }) => {
@@ -119,13 +120,13 @@ export const registrationWorkflow: WorkflowConfig<'registrationWorkflow'> = {
       },
     });
 
-    // Only send temporary confirmation if email is present in the input (from form submission)
+    // Only send confirmation if email is present in the input (from form submission)
     if (
       'email' in workflowInput &&
       typeof workflowInput.email === 'string' &&
       workflowInput.email.length > 0
     ) {
-      await tasks.temporaryConfirmationMessage('5', {
+      await tasks.confirmationMessage('5', {
         input: {
           email: workflowInput.email,
           ...(typeof workflowInput.formSubmissionId === 'string'
@@ -135,11 +136,5 @@ export const registrationWorkflow: WorkflowConfig<'registrationWorkflow'> = {
         },
       });
     }
-
-    await tasks.confirmationMessage('6', {
-      input: {
-        userId: currentUserId,
-      },
-    });
   },
 };

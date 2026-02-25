@@ -29,6 +29,8 @@ const JobStatusIndicator: React.FC<{ job: RegistrationJob }> = ({ job }) => {
   else if (job.processing === true) status = 'processing';
   else {
     const lastLog = job.log?.at(-1);
+    // Only show retrying if it's currently marked as failed in logs BUT the job itself
+    // hasn't officially flatlined (hasError is false)
     if (lastLog?.state === 'failed') status = 'retrying';
   }
 
