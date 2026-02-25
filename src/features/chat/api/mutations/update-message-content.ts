@@ -94,42 +94,42 @@ export const updateMessageContent = trpcBaseProcedure
         await prisma.message.create({
           data: nextQuestion
             ? {
-                chatId: message.chatId,
-                senderId: user.uuid,
-                type: MessageType.ALERT_QUESTION,
-                contentVersions: {
-                  create: {
-                    payload: {
-                      question: nextQuestion.question,
-                      // Provide option objects with ids so the UI can send back option ids
-                      options: (nextQuestion.options || []).map((o: any) => ({ id: o.id ?? null, option: o.option })),
-                      selectedOption: undefined,
-                      questionRefId: nextQuestion.id,
-                    },
-                    revision: 0,
+              chatId: message.chatId,
+              senderId: user.uuid,
+              type: MessageType.ALERT_QUESTION,
+              contentVersions: {
+                create: {
+                  payload: {
+                    question: nextQuestion.question,
+                    // Provide option objects with ids so the UI can send back option ids
+                    options: (nextQuestion.options || []).map((o: any) => ({ id: o.id ?? null, option: o.option })),
+                    selectedOption: undefined,
+                    questionRefId: nextQuestion.id,
                   },
-                },
-                messageEvents: {
-                  create: [{ type: 'STORED' }],
-                },
-              }
-            : {
-                chatId: message.chatId,
-                // senderId omitted (defaults to null/system)
-                type: MessageType.ALERT_RESPONSE,
-                contentVersions: {
-                  create: {
-                    payload: {
-                      message: alertSettings.finalResponseMessage,
-                      phoneNumber: alertSettings.emergencyPhoneNumber,
-                    },
-                    revision: 0,
-                  },
-                },
-                messageEvents: {
-                  create: [{ type: 'STORED' }],
+                  revision: 0,
                 },
               },
+              messageEvents: {
+                create: [{ type: 'STORED' }],
+              },
+            }
+            : {
+              chatId: message.chatId,
+              // senderId omitted (defaults to null/system)
+              type: MessageType.ALERT_RESPONSE,
+              contentVersions: {
+                create: {
+                  payload: {
+                    message: alertSettings.finalResponseMessage,
+                    phoneNumber: alertSettings.emergencyPhoneNumber,
+                  },
+                  revision: 0,
+                },
+              },
+              messageEvents: {
+                create: [{ type: 'STORED' }],
+              },
+            },
         });
       }
     }
