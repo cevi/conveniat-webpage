@@ -118,44 +118,54 @@ export const parseSmtpResultsHook: FieldHook = ({ value }) => {
   if (!Array.isArray(value)) return value as unknown;
 
   return value.map((result: SmtpResult) => {
-    if (result.bounceReport === true) {
-      let rawText: string | undefined;
-      if (typeof result.response?.response === 'string') {
-        rawText = result.response.response;
-      } else if (typeof result.error === 'string') {
-        rawText = result.error;
-      }
-
-      if (typeof rawText === 'string' && rawText.length > 0) {
-        const parsedDsns = parseDsnsFromText(rawText);
-
-        let parsedDsn =
-          parsedDsns.length === 1
-            ? parsedDsns[0]
-            : parsedDsns.find(
-                (d) =>
-                  d.finalRecipient?.toLowerCase() === result.to.toLowerCase() ||
-                  d.originalRecipient?.toLowerCase() === result.to.toLowerCase(),
-              );
-
-        parsedDsn ??= parsedDsns[0];
-
-        if (parsedDsn !== undefined) {
-          let derivedSuccess = result.success;
-          if (parsedDsn.action === 'failed') {
-            derivedSuccess = false;
-          } else if (parsedDsn.action === 'delivered' || parsedDsn.action === 'relayed') {
-            derivedSuccess = true;
-          }
-
-          return {
-            ...result,
-            parsedDsn,
-            success: derivedSuccess,
-          };
-        }
-      }
+    if (result.bounceReport !== true) {
+      return result;
     }
-    return result;
+
+    let rawText: string | undefined;
+    if (typeof result.response?.response === 'string') {
+      rawText = result.response.response;
+    } else if (typeof result.error === 'string') {
+      rawText = result.error;
+    }
+
+    if (typeof rawText !== 'string' || rawText.length === 0) {
+      return result;
+    }
+
+    const parsedDsns = parseDsnsFromText(rawText);
+
+    const normalizedTo =
+      typeof result.to === 'string' && result.to.length > 0 ? result.to.toLowerCase() : undefined;
+
+    let parsedDsn =
+      parsedDsns.length === 1
+        ? parsedDsns[0]
+        : parsedDsns.find((d) => {
+            if (normalizedTo === undefined) return false;
+            return (
+              d.finalRecipient?.toLowerCase() === normalizedTo ||
+              d.originalRecipient?.toLowerCase() === normalizedTo
+            );
+          });
+
+    parsedDsn ??= parsedDsns[0];
+
+    if (parsedDsn === undefined) {
+      return result;
+    }
+
+    let derivedSuccess = result.success;
+    if (parsedDsn.action === 'failed') {
+      derivedSuccess = false;
+    } else if (parsedDsn.action === 'delivered' || parsedDsn.action === 'relayed') {
+      derivedSuccess = true;
+    }
+
+    return {
+      ...result,
+      parsedDsn,
+      success: derivedSuccess,
+    };
   });
 };
