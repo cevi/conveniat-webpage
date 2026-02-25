@@ -6,6 +6,7 @@ import config from '@payload-config';
 import type { Prisma } from '@prisma/client';
 import { ChatMembershipPermission, ChatType, MessageEventType, MessageType } from '@prisma/client';
 import { getPayload } from 'payload';
+import { getAlertSettingsCached } from '@/features/payload-cms/api/cached-globals';
 import { z } from 'zod';
 
 const GeolocationCoordinatesSchema = z.object({
@@ -36,12 +37,8 @@ const resolveEmergencyChatName = (locale: string, nickname: string): string => {
 
 export const emergencyRouter = createTRPCRouter({
   getAlertSettings: publicProcedure.query(async ({ ctx }) => {
-    const payloadAPI = await getPayload({ config });
-    return payloadAPI.findGlobal({
-      slug: 'alert_settings',
-      locale: ctx.locale,
-      fallbackLocale: 'de',
-    });
+    // Use cached getter to ensure option ids and branching metadata are included
+    return await getAlertSettingsCached(ctx.locale, false);
   }),
 
   newAlert: trpcBaseProcedure
@@ -130,9 +127,8 @@ export const emergencyRouter = createTRPCRouter({
             create: {
               payload: {
                 question: firstQuestion.question,
-                options: firstQuestion.options
-                  .map((o) => o.option as string | undefined)
-                  .filter((o): o is string => o !== undefined),
+                // Provide option objects including ids so the client can send back option ids
+                options: (firstQuestion.options || []).map((o) => ({ id: (o as any).id ?? null, option: (o as any).option })),
                 selectedOption: undefined,
                 questionRefId: firstQuestion.id,
               },

@@ -20,6 +20,13 @@ export const AlertSettingsGlobal: GlobalConfig = {
       },
       fields: [
         {
+          name: 'key',
+          type: 'text',
+          localized: false,
+          required: false,
+          admin: { description: 'Optional internal key/name for this question. Use this to link from options via nextQuestionKey.' },
+        },
+        {
           name: 'question',
           type: 'text',
           localized: true,
@@ -42,6 +49,16 @@ export const AlertSettingsGlobal: GlobalConfig = {
               type: 'text',
               localized: true,
               required: true,
+            },
+            {
+              name: 'nextQuestionKey',
+              type: 'text',
+              localized: false,
+              required: false,
+              admin: {
+                description:
+                  'Optional: set to the internal question key (question.key) to target the next question. Prefer using keys for author-friendly linking.',
+              },
             },
           ],
         },

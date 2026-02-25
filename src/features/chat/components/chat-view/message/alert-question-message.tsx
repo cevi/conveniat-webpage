@@ -14,7 +14,8 @@ interface AlertQuestionMessageProperties {
 
 interface QuestionPayload {
   question: string;
-  options: string[];
+  // Options may be simple strings (legacy) or objects with `id` and `option`.
+  options: Array<string | { id?: string | null; option: string }>;
   selectedOption: string | null;
   questionRefId?: string;
 }
@@ -24,6 +25,7 @@ export const AlertQuestionMessage: React.FC<AlertQuestionMessageProperties> = ({
   const payload = message.messagePayload as unknown as QuestionPayload;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [optimisticSelection, setOptimisticSelection] = useState<string | undefined>();
+  const [optimisticSelectionId, setOptimisticSelectionId] = useState<string | undefined>();
 
   const currentSelection = payload.selectedOption ?? optimisticSelection;
   const hasAnswered = !!currentSelection;
@@ -44,15 +46,18 @@ export const AlertQuestionMessage: React.FC<AlertQuestionMessageProperties> = ({
     },
   });
 
-  const handleSelectOption = (option: string): void => {
+  const handleSelectOption = (optionLabel: string, optionId?: string | null): void => {
     if (!canAnswer || isSubmitting) return;
     setIsSubmitting(true);
-    setOptimisticSelection(option);
+    setOptimisticSelection(optionLabel);
+    setOptimisticSelectionId(optionId ?? undefined);
 
     // We need to construct the new payload
     const newPayload = {
       ...payload,
-      selectedOption: option,
+      selectedOption: optionLabel,
+      // send the id when available so server can resolve branching
+      selectedOptionId: optionId ?? undefined,
     };
 
     updateMessageContext.mutate({ messageId: message.id, content: newPayload });
@@ -62,14 +67,16 @@ export const AlertQuestionMessage: React.FC<AlertQuestionMessageProperties> = ({
     <div className="flex min-w-[200px] flex-col space-y-2.5 p-1">
       <h3 className="font-semibold text-[var(--theme-text)]">{payload.question}</h3>
       <div className="flex flex-col space-y-2">
-        {payload.options.map((option) => {
-          const isSelected = currentSelection === option;
+        {payload.options.map((opt) => {
+          const optionLabel = typeof opt === 'string' ? opt : opt.option;
+          const optionId = typeof opt === 'string' ? undefined : opt.id ?? undefined;
+          const isSelected = currentSelection === optionLabel;
           const isSelectable = canAnswer;
 
           return (
             <button
-              key={option}
-              onClick={() => handleSelectOption(option)}
+              key={optionId ?? optionLabel}
+              onClick={() => handleSelectOption(optionLabel, optionId)}
               disabled={!isSelectable && !isSelected}
               className={cn(
                 'group flex items-center space-x-3 rounded-xl border-2 px-4 py-3 text-left transition-all duration-200',
@@ -102,7 +109,7 @@ export const AlertQuestionMessage: React.FC<AlertQuestionMessageProperties> = ({
                   <Circle className="h-0 w-0" />
                 </div>
               )}
-              <span className="text-sm font-medium">{option}</span>
+              <span className="text-sm font-medium">{optionLabel}</span>
             </button>
           );
         })}

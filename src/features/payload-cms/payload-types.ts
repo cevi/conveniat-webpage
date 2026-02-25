@@ -4646,9 +4646,17 @@ export interface AlertSetting {
   id: string;
   questions?:
     | {
+        /**
+         * Optional internal key/name for this question. Use this to link from options via nextQuestionKey.
+         */
+        key?: string | null;
         question: string;
         options: {
           option: string;
+          /**
+           * Optional: set to the internal question key (question.key) to target the next question. Prefer using keys for author-friendly linking.
+           */
+          nextQuestionKey?: string | null;
           id?: string | null;
         }[];
         id?: string | null;
@@ -4849,11 +4857,13 @@ export interface AlertSettingsSelect<T extends boolean = true> {
   questions?:
     | T
     | {
+        key?: T;
         question?: T;
         options?:
           | T
           | {
               option?: T;
+              nextQuestionKey?: T;
               id?: T;
             };
         id?: T;

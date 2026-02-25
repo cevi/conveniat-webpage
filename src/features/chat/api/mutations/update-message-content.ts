@@ -51,7 +51,7 @@ export const updateMessageContent = trpcBaseProcedure
     });
 
     // Check if this was an alert question being answered
-    if (message.type === MessageType.ALERT_QUESTION && content['selectedOption']) {
+    if (message.type === MessageType.ALERT_QUESTION && (content['selectedOption'] || content['selectedOptionId'])) {
       const { getPayload } = await import('payload');
       const config = await import('@payload-config');
       const payloadAPI = await getPayload({ config: config.default });
@@ -66,7 +66,29 @@ export const updateMessageContent = trpcBaseProcedure
       const currentQuestionIndex = questions.findIndex((q) => q.id === content['questionRefId']);
 
       if (currentQuestionIndex !== -1) {
-        const nextQuestion = questions[currentQuestionIndex + 1];
+        // Identify selected option by id if provided, otherwise try to match by label (backwards compatibility)
+        const selectedOptionId = content['selectedOptionId'] ?? null;
+        const selectedOptionLabel = content['selectedOption'] ?? null;
+
+        const currentQuestion = questions[currentQuestionIndex];
+        const selectedOption = (currentQuestion.options || []).find((o) => {
+          if (selectedOptionId && o.id) return o.id === selectedOptionId;
+          if (selectedOptionLabel) return (o.option as string | undefined) === selectedOptionLabel;
+          return false;
+        });
+
+        // Resolve next question from selected option's mapping using `nextQuestionKey` (admin-provided key)
+        const nextQuestionKeyFromOption = selectedOption ? (selectedOption as any).nextQuestionKey ?? null : null;
+
+        let nextQuestion = null as any;
+        if (nextQuestionKeyFromOption) {
+          nextQuestion = questions.find((q: any) => q.key === nextQuestionKeyFromOption) ?? null;
+        }
+
+        // Fallback: linear progression
+        if (!nextQuestion) {
+          nextQuestion = questions[currentQuestionIndex + 1] ?? null;
+        }
 
         // Send next question OR final response
         await prisma.message.create({
@@ -79,9 +101,8 @@ export const updateMessageContent = trpcBaseProcedure
                   create: {
                     payload: {
                       question: nextQuestion.question,
-                      options: nextQuestion.options
-                        .map((o) => o.option as string | undefined)
-                        .filter((o): o is string => o !== undefined),
+                      // Provide option objects with ids so the UI can send back option ids
+                      options: (nextQuestion.options || []).map((o: any) => ({ id: o.id ?? null, option: o.option })),
                       selectedOption: undefined,
                       questionRefId: nextQuestion.id,
                     },

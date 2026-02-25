@@ -1,4 +1,4 @@
-import type { Footer, Header, SEO } from '@/features/payload-cms/payload-types';
+import type { Footer, Header, SEO, AlertSetting } from '@/features/payload-cms/payload-types';
 import type { Locale } from '@/types/types';
 import { withSpan } from '@/utils/tracing-helpers';
 import config from '@payload-config';
@@ -48,3 +48,21 @@ export const getSEOCached = cache(async (): Promise<SEO> => {
     });
   });
 });
+
+/**
+ * Fetches the Alert Settings global with request-level memoization.
+ * Includes option ids and branching metadata (`nextQuestionKey`) so callers
+ * can resolve conditional follow-ups without extra DB calls.
+ */
+export const getAlertSettingsCached = cache(
+  async (locale: Locale, draft: boolean = false): Promise<AlertSetting> => {
+    return await withSpan('getAlertSettingsCached', async () => {
+      const payload = await getPayload({ config });
+      return await payload.findGlobal({
+        slug: 'alert_settings',
+        locale,
+        draft,
+      });
+    });
+  },
+);
