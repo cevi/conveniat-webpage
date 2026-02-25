@@ -1,6 +1,7 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
+import { parseSmtpResultsHook } from '@/features/payload-cms/payload-cms/hooks/parse-smtp-results';
 import type { CollectionConfig } from 'payload';
 
 export const OutgoingEmails: CollectionConfig = {
@@ -107,6 +108,9 @@ export const OutgoingEmails: CollectionConfig = {
             {
               name: 'smtpResults',
               type: 'json',
+              hooks: {
+                afterRead: [parseSmtpResultsHook],
+              },
               admin: {
                 readOnly: true,
                 components: {
@@ -118,6 +122,11 @@ export const OutgoingEmails: CollectionConfig = {
                         (environmentVariables.SMTP_USER.split('@')[1] ?? '').length > 0
                           ? environmentVariables.SMTP_USER.split('@')[1]
                           : 'cevi.tools',
+                      systemEmails: [
+                        typeof environmentVariables.SMTP_USER === 'string'
+                          ? environmentVariables.SMTP_USER
+                          : 'noreply@cevi.tools',
+                      ].filter((email) => email.length > 0),
                     },
                   },
                   Cell: '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-cell',
@@ -138,6 +147,10 @@ export const OutgoingEmails: CollectionConfig = {
               type: 'json',
               admin: {
                 readOnly: true,
+                components: {
+                  Field:
+                    '@/features/payload-cms/payload-cms/components/smtp-results/raw-smtp-results-field',
+                },
               },
             },
             {

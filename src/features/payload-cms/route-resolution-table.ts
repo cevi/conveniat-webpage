@@ -1,6 +1,7 @@
 import BlogPostPage from '@/features/payload-cms/page-layouts/blog-posts';
 import GenericPage from '@/features/payload-cms/page-layouts/generic-page';
 import { TimelinePreviewPage } from '@/features/payload-cms/page-layouts/timeline-preview-page';
+import { collectionsConfig } from '@/features/payload-cms/payload-cms/collections';
 import type {
   Locale,
   LocalizedCollectionComponent,
@@ -8,7 +9,6 @@ import type {
   LocalizedPageType,
   RoutableCollectionConfig,
 } from '@/types/types';
-import { payloadConfig } from '@payload-config';
 import type { CollectionSlug } from 'payload';
 import type React from 'react';
 
@@ -45,8 +45,8 @@ const slugLookup: Record<
   'generic-page': GenericPage,
 };
 
-export const routeResolutionTable: RouteResolutionTable =
-  payloadConfig.collections?.reduce((routes, collection) => {
+export const routeResolutionTable: RouteResolutionTable = collectionsConfig.reduce(
+  (routes, collection) => {
     if ('urlPrefix' in collection) {
       const { urlPrefix, payloadCollection } = collection;
       for (const [locale, prefix] of Object.entries(urlPrefix)) {
@@ -72,7 +72,9 @@ export const routeResolutionTable: RouteResolutionTable =
       }
     }
     return routes;
-  }, {} as RouteResolutionTable) ?? {};
+  },
+  {} as RouteResolutionTable,
+);
 
 /**
  * Maps an url prefix to the corresponding collection slug.

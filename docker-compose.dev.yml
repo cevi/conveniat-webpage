@@ -10,7 +10,7 @@ services:
         - NEXT_PUBLIC_POSTHOG_KEY=phc_QXeG5AHoyxCVCcIse8a2rriQKZgAwkk3vO15Zz0aDud
         - NEXT_PUBLIC_POSTHOG_HOST=https://eu.i.posthog.com
         - POSTHOG_API_KEY=${POSTHOG_API_KEY}
-        - POSTHOG_ENV_ID=${POSTHOG_ENV_ID}
+        - POSTHOG_PROJECT_ID=${POSTHOG_PROJECT_ID}
 
     deploy:
       replicas: 2

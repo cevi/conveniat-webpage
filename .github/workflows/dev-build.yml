@@ -23,7 +23,7 @@ jobs:
       - name: Build Docker Image
         env:
           POSTHOG_API_KEY: ${{ secrets.POSTHOG_API_KEY }}
-          POSTHOG_ENV_ID: ${{ secrets.POSTHOG_ENV_ID }}
+          POSTHOG_PROJECT_ID: ${{ secrets.POSTHOG_PROJECT_ID }}
         run: docker compose -f docker-compose.dev.yml build
 
       - name: Push Docker Image
