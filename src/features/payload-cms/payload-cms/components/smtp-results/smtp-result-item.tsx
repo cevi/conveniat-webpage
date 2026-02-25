@@ -44,8 +44,8 @@ export const SmtpResultItem: React.FC<SmtpResultItemProperties> = ({
   if (result.success === false) hasError = true;
   if (typeof result.error === 'string' && result.error.length > 0) hasError = true;
   let statusLabel: string = '';
-  let statusType: 'empty' | 'pending' | 'success' | 'error' = 'empty';
-  let badgePrefix: 'SMTP' | 'DSN' = 'SMTP';
+  let statusType: 'empty' | 'pending' | 'success' | 'error';
+  let badgePrefix: 'SMTP' | 'DSN';
 
   const isBounce = result.bounceReport === true;
   const historyItems = result._dsnHistory;
