@@ -39,8 +39,8 @@ export const STATUS_CONFIG: Record<
 > = {
   queued: { label: 'Queued', icon: Clock, color: 'text-zinc-400 dark:text-zinc-500' },
   processing: { label: 'In Progress', icon: Circle, color: 'text-blue-500' },
-  completed: { label: 'Done', icon: Circle, color: 'text-emerald-500 fill-emerald-500' },
-  failed: { label: 'Canceled', icon: X, color: 'text-red-500' },
+  completed: { label: 'Completed', icon: Circle, color: 'text-emerald-500 fill-emerald-500' },
+  failed: { label: 'Failed', icon: X, color: 'text-red-500' },
   awaiting_approval: { label: 'Await Approval', icon: AlertTriangle, color: 'text-orange-500' },
 };
 
