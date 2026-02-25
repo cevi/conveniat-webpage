@@ -160,6 +160,7 @@ export interface Config {
       ensureEventMembership: TaskEnsureEventMembership;
       confirmationMessage: TaskConfirmationMessage;
       fetchSmtpBounces: TaskFetchSmtpBounces;
+      checkHitobitoApprovals: TaskCheckHitobitoApprovals;
       inline: {
         input: unknown;
         output: unknown;
@@ -2704,7 +2705,8 @@ export interface PayloadJob {
           | 'ensureGroupMembership'
           | 'ensureEventMembership'
           | 'confirmationMessage'
-          | 'fetchSmtpBounces';
+          | 'fetchSmtpBounces'
+          | 'checkHitobitoApprovals';
         taskID: string;
         input?:
           | {
@@ -2749,6 +2751,7 @@ export interface PayloadJob {
         | 'ensureEventMembership'
         | 'confirmationMessage'
         | 'fetchSmtpBounces'
+        | 'checkHitobitoApprovals'
       )
     | null;
   queue?: string | null;
@@ -5043,6 +5046,9 @@ export interface TaskEnsureGroupMembership {
   };
   output: {
     success?: boolean | null;
+    approvalRequired?: boolean | null;
+    approvalGroupName?: string | null;
+    approvalGroupUrl?: string | null;
   };
 }
 /**
@@ -5090,6 +5096,14 @@ export interface TaskConfirmationMessage {
  * via the `definition` "TaskFetchSmtpBounces".
  */
 export interface TaskFetchSmtpBounces {
+  input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskCheckHitobitoApprovals".
+ */
+export interface TaskCheckHitobitoApprovals {
   input?: unknown;
   output?: unknown;
 }

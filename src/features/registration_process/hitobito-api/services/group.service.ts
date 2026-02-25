@@ -124,6 +124,23 @@ export class GroupService {
         },
       });
 
+      const { extractPendingApprovalGroup } =
+        await import('@/features/registration_process/hitobito-api/html-parser');
+      const pendingApproval = extractPendingApprovalGroup(body);
+
+      if (pendingApproval !== undefined) {
+        this.logger?.info(
+          `Detected pending manual approval for user ${personId} in group ${pendingApproval.groupName}`,
+        );
+        const { ApprovalRequiredError } =
+          await import('@/features/registration_process/hitobito-api/errors');
+        throw new ApprovalRequiredError(
+          `Manual approval required.`,
+          pendingApproval.groupName,
+          pendingApproval.groupUrl,
+        );
+      }
+
       if (response.status >= 400) {
         this.logger?.error(
           `Frontend returned ${response.status} ${response.statusText}. Body preview: ${body.slice(0, 500)}`,

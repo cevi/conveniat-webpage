@@ -7,12 +7,22 @@ import type { TaskConfig } from 'payload';
 
 export const ensureGroupMembershipStep: TaskConfig<{
   input: { userId: string };
-  output: { success: boolean };
+  output: {
+    success: boolean;
+    approvalRequired?: boolean;
+    approvalGroupName?: string;
+    approvalGroupUrl?: string;
+  };
 }> = {
   slug: 'ensureGroupMembership',
   retries: 3,
   inputSchema: [{ name: 'userId', type: 'text', required: true }],
-  outputSchema: [{ name: 'success', type: 'checkbox' }],
+  outputSchema: [
+    { name: 'success', type: 'checkbox' },
+    { name: 'approvalRequired', type: 'checkbox' },
+    { name: 'approvalGroupName', type: 'text' },
+    { name: 'approvalGroupUrl', type: 'text' },
+  ],
   handler: async ({ input, req }) => {
     const { logger } = req.payload;
     const { userId } = input;
@@ -58,9 +68,23 @@ export const ensureGroupMembershipStep: TaskConfig<{
       }
 
       return {
-        output: { success: true },
+        output: { success: true, approvalRequired: false },
       };
     } catch (error) {
+      if ((error as Error).name === 'ApprovalRequiredError') {
+        const approvalError = error as Error & { groupName: string; groupUrl: string };
+        logger.info(
+          `User ${userId} requires Hitobito approval before addition (group ${approvalError.groupUrl}). Pause workflow.`,
+        );
+        return {
+          output: {
+            success: false,
+            approvalRequired: true,
+            approvalGroupName: approvalError.groupName,
+            approvalGroupUrl: approvalError.groupUrl,
+          },
+        };
+      }
       logger.error(`Failed to ensure group membership: ${String(error)}`);
       throw error;
     }

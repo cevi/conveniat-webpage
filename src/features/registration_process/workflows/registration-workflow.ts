@@ -109,11 +109,29 @@ export const registrationWorkflow: WorkflowConfig<'registrationWorkflow'> = {
       throw new Error('[registrationWorkflow] User ID missing after resolution');
     }
 
-    await tasks.ensureGroupMembership('3', {
+    const ensureGrpResult = (await tasks.ensureGroupMembership('3', {
       input: {
         userId: currentUserId,
       },
-    });
+    })) as unknown as {
+      success: boolean;
+      approvalRequired?: boolean;
+      approvalGroupName?: string;
+      approvalGroupUrl?: string;
+    };
+
+    if (ensureGrpResult.approvalRequired === true) {
+      const blockResult = (await tasks.blockJob('6', {
+        input: {
+          workflowSlug: 'registrationWorkflow',
+          originalInput: { ...workflowInput, resolvedUserId: currentUserId },
+          reason: `Manuelle Freigabe in Hitobito ausstehend durch die Gruppe: <a href="https://cevi.hitobito.ch${ensureGrpResult.approvalGroupUrl ?? ''}" target="_blank" rel="noopener noreferrer">${ensureGrpResult.approvalGroupName ?? 'Unbekannte Gruppe'}</a>`,
+        },
+      })) as unknown as BlockJobOutput;
+
+      if (blockResult.blocked === true) return;
+    }
+
     await tasks.ensureEventMembership('4', {
       input: {
         userId: currentUserId,

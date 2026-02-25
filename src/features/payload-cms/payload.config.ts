@@ -12,6 +12,7 @@ import { lexicalEditor } from '@/features/payload-cms/payload-cms/plugins/lexica
 import { redirectsPluginConfiguration } from '@/features/payload-cms/payload-cms/plugins/redirects/redirects-plugin-configuration';
 import { s3StorageConfiguration } from '@/features/payload-cms/payload-cms/plugins/s3-storage-plugin-configuration';
 import { searchPluginConfiguration } from '@/features/payload-cms/payload-cms/plugins/search/search-plugin-configuration';
+import { checkHitobitoApprovalsTask } from '@/features/payload-cms/payload-cms/tasks/check-hitobito-approvals';
 import { fetchSmtpBouncesTask } from '@/features/payload-cms/payload-cms/tasks/fetch-smtp-bounces';
 import { smartphoneBreakpoints } from '@/features/payload-cms/utils/smartphone-breakpoints';
 import { registrationWorkflow } from '@/features/registration_process/workflows/registration-workflow';
@@ -132,6 +133,7 @@ const jobsConfig: JobsConfig = {
     ensureEventMembershipStep,
     confirmationMessageStep,
     fetchSmtpBouncesTask,
+    checkHitobitoApprovalsTask,
   ],
   workflows: [registrationWorkflow],
   autoRun: [
