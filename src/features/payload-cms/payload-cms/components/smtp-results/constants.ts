@@ -39,7 +39,7 @@ export const LOCALIZED_SMTP_LABELS = {
     dsnPending: 'DSN: Unbekannter Status (Ausstehend)',
     dsnEmpty: 'DSN: Keine Daten',
     noResults: 'Keine SMTP-Ergebnisse verfügbar.',
-    details: 'Schweben für Details',
+    details: 'Details anzeigen',
     sectionTitle: 'Mail Status',
     rawSmtpResults: 'Raw SMTP Results',
     noData: 'Keine Daten',
