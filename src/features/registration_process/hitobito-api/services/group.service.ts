@@ -122,6 +122,21 @@ export class GroupService {
         extractExtraFields: true,
       });
 
+      if (response.status >= 400) {
+        // Try to extract exact validation errors from the returned HTML to ease debugging
+        const validationErrors = [...body.matchAll(/class="invalid-feedback"[^>]*>(.*?)<\/div>/gs)]
+          .map((m) => m[1]?.trim().replaceAll(/(<([^>]+)>)/gi, ''))
+          .filter(Boolean);
+
+        const details =
+          validationErrors.length > 0 ? ` Validation errors: ${validationErrors.join(', ')}` : '';
+
+        this.logger?.error(
+          `Frontend returned ${response.status} ${response.statusText}.${details} Body preview: ${body.slice(0, 300)}`,
+        );
+        throw new Error(`Frontend returned ${response.status} ${response.statusText}.${details}`);
+      }
+
       const { extractPendingApprovalGroup } =
         await import('@/features/registration_process/hitobito-api/html-parser');
       const pendingApproval = extractPendingApprovalGroup(body);
@@ -137,21 +152,6 @@ export class GroupService {
           pendingApproval.groupName,
           pendingApproval.groupUrl,
         );
-      }
-
-      if (response.status >= 400) {
-        // Try to extract exact validation errors from the returned HTML to ease debugging
-        const validationErrors = [...body.matchAll(/class="invalid-feedback"[^>]*>(.*?)<\/div>/gs)]
-          .map((m) => m[1]?.trim().replaceAll(/(<([^>]+)>)/gi, ''))
-          .filter(Boolean);
-
-        const details =
-          validationErrors.length > 0 ? ` Validation errors: ${validationErrors.join(', ')}` : '';
-
-        this.logger?.error(
-          `Frontend returned ${response.status} ${response.statusText}.${details} Body preview: ${body.slice(0, 300)}`,
-        );
-        throw new Error(`Frontend returned ${response.status} ${response.statusText}.${details}`);
       }
 
       return true;
