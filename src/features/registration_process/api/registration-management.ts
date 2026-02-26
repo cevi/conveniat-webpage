@@ -1,3 +1,4 @@
+import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import type { GlobalConfig } from 'payload';
 
@@ -9,8 +10,8 @@ export const RegistrationManagement: GlobalConfig = {
     fr: 'Inscription des assistants',
   },
   access: {
-    read: () => true, // Access controlled by canUserAccessAdminPanel in router as well
-    update: () => true,
+    read: canAccessAdminPanel,
+    update: canAccessAdminPanel,
   },
   admin: {
     group: AdminPanelDashboardGroups.HelferAnmeldung,
