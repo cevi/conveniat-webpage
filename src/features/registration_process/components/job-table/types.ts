@@ -7,6 +7,7 @@ export interface RegistrationJob {
   createdAt: string | Date;
   completedAt?: string | Date | null;
   processing?: boolean;
+  queue?: string | null;
   hasError?: boolean;
   taskStatus?: Record<string, { status: string; completedAt?: string | Date | null }>;
   log?: {

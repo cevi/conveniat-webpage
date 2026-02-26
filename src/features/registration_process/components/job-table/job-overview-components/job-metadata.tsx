@@ -14,7 +14,7 @@ export const JobMetadata: React.FC<JobMetadataProperties> = ({ job }) => {
   return (
     <ExpandableSection title="Metadata">
       <DetailRow icon={Hash} label="Job ID" value={<span className="font-mono">{job.id}</span>} />
-      <DetailRow icon={Database} label="Queue" value="default" />
+      <DetailRow icon={Database} label="Queue" value={job.queue ?? 'default'} />
       <DetailRow icon={RotateCw} label="Attempts" value={String(job.totalTried ?? 1)} />
       <DetailRow icon={Calendar} label="Created" value={new Date(job.createdAt).toLocaleString()} />
       {job.completedAt !== undefined && job.completedAt !== null && (
