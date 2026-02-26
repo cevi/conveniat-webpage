@@ -762,6 +762,16 @@ export interface Form {
                  */
                 required?: boolean | null;
                 /**
+                 * Map session/JWT fields to form fields for auto-filling.
+                 */
+                fieldMapping?:
+                  | {
+                      jwtField: 'name' | 'firstName' | 'lastName' | 'email' | 'nickname' | 'uuid' | 'cevi_db_uuid';
+                      formField: string;
+                      id?: string | null;
+                    }[]
+                  | null;
+                /**
                  * Where this field is rendered when "Split" layout is selected for the section.
                  */
                 placement?: ('sidebar' | 'main') | null;
@@ -983,6 +993,23 @@ export interface Form {
                            * If checked, the user must log in to proceed.
                            */
                           required?: boolean | null;
+                          /**
+                           * Map session/JWT fields to form fields for auto-filling.
+                           */
+                          fieldMapping?:
+                            | {
+                                jwtField:
+                                  | 'name'
+                                  | 'firstName'
+                                  | 'lastName'
+                                  | 'email'
+                                  | 'nickname'
+                                  | 'uuid'
+                                  | 'cevi_db_uuid';
+                                formField: string;
+                                id?: string | null;
+                              }[]
+                            | null;
                           /**
                            * Where this field is rendered when "Split" layout is selected for the section.
                            */
@@ -4102,6 +4129,13 @@ export interface FormsSelect<T extends boolean = true> {
                           label?: T;
                           saveField?: T;
                           required?: T;
+                          fieldMapping?:
+                            | T
+                            | {
+                                jwtField?: T;
+                                formField?: T;
+                                id?: T;
+                              };
                           placement?: T;
                           id?: T;
                           blockName?: T;
@@ -4245,6 +4279,13 @@ export interface FormsSelect<T extends boolean = true> {
                                       label?: T;
                                       saveField?: T;
                                       required?: T;
+                                      fieldMapping?:
+                                        | T
+                                        | {
+                                            jwtField?: T;
+                                            formField?: T;
+                                            id?: T;
+                                          };
                                       placement?: T;
                                       id?: T;
                                       blockName?: T;

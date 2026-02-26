@@ -19,6 +19,7 @@ interface CeviDatabaseLoginProperties {
   name: string;
   label?: string;
   saveField?: 'name' | 'uuid' | 'email' | 'nickname';
+  fieldMapping?: { jwtField: string; formField: string }[];
   formId?: string;
   required?: boolean;
   currentStepIndex?: number;
@@ -36,6 +37,7 @@ export const CeviDatabaseLogin: React.FC<CeviDatabaseLoginProperties> = ({
   label,
   required,
   saveField,
+  fieldMapping,
   formId,
   currentStepIndex,
   error,
@@ -84,6 +86,8 @@ export const CeviDatabaseLogin: React.FC<CeviDatabaseLoginProperties> = ({
     });
   };
 
+  const fieldMappingString = fieldMapping ? JSON.stringify(fieldMapping) : undefined;
+
   useEffect(() => {
     if (session?.user) {
       let valueToSave: string | number | undefined | null;
@@ -106,8 +110,73 @@ export const CeviDatabaseLogin: React.FC<CeviDatabaseLoginProperties> = ({
         }
       }
       setValue(name, valueToSave ?? '', { shouldValidate: true });
+
+      const parsedFieldMapping = fieldMappingString
+        ? (JSON.parse(fieldMappingString) as { jwtField: string; formField: string }[])
+        : undefined;
+
+      if (parsedFieldMapping && parsedFieldMapping.length > 0) {
+        let didPrefill = false;
+        for (const { jwtField, formField } of parsedFieldMapping) {
+          let jwtValue: string | number | null | undefined;
+          switch (jwtField) {
+            case 'name': {
+              jwtValue = session.user.name;
+              break;
+            }
+            case 'firstName': {
+              jwtValue = session.user.firstName;
+              break;
+            }
+            case 'lastName': {
+              jwtValue = session.user.lastName;
+              break;
+            }
+            case 'email': {
+              jwtValue = session.user.email;
+              break;
+            }
+            case 'nickname': {
+              jwtValue = session.user.nickname;
+              break;
+            }
+            case 'uuid': {
+              jwtValue = session.user.uuid;
+              break;
+            }
+            case 'cevi_db_uuid': {
+              jwtValue = session.user.cevi_db_uuid;
+              break;
+            }
+            default: {
+              break;
+            }
+          }
+          const jwtValueString =
+            jwtValue !== undefined && jwtValue !== null ? String(jwtValue).trim() : '';
+
+          if (jwtValueString.length > 0) {
+            const currentValue = getValues(formField) as unknown;
+            let currentValueString = '';
+            if (typeof currentValue === 'string' || typeof currentValue === 'number') {
+              currentValueString = String(currentValue).trim();
+            } else if (currentValue !== undefined && currentValue !== null) {
+              currentValueString = 'has_value';
+            }
+
+            if (currentValueString.length === 0) {
+              setValue(formField, String(jwtValue), { shouldValidate: true });
+              didPrefill = true;
+            }
+          }
+        }
+
+        if (didPrefill && typeof formId === 'string' && currentStepIndex !== undefined) {
+          sessionStorage.setItem(`prefill_banner_step_${formId}`, String(currentStepIndex + 1));
+        }
+      }
     }
-  }, [session, saveField, setValue, name]);
+  }, [session, saveField, setValue, name, fieldMappingString, getValues, formId, currentStepIndex]);
 
   const errorMessage = error ? (error as FieldError).message : undefined;
 

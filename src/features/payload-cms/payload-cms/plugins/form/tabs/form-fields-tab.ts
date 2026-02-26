@@ -624,6 +624,44 @@ const formCeviDatabaseLoginBlock: Block = {
         description: 'If checked, the user must log in to proceed.',
       },
     },
+    {
+      name: 'fieldMapping',
+      type: 'array',
+      label: 'Field Mapping',
+      admin: {
+        description: 'Map session/JWT fields to form fields for auto-filling.',
+      },
+      fields: [
+        {
+          type: 'row',
+          fields: [
+            {
+              name: 'jwtField',
+              type: 'select',
+              label: 'JWT Field',
+              required: true,
+              admin: { width: '50%' },
+              options: [
+                { label: 'Name', value: 'name' },
+                { label: 'First Name', value: 'firstName' },
+                { label: 'Last Name', value: 'lastName' },
+                { label: 'Email', value: 'email' },
+                { label: 'Nickname', value: 'nickname' },
+                { label: 'UUID', value: 'uuid' },
+                { label: 'Cevi DB UUID', value: 'cevi_db_uuid' },
+              ],
+            },
+            {
+              name: 'formField',
+              type: 'text',
+              label: 'Form Field Name',
+              required: true,
+              admin: { width: '50%' },
+            },
+          ],
+        },
+      ],
+    },
     placementField(),
   ],
   labels: { plural: 'Cevi DB Login Blocks', singular: 'Cevi DB Login' },
