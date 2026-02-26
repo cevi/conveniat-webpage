@@ -1,5 +1,5 @@
 import { environmentVariables } from '@/config/environment-variables';
-import { Hitobito } from '@/features/registration_process/hitobito-api/index';
+import { Hitobito } from '@/features/registration_process/hitobito-api/hitobito';
 import type { Logger } from '@/features/registration_process/hitobito-api/types';
 import type { Payload } from 'payload';
 
