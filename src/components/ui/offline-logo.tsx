@@ -1,8 +1,10 @@
 import type React from 'react';
 
-export const OfflineLogo: React.FC = () => (
+import { cn } from '@/utils/tailwindcss-override';
+
+export const OfflineLogo: React.FC<{ className?: string }> = ({ className }) => (
   <svg
-    className="mx-auto h-24 w-24 text-gray-400"
+    className={cn('mx-auto h-24 w-24 text-gray-400', className)}
     fill="none"
     stroke="currentColor"
     viewBox="0 0 24 24"
