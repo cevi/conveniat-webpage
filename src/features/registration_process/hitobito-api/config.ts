@@ -23,6 +23,12 @@ export async function getHitobito(payload: Payload, logger?: Logger): Promise<Hi
   const browserCookie =
     typeof cookieValue === 'string' && cookieValue.length > 0 ? cookieValue : '';
 
+  if (browserCookie.length === 0) {
+    throw new Error(
+      'No browser cookie found, please set the browser cookie in the registration management global',
+    );
+  }
+
   return Hitobito.create(
     {
       ...HITOBITO_CONFIG,
