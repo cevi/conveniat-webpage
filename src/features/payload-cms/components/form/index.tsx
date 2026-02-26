@@ -75,6 +75,9 @@ export const FormBlock: React.FC<
     config,
     isPreviewMode: isPreviewMode ?? false,
     locale,
+    setError: formMethods.setError,
+    formSections,
+    setCurrentStepIndex,
   });
 
   const handleReset = (): void => {
