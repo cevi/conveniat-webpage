@@ -31,8 +31,9 @@ function collectValidatableFields(
         conditionField.length > 0 &&
         typeof conditionValue === 'string'
       ) {
-        const actualValue = submissionDataMap.get(conditionField) ?? '';
-        if (actualValue !== conditionValue) {
+        const actualValue = submissionDataMap.get(conditionField);
+        const normalizedActualValue = String(actualValue ?? '');
+        if (normalizedActualValue !== conditionValue) {
           continue; // condition not met → skip all inner fields
         }
       }
@@ -63,10 +64,12 @@ export const validateFormSubmission: CollectionBeforeChangeHook<FormSubmission> 
   operation,
 }) => {
   if (operation !== 'create') return data;
-  if (!data.submissionData || !data.form) return data;
+  // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+  if (!Array.isArray(data.submissionData) || !data.form) return data;
 
   const formId = typeof data.form === 'string' ? data.form : data.form.id;
 
+  // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
   if (!formId) return data;
 
   // Fetch the form definition
@@ -81,7 +84,17 @@ export const validateFormSubmission: CollectionBeforeChangeHook<FormSubmission> 
   // Build a map of submitted values for quick lookup
   const submissionDataMap = new Map<string, string>();
   for (const item of data.submissionData) {
-    submissionDataMap.set(item.field, item.value);
+    // Normalize values to string to prevent runtime type mismatch (e.g. booleans from checkboxes) bypassing validation
+    const rawValue = item.value as unknown;
+    let normalizedValue = '';
+    if (typeof rawValue === 'string') {
+      normalizedValue = rawValue;
+    } else if (typeof rawValue === 'number' || typeof rawValue === 'boolean') {
+      normalizedValue = String(rawValue);
+    } else if (Array.isArray(rawValue)) {
+      normalizedValue = rawValue.join(', ');
+    }
+    submissionDataMap.set(item.field, normalizedValue);
   }
 
   // Collect validatable fields from all sections, respecting conditions
@@ -102,16 +115,21 @@ export const validateFormSubmission: CollectionBeforeChangeHook<FormSubmission> 
 
     const fieldName = fieldConfig.name;
     const value = submissionDataMap.get(fieldName);
-    const hasValue = value !== undefined && value !== '';
+    let hasValue = value !== undefined && value !== '';
+
+    if (fieldConfig.blockType === 'checkbox') {
+      // Treat 'false' as empty so that required checkboxes must be explicitly checked ('true').
+      hasValue = String(value) === 'true';
+    }
 
     // Check required (respecting the flag — only validate if required === true)
     const isRequired = 'required' in fieldConfig && fieldConfig.required === true;
     if (isRequired && !hasValue) {
-      fieldErrors.push({ field: fieldName, message: 'This field is required.' });
+      fieldErrors.push({ field: fieldName, message: 'required' });
       continue;
     }
 
-    if (!hasValue) continue;
+    if (!hasValue || typeof value !== 'string') continue;
 
     // Type-specific validation
     switch (fieldConfig.blockType) {
@@ -120,20 +138,20 @@ export const validateFormSubmission: CollectionBeforeChangeHook<FormSubmission> 
         if (!emailRegex.test(value)) {
           fieldErrors.push({
             field: fieldName,
-            message: 'Please enter a valid email address.',
+            message: 'invalid_email',
           });
         }
         break;
       }
       case 'number': {
         if (Number.isNaN(Number(value))) {
-          fieldErrors.push({ field: fieldName, message: 'Please enter a valid number.' });
+          fieldErrors.push({ field: fieldName, message: 'invalid_number' });
         }
         break;
       }
       case 'date': {
         if (Number.isNaN(Date.parse(value))) {
-          fieldErrors.push({ field: fieldName, message: 'Please enter a valid date.' });
+          fieldErrors.push({ field: fieldName, message: 'invalid_date' });
         }
         break;
       }
@@ -148,11 +166,11 @@ export const validateFormSubmission: CollectionBeforeChangeHook<FormSubmission> 
             if (!regex.test(value)) {
               fieldErrors.push({
                 field: fieldName,
-                message: fieldConfig.inputValidationErrorMessage ?? 'Invalid input format.',
+                message: fieldConfig.inputValidationErrorMessage ?? 'invalid_format',
               });
             }
           } catch {
-            console.error('Invalid regex in form config:', fieldConfig.inputValidation);
+            // Invalid regex in form config; skip regex-based validation for this field.
           }
         }
         break;
@@ -168,7 +186,7 @@ export const validateFormSubmission: CollectionBeforeChangeHook<FormSubmission> 
           if (invalidValues.length > 0) {
             fieldErrors.push({
               field: fieldName,
-              message: `Invalid selection: ${invalidValues.join(', ')}`,
+              message: 'invalid_selection',
             });
           }
         }

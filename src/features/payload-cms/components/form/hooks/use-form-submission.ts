@@ -1,3 +1,11 @@
+import {
+  fieldIsNotValidText,
+  fieldIsRequiredText,
+  invalidDateText,
+  invalidEmailText,
+  invalidNumberText,
+  invalidSelectionText,
+} from '@/features/payload-cms/components/form/static-form-texts';
 import type { ExtendedFormType, FormSection } from '@/features/payload-cms/components/form/types';
 import { type Locale, type StaticTranslationString } from '@/types/types';
 import { useRouter } from 'next/navigation';
@@ -131,7 +139,34 @@ export const useFormSubmission = ({
           const fieldErrors = errorData.errors[0].data;
           if (setError) {
             for (const error of fieldErrors) {
-              setError(error.field, { type: 'server', message: error.message });
+              let message = error.message;
+              switch (message) {
+                case 'required': {
+                  message = fieldIsRequiredText[locale];
+                  break;
+                }
+                case 'invalid_email': {
+                  message = invalidEmailText[locale];
+                  break;
+                }
+                case 'invalid_number': {
+                  message = invalidNumberText[locale];
+                  break;
+                }
+                case 'invalid_date': {
+                  message = invalidDateText[locale];
+                  break;
+                }
+                case 'invalid_format': {
+                  message = fieldIsNotValidText[locale];
+                  break;
+                }
+                case 'invalid_selection': {
+                  message = invalidSelectionText[locale];
+                  break;
+                }
+              }
+              setError(error.field, { type: 'server', message });
             }
 
             // Navigate to the step containing the first errored field
