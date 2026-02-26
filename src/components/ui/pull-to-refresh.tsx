@@ -1,11 +1,11 @@
 'use client';
 
+import { OfflineLogo } from '@/components/ui/offline-logo';
 import { cn } from '@/utils/tailwindcss-override';
 import { animate, motion, useMotionValue } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 import type React from 'react';
 import { useCallback, useState } from 'react';
-import { OfflineLogo } from '@/components/ui/offline-logo';
 
 interface PullToRefreshProperties {
   onRefresh: () => Promise<void>;
