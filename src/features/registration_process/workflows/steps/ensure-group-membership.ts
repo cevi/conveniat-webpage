@@ -3,6 +3,7 @@ import {
   HITOBITO_CONFIG,
   getHitobito,
 } from '@/features/registration_process/hitobito-api';
+import { ApprovalRequiredError } from '@/features/registration_process/hitobito-api/errors';
 import type { TaskConfig } from 'payload';
 
 export const ensureGroupMembershipStep: TaskConfig<{
@@ -90,17 +91,16 @@ export const ensureGroupMembershipStep: TaskConfig<{
         },
       };
     } catch (error) {
-      if ((error as Error).name === 'ApprovalRequiredError') {
-        const approvalError = error as Error & { groupName: string; groupUrl: string };
+      if (error instanceof ApprovalRequiredError) {
         logger.info(
-          `User ${userId} requires Hitobito approval before addition (group ${approvalError.groupUrl}). Pause workflow.`,
+          `User ${userId} requires Hitobito approval before addition (group ${error.groupUrl}). Pause workflow.`,
         );
         return {
           output: {
             success: false,
             approvalRequired: true,
-            approvalGroupName: approvalError.groupName,
-            approvalGroupUrl: approvalError.groupUrl,
+            approvalGroupName: error.groupName,
+            approvalGroupUrl: error.groupUrl,
           },
         };
       }
