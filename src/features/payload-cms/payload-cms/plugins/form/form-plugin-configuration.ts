@@ -7,7 +7,7 @@ import { getPublishingStatus } from '@/features/payload-cms/payload-cms/hooks/pu
 import { beforeEmailChangeHook } from '@/features/payload-cms/payload-cms/plugins/form/fix-links-in-mails';
 import { extractEmailLinksHook } from '@/features/payload-cms/payload-cms/plugins/form/hooks/extract-email-links';
 import { linkJobSubmission } from '@/features/payload-cms/payload-cms/plugins/form/hooks/link-job-submission';
-import { validateCeviDatabaseLogin } from '@/features/payload-cms/payload-cms/plugins/form/hooks/validate-cevi-db-login';
+import { validateFormSubmission } from '@/features/payload-cms/payload-cms/plugins/form/hooks/validate-form-submission';
 import { confirmationSettingsTab } from '@/features/payload-cms/payload-cms/plugins/form/tabs/confirmation-settings-tab';
 import { formFieldsTab } from '@/features/payload-cms/payload-cms/plugins/form/tabs/form-fields-tab';
 import { formResultsTab } from '@/features/payload-cms/payload-cms/plugins/form/tabs/form-results-tab';
@@ -191,7 +191,7 @@ export const formPluginConfiguration = formBuilderPlugin({
       },
     ],
     hooks: {
-      beforeChange: [validateCeviDatabaseLogin, linkJobSubmission],
+      beforeChange: [validateFormSubmission, linkJobSubmission],
       afterChange: [workflowTriggerOnFormSubmission],
     },
   },
