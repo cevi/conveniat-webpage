@@ -7,7 +7,11 @@ type WorkflowTriggerWideEvent = Record<string, string | number | boolean>;
 export const workflowTriggerOnFormSubmission: CollectionAfterChangeHook<FormSubmission> = async ({
   doc,
   req,
+  operation,
 }): Promise<void> => {
+  if (operation !== 'create') {
+    return;
+  }
   const event: WorkflowTriggerWideEvent = {
     msg: 'Workflow Trigger Execution',
     submissionId: doc.id,
