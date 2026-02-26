@@ -126,7 +126,7 @@ export const registrationWorkflow: WorkflowConfig<'registrationWorkflow'> = {
         input: {
           workflowSlug: 'registrationWorkflow',
           originalInput: { ...workflowInput, resolvedUserId: currentUserId },
-          reason: `Manuelle Freigabe in Hitobito ausstehend durch die Gruppe: <a href="https://cevi.hitobito.ch${ensureGrpResult.approvalGroupUrl ?? ''}" target="_blank" rel="noopener noreferrer">${ensureGrpResult.approvalGroupName ?? 'Unbekannte Gruppe'}</a>`,
+          reason: 'Manuelle Freigabe in Hitobito ausstehend durch die Gruppe',
         },
       })) as unknown as BlockJobOutput;
 
