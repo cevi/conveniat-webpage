@@ -107,16 +107,6 @@ export const checkHitobitoApprovalsTask: TaskConfig<'checkHitobitoApprovals'> = 
             id: blockedJob.id,
             data: { status: 'resolved' },
           });
-
-          if (blockedJob.input !== null && typeof blockedJob.input === 'object') {
-            await payload.jobs.queue({
-              workflow: blockedJob.workflowSlug as 'registrationWorkflow',
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
-              input: blockedJob.input as any,
-            });
-          } else {
-            logger.warn(`Blocked job ${blockedJob.id} has invalid input types.`);
-          }
         }
       } catch (error) {
         logger.error(`Error processing blocked job ${blockedJob.id}: ${String(error)}`);

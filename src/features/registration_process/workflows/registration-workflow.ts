@@ -105,7 +105,7 @@ export const registrationWorkflow: WorkflowConfig<'registrationWorkflow'> = {
     }
 
     // 3. Execute Post-Resolution Steps
-    if (currentUserId.length === 0) {
+    if (typeof currentUserId !== 'string' || currentUserId.length === 0) {
       throw new Error('[registrationWorkflow] User ID missing after resolution');
     }
 
