@@ -6,6 +6,7 @@ import {
   loggedInAsText,
   loginWithCeviDatabaseText,
 } from '@/features/payload-cms/components/form/static-form-texts';
+import { getFormStorageKey } from '@/features/payload-cms/components/form/utils/get-form-storage-key';
 import type { StaticTranslationString } from '@/types/types';
 import { i18nConfig, type Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -50,9 +51,9 @@ export const CeviDatabaseLogin: React.FC<CeviDatabaseLoginProperties> = ({
   const handleLogin = (): void => {
     const values = getValues();
     if (typeof formId === 'string' && formId !== '') {
-      sessionStorage.setItem(`form-state-${formId}`, JSON.stringify(values));
+      sessionStorage.setItem(getFormStorageKey(formId, 'state'), JSON.stringify(values));
       if (currentStepIndex !== undefined) {
-        sessionStorage.setItem(`form_step_${formId}`, String(currentStepIndex));
+        sessionStorage.setItem(getFormStorageKey(formId, 'step'), String(currentStepIndex));
       }
     }
     // Inform browser to replace the current history entry so the back button skips the login trigger
@@ -71,9 +72,9 @@ export const CeviDatabaseLogin: React.FC<CeviDatabaseLoginProperties> = ({
   const handleChangeUser = (): void => {
     const values = getValues();
     if (typeof formId === 'string' && formId !== '') {
-      sessionStorage.setItem(`form-state-${formId}`, JSON.stringify(values));
+      sessionStorage.setItem(getFormStorageKey(formId, 'state'), JSON.stringify(values));
       if (currentStepIndex !== undefined) {
-        sessionStorage.setItem(`form_step_${formId}`, String(currentStepIndex));
+        sessionStorage.setItem(getFormStorageKey(formId, 'step'), String(currentStepIndex));
       }
     }
     const callbackUrl = typeof globalThis === 'undefined' ? undefined : globalThis.location.href;
@@ -172,7 +173,10 @@ export const CeviDatabaseLogin: React.FC<CeviDatabaseLoginProperties> = ({
         }
 
         if (didPrefill && typeof formId === 'string' && currentStepIndex !== undefined) {
-          sessionStorage.setItem(`prefill_banner_step_${formId}`, String(currentStepIndex + 1));
+          sessionStorage.setItem(
+            getFormStorageKey(formId, 'prefill'),
+            String(currentStepIndex + 1),
+          );
         }
       }
     }

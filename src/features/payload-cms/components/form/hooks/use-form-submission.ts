@@ -1,4 +1,5 @@
 import type { ExtendedFormType } from '@/features/payload-cms/components/form/types';
+import { getFormStorageKey } from '@/features/payload-cms/components/form/utils/get-form-storage-key';
 import { type Locale, type StaticTranslationString } from '@/types/types';
 import { useRouter } from 'next/navigation';
 import { usePostHog } from 'posthog-js/react';
@@ -124,8 +125,8 @@ export const useFormSubmission = ({
 
       // Clear session storage on success
       if (typeof formId === 'string' && formId !== '') {
-        sessionStorage.removeItem(`form-state-${formId}`);
-        sessionStorage.removeItem(`form_step_${formId}`);
+        sessionStorage.removeItem(getFormStorageKey(formId, 'state'));
+        sessionStorage.removeItem(getFormStorageKey(formId, 'step'));
       }
 
       if (config.confirmationType === 'redirect' && config.redirect?.url) {
@@ -156,8 +157,8 @@ export const useFormSubmission = ({
     setPreviewData(undefined);
     // Clear session storage on reset
     if (typeof formId === 'string' && formId !== '') {
-      sessionStorage.removeItem(`form-state-${formId}`);
-      sessionStorage.removeItem(`form_step_${formId}`);
+      sessionStorage.removeItem(getFormStorageKey(formId, 'state'));
+      sessionStorage.removeItem(getFormStorageKey(formId, 'step'));
     }
   };
 
