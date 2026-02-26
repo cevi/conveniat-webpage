@@ -61,9 +61,15 @@ export const ensureGroupMembershipStep: TaskConfig<{
         // Workaround: Hitobito requires the personName (label) to submit the roles form
         // Since we don't have the label directly in this task, we can construct a fallback
         const personDetails = await hitobito.people.getDetails({ personId: userId });
-        const firstName = personDetails.attributes?.first_name ?? '';
-        const lastName = personDetails.attributes?.last_name ?? '';
-        const personName = `${firstName} ${lastName}`.trim();
+        if (!personDetails.success || !personDetails.attributes) {
+          throw new Error(
+            `Could not retrieve user details for ${userId} required for group addition (${personDetails.error ?? 'unknown error'})`,
+          );
+        }
+        const firstName = personDetails.attributes.first_name ?? '';
+        const lastName = personDetails.attributes.last_name ?? '';
+        const trimmedName = `${firstName} ${lastName}`.trim();
+        const personName = trimmedName === '' ? `User ${userId}` : trimmedName;
 
         logger.info(`Adding user ${userId} (${personName}) to group ${groupId}`);
         await hitobito.groups.addPerson({
