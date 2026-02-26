@@ -37,6 +37,5 @@ export interface HitobitoConfig {
 }
 
 export interface RequestOptions extends RequestInit {
-  cookies?: string;
   params?: Record<string, string>;
 }
