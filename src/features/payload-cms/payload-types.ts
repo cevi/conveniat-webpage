@@ -2553,6 +2553,7 @@ export interface OutgoingEmail {
   to: string;
   subject: string;
   formSubmission?: (string | null) | FormSubmission;
+  html?: string | null;
   smtpResults?:
     | {
         [k: string]: unknown;
@@ -3960,6 +3961,7 @@ export interface OutgoingEmailsSelect<T extends boolean = true> {
   to?: T;
   subject?: T;
   formSubmission?: T;
+  html?: T;
   smtpResults?: T;
   rawSmtpResults?: T;
   rawDsnEmail?: T;
