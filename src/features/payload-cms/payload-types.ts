@@ -1094,9 +1094,9 @@ export interface Form {
       }[]
     | null;
   /**
-   * Select a workflow to trigger after form submission.
+   * Select workflows to trigger after form submission.
    */
-  workflow?: 'registrationWorkflow' | null;
+  workflow?: 'registrationWorkflow'[] | null;
   workflowMapping?:
     | {
         [k: string]: unknown;

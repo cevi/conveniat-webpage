@@ -34,42 +34,63 @@ export const workflowTriggerOnFormSubmission: CollectionAfterChangeHook<FormSubm
       depth: 0,
     });
 
-    if (form.workflow === null || form.workflow === undefined) {
+    const workflowsArray = form.workflow as unknown as string[] | undefined | null;
+
+    if (
+      workflowsArray === undefined ||
+      workflowsArray === null ||
+      !Array.isArray(workflowsArray) ||
+      workflowsArray.length === 0
+    ) {
       event['status'] = 'skipped';
-      event['reason'] = 'No workflow configured';
+      event['reason'] = 'No workflows configured';
       req.payload.logger.info(event);
       return;
     }
 
-    // Update event with workflow context
-
-    event['workflow'] = form.workflow;
+    // Update event with workflows context
+    event['workflows'] = workflowsArray.join(', ');
 
     const submissionMap = new Map(doc.submissionData.map((item) => [item.field, item.value]));
-    let inputData: Record<string, unknown> = {};
-    const mapping = form.workflowMapping as Record<string, string> | undefined;
+    const rawMapping = form.workflowMapping as Record<string, unknown> | undefined;
 
-    if (mapping && Object.keys(mapping).length > 0) {
-      for (const [workflowKey, formFieldName] of Object.entries(mapping)) {
-        const val = submissionMap.get(formFieldName);
-        if (val !== undefined) inputData[workflowKey] = val;
+    const getWorkflowMapping = (workflowId: string): Record<string, string> | undefined => {
+      if (!rawMapping) return undefined;
+      // Check if it's the new nested format
+      if (rawMapping[workflowId] !== undefined && typeof rawMapping[workflowId] === 'object') {
+        return rawMapping[workflowId] as Record<string, string>;
       }
-      event['mappingType'] = 'partial';
-    } else {
-      inputData = Object.fromEntries(submissionMap);
-      event['mappingType'] = 'full';
-    }
+      // Fallback for previous flat format
+      return rawMapping as Record<string, string>;
+    };
 
-    await req.payload.jobs.queue({
-      workflow: form.workflow as keyof TypedJobs['workflows'],
-      input: {
+    for (const workflow of workflowsArray) {
+      let inputData: Record<string, unknown> = {};
+      const mapping = getWorkflowMapping(workflow);
+
+      if (mapping && Object.keys(mapping).length > 0) {
+        for (const [workflowKey, formFieldName] of Object.entries(mapping)) {
+          if (typeof formFieldName !== 'string') continue;
+          const val = submissionMap.get(formFieldName);
+          if (val !== undefined) inputData[workflowKey] = val;
+        }
+        event[`${workflow}_mappingType`] = 'partial';
+      } else {
+        inputData = Object.fromEntries(submissionMap);
+        event[`${workflow}_mappingType`] = 'full';
+      }
+
+      await req.payload.jobs.queue({
+        workflow: workflow as keyof TypedJobs['workflows'],
         input: {
-          ...inputData,
-          formSubmissionId: doc.id,
-          locale: req.locale ?? 'en',
+          input: {
+            ...inputData,
+            formSubmissionId: doc.id,
+            locale: req.locale ?? 'en',
+          },
         },
-      },
-    });
+      });
+    }
 
     event['status'] = 'success';
     event['workflowTriggered'] = true;
