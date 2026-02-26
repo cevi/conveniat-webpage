@@ -12,7 +12,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Loader2, Search, X } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { createContext, useContext, useMemo, useState } from 'react';
-import type { Control, FieldErrors, FieldValues, UseFormRegister } from 'react-hook-form';
+import type { Control, FieldValues } from 'react-hook-form';
 import { Controller } from 'react-hook-form';
 
 // Context to share search/filter state between sidebar and main cards
@@ -105,8 +105,6 @@ const useJobSelection = (
 
 interface JobSelectionProperties extends JobSelectionBlock {
   control: Control<FieldValues>;
-  errors: FieldErrors<FieldValues>;
-  registerAction: UseFormRegister<FieldValues>;
   renderMode?: 'all' | 'sidebar' | 'main';
 }
 

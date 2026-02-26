@@ -12,6 +12,7 @@ import { cn } from '@/utils/tailwindcss-override';
 import { signIn, signOut, useSession } from 'next-auth/react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useEffect } from 'react';
+import type { FieldError, FieldErrorsImpl, FieldValues, Merge } from 'react-hook-form';
 import { useFormContext } from 'react-hook-form';
 
 interface CeviDatabaseLoginProperties {
@@ -21,6 +22,7 @@ interface CeviDatabaseLoginProperties {
   formId?: string;
   required?: boolean;
   currentStepIndex?: number;
+  error?: FieldError | Merge<FieldError, FieldErrorsImpl<FieldValues>>;
 }
 
 const loginRequiredMessage: StaticTranslationString = {
@@ -36,13 +38,9 @@ export const CeviDatabaseLogin: React.FC<CeviDatabaseLoginProperties> = ({
   saveField,
   formId,
   currentStepIndex,
+  error,
 }) => {
-  const {
-    register,
-    setValue,
-    getValues,
-    formState: { errors },
-  } = useFormContext();
+  const { register, setValue, getValues } = useFormContext();
   const { data: session } = useSession();
   const currentLocale = useCurrentLocale(i18nConfig);
   const locale = (currentLocale ?? 'en') as Locale;
@@ -111,7 +109,7 @@ export const CeviDatabaseLogin: React.FC<CeviDatabaseLoginProperties> = ({
     }
   }, [session, saveField, setValue, name]);
 
-  const errorMessage = errors[name]?.message as string | undefined;
+  const errorMessage = error ? (error as FieldError).message : undefined;
 
   const nickname = session?.user.nickname;
   const hasNickname = typeof nickname === 'string' && nickname.length > 0;

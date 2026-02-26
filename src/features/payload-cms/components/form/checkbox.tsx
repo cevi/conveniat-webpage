@@ -7,22 +7,24 @@ import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical
 import { useCurrentLocale } from 'next-i18n-router/client';
 import type { CheckboxField } from 'payload';
 import type React from 'react';
-import type { FieldErrorsImpl, FieldValues, UseFormRegister } from 'react-hook-form';
+import type {
+  FieldError,
+  FieldErrorsImpl,
+  FieldValues,
+  Merge,
+  UseFormRegister,
+} from 'react-hook-form';
 
 export const Checkbox: React.FC<
   {
-    errors: Partial<
-      FieldErrorsImpl<{
-        [x: string]: never;
-      }>
-    >;
+    error?: FieldError | Merge<FieldError, FieldErrorsImpl<FieldValues>>;
     registerAction: UseFormRegister<string & FieldValues>;
     label: SerializedEditorState;
   } & CheckboxField
-> = ({ name, label, registerAction, required: requiredFromProperties, errors }) => {
+> = ({ name, label, registerAction, required: requiredFromProperties, error }) => {
   // set default values
   requiredFromProperties ??= false;
-  const hasError = errors[name];
+  const hasError = error !== undefined;
   const locale = useCurrentLocale(i18nConfig);
 
   return (
@@ -45,7 +47,9 @@ export const Checkbox: React.FC<
           {requiredFromProperties && <Required />}
         </label>
       </div>
-      {hasError && <p className="mt-1 text-xs text-red-600">{hasError.message as string}</p>}
+      {hasError && (
+        <p className="mt-1 text-xs text-red-600">{(error as { message?: string }).message}</p>
+      )}
     </div>
   );
 };
