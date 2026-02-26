@@ -5086,9 +5086,13 @@ export interface TaskConfirmationMessage {
     email: string;
     formSubmissionId?: string | null;
     locale?: string | null;
+    skip?: boolean | null;
+    skipReason?: string | null;
   };
   output: {
     sent?: boolean | null;
+    skipped?: boolean | null;
+    skipReason?: string | null;
   };
 }
 /**

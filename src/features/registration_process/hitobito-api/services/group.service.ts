@@ -87,9 +87,10 @@ export class GroupService {
         'role[type]': roleType,
         'role[label]': '',
         'role[start_on]': todayString,
-        'role[end_on]': options.endOn
-          ? options.endOn.replace(/^(\d{4})-(\d{2})-(\d{2})$/, '$3.$2.$1')
-          : '',
+        'role[end_on]':
+          options.endOn !== undefined && options.endOn !== ''
+            ? options.endOn.replace(/^(\d{4})-(\d{2})-(\d{2})$/, '$3.$2.$1')
+            : '',
         button: '',
         return_url: '',
       };
@@ -108,7 +109,7 @@ export class GroupService {
         if (field === 'role[new_person][company]') {
           formData[field] = '0';
         } else if (field === 'role[new_person][privacy_policy_accepted]') {
-          formData[field] = '0';
+          formData[field] = '1'; // Changed from '0' to '1' to avoid error
         } else {
           formData[field] = '';
         }
@@ -118,10 +119,7 @@ export class GroupService {
         getFormUrl: formPath,
         postUrl: `/groups/${groupId}/roles`,
         formData,
-        extraHeaders: {
-          Accept: 'text/vnd.turbo-stream.html, text/html, application/xhtml+xml',
-          'x-turbo-request-id': crypto.randomUUID(),
-        },
+        extractExtraFields: true,
       });
 
       const { extractPendingApprovalGroup } =
@@ -142,10 +140,18 @@ export class GroupService {
       }
 
       if (response.status >= 400) {
+        // Try to extract exact validation errors from the returned HTML to ease debugging
+        const validationErrors = [...body.matchAll(/class="invalid-feedback"[^>]*>(.*?)<\/div>/gs)]
+          .map((m) => m[1]?.trim().replaceAll(/(<([^>]+)>)/gi, ''))
+          .filter(Boolean);
+
+        const details =
+          validationErrors.length > 0 ? ` Validation errors: ${validationErrors.join(', ')}` : '';
+
         this.logger?.error(
-          `Frontend returned ${response.status} ${response.statusText}. Body preview: ${body.slice(0, 500)}`,
+          `Frontend returned ${response.status} ${response.statusText}.${details} Body preview: ${body.slice(0, 300)}`,
         );
-        throw new Error(`Frontend returned ${response.status} ${response.statusText}`);
+        throw new Error(`Frontend returned ${response.status} ${response.statusText}.${details}`);
       }
 
       return true;

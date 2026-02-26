@@ -6,8 +6,14 @@ import { convertLexicalToPlaintext } from '@payloadcms/richtext-lexical/plaintex
 import type { TaskConfig } from 'payload';
 
 export const confirmationMessageStep: TaskConfig<{
-  input: { email: string; formSubmissionId?: string; locale?: string };
-  output: { sent: boolean };
+  input: {
+    email: string;
+    formSubmissionId?: string;
+    locale?: string;
+    skip?: boolean;
+    skipReason?: string;
+  };
+  output: { sent: boolean; skipped?: boolean; skipReason?: string };
 }> = {
   slug: 'confirmationMessage',
   retries: 3,
@@ -15,14 +21,27 @@ export const confirmationMessageStep: TaskConfig<{
     { name: 'email', type: 'text', required: true },
     { name: 'formSubmissionId', type: 'text', required: false },
     { name: 'locale', type: 'text', required: false },
+    { name: 'skip', type: 'checkbox', required: false },
+    { name: 'skipReason', type: 'text', required: false },
   ],
-  outputSchema: [{ name: 'sent', type: 'checkbox' }],
+  outputSchema: [
+    { name: 'sent', type: 'checkbox' },
+    { name: 'skipped', type: 'checkbox' },
+    { name: 'skipReason', type: 'text' },
+  ],
   handler: async ({ input, req }) => {
     const { logger } = req.payload;
 
+    if (input.skip === true) {
+      logger.info(`Skipping confirmation email: ${input.skipReason ?? 'Unknown reason'}`);
+      return {
+        output: { sent: false, skipped: true, skipReason: input.skipReason ?? 'Unknown reason' },
+      };
+    }
+
     if (input.email.length === 0) {
       logger.info('No email provided. Skipping confirmation email.');
-      return { output: { sent: false } };
+      return { output: { sent: false, skipped: true, skipReason: 'No email provided' } };
     }
 
     try {
@@ -34,7 +53,9 @@ export const confirmationMessageStep: TaskConfig<{
 
       if (!registrationManagement.confirmationEmail) {
         logger.info('No confirmation email configured. Skipping.');
-        return { output: { sent: false } };
+        return {
+          output: { sent: false, skipped: true, skipReason: 'No confirmation email configured' },
+        };
       }
 
       let submissionData: unknown[] = [];

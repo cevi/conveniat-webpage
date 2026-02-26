@@ -118,6 +118,7 @@ export const registrationWorkflow: WorkflowConfig<'registrationWorkflow'> = {
       approvalRequired?: boolean;
       approvalGroupName?: string;
       approvalGroupUrl?: string;
+      status?: string;
     };
 
     if (ensureGrpResult.approvalRequired === true) {
@@ -132,27 +133,36 @@ export const registrationWorkflow: WorkflowConfig<'registrationWorkflow'> = {
       if (blockResult.blocked === true) return;
     }
 
-    await tasks.ensureEventMembership('4', {
+    const ensureEventResult = (await tasks.ensureEventMembership('4', {
       input: {
         userId: currentUserId,
       },
-    });
+    })) as unknown as { success: boolean; participationId?: string; status?: string };
 
-    // Only send confirmation if email is present in the input (from form submission)
-    if (
-      'email' in workflowInput &&
-      typeof workflowInput.email === 'string' &&
-      workflowInput.email.length > 0
-    ) {
-      await tasks.confirmationMessage('5', {
-        input: {
-          email: workflowInput.email,
-          ...(typeof workflowInput.formSubmissionId === 'string'
-            ? { formSubmissionId: workflowInput.formSubmissionId }
-            : {}),
-          ...(typeof workflowInput.locale === 'string' ? { locale: workflowInput.locale } : {}),
-        },
-      });
-    }
+    const skipConfirmation =
+      ensureGrpResult.status === 'exists' && ensureEventResult.status === 'exists';
+
+    await tasks.confirmationMessage('5', {
+      input: {
+        email:
+          'email' in workflowInput && typeof workflowInput.email === 'string'
+            ? workflowInput.email
+            : '',
+        ...(typeof workflowInput.formSubmissionId === 'string'
+          ? { formSubmissionId: workflowInput.formSubmissionId }
+          : {}),
+        ...(typeof workflowInput.locale === 'string' ? { locale: workflowInput.locale } : {}),
+        ...('email' in workflowInput &&
+        typeof workflowInput.email === 'string' &&
+        workflowInput.email.length > 0 &&
+        skipConfirmation
+          ? {
+              skip: true,
+              skipReason:
+                'User already exists on both the event and in the group. Skipping confirmation email.',
+            }
+          : {}),
+      },
+    });
   },
 };

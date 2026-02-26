@@ -2,6 +2,7 @@ import { Badge } from '@/components/ui/badge';
 import { JsonBlock } from '@/components/ui/json-block';
 import {
   DetailRow,
+  ExpandableSection,
   InputViewer,
   flattenObject,
   renderValue,
@@ -16,9 +17,6 @@ interface StepDetailsProperties {
 }
 
 export const StepDetails: React.FC<StepDetailsProperties> = ({ step }) => {
-  const [isMetadataExpanded, setIsMetadataExpanded] = useState(false);
-  const [isInputExpanded, setIsInputExpanded] = useState(false);
-  const [isOutputExpanded, setIsOutputExpanded] = useState(false);
   const [isErrorExpanded, setIsErrorExpanded] = useState(false);
   const stepId = step.id ?? 'N/A';
 
@@ -31,57 +29,38 @@ export const StepDetails: React.FC<StepDetailsProperties> = ({ step }) => {
   return (
     <div className="grid gap-6">
       {/* Step Header */}
-      <div className="overflow-hidden rounded-xl border border-zinc-200 bg-transparent dark:border-zinc-800">
-        <button
-          type="button"
-          onClick={() => setIsMetadataExpanded(!isMetadataExpanded)}
-          className="flex w-full cursor-pointer items-center justify-between border-transparent bg-zinc-50/50 px-6 py-3 ring-0 transition-colors outline-none hover:bg-zinc-100/50 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none dark:bg-zinc-900/30 dark:hover:bg-zinc-800/50"
-        >
-          <h3 className="text-xs font-bold tracking-wider text-zinc-500 uppercase">
-            Step Metadata
-          </h3>
-          <ChevronDown
-            className={cn(
-              'h-4 w-4 text-zinc-400 transition-transform duration-200',
-              isMetadataExpanded && 'rotate-180',
-            )}
+      <ExpandableSection title="Step Metadata">
+        <DetailRow
+          icon={Hash}
+          label="Task ID"
+          value={<span className="font-mono">{stepId}</span>}
+        />
+        <DetailRow
+          icon={Calendar}
+          label="Executed"
+          value={
+            step.executedAt === undefined || step.executedAt === null
+              ? 'Pending'
+              : new Date(step.executedAt).toLocaleString()
+          }
+        />
+        {step.completedAt !== undefined && step.completedAt !== null && (
+          <DetailRow
+            icon={Clock}
+            label="Completed"
+            value={new Date(step.completedAt).toLocaleString()}
           />
-        </button>
-        {isMetadataExpanded && (
-          <div className="border-t border-zinc-100 p-4 dark:border-zinc-800">
-            <DetailRow
-              icon={Hash}
-              label="Task ID"
-              value={<span className="font-mono">{stepId}</span>}
-            />
-            <DetailRow
-              icon={Calendar}
-              label="Executed"
-              value={
-                step.executedAt === undefined || step.executedAt === null
-                  ? 'Pending'
-                  : new Date(step.executedAt).toLocaleString()
-              }
-            />
-            {step.completedAt !== undefined && step.completedAt !== null && (
-              <DetailRow
-                icon={Clock}
-                label="Completed"
-                value={new Date(step.completedAt).toLocaleString()}
-              />
-            )}
-            <DetailRow
-              icon={RotateCw}
-              label="Status"
-              value={
-                <Badge variant={step.state === 'failed' ? 'destructive' : 'outline'}>
-                  {step.state}
-                </Badge>
-              }
-            />
-          </div>
         )}
-      </div>
+        <DetailRow
+          icon={RotateCw}
+          label="Status"
+          value={
+            <Badge variant={step.state === 'failed' ? 'destructive' : 'outline'}>
+              {step.state}
+            </Badge>
+          }
+        />
+      </ExpandableSection>
 
       {/* Error Section for Step */}
       {step.error !== undefined && (
@@ -130,56 +109,23 @@ export const StepDetails: React.FC<StepDetailsProperties> = ({ step }) => {
 
       <div className="grid gap-6 xl:grid-cols-2">
         {/* Input Data */}
-        <div className="overflow-hidden rounded-xl border border-zinc-200 bg-transparent dark:border-zinc-800">
-          <button
-            type="button"
-            onClick={() => setIsInputExpanded(!isInputExpanded)}
-            className="flex w-full cursor-pointer items-center justify-between border-transparent bg-zinc-50/50 px-6 py-3 ring-0 transition-colors outline-none hover:bg-zinc-100/50 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none dark:bg-zinc-900/30 dark:hover:bg-zinc-800/50"
-          >
-            <h3 className="text-xs font-bold tracking-wider text-zinc-500 uppercase">Input</h3>
-            <ChevronDown
-              className={cn(
-                'h-4 w-4 text-zinc-400 transition-transform duration-200',
-                isInputExpanded && 'rotate-180',
-              )}
-            />
-          </button>
-          {isInputExpanded && (
-            <div className="border-t border-zinc-100 p-4 dark:border-zinc-800">
-              {Object.entries(flattenObject(step.input as Record<string, unknown>)).map(
-                ([key, value]) => (
-                  <DetailRow
-                    key={key}
-                    label={key}
-                    value={<span className="font-mono wrap-break-word">{renderValue(value)}</span>}
-                  />
-                ),
-              )}
-            </div>
+        {/* Input Data */}
+        <ExpandableSection title="Input">
+          {Object.entries(flattenObject(step.input as Record<string, unknown>)).map(
+            ([key, value]) => (
+              <DetailRow
+                key={key}
+                label={key}
+                value={<span className="font-mono wrap-break-word">{renderValue(value)}</span>}
+              />
+            ),
           )}
-        </div>
+        </ExpandableSection>
 
         {/* Output Data */}
-        <div className="overflow-hidden rounded-xl border border-zinc-200 bg-transparent dark:border-zinc-800">
-          <button
-            type="button"
-            onClick={() => setIsOutputExpanded(!isOutputExpanded)}
-            className="flex w-full cursor-pointer items-center justify-between border-transparent bg-zinc-50/50 px-6 py-3 ring-0 transition-colors outline-none hover:bg-zinc-100/50 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none dark:bg-zinc-900/30 dark:hover:bg-zinc-800/50"
-          >
-            <h3 className="text-xs font-bold tracking-wider text-zinc-500 uppercase">Output</h3>
-            <ChevronDown
-              className={cn(
-                'h-4 w-4 text-zinc-400 transition-transform duration-200',
-                isOutputExpanded && 'rotate-180',
-              )}
-            />
-          </button>
-          {isOutputExpanded && (
-            <div className="border-t border-zinc-100 p-4 dark:border-zinc-800">
-              <InputViewer data={step.output} />
-            </div>
-          )}
-        </div>
+        <ExpandableSection title="Output">
+          <InputViewer data={step.output} />
+        </ExpandableSection>
       </div>
     </div>
   );

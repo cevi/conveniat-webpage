@@ -229,9 +229,12 @@ export class HitobitoClient {
       finalHeaders['x-csrf-token'] = metaToken;
     }
 
+    const payloadString = payload.toString();
+    this.logger?.info(`submitRailsForm POST to ${postUrl} with payload: ${payloadString}`);
+
     const result = await this.frontendRequest('POST', postUrl, {
       headers: finalHeaders,
-      body: payload.toString(),
+      body: payloadString,
     });
 
     return { ...result, finalUrl: result.response.url };

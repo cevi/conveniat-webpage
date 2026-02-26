@@ -58,17 +58,28 @@ export const ensureGroupMembershipStep: TaskConfig<{
       }
 
       if (correctRoleExists === false) {
-        logger.info(`Adding user ${userId} to group ${groupId}`);
+        // Workaround: Hitobito requires the personName (label) to submit the roles form
+        // Since we don't have the label directly in this task, we can construct a fallback
+        const personDetails = await hitobito.people.getDetails({ personId: userId });
+        const firstName = personDetails.attributes?.first_name ?? '';
+        const lastName = personDetails.attributes?.last_name ?? '';
+        const personName = `${firstName} ${lastName}`.trim();
+
+        logger.info(`Adding user ${userId} (${personName}) to group ${groupId}`);
         await hitobito.groups.addPerson({
           personId: userId,
           groupId,
           roleType: EXTERNAL_ROLE_TYPE,
-          options: { endOn: TARGET_END_DATE },
+          options: { endOn: TARGET_END_DATE, personName },
         });
       }
 
       return {
-        output: { success: true, approvalRequired: false },
+        output: {
+          success: true,
+          approvalRequired: false,
+          status: correctRoleExists ? 'exists' : 'created',
+        },
       };
     } catch (error) {
       if ((error as Error).name === 'ApprovalRequiredError') {
@@ -85,8 +96,10 @@ export const ensureGroupMembershipStep: TaskConfig<{
           },
         };
       }
-      logger.error(`Failed to ensure group membership: ${String(error)}`);
-      throw error;
+      logger.error('Failed to ensure group membership.');
+      // Minify the error so the Payload job logger doesn't stringify massive payloads
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`ensureGroupMembership failed: ${message}`);
     }
   },
 };

@@ -3,7 +3,7 @@ import type { RegistrationJob } from '@/features/registration_process/components
 import { STEP_MAPPING } from '@/features/registration_process/components/job-table/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { formatDistanceToNow } from 'date-fns';
-import { Check, Clock, X } from 'lucide-react';
+import { Check, Clock, SkipForward, X } from 'lucide-react';
 import React from 'react';
 
 export interface JobTimelineProperties {
@@ -59,6 +59,15 @@ export const JobTimeline: React.FC<JobTimelineProperties> = ({
 
         const isError = lastEntry.error !== undefined || lastEntry.state === 'failed';
         const isCompleted = lastEntry.completedAt !== undefined || lastEntry.state === 'completed';
+
+        let isSkipped = false;
+        let skipReason: string | undefined = undefined;
+        if (lastEntry.output && typeof lastEntry.output === 'object') {
+          const outputRec = lastEntry.output as Record<string, unknown>;
+          if (outputRec['skipped'] === true) isSkipped = true;
+          if (typeof outputRec['skipReason'] === 'string') skipReason = outputRec['skipReason'];
+        }
+
         const mapping = STEP_MAPPING[lastEntry.taskSlug];
         const label = mapping?.label ?? lastEntry.taskSlug;
 
@@ -72,6 +81,9 @@ export const JobTimeline: React.FC<JobTimelineProperties> = ({
         if (isError) {
           iconClasses = 'border-red-100 text-red-500 dark:border-red-900/30';
           textClasses = 'text-red-600';
+        } else if (isSkipped) {
+          iconClasses = 'border-blue-100 text-blue-500 dark:border-blue-900/30';
+          textClasses = 'text-blue-600 dark:text-blue-400 font-medium';
         } else if (isHumanIntervention && isCompleted) {
           // Needs Review / Intervention state
           iconClasses =
@@ -107,8 +119,9 @@ export const JobTimeline: React.FC<JobTimelineProperties> = ({
                 )}
               >
                 {isError && <X className="h-5 w-5" />}
-                {!isError && isCompleted && <Check className="h-5 w-5" />}
-                {!isError && !isCompleted && <Clock className="h-5 w-5" />}
+                {!isError && isSkipped && <SkipForward className="h-5 w-5" />}
+                {!isError && isCompleted && !isSkipped && <Check className="h-5 w-5" />}
+                {!isError && !isCompleted && !isSkipped && <Clock className="h-5 w-5" />}
               </div>
 
               {/* Content */}
@@ -147,6 +160,11 @@ export const JobTimeline: React.FC<JobTimelineProperties> = ({
                 {isError && (
                   <div className="mt-1 text-xs font-bold text-red-600 dark:text-red-400">
                     Failed
+                  </div>
+                )}
+                {isSkipped && skipReason && (
+                  <div className="mt-1 text-xs text-blue-600 italic dark:text-blue-400">
+                    {skipReason}
                   </div>
                 )}
               </div>

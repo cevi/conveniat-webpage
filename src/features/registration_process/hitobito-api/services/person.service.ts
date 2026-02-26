@@ -81,6 +81,33 @@ export class PersonService {
     return [];
   }
 
+  async searchPeopleQuery({ query }: SearchPersonParameters): Promise<SearchCandidate[]> {
+    const path = '/people/query';
+    const { response, body } = await this.client.frontendRequest('GET', path, {
+      params: { q: query },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Person search failed with status ${response.status} at ${path}`);
+    }
+
+    const json = JSON.parse(body) as unknown;
+    const parseResult = SearchResponseSchema.safeParse(json);
+    if (!parseResult.success) {
+      this.logger?.warn('searchPeopleQuery failed to validate response schema', parseResult.error);
+      throw new Error(
+        `searchPeopleQuery failed to validate response schema: ${parseResult.error.message}`,
+      );
+    }
+
+    const data = parseResult.data;
+    if (Array.isArray(data)) return data;
+    if ('results' in data && data.results) return data.results;
+    if ('people' in data && data.people) return data.people;
+
+    return [];
+  }
+
   async lookupByEmail({
     email,
   }: LookupByEmailParameters): Promise<{ id: string; label: string } | undefined> {

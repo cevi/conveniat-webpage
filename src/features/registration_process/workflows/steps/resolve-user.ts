@@ -144,7 +144,9 @@ export const resolveUserStep: TaskConfig<'resolveUser'> = {
         if (error instanceof Error && error.message.includes('status 401')) {
           throw new Error('Hitobito API credentials invalid or missing (401 Unauthorized)');
         }
-        throw error;
+        // Minify the error so the Payload job logger doesn't stringify massive payloads
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Strategy failed: ${message}`);
       }
     }
 

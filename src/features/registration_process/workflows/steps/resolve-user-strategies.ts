@@ -32,8 +32,77 @@ export const resolveBySearch = async ({
 }: StrategyContext): Promise<StrategyResult> => {
   if (!('email' in input)) return undefined;
 
-  const queries = [
-    [input.firstName, input.lastName, input.email, 'nickname' in input ? input.nickname : undefined]
+  const userData = {
+    firstName: input.firstName,
+    lastName: input.lastName,
+    email: input.email,
+    nickname: 'nickname' in input ? input.nickname : undefined,
+    birthDate: 'birthDate' in input ? input.birthDate : undefined,
+  };
+
+  const processCandidates = async (
+    candidates: { id: string | number; label?: string | undefined; text?: string | undefined }[],
+    existingResults: MatchCandidateResult[],
+  ): Promise<MatchCandidateResult[]> => {
+    const newResults: MatchCandidateResult[] = [];
+    for (const candidate of candidates) {
+      if (
+        existingResults.some((r) => r.personId === String(candidate.id)) ||
+        newResults.some((r) => r.personId === String(candidate.id))
+      ) {
+        continue;
+      }
+
+      try {
+        const match = await hitobito.matcher.matchCandidate({
+          candidate: { id: String(candidate.id), label: candidate.label ?? candidate.text ?? '' },
+          userData,
+        });
+
+        if (match.matched === true) {
+          newResults.push(match);
+        }
+      } catch (error) {
+        // If retrieving match details for a specific candidate fails (e.g. 422 Unprocessable Content),
+        // we log it and continue. That candidate simply won't be considered a perfect match,
+        // and the strategy will either find another or fall back to ambiguous.
+        if (error instanceof Error && error.message.includes('status 401')) {
+          throw error; // Let auth errors still bring down the job
+        }
+
+        const message = error instanceof Error ? error.message : String(error);
+        if (message.includes('Frontend returned 422 Unprocessable Content')) {
+          newResults.push({
+            personId: String(candidate.id),
+            personLabel: candidate.label ?? candidate.text ?? '',
+            matched: false,
+            needsReview: true,
+            reason: 'Hitobito blocked retrieving extended details.',
+          });
+        }
+      }
+    }
+    return newResults;
+  };
+
+  const evaluateResults = (results: MatchCandidateResult[]): StrategyResult | undefined => {
+    if (results.length === 0) return undefined;
+
+    const perfectMatch = results.find((r) => r.needsReview === false);
+    if (perfectMatch !== undefined) {
+      return {
+        peopleId: perfectMatch.personId,
+        status: 'found',
+        reason: 'Matched via search',
+        candidates: results,
+      };
+    }
+    return undefined; /* Ambiguous handled at the very end */
+  };
+
+  // --- Tier 1: /full.json Search ---
+  const tier1Queries = [
+    [input.firstName, input.lastName, input.email, userData.nickname]
       .filter((v): v is string => typeof v === 'string' && v !== '')
       .join(' '),
     `${input.firstName} ${input.lastName}`,
@@ -41,42 +110,34 @@ export const resolveBySearch = async ({
 
   const results: MatchCandidateResult[] = [];
 
-  for (const query of queries) {
-    const candidates = await hitobito.people.search({ query: query });
+  for (const query of tier1Queries) {
+    const candidates = await hitobito.people.search({ query });
+    const matchResults = await processCandidates(candidates, results);
+    results.push(...matchResults);
 
-    for (const candidate of candidates) {
-      if (results.some((r) => r.personId === String(candidate.id))) continue;
-
-      const userData = {
-        firstName: input.firstName,
-        lastName: input.lastName,
-        email: input.email,
-        nickname: 'nickname' in input ? input.nickname : undefined,
-        birthDate: 'birthDate' in input ? input.birthDate : undefined,
-      };
-
-      const match = await hitobito.matcher.matchCandidate({
-        candidate: { id: String(candidate.id), label: candidate.label ?? candidate.text ?? '' },
-        userData,
-      });
-
-      if (match.matched === true) {
-        results.push(match);
-      }
-    }
+    const evaluation = evaluateResults(results);
+    if (evaluation) return evaluation;
   }
 
+  // --- Tier 2: /people/query Search ---
+  const tier2Queries = [
+    [input.firstName, input.lastName, userData.nickname]
+      .filter((v): v is string => typeof v === 'string' && v !== '')
+      .join(' '),
+    `${input.firstName} ${input.lastName}`,
+  ];
+
+  for (const query of tier2Queries) {
+    const candidates = await hitobito.people.searchPeopleQuery({ query });
+    const matchResults = await processCandidates(candidates, results);
+    results.push(...matchResults);
+
+    const evaluation = evaluateResults(results);
+    if (evaluation) return evaluation;
+  }
+
+  // If no perfect match was found across both tiers, handle ambiguous/no results
   if (results.length === 0) return undefined;
-
-  const perfectMatch = results.find((r) => r.needsReview === false);
-  if (perfectMatch !== undefined) {
-    return {
-      peopleId: perfectMatch.personId,
-      status: 'found',
-      reason: 'Matched via search',
-      candidates: results,
-    };
-  }
 
   const firstFoundCandidate = results[0];
   if (firstFoundCandidate === undefined) return undefined;
