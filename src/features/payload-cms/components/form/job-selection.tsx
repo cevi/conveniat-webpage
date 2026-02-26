@@ -16,43 +16,91 @@ import type { Control, FieldErrors, FieldValues, UseFormRegister } from 'react-h
 import { Controller } from 'react-hook-form';
 
 // Context to share search/filter state between sidebar and main cards
+interface JobSelectionFieldState {
+  searchTerm: string;
+  selectedRessorts: Set<string>;
+  isSearchOpen: boolean;
+}
+
 interface JobSelectionContextType {
+  states: Record<string, JobSelectionFieldState>;
+  setSearchTerm: (name: string, s: string) => void;
+  setSelectedRessorts: (name: string, s: Set<string>) => void;
+  setIsSearchOpen: (name: string, b: boolean) => void;
+}
+
+const JobSelectionContext = createContext<JobSelectionContextType | undefined>(undefined);
+
+const defaultFieldState: JobSelectionFieldState = {
+  searchTerm: '',
+  selectedRessorts: new Set(),
+  isSearchOpen: false,
+};
+
+export const JobSelectionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [states, setStates] = useState<Record<string, JobSelectionFieldState>>({});
+
+  const value = useMemo(() => {
+    return {
+      states,
+      setSearchTerm: (name: string, searchTerm: string): void => {
+        setStates((previous) => ({
+          ...previous,
+          [name]: { ...(previous[name] ?? defaultFieldState), searchTerm },
+        }));
+      },
+      setSelectedRessorts: (name: string, selectedRessorts: Set<string>): void => {
+        setStates((previous) => ({
+          ...previous,
+          [name]: { ...(previous[name] ?? defaultFieldState), selectedRessorts },
+        }));
+      },
+      setIsSearchOpen: (name: string, isSearchOpen: boolean): void => {
+        setStates((previous) => ({
+          ...previous,
+          [name]: { ...(previous[name] ?? defaultFieldState), isSearchOpen },
+        }));
+      },
+    };
+  }, [states]);
+
+  return <JobSelectionContext.Provider value={value}>{children}</JobSelectionContext.Provider>;
+};
+
+const useJobSelection = (
+  name: string,
+): {
   searchTerm: string;
   setSearchTerm: (s: string) => void;
   selectedRessorts: Set<string>;
   setSelectedRessorts: (s: Set<string>) => void;
   isSearchOpen: boolean;
   setIsSearchOpen: (b: boolean) => void;
-}
-
-const JobSelectionContext = createContext<JobSelectionContextType | undefined>(undefined);
-
-export const JobSelectionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedRessorts, setSelectedRessorts] = useState<Set<string>>(new Set());
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-
-  const value = useMemo(
-    () => ({
-      searchTerm,
-      setSearchTerm,
-      selectedRessorts,
-      setSelectedRessorts,
-      isSearchOpen,
-      setIsSearchOpen,
-    }),
-    [searchTerm, selectedRessorts, isSearchOpen],
-  );
-
-  return <JobSelectionContext.Provider value={value}>{children}</JobSelectionContext.Provider>;
-};
-
-const useJobSelection = (): JobSelectionContextType => {
+} => {
   const context = useContext(JobSelectionContext);
   if (!context) {
     throw new Error('useJobSelection must be used within a JobSelectionProvider');
   }
-  return context;
+
+  const state = context.states[name] ?? defaultFieldState;
+
+  return useMemo(
+    () => ({
+      searchTerm: state.searchTerm,
+      setSearchTerm: (s: string): void => {
+        context.setSearchTerm(name, s);
+      },
+      selectedRessorts: state.selectedRessorts,
+      setSelectedRessorts: (s: Set<string>): void => {
+        context.setSelectedRessorts(name, s);
+      },
+      isSearchOpen: state.isSearchOpen,
+      setIsSearchOpen: (b: boolean): void => {
+        context.setIsSearchOpen(name, b);
+      },
+    }),
+    [state, context, name],
+  );
 };
 
 interface JobSelectionProperties extends JobSelectionBlock {
@@ -115,7 +163,7 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
     setSelectedRessorts,
     isSearchOpen,
     setIsSearchOpen,
-  } = useJobSelection();
+  } = useJobSelection(name);
 
   const { data: jobs, isLoading } = useQuery<JobWithQuota[]>({
     queryKey: ['helper-jobs', dateRangeCategory, category, locale],
