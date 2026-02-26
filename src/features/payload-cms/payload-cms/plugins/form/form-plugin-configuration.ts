@@ -179,15 +179,6 @@ export const formPluginConfiguration = formBuilderPlugin({
       },
 
       {
-        name: 'helper-job',
-        type: 'relationship',
-        relationTo: 'helper-jobs',
-        admin: {
-          readOnly: true,
-          position: 'sidebar',
-        },
-      },
-      {
         name: 'helper-jobs',
         type: 'relationship',
         relationTo: 'helper-jobs',

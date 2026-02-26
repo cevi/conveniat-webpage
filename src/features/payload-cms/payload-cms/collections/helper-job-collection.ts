@@ -162,7 +162,7 @@ export const JobCollection: CollectionConfig = asLocalizedCollection({
       name: 'submissions',
       type: 'join',
       collection: 'form-submissions',
-      on: 'helper-job',
+      on: 'helper-jobs',
       admin: {
         allowCreate: false,
       },

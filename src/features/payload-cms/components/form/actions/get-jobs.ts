@@ -47,18 +47,9 @@ export const getJobs = async (
         const currentSubmissionsCount = await payload.count({
           collection: 'form-submissions',
           where: {
-            or: [
-              {
-                'helper-job': {
-                  equals: job.id,
-                },
-              },
-              {
-                'helper-jobs': {
-                  contains: job.id,
-                },
-              },
-            ],
+            'helper-jobs': {
+              contains: job.id,
+            },
           },
         });
         availableQuota = Math.max(0, job.maxQuota - currentSubmissionsCount.totalDocs);

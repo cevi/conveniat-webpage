@@ -44,15 +44,21 @@ export const linkJobSubmission: CollectionBeforeChangeHook<FormSubmission> = asy
   // Find Job Selection blocks
   const jobSelectionBlocks: { name: string }[] = [];
 
-  for (const section of form.sections) {
-    const fields = section.formSection.fields;
-    if (!fields) continue;
-
+  const extractJobSelectionBlocks = (fields: unknown[]): void => {
     for (const field of fields) {
-      const fieldBlock = field as { blockType: string; name?: string };
+      if (!field || typeof field !== 'object') continue;
+      const fieldBlock = field as { blockType?: string; name?: string; fields?: unknown[] };
       if (fieldBlock.blockType === 'jobSelection' && typeof fieldBlock.name === 'string') {
         jobSelectionBlocks.push({ name: fieldBlock.name });
+      } else if (fieldBlock.blockType === 'conditionedBlock' && Array.isArray(fieldBlock.fields)) {
+        extractJobSelectionBlocks(fieldBlock.fields);
       }
+    }
+  };
+
+  for (const section of form.sections) {
+    if (section.formSection.fields) {
+      extractJobSelectionBlocks(section.formSection.fields);
     }
   }
 
@@ -96,18 +102,9 @@ export const linkJobSubmission: CollectionBeforeChangeHook<FormSubmission> = asy
       const currentSubmissionsCount = await req.payload.count({
         collection: 'form-submissions',
         where: {
-          or: [
-            {
-              'helper-job': {
-                equals: foundJobId,
-              },
-            },
-            {
-              'helper-jobs': {
-                contains: foundJobId,
-              },
-            },
-          ],
+          'helper-jobs': {
+            contains: foundJobId,
+          },
         },
       });
 
@@ -119,11 +116,6 @@ export const linkJobSubmission: CollectionBeforeChangeHook<FormSubmission> = asy
 
   // Link the jobs to the submission
   data['helper-jobs'] = foundJobIds;
-  // For backward compatibility/consistency with old field if only one job is selected
-  const firstJobId = foundJobIds[0];
-  if (typeof firstJobId === 'string' && firstJobId !== '') {
-    data['helper-job'] = firstJobId;
-  }
 
   return data;
 };
