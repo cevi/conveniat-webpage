@@ -1,4 +1,6 @@
 import type { Form, FormSubmission } from '@/features/payload-cms/payload-types';
+import type { Locale, StaticTranslationString } from '@/types/types';
+import { auth } from '@/utils/auth';
 import type { CollectionBeforeChangeHook } from 'payload';
 import { APIError } from 'payload';
 
@@ -107,6 +109,27 @@ export const validateFormSubmission: CollectionBeforeChangeHook<FormSubmission> 
 
   const fieldErrors: { field: string; message: string }[] = [];
 
+  interface CeviDatabaseSession {
+    user?: {
+      cevi_db_uuid?: string;
+      uuid?: string;
+      name?: string;
+      nickname?: string;
+      email?: string;
+      [key: string]: unknown;
+    };
+  }
+
+  let session: CeviDatabaseSession | null | undefined;
+  let sessionFetched = false;
+  const getSession = async (): Promise<CeviDatabaseSession | null | undefined> => {
+    if (!sessionFetched) {
+      session = (await auth()) as CeviDatabaseSession | null | undefined;
+      sessionFetched = true;
+    }
+    return session;
+  };
+
   for (const fieldConfig of allFields) {
     // Ensure the field has a name
     if (!('name' in fieldConfig) || typeof fieldConfig.name !== 'string') {
@@ -125,14 +148,71 @@ export const validateFormSubmission: CollectionBeforeChangeHook<FormSubmission> 
     // Check required (respecting the flag — only validate if required === true)
     const isRequired = 'required' in fieldConfig && fieldConfig.required === true;
     if (isRequired && !hasValue) {
-      fieldErrors.push({ field: fieldName, message: 'required' });
-      continue;
+      if (fieldConfig.blockType === 'ceviDbLogin') {
+        const locale = (req.locale ?? 'en') as Locale;
+        const requiredMessage: StaticTranslationString = {
+          en: `Field "${fieldName}" is required. Please log in with Cevi DB.`,
+          de: `Feld "${fieldName}" ist erforderlich. Bitte melden Sie sich mit Cevi DB an.`,
+          fr: `Le champ "${fieldName}" ist obligatoire. Veuillez vous connecter avec Cevi DB.`,
+        };
+        throw new APIError(requiredMessage[locale], 400, undefined, true);
+      } else {
+        fieldErrors.push({ field: fieldName, message: 'required' });
+        continue;
+      }
     }
 
     if (!hasValue || typeof value !== 'string') continue;
 
     // Type-specific validation
     switch (fieldConfig.blockType) {
+      case 'ceviDbLogin': {
+        const locale = (req.locale ?? 'en') as Locale;
+        const currentSession = await getSession();
+
+        if (currentSession?.user === undefined) {
+          const loginRequiredMessage: StaticTranslationString = {
+            en: 'You must be logged in to submit this field.',
+            de: 'Sie müssen angemeldet sein, um dieses Feld abzusenden.',
+            fr: 'Vous devez être connecté pour soumettre ce champ.',
+          };
+          throw new APIError(loginRequiredMessage[locale], 401, undefined, true);
+        }
+
+        let sessionValue: string | number | undefined | null;
+        const saveField = 'saveField' in fieldConfig ? (fieldConfig.saveField as string) : 'email';
+
+        switch (saveField) {
+          case 'uuid': {
+            sessionValue = currentSession.user.cevi_db_uuid ?? currentSession.user.uuid;
+            break;
+          }
+          case 'name': {
+            sessionValue = currentSession.user.name;
+            break;
+          }
+          case 'nickname': {
+            sessionValue = currentSession.user.nickname;
+            break;
+          }
+          default: {
+            sessionValue = currentSession.user.email;
+            break;
+          }
+        }
+
+        const sessionString = String(sessionValue ?? '').trim();
+
+        if (value !== sessionString) {
+          const integrityMessage: StaticTranslationString = {
+            en: `Validation failed for field "${fieldName}". The submitted value does not match your logged-in user.`,
+            de: `Validierung fehlgeschlagen für Feld "${fieldName}". Der übermittelte Wert stimmt nicht mit Ihrem angemeldeten Benutzer überein.`,
+            fr: `La validation a échoué pour le champ "${fieldName}". La valeur soumise ne correspond pas à votre utilisateur connecté.`,
+          };
+          throw new APIError(integrityMessage[locale], 403, undefined, true);
+        }
+        break;
+      }
       case 'email': {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(value)) {
@@ -192,7 +272,7 @@ export const validateFormSubmission: CollectionBeforeChangeHook<FormSubmission> 
         }
         break;
       }
-      // jobSelection, ceviDbLogin, checkbox, country, textarea:
+      // jobSelection, checkbox, country, textarea:
       // no extra type-specific validation needed beyond the required check above
     }
   }
