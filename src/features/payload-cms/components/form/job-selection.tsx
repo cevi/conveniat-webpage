@@ -11,7 +11,7 @@ import { cn } from '@/utils/tailwindcss-override';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2, Search, X } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
-import React, { createContext, useContext, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import type { Control, FieldValues } from 'react-hook-form';
 import { Controller } from 'react-hook-form';
 
@@ -40,29 +40,35 @@ const defaultFieldState: JobSelectionFieldState = {
 export const JobSelectionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [states, setStates] = useState<Record<string, JobSelectionFieldState>>({});
 
+  const setSearchTerm = useCallback((name: string, searchTerm: string): void => {
+    setStates((previous) => ({
+      ...previous,
+      [name]: { ...(previous[name] ?? defaultFieldState), searchTerm },
+    }));
+  }, []);
+
+  const setSelectedRessorts = useCallback((name: string, selectedRessorts: Set<string>): void => {
+    setStates((previous) => ({
+      ...previous,
+      [name]: { ...(previous[name] ?? defaultFieldState), selectedRessorts },
+    }));
+  }, []);
+
+  const setIsSearchOpen = useCallback((name: string, isSearchOpen: boolean): void => {
+    setStates((previous) => ({
+      ...previous,
+      [name]: { ...(previous[name] ?? defaultFieldState), isSearchOpen },
+    }));
+  }, []);
+
   const value = useMemo(() => {
     return {
       states,
-      setSearchTerm: (name: string, searchTerm: string): void => {
-        setStates((previous) => ({
-          ...previous,
-          [name]: { ...(previous[name] ?? defaultFieldState), searchTerm },
-        }));
-      },
-      setSelectedRessorts: (name: string, selectedRessorts: Set<string>): void => {
-        setStates((previous) => ({
-          ...previous,
-          [name]: { ...(previous[name] ?? defaultFieldState), selectedRessorts },
-        }));
-      },
-      setIsSearchOpen: (name: string, isSearchOpen: boolean): void => {
-        setStates((previous) => ({
-          ...previous,
-          [name]: { ...(previous[name] ?? defaultFieldState), isSearchOpen },
-        }));
-      },
+      setSearchTerm,
+      setSelectedRessorts,
+      setIsSearchOpen,
     };
-  }, [states]);
+  }, [states, setSearchTerm, setSelectedRessorts, setIsSearchOpen]);
 
   return <JobSelectionContext.Provider value={value}>{children}</JobSelectionContext.Provider>;
 };
@@ -228,6 +234,11 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
             placeholder={searchPlaceholderText[locale]}
             className="w-48 rounded-full border border-gray-200 bg-gray-50 py-1.5 pr-8 pl-9 text-xs shadow-sm transition-all focus:w-64 focus:border-green-500 focus:bg-white focus:ring-2 focus:ring-green-500/20 focus:outline-none"
             value={searchTerm}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
+              }
+            }}
             onChange={(event) => setSearchTerm(event.target.value)}
             onBlur={(event) => {
               const relatedTarget = event.relatedTarget as HTMLElement | null;

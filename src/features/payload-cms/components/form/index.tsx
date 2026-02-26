@@ -139,7 +139,12 @@ export const FormBlock: React.FC<
   const isDualCardLayout = isSplit && shouldRenderMain;
 
   const handleSubmit = (event: React.FormEvent): void => {
-    void formMethods.handleSubmit(submit)(event);
+    event.preventDefault();
+    if (isLastStep) {
+      void formMethods.handleSubmit(submit)(event);
+    } else {
+      void next();
+    }
   };
 
   if (!config._localized_status.published) return <></>;

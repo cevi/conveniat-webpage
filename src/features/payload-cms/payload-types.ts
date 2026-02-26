@@ -5049,6 +5049,7 @@ export interface TaskEnsureGroupMembership {
     approvalRequired?: boolean | null;
     approvalGroupName?: string | null;
     approvalGroupUrl?: string | null;
+    status?: string | null;
   };
 }
 /**
