@@ -33,7 +33,7 @@ export const ProgressBar: React.FC<ProgressBarProperties> = ({
         <span>
           {stepText[locale]} {currentStepIndex + 1} {ofText[locale]} {definedSteps.length}
         </span>
-        <span>{Math.round(((currentStepIndex + 1) / definedSteps.length) * 100)}%</span>
+        <span>{Math.round((currentStepIndex / definedSteps.length) * 100)}%</span>
       </div>
       <div className="h-2 w-full rounded-full bg-gray-200">
         <div
