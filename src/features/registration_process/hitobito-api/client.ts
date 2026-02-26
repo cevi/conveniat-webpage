@@ -230,7 +230,7 @@ export class HitobitoClient {
     }
 
     const payloadString = payload.toString();
-    this.logger?.info(`submitRailsForm POST to ${postUrl} with payload: ${payloadString}`);
+    this.logger?.info(`submitRailsForm POST to ${postUrl}`);
 
     const result = await this.frontendRequest('POST', postUrl, {
       headers: finalHeaders,
