@@ -12,6 +12,7 @@ export const ensureGroupMembershipStep: TaskConfig<{
     approvalRequired?: boolean;
     approvalGroupName?: string;
     approvalGroupUrl?: string;
+    status?: 'exists' | 'created';
   };
 }> = {
   slug: 'ensureGroupMembership',
@@ -22,6 +23,7 @@ export const ensureGroupMembershipStep: TaskConfig<{
     { name: 'approvalRequired', type: 'checkbox' },
     { name: 'approvalGroupName', type: 'text' },
     { name: 'approvalGroupUrl', type: 'text' },
+    { name: 'status', type: 'text' },
   ],
   handler: async ({ input, req }) => {
     const { logger } = req.payload;
