@@ -14,15 +14,29 @@ export interface RegistrationWorkflowTasks {
   ensureGroupMembership: (
     taskId: string,
     options: { input: { userId: string } },
-  ) => Promise<{ success: boolean }>;
+  ) => Promise<{
+    success: boolean;
+    approvalRequired?: boolean;
+    approvalGroupName?: string;
+    approvalGroupUrl?: string;
+    status?: string;
+  }>;
 
   ensureEventMembership: (
     taskId: string,
     options: { input: { userId: string } },
-  ) => Promise<{ success: boolean }>;
+  ) => Promise<{ success: boolean; participationId?: string; status?: string }>;
 
   confirmationMessage: (
     taskId: string,
-    options: { input: { email: string; formSubmissionId?: string; locale?: string } },
+    options: {
+      input: {
+        email: string;
+        formSubmissionId?: string;
+        locale?: string;
+        skip?: boolean;
+        skipReason?: string;
+      };
+    },
   ) => Promise<{ sent: boolean }>;
 }
