@@ -59,10 +59,12 @@ export const EmailPreviewField: React.FC<{
     <div className="field-type custom-field mb-4">
       <label className="field-label">{labelText}</label>
       <div className="mt-1 min-h-[400px] rounded border border-gray-200 bg-white dark:border-gray-800">
+        {/* We use sandbox="" to securely isolate the rendered email content. Even though it comes from our database, preventing any potential HTML injection attacks from executing scripts or other malicious behavior is a good security practice. */}
         <iframe
           ref={iframeReference}
           srcDoc={value}
           className="h-full min-h-[400px] w-full border-none"
+          sandbox=""
           title="Email Preview"
         />
       </div>
