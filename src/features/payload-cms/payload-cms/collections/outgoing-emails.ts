@@ -106,6 +106,17 @@ export const OutgoingEmails: CollectionConfig = {
           },
           fields: [
             {
+              name: 'html',
+              type: 'textarea',
+              admin: {
+                readOnly: true,
+                components: {
+                  Field:
+                    '@/features/payload-cms/payload-cms/components/email-preview/email-preview-field',
+                },
+              },
+            },
+            {
               name: 'smtpResults',
               type: 'json',
               hooks: {

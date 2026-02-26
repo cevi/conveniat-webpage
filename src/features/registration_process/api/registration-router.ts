@@ -302,4 +302,25 @@ export const registrationRouter = createTRPCRouter({
 
       return updatedJob;
     }),
+
+  restartFailedJob: adminProcedure
+    .input(z.object({ jobId: z.string() }))
+    .mutation(async ({ input }) => {
+      const payload = await getPayload({ config });
+
+      const updatedJob = await payload.update({
+        collection: 'payload-jobs',
+        id: input.jobId,
+        data: {
+          hasError: false,
+          /* eslint-disable unicorn/no-null, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment */
+          error: null as any,
+          processing: false,
+          completedAt: null as any,
+          /* eslint-enable unicorn/no-null, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment */
+        },
+      });
+
+      return updatedJob;
+    }),
 });

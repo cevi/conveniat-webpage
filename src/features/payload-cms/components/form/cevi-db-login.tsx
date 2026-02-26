@@ -6,21 +6,25 @@ import {
   loggedInAsText,
   loginWithCeviDatabaseText,
 } from '@/features/payload-cms/components/form/static-form-texts';
+import { getFormStorageKey } from '@/features/payload-cms/components/form/utils/get-form-storage-key';
 import type { StaticTranslationString } from '@/types/types';
 import { i18nConfig, type Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { signIn, signOut, useSession } from 'next-auth/react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useEffect } from 'react';
+import type { FieldError, FieldErrorsImpl, FieldValues, Merge } from 'react-hook-form';
 import { useFormContext } from 'react-hook-form';
 
 interface CeviDatabaseLoginProperties {
   name: string;
   label?: string;
   saveField?: 'name' | 'uuid' | 'email' | 'nickname';
+  fieldMapping?: { jwtField: string; formField: string }[];
   formId?: string;
   required?: boolean;
   currentStepIndex?: number;
+  error?: FieldError | Merge<FieldError, FieldErrorsImpl<FieldValues>>;
 }
 
 const loginRequiredMessage: StaticTranslationString = {
@@ -34,15 +38,12 @@ export const CeviDatabaseLogin: React.FC<CeviDatabaseLoginProperties> = ({
   label,
   required,
   saveField,
+  fieldMapping,
   formId,
   currentStepIndex,
+  error,
 }) => {
-  const {
-    register,
-    setValue,
-    getValues,
-    formState: { errors },
-  } = useFormContext();
+  const { register, setValue, getValues } = useFormContext();
   const { data: session } = useSession();
   const currentLocale = useCurrentLocale(i18nConfig);
   const locale = (currentLocale ?? 'en') as Locale;
@@ -50,9 +51,9 @@ export const CeviDatabaseLogin: React.FC<CeviDatabaseLoginProperties> = ({
   const handleLogin = (): void => {
     const values = getValues();
     if (typeof formId === 'string' && formId !== '') {
-      sessionStorage.setItem(`form-state-${formId}`, JSON.stringify(values));
+      sessionStorage.setItem(getFormStorageKey(formId, 'state'), JSON.stringify(values));
       if (currentStepIndex !== undefined) {
-        sessionStorage.setItem(`form_step_${formId}`, String(currentStepIndex));
+        sessionStorage.setItem(getFormStorageKey(formId, 'step'), String(currentStepIndex));
       }
     }
     // Inform browser to replace the current history entry so the back button skips the login trigger
@@ -71,9 +72,9 @@ export const CeviDatabaseLogin: React.FC<CeviDatabaseLoginProperties> = ({
   const handleChangeUser = (): void => {
     const values = getValues();
     if (typeof formId === 'string' && formId !== '') {
-      sessionStorage.setItem(`form-state-${formId}`, JSON.stringify(values));
+      sessionStorage.setItem(getFormStorageKey(formId, 'state'), JSON.stringify(values));
       if (currentStepIndex !== undefined) {
-        sessionStorage.setItem(`form_step_${formId}`, String(currentStepIndex));
+        sessionStorage.setItem(getFormStorageKey(formId, 'step'), String(currentStepIndex));
       }
     }
     const callbackUrl = typeof globalThis === 'undefined' ? undefined : globalThis.location.href;
@@ -85,6 +86,8 @@ export const CeviDatabaseLogin: React.FC<CeviDatabaseLoginProperties> = ({
       void signIn('cevi-db', signInOptions);
     });
   };
+
+  const fieldMappingString = fieldMapping ? JSON.stringify(fieldMapping) : undefined;
 
   useEffect(() => {
     if (session?.user) {
@@ -108,10 +111,78 @@ export const CeviDatabaseLogin: React.FC<CeviDatabaseLoginProperties> = ({
         }
       }
       setValue(name, valueToSave ?? '', { shouldValidate: true });
-    }
-  }, [session, saveField, setValue, name]);
 
-  const errorMessage = errors[name]?.message as string | undefined;
+      const parsedFieldMapping = fieldMappingString
+        ? (JSON.parse(fieldMappingString) as { jwtField: string; formField: string }[])
+        : undefined;
+
+      if (parsedFieldMapping && parsedFieldMapping.length > 0) {
+        let didPrefill = false;
+        for (const { jwtField, formField } of parsedFieldMapping) {
+          let jwtValue: string | number | null | undefined;
+          switch (jwtField) {
+            case 'name': {
+              jwtValue = session.user.name;
+              break;
+            }
+            case 'firstName': {
+              jwtValue = session.user.firstName;
+              break;
+            }
+            case 'lastName': {
+              jwtValue = session.user.lastName;
+              break;
+            }
+            case 'email': {
+              jwtValue = session.user.email;
+              break;
+            }
+            case 'nickname': {
+              jwtValue = session.user.nickname;
+              break;
+            }
+            case 'uuid': {
+              jwtValue = session.user.uuid;
+              break;
+            }
+            case 'cevi_db_uuid': {
+              jwtValue = session.user.cevi_db_uuid;
+              break;
+            }
+            default: {
+              break;
+            }
+          }
+          const jwtValueString =
+            jwtValue !== undefined && jwtValue !== null ? String(jwtValue).trim() : '';
+
+          if (jwtValueString.length > 0) {
+            const currentValue = getValues(formField) as unknown;
+            let currentValueString = '';
+            if (typeof currentValue === 'string' || typeof currentValue === 'number') {
+              currentValueString = String(currentValue).trim();
+            } else if (currentValue !== undefined && currentValue !== null) {
+              currentValueString = 'has_value';
+            }
+
+            if (currentValueString.length === 0) {
+              setValue(formField, String(jwtValue), { shouldValidate: true });
+              didPrefill = true;
+            }
+          }
+        }
+
+        if (didPrefill && typeof formId === 'string' && currentStepIndex !== undefined) {
+          sessionStorage.setItem(
+            getFormStorageKey(formId, 'prefill'),
+            String(currentStepIndex + 1),
+          );
+        }
+      }
+    }
+  }, [session, saveField, setValue, name, fieldMappingString, getValues, formId, currentStepIndex]);
+
+  const errorMessage = error ? (error as FieldError).message : undefined;
 
   const nickname = session?.user.nickname;
   const hasNickname = typeof nickname === 'string' && nickname.length > 0;

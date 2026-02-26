@@ -69,17 +69,18 @@ const WORKFLOW_DEFINITIONS = {
 export const formWorkflowField: Field = {
   name: 'workflow',
   type: 'select',
+  hasMany: true,
   admin: {
     description: {
-      en: 'Select a workflow to trigger after form submission.',
-      de: 'Wählen Sie einen Workflow aus, der nach dem Absenden des Formulars ausgelöst werden soll.',
-      fr: 'Sélectionnez un workflow à déclencher après la soumission du formulaire.',
+      en: 'Select workflows to trigger after form submission.',
+      de: 'Wählen Sie Workflows aus, die nach dem Absenden des Formulars ausgelöst werden sollen.',
+      fr: 'Sélectionnez les workflows à déclencher après la soumission du formulaire.',
     },
   },
   label: {
-    en: 'Trigger Workflow',
-    de: 'Workflow auslösen',
-    fr: 'Déclencher le workflow',
+    en: 'Trigger Workflows',
+    de: 'Workflows auslösen',
+    fr: 'Déclencher les workflows',
   },
   options: Object.entries(WORKFLOW_DEFINITIONS).map(([value, definition]) => ({
     label: definition.label,

@@ -20,6 +20,53 @@ const selectedJobNotFoundMessage: StaticTranslationString = {
   fr: 'Job sélectionné non trouvé.',
 };
 
+const noJobSelectedMessage: StaticTranslationString = {
+  en: 'no job selected',
+  de: 'kein Job ausgewählt',
+  fr: 'aucun job sélectionné',
+};
+
+/**
+ * Recursively extracts the string names of all blocks that represent a Job Selection.
+ */
+const getJobSelectionBlockNames = (fields: unknown[] | null | undefined = []): string[] => {
+  if (!fields || !Array.isArray(fields)) return [];
+  return fields.reduce<string[]>((accumulator, field) => {
+    if (!field || typeof field !== 'object') return accumulator;
+    const f = field as { blockType?: string; name?: string; fields?: unknown[] | null };
+
+    if (f.blockType === 'jobSelection' && typeof f.name === 'string') {
+      accumulator.push(f.name);
+    } else if (f.blockType === 'conditionedBlock' && Array.isArray(f.fields)) {
+      accumulator.push(...getJobSelectionBlockNames(f.fields));
+    }
+    return accumulator;
+  }, []);
+};
+
+/**
+ * Validates the quota for a specific job selection.
+ */
+const validateJobQuota = async (
+  request: Parameters<CollectionBeforeChangeHook<FormSubmission>>[0]['req'],
+  jobId: string,
+  maxQuota: number,
+  locale: Locale,
+): Promise<void> => {
+  const currentSubmissionsCount = await request.payload.count({
+    collection: 'form-submissions',
+    where: {
+      'helper-jobs': {
+        contains: jobId,
+      },
+    },
+  });
+
+  if (currentSubmissionsCount.totalDocs >= maxQuota) {
+    throw new APIError(jobFullMessage[locale], 400);
+  }
+};
+
 export const linkJobSubmission: CollectionBeforeChangeHook<FormSubmission> = async ({
   data,
   req,
@@ -41,88 +88,62 @@ export const linkJobSubmission: CollectionBeforeChangeHook<FormSubmission> = asy
     depth: 1,
   });
 
-  // Find Job Selection blocks
-  const jobSelectionBlocks: { name: string }[] = [];
+  // Extract relevant job selection blocks from sections
+  const blockNames = form.sections.flatMap(
+    (section: { formSection?: { fields?: unknown[] | null } | null }) =>
+      getJobSelectionBlockNames(section.formSection?.fields),
+  );
 
-  for (const section of form.sections) {
-    const fields = section.formSection.fields;
-    if (!fields) continue;
-
-    for (const field of fields) {
-      const fieldBlock = field as { blockType: string; name?: string };
-      if (fieldBlock.blockType === 'jobSelection' && typeof fieldBlock.name === 'string') {
-        jobSelectionBlocks.push({ name: fieldBlock.name });
-      }
-    }
-  }
-
-  if (jobSelectionBlocks.length === 0) {
+  if (blockNames.length === 0) {
     return data;
   }
 
   const submissionData = (data.submissionData as SubmissionField[] | undefined) ?? [];
-  const foundJobIds: string[] = [];
+  const entriesToProcess = submissionData.filter((entry) => blockNames.includes(entry.field));
 
-  for (const block of jobSelectionBlocks) {
-    const submissionEntry = submissionData.find((entry) => entry.field === block.name);
-    if (
-      submissionEntry &&
-      typeof submissionEntry.value === 'string' &&
-      submissionEntry.value !== ''
-    ) {
-      foundJobIds.push(submissionEntry.value);
-    }
-  }
-
-  if (foundJobIds.length === 0) {
+  if (entriesToProcess.length === 0) {
     return data;
   }
 
   const locale = (req.locale as Locale | undefined) ?? 'en';
+  const foundJobIds: string[] = [];
 
-  for (const foundJobId of foundJobIds) {
-    // Fetch the Job
-    const job = (await req.payload.findByID({
-      collection: 'helper-jobs',
-      id: foundJobId,
-    })) as unknown as { maxQuota?: number; id: string } | null;
+  // Run database checks in parallel using Promise.all
+  await Promise.all(
+    entriesToProcess.map(async (submissionEntry) => {
+      const isSelected = typeof submissionEntry.value === 'string' && submissionEntry.value !== '';
 
-    if (!job) {
-      throw new APIError(selectedJobNotFoundMessage[locale], 400);
-    }
-
-    // Check Quota
-    if (typeof job.maxQuota === 'number') {
-      const currentSubmissionsCount = await req.payload.count({
-        collection: 'form-submissions',
-        where: {
-          or: [
-            {
-              'helper-job': {
-                equals: foundJobId,
-              },
-            },
-            {
-              'helper-jobs': {
-                contains: foundJobId,
-              },
-            },
-          ],
-        },
-      });
-
-      if (currentSubmissionsCount.totalDocs >= job.maxQuota) {
-        throw new APIError(jobFullMessage[locale], 400);
+      if (!isSelected) {
+        submissionEntry.value = noJobSelectedMessage[locale];
+        return;
       }
-    }
-  }
 
-  // Link the jobs to the submission
-  data['helper-jobs'] = foundJobIds;
-  // For backward compatibility/consistency with old field if only one job is selected
-  const firstJobId = foundJobIds[0];
-  if (typeof firstJobId === 'string' && firstJobId !== '') {
-    data['helper-job'] = firstJobId;
+      const jobId = submissionEntry.value as string;
+
+      // Fetch the Job
+      let job: { maxQuota?: number; id: string; title?: string };
+      try {
+        job = (await req.payload.findByID({
+          collection: 'helper-jobs',
+          id: jobId,
+        })) as unknown as { maxQuota?: number; id: string; title?: string };
+      } catch {
+        throw new APIError(selectedJobNotFoundMessage[locale], 400);
+      }
+
+      // Check Quota if applicable
+      if (typeof job.maxQuota === 'number') {
+        await validateJobQuota(req, jobId, job.maxQuota, locale);
+      }
+
+      foundJobIds.push(jobId);
+      submissionEntry.value = typeof job.title === 'string' ? job.title : jobId;
+    }),
+  );
+
+  // Link the valid jobs to the submission
+  if (foundJobIds.length > 0) {
+    data['helper-jobs'] = foundJobIds;
   }
 
   return data;

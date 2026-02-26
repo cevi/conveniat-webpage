@@ -8,18 +8,21 @@ import { cn } from '@/utils/tailwindcss-override';
 import type { SelectField } from '@payloadcms/plugin-form-builder/types';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
-import type { Control, FieldErrorsImpl, FieldValues, UseFormRegister } from 'react-hook-form';
+import type {
+  Control,
+  FieldError,
+  FieldErrorsImpl,
+  FieldValues,
+  Merge,
+  UseFormRegister,
+} from 'react-hook-form';
 import { Controller } from 'react-hook-form';
 import ReactSelect from 'react-select';
 
 export const Select: React.FC<
   {
     control: Control;
-    errors: Partial<
-      FieldErrorsImpl<{
-        [x: string]: never;
-      }>
-    >;
+    error?: FieldError | Merge<FieldError, FieldErrorsImpl<FieldValues>>;
     registerAction: UseFormRegister<string & FieldValues>;
     placeholder?: string;
     optionType: 'dropdown' | 'radio' | 'cards';
@@ -31,13 +34,13 @@ export const Select: React.FC<
   label,
   options,
   required: requiredFromProperties,
-  errors,
+  error,
   placeholder,
   optionType,
   allowMultiple,
 }) => {
   requiredFromProperties ??= false;
-  const hasError = errors[name];
+  const hasError = error !== undefined;
 
   const locale = useCurrentLocale(i18nConfig);
 
@@ -173,7 +176,7 @@ export const Select: React.FC<
               />
             )}
           />
-          {hasError && <p className="mt-1 text-xs text-red-600">{hasError.message as string}</p>}
+          {hasError && <p className="mt-1 text-xs text-red-600">{(error as FieldError).message}</p>}
         </div>
       </div>
     );
@@ -250,7 +253,7 @@ export const Select: React.FC<
               </div>
             )}
           />
-          {hasError && <p className="mt-2 text-xs text-red-600">{hasError.message as string}</p>}
+          {hasError && <p className="mt-2 text-xs text-red-600">{(error as FieldError).message}</p>}
         </fieldset>
       </div>
     );
@@ -340,7 +343,7 @@ export const Select: React.FC<
             </div>
           )}
         />
-        {hasError && <p className="mt-2 text-xs text-red-600">{hasError.message as string}</p>}
+        {hasError && <p className="mt-2 text-xs text-red-600">{(error as FieldError).message}</p>}
       </div>
     </div>
   );

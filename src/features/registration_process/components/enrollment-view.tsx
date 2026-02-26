@@ -12,14 +12,15 @@ const EnrollmentContent: React.FC = () => {
   const handleTriggerSubmit = async (data: TriggerFormData): Promise<void> => {
     try {
       if (data.mode === 'id' && typeof data.peopleId === 'string' && data.peopleId !== '') {
-        await triggerMutation.mutateAsync({ peopleId: data.peopleId });
+        const response = await triggerMutation.mutateAsync({ peopleId: data.peopleId });
+        toast.success(`Workflow initialized for ${data.peopleId}. Job ID: ${response.jobId}`);
       } else if (data.mode === 'details' && data.details) {
-        await triggerMutation.mutateAsync(data.details);
+        const response = await triggerMutation.mutateAsync(data.details);
+        toast.success(`Workflow initialized. Job ID: ${response.jobId}`);
       }
-      toast.success('Workflow initialized');
     } catch (error) {
       console.error('Trigger failed:', error);
-      toast.error('Initialization failed');
+      toast.error('Initialization failed. Check logs.');
     }
   };
 

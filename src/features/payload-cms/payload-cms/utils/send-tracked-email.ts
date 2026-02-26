@@ -8,7 +8,11 @@ export const sendTrackedEmail = async (
   emailOptions: SendEmailOptions,
   formSubmissionId?: string,
 ): Promise<void> => {
-  const options = emailOptions as unknown as { to?: string | string[]; subject?: string };
+  const options = emailOptions as unknown as {
+    to?: string | string[];
+    subject?: string;
+    html?: string;
+  };
   let to = 'unknown';
 
   if (typeof options.to === 'string') {
@@ -23,11 +27,13 @@ export const sendTrackedEmail = async (
   const data: {
     to: string;
     subject: string;
+    html?: string;
     formSubmission?: string;
     deliveryStatus: 'pending' | 'success' | 'error';
   } = {
     to,
     subject,
+    ...(options.html === undefined ? {} : { html: options.html }),
     deliveryStatus: 'pending',
   };
 

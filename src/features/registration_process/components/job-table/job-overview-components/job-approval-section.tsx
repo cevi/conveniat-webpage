@@ -1,3 +1,4 @@
+import { environmentVariables } from '@/config/environment-variables';
 import { ConfirmationModal } from '@/features/payload-cms/payload-cms/components/shared/confirmation-modal';
 import type { Config as PayloadConfig } from '@/features/payload-cms/payload-types';
 import { JobCandidateCard } from '@/features/registration_process/components/job-table/job-overview-components/job-candidate-card';
@@ -66,6 +67,11 @@ export const JobApprovalSection: React.FC<JobApprovalSectionProperties> = ({
     return scoreB - scoreA;
   });
 
+  const ensureGroupLog = job.log?.find((l) => l.taskSlug === 'ensureGroupMembership');
+  const ensureGroupOutput = ensureGroupLog?.output as
+    | { approvalGroupName?: string; approvalGroupUrl?: string; approvalRequired?: boolean }
+    | undefined;
+
   if (job.blockedJobId === undefined) {
     return <></>;
   }
@@ -79,9 +85,25 @@ export const JobApprovalSection: React.FC<JobApprovalSectionProperties> = ({
         </h3>
       </div>
       <div className="p-6">
-        <p className="mb-6 text-xs font-medium text-zinc-600 dark:text-zinc-400">
-          {job.blockedReason ?? 'This job requires manual review before it can proceed.'}
-        </p>
+        <div className="mb-6 text-xs font-medium text-zinc-600 dark:text-zinc-400">
+          {job.blockedReason === 'Manuelle Freigabe in Hitobito ausstehend durch die Gruppe' &&
+          typeof ensureGroupOutput?.approvalGroupUrl === 'string' &&
+          ensureGroupOutput.approvalGroupUrl.length > 0 ? (
+            <>
+              Manuelle Freigabe in Hitobito ausstehend durch die Gruppe:{' '}
+              <a
+                href={`${environmentVariables.NEXT_PUBLIC_HITOBITO_API_URL ?? ''}${ensureGroupOutput.approvalGroupUrl}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-bold underline underline-offset-4 hover:opacity-80"
+              >
+                {ensureGroupOutput.approvalGroupName ?? 'Unbekannte Gruppe'}
+              </a>
+            </>
+          ) : (
+            <p>{job.blockedReason ?? 'This job requires manual review before it can proceed.'}</p>
+          )}
+        </div>
 
         <div className="flex flex-col gap-6">
           {/* Candidates List */}

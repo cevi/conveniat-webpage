@@ -18,11 +18,7 @@ interface JobDetailsProperties {
 }
 
 export const JobDetails: React.FC<JobDetailsProperties> = ({ job }) => {
-  // Default to the last step unless the job is blocked (needs review),
-  // in which case we show the overview/action panel.
-  const defaultStepIndex = job.blockedJobId === undefined ? (job.log?.length ?? 0) - 1 : -1;
-
-  const [selectedStepIndex, setSelectedStepIndex] = React.useState<number>(defaultStepIndex);
+  const [selectedStepIndex, setSelectedStepIndex] = React.useState<number>(-1);
 
   const [isResolving, setIsResolving] = React.useState(false);
   const { code: locale } = useLocale() as { code: PayloadConfig['locale'] };
@@ -106,13 +102,31 @@ export const JobDetails: React.FC<JobDetailsProperties> = ({ job }) => {
             )}
           </div>
           <Badge
-            variant={job.hasError === true ? 'destructive' : 'outline'}
+            variant={((): 'destructive' | 'outline' | 'default' => {
+              if (job.hasError === true) return 'destructive';
+              if (job.completedAt !== undefined && job.completedAt !== null) return 'default';
+              return 'outline';
+            })()}
             className="text-[10px] tracking-wider uppercase"
           >
             {((): string => {
               if (job.hasError === true) return 'Failed';
-              if (job.completedAt !== undefined) return 'Completed';
-              return 'Processing';
+
+              const taskKeys = Object.keys(job.taskStatus ?? {});
+              const lastTask = taskKeys.at(-1);
+              const isCurrentlyBlocked = lastTask === 'blockJob';
+
+              if (isCurrentlyBlocked) return 'Await Approval';
+              if (job.completedAt !== undefined && job.completedAt !== null) return 'Completed';
+
+              // If last log entry was a failure, but job is not definitively failed (job.hasError = false),
+              // it means Payload is passively queueing it for a retry.
+              const lastLog = job.log?.at(-1);
+              if (lastLog?.state === 'failed') return 'Retrying';
+
+              if (job.processing === true) return 'Processing';
+
+              return 'Queued';
             })()}
           </Badge>
         </div>

@@ -7,12 +7,13 @@ import { getPublishingStatus } from '@/features/payload-cms/payload-cms/hooks/pu
 import { beforeEmailChangeHook } from '@/features/payload-cms/payload-cms/plugins/form/fix-links-in-mails';
 import { extractEmailLinksHook } from '@/features/payload-cms/payload-cms/plugins/form/hooks/extract-email-links';
 import { linkJobSubmission } from '@/features/payload-cms/payload-cms/plugins/form/hooks/link-job-submission';
-import { validateCeviDatabaseLogin } from '@/features/payload-cms/payload-cms/plugins/form/hooks/validate-cevi-db-login';
+import { validateFormSubmission } from '@/features/payload-cms/payload-cms/plugins/form/hooks/validate-form-submission';
 import { confirmationSettingsTab } from '@/features/payload-cms/payload-cms/plugins/form/tabs/confirmation-settings-tab';
 import { formFieldsTab } from '@/features/payload-cms/payload-cms/plugins/form/tabs/form-fields-tab';
 import { formResultsTab } from '@/features/payload-cms/payload-cms/plugins/form/tabs/form-results-tab';
 import { workflowTab } from '@/features/payload-cms/payload-cms/plugins/form/tabs/workflow-tab';
 import { workflowTriggerOnFormSubmission } from '@/features/payload-cms/payload-cms/plugins/form/workflow-trigger-on-form-submission';
+import { flushPageCacheOnChange } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import { localizedStatusSchema } from '@/features/payload-cms/payload-cms/utils/localized-status-schema';
 import { formBuilderPlugin } from '@payloadcms/plugin-form-builder';
 import type { Field, TabsField } from 'payload';
@@ -179,15 +180,6 @@ export const formPluginConfiguration = formBuilderPlugin({
       },
 
       {
-        name: 'helper-job',
-        type: 'relationship',
-        relationTo: 'helper-jobs',
-        admin: {
-          readOnly: true,
-          position: 'sidebar',
-        },
-      },
-      {
         name: 'helper-jobs',
         type: 'relationship',
         relationTo: 'helper-jobs',
@@ -199,7 +191,7 @@ export const formPluginConfiguration = formBuilderPlugin({
       },
     ],
     hooks: {
-      beforeChange: [validateCeviDatabaseLogin, linkJobSubmission],
+      beforeChange: [validateFormSubmission, linkJobSubmission],
       afterChange: [workflowTriggerOnFormSubmission],
     },
   },
@@ -269,6 +261,7 @@ export const formPluginConfiguration = formBuilderPlugin({
     ],
     hooks: {
       beforeChange: [extractEmailLinksHook],
+      afterChange: [flushPageCacheOnChange],
     },
   },
   beforeEmail: beforeEmailChangeHook,

@@ -43,8 +43,33 @@ const afterChangeHook: CollectionAfterChangeHook<BlockedJobDocument> = async ({
       return doc;
     }
 
-    // Cleanup for both resolved and rejected
-    // Delete the original blocked job record from payload-jobs
+    if (doc.status === 'rejected') {
+      try {
+        await payload.update({
+          collection: 'payload-jobs',
+          id: doc.originalJobId,
+          data: {
+            hasError: true,
+            error: {
+              message:
+                doc.reason !== undefined && doc.reason !== ''
+                  ? `Job was manually rejected. Reason: ${doc.reason}`
+                  : 'Job was manually rejected.',
+            },
+          },
+        });
+        payload.logger.info(
+          `Original blocked job '${doc.originalJobId}' marked as rejected/error.`,
+        );
+      } catch (error) {
+        payload.logger.error(
+          `Failed to update original blocked job '${doc.originalJobId}' on reject: ${String(error)}`,
+        );
+      }
+      return doc; // exit early to prevent deletion
+    }
+
+    // Delete the original blocked job record from payload-jobs (for resolved)
     try {
       await payload.delete({
         collection: 'payload-jobs',
@@ -57,7 +82,7 @@ const afterChangeHook: CollectionAfterChangeHook<BlockedJobDocument> = async ({
       );
     }
 
-    // Delete the blocked job record
+    // Delete the blocked job record (for resolved)
     await payload.delete({
       collection: 'blocked-jobs',
       id: doc.id,

@@ -7,22 +7,24 @@ import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical
 import { useCurrentLocale } from 'next-i18n-router/client';
 import type { CheckboxField } from 'payload';
 import type React from 'react';
-import type { FieldErrorsImpl, FieldValues, UseFormRegister } from 'react-hook-form';
+import type {
+  FieldError,
+  FieldErrorsImpl,
+  FieldValues,
+  Merge,
+  UseFormRegister,
+} from 'react-hook-form';
 
 export const Checkbox: React.FC<
   {
-    errors: Partial<
-      FieldErrorsImpl<{
-        [x: string]: never;
-      }>
-    >;
+    error?: FieldError | Merge<FieldError, FieldErrorsImpl<FieldValues>>;
     registerAction: UseFormRegister<string & FieldValues>;
     label: SerializedEditorState;
   } & CheckboxField
-> = ({ name, label, registerAction, required: requiredFromProperties, errors }) => {
+> = ({ name, label, registerAction, required: requiredFromProperties, error }) => {
   // set default values
   requiredFromProperties ??= false;
-  const hasError = errors[name];
+  const hasError = error !== undefined;
   const locale = useCurrentLocale(i18nConfig);
 
   return (
@@ -38,14 +40,16 @@ export const Checkbox: React.FC<
         />
 
         <label
-          className="ml-2 font-['Inter'] text-sm font-medium text-balance text-gray-500 hover:text-gray-900 [&_div]:inline [&_p]:inline"
+          className="ml-2 min-w-0 flex-1 font-['Inter'] text-sm font-medium text-balance break-words text-gray-500 hover:text-gray-900 [&_div]:inline [&_p]:inline"
           htmlFor={name}
         >
           <LexicalRichTextSection richTextSection={label} locale={locale as Locale} />
           {requiredFromProperties && <Required />}
         </label>
       </div>
-      {hasError && <p className="mt-1 text-xs text-red-600">{hasError.message as string}</p>}
+      {hasError && (
+        <p className="mt-1 text-xs text-red-600">{(error as { message?: string }).message}</p>
+      )}
     </div>
   );
 };
