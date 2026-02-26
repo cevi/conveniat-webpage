@@ -12,7 +12,9 @@ import type React from 'react';
 export const FormBlockLabel: React.FC<{
   label: StaticTranslationString;
 }> = ({ label }) => {
-  const rowLabel = useRowLabel<{ name?: string }>() as { data: { name?: string } } | undefined;
+  const rowLabel = useRowLabel<{ name?: string; required?: boolean }>() as
+    | { data: { name?: string; required?: boolean } }
+    | undefined;
   const { code } = useLocale();
 
   if (!rowLabel) {
@@ -21,14 +23,20 @@ export const FormBlockLabel: React.FC<{
 
   const { data } = rowLabel;
   const customLabel = `${data.name ?? ''}`;
+  const requiredMark = data.required === true ? ' *' : '';
 
   if (customLabel !== '') {
     return (
       <div>
-        {customLabel} ({label[code as Locale]})
+        {customLabel} ({label[code as Locale]}){requiredMark}
       </div>
     );
   }
 
-  return <div>{label[code as Locale]}</div>;
+  return (
+    <div>
+      {label[code as Locale]}
+      {requiredMark}
+    </div>
+  );
 };
