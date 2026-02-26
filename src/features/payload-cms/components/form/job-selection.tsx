@@ -214,9 +214,16 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
     });
   }, [jobs, searchTerm, selectedRessorts]);
 
-  // Sort jobs by start date
+  // Sort jobs by start date, putting full jobs at the bottom
   const sortedJobs = useMemo((): JobWithQuota[] => {
     return [...filteredJobs].sort((a, b) => {
+      const aIsFull = typeof a.availableQuota === 'number' && a.availableQuota <= 0;
+      const bIsFull = typeof b.availableQuota === 'number' && b.availableQuota <= 0;
+
+      if (aIsFull !== bIsFull) {
+        return aIsFull ? 1 : -1;
+      }
+
       const startA = new Date(a.dateRange.startDate).getTime();
       const startB = new Date(b.dateRange.startDate).getTime();
       return startA - startB;
@@ -377,15 +384,17 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
                         }}
                         disabled={isDisabled}
                         className={cn(
-                          'relative flex cursor-pointer flex-col rounded-lg border-2 p-4 text-left transition-all duration-200 focus:ring-2 focus:ring-offset-2 focus:outline-none',
+                          'relative flex flex-col rounded-lg border-2 p-4 text-left transition-all duration-200 focus:ring-2 focus:ring-offset-2 focus:outline-none',
                           {
+                            'cursor-pointer': !isDisabled,
+                            'cursor-not-allowed border-gray-200 bg-gray-50 opacity-50 grayscale':
+                              isDisabled,
                             'border-green-600 bg-green-50 ring-green-600': isSelected && !hasError,
                             'border-red-500 bg-red-50 ring-red-600': isSelected && hasError,
                             'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50 focus:ring-green-600':
-                              !isSelected && !hasError,
+                              !isSelected && !hasError && !isDisabled,
                             'border-red-200 bg-white hover:border-red-300 focus:ring-red-500':
-                              !isSelected && hasError,
-                            'cursor-not-allowed opacity-50 grayscale': isDisabled,
+                              !isSelected && hasError && !isDisabled,
                           },
                         )}
                       >
