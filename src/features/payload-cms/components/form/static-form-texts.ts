@@ -12,6 +12,30 @@ export const fieldIsNotValidText: StaticTranslationString = {
   fr: 'Le format n’est pas valide.',
 };
 
+export const invalidEmailText: StaticTranslationString = {
+  en: 'Please enter a valid email address.',
+  de: 'Bitte geben Sie eine gültige E-Mail-Adresse ein.',
+  fr: 'Veuillez entrer une adresse e-mail valide.',
+};
+
+export const invalidNumberText: StaticTranslationString = {
+  en: 'Please enter a valid number.',
+  de: 'Bitte geben Sie eine gültige Nummer ein.',
+  fr: 'Veuillez entrer un nombre valide.',
+};
+
+export const invalidDateText: StaticTranslationString = {
+  en: 'Please enter a valid date.',
+  de: 'Bitte geben Sie ein gültiges Datum ein.',
+  fr: 'Veuillez entrer une date valide.',
+};
+
+export const invalidSelectionText: StaticTranslationString = {
+  en: 'Invalid selection.',
+  de: 'Ungültige Auswahl.',
+  fr: 'Sélection invalide.',
+};
+
 export const loginWithCeviDatabaseText: StaticTranslationString = {
   en: 'Login with Cevi DB',
   de: 'Anmelden mit Cevi DB',

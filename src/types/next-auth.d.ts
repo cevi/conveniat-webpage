@@ -7,6 +7,8 @@ declare module 'next-auth' {
       cevi_db_uuid?: number | undefined;
       group_ids?: number[] | undefined;
       nickname?: string | null | undefined;
+      firstName?: string | undefined;
+      lastName?: string | undefined;
     } & DefaultSession['user'];
   }
 
@@ -15,6 +17,8 @@ declare module 'next-auth' {
     cevi_db_uuid?: number | undefined;
     group_ids?: number[] | undefined;
     nickname?: string | null | undefined;
+    firstName?: string | undefined;
+    lastName?: string | undefined;
   }
 }
 
@@ -27,6 +31,8 @@ declare module 'next-auth/jwt' {
     cevi_db_uuid?: number | undefined;
     group_ids?: number[] | undefined;
     nickname?: string | null | undefined;
+    firstName?: string | undefined;
+    lastName?: string | undefined;
     error?: string | undefined;
     email?: string | undefined;
     name?: string | undefined;

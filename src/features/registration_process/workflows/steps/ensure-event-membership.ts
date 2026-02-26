@@ -1,4 +1,4 @@
-import { Hitobito } from '@/features/registration_process/hitobito-api';
+import { getHitobito } from '@/features/registration_process/hitobito-api';
 import { HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api/config';
 import { poll } from '@/features/registration_process/hitobito-api/utils';
 import type { TaskConfig } from 'payload';
@@ -41,7 +41,7 @@ export const ensureEventMembershipStep: TaskConfig<{
     if (eventId === undefined || eventId === '')
       throw new Error('Configuration Error: EVENT_ID is missing');
 
-    const hitobito = Hitobito.create(HITOBITO_CONFIG, logger);
+    const hitobito = await getHitobito(req.payload, logger);
 
     logger.info(`Ensuring event membership for user ${userId} in event ${eventId}...`);
 

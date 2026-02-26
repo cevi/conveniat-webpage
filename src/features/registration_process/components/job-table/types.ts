@@ -5,15 +5,16 @@ import type React from 'react';
 export interface RegistrationJob {
   id: string;
   createdAt: string | Date;
-  completedAt?: string | Date;
+  completedAt?: string | Date | null;
   processing?: boolean;
+  queue?: string | null;
   hasError?: boolean;
-  taskStatus?: Record<string, { status: string; completedAt?: string | Date }>;
+  taskStatus?: Record<string, { status: string; completedAt?: string | Date | null }>;
   log?: {
     taskSlug: string;
     state?: string;
-    executedAt?: string | Date;
-    completedAt?: string | Date;
+    executedAt?: string | Date | null;
+    completedAt?: string | Date | null;
     error?: unknown;
     output?: unknown;
     input?: unknown;
@@ -30,7 +31,8 @@ export type JobStatusFilter =
   | 'processing'
   | 'completed'
   | 'failed'
-  | 'awaiting_approval';
+  | 'awaiting_approval'
+  | 'retrying';
 
 // --- Constants ---
 export const STATUS_CONFIG: Record<
@@ -42,6 +44,7 @@ export const STATUS_CONFIG: Record<
   completed: { label: 'Completed', icon: Circle, color: 'text-emerald-500 fill-emerald-500' },
   failed: { label: 'Failed', icon: X, color: 'text-red-500' },
   awaiting_approval: { label: 'Await Approval', icon: AlertTriangle, color: 'text-orange-500' },
+  retrying: { label: 'Retrying', icon: Clock, color: 'text-amber-500' },
 };
 
 export const STEP_MAPPING: Record<string, { label: string; icon: React.ElementType }> = {

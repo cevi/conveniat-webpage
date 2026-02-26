@@ -119,6 +119,7 @@ export class HitobitoClient {
       : this.buildUrl(this.config.baseUrl, urlOrPath, options.params);
 
     const headers = new Headers(options.headers);
+
     if (this.config.browserCookie.length > 0) {
       headers.set('Cookie', this.config.browserCookie);
     }
@@ -228,9 +229,12 @@ export class HitobitoClient {
       finalHeaders['x-csrf-token'] = metaToken;
     }
 
+    const payloadString = payload.toString();
+    this.logger?.info(`submitRailsForm POST to ${postUrl} with ${payloadString.length} bytes`);
+
     const result = await this.frontendRequest('POST', postUrl, {
       headers: finalHeaders,
-      body: payload.toString(),
+      body: payloadString,
     });
 
     return { ...result, finalUrl: result.response.url };

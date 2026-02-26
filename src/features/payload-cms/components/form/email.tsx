@@ -1,7 +1,13 @@
 'use client';
 
 import type { EmailField } from '@payloadcms/plugin-form-builder/types';
-import type { Control, FieldErrorsImpl, FieldValues, UseFormRegister } from 'react-hook-form';
+import type {
+  FieldError,
+  FieldErrorsImpl,
+  FieldValues,
+  Merge,
+  UseFormRegister,
+} from 'react-hook-form';
 
 import { Required } from '@/features/payload-cms/components/form/required';
 import { fieldIsRequiredText } from '@/features/payload-cms/components/form/static-form-texts';
@@ -9,7 +15,6 @@ import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
-import { useWatch } from 'react-hook-form';
 
 const isNotAValidEmailText: StaticTranslationString = {
   en: 'Please enter a valid email address',
@@ -19,30 +24,16 @@ const isNotAValidEmailText: StaticTranslationString = {
 
 export const Email: React.FC<
   {
-    control: Control<FieldValues>;
-    errors: Partial<
-      FieldErrorsImpl<{
-        [x: string]: never;
-      }>
-    >;
+    error?: FieldError | Merge<FieldError, FieldErrorsImpl<FieldValues>>;
     registerAction: UseFormRegister<string & FieldValues>;
     placeholder?: string;
   } & EmailField
-> = ({
-  name,
-  label,
-  registerAction,
-  control,
-  required: requiredFromProperties,
-  errors,
-  placeholder,
-}) => {
+> = ({ name, label, registerAction, required: requiredFromProperties, error, placeholder }) => {
   // set default values
   requiredFromProperties ??= false;
-  const hasError = errors[name];
+  const hasError = error !== undefined;
 
   const locale = useCurrentLocale(i18nConfig);
-  useWatch({ control, name }); // Force re-render on every keystroke
 
   return (
     <div className="mb-4">
@@ -63,7 +54,7 @@ export const Email: React.FC<
           },
         })}
       />
-      {hasError && <p className="mt-1 text-xs text-red-600">{hasError.message as string}</p>}
+      {hasError && <p className="mt-1 text-xs text-red-600">{(error as FieldValues)['message']}</p>}
     </div>
   );
 };

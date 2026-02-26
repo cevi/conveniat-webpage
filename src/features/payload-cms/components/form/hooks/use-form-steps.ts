@@ -4,6 +4,7 @@ import type {
   FormSection,
   JobSelectionBlock,
 } from '@/features/payload-cms/components/form/types';
+import { getFormStorageKey } from '@/features/payload-cms/components/form/utils/get-form-storage-key';
 import { useEffect, useState } from 'react';
 import type { FieldName, UseFormReturn } from 'react-hook-form';
 
@@ -30,7 +31,7 @@ export const useFormSteps = (
    */
   const [currentStepIndex, setCurrentStepIndex] = useState(() => {
     if (typeof globalThis !== 'undefined' && typeof formId === 'string' && formId !== '') {
-      const savedStep = sessionStorage.getItem(`form_step_${formId}`);
+      const savedStep = sessionStorage.getItem(getFormStorageKey(formId, 'step'));
       if (savedStep !== null) {
         return Number(savedStep);
       }
@@ -41,7 +42,7 @@ export const useFormSteps = (
   // Save step to sessionStorage whenever it changes
   useEffect(() => {
     if (typeof formId === 'string' && formId !== '') {
-      sessionStorage.setItem(`form_step_${formId}`, String(currentStepIndex));
+      sessionStorage.setItem(getFormStorageKey(formId, 'step'), String(currentStepIndex));
     }
   }, [formId, currentStepIndex]);
 

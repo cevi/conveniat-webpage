@@ -1,8 +1,10 @@
 import { Badge } from '@/components/ui/badge';
 import { JsonBlock } from '@/components/ui/json-block';
 import { environmentVariables } from '@/config/environment-variables';
+import { cn } from '@/utils/tailwindcss-override';
+import { ChevronDown } from 'lucide-react';
 import Link from 'next/link';
-import React from 'react';
+import React, { useState } from 'react';
 
 /**
  * Helper to display key-value pairs cleanly
@@ -41,6 +43,40 @@ export const renderValue = (value: unknown): React.ReactNode => {
 /**
  * Component to flatten and display simple input objects
  */
+export const ExpandableSection: React.FC<{
+  title: string;
+  defaultExpanded?: boolean;
+  children: React.ReactNode;
+}> = ({ title, children, defaultExpanded = false }) => {
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+
+  return (
+    <div
+      className={cn(
+        'overflow-hidden rounded-xl border border-zinc-200 bg-transparent dark:border-zinc-800',
+        !isExpanded && 'h-[38px]',
+      )}
+    >
+      <button
+        type="button"
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="flex w-full cursor-pointer items-center justify-between border-transparent bg-zinc-50/50 px-6 py-3 ring-0 transition-colors outline-none hover:bg-zinc-100/50 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none dark:bg-zinc-900/30 dark:hover:bg-zinc-800/50"
+      >
+        <h3 className="text-xs font-bold tracking-wider text-zinc-500 uppercase">{title}</h3>
+        <ChevronDown
+          className={cn(
+            'h-4 w-4 text-zinc-400 transition-transform duration-200',
+            isExpanded && 'rotate-180',
+          )}
+        />
+      </button>
+      {isExpanded && (
+        <div className="border-t border-zinc-100 p-4 dark:border-zinc-800">{children}</div>
+      )}
+    </div>
+  );
+};
+
 export const InputViewer: React.FC<{ data: unknown }> = ({ data }) => {
   if (typeof data !== 'object' || data === null) {
     return <span className="text-zinc-500">{String(data)}</span>;

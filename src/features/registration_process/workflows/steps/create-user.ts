@@ -1,3 +1,4 @@
+import { getHitobito } from '@/features/registration_process/hitobito-api';
 import { type ResolveUserByDetails } from '@/features/registration_process/hitobito-api/schemas';
 import {
   createNewUser,
@@ -22,6 +23,7 @@ export const createUserStep: TaskConfig<'createUser'> = {
   interfaceName: 'CreateUserInputOutput',
   handler: async ({ input, req }) => {
     const { logger } = req.payload;
+    const hitobito = await getHitobito(req.payload, logger);
 
     try {
       // Reuse the strategy logic from resolve-user-strategies
@@ -29,6 +31,7 @@ export const createUserStep: TaskConfig<'createUser'> = {
       const result: StrategyResult = await createNewUser({
         input: details,
         logger,
+        hitobito,
       });
 
       if (result?.peopleId) {

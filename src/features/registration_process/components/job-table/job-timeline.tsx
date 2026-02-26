@@ -3,7 +3,7 @@ import type { RegistrationJob } from '@/features/registration_process/components
 import { STEP_MAPPING } from '@/features/registration_process/components/job-table/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { formatDistanceToNow } from 'date-fns';
-import { Check, Clock, X } from 'lucide-react';
+import { Check, Clock, SkipForward, X } from 'lucide-react';
 import React from 'react';
 
 export interface JobTimelineProperties {
@@ -59,6 +59,15 @@ export const JobTimeline: React.FC<JobTimelineProperties> = ({
 
         const isError = lastEntry.error !== undefined || lastEntry.state === 'failed';
         const isCompleted = lastEntry.completedAt !== undefined || lastEntry.state === 'completed';
+
+        let isSkipped = false;
+        let skipReason: string | undefined = undefined;
+        if (lastEntry.output && typeof lastEntry.output === 'object') {
+          const outputRec = lastEntry.output as Record<string, unknown>;
+          if (outputRec['skipped'] === true) isSkipped = true;
+          if (typeof outputRec['skipReason'] === 'string') skipReason = outputRec['skipReason'];
+        }
+
         const mapping = STEP_MAPPING[lastEntry.taskSlug];
         const label = mapping?.label ?? lastEntry.taskSlug;
 
@@ -72,6 +81,9 @@ export const JobTimeline: React.FC<JobTimelineProperties> = ({
         if (isError) {
           iconClasses = 'border-red-100 text-red-500 dark:border-red-900/30';
           textClasses = 'text-red-600';
+        } else if (isSkipped) {
+          iconClasses = 'border-blue-100 text-blue-500 dark:border-blue-900/30';
+          textClasses = 'text-blue-600 dark:text-blue-400 font-medium';
         } else if (isHumanIntervention && isCompleted) {
           // Needs Review / Intervention state
           iconClasses =
@@ -90,10 +102,7 @@ export const JobTimeline: React.FC<JobTimelineProperties> = ({
             {/* Main Group Item */}
             <div
               className={cn(
-                'flex cursor-pointer gap-4 rounded-lg px-2 py-0.5 transition-colors',
-                isSelected && group.entries.length === 1 // Only highlight main if single item or we want group highlight style
-                  ? 'bg-zinc-100 dark:bg-zinc-800'
-                  : 'hover:bg-zinc-50 dark:hover:bg-zinc-900/50',
+                'group flex cursor-pointer gap-4 rounded-lg px-2 py-0.5 transition-colors',
               )}
               onClick={() => {
                 if (typeof mainClickIndex === 'number') onSelectStep(mainClickIndex);
@@ -102,20 +111,31 @@ export const JobTimeline: React.FC<JobTimelineProperties> = ({
               {/* Icon */}
               <div
                 className={cn(
-                  'flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 bg-white transition-colors dark:bg-zinc-950',
+                  'relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 bg-white transition-colors dark:bg-zinc-950',
                   iconClasses,
+                  isSelected &&
+                    group.entries.length === 1 &&
+                    'ring-4 ring-zinc-50 dark:ring-white/5',
                 )}
               >
                 {isError && <X className="h-5 w-5" />}
-                {!isError && isCompleted && <Check className="h-5 w-5" />}
-                {!isError && !isCompleted && <Clock className="h-5 w-5" />}
+                {!isError && isSkipped && <SkipForward className="h-5 w-5" />}
+                {!isError && isCompleted && !isSkipped && <Check className="h-5 w-5" />}
+                {!isError && !isCompleted && !isSkipped && <Clock className="h-5 w-5" />}
               </div>
 
               {/* Content */}
               <div className="flex flex-col pt-1">
                 <div className="flex items-center gap-2">
-                  <span className={cn('text-sm font-bold', textClasses)}>{label}</span>
-                  {lastEntry.completedAt !== undefined && (
+                  <span
+                    className={cn(
+                      'text-sm font-bold transition-colors group-hover:underline',
+                      textClasses,
+                    )}
+                  >
+                    {label}
+                  </span>
+                  {lastEntry.completedAt !== undefined && lastEntry.completedAt !== null && (
                     <Badge
                       variant="secondary"
                       className="bg-zinc-100 text-[10px] text-zinc-500 dark:bg-zinc-800"
@@ -129,7 +149,7 @@ export const JobTimeline: React.FC<JobTimelineProperties> = ({
                 </div>
 
                 <div className="mt-1 text-xs text-zinc-500">
-                  {lastEntry.executedAt !== undefined && (
+                  {lastEntry.executedAt !== undefined && lastEntry.executedAt !== null && (
                     <span title={new Date(lastEntry.executedAt).toLocaleString()}>
                       Started{' '}
                       {formatDistanceToNow(new Date(lastEntry.executedAt), { addSuffix: true })}
@@ -142,18 +162,23 @@ export const JobTimeline: React.FC<JobTimelineProperties> = ({
                     Failed
                   </div>
                 )}
+                {isSkipped && skipReason && (
+                  <div className="mt-1 text-xs text-blue-600 italic dark:text-blue-400">
+                    {skipReason}
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Retry Sub-steps (if more than one try) */}
             {group.entries.length > 1 && (
-              <div className="mt-1 ml-5 flex flex-col gap-1 border-l-2 border-zinc-100 pl-4 dark:border-zinc-800">
+              <div className="mt-2 ml-[39px] flex flex-col gap-1">
                 {group.entries.map((entry, subIndex): React.ReactNode => {
                   const realIndex = group.indices[subIndex];
                   const isSubSelected = selectedStepIndex === realIndex;
                   // Only show executedAt time or similar for retries
                   const retryTime =
-                    entry.executedAt === undefined
+                    entry.executedAt === undefined || entry.executedAt === null
                       ? ''
                       : new Date(entry.executedAt).toLocaleTimeString([], {
                           hour: '2-digit',
@@ -165,21 +190,25 @@ export const JobTimeline: React.FC<JobTimelineProperties> = ({
                     <div
                       key={subIndex}
                       className={cn(
-                        'cursor-pointer rounded px-2 py-1 text-xs transition-colors',
+                        'cursor-pointer rounded-md px-3 py-1.5 text-xs transition-colors',
                         isSubSelected
-                          ? 'bg-zinc-100 font-medium text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100'
-                          : 'text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-900/50',
+                          ? 'bg-zinc-100 font-semibold text-zinc-900 shadow-xs dark:bg-zinc-800 dark:text-zinc-100'
+                          : 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700 dark:hover:bg-zinc-900/50 dark:hover:text-zinc-300',
                       )}
                       onClick={(event) => {
                         event.stopPropagation();
                         if (typeof realIndex === 'number') onSelectStep(realIndex);
                       }}
                     >
-                      <span>Attempt {subIndex + 1}</span>
-                      <span className="ml-2 opacity-50">{retryTime}</span>
-                      {entry.state === 'failed' && (
-                        <span className="ml-2 text-red-500">Failed</span>
-                      )}
+                      <div className="flex items-center gap-2">
+                        <span>Attempt {subIndex + 1}</span>
+                        <span className="opacity-50">{retryTime}</span>
+                        {entry.state === 'failed' && (
+                          <span className="text-[10px] font-bold tracking-wider text-red-500 uppercase">
+                            Failed
+                          </span>
+                        )}
+                      </div>
                     </div>
                   );
                 })}

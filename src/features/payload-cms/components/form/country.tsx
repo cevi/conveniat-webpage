@@ -12,8 +12,10 @@ import type React from 'react';
 import type { Control } from 'react-hook-form';
 import {
   Controller,
+  type FieldError,
   type FieldErrorsImpl,
   type FieldValues,
+  type Merge,
   type UseFormRegister,
 } from 'react-hook-form';
 import ReactSelect from 'react-select';
@@ -21,16 +23,12 @@ import ReactSelect from 'react-select';
 export const Country: React.FC<
   {
     control: Control;
-    errors: Partial<
-      FieldErrorsImpl<{
-        [x: string]: never;
-      }>
-    >;
+    error?: FieldError | Merge<FieldError, FieldErrorsImpl<FieldValues>>;
     registerAction: UseFormRegister<string & FieldValues>;
   } & CountryField
-> = ({ name, control, label, required: requiredFromProperties, errors }) => {
+> = ({ name, control, label, required: requiredFromProperties, error }) => {
   requiredFromProperties ??= false;
-  const hasError = !!errors[name];
+  const hasError = error !== undefined;
   const locale = useCurrentLocale(i18nConfig);
 
   return (
@@ -120,7 +118,9 @@ export const Country: React.FC<
           />
         )}
       />
-      {hasError && <p className="mt-1 text-xs text-red-600">{errors[name]?.message as string}</p>}
+      {hasError && (
+        <p className="mt-1 text-xs text-red-600">{(error as { message?: string }).message}</p>
+      )}
     </div>
   );
 };
