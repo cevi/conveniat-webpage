@@ -1,4 +1,8 @@
 import { environmentVariables } from '@/config/environment-variables';
+import {
+  type CustomAutoLinkNode,
+  escapeHTML,
+} from '@/features/payload-cms/payload-cms/utils/html-utils';
 import { sendTrackedEmail } from '@/features/payload-cms/payload-cms/utils/send-tracked-email';
 import config from '@payload-config';
 import type { BeforeEmail, FormattedEmail } from '@payloadcms/plugin-form-builder/types';
@@ -148,13 +152,6 @@ export const beforeEmailChangeHook: BeforeEmail = async (
         }
       }
 
-      interface CustomAutoLinkNode {
-        type: string;
-        version: number;
-        fields?: { url?: string };
-        children?: CustomAutoLinkNode[];
-      }
-
       updatedHtml = `<div>${convertLexicalToHTML({
         converters: {
           ...defaultHTMLConverters,
@@ -169,7 +166,7 @@ export const beforeEmailChangeHook: BeforeEmail = async (
               nodes: node.children ?? [],
               parent: { ...node, parent },
             }).join('');
-            return `<a href="${node.fields?.url ?? ''}">${childrenText}</a>`;
+            return `<a href="${escapeHTML(node.fields?.url ?? '')}">${childrenText}</a>`;
           }) as HTMLConverter<CustomAutoLinkNode>,
         },
         data: lexicalData as unknown as Parameters<typeof convertLexicalToHTML>[0]['data'],

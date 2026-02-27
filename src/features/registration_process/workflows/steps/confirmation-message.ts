@@ -5,17 +5,14 @@ import {
   defaultHTMLConverters,
   type HTMLConverter,
 } from '@payloadcms/richtext-lexical/html';
-import type {
-  SerializedEditorState,
-  SerializedLexicalNode,
-} from '@payloadcms/richtext-lexical/lexical';
+import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import { convertLexicalToPlaintext } from '@payloadcms/richtext-lexical/plaintext';
 import type { TaskConfig } from 'payload';
 
-interface CustomAutoLinkNode extends SerializedLexicalNode {
-  fields?: { url?: string };
-  children?: SerializedLexicalNode[];
-}
+import {
+  escapeHTML,
+  type CustomAutoLinkNode,
+} from '@/features/payload-cms/payload-cms/utils/html-utils';
 
 export const confirmationMessageStep: TaskConfig<{
   input: {
@@ -157,7 +154,7 @@ export const confirmationMessageStep: TaskConfig<{
               nodes: node.children ?? [],
               parent: { ...node, parent },
             }).join('');
-            return `<a href="${node.fields?.url ?? ''}">${childrenText}</a>`;
+            return `<a href="${escapeHTML(node.fields?.url ?? '')}">${childrenText}</a>`;
           }) as HTMLConverter<CustomAutoLinkNode>,
         },
         data: lexicalData,
