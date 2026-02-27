@@ -138,8 +138,19 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
   const isApi = url.pathname.startsWith('/api/');
   const isDocument = event.request.destination === 'document';
 
+  let requestToHandle = event.request;
+  const isAppModeClient = event.clientId !== '' && isClientInAppMode(event.clientId);
+
   if (isApi) {
-    return fetch(event.request);
+    try {
+      return await fetch(event.request);
+    } catch {
+      return offlineFallback(
+        event.request,
+        url,
+        isAppModeClient || url.searchParams.get('app-mode') === 'true',
+      );
+    }
   }
 
   // 1. App Mode Logic (Optimized)
@@ -166,12 +177,9 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
     );
   }
 
-  let requestToHandle = event.request;
-
   // 2. Targeted Injection (Header Strategy)
   // User Requirement: Use Header for everything (Documents, API, RSC). Never Query Param.
   const hasAppModeParameter = url.searchParams.get('app-mode') === 'true';
-  const isAppModeClient = event.clientId !== '' && isClientInAppMode(event.clientId);
   const isAppMode = hasAppModeParameter || isAppModeClient;
 
   if (url.origin === self.location.origin && isAppMode) {
@@ -228,7 +236,6 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
     if (error instanceof Error) {
       console.debug(`[SW] Network/MW failed for ${url.pathname}`, error);
     }
-    // Only serve offline fallback on true Network Errors (App Mode only)
     return offlineFallback(event.request, url, isAppMode);
   }
 }
