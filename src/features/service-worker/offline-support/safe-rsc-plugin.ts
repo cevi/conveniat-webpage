@@ -37,6 +37,7 @@ export const safeRscCachePlugin: SerwistPlugin = {
       return new Response(buffer, {
         headers: response.headers,
         status: response.status,
+        statusText: response.statusText,
       });
     } catch (error) {
       console.warn(
