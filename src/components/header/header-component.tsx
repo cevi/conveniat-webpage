@@ -38,8 +38,9 @@ export const HeaderComponent: React.FC<{
             <LinkComponent
               href={`/${languagePrefix}`}
               aria-label={landingPageAreaLinktText[locale]}
+              prefetch
             >
-              <ConveniatLogo className="absolute top-[12px] left-[24px] z-[100]" />
+              <ConveniatLogo className="absolute top-[12px] left-[24px] z-100" />
             </LinkComponent>
 
             <span className="absolute top-[16px] left-0 flex w-full items-center justify-center font-['Montserrat'] text-[24px] leading-normal font-extrabold xl:hidden">
