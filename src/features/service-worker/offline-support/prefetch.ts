@@ -40,19 +40,6 @@ export function getCacheNameForUrl(url: string): string {
   return CACHE_NAMES.OFFLINE_ASSETS;
 }
 
-function scrapeCssForAssets(cssText: string): Set<string> {
-  const assets = new Set<string>();
-  const cssUrlRegex = /url\(['"]?(?<url>[^)'"]+)['"]?\)/gi;
-  let match;
-  while ((match = cssUrlRegex.exec(cssText)) !== null) {
-    const url = match.groups?.['url'];
-    if (url !== undefined && !url.startsWith('data:') && url.trim().length > 0) {
-      assets.add(url);
-    }
-  }
-  return assets;
-}
-
 function cleanHeaders(headers: Headers): Headers {
   const newHeaders = new Headers();
   for (const [key, value] of headers.entries()) {
@@ -213,85 +200,6 @@ async function cachePageAndScrape(pageUrl: string): Promise<void> {
     }),
   );
 
-  const htmlWithoutComments = htmlText.replaceAll(/<!--[\s\S]*?-->/g, '');
-
-  // Scrape Assets using robust patterns
-  const assetUrls = new Set<string>();
-
-  // 1. CSS files (link rel="stylesheet")
-  const linkRegex = /<link\s+[^>]*?href=["'](?<url>[^"']+\.css(\?.*)?)["'][^>]*?>/gi;
-  let match;
-  while ((match = linkRegex.exec(htmlWithoutComments)) !== null) {
-    if (match.groups?.['url']) assetUrls.add(match.groups['url']);
-  }
-
-  // 2. JS files (script src)
-  const scriptRegex = /<script\s+[^>]*?src=["'](?<url>[^"']+\.js(\?.*)?)["'][^>]*?>/gi;
-  while ((match = scriptRegex.exec(htmlWithoutComments)) !== null) {
-    if (match.groups?.['url']) assetUrls.add(match.groups['url']);
-  }
-
-  // 3. Images (img src) - Standard formats
-  const imgRegex =
-    /<img\s+[^>]*?src=["'](?<url>[^"']+\.(?:png|jpg|jpeg|svg|gif|webp|ico)(\?.*)?)["'][^>]*?>/gi;
-  while ((match = imgRegex.exec(htmlWithoutComments)) !== null) {
-    if (match.groups?.['url']) assetUrls.add(match.groups['url']);
-  }
-
-  // 4. Inline Styles (background-image, etc)
-  const inlineAssets = scrapeCssForAssets(htmlWithoutComments);
-  for (const url of inlineAssets) assetUrls.add(url);
-
-  // 5. Next.js Static Chunks (JSONP/Dynamic Imports)
-  // Matches "static/chunks/..." inside JS code blocks or attributes (e.g. inside <script>)
-  const chunkRegex = /["'](?:\/_next\/)?(static\/chunks\/[^"']+\.js)["']/g;
-  while ((match = chunkRegex.exec(htmlWithoutComments)) !== null) {
-    const path = match[1];
-    if (path) {
-      assetUrls.add(`/_next/${path}`);
-    }
-  }
-
-  const validAssets = new Set<string>();
-  const assetExtensionRegex =
-    /\.(css|js|woff2?|ttf|otf|eot|png|jpg|jpeg|svg|gif|webp|ico)(\?.*)?$/i;
-
-  for (const url of assetUrls) {
-    const cleanUrl = url.replaceAll('&amp;', '&');
-    const isRelative = cleanUrl.startsWith('/') && !cleanUrl.startsWith('//');
-    const isNextAsset = cleanUrl.startsWith('/_next/');
-    const isExternal = cleanUrl.startsWith('http');
-    if ((isRelative || isNextAsset || isExternal) && assetExtensionRegex.test(cleanUrl)) {
-      validAssets.add(cleanUrl);
-    }
-  }
-
-  await Promise.all(
-    [...validAssets].map(async (url) => {
-      const requestInit: RequestInit = url.startsWith('http')
-        ? { mode: 'cors', credentials: 'omit' }
-        : { headers: { [DesignModeTriggers.HEADER_IMPLICIT]: 'true' } };
-
-      const assetResponse = await fetchWithRetryAndTimeout(
-        url,
-        requestInit,
-        TIMEOUTS.ASSET_FETCH,
-        false,
-      );
-      if (assetResponse !== undefined) {
-        const cacheName = getCacheNameForUrl(url);
-        const specificCache = await caches.open(cacheName);
-        const safeAssetHeaders = cleanHeaders(assetResponse.headers);
-        const safeAssetResponse = new Response(await assetResponse.blob(), {
-          status: assetResponse.status,
-          statusText: assetResponse.statusText,
-          headers: safeAssetHeaders,
-        });
-        await specificCache.put(url, safeAssetResponse);
-      }
-    }),
-  );
-
   // E. Prefetch RSC (Updated Logic)
   const urlObject = new URL(pageUrl, location.origin);
   // We start by trying the clean URL (empty value)
@@ -348,6 +256,11 @@ export async function prefetchOfflinePages(
   clientId?: string,
   onProgress?: (total: number, current: number) => void,
 ): Promise<void> {
+  // Use Type assertion for global Serwist config (injected by Webpack)
+  const swManifest =
+    (globalThis as unknown as { __SW_MANIFEST?: ({ url: string } | string)[] }).__SW_MANIFEST ?? [];
+  const manifestUrls = swManifest.map((entry) => (typeof entry === 'string' ? entry : entry.url));
+
   const pagesToPrefetch = new Set<string>(offlinePages);
 
   const registryPages = offlineRegistry.getPrefetchUrls();
@@ -361,12 +274,16 @@ export async function prefetchOfflinePages(
 
   const updateProgress = (): void => {
     processedItems++;
-    if (clientId && onProgress) onProgress(totalItems, processedItems);
+    if (clientId !== undefined && clientId !== '' && onProgress !== undefined) {
+      onProgress(totalItems, processedItems);
+    }
   };
 
-  // 1. Prefetch Assets (Concurrent but limited)
+  // 1. Prefetch Registry Assets & Serwist Manifest Assets (Concurrent but limited)
+  const allAssetsToPrefetch = new Set([...registryAssets, ...manifestUrls]);
+
   await Promise.all(
-    registryAssets.map((url) =>
+    [...allAssetsToPrefetch].map((url) =>
       limit(async () => {
         try {
           await cacheAsset(url);

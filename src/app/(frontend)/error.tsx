@@ -5,15 +5,15 @@ import { TeaserText } from '@/components/ui/typography/teaser-text';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { isDraftOrPreviewMode } from '@/utils/draft-mode';
+import {
+  errorMessageTranslation,
+  offlineDescriptionTranslation,
+  offlineTitleTranslation,
+  retryButtonTranslation,
+} from '@/utils/shared-translations';
 import { Loader2 } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useEffect, useState } from 'react';
-
-const errorMessage: StaticTranslationString = {
-  de: 'Es ist ein Fehler aufgetreten',
-  en: 'Something went wrong',
-  fr: "Une erreur s'est produite",
-};
 
 const previewErrorMessage: StaticTranslationString = {
   de: 'Vorschau-Fehler',
@@ -25,12 +25,6 @@ const previewErrorDescription: StaticTranslationString = {
   de: 'Die Seite konnte nicht geladen werden. Dies kann an einem Netzwerkproblem liegen. Bitte versuche es erneut.',
   en: 'The page could not be loaded. This may be due to a network issue. Please try again.',
   fr: "La page n'a pas pu être chargée. Cela peut être dû à un problème de réseau. Veuillez réessayer.",
-};
-
-const retryButton: StaticTranslationString = {
-  de: 'Erneut versuchen',
-  en: 'Try Again',
-  fr: 'Réessayer',
 };
 
 const showDetailsText: StaticTranslationString = {
@@ -90,14 +84,20 @@ const ErrorPage: React.FC<{
   const locale = useCurrentLocale(i18nConfig);
   const isPreviewMode = isDraftOrPreviewMode();
   const [isRetrying, setIsRetrying] = useState(false);
+  const [isOffline, setIsOffline] = useState(false);
 
   useEffect(() => {
-    console.error(error);
-    console.error(error.stack);
-    if (!isPreviewMode) {
-      void import('posthog-js').then(({ default: ph }) => {
-        ph.captureException(error);
-      });
+    // Check if the error is due to being offline (failed fetch for RSC chunk)
+    if (!navigator.onLine || error.message.toLowerCase().includes('fetch')) {
+      setIsOffline(true);
+    } else {
+      console.error(error);
+      console.error(error.stack);
+      if (!isPreviewMode) {
+        void import('posthog-js').then(({ default: ph }) => {
+          ph.captureException(error);
+        });
+      }
     }
   }, [error, isPreviewMode]);
 
@@ -142,7 +142,7 @@ const ErrorPage: React.FC<{
                 type="button"
               >
                 {isRetrying && <Loader2 className="h-4 w-4 animate-spin" />}
-                {retryButton[locale as Locale]}
+                {retryButtonTranslation[locale as Locale]}
               </button>
             </div>
 
@@ -173,10 +173,32 @@ const ErrorPage: React.FC<{
     );
   }
 
+  if (isOffline) {
+    return (
+      <article className="my-8 w-full max-w-2xl px-8 max-xl:mx-auto">
+        <div className="flex flex-col gap-4 rounded-lg border border-gray-200 bg-gray-50 p-6 text-center shadow-sm">
+          <HeadlineH1>{offlineTitleTranslation[locale as Locale]}</HeadlineH1>
+          <TeaserText>{offlineDescriptionTranslation[locale as Locale]}</TeaserText>
+          <div className="mt-4">
+            <button
+              onClick={handleRetry}
+              disabled={isRetrying}
+              className="bg-cevicored hover:bg-cevicored/90 inline-flex items-center gap-2 rounded px-6 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50"
+              type="button"
+            >
+              {isRetrying && <Loader2 className="h-4 w-4 animate-spin" />}
+              {retryButtonTranslation[locale as Locale]}
+            </button>
+          </div>
+        </div>
+      </article>
+    );
+  }
+
   return (
     <>
       <article className="my-8 w-full max-w-2xl px-8 max-xl:mx-auto">
-        <HeadlineH1>{errorMessage[locale as Locale]}</HeadlineH1>
+        <HeadlineH1>{errorMessageTranslation[locale as Locale]}</HeadlineH1>
         <TeaserText>{errorDescription[locale as Locale]}</TeaserText>
       </article>
     </>

@@ -69,8 +69,15 @@ async function offlineFallback(request: Request, url: URL, isAppMode: boolean): 
   if (isRsc) {
     const cachedRsc = await matchCachedRsc(url.toString());
     if (cachedRsc) return cachedRsc;
-    console.warn(`[SW] RSC Cache Miss for: ${url.toString()}. Returning error response.`);
-    return Response.error();
+    console.warn(`[SW] RSC Cache Miss for: ${url.toString()}. Returning 504 response.`);
+    // IMPORTANT: Returning Response.error() causes Next.js App Router to hang indefinitely
+    // in the entrypoint loading state. We must return a valid HTTP Error (like 504) so
+    // the React Server Component parser rejects and triggers the error.tsx boundary.
+    return new Response('Offline', {
+      status: 504,
+      statusText: 'Gateway Timeout',
+      headers: { 'Content-Type': 'text/x-component' },
+    });
   }
 
   // Strategy B: Cached HTML Page
@@ -139,6 +146,14 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
   const isDocument = event.request.destination === 'document';
 
   let requestToHandle = event.request;
+
+  // 1. App Mode Logic (Optimized)
+  // We only block for critical state (Headers) on Documents, API, and RSC.
+  // Static assets (images, fonts, scripts) skip this to avoid latency.
+  if (isDocument || isRsc || isApi || isNavigation) {
+    await ensureAppModeInitialized();
+  }
+
   const isAppModeClient = event.clientId !== '' && isClientInAppMode(event.clientId);
 
   if (isApi) {
@@ -153,18 +168,10 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
     }
   }
 
-  // 1. App Mode Logic (Optimized)
-  // We only block for critical state (Headers) on Documents, API, and RSC.
-  // Static assets (images, fonts, scripts) skip this to avoid latency.
-  if (isDocument || isRsc) {
-    await ensureAppModeInitialized();
-  }
-
   // Fire-and-forget persistence (don't block response)
   if (isNavigation) {
     event.waitUntil(
       (async (): Promise<void> => {
-        await ensureAppModeInitialized();
         const hasAppModeParameter = url.searchParams.get('app-mode') === 'true';
         if (
           (hasAppModeParameter || (event.clientId !== '' && isClientInAppMode(event.clientId))) &&
