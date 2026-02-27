@@ -119,5 +119,8 @@ export default process.env['POSTHOG_API_KEY']
       personalApiKey: process.env['POSTHOG_API_KEY'],
       projectId: process.env['POSTHOG_PROJECT_ID'] ?? '',
       host: 'https://eu.posthog.com',
+      sourcemaps: {
+        deleteAfterUpload: false,
+      },
     })
   : config;
