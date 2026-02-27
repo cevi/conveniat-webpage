@@ -124,6 +124,7 @@ export const MainMenu: React.FC<{
                             href={getURLForLinkField(subItem.item.linkField, locale) ?? '/'}
                             openInNewTab={openURLInNewTab(subItem.item.linkField)}
                             className="closeNavOnClick block rounded-lg py-2 pr-3 pl-6 text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
+                            prefetch
                           >
                             {subItem.item.label}
                           </LinkComponent>
@@ -152,6 +153,7 @@ export const MainMenu: React.FC<{
                 key={item.id}
                 href={itemLink}
                 openInNewTab={openURLInNewTab(item.linkField)}
+                prefetch
               >
                 <span className="closeNavOnClick -mx-3 block rounded-lg px-3 py-2 text-base/7 font-semibold text-gray-700 hover:bg-gray-50">
                   {item.label}
