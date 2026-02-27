@@ -52,32 +52,61 @@ async function matchCachedPage(originalUrl: string): Promise<Response | undefine
 }
 
 async function offlineFallback(request: Request, url: URL, isAppMode: boolean): Promise<Response> {
-  // PWA only: Browser users should see the standard browser offline error.
-  if (!isAppMode) {
-    console.log(`[SW] Offline fallback skipped for browser user: ${url.pathname}`);
-    return Response.error();
-  }
-
   // PostHog Analytics: Fail silently (no cache lookup, no error logs)
   if (url.pathname.startsWith('/ingest/')) {
     return Response.error();
   }
 
-  const isRsc = url.searchParams.has('_rsc');
+  const isRsc =
+    url.searchParams.has('_rsc') ||
+    request.headers.has('RSC') ||
+    request.headers.has('Next-Router-Prefetch');
 
-  // Strategy A: Cached RSC
+  const isServerAction = request.headers.has('Next-Action');
+  const isApi = url.pathname.startsWith('/api/');
+
+  // Strategy A: Cached RSC or 504 Timeout
+  // For RSC requests, we ALWAYS return a 504 instead of Response.error()
+  // explicitly to prevent Next.js App Router from throwing unhandled "TypeError: Failed to fetch"
   if (isRsc) {
-    const cachedRsc = await matchCachedRsc(url.toString());
+    let cachedRsc: Response | undefined;
+    if (isAppMode) {
+      cachedRsc = await matchCachedRsc(url.toString());
+    }
     if (cachedRsc) return cachedRsc;
+
     console.warn(`[SW] RSC Cache Miss for: ${url.toString()}. Returning 504 response.`);
     // IMPORTANT: Returning Response.error() causes Next.js App Router to hang indefinitely
-    // in the entrypoint loading state. We must return a valid HTTP Error (like 504) so
-    // the React Server Component parser rejects and triggers the error.tsx boundary.
+    // or crash with an unhandled TypeError. We must return a valid HTTP Error (like 504) so
+    // the React Server Component parser rejects and triggers the error.tsx boundary cleanly.
     return new Response('Offline', {
       status: 504,
       statusText: 'Gateway Timeout',
       headers: { 'Content-Type': 'text/x-component' },
     });
+  }
+
+  // Strategy E: API Fallback
+  // Return a proper HTTP response instead of Response.error() to prevent app hangs
+  if (isApi || isServerAction) {
+    console.warn(`[SW] API/Action offline fallback for: ${url.pathname}`);
+    return new Response(
+      JSON.stringify({
+        error: 'offline',
+        message: 'You are offline. This request requires an internet connection.',
+      }),
+      {
+        status: 503,
+        statusText: 'Service Unavailable',
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+  }
+
+  // PWA only: Browser users should see the standard browser offline error for documents and assets.
+  if (!isAppMode) {
+    console.log(`[SW] Offline fallback skipped for browser user: ${url.pathname}`);
+    return Response.error();
   }
 
   // Strategy B: Cached HTML Page
@@ -117,23 +146,6 @@ async function offlineFallback(request: Request, url: URL, isAppMode: boolean): 
     }
   }
 
-  // Strategy E: API Fallback
-  // Return a proper HTTP response instead of Response.error() to prevent app hangs
-  if (url.pathname.startsWith('/api/')) {
-    console.warn(`[SW] API offline fallback for: ${url.pathname}`);
-    return new Response(
-      JSON.stringify({
-        error: 'offline',
-        message: 'You are offline. This request requires an internet connection.',
-      }),
-      {
-        status: 503,
-        statusText: 'Service Unavailable',
-        headers: { 'Content-Type': 'application/json' },
-      },
-    );
-  }
-
   console.error(`[SW] Fetch failed and no cache/fallback found for: ${url.toString()}`);
   return Response.error();
 }
@@ -141,7 +153,10 @@ async function offlineFallback(request: Request, url: URL, isAppMode: boolean): 
 async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
   const url = new URL(event.request.url);
   const isNavigation = event.request.mode === 'navigate';
-  const isRsc = url.searchParams.has('_rsc');
+  const isRsc =
+    url.searchParams.has('_rsc') ||
+    event.request.headers.has('RSC') ||
+    event.request.headers.has('Next-Router-Prefetch');
   const isApi = url.pathname.startsWith('/api/');
   const isDocument = event.request.destination === 'document';
 

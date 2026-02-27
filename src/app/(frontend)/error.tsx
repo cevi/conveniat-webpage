@@ -88,7 +88,10 @@ const ErrorPage: React.FC<{
 
   useEffect(() => {
     // Check if the error is due to being offline (failed fetch for RSC chunk)
-    if (!navigator.onLine || error.message.toLowerCase().includes('fetch')) {
+    if (
+      !navigator.onLine ||
+      (error instanceof TypeError && error.message.includes('Failed to fetch'))
+    ) {
       setIsOffline(true);
     } else {
       console.error(error);
