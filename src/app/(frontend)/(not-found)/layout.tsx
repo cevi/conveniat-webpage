@@ -6,7 +6,6 @@ import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { renderInAppDesign } from '@/utils/render-in-app-design';
 import { cn } from '@/utils/tailwindcss-override';
 import { Inter, Montserrat } from 'next/font/google';
-import NextTopLoader from 'nextjs-toploader';
 import type React from 'react';
 import type { ReactNode } from 'react';
 import { Suspense } from 'react';
@@ -37,8 +36,6 @@ const Layout: React.FC<{ children: ReactNode }> = async ({ children }) => {
           'overscroll-y-none': isInAppDesign,
         })}
       >
-        <NextTopLoader showSpinner={false} color="#47564c" zIndex={999} />
-
         <PostHogProvider>
           <DynamicAppTitleProvider>
             <HeaderComponent locale={locale} inAppDesign={isInAppDesign} />
