@@ -1,9 +1,21 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { sendTrackedEmail } from '@/features/payload-cms/payload-cms/utils/send-tracked-email';
-import { convertLexicalToHTML, defaultHTMLConverters } from '@payloadcms/richtext-lexical/html';
-import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
+import {
+  convertLexicalToHTML,
+  defaultHTMLConverters,
+  type HTMLConverter,
+} from '@payloadcms/richtext-lexical/html';
+import type {
+  SerializedEditorState,
+  SerializedLexicalNode,
+} from '@payloadcms/richtext-lexical/lexical';
 import { convertLexicalToPlaintext } from '@payloadcms/richtext-lexical/plaintext';
 import type { TaskConfig } from 'payload';
+
+interface CustomAutoLinkNode extends SerializedLexicalNode {
+  fields?: { url?: string };
+  children?: SerializedLexicalNode[];
+}
 
 export const confirmationMessageStep: TaskConfig<{
   input: {
@@ -137,7 +149,17 @@ export const confirmationMessageStep: TaskConfig<{
 
       // 4. Serialize Lexical to HTML and Plaintext
       const htmlContent = convertLexicalToHTML({
-        converters: defaultHTMLConverters,
+        converters: {
+          ...defaultHTMLConverters,
+          autolink: (({ node, nodesToHTML, converters, parent }) => {
+            const childrenText = nodesToHTML({
+              converters,
+              nodes: node.children ?? [],
+              parent: { ...node, parent },
+            }).join('');
+            return `<a href="${node.fields?.url ?? ''}">${childrenText}</a>`;
+          }) as HTMLConverter<CustomAutoLinkNode>,
+        },
         data: lexicalData,
       });
       const plainTextContent = convertLexicalToPlaintext({

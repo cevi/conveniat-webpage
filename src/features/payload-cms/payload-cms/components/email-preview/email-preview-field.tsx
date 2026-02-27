@@ -1,7 +1,7 @@
 'use client';
 
 import { useField } from '@payloadcms/ui';
-import React, { useEffect, useRef } from 'react';
+import React, { useRef } from 'react';
 
 export const EmailPreviewField: React.FC<{
   path: string;
@@ -10,30 +10,9 @@ export const EmailPreviewField: React.FC<{
   const { value } = useField<string | null | undefined>({ path });
   const iframeReference = useRef<HTMLIFrameElement>(null);
 
-  // Resize iframe to fit content
-  useEffect(() => {
-    const iframe = iframeReference.current;
-    if (!iframe) return;
-
-    const setHeight = (): void => {
-      if (iframe.contentWindow?.document.body) {
-        // Add some padding to avoid scrollbars
-        const scrollHeight = iframe.contentWindow.document.body.scrollHeight;
-        if (scrollHeight > 0) {
-          iframe.style.height = `${scrollHeight + 32}px`;
-        }
-      }
-    };
-
-    iframe.addEventListener('load', setHeight);
-
-    // Also try to set it after a short delay in case load already fired
-    setTimeout(setHeight, 100);
-
-    return (): void => {
-      iframe.removeEventListener('load', setHeight);
-    };
-  }, [value]);
+  // We are not using a dynamic resize effect here.
+  // Because sandbox="" makes the iframe cross-origin, reading the height from the parent throws a DOMSecurityError.
+  // Instead, the container just relies on a large min-height and allows the user to scroll inside if needed.
 
   let labelText = 'Email Content';
   if (typeof label === 'string') {
@@ -58,12 +37,12 @@ export const EmailPreviewField: React.FC<{
   return (
     <div className="field-type custom-field mb-4">
       <label className="field-label">{labelText}</label>
-      <div className="mt-1 min-h-[400px] rounded border border-gray-200 bg-white dark:border-gray-800">
-        {/* We use sandbox="" to securely isolate the rendered email content. Even though it comes from our database, preventing any potential HTML injection attacks from executing scripts or other malicious behavior is a good security practice. */}
+      <div className="mt-1 min-h-[600px] overflow-hidden rounded border border-gray-200 bg-white dark:border-gray-800">
+        {/* We use an empty sandbox="" to securely isolate the rendered email content completely, stripping it of the parent's origin. */}
         <iframe
           ref={iframeReference}
           srcDoc={value}
-          className="h-full min-h-[400px] w-full border-none"
+          className="h-full min-h-[600px] w-full border-none"
           sandbox=""
           title="Email Preview"
         />
