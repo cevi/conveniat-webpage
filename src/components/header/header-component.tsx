@@ -47,11 +47,13 @@ export const HeaderComponent: React.FC<{
               <DynamicAppTitleName />
             </span>
 
-            <NavComponent>
-              <ForceDynamicOnBuild>
-                <MainMenu locale={locale} inAppDesign={inAppDesign} />
-              </ForceDynamicOnBuild>
-            </NavComponent>
+            <React.Suspense fallback={<div className="h-[60px] xl:hidden" />}>
+              <NavComponent>
+                <ForceDynamicOnBuild>
+                  <MainMenu locale={locale} inAppDesign={inAppDesign} />
+                </ForceDynamicOnBuild>
+              </NavComponent>
+            </React.Suspense>
           </div>
         </div>
       </div>
