@@ -18,6 +18,7 @@ export const NavLink: React.FC<{
   return (
     <Link
       href={href}
+      prefetch
       onClick={() => onClick(href)}
       className={cn('flex h-full flex-1 flex-col items-center justify-center space-y-1 py-2', {
         'text-blue-600': isActive,
