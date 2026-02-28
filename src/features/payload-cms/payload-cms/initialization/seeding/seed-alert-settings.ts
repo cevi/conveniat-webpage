@@ -9,10 +9,12 @@ const ALERT_DATA = {
       {
         key: 'injured',
         question: 'Sind Sie verletzt?',
-        // Optional: add `nextQuestionIndex` to any option to point to the index
-        // of the next question in ALERT_DATA[LOCALE.DE].questions.
-        // e.g. options: [{ option: 'Ja', nextQuestionIndex: 1 }, { option: 'Nein', nextQuestionIndex: 2 }]
-        options: [{ option: 'Ja' }, { option: 'Nein' }, { option: 'Unbekannt' }],
+        // the following line sets nextQuestionKey for the full type
+        options: [
+          { option: 'Ja', nextQuestionKey: 'ambulance' },
+          { option: 'Nein' },
+          { option: 'Unbekannt' },
+        ],
       },
       {
         key: 'ambulance',
@@ -100,43 +102,6 @@ export const seedAlertSettings = async (payload: Payload): Promise<void> => {
   const created = await payload.findGlobal({ slug: 'alert_settings', locale: LOCALE.DE });
   if (!created.questions) return;
 
-  // 4a. Persist `key` and any seeded `nextQuestionKey` values on the base locale
-  const baseLocaleData = ALERT_DATA[LOCALE.DE];
-
-  const updatedBaseQuestions = (created.questions as any[]).map((q: any, qIndex: number) => {
-    const qSource = baseLocaleData.questions[qIndex];
-    return {
-      id: q.id ?? null,
-      // preserve an internal key if provided in seed data
-      key: qSource?.key ?? (q.key ?? null),
-      question: qSource?.question ?? q.question,
-      options: (q.options ?? []).map((opt: any, optIndex: number) => {
-        const optSource = qSource?.options?.[optIndex];
-        return {
-          id: opt.id ?? null,
-          option: optSource?.option ?? opt.option,
-          // Allow seeding author-provided `nextQuestionKey` on options
-          nextQuestionKey: optSource?.nextQuestionKey ?? null,
-        };
-      }),
-    };
-  });
-
-  // Patch the base locale to persist keys/links (no-op if none provided)
-  await payload.updateGlobal({
-    slug: 'alert_settings',
-    locale: LOCALE.DE,
-    data: {
-      questions: updatedBaseQuestions as any,
-      finalResponseMessage: ALERT_DATA[LOCALE.DE].finalResponseMessage,
-      emergencyPhoneNumber: ALERT_DATA[LOCALE.DE].emergencyPhoneNumber,
-    },
-  });
-
-  // Re-fetch to pick up any added keys/nextQuestionKey values (and ensure we have latest option IDs)
-  const createdWithLinks = await payload.findGlobal({ slug: 'alert_settings', locale: LOCALE.DE });
-  if (!createdWithLinks.questions) return;
-
   // 5. Loop through other locales and update using the reference IDs
   const otherLocales = [LOCALE.EN, LOCALE.FR];
 
@@ -149,17 +114,15 @@ export const seedAlertSettings = async (payload: Payload): Promise<void> => {
       slug: 'alert_settings',
       locale,
       data: {
-        questions: createdWithLinks.questions.map((q: any, index: number) => {
+        questions: created.questions.map((q, index) => {
           const questionData = localeData.questions[index];
           return {
             id: q.id ?? null,
-            // propagate the internal key from the base locale
             key: q.key ?? null,
             question: questionData?.question ?? '',
-            options: (q.options ?? []).map((opt: any, optIndex: number) => ({
+            options: q.options?.map((opt, optIndex) => ({
               id: opt.id ?? null,
               option: questionData?.options[optIndex]?.option ?? '',
-              // Preserve the nextQuestionKey from the base locale mapping
               nextQuestionKey: opt.nextQuestionKey ?? null,
             })),
           };

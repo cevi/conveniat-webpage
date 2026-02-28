@@ -1,4 +1,4 @@
-import type { Footer, Header, SEO, AlertSetting } from '@/features/payload-cms/payload-types';
+import type { AlertSetting, Footer, Header, SEO } from '@/features/payload-cms/payload-types';
 import type { Locale } from '@/types/types';
 import { withSpan } from '@/utils/tracing-helpers';
 import config from '@payload-config';

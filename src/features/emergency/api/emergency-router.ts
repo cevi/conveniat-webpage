@@ -1,3 +1,4 @@
+import { getAlertSettingsCached } from '@/features/payload-cms/api/cached-globals';
 import type { AlertSetting } from '@/features/payload-cms/payload-types';
 import { ChatCapability, SYSTEM_MSG_TYPE_EMERGENCY_ALERT } from '@/lib/chat-shared';
 import { createTRPCRouter, publicProcedure, trpcBaseProcedure } from '@/trpc/init';
@@ -6,7 +7,6 @@ import config from '@payload-config';
 import type { Prisma } from '@prisma/client';
 import { ChatMembershipPermission, ChatType, MessageEventType, MessageType } from '@prisma/client';
 import { getPayload } from 'payload';
-import { getAlertSettingsCached } from '@/features/payload-cms/api/cached-globals';
 import { z } from 'zod';
 
 const GeolocationCoordinatesSchema = z.object({
@@ -127,8 +127,9 @@ export const emergencyRouter = createTRPCRouter({
             create: {
               payload: {
                 question: firstQuestion.question,
-                // Provide option objects including ids so the client can send back option ids
-                options: (firstQuestion.options || []).map((o) => ({ id: (o as any).id ?? null, option: (o as any).option })),
+                options: firstQuestion.options
+                  .map((o) => o.option as string | undefined)
+                  .filter((o): o is string => o !== undefined),
                 selectedOption: undefined,
                 questionRefId: firstQuestion.id,
               },

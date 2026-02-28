@@ -25,7 +25,7 @@ export const AlertQuestionMessage: React.FC<AlertQuestionMessageProperties> = ({
   const payload = message.messagePayload as unknown as QuestionPayload;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [optimisticSelection, setOptimisticSelection] = useState<string | undefined>();
-  const [optimisticSelectionId, setOptimisticSelectionId] = useState<string | undefined>();
+  const [, setOptimisticSelectionId] = useState<string | undefined>(); // TODO: is this needed? currently only the setter is used.
 
   const currentSelection = payload.selectedOption ?? optimisticSelection;
   const hasAnswered = !!currentSelection;
@@ -69,7 +69,7 @@ export const AlertQuestionMessage: React.FC<AlertQuestionMessageProperties> = ({
       <div className="flex flex-col space-y-2">
         {payload.options.map((opt) => {
           const optionLabel = typeof opt === 'string' ? opt : opt.option;
-          const optionId = typeof opt === 'string' ? undefined : opt.id ?? undefined;
+          const optionId = typeof opt === 'string' ? undefined : (opt.id ?? undefined);
           const isSelected = currentSelection === optionLabel;
           const isSelectable = canAnswer;
 

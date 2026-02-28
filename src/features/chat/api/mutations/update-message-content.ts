@@ -51,7 +51,10 @@ export const updateMessageContent = trpcBaseProcedure
     });
 
     // Check if this was an alert question being answered
-    if (message.type === MessageType.ALERT_QUESTION && (content['selectedOption'] || content['selectedOptionId'])) {
+    if (
+      message.type === MessageType.ALERT_QUESTION &&
+      (content['selectedOption'] || content['selectedOptionId'])
+    ) {
       const { getPayload } = await import('payload');
       const config = await import('@payload-config');
       const payloadAPI = await getPayload({ config: config.default });
@@ -66,70 +69,60 @@ export const updateMessageContent = trpcBaseProcedure
       const currentQuestionIndex = questions.findIndex((q) => q.id === content['questionRefId']);
 
       if (currentQuestionIndex !== -1) {
-        // Identify selected option by id if provided, otherwise try to match by label (backwards compatibility)
-        const selectedOptionId = content['selectedOptionId'] ?? null;
-        const selectedOptionLabel = content['selectedOption'] ?? null;
+        const selectedOption = content['selectedOption'] as { nextQuestionKey: string };
+        const nextQuestionKeyFromOption = selectedOption.nextQuestionKey;
 
-        const currentQuestion = questions[currentQuestionIndex];
-        const selectedOption = (currentQuestion.options || []).find((o) => {
-          if (selectedOptionId && o.id) return o.id === selectedOptionId;
-          if (selectedOptionLabel) return (o.option as string | undefined) === selectedOptionLabel;
-          return false;
-        });
-
-        // Resolve next question from selected option's mapping using `nextQuestionKey` (admin-provided key)
-        const nextQuestionKeyFromOption = selectedOption ? (selectedOption as any).nextQuestionKey ?? null : null;
-
-        let nextQuestion = null as any;
+        let nextQuestion;
         if (nextQuestionKeyFromOption) {
-          nextQuestion = questions.find((q: any) => q.key === nextQuestionKeyFromOption) ?? null;
+          nextQuestion = questions.find((q) => q.key === nextQuestionKeyFromOption) ?? undefined;
         }
 
         // Fallback: linear progression
         if (!nextQuestion) {
-          nextQuestion = questions[currentQuestionIndex + 1] ?? null;
+          nextQuestion = questions[currentQuestionIndex + 1] ?? undefined;
         }
 
         // Send next question OR final response
         await prisma.message.create({
           data: nextQuestion
             ? {
-              chatId: message.chatId,
-              senderId: user.uuid,
-              type: MessageType.ALERT_QUESTION,
-              contentVersions: {
-                create: {
-                  payload: {
-                    question: nextQuestion.question,
-                    // Provide option objects with ids so the UI can send back option ids
-                    options: (nextQuestion.options || []).map((o: any) => ({ id: o.id ?? null, option: o.option })),
-                    selectedOption: undefined,
-                    questionRefId: nextQuestion.id,
+                chatId: message.chatId,
+                senderId: user.uuid,
+                type: MessageType.ALERT_QUESTION,
+                contentVersions: {
+                  create: {
+                    payload: {
+                      question: nextQuestion.question,
+                      options: nextQuestion.options
+                        .map((o) => o.option as string | undefined)
+                        .filter((o): o is string => o !== undefined),
+                      selectedOption: undefined,
+                      questionRefId: nextQuestion.id,
+                    },
+                    revision: 0,
                   },
-                  revision: 0,
                 },
-              },
-              messageEvents: {
-                create: [{ type: 'STORED' }],
-              },
-            }
+                messageEvents: {
+                  create: [{ type: 'STORED' }],
+                },
+              }
             : {
-              chatId: message.chatId,
-              // senderId omitted (defaults to null/system)
-              type: MessageType.ALERT_RESPONSE,
-              contentVersions: {
-                create: {
-                  payload: {
-                    message: alertSettings.finalResponseMessage,
-                    phoneNumber: alertSettings.emergencyPhoneNumber,
+                chatId: message.chatId,
+                // senderId omitted (defaults to null/system)
+                type: MessageType.ALERT_RESPONSE,
+                contentVersions: {
+                  create: {
+                    payload: {
+                      message: alertSettings.finalResponseMessage,
+                      phoneNumber: alertSettings.emergencyPhoneNumber,
+                    },
+                    revision: 0,
                   },
-                  revision: 0,
+                },
+                messageEvents: {
+                  create: [{ type: 'STORED' }],
                 },
               },
-              messageEvents: {
-                create: [{ type: 'STORED' }],
-              },
-            },
         });
       }
     }

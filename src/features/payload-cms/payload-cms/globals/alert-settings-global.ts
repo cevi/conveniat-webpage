@@ -1,4 +1,5 @@
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
+import { AlertSettingsNextKeyField } from '@/features/payload-cms/payload-cms/shared-fields/alert-settings-key-field';
 import type { GlobalConfig } from 'payload';
 
 export const AlertSettingsGlobal: GlobalConfig = {
@@ -22,9 +23,16 @@ export const AlertSettingsGlobal: GlobalConfig = {
         {
           name: 'key',
           type: 'text',
-          localized: false,
+          localized: true,
           required: false,
-          admin: { description: 'Optional internal key/name for this question. Use this to link from options via nextQuestionKey.' },
+          label: { en: 'Question key', de: 'Frage Schlüssel', fr: 'Clé de question' },
+          admin: {
+            description: {
+              en: 'Optional key to link from another question.',
+              de: 'Optionaler Schlüssel, um von einer anderen Frage zu verlinken.',
+              fr: 'Clé optionnelle pour faire le lien depuis une autre question.',
+            },
+          },
         },
         {
           name: 'question',
@@ -50,16 +58,7 @@ export const AlertSettingsGlobal: GlobalConfig = {
               localized: true,
               required: true,
             },
-            {
-              name: 'nextQuestionKey',
-              type: 'text',
-              localized: false,
-              required: false,
-              admin: {
-                description:
-                  'Optional: set to the internal question key (question.key) to target the next question. Prefer using keys for author-friendly linking.',
-              },
-            },
+            AlertSettingsNextKeyField,
           ],
         },
       ],

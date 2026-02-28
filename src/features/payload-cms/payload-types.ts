@@ -4647,14 +4647,14 @@ export interface AlertSetting {
   questions?:
     | {
         /**
-         * Optional internal key/name for this question. Use this to link from options via nextQuestionKey.
+         * Optional key to link from another question.
          */
         key?: string | null;
         question: string;
         options: {
           option: string;
           /**
-           * Optional: set to the internal question key (question.key) to target the next question. Prefer using keys for author-friendly linking.
+           * Optional key to link to the next question.
            */
           nextQuestionKey?: string | null;
           id?: string | null;

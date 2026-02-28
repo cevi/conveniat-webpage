@@ -35,7 +35,7 @@ export const LogoutButton: React.FC = () => {
         });
       }}
       disabled={isLoading}
-      className="cursor-pointer font-heading mt-10 w-full rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg leading-normal font-bold text-red-100 duration-100 hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-70"
+      className="font-heading mt-10 w-full cursor-pointer rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg leading-normal font-bold text-red-100 duration-100 hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-70"
     >
       {isLoading ? (
         <span className="flex items-center justify-center gap-2">
