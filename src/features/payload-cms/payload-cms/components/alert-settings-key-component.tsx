@@ -19,13 +19,18 @@ const AlertSettingsKeyComponent: TextFieldClientComponent = ({ path }) => {
 
   // parse out all question key values --> get questions.X.key.value
   const questionKeys = Object.entries(fields)
-    .filter(([fieldName]) => fieldName.endsWith('key') && fieldName.includes('questions'))
+    .filter(
+      ([fieldName]) =>
+        fieldName.endsWith('key') &&
+        fieldName.includes('questions') &&
+        fieldName.split('.').length === 3,
+    )
     .map(([, field]) => field.value)
     .filter((questionKey): questionKey is string => typeof questionKey === 'string'); // filter not set
 
   useEffect(() => {
     // if questionKeys does not include the current value, reset it to empty string
-    // this happens when a key is renmaned in the question array
+    // this happens when a key is renamed in the question array
     if (value && !questionKeys.includes(value as string)) {
       setValue('');
     }
