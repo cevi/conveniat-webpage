@@ -7,7 +7,11 @@ type WorkflowTriggerWideEvent = Record<string, string | number | boolean>;
 export const workflowTriggerOnFormSubmission: CollectionAfterChangeHook<FormSubmission> = async ({
   doc,
   req,
+  operation,
 }): Promise<void> => {
+  if (operation !== 'create') {
+    return;
+  }
   const event: WorkflowTriggerWideEvent = {
     msg: 'Workflow Trigger Execution',
     submissionId: doc.id,
@@ -30,36 +34,93 @@ export const workflowTriggerOnFormSubmission: CollectionAfterChangeHook<FormSubm
       depth: 0,
     });
 
-    if (form.workflow === null || form.workflow === undefined) {
+    interface WorkflowSpec {
+      workflow?: string;
+      condition?: {
+        enabled?: boolean;
+        field?: string;
+        value?: string;
+      };
+      mapping?: Record<string, string>;
+    }
+    const workflowsArray = form.configuredWorkflows as unknown as WorkflowSpec[] | undefined | null;
+
+    if (
+      workflowsArray === undefined ||
+      workflowsArray === null ||
+      !Array.isArray(workflowsArray) ||
+      workflowsArray.length === 0
+    ) {
       event['status'] = 'skipped';
-      event['reason'] = 'No workflow configured';
+      event['reason'] = 'No workflows configured';
       req.payload.logger.info(event);
       return;
     }
 
-    // Update event with workflow context
-
-    event['workflow'] = form.workflow;
+    // Update event with workflows context
+    event['workflows'] = workflowsArray
+      .map((w) => w.workflow)
+      .filter(Boolean)
+      .join(', ');
 
     const submissionMap = new Map(doc.submissionData.map((item) => [item.field, item.value]));
-    let inputData: Record<string, unknown> = {};
-    const mapping = form.workflowMapping as Record<string, string> | undefined;
+    let processedCount = 0;
+    for (const spec of workflowsArray) {
+      const workflowName = spec.workflow;
+      if (typeof workflowName !== 'string' || workflowName.length === 0) continue;
 
-    if (mapping && Object.keys(mapping).length > 0) {
-      for (const [workflowKey, formFieldName] of Object.entries(mapping)) {
-        const val = submissionMap.get(formFieldName);
-        if (val !== undefined) inputData[workflowKey] = val;
+      if (spec.condition?.enabled) {
+        const { field: condField, value: expectedValue } = spec.condition;
+        if (typeof condField === 'string' && typeof expectedValue === 'string') {
+          const actualValue = submissionMap.get(condField);
+          const normalizedActualValue = String(actualValue ?? '');
+          if (normalizedActualValue !== expectedValue) {
+            req.payload.logger.info({
+              msg: `Skipping workflow ${workflowName} due to condition mismatch`,
+              submissionId: doc.id,
+              actualValue,
+              expectedValue,
+            });
+            continue;
+          }
+        }
       }
-      event['mappingType'] = 'partial';
-    } else {
-      inputData = Object.fromEntries(submissionMap);
-      event['mappingType'] = 'full';
+
+      let inputData: Record<string, unknown> = {};
+      const mapping = spec.mapping;
+
+      if (mapping && Object.keys(mapping).length > 0) {
+        for (const [workflowKey, formFieldName] of Object.entries(mapping)) {
+          if (typeof formFieldName !== 'string' || formFieldName === '_none_') continue;
+          const val = submissionMap.get(formFieldName);
+          if (val !== undefined) inputData[workflowKey] = val;
+        }
+        event[`${workflowName}_mappingType`] = 'partial';
+      } else {
+        inputData = Object.fromEntries(submissionMap);
+        event[`${workflowName}_mappingType`] = 'full';
+      }
+
+      await req.payload.jobs.queue({
+        workflow: workflowName as keyof TypedJobs['workflows'],
+        input: {
+          input: {
+            ...inputData,
+            formSubmissionId: doc.id,
+            formName: form.title,
+            locale: req.locale ?? 'en',
+          },
+        },
+      });
+      processedCount++;
     }
 
-    await req.payload.jobs.queue({
-      workflow: form.workflow as keyof TypedJobs['workflows'],
-      input: { input: inputData },
-    });
+    if (processedCount === 0) {
+      event['status'] = 'skipped';
+      event['reason'] = 'Workflows skipped due to conditions';
+      req.payload.logger.info(event);
+      return;
+    }
 
     event['status'] = 'success';
     event['workflowTriggered'] = true;

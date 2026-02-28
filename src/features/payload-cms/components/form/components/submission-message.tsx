@@ -27,7 +27,7 @@ export const SubmissionMessage: React.FC<SubmissionMessageProperties> = ({
         <button
           type="button"
           onClick={onReset}
-          className="bg-conveniat-green mt-4 h-10 w-full rounded-lg px-4 font-['Montserrat'] text-base font-bold text-green-100 transition duration-300 hover:bg-green-600 sm:w-auto"
+          className="bg-conveniat-green mt-4 h-10 w-full cursor-pointer rounded-lg px-4 font-['Montserrat'] text-base font-bold text-green-100 transition duration-300 hover:bg-green-600 sm:w-auto"
         >
           {resetFormText[locale]}
         </button>

@@ -3,23 +3,14 @@
 import { Dialog, DialogPanel } from '@headlessui/react';
 import { Menu as MenuIcon, X } from 'lucide-react';
 
+import { useMobileMenuNavigation } from '@/hooks/use-mobile-menu-navigation';
 import type React from 'react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect } from 'react';
 
 export const NavComponent: React.FC<{
   children?: React.ReactNode;
 }> = ({ children }) => {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  const checkClickEvent = useCallback(
-    (event: React.MouseEvent<HTMLDivElement, MouseEvent>): void => {
-      // check if the event target has the class 'closeNavOnClick'
-      if ((event.target as HTMLElement).classList.contains('closeNavOnClick')) {
-        setMobileMenuOpen(false);
-      }
-    },
-    [setMobileMenuOpen],
-  );
+  const { mobileMenuOpen, setMobileMenuOpen, checkClickEvent } = useMobileMenuNavigation();
 
   // close menu if page gets resized to desktop view (tailwind xl breakpoint)
   const handleResize = useCallback(() => {
@@ -27,11 +18,12 @@ export const NavComponent: React.FC<{
     if (window?.innerWidth >= 1280) {
       setMobileMenuOpen(false);
     }
-  }, []);
+  }, [setMobileMenuOpen]);
 
   // add event listener for resize
   useEffect(() => {
     window.addEventListener('resize', handleResize);
+    return (): void => window.removeEventListener('resize', handleResize);
   }, [handleResize]);
 
   return (
@@ -40,7 +32,7 @@ export const NavComponent: React.FC<{
         {!mobileMenuOpen && (
           <button
             type="button"
-            onClick={() => setMobileMenuOpen(true)}
+            onClick={(): void => setMobileMenuOpen(true)}
             className="relative top-[18px] cursor-pointer outline-hidden"
           >
             <span className="sr-only">Open main menu</span>
@@ -49,7 +41,11 @@ export const NavComponent: React.FC<{
         )}
 
         {mobileMenuOpen && (
-          <button type="button" className="relative top-[18px] outline-hidden">
+          <button
+            type="button"
+            className="relative top-[18px] outline-hidden"
+            onClick={(): void => setMobileMenuOpen(false)}
+          >
             <span className="sr-only">Close menu</span>
             <X aria-hidden="true" className="size-6" />
           </button>
@@ -57,8 +53,8 @@ export const NavComponent: React.FC<{
 
         <Dialog open={mobileMenuOpen} onClose={setMobileMenuOpen}>
           <div className="fixed inset-0 z-10 cursor-pointer" />
-          <DialogPanel className="fixed inset-y-0 right-0 z-[40] mt-[62px] w-full overflow-y-scroll bg-white px-2 pt-4 pb-6 xl:px-6">
-            <div onClick={checkClickEvent}>{children}</div>
+          <DialogPanel className="fixed inset-y-0 right-0 z-40 mt-[62px] w-full overflow-y-scroll bg-white px-2 pt-4 pb-6 xl:px-6">
+            <div onClick={(event): void => checkClickEvent(event)}>{children}</div>
           </DialogPanel>
         </Dialog>
       </div>

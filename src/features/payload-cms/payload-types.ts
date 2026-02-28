@@ -160,6 +160,7 @@ export interface Config {
       ensureEventMembership: TaskEnsureEventMembership;
       confirmationMessage: TaskConfirmationMessage;
       fetchSmtpBounces: TaskFetchSmtpBounces;
+      checkHitobitoApprovals: TaskCheckHitobitoApprovals;
       inline: {
         input: unknown;
         output: unknown;
@@ -167,6 +168,7 @@ export interface Config {
     };
     workflows: {
       registrationWorkflow: WorkflowRegistrationWorkflow;
+      brevoContactWorkflow: WorkflowBrevoContactWorkflow;
     };
   };
 }
@@ -761,6 +763,16 @@ export interface Form {
                  */
                 required?: boolean | null;
                 /**
+                 * Map session/JWT fields to form fields for auto-filling.
+                 */
+                fieldMapping?:
+                  | {
+                      jwtField: 'name' | 'firstName' | 'lastName' | 'email' | 'nickname' | 'uuid' | 'cevi_db_uuid';
+                      formField: string;
+                      id?: string | null;
+                    }[]
+                  | null;
+                /**
                  * Where this field is rendered when "Split" layout is selected for the section.
                  */
                 placement?: ('sidebar' | 'main') | null;
@@ -983,6 +995,23 @@ export interface Form {
                            */
                           required?: boolean | null;
                           /**
+                           * Map session/JWT fields to form fields for auto-filling.
+                           */
+                          fieldMapping?:
+                            | {
+                                jwtField:
+                                  | 'name'
+                                  | 'firstName'
+                                  | 'lastName'
+                                  | 'email'
+                                  | 'nickname'
+                                  | 'uuid'
+                                  | 'cevi_db_uuid';
+                                formField: string;
+                                id?: string | null;
+                              }[]
+                            | null;
+                          /**
                            * Where this field is rendered when "Split" layout is selected for the section.
                            */
                           placement?: ('sidebar' | 'main') | null;
@@ -1093,17 +1122,27 @@ export interface Form {
       }[]
     | null;
   /**
-   * Select a workflow to trigger after form submission.
+   * Configure workflows to trigger after form submission.
    */
-  workflow?: 'registrationWorkflow' | null;
-  workflowMapping?:
+  configuredWorkflows?:
     | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
+        workflow: 'registrationWorkflow' | 'brevoContactWorkflow';
+        condition?: {
+          enabled?: boolean | null;
+          field?: string | null;
+          value?: string | null;
+        };
+        mapping?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        id?: string | null;
+      }[]
     | null;
   submissions?: {
     docs?: (string | FormSubmission)[];
@@ -1159,7 +1198,15 @@ export interface FormSubmission {
     | number
     | boolean
     | null;
-  'helper-job'?: (string | null) | HelperJob;
+  workflowResults?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   'helper-jobs'?: (string | HelperJob)[] | null;
   updatedAt: string;
   createdAt: string;
@@ -2553,6 +2600,7 @@ export interface OutgoingEmail {
   to: string;
   subject: string;
   formSubmission?: (string | null) | FormSubmission;
+  html?: string | null;
   smtpResults?:
     | {
         [k: string]: unknown;
@@ -2704,7 +2752,8 @@ export interface PayloadJob {
           | 'ensureGroupMembership'
           | 'ensureEventMembership'
           | 'confirmationMessage'
-          | 'fetchSmtpBounces';
+          | 'fetchSmtpBounces'
+          | 'checkHitobitoApprovals';
         taskID: string;
         input?:
           | {
@@ -2737,7 +2786,7 @@ export interface PayloadJob {
         id?: string | null;
       }[]
     | null;
-  workflowSlug?: 'registrationWorkflow' | null;
+  workflowSlug?: ('registrationWorkflow' | 'brevoContactWorkflow') | null;
   taskSlug?:
     | (
         | 'inline'
@@ -2749,6 +2798,7 @@ export interface PayloadJob {
         | 'ensureEventMembership'
         | 'confirmationMessage'
         | 'fetchSmtpBounces'
+        | 'checkHitobitoApprovals'
       )
     | null;
   queue?: string | null;
@@ -3958,6 +4008,7 @@ export interface OutgoingEmailsSelect<T extends boolean = true> {
   to?: T;
   subject?: T;
   formSubmission?: T;
+  html?: T;
   smtpResults?: T;
   rawSmtpResults?: T;
   rawDsnEmail?: T;
@@ -4098,6 +4149,13 @@ export interface FormsSelect<T extends boolean = true> {
                           label?: T;
                           saveField?: T;
                           required?: T;
+                          fieldMapping?:
+                            | T
+                            | {
+                                jwtField?: T;
+                                formField?: T;
+                                id?: T;
+                              };
                           placement?: T;
                           id?: T;
                           blockName?: T;
@@ -4241,6 +4299,13 @@ export interface FormsSelect<T extends boolean = true> {
                                       label?: T;
                                       saveField?: T;
                                       required?: T;
+                                      fieldMapping?:
+                                        | T
+                                        | {
+                                            jwtField?: T;
+                                            formField?: T;
+                                            id?: T;
+                                          };
                                       placement?: T;
                                       id?: T;
                                       blockName?: T;
@@ -4285,8 +4350,20 @@ export interface FormsSelect<T extends boolean = true> {
         message?: T;
         id?: T;
       };
-  workflow?: T;
-  workflowMapping?: T;
+  configuredWorkflows?:
+    | T
+    | {
+        workflow?: T;
+        condition?:
+          | T
+          | {
+              enabled?: T;
+              field?: T;
+              value?: T;
+            };
+        mapping?: T;
+        id?: T;
+      };
   submissions?: T;
   publishingStatus?: T;
   _localized_status?: T;
@@ -4312,7 +4389,7 @@ export interface FormSubmissionsSelect<T extends boolean = true> {
         id?: T;
       };
   smtpResults?: T;
-  'helper-job'?: T;
+  workflowResults?: T;
   'helper-jobs'?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -4720,7 +4797,28 @@ export interface AllChatsManagement {
  */
 export interface RegistrationManagement {
   id: string;
-  dummy?: string | null;
+  /**
+   * Email sent to the helper after registration. This email confirms a provisional registration. The final confirmation is sent by the responsible department.
+   */
+  confirmationEmail?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  /**
+   * Session cookie for the hitobito API. Highly sensitive, write-only. Value will never be shown after saving. Leave empty to keep the current value. Type "CLEAR" to delete the cookie.
+   */
+  browserCookie?: string | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -4920,7 +5018,8 @@ export interface AllChatsManagementSelect<T extends boolean = true> {
  * via the `definition` "registration-management_select".
  */
 export interface RegistrationManagementSelect<T extends boolean = true> {
-  dummy?: T;
+  confirmationEmail?: T;
+  browserCookie?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
@@ -5031,6 +5130,10 @@ export interface TaskEnsureGroupMembership {
   };
   output: {
     success?: boolean | null;
+    approvalRequired?: boolean | null;
+    approvalGroupName?: string | null;
+    approvalGroupUrl?: string | null;
+    status?: string | null;
   };
 }
 /**
@@ -5065,10 +5168,16 @@ export interface TaskEnsureEventMembership {
  */
 export interface TaskConfirmationMessage {
   input: {
-    userId: string;
+    email: string;
+    formSubmissionId?: string | null;
+    locale?: string | null;
+    skip?: boolean | null;
+    skipReason?: string | null;
   };
   output: {
     sent?: boolean | null;
+    skipped?: boolean | null;
+    skipReason?: string | null;
   };
 }
 /**
@@ -5081,9 +5190,34 @@ export interface TaskFetchSmtpBounces {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskCheckHitobitoApprovals".
+ */
+export interface TaskCheckHitobitoApprovals {
+  input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "WorkflowRegistrationWorkflow".
  */
 export interface WorkflowRegistrationWorkflow {
+  input: {
+    input:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "WorkflowBrevoContactWorkflow".
+ */
+export interface WorkflowBrevoContactWorkflow {
   input: {
     input:
       | {

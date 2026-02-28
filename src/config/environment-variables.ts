@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 export const environmentVariables = createEnv({
   /*
-   * Serverside Environment variables, not available on the client.
+   * Server-side environment variables, not available on the client.
    * Will throw if you access these variables on the client.
    */
   server: {
@@ -20,9 +20,9 @@ export const environmentVariables = createEnv({
     HITOBITO_BASE_URL: z.string().url(),
     HITOBITO_FORWARD_URL: z.string().url(),
     API_TOKEN: z.string().default(''),
-    BROWSER_COOKIE: z.string().default(''),
     HELPER_GROUP: z.string().optional(),
     EVENT_ID: z.string().optional(),
+    BREVO_API_KEY: z.string().optional(),
     GROUPS_WITH_API_ACCESS: z.string().transform((value) =>
       value
         .split(',')

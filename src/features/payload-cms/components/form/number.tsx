@@ -1,6 +1,12 @@
 import type { TextField } from '@payloadcms/plugin-form-builder/types';
 import type React from 'react';
-import type { FieldErrorsImpl, FieldValues, UseFormRegister } from 'react-hook-form';
+import type {
+  FieldError,
+  FieldErrorsImpl,
+  FieldValues,
+  Merge,
+  UseFormRegister,
+} from 'react-hook-form';
 
 import { Required } from '@/features/payload-cms/components/form/required';
 import { fieldIsRequiredText } from '@/features/payload-cms/components/form/static-form-texts';
@@ -10,7 +16,7 @@ import { useCurrentLocale } from 'next-i18n-router/client';
 import type { JSX } from 'react';
 
 type NumberInputProperties = {
-  errors: Partial<FieldErrorsImpl<Record<string, unknown>>>;
+  error?: FieldError | Merge<FieldError, FieldErrorsImpl<FieldValues>>;
   placeholder?: string;
   registerAction: UseFormRegister<string & FieldValues>;
 } & TextField;
@@ -26,11 +32,11 @@ export const Number: React.FC<NumberInputProperties> = ({
   label,
   registerAction,
   required: requiredFromProperties = false,
-  errors,
+  error,
   placeholder,
 }) => {
   const locale = useCurrentLocale(i18nConfig);
-  const hasError = errors[name];
+  const hasError = error !== undefined;
 
   if (typeof label !== 'string') return renderPreviewError('Label must be a string!');
   if (typeof name !== 'string') return renderPreviewError('Name must be a string!');
@@ -58,7 +64,7 @@ export const Number: React.FC<NumberInputProperties> = ({
         placeholder={placeholder}
         {...registerAction(name, registerOptions)}
       />
-      {hasError && <p className="mt-1 text-xs text-red-600">{hasError.message as string}</p>}
+      {hasError && <p className="mt-1 text-xs text-red-600">{(error as FieldError).message}</p>}
     </div>
   );
 };

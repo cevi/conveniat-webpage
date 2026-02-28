@@ -37,7 +37,7 @@ export const TriggerRegistrationForm: React.FC<TriggerRegistrationFormProperties
   });
   const [mode, setMode] = useState<'id' | 'details'>('id');
 
-  const handleSubmit = (event: React.FormEvent): void => {
+  const handleSubmit = async (event: React.FormEvent): Promise<void> => {
     event.preventDefault();
 
     let submitPeopleId: string | undefined = undefined;
@@ -45,11 +45,28 @@ export const TriggerRegistrationForm: React.FC<TriggerRegistrationFormProperties
       submitPeopleId = peopleId;
     }
 
-    void onSubmit({
-      mode,
-      peopleId: submitPeopleId,
-      details: mode === 'details' ? details : undefined,
-    });
+    try {
+      await onSubmit({
+        mode,
+        peopleId: submitPeopleId,
+        details: mode === 'details' ? details : undefined,
+      });
+
+      // Clear the form upon success
+      if (mode === 'id') {
+        setPeopleId('');
+      } else {
+        setDetails({
+          firstName: '',
+          lastName: '',
+          nickname: '',
+          email: '',
+          birthDate: '',
+        });
+      }
+    } catch {
+      // Handled upstream, nothing to do here
+    }
   };
 
   return (
@@ -68,7 +85,7 @@ export const TriggerRegistrationForm: React.FC<TriggerRegistrationFormProperties
               'cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-black tracking-wider uppercase transition-all',
               mode === 'id'
                 ? 'bg-white text-zinc-900 shadow-sm ring-1 ring-zinc-200 dark:bg-white dark:text-zinc-900 dark:ring-white/10'
-                : 'text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300',
+                : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200',
             )}
           >
             By ID
@@ -80,7 +97,7 @@ export const TriggerRegistrationForm: React.FC<TriggerRegistrationFormProperties
               'cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-black tracking-wider uppercase transition-all',
               mode === 'details'
                 ? 'bg-white text-zinc-900 shadow-sm ring-1 ring-zinc-200 dark:bg-white dark:text-zinc-900 dark:ring-white/10'
-                : 'text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300',
+                : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200',
             )}
           >
             By Data
@@ -88,11 +105,11 @@ export const TriggerRegistrationForm: React.FC<TriggerRegistrationFormProperties
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-6">
+      <form onSubmit={(event) => void handleSubmit(event)} className="grid grid-cols-1 gap-6">
         {mode === 'id' ? (
           <div className="animate-in fade-in slide-in-from-top-1 duration-300">
             <input
-              className="w-full border-b border-zinc-200 bg-transparent py-2.5 text-sm font-bold text-zinc-900 transition-all placeholder:text-zinc-300 focus:border-zinc-900 focus:outline-none dark:border-zinc-800 dark:text-white dark:placeholder:text-zinc-700 dark:focus:border-white"
+              className="w-full border-b border-zinc-200 bg-transparent py-2.5 text-sm font-bold text-zinc-900 transition-all placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none dark:border-zinc-700 dark:text-white dark:placeholder:text-zinc-400 dark:focus:border-white"
               value={peopleId}
               onChange={(event) => setPeopleId(event.target.value)}
               required
@@ -102,27 +119,27 @@ export const TriggerRegistrationForm: React.FC<TriggerRegistrationFormProperties
         ) : (
           <div className="animate-in fade-in slide-in-from-top-1 grid grid-cols-1 gap-x-8 gap-y-6 duration-300 md:grid-cols-2">
             <input
-              className="w-full border-b border-zinc-200 bg-transparent py-2.5 text-sm font-bold text-zinc-900 transition-all placeholder:text-zinc-300 focus:border-zinc-900 focus:outline-none dark:border-zinc-800 dark:text-white dark:placeholder:text-zinc-700 dark:focus:border-white"
+              className="w-full border-b border-zinc-200 bg-transparent py-2.5 text-sm font-bold text-zinc-900 transition-all placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none dark:border-zinc-700 dark:text-white dark:placeholder:text-zinc-400 dark:focus:border-white"
               value={details.firstName}
               onChange={(event) => setDetails({ ...details, firstName: event.target.value })}
               required
               placeholder="First Name *"
             />
             <input
-              className="w-full border-b border-zinc-200 bg-transparent py-2.5 text-sm font-bold text-zinc-900 transition-all placeholder:text-zinc-300 focus:border-zinc-900 focus:outline-none dark:border-zinc-800 dark:text-white dark:placeholder:text-zinc-700 dark:focus:border-white"
+              className="w-full border-b border-zinc-200 bg-transparent py-2.5 text-sm font-bold text-zinc-900 transition-all placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none dark:border-zinc-700 dark:text-white dark:placeholder:text-zinc-400 dark:focus:border-white"
               value={details.lastName}
               onChange={(event) => setDetails({ ...details, lastName: event.target.value })}
               placeholder="Last Name"
             />
             <input
-              className="w-full border-b border-zinc-200 bg-transparent py-2.5 text-sm font-bold text-zinc-900 transition-all placeholder:text-zinc-300 focus:border-zinc-900 focus:outline-none dark:border-zinc-800 dark:text-white dark:placeholder:text-zinc-700 dark:focus:border-white"
+              className="w-full border-b border-zinc-200 bg-transparent py-2.5 text-sm font-bold text-zinc-900 transition-all placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none dark:border-zinc-700 dark:text-white dark:placeholder:text-zinc-400 dark:focus:border-white"
               value={details.nickname}
               onChange={(event) => setDetails({ ...details, nickname: event.target.value })}
               placeholder="Nickname"
             />
             <input
               type="email"
-              className="w-full border-b border-zinc-200 bg-transparent py-2.5 text-sm font-bold text-zinc-900 transition-all placeholder:text-zinc-300 focus:border-zinc-900 focus:outline-none dark:border-zinc-800 dark:text-white dark:placeholder:text-zinc-700 dark:focus:border-white"
+              className="w-full border-b border-zinc-200 bg-transparent py-2.5 text-sm font-bold text-zinc-900 transition-all placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none dark:border-zinc-700 dark:text-white dark:placeholder:text-zinc-400 dark:focus:border-white"
               value={details.email}
               onChange={(event) => setDetails({ ...details, email: event.target.value })}
               required

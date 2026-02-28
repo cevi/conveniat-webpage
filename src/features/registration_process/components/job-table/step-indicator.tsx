@@ -43,25 +43,33 @@ export const StepIndicator: React.FC<{ job: RegistrationJob }> = ({ job }) => {
       <div className="flex gap-1">
         {WORKFLOW_STEPS.map((stepSlug, index) => {
           // Determine state of this specific dot
-          let state: 'pending' | 'active' | 'completed' | 'failed' = 'pending';
+          let state: 'queued' | 'active' | 'completed' | 'failed' | 'blocked' = 'queued';
 
           // Check if this step is present in taskStatus
           const stepStatus = job.taskStatus?.[stepSlug];
 
-          if (stepStatus?.status === 'completed' || stepStatus?.completedAt) {
+          if (
+            stepStatus?.status === 'completed' ||
+            (stepStatus?.completedAt !== undefined && stepStatus.completedAt !== null)
+          ) {
             state = 'completed';
           } else if (stepSlug === lastTaskSlug) {
-            if (job.hasError) state = 'failed';
-            else if (job.processing) state = 'active';
+            if (job.hasError === true) state = 'failed';
+            else if (lastTaskSlug === 'blockJob') state = 'blocked';
+            else if (job.processing === true) state = 'active';
             else if (stepStatus?.status === 'active') state = 'active';
-            else state = 'completed'; // If it's the last one and not processing/error, maybe it's done? Or stuck?
-            // Actually if job.completedAt is set, all previous are completed
+            else if (job.completedAt !== undefined && job.completedAt !== null) state = 'completed';
+            else state = 'queued'; // queued and ready to process
           } else if (index < currentStepIndex) {
             state = 'completed';
           }
 
           // Correction: if the entire job is completed, all steps before it should be green essentially
-          if (job.completedAt && index <= currentStepIndex) {
+          if (
+            job.completedAt !== undefined &&
+            job.completedAt !== null &&
+            index <= currentStepIndex
+          ) {
             state = 'completed';
           }
 
@@ -73,14 +81,11 @@ export const StepIndicator: React.FC<{ job: RegistrationJob }> = ({ job }) => {
                     className={cn(
                       'h-1.5 w-6 rounded-full transition-all',
                       ((): string => {
-                        if (state === 'completed') {
-                          if (stepSlug === 'blockJob' && lastTaskSlug === 'blockJob')
-                            return 'bg-amber-500';
-                          return 'bg-emerald-500';
-                        }
+                        if (state === 'completed') return 'bg-emerald-500';
+                        if (state === 'blocked') return 'bg-amber-500';
                         if (state === 'active') return 'animate-pulse bg-blue-500';
-                        if (state === 'failed') return 'bg-red-500';
-                        return 'bg-zinc-200 dark:bg-zinc-800';
+                        if (state === 'queued') return 'animate-pulse bg-zinc-400 dark:bg-zinc-600';
+                        return 'bg-red-500'; // state === 'failed'
                       })(),
                     )}
                   />

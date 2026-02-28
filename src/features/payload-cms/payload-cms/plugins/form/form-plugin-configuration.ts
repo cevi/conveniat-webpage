@@ -4,15 +4,17 @@ import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/ad
 
 import { parseSmtpResultsHook } from '@/features/payload-cms/payload-cms/hooks/parse-smtp-results';
 import { getPublishingStatus } from '@/features/payload-cms/payload-cms/hooks/publishing-status';
+import { triggerPastWorkflowsHandler } from '@/features/payload-cms/payload-cms/plugins/form/endpoints/trigger-past-workflows';
 import { beforeEmailChangeHook } from '@/features/payload-cms/payload-cms/plugins/form/fix-links-in-mails';
 import { extractEmailLinksHook } from '@/features/payload-cms/payload-cms/plugins/form/hooks/extract-email-links';
 import { linkJobSubmission } from '@/features/payload-cms/payload-cms/plugins/form/hooks/link-job-submission';
-import { validateCeviDatabaseLogin } from '@/features/payload-cms/payload-cms/plugins/form/hooks/validate-cevi-db-login';
+import { validateFormSubmission } from '@/features/payload-cms/payload-cms/plugins/form/hooks/validate-form-submission';
 import { confirmationSettingsTab } from '@/features/payload-cms/payload-cms/plugins/form/tabs/confirmation-settings-tab';
 import { formFieldsTab } from '@/features/payload-cms/payload-cms/plugins/form/tabs/form-fields-tab';
 import { formResultsTab } from '@/features/payload-cms/payload-cms/plugins/form/tabs/form-results-tab';
 import { workflowTab } from '@/features/payload-cms/payload-cms/plugins/form/tabs/workflow-tab';
 import { workflowTriggerOnFormSubmission } from '@/features/payload-cms/payload-cms/plugins/form/workflow-trigger-on-form-submission';
+import { flushPageCacheOnChange } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import { localizedStatusSchema } from '@/features/payload-cms/payload-cms/utils/localized-status-schema';
 import { formBuilderPlugin } from '@payloadcms/plugin-form-builder';
 import type { Field, TabsField } from 'payload';
@@ -138,6 +140,7 @@ export const formPluginConfiguration = formBuilderPlugin({
     admin: {
       group: AdminPanelDashboardGroups.GlobalSettings,
       groupBy: true,
+      defaultColumns: ['id', 'form', 'createdAt', 'smtpResults', 'workflowResults'],
     },
     access: {
       read: canAccessAdminPanel,
@@ -177,14 +180,18 @@ export const formPluginConfiguration = formBuilderPlugin({
           },
         },
       },
-
       {
-        name: 'helper-job',
-        type: 'relationship',
-        relationTo: 'helper-jobs',
+        name: 'workflowResults',
+        type: 'json',
         admin: {
           readOnly: true,
           position: 'sidebar',
+          components: {
+            Field: {
+              path: '@/features/payload-cms/payload-cms/components/workflow-results/workflow-results-field',
+            },
+            Cell: '@/features/payload-cms/payload-cms/components/workflow-results/workflow-results-cell',
+          },
         },
       },
       {
@@ -199,7 +206,7 @@ export const formPluginConfiguration = formBuilderPlugin({
       },
     ],
     hooks: {
-      beforeChange: [validateCeviDatabaseLogin, linkJobSubmission],
+      beforeChange: [validateFormSubmission, linkJobSubmission],
       afterChange: [workflowTriggerOnFormSubmission],
     },
   },
@@ -223,6 +230,13 @@ export const formPluginConfiguration = formBuilderPlugin({
       update: canAccessAdminPanel,
       delete: canAccessAdminPanel,
     },
+    endpoints: [
+      {
+        path: '/:id/trigger-workflows',
+        method: 'post',
+        handler: triggerPastWorkflowsHandler,
+      },
+    ],
     defaultPopulate: {
       versions: false,
     },
@@ -269,6 +283,7 @@ export const formPluginConfiguration = formBuilderPlugin({
     ],
     hooks: {
       beforeChange: [extractEmailLinksHook],
+      afterChange: [flushPageCacheOnChange],
     },
   },
   beforeEmail: beforeEmailChangeHook,

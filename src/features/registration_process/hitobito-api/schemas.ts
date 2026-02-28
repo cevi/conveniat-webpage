@@ -73,6 +73,8 @@ export const RegistrationWorkflowInputSchema = z.object({
     z.object({
       resolvedUserId: z.string().optional(),
       forceCreateUser: z.boolean().optional(),
+      formSubmissionId: z.string().optional(),
+      locale: z.string().optional(),
     }),
   ),
 });

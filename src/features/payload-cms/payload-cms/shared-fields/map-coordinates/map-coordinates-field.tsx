@@ -8,6 +8,7 @@ import type { PointFieldClientComponent } from 'payload';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { DynamicLucidIconRenderer } from '@/features/map/components/maplibre-renderer/dynamic-lucid-icon-renderer';
+import { formatHexColor } from '@/utils/format-hex-color';
 import { reactToDomElement } from '@/utils/react-to-dom-element';
 import { Check, ChevronDown, ChevronUp, MapPin, Settings2, Trash2 } from 'lucide-react';
 
@@ -53,7 +54,7 @@ const MapCoordinatesField: PointFieldClientComponent = ({ path }) => {
     (lngLat: [number, number]) => {
       if (!mapReference.current) return;
 
-      const hexColor = (color?.startsWith('#') ?? false) ? color : `#${color}`;
+      const hexColor = formatHexColor(color);
       const markerElement = reactToDomElement(
         <DynamicLucidIconRenderer
           icon={icon as CampMapAnnotation['icon']}

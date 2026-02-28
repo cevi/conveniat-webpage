@@ -17,6 +17,7 @@ import { useFormSteps } from '@/features/payload-cms/components/form/hooks/use-f
 import { useFormSubmission } from '@/features/payload-cms/components/form/hooks/use-form-submission';
 import { JobSelectionProvider } from '@/features/payload-cms/components/form/job-selection';
 import type { ConditionedBlock, FormBlockType } from '@/features/payload-cms/components/form/types';
+import { getFormStorageKey } from '@/features/payload-cms/components/form/utils/get-form-storage-key';
 export type { FormBlockType } from '@/features/payload-cms/components/form/types';
 
 export const FormBlock: React.FC<
@@ -34,7 +35,7 @@ export const FormBlock: React.FC<
   // Restore form state from sessionStorage on mount
   useEffect(() => {
     if (typeof config.id === 'string' && config.id.length > 0) {
-      const savedState = sessionStorage.getItem(`form-state-${config.id}`);
+      const savedState = sessionStorage.getItem(getFormStorageKey(config.id, 'state'));
       if (typeof savedState === 'string' && savedState.length > 0) {
         try {
           const parsedState = JSON.parse(savedState) as Record<string, unknown>;
@@ -75,6 +76,9 @@ export const FormBlock: React.FC<
     config,
     isPreviewMode: isPreviewMode ?? false,
     locale,
+    setError: formMethods.setError,
+    formSections,
+    setCurrentStepIndex,
   });
 
   const handleReset = (): void => {
@@ -139,7 +143,12 @@ export const FormBlock: React.FC<
   const isDualCardLayout = isSplit && shouldRenderMain;
 
   const handleSubmit = (event: React.FormEvent): void => {
-    void formMethods.handleSubmit(submit)(event);
+    event.preventDefault();
+    if (isLastStep) {
+      void formMethods.handleSubmit(submit)(event);
+    } else {
+      void next();
+    }
   };
 
   if (!config._localized_status.published) return <></>;
@@ -227,14 +236,31 @@ export const FormBlock: React.FC<
                   {isDualCardLayout && (
                     <div
                       key="main-column"
-                      className="animate-in fade-in fill-mode-backwards rounded-xl border border-gray-100 bg-white p-8 shadow-sm duration-300"
+                      className="animate-in fade-in fill-mode-backwards flex flex-col rounded-xl border border-gray-100 bg-white p-8 shadow-sm duration-300"
                     >
-                      <div className={status === 'loading' ? 'pointer-events-none opacity-50' : ''}>
+                      <div
+                        className={
+                          status === 'loading' ? 'pointer-events-none grow opacity-50' : 'grow'
+                        }
+                      >
                         <FormFieldRenderer
                           section={currentActualStep}
                           currentStepIndex={currentStepIndex}
                           formId={config.id}
                           renderMode="main"
+                        />
+                      </div>
+                      <div className="pt-8 @[1600px]:hidden">
+                        <FormControls
+                          locale={locale}
+                          isFirst={isFirstStep}
+                          isLast={isLastStep}
+                          isSubmitting={status === 'loading'}
+                          // eslint-disable-next-line @typescript-eslint/no-misused-promises
+                          onNext={next}
+                          onPrev={prev}
+                          submitLabel={config.submitButtonLabel ?? ''}
+                          formId={config.id}
                         />
                       </div>
                     </div>

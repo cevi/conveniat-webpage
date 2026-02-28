@@ -1,4 +1,5 @@
 import type { CampMapAnnotation } from '@/features/payload-cms/payload-types';
+import { formatHexColor } from '@/utils/format-hex-color';
 import { cn } from '@/utils/tailwindcss-override';
 import type { LucideProps } from 'lucide-react';
 import {
@@ -65,7 +66,7 @@ export const DynamicLucidIconRenderer: React.FC<{
   color?: string;
   isStarred?: boolean;
 }> = ({ icon, color = '78909c', isStarred = false }): React.JSX.Element => {
-  const hexColor = color.startsWith('#') ? color : `#${color}`;
+  const hexColor = formatHexColor(color) as string;
   const iconMap: Record<string, React.ElementType<LucideProps>> = {
     MapPin: MapPin,
     Tent: Tent,

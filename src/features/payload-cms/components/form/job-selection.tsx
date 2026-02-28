@@ -11,54 +11,106 @@ import { cn } from '@/utils/tailwindcss-override';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2, Search, X } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
-import React, { createContext, useContext, useMemo, useState } from 'react';
-import type { Control, FieldErrors, FieldValues, UseFormRegister } from 'react-hook-form';
+import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import type { Control, FieldValues } from 'react-hook-form';
 import { Controller } from 'react-hook-form';
 
 // Context to share search/filter state between sidebar and main cards
+interface JobSelectionFieldState {
+  searchTerm: string;
+  selectedRessorts: Set<string>;
+  isSearchOpen: boolean;
+}
+
 interface JobSelectionContextType {
+  states: Record<string, JobSelectionFieldState>;
+  setSearchTerm: (name: string, s: string) => void;
+  setSelectedRessorts: (name: string, s: Set<string>) => void;
+  setIsSearchOpen: (name: string, b: boolean) => void;
+}
+
+const JobSelectionContext = createContext<JobSelectionContextType | undefined>(undefined);
+
+const defaultFieldState: JobSelectionFieldState = {
+  searchTerm: '',
+  selectedRessorts: new Set(),
+  isSearchOpen: false,
+};
+
+export const JobSelectionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [states, setStates] = useState<Record<string, JobSelectionFieldState>>({});
+
+  const setSearchTerm = useCallback((name: string, searchTerm: string): void => {
+    setStates((previous) => ({
+      ...previous,
+      [name]: { ...(previous[name] ?? defaultFieldState), searchTerm },
+    }));
+  }, []);
+
+  const setSelectedRessorts = useCallback((name: string, selectedRessorts: Set<string>): void => {
+    setStates((previous) => ({
+      ...previous,
+      [name]: { ...(previous[name] ?? defaultFieldState), selectedRessorts },
+    }));
+  }, []);
+
+  const setIsSearchOpen = useCallback((name: string, isSearchOpen: boolean): void => {
+    setStates((previous) => ({
+      ...previous,
+      [name]: { ...(previous[name] ?? defaultFieldState), isSearchOpen },
+    }));
+  }, []);
+
+  const value = useMemo(() => {
+    return {
+      states,
+      setSearchTerm,
+      setSelectedRessorts,
+      setIsSearchOpen,
+    };
+  }, [states, setSearchTerm, setSelectedRessorts, setIsSearchOpen]);
+
+  return <JobSelectionContext.Provider value={value}>{children}</JobSelectionContext.Provider>;
+};
+
+const useJobSelection = (
+  name: string,
+): {
   searchTerm: string;
   setSearchTerm: (s: string) => void;
   selectedRessorts: Set<string>;
   setSelectedRessorts: (s: Set<string>) => void;
   isSearchOpen: boolean;
   setIsSearchOpen: (b: boolean) => void;
-}
-
-const JobSelectionContext = createContext<JobSelectionContextType | undefined>(undefined);
-
-export const JobSelectionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedRessorts, setSelectedRessorts] = useState<Set<string>>(new Set());
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-
-  const value = useMemo(
-    () => ({
-      searchTerm,
-      setSearchTerm,
-      selectedRessorts,
-      setSelectedRessorts,
-      isSearchOpen,
-      setIsSearchOpen,
-    }),
-    [searchTerm, selectedRessorts, isSearchOpen],
-  );
-
-  return <JobSelectionContext.Provider value={value}>{children}</JobSelectionContext.Provider>;
-};
-
-const useJobSelection = (): JobSelectionContextType => {
+} => {
   const context = useContext(JobSelectionContext);
   if (!context) {
     throw new Error('useJobSelection must be used within a JobSelectionProvider');
   }
-  return context;
+
+  const state = context.states[name] ?? defaultFieldState;
+
+  return useMemo(
+    () => ({
+      searchTerm: state.searchTerm,
+      setSearchTerm: (s: string): void => {
+        context.setSearchTerm(name, s);
+      },
+      selectedRessorts: state.selectedRessorts,
+      setSelectedRessorts: (s: Set<string>): void => {
+        context.setSelectedRessorts(name, s);
+      },
+      isSearchOpen: state.isSearchOpen,
+      setIsSearchOpen: (b: boolean): void => {
+        context.setIsSearchOpen(name, b);
+      },
+    }),
+    [state, context, name],
+  );
 };
 
 interface JobSelectionProperties extends JobSelectionBlock {
   control: Control<FieldValues>;
-  errors: FieldErrors<FieldValues>;
-  registerAction: UseFormRegister<FieldValues>;
   renderMode?: 'all' | 'sidebar' | 'main';
 }
 
@@ -86,7 +138,13 @@ const searchTitleText: StaticTranslationString = {
   fr: 'Rechercher',
 };
 
-const spotsLeftSuffix: StaticTranslationString = {
+const spotsLeftSuffixSingular: StaticTranslationString = {
+  de: 'Spot übrig',
+  en: 'Spot left',
+  fr: 'Place restante',
+};
+
+const spotsLeftSuffixPlural: StaticTranslationString = {
   de: 'Spots übrig',
   en: 'Spots left',
   fr: 'Places restantes',
@@ -115,7 +173,7 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
     setSelectedRessorts,
     isSearchOpen,
     setIsSearchOpen,
-  } = useJobSelection();
+  } = useJobSelection(name);
 
   const { data: jobs, isLoading } = useQuery<JobWithQuota[]>({
     queryKey: ['helper-jobs', dateRangeCategory, category, locale],
@@ -162,9 +220,16 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
     });
   }, [jobs, searchTerm, selectedRessorts]);
 
-  // Sort jobs by start date
+  // Sort jobs by start date, putting full jobs at the bottom
   const sortedJobs = useMemo((): JobWithQuota[] => {
     return [...filteredJobs].sort((a, b) => {
+      const aIsFull = typeof a.availableQuota === 'number' && a.availableQuota <= 0;
+      const bIsFull = typeof b.availableQuota === 'number' && b.availableQuota <= 0;
+
+      if (aIsFull !== bIsFull) {
+        return aIsFull ? 1 : -1;
+      }
+
       const startA = new Date(a.dateRange.startDate).getTime();
       const startB = new Date(b.dateRange.startDate).getTime();
       return startA - startB;
@@ -182,6 +247,11 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
             placeholder={searchPlaceholderText[locale]}
             className="w-48 rounded-full border border-gray-200 bg-gray-50 py-1.5 pr-8 pl-9 text-xs shadow-sm transition-all focus:w-64 focus:border-green-500 focus:bg-white focus:ring-2 focus:ring-green-500/20 focus:outline-none"
             value={searchTerm}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
+              }
+            }}
             onChange={(event) => setSearchTerm(event.target.value)}
             onBlur={(event) => {
               const relatedTarget = event.relatedTarget as HTMLElement | null;
@@ -320,15 +390,17 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
                         }}
                         disabled={isDisabled}
                         className={cn(
-                          'relative flex cursor-pointer flex-col rounded-lg border-2 p-4 text-left transition-all duration-200 focus:ring-2 focus:ring-offset-2 focus:outline-none',
+                          'relative flex flex-col rounded-lg border-2 p-4 text-left transition-all duration-200 focus:ring-2 focus:ring-offset-2 focus:outline-none',
                           {
+                            'cursor-pointer': !isDisabled,
+                            'cursor-not-allowed border-gray-200 bg-gray-50 opacity-50 grayscale':
+                              isDisabled,
                             'border-green-600 bg-green-50 ring-green-600': isSelected && !hasError,
                             'border-red-500 bg-red-50 ring-red-600': isSelected && hasError,
                             'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50 focus:ring-green-600':
-                              !isSelected && !hasError,
+                              !isSelected && !hasError && !isDisabled,
                             'border-red-200 bg-white hover:border-red-300 focus:ring-red-500':
-                              !isSelected && hasError,
-                            'cursor-not-allowed opacity-50 grayscale': isDisabled,
+                              !isSelected && hasError && !isDisabled,
                           },
                         )}
                       >
@@ -358,7 +430,11 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
                                 job.availableQuota > 0 ? 'text-green-600' : 'text-red-600',
                               )}
                             >
-                              {`${job.availableQuota} ${spotsLeftSuffix[locale]}`}
+                              {`${job.availableQuota} ${
+                                job.availableQuota === 1
+                                  ? spotsLeftSuffixSingular[locale]
+                                  : spotsLeftSuffixPlural[locale]
+                              }`}
                             </span>
                           )}
                         </div>

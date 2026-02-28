@@ -8,7 +8,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { extractFields } from '@/utils/get-form-fields';
-import { useField, useForm, useLocale } from '@payloadcms/ui';
+import { useField, useLocale, useWatchForm } from '@payloadcms/ui';
 import React, { useMemo } from 'react';
 
 interface WorkflowInput {
@@ -31,31 +31,29 @@ export const WorkflowFieldMapping: React.FC<WorkflowFieldMappingProperties> = ({
   path,
   workflowDefinitions,
 }): React.ReactNode => {
-  const { value: mapping, setValue } = useField<Record<string, string>>({ path });
-  const { value: selectedWorkflow } = useField<string>({ path: 'workflow' });
+  const { value: mappingRaw, setValue } = useField<Record<string, string> | undefined>({ path });
+  const mapping = mappingRaw ?? {};
+
+  // Infer the root path of the row data by replacing ".mapping" at the end with ".workflow"
+  // E.g. "configuredWorkflows.0.mapping" -> "configuredWorkflows.0.workflow"
+  const workflowPath = path.replace(/\.mapping$/, '.workflow');
+  const { value: selectedWorkflow } = useField<string>({
+    path: workflowPath,
+  });
+
   const { code } = useLocale();
 
-  // Subscribe to form state to extract all available fields recursively
-  const { getData } = useForm();
-  const data = getData();
+  const { getData: getWatchedData } = useWatchForm();
+  const data = getWatchedData();
 
   const availableFormFields = useMemo(() => {
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    if (!data) return [];
     return extractFields(data);
   }, [data]);
 
-  // If no workflow selected or workflow not in definitions, return nothing
-  if (!selectedWorkflow || !workflowDefinitions[selectedWorkflow]) {
-    return <></>;
-  }
-
-  const currentWorkflowDefinition = workflowDefinitions[selectedWorkflow];
-
-  const handleMappingChange = (workflowKey: string, formField: string): void => {
+  const handleMappingChange = (inputKey: string, formField: string): void => {
     setValue({
       ...mapping,
-      [workflowKey]: formField,
+      [inputKey]: formField,
     });
   };
 
@@ -66,8 +64,11 @@ export const WorkflowFieldMapping: React.FC<WorkflowFieldMappingProperties> = ({
     return value[code] ?? value['en'] ?? Object.values(value)[0] ?? key ?? '';
   };
 
+  const currentWorkflowDefinition = workflowDefinitions[selectedWorkflow];
+  if (currentWorkflowDefinition === undefined) return <></>;
+
   return (
-    <div className="bg-card text-card-foreground mb-4 rounded-md p-4">
+    <div className="bg-card text-card-foreground mb-4 rounded-md">
       <h3 className="mb-4 text-lg font-semibold">
         Mapping: {getLocalizedValue(currentWorkflowDefinition.label)}
       </h3>
@@ -85,15 +86,14 @@ export const WorkflowFieldMapping: React.FC<WorkflowFieldMappingProperties> = ({
             </label>
             <div className="sm:col-span-2">
               <Select
-                // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-                value={mapping?.[input.key] ?? ''}
+                value={mapping[input.key] ?? ''}
                 onValueChange={(val) => handleMappingChange(input.key, val)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select Form Field" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="peopleId">N/A</SelectItem>
+                  <SelectItem value="_none_">N/A</SelectItem>
                   {availableFormFields.map((field) => (
                     <SelectItem key={field.value} value={field.value}>
                       {field.label}

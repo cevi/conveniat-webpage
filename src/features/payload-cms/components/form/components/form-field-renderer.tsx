@@ -7,7 +7,7 @@ import type {
   JobSelectionBlock,
 } from '@/features/payload-cms/components/form/types';
 import React, { useEffect } from 'react';
-import { useFormContext, useWatch } from 'react-hook-form';
+import { useFormContext, useFormState, useWatch } from 'react-hook-form';
 
 interface FormFieldRendererProperties {
   section: FormSection;
@@ -36,7 +36,7 @@ const ConditionedField: React.FC<{
   useEffect(() => {
     if (!isVisible) {
       for (const f of block.fields) {
-        if ('name' in f && f.name) {
+        if ('name' in f && typeof f.name === 'string' && f.name !== '') {
           resetField(f.name);
         }
       }
@@ -49,7 +49,11 @@ const ConditionedField: React.FC<{
     <>
       {block.fields.map((field, index) => (
         <SingleField
-          key={('id' in field && typeof field.id === 'string' ? field.id : undefined) || index}
+          key={
+            ('id' in field && typeof field.id === 'string' && field.id !== ''
+              ? field.id
+              : undefined) ?? index
+          }
           field={field}
           currentStepIndex={currentStepIndex}
           formId={formId}
@@ -67,16 +71,15 @@ const SingleField: React.FC<{
   renderMode: 'all' | 'sidebar' | 'main';
 }> = ({ field, currentStepIndex, formId, renderMode }) => {
   const Component = fieldComponents[field.blockType];
-  const {
-    register,
-    control,
-    formState: { errors },
-  } = useFormContext();
+  const { register, control } = useFormContext();
 
   const fieldName = 'name' in field && typeof field.name === 'string' ? field.name : undefined;
 
-  // Force React Hook Form to track the error for this specific field by reading the proxy
-  void (fieldName ? Boolean(errors[fieldName]) : false);
+  const { errors } = useFormState({
+    name: fieldName ?? '',
+  });
+
+  const fieldError = fieldName !== undefined && fieldName !== '' ? errors[fieldName] : undefined;
 
   if (!Component) {
     console.error(`Field type ${field.blockType} is not supported`);
@@ -96,7 +99,7 @@ const SingleField: React.FC<{
       {...field}
       registerAction={register}
       control={control}
-      errors={errors}
+      error={fieldError}
       required={field.required}
       currentStepIndex={currentStepIndex}
       formId={formId}
@@ -113,15 +116,19 @@ export const FormFieldRenderer: React.FC<FormFieldRendererProperties> = ({
 }) => {
   return (
     <div className="space-y-4">
-      {renderMode !== 'main' && section.sectionTitle && (
-        <SubheadingH3 className="mt-0">{section.sectionTitle}</SubheadingH3>
-      )}
+      {renderMode !== 'main' &&
+        typeof section.sectionTitle === 'string' &&
+        section.sectionTitle !== '' && (
+          <SubheadingH3 className="mt-0">{section.sectionTitle}</SubheadingH3>
+        )}
 
       {section.fields.map((field, index) => {
         if (field.blockType === 'conditionedBlock') {
           return (
             <ConditionedField
-              key={field.id || index}
+              key={
+                (typeof field.id === 'string' && field.id !== '' ? field.id : undefined) ?? index
+              }
               block={field}
               currentStepIndex={currentStepIndex}
               formId={formId}
@@ -131,7 +138,11 @@ export const FormFieldRenderer: React.FC<FormFieldRendererProperties> = ({
         }
         return (
           <SingleField
-            key={('id' in field && typeof field.id === 'string' ? field.id : undefined) || index}
+            key={
+              ('id' in field && typeof field.id === 'string' && field.id !== ''
+                ? field.id
+                : undefined) ?? index
+            }
             field={field}
             currentStepIndex={currentStepIndex}
             formId={formId}

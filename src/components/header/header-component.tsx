@@ -38,19 +38,22 @@ export const HeaderComponent: React.FC<{
             <LinkComponent
               href={`/${languagePrefix}`}
               aria-label={landingPageAreaLinktText[locale]}
+              prefetch
             >
-              <ConveniatLogo className="absolute top-[12px] left-[24px] z-[100]" />
+              <ConveniatLogo className="absolute top-[12px] left-[24px] z-100" />
             </LinkComponent>
 
             <span className="absolute top-[16px] left-0 flex w-full items-center justify-center font-['Montserrat'] text-[24px] leading-normal font-extrabold xl:hidden">
               <DynamicAppTitleName />
             </span>
 
-            <NavComponent>
-              <ForceDynamicOnBuild>
-                <MainMenu locale={locale} inAppDesign={inAppDesign} />
-              </ForceDynamicOnBuild>
-            </NavComponent>
+            <React.Suspense fallback={<div className="h-[60px] xl:hidden" />}>
+              <NavComponent>
+                <ForceDynamicOnBuild>
+                  <MainMenu locale={locale} inAppDesign={inAppDesign} />
+                </ForceDynamicOnBuild>
+              </NavComponent>
+            </React.Suspense>
           </div>
         </div>
       </div>

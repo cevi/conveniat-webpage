@@ -1,14 +1,27 @@
-import type { ExtendedFormType } from '@/features/payload-cms/components/form/types';
+import {
+  fieldIsNotValidText,
+  fieldIsRequiredText,
+  invalidDateText,
+  invalidEmailText,
+  invalidNumberText,
+  invalidSelectionText,
+} from '@/features/payload-cms/components/form/static-form-texts';
+import type { ExtendedFormType, FormSection } from '@/features/payload-cms/components/form/types';
+import { getFormStorageKey } from '@/features/payload-cms/components/form/utils/get-form-storage-key';
 import { type Locale, type StaticTranslationString } from '@/types/types';
 import { useRouter } from 'next/navigation';
 import { usePostHog } from 'posthog-js/react';
 import { useState } from 'react';
+import type { FieldValues, UseFormSetError } from 'react-hook-form';
 
 interface UseFormSubmissionProperties {
   formId: string;
   config: ExtendedFormType;
   isPreviewMode?: boolean;
   locale: Locale;
+  setError?: UseFormSetError<FieldValues>;
+  formSections?: FormSection[];
+  setCurrentStepIndex?: (index: number) => void;
 }
 
 interface PreviewData {
@@ -43,11 +56,20 @@ const failedToSubmitText: StaticTranslationString = {
   fr: "Échec de l'envoi du formulaire. Veuillez réessayer plus tard.",
 };
 
+const correctHighlightedErrorsText: StaticTranslationString = {
+  en: 'Please correct the highlighted errors.',
+  de: 'Bitte korrigieren Sie die markierten Fehler.',
+  fr: 'Veuillez corriger les erreurs mises en évidence.',
+};
+
 export const useFormSubmission = ({
   formId,
   config,
   isPreviewMode,
   locale,
+  setError,
+  formSections,
+  setCurrentStepIndex,
 }: UseFormSubmissionProperties): UseFormSubmissionReturn => {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
@@ -108,14 +130,72 @@ export const useFormSubmission = ({
       });
 
       if (!resp.ok) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const errorData = await resp.json();
+        const errorData = (await resp.json()) as {
+          errors?: { data?: { field: string; message: string }[]; message?: string }[];
+          message?: string;
+        };
+
+        // Handle field-level validation errors from payload
+        if (errorData.errors?.[0]?.data && Array.isArray(errorData.errors[0].data)) {
+          const fieldErrors = errorData.errors[0].data;
+          if (setError) {
+            for (const error of fieldErrors) {
+              let message = error.message;
+              switch (message) {
+                case 'required': {
+                  message = fieldIsRequiredText[locale];
+                  break;
+                }
+                case 'invalid_email': {
+                  message = invalidEmailText[locale];
+                  break;
+                }
+                case 'invalid_number': {
+                  message = invalidNumberText[locale];
+                  break;
+                }
+                case 'invalid_date': {
+                  message = invalidDateText[locale];
+                  break;
+                }
+                case 'invalid_format': {
+                  message = fieldIsNotValidText[locale];
+                  break;
+                }
+                case 'invalid_selection': {
+                  message = invalidSelectionText[locale];
+                  break;
+                }
+              }
+              setError(error.field, { type: 'server', message });
+            }
+
+            // Navigate to the step containing the first errored field
+            if (formSections && setCurrentStepIndex && fieldErrors.length > 0) {
+              const firstError = fieldErrors[0];
+              if (firstError) {
+                const firstErrorField = firstError.field;
+                const stepIndex = formSections.findIndex((section) =>
+                  section.fields.some((f) => {
+                    if ('name' in f && f.name === firstErrorField) return true;
+                    if (f.blockType === 'conditionedBlock') {
+                      return f.fields.some((sub) => 'name' in sub && sub.name === firstErrorField);
+                    }
+                    return false;
+                  }),
+                );
+                if (stepIndex !== -1) {
+                  setCurrentStepIndex(stepIndex);
+                }
+              }
+            }
+
+            throw new Error(correctHighlightedErrorsText[locale]);
+          }
+        }
+
         throw new Error(
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          (errorData.errors?.[0]?.message as string | undefined) ||
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            (errorData.message as string | undefined) ||
-            failedToSubmitText[locale],
+          errorData.errors?.[0]?.message ?? errorData.message ?? failedToSubmitText[locale],
         );
       }
 
@@ -124,8 +204,8 @@ export const useFormSubmission = ({
 
       // Clear session storage on success
       if (typeof formId === 'string' && formId !== '') {
-        sessionStorage.removeItem(`form-state-${formId}`);
-        sessionStorage.removeItem(`form_step_${formId}`);
+        sessionStorage.removeItem(getFormStorageKey(formId, 'state'));
+        sessionStorage.removeItem(getFormStorageKey(formId, 'step'));
       }
 
       if (config.confirmationType === 'redirect' && config.redirect?.url) {
@@ -156,8 +236,8 @@ export const useFormSubmission = ({
     setPreviewData(undefined);
     // Clear session storage on reset
     if (typeof formId === 'string' && formId !== '') {
-      sessionStorage.removeItem(`form-state-${formId}`);
-      sessionStorage.removeItem(`form_step_${formId}`);
+      sessionStorage.removeItem(getFormStorageKey(formId, 'state'));
+      sessionStorage.removeItem(getFormStorageKey(formId, 'step'));
     }
   };
 

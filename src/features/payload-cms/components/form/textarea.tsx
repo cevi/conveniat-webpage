@@ -1,5 +1,11 @@
 import type { TextAreaField } from '@payloadcms/plugin-form-builder/types';
-import type { FieldErrorsImpl, FieldValues, UseFormRegister } from 'react-hook-form';
+import type {
+  FieldError,
+  FieldErrorsImpl,
+  FieldValues,
+  Merge,
+  UseFormRegister,
+} from 'react-hook-form';
 
 import { Required } from '@/features/payload-cms/components/form/required';
 import { fieldIsRequiredText } from '@/features/payload-cms/components/form/static-form-texts';
@@ -10,18 +16,14 @@ import type React from 'react';
 
 export const TextArea: React.FC<
   {
-    errors: Partial<
-      FieldErrorsImpl<{
-        [x: string]: never;
-      }>
-    >;
+    error?: FieldError | Merge<FieldError, FieldErrorsImpl<FieldValues>>;
     registerAction: UseFormRegister<string & FieldValues>;
     placeholder?: string;
   } & TextAreaField
-> = ({ name, label, registerAction, required: requiredFromProperties, errors, placeholder }) => {
+> = ({ name, label, registerAction, required: requiredFromProperties, error, placeholder }) => {
   // set default values
   requiredFromProperties ??= false;
-  const hasError = errors[name];
+  const hasError = error !== undefined;
   const locale = useCurrentLocale(i18nConfig);
 
   return (
@@ -39,7 +41,7 @@ export const TextArea: React.FC<
           required: requiredFromProperties ? fieldIsRequiredText[locale as Locale] : false,
         })}
       />
-      {hasError && <p className="mt-1 text-xs text-red-600">{hasError.message as string}</p>}
+      {hasError && <p className="mt-1 text-xs text-red-600">{(error as FieldError).message}</p>}
     </div>
   );
 };

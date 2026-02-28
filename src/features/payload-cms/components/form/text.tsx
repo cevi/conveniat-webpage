@@ -1,5 +1,11 @@
 import type { TextField } from '@payloadcms/plugin-form-builder/types';
-import type { FieldErrorsImpl, FieldValues, UseFormRegister } from 'react-hook-form';
+import type {
+  FieldError,
+  FieldErrorsImpl,
+  FieldValues,
+  Merge,
+  UseFormRegister,
+} from 'react-hook-form';
 
 import { Required } from '@/features/payload-cms/components/form/required';
 import {
@@ -13,11 +19,7 @@ import type React from 'react';
 
 export const Text: React.FC<
   {
-    errors: Partial<
-      FieldErrorsImpl<{
-        [x: string]: never;
-      }>
-    >;
+    error?: FieldError | Merge<FieldError, FieldErrorsImpl<FieldValues>>;
     registerAction: UseFormRegister<string & FieldValues>;
     placeholder?: string;
     // optional regex used as the input validation
@@ -30,14 +32,14 @@ export const Text: React.FC<
   label,
   registerAction,
   required: requiredFromProperties,
-  errors,
+  error,
   placeholder,
   inputValidation,
   inputValidationErrorMessage,
 }) => {
   // set default values
   requiredFromProperties ??= false;
-  const hasError = errors[name];
+  const hasError = error !== undefined;
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
   const validationRules: {
@@ -57,8 +59,8 @@ export const Text: React.FC<
         value: regex,
         message: inputValidationErrorMessage ?? fieldIsNotValidText[locale],
       };
-    } catch (error) {
-      console.error('Invalid regex provided to Text component:', inputValidation, error);
+    } catch (error_) {
+      console.error('Invalid regex provided to Text component:', inputValidation, error_);
     }
   }
 
@@ -75,7 +77,9 @@ export const Text: React.FC<
         placeholder={placeholder}
         {...registerAction(name, validationRules)}
       />
-      {hasError && <p className="mt-1 text-xs text-red-600">{hasError.message as string}</p>}
+      {hasError && (
+        <p className="mt-1 text-xs text-red-600">{(error as { message?: string }).message}</p>
+      )}
     </div>
   );
 };

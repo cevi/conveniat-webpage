@@ -33,3 +33,23 @@ export function extractFormFields(html: string): Record<string, string> {
   }
   return fields;
 }
+
+/**
+ * Extracts a pending manuelle Freigabe request from the group members HTML page.
+ * Returns the group name and url if found, otherwise undefined.
+ */
+export function extractPendingApprovalGroup(
+  html: string,
+): { groupName: string; groupUrl: string } | undefined {
+  const rowMatch = html.match(/<tr id="person_add_request_\d+">[\s\S]*?<\/tr>/);
+  if (rowMatch === null) return undefined;
+
+  const rowHtml = rowMatch[0];
+  const linkMatch = rowHtml.match(/<a href="(\/groups\/\d+)">([^<]+)<\/a>/);
+  if (linkMatch === null) return undefined;
+
+  return {
+    groupUrl: linkMatch[1] ?? '',
+    groupName: linkMatch[2]?.trim() ?? '',
+  };
+}

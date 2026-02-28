@@ -221,6 +221,8 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
         email: profile.email,
         name: profile.first_name + ' ' + profile.last_name,
         nickname: profile.nickname,
+        firstName: profile.first_name,
+        lastName: profile.last_name,
       };
     } else {
       console.error('Failed to refetch user profile after token refresh');
@@ -303,6 +305,8 @@ export const authOptions: NextAuthConfig = {
         cevi_db_uuid: token.cevi_db_uuid,
         group_ids: token.group_ids,
         nickname: token.nickname,
+        firstName: token.firstName,
+        lastName: token.lastName,
       };
       return session;
     },
@@ -333,6 +337,8 @@ export const authOptions: NextAuthConfig = {
           email: profile.email,
           name: profile.first_name + ' ' + profile.last_name,
           nickname: profile.nickname,
+          firstName: profile.first_name,
+          lastName: profile.last_name,
         };
       }
 
