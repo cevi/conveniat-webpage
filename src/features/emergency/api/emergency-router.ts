@@ -1,3 +1,4 @@
+import { getAlertSettingsCached } from '@/features/payload-cms/api/cached-globals';
 import type { AlertSetting } from '@/features/payload-cms/payload-types';
 import { ChatCapability, SYSTEM_MSG_TYPE_EMERGENCY_ALERT } from '@/lib/chat-shared';
 import { createTRPCRouter, publicProcedure, trpcBaseProcedure } from '@/trpc/init';
@@ -36,12 +37,7 @@ const resolveEmergencyChatName = (locale: string, nickname: string): string => {
 
 export const emergencyRouter = createTRPCRouter({
   getAlertSettings: publicProcedure.query(async ({ ctx }) => {
-    const payloadAPI = await getPayload({ config });
-    return payloadAPI.findGlobal({
-      slug: 'alert_settings',
-      locale: ctx.locale,
-      fallbackLocale: 'de',
-    });
+    return await getAlertSettingsCached(ctx.locale, false, 'de'); // fallback to german
   }),
 
   newAlert: trpcBaseProcedure

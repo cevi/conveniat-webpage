@@ -6872,9 +6872,17 @@ export interface AlertSetting {
   id: string;
   questions?:
     | {
+        /**
+         * Optional key to link from another question.
+         */
+        key?: string | null;
         question: string;
         options: {
           option: string;
+          /**
+           * Optional key to link to the next question.
+           */
+          nextQuestionKey?: string | null;
           id?: string | null;
         }[];
         id?: string | null;
@@ -7096,11 +7104,13 @@ export interface AlertSettingsSelect<T extends boolean = true> {
   questions?:
     | T
     | {
+        key?: T;
         question?: T;
         options?:
           | T
           | {
               option?: T;
+              nextQuestionKey?: T;
               id?: T;
             };
         id?: T;
