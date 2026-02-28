@@ -1,5 +1,6 @@
 import { useMap } from '@/features/map/components/maplibre-renderer/map-context-provider';
 import type { CampMapAnnotationPoint, CampMapAnnotationPolygon } from '@/features/map/types/types';
+import { formatHexColor } from '@/utils/format-hex-color';
 import type { GeoJSONSource, MapGeoJSONFeature, Map as MapLibre, MapMouseEvent } from 'maplibre-gl';
 import { useEffect, useRef, useState } from 'react';
 
@@ -55,7 +56,7 @@ export const useAnnotationPolygons = (
             properties: {
               id: annotation.id,
               title: annotation.title,
-              color: annotation.color,
+              color: formatHexColor(annotation.color),
               isInteractive: annotation.isInteractive,
             },
             geometry: {
@@ -208,7 +209,7 @@ export const useAnnotationPolygons = (
           properties: {
             id: annotation.id,
             title: annotation.title,
-            color: annotation.color,
+            color: formatHexColor(annotation.color),
             isInteractive: annotation.isInteractive,
           },
           geometry: {

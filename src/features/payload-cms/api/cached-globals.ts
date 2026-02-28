@@ -1,4 +1,4 @@
-import type { Footer, Header, SEO } from '@/features/payload-cms/payload-types';
+import type { AlertSetting, Footer, Header, SEO } from '@/features/payload-cms/payload-types';
 import type { Locale } from '@/types/types';
 import { withSpan } from '@/utils/tracing-helpers';
 import config from '@payload-config';
@@ -48,3 +48,24 @@ export const getSEOCached = cache(async (): Promise<SEO> => {
     });
   });
 });
+
+/**
+ * Fetches the Alert Settings global with request-level memoization.
+ */
+export const getAlertSettingsCached = cache(
+  async (
+    locale: Locale,
+    draft: boolean = false,
+    fallbackLocale: Locale = 'de',
+  ): Promise<AlertSetting> => {
+    return await withSpan('getAlertSettingsCached', async () => {
+      const payload = await getPayload({ config });
+      return await payload.findGlobal({
+        slug: 'alert_settings',
+        locale,
+        draft,
+        fallbackLocale,
+      });
+    });
+  },
+);

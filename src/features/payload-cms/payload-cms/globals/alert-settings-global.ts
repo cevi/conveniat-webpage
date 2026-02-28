@@ -1,4 +1,5 @@
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
+import { AlertSettingsNextKeyField } from '@/features/payload-cms/payload-cms/shared-fields/alert-settings-key-field';
 import type { GlobalConfig } from 'payload';
 
 export const AlertSettingsGlobal: GlobalConfig = {
@@ -19,6 +20,35 @@ export const AlertSettingsGlobal: GlobalConfig = {
         plural: { en: 'Questions', de: 'Fragen', fr: 'Questions' },
       },
       fields: [
+        {
+          name: 'key',
+          type: 'text',
+          localized: true,
+          required: false,
+          label: { en: 'Question key', de: 'Frage Schlüssel', fr: 'Clé de question' },
+          admin: {
+            description: {
+              en: 'Optional key to link from another question.',
+              de: 'Optionaler Schlüssel, um von einer anderen Frage zu verlinken.',
+              fr: 'Clé optionnelle pour faire le lien depuis une autre question.',
+            },
+          },
+          validate: (
+            value: string | string[] | null | undefined,
+            { data }: { data: unknown },
+          ): true | string => {
+            if (value === null || value === undefined || value === '') {
+              return true; // not required, so valid if empty
+            }
+            const dataTyped = data as { questions?: { key: string }[] };
+            const allKeys = (dataTyped.questions ?? []).map((q) => q.key);
+            const keyCount = allKeys.filter((k) => k === value).length;
+            if (keyCount > 1) {
+              return 'Question keys must be unique';
+            }
+            return true;
+          },
+        },
         {
           name: 'question',
           type: 'text',
@@ -43,6 +73,7 @@ export const AlertSettingsGlobal: GlobalConfig = {
               localized: true,
               required: true,
             },
+            AlertSettingsNextKeyField,
           ],
         },
       ],

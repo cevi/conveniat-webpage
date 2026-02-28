@@ -88,6 +88,7 @@ interface AppFeatureMenuItemProperties {
   Icon: LucideIcon;
   text: string;
   openInNewTab?: boolean;
+  prefetch?: boolean;
 }
 
 const AppFeatureMenuItem: React.FC<AppFeatureMenuItemProperties> = ({
@@ -95,9 +96,14 @@ const AppFeatureMenuItem: React.FC<AppFeatureMenuItemProperties> = ({
   Icon,
   text,
   openInNewTab = false,
+  prefetch,
 }) => {
   return (
-    <LinkComponent href={href} openInNewTab={openInNewTab}>
+    <LinkComponent
+      href={href}
+      openInNewTab={openInNewTab}
+      {...(prefetch === undefined ? {} : { prefetch })}
+    >
       <span className="closeNavOnClick -mx-3 flex items-center gap-2 rounded-lg px-3 py-2 text-base/7 font-semibold text-gray-700 hover:bg-gray-50">
         <Icon aria-hidden="true" className="size-5" />
         {text}
@@ -118,6 +124,7 @@ export const AppFeatures: React.FC<{
           href="/app/chat"
           Icon={MessageSquare}
           text={chatFeatureTranslation[locale]}
+          prefetch
         />
         <AppFeatureMenuItem
           href="/app/forum"
@@ -128,12 +135,19 @@ export const AppFeatures: React.FC<{
           href="/app/emergency"
           Icon={Siren}
           text={emergencyInfoFeatureTranslation[locale]}
+          prefetch
         />
-        <AppFeatureMenuItem href="/app/map" Icon={Map} text={campMapFeatureTranslation[locale]} />
+        <AppFeatureMenuItem
+          href="/app/map"
+          Icon={Map}
+          text={campMapFeatureTranslation[locale]}
+          prefetch
+        />
         <AppFeatureMenuItem
           href="/app/schedule"
           Icon={Calendar}
           text={scheduleFeatureTranslation[locale]}
+          prefetch
         />
         <AppFeatureMenuItem
           href="/app/helper-portal"

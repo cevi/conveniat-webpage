@@ -42,6 +42,12 @@ export const redis =
 
 if (env.NODE_ENV !== 'production') globalForRedis.redis = redis;
 
+redis.on('error', (error: { code: string }) => {
+  if (error.code !== 'EAI_AGAIN') {
+    console.error('[Redis] Connection Error', error);
+  }
+});
+
 export const FEATURE_FLAG_PREFIX = 'feature-flag:';
 
 export const getFeatureFlag = async (key: string): Promise<boolean> => {

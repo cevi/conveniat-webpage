@@ -23,6 +23,7 @@ const features_folder = [
   'onboarding',
   'service-worker',
   'emergency',
+  'marketing',
   'payload-cms',
   'settings',
   'image-submission',

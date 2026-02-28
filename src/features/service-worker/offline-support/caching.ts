@@ -1,5 +1,6 @@
 import { CACHE_NAMES, TIMEOUTS } from '@/features/service-worker/constants';
 import { offlineRegistry } from '@/features/service-worker/offline-support/offline-registry';
+import { safeRscCachePlugin } from '@/features/service-worker/offline-support/safe-rsc-plugin';
 import { defaultCache } from '@serwist/next/worker';
 import type { PrecacheEntry, RuntimeCaching, SerwistGlobalConfig, SerwistPlugin } from 'serwist';
 import {
@@ -99,6 +100,7 @@ const rscCaching: RuntimeCaching = {
           return cachedResponse;
         },
       } as SerwistPlugin,
+      safeRscCachePlugin,
     ],
   }),
 };

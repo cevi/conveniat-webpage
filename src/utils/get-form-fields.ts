@@ -10,17 +10,24 @@ export interface ExtractedField {
   value: string;
 }
 
-export const extractFields = (data: unknown): ExtractedField[] => {
-  let fields: ExtractedField[] = [];
+export const extractFields = (
+  data: unknown,
+  fields: ExtractedField[] = [],
+  visited = new Set<unknown>(),
+): ExtractedField[] => {
+  // Prevent infinite loops on circular references
+  if (typeof data === 'object' && data !== null) {
+    if (visited.has(data)) return fields;
+    visited.add(data);
+  }
 
   if (Array.isArray(data)) {
     for (const item of data) {
-      fields = [...fields, ...extractFields(item)];
+      extractFields(item, fields, visited);
     }
   } else if (typeof data === 'object' && data !== null) {
     const item = data as Record<string, unknown>;
 
-    // If this item is a field block and has a 'name', extract it
     // We check for 'name' and often 'blockType' or 'type' in Payload forms
     const name = item['name'];
     if (typeof name === 'string' && name !== '') {
@@ -34,7 +41,7 @@ export const extractFields = (data: unknown): ExtractedField[] => {
     // Recursively search all children
     for (const val of Object.values(item)) {
       if (typeof val === 'object' && val !== null) {
-        fields = [...fields, ...extractFields(val)];
+        extractFields(val, fields, visited);
       }
     }
   }
