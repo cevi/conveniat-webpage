@@ -1,8 +1,14 @@
+import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import { updateWorkflowStatus } from '@/features/payload-cms/payload-cms/utils/update-workflow-status';
 import type { PayloadHandler } from 'payload';
 
 export const triggerPastWorkflowsHandler: PayloadHandler = async (request) => {
   try {
+    const hasAccess = await canAccessAdminPanel({ req: request });
+    if (!hasAccess) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { id } = request.routeParams ?? {};
 
     if (typeof id !== 'string') {
