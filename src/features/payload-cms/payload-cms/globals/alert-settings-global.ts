@@ -33,6 +33,18 @@ export const AlertSettingsGlobal: GlobalConfig = {
               fr: 'Clé optionnelle pour faire le lien depuis une autre question.',
             },
           },
+          validate: (
+            value: string | string[] | null | undefined,
+            { data }: { data: unknown },
+          ): true | string => {
+            const dataTyped = data as { questions?: { key: string }[] };
+            const allKeys = (dataTyped.questions ?? []).map((q) => q.key);
+            const keyCount = allKeys.filter((k) => k === value).length;
+            if (keyCount > 1) {
+              return 'Question keys must be unique';
+            }
+            return true;
+          },
         },
         {
           name: 'question',
