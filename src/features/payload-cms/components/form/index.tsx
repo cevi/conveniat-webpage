@@ -236,14 +236,31 @@ export const FormBlock: React.FC<
                   {isDualCardLayout && (
                     <div
                       key="main-column"
-                      className="animate-in fade-in fill-mode-backwards rounded-xl border border-gray-100 bg-white p-8 shadow-sm duration-300"
+                      className="animate-in fade-in fill-mode-backwards flex flex-col rounded-xl border border-gray-100 bg-white p-8 shadow-sm duration-300"
                     >
-                      <div className={status === 'loading' ? 'pointer-events-none opacity-50' : ''}>
+                      <div
+                        className={
+                          status === 'loading' ? 'pointer-events-none grow opacity-50' : 'grow'
+                        }
+                      >
                         <FormFieldRenderer
                           section={currentActualStep}
                           currentStepIndex={currentStepIndex}
                           formId={config.id}
                           renderMode="main"
+                        />
+                      </div>
+                      <div className="pt-8 @[1600px]:hidden">
+                        <FormControls
+                          locale={locale}
+                          isFirst={isFirstStep}
+                          isLast={isLastStep}
+                          isSubmitting={status === 'loading'}
+                          // eslint-disable-next-line @typescript-eslint/no-misused-promises
+                          onNext={next}
+                          onPrev={prev}
+                          submitLabel={config.submitButtonLabel ?? ''}
+                          formId={config.id}
                         />
                       </div>
                     </div>
