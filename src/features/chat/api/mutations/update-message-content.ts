@@ -73,15 +73,10 @@ export const updateMessageContent = trpcBaseProcedure
           (opt) => opt.option === content['selectedOption'],
         )?.nextQuestionKey;
 
-        let nextQuestion;
-        if (nextQuestionKeyFromOption) {
-          nextQuestion = questions.find((q) => q.key === nextQuestionKeyFromOption) ?? undefined;
-        }
-
-        // Fallback: linear progression
-        if (!nextQuestion) {
-          nextQuestion = questions[currentQuestionIndex + 1] ?? undefined;
-        }
+        const nextQuestion =
+          questions.find((q) => q.key === nextQuestionKeyFromOption) ??
+          questions[currentQuestionIndex + 1] ??
+          undefined;
 
         // Send next question OR final response
         await prisma.message.create({
