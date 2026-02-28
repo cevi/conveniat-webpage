@@ -92,6 +92,8 @@ export const seedAlertSettings = async (payload: Payload): Promise<void> => {
         question: q.question,
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         options: q.options,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        key: q.key,
       })),
       finalResponseMessage: ALERT_DATA[LOCALE.DE].finalResponseMessage,
       emergencyPhoneNumber: ALERT_DATA[LOCALE.DE].emergencyPhoneNumber,
