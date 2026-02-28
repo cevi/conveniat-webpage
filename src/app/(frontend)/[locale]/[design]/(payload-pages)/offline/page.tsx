@@ -2,6 +2,7 @@ import { OfflineLogo } from '@/components/ui/offline-logo';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { ParagraphText } from '@/components/ui/typography/paragraph-text';
 import type { Locale, StaticTranslationString } from '@/types/types';
+import { offlineLongTextTranslation, offlineTitleTranslation } from '@/utils/shared-translations';
 import type { Metadata } from 'next';
 import type React from 'react';
 
@@ -15,18 +16,6 @@ const metadataDescription: StaticTranslationString = {
   en: 'No internet connection detected.',
   de: 'Keine Internetverbindung erkannt.',
   fr: 'Aucune connexion Internet détectée.',
-};
-
-const offlineHeadline: StaticTranslationString = {
-  en: "You're Offline",
-  de: 'Sie sind offline',
-  fr: 'Vous êtes hors ligne',
-};
-
-const offlineLongText: StaticTranslationString = {
-  en: "It looks like you've lost your internet connection. Please check your network settings or try again later.",
-  de: 'Es sieht so aus, als hätten Sie Ihre Internetverbindung verloren. Bitte überprüfen Sie Ihre Netzwerkeinstellungen oder versuchen Sie es später erneut.',
-  fr: 'Il semble que vous ayez perdu votre connexion Internet. Veuillez vérifier vos paramètres réseau ou réessayer plus tard.',
 };
 
 interface Properties {
@@ -53,10 +42,12 @@ const OfflinePage: React.FC<Properties> = async ({ params }) => {
             <OfflineLogo />
           </div>
 
-          <HeadlineH1>{offlineHeadline[locale]}</HeadlineH1>
+          <HeadlineH1>{offlineTitleTranslation[locale]}</HeadlineH1>
 
           <div className="mt-4 mb-8">
-            <ParagraphText className="text-center">{offlineLongText[locale]}</ParagraphText>
+            <ParagraphText className="text-center">
+              {offlineLongTextTranslation[locale]}
+            </ParagraphText>
           </div>
         </div>
       </div>

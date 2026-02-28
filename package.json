@@ -1,6 +1,6 @@
 {
   "name": "conveniat27",
-  "version": "0.41.0",
+  "version": "0.42.0",
   "description": "The official website of conveniat27",
   "license": "MIT",
   "author": "Cyrill Püntener v/o JPG (cyrill.puentener@cevi.ch)",
@@ -124,7 +124,6 @@
     "next-auth": "5.0.0-beta.30",
     "next-devtools-mcp": "^0.3.10",
     "next-i18n-router": "^5.5.6",
-    "nextjs-toploader": "^3.9.17",
     "node-pop3": "^0.11.0",
     "payload": "^3.77.0",
     "posthog-js": "^1.352.0",
