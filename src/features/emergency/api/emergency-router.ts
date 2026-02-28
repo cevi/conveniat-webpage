@@ -37,7 +37,7 @@ const resolveEmergencyChatName = (locale: string, nickname: string): string => {
 
 export const emergencyRouter = createTRPCRouter({
   getAlertSettings: publicProcedure.query(async ({ ctx }) => {
-    return await getAlertSettingsCached(ctx.locale, false);
+    return await getAlertSettingsCached(ctx.locale, false, { fallbackLocale: 'de' });
   }),
 
   newAlert: trpcBaseProcedure
