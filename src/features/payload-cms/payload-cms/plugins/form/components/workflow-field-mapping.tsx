@@ -31,8 +31,8 @@ export const WorkflowFieldMapping: React.FC<WorkflowFieldMappingProperties> = ({
   path,
   workflowDefinitions,
 }): React.ReactNode => {
-  const { value: mappingRaw, setValue } = useField<Record<string, string>>({ path });
-  const mapping = mappingRaw;
+  const { value: mappingRaw, setValue } = useField<Record<string, string> | undefined>({ path });
+  const mapping = mappingRaw ?? {};
 
   // Infer the root path of the row data by replacing ".mapping" at the end with ".workflow"
   // E.g. "configuredWorkflows.0.mapping" -> "configuredWorkflows.0.workflow"

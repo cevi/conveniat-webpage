@@ -54,7 +54,9 @@ export const triggerPastWorkflowsHandler: PayloadHandler = async (request) => {
         const submissionMap = new Map(
           document_.submissionData.map((item) => [item.field, item.value]),
         );
-        const previousResults = (document_.workflowResults ?? []) as Record<string, string>[];
+        const previousResults = Array.isArray(document_.workflowResults)
+          ? (document_.workflowResults as Record<string, string>[])
+          : [];
 
         for (const spec of workflowsArray) {
           const workflow = spec.workflow;
