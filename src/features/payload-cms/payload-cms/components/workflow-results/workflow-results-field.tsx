@@ -41,6 +41,7 @@ export const WorkflowResultsField: React.FC<{ path: string }> = ({ path }) => {
           const rawWorkflow = result['workflow'];
           const wName = getWorkflowName(typeof rawWorkflow === 'string' ? rawWorkflow : 'unknown');
           const status = result['status'] as WorkflowStatusType;
+          const shortName = String(wName.split(' ')[0]).toUpperCase();
           return (
             <div
               key={index}
@@ -51,7 +52,11 @@ export const WorkflowResultsField: React.FC<{ path: string }> = ({ path }) => {
                   {wName}
                 </span>
                 <div className="flex items-center gap-2">
-                  <WorkflowBadge prefix="Wkf" type={status} tooltip={getWorkflowTooltip(status)} />
+                  <WorkflowBadge
+                    prefix={shortName}
+                    type={status}
+                    tooltip={getWorkflowTooltip(status, status === 'error' ? [wName] : undefined)}
+                  />
                   {result['ms'] !== undefined && (
                     <span className="flex items-center gap-1 text-xs text-gray-500">
                       <svg

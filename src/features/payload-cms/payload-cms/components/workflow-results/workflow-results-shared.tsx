@@ -2,10 +2,18 @@ import React from 'react';
 
 export type WorkflowStatusType = 'empty' | 'pending' | 'success' | 'error';
 
-export const getWorkflowTooltip = (stateType: WorkflowStatusType): string => {
+export const getWorkflowTooltip = (
+  stateType: WorkflowStatusType,
+  failingWorkflows?: string[],
+): string => {
   if (stateType === 'empty') return 'No workflows executed';
   if (stateType === 'success') return 'All workflows succeeded';
   if (stateType === 'pending') return 'Workflows are pending';
+
+  if (failingWorkflows && failingWorkflows.length > 0) {
+    return `One or more workflows failed (${failingWorkflows.join(', ')})`;
+  }
+
   return 'One or more workflows failed';
 };
 
@@ -13,7 +21,7 @@ export const WorkflowBadge: React.FC<{
   prefix: string;
   type: WorkflowStatusType;
   tooltip: string;
-  count?: number;
+  count?: number | undefined;
 }> = ({ prefix, type, tooltip, count }) => {
   const baseClasses =
     'flex items-center justify-center rounded border px-1.5 py-0.5 text-xs font-medium';
