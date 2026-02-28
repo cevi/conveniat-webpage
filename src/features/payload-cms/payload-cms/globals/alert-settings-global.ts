@@ -37,6 +37,9 @@ export const AlertSettingsGlobal: GlobalConfig = {
             value: string | string[] | null | undefined,
             { data }: { data: unknown },
           ): true | string => {
+            if (value === null || value === undefined || value === '') {
+              return true; // not required, so valid if empty
+            }
             const dataTyped = data as { questions?: { key: string }[] };
             const allKeys = (dataTyped.questions ?? []).map((q) => q.key);
             const keyCount = allKeys.filter((k) => k === value).length;
