@@ -14,7 +14,7 @@ interface AlertQuestionMessageProperties {
 
 interface QuestionPayload {
   question: string;
-  options: { option: string; id?: string | null }[];
+  options: string[];
   selectedOption: string | null;
   questionRefId?: string;
 }
