@@ -63,7 +63,7 @@ export const WorkflowResultsCell: React.FC<{
         prefix={prefix}
         type={overallStatus}
         count={showCount ? executedCount : undefined}
-        tooltip={getWorkflowTooltip(overallStatus, failingWorkflows)}
+        tooltip={getWorkflowTooltip(overallStatus, code, failingWorkflows)}
       />
     </div>
   );

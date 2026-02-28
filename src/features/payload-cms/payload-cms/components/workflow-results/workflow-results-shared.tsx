@@ -4,16 +4,35 @@ export type WorkflowStatusType = 'empty' | 'pending' | 'success' | 'error';
 
 export const getWorkflowTooltip = (
   stateType: WorkflowStatusType,
+  locale: string,
   failingWorkflows?: string[],
 ): string => {
-  if (stateType === 'empty') return 'No workflows executed';
-  if (stateType === 'success') return 'All workflows succeeded';
-  if (stateType === 'pending') return 'Workflows are pending';
+  if (stateType === 'empty') {
+    if (locale === 'de') return 'Keine Workflows ausgeführt';
+    if (locale === 'fr') return 'Aucun workflow exécuté';
+    return 'No workflows executed';
+  }
+  if (stateType === 'success') {
+    if (locale === 'de') return 'Alle Workflows erfolgreich';
+    if (locale === 'fr') return 'Tous les workflows ont réussi';
+    return 'All workflows succeeded';
+  }
+  if (stateType === 'pending') {
+    if (locale === 'de') return 'Workflows sind ausstehend';
+    if (locale === 'fr') return 'Les workflows sont en attente';
+    return 'Workflows are pending';
+  }
 
   if (failingWorkflows && failingWorkflows.length > 0) {
+    if (locale === 'de')
+      return `Ein oder mehrere Workflows sind fehlgeschlagen (${failingWorkflows.join(', ')})`;
+    if (locale === 'fr')
+      return `Un ou plusieurs workflows ont échoué (${failingWorkflows.join(', ')})`;
     return `One or more workflows failed (${failingWorkflows.join(', ')})`;
   }
 
+  if (locale === 'de') return 'Ein oder mehrere Workflows sind fehlgeschlagen';
+  if (locale === 'fr') return 'Un ou plusieurs workflows ont échoué';
   return 'One or more workflows failed';
 };
 

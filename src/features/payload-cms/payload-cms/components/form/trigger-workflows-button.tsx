@@ -6,6 +6,42 @@ import { Button, useDocumentInfo, useForm, useLocale } from '@payloadcms/ui';
 import { Play } from 'lucide-react';
 import React, { useState } from 'react';
 
+const triggerWorkflowsLabel: Record<string, string> = {
+  en: 'Trigger Workflows Manually',
+  de: 'Workflows manuell auslösen',
+  fr: 'Déclencher les workflows manuellement',
+};
+
+const triggerWorkflowsDescription: Record<string, string> = {
+  en: 'Use this button to manually enqueue and run all configured workflows for past submissions of this form. Workflows that were already executed successfully will be skipped.',
+  de: 'Verwenden Sie diese Schaltfläche, um alle konfigurierten Workflows für vergangene Einreichungen dieses Formulars manuell in die Warteschlange zu stellen und auszuführen. Workflows, die bereits erfolgreich ausgeführt wurden, werden übersprungen.',
+  fr: 'Utilisez ce bouton pour mettre en file d’attente et exécuter manuellement tous les workflows configurés pour les soumissions passées de ce formulaire. Les workflows déjà exécutés avec succès seront ignorés.',
+};
+
+const triggeringText: Record<string, string> = {
+  en: 'Triggering...',
+  de: 'Wird ausgelöst...',
+  fr: 'Déclenchement en cours...',
+};
+
+const triggerButtonTitle: Record<string, string> = {
+  en: 'Trigger Workflows for Past Submissions',
+  de: 'Workflows für vergangene Einreichungen auslösen',
+  fr: 'Déclencher les workflows pour les soumissions passées',
+};
+
+const triggerConfirmModalMessage: Record<string, string> = {
+  en: 'Are you sure you want to manually trigger all configured workflows for past submissions of this form? Workflows that have already been executed successfully will be skipped.',
+  de: 'Sind Sie sicher, dass Sie alle konfigurierten Workflows für vergangene Einreichungen manuell auslösen möchten? Bereits erfolgreich durchgeführte Workflows werden übersprungen.',
+  fr: 'Êtes-vous sûr de vouloir déclencher manuellement tous les workflows configurés pour les soumissions passées de ce formulaire ? Les workflows ayant déjà été exécutés avec succès seront ignorés.',
+};
+
+const triggerConfirmLabel: Record<string, string> = {
+  en: 'Trigger',
+  de: 'Auslösen',
+  fr: 'Déclencher',
+};
+
 export const TriggerWorkflowsButton: React.FC = () => {
   const { id } = useDocumentInfo();
   const { getData } = useForm();
@@ -53,23 +89,18 @@ export const TriggerWorkflowsButton: React.FC = () => {
       <header className="block-field__header mb-1">
         <h3 className="block-field__title">
           <span className="field-label">
-            {code === 'de' ? 'Workflows manuell auslösen' : 'Trigger Workflows Manually'}
+            {triggerWorkflowsLabel[code] ?? triggerWorkflowsLabel['en']}
           </span>
         </h3>
       </header>
       <div className="field-description">
-        {code === 'de'
-          ? 'Verwenden Sie diese Schaltfläche, um alle konfigurierten Workflows für vergangene Einreichungen dieses Formulars manuell in die Warteschlange zu stellen und auszuführen. Workflows, die bereits erfolgreich ausgeführt wurden, werden übersprungen.'
-          : 'Use this button to manually enqueue and run all configured workflows for past submissions of this form. Workflows that were already executed successfully will be skipped.'}
+        {triggerWorkflowsDescription[code] ?? triggerWorkflowsDescription['en']}
       </div>
       <div className="mt-4 flex items-center gap-4">
         <Button onClick={() => setIsModalOpen(true)} disabled={loading} buttonStyle="secondary">
           <Play className="mr-2 h-4 w-4" />
-          {loading && (code === 'de' ? 'Wird ausgelöst...' : 'Triggering...')}
-          {!loading &&
-            (code === 'de'
-              ? 'Workflows für vergangene Einreichungen auslösen'
-              : 'Trigger Workflows for Past Submissions')}
+          {loading && (triggeringText[code] ?? triggeringText['en'])}
+          {!loading && (triggerButtonTitle[code] ?? triggerButtonTitle['en'])}
         </Button>
         {resultMessage && (
           <span className="text-sm font-medium text-green-600">{resultMessage}</span>
@@ -80,14 +111,10 @@ export const TriggerWorkflowsButton: React.FC = () => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onConfirm={handleTriggerWorkflows}
-        message={
-          code === 'de'
-            ? 'Sind Sie sicher, dass Sie alle konfigurierten Workflows für vergangene Einreichungen manuell auslösen möchten? Bereits erfolgreich durchgeführte Workflows werden übersprungen.'
-            : 'Are you sure you want to manually trigger all configured workflows for past submissions of this form? Workflows that have already been executed successfully will be skipped.'
-        }
-        title={code === 'de' ? 'Workflows manuell auslösen' : 'Trigger Workflows Manually'}
-        confirmLabel={code === 'de' ? 'Auslösen' : 'Trigger'}
-        submittingText={code === 'de' ? 'Wird ausgelöst...' : 'Triggering...'}
+        message={triggerConfirmModalMessage[code] ?? triggerConfirmModalMessage['en'] ?? ''}
+        title={triggerWorkflowsLabel[code] ?? triggerWorkflowsLabel['en'] ?? ''}
+        confirmLabel={triggerConfirmLabel[code] ?? triggerConfirmLabel['en'] ?? ''}
+        submittingText={triggeringText[code] ?? triggeringText['en'] ?? ''}
         isSubmitting={loading}
         locale={code as Config['locale']}
       />

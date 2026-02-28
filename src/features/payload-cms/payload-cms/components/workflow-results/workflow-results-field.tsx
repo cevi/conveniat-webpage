@@ -33,9 +33,35 @@ export const WorkflowResultsField: React.FC<{ path: string }> = ({ path }) => {
     );
   };
 
+  const workflowStatusLabel: Record<string, string> = {
+    en: 'Workflow Status',
+    de: 'Workflow-Status',
+    fr: 'Statut du workflow',
+  };
+
+  const errorLabel: Record<string, string> = {
+    en: 'Error:',
+    de: 'Fehler:',
+    fr: 'Erreur :',
+  };
+
+  const messageLabel: Record<string, string> = {
+    en: 'Message:',
+    de: 'Nachricht:',
+    fr: 'Message :',
+  };
+
+  const noResponseDetailsLabel: Record<string, string> = {
+    en: 'No response details',
+    de: 'Keine Antwortdetails',
+    fr: 'Aucun détail de réponse',
+  };
+
   return (
     <div className="field-type custom-field mb-4">
-      <label className="field-label">Workflow Status</label>
+      <label className="field-label">
+        {workflowStatusLabel[code] ?? workflowStatusLabel['en']}
+      </label>
       <div className="flex flex-col gap-2">
         {results.map((result, index) => {
           const rawWorkflow = result['workflow'];
@@ -55,7 +81,11 @@ export const WorkflowResultsField: React.FC<{ path: string }> = ({ path }) => {
                   <WorkflowBadge
                     prefix={shortName}
                     type={status}
-                    tooltip={getWorkflowTooltip(status, status === 'error' ? [wName] : undefined)}
+                    tooltip={getWorkflowTooltip(
+                      status,
+                      code,
+                      status === 'error' ? [wName] : undefined,
+                    )}
                   />
                   {result['ms'] !== undefined && (
                     <span className="flex items-center gap-1 text-xs text-gray-500">
@@ -80,14 +110,22 @@ export const WorkflowResultsField: React.FC<{ path: string }> = ({ path }) => {
 
               <div className="mt-2 font-mono text-xs break-all text-gray-700 dark:text-gray-300">
                 {typeof result['error'] === 'string' && result['error'].length > 0 && (
-                  <span className="text-red-600 dark:text-red-400">Error: {result['error']}</span>
+                  <span className="text-red-600 dark:text-red-400">
+                    {errorLabel[code] ?? errorLabel['en']} {result['error']}
+                  </span>
                 )}
                 {(typeof result['error'] !== 'string' || result['error'].length === 0) &&
                   typeof result['message'] === 'string' &&
-                  result['message'].length > 0 && <span>Message: {result['message']}</span>}
+                  result['message'].length > 0 && (
+                    <span>
+                      {messageLabel[code] ?? messageLabel['en']} {result['message']}
+                    </span>
+                  )}
                 {(typeof result['error'] !== 'string' || result['error'].length === 0) &&
                   (typeof result['message'] !== 'string' || result['message'].length === 0) && (
-                    <span className="text-gray-500">No response details</span>
+                    <span className="text-gray-500">
+                      {noResponseDetailsLabel[code] ?? noResponseDetailsLabel['en']}
+                    </span>
                   )}
               </div>
             </div>

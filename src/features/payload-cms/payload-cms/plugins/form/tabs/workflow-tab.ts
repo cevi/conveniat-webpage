@@ -148,18 +148,30 @@ export const formWorkflowField: Field = {
     {
       name: 'condition',
       type: 'group',
-      label: 'Optional Condition',
+      label: {
+        en: 'Optional Condition',
+        de: 'Optionale Bedingung',
+        fr: 'Condition facultative',
+      },
       fields: [
         {
           name: 'enabled',
           type: 'checkbox',
-          label: 'Enable Condition',
+          label: {
+            en: 'Enable Condition',
+            de: 'Bedingung aktivieren',
+            fr: 'Activer la condition',
+          },
           defaultValue: false,
         },
         {
           name: 'field',
           type: 'text',
-          label: 'Field Name to Check',
+          label: {
+            en: 'Field Name to Check',
+            de: 'Zu prüfender Feldname',
+            fr: 'Nom du champ à vérifier',
+          },
           admin: {
             condition: (_, siblingData) => Boolean(siblingData['enabled']),
           },
@@ -167,7 +179,11 @@ export const formWorkflowField: Field = {
         {
           name: 'value',
           type: 'text',
-          label: 'Value to Match',
+          label: {
+            en: 'Value to Match',
+            de: 'Übereinstimmender Wert',
+            fr: 'Valeur à correspondre',
+          },
           admin: {
             condition: (_, siblingData) => Boolean(siblingData['enabled']),
           },
