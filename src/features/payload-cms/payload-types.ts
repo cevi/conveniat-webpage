@@ -149,6 +149,12 @@ export interface Config {
     'payload-jobs-stats': PayloadJobsStatsSelect<false> | PayloadJobsStatsSelect<true>;
   };
   locale: 'en' | 'de' | 'fr';
+  widgets: {
+    'emergency-alerts': EmergencyAlertsWidget;
+    'user-count': UserCountWidget;
+    'email-stats': EmailStatsWidget;
+    collections: CollectionsWidget;
+  };
   user: User;
   jobs: {
     tasks: {
@@ -168,6 +174,7 @@ export interface Config {
     };
     workflows: {
       registrationWorkflow: WorkflowRegistrationWorkflow;
+      brevoContactWorkflow: WorkflowBrevoContactWorkflow;
     };
   };
 }
@@ -262,7 +269,12 @@ export interface Blog {
           blockName?: string | null;
           blockType: 'blogPostsOverview';
         }
-      | FormBlock
+      | {
+          form: string | Form;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'formBlock';
+        }
       | {
           images: (string | Image)[];
           id?: string | null;
@@ -275,9 +287,64 @@ export interface Blog {
           blockName?: string | null;
           blockType: 'singlePicture';
         }
-      | YoutubeEmbedding
-      | InstagramEmbedding
-      | SwisstopoMapEmbedding
+      | {
+          /**
+           * Links to the Youtube videos
+           */
+          links: {
+            /**
+             * Link to the Youtube video
+             */
+            link: string;
+            id?: string | null;
+          }[];
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'youtubeEmbed';
+        }
+      | {
+          /**
+           * Link to the Instagram post
+           */
+          link: string;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'instagramEmbed';
+        }
+      | {
+          initialMapPose?: {
+            zoom?: number | null;
+            /**
+             * @minItems 2
+             * @maxItems 2
+             */
+            initialMapCenter?: [number, number] | null;
+          };
+          /**
+           * Markers on the map with a small Cevi logo
+           */
+          ceviLogoMarkers?:
+            | {
+                title?: string | null;
+                /**
+                 * Coordinates of the annotation on the map.
+                 */
+                geometry?: {
+                  /**
+                   * Coordinates of the annotation on the map.
+                   *
+                   * @minItems 2
+                   * @maxItems 2
+                   */
+                  coordinates?: [number, number] | null;
+                };
+                id?: string | null;
+              }[]
+            | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'swisstopoEmbed';
+        }
       | {
           file: string | Document;
           openInNewTab?: boolean | null;
@@ -285,11 +352,294 @@ export interface Blog {
           blockName?: string | null;
           blockType: 'fileDownload';
         }
-      | DetailsTable
-      | AccordionBlocks
-      | SummaryBox
-      | TimelineEntries
-      | Countdown
+      | {
+          introduction: {
+            root: {
+              type: string;
+              children: {
+                type: any;
+                version: number;
+                [k: string]: unknown;
+              }[];
+              direction: ('ltr' | 'rtl') | null;
+              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+              indent: number;
+              version: number;
+            };
+            [k: string]: unknown;
+          };
+          detailsTableBlocks?:
+            | {
+                label: string;
+                value: {
+                  root: {
+                    type: string;
+                    children: {
+                      type: any;
+                      version: number;
+                      [k: string]: unknown;
+                    }[];
+                    direction: ('ltr' | 'rtl') | null;
+                    format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                    indent: number;
+                    version: number;
+                  };
+                  [k: string]: unknown;
+                };
+                id?: string | null;
+              }[]
+            | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'detailsTable';
+        }
+      | {
+          accordionBlocks?:
+            | {
+                /**
+                 * Choose whether to display the title or a portrait in the miniaturized view.
+                 */
+                titleOrPortrait: 'title' | 'portrait';
+                /**
+                 * This is the title of the accordion block. It will be displayed in the overview, and when clicked, the block will expand.
+                 */
+                title?: string | null;
+                teamLeaderGroup?: {
+                  name: string;
+                  ceviname?: string | null;
+                  portrait?: (string | null) | Image;
+                };
+                /**
+                 * This is the content of the accordion block. It will be displayed when the block is expanded.
+                 */
+                valueBlocks: (
+                  | {
+                      value: {
+                        root: {
+                          type: string;
+                          children: {
+                            type: any;
+                            version: number;
+                            [k: string]: unknown;
+                          }[];
+                          direction: ('ltr' | 'rtl') | null;
+                          format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                          indent: number;
+                          version: number;
+                        };
+                        [k: string]: unknown;
+                      };
+                      id?: string | null;
+                      blockName?: string | null;
+                      blockType: 'accordionPlainTextBlock';
+                    }
+                  | {
+                      linkField?: {
+                        type?: ('reference' | 'custom') | null;
+                        reference?:
+                          | ({
+                              relationTo: 'blog';
+                              value: string | Blog;
+                            } | null)
+                          | ({
+                              relationTo: 'generic-page';
+                              value: string | GenericPage;
+                            } | null)
+                          | ({
+                              relationTo: 'images';
+                              value: string | Image;
+                            } | null)
+                          | ({
+                              relationTo: 'documents';
+                              value: string | Document;
+                            } | null)
+                          | ({
+                              relationTo: 'camp-map-annotations';
+                              value: string | CampMapAnnotation;
+                            } | null)
+                          | ({
+                              relationTo: 'camp-schedule-entry';
+                              value: string | CampScheduleEntry;
+                            } | null);
+                        url?: string | null;
+                        openInNewTab?: boolean | null;
+                      };
+                      teamLeaderGroup: {
+                        name: string;
+                        ceviname?: string | null;
+                        portrait?: (string | null) | Image;
+                      };
+                      teamMembers?:
+                        | {
+                            name: string;
+                            ceviname?: string | null;
+                            function: string;
+                            id?: string | null;
+                          }[]
+                        | null;
+                      id?: string | null;
+                      blockName?: string | null;
+                      blockType: 'accordionTeamMembersBlock';
+                    }
+                  | {
+                      form: string | Form;
+                      id?: string | null;
+                      blockName?: string | null;
+                      blockType: 'formBlock';
+                    }
+                  | {
+                      accordionBlocks?:
+                        | {
+                            title: string;
+                            valueBlocks: (
+                              | {
+                                  value: {
+                                    root: {
+                                      type: string;
+                                      children: {
+                                        type: any;
+                                        version: number;
+                                        [k: string]: unknown;
+                                      }[];
+                                      direction: ('ltr' | 'rtl') | null;
+                                      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                                      indent: number;
+                                      version: number;
+                                    };
+                                    [k: string]: unknown;
+                                  };
+                                  id?: string | null;
+                                  blockName?: string | null;
+                                  blockType: 'accordionPlainTextBlock';
+                                }
+                              | {
+                                  linkField?: {
+                                    type?: ('reference' | 'custom') | null;
+                                    reference?:
+                                      | ({
+                                          relationTo: 'blog';
+                                          value: string | Blog;
+                                        } | null)
+                                      | ({
+                                          relationTo: 'generic-page';
+                                          value: string | GenericPage;
+                                        } | null)
+                                      | ({
+                                          relationTo: 'images';
+                                          value: string | Image;
+                                        } | null)
+                                      | ({
+                                          relationTo: 'documents';
+                                          value: string | Document;
+                                        } | null)
+                                      | ({
+                                          relationTo: 'camp-map-annotations';
+                                          value: string | CampMapAnnotation;
+                                        } | null)
+                                      | ({
+                                          relationTo: 'camp-schedule-entry';
+                                          value: string | CampScheduleEntry;
+                                        } | null);
+                                    url?: string | null;
+                                    openInNewTab?: boolean | null;
+                                  };
+                                  teamLeaderGroup: {
+                                    name: string;
+                                    ceviname?: string | null;
+                                    portrait?: (string | null) | Image;
+                                  };
+                                  teamMembers?:
+                                    | {
+                                        name: string;
+                                        ceviname?: string | null;
+                                        function: string;
+                                        id?: string | null;
+                                      }[]
+                                    | null;
+                                  id?: string | null;
+                                  blockName?: string | null;
+                                  blockType: 'accordionTeamMembersBlock';
+                                }
+                              | {
+                                  form: string | Form;
+                                  id?: string | null;
+                                  blockName?: string | null;
+                                  blockType: 'formBlock';
+                                }
+                              | {
+                                  file: string | Document;
+                                  openInNewTab?: boolean | null;
+                                  id?: string | null;
+                                  blockName?: string | null;
+                                  blockType: 'fileDownload';
+                                }
+                            )[];
+                            id?: string | null;
+                          }[]
+                        | null;
+                      id?: string | null;
+                      blockName?: string | null;
+                      blockType: 'nestedAccordion';
+                    }
+                  | {
+                      file: string | Document;
+                      openInNewTab?: boolean | null;
+                      id?: string | null;
+                      blockName?: string | null;
+                      blockType: 'fileDownload';
+                    }
+                )[];
+                id?: string | null;
+              }[]
+            | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'accordion';
+        }
+      | {
+          richTextSection: {
+            root: {
+              type: string;
+              children: {
+                type: any;
+                version: number;
+                [k: string]: unknown;
+              }[];
+              direction: ('ltr' | 'rtl') | null;
+              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+              indent: number;
+              version: number;
+            };
+            [k: string]: unknown;
+          };
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'summaryBox';
+        }
+      | {
+          timelineEntryCategories?: (string | TimelineCategory)[] | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'timelineEntries';
+        }
+      | {
+          endDate: string;
+          /**
+           * Optional title for the countdown block.
+           */
+          title?: string | null;
+          /**
+           * Optional description for the countdown block.
+           */
+          descriptionAbove?: string | null;
+          /**
+           * Optional description for the countdown block.
+           */
+          descriptionBelow?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'countdown';
+        }
       | {
           id?: string | null;
           blockName?: string | null;
@@ -398,7 +748,1037 @@ export interface Blog {
           blockName?: string | null;
           blockType: 'campScheduleEntryBlock';
         }
-      | TwoColumnBlock
+      | {
+          /**
+           * Choose the width ratio of the two columns to each other.
+           */
+          splitRatio: 'rightLarger' | 'leftLarger' | 'equal';
+          /**
+           * Choose how the columns should be aligned vertically to each other.
+           */
+          verticalAlignment: 'top' | 'center' | 'bottom';
+          /**
+           * Content for the left column.
+           */
+          leftColumn: (
+            | {
+                richTextSection: {
+                  root: {
+                    type: string;
+                    children: {
+                      type: any;
+                      version: number;
+                      [k: string]: unknown;
+                    }[];
+                    direction: ('ltr' | 'rtl') | null;
+                    format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                    indent: number;
+                    version: number;
+                  };
+                  [k: string]: unknown;
+                };
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'richTextSection';
+              }
+            | {
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'blogPostsOverview';
+              }
+            | {
+                form: string | Form;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'formBlock';
+              }
+            | {
+                images: (string | Image)[];
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'photoCarousel';
+              }
+            | {
+                image: string | Image;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'singlePicture';
+              }
+            | {
+                /**
+                 * Links to the Youtube videos
+                 */
+                links: {
+                  /**
+                   * Link to the Youtube video
+                   */
+                  link: string;
+                  id?: string | null;
+                }[];
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'youtubeEmbed';
+              }
+            | {
+                /**
+                 * Link to the Instagram post
+                 */
+                link: string;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'instagramEmbed';
+              }
+            | {
+                initialMapPose?: {
+                  zoom?: number | null;
+                  /**
+                   * @minItems 2
+                   * @maxItems 2
+                   */
+                  initialMapCenter?: [number, number] | null;
+                };
+                /**
+                 * Markers on the map with a small Cevi logo
+                 */
+                ceviLogoMarkers?:
+                  | {
+                      title?: string | null;
+                      /**
+                       * Coordinates of the annotation on the map.
+                       */
+                      geometry?: {
+                        /**
+                         * Coordinates of the annotation on the map.
+                         *
+                         * @minItems 2
+                         * @maxItems 2
+                         */
+                        coordinates?: [number, number] | null;
+                      };
+                      id?: string | null;
+                    }[]
+                  | null;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'swisstopoEmbed';
+              }
+            | {
+                file: string | Document;
+                openInNewTab?: boolean | null;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'fileDownload';
+              }
+            | {
+                introduction: {
+                  root: {
+                    type: string;
+                    children: {
+                      type: any;
+                      version: number;
+                      [k: string]: unknown;
+                    }[];
+                    direction: ('ltr' | 'rtl') | null;
+                    format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                    indent: number;
+                    version: number;
+                  };
+                  [k: string]: unknown;
+                };
+                detailsTableBlocks?:
+                  | {
+                      label: string;
+                      value: {
+                        root: {
+                          type: string;
+                          children: {
+                            type: any;
+                            version: number;
+                            [k: string]: unknown;
+                          }[];
+                          direction: ('ltr' | 'rtl') | null;
+                          format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                          indent: number;
+                          version: number;
+                        };
+                        [k: string]: unknown;
+                      };
+                      id?: string | null;
+                    }[]
+                  | null;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'detailsTable';
+              }
+            | {
+                accordionBlocks?:
+                  | {
+                      /**
+                       * Choose whether to display the title or a portrait in the miniaturized view.
+                       */
+                      titleOrPortrait: 'title' | 'portrait';
+                      /**
+                       * This is the title of the accordion block. It will be displayed in the overview, and when clicked, the block will expand.
+                       */
+                      title?: string | null;
+                      teamLeaderGroup?: {
+                        name: string;
+                        ceviname?: string | null;
+                        portrait?: (string | null) | Image;
+                      };
+                      /**
+                       * This is the content of the accordion block. It will be displayed when the block is expanded.
+                       */
+                      valueBlocks: (
+                        | {
+                            value: {
+                              root: {
+                                type: string;
+                                children: {
+                                  type: any;
+                                  version: number;
+                                  [k: string]: unknown;
+                                }[];
+                                direction: ('ltr' | 'rtl') | null;
+                                format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                                indent: number;
+                                version: number;
+                              };
+                              [k: string]: unknown;
+                            };
+                            id?: string | null;
+                            blockName?: string | null;
+                            blockType: 'accordionPlainTextBlock';
+                          }
+                        | {
+                            linkField?: {
+                              type?: ('reference' | 'custom') | null;
+                              reference?:
+                                | ({
+                                    relationTo: 'blog';
+                                    value: string | Blog;
+                                  } | null)
+                                | ({
+                                    relationTo: 'generic-page';
+                                    value: string | GenericPage;
+                                  } | null)
+                                | ({
+                                    relationTo: 'images';
+                                    value: string | Image;
+                                  } | null)
+                                | ({
+                                    relationTo: 'documents';
+                                    value: string | Document;
+                                  } | null)
+                                | ({
+                                    relationTo: 'camp-map-annotations';
+                                    value: string | CampMapAnnotation;
+                                  } | null)
+                                | ({
+                                    relationTo: 'camp-schedule-entry';
+                                    value: string | CampScheduleEntry;
+                                  } | null);
+                              url?: string | null;
+                              openInNewTab?: boolean | null;
+                            };
+                            teamLeaderGroup: {
+                              name: string;
+                              ceviname?: string | null;
+                              portrait?: (string | null) | Image;
+                            };
+                            teamMembers?:
+                              | {
+                                  name: string;
+                                  ceviname?: string | null;
+                                  function: string;
+                                  id?: string | null;
+                                }[]
+                              | null;
+                            id?: string | null;
+                            blockName?: string | null;
+                            blockType: 'accordionTeamMembersBlock';
+                          }
+                        | {
+                            form: string | Form;
+                            id?: string | null;
+                            blockName?: string | null;
+                            blockType: 'formBlock';
+                          }
+                        | {
+                            accordionBlocks?:
+                              | {
+                                  title: string;
+                                  valueBlocks: (
+                                    | {
+                                        value: {
+                                          root: {
+                                            type: string;
+                                            children: {
+                                              type: any;
+                                              version: number;
+                                              [k: string]: unknown;
+                                            }[];
+                                            direction: ('ltr' | 'rtl') | null;
+                                            format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                                            indent: number;
+                                            version: number;
+                                          };
+                                          [k: string]: unknown;
+                                        };
+                                        id?: string | null;
+                                        blockName?: string | null;
+                                        blockType: 'accordionPlainTextBlock';
+                                      }
+                                    | {
+                                        linkField?: {
+                                          type?: ('reference' | 'custom') | null;
+                                          reference?:
+                                            | ({
+                                                relationTo: 'blog';
+                                                value: string | Blog;
+                                              } | null)
+                                            | ({
+                                                relationTo: 'generic-page';
+                                                value: string | GenericPage;
+                                              } | null)
+                                            | ({
+                                                relationTo: 'images';
+                                                value: string | Image;
+                                              } | null)
+                                            | ({
+                                                relationTo: 'documents';
+                                                value: string | Document;
+                                              } | null)
+                                            | ({
+                                                relationTo: 'camp-map-annotations';
+                                                value: string | CampMapAnnotation;
+                                              } | null)
+                                            | ({
+                                                relationTo: 'camp-schedule-entry';
+                                                value: string | CampScheduleEntry;
+                                              } | null);
+                                          url?: string | null;
+                                          openInNewTab?: boolean | null;
+                                        };
+                                        teamLeaderGroup: {
+                                          name: string;
+                                          ceviname?: string | null;
+                                          portrait?: (string | null) | Image;
+                                        };
+                                        teamMembers?:
+                                          | {
+                                              name: string;
+                                              ceviname?: string | null;
+                                              function: string;
+                                              id?: string | null;
+                                            }[]
+                                          | null;
+                                        id?: string | null;
+                                        blockName?: string | null;
+                                        blockType: 'accordionTeamMembersBlock';
+                                      }
+                                    | {
+                                        form: string | Form;
+                                        id?: string | null;
+                                        blockName?: string | null;
+                                        blockType: 'formBlock';
+                                      }
+                                    | {
+                                        file: string | Document;
+                                        openInNewTab?: boolean | null;
+                                        id?: string | null;
+                                        blockName?: string | null;
+                                        blockType: 'fileDownload';
+                                      }
+                                  )[];
+                                  id?: string | null;
+                                }[]
+                              | null;
+                            id?: string | null;
+                            blockName?: string | null;
+                            blockType: 'nestedAccordion';
+                          }
+                        | {
+                            file: string | Document;
+                            openInNewTab?: boolean | null;
+                            id?: string | null;
+                            blockName?: string | null;
+                            blockType: 'fileDownload';
+                          }
+                      )[];
+                      id?: string | null;
+                    }[]
+                  | null;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'accordion';
+              }
+            | {
+                richTextSection: {
+                  root: {
+                    type: string;
+                    children: {
+                      type: any;
+                      version: number;
+                      [k: string]: unknown;
+                    }[];
+                    direction: ('ltr' | 'rtl') | null;
+                    format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                    indent: number;
+                    version: number;
+                  };
+                  [k: string]: unknown;
+                };
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'summaryBox';
+              }
+            | {
+                timelineEntryCategories?: (string | TimelineCategory)[] | null;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'timelineEntries';
+              }
+            | {
+                endDate: string;
+                /**
+                 * Optional title for the countdown block.
+                 */
+                title?: string | null;
+                /**
+                 * Optional description for the countdown block.
+                 */
+                descriptionAbove?: string | null;
+                /**
+                 * Optional description for the countdown block.
+                 */
+                descriptionBelow?: string | null;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'countdown';
+              }
+            | {
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'whiteSpace';
+              }
+            | {
+                /**
+                 * Label for the button
+                 */
+                label?: string | null;
+                linkField?: {
+                  type?: ('reference' | 'custom') | null;
+                  reference?:
+                    | ({
+                        relationTo: 'blog';
+                        value: string | Blog;
+                      } | null)
+                    | ({
+                        relationTo: 'generic-page';
+                        value: string | GenericPage;
+                      } | null)
+                    | ({
+                        relationTo: 'images';
+                        value: string | Image;
+                      } | null)
+                    | ({
+                        relationTo: 'documents';
+                        value: string | Document;
+                      } | null)
+                    | ({
+                        relationTo: 'camp-map-annotations';
+                        value: string | CampMapAnnotation;
+                      } | null)
+                    | ({
+                        relationTo: 'camp-schedule-entry';
+                        value: string | CampScheduleEntry;
+                      } | null);
+                  url?: string | null;
+                  openInNewTab?: boolean | null;
+                };
+                /**
+                 * Show inverted colors
+                 */
+                inverted?: boolean | null;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'callToAction';
+              }
+            | {
+                linkField?: {
+                  type?: ('reference' | 'custom') | null;
+                  reference?:
+                    | ({
+                        relationTo: 'blog';
+                        value: string | Blog;
+                      } | null)
+                    | ({
+                        relationTo: 'generic-page';
+                        value: string | GenericPage;
+                      } | null)
+                    | ({
+                        relationTo: 'images';
+                        value: string | Image;
+                      } | null)
+                    | ({
+                        relationTo: 'documents';
+                        value: string | Document;
+                      } | null)
+                    | ({
+                        relationTo: 'camp-map-annotations';
+                        value: string | CampMapAnnotation;
+                      } | null)
+                    | ({
+                        relationTo: 'camp-schedule-entry';
+                        value: string | CampScheduleEntry;
+                      } | null);
+                  url?: string | null;
+                  openInNewTab?: boolean | null;
+                };
+                headline: string;
+                date: string;
+                image?: (string | null) | Image;
+                paragraph?: {
+                  root: {
+                    type: string;
+                    children: {
+                      type: any;
+                      version: number;
+                      [k: string]: unknown;
+                    }[];
+                    direction: ('ltr' | 'rtl') | null;
+                    format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                    indent: number;
+                    version: number;
+                  };
+                  [k: string]: unknown;
+                } | null;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'newsCard';
+              }
+            | {
+                date: string;
+                location?: (string | null) | CampMapAnnotation;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'campScheduleEntryBlock';
+              }
+          )[];
+          /**
+           * Content for the right column.
+           */
+          rightColumn: (
+            | {
+                richTextSection: {
+                  root: {
+                    type: string;
+                    children: {
+                      type: any;
+                      version: number;
+                      [k: string]: unknown;
+                    }[];
+                    direction: ('ltr' | 'rtl') | null;
+                    format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                    indent: number;
+                    version: number;
+                  };
+                  [k: string]: unknown;
+                };
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'richTextSection';
+              }
+            | {
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'blogPostsOverview';
+              }
+            | {
+                form: string | Form;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'formBlock';
+              }
+            | {
+                images: (string | Image)[];
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'photoCarousel';
+              }
+            | {
+                image: string | Image;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'singlePicture';
+              }
+            | {
+                /**
+                 * Links to the Youtube videos
+                 */
+                links: {
+                  /**
+                   * Link to the Youtube video
+                   */
+                  link: string;
+                  id?: string | null;
+                }[];
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'youtubeEmbed';
+              }
+            | {
+                /**
+                 * Link to the Instagram post
+                 */
+                link: string;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'instagramEmbed';
+              }
+            | {
+                initialMapPose?: {
+                  zoom?: number | null;
+                  /**
+                   * @minItems 2
+                   * @maxItems 2
+                   */
+                  initialMapCenter?: [number, number] | null;
+                };
+                /**
+                 * Markers on the map with a small Cevi logo
+                 */
+                ceviLogoMarkers?:
+                  | {
+                      title?: string | null;
+                      /**
+                       * Coordinates of the annotation on the map.
+                       */
+                      geometry?: {
+                        /**
+                         * Coordinates of the annotation on the map.
+                         *
+                         * @minItems 2
+                         * @maxItems 2
+                         */
+                        coordinates?: [number, number] | null;
+                      };
+                      id?: string | null;
+                    }[]
+                  | null;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'swisstopoEmbed';
+              }
+            | {
+                file: string | Document;
+                openInNewTab?: boolean | null;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'fileDownload';
+              }
+            | {
+                introduction: {
+                  root: {
+                    type: string;
+                    children: {
+                      type: any;
+                      version: number;
+                      [k: string]: unknown;
+                    }[];
+                    direction: ('ltr' | 'rtl') | null;
+                    format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                    indent: number;
+                    version: number;
+                  };
+                  [k: string]: unknown;
+                };
+                detailsTableBlocks?:
+                  | {
+                      label: string;
+                      value: {
+                        root: {
+                          type: string;
+                          children: {
+                            type: any;
+                            version: number;
+                            [k: string]: unknown;
+                          }[];
+                          direction: ('ltr' | 'rtl') | null;
+                          format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                          indent: number;
+                          version: number;
+                        };
+                        [k: string]: unknown;
+                      };
+                      id?: string | null;
+                    }[]
+                  | null;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'detailsTable';
+              }
+            | {
+                accordionBlocks?:
+                  | {
+                      /**
+                       * Choose whether to display the title or a portrait in the miniaturized view.
+                       */
+                      titleOrPortrait: 'title' | 'portrait';
+                      /**
+                       * This is the title of the accordion block. It will be displayed in the overview, and when clicked, the block will expand.
+                       */
+                      title?: string | null;
+                      teamLeaderGroup?: {
+                        name: string;
+                        ceviname?: string | null;
+                        portrait?: (string | null) | Image;
+                      };
+                      /**
+                       * This is the content of the accordion block. It will be displayed when the block is expanded.
+                       */
+                      valueBlocks: (
+                        | {
+                            value: {
+                              root: {
+                                type: string;
+                                children: {
+                                  type: any;
+                                  version: number;
+                                  [k: string]: unknown;
+                                }[];
+                                direction: ('ltr' | 'rtl') | null;
+                                format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                                indent: number;
+                                version: number;
+                              };
+                              [k: string]: unknown;
+                            };
+                            id?: string | null;
+                            blockName?: string | null;
+                            blockType: 'accordionPlainTextBlock';
+                          }
+                        | {
+                            linkField?: {
+                              type?: ('reference' | 'custom') | null;
+                              reference?:
+                                | ({
+                                    relationTo: 'blog';
+                                    value: string | Blog;
+                                  } | null)
+                                | ({
+                                    relationTo: 'generic-page';
+                                    value: string | GenericPage;
+                                  } | null)
+                                | ({
+                                    relationTo: 'images';
+                                    value: string | Image;
+                                  } | null)
+                                | ({
+                                    relationTo: 'documents';
+                                    value: string | Document;
+                                  } | null)
+                                | ({
+                                    relationTo: 'camp-map-annotations';
+                                    value: string | CampMapAnnotation;
+                                  } | null)
+                                | ({
+                                    relationTo: 'camp-schedule-entry';
+                                    value: string | CampScheduleEntry;
+                                  } | null);
+                              url?: string | null;
+                              openInNewTab?: boolean | null;
+                            };
+                            teamLeaderGroup: {
+                              name: string;
+                              ceviname?: string | null;
+                              portrait?: (string | null) | Image;
+                            };
+                            teamMembers?:
+                              | {
+                                  name: string;
+                                  ceviname?: string | null;
+                                  function: string;
+                                  id?: string | null;
+                                }[]
+                              | null;
+                            id?: string | null;
+                            blockName?: string | null;
+                            blockType: 'accordionTeamMembersBlock';
+                          }
+                        | {
+                            form: string | Form;
+                            id?: string | null;
+                            blockName?: string | null;
+                            blockType: 'formBlock';
+                          }
+                        | {
+                            accordionBlocks?:
+                              | {
+                                  title: string;
+                                  valueBlocks: (
+                                    | {
+                                        value: {
+                                          root: {
+                                            type: string;
+                                            children: {
+                                              type: any;
+                                              version: number;
+                                              [k: string]: unknown;
+                                            }[];
+                                            direction: ('ltr' | 'rtl') | null;
+                                            format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                                            indent: number;
+                                            version: number;
+                                          };
+                                          [k: string]: unknown;
+                                        };
+                                        id?: string | null;
+                                        blockName?: string | null;
+                                        blockType: 'accordionPlainTextBlock';
+                                      }
+                                    | {
+                                        linkField?: {
+                                          type?: ('reference' | 'custom') | null;
+                                          reference?:
+                                            | ({
+                                                relationTo: 'blog';
+                                                value: string | Blog;
+                                              } | null)
+                                            | ({
+                                                relationTo: 'generic-page';
+                                                value: string | GenericPage;
+                                              } | null)
+                                            | ({
+                                                relationTo: 'images';
+                                                value: string | Image;
+                                              } | null)
+                                            | ({
+                                                relationTo: 'documents';
+                                                value: string | Document;
+                                              } | null)
+                                            | ({
+                                                relationTo: 'camp-map-annotations';
+                                                value: string | CampMapAnnotation;
+                                              } | null)
+                                            | ({
+                                                relationTo: 'camp-schedule-entry';
+                                                value: string | CampScheduleEntry;
+                                              } | null);
+                                          url?: string | null;
+                                          openInNewTab?: boolean | null;
+                                        };
+                                        teamLeaderGroup: {
+                                          name: string;
+                                          ceviname?: string | null;
+                                          portrait?: (string | null) | Image;
+                                        };
+                                        teamMembers?:
+                                          | {
+                                              name: string;
+                                              ceviname?: string | null;
+                                              function: string;
+                                              id?: string | null;
+                                            }[]
+                                          | null;
+                                        id?: string | null;
+                                        blockName?: string | null;
+                                        blockType: 'accordionTeamMembersBlock';
+                                      }
+                                    | {
+                                        form: string | Form;
+                                        id?: string | null;
+                                        blockName?: string | null;
+                                        blockType: 'formBlock';
+                                      }
+                                    | {
+                                        file: string | Document;
+                                        openInNewTab?: boolean | null;
+                                        id?: string | null;
+                                        blockName?: string | null;
+                                        blockType: 'fileDownload';
+                                      }
+                                  )[];
+                                  id?: string | null;
+                                }[]
+                              | null;
+                            id?: string | null;
+                            blockName?: string | null;
+                            blockType: 'nestedAccordion';
+                          }
+                        | {
+                            file: string | Document;
+                            openInNewTab?: boolean | null;
+                            id?: string | null;
+                            blockName?: string | null;
+                            blockType: 'fileDownload';
+                          }
+                      )[];
+                      id?: string | null;
+                    }[]
+                  | null;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'accordion';
+              }
+            | {
+                richTextSection: {
+                  root: {
+                    type: string;
+                    children: {
+                      type: any;
+                      version: number;
+                      [k: string]: unknown;
+                    }[];
+                    direction: ('ltr' | 'rtl') | null;
+                    format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                    indent: number;
+                    version: number;
+                  };
+                  [k: string]: unknown;
+                };
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'summaryBox';
+              }
+            | {
+                timelineEntryCategories?: (string | TimelineCategory)[] | null;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'timelineEntries';
+              }
+            | {
+                endDate: string;
+                /**
+                 * Optional title for the countdown block.
+                 */
+                title?: string | null;
+                /**
+                 * Optional description for the countdown block.
+                 */
+                descriptionAbove?: string | null;
+                /**
+                 * Optional description for the countdown block.
+                 */
+                descriptionBelow?: string | null;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'countdown';
+              }
+            | {
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'whiteSpace';
+              }
+            | {
+                /**
+                 * Label for the button
+                 */
+                label?: string | null;
+                linkField?: {
+                  type?: ('reference' | 'custom') | null;
+                  reference?:
+                    | ({
+                        relationTo: 'blog';
+                        value: string | Blog;
+                      } | null)
+                    | ({
+                        relationTo: 'generic-page';
+                        value: string | GenericPage;
+                      } | null)
+                    | ({
+                        relationTo: 'images';
+                        value: string | Image;
+                      } | null)
+                    | ({
+                        relationTo: 'documents';
+                        value: string | Document;
+                      } | null)
+                    | ({
+                        relationTo: 'camp-map-annotations';
+                        value: string | CampMapAnnotation;
+                      } | null)
+                    | ({
+                        relationTo: 'camp-schedule-entry';
+                        value: string | CampScheduleEntry;
+                      } | null);
+                  url?: string | null;
+                  openInNewTab?: boolean | null;
+                };
+                /**
+                 * Show inverted colors
+                 */
+                inverted?: boolean | null;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'callToAction';
+              }
+            | {
+                linkField?: {
+                  type?: ('reference' | 'custom') | null;
+                  reference?:
+                    | ({
+                        relationTo: 'blog';
+                        value: string | Blog;
+                      } | null)
+                    | ({
+                        relationTo: 'generic-page';
+                        value: string | GenericPage;
+                      } | null)
+                    | ({
+                        relationTo: 'images';
+                        value: string | Image;
+                      } | null)
+                    | ({
+                        relationTo: 'documents';
+                        value: string | Document;
+                      } | null)
+                    | ({
+                        relationTo: 'camp-map-annotations';
+                        value: string | CampMapAnnotation;
+                      } | null)
+                    | ({
+                        relationTo: 'camp-schedule-entry';
+                        value: string | CampScheduleEntry;
+                      } | null);
+                  url?: string | null;
+                  openInNewTab?: boolean | null;
+                };
+                headline: string;
+                date: string;
+                image?: (string | null) | Image;
+                paragraph?: {
+                  root: {
+                    type: string;
+                    children: {
+                      type: any;
+                      version: number;
+                      [k: string]: unknown;
+                    }[];
+                    direction: ('ltr' | 'rtl') | null;
+                    format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                    indent: number;
+                    version: number;
+                  };
+                  [k: string]: unknown;
+                } | null;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'newsCard';
+              }
+            | {
+                date: string;
+                location?: (string | null) | CampMapAnnotation;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'campScheduleEntryBlock';
+              }
+          )[];
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'twoColumnBlock';
+        }
     )[];
   };
   seo: {
@@ -561,16 +1941,6 @@ export interface Permission {
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "FormBlock".
- */
-export interface FormBlock {
-  form: string | Form;
-  id?: string | null;
-  blockName?: string | null;
-  blockType: 'formBlock';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1121,17 +2491,27 @@ export interface Form {
       }[]
     | null;
   /**
-   * Select workflows to trigger after form submission.
+   * Configure workflows to trigger after form submission.
    */
-  workflow?: 'registrationWorkflow'[] | null;
-  workflowMapping?:
+  configuredWorkflows?:
     | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
+        workflow: 'registrationWorkflow' | 'brevoContactWorkflow';
+        condition?: {
+          enabled?: boolean | null;
+          field?: string | null;
+          value?: string | null;
+        };
+        mapping?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        id?: string | null;
+      }[]
     | null;
   submissions?: {
     docs?: (string | FormSubmission)[];
@@ -1179,6 +2559,15 @@ export interface FormSubmission {
       }[]
     | null;
   smtpResults?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  workflowResults?:
     | {
         [k: string]: unknown;
       }
@@ -1255,76 +2644,6 @@ export interface HelperJob {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "YoutubeEmbedding".
- */
-export interface YoutubeEmbedding {
-  /**
-   * Links to the Youtube videos
-   */
-  links: {
-    /**
-     * Link to the Youtube video
-     */
-    link: string;
-    id?: string | null;
-  }[];
-  id?: string | null;
-  blockName?: string | null;
-  blockType: 'youtubeEmbed';
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "InstagramEmbedding".
- */
-export interface InstagramEmbedding {
-  /**
-   * Link to the Instagram post
-   */
-  link: string;
-  id?: string | null;
-  blockName?: string | null;
-  blockType: 'instagramEmbed';
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "SwisstopoMapEmbedding".
- */
-export interface SwisstopoMapEmbedding {
-  initialMapPose?: {
-    zoom?: number | null;
-    /**
-     * @minItems 2
-     * @maxItems 2
-     */
-    initialMapCenter?: [number, number] | null;
-  };
-  /**
-   * Markers on the map with a small Cevi logo
-   */
-  ceviLogoMarkers?:
-    | {
-        title?: string | null;
-        /**
-         * Coordinates of the annotation on the map.
-         */
-        geometry?: {
-          /**
-           * Coordinates of the annotation on the map.
-           *
-           * @minItems 2
-           * @maxItems 2
-           */
-          coordinates?: [number, number] | null;
-        };
-        id?: string | null;
-      }[]
-    | null;
-  id?: string | null;
-  blockName?: string | null;
-  blockType: 'swisstopoEmbed';
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "documents".
  */
 export interface Document {
@@ -1342,170 +2661,6 @@ export interface Document {
   height?: number | null;
   focalX?: number | null;
   focalY?: number | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "DetailsTable".
- */
-export interface DetailsTable {
-  introduction: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  };
-  detailsTableBlocks?:
-    | {
-        label: string;
-        value: {
-          root: {
-            type: string;
-            children: {
-              type: any;
-              version: number;
-              [k: string]: unknown;
-            }[];
-            direction: ('ltr' | 'rtl') | null;
-            format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-            indent: number;
-            version: number;
-          };
-          [k: string]: unknown;
-        };
-        id?: string | null;
-      }[]
-    | null;
-  id?: string | null;
-  blockName?: string | null;
-  blockType: 'detailsTable';
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "AccordionBlocks".
- */
-export interface AccordionBlocks {
-  accordionBlocks?:
-    | {
-        /**
-         * Choose whether to display the title or a portrait in the miniaturized view.
-         */
-        titleOrPortrait: 'title' | 'portrait';
-        /**
-         * This is the title of the accordion block. It will be displayed in the overview, and when clicked, the block will expand.
-         */
-        title?: string | null;
-        teamLeaderGroup?: {
-          name: string;
-          ceviname?: string | null;
-          portrait?: (string | null) | Image;
-        };
-        /**
-         * This is the content of the accordion block. It will be displayed when the block is expanded.
-         */
-        valueBlocks: (
-          | PlainTextBlock
-          | TeamMembersBlock
-          | FormBlock
-          | NestedAccordionBlocks
-          | {
-              file: string | Document;
-              openInNewTab?: boolean | null;
-              id?: string | null;
-              blockName?: string | null;
-              blockType: 'fileDownload';
-            }
-        )[];
-        id?: string | null;
-      }[]
-    | null;
-  id?: string | null;
-  blockName?: string | null;
-  blockType: 'accordion';
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "PlainTextBlock".
- */
-export interface PlainTextBlock {
-  value: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  };
-  id?: string | null;
-  blockName?: string | null;
-  blockType: 'accordionPlainTextBlock';
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "TeamMembersBlock".
- */
-export interface TeamMembersBlock {
-  linkField?: {
-    type?: ('reference' | 'custom') | null;
-    reference?:
-      | ({
-          relationTo: 'blog';
-          value: string | Blog;
-        } | null)
-      | ({
-          relationTo: 'generic-page';
-          value: string | GenericPage;
-        } | null)
-      | ({
-          relationTo: 'images';
-          value: string | Image;
-        } | null)
-      | ({
-          relationTo: 'documents';
-          value: string | Document;
-        } | null)
-      | ({
-          relationTo: 'camp-map-annotations';
-          value: string | CampMapAnnotation;
-        } | null)
-      | ({
-          relationTo: 'camp-schedule-entry';
-          value: string | CampScheduleEntry;
-        } | null);
-    url?: string | null;
-    openInNewTab?: boolean | null;
-  };
-  teamLeaderGroup: {
-    name: string;
-    ceviname?: string | null;
-    portrait?: (string | null) | Image;
-  };
-  teamMembers?:
-    | {
-        name: string;
-        ceviname?: string | null;
-        function: string;
-        id?: string | null;
-      }[]
-    | null;
-  id?: string | null;
-  blockName?: string | null;
-  blockType: 'accordionTeamMembersBlock';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1573,7 +2728,12 @@ export interface GenericPage {
           blockName?: string | null;
           blockType: 'blogPostsOverview';
         }
-      | FormBlock
+      | {
+          form: string | Form;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'formBlock';
+        }
       | {
           images: (string | Image)[];
           id?: string | null;
@@ -1586,9 +2746,64 @@ export interface GenericPage {
           blockName?: string | null;
           blockType: 'singlePicture';
         }
-      | YoutubeEmbedding
-      | InstagramEmbedding
-      | SwisstopoMapEmbedding
+      | {
+          /**
+           * Links to the Youtube videos
+           */
+          links: {
+            /**
+             * Link to the Youtube video
+             */
+            link: string;
+            id?: string | null;
+          }[];
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'youtubeEmbed';
+        }
+      | {
+          /**
+           * Link to the Instagram post
+           */
+          link: string;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'instagramEmbed';
+        }
+      | {
+          initialMapPose?: {
+            zoom?: number | null;
+            /**
+             * @minItems 2
+             * @maxItems 2
+             */
+            initialMapCenter?: [number, number] | null;
+          };
+          /**
+           * Markers on the map with a small Cevi logo
+           */
+          ceviLogoMarkers?:
+            | {
+                title?: string | null;
+                /**
+                 * Coordinates of the annotation on the map.
+                 */
+                geometry?: {
+                  /**
+                   * Coordinates of the annotation on the map.
+                   *
+                   * @minItems 2
+                   * @maxItems 2
+                   */
+                  coordinates?: [number, number] | null;
+                };
+                id?: string | null;
+              }[]
+            | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'swisstopoEmbed';
+        }
       | {
           file: string | Document;
           openInNewTab?: boolean | null;
@@ -1596,11 +2811,294 @@ export interface GenericPage {
           blockName?: string | null;
           blockType: 'fileDownload';
         }
-      | DetailsTable
-      | AccordionBlocks
-      | SummaryBox
-      | TimelineEntries
-      | Countdown
+      | {
+          introduction: {
+            root: {
+              type: string;
+              children: {
+                type: any;
+                version: number;
+                [k: string]: unknown;
+              }[];
+              direction: ('ltr' | 'rtl') | null;
+              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+              indent: number;
+              version: number;
+            };
+            [k: string]: unknown;
+          };
+          detailsTableBlocks?:
+            | {
+                label: string;
+                value: {
+                  root: {
+                    type: string;
+                    children: {
+                      type: any;
+                      version: number;
+                      [k: string]: unknown;
+                    }[];
+                    direction: ('ltr' | 'rtl') | null;
+                    format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                    indent: number;
+                    version: number;
+                  };
+                  [k: string]: unknown;
+                };
+                id?: string | null;
+              }[]
+            | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'detailsTable';
+        }
+      | {
+          accordionBlocks?:
+            | {
+                /**
+                 * Choose whether to display the title or a portrait in the miniaturized view.
+                 */
+                titleOrPortrait: 'title' | 'portrait';
+                /**
+                 * This is the title of the accordion block. It will be displayed in the overview, and when clicked, the block will expand.
+                 */
+                title?: string | null;
+                teamLeaderGroup?: {
+                  name: string;
+                  ceviname?: string | null;
+                  portrait?: (string | null) | Image;
+                };
+                /**
+                 * This is the content of the accordion block. It will be displayed when the block is expanded.
+                 */
+                valueBlocks: (
+                  | {
+                      value: {
+                        root: {
+                          type: string;
+                          children: {
+                            type: any;
+                            version: number;
+                            [k: string]: unknown;
+                          }[];
+                          direction: ('ltr' | 'rtl') | null;
+                          format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                          indent: number;
+                          version: number;
+                        };
+                        [k: string]: unknown;
+                      };
+                      id?: string | null;
+                      blockName?: string | null;
+                      blockType: 'accordionPlainTextBlock';
+                    }
+                  | {
+                      linkField?: {
+                        type?: ('reference' | 'custom') | null;
+                        reference?:
+                          | ({
+                              relationTo: 'blog';
+                              value: string | Blog;
+                            } | null)
+                          | ({
+                              relationTo: 'generic-page';
+                              value: string | GenericPage;
+                            } | null)
+                          | ({
+                              relationTo: 'images';
+                              value: string | Image;
+                            } | null)
+                          | ({
+                              relationTo: 'documents';
+                              value: string | Document;
+                            } | null)
+                          | ({
+                              relationTo: 'camp-map-annotations';
+                              value: string | CampMapAnnotation;
+                            } | null)
+                          | ({
+                              relationTo: 'camp-schedule-entry';
+                              value: string | CampScheduleEntry;
+                            } | null);
+                        url?: string | null;
+                        openInNewTab?: boolean | null;
+                      };
+                      teamLeaderGroup: {
+                        name: string;
+                        ceviname?: string | null;
+                        portrait?: (string | null) | Image;
+                      };
+                      teamMembers?:
+                        | {
+                            name: string;
+                            ceviname?: string | null;
+                            function: string;
+                            id?: string | null;
+                          }[]
+                        | null;
+                      id?: string | null;
+                      blockName?: string | null;
+                      blockType: 'accordionTeamMembersBlock';
+                    }
+                  | {
+                      form: string | Form;
+                      id?: string | null;
+                      blockName?: string | null;
+                      blockType: 'formBlock';
+                    }
+                  | {
+                      accordionBlocks?:
+                        | {
+                            title: string;
+                            valueBlocks: (
+                              | {
+                                  value: {
+                                    root: {
+                                      type: string;
+                                      children: {
+                                        type: any;
+                                        version: number;
+                                        [k: string]: unknown;
+                                      }[];
+                                      direction: ('ltr' | 'rtl') | null;
+                                      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                                      indent: number;
+                                      version: number;
+                                    };
+                                    [k: string]: unknown;
+                                  };
+                                  id?: string | null;
+                                  blockName?: string | null;
+                                  blockType: 'accordionPlainTextBlock';
+                                }
+                              | {
+                                  linkField?: {
+                                    type?: ('reference' | 'custom') | null;
+                                    reference?:
+                                      | ({
+                                          relationTo: 'blog';
+                                          value: string | Blog;
+                                        } | null)
+                                      | ({
+                                          relationTo: 'generic-page';
+                                          value: string | GenericPage;
+                                        } | null)
+                                      | ({
+                                          relationTo: 'images';
+                                          value: string | Image;
+                                        } | null)
+                                      | ({
+                                          relationTo: 'documents';
+                                          value: string | Document;
+                                        } | null)
+                                      | ({
+                                          relationTo: 'camp-map-annotations';
+                                          value: string | CampMapAnnotation;
+                                        } | null)
+                                      | ({
+                                          relationTo: 'camp-schedule-entry';
+                                          value: string | CampScheduleEntry;
+                                        } | null);
+                                    url?: string | null;
+                                    openInNewTab?: boolean | null;
+                                  };
+                                  teamLeaderGroup: {
+                                    name: string;
+                                    ceviname?: string | null;
+                                    portrait?: (string | null) | Image;
+                                  };
+                                  teamMembers?:
+                                    | {
+                                        name: string;
+                                        ceviname?: string | null;
+                                        function: string;
+                                        id?: string | null;
+                                      }[]
+                                    | null;
+                                  id?: string | null;
+                                  blockName?: string | null;
+                                  blockType: 'accordionTeamMembersBlock';
+                                }
+                              | {
+                                  form: string | Form;
+                                  id?: string | null;
+                                  blockName?: string | null;
+                                  blockType: 'formBlock';
+                                }
+                              | {
+                                  file: string | Document;
+                                  openInNewTab?: boolean | null;
+                                  id?: string | null;
+                                  blockName?: string | null;
+                                  blockType: 'fileDownload';
+                                }
+                            )[];
+                            id?: string | null;
+                          }[]
+                        | null;
+                      id?: string | null;
+                      blockName?: string | null;
+                      blockType: 'nestedAccordion';
+                    }
+                  | {
+                      file: string | Document;
+                      openInNewTab?: boolean | null;
+                      id?: string | null;
+                      blockName?: string | null;
+                      blockType: 'fileDownload';
+                    }
+                )[];
+                id?: string | null;
+              }[]
+            | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'accordion';
+        }
+      | {
+          richTextSection: {
+            root: {
+              type: string;
+              children: {
+                type: any;
+                version: number;
+                [k: string]: unknown;
+              }[];
+              direction: ('ltr' | 'rtl') | null;
+              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+              indent: number;
+              version: number;
+            };
+            [k: string]: unknown;
+          };
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'summaryBox';
+        }
+      | {
+          timelineEntryCategories?: (string | TimelineCategory)[] | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'timelineEntries';
+        }
+      | {
+          endDate: string;
+          /**
+           * Optional title for the countdown block.
+           */
+          title?: string | null;
+          /**
+           * Optional description for the countdown block.
+           */
+          descriptionAbove?: string | null;
+          /**
+           * Optional description for the countdown block.
+           */
+          descriptionBelow?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'countdown';
+        }
       | {
           id?: string | null;
           blockName?: string | null;
@@ -1732,157 +3230,6 @@ export interface GenericPage {
   createdAt: string;
   deletedAt?: string | null;
   _status?: ('draft' | 'published') | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "summaryBox".
- */
-export interface SummaryBox {
-  richTextSection: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  };
-  id?: string | null;
-  blockName?: string | null;
-  blockType: 'summaryBox';
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "timelineEntries".
- */
-export interface TimelineEntries {
-  timelineEntryCategories?: (string | TimelineCategory)[] | null;
-  id?: string | null;
-  blockName?: string | null;
-  blockType: 'timelineEntries';
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "timelineCategory".
- */
-export interface TimelineCategory {
-  id: string;
-  name: string;
-  description?: string | null;
-  relatedTimelineEntries?: {
-    docs?: (string | Timeline)[];
-    hasNextPage?: boolean;
-    totalDocs?: number;
-  };
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * Represents a timeline that can be published on the website.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "timeline".
- */
-export interface Timeline {
-  id: string;
-  publishingStatus?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  _localized_status: LocalizedPublishingStatus;
-  _disable_unpublishing?: boolean | null;
-  _locale: string;
-  /**
-   * Name of the page for internal purposes.
-   */
-  internalPageName: string;
-  /**
-   * Authors of the Page (internal use only)
-   */
-  authors?: (string | User)[] | null;
-  /**
-   * Status of the page (internal use)
-   */
-  internalStatus: 'draft' | 'translation' | 'review' | 'approved' | 'archived';
-  date: string;
-  dateFormat?: ('fullDateAndTime' | 'fullDate' | 'yearAndMonth') | null;
-  /**
-   * This is the title that will be displayed on the page.
-   */
-  title: string;
-  /**
-   * The main content of the page
-   */
-  mainContent?:
-    | (
-        | {
-            richTextSection: {
-              root: {
-                type: string;
-                children: {
-                  type: any;
-                  version: number;
-                  [k: string]: unknown;
-                }[];
-                direction: ('ltr' | 'rtl') | null;
-                format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-                indent: number;
-                version: number;
-              };
-              [k: string]: unknown;
-            };
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'richTextSection';
-          }
-        | {
-            image: string | Image;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'singlePicture';
-          }
-        | InstagramEmbedding
-      )[]
-    | null;
-  categories?: (string | TimelineCategory)[] | null;
-  lastEditedByUser?: (string | null) | User;
-  updatedAt: string;
-  createdAt: string;
-  deletedAt?: string | null;
-  _status?: ('draft' | 'published') | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "countdown".
- */
-export interface Countdown {
-  endDate: string;
-  /**
-   * Optional title for the countdown block.
-   */
-  title?: string | null;
-  /**
-   * Optional description for the countdown block.
-   */
-  descriptionAbove?: string | null;
-  /**
-   * Optional description for the countdown block.
-   */
-  descriptionBelow?: string | null;
-  id?: string | null;
-  blockName?: string | null;
-  blockType: 'countdown';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2049,6 +3396,114 @@ export interface CampCategory {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "timelineCategory".
+ */
+export interface TimelineCategory {
+  id: string;
+  name: string;
+  description?: string | null;
+  relatedTimelineEntries?: {
+    docs?: (string | Timeline)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Represents a timeline that can be published on the website.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "timeline".
+ */
+export interface Timeline {
+  id: string;
+  publishingStatus?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  _localized_status: LocalizedPublishingStatus;
+  _disable_unpublishing?: boolean | null;
+  _locale: string;
+  /**
+   * Name of the page for internal purposes.
+   */
+  internalPageName: string;
+  /**
+   * Authors of the Page (internal use only)
+   */
+  authors?: (string | User)[] | null;
+  /**
+   * Status of the page (internal use)
+   */
+  internalStatus: 'draft' | 'translation' | 'review' | 'approved' | 'archived';
+  date: string;
+  dateFormat?: ('fullDateAndTime' | 'fullDate' | 'yearAndMonth') | null;
+  /**
+   * This is the title that will be displayed on the page.
+   */
+  title: string;
+  /**
+   * The main content of the page
+   */
+  mainContent?:
+    | (
+        | {
+            richTextSection: {
+              root: {
+                type: string;
+                children: {
+                  type: any;
+                  version: number;
+                  [k: string]: unknown;
+                }[];
+                direction: ('ltr' | 'rtl') | null;
+                format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                indent: number;
+                version: number;
+              };
+              [k: string]: unknown;
+            };
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'richTextSection';
+          }
+        | {
+            image: string | Image;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'singlePicture';
+          }
+        | InstagramEmbedding
+      )[]
+    | null;
+  categories?: (string | TimelineCategory)[] | null;
+  lastEditedByUser?: (string | null) | User;
+  updatedAt: string;
+  createdAt: string;
+  deletedAt?: string | null;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "InstagramEmbedding".
+ */
+export interface InstagramEmbedding {
+  /**
+   * Link to the Instagram post
+   */
+  link: string;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'instagramEmbed';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TwoColumnBlock".
  */
 export interface TwoColumnBlock {
@@ -2089,7 +3544,12 @@ export interface TwoColumnBlock {
         blockName?: string | null;
         blockType: 'blogPostsOverview';
       }
-    | FormBlock
+    | {
+        form: string | Form;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'formBlock';
+      }
     | {
         images: (string | Image)[];
         id?: string | null;
@@ -2102,9 +3562,64 @@ export interface TwoColumnBlock {
         blockName?: string | null;
         blockType: 'singlePicture';
       }
-    | YoutubeEmbedding
-    | InstagramEmbedding
-    | SwisstopoMapEmbedding
+    | {
+        /**
+         * Links to the Youtube videos
+         */
+        links: {
+          /**
+           * Link to the Youtube video
+           */
+          link: string;
+          id?: string | null;
+        }[];
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'youtubeEmbed';
+      }
+    | {
+        /**
+         * Link to the Instagram post
+         */
+        link: string;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'instagramEmbed';
+      }
+    | {
+        initialMapPose?: {
+          zoom?: number | null;
+          /**
+           * @minItems 2
+           * @maxItems 2
+           */
+          initialMapCenter?: [number, number] | null;
+        };
+        /**
+         * Markers on the map with a small Cevi logo
+         */
+        ceviLogoMarkers?:
+          | {
+              title?: string | null;
+              /**
+               * Coordinates of the annotation on the map.
+               */
+              geometry?: {
+                /**
+                 * Coordinates of the annotation on the map.
+                 *
+                 * @minItems 2
+                 * @maxItems 2
+                 */
+                coordinates?: [number, number] | null;
+              };
+              id?: string | null;
+            }[]
+          | null;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'swisstopoEmbed';
+      }
     | {
         file: string | Document;
         openInNewTab?: boolean | null;
@@ -2112,11 +3627,294 @@ export interface TwoColumnBlock {
         blockName?: string | null;
         blockType: 'fileDownload';
       }
-    | DetailsTable
-    | AccordionBlocks
-    | SummaryBox
-    | TimelineEntries
-    | Countdown
+    | {
+        introduction: {
+          root: {
+            type: string;
+            children: {
+              type: any;
+              version: number;
+              [k: string]: unknown;
+            }[];
+            direction: ('ltr' | 'rtl') | null;
+            format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+            indent: number;
+            version: number;
+          };
+          [k: string]: unknown;
+        };
+        detailsTableBlocks?:
+          | {
+              label: string;
+              value: {
+                root: {
+                  type: string;
+                  children: {
+                    type: any;
+                    version: number;
+                    [k: string]: unknown;
+                  }[];
+                  direction: ('ltr' | 'rtl') | null;
+                  format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                  indent: number;
+                  version: number;
+                };
+                [k: string]: unknown;
+              };
+              id?: string | null;
+            }[]
+          | null;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'detailsTable';
+      }
+    | {
+        accordionBlocks?:
+          | {
+              /**
+               * Choose whether to display the title or a portrait in the miniaturized view.
+               */
+              titleOrPortrait: 'title' | 'portrait';
+              /**
+               * This is the title of the accordion block. It will be displayed in the overview, and when clicked, the block will expand.
+               */
+              title?: string | null;
+              teamLeaderGroup?: {
+                name: string;
+                ceviname?: string | null;
+                portrait?: (string | null) | Image;
+              };
+              /**
+               * This is the content of the accordion block. It will be displayed when the block is expanded.
+               */
+              valueBlocks: (
+                | {
+                    value: {
+                      root: {
+                        type: string;
+                        children: {
+                          type: any;
+                          version: number;
+                          [k: string]: unknown;
+                        }[];
+                        direction: ('ltr' | 'rtl') | null;
+                        format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                        indent: number;
+                        version: number;
+                      };
+                      [k: string]: unknown;
+                    };
+                    id?: string | null;
+                    blockName?: string | null;
+                    blockType: 'accordionPlainTextBlock';
+                  }
+                | {
+                    linkField?: {
+                      type?: ('reference' | 'custom') | null;
+                      reference?:
+                        | ({
+                            relationTo: 'blog';
+                            value: string | Blog;
+                          } | null)
+                        | ({
+                            relationTo: 'generic-page';
+                            value: string | GenericPage;
+                          } | null)
+                        | ({
+                            relationTo: 'images';
+                            value: string | Image;
+                          } | null)
+                        | ({
+                            relationTo: 'documents';
+                            value: string | Document;
+                          } | null)
+                        | ({
+                            relationTo: 'camp-map-annotations';
+                            value: string | CampMapAnnotation;
+                          } | null)
+                        | ({
+                            relationTo: 'camp-schedule-entry';
+                            value: string | CampScheduleEntry;
+                          } | null);
+                      url?: string | null;
+                      openInNewTab?: boolean | null;
+                    };
+                    teamLeaderGroup: {
+                      name: string;
+                      ceviname?: string | null;
+                      portrait?: (string | null) | Image;
+                    };
+                    teamMembers?:
+                      | {
+                          name: string;
+                          ceviname?: string | null;
+                          function: string;
+                          id?: string | null;
+                        }[]
+                      | null;
+                    id?: string | null;
+                    blockName?: string | null;
+                    blockType: 'accordionTeamMembersBlock';
+                  }
+                | {
+                    form: string | Form;
+                    id?: string | null;
+                    blockName?: string | null;
+                    blockType: 'formBlock';
+                  }
+                | {
+                    accordionBlocks?:
+                      | {
+                          title: string;
+                          valueBlocks: (
+                            | {
+                                value: {
+                                  root: {
+                                    type: string;
+                                    children: {
+                                      type: any;
+                                      version: number;
+                                      [k: string]: unknown;
+                                    }[];
+                                    direction: ('ltr' | 'rtl') | null;
+                                    format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                                    indent: number;
+                                    version: number;
+                                  };
+                                  [k: string]: unknown;
+                                };
+                                id?: string | null;
+                                blockName?: string | null;
+                                blockType: 'accordionPlainTextBlock';
+                              }
+                            | {
+                                linkField?: {
+                                  type?: ('reference' | 'custom') | null;
+                                  reference?:
+                                    | ({
+                                        relationTo: 'blog';
+                                        value: string | Blog;
+                                      } | null)
+                                    | ({
+                                        relationTo: 'generic-page';
+                                        value: string | GenericPage;
+                                      } | null)
+                                    | ({
+                                        relationTo: 'images';
+                                        value: string | Image;
+                                      } | null)
+                                    | ({
+                                        relationTo: 'documents';
+                                        value: string | Document;
+                                      } | null)
+                                    | ({
+                                        relationTo: 'camp-map-annotations';
+                                        value: string | CampMapAnnotation;
+                                      } | null)
+                                    | ({
+                                        relationTo: 'camp-schedule-entry';
+                                        value: string | CampScheduleEntry;
+                                      } | null);
+                                  url?: string | null;
+                                  openInNewTab?: boolean | null;
+                                };
+                                teamLeaderGroup: {
+                                  name: string;
+                                  ceviname?: string | null;
+                                  portrait?: (string | null) | Image;
+                                };
+                                teamMembers?:
+                                  | {
+                                      name: string;
+                                      ceviname?: string | null;
+                                      function: string;
+                                      id?: string | null;
+                                    }[]
+                                  | null;
+                                id?: string | null;
+                                blockName?: string | null;
+                                blockType: 'accordionTeamMembersBlock';
+                              }
+                            | {
+                                form: string | Form;
+                                id?: string | null;
+                                blockName?: string | null;
+                                blockType: 'formBlock';
+                              }
+                            | {
+                                file: string | Document;
+                                openInNewTab?: boolean | null;
+                                id?: string | null;
+                                blockName?: string | null;
+                                blockType: 'fileDownload';
+                              }
+                          )[];
+                          id?: string | null;
+                        }[]
+                      | null;
+                    id?: string | null;
+                    blockName?: string | null;
+                    blockType: 'nestedAccordion';
+                  }
+                | {
+                    file: string | Document;
+                    openInNewTab?: boolean | null;
+                    id?: string | null;
+                    blockName?: string | null;
+                    blockType: 'fileDownload';
+                  }
+              )[];
+              id?: string | null;
+            }[]
+          | null;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'accordion';
+      }
+    | {
+        richTextSection: {
+          root: {
+            type: string;
+            children: {
+              type: any;
+              version: number;
+              [k: string]: unknown;
+            }[];
+            direction: ('ltr' | 'rtl') | null;
+            format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+            indent: number;
+            version: number;
+          };
+          [k: string]: unknown;
+        };
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'summaryBox';
+      }
+    | {
+        timelineEntryCategories?: (string | TimelineCategory)[] | null;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'timelineEntries';
+      }
+    | {
+        endDate: string;
+        /**
+         * Optional title for the countdown block.
+         */
+        title?: string | null;
+        /**
+         * Optional description for the countdown block.
+         */
+        descriptionAbove?: string | null;
+        /**
+         * Optional description for the countdown block.
+         */
+        descriptionBelow?: string | null;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'countdown';
+      }
     | {
         id?: string | null;
         blockName?: string | null;
@@ -2255,7 +4053,12 @@ export interface TwoColumnBlock {
         blockName?: string | null;
         blockType: 'blogPostsOverview';
       }
-    | FormBlock
+    | {
+        form: string | Form;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'formBlock';
+      }
     | {
         images: (string | Image)[];
         id?: string | null;
@@ -2269,7 +4072,15 @@ export interface TwoColumnBlock {
         blockType: 'singlePicture';
       }
     | YoutubeEmbedding
-    | InstagramEmbedding
+    | {
+        /**
+         * Link to the Instagram post
+         */
+        link: string;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'instagramEmbed';
+      }
     | SwisstopoMapEmbedding
     | {
         file: string | Document;
@@ -2398,6 +4209,222 @@ export interface TwoColumnBlock {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "YoutubeEmbedding".
+ */
+export interface YoutubeEmbedding {
+  /**
+   * Links to the Youtube videos
+   */
+  links: {
+    /**
+     * Link to the Youtube video
+     */
+    link: string;
+    id?: string | null;
+  }[];
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'youtubeEmbed';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "SwisstopoMapEmbedding".
+ */
+export interface SwisstopoMapEmbedding {
+  initialMapPose?: {
+    zoom?: number | null;
+    /**
+     * @minItems 2
+     * @maxItems 2
+     */
+    initialMapCenter?: [number, number] | null;
+  };
+  /**
+   * Markers on the map with a small Cevi logo
+   */
+  ceviLogoMarkers?:
+    | {
+        title?: string | null;
+        /**
+         * Coordinates of the annotation on the map.
+         */
+        geometry?: {
+          /**
+           * Coordinates of the annotation on the map.
+           *
+           * @minItems 2
+           * @maxItems 2
+           */
+          coordinates?: [number, number] | null;
+        };
+        id?: string | null;
+      }[]
+    | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'swisstopoEmbed';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "DetailsTable".
+ */
+export interface DetailsTable {
+  introduction: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  detailsTableBlocks?:
+    | {
+        label: string;
+        value: {
+          root: {
+            type: string;
+            children: {
+              type: any;
+              version: number;
+              [k: string]: unknown;
+            }[];
+            direction: ('ltr' | 'rtl') | null;
+            format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+            indent: number;
+            version: number;
+          };
+          [k: string]: unknown;
+        };
+        id?: string | null;
+      }[]
+    | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'detailsTable';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "AccordionBlocks".
+ */
+export interface AccordionBlocks {
+  accordionBlocks?:
+    | {
+        /**
+         * Choose whether to display the title or a portrait in the miniaturized view.
+         */
+        titleOrPortrait: 'title' | 'portrait';
+        /**
+         * This is the title of the accordion block. It will be displayed in the overview, and when clicked, the block will expand.
+         */
+        title?: string | null;
+        teamLeaderGroup?: {
+          name: string;
+          ceviname?: string | null;
+          portrait?: (string | null) | Image;
+        };
+        /**
+         * This is the content of the accordion block. It will be displayed when the block is expanded.
+         */
+        valueBlocks: (
+          | {
+              value: {
+                root: {
+                  type: string;
+                  children: {
+                    type: any;
+                    version: number;
+                    [k: string]: unknown;
+                  }[];
+                  direction: ('ltr' | 'rtl') | null;
+                  format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                  indent: number;
+                  version: number;
+                };
+                [k: string]: unknown;
+              };
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'accordionPlainTextBlock';
+            }
+          | {
+              linkField?: {
+                type?: ('reference' | 'custom') | null;
+                reference?:
+                  | ({
+                      relationTo: 'blog';
+                      value: string | Blog;
+                    } | null)
+                  | ({
+                      relationTo: 'generic-page';
+                      value: string | GenericPage;
+                    } | null)
+                  | ({
+                      relationTo: 'images';
+                      value: string | Image;
+                    } | null)
+                  | ({
+                      relationTo: 'documents';
+                      value: string | Document;
+                    } | null)
+                  | ({
+                      relationTo: 'camp-map-annotations';
+                      value: string | CampMapAnnotation;
+                    } | null)
+                  | ({
+                      relationTo: 'camp-schedule-entry';
+                      value: string | CampScheduleEntry;
+                    } | null);
+                url?: string | null;
+                openInNewTab?: boolean | null;
+              };
+              teamLeaderGroup: {
+                name: string;
+                ceviname?: string | null;
+                portrait?: (string | null) | Image;
+              };
+              teamMembers?:
+                | {
+                    name: string;
+                    ceviname?: string | null;
+                    function: string;
+                    id?: string | null;
+                  }[]
+                | null;
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'accordionTeamMembersBlock';
+            }
+          | {
+              form: string | Form;
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'formBlock';
+            }
+          | NestedAccordionBlocks
+          | {
+              file: string | Document;
+              openInNewTab?: boolean | null;
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'fileDownload';
+            }
+        )[];
+        id?: string | null;
+      }[]
+    | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'accordion';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "NestedAccordionBlocks".
  */
 export interface NestedAccordionBlocks {
@@ -2422,6 +4449,148 @@ export interface NestedAccordionBlocks {
   id?: string | null;
   blockName?: string | null;
   blockType: 'nestedAccordion';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "PlainTextBlock".
+ */
+export interface PlainTextBlock {
+  value: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'accordionPlainTextBlock';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TeamMembersBlock".
+ */
+export interface TeamMembersBlock {
+  linkField?: {
+    type?: ('reference' | 'custom') | null;
+    reference?:
+      | ({
+          relationTo: 'blog';
+          value: string | Blog;
+        } | null)
+      | ({
+          relationTo: 'generic-page';
+          value: string | GenericPage;
+        } | null)
+      | ({
+          relationTo: 'images';
+          value: string | Image;
+        } | null)
+      | ({
+          relationTo: 'documents';
+          value: string | Document;
+        } | null)
+      | ({
+          relationTo: 'camp-map-annotations';
+          value: string | CampMapAnnotation;
+        } | null)
+      | ({
+          relationTo: 'camp-schedule-entry';
+          value: string | CampScheduleEntry;
+        } | null);
+    url?: string | null;
+    openInNewTab?: boolean | null;
+  };
+  teamLeaderGroup: {
+    name: string;
+    ceviname?: string | null;
+    portrait?: (string | null) | Image;
+  };
+  teamMembers?:
+    | {
+        name: string;
+        ceviname?: string | null;
+        function: string;
+        id?: string | null;
+      }[]
+    | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'accordionTeamMembersBlock';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "FormBlock".
+ */
+export interface FormBlock {
+  form: string | Form;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'formBlock';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "summaryBox".
+ */
+export interface SummaryBox {
+  richTextSection: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'summaryBox';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "timelineEntries".
+ */
+export interface TimelineEntries {
+  timelineEntryCategories?: (string | TimelineCategory)[] | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'timelineEntries';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "countdown".
+ */
+export interface Countdown {
+  endDate: string;
+  /**
+   * Optional title for the countdown block.
+   */
+  title?: string | null;
+  /**
+   * Optional description for the countdown block.
+   */
+  descriptionAbove?: string | null;
+  /**
+   * Optional description for the countdown block.
+   */
+  descriptionBelow?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'countdown';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2766,7 +4935,7 @@ export interface PayloadJob {
         id?: string | null;
       }[]
     | null;
-  workflowSlug?: 'registrationWorkflow' | null;
+  workflowSlug?: ('registrationWorkflow' | 'brevoContactWorkflow') | null;
   taskSlug?:
     | (
         | 'inline'
@@ -4330,8 +6499,20 @@ export interface FormsSelect<T extends boolean = true> {
         message?: T;
         id?: T;
       };
-  workflow?: T;
-  workflowMapping?: T;
+  configuredWorkflows?:
+    | T
+    | {
+        workflow?: T;
+        condition?:
+          | T
+          | {
+              enabled?: T;
+              field?: T;
+              value?: T;
+            };
+        mapping?: T;
+        id?: T;
+      };
   submissions?: T;
   publishingStatus?: T;
   _localized_status?: T;
@@ -4357,6 +6538,7 @@ export interface FormSubmissionsSelect<T extends boolean = true> {
         id?: T;
       };
   smtpResults?: T;
+  workflowResults?: T;
   'helper-jobs'?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -4993,6 +7175,46 @@ export interface PayloadJobsStatsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "emergency-alerts_widget".
+ */
+export interface EmergencyAlertsWidget {
+  data?: {
+    [k: string]: unknown;
+  };
+  width: 'x-small' | 'small' | 'medium' | 'large' | 'x-large' | 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "user-count_widget".
+ */
+export interface UserCountWidget {
+  data?: {
+    [k: string]: unknown;
+  };
+  width: 'x-small' | 'small' | 'medium' | 'large' | 'x-large' | 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "email-stats_widget".
+ */
+export interface EmailStatsWidget {
+  data?: {
+    [k: string]: unknown;
+  };
+  width: 'x-small' | 'small' | 'medium' | 'large' | 'x-large' | 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "collections_widget".
+ */
+export interface CollectionsWidget {
+  data?: {
+    [k: string]: unknown;
+  };
+  width: 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskResolveUser".
  */
 export interface TaskResolveUser {
@@ -5158,6 +7380,23 @@ export interface TaskCheckHitobitoApprovals {
  * via the `definition` "WorkflowRegistrationWorkflow".
  */
 export interface WorkflowRegistrationWorkflow {
+  input: {
+    input:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "WorkflowBrevoContactWorkflow".
+ */
+export interface WorkflowBrevoContactWorkflow {
   input: {
     input:
       | {

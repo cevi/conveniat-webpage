@@ -28,6 +28,7 @@ import { redirectsTranslations } from '@payloadcms/plugin-redirects';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { brevoContactWorkflow } from '@/features/marketing/workflows/brevo-contact-workflow';
 import {
   enabledWidgets,
   widgetDefaultLayout,
@@ -135,7 +136,7 @@ const jobsConfig: JobsConfig = {
     fetchSmtpBouncesTask,
     checkHitobitoApprovalsTask,
   ],
-  workflows: [registrationWorkflow],
+  workflows: [registrationWorkflow, brevoContactWorkflow],
   autoRun: [
     {
       cron: '*/10 * * * * *', // Every 10 seconds

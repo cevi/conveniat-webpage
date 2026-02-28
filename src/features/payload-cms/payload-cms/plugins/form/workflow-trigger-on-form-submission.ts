@@ -34,7 +34,16 @@ export const workflowTriggerOnFormSubmission: CollectionAfterChangeHook<FormSubm
       depth: 0,
     });
 
-    const workflowsArray = form.workflow as unknown as string[] | undefined | null;
+    interface WorkflowSpec {
+      workflow?: string;
+      condition?: {
+        enabled?: boolean;
+        field?: string;
+        value?: string;
+      };
+      mapping?: Record<string, string>;
+    }
+    const workflowsArray = form.configuredWorkflows as unknown as WorkflowSpec[] | undefined | null;
 
     if (
       workflowsArray === undefined ||
@@ -49,39 +58,51 @@ export const workflowTriggerOnFormSubmission: CollectionAfterChangeHook<FormSubm
     }
 
     // Update event with workflows context
-    event['workflows'] = workflowsArray.join(', ');
+    event['workflows'] = workflowsArray
+      .map((w) => w.workflow)
+      .filter(Boolean)
+      .join(', ');
 
     const submissionMap = new Map(doc.submissionData.map((item) => [item.field, item.value]));
-    const rawMapping = form.workflowMapping as Record<string, unknown> | undefined;
+    let processedCount = 0;
+    for (const spec of workflowsArray) {
+      const workflowName = spec.workflow;
+      if (typeof workflowName !== 'string' || workflowName.length === 0) continue;
 
-    const getWorkflowMapping = (workflowId: string): Record<string, string> | undefined => {
-      if (!rawMapping) return undefined;
-      // Check if it's the new nested format
-      if (rawMapping[workflowId] !== undefined && typeof rawMapping[workflowId] === 'object') {
-        return rawMapping[workflowId] as Record<string, string>;
+      if (spec.condition?.enabled) {
+        const { field: condField, value: expectedValue } = spec.condition;
+        if (typeof condField === 'string' && typeof expectedValue === 'string') {
+          const actualValue = submissionMap.get(condField);
+          const normalizedActualValue = String(actualValue ?? '');
+          if (normalizedActualValue !== expectedValue) {
+            req.payload.logger.info({
+              msg: `Skipping workflow ${workflowName} due to condition mismatch`,
+              submissionId: doc.id,
+              actualValue,
+              expectedValue,
+            });
+            continue;
+          }
+        }
       }
-      // Fallback for previous flat format
-      return rawMapping as Record<string, string>;
-    };
 
-    for (const workflow of workflowsArray) {
       let inputData: Record<string, unknown> = {};
-      const mapping = getWorkflowMapping(workflow);
+      const mapping = spec.mapping;
 
       if (mapping && Object.keys(mapping).length > 0) {
         for (const [workflowKey, formFieldName] of Object.entries(mapping)) {
-          if (typeof formFieldName !== 'string') continue;
+          if (typeof formFieldName !== 'string' || formFieldName === '_none_') continue;
           const val = submissionMap.get(formFieldName);
           if (val !== undefined) inputData[workflowKey] = val;
         }
-        event[`${workflow}_mappingType`] = 'partial';
+        event[`${workflowName}_mappingType`] = 'partial';
       } else {
         inputData = Object.fromEntries(submissionMap);
-        event[`${workflow}_mappingType`] = 'full';
+        event[`${workflowName}_mappingType`] = 'full';
       }
 
       await req.payload.jobs.queue({
-        workflow: workflow as keyof TypedJobs['workflows'],
+        workflow: workflowName as keyof TypedJobs['workflows'],
         input: {
           input: {
             ...inputData,
@@ -90,6 +111,14 @@ export const workflowTriggerOnFormSubmission: CollectionAfterChangeHook<FormSubm
           },
         },
       });
+      processedCount++;
+    }
+
+    if (processedCount === 0) {
+      event['status'] = 'skipped';
+      event['reason'] = 'Workflows skipped due to conditions';
+      req.payload.logger.info(event);
+      return;
     }
 
     event['status'] = 'success';
