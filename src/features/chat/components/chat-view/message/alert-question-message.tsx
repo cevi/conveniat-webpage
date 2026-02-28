@@ -14,8 +14,7 @@ interface AlertQuestionMessageProperties {
 
 interface QuestionPayload {
   question: string;
-  // Options may be simple strings (legacy) or objects with `id` and `option`.
-  options: Array<string | { id?: string | null; option: string }>;
+  options: { option: string; id?: string | null }[];
   selectedOption: string | null;
   questionRefId?: string;
 }
@@ -25,7 +24,6 @@ export const AlertQuestionMessage: React.FC<AlertQuestionMessageProperties> = ({
   const payload = message.messagePayload as unknown as QuestionPayload;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [optimisticSelection, setOptimisticSelection] = useState<string | undefined>();
-  const [, setOptimisticSelectionId] = useState<string | undefined>(); // TODO: is this needed? currently only the setter is used.
 
   const currentSelection = payload.selectedOption ?? optimisticSelection;
   const hasAnswered = !!currentSelection;
@@ -50,13 +48,11 @@ export const AlertQuestionMessage: React.FC<AlertQuestionMessageProperties> = ({
     if (!canAnswer || isSubmitting) return;
     setIsSubmitting(true);
     setOptimisticSelection(optionLabel);
-    setOptimisticSelectionId(optionId ?? undefined);
 
     // We need to construct the new payload
     const newPayload = {
       ...payload,
       selectedOption: optionLabel,
-      // send the id when available so server can resolve branching
       selectedOptionId: optionId ?? undefined,
     };
 

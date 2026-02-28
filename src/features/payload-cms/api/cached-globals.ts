@@ -51,8 +51,6 @@ export const getSEOCached = cache(async (): Promise<SEO> => {
 
 /**
  * Fetches the Alert Settings global with request-level memoization.
- * Includes option ids and branching metadata (`nextQuestionKey`) so callers
- * can resolve conditional follow-ups without extra DB calls.
  */
 export const getAlertSettingsCached = cache(
   async (locale: Locale, draft: boolean = false): Promise<AlertSetting> => {

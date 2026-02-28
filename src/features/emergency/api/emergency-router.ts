@@ -37,7 +37,6 @@ const resolveEmergencyChatName = (locale: string, nickname: string): string => {
 
 export const emergencyRouter = createTRPCRouter({
   getAlertSettings: publicProcedure.query(async ({ ctx }) => {
-    // Use cached getter to ensure option ids and branching metadata are included
     return await getAlertSettingsCached(ctx.locale, false);
   }),
 
