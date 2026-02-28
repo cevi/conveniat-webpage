@@ -53,7 +53,7 @@ export const updateMessageContent = trpcBaseProcedure
     // Check if this was an alert question being answered
     if (
       message.type === MessageType.ALERT_QUESTION &&
-      (content['selectedOption'] || content['selectedOptionId'])
+      (content['selectedOption'])
     ) {
       const { getPayload } = await import('payload');
       const config = await import('@payload-config');
@@ -69,8 +69,13 @@ export const updateMessageContent = trpcBaseProcedure
       const currentQuestionIndex = questions.findIndex((q) => q.id === content['questionRefId']);
 
       if (currentQuestionIndex !== -1) {
-        const selectedOption = content['selectedOption'] as { nextQuestionKey: string };
-        const nextQuestionKeyFromOption = selectedOption.nextQuestionKey;
+
+        const currentQuestion = questions[currentQuestionIndex];
+
+        // map content.selectedOption back to the option object to find nextQuestionKey
+        const nextQuestionKeyFromOption = currentQuestion?.options?.find(
+          (opt) => opt.option === content['selectedOption'],
+        )?.nextQuestionKey;
 
         let nextQuestion;
         if (nextQuestionKeyFromOption) {
@@ -86,43 +91,43 @@ export const updateMessageContent = trpcBaseProcedure
         await prisma.message.create({
           data: nextQuestion
             ? {
-                chatId: message.chatId,
-                senderId: user.uuid,
-                type: MessageType.ALERT_QUESTION,
-                contentVersions: {
-                  create: {
-                    payload: {
-                      question: nextQuestion.question,
-                      options: nextQuestion.options
-                        .map((o) => o.option as string | undefined)
-                        .filter((o): o is string => o !== undefined),
-                      selectedOption: undefined,
-                      questionRefId: nextQuestion.id,
-                    },
-                    revision: 0,
+              chatId: message.chatId,
+              senderId: user.uuid,
+              type: MessageType.ALERT_QUESTION,
+              contentVersions: {
+                create: {
+                  payload: {
+                    question: nextQuestion.question,
+                    options: nextQuestion.options
+                      .map((o) => o.option as string | undefined)
+                      .filter((o): o is string => o !== undefined),
+                    selectedOption: undefined,
+                    questionRefId: nextQuestion.id,
                   },
-                },
-                messageEvents: {
-                  create: [{ type: 'STORED' }],
-                },
-              }
-            : {
-                chatId: message.chatId,
-                // senderId omitted (defaults to null/system)
-                type: MessageType.ALERT_RESPONSE,
-                contentVersions: {
-                  create: {
-                    payload: {
-                      message: alertSettings.finalResponseMessage,
-                      phoneNumber: alertSettings.emergencyPhoneNumber,
-                    },
-                    revision: 0,
-                  },
-                },
-                messageEvents: {
-                  create: [{ type: 'STORED' }],
+                  revision: 0,
                 },
               },
+              messageEvents: {
+                create: [{ type: 'STORED' }],
+              },
+            }
+            : {
+              chatId: message.chatId,
+              // senderId omitted (defaults to null/system)
+              type: MessageType.ALERT_RESPONSE,
+              contentVersions: {
+                create: {
+                  payload: {
+                    message: alertSettings.finalResponseMessage,
+                    phoneNumber: alertSettings.emergencyPhoneNumber,
+                  },
+                  revision: 0,
+                },
+              },
+              messageEvents: {
+                create: [{ type: 'STORED' }],
+              },
+            },
         });
       }
     }

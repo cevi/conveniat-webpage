@@ -2,7 +2,6 @@
 
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { SelectInput, useAllFormFields, useField, useLocale } from '@payloadcms/ui';
-import type { ReactSelectAdapterProps } from 'node_modules/@payloadcms/ui/dist/elements/ReactSelect/types';
 import type { TextFieldClientComponent } from 'payload';
 import { useEffect } from 'react';
 
@@ -36,8 +35,12 @@ const AlertSettingsKeyComponent: TextFieldClientComponent = ({ path }) => {
     }
   }, [questionKeys, value, setValue]);
 
-  const onChange: ReactSelectAdapterProps['onChange'] = (selectedOption) => {
-    setValue((selectedOption as { label: string; value: string }).value);
+  const onChange = (selectedOption: { value: unknown } | { value: unknown }[]) => {
+    if (Array.isArray(selectedOption)) {
+      setValue('');
+    } else {
+      setValue(selectedOption.value);
+    }
   };
 
   return (
