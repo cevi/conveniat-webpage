@@ -25,7 +25,12 @@ const AlertSettingsKeyComponent: TextFieldClientComponent = ({ path }) => {
         fieldName.split('.').length === 3,
     )
     .map(([, field]) => field.value)
-    .filter((questionKey): questionKey is string => typeof questionKey === 'string'); // filter not set
+    .filter((questionKey): questionKey is string => {
+      if (typeof questionKey !== 'string') {
+        return false;
+      }
+      return questionKey.trim().length > 0;
+    }); // filter out non-string and empty/whitespace-only keys
 
   useEffect(() => {
     // if questionKeys does not include the current value, reset it to empty string
