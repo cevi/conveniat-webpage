@@ -1,3 +1,4 @@
+import { cn } from '@/utils/tailwindcss-override';
 import React from 'react';
 
 export type WorkflowStatusType = 'empty' | 'pending' | 'success' | 'error';
@@ -76,7 +77,7 @@ export const WorkflowBadge: React.FC<{
   const countPrefix = count !== undefined && count > 0 ? `${String(count)} ` : '';
 
   return (
-    <span className={`${baseClasses} ${colorClasses}`} title={tooltip}>
+    <span className={cn(baseClasses, colorClasses)} title={tooltip}>
       {countPrefix}
       {prefix} {badgeSymbol}
     </span>
