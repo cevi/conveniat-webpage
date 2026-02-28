@@ -107,6 +107,24 @@ export const WORKFLOW_DEFINITIONS = {
         },
         required: false,
       },
+      {
+        key: 'abteilung',
+        label: {
+          en: 'Abteilung',
+          de: 'Abteilung',
+          fr: 'Abteilung',
+        },
+        required: false,
+      },
+      {
+        key: 'region',
+        label: {
+          en: 'Region',
+          de: 'Region',
+          fr: 'Région',
+        },
+        required: false,
+      },
     ],
   },
 };

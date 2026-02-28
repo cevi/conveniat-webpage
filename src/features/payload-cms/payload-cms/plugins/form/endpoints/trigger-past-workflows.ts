@@ -105,6 +105,7 @@ export const triggerPastWorkflowsHandler: PayloadHandler = async (request) => {
               input: {
                 ...inputData,
                 formSubmissionId: document_.id,
+                formName: form.title,
                 locale: 'en',
               },
             },

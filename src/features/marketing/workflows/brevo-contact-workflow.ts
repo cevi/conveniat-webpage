@@ -12,6 +12,7 @@ const BrevoContactWorkflowInputSchema = z.object({
     abteilung: z.string().optional(),
     region: z.string().optional(),
     formSubmissionId: z.string().optional(),
+    formName: z.string().optional(),
     locale: z.string().optional(),
   }),
 });
@@ -41,6 +42,8 @@ export const brevoContactWorkflow: WorkflowConfig<'brevoContactWorkflow'> = {
       if (workflowInput.phone) attributes['PHONE'] = workflowInput.phone;
       if (workflowInput.abteilung) attributes['ABTEILUNG'] = workflowInput.abteilung;
       if (workflowInput.region) attributes['REGION'] = workflowInput.region;
+      if (workflowInput.formSubmissionId) attributes['EXT_ID'] = workflowInput.formSubmissionId;
+      if (workflowInput.formName) attributes['WEBPAGE_FORM'] = workflowInput.formName;
 
       const response = await fetch('https://api.brevo.com/v3/contacts', {
         method: 'POST',

@@ -107,6 +107,7 @@ export const workflowTriggerOnFormSubmission: CollectionAfterChangeHook<FormSubm
           input: {
             ...inputData,
             formSubmissionId: doc.id,
+            formName: form.title,
             locale: req.locale ?? 'en',
           },
         },
