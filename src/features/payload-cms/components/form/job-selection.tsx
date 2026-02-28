@@ -138,7 +138,13 @@ const searchTitleText: StaticTranslationString = {
   fr: 'Rechercher',
 };
 
-const spotsLeftSuffix: StaticTranslationString = {
+const spotsLeftSuffixSingular: StaticTranslationString = {
+  de: 'Spot übrig',
+  en: 'Spot left',
+  fr: 'Place restante',
+};
+
+const spotsLeftSuffixPlural: StaticTranslationString = {
   de: 'Spots übrig',
   en: 'Spots left',
   fr: 'Places restantes',
@@ -424,7 +430,11 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
                                 job.availableQuota > 0 ? 'text-green-600' : 'text-red-600',
                               )}
                             >
-                              {`${job.availableQuota} ${spotsLeftSuffix[locale]}`}
+                              {`${job.availableQuota} ${
+                                job.availableQuota === 1
+                                  ? spotsLeftSuffixSingular[locale]
+                                  : spotsLeftSuffixPlural[locale]
+                              }`}
                             </span>
                           )}
                         </div>
