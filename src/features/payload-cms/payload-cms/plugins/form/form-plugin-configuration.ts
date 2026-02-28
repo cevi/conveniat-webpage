@@ -140,6 +140,7 @@ export const formPluginConfiguration = formBuilderPlugin({
     admin: {
       group: AdminPanelDashboardGroups.GlobalSettings,
       groupBy: true,
+      defaultColumns: ['id', 'form', 'createdAt', 'smtpResults', 'workflowResults'],
     },
     access: {
       read: canAccessAdminPanel,
