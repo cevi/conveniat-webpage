@@ -74,7 +74,7 @@ export const updateMessageContent = trpcBaseProcedure
         )?.nextQuestionKey;
 
         const nextQuestion =
-          questions.find((q) => q.key === nextQuestionKeyFromOption) ??
+          questions.find((q) => q.key != '' && q.key === nextQuestionKeyFromOption) ??
           questions[currentQuestionIndex + 1] ??
           undefined;
 
