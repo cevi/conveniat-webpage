@@ -174,6 +174,7 @@ export interface Config {
     };
     workflows: {
       registrationWorkflow: WorkflowRegistrationWorkflow;
+      brevoContactWorkflow: WorkflowBrevoContactWorkflow;
     };
   };
 }
@@ -2490,17 +2491,27 @@ export interface Form {
       }[]
     | null;
   /**
-   * Select workflows to trigger after form submission.
+   * Configure workflows to trigger after form submission.
    */
-  workflow?: 'registrationWorkflow'[] | null;
-  workflowMapping?:
+  configuredWorkflows?:
     | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
+        workflow: 'registrationWorkflow' | 'brevoContactWorkflow';
+        condition?: {
+          enabled?: boolean | null;
+          field?: string | null;
+          value?: string | null;
+        };
+        mapping?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        id?: string | null;
+      }[]
     | null;
   submissions?: {
     docs?: (string | FormSubmission)[];
@@ -2548,6 +2559,15 @@ export interface FormSubmission {
       }[]
     | null;
   smtpResults?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  workflowResults?:
     | {
         [k: string]: unknown;
       }
@@ -4915,7 +4935,7 @@ export interface PayloadJob {
         id?: string | null;
       }[]
     | null;
-  workflowSlug?: 'registrationWorkflow' | null;
+  workflowSlug?: ('registrationWorkflow' | 'brevoContactWorkflow') | null;
   taskSlug?:
     | (
         | 'inline'
@@ -6479,8 +6499,20 @@ export interface FormsSelect<T extends boolean = true> {
         message?: T;
         id?: T;
       };
-  workflow?: T;
-  workflowMapping?: T;
+  configuredWorkflows?:
+    | T
+    | {
+        workflow?: T;
+        condition?:
+          | T
+          | {
+              enabled?: T;
+              field?: T;
+              value?: T;
+            };
+        mapping?: T;
+        id?: T;
+      };
   submissions?: T;
   publishingStatus?: T;
   _localized_status?: T;
@@ -6506,6 +6538,7 @@ export interface FormSubmissionsSelect<T extends boolean = true> {
         id?: T;
       };
   smtpResults?: T;
+  workflowResults?: T;
   'helper-jobs'?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -7347,6 +7380,23 @@ export interface TaskCheckHitobitoApprovals {
  * via the `definition` "WorkflowRegistrationWorkflow".
  */
 export interface WorkflowRegistrationWorkflow {
+  input: {
+    input:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "WorkflowBrevoContactWorkflow".
+ */
+export interface WorkflowBrevoContactWorkflow {
   input: {
     input:
       | {

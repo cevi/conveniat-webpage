@@ -22,6 +22,7 @@ export const environmentVariables = createEnv({
     API_TOKEN: z.string().default(''),
     HELPER_GROUP: z.string().optional(),
     EVENT_ID: z.string().optional(),
+    BREVO_API_KEY: z.string().optional(),
     GROUPS_WITH_API_ACCESS: z.string().transform((value) =>
       value
         .split(',')
