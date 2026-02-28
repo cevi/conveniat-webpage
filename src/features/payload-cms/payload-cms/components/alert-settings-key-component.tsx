@@ -35,7 +35,7 @@ const AlertSettingsKeyComponent: TextFieldClientComponent = ({ path }) => {
     }
   }, [questionKeys, value, setValue]);
 
-  const onChange = (selectedOption: { value: unknown } | { value: unknown }[]) => {
+  const onChange = (selectedOption: { value: unknown } | { value: unknown }[]): void => {
     if (Array.isArray(selectedOption)) {
       setValue('');
     } else {
