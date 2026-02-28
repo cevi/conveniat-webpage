@@ -10,6 +10,7 @@ import type { FieldClientComponent } from 'payload';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { DynamicLucidIconRenderer } from '@/features/map/components/maplibre-renderer/dynamic-lucid-icon-renderer';
+import { formatHexColor } from '@/utils/format-hex-color';
 import { reactToDomElement } from '@/utils/react-to-dom-element';
 import { Hexagon, Trash2 } from 'lucide-react';
 
@@ -372,7 +373,7 @@ const MapPolygonField: FieldClientComponent = ({ path }) => {
     if (!mapReference.current || !mapLoaded) return;
     const map = mapReference.current;
 
-    const hexColor = (color?.startsWith('#') ?? false) ? color : `#${color}`;
+    const hexColor = formatHexColor(color);
     const activeColor = color ? hexColor : '#fbb03b';
     const inactiveColor = color ? hexColor : '#3bb2d0';
 
