@@ -44,16 +44,15 @@ export const AlertQuestionMessage: React.FC<AlertQuestionMessageProperties> = ({
     },
   });
 
-  const handleSelectOption = (optionLabel: string, optionId?: string | null): void => {
+  const handleSelectOption = (option: string): void => {
     if (!canAnswer || isSubmitting) return;
     setIsSubmitting(true);
-    setOptimisticSelection(optionLabel);
+    setOptimisticSelection(option);
 
     // We need to construct the new payload
     const newPayload = {
       ...payload,
-      selectedOption: optionLabel,
-      selectedOptionId: optionId ?? undefined,
+      selectedOption: option,
     };
 
     updateMessageContext.mutate({ messageId: message.id, content: newPayload });
@@ -63,16 +62,14 @@ export const AlertQuestionMessage: React.FC<AlertQuestionMessageProperties> = ({
     <div className="flex min-w-[200px] flex-col space-y-2.5 p-1">
       <h3 className="font-semibold text-[var(--theme-text)]">{payload.question}</h3>
       <div className="flex flex-col space-y-2">
-        {payload.options.map((opt) => {
-          const optionLabel = typeof opt === 'string' ? opt : opt.option;
-          const optionId = typeof opt === 'string' ? undefined : (opt.id ?? undefined);
-          const isSelected = currentSelection === optionLabel;
+        {payload.options.map((option) => {
+          const isSelected = currentSelection === option;
           const isSelectable = canAnswer;
 
           return (
             <button
-              key={optionId ?? optionLabel}
-              onClick={() => handleSelectOption(optionLabel, optionId)}
+              key={option}
+              onClick={() => handleSelectOption(option)}
               disabled={!isSelectable && !isSelected}
               className={cn(
                 'group flex items-center space-x-3 rounded-xl border-2 px-4 py-3 text-left transition-all duration-200',
@@ -105,7 +102,7 @@ export const AlertQuestionMessage: React.FC<AlertQuestionMessageProperties> = ({
                   <Circle className="h-0 w-0" />
                 </div>
               )}
-              <span className="text-sm font-medium">{optionLabel}</span>
+              <span className="text-sm font-medium">{option}</span>
             </button>
           );
         })}
