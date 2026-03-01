@@ -19,6 +19,17 @@ export interface UseFormStepsReturn {
   prev: (event?: React.MouseEvent) => void;
 }
 
+const scrollToTop = (formId?: string): void => {
+  if (typeof globalThis !== 'undefined') {
+    const element = formId ? document.querySelector(formId) : undefined;
+    if (element) {
+      // scroll to element - 60px to account for sticky nav
+      const topPos = element.getBoundingClientRect().top + window.pageYOffset - 100;
+      window.scrollTo({ top: topPos, behavior: 'smooth' });
+    }
+  }
+};
+
 export const useFormSteps = (
   sections: FormSection[],
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -96,6 +107,7 @@ export const useFormSteps = (
 
     if (isValid && !isLastStep) {
       setCurrentStepIndex((previous) => previous + 1);
+      scrollToTop(formId);
     }
     return isValid;
   };
@@ -105,6 +117,7 @@ export const useFormSteps = (
     if (!isFirstStep) {
       setCurrentStepIndex((previous_) => previous_ - 1);
     }
+    scrollToTop(formId);
   };
 
   return {

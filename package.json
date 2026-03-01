@@ -1,6 +1,6 @@
 {
   "name": "conveniat27",
-  "version": "0.42.1",
+  "version": "0.42.2",
   "description": "The official website of conveniat27",
   "license": "MIT",
   "author": "Cyrill Püntener v/o JPG (cyrill.puentener@cevi.ch)",
@@ -33,10 +33,10 @@
   },
   "lint-staged": {
     "**/package.json": "sort-package-json",
-    "*.{md,mdx,yml,json}": "prettier --write",
+    "*.{md,mdx,yml,json}": "prettier --config-path .prettierrc.json --write --cache --experimental-cli .",
     "*.{js,jsx,ts,tsx}": [
-      "prettier --write",
-      "eslint --cache --fix"
+      "prettier --config-path .prettierrc.json --write --cache --experimental-cli .",
+      "eslint -c eslint.config.mjs --fix --quiet --cache ."
     ]
   },
   "dependencies": {
