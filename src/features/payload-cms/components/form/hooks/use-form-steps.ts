@@ -23,7 +23,7 @@ const scrollToTop = (formId?: string): void => {
   if (typeof globalThis !== 'undefined') {
     const element = formId ? document.querySelector(`#${CSS.escape(formId)}`) : undefined;
     if (element) {
-      // scroll to element - 60px to account for sticky nav
+      // scroll to element - 100px to account for sticky nav
       const topPos = element.getBoundingClientRect().top + window.pageYOffset - 100;
       window.scrollTo({ top: topPos, behavior: 'smooth' });
     }
