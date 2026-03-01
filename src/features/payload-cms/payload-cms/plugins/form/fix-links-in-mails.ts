@@ -93,6 +93,10 @@ export const beforeEmailChangeHook: BeforeEmail = async (
     return '';
   };
 
+  let wildcardHtmlText = '';
+  let wildcardHtmlTable =
+    '<table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%;">';
+
   for (const item of submissionDataArray) {
     if (
       item !== null &&
@@ -101,9 +105,16 @@ export const beforeEmailChangeHook: BeforeEmail = async (
       typeof item.field === 'string' &&
       'value' in item
     ) {
-      submissionDict[item.field] = extractStringValue(item.value);
+      const stringValue = extractStringValue(item.value);
+      submissionDict[item.field] = stringValue;
+
+      const fieldName = escapeHTML(item.field);
+      const fieldValue = escapeHTML(stringValue).replaceAll('\n', '<br />');
+      wildcardHtmlText += `<strong>${fieldName}</strong>: ${fieldValue}<br />\n`;
+      wildcardHtmlTable += `<tr><td><strong>${fieldName}</strong></td><td>${fieldValue}</td></tr>\n`;
     }
   }
+  wildcardHtmlTable += '</table>';
 
   interface MinimalLexicalNode {
     type: string;
@@ -180,6 +191,10 @@ export const beforeEmailChangeHook: BeforeEmail = async (
         updatedHtml = updatedHtml.replace(idRegex, `href="${url}"`);
       }
     }
+
+    // Replace payloads wildcard variables
+    updatedHtml = updatedHtml.replaceAll('{{*}}', () => wildcardHtmlText);
+    updatedHtml = updatedHtml.replaceAll('{{*:table}}', () => wildcardHtmlTable);
 
     return {
       ...email,

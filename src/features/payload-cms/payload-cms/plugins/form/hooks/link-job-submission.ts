@@ -21,9 +21,9 @@ const selectedJobNotFoundMessage: StaticTranslationString = {
 };
 
 const noJobSelectedMessage: StaticTranslationString = {
-  en: 'no job selected',
-  de: 'kein Job ausgewählt',
-  fr: 'aucun job sélectionné',
+  en: '-',
+  de: '-',
+  fr: '-',
 };
 
 /**
