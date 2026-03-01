@@ -98,7 +98,9 @@ export const linkJobSubmission: CollectionBeforeChangeHook<FormSubmission> = asy
     return data;
   }
 
-  const submissionData = (data.submissionData as SubmissionField[] | undefined) ?? [];
+  const submissionData = Array.isArray(data.submissionData)
+    ? (data.submissionData as SubmissionField[])
+    : [];
 
   // If a job selection is within an optional block and not selected, its field
   // is completely missing from submissionData. Append missing fields as empty.
