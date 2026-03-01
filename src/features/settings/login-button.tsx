@@ -25,7 +25,7 @@ export const LoginButton: React.FC = () => {
           }
         })();
       }}
-      className="font-heading bg-conveniat-green mt-10 w-full rounded-[8px] px-8 py-3 text-center text-lg leading-normal font-bold text-green-100 duration-100 hover:bg-green-700"
+      className="font-heading bg-conveniat-green mt-10 w-full cursor-pointer rounded-[8px] px-8 py-3 text-center text-lg leading-normal font-bold text-green-100 duration-100 hover:bg-green-700"
     >
       {loginText[locale]}
     </button>
