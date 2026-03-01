@@ -137,18 +137,20 @@ const jobsConfig: JobsConfig = {
     checkHitobitoApprovalsTask,
   ],
   workflows: [registrationWorkflow, brevoContactWorkflow],
-  autoRun: [
-    {
-      cron: '*/10 * * * * *', // Every 10 seconds
-      limit: 10,
-      queue: 'workflows',
-    },
-    {
-      cron: '*/10 * * * * *', // Every 10 seconds
-      limit: 10,
-      queue: 'default',
-    },
-  ],
+  autoRun: env.FEATURE_ENABLE_WORKFLOWS
+    ? [
+        {
+          cron: '*/10 * * * * *', // Every 10 seconds
+          limit: 10,
+          queue: 'workflows',
+        },
+        {
+          cron: '*/10 * * * * *', // Every 10 seconds
+          limit: 10,
+          queue: 'default',
+        },
+      ]
+    : [],
 };
 
 export const payloadConfig: RoutableConfig = {
