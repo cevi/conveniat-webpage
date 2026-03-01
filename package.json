@@ -33,10 +33,10 @@
   },
   "lint-staged": {
     "**/package.json": "sort-package-json",
-    "*.{md,mdx,yml,json}": "prettier --write",
+    "*.{md,mdx,yml,json}": "prettier --config-path .prettierrc.json --write --cache --experimental-cli .",
     "*.{js,jsx,ts,tsx}": [
-      "prettier --write",
-      "eslint --cache --fix"
+      "prettier --config-path .prettierrc.json --write --cache --experimental-cli .",
+      "eslint -c eslint.config.mjs --fix --quiet --cache ."
     ]
   },
   "dependencies": {

@@ -20,11 +20,11 @@ export interface UseFormStepsReturn {
 }
 
 const scrollToTop = (formId?: string): void => {
-  if (typeof window !== 'undefined') {
-    const el = formId ? document.getElementById(formId) : null;
-    if (el) {
+  if (typeof globalThis !== 'undefined') {
+    const element = formId ? document.querySelector(formId) : undefined;
+    if (element) {
       // scroll to element - 60px to account for sticky nav
-      const topPos = el.getBoundingClientRect().top + window.pageYOffset - 100;
+      const topPos = element.getBoundingClientRect().top + window.pageYOffset - 100;
       window.scrollTo({ top: topPos, behavior: 'smooth' });
     }
   }
