@@ -32,7 +32,7 @@ const noJobSelectedMessage: StaticTranslationString = {
 const getJobSelectionBlockNames = (fields: unknown[] | null | undefined = []): string[] => {
   if (!fields || !Array.isArray(fields)) return [];
   return fields.reduce<string[]>((accumulator, field) => {
-    if (!field || typeof field !== 'object') return accumulator;
+    if (field === null || field === undefined || typeof field !== 'object') return accumulator;
     const f = field as { blockType?: string; name?: string; fields?: unknown[] | null };
 
     if (f.blockType === 'jobSelection' && typeof f.name === 'string') {
@@ -99,6 +99,17 @@ export const linkJobSubmission: CollectionBeforeChangeHook<FormSubmission> = asy
   }
 
   const submissionData = (data.submissionData as SubmissionField[] | undefined) ?? [];
+
+  // If a job selection is within an optional block and not selected, its field
+  // is completely missing from submissionData. Append missing fields as empty.
+  for (const blockName of blockNames) {
+    if (!submissionData.some((entry) => entry.field === blockName)) {
+      submissionData.push({ field: blockName, value: '' });
+    }
+  }
+
+  data.submissionData = submissionData as NonNullable<FormSubmission['submissionData']>;
+
   const entriesToProcess = submissionData.filter((entry) => blockNames.includes(entry.field));
 
   if (entriesToProcess.length === 0) {
