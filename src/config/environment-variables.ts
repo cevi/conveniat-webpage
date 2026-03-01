@@ -45,6 +45,10 @@ export const environmentVariables = createEnv({
     SMTP_PASS: z.string().optional(),
     VAPID_PRIVATE_KEY: z.string().min(5),
     FEATURE_ENABLE_APP_FEATURE: z.string().transform((value) => value === 'true'),
+    FEATURE_ENABLE_WORKFLOWS: z
+      .string()
+      .transform((value) => value === 'true')
+      .default('true'),
 
     // Map Config
     CAMP_MAP_INITIAL_ZOOM: z.coerce.number(),
