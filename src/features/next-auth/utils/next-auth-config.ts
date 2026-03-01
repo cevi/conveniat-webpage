@@ -46,6 +46,22 @@ declare module 'next-auth/jwt' {
   }
 }
 
+declare module 'next-auth' {
+  interface Session {
+    access_token?: string | undefined;
+    refresh_token?: string | undefined;
+    expires_at?: number | undefined;
+    user: {
+      id: string;
+      email: string;
+      emailVerified: Date | null;
+      uuid?: string;
+      group_ids: number[];
+      nickname?: string | null | undefined;
+    }
+  }
+}
+
 interface TokenResponse {
   access_token: string;
   token_type: string;
@@ -208,12 +224,13 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
       const payload = await getPayload({ config });
       const payloadCMSUser = await saveAndFetchUserFromPayload(payload, profile);
 
+      const expiresAt = Math.floor(Date.now() / 1000) + refreshedTokens.expires_in;
       return {
         ...token,
         access_token: refreshedTokens.access_token,
         // Fall back to old refresh token if new one is not returned
         refresh_token: refreshedTokens.refresh_token ?? token.refresh_token,
-        expires_at: Math.floor(Date.now() / 1000) + refreshedTokens.expires_in,
+        expires_at: expiresAt,
         // Update persisted user data
         uuid: payloadCMSUser.id,
         cevi_db_uuid: payloadCMSUser.cevi_db_uuid, // Update cevi_db_uuid
@@ -298,7 +315,7 @@ export const authOptions: NextAuthConfig = {
     // warning: these fields are also exposed to the client
     // The session callback is called whenever a session is checked.
     // By default, only a subset of the token is returned for increased security.
-    session({ session, token }) {
+    async session({ session, token }) {
       session.user = {
         ...session.user,
         uuid: token.uuid,
@@ -308,6 +325,11 @@ export const authOptions: NextAuthConfig = {
         firstName: token.firstName,
         lastName: token.lastName,
       };
+
+      session.access_token = token.access_token;
+      session.refresh_token = token.refresh_token;
+      session.expires_at = token.expires_at;
+
       return session;
     },
 
@@ -345,7 +367,7 @@ export const authOptions: NextAuthConfig = {
       // Return previous token if the access token has not expired yet
       // buffer time of 10s
       const expiresAt = token.expires_at as number;
-      if (Date.now() < expiresAt * 1000 - 10_000) {
+      if (expiresAt && Date.now() < expiresAt * 1000 - 10 * 1000) {
         return token;
       }
 
