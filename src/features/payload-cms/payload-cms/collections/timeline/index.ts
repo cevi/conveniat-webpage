@@ -1,5 +1,6 @@
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { instagramEmbedBlock } from '@/features/payload-cms/payload-cms/shared-blocks/instagram-embed-block';
+import { newsCardBlock } from '@/features/payload-cms/payload-cms/shared-blocks/news-card-block';
 import { richTextArticleBlock } from '@/features/payload-cms/payload-cms/shared-blocks/rich-text-article-block';
 import { singlePictureBlock } from '@/features/payload-cms/payload-cms/shared-blocks/single-picture-block';
 import { internalAuthorsField } from '@/features/payload-cms/payload-cms/shared-fields/internal-authors-field';
@@ -139,7 +140,7 @@ export const TimelineCollection: CollectionConfig = asLocalizedCollection({
           fr: 'Le contenu principal de la page',
         },
       },
-      blocks: [richTextArticleBlock, singlePictureBlock, instagramEmbedBlock],
+      blocks: [richTextArticleBlock, singlePictureBlock, instagramEmbedBlock, newsCardBlock],
     },
     {
       name: 'categories',
