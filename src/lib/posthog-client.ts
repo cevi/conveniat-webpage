@@ -1,4 +1,5 @@
 import { environmentVariables } from '@/config/environment-variables';
+import { filterPostHogNoise } from '@/utils/posthog-filters';
 import type { PostHog } from 'posthog-js';
 import posthog from 'posthog-js/dist/module.full';
 
@@ -32,6 +33,7 @@ export const initPostHog = (instance: any = posthog): PostHog | undefined => {
       capture_pageview: false, // We capture pageviews manually
       capture_pageleave: true, // Enable pageleave capture
       disable_session_recording: false, // Ensure session recording is enabled
+      before_send: filterPostHogNoise,
     });
     isInitialized = true;
   }
