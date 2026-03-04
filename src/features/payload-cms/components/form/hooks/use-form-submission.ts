@@ -168,7 +168,7 @@ export const useFormSubmission = ({
                   break;
                 }
               }
-              capturedErrors.push(`${error.field}: ${message}`);
+              capturedErrors.push(`${error.field}: ${error.message}`);
               setError(error.field, { type: 'server', message });
             }
 
@@ -216,16 +216,24 @@ export const useFormSubmission = ({
         sessionStorage.removeItem(getFormStorageKey(formId, 'step'));
       }
 
-      if (config.confirmationType === 'redirect' && config.redirect?.url) {
+      if (
+        config.confirmationType === 'redirect' &&
+        typeof config.redirect?.url === 'string' &&
+        config.redirect.url.length > 0
+      ) {
         router.push(config.redirect.url);
       }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
+    } catch (error: unknown) {
       setStatus('error');
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      const message = (error.message as string) || 'Submission failed';
+      const message =
+        error instanceof Error && error.message.length > 0 ? error.message : 'Submission failed';
 
-      if (message.includes('initializing Payload')) {
+      const isFieldValidationError = Object.values(correctHighlightedErrorsText).includes(message);
+
+      if (isFieldValidationError) {
+        // Validation errors are already captured prior to throwing this error
+        setErrorMessage(message);
+      } else if (message.includes('initializing Payload')) {
         posthog.capture('form_submission_error', {
           error_type: 'payload_initialization',
           form_id: formId,

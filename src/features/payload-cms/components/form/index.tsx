@@ -27,6 +27,15 @@ import type { ConditionedBlock, FormBlockType } from '@/features/payload-cms/com
 import { getFormStorageKey } from '@/features/payload-cms/components/form/utils/get-form-storage-key';
 export type { FormBlockType } from '@/features/payload-cms/components/form/types';
 
+const formatFieldErrors = (errors: FieldErrors): string => {
+  return Object.entries(errors)
+    .map(([field, error]) => {
+      const message = error?.message as string | undefined;
+      return typeof message === 'string' && message.length > 0 ? `${field}: ${message}` : field;
+    })
+    .join(', ');
+};
+
 export const FormBlock: React.FC<
   FormBlockType & { isPreviewMode?: boolean; withBorder?: boolean }
 > = ({ form: config, isPreviewMode, withBorder = true }) => {
@@ -151,13 +160,9 @@ export const FormBlock: React.FC<
   const isDualCardLayout = isSplit && shouldRenderMain;
 
   const onInvalid = (errors: FieldErrors): void => {
-    const errorMessages = Object.entries(errors)
-      .map(([field, error]) => `${field}: ${error?.message as string | undefined}`)
-      .join(', ');
-
     posthog.capture('form_validation_failed', {
       form_id: config.id,
-      error_message: errorMessages,
+      error_message: formatFieldErrors(errors),
       source: 'client_final_step',
     });
   };
@@ -169,14 +174,9 @@ export const FormBlock: React.FC<
     } else {
       void next().then((isValid) => {
         if (!isValid) {
-          const errors = formMethods.formState.errors;
-          const errorMessages = Object.entries(errors)
-            .map(([field, error]) => `${field}: ${error?.message as string | undefined}`)
-            .join(', ');
-
           posthog.capture('form_validation_failed', {
             form_id: config.id,
-            error_message: errorMessages,
+            error_message: formatFieldErrors(formMethods.formState.errors),
             source: 'client_step_transition',
             step: currentStepIndex,
           });
