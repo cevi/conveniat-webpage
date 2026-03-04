@@ -8,6 +8,7 @@ import {
 } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import type { Image } from '@/features/payload-cms/payload-types';
 import type { Locale } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import { RichText } from '@payloadcms/richtext-lexical/react';
 import ImageNode from 'next/image';
@@ -37,13 +38,17 @@ export const NewsCardBlock: React.FC<NewsCardType> = ({
 }) => {
   const newsCardContent = (
     <div
-      className={`flex basis-1 flex-col rounded-md border-2 border-gray-200 bg-white transition duration-200 hover:shadow-md ${
-        isSmall ? 'p-4 lg:max-w-64' : 'p-6 lg:max-w-96'
-      }`}
+      className={cn(
+        'flex basis-1 flex-col rounded-md border-2 border-gray-200 bg-white transition duration-200 hover:shadow-md',
+        isSmall ? 'p-4 lg:max-w-64' : 'p-6 lg:max-w-96',
+      )}
     >
       <div>
         <span
-          className={`font-body font-bold text-gray-500 ${isSmall ? 'text-[10px]' : 'text-[12px]'}`}
+          className={cn(
+            'font-body font-bold text-gray-500',
+            isSmall ? 'text-[10px]' : 'text-[12px]',
+          )}
         >
           {new Date(date).toLocaleDateString(locale, {
             weekday: 'long',
@@ -54,9 +59,10 @@ export const NewsCardBlock: React.FC<NewsCardType> = ({
           })}
         </span>
         <h4
-          className={`font-heading text-conveniat-green mb-6 line-clamp-3 min-h-6 font-extrabold text-ellipsis ${
-            isSmall ? 'text-sm' : 'text-base'
-          }`}
+          className={cn(
+            'font-heading text-conveniat-green mb-6 line-clamp-3 min-h-6 font-extrabold text-ellipsis',
+            isSmall ? 'text-sm' : 'text-base',
+          )}
         >
           {headline}
         </h4>
