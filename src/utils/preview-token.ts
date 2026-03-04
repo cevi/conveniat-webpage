@@ -1,7 +1,15 @@
 'use server';
 
 import { environmentVariables } from '@/config/environment-variables';
+import { i18nConfig } from '@/types/types';
 import * as jwt from 'jsonwebtoken';
+
+export const stripDefaultLocale = (u: string): string => {
+  const defaultLocalePrefix = `/${i18nConfig.defaultLocale}`;
+  if (u === defaultLocalePrefix) return '/';
+  if (u.startsWith(`${defaultLocalePrefix}/`)) return u.slice(defaultLocalePrefix.length);
+  return u;
+};
 
 export const generatePreviewToken = async (
   url: string,
@@ -19,13 +27,7 @@ export const isPreviewTokenValid = async (url: string, token: string): Promise<b
     try {
       const decoded = jwt.verify(token, JWT_SECRET_KEY) as unknown as { url: string };
 
-      const normalizeUrl = (u: string): string => {
-        if (u === '/de') return '/';
-        if (u.startsWith('/de/')) return u.slice(3);
-        return u;
-      };
-
-      return resolve(normalizeUrl(decoded.url) === normalizeUrl(url));
+      return resolve(stripDefaultLocale(decoded.url) === stripDefaultLocale(url));
     } catch {
       return resolve(false);
     }
