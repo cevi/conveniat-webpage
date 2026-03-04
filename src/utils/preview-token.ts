@@ -18,7 +18,14 @@ export const isPreviewTokenValid = async (url: string, token: string): Promise<b
 
     try {
       const decoded = jwt.verify(token, JWT_SECRET_KEY) as unknown as { url: string };
-      return resolve(decoded.url == url);
+
+      const normalizeUrl = (u: string): string => {
+        if (u === '/de') return '/';
+        if (u.startsWith('/de/')) return u.slice(3);
+        return u;
+      };
+
+      return resolve(normalizeUrl(decoded.url) === normalizeUrl(url));
     } catch {
       return resolve(false);
     }
