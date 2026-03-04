@@ -13,7 +13,7 @@ const noiseMessages = [
   'Invalid call to runtime.sendMessage(). Tab not found.',
 
   // see: https://github.com/cevi/conveniat-webpage/issues/927
-  // his is a known signature of the Bitwarden password manager extension failing to communicate internally.
+  // This is a known signature of the Bitwarden password manager extension failing to communicate internally.
   'Unhandled error response received for message <get-frame-manager-configuration>',
 
   // see: https://github.com/cevi/conveniat-webpage/issues/927
