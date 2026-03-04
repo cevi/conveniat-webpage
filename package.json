@@ -125,7 +125,7 @@
     "next-devtools-mcp": "^0.3.10",
     "next-i18n-router": "^5.5.6",
     "node-pop3": "^0.11.0",
-    "payload": "^3.78.0",
+    "payload": "^3.79.0",
     "posthog-js": "^1.356.1",
     "posthog-node": "^4.18.0",
     "qs-esm": "^7.0.3",
