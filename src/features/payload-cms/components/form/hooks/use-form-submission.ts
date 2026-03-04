@@ -139,6 +139,7 @@ export const useFormSubmission = ({
         if (errorData.errors?.[0]?.data && Array.isArray(errorData.errors[0].data)) {
           const fieldErrors = errorData.errors[0].data;
           if (setError) {
+            const capturedErrors: string[] = [];
             for (const error of fieldErrors) {
               let message = error.message;
               switch (message) {
@@ -167,8 +168,15 @@ export const useFormSubmission = ({
                   break;
                 }
               }
+              capturedErrors.push(`${error.field}: ${message}`);
               setError(error.field, { type: 'server', message });
             }
+
+            posthog.capture('form_validation_failed', {
+              form_id: formId,
+              error_message: capturedErrors.join(', '),
+              source: 'server',
+            });
 
             // Navigate to the step containing the first errored field
             if (formSections && setCurrentStepIndex && fieldErrors.length > 0) {
@@ -225,6 +233,11 @@ export const useFormSubmission = ({
         });
         setErrorMessage(failedToSubmitText[locale]);
       } else {
+        posthog.capture('form_submission_error', {
+          error_type: 'submission_failed',
+          form_id: formId,
+          error_message: message,
+        });
         setErrorMessage(message);
       }
     }
