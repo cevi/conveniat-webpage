@@ -167,21 +167,24 @@ export const FormBlock: React.FC<
     });
   };
 
+  const handleNext = async (): Promise<void> => {
+    const isValid = await next();
+    if (!isValid) {
+      posthog.capture('form_validation_failed', {
+        form_id: config.id,
+        error_message: formatFieldErrors(formMethods.formState.errors),
+        source: 'client_step_transition',
+        step: currentStepIndex,
+      });
+    }
+  };
+
   const handleSubmit = (event: React.FormEvent): void => {
     event.preventDefault();
     if (isLastStep) {
       void formMethods.handleSubmit(submit, onInvalid)(event);
     } else {
-      void next().then((isValid) => {
-        if (!isValid) {
-          posthog.capture('form_validation_failed', {
-            form_id: config.id,
-            error_message: formatFieldErrors(formMethods.formState.errors),
-            source: 'client_step_transition',
-            step: currentStepIndex,
-          });
-        }
-      });
+      void handleNext();
     }
   };
 
@@ -259,7 +262,7 @@ export const FormBlock: React.FC<
                         isLast={isLastStep}
                         isSubmitting={status === 'loading'}
                         // eslint-disable-next-line @typescript-eslint/no-misused-promises
-                        onNext={next}
+                        onNext={handleNext}
                         onPrev={prev}
                         submitLabel={config.submitButtonLabel ?? ''}
                         formId={config.id}
@@ -291,7 +294,7 @@ export const FormBlock: React.FC<
                           isLast={isLastStep}
                           isSubmitting={status === 'loading'}
                           // eslint-disable-next-line @typescript-eslint/no-misused-promises
-                          onNext={next}
+                          onNext={handleNext}
                           onPrev={prev}
                           submitLabel={config.submitButtonLabel ?? ''}
                           formId={config.id}
