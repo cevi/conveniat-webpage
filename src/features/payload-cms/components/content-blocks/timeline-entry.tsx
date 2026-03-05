@@ -50,7 +50,11 @@ export const TimelineEntry: React.FC<{
         <SubheadingH2 className="text-md m-0 mt-[-8]">{timeline.title}</SubheadingH2>
 
         <PageSectionsConverter
-          blocks={timeline.mainContent as unknown as ContentBlock[]}
+          blocks={
+            timeline.mainContent?.map((block) =>
+              block.blockType === 'newsCard' ? { ...block, isSmall: true } : block,
+            ) as unknown as ContentBlock[]
+          }
           locale={locale}
           sectionClassName="mt-2"
           sectionOverrides={{

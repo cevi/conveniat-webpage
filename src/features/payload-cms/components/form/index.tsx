@@ -4,8 +4,15 @@ import type { Locale } from '@/types/types'; // Import Locale
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { useCurrentLocale } from 'next-i18n-router/client';
+import { usePostHog } from 'posthog-js/react';
 import React, { useEffect, useMemo } from 'react';
-import { FormProvider, useForm, useWatch, type FieldValues } from 'react-hook-form';
+import {
+  FormProvider,
+  useForm,
+  useWatch,
+  type FieldErrors,
+  type FieldValues,
+} from 'react-hook-form';
 
 // Custom Hooks & Components
 import { buildEmptyFormState } from '@/features/payload-cms/components/form/build-initial-form-state';
@@ -20,11 +27,21 @@ import type { ConditionedBlock, FormBlockType } from '@/features/payload-cms/com
 import { getFormStorageKey } from '@/features/payload-cms/components/form/utils/get-form-storage-key';
 export type { FormBlockType } from '@/features/payload-cms/components/form/types';
 
+const formatFieldErrors = (errors: FieldErrors): string => {
+  return Object.entries(errors)
+    .map(([field, error]) => {
+      const message = error?.message as string | undefined;
+      return typeof message === 'string' && message.length > 0 ? `${field}: ${message}` : field;
+    })
+    .join(', ');
+};
+
 export const FormBlock: React.FC<
   FormBlockType & { isPreviewMode?: boolean; withBorder?: boolean }
 > = ({ form: config, isPreviewMode, withBorder = true }) => {
   const currentLocale = useCurrentLocale(i18nConfig);
   const locale = (currentLocale ?? 'en') as Locale;
+  const posthog = usePostHog();
 
   // 1. Initialize Form
   const formMethods = useForm<FieldValues>({
@@ -142,12 +159,32 @@ export const FormBlock: React.FC<
   // Layout-based styles
   const isDualCardLayout = isSplit && shouldRenderMain;
 
+  const onInvalid = (errors: FieldErrors): void => {
+    posthog.capture('form_validation_failed', {
+      form_id: config.id,
+      error_message: formatFieldErrors(errors),
+      source: 'client_final_step',
+    });
+  };
+
+  const handleNext = async (): Promise<void> => {
+    const isValid = await next();
+    if (!isValid) {
+      posthog.capture('form_validation_failed', {
+        form_id: config.id,
+        error_message: formatFieldErrors(formMethods.formState.errors),
+        source: 'client_step_transition',
+        step: currentStepIndex,
+      });
+    }
+  };
+
   const handleSubmit = (event: React.FormEvent): void => {
     event.preventDefault();
     if (isLastStep) {
-      void formMethods.handleSubmit(submit)(event);
+      void formMethods.handleSubmit(submit, onInvalid)(event);
     } else {
-      void next();
+      void handleNext();
     }
   };
 
@@ -225,7 +262,7 @@ export const FormBlock: React.FC<
                         isLast={isLastStep}
                         isSubmitting={status === 'loading'}
                         // eslint-disable-next-line @typescript-eslint/no-misused-promises
-                        onNext={next}
+                        onNext={handleNext}
                         onPrev={prev}
                         submitLabel={config.submitButtonLabel ?? ''}
                         formId={config.id}
@@ -257,7 +294,7 @@ export const FormBlock: React.FC<
                           isLast={isLastStep}
                           isSubmitting={status === 'loading'}
                           // eslint-disable-next-line @typescript-eslint/no-misused-promises
-                          onNext={next}
+                          onNext={handleNext}
                           onPrev={prev}
                           submitLabel={config.submitButtonLabel ?? ''}
                           formId={config.id}

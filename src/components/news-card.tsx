@@ -8,6 +8,7 @@ import {
 } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import type { Image } from '@/features/payload-cms/payload-types';
 import type { Locale } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import { RichText } from '@payloadcms/richtext-lexical/react';
 import ImageNode from 'next/image';
@@ -22,6 +23,7 @@ export interface NewsCardType {
   image?: Image;
   paragraph?: SerializedEditorState;
   locale: Locale;
+  isSmall?: boolean;
 }
 
 export const NewsCardBlock: React.FC<NewsCardType> = ({
@@ -32,11 +34,22 @@ export const NewsCardBlock: React.FC<NewsCardType> = ({
   image,
   paragraph,
   locale,
+  isSmall = false,
 }) => {
   const newsCardContent = (
-    <div className="flex basis-1 flex-col rounded-md border-2 border-gray-200 bg-white p-6 transition duration-200 hover:shadow-md lg:max-w-96">
+    <div
+      className={cn(
+        'flex basis-1 flex-col rounded-md border-2 border-gray-200 bg-white transition duration-200 hover:shadow-md',
+        isSmall ? 'p-4 lg:max-w-64' : 'p-6 lg:max-w-96',
+      )}
+    >
       <div>
-        <span className="font-body text-[12px] font-bold text-gray-500">
+        <span
+          className={cn(
+            'font-body font-bold text-gray-500',
+            isSmall ? 'text-[10px]' : 'text-[12px]',
+          )}
+        >
           {new Date(date).toLocaleDateString(locale, {
             weekday: 'long',
             year: 'numeric',
@@ -45,7 +58,12 @@ export const NewsCardBlock: React.FC<NewsCardType> = ({
             timeZone: 'Europe/Zurich',
           })}
         </span>
-        <h4 className="font-heading text-conveniat-green mb-6 line-clamp-3 min-h-6 text-base font-extrabold text-ellipsis">
+        <h4
+          className={cn(
+            'font-heading text-conveniat-green mb-6 line-clamp-3 min-h-6 font-extrabold text-ellipsis',
+            isSmall ? 'text-sm' : 'text-base',
+          )}
+        >
           {headline}
         </h4>
       </div>

@@ -1,6 +1,7 @@
 'use server';
 
 import { environmentVariables } from '@/config/environment-variables';
+import { stripDefaultLocale } from '@/utils/url-helpers';
 import * as jwt from 'jsonwebtoken';
 
 export const generatePreviewToken = async (
@@ -18,7 +19,7 @@ export const isPreviewTokenValid = async (url: string, token: string): Promise<b
 
     try {
       const decoded = jwt.verify(token, JWT_SECRET_KEY) as unknown as { url: string };
-      return resolve(decoded.url == url);
+      return resolve(stripDefaultLocale(decoded.url) === stripDefaultLocale(url));
     } catch {
       return resolve(false);
     }

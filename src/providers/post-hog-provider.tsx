@@ -1,6 +1,7 @@
 'use client';
 
 import { environmentVariables } from '@/config/environment-variables';
+import { filterPostHogNoise } from '@/utils/posthog-filters';
 import { usePathname, useSearchParams } from 'next/navigation';
 import posthog from 'posthog-js';
 import { PostHogProvider as ReactPostHogProvider, usePostHog } from 'posthog-js/react';
@@ -90,6 +91,9 @@ export const PostHogProvider: React.FC<{ children: React.ReactNode }> = ({ child
         person_profiles: 'identified_only',
         capture_pageview: false, // page views are captured manually
         capture_pageleave: true,
+        // filter out known noise like CefSharp bot errors (e.g., from Outlook Safe Links)
+        // see: https://github.com/cevi/conveniat-webpage/issues/1013
+        before_send: filterPostHogNoise,
       });
     }
 

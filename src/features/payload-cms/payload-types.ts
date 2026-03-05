@@ -3480,6 +3480,59 @@ export interface Timeline {
             blockType: 'singlePicture';
           }
         | InstagramEmbedding
+        | {
+            linkField?: {
+              type?: ('reference' | 'custom') | null;
+              reference?:
+                | ({
+                    relationTo: 'blog';
+                    value: string | Blog;
+                  } | null)
+                | ({
+                    relationTo: 'generic-page';
+                    value: string | GenericPage;
+                  } | null)
+                | ({
+                    relationTo: 'images';
+                    value: string | Image;
+                  } | null)
+                | ({
+                    relationTo: 'documents';
+                    value: string | Document;
+                  } | null)
+                | ({
+                    relationTo: 'camp-map-annotations';
+                    value: string | CampMapAnnotation;
+                  } | null)
+                | ({
+                    relationTo: 'camp-schedule-entry';
+                    value: string | CampScheduleEntry;
+                  } | null);
+              url?: string | null;
+              openInNewTab?: boolean | null;
+            };
+            headline: string;
+            date: string;
+            image?: (string | null) | Image;
+            paragraph?: {
+              root: {
+                type: string;
+                children: {
+                  type: any;
+                  version: number;
+                  [k: string]: unknown;
+                }[];
+                direction: ('ltr' | 'rtl') | null;
+                format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                indent: number;
+                version: number;
+              };
+              [k: string]: unknown;
+            } | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'newsCard';
+          }
       )[]
     | null;
   categories?: (string | TimelineCategory)[] | null;
@@ -5809,6 +5862,24 @@ export interface TimelineSelect<T extends boolean = true> {
               blockName?: T;
             };
         instagramEmbed?: T | InstagramEmbeddingSelect<T>;
+        newsCard?:
+          | T
+          | {
+              linkField?:
+                | T
+                | {
+                    type?: T;
+                    reference?: T;
+                    url?: T;
+                    openInNewTab?: T;
+                  };
+              headline?: T;
+              date?: T;
+              image?: T;
+              paragraph?: T;
+              id?: T;
+              blockName?: T;
+            };
       };
   categories?: T;
   lastEditedByUser?: T;

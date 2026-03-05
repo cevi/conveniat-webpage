@@ -139,6 +139,7 @@ export const useFormSubmission = ({
         if (errorData.errors?.[0]?.data && Array.isArray(errorData.errors[0].data)) {
           const fieldErrors = errorData.errors[0].data;
           if (setError) {
+            const capturedErrors: string[] = [];
             for (const error of fieldErrors) {
               let message = error.message;
               switch (message) {
@@ -167,8 +168,15 @@ export const useFormSubmission = ({
                   break;
                 }
               }
+              capturedErrors.push(`${error.field}: ${error.message}`);
               setError(error.field, { type: 'server', message });
             }
+
+            posthog.capture('form_validation_failed', {
+              form_id: formId,
+              error_message: capturedErrors.join(', '),
+              source: 'server',
+            });
 
             // Navigate to the step containing the first errored field
             if (formSections && setCurrentStepIndex && fieldErrors.length > 0) {
@@ -208,16 +216,24 @@ export const useFormSubmission = ({
         sessionStorage.removeItem(getFormStorageKey(formId, 'step'));
       }
 
-      if (config.confirmationType === 'redirect' && config.redirect?.url) {
+      if (
+        config.confirmationType === 'redirect' &&
+        typeof config.redirect?.url === 'string' &&
+        config.redirect.url.length > 0
+      ) {
         router.push(config.redirect.url);
       }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
+    } catch (error: unknown) {
       setStatus('error');
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      const message = (error.message as string) || 'Submission failed';
+      const message =
+        error instanceof Error && error.message.length > 0 ? error.message : 'Submission failed';
 
-      if (message.includes('initializing Payload')) {
+      const isFieldValidationError = Object.values(correctHighlightedErrorsText).includes(message);
+
+      if (isFieldValidationError) {
+        // Validation errors are already captured prior to throwing this error
+        setErrorMessage(message);
+      } else if (message.includes('initializing Payload')) {
         posthog.capture('form_submission_error', {
           error_type: 'payload_initialization',
           form_id: formId,
@@ -225,6 +241,11 @@ export const useFormSubmission = ({
         });
         setErrorMessage(failedToSubmitText[locale]);
       } else {
+        posthog.capture('form_submission_error', {
+          error_type: 'submission_failed',
+          form_id: formId,
+          error_message: message,
+        });
         setErrorMessage(message);
       }
     }

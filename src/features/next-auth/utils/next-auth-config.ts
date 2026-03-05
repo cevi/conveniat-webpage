@@ -204,8 +204,7 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
       // Update the user in Payload CMS with the new groups
       // async loading of payload configuration (to avoid circular dependency)
       const config = await import('@payload-config');
-      // @ts-ignore
-      const payload = await getPayload({ config });
+      const payload = await getPayload({ config: config.default });
       const payloadCMSUser = await saveAndFetchUserFromPayload(payload, profile);
 
       return {
@@ -317,10 +316,8 @@ export const authOptions: NextAuthConfig = {
       if (account && _profile) {
         const profile = _profile as unknown as HitobitoProfile;
 
-        // async loading of payload configuration (to avoid circular dependency)
         const config = await import('@payload-config');
-        // @ts-ignore
-        const payload = await getPayload({ config });
+        const payload = await getPayload({ config: config.default });
         const payloadCMSUser = await saveAndFetchUserFromPayload(payload, profile);
 
         return {

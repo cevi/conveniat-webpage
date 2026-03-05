@@ -28,6 +28,16 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
         });
       }
     } catch (error: unknown) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'status' in error &&
+        error.status === 404
+      ) {
+        // Job was likely already deleted by another instance
+        return;
+      }
+
       req.payload.logger.error({
         err: error instanceof Error ? error : new Error(String(error)),
         msg: `Failed to auto-delete completed fetchSmtpBounces job: ${String(job.id)}`,
