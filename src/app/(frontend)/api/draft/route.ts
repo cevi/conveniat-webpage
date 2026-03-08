@@ -1,4 +1,4 @@
-import { canUserAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
+import { hasAccessToThisUser, Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { auth } from '@/utils/auth';
 import { isValidNextAuthUser } from '@/utils/auth-helpers';
 import { isPreviewTokenValid } from '@/utils/preview-token';
@@ -60,8 +60,9 @@ const GET = async (request: Request): Promise<Response> => {
     if (!user) return new Response('No valid user found!', { status: 401 });
 
     // check if user has permissions to access the admin panel
-    const hasPermissionsForPreview = await canUserAccessAdminPanel({
+    const hasPermissionsForPreview = await hasAccessToThisUser({
       user: user,
+      requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam],
     });
     if (!hasPermissionsForPreview)
       return new Response(

@@ -1,9 +1,9 @@
 import {
   ChatCapability,
   ChatStatus,
+  getStatusFromMessageEvents,
   SYSTEM_SENDER_ID,
   USER_RELEVANT_MESSAGE_EVENTS,
-  getStatusFromMessageEvents,
 } from '@/lib/chat-shared';
 import { FEATURE_FLAG_SEND_MESSAGES } from '@/lib/feature-flags';
 // eslint-disable-next-line import/no-restricted-paths
@@ -12,7 +12,7 @@ import { getMessagePreviewText } from '@/features/chat/api/utils/get-message-pre
 import { resolveChatName } from '@/features/chat/api/utils/resolve-chat-name';
 // eslint-disable-next-line import/no-restricted-paths
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
-import { canUserAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
+import { hasAccessToThisUser, Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { getFeatureFlag, setFeatureFlag } from '@/lib/db/redis';
 import {
   ChatMembershipPermission,
@@ -29,7 +29,10 @@ import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
 const adminProcedure = trpcBaseProcedure.use(async ({ ctx, next }) => {
-  const hasAccess = await canUserAccessAdminPanel({ user: ctx.user });
+  const hasAccess = await hasAccessToThisUser({
+    user: ctx.user,
+    requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam],
+  });
   if (!hasAccess) {
     throw new TRPCError({ code: 'FORBIDDEN' });
   }

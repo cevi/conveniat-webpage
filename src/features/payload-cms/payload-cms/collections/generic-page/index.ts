@@ -1,4 +1,6 @@
+import { ProgramTeamAccessForGenericPage } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
+import { AllowsEditsByUserField } from '@/features/payload-cms/payload-cms/shared-fields/allows-edits-by-user-field';
 import { internalAuthorsField } from '@/features/payload-cms/payload-cms/shared-fields/internal-authors-field';
 import { internalPageNameField } from '@/features/payload-cms/payload-cms/shared-fields/internal-page-name-field';
 import { internalStatusField } from '@/features/payload-cms/payload-cms/shared-fields/internal-status-field';
@@ -50,6 +52,13 @@ export const GenericPage: CollectionConfig = asLocalizedCollection({
       limits: [10, 20, 50],
     },
   },
+
+  access: {
+    read: ProgramTeamAccessForGenericPage,
+    update: ProgramTeamAccessForGenericPage,
+    // do we need readVersions?
+  },
+
   fields: [
     internalPageNameField,
     internalAuthorsField,
@@ -70,5 +79,6 @@ export const GenericPage: CollectionConfig = asLocalizedCollection({
       ],
     },
     LastEditedByUserField,
+    AllowsEditsByUserField,
   ],
 });

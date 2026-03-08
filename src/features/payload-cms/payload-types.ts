@@ -3226,6 +3226,7 @@ export interface GenericPage {
     keywords?: string | null;
   };
   lastEditedByUser?: (string | null) | User;
+  allowsEditsByUser?: (string | User)[] | null;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -5824,6 +5825,7 @@ export interface GenericPageSelect<T extends boolean = true> {
         keywords?: T;
       };
   lastEditedByUser?: T;
+  allowsEditsByUser?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;

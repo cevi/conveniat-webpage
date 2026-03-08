@@ -1,5 +1,5 @@
 import { PreviewModeBanner } from '@/components/header/preview-mode-banner';
-import { canUserAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
+import { hasAccessToThisUser, Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { isValidNextAuthUser } from '@/utils/auth-helpers';
 import { cookies } from 'next/headers';
 import React from 'react';
@@ -26,8 +26,12 @@ export const PreviewModeBannerServerComponent: React.FC = async () => {
   const serverCookies = await cookies();
   const previewModeActive = serverCookies.get('__prerender_bypass')?.value !== undefined;
 
-  const canAccessAdminDashboard = await canUserAccessAdminPanel({
-    user: isValidNextAuthUser(session?.user) ? session.user : undefined,
+  // TODO: for ProgramTeam, do they get access to the preview?
+  const canAccessAdminDashboard = await hasAccessToThisUser({
+    user: isValidNextAuthUser(session?.user)
+      ? { group_ids: session.user.group_ids }
+      : { group_ids: [] },
+    requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam],
   });
 
   return (

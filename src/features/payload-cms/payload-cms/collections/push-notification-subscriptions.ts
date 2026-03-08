@@ -1,4 +1,7 @@
-import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
+import {
+  hasAccessToThisHelper,
+  Roles,
+} from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { asPushNotificationCollection } from '@/features/payload-cms/payload-cms/utils/push-notification-collection';
 import type { CollectionConfig } from 'payload';
@@ -85,9 +88,9 @@ export const PushNotificationSubscriptions: CollectionConfig = asPushNotificatio
     },
   },
   access: {
-    read: canAccessAdminPanel,
+    read: hasAccessToThisHelper({ requiredRoles: [Roles.FullAdmin] }),
     create: () => false, // disable creating subscriptions
     update: () => false, // disable update for subscriptions
-    delete: () => true, // disable delete for subscriptions
+    delete: () => false, // disable delete for subscriptions
   },
 });

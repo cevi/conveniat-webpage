@@ -1,10 +1,13 @@
-import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
+import { hasAccessToThis, Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { updateWorkflowStatus } from '@/features/payload-cms/payload-cms/utils/update-workflow-status';
 import type { PayloadHandler } from 'payload';
 
 export const triggerPastWorkflowsHandler: PayloadHandler = async (request) => {
   try {
-    const hasAccess = await canAccessAdminPanel({ req: request });
+    const hasAccess = await hasAccessToThis({
+      req: request,
+      requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam],
+    });
     if (!hasAccess) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }

@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { PreviewWarningClient } from '@/components/preview-warning-client';
-import { canUserAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
+import { hasAccessToThisUser, Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import type { Locale, SearchParameters } from '@/types/types';
 import { auth } from '@/utils/auth';
 import { isValidNextAuthUser } from '@/utils/auth-helpers';
@@ -82,7 +82,8 @@ export const canAccessPreviewOfCurrentPage = async (
   const user = session.user;
   if (!isValidNextAuthUser(user)) return false;
 
-  return canUserAccessAdminPanel({ user });
+  // TODO: does Program Team have access to the preview mode?
+  return hasAccessToThisUser({ user, requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam] });
 };
 
 export const PreviewWarning: React.FC<{
