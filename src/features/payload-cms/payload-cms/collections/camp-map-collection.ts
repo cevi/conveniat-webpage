@@ -12,6 +12,7 @@ import {
   lexicalEditor,
 } from '@payloadcms/richtext-lexical';
 import type { CollectionConfig, Field } from 'payload';
+import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
 
 export const mapAnnotationDescriptionLexicalEditorSettings = lexicalEditor({
   features: [
@@ -55,7 +56,7 @@ export const CampMapAnnotationsCollection: CollectionConfig = {
     disableCopyToLocale: true,
   },
   access: {
-    read: () => true,
+    read: hasAdminOrWebAccess,
   },
   fields: [
     {
