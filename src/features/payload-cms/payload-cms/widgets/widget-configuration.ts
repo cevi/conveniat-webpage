@@ -20,7 +20,6 @@ export const enabledWidgets: Widget[] = [
 
 export const widgetDefaultLayout = async (): Promise<WidgetInstance[]> => {
   const session = await auth();
-  // import { isValidNextAuthUser } from '@/utils/auth-helpers';
   const user = isValidNextAuthUser(session?.user) ? session.user : undefined;
 
   const userGroups = user?.group_ids ?? [];
