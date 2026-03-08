@@ -3,7 +3,7 @@
 - full admin: can do everything
 - web core team: can create collection entries
 - translation team: can read and update collection entries, but not create or delete
-- program team: only allowed users (field allowsEditsByUser on some colletions)
+- program team: only allowed users (field allowsEditsByUser on some collections)
 */
 
 import { environmentVariables } from '@/config/environment-variables';
