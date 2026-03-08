@@ -5,8 +5,8 @@ import { flushPageCacheOnChange } from '@/features/payload-cms/payload-cms/utils
 import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import type { CollectionConfig } from 'payload';
 
-import { syncOrganisers } from '@/features/payload-cms/payload-cms/utils/sync-organisers';
 import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import { syncOrganisers } from '@/features/payload-cms/payload-cms/utils/sync-organisers';
 
 export const CampScheduleEntryCollection: CollectionConfig = {
   slug: 'camp-schedule-entry',
