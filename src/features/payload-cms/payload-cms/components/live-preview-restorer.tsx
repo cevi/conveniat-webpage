@@ -1,28 +1,67 @@
 'use client';
 
-import { useLivePreviewContext } from '@payloadcms/ui';
+import { generatePreviewUrl } from '@/features/payload-cms/utils/preview/generate-preview-url';
+import { useDocumentInfo, useFormFields, useLivePreviewContext } from '@payloadcms/ui';
+import { useSearchParams } from 'next/navigation';
+import type { Locale } from 'payload';
 import React, { useEffect, useRef } from 'react';
 
 export const LivePreviewRestorer: React.FC = () => {
-  const { url, setURL } = useLivePreviewContext();
-  const lastValidUrl = useRef<string | undefined>(undefined);
+  const { setURL, isLivePreviewing, url: contextUrl } = useLivePreviewContext();
+  const { collectionSlug, id } = useDocumentInfo();
+
+  const urlSlugField = useFormFields(
+    ([fields]) => fields['seo.urlSlug']?.value as string | undefined,
+  );
+  const searchParameters = useSearchParams();
+  const localeCode = searchParameters.get('locale') ?? 'de';
+
+  const urlReference = useRef<string | undefined>(undefined);
 
   useEffect(() => {
-    // If the URL is valid, silently cache it.
-    if (typeof url === 'string' && url !== '') {
-      lastValidUrl.current = url;
-    }
-    // If the URL suddenly drops (due to the AbortController Server Action bug in Payload CMS),
-    // instantly restore the last known good URL client-side.
-    else if ((url === undefined || url === '') && typeof lastValidUrl.current === 'string') {
-      console.warn(
-        `[LivePreviewRestorer] Detected Payload Live Preview URL drop to falsy. Auto-restoring to: ${lastValidUrl.current}`,
-      );
-      setURL(lastValidUrl.current);
-    }
-  }, [url, setURL]);
+    if (!isLivePreviewing) return;
 
-  return <div style={{ display: 'none' }} data-url-restorer="active" />;
+    const data: Parameters<typeof generatePreviewUrl>[0]['data'] = {
+      ...(typeof id === 'string' || typeof id === 'number' ? { id: String(id) } : {}),
+      ...(typeof urlSlugField === 'string' ? { seo: { urlSlug: urlSlugField } } : {}),
+    };
+
+    // Construct strict mock objects to satisfy TypeScript without `any`
+    const mockLocale = { code: localeCode } as Locale;
+
+    let dynamicUrl = generatePreviewUrl({
+      data,
+      ...(typeof collectionSlug === 'string'
+        ? {
+            collectionConfig: { slug: collectionSlug } as NonNullable<
+              Parameters<typeof generatePreviewUrl>[0]['collectionConfig']
+            >,
+          }
+        : {}),
+      locale: mockLocale,
+    });
+
+    try {
+      if (typeof contextUrl === 'string' && contextUrl !== '') {
+        const payloadUrl = new URL(contextUrl, globalThis.location.origin);
+        const token = payloadUrl.searchParams.get('token');
+        if (token !== null && token !== '') {
+          dynamicUrl += `&token=${token}`;
+        }
+      }
+    } catch {}
+
+    // If Payload internally resets the URL to the static config string,
+    // or if we have calculated a fresh URL, we forcefully overwrite it.
+    // By checking the actual Context `url`, we create a self-healing loop.
+    if (contextUrl !== dynamicUrl) {
+      console.log(`[LivePreviewSync] Hydrating dynamic client URL: ${dynamicUrl}`);
+      urlReference.current = dynamicUrl;
+      setURL(dynamicUrl);
+    }
+  }, [urlSlugField, collectionSlug, id, localeCode, isLivePreviewing, contextUrl, setURL]);
+
+  return <div style={{ display: 'none' }} data-url-restorer="sync-active" />;
 };
 
 export default LivePreviewRestorer;

@@ -84,7 +84,7 @@ const GlobalError: React.FC<{
       <html>
         <body>
           <div className="flex h-dvh w-dvw flex-col items-center justify-center bg-gray-50 p-4">
-            <p className="text-gray-500">Verbindung wird wiederhergestellt…</p>
+            <p className="text-gray-500">Verbindung wird wiederhergestellt</p>
           </div>
         </body>
       </html>

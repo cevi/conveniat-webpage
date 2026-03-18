@@ -309,7 +309,7 @@ export const handleFetchEvent =
               return new Response(
                 '<!DOCTYPE html><html><head><meta http-equiv="refresh" content="2"></head>' +
                   '<body style="font-family:sans-serif;text-align:center;padding-top:100px;background:#f9fafb;color:#6b7280;">' +
-                  'Verbindung wird wiederhergestellt…</body></html>',
+                  'Verbindung wird wiederhergestellt</body></html>',
                 {
                   status: 503,
                   headers: { 'Content-Type': 'text/html' },

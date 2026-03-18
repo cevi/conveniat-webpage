@@ -34,7 +34,6 @@ import {
   enabledWidgets,
   widgetDefaultLayout,
 } from '@/features/payload-cms/payload-cms/widgets/widget-configuration';
-import { generatePreviewUrl } from '@/features/payload-cms/utils/preview/generate-preview-url';
 import { dbConfig } from '@/lib/db/mongodb';
 import type { JobsConfig, MetaConfig } from 'payload';
 import { de } from 'payload/i18n/de';
@@ -99,7 +98,12 @@ const payloadConfigAdminSettings: RoutableConfig['admin'] = {
     defaultTimezone: 'Europe/Zurich',
   },
   livePreview: {
-    url: generatePreviewUrl,
+    // We pass a DUMMY string literal here.
+    // If it is a string literal, the Payload CMS Server Action abort bug is neutralized
+    // because views/Edit/index.js ignores modifying `livePreviewURL` from the server response.
+    // The real URL is hydrated and synced precisely via `LivePreviewRestorer` in `beforeDocumentControls`.
+    // The default locale 'de' omits the prefix.
+    url: `${env.APP_HOST_URL}/preview-fallback?preview=true`,
     breakpoints: smartphoneBreakpoints,
     collections: ['blog', 'generic-page', 'timeline', 'forms', 'camp-map-annotations'],
   },

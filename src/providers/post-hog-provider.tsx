@@ -59,7 +59,8 @@ export const PostHogProvider: React.FC<{ children: React.ReactNode }> = ({ child
   useEffect(() => {
     // Suppress ResizeObserver loop errors (often caused by browser extensions)
     const handleError = (errorEvent: ErrorEvent): void => {
-      const message = errorEvent.message.toLowerCase();
+      const message =
+        typeof errorEvent.message === 'string' ? errorEvent.message.toLowerCase() : '';
 
       if (
         message === 'resizeobserver loop completed with undelivered notifications.' ||
