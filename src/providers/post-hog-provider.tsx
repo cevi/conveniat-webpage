@@ -79,34 +79,18 @@ export const PostHogProvider: React.FC<{ children: React.ReactNode }> = ({ child
         errorEvent.preventDefault();
       }
 
-      // Silent fail posthog/telemetry network errors so they don't break the Next.js app / Payload Iframe
+      // Silent fail Payload Live Preview iframe cross-origin disconnects (noise during rapid save)
       if (
         message !== '' &&
-        (message.includes('network error') ||
-          message.includes('failed to fetch') ||
-          message.includes('blocked a frame with origin'))
+        message.includes('blocked a frame with origin') &&
+        (errorEvent.filename.includes('posthog') || errorEvent.filename === '')
       ) {
         errorEvent.stopImmediatePropagation();
         errorEvent.preventDefault();
       }
     };
 
-    const handleUnhandledRejection = (event: PromiseRejectionEvent): void => {
-      let message = '';
-      if (event.reason instanceof Error) {
-        message = event.reason.message.toLowerCase();
-      } else if (typeof event.reason === 'string') {
-        message = event.reason.toLowerCase();
-      }
-
-      if (
-        message !== '' &&
-        (message.includes('network error') || message.includes('failed to fetch'))
-      ) {
-        event.stopImmediatePropagation();
-        event.preventDefault();
-      }
-    };
+    const handleUnhandledRejection = (): void => {};
 
     globalThis.addEventListener('error', handleError, { capture: true });
     globalThis.addEventListener('unhandledrejection', handleUnhandledRejection, { capture: true });
@@ -115,7 +99,16 @@ export const PostHogProvider: React.FC<{ children: React.ReactNode }> = ({ child
       typeof globalThis !== 'undefined' &&
       environmentVariables.NEXT_PUBLIC_POSTHOG_KEY !== undefined &&
       environmentVariables.NEXT_PUBLIC_POSTHOG_KEY !== '' &&
-      environmentVariables.NEXT_PUBLIC_POSTHOG_HOST !== '';
+      environmentVariables.NEXT_PUBLIC_POSTHOG_HOST !== '' &&
+      // Disable PostHog inside the Live Preview iframe. Rapid 'Ctrl+S' saves trigger heavy
+      // Next.js RSC fetches and iframe reloads. If PostHog fires events during this, the
+      // '/ingest' proxy connections stall and exhaust the browser's 6-connection pool limit,
+      // breaking the iframe entirely. The parent Admin panel (`/admin`) is still tracked.
+      !(
+        globalThis.self !== globalThis.top &&
+        (globalThis.location.search.includes('preview=true') ||
+          globalThis.location.pathname.includes('/preview-fallback'))
+      );
 
     if (isConfigured) {
       posthog.init(environmentVariables.NEXT_PUBLIC_POSTHOG_KEY ?? '', {

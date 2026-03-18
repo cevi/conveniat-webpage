@@ -1,6 +1,6 @@
-export const DEFAULT_QUEUE = 'default';
-
 import type { PayloadRequest } from 'payload';
+
+export const DEFAULT_QUEUE = 'default';
 
 /**
  * Cleans up stale incomplete scheduled jobs (e.g. from process crashes or OOM kills)

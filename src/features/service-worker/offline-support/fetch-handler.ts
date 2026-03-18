@@ -295,7 +295,31 @@ export const handleFetchEvent =
       isPreviewRequest || isAdminPanel || isAuthRequest || isIngestRequest || isTrpcRequest;
 
     if (bypassSW) {
-      event.respondWith(fetch(event.request));
+      event.respondWith(
+        (async (): Promise<Response> => {
+          try {
+            return await fetch(event.request);
+          } catch (error) {
+            console.error(`[SW] bypass fetch failed (backend overloaded): ${url.href}`, error);
+
+            // If it's a navigation request and the server dumped the connection,
+            // returning Response.error() causes a hard browser crash (chrome-error).
+            // We must return a graceful HTML proxy so global-error.tsx can render and auto-retry!
+            if (event.request.mode === 'navigate') {
+              return new Response(
+                '<!DOCTYPE html><html><head><meta http-equiv="refresh" content="2"></head>' +
+                  '<body style="font-family:sans-serif;text-align:center;padding-top:100px;background:#f9fafb;color:#6b7280;">' +
+                  'Verbindung wird wiederhergestellt…</body></html>',
+                {
+                  status: 503,
+                  headers: { 'Content-Type': 'text/html' },
+                },
+              );
+            }
+            return new Response('Backend Overloaded', { status: 503 });
+          }
+        })(),
+      );
       return;
     }
 
