@@ -268,22 +268,21 @@ export const handleFetchEvent =
   (event: FetchEvent): void => {
     const url = new URL(event.request.url);
 
-    // Bypass service worker entirely in draft mode or when previewing
-    if (
+    const isPreviewRequest =
       isDraftMode(event.request.headers.get('cookie')) ||
-      url.searchParams.get('preview') === 'true'
-    ) {
-      return; // Let the browser handle the request directly
-    }
+      url.searchParams.get('preview') === 'true';
 
-    // Bypass service worker for admin panel, auth requests, and trpc requests
-    // Admin panel is bypassed to prevent SW interference and error caching during editing
-    // trpc requests are cached using tanstack query
-    if (
-      url.pathname.startsWith('/admin') ||
-      url.pathname.startsWith('/api/auth/') ||
-      url.pathname.startsWith('/api/trpc/')
-    ) {
+    const isAdminPanel = url.pathname.startsWith('/admin');
+    const isAuthRequest = url.pathname.startsWith('/api/auth/');
+    const isIngestRequest = url.pathname.startsWith('/ingest');
+    const isTrpcRequest = url.pathname.startsWith('/api/trpc/');
+
+    // Bypass service worker entirely for admin panel, auth requests, ingest, and trpc requests
+    const bypassSW =
+      isPreviewRequest || isAdminPanel || isAuthRequest || isIngestRequest || isTrpcRequest;
+
+    if (bypassSW) {
+      event.respondWith(fetch(event.request));
       return;
     }
 
