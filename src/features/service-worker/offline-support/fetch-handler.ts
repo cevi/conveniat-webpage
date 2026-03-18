@@ -254,7 +254,20 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
       return response;
     }
 
-    return await fetch(requestToHandle);
+    const networkResponse = await fetch(requestToHandle);
+
+    const isJsAsset = url.pathname.endsWith('.js') || url.pathname.endsWith('.mjs');
+    const contentType = networkResponse.headers.get('content-type') ?? '';
+
+    // Prevent Next.js 404/5xx HTML pages from being parsed as scripts
+    if (!networkResponse.ok && isJsAsset && contentType.includes('text/html')) {
+      console.error(
+        `[SW] Blocked HTML response for script fetch: ${requestToHandle.url} (Status: ${networkResponse.status})`,
+      );
+      return Response.error(); // Trigger Next.js chunk-load error handling cleanly
+    }
+
+    return networkResponse;
   } catch (error) {
     if (error instanceof Error) {
       console.debug(`[SW] Network/MW failed for ${url.pathname}`, error);
