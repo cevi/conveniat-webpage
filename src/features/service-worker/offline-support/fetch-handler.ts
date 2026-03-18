@@ -265,14 +265,24 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
 export const handleFetchEvent =
   (serwist: Serwist): ((event: FetchEvent) => void) =>
   (event: FetchEvent): void => {
-    // Bypass service worker entirely in draft mode
-    if (isDraftMode(event.request.headers.get('cookie'))) {
+    const url = new URL(event.request.url);
+
+    // Bypass service worker entirely in draft mode or when previewing
+    if (
+      isDraftMode(event.request.headers.get('cookie')) ||
+      url.searchParams.get('preview') === 'true'
+    ) {
       return; // Let the browser handle the request directly
     }
 
-    // Bypass service worker for auth requests and trpc requests
-    // trpc request are cached using tanstack query
-    if (event.request.url.includes('/api/auth/') || event.request.url.includes('/api/trpc/')) {
+    // Bypass service worker for admin panel, auth requests, and trpc requests
+    // Admin panel is bypassed to prevent SW interference and error caching during editing
+    // trpc requests are cached using tanstack query
+    if (
+      url.pathname.startsWith('/admin') ||
+      url.pathname.startsWith('/api/auth/') ||
+      url.pathname.startsWith('/api/trpc/')
+    ) {
       return;
     }
 
