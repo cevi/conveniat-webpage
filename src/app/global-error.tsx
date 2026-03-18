@@ -51,7 +51,12 @@ const GlobalError: React.FC<{
       error.message.toLowerCase().includes('failed to fetch') ||
       error.message.toLowerCase().includes('network error');
 
-    if (isOfflineError) {
+    // Completely disable global offline redirection for the Payload CMS admin panel.
+    // Payload has its own offline handling and error boundaries.
+    const isAdminPanel =
+      typeof globalThis !== 'undefined' && globalThis.location.pathname.startsWith('/admin');
+
+    if (isOfflineError && !isAdminPanel) {
       console.error('[GlobalError] Network/Offline error detected:', {
         message: error.message,
         name: error.name,
