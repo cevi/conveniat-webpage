@@ -82,7 +82,9 @@ export const PostHogProvider: React.FC<{ children: React.ReactNode }> = ({ child
       // Silent fail posthog/telemetry network errors so they don't break the Next.js app / Payload Iframe
       if (
         message !== '' &&
-        (message.includes('network error') || message.includes('failed to fetch'))
+        (message.includes('network error') ||
+          message.includes('failed to fetch') ||
+          message.includes('blocked a frame with origin'))
       ) {
         errorEvent.stopImmediatePropagation();
         errorEvent.preventDefault();
