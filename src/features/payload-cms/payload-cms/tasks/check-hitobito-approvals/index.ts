@@ -36,7 +36,7 @@ export const checkHitobitoApprovalsTask: TaskConfig<'checkHitobitoApprovals'> = 
   },
   schedule: [
     {
-      cron: '0 */2 * * *', // Every 2 hours
+      cron: '*/5 * * * *', // Every 5 minutes
       queue: DEFAULT_QUEUE,
       hooks: {
         beforeSchedule: async ({
