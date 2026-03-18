@@ -1,7 +1,6 @@
 'use client';
 
 import { environmentVariables } from '@/config/environment-variables';
-import { isDraftOrPreviewMode } from '@/utils/draft-mode';
 import { filterPostHogNoise } from '@/utils/posthog-filters';
 import { usePathname, useSearchParams } from 'next/navigation';
 import posthog from 'posthog-js';
@@ -111,21 +110,6 @@ export const PostHogProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     globalThis.addEventListener('error', handleError, { capture: true });
     globalThis.addEventListener('unhandledrejection', handleUnhandledRejection, { capture: true });
-
-    // IMPORTANT: Do NOT initialize PostHog in draft/preview mode (Payload CMS admin panel).
-    // Under rapid saves (Ctrl+S), PostHog's /ingest network requests fail as the server becomes
-    // overloaded. The resulting TypeError: network error crashes React via its internal error
-    // boundary, which causes Payload CMS to detect a broken iframe and remove it entirely.
-    // Skipping PostHog init eliminates this error source completely.
-    if (isDraftOrPreviewMode()) {
-      console.debug('[PostHog] Skipping initialization in draft/preview mode.');
-      return (): void => {
-        globalThis.removeEventListener('error', handleError, { capture: true });
-        globalThis.removeEventListener('unhandledrejection', handleUnhandledRejection, {
-          capture: true,
-        });
-      };
-    }
 
     const isConfigured =
       typeof globalThis !== 'undefined' &&
