@@ -125,6 +125,11 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
         `Found ${messages.length} messages in inbox while checking for bounces. Processing...`,
       );
 
+      let ignoredCount = 0;
+      let matchedCount = 0;
+      let poisonPillCount = 0;
+      let errorCount = 0;
+
       for (const { id: messageId, uid } of messages) {
         // Check for previous failures
         const trackingResults = await payload.find({
@@ -145,6 +150,7 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
             collection: 'smtp-bounce-mail-tracking',
             where: { uid: { equals: uid } },
           });
+          poisonPillCount++;
           continue;
         }
 
@@ -273,10 +279,9 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
                 id: trackingRecord.id,
               });
             }
+            matchedCount++;
           } else {
-            logger.info(
-              `Ignored message ${messageId} as envId ${envId} and fallback IDs were not found in this instance.`,
-            );
+            ignoredCount++;
           }
         } catch (error: unknown) {
           // We isolate individual message failures so the loop continues
@@ -285,6 +290,7 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
             err: error instanceof Error ? error : new Error(String(error)),
             msg: `Failed to process message ${messageId} (UID ${uid}), leaving in inbox for retry`,
           });
+          errorCount++;
 
           // Increment failure count
           const data = {
@@ -310,6 +316,11 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
           }
         }
       }
+
+      // Log a single summary line instead of per-message noise
+      logger.info(
+        `Bounce check complete: ${messages.length} messages scanned, ${matchedCount} matched, ${ignoredCount} ignored (other instance), ${poisonPillCount} poison-pill deleted, ${errorCount} errors`,
+      );
     } catch (error: unknown) {
       logger.error({
         err: error instanceof Error ? error : new Error(String(error)),
