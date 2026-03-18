@@ -28,22 +28,6 @@ const GlobalError: React.FC<{
   const [isRecovering, setIsRecovering] = useState(false);
 
   useEffect(() => {
-    // In draft/preview mode, auto-reload instead of showing the error page.
-    // This prevents the Payload CMS Live Preview iframe from getting stuck.
-    if (isDraftOrPreviewMode()) {
-      console.warn(
-        '[GlobalError] Transient error in draft/preview mode. Auto-reloading in 2s:',
-        error.message,
-      );
-      setIsRecovering(true);
-      const timer = setTimeout((): void => {
-        globalThis.location.reload();
-      }, DRAFT_MODE_RELOAD_DELAY_MS);
-      return (): void => {
-        clearTimeout(timer);
-      };
-    }
-
     // Check if the error is likely due to being offline (e.g., failed to load a JS chunk)
     const isOfflineError =
       !navigator.onLine ||
@@ -55,6 +39,26 @@ const GlobalError: React.FC<{
     // Payload has its own offline handling and error boundaries.
     const isAdminPanel =
       typeof globalThis !== 'undefined' && globalThis.location.pathname.startsWith('/admin');
+
+    // In draft/preview mode, auto-reload instead of showing the error page.
+    // This prevents the Payload CMS Live Preview iframe from getting stuck.
+    // We also do this for transient network errors in the admin panel to prevent the
+    // root error boundary from permanently replacing the admin UI with a red error screen.
+    const isTransientAdminError = isAdminPanel && isOfflineError;
+
+    if (isDraftOrPreviewMode() || isTransientAdminError) {
+      console.warn(
+        '[GlobalError] Transient error in admin/preview mode. Auto-reloading in 2s:',
+        error.message,
+      );
+      setIsRecovering(true);
+      const timer = setTimeout((): void => {
+        globalThis.location.reload();
+      }, DRAFT_MODE_RELOAD_DELAY_MS);
+      return (): void => {
+        clearTimeout(timer);
+      };
+    }
 
     if (isOfflineError && !isAdminPanel) {
       console.error('[GlobalError] Network/Offline error detected:', {
