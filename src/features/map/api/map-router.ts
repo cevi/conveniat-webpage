@@ -1,4 +1,5 @@
 import { createTRPCRouter, trpcBaseProcedure } from '@/trpc/init';
+import { formatHexColor } from '@/utils/format-hex-color';
 import config from '@payload-config';
 import { getPayload } from 'payload';
 
@@ -36,7 +37,7 @@ export const mapRouter = createTRPCRouter({
         return {
           id: document_.id,
           title: document_.title,
-          color: document_.color ?? '#47564c',
+          color: formatHexColor(document_.color) ?? '#47564c',
           coordinates:
             rawCoords
               ?.map((coord) => {
