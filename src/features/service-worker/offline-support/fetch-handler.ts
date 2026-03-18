@@ -79,7 +79,7 @@ async function offlineFallback(request: Request, url: URL, isAppMode: boolean): 
     // IMPORTANT: Returning Response.error() causes Next.js App Router to hang indefinitely
     // or crash with an unhandled TypeError. We must return a valid HTTP Error (like 504) so
     // the React Server Component parser rejects and triggers the error.tsx boundary cleanly.
-    return new Response('Offline', {
+    return new Response(`Offline: ${url.toString()}`, {
       status: 504,
       statusText: 'Gateway Timeout',
       headers: { 'Content-Type': 'text/x-component' },
@@ -94,6 +94,7 @@ async function offlineFallback(request: Request, url: URL, isAppMode: boolean): 
       JSON.stringify({
         error: 'offline',
         message: 'You are offline. This request requires an internet connection.',
+        url: url.toString(),
       }),
       {
         status: 503,
@@ -289,7 +290,7 @@ export const handleFetchEvent =
     event.respondWith(
       router(event, serwist).catch((criticalError: unknown) => {
         console.error(`[SW] Critical Error while Fetching ${event.request.url}:`, criticalError);
-        return new Response('Critical SW Error', { status: 500 });
+        return new Response(`Critical SW Error: ${event.request.url}`, { status: 500 });
       }),
     );
   };
