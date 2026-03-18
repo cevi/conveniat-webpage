@@ -1,4 +1,8 @@
 import { environmentVariables } from '@/config/environment-variables';
+import {
+  cleanupStaleScheduledJobs,
+  DEFAULT_QUEUE,
+} from '@/features/payload-cms/payload-cms/tasks/cleanup-stale-jobs';
 import { updateTrackingRecords } from '@/features/payload-cms/payload-cms/tasks/fetch-smtp-bounces/db';
 import {
   determineDeliveryStatus,
@@ -9,6 +13,8 @@ import { simpleParser } from 'mailparser';
 import POP3Command from 'node-pop3';
 import type { PayloadRequest, TaskConfig } from 'payload';
 import { countRunnableOrActiveJobsForQueue } from 'payload';
+
+const FETCH_SMTP_BOUNCES_CRON = '*/5 * * * *'; // Every 5 minutes
 
 export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
   slug: 'fetchSmtpBounces',
@@ -46,13 +52,15 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
   },
   schedule: [
     {
-      cron: '*/5 * * * *', // Every 5 minutes
-      queue: 'default',
+      cron: FETCH_SMTP_BOUNCES_CRON,
+      queue: DEFAULT_QUEUE,
       hooks: {
         beforeSchedule: async ({
           queueable,
           req,
         }): Promise<{ shouldSchedule: boolean; input: Record<string, never> }> => {
+          await cleanupStaleScheduledJobs(req, 'fetchSmtpBounces');
+
           const runnableOrActiveJobsForQueue = await countRunnableOrActiveJobsForQueue({
             queue: queueable.scheduleConfig.queue,
             req,
@@ -117,6 +125,11 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
         `Found ${messages.length} messages in inbox while checking for bounces. Processing...`,
       );
 
+      let ignoredCount = 0;
+      let matchedCount = 0;
+      let poisonPillCount = 0;
+      let errorCount = 0;
+
       for (const { id: messageId, uid } of messages) {
         // Check for previous failures
         const trackingResults = await payload.find({
@@ -137,6 +150,7 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
             collection: 'smtp-bounce-mail-tracking',
             where: { uid: { equals: uid } },
           });
+          poisonPillCount++;
           continue;
         }
 
@@ -265,10 +279,9 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
                 id: trackingRecord.id,
               });
             }
+            matchedCount++;
           } else {
-            logger.info(
-              `Ignored message ${messageId} as envId ${envId} and fallback IDs were not found in this instance.`,
-            );
+            ignoredCount++;
           }
         } catch (error: unknown) {
           // We isolate individual message failures so the loop continues
@@ -277,6 +290,7 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
             err: error instanceof Error ? error : new Error(String(error)),
             msg: `Failed to process message ${messageId} (UID ${uid}), leaving in inbox for retry`,
           });
+          errorCount++;
 
           // Increment failure count
           const data = {
@@ -302,6 +316,11 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
           }
         }
       }
+
+      // Log a single summary line instead of per-message noise
+      logger.info(
+        `Bounce check complete: ${messages.length} messages scanned, ${matchedCount} matched, ${ignoredCount} ignored (other instance), ${poisonPillCount} poison-pill deleted, ${errorCount} errors`,
+      );
     } catch (error: unknown) {
       logger.error({
         err: error instanceof Error ? error : new Error(String(error)),

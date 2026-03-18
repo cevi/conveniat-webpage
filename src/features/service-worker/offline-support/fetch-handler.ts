@@ -79,7 +79,7 @@ async function offlineFallback(request: Request, url: URL, isAppMode: boolean): 
     // IMPORTANT: Returning Response.error() causes Next.js App Router to hang indefinitely
     // or crash with an unhandled TypeError. We must return a valid HTTP Error (like 504) so
     // the React Server Component parser rejects and triggers the error.tsx boundary cleanly.
-    return new Response('Offline', {
+    return new Response(`Offline: ${url.toString()}`, {
       status: 504,
       statusText: 'Gateway Timeout',
       headers: { 'Content-Type': 'text/x-component' },
@@ -94,6 +94,7 @@ async function offlineFallback(request: Request, url: URL, isAppMode: boolean): 
       JSON.stringify({
         error: 'offline',
         message: 'You are offline. This request requires an internet connection.',
+        url: url.toString(),
       }),
       {
         status: 503,
@@ -253,7 +254,20 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
       return response;
     }
 
-    return await fetch(requestToHandle);
+    const networkResponse = await fetch(requestToHandle);
+
+    const isJsAsset = url.pathname.endsWith('.js') || url.pathname.endsWith('.mjs');
+    const contentType = networkResponse.headers.get('content-type') ?? '';
+
+    // Prevent Next.js 404/5xx HTML pages from being parsed as scripts
+    if (!networkResponse.ok && isJsAsset && contentType.includes('text/html')) {
+      console.error(
+        `[SW] Blocked HTML response for script fetch: ${requestToHandle.url} (Status: ${networkResponse.status})`,
+      );
+      return Response.error(); // Trigger Next.js chunk-load error handling cleanly
+    }
+
+    return networkResponse;
   } catch (error) {
     if (error instanceof Error) {
       console.debug(`[SW] Network/MW failed for ${url.pathname}`, error);
@@ -265,21 +279,54 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
 export const handleFetchEvent =
   (serwist: Serwist): ((event: FetchEvent) => void) =>
   (event: FetchEvent): void => {
-    // Bypass service worker entirely in draft mode
-    if (isDraftMode(event.request.headers.get('cookie'))) {
-      return; // Let the browser handle the request directly
-    }
+    const url = new URL(event.request.url);
 
-    // Bypass service worker for auth requests and trpc requests
-    // trpc request are cached using tanstack query
-    if (event.request.url.includes('/api/auth/') || event.request.url.includes('/api/trpc/')) {
+    const isPreviewRequest =
+      isDraftMode(event.request.headers.get('cookie')) ||
+      url.searchParams.get('preview') === 'true';
+
+    const isAdminPanel = url.pathname.startsWith('/admin');
+    const isAuthRequest = url.pathname.startsWith('/api/auth/');
+    const isIngestRequest = url.pathname.startsWith('/ingest');
+    const isTrpcRequest = url.pathname.startsWith('/api/trpc/');
+
+    // Bypass service worker entirely for admin panel, auth requests, ingest, and trpc requests
+    const bypassSW =
+      isPreviewRequest || isAdminPanel || isAuthRequest || isIngestRequest || isTrpcRequest;
+
+    if (bypassSW) {
+      event.respondWith(
+        (async (): Promise<Response> => {
+          try {
+            return await fetch(event.request);
+          } catch (error) {
+            console.error(`[SW] bypass fetch failed (backend overloaded): ${url.href}`, error);
+
+            // If it's a navigation request and the server dumped the connection,
+            // returning Response.error() causes a hard browser crash (chrome-error).
+            // We must return a graceful HTML proxy so global-error.tsx can render and auto-retry!
+            if (event.request.mode === 'navigate') {
+              return new Response(
+                '<!DOCTYPE html><html><head><meta http-equiv="refresh" content="2"></head>' +
+                  '<body style="font-family:sans-serif;text-align:center;padding-top:100px;background:#f9fafb;color:#6b7280;">' +
+                  'Verbindung wird wiederhergestellt</body></html>',
+                {
+                  status: 503,
+                  headers: { 'Content-Type': 'text/html' },
+                },
+              );
+            }
+            return new Response('Backend Overloaded', { status: 503 });
+          }
+        })(),
+      );
       return;
     }
 
     event.respondWith(
       router(event, serwist).catch((criticalError: unknown) => {
         console.error(`[SW] Critical Error while Fetching ${event.request.url}:`, criticalError);
-        return new Response('Critical SW Error', { status: 500 });
+        return new Response(`Critical SW Error: ${event.request.url}`, { status: 500 });
       }),
     );
   };

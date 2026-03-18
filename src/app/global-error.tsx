@@ -1,11 +1,13 @@
 'use client'; // Error boundaries must be Client Components
 
 import type React from 'react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import '@/app/globals.scss';
 import { OnboardingLayout } from '@/features/onboarding/components/onboarding-layout';
 import { isDraftOrPreviewMode } from '@/utils/draft-mode';
+
+const DRAFT_MODE_RELOAD_DELAY_MS = 2000;
 
 /**
  * This file is responsible for converting a general runtime error page.
@@ -13,18 +15,33 @@ import { isDraftOrPreviewMode } from '@/utils/draft-mode';
  * If this page happens, there was an uncaught error in the root layout of the app;
  * normally this should never happen.
  *
+ * In draft/preview mode (Payload CMS Live Preview), transient network errors
+ * are expected when the server briefly restarts. Instead of showing an error page
+ * (which permanently breaks the iframe), we auto-reload after a short delay.
+ *
  * @param error
  * @constructor
  */
 const GlobalError: React.FC<{
   error: Error & { digest?: string };
 }> = ({ error }) => {
+  const [isRecovering, setIsRecovering] = useState(false);
+
   useEffect(() => {
-    // Skip offline redirect in draft mode (Payload admin panel) or preview mode (?preview=true)
-    // In these modes, errors should be handled by the backend
+    // In draft/preview mode, auto-reload instead of showing the error page.
+    // This prevents the Payload CMS Live Preview iframe from getting stuck.
     if (isDraftOrPreviewMode()) {
-      console.error('[GlobalError] Error in draft mode, not redirecting to offline page:', error);
-      return;
+      console.warn(
+        '[GlobalError] Transient error in draft/preview mode. Auto-reloading in 2s:',
+        error.message,
+      );
+      setIsRecovering(true);
+      const timer = setTimeout((): void => {
+        globalThis.location.reload();
+      }, DRAFT_MODE_RELOAD_DELAY_MS);
+      return (): void => {
+        clearTimeout(timer);
+      };
     }
 
     // Check if the error is likely due to being offline (e.g., failed to load a JS chunk)
@@ -58,7 +75,21 @@ const GlobalError: React.FC<{
         })
         .catch((error_: unknown) => console.error('Failed to capture error with PostHog', error_));
     }
+    return;
   }, [error]);
+
+  // In draft/preview mode, show a minimal recovery message instead of the full error page
+  if (isRecovering) {
+    return (
+      <html>
+        <body>
+          <div className="flex h-dvh w-dvw flex-col items-center justify-center bg-gray-50 p-4">
+            <p className="text-gray-500">Verbindung wird wiederhergestellt</p>
+          </div>
+        </body>
+      </html>
+    );
+  }
 
   return (
     <html>
