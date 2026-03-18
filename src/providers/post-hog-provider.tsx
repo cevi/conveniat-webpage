@@ -97,13 +97,18 @@ export const PostHogProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const handleUnhandledRejection = (event: PromiseRejectionEvent): void => {
       const reason = typeof event.reason === 'string' ? event.reason.toLowerCase() : '';
       const errorMessage = event.reason instanceof Error ? event.reason.message.toLowerCase() : '';
+      const stack = event.reason instanceof Error ? (event.reason.stack ?? '').toLowerCase() : '';
 
-      if (
+      const isNetworkNoise =
         reason.includes('network error') ||
         reason.includes('failed to fetch') ||
         errorMessage.includes('network error') ||
-        errorMessage.includes('failed to fetch')
-      ) {
+        errorMessage.includes('failed to fetch');
+
+      // Only suppress if the rejection originates from PostHog internals
+      const isFromPostHog = stack.includes('posthog');
+
+      if (isNetworkNoise && isFromPostHog) {
         event.stopImmediatePropagation();
         event.preventDefault();
       }
