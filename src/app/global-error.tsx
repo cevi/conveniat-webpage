@@ -28,11 +28,27 @@ const GlobalError: React.FC<{
   const [isRecovering, setIsRecovering] = useState(false);
 
   useEffect(() => {
+    // Check if the error is likely due to being offline (e.g., failed to load a JS chunk)
+    const isOfflineError =
+      !navigator.onLine ||
+      error.name === 'ChunkLoadError' ||
+      error.message.toLowerCase().includes('failed to fetch') ||
+      error.message.toLowerCase().includes('network error');
+
+    // Completely disable global offline redirection for the Payload CMS admin panel.
+    // Payload has its own offline handling and error boundaries.
+    const isAdminPanel =
+      typeof globalThis !== 'undefined' && globalThis.location.pathname.startsWith('/admin');
+
     // In draft/preview mode, auto-reload instead of showing the error page.
     // This prevents the Payload CMS Live Preview iframe from getting stuck.
-    if (isDraftOrPreviewMode()) {
+    // We also do this for transient network errors in the admin panel to prevent the
+    // root error boundary from permanently replacing the admin UI with a red error screen.
+    const isTransientAdminError = isAdminPanel && isOfflineError;
+
+    if (isDraftOrPreviewMode() || isTransientAdminError) {
       console.warn(
-        '[GlobalError] Transient error in draft/preview mode. Auto-reloading in 2s:',
+        '[GlobalError] Transient error in admin/preview mode. Auto-reloading in 2s:',
         error.message,
       );
       setIsRecovering(true);
@@ -44,14 +60,7 @@ const GlobalError: React.FC<{
       };
     }
 
-    // Check if the error is likely due to being offline (e.g., failed to load a JS chunk)
-    const isOfflineError =
-      !navigator.onLine ||
-      error.name === 'ChunkLoadError' ||
-      error.message.toLowerCase().includes('failed to fetch') ||
-      error.message.toLowerCase().includes('network error');
-
-    if (isOfflineError) {
+    if (isOfflineError && !isAdminPanel) {
       console.error('[GlobalError] Network/Offline error detected:', {
         message: error.message,
         name: error.name,

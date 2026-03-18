@@ -290,11 +290,16 @@ export const handleFetchEvent =
     const isIngestRequest = url.pathname.startsWith('/ingest');
     const isTrpcRequest = url.pathname.startsWith('/api/trpc/');
 
-    // Bypass service worker entirely for admin panel, auth requests, ingest, and trpc requests
-    const bypassSW =
-      isPreviewRequest || isAdminPanel || isAuthRequest || isIngestRequest || isTrpcRequest;
+    // avoid the service worker for admin panel and ingest requests
+    if (isAdminPanel || isIngestRequest) {
+      return;
+    }
 
-    if (bypassSW) {
+    // Proxy bypass: We still want the SW to intercept these to provide the automatic
+    // HTML retry wrapper on connection drops, but we skip cache lookup strategies.
+    const bypassSWProxy = isPreviewRequest || isAuthRequest || isTrpcRequest;
+
+    if (bypassSWProxy) {
       event.respondWith(
         (async (): Promise<Response> => {
           try {

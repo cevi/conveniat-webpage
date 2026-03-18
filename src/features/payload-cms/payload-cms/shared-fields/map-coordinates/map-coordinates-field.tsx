@@ -126,7 +126,7 @@ const MapCoordinatesField: PointFieldClientComponent = ({ path }) => {
         const coordinates: [number, number][] = rawCoords.map((c) => [c.longitude, c.latitude]);
         polygonFeatures.push({
           type: 'Feature',
-          properties: { color: item.color ?? '#78909c' },
+          properties: { color: formatHexColor(item.color) ?? '#78909c' },
           geometry: {
             type: 'Polygon',
             coordinates: [coordinates],

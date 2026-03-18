@@ -300,7 +300,7 @@ const MapPolygonField: FieldClientComponent = ({ path }) => {
         ]);
         polygonFeatures.push({
           type: 'Feature',
-          properties: { color: item.color ?? '#78909c' },
+          properties: { color: formatHexColor(item.color) ?? '#78909c' },
           geometry: {
             type: 'Polygon',
             coordinates: [coordinates],

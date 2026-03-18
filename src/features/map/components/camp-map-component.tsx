@@ -10,6 +10,7 @@ import type {
 import { resolveLinksInArray } from '@/features/payload-cms/payload-cms/utils/resolve-rich-text-links';
 import type { CampMapAnnotation as CampMapAnnotationPayloadDocumentType } from '@/features/payload-cms/payload-types';
 import type { Locale } from '@/types/types';
+import { formatHexColor } from '@/utils/format-hex-color';
 import config from '@payload-config';
 import { cacheLife, cacheTag } from 'next/cache';
 import { getPayload, type PaginatedDocs } from 'payload';
@@ -93,7 +94,7 @@ export const CampMapComponent: React.FC<{
           icon: document_.icon ?? 'MapPin',
           openingHours: document_.openingHours,
           images: document_.images ?? [],
-          color: document_.color ?? '#47564c',
+          color: formatHexColor(document_.color) ?? '#47564c',
         }) as CampMapAnnotationPoint,
     );
 
@@ -117,7 +118,7 @@ export const CampMapComponent: React.FC<{
         icon: document_.icon ?? 'Tent',
         openingHours: isInteractive ? document_.openingHours : undefined,
         images: isInteractive ? (document_.images ?? []) : [],
-        color: document_.color ?? '#47564c',
+        color: formatHexColor(document_.color) ?? '#47564c',
         isInteractive,
       } as CampMapAnnotationPolygon;
     });

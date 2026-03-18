@@ -81,9 +81,12 @@ export const PostHogProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
 
       // Silent fail Payload Live Preview iframe cross-origin disconnects (noise during rapid save)
+      // and generic background telemetry network errors from PostHog.
       if (
         message !== '' &&
-        message.includes('blocked a frame with origin') &&
+        (message.includes('blocked a frame with origin') ||
+          message === 'network error' ||
+          message.includes('failed to fetch')) &&
         (errorEvent.filename.includes('posthog') || errorEvent.filename === '')
       ) {
         errorEvent.stopImmediatePropagation();
@@ -91,7 +94,25 @@ export const PostHogProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
     };
 
-    const handleUnhandledRejection = (): void => {};
+    const handleUnhandledRejection = (event: PromiseRejectionEvent): void => {
+      const reason = typeof event.reason === 'string' ? event.reason.toLowerCase() : '';
+      const errorMessage = event.reason instanceof Error ? event.reason.message.toLowerCase() : '';
+      const stack = event.reason instanceof Error ? (event.reason.stack ?? '').toLowerCase() : '';
+
+      const isNetworkNoise =
+        reason.includes('network error') ||
+        reason.includes('failed to fetch') ||
+        errorMessage.includes('network error') ||
+        errorMessage.includes('failed to fetch');
+
+      // Only suppress if the rejection originates from PostHog internals
+      const isFromPostHog = stack.includes('posthog');
+
+      if (isNetworkNoise && isFromPostHog) {
+        event.stopImmediatePropagation();
+        event.preventDefault();
+      }
+    };
 
     globalThis.addEventListener('error', handleError, { capture: true });
     globalThis.addEventListener('unhandledrejection', handleUnhandledRejection, { capture: true });
