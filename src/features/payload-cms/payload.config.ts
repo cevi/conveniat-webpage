@@ -13,6 +13,7 @@ import { redirectsPluginConfiguration } from '@/features/payload-cms/payload-cms
 import { s3StorageConfiguration } from '@/features/payload-cms/payload-cms/plugins/s3-storage-plugin-configuration';
 import { searchPluginConfiguration } from '@/features/payload-cms/payload-cms/plugins/search/search-plugin-configuration';
 import { checkHitobitoApprovalsTask } from '@/features/payload-cms/payload-cms/tasks/check-hitobito-approvals';
+import { DEFAULT_QUEUE } from '@/features/payload-cms/payload-cms/tasks/cleanup-stale-jobs';
 import { fetchSmtpBouncesTask } from '@/features/payload-cms/payload-cms/tasks/fetch-smtp-bounces';
 import { smartphoneBreakpoints } from '@/features/payload-cms/utils/smartphone-breakpoints';
 import { registrationWorkflow } from '@/features/registration_process/workflows/registration-workflow';
@@ -33,7 +34,6 @@ import {
   enabledWidgets,
   widgetDefaultLayout,
 } from '@/features/payload-cms/payload-cms/widgets/widget-configuration';
-import { generatePreviewUrl } from '@/features/payload-cms/utils/preview/generate-preview-url';
 import { dbConfig } from '@/lib/db/mongodb';
 import type { JobsConfig, MetaConfig } from 'payload';
 import { de } from 'payload/i18n/de';
@@ -98,7 +98,12 @@ const payloadConfigAdminSettings: RoutableConfig['admin'] = {
     defaultTimezone: 'Europe/Zurich',
   },
   livePreview: {
-    url: generatePreviewUrl,
+    // We pass a DUMMY string literal here.
+    // If it is a string literal, the Payload CMS Server Action abort bug is neutralized
+    // because views/Edit/index.js ignores modifying `livePreviewURL` from the server response.
+    // The real URL is hydrated and synced precisely via `LivePreviewRestorer` in `beforeDocumentControls`.
+    // The default locale 'de' omits the prefix.
+    url: `${env.APP_HOST_URL}/preview-fallback?preview=true`,
     breakpoints: smartphoneBreakpoints,
     collections: ['blog', 'generic-page', 'timeline', 'forms', 'camp-map-annotations'],
   },
@@ -147,7 +152,7 @@ const jobsConfig: JobsConfig = {
         {
           cron: '*/10 * * * * *', // Every 10 seconds
           limit: 10,
-          queue: 'default',
+          queue: DEFAULT_QUEUE,
         },
       ]
     : [],

@@ -1,3 +1,7 @@
+import {
+  cleanupStaleScheduledJobs,
+  DEFAULT_QUEUE,
+} from '@/features/payload-cms/payload-cms/tasks/cleanup-stale-jobs';
 import { getHitobito, HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api';
 import type { PayloadRequest, TaskConfig } from 'payload';
 import { countRunnableOrActiveJobsForQueue } from 'payload';
@@ -32,17 +36,19 @@ export const checkHitobitoApprovalsTask: TaskConfig<'checkHitobitoApprovals'> = 
   },
   schedule: [
     {
-      cron: '0 */2 * * *', // Every 2 hours
-      queue: 'default',
+      cron: '*/5 * * * *', // Every 5 minutes
+      queue: DEFAULT_QUEUE,
       hooks: {
         beforeSchedule: async ({
           queueable,
           req,
         }): Promise<{ shouldSchedule: boolean; input: Record<string, never> }> => {
+          await cleanupStaleScheduledJobs(req, 'checkHitobitoApprovals');
+
           const runnableOrActiveJobsForQueue = await countRunnableOrActiveJobsForQueue({
             queue: queueable.scheduleConfig.queue,
             req,
-            taskSlug: 'checkHitobitoApprovals', // Type issue here initially since we didn't export it globally
+            taskSlug: 'checkHitobitoApprovals',
             onlyScheduled: true,
           });
 

@@ -51,8 +51,14 @@ const BlogPostPage: LocalizedCollectionComponent = async ({
     renderInPreviewMode,
   );
 
-  if (articlesInPrimaryLanguage.docs.length > 1)
-    throw new Error('More than one article with the same slug found');
+  if (articlesInPrimaryLanguage.docs.length > 1) {
+    const conflicting = articlesInPrimaryLanguage.docs
+      .map((document_) => `id=${document_.id}, internalPageName="${document_.internalPageName}"`)
+      .join('; ');
+    throw new Error(
+      `More than one article with the same slug found (slug="${slug}", locale="${locale}"). Conflicting pages: [${conflicting}]`,
+    );
+  }
 
   const articleInPrimaryLanguage = articlesInPrimaryLanguage.docs[0];
 

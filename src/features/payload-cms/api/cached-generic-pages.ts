@@ -34,7 +34,12 @@ export const getGenericPageBySlugCached = cache(
         },
       });
 
-      return { docs: result.docs };
+      // deduplicate by id in case of internal payload cms duplicate bugs
+      const uniqueDocuments = [
+        ...new Map(result.docs.map((document_) => [document_.id, document_])).values(),
+      ];
+
+      return { docs: uniqueDocuments };
     });
   },
 );

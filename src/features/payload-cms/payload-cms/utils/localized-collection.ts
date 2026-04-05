@@ -37,6 +37,9 @@ export const asLocalizedCollection = (config: CollectionConfig): CollectionConfi
             {
               path: '@/features/payload-cms/payload-cms/components/qr-code/qr-code',
             },
+            {
+              path: '@/features/payload-cms/payload-cms/components/live-preview-restorer',
+            },
           ],
           // modify the Publish button to publish only the current locale
           PublishButton:

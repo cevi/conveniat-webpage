@@ -19,6 +19,11 @@ const noiseMessages = [
   // see: https://github.com/cevi/conveniat-webpage/issues/927
   // Often caused by browser extensions that modify the DOM (like Grammarly or certain adblockers / privacy tools).
   'Unhandled error response received for message <shell-plugins-site-config>',
+
+  // PostHog's autocapture/session recording enumerates window.frames and tries to access each
+  // frame's `document`. The EmailPreviewField uses sandbox="" which makes its iframe cross-origin,
+  // causing the browser to throw a SecurityError. This is expected and harmless.
+  'Blocked a frame with origin',
 ];
 
 export const filterPostHogNoise = (event: CaptureResult | null): CaptureResult | null => {
