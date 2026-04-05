@@ -8,7 +8,7 @@ import { getPayload } from 'payload';
 import { z } from 'zod';
 
 const adminProcedure = trpcBaseProcedure.use(async ({ ctx, next }) => {
-  const hasAccess = await hasAccessToThisUser({
+  const hasAccess = hasAccessToThisUser({
     user: ctx.user,
     requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam],
   });

@@ -15,7 +15,7 @@ const GET = async (): Promise<Response> => {
   const user = isValidNextAuthUser(session.user) ? session.user : undefined;
   if (!user) return new Response('No valid user found!', { status: 401 });
 
-  const isAuthenticated = await hasAccessToThisUser({
+  const isAuthenticated = hasAccessToThisUser({
     user: user,
     requiredRoles: [Roles.FullAdmin],
   });

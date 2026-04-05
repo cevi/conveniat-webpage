@@ -4,7 +4,7 @@ import type { PayloadHandler } from 'payload';
 
 export const triggerPastWorkflowsHandler: PayloadHandler = async (request) => {
   try {
-    const hasAccess = await hasAccessToThis({
+    const hasAccess = hasAccessToThis({
       req: request,
       requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam],
     });

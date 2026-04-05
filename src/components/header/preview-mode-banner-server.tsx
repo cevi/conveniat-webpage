@@ -27,7 +27,7 @@ export const PreviewModeBannerServerComponent: React.FC = async () => {
   const previewModeActive = serverCookies.get('__prerender_bypass')?.value !== undefined;
 
   // TODO: for ProgramTeam, do they get access to the preview?
-  const canAccessAdminDashboard = await hasAccessToThisUser({
+  const canAccessAdminDashboard = hasAccessToThisUser({
     user: isValidNextAuthUser(session?.user)
       ? { group_ids: session.user.group_ids }
       : { group_ids: [] },

@@ -6,15 +6,15 @@ import type { Widget, WidgetInstance } from 'payload';
 export const enabledWidgets: Widget[] = [
   {
     slug: 'emergency-alerts',
-    ComponentPath: '@/features/payload-cms/payload-cms/widgets/emergency-widget#default',
+    Component: '@/features/payload-cms/payload-cms/widgets/emergency-widget#default',
   },
   {
     slug: 'user-count',
-    ComponentPath: '@/features/payload-cms/payload-cms/widgets/user-count-widget#default',
+    Component: '@/features/payload-cms/payload-cms/widgets/user-count-widget#default',
   },
   {
     slug: 'email-stats',
-    ComponentPath: '@/features/payload-cms/payload-cms/widgets/email-stats-widget#default',
+    Component: '@/features/payload-cms/payload-cms/widgets/email-stats-widget#default',
   },
 ];
 

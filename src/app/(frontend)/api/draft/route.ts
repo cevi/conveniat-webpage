@@ -60,7 +60,7 @@ const GET = async (request: Request): Promise<Response> => {
     if (!user) return new Response('No valid user found!', { status: 401 });
 
     // check if user has permissions to access the admin panel
-    const hasPermissionsForPreview = await hasAccessToThisUser({
+    const hasPermissionsForPreview = hasAccessToThisUser({
       user: user,
       requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam],
     });
