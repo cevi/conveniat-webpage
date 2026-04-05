@@ -58,7 +58,7 @@ export const hasAccessToThisUser: ({
 }: {
   user: { groups?: { id: number }[]; group_ids?: number[] };
   requiredRoles: Roles[];
-}) => boolean | Promise<boolean> = ({ user, requiredRoles }) => {
+}) => boolean = ({ user, requiredRoles }) => {
   let userGroupIds: number[] = [];
 
   userGroupIds =
@@ -96,22 +96,18 @@ export const hasAccessToThis: ({
 }: {
   req: PayloadRequest;
   requiredRoles: Roles[];
-}) => boolean | Promise<boolean> = ({ req: { user }, requiredRoles }) => {
+}) => boolean = ({ req: { user }, requiredRoles }) => {
   return hasAccessToThisUser({ user: { groups: user?.groups ?? [] }, requiredRoles });
 };
 
-export const hasAdminOrWebAccess: ({
-  req,
-}: {
-  req: PayloadRequest;
-}) => boolean | Promise<boolean> = ({ req }) => {
+export const hasAdminOrWebAccess: ({ req }: { req: PayloadRequest }) => boolean = ({ req }) => {
   return hasAccessToThis({ req, requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam] });
 };
 export const hasAccessToThisHelper = ({
   requiredRoles,
 }: {
   requiredRoles: Roles[];
-}): (({ req }: { req: PayloadRequest }) => boolean | Promise<boolean>) => {
+}): (({ req }: { req: PayloadRequest }) => boolean) => {
   return ({ req }: { req: PayloadRequest }) => hasAccessToThis({ req, requiredRoles });
 };
 
