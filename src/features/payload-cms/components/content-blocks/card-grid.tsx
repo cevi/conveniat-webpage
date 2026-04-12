@@ -114,7 +114,7 @@ const CardGridItem: React.FC<{
           {card.linkLabel}
           <ArrowRight className="size-4 transition-transform duration-200 group-hover:translate-x-1" />
         </div>
-      ) : null}
+      ) : undefined}
     </div>
   );
 

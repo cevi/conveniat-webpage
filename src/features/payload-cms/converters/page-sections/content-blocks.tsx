@@ -41,6 +41,7 @@ import type {
   TimelineEntries,
 } from '@/features/payload-cms/payload-types';
 import type { Locale, LocalizedPageType, StaticTranslationString } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
 import config from '@payload-config';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import { cacheLife, cacheTag } from 'next/cache';
@@ -322,17 +323,26 @@ const aspectRatioDimensions: Record<string, { width: number; height: number }> =
 export const RenderSinglePicture: SectionRenderer<{
   image?: {
     url: string;
-    sizes?: { large?: { url: string } };
+    width?: number;
+    height?: number;
+    sizes?: { large?: { url: string; width?: number; height?: number } };
     alt: string;
     imageCaption?: string;
   };
   aspectRatio?: string;
 }> = ({ block, sectionClassName, sectionOverrides, locale }) => {
-  const imageUrl = block.image?.sizes?.large?.url ?? block.image?.url;
+  const largeSize = block.image?.sizes?.large;
+  const imageUrl = largeSize?.url ?? block.image?.url;
+  const originalWidth = largeSize?.width ?? block.image?.width;
+  const originalHeight = largeSize?.height ?? block.image?.height;
+
   const ratio = block.aspectRatio ?? 'video';
   const aspectClass = aspectRatioClassMap[ratio];
-  const defaultDimensions = { width: 1200, height: 675 };
-  const dimensions = aspectRatioDimensions[ratio] ?? defaultDimensions;
+
+  const dimensions =
+    ratio === 'auto'
+      ? { width: originalWidth ?? 1200, height: originalHeight ?? 800 }
+      : (aspectRatioDimensions[ratio] ?? { width: 1200, height: 675 });
 
   return (
     <SectionWrapper
@@ -354,7 +364,7 @@ export const RenderSinglePicture: SectionRenderer<{
           <Image
             src={imageUrl}
             alt={block.image?.alt ?? 'copyright by conveniat27'}
-            className={`block w-full rounded-2xl ${aspectClass ? `${aspectClass} object-cover` : ''}`}
+            className={cn('block w-full rounded-2xl', aspectClass && `${aspectClass} object-cover`)}
             width={dimensions.width}
             height={dimensions.height}
           />

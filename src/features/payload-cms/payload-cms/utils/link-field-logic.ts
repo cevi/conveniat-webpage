@@ -62,7 +62,7 @@ export const getURLForLinkField = (
   }
 
   if (type === 'email') {
-    return linkFieldData.email ? `mailto:${linkFieldData.email}` : undefined;
+    return linkFieldData.email ? `mailto:${encodeURIComponent(linkFieldData.email)}` : undefined;
   }
 
   if (type === 'reference' && linkFieldData.reference?.value !== undefined) {

@@ -53,10 +53,8 @@ export const ContactPersonBlock: React.FC<ContactPersonType> = ({
     );
   };
 
-  return (
-    <div
-      className={`w-full rounded-lg border-2 border-gray-200 bg-white p-6 shadow-xs transition-transform duration-300 hover:scale-[1.01] sm:p-8 ${url ? 'group relative cursor-pointer' : ''}`}
-    >
+  const cardContent = (
+    <div className="group w-full rounded-lg border-2 border-gray-200 bg-white p-6 shadow-xs transition-transform duration-300 hover:scale-[1.01] sm:p-8">
       <div className="mb-6 text-xs font-bold tracking-widest text-gray-500 uppercase">{label}</div>
       <div className="flex flex-col items-start gap-6 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-4">
@@ -71,18 +69,28 @@ export const ContactPersonBlock: React.FC<ContactPersonType> = ({
           </div>
         </div>
 
-        {url && (
-          <LinkComponent
-            href={url}
-            openInNewTab={openURLInNewTab(linkField)}
-            hideExternalIcon
-            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-gray-200 bg-white px-6 py-3 text-sm font-semibold text-gray-900 transition-colors after:absolute after:inset-0 hover:bg-gray-50 focus:outline-hidden"
-          >
+        {url ? (
+          <div className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-gray-200 bg-white px-6 py-3 text-sm font-semibold text-gray-900 transition-colors group-hover:bg-gray-50">
             {linkLabel}
             <ArrowRight className="size-4" />
-          </LinkComponent>
-        )}
+          </div>
+        ) : undefined}
       </div>
     </div>
   );
+
+  if (url) {
+    return (
+      <LinkComponent
+        href={url}
+        openInNewTab={openURLInNewTab(linkField)}
+        hideExternalIcon
+        className="block no-underline"
+      >
+        {cardContent}
+      </LinkComponent>
+    );
+  }
+
+  return cardContent;
 };
