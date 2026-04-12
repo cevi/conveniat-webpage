@@ -4,7 +4,7 @@ import AccordionContent, {
 } from '@/features/payload-cms/components/accordion/accordion-content';
 import type { AccordionTimelineElementBlock } from '@/features/payload-cms/payload-types';
 import type { Locale } from '@/types/types';
-import React from 'react';
+import type React from 'react';
 
 export const AccordionTimelineElement: React.FC<{
   block: AccordionTimelineElementBlock;
