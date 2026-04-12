@@ -64,6 +64,7 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
 
   experimental: {
+    inlineCss: true,
     authInterrupts: true,
 
     // Forward browser logs to the terminal for easier debugging

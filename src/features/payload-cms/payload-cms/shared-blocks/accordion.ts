@@ -119,6 +119,56 @@ const teamMembersBlock: Block = {
   ],
 };
 
+const accordionTimelineElement: Block = {
+  slug: 'accordionTimelineElement',
+  interfaceName: 'AccordionTimelineElementBlock',
+  labels: {
+    singular: {
+      de: 'Timeline Element',
+      en: 'Timeline Element',
+      fr: 'Élément de la chronologie',
+    },
+    plural: {
+      de: 'Timeline Elemente',
+      en: 'Timeline Elements',
+      fr: 'Éléments de la chronologie',
+    },
+  },
+  fields: [
+    {
+      name: 'dateText',
+      label: {
+        de: 'Datum / Schritt',
+        en: 'Date / Step',
+        fr: 'Date / Étape',
+      },
+      type: 'text',
+      required: true,
+    },
+    {
+      name: 'title',
+      label: {
+        de: 'Titel',
+        en: 'Title',
+        fr: 'Titre',
+      },
+      type: 'text',
+      required: true,
+    },
+    {
+      name: 'contentBlocks',
+      label: {
+        de: 'Inhalt',
+        en: 'Content',
+        fr: 'Contenu',
+      },
+      type: 'blocks',
+      required: false,
+      blocks: [plainTextBlock, teamMembersBlock, formBlock, fileDownloadBlock],
+    },
+  ],
+};
+
 const nestedAccordion: Block = {
   slug: 'nestedAccordion',
   interfaceName: 'NestedAccordionBlocks',
@@ -136,7 +186,13 @@ const nestedAccordion: Block = {
           name: 'valueBlocks',
           type: 'blocks',
           required: true,
-          blocks: [plainTextBlock, teamMembersBlock, formBlock, fileDownloadBlock],
+          blocks: [
+            plainTextBlock,
+            teamMembersBlock,
+            formBlock,
+            fileDownloadBlock,
+            accordionTimelineElement,
+          ],
         },
       ],
     },
@@ -147,6 +203,7 @@ const valueBlocks: Block[] = [
   plainTextBlock,
   teamMembersBlock,
   formBlock,
+  accordionTimelineElement,
   nestedAccordion,
   fileDownloadBlock,
 ];

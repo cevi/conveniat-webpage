@@ -1449,6 +1449,7 @@ export interface AccordionBlocks {
           | PlainTextBlock
           | TeamMembersBlock
           | FormBlock
+          | AccordionTimelineElementBlock
           | NestedAccordionBlocks
           | {
               file: string | Document;
@@ -2644,6 +2645,31 @@ export interface TwoColumnBlock {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "AccordionTimelineElementBlock".
+ */
+export interface AccordionTimelineElementBlock {
+  dateText: string;
+  title: string;
+  contentBlocks?:
+    | (
+        | PlainTextBlock
+        | TeamMembersBlock
+        | FormBlock
+        | {
+            file: string | Document;
+            openInNewTab?: boolean | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'fileDownload';
+          }
+      )[]
+    | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'accordionTimelineElement';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "NestedAccordionBlocks".
  */
 export interface NestedAccordionBlocks {
@@ -2661,6 +2687,7 @@ export interface NestedAccordionBlocks {
               blockName?: string | null;
               blockType: 'fileDownload';
             }
+          | AccordionTimelineElementBlock
         )[];
         id?: string | null;
       }[]
@@ -3412,6 +3439,7 @@ export interface AccordionBlocksSelect<T extends boolean = true> {
               accordionPlainTextBlock?: T | PlainTextBlockSelect<T>;
               accordionTeamMembersBlock?: T | TeamMembersBlockSelect<T>;
               formBlock?: T | FormBlockSelect<T>;
+              accordionTimelineElement?: T | AccordionTimelineElementBlockSelect<T>;
               nestedAccordion?: T | NestedAccordionBlocksSelect<T>;
               fileDownload?:
                 | T
@@ -3470,6 +3498,31 @@ export interface TeamMembersBlockSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "AccordionTimelineElementBlock_select".
+ */
+export interface AccordionTimelineElementBlockSelect<T extends boolean = true> {
+  dateText?: T;
+  title?: T;
+  contentBlocks?:
+    | T
+    | {
+        accordionPlainTextBlock?: T | PlainTextBlockSelect<T>;
+        accordionTeamMembersBlock?: T | TeamMembersBlockSelect<T>;
+        formBlock?: T | FormBlockSelect<T>;
+        fileDownload?:
+          | T
+          | {
+              file?: T;
+              openInNewTab?: T;
+              id?: T;
+              blockName?: T;
+            };
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "NestedAccordionBlocks_select".
  */
 export interface NestedAccordionBlocksSelect<T extends boolean = true> {
@@ -3491,6 +3544,7 @@ export interface NestedAccordionBlocksSelect<T extends boolean = true> {
                     id?: T;
                     blockName?: T;
                   };
+              accordionTimelineElement?: T | AccordionTimelineElementBlockSelect<T>;
             };
         id?: T;
       };
