@@ -35,6 +35,7 @@ import ImageNode from 'next/image';
 import React from 'react';
 
 export interface CardGridCard {
+  id?: string | null;
   iconType?: 'icon' | 'image';
   icon: string;
   customImage?: Image;
@@ -108,10 +109,12 @@ const CardGridItem: React.FC<{
         <h3 className="font-heading text-conveniat-green mb-2 text-lg font-bold">{card.title}</h3>
         <p className="font-body mb-4 text-sm leading-relaxed text-gray-500">{card.description}</p>
       </div>
-      <div className="text-conveniat-green font-body flex items-center gap-1 text-sm font-medium">
-        {card.linkLabel}
-        <ArrowRight className="size-4 transition-transform duration-200 group-hover:translate-x-1" />
-      </div>
+      {url ? (
+        <div className="text-conveniat-green font-body flex items-center gap-1 text-sm font-medium">
+          {card.linkLabel}
+          <ArrowRight className="size-4 transition-transform duration-200 group-hover:translate-x-1" />
+        </div>
+      ) : null}
     </div>
   );
 
@@ -135,7 +138,7 @@ export const CardGrid: React.FC<CardGridType> = ({ cards, locale }) => {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {cards.map((card, index) => (
-        <CardGridItem key={index} card={card} locale={locale} />
+        <CardGridItem key={card.id ?? String(index)} card={card} locale={locale} />
       ))}
     </div>
   );

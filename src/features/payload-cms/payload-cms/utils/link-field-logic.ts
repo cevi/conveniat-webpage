@@ -115,10 +115,6 @@ export const openURLInNewTab = (linkFieldData?: LinkFieldDataType): boolean => {
     return linkFieldData.openInNewTab ?? false;
   }
 
-  if (type === 'email') {
-    return false;
-  }
-
   return false;
 };
 
