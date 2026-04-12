@@ -312,7 +312,7 @@ export interface Blog {
            */
           label?: string | null;
           linkField?: {
-            type?: ('reference' | 'custom') | null;
+            type?: ('reference' | 'custom' | 'email') | null;
             reference?:
               | ({
                   relationTo: 'blog';
@@ -339,6 +339,7 @@ export interface Blog {
                   value: string | CampScheduleEntry;
                 } | null);
             url?: string | null;
+            email?: string | null;
             openInNewTab?: boolean | null;
           };
           /**
@@ -351,7 +352,7 @@ export interface Blog {
         }
       | {
           linkField?: {
-            type?: ('reference' | 'custom') | null;
+            type?: ('reference' | 'custom' | 'email') | null;
             reference?:
               | ({
                   relationTo: 'blog';
@@ -378,6 +379,7 @@ export interface Blog {
                   value: string | CampScheduleEntry;
                 } | null);
             url?: string | null;
+            email?: string | null;
             openInNewTab?: boolean | null;
           };
           headline: string;
@@ -410,6 +412,7 @@ export interface Blog {
           blockType: 'campScheduleEntryBlock';
         }
       | CardGridBlock
+      | ContactPersonBlock
       | TwoColumnBlock
     )[];
   };
@@ -1492,7 +1495,7 @@ export interface PlainTextBlock {
  */
 export interface TeamMembersBlock {
   linkField?: {
-    type?: ('reference' | 'custom') | null;
+    type?: ('reference' | 'custom' | 'email') | null;
     reference?:
       | ({
           relationTo: 'blog';
@@ -1519,6 +1522,7 @@ export interface TeamMembersBlock {
           value: string | CampScheduleEntry;
         } | null);
     url?: string | null;
+    email?: string | null;
     openInNewTab?: boolean | null;
   };
   teamLeaderGroup: {
@@ -1647,7 +1651,7 @@ export interface GenericPage {
            */
           label?: string | null;
           linkField?: {
-            type?: ('reference' | 'custom') | null;
+            type?: ('reference' | 'custom' | 'email') | null;
             reference?:
               | ({
                   relationTo: 'blog';
@@ -1674,6 +1678,7 @@ export interface GenericPage {
                   value: string | CampScheduleEntry;
                 } | null);
             url?: string | null;
+            email?: string | null;
             openInNewTab?: boolean | null;
           };
           /**
@@ -1686,7 +1691,7 @@ export interface GenericPage {
         }
       | {
           linkField?: {
-            type?: ('reference' | 'custom') | null;
+            type?: ('reference' | 'custom' | 'email') | null;
             reference?:
               | ({
                   relationTo: 'blog';
@@ -1713,6 +1718,7 @@ export interface GenericPage {
                   value: string | CampScheduleEntry;
                 } | null);
             url?: string | null;
+            email?: string | null;
             openInNewTab?: boolean | null;
           };
           headline: string;
@@ -1745,6 +1751,7 @@ export interface GenericPage {
           blockType: 'campScheduleEntryBlock';
         }
       | CardGridBlock
+      | ContactPersonBlock
       | TwoColumnBlock
     )[];
   };
@@ -1895,7 +1902,7 @@ export interface Timeline {
         | InstagramEmbedding
         | {
             linkField?: {
-              type?: ('reference' | 'custom') | null;
+              type?: ('reference' | 'custom' | 'email') | null;
               reference?:
                 | ({
                     relationTo: 'blog';
@@ -1922,6 +1929,7 @@ export interface Timeline {
                     value: string | CampScheduleEntry;
                   } | null);
               url?: string | null;
+              email?: string | null;
               openInNewTab?: boolean | null;
             };
             headline: string;
@@ -2188,7 +2196,7 @@ export interface CardGridBlock {
      */
     linkLabel: string;
     linkField?: {
-      type?: ('reference' | 'custom') | null;
+      type?: ('reference' | 'custom' | 'email') | null;
       reference?:
         | ({
             relationTo: 'blog';
@@ -2215,6 +2223,7 @@ export interface CardGridBlock {
             value: string | CampScheduleEntry;
           } | null);
       url?: string | null;
+      email?: string | null;
       openInNewTab?: boolean | null;
     };
     id?: string | null;
@@ -2222,6 +2231,51 @@ export interface CardGridBlock {
   id?: string | null;
   blockName?: string | null;
   blockType: 'cardGrid';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ContactPersonBlock".
+ */
+export interface ContactPersonBlock {
+  label: string;
+  name: string;
+  description: string;
+  portrait?: (string | null) | Image;
+  linkLabel: string;
+  linkField?: {
+    type?: ('reference' | 'custom' | 'email') | null;
+    reference?:
+      | ({
+          relationTo: 'blog';
+          value: string | Blog;
+        } | null)
+      | ({
+          relationTo: 'generic-page';
+          value: string | GenericPage;
+        } | null)
+      | ({
+          relationTo: 'images';
+          value: string | Image;
+        } | null)
+      | ({
+          relationTo: 'documents';
+          value: string | Document;
+        } | null)
+      | ({
+          relationTo: 'camp-map-annotations';
+          value: string | CampMapAnnotation;
+        } | null)
+      | ({
+          relationTo: 'camp-schedule-entry';
+          value: string | CampScheduleEntry;
+        } | null);
+    url?: string | null;
+    email?: string | null;
+    openInNewTab?: boolean | null;
+  };
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'contactPerson';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2308,7 +2362,7 @@ export interface TwoColumnBlock {
          */
         label?: string | null;
         linkField?: {
-          type?: ('reference' | 'custom') | null;
+          type?: ('reference' | 'custom' | 'email') | null;
           reference?:
             | ({
                 relationTo: 'blog';
@@ -2335,6 +2389,7 @@ export interface TwoColumnBlock {
                 value: string | CampScheduleEntry;
               } | null);
           url?: string | null;
+          email?: string | null;
           openInNewTab?: boolean | null;
         };
         /**
@@ -2347,7 +2402,7 @@ export interface TwoColumnBlock {
       }
     | {
         linkField?: {
-          type?: ('reference' | 'custom') | null;
+          type?: ('reference' | 'custom' | 'email') | null;
           reference?:
             | ({
                 relationTo: 'blog';
@@ -2374,6 +2429,7 @@ export interface TwoColumnBlock {
                 value: string | CampScheduleEntry;
               } | null);
           url?: string | null;
+          email?: string | null;
           openInNewTab?: boolean | null;
         };
         headline: string;
@@ -2406,6 +2462,7 @@ export interface TwoColumnBlock {
         blockType: 'campScheduleEntryBlock';
       }
     | CardGridBlock
+    | ContactPersonBlock
   )[];
   /**
    * Content for the right column.
@@ -2479,7 +2536,7 @@ export interface TwoColumnBlock {
          */
         label?: string | null;
         linkField?: {
-          type?: ('reference' | 'custom') | null;
+          type?: ('reference' | 'custom' | 'email') | null;
           reference?:
             | ({
                 relationTo: 'blog';
@@ -2506,6 +2563,7 @@ export interface TwoColumnBlock {
                 value: string | CampScheduleEntry;
               } | null);
           url?: string | null;
+          email?: string | null;
           openInNewTab?: boolean | null;
         };
         /**
@@ -2518,7 +2576,7 @@ export interface TwoColumnBlock {
       }
     | {
         linkField?: {
-          type?: ('reference' | 'custom') | null;
+          type?: ('reference' | 'custom' | 'email') | null;
           reference?:
             | ({
                 relationTo: 'blog';
@@ -2545,6 +2603,7 @@ export interface TwoColumnBlock {
                 value: string | CampScheduleEntry;
               } | null);
           url?: string | null;
+          email?: string | null;
           openInNewTab?: boolean | null;
         };
         headline: string;
@@ -2577,6 +2636,7 @@ export interface TwoColumnBlock {
         blockType: 'campScheduleEntryBlock';
       }
     | CardGridBlock
+    | ContactPersonBlock
   )[];
   id?: string | null;
   blockName?: string | null;
@@ -3203,6 +3263,7 @@ export interface BlogSelect<T extends boolean = true> {
                           type?: T;
                           reference?: T;
                           url?: T;
+                          email?: T;
                           openInNewTab?: T;
                         };
                     inverted?: T;
@@ -3218,6 +3279,7 @@ export interface BlogSelect<T extends boolean = true> {
                           type?: T;
                           reference?: T;
                           url?: T;
+                          email?: T;
                           openInNewTab?: T;
                         };
                     headline?: T;
@@ -3236,6 +3298,7 @@ export interface BlogSelect<T extends boolean = true> {
                     blockName?: T;
                   };
               cardGrid?: T | CardGridBlockSelect<T>;
+              contactPerson?: T | ContactPersonBlockSelect<T>;
               twoColumnBlock?: T | TwoColumnBlockSelect<T>;
             };
       };
@@ -3384,6 +3447,7 @@ export interface TeamMembersBlockSelect<T extends boolean = true> {
         type?: T;
         reference?: T;
         url?: T;
+        email?: T;
         openInNewTab?: T;
       };
   teamLeaderGroup?:
@@ -3483,9 +3547,32 @@ export interface CardGridBlockSelect<T extends boolean = true> {
               type?: T;
               reference?: T;
               url?: T;
+              email?: T;
               openInNewTab?: T;
             };
         id?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ContactPersonBlock_select".
+ */
+export interface ContactPersonBlockSelect<T extends boolean = true> {
+  label?: T;
+  name?: T;
+  description?: T;
+  portrait?: T;
+  linkLabel?: T;
+  linkField?:
+    | T
+    | {
+        type?: T;
+        reference?: T;
+        url?: T;
+        email?: T;
+        openInNewTab?: T;
       };
   id?: T;
   blockName?: T;
@@ -3561,6 +3648,7 @@ export interface TwoColumnBlockSelect<T extends boolean = true> {
                     type?: T;
                     reference?: T;
                     url?: T;
+                    email?: T;
                     openInNewTab?: T;
                   };
               inverted?: T;
@@ -3576,6 +3664,7 @@ export interface TwoColumnBlockSelect<T extends boolean = true> {
                     type?: T;
                     reference?: T;
                     url?: T;
+                    email?: T;
                     openInNewTab?: T;
                   };
               headline?: T;
@@ -3594,6 +3683,7 @@ export interface TwoColumnBlockSelect<T extends boolean = true> {
               blockName?: T;
             };
         cardGrid?: T | CardGridBlockSelect<T>;
+        contactPerson?: T | ContactPersonBlockSelect<T>;
       };
   rightColumn?:
     | T
@@ -3659,6 +3749,7 @@ export interface TwoColumnBlockSelect<T extends boolean = true> {
                     type?: T;
                     reference?: T;
                     url?: T;
+                    email?: T;
                     openInNewTab?: T;
                   };
               inverted?: T;
@@ -3674,6 +3765,7 @@ export interface TwoColumnBlockSelect<T extends boolean = true> {
                     type?: T;
                     reference?: T;
                     url?: T;
+                    email?: T;
                     openInNewTab?: T;
                   };
               headline?: T;
@@ -3692,6 +3784,7 @@ export interface TwoColumnBlockSelect<T extends boolean = true> {
               blockName?: T;
             };
         cardGrid?: T | CardGridBlockSelect<T>;
+        contactPerson?: T | ContactPersonBlockSelect<T>;
       };
   id?: T;
   blockName?: T;
@@ -3778,6 +3871,7 @@ export interface GenericPageSelect<T extends boolean = true> {
                           type?: T;
                           reference?: T;
                           url?: T;
+                          email?: T;
                           openInNewTab?: T;
                         };
                     inverted?: T;
@@ -3793,6 +3887,7 @@ export interface GenericPageSelect<T extends boolean = true> {
                           type?: T;
                           reference?: T;
                           url?: T;
+                          email?: T;
                           openInNewTab?: T;
                         };
                     headline?: T;
@@ -3811,6 +3906,7 @@ export interface GenericPageSelect<T extends boolean = true> {
                     blockName?: T;
                   };
               cardGrid?: T | CardGridBlockSelect<T>;
+              contactPerson?: T | ContactPersonBlockSelect<T>;
               twoColumnBlock?: T | TwoColumnBlockSelect<T>;
             };
       };
@@ -3871,6 +3967,7 @@ export interface TimelineSelect<T extends boolean = true> {
                     type?: T;
                     reference?: T;
                     url?: T;
+                    email?: T;
                     openInNewTab?: T;
                   };
               headline?: T;
@@ -4739,7 +4836,7 @@ export interface Header {
     | {
         label: string;
         linkField?: {
-          type?: ('reference' | 'custom') | null;
+          type?: ('reference' | 'custom' | 'email') | null;
           reference?:
             | ({
                 relationTo: 'blog';
@@ -4766,13 +4863,14 @@ export interface Header {
                 value: string | CampScheduleEntry;
               } | null);
           url?: string | null;
+          email?: string | null;
           openInNewTab?: boolean | null;
         };
         subMenu?:
           | {
               label: string;
               linkField?: {
-                type?: ('reference' | 'custom') | null;
+                type?: ('reference' | 'custom' | 'email') | null;
                 reference?:
                   | ({
                       relationTo: 'blog';
@@ -4799,6 +4897,7 @@ export interface Header {
                       value: string | CampScheduleEntry;
                     } | null);
                 url?: string | null;
+                email?: string | null;
                 openInNewTab?: boolean | null;
               };
               id?: string | null;
@@ -4838,7 +4937,7 @@ export interface Footer {
     | {
         label: string;
         linkField?: {
-          type?: ('reference' | 'custom') | null;
+          type?: ('reference' | 'custom' | 'email') | null;
           reference?:
             | ({
                 relationTo: 'blog';
@@ -4865,6 +4964,7 @@ export interface Footer {
                 value: string | CampScheduleEntry;
               } | null);
           url?: string | null;
+          email?: string | null;
           openInNewTab?: boolean | null;
         };
         id?: string | null;
@@ -5079,6 +5179,7 @@ export interface HeaderSelect<T extends boolean = true> {
               type?: T;
               reference?: T;
               url?: T;
+              email?: T;
               openInNewTab?: T;
             };
         subMenu?:
@@ -5091,6 +5192,7 @@ export interface HeaderSelect<T extends boolean = true> {
                     type?: T;
                     reference?: T;
                     url?: T;
+                    email?: T;
                     openInNewTab?: T;
                   };
               id?: T;
@@ -5121,6 +5223,7 @@ export interface FooterSelect<T extends boolean = true> {
               type?: T;
               reference?: T;
               url?: T;
+              email?: T;
               openInNewTab?: T;
             };
         id?: T;

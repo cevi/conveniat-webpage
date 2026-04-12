@@ -10,7 +10,8 @@ import type {
 import type { NamedGroupField, TextFieldSingleValidation } from 'payload';
 
 export interface LinkFieldDataType {
-  type?: 'reference' | 'custom' | null;
+  type?: 'reference' | 'custom' | 'email' | null;
+  email?: string | null;
   reference?:
     | ({
         relationTo: 'blog';
@@ -39,6 +40,17 @@ export interface LinkFieldDataType {
   url?: string | null;
   openInNewTab?: boolean | null;
 }
+
+const validateEmail: TextFieldSingleValidation = (email) => {
+  if (email === undefined || email === null || email.trim() === '') {
+    return 'Email is required';
+  }
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailPattern.test(email)) {
+    return 'Please enter a valid email address';
+  }
+  return true;
+};
 
 const validateURL: TextFieldSingleValidation = (url) => {
   // Check if the URL is provided
@@ -75,6 +87,10 @@ export const LinkField = (required: boolean = true): NamedGroupField => {
             label: 'Custom URL',
             value: 'custom',
           },
+          {
+            label: 'Email',
+            value: 'email',
+          },
         ],
       },
       {
@@ -108,6 +124,16 @@ export const LinkField = (required: boolean = true): NamedGroupField => {
         label: 'Custom URL',
         required: required,
         validate: validateURL,
+      },
+      {
+        name: 'email',
+        type: 'text',
+        admin: {
+          condition: (_, siblingData) => siblingData['type'] === 'email',
+        },
+        label: 'Email Address',
+        required: required,
+        validate: validateEmail,
       },
       {
         name: 'openInNewTab',
