@@ -44,7 +44,7 @@ export const createChat = trpcBaseProcedure
       const requestedMemberUuids = [user.uuid, ...members.map((member) => member.userId)].sort();
 
       const existingChat = await findChatWithMembers(requestedMemberUuids, prisma, false);
-      if (existingChat && existingChat.chatMemberships.length === 2) {
+      if (existingChat?.chatMemberships.length === 2) {
         console.log('Found existing private chat:', existingChat.uuid);
         return existingChat.uuid; // Return the ID of the existing chat
       }
