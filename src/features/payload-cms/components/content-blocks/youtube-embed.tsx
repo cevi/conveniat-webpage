@@ -27,7 +27,13 @@ const YoutubeEmbedItem: React.FC<{ link: string }> = ({ link }) => {
           />
         }
       >
-        <ReactYouTubeEmbed url={link} width={isShort ? 315 : '100%'} />
+        {isShort ? (
+          <ReactYouTubeEmbed url={link} width={315} />
+        ) : (
+          <div className="aspect-video overflow-hidden [&_div]:h-full [&_iframe]:size-full">
+            <ReactYouTubeEmbed url={link} width="100%" />
+          </div>
+        )}
       </ClientOnly>
     </div>
   );
