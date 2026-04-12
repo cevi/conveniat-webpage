@@ -409,6 +409,7 @@ export interface Blog {
           blockName?: string | null;
           blockType: 'campScheduleEntryBlock';
         }
+      | CardGridBlock
       | TwoColumnBlock
     )[];
   };
@@ -1743,6 +1744,7 @@ export interface GenericPage {
           blockName?: string | null;
           blockType: 'campScheduleEntryBlock';
         }
+      | CardGridBlock
       | TwoColumnBlock
     )[];
   };
@@ -2140,6 +2142,89 @@ export interface Countdown {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "CardGridBlock".
+ */
+export interface CardGridBlock {
+  /**
+   * The individual cards in the grid (1–6 cards).
+   */
+  cards: {
+    iconType?: ('icon' | 'image') | null;
+    /**
+     * Choose an icon for the card.
+     */
+    icon?:
+      | (
+          | 'users'
+          | 'handHelping'
+          | 'family'
+          | 'tent'
+          | 'tentTree'
+          | 'clipboardList'
+          | 'target'
+          | 'mapPin'
+          | 'calendar'
+          | 'messageCircle'
+          | 'bell'
+          | 'star'
+          | 'heart'
+          | 'house'
+          | 'music'
+          | 'camera'
+          | 'treePine'
+          | 'flame'
+          | 'compass'
+          | 'backpack'
+        )
+      | null;
+    /**
+     * Choose a square image or logo (e.g. SVG or PNG).
+     */
+    customImage?: (string | null) | Image;
+    title: string;
+    description: string;
+    /**
+     * The text for the link (e.g. "Learn more →").
+     */
+    linkLabel: string;
+    linkField?: {
+      type?: ('reference' | 'custom') | null;
+      reference?:
+        | ({
+            relationTo: 'blog';
+            value: string | Blog;
+          } | null)
+        | ({
+            relationTo: 'generic-page';
+            value: string | GenericPage;
+          } | null)
+        | ({
+            relationTo: 'images';
+            value: string | Image;
+          } | null)
+        | ({
+            relationTo: 'documents';
+            value: string | Document;
+          } | null)
+        | ({
+            relationTo: 'camp-map-annotations';
+            value: string | CampMapAnnotation;
+          } | null)
+        | ({
+            relationTo: 'camp-schedule-entry';
+            value: string | CampScheduleEntry;
+          } | null);
+      url?: string | null;
+      openInNewTab?: boolean | null;
+    };
+    id?: string | null;
+  }[];
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'cardGrid';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TwoColumnBlock".
  */
 export interface TwoColumnBlock {
@@ -2320,6 +2405,7 @@ export interface TwoColumnBlock {
         blockName?: string | null;
         blockType: 'campScheduleEntryBlock';
       }
+    | CardGridBlock
   )[];
   /**
    * Content for the right column.
@@ -2490,6 +2576,7 @@ export interface TwoColumnBlock {
         blockName?: string | null;
         blockType: 'campScheduleEntryBlock';
       }
+    | CardGridBlock
   )[];
   id?: string | null;
   blockName?: string | null;
@@ -3148,6 +3235,7 @@ export interface BlogSelect<T extends boolean = true> {
                     id?: T;
                     blockName?: T;
                   };
+              cardGrid?: T | CardGridBlockSelect<T>;
               twoColumnBlock?: T | TwoColumnBlockSelect<T>;
             };
       };
@@ -3377,6 +3465,33 @@ export interface CountdownSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "CardGridBlock_select".
+ */
+export interface CardGridBlockSelect<T extends boolean = true> {
+  cards?:
+    | T
+    | {
+        iconType?: T;
+        icon?: T;
+        customImage?: T;
+        title?: T;
+        description?: T;
+        linkLabel?: T;
+        linkField?:
+          | T
+          | {
+              type?: T;
+              reference?: T;
+              url?: T;
+              openInNewTab?: T;
+            };
+        id?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TwoColumnBlock_select".
  */
 export interface TwoColumnBlockSelect<T extends boolean = true> {
@@ -3478,6 +3593,7 @@ export interface TwoColumnBlockSelect<T extends boolean = true> {
               id?: T;
               blockName?: T;
             };
+        cardGrid?: T | CardGridBlockSelect<T>;
       };
   rightColumn?:
     | T
@@ -3575,6 +3691,7 @@ export interface TwoColumnBlockSelect<T extends boolean = true> {
               id?: T;
               blockName?: T;
             };
+        cardGrid?: T | CardGridBlockSelect<T>;
       };
   id?: T;
   blockName?: T;
@@ -3693,6 +3810,7 @@ export interface GenericPageSelect<T extends boolean = true> {
                     id?: T;
                     blockName?: T;
                   };
+              cardGrid?: T | CardGridBlockSelect<T>;
               twoColumnBlock?: T | TwoColumnBlockSelect<T>;
             };
       };

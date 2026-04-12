@@ -2,6 +2,7 @@ import { accordion } from '@/features/payload-cms/payload-cms/shared-blocks/acco
 import { blockPostsOverview } from '@/features/payload-cms/payload-cms/shared-blocks/blog-posts-overview-block';
 import { callToActionBlock } from '@/features/payload-cms/payload-cms/shared-blocks/call-to-action-block';
 import { campScheduleEntryBlock } from '@/features/payload-cms/payload-cms/shared-blocks/camp-schedule-entry.block';
+import { cardGridBlock } from '@/features/payload-cms/payload-cms/shared-blocks/card-grid-block';
 import { countdownBlock } from '@/features/payload-cms/payload-cms/shared-blocks/countdown-block';
 import { detailsTable } from '@/features/payload-cms/payload-cms/shared-blocks/details-table';
 import { fileDownloadBlock } from '@/features/payload-cms/payload-cms/shared-blocks/file-download-block';
@@ -37,6 +38,7 @@ export const genericBlocks = [
   callToActionBlock,
   newsCardBlock,
   campScheduleEntryBlock,
+  cardGridBlock,
 ];
 
 export const twoColumnBlock: Block = {

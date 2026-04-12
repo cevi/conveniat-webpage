@@ -5,6 +5,8 @@ import type { NewsCardType } from '@/components/news-card';
 import { NewsCardBlock } from '@/components/news-card';
 import { getTimelineEntriesCached } from '@/features/payload-cms/api/cached-timeline';
 import { Accordion } from '@/features/payload-cms/components/accordion/accordion';
+import type { CardGridType } from '@/features/payload-cms/components/content-blocks/card-grid';
+import { CardGrid } from '@/features/payload-cms/components/content-blocks/card-grid';
 import type { CallToActionType } from '@/features/payload-cms/components/content-blocks/call-to-action';
 import { CallToActionBlock } from '@/features/payload-cms/components/content-blocks/call-to-action';
 import type { CampScheduleEntryType } from '@/features/payload-cms/components/content-blocks/camp-schedule-entry';
@@ -64,7 +66,8 @@ export type ContentBlockTypeNames =
   | 'callToAction'
   | 'newsCard'
   | 'campScheduleEntryBlock'
-  | 'twoColumnBlock';
+  | 'twoColumnBlock'
+  | 'cardGrid';
 
 export type SectionRenderer<T = object> = React.FC<
   LocalizedPageType & {
@@ -675,6 +678,32 @@ export const RenderCampScheduleEntry: SectionRenderer<CampScheduleEntryType> = (
       locale={locale}
     >
       <CampScheduleEntryContentBlock {...block} />
+    </SectionWrapper>
+  );
+};
+
+export const RenderCardGrid: SectionRenderer<CardGridType> = ({
+  block,
+  sectionClassName,
+  sectionOverrides,
+  locale,
+}) => {
+  return (
+    <SectionWrapper
+      block={block}
+      sectionClassName={sectionClassName}
+      sectionOverrides={sectionOverrides}
+      errorFallbackMessage={errorMessageForType(
+        {
+          de: 'Das Karten-Raster',
+          en: 'card grid',
+          fr: 'la grille de cartes',
+        },
+        locale,
+      )}
+      locale={locale}
+    >
+      <CardGrid {...block} locale={locale} />
     </SectionWrapper>
   );
 };
