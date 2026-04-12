@@ -17,7 +17,7 @@ export const hasPermissionsForLinkField = async (
 ): Promise<boolean> => {
   if (!linkFieldData) return false;
   const { type } = linkFieldData;
-  if (type === 'custom') {
+  if (type === 'custom' || type === 'email') {
     return true;
   }
   // reference field --> a payload collection
@@ -59,6 +59,10 @@ export const getURLForLinkField = (
 
   if (type === 'custom') {
     return linkFieldData.url ?? undefined;
+  }
+
+  if (type === 'email') {
+    return linkFieldData.email ? `mailto:${encodeURIComponent(linkFieldData.email)}` : undefined;
   }
 
   if (type === 'reference' && linkFieldData.reference?.value !== undefined) {

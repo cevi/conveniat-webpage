@@ -9,6 +9,10 @@ import type { CallToActionType } from '@/features/payload-cms/components/content
 import { CallToActionBlock } from '@/features/payload-cms/components/content-blocks/call-to-action';
 import type { CampScheduleEntryType } from '@/features/payload-cms/components/content-blocks/camp-schedule-entry';
 import { CampScheduleEntryContentBlock } from '@/features/payload-cms/components/content-blocks/camp-schedule-entry';
+import type { CardGridType } from '@/features/payload-cms/components/content-blocks/card-grid';
+import { CardGrid } from '@/features/payload-cms/components/content-blocks/card-grid';
+import type { ContactPersonType } from '@/features/payload-cms/components/content-blocks/contact-person';
+import { ContactPersonBlock } from '@/features/payload-cms/components/content-blocks/contact-person';
 import type { CountdownType } from '@/features/payload-cms/components/content-blocks/countdown';
 import { Countdown } from '@/features/payload-cms/components/content-blocks/countdown';
 import type { FileDownloadType } from '@/features/payload-cms/components/content-blocks/file-download';
@@ -37,6 +41,7 @@ import type {
   TimelineEntries,
 } from '@/features/payload-cms/payload-types';
 import type { Locale, LocalizedPageType, StaticTranslationString } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
 import config from '@payload-config';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import { cacheLife, cacheTag } from 'next/cache';
@@ -64,7 +69,9 @@ export type ContentBlockTypeNames =
   | 'callToAction'
   | 'newsCard'
   | 'campScheduleEntryBlock'
-  | 'twoColumnBlock';
+  | 'twoColumnBlock'
+  | 'cardGrid'
+  | 'contactPerson';
 
 export type SectionRenderer<T = object> = React.FC<
   LocalizedPageType & {
@@ -294,15 +301,48 @@ export const SwisstopoInlineMapSection: SectionRenderer<InlineSwisstopoMapEmbedT
   );
 };
 
+const aspectRatioClassMap: Record<string, string> = {
+  video: 'aspect-video',
+  '3/2': 'aspect-[3/2]',
+  '2/1': 'aspect-[2/1]',
+  '4/3': 'aspect-[4/3]',
+  '1/1': 'aspect-square',
+  '21/9': 'aspect-[21/9]',
+};
+
+const aspectRatioDimensions: Record<string, { width: number; height: number }> = {
+  video: { width: 1200, height: 675 },
+  '3/2': { width: 1200, height: 800 },
+  '2/1': { width: 1200, height: 600 },
+  '4/3': { width: 1200, height: 900 },
+  '1/1': { width: 1200, height: 1200 },
+  '21/9': { width: 1260, height: 540 },
+  auto: { width: 1200, height: 800 },
+};
+
 export const RenderSinglePicture: SectionRenderer<{
   image?: {
     url: string;
-    sizes?: { large?: { url: string } };
+    width?: number;
+    height?: number;
+    sizes?: { large?: { url: string; width?: number; height?: number } };
     alt: string;
     imageCaption?: string;
   };
+  aspectRatio?: string;
 }> = ({ block, sectionClassName, sectionOverrides, locale }) => {
-  const imageUrl = block.image?.sizes?.large?.url ?? block.image?.url;
+  const largeSize = block.image?.sizes?.large;
+  const imageUrl = largeSize?.url ?? block.image?.url;
+  const originalWidth = largeSize?.width ?? block.image?.width;
+  const originalHeight = largeSize?.height ?? block.image?.height;
+
+  const ratio = block.aspectRatio ?? 'video';
+  const aspectClass = aspectRatioClassMap[ratio];
+
+  const dimensions =
+    ratio === 'auto'
+      ? { width: originalWidth ?? 1200, height: originalHeight ?? 800 }
+      : (aspectRatioDimensions[ratio] ?? { width: 1200, height: 675 });
 
   return (
     <SectionWrapper
@@ -319,13 +359,14 @@ export const RenderSinglePicture: SectionRenderer<{
       )}
       locale={locale}
     >
-      <div className="text-conveniat-green relative mt-10 aspect-video w-[calc(100%+32px)] text-lg max-md:mx-[-16px]">
+      <div className="mt-10 w-[calc(100%+32px)] max-md:mx-[-16px]">
         {imageUrl !== undefined && imageUrl !== '' && (
           <Image
             src={imageUrl}
             alt={block.image?.alt ?? 'copyright by conveniat27'}
-            className="block rounded-2xl object-contain"
-            fill
+            className={cn('block w-full rounded-2xl', aspectClass && `${aspectClass} object-cover`)}
+            width={dimensions.width}
+            height={dimensions.height}
           />
         )}
       </div>
@@ -650,6 +691,58 @@ export const RenderCampScheduleEntry: SectionRenderer<CampScheduleEntryType> = (
       locale={locale}
     >
       <CampScheduleEntryContentBlock {...block} />
+    </SectionWrapper>
+  );
+};
+
+export const RenderCardGrid: SectionRenderer<CardGridType> = ({
+  block,
+  sectionClassName,
+  sectionOverrides,
+  locale,
+}) => {
+  return (
+    <SectionWrapper
+      block={block}
+      sectionClassName={sectionClassName}
+      sectionOverrides={sectionOverrides}
+      errorFallbackMessage={errorMessageForType(
+        {
+          de: 'Das Karten-Raster',
+          en: 'card grid',
+          fr: 'la grille de cartes',
+        },
+        locale,
+      )}
+      locale={locale}
+    >
+      <CardGrid {...block} locale={locale} />
+    </SectionWrapper>
+  );
+};
+
+export const RenderContactPerson: SectionRenderer<ContactPersonType> = ({
+  block,
+  sectionClassName,
+  sectionOverrides,
+  locale,
+}) => {
+  return (
+    <SectionWrapper
+      block={block}
+      sectionClassName={sectionClassName}
+      sectionOverrides={sectionOverrides}
+      errorFallbackMessage={errorMessageForType(
+        {
+          de: 'Die Ansprechperson',
+          en: 'contact person',
+          fr: 'la personne de contact',
+        },
+        locale,
+      )}
+      locale={locale}
+    >
+      <ContactPersonBlock {...block} locale={locale} />
     </SectionWrapper>
   );
 };

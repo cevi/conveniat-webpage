@@ -8,6 +8,8 @@ import {
   RenderBlogPostsOverview,
   RenderCallToAction,
   RenderCampScheduleEntry,
+  RenderCardGrid,
+  RenderContactPerson,
   RenderCountdown,
   RenderFileDownload,
   RenderFormBlock,
@@ -64,6 +66,8 @@ export const PageSectionsConverter: React.FC<
     newsCard: RenderNewsCard,
     campScheduleEntryBlock: RenderCampScheduleEntry,
     twoColumnBlock: RenderTwoColumnBlock,
+    cardGrid: RenderCardGrid,
+    contactPerson: RenderContactPerson,
   };
 
   return (
