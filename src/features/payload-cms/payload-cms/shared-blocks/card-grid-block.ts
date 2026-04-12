@@ -59,7 +59,7 @@ export const cardGridBlock: Block = {
           label: {
             de: 'Icon-Typ',
             en: 'Icon Type',
-            fr: 'Type d\'icône',
+            fr: "Type d'icône",
           },
           options: [
             {
@@ -83,7 +83,7 @@ export const cardGridBlock: Block = {
             fr: 'Icône prédéfinie',
           },
           admin: {
-            condition: (_, siblingData) => siblingData.iconType === 'icon',
+            condition: (_, siblingData) => siblingData['iconType'] === 'icon',
             description: {
               de: 'Wähle ein Icon für die Karte.',
               en: 'Choose an icon for the card.',
@@ -124,7 +124,7 @@ export const cardGridBlock: Block = {
             fr: 'Image personnalisée',
           },
           admin: {
-            condition: (_, siblingData) => siblingData.iconType === 'image',
+            condition: (_, siblingData) => siblingData['iconType'] === 'image',
             description: {
               de: 'Wähle ein quadratisches Bild oder Logo (z.B. SVG oder PNG).',
               en: 'Choose a square image or logo (e.g. SVG or PNG).',

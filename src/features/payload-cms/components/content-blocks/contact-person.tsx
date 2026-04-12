@@ -20,6 +20,15 @@ export interface ContactPersonType {
   locale: Locale;
 }
 
+const getInitials = (personName: string): string => {
+  return personName
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+};
+
 export const ContactPersonBlock: React.FC<ContactPersonType> = ({
   label,
   name,
@@ -31,18 +40,9 @@ export const ContactPersonBlock: React.FC<ContactPersonType> = ({
 }) => {
   const url = getURLForLinkField(linkField, locale);
 
-  const getInitials = (personName: string) => {
-    return personName
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .slice(0, 2)
-      .toUpperCase();
-  };
-
   const hasPortrait = portrait !== null && portrait !== undefined;
 
-  const renderAvatar = () => {
+  const renderAvatar = (): React.ReactNode => {
     if (hasPortrait) {
       return <TeamLeaderPortrait name={name} portrait={portrait} hoverEffect={false} />;
     }
@@ -64,7 +64,7 @@ export const ContactPersonBlock: React.FC<ContactPersonType> = ({
             {renderAvatar()}
           </div>
           <div>
-            <h3 className="font-heading text-conveniat-green mb-1 text-lg font-bold leading-tight">
+            <h3 className="font-heading text-conveniat-green mb-1 text-lg leading-tight font-bold">
               {name}
             </h3>
             <p className="font-body text-sm leading-snug text-gray-500">{description}</p>

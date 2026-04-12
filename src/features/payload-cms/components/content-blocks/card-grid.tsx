@@ -1,13 +1,12 @@
 import { LinkComponent } from '@/components/ui/link-component';
 import type { LinkFieldDataType } from '@/features/payload-cms/payload-cms/shared-fields/link-field';
+import { getImageAltInLocale } from '@/features/payload-cms/payload-cms/utils/images-meta-fields';
 import {
   getURLForLinkField,
   openURLInNewTab,
 } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
-import { getImageAltInLocale } from '@/features/payload-cms/payload-cms/utils/images-meta-fields';
 import type { Image } from '@/features/payload-cms/payload-types';
 import type { Locale } from '@/types/types';
-import ImageNode from 'next/image';
 import { cn } from '@/utils/tailwindcss-override';
 import {
   ArrowRight,
@@ -32,6 +31,7 @@ import {
   Trees,
   Users,
 } from 'lucide-react';
+import ImageNode from 'next/image';
 import React from 'react';
 
 export interface CardGridCard {
@@ -79,7 +79,7 @@ const CardGridItem: React.FC<{
   const IconComponent = iconMap[card.icon] ?? Users;
   const url = getURLForLinkField(card.linkField, locale) ?? '';
 
-  const renderIcon = () => {
+  const renderIcon = (): React.ReactNode => {
     if (card.iconType === 'image' && card.customImage?.url) {
       return (
         <ImageNode
