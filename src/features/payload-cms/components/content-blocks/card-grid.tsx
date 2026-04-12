@@ -95,7 +95,7 @@ const CardGridItem: React.FC<{
   };
 
   const cardContent = (
-    <div className="hover:border-conveniat-green/30 group flex h-full flex-col justify-between rounded-xl border border-gray-200 bg-white p-6 transition-all duration-300 hover:shadow-lg">
+    <div className="group flex h-full flex-col justify-between rounded-lg border-2 border-gray-200 bg-white p-6 shadow-xs transition-transform duration-300 hover:scale-[1.01]">
       <div>
         <div
           className={cn(

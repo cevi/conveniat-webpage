@@ -55,7 +55,7 @@ export const ContactPersonBlock: React.FC<ContactPersonType> = ({
 
   return (
     <div
-      className={`w-full rounded-lg border-2 border-gray-200 bg-white p-6 shadow-xs transition-all duration-300 hover:scale-[1.01] sm:p-8 ${url ? 'group relative cursor-pointer hover:border-gray-300' : ''}`}
+      className={`w-full rounded-lg border-2 border-gray-200 bg-white p-6 shadow-xs transition-transform duration-300 hover:scale-[1.01] sm:p-8 ${url ? 'group relative cursor-pointer' : ''}`}
     >
       <div className="mb-6 text-xs font-bold tracking-widest text-gray-500 uppercase">{label}</div>
       <div className="flex flex-col items-start gap-6 md:flex-row md:items-center md:justify-between">
