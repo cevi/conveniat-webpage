@@ -132,7 +132,8 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
 
       // Memoize the recent outgoing emails to prevent gigabytes of memory allocation
       // when processing hundreds of bounce emails in a single fetch job
-      let cachedRecentOutgoing: { id: string | number; smtpResults: unknown }[] | null = null;
+      let cachedRecentOutgoing: { id: string | number; smtpResults: unknown }[] | undefined =
+        undefined;
 
       for (const { id: messageId, uid } of messages) {
         // Check for previous failures
@@ -234,7 +235,7 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
             const extractedIds = [...possibleIds];
 
             if (extractedIds.length > 0) {
-              if (cachedRecentOutgoing === null) {
+              if (cachedRecentOutgoing === undefined) {
                 // Scan recent outgoing emails (up to 1000, within the last 30 days) for these IDs in their smtpResults
                 const thirtyDaysAgo = new Date();
                 thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -249,11 +250,11 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
                   limit: 1000,
                   sort: '-createdAt',
                 });
-                
-                // Map to immediately clear heavy html strings from memory 
-                cachedRecentOutgoing = recentOutgoing.docs.map((doc) => ({
-                  id: doc.id,
-                  smtpResults: doc.smtpResults,
+
+                // Map to immediately clear heavy html strings from memory
+                cachedRecentOutgoing = recentOutgoing.docs.map((document_) => ({
+                  id: document_.id,
+                  smtpResults: document_.smtpResults,
                 }));
               }
 
