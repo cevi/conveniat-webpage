@@ -294,6 +294,25 @@ export const SwisstopoInlineMapSection: SectionRenderer<InlineSwisstopoMapEmbedT
   );
 };
 
+const aspectRatioClassMap: Record<string, string> = {
+  video: 'aspect-video',
+  '3/2': 'aspect-[3/2]',
+  '2/1': 'aspect-[2/1]',
+  '4/3': 'aspect-[4/3]',
+  '1/1': 'aspect-square',
+  '21/9': 'aspect-[21/9]',
+};
+
+const aspectRatioDimensions: Record<string, { width: number; height: number }> = {
+  video: { width: 1200, height: 675 },
+  '3/2': { width: 1200, height: 800 },
+  '2/1': { width: 1200, height: 600 },
+  '4/3': { width: 1200, height: 900 },
+  '1/1': { width: 1200, height: 1200 },
+  '21/9': { width: 1260, height: 540 },
+  auto: { width: 1200, height: 800 },
+};
+
 export const RenderSinglePicture: SectionRenderer<{
   image?: {
     url: string;
@@ -301,8 +320,13 @@ export const RenderSinglePicture: SectionRenderer<{
     alt: string;
     imageCaption?: string;
   };
+  aspectRatio?: string;
 }> = ({ block, sectionClassName, sectionOverrides, locale }) => {
   const imageUrl = block.image?.sizes?.large?.url ?? block.image?.url;
+  const ratio = block.aspectRatio ?? 'video';
+  const aspectClass = aspectRatioClassMap[ratio];
+  const defaultDimensions = { width: 1200, height: 675 };
+  const dimensions = aspectRatioDimensions[ratio] ?? defaultDimensions;
 
   return (
     <SectionWrapper
@@ -319,13 +343,14 @@ export const RenderSinglePicture: SectionRenderer<{
       )}
       locale={locale}
     >
-      <div className="text-conveniat-green relative mt-10 aspect-video w-[calc(100%+32px)] text-lg max-md:mx-[-16px]">
+      <div className="mt-10 w-[calc(100%+32px)] max-md:mx-[-16px]">
         {imageUrl !== undefined && imageUrl !== '' && (
           <Image
             src={imageUrl}
             alt={block.image?.alt ?? 'copyright by conveniat27'}
-            className="block rounded-2xl object-contain"
-            fill
+            className={`block w-full rounded-2xl ${aspectClass ? `${aspectClass} object-cover` : ''}`}
+            width={dimensions.width}
+            height={dimensions.height}
           />
         )}
       </div>

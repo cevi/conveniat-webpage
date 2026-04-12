@@ -278,6 +278,10 @@ export interface Blog {
         }
       | {
           image: string | Image;
+          /**
+           * Choose the aspect ratio of the image.
+           */
+          aspectRatio: 'video' | '3/2' | '2/1' | '4/3' | '1/1' | '21/9' | 'auto';
           id?: string | null;
           blockName?: string | null;
           blockType: 'singlePicture';
@@ -1608,6 +1612,10 @@ export interface GenericPage {
         }
       | {
           image: string | Image;
+          /**
+           * Choose the aspect ratio of the image.
+           */
+          aspectRatio: 'video' | '3/2' | '2/1' | '4/3' | '1/1' | '21/9' | 'auto';
           id?: string | null;
           blockName?: string | null;
           blockType: 'singlePicture';
@@ -1874,6 +1882,10 @@ export interface Timeline {
           }
         | {
             image: string | Image;
+            /**
+             * Choose the aspect ratio of the image.
+             */
+            aspectRatio: 'video' | '3/2' | '2/1' | '4/3' | '1/1' | '21/9' | 'auto';
             id?: string | null;
             blockName?: string | null;
             blockType: 'singlePicture';
@@ -2177,6 +2189,10 @@ export interface TwoColumnBlock {
       }
     | {
         image: string | Image;
+        /**
+         * Choose the aspect ratio of the image.
+         */
+        aspectRatio: 'video' | '3/2' | '2/1' | '4/3' | '1/1' | '21/9' | 'auto';
         id?: string | null;
         blockName?: string | null;
         blockType: 'singlePicture';
@@ -2343,6 +2359,10 @@ export interface TwoColumnBlock {
       }
     | {
         image: string | Image;
+        /**
+         * Choose the aspect ratio of the image.
+         */
+        aspectRatio: 'video' | '3/2' | '2/1' | '4/3' | '1/1' | '21/9' | 'auto';
         id?: string | null;
         blockName?: string | null;
         blockType: 'singlePicture';
@@ -3060,6 +3080,7 @@ export interface BlogSelect<T extends boolean = true> {
                 | T
                 | {
                     image?: T;
+                    aspectRatio?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -3389,6 +3410,7 @@ export interface TwoColumnBlockSelect<T extends boolean = true> {
           | T
           | {
               image?: T;
+              aspectRatio?: T;
               id?: T;
               blockName?: T;
             };
@@ -3485,6 +3507,7 @@ export interface TwoColumnBlockSelect<T extends boolean = true> {
           | T
           | {
               image?: T;
+              aspectRatio?: T;
               id?: T;
               blockName?: T;
             };
@@ -3602,6 +3625,7 @@ export interface GenericPageSelect<T extends boolean = true> {
                 | T
                 | {
                     image?: T;
+                    aspectRatio?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -3715,6 +3739,7 @@ export interface TimelineSelect<T extends boolean = true> {
           | T
           | {
               image?: T;
+              aspectRatio?: T;
               id?: T;
               blockName?: T;
             };
