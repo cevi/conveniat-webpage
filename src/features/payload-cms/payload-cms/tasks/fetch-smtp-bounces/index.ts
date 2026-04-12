@@ -130,6 +130,10 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
       let poisonPillCount = 0;
       let errorCount = 0;
 
+      // Memoize the recent outgoing emails to prevent gigabytes of memory allocation
+      // when processing hundreds of bounce emails in a single fetch job
+      let cachedRecentOutgoing: { id: string | number; smtpResults: unknown }[] | null = null;
+
       for (const { id: messageId, uid } of messages) {
         // Check for previous failures
         const trackingResults = await payload.find({
@@ -230,22 +234,30 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
             const extractedIds = [...possibleIds];
 
             if (extractedIds.length > 0) {
-              // Scan recent outgoing emails (up to 1000, within the last 30 days) for these IDs in their smtpResults
-              const thirtyDaysAgo = new Date();
-              thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+              if (cachedRecentOutgoing === null) {
+                // Scan recent outgoing emails (up to 1000, within the last 30 days) for these IDs in their smtpResults
+                const thirtyDaysAgo = new Date();
+                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-              const recentOutgoing = await payload.find({
-                collection: 'outgoing-emails',
-                where: {
-                  createdAt: {
-                    greater_than_equal: thirtyDaysAgo.toISOString(),
+                const recentOutgoing = await payload.find({
+                  collection: 'outgoing-emails',
+                  where: {
+                    createdAt: {
+                      greater_than_equal: thirtyDaysAgo.toISOString(),
+                    },
                   },
-                },
-                limit: 1000,
-                sort: '-createdAt',
-              });
+                  limit: 1000,
+                  sort: '-createdAt',
+                });
+                
+                // Map to immediately clear heavy html strings from memory 
+                cachedRecentOutgoing = recentOutgoing.docs.map((doc) => ({
+                  id: doc.id,
+                  smtpResults: doc.smtpResults,
+                }));
+              }
 
-              for (const outgoingDocument of recentOutgoing.docs) {
+              for (const outgoingDocument of cachedRecentOutgoing) {
                 const stringifiedResults = JSON.stringify(outgoingDocument.smtpResults ?? []);
                 const foundMatch = extractedIds.some((id) => {
                   // Only match if the ID appears as a complete token, not as a substring
