@@ -9,7 +9,7 @@ import type { Image as ImageType } from '@/features/payload-cms/payload-types';
 import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import ImageNode from 'next/image';
-import React from 'react';
+import type React from 'react';
 
 export interface SponsorGridSponsor {
   id?: string | null;
@@ -28,7 +28,7 @@ export interface SponsorGridType {
   tiers: SponsorGridTier[];
 }
 
-const gridColsMap: Record<string, string> = {
+const gridColsMap: Record<SponsorGridTier['columnsDesktop'], string> = {
   '2': 'grid-cols-1 sm:grid-cols-2',
   '3': 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3',
   '4': 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4',
@@ -84,7 +84,7 @@ export const SponsorGrid: React.FC<SponsorGridType & { locale: Locale }> = ({ ti
           <div
             className={cn(
               'grid gap-4 md:gap-6',
-              gridColsMap[tier.columnsDesktop] ?? gridColsMap['4'],
+              gridColsMap[tier.columnsDesktop],
             )}
           >
             {tier.sponsors.map((sponsor, sponsorIndex) => (
