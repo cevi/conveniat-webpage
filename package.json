@@ -71,6 +71,7 @@
     "@payloadcms/live-preview-react": "^3.82.1",
     "@payloadcms/next": "^3.82.1",
     "@payloadcms/plugin-form-builder": "^3.82.1",
+    "@payloadcms/plugin-import-export": "^3.83.0",
     "@payloadcms/plugin-redirects": "^3.82.1",
     "@payloadcms/plugin-search": "^3.82.1",
     "@payloadcms/richtext-lexical": "^3.82.1",

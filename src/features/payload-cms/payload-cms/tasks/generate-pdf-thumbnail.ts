@@ -51,7 +51,11 @@ const uploadThumbnailToPayload = async (
       mimetype: 'image/png',
       size,
     },
-  }) as unknown as Promise<{ id: string | number; url?: string; sizes?: { tiny?: { url?: string } } }>;
+  }) as unknown as Promise<{
+    id: string | number;
+    url?: string;
+    sizes?: { tiny?: { url?: string } };
+  }>;
 };
 
 const updateDocumentThumbnailUrl = async (
