@@ -161,6 +161,7 @@ const jobsConfig: JobsConfig = {
 };
 
 export const payloadConfig: RoutableConfig = {
+  serverURL: env.APP_HOST_URL,
   onInit: onPayloadInit,
   admin: payloadConfigAdminSettings,
   collections: collectionsConfig,
