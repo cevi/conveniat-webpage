@@ -15,6 +15,7 @@ import { searchPluginConfiguration } from '@/features/payload-cms/payload-cms/pl
 import { checkHitobitoApprovalsTask } from '@/features/payload-cms/payload-cms/tasks/check-hitobito-approvals';
 import { DEFAULT_QUEUE } from '@/features/payload-cms/payload-cms/tasks/cleanup-stale-jobs';
 import { fetchSmtpBouncesTask } from '@/features/payload-cms/payload-cms/tasks/fetch-smtp-bounces';
+import { generatePdfThumbnailTask } from '@/features/payload-cms/payload-cms/tasks/generate-pdf-thumbnail';
 import { smartphoneBreakpoints } from '@/features/payload-cms/utils/smartphone-breakpoints';
 import { registrationWorkflow } from '@/features/registration_process/workflows/registration-workflow';
 import { blockJobStep } from '@/features/registration_process/workflows/steps/block-job';
@@ -140,6 +141,7 @@ const jobsConfig: JobsConfig = {
     confirmationMessageStep,
     fetchSmtpBouncesTask,
     checkHitobitoApprovalsTask,
+    generatePdfThumbnailTask,
   ],
   workflows: [registrationWorkflow, brevoContactWorkflow],
   autoRun: env.FEATURE_ENABLE_WORKFLOWS
@@ -164,6 +166,9 @@ export const payloadConfig: RoutableConfig = {
   collections: collectionsConfig,
   editor: lexicalEditor,
   globals: globalConfig,
+  upload: {
+    uploadTimeout: 300_000,
+  },
   localization: {
     locales,
     defaultLocale: LOCALE.DE,

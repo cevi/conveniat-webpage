@@ -3,7 +3,7 @@
 FROM node:24.4-alpine AS base
 
 # Install curl for healthcheck, libc6-compat for native libs, and build dependencies for sharp
-RUN apk add --no-cache curl libc6-compat vips vips-dev fftw-dev gcc g++ make python3 && \
+RUN apk add --no-cache curl libc6-compat poppler-utils vips vips-dev fftw-dev gcc g++ make python3 && \
   npm rebuild sharp --platform=linuxmusl --arch=x64 && \
   apk del vips-dev fftw-dev gcc g++ make python3
 

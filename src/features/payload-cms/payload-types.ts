@@ -172,6 +172,7 @@ export interface Config {
       confirmationMessage: TaskConfirmationMessage;
       fetchSmtpBounces: TaskFetchSmtpBounces;
       checkHitobitoApprovals: TaskCheckHitobitoApprovals;
+      generatePdfThumbnail: TaskGeneratePdfThumbnail;
       inline: {
         input: unknown;
         output: unknown;
@@ -1373,6 +1374,7 @@ export interface Document {
    * Example: for the newsletter
    */
   internalDescription?: string | null;
+  pdfThumbnailUrl?: string | null;
   permissions?: (string | null) | Permission;
   lastEditedByUser?: (string | null) | User;
   folder?: (string | null) | FolderInterface;
@@ -3093,7 +3095,8 @@ export interface PayloadJob {
           | 'ensureEventMembership'
           | 'confirmationMessage'
           | 'fetchSmtpBounces'
-          | 'checkHitobitoApprovals';
+          | 'checkHitobitoApprovals'
+          | 'generatePdfThumbnail';
         taskID: string;
         input?:
           | {
@@ -3139,6 +3142,7 @@ export interface PayloadJob {
         | 'confirmationMessage'
         | 'fetchSmtpBounces'
         | 'checkHitobitoApprovals'
+        | 'generatePdfThumbnail'
       )
     | null;
   queue?: string | null;
@@ -4350,6 +4354,7 @@ export interface UserSubmittedImagesSelect<T extends boolean = true> {
  */
 export interface DocumentsSelect<T extends boolean = true> {
   internalDescription?: T;
+  pdfThumbnailUrl?: T;
   permissions?: T;
   lastEditedByUser?: T;
   folder?: T;
@@ -5749,6 +5754,19 @@ export interface TaskFetchSmtpBounces {
 export interface TaskCheckHitobitoApprovals {
   input?: unknown;
   output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskGeneratePdfThumbnail".
+ */
+export interface TaskGeneratePdfThumbnail {
+  input: {
+    documentId: string;
+  };
+  output: {
+    success?: boolean | null;
+    imageId?: string | null;
+  };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

@@ -3,12 +3,23 @@ import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/ad
 import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared-fields/last-edited-by-user-field';
 import { permissionsField } from '@/features/payload-cms/payload-cms/shared-fields/permissions-field';
 import { flushPageCacheOnChange } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
-import type { CollectionConfig } from 'payload';
+import type { CollectionAfterChangeHook, CollectionConfig } from 'payload';
+import type { Document } from '@/features/payload-cms/payload-types';
+
+const schedulePdfThumbnail: CollectionAfterChangeHook<Document> = async ({ doc, req }) => {
+  if (doc.mimeType === 'application/pdf' && req.context['skipPdfThumbnail'] !== true) {
+      await req.payload.jobs.queue({
+        task: 'generatePdfThumbnail',
+        input: { documentId: String(doc.id) },
+      });
+    }
+  return doc;
+};
 
 export const DocumentsCollection: CollectionConfig = {
   slug: 'documents',
   folders: true,
-  hooks: { afterChange: [flushPageCacheOnChange] },
+  hooks: { afterChange: [flushPageCacheOnChange, schedulePdfThumbnail] },
 
   labels: {
     singular: {
@@ -48,8 +59,20 @@ export const DocumentsCollection: CollectionConfig = {
         },
       },
     },
+    {
+      name: 'pdfThumbnailUrl',
+      type: 'text',
+      admin: {
+        hidden: true,
+      },
+    },
     permissionsField,
     LastEditedByUserField,
   ],
-  upload: true,
+  upload: {
+    adminThumbnail: ({ doc }) =>
+      typeof doc['pdfThumbnailUrl'] === 'string' && doc['pdfThumbnailUrl'].length > 0
+        ? doc['pdfThumbnailUrl']
+        : false,
+  },
 };
