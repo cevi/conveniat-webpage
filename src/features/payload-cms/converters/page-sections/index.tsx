@@ -18,6 +18,7 @@ import {
   RenderPhotoCarousel,
   RenderRichTextSection,
   RenderSinglePicture,
+  RenderSponsorGrid,
   RenderTimelineEntries,
   RenderWhiteSpace,
   RenderYoutubeEmbed,
@@ -68,6 +69,7 @@ export const PageSectionsConverter: React.FC<
     twoColumnBlock: RenderTwoColumnBlock,
     cardGrid: RenderCardGrid,
     contactPerson: RenderContactPerson,
+    sponsorGrid: RenderSponsorGrid,
   };
 
   return (

@@ -414,6 +414,7 @@ export interface Blog {
       | CardGridBlock
       | ContactPersonBlock
       | TwoColumnBlock
+      | SponsorGridBlock
     )[];
   };
   seo: {
@@ -1754,6 +1755,7 @@ export interface GenericPage {
       | CardGridBlock
       | ContactPersonBlock
       | TwoColumnBlock
+      | SponsorGridBlock
     )[];
   };
   seo: {
@@ -2645,6 +2647,55 @@ export interface TwoColumnBlock {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "SponsorGridBlock".
+ */
+export interface SponsorGridBlock {
+  tiers: {
+    title?: string | null;
+    columnsDesktop: '2' | '3' | '4' | '5' | '6';
+    sponsors: {
+      image: string | Image;
+      linkField?: {
+        type?: ('reference' | 'custom' | 'email') | null;
+        reference?:
+          | ({
+              relationTo: 'blog';
+              value: string | Blog;
+            } | null)
+          | ({
+              relationTo: 'generic-page';
+              value: string | GenericPage;
+            } | null)
+          | ({
+              relationTo: 'images';
+              value: string | Image;
+            } | null)
+          | ({
+              relationTo: 'documents';
+              value: string | Document;
+            } | null)
+          | ({
+              relationTo: 'camp-map-annotations';
+              value: string | CampMapAnnotation;
+            } | null)
+          | ({
+              relationTo: 'camp-schedule-entry';
+              value: string | CampScheduleEntry;
+            } | null);
+        url?: string | null;
+        email?: string | null;
+        openInNewTab?: boolean | null;
+      };
+      id?: string | null;
+    }[];
+    id?: string | null;
+  }[];
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'sponsorGrid';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "AccordionTimelineElementBlock".
  */
 export interface AccordionTimelineElementBlock {
@@ -3327,6 +3378,7 @@ export interface BlogSelect<T extends boolean = true> {
               cardGrid?: T | CardGridBlockSelect<T>;
               contactPerson?: T | ContactPersonBlockSelect<T>;
               twoColumnBlock?: T | TwoColumnBlockSelect<T>;
+              sponsorGrid?: T | SponsorGridBlockSelect<T>;
             };
       };
   seo?:
@@ -3845,6 +3897,36 @@ export interface TwoColumnBlockSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "SponsorGridBlock_select".
+ */
+export interface SponsorGridBlockSelect<T extends boolean = true> {
+  tiers?:
+    | T
+    | {
+        title?: T;
+        columnsDesktop?: T;
+        sponsors?:
+          | T
+          | {
+              image?: T;
+              linkField?:
+                | T
+                | {
+                    type?: T;
+                    reference?: T;
+                    url?: T;
+                    email?: T;
+                    openInNewTab?: T;
+                  };
+              id?: T;
+            };
+        id?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "generic-page_select".
  */
 export interface GenericPageSelect<T extends boolean = true> {
@@ -3962,6 +4044,7 @@ export interface GenericPageSelect<T extends boolean = true> {
               cardGrid?: T | CardGridBlockSelect<T>;
               contactPerson?: T | ContactPersonBlockSelect<T>;
               twoColumnBlock?: T | TwoColumnBlockSelect<T>;
+              sponsorGrid?: T | SponsorGridBlockSelect<T>;
             };
       };
   seo?:
