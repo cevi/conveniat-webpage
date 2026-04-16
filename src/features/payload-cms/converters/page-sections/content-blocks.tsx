@@ -27,6 +27,10 @@ import type { LexicalRichTextSectionType } from '@/features/payload-cms/componen
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
 import { ListBlogPosts } from '@/features/payload-cms/components/content-blocks/list-blog-articles';
 import { ShowForm } from '@/features/payload-cms/components/content-blocks/show-form';
+import {
+  SponsorGrid,
+  type SponsorGridType,
+} from '@/features/payload-cms/components/content-blocks/sponsor-grid';
 import { TimelineEntry } from '@/features/payload-cms/components/content-blocks/timeline-entry';
 import type { YoutubeEmbedType } from '@/features/payload-cms/components/content-blocks/youtube-embed';
 import { YoutubeEmbed } from '@/features/payload-cms/components/content-blocks/youtube-embed';
@@ -71,7 +75,8 @@ export type ContentBlockTypeNames =
   | 'campScheduleEntryBlock'
   | 'twoColumnBlock'
   | 'cardGrid'
-  | 'contactPerson';
+  | 'contactPerson'
+  | 'sponsorGrid';
 
 export type SectionRenderer<T = object> = React.FC<
   LocalizedPageType & {
@@ -743,6 +748,32 @@ export const RenderContactPerson: SectionRenderer<ContactPersonType> = ({
       locale={locale}
     >
       <ContactPersonBlock {...block} locale={locale} />
+    </SectionWrapper>
+  );
+};
+
+export const RenderSponsorGrid: SectionRenderer<SponsorGridType> = ({
+  block,
+  sectionClassName,
+  sectionOverrides,
+  locale,
+}) => {
+  return (
+    <SectionWrapper
+      block={block}
+      sectionClassName={sectionClassName}
+      sectionOverrides={sectionOverrides}
+      errorFallbackMessage={errorMessageForType(
+        {
+          de: 'Das Sponsoren-Raster',
+          en: 'sponsor grid',
+          fr: 'la grille de sponsors',
+        },
+        locale,
+      )}
+      locale={locale}
+    >
+      <SponsorGrid {...block} locale={locale} />
     </SectionWrapper>
   );
 };
