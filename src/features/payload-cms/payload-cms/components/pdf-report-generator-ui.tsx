@@ -80,7 +80,9 @@ export default function PdfReportGeneratorUI(): React.ReactNode {
   };
 
   const toggleField = (f: string): void => {
-    setSelectedFields((previous) => (previous.includes(f) ? previous.filter((x) => x !== f) : [...previous, f]));
+    setSelectedFields((previous) =>
+      previous.includes(f) ? previous.filter((x) => x !== f) : [...previous, f],
+    );
   };
 
   return (
@@ -127,7 +129,10 @@ export default function PdfReportGeneratorUI(): React.ReactNode {
             </Dialog.Title>
 
             <div style={{ marginBottom: '1rem' }}>
-              <label htmlFor="form-select" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>
+              <label
+                htmlFor="form-select"
+                style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}
+              >
                 Formular auswählen
               </label>
               {loadingForms ? (
@@ -213,10 +218,7 @@ export default function PdfReportGeneratorUI(): React.ReactNode {
                     }}
                   >
                     {availableFields.map((f) => (
-                      <div
-                        key={f}
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-                      >
+                      <div key={f} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <input
                           id={`field-chk-${f}`}
                           type="checkbox"

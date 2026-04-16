@@ -4,9 +4,16 @@ import type { User } from '@/features/payload-cms/payload-types';
 import { withSpan } from '@/utils/tracing-helpers';
 import type { NextAuthConfig } from 'next-auth';
 import type { JWT } from 'next-auth/jwt';
+import { after } from 'next/server';
 import type { BasePayload } from 'payload';
 import { getPayload } from 'payload';
 import { Agent, setGlobalDispatcher } from 'undici';
+import { z } from 'zod';
+
+const TokenIdentitySchema = z.object({
+  uuid: z.string({ required_error: 'uuid missing from token' }),
+  cevi_db_uuid: z.number({ required_error: 'cevi_db_uuid missing from token' }),
+});
 
 /**
  * Custom Undici Agent to manage HTTP connections efficiently.
@@ -29,22 +36,6 @@ const customAgent = new Agent({
   connections: 50,
 });
 setGlobalDispatcher(customAgent);
-
-// Extend the JWT type to include our custom fields
-declare module 'next-auth/jwt' {
-  interface JWT {
-    access_token?: string | undefined;
-    refresh_token?: string | undefined;
-    expires_at?: number | undefined;
-    uuid?: string;
-    cevi_db_uuid?: number;
-    group_ids?: number[];
-    nickname?: string | null;
-    email?: string;
-    name?: string;
-    error?: string;
-  }
-}
 
 interface TokenResponse {
   access_token: string;
@@ -150,6 +141,20 @@ async function fetchWithRetry(url: string, options: RequestInit, retries = 3): P
 }
 
 /**
+ * Background helper to sync a Hitobito profile into the local Payload CMS Database.
+ * Placed in an isolated function to keep NextAuth token refresh workflow cleanly decoupled.
+ */
+async function syncProfileToPayloadAsync(profile: HitobitoProfile): Promise<void> {
+  try {
+    const config = await import('@payload-config');
+    const payload = await getPayload({ config: config.default });
+    await saveAndFetchUserFromPayload(payload, profile);
+  } catch (error) {
+    console.error('Failed to background sync user with Payload DB during token refresh:', error);
+  }
+}
+
+/**
  * Refreshes the access token using the refresh token.
  * returns the new token with updated expiration and access token
  */
@@ -164,9 +169,7 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: new URLSearchParams({
-        // @ts-ignore - Env vars might be undefined but we trust them here
         client_id: CEVI_DB_CLIENT_ID,
-        // @ts-ignore
         client_secret: CEVI_DB_CLIENT_SECRET,
         grant_type: 'refresh_token',
         refresh_token: token.refresh_token ?? '',
@@ -189,6 +192,10 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
       throw new Error(JSON.stringify(refreshedTokens));
     }
 
+    const expiresIn =
+      typeof refreshedTokens.expires_in === 'number' ? refreshedTokens.expires_in : 3600;
+    const expiresAt = Math.floor(Date.now() / 1000) + expiresIn;
+
     // After refreshing the token, we re-fetch the user profile to get updated groups
     const profileUrl = `${HITOBITO_BASE_URL}/oauth/profile`;
     const profileResponse = await fetchWithRetry(profileUrl, {
@@ -201,21 +208,22 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
     if (profileResponse.ok) {
       const profile = (await profileResponse.json()) as HitobitoProfile;
 
-      // Update the user in Payload CMS with the new groups
-      // async loading of payload configuration (to avoid circular dependency)
-      const config = await import('@payload-config');
-      const payload = await getPayload({ config: config.default });
-      const payloadCMSUser = await saveAndFetchUserFromPayload(payload, profile);
+      // Update the user in Payload CMS with the new groups in the background
+      // Fire-and-forget: we use Next.js `after()` to ensure serverless functions don't freeze
+      // before this background database syncing completes.
+      after(() => syncProfileToPayloadAsync(profile));
+
+      const identity = TokenIdentitySchema.parse(token);
 
       return {
         ...token,
         access_token: refreshedTokens.access_token,
         // Fall back to old refresh token if new one is not returned
         refresh_token: refreshedTokens.refresh_token ?? token.refresh_token,
-        expires_at: Math.floor(Date.now() / 1000) + refreshedTokens.expires_in,
-        // Update persisted user data
-        uuid: payloadCMSUser.id,
-        cevi_db_uuid: payloadCMSUser.cevi_db_uuid, // Update cevi_db_uuid
+        expires_at: expiresAt,
+        // Update persisted user data synchronously from the token/profile data
+        uuid: identity.uuid,
+        cevi_db_uuid: identity.cevi_db_uuid,
         group_ids: profile.roles.map((role) => role.group_id),
         email: profile.email,
         name: profile.first_name + ' ' + profile.last_name,
@@ -231,7 +239,7 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
         ...token,
         access_token: refreshedTokens.access_token,
         refresh_token: refreshedTokens.refresh_token ?? token.refresh_token,
-        expires_at: Math.floor(Date.now() / 1000) + refreshedTokens.expires_in,
+        expires_at: expiresAt,
       };
     }
   } catch (error) {
@@ -298,15 +306,18 @@ export const authOptions: NextAuthConfig = {
     // The session callback is called whenever a session is checked.
     // By default, only a subset of the token is returned for increased security.
     session({ session, token }) {
+      const identity = TokenIdentitySchema.parse(token);
+
       session.user = {
         ...session.user,
-        uuid: token.uuid,
-        cevi_db_uuid: token.cevi_db_uuid,
-        group_ids: token.group_ids,
+        uuid: identity.uuid,
+        cevi_db_uuid: identity.cevi_db_uuid,
+        group_ids: token.group_ids ?? [],
         nickname: token.nickname,
         firstName: token.firstName,
         lastName: token.lastName,
       };
+
       return session;
     },
 
@@ -322,11 +333,8 @@ export const authOptions: NextAuthConfig = {
 
         return {
           ...token,
-          // @ts-ignore
           access_token: account.access_token,
-          // @ts-ignore
           refresh_token: account.refresh_token,
-          // @ts-ignore
           expires_at: account.expires_at ?? Math.floor(Date.now() / 1000) + 3600,
           uuid: payloadCMSUser.id,
           cevi_db_uuid: payloadCMSUser.cevi_db_uuid, // the id of the user in the CeviDB as number
@@ -341,8 +349,12 @@ export const authOptions: NextAuthConfig = {
 
       // Return previous token if the access token has not expired yet
       // buffer time of 10s
-      const expiresAt = token.expires_at as number;
-      if (Date.now() < expiresAt * 1000 - 10_000) {
+      const expiresAt =
+        typeof token.expires_at === 'number' && !Number.isNaN(token.expires_at)
+          ? token.expires_at
+          : 0; // force refresh if invalid
+
+      if (expiresAt > 0 && Date.now() < expiresAt * 1000 - 10 * 1000) {
         return token;
       }
 
