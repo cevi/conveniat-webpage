@@ -308,10 +308,6 @@ export const authOptions: NextAuthConfig = {
         lastName: token.lastName,
       };
 
-      session.access_token = token.access_token;
-      session.refresh_token = token.refresh_token;
-      session.expires_at = token.expires_at;
-
       return session;
     },
 
