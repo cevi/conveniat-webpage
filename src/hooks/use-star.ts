@@ -4,6 +4,15 @@ import { StarContext } from '@/context/star-context';
 import type { StarContextType } from '@/types/types';
 import { useContext } from 'react';
 
+const emptySet = new Set<string>();
+const dummyContext: StarContextType = {
+  isStarred: () => false,
+  toggleStar: () => {
+    console.warn('StarContext not found: toggleStar is disabled outside of StarProvider');
+  },
+  starredEntries: emptySet,
+};
+
 /**
  * A custom hook to consume the star context.
  *
@@ -12,8 +21,5 @@ import { useContext } from 'react';
  */
 export const useStar = (): StarContextType => {
   const context = useContext(StarContext);
-  if (context === undefined) {
-    throw new Error('useStar must be used within a StarProvider');
-  }
-  return context;
+  return context ?? dummyContext;
 };
