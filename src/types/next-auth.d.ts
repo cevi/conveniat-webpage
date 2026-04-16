@@ -2,6 +2,9 @@ import type { DefaultSession } from 'next-auth';
 
 declare module 'next-auth' {
   interface Session {
+    access_token?: string | undefined;
+    refresh_token?: string | undefined;
+    expires_at?: number | undefined;
     user: {
       uuid?: string | undefined;
       cevi_db_uuid?: number | undefined;
