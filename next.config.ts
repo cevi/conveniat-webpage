@@ -74,7 +74,9 @@ const nextConfig: NextConfig = {
     serverSourceMaps: true,
 
     // Enable filesystem caching for `next dev`
-    turbopackFileSystemCacheForDev: true,
+    // We disable this in Docker to prevent "Module factory not available" errors
+    // caused by filesystem sync latency between host and container.
+    turbopackFileSystemCacheForDev: false,
 
     staleTimes: {
       dynamic: 0, // this must be set to 0 for payload to work correctly

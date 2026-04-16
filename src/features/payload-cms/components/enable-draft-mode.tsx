@@ -24,7 +24,7 @@ export const EnableDraftMode: React.FC = () => {
       .catch((error: unknown) => {
         console.log('Error enabling draft mode:', error);
       });
-  });
+  }, []);
 
   return <></>;
 };

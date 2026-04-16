@@ -24,7 +24,7 @@ const serverFunction: ServerFunctionClient = async function (args) {
 };
 
 const Layout = ({ children }: Args) => (
-  <Suspense>
+  <Suspense fallback={null}>
     <RootLayout config={config} importMap={importMap} serverFunction={serverFunction}>
       <EnableDraftMode />
       <PostHogProvider>
