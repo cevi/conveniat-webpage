@@ -40,6 +40,9 @@ export const asLocalizedCollection = (config: CollectionConfig): CollectionConfi
             {
               path: '@/features/payload-cms/payload-cms/components/live-preview-restorer',
             },
+            {
+              path: '@/features/payload-cms/payload-cms/components/auto-translate/auto-translate',
+            },
           ],
           // modify the Publish button to publish only the current locale
           PublishButton:
@@ -68,21 +71,6 @@ export const asLocalizedCollection = (config: CollectionConfig): CollectionConfi
         },
       },
 
-      /*
-
-      TODO: re-enable auto-translate
-
-      {
-        name: 'Autotranslate',
-        type: 'ui',
-        admin: {
-          components: {
-            // adds the publishing status to the top of the edit page
-            Field: '@/payload-cms/components/auto-translate/auto-translate',
-          },
-        },
-      },
-      */
 
       // add the localized publishing status field
       {

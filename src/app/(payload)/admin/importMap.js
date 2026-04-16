@@ -31,6 +31,7 @@ import { default as default_b8a91c281781c959c4c68385023a0bcf } from '@/features/
 import { default as default_bfb7b08888889fc5b15d089d71fdfbc6 } from '@/features/payload-cms/payload-cms/components/multi-lang-publishing/publishing-status-client'
 import { default as default_a4ebed491f9244748218c109a1d489e3 } from '@/features/payload-cms/payload-cms/components/qr-code/qr-code'
 import { default as default_5c23d4f2c41ff08443297cc41aafe3d1 } from '@/features/payload-cms/payload-cms/components/live-preview-restorer'
+import { default as default_a13782f3ac0bcff5be1ba175a38107f2 } from '@/features/payload-cms/payload-cms/components/auto-translate/auto-translate'
 import { default as default_ad2ab9e4ee1f1c863c85f67238030f8f } from '@/features/payload-cms/payload-cms/components/multi-lang-publishing/publish-localized'
 import { default as default_5e6e3bcc43a18e826de12d19a3b1de10 } from '@/features/payload-cms/payload-cms/components/fields/icon-select-field'
 import { default as default_4c4fde438445a819805cfbe983551661 } from '@/features/payload-cms/payload-cms/shared-fields/map-polygon/map-polygon-field'
@@ -106,6 +107,7 @@ export const importMap = {
   "@/features/payload-cms/payload-cms/components/multi-lang-publishing/publishing-status-client#default": default_bfb7b08888889fc5b15d089d71fdfbc6,
   "@/features/payload-cms/payload-cms/components/qr-code/qr-code#default": default_a4ebed491f9244748218c109a1d489e3,
   "@/features/payload-cms/payload-cms/components/live-preview-restorer#default": default_5c23d4f2c41ff08443297cc41aafe3d1,
+  "@/features/payload-cms/payload-cms/components/auto-translate/auto-translate#default": default_a13782f3ac0bcff5be1ba175a38107f2,
   "@/features/payload-cms/payload-cms/components/multi-lang-publishing/publish-localized#default": default_ad2ab9e4ee1f1c863c85f67238030f8f,
   "@/features/payload-cms/payload-cms/components/fields/icon-select-field#default": default_5e6e3bcc43a18e826de12d19a3b1de10,
   "@/features/payload-cms/payload-cms/shared-fields/map-polygon/map-polygon-field#default": default_4c4fde438445a819805cfbe983551661,
