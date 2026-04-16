@@ -7,6 +7,7 @@ import type { CollectionConfig } from 'payload';
 
 export const DocumentsCollection: CollectionConfig = {
   slug: 'documents',
+  folders: true,
   hooks: { afterChange: [flushPageCacheOnChange] },
 
   labels: {
@@ -30,6 +31,25 @@ export const DocumentsCollection: CollectionConfig = {
   access: {
     read: canAccessDocuments,
   },
-  fields: [permissionsField, LastEditedByUserField],
+  fields: [
+    {
+      name: 'internalDescription',
+      label: {
+        en: 'Internal Description',
+        de: 'Interne Beschreibung',
+        fr: 'Description interne',
+      },
+      type: 'text',
+      admin: {
+        description: {
+          en: 'Example: for the newsletter',
+          de: 'Beispiel: für im Newsletter',
+          fr: 'Exemple: pour la newsletter',
+        },
+      },
+    },
+    permissionsField,
+    LastEditedByUserField,
+  ],
   upload: true,
 };
