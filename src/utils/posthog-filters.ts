@@ -24,6 +24,10 @@ const noiseMessages = [
   // frame's `document`. The EmailPreviewField uses sandbox="" which makes its iframe cross-origin,
   // causing the browser to throw a SecurityError. This is expected and harmless.
   'Blocked a frame with origin',
+
+  // rrweb/posthog-js internal error when terminating session recording involving cross-origin iframes on Safari.
+  // This causes an 'undefined is not an object (evaluating 'r.bufferBelongsToIframe')' error.
+  'bufferBelongsToIframe',
 ];
 
 export const filterPostHogNoise = (event: CaptureResult | null): CaptureResult | null => {
