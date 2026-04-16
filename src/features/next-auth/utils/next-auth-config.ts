@@ -205,6 +205,9 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
       throw new Error(JSON.stringify(refreshedTokens));
     }
 
+    const expiresIn = typeof refreshedTokens.expires_in === 'number' ? refreshedTokens.expires_in : 3600;
+    const expiresAt = Math.floor(Date.now() / 1000) + expiresIn;
+
     // After refreshing the token, we re-fetch the user profile to get updated groups
     const profileUrl = `${HITOBITO_BASE_URL}/oauth/profile`;
     const profileResponse = await fetchWithRetry(profileUrl, {
@@ -219,11 +222,15 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
 
       // Update the user in Payload CMS with the new groups
       // async loading of payload configuration (to avoid circular dependency)
-      const config = await import('@payload-config');
-      const payload = await getPayload({ config: config.default });
-      const payloadCMSUser = await saveAndFetchUserFromPayload(payload, profile);
+      let payloadCMSUser;
+      try {
+        const config = await import('@payload-config');
+        const payload = await getPayload({ config: config.default });
+        payloadCMSUser = await saveAndFetchUserFromPayload(payload, profile);
+      } catch (err) {
+        console.error('Failed to sync user with Payload DB during token refresh:', err);
+      }
 
-      const expiresAt = Math.floor(Date.now() / 1000) + refreshedTokens.expires_in;
       return {
         ...token,
         access_token: refreshedTokens.access_token,
@@ -231,8 +238,8 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
         refresh_token: refreshedTokens.refresh_token ?? token.refresh_token,
         expires_at: expiresAt,
         // Update persisted user data
-        uuid: payloadCMSUser.id,
-        cevi_db_uuid: payloadCMSUser.cevi_db_uuid, // Update cevi_db_uuid
+        uuid: payloadCMSUser ? payloadCMSUser.id : token.uuid,
+        cevi_db_uuid: payloadCMSUser ? payloadCMSUser.cevi_db_uuid : token.cevi_db_uuid,
         group_ids: profile.roles.map((role) => role.group_id),
         email: profile.email,
         name: profile.first_name + ' ' + profile.last_name,
@@ -248,7 +255,7 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
         ...token,
         access_token: refreshedTokens.access_token,
         refresh_token: refreshedTokens.refresh_token ?? token.refresh_token,
-        expires_at: Math.floor(Date.now() / 1000) + refreshedTokens.expires_in,
+        expires_at: expiresAt,
       };
     }
   } catch (error) {
@@ -363,8 +370,11 @@ export const authOptions: NextAuthConfig = {
 
       // Return previous token if the access token has not expired yet
       // buffer time of 10s
-      const expiresAt = token.expires_at as number;
-      if (expiresAt && Date.now() < expiresAt * 1000 - 10 * 1000) {
+      const expiresAt = typeof token.expires_at === 'number' && !Number.isNaN(token.expires_at)
+        ? token.expires_at
+        : 0; // force refresh if invalid
+
+      if (expiresAt > 0 && Date.now() < expiresAt * 1000 - 10 * 1000) {
         return token;
       }
 
