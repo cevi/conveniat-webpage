@@ -41,7 +41,7 @@ const postHogRewrites = (): Rewrite[] => {
 
 const nextConfig: NextConfig = {
   output: 'standalone',
-  serverExternalPackages: ['esbuild-wasm'],
+  serverExternalPackages: ['esbuild-wasm', 'pdfkit', 'pdfkit-table'],
   productionBrowserSourceMaps: true,
   transpilePackages: ['@t3-oss/env-nextjs', '@t3-oss/env-core'],
   poweredByHeader: false,

@@ -34,6 +34,7 @@ import { default as default_5c23d4f2c41ff08443297cc41aafe3d1 } from '@/features/
 import { default as default_ad2ab9e4ee1f1c863c85f67238030f8f } from '@/features/payload-cms/payload-cms/components/multi-lang-publishing/publish-localized'
 import { default as default_5e6e3bcc43a18e826de12d19a3b1de10 } from '@/features/payload-cms/payload-cms/components/fields/icon-select-field'
 import { default as default_4c4fde438445a819805cfbe983551661 } from '@/features/payload-cms/payload-cms/shared-fields/map-polygon/map-polygon-field'
+import { default as default_1e95e18ff98032b69bda4bd8327a52ac } from '@/features/payload-cms/payload-cms/components/pdf-report-generator-ui'
 import { default as default_c9f917d9608a57eb8358fce7a7898bd3 } from '@/features/payload-cms/payload-cms/components/push-notification/push-notification'
 import { default as default_7d02a833b9164544e9c8d7653b246eb7 } from '@/features/payload-cms/components/push-notification/push-notification-history.tsx'
 import { default as default_30bb34ba732976b67b42694b834628a5 } from '@/features/payload-cms/payload-cms/components/email-preview/email-preview-field'
@@ -105,6 +106,7 @@ export const importMap = {
   "@/features/payload-cms/payload-cms/components/multi-lang-publishing/publish-localized#default": default_ad2ab9e4ee1f1c863c85f67238030f8f,
   "@/features/payload-cms/payload-cms/components/fields/icon-select-field#default": default_5e6e3bcc43a18e826de12d19a3b1de10,
   "@/features/payload-cms/payload-cms/shared-fields/map-polygon/map-polygon-field#default": default_4c4fde438445a819805cfbe983551661,
+  "@/features/payload-cms/payload-cms/components/pdf-report-generator-ui#default": default_1e95e18ff98032b69bda4bd8327a52ac,
   "@/features/payload-cms/payload-cms/components/push-notification/push-notification#default": default_c9f917d9608a57eb8358fce7a7898bd3,
   "@/features/payload-cms/components/push-notification/push-notification-history.tsx#default": default_7d02a833b9164544e9c8d7653b246eb7,
   "@/features/payload-cms/payload-cms/components/email-preview/email-preview-field#default": default_30bb34ba732976b67b42694b834628a5,
