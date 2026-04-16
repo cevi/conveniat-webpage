@@ -8,6 +8,12 @@ import { after } from 'next/server';
 import type { BasePayload } from 'payload';
 import { getPayload } from 'payload';
 import { Agent, setGlobalDispatcher } from 'undici';
+import { z } from 'zod';
+
+const TokenIdentitySchema = z.object({
+  uuid: z.string({ required_error: 'uuid missing from token' }),
+  cevi_db_uuid: z.number({ required_error: 'cevi_db_uuid missing from token' }),
+});
 
 /**
  * Custom Undici Agent to manage HTTP connections efficiently.
@@ -207,6 +213,8 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
       // before this background database syncing completes.
       after(() => syncProfileToPayloadAsync(profile));
 
+      const identity = TokenIdentitySchema.parse(token);
+
       return {
         ...token,
         access_token: refreshedTokens.access_token,
@@ -214,8 +222,8 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
         refresh_token: refreshedTokens.refresh_token ?? token.refresh_token,
         expires_at: expiresAt,
         // Update persisted user data synchronously from the token/profile data
-        uuid: token.uuid as string,
-        cevi_db_uuid: token.cevi_db_uuid as number,
+        uuid: identity.uuid,
+        cevi_db_uuid: identity.cevi_db_uuid,
         group_ids: profile.roles.map((role) => role.group_id),
         email: profile.email,
         name: profile.first_name + ' ' + profile.last_name,
@@ -298,10 +306,12 @@ export const authOptions: NextAuthConfig = {
     // The session callback is called whenever a session is checked.
     // By default, only a subset of the token is returned for increased security.
     session({ session, token }) {
+      const identity = TokenIdentitySchema.parse(token);
+
       session.user = {
         ...session.user,
-        uuid: token.uuid as string,
-        cevi_db_uuid: token.cevi_db_uuid as number,
+        uuid: identity.uuid,
+        cevi_db_uuid: identity.cevi_db_uuid,
         group_ids: token.group_ids ?? [],
         nickname: token.nickname,
         firstName: token.firstName,
