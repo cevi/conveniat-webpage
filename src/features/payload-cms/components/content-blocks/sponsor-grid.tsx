@@ -81,12 +81,7 @@ export const SponsorGrid: React.FC<SponsorGridType & { locale: Locale }> = ({ ti
               {tier.title}
             </h3>
           )}
-          <div
-            className={cn(
-              'grid gap-4 md:gap-6',
-              gridColsMap[tier.columnsDesktop],
-            )}
-          >
+          <div className={cn('grid gap-4 md:gap-6', gridColsMap[tier.columnsDesktop])}>
             {tier.sponsors.map((sponsor, sponsorIndex) => (
               <SponsorCard key={sponsor.id ?? sponsorIndex} sponsor={sponsor} locale={locale} />
             ))}
