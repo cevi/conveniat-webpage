@@ -67,9 +67,6 @@ const nextConfig: NextConfig = {
     inlineCss: true,
     authInterrupts: true,
 
-    // Forward browser logs to the terminal for easier debugging
-    browserDebugInfoInTerminal: true,
-
     // enable server source maps for better error tracking
     serverSourceMaps: true,
 
@@ -88,7 +85,12 @@ const nextConfig: NextConfig = {
     },
   },
 
-  logging: { fetches: { fullUrl: true } },
+  logging: {
+    fetches: { fullUrl: true },
+
+    // Forward browser logs to the terminal for easier debugging
+    browserToTerminal: true,
+  },
   images: {
     minimumCacheTTL: optimizedImageMinimumCacheTTL,
     formats: ['image/avif', 'image/webp'],
