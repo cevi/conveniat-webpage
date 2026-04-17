@@ -13,6 +13,7 @@ import { getPayload } from 'payload';
 import {
   getGenericPageByIDCached,
   getGenericPageBySlugCached,
+  getGenericPageExistsBySlugCached,
 } from '@/features/payload-cms/api/cached-generic-pages';
 import type { GenericPage as GenericPageType } from '@/features/payload-cms/payload-types';
 
@@ -26,6 +27,18 @@ const getArticlesCachedPersistent = async (
   cacheTag('payload', 'generic-page', `collection:generic-page`);
 
   return getGenericPageBySlugCached(slug, locale, false);
+};
+
+// Wrapper for persistent caching of the lightweight existence check
+const getArticlesExistsCachedPersistent = async (
+  slug: string,
+  locale: Locale,
+): Promise<{ docs: GenericPageType[] }> => {
+  'use cache';
+  cacheLife('hours');
+  cacheTag('payload', 'generic-page', `collection:generic-page`);
+
+  return getGenericPageExistsBySlugCached(slug, locale, false);
 };
 
 // Wrapper for persistent caching of the ID fetch
@@ -100,9 +113,11 @@ const GenericPage: LocalizedCollectionComponent = async ({
 
   const articles = await Promise.all(
     locales.map(async (l) => {
+      // Use the lightweight existence check — it skips mainContent blocks,
+      // fetching only id, _locale, and content.permissions.
       return await (renderInPreviewMode
-        ? getGenericPageBySlugCached(slug, l, true)
-        : getArticlesCachedPersistent(slug, l));
+        ? getGenericPageExistsBySlugCached(slug, l, true)
+        : getArticlesExistsCachedPersistent(slug, l));
     }),
   )
     .then((results) =>

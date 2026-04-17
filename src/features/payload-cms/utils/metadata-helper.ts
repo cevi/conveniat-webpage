@@ -25,6 +25,13 @@ export async function findAlternatives({
         fallbackLocale: false,
         locale: l as Locale,
         draft: false,
+        // Only seo.urlSlug and _locale are used for building alternate URLs.
+        // Skip all relationships and content blocks.
+        depth: 0,
+        select: {
+          seo: true,
+          internalPageName: true,
+        },
         where: {
           and: [
             { internalPageName: { equals: internalPageName } },
