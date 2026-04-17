@@ -5,6 +5,7 @@ import { mapRouter } from '@/features/map/api/map-router';
 import { pushTrackingRouter } from '@/features/push-tracking/api/push-tracking-router';
 import { registrationRouter } from '@/features/registration_process/api/registration-router';
 import { scheduleRouter } from '@/features/schedule/api/schedule-router';
+import { shiftsRouter } from '@/features/schedule/api/shifts-router';
 import { createTRPCRouter } from '@/trpc/init';
 
 export const appRouter = createTRPCRouter({
@@ -12,6 +13,7 @@ export const appRouter = createTRPCRouter({
   emergency: emergencyRouter,
   map: mapRouter,
   schedule: scheduleRouter,
+  shifts: shiftsRouter,
   admin: adminRouter,
   pushTracking: pushTrackingRouter,
   registration: registrationRouter,

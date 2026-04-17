@@ -56,6 +56,7 @@ export interface Config {
     'camp-map-annotations': CampMapAnnotation;
     'camp-categories': CampCategory;
     'camp-schedule-entry': CampScheduleEntry;
+    'helper-shifts': HelperShift;
     'helper-jobs': HelperJob;
     images: Image;
     userSubmittedImages: UserSubmittedImage;
@@ -102,6 +103,7 @@ export interface Config {
     'camp-map-annotations': CampMapAnnotationsSelect<false> | CampMapAnnotationsSelect<true>;
     'camp-categories': CampCategoriesSelect<false> | CampCategoriesSelect<true>;
     'camp-schedule-entry': CampScheduleEntrySelect<false> | CampScheduleEntrySelect<true>;
+    'helper-shifts': HelperShiftsSelect<false> | HelperShiftsSelect<true>;
     'helper-jobs': HelperJobsSelect<false> | HelperJobsSelect<true>;
     images: ImagesSelect<false> | ImagesSelect<true>;
     userSubmittedImages: UserSubmittedImagesSelect<false> | UserSubmittedImagesSelect<true>;
@@ -2193,6 +2195,7 @@ export interface CampScheduleEntry {
   } | null;
   category?: (string | null) | CampCategory;
   lastEditedByUser?: (string | null) | User;
+  enrolledCount?: number | null;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -2915,6 +2918,109 @@ export interface NestedAccordionBlocks {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "helper-shifts".
+ */
+export interface HelperShift {
+  id: string;
+  title: string;
+  /**
+   * A short description of the shift and what helpers will be doing.
+   */
+  description: string;
+  /**
+   * Where helpers should meet before the shift starts.
+   */
+  meetingPoint?: string | null;
+  timeslot: {
+    date: string;
+    /**
+     * Time slots in HH:mm format (e.g., 08:00 - 18:00)
+     */
+    time: string;
+  };
+  /**
+   * Location of the shift (optional).
+   */
+  location?: (string | null) | CampMapAnnotation;
+  /**
+   * Maximum number of helpers for this shift. Leave empty for unlimited.
+   */
+  participants_max?: number | null;
+  enable_enrolment?: boolean | null;
+  hide_participant_list?: boolean | null;
+  /**
+   * Admin-only notes about this shift (not shown to helpers).
+   */
+  notes?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  enrolledCount?: number | null;
+  /**
+   * Detailed description of the shift (optional).
+   */
+  mainContent: (
+    | {
+        richTextSection: {
+          root: {
+            type: string;
+            children: {
+              type: any;
+              version: number;
+              [k: string]: unknown;
+            }[];
+            direction: ('ltr' | 'rtl') | null;
+            format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+            indent: number;
+            version: number;
+          };
+          [k: string]: unknown;
+        };
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'richTextSection';
+      }
+    | {
+        image: string | Image;
+        /**
+         * Choose the aspect ratio of the image.
+         */
+        aspectRatio: 'video' | '3/2' | '2/1' | '4/3' | '1/1' | '21/9' | 'auto';
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'singlePicture';
+      }
+    | {
+        file: string | Document;
+        openInNewTab?: boolean | null;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'fileDownload';
+      }
+    | AccordionBlocks
+    | {
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'whiteSpace';
+      }
+  )[];
+  updatedAt: string;
+  createdAt: string;
+  deletedAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "userSubmittedImages".
  */
 export interface UserSubmittedImage {
@@ -3397,6 +3503,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'camp-schedule-entry';
         value: string | CampScheduleEntry;
+      } | null)
+    | ({
+        relationTo: 'helper-shifts';
+        value: string | HelperShift;
       } | null)
     | ({
         relationTo: 'helper-jobs';
@@ -4493,6 +4603,65 @@ export interface CampScheduleEntrySelect<T extends boolean = true> {
   target_group?: T;
   category?: T;
   lastEditedByUser?: T;
+  enrolledCount?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  deletedAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "helper-shifts_select".
+ */
+export interface HelperShiftsSelect<T extends boolean = true> {
+  title?: T;
+  description?: T;
+  meetingPoint?: T;
+  timeslot?:
+    | T
+    | {
+        date?: T;
+        time?: T;
+      };
+  location?: T;
+  participants_max?: T;
+  enable_enrolment?: T;
+  hide_participant_list?: T;
+  notes?: T;
+  enrolledCount?: T;
+  mainContent?:
+    | T
+    | {
+        richTextSection?:
+          | T
+          | {
+              richTextSection?: T;
+              id?: T;
+              blockName?: T;
+            };
+        singlePicture?:
+          | T
+          | {
+              image?: T;
+              aspectRatio?: T;
+              id?: T;
+              blockName?: T;
+            };
+        fileDownload?:
+          | T
+          | {
+              file?: T;
+              openInNewTab?: T;
+              id?: T;
+              blockName?: T;
+            };
+        accordion?: T | AccordionBlocksSelect<T>;
+        whiteSpace?:
+          | T
+          | {
+              id?: T;
+              blockName?: T;
+            };
+      };
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
@@ -6114,6 +6283,7 @@ export interface TaskCreateCollectionExport {
       | 'camp-map-annotations'
       | 'camp-categories'
       | 'camp-schedule-entry'
+      | 'helper-shifts'
       | 'helper-jobs'
       | 'images'
       | 'userSubmittedImages'

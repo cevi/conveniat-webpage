@@ -1,7 +1,13 @@
 import { createNewChat } from '@/features/chat/api/database-interactions/create-new-chat'; // eslint-disable-line import/no-restricted-paths
 import type { User as PayloadUser } from '@/features/payload-cms/payload-types';
 import { isOverlapping } from '@/features/schedule/utils/time-utils';
-import { ChatMembershipPermission, ChatType, MessageEventType, MessageType } from '@/lib/prisma';
+import {
+  ChatMembershipPermission,
+  ChatType,
+  CourseType,
+  MessageEventType,
+  MessageType,
+} from '@/lib/prisma';
 import { createTRPCRouter, publicProcedure, trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { ensureUserExistsMiddleware } from '@/trpc/middleware/ensure-user-exists';
@@ -181,7 +187,7 @@ export const scheduleRouter = createTRPCRouter({
     if (!user) return [];
 
     const enrollments = await prisma.enrollment.findMany({
-      where: { userId: user.uuid },
+      where: { userId: user.uuid, courseType: CourseType.PROGRAM },
       select: { courseId: true },
     });
     return enrollments.map((enrollment_) => enrollment_.courseId);
@@ -228,9 +234,9 @@ export const scheduleRouter = createTRPCRouter({
         throw new TRPCError({ code: 'BAD_REQUEST', message: 'Course is already full.' });
       }
 
-      // Check conflicts
+      // Check conflicts against other workshops (PROGRAM)
       const userEnrollments = await prisma.enrollment.findMany({
-        where: { userId: user.uuid },
+        where: { userId: user.uuid, courseType: CourseType.PROGRAM },
       });
 
       if (userEnrollments.length > 0) {
@@ -259,8 +265,38 @@ export const scheduleRouter = createTRPCRouter({
         }
       }
 
+      // Cross-collection: also check against enrolled shifts (SHIFT)
+      const userShiftEnrollments = await prisma.enrollment.findMany({
+        where: { userId: user.uuid, courseType: CourseType.SHIFT },
+      });
+
+      if (userShiftEnrollments.length > 0) {
+        const otherShifts = await payload.find({
+          collection: 'helper-shifts',
+          where: {
+            id: { in: userShiftEnrollments.map((enrollment_) => enrollment_.courseId) },
+          },
+        });
+
+        for (const other of otherShifts.docs) {
+          if (
+            isOverlapping(
+              course.timeslot.time,
+              course.timeslot.date,
+              String(other.timeslot.time),
+              String(other.timeslot.date),
+            )
+          ) {
+            throw new TRPCError({
+              code: 'CONFLICT',
+              message: `Time conflict with shift: ${String(other.title)}|${String(other.id)}`,
+            });
+          }
+        }
+      }
+
       await prisma.enrollment.create({
-        data: { userId: user.uuid, courseId },
+        data: { userId: user.uuid, courseId, courseType: CourseType.PROGRAM },
       });
 
       // Add user to course group chat if it exists

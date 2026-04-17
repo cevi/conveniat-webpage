@@ -23,6 +23,14 @@ model User {
   @@index([name])
 }
 
+enum CourseType {
+  /// a program schedule entry (workshop, general event, etc.)
+  PROGRAM
+
+  /// a helper shift (Schichteinsatz)
+  SHIFT
+}
+
 enum ChatType {
   /// a direct chat between two users
   ONE_TO_ONE
@@ -63,6 +71,9 @@ model Chat {
 
   /// links to the objectID in the courses collection in MongoDB (for COURSE_GROUP type)
   courseId String? @unique
+
+  /// discriminates between program schedule entries and helper shifts
+  courseType CourseType @default(PROGRAM)
 
   messages        Message[]
   chatMemberships ChatMembership[]
@@ -218,12 +229,16 @@ model Enrollment {
   userId String
   user   User   @relation(fields: [userId], references: [uuid])
 
-  // links to the objectID in the courses collection in MongoDB
+  // links to the objectID in the courses/shifts collection in MongoDB
   courseId String
+
+  /// discriminates between program schedule entries and helper shifts
+  courseType CourseType @default(PROGRAM)
 
   @@unique([courseId, userId]) // every user can only be enrolled once per course
   @@index([courseId])
   @@index([userId])
+  @@index([courseType])
 }
 
 model Star {
@@ -234,11 +249,15 @@ model Star {
 
   courseId String
 
+  /// discriminates between program schedule entries and helper shifts
+  courseType CourseType @default(PROGRAM)
+
   createdAt DateTime @default(now())
 
   @@unique([courseId, userId])
   @@index([courseId])
   @@index([userId])
+  @@index([courseType])
 }
 
 model PushNotificationLog {

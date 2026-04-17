@@ -7,7 +7,6 @@ import {
   Calendar,
   CalendarCheck2,
   ImageUp,
-  LayoutList,
   LucideMessageCircleQuestion,
   Map,
   MessageSquare,
@@ -55,14 +54,8 @@ const scheduleFeatureTranslation: StaticTranslationString = {
 
 const helperShiftsFeatureTranslation: StaticTranslationString = {
   en: 'Helper Shifts',
-  de: 'Schichteinsätze von Helfenden',
-  fr: 'Services des aides',
-};
-
-const departmentShiftsFeatureTranslation: StaticTranslationString = {
-  en: 'Department Shifts',
-  de: 'Schichteinsätze von Abteilungen',
-  fr: 'Services des départements',
+  de: 'Schichteinsätze',
+  fr: 'Services de helpers',
 };
 
 const uploadPicturesFeatureTranslation: StaticTranslationString = {
@@ -153,11 +146,6 @@ export const AppFeatures: React.FC<{
           href="/app/helper-portal"
           Icon={CalendarCheck2}
           text={helperShiftsFeatureTranslation[locale]}
-        />
-        <AppFeatureMenuItem
-          href="/app/helper-portal"
-          Icon={LayoutList}
-          text={departmentShiftsFeatureTranslation[locale]}
         />
         <AppFeatureMenuItem
           href="/app/upload-images"
