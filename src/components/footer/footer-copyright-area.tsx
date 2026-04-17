@@ -1,5 +1,4 @@
 import { FooterGraphic } from '@/components/footer/footer-graphics';
-import { SocialMediaLinks } from '@/components/footer/social-media-links';
 import { CeviSchweiz } from '@/components/svg-logos/cevi-schweiz';
 import { LinkComponent } from '@/components/ui/link-component';
 import { getFooterCached } from '@/features/payload-cms/api/cached-globals';
@@ -11,6 +10,7 @@ import type { Locale, StaticTranslationString } from '@/types/types';
 import { getBuildInfo } from '@/utils/get-build-info';
 import { ForceDynamicOnBuild } from '@/utils/is-pre-rendering';
 import { cn } from '@/utils/tailwindcss-override';
+import { SiInstagram, SiYoutube } from '@icons-pack/react-simple-icons';
 import { cacheLife, cacheTag } from 'next/cache';
 import type React from 'react';
 import { Fragment } from 'react';
@@ -19,30 +19,59 @@ interface Arguments {
   children: React.ReactNode;
 }
 
-const FooterMinimalMenu: React.FC<{ locale: Locale }> = async ({ locale }) => {
+const FooterLayoutCached: React.FC<{ locale: Locale }> = async ({ locale }) => {
   'use cache';
   cacheLife('hours');
   cacheTag('payload', 'footer');
 
-  // use the cached getter to ensure we only fetch the footer once per request
-  const { minimalFooterMenu } = await getFooterCached(locale);
-  if (minimalFooterMenu === undefined || minimalFooterMenu === null) return <></>;
+  const { minimalFooterMenu, socialLinks } = await getFooterCached(locale);
 
-  if (minimalFooterMenu.length === 0) return <></>;
+  const instagramLink = socialLinks?.instagram;
+  const youTubeLink = socialLinks?.youtube;
 
   return (
-    <div className="mb-2 flex justify-center gap-x-4 text-xs">
-      {minimalFooterMenu.map((footerMenuElement) => (
-        <Fragment key={footerMenuElement.id}>
+    <>
+      <div className="mb-2 flex justify-center gap-x-4 text-xs">
+        {minimalFooterMenu?.map((footerMenuElement) => (
+          <Fragment key={footerMenuElement.id}>
+            <LinkComponent
+              href={getURLForLinkField(footerMenuElement.linkField, locale) ?? ''}
+              openInNewTab={openURLInNewTab(footerMenuElement.linkField)}
+            >
+              {footerMenuElement.label}
+            </LinkComponent>
+          </Fragment>
+        ))}
+      </div>
+
+      <div className="mb-2 flex items-center justify-center gap-2">
+        {instagramLink !== null && instagramLink !== undefined && (
           <LinkComponent
-            href={getURLForLinkField(footerMenuElement.linkField, locale) ?? ''}
-            openInNewTab={openURLInNewTab(footerMenuElement.linkField)}
+            href={instagramLink}
+            hideExternalIcon
+            openInNewTab
+            rel="noopener noreferrer"
+            className="rounded-full p-2 transition-colors duration-200"
+            aria-label="Follow us on Instagram"
           >
-            {footerMenuElement.label}
+            <SiInstagram className="h-5 w-5" />
           </LinkComponent>
-        </Fragment>
-      ))}
-    </div>
+        )}
+
+        {youTubeLink !== null && youTubeLink !== undefined && (
+          <LinkComponent
+            href={youTubeLink}
+            hideExternalIcon
+            openInNewTab
+            rel="noopener noreferrer"
+            className="rounded-full p-2 transition-colors duration-200"
+            aria-label="Subscribe to our YouTube channel"
+          >
+            <SiYoutube className="h-5 w-5" />
+          </LinkComponent>
+        )}
+      </div>
+    </>
   );
 };
 
@@ -101,8 +130,7 @@ export const FooterCopyrightArea: React.FC<{
           build !== undefined && (
             <div className="mb-[16px] flex flex-col text-center">
               <ForceDynamicOnBuild>
-                <FooterMinimalMenu locale={locale} />
-                <SocialMediaLinks locale={locale} />
+                <FooterLayoutCached locale={locale} />
               </ForceDynamicOnBuild>
 
               {!inAppDesign && (

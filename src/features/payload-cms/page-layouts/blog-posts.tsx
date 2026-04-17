@@ -182,14 +182,30 @@ const generateMetadataPreview = async (
   slugs: string[] | undefined,
 ): Promise<Metadata> => {
   const slug = slugs?.join('/') ?? '';
-  const result = await getBlogArticleBySlugCached(slug, locale, true);
+
+  const payload = await getPayload({ config });
+  const result = await payload.find({
+    collection: 'blog',
+    depth: 0,
+    pagination: false,
+    locale: locale,
+    fallbackLocale: false,
+    draft: true,
+    where: {
+      'seo.urlSlug': { equals: slug },
+    },
+    select: {
+      seo: true,
+      content: true,
+    },
+  });
 
   const article = result.docs[0];
   if (!article) return { title: 'Preview Mode' };
 
   return {
-    title: article.seo?.metaTitle || article.content?.blogH1 || 'Preview Mode',
-    description: article.seo?.metaDescription || undefined,
+    title: article.seo.metaTitle || article.content.blogH1 || 'Preview Mode',
+    description: article.seo.metaDescription || undefined,
   };
 };
 

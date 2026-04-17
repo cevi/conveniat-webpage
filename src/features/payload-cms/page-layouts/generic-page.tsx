@@ -208,14 +208,30 @@ const generateMetadataPreview = async (
   slugs: string[] | undefined,
 ): Promise<Metadata> => {
   const slug = slugs?.join('/') ?? '';
-  const result = await getGenericPageBySlugCached(slug, locale, true);
+
+  const payload = await getPayload({ config });
+  const result = await payload.find({
+    collection: 'generic-page',
+    depth: 0,
+    pagination: false,
+    locale: locale,
+    fallbackLocale: false,
+    draft: true,
+    where: {
+      'seo.urlSlug': { equals: slug },
+    },
+    select: {
+      seo: true,
+      content: true,
+    },
+  });
 
   const page = result.docs[0];
   if (!page) return { title: 'Preview Mode' };
 
   return {
-    title: page.seo?.metaTitle || page.content?.pageTitle || 'Preview Mode',
-    description: page.seo?.metaDescription || undefined,
+    title: page.seo.metaTitle || page.content.pageTitle || 'Preview Mode',
+    description: page.seo.metaDescription || undefined,
   };
 };
 
