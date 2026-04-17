@@ -59,102 +59,147 @@ export const CampScheduleEntryCollection: CollectionConfig = {
   },
   fields: [
     {
-      name: 'title',
-      label: {
-        en: 'Title',
-        de: 'Titel',
-        fr: 'Titre',
-      },
-      type: 'text',
-      required: true,
-      localized: true,
-      admin: {
-        description: {
-          en: 'The title of the entry.',
-          de: 'Der Titel des Eintrags.',
-          fr: "Le titre de l'entrée.",
-        },
-      },
-    },
-    {
-      name: 'description',
-      label: {
-        en: 'Description',
-        de: 'Beschreibung',
-        fr: 'Description',
-      },
-      type: 'richText',
-      required: true,
-      localized: true,
-      admin: {
-        description: {
-          en: 'The description of the entry',
-          de: 'Die Beschreibung des Eintrags',
-          fr: "La description de l'entrée",
-        },
-      },
-      editor: mapAnnotationDescriptionLexicalEditorSettings,
-      hooks: patchRichTextLinkHook,
-    },
-    {
-      name: 'timeslot',
-      label: {
-        en: 'Time Slot',
-        de: 'Zeitfenster',
-        fr: 'Créneau horaire',
-      },
-      type: 'group',
-      admin: {
-        description: {
-          en: 'Time slots for the schedule entry',
-          de: 'Zeitfenster für den Programmeintrag',
-          fr: 'Créneaux horaires pour l’entrée du programme',
-        },
-      },
-      required: true,
-      fields: [
+      type: 'tabs',
+      tabs: [
         {
-          name: 'date',
           label: {
-            en: 'Date',
-            de: 'Datum',
-            fr: 'Date',
+            en: 'Details',
+            de: 'Details',
+            fr: 'Détails',
           },
-          type: 'date',
-          required: true,
-          admin: {
-            date: {
-              pickerAppearance: 'dayOnly',
-              displayFormat: 'yyyy-MM-dd',
+          fields: [
+            {
+              name: 'title',
+              label: {
+                en: 'Title',
+                de: 'Titel',
+                fr: 'Titre',
+              },
+              type: 'text',
+              required: true,
+              localized: true,
+              admin: {
+                description: {
+                  en: 'The title of the entry.',
+                  de: 'Der Titel des Eintrags.',
+                  fr: "Le titre de l'entrée.",
+                },
+              },
             },
-          },
+            {
+              name: 'description',
+              label: {
+                en: 'Description',
+                de: 'Beschreibung',
+                fr: 'Description',
+              },
+              type: 'richText',
+              required: true,
+              localized: true,
+              admin: {
+                description: {
+                  en: 'The description of the entry',
+                  de: 'Die Beschreibung des Eintrags',
+                  fr: "La description de l'entrée",
+                },
+              },
+              editor: mapAnnotationDescriptionLexicalEditorSettings,
+              hooks: patchRichTextLinkHook,
+            },
+            {
+              name: 'timeslot',
+              label: {
+                en: 'Time Slot',
+                de: 'Zeitfenster',
+                fr: 'Créneau horaire',
+              },
+              type: 'group',
+              admin: {
+                description: {
+                  en: 'Time slots for the schedule entry',
+                  de: 'Zeitfenster für den Programmeintrag',
+                  fr: 'Créneaux horaires pour l’entrée du programme',
+                },
+              },
+              required: true,
+              fields: [
+                {
+                  name: 'date',
+                  label: {
+                    en: 'Date',
+                    de: 'Datum',
+                    fr: 'Date',
+                  },
+                  type: 'date',
+                  required: true,
+                  admin: {
+                    date: {
+                      pickerAppearance: 'dayOnly',
+                      displayFormat: 'yyyy-MM-dd',
+                    },
+                  },
+                },
+                {
+                  name: 'time',
+                  label: {
+                    en: 'Time',
+                    de: 'Zeit',
+                    fr: 'Heure',
+                  },
+                  type: 'text',
+                  required: true,
+                  admin: {
+                    description: {
+                      en: 'Time slots in HH:mm format (e.g., 08:00 - 18:00)',
+                      de: 'Zeitfenster im HH:mm-Format (z.B. 08:00 - 18:00)',
+                      fr: 'Créneaux horaires au format HH:mm (ex : 08:00 - 18:00)',
+                    },
+                  },
+                  validate: (value: string | string[] | undefined | null): true | string => {
+                    if (typeof value !== 'string') {
+                      return 'Invalid time format. Use HH:mm - HH:mm.';
+                    }
+                    const timePattern = /^([01]\d|2[0-3]):([0-5]\d) - ([01]\d|2[0-3]):([0-5]\d)$/;
+                    return timePattern.test(value) || 'Invalid time format. Use HH:mm - HH:mm.';
+                  },
+                },
+              ],
+            },
+            {
+              name: 'target_group',
+              label: {
+                en: 'Target Group',
+                de: 'Zielgruppe',
+                fr: 'Groupe cible',
+              },
+              type: 'richText',
+              localized: true,
+              editor: mapAnnotationDescriptionLexicalEditorSettings,
+            },
+          ],
         },
         {
-          name: 'time',
           label: {
-            en: 'Time',
-            de: 'Zeit',
-            fr: 'Heure',
+            en: 'Participants',
+            de: 'Teilnehmende',
+            fr: 'Participants',
           },
-          type: 'text',
-          required: true,
-          admin: {
-            description: {
-              en: 'Time slots in HH:mm format (e.g., 08:00 - 18:00)',
-              de: 'Zeitfenster im HH:mm-Format (z.B. 08:00 - 18:00)',
-              fr: 'Créneaux horaires au format HH:mm (ex : 08:00 - 18:00)',
+          fields: [
+            {
+              name: 'participantsList',
+              type: 'ui',
+              admin: {
+                components: {
+                  Field:
+                    '@/features/payload-cms/payload-cms/components/participants-admin-ui/participants-admin-ui#ParticipantsAdminUI',
+                },
+              },
             },
-          },
-          validate: (value: string | string[] | undefined | null): true | string => {
-            if (typeof value !== 'string') {
-              return 'Invalid time format. Use HH:mm - HH:mm.';
-            }
-            const timePattern = /^([01]\d|2[0-3]):([0-5]\d) - ([01]\d|2[0-3]):([0-5]\d)$/;
-            return timePattern.test(value) || 'Invalid time format. Use HH:mm - HH:mm.';
-          },
+          ],
         },
       ],
     },
+    // Sidebar and hidden fields
     {
       name: 'location',
       label: {
@@ -274,17 +319,6 @@ export const CampScheduleEntryCollection: CollectionConfig = {
       },
     },
     {
-      name: 'target_group',
-      label: {
-        en: 'Target Group',
-        de: 'Zielgruppe',
-        fr: 'Groupe cible',
-      },
-      type: 'richText',
-      localized: true,
-      editor: mapAnnotationDescriptionLexicalEditorSettings,
-    },
-    {
       name: 'category',
       label: {
         en: 'Category',
@@ -300,7 +334,6 @@ export const CampScheduleEntryCollection: CollectionConfig = {
       },
     },
     LastEditedByUserField,
-    // Virtual field populated by injectEnrollmentCount hook — used for admin badge cell
     {
       name: 'enrolledCount',
       type: 'number',
@@ -309,23 +342,12 @@ export const CampScheduleEntryCollection: CollectionConfig = {
         hidden: true,
       },
     },
-    // Custom admin column component rendered for capacity display
     {
       name: 'enrolledStatus',
       type: 'ui',
       admin: {
         components: {
           Cell: '@/features/payload-cms/payload-cms/components/filled-status/filled-status-cell',
-        },
-      },
-    },
-    {
-      name: 'participantsList',
-      type: 'ui',
-      admin: {
-        components: {
-          Field:
-            '@/features/payload-cms/payload-cms/components/participants-admin-ui/participants-admin-ui#ParticipantsAdminUI',
         },
       },
     },

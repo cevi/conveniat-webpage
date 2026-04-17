@@ -1,4 +1,5 @@
 import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
+import { isOverlapping } from '@/features/schedule/utils/time-utils';
 import prisma from '@/lib/db/prisma';
 import type { PayloadHandler } from 'payload';
 
@@ -27,6 +28,87 @@ export const handleParticipantMutation: PayloadHandler = async (request) => {
       const userId = body?.userId;
       if (userId === undefined || userId === '') {
         return Response.json({ error: 'Missing userId' }, { status: 400 });
+      }
+
+      // Conflict validation logic
+      const targetCollection = courseType === 'SHIFT' ? 'helper-shifts' : 'camp-schedule-entry';
+      let course;
+      try {
+        course = await request.payload.findByID({
+          collection: targetCollection,
+          id: courseId,
+          depth: 0,
+        });
+      } catch {
+        return Response.json({ error: 'Course not found' }, { status: 404 });
+      }
+
+      // Check max capacity
+      const currentCount = await prisma.enrollment.count({
+        where: { courseId, courseType, userId: { not: userId } },
+      });
+      if (
+        course.participants_max !== null &&
+        course.participants_max !== undefined &&
+        currentCount >= course.participants_max
+      ) {
+        return Response.json({ error: 'This course is already full.' }, { status: 400 });
+      }
+
+      // Check time overlap
+      const userEnrollments = await prisma.enrollment.findMany({
+        where: { userId, courseId: { not: courseId } },
+      });
+
+      if (userEnrollments.length > 0) {
+        const activeShifts = userEnrollments.filter((enrollment) => enrollment.courseType === 'SHIFT');
+        const activePrograms = userEnrollments.filter((enrollment) => enrollment.courseType === 'PROGRAM');
+
+        if (activeShifts.length > 0) {
+          const otherShifts = await request.payload.find({
+            collection: 'helper-shifts',
+            where: { id: { in: activeShifts.map((enrollment) => enrollment.courseId) } },
+          });
+
+          for (const other of otherShifts.docs) {
+            if (
+              isOverlapping(
+                String(course.timeslot.time),
+                String(course.timeslot.date),
+                String(other.timeslot.time),
+                String(other.timeslot.date),
+              )
+            ) {
+              return Response.json(
+                { error: `Time conflict with shift: ${String(other.title)}` },
+                { status: 400 },
+              );
+            }
+          }
+        }
+
+        if (activePrograms.length > 0) {
+          const otherPrograms = await request.payload.find({
+            collection: 'camp-schedule-entry',
+            where: { id: { in: activePrograms.map((enrollment) => enrollment.courseId) } },
+          });
+
+          for (const other of otherPrograms.docs) {
+            if (
+              isOverlapping(
+                String(course.timeslot.time),
+                String(course.timeslot.date),
+                String(other.timeslot.time),
+                String(other.timeslot.date),
+              )
+            ) {
+              return Response.json(
+                { error: `Time conflict with programme/workshop: ${String(other.title)}` },
+                { status: 400 },
+              );
+            }
+          }
+        }
       }
 
       await prisma.enrollment.upsert({

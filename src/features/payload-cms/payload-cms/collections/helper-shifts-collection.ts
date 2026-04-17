@@ -62,103 +62,160 @@ export const HelperShiftsCollection: CollectionConfig = {
   },
   fields: [
     {
-      name: 'title',
-      label: {
-        en: 'Title',
-        de: 'Titel',
-        fr: 'Titre',
-      },
-      type: 'text',
-      required: true,
-      localized: true,
-    },
-    {
-      name: 'description',
-      label: {
-        en: 'Short Description',
-        de: 'Kurzbeschreibung',
-        fr: 'Description courte',
-      },
-      type: 'textarea',
-      required: true,
-      localized: true,
-      admin: {
-        description: {
-          en: 'A short description of the shift and what helpers will be doing.',
-          de: 'Eine kurze Beschreibung des Schichteinsatzes.',
-          fr: 'Une brève description du service.',
-        },
-      },
-    },
-    {
-      name: 'meetingPoint',
-      label: {
-        en: 'Meeting Point',
-        de: 'Treffpunkt',
-        fr: 'Point de rendez-vous',
-      },
-      type: 'text',
-      localized: true,
-      admin: {
-        description: {
-          en: 'Where helpers should meet before the shift starts.',
-          de: 'Wo sich die Helfenden vor dem Schichteinsatz treffen sollen.',
-          fr: 'Où les helpers doivent se retrouver avant le service.',
-        },
-      },
-    },
-    {
-      name: 'timeslot',
-      label: {
-        en: 'Time Slot',
-        de: 'Zeitfenster',
-        fr: 'Créneau horaire',
-      },
-      type: 'group',
-      required: true,
-      fields: [
+      type: 'tabs',
+      tabs: [
         {
-          name: 'date',
           label: {
-            en: 'Date',
-            de: 'Datum',
-            fr: 'Date',
+            en: 'Details',
+            de: 'Details',
+            fr: 'Détails',
           },
-          type: 'date',
-          required: true,
-          admin: {
-            date: {
-              pickerAppearance: 'dayOnly',
-              displayFormat: 'yyyy-MM-dd',
+          fields: [
+            {
+              name: 'title',
+              label: {
+                en: 'Title',
+                de: 'Titel',
+                fr: 'Titre',
+              },
+              type: 'text',
+              required: true,
+              localized: true,
             },
-          },
+            {
+              name: 'description',
+              label: {
+                en: 'Short Description',
+                de: 'Kurzbeschreibung',
+                fr: 'Description courte',
+              },
+              type: 'textarea',
+              required: true,
+              localized: true,
+              admin: {
+                description: {
+                  en: 'A short description of the shift and what helpers will be doing.',
+                  de: 'Eine kurze Beschreibung des Schichteinsatzes.',
+                  fr: 'Une brève description du service.',
+                },
+              },
+            },
+            {
+              name: 'meetingPoint',
+              label: {
+                en: 'Meeting Point',
+                de: 'Treffpunkt',
+                fr: 'Point de rendez-vous',
+              },
+              type: 'text',
+              localized: true,
+              admin: {
+                description: {
+                  en: 'Where helpers should meet before the shift starts.',
+                  de: 'Wo sich die Helfenden vor dem Schichteinsatz treffen sollen.',
+                  fr: 'Où les helpers doivent se retrouver avant le service.',
+                },
+              },
+            },
+            {
+              name: 'timeslot',
+              label: {
+                en: 'Time Slot',
+                de: 'Zeitfenster',
+                fr: 'Créneau horaire',
+              },
+              type: 'group',
+              required: true,
+              fields: [
+                {
+                  name: 'date',
+                  label: {
+                    en: 'Date',
+                    de: 'Datum',
+                    fr: 'Date',
+                  },
+                  type: 'date',
+                  required: true,
+                  admin: {
+                    date: {
+                      pickerAppearance: 'dayOnly',
+                      displayFormat: 'yyyy-MM-dd',
+                    },
+                  },
+                },
+                {
+                  name: 'time',
+                  label: {
+                    en: 'Time',
+                    de: 'Zeit',
+                    fr: 'Heure',
+                  },
+                  type: 'text',
+                  required: true,
+                  admin: {
+                    description: {
+                      en: 'Time slots in HH:mm format (e.g., 08:00 - 18:00)',
+                      de: 'Zeitfenster im HH:mm-Format (z.B. 08:00 - 18:00)',
+                      fr: 'Créneaux horaires au format HH:mm (ex : 08:00 - 18:00)',
+                    },
+                  },
+                  validate: (value: string | string[] | undefined | null): true | string => {
+                    if (typeof value !== 'string') {
+                      return 'Invalid time format. Use HH:mm - HH:mm.';
+                    }
+                    const timePattern = /^([01]\d|2[0-3]):([0-5]\d) - ([01]\d|2[0-3]):([0-5]\d)$/;
+                    return timePattern.test(value) || 'Invalid time format. Use HH:mm - HH:mm.';
+                  },
+                },
+              ],
+            },
+            {
+              ...mainContentField,
+              label: {
+                en: 'Detailed Description',
+                de: 'Detailierte Beschreibung',
+                fr: 'Description détaillée',
+              },
+              admin: {
+                ...mainContentField.admin,
+                description: {
+                  en: 'Detailed description of the shift (optional).',
+                  de: 'Detailierte Beschreibung des Schichteinsatzes.',
+                  fr: 'Description détaillée du service.',
+                },
+              },
+              blocks: [
+                richTextArticleBlock,
+                singlePictureBlock,
+                fileDownloadBlock,
+                accordion,
+                whiteSpaceBlock,
+              ],
+            } as Field,
+          ],
         },
         {
-          name: 'time',
           label: {
-            en: 'Time',
-            de: 'Zeit',
-            fr: 'Heure',
+            en: 'Participants',
+            de: 'Teilnehmende',
+            fr: 'Participants',
           },
-          type: 'text',
-          required: true,
-          admin: {
-            description: {
-              en: 'Time slots in HH:mm format (e.g., 08:00 - 18:00)',
-              de: 'Zeitfenster im HH:mm-Format (z.B. 08:00 - 18:00)',
-              fr: 'Créneaux horaires au format HH:mm (ex : 08:00 - 18:00)',
+          fields: [
+            {
+              name: 'participantsList',
+              type: 'ui',
+              admin: {
+                components: {
+                  Field:
+                    '@/features/payload-cms/payload-cms/components/participants-admin-ui/participants-admin-ui#ParticipantsAdminUI',
+                },
+              },
             },
-          },
-          validate: (value: string | string[] | undefined | null): true | string => {
-            if (typeof value !== 'string') {
-              return 'Invalid time format. Use HH:mm - HH:mm.';
-            }
-            const timePattern = /^([01]\d|2[0-3]):([0-5]\d) - ([01]\d|2[0-3]):([0-5]\d)$/;
-            return timePattern.test(value) || 'Invalid time format. Use HH:mm - HH:mm.';
-          },
+          ],
         },
       ],
     },
+    // Sidebar & hidden metrics fields
     {
       name: 'location',
       label: {
@@ -261,7 +318,6 @@ export const HelperShiftsCollection: CollectionConfig = {
         },
       },
     },
-    // Virtual field populated by injectEnrollmentCount hook — used for the admin badge cell
     {
       name: 'enrolledCount',
       type: 'number',
@@ -270,7 +326,6 @@ export const HelperShiftsCollection: CollectionConfig = {
         hidden: true,
       },
     },
-    // Custom admin column component rendered for the enrolledStatus display
     {
       name: 'enrolledStatus',
       type: 'ui',
@@ -280,39 +335,6 @@ export const HelperShiftsCollection: CollectionConfig = {
         },
         custom: {
           invertColors: true,
-        },
-      },
-    },
-    {
-      ...mainContentField,
-      label: {
-        en: 'Detailed Description',
-        de: 'Detailierte Beschreibung',
-        fr: 'Description détaillée',
-      },
-      admin: {
-        ...mainContentField.admin,
-        description: {
-          en: 'Detailed description of the shift (optional).',
-          de: 'Detailierte Beschreibung des Schichteinsatzes.',
-          fr: 'Description détaillée du service.',
-        },
-      },
-      blocks: [
-        richTextArticleBlock,
-        singlePictureBlock,
-        fileDownloadBlock,
-        accordion,
-        whiteSpaceBlock,
-      ],
-    } as Field,
-    {
-      name: 'participantsList',
-      type: 'ui',
-      admin: {
-        components: {
-          Field:
-            '@/features/payload-cms/payload-cms/components/participants-admin-ui/participants-admin-ui#ParticipantsAdminUI',
         },
       },
     },
