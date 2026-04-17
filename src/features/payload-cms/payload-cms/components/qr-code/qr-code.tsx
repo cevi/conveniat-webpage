@@ -8,11 +8,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { environmentVariables } from '@/config/environment-variables';
+import { documentControlButtonClasses } from '@/features/payload-cms/payload-cms/components/shared/document-control-button-styles';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { serverSideSlugToUrlResolution } from '@/utils/find-url-prefix';
 import { generatePreviewToken } from '@/utils/preview-token';
-import { useDocumentInfo, useLocale, useTheme } from '@payloadcms/ui';
-import { useQuery } from '@tanstack/react-query'; // Added for TanStack Query
+import { Button as PayloadButton, useDocumentInfo, useLocale, useTheme } from '@payloadcms/ui';
+import { useQuery } from '@tanstack/react-query';
 import { Check, Copy, Share2 } from 'lucide-react';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
@@ -386,21 +387,22 @@ const QRCode: React.FC<QRCodeProperties> = () => {
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          size="icon"
+        <PayloadButton
+          buttonStyle="transparent"
+          size="medium"
+          className={documentControlButtonClasses.iconOnly()}
           type="button"
           onClick={() => {
             if (!open) setOpen(true);
           }}
-          title={
+          tooltip={
             createRedirectQR
               ? qrCodeLoadingText[locale as Locale]
               : sharePreviewLinkText[locale as Locale]
           }
         >
           <Share2 className="h-4 w-4" />
-        </Button>
+        </PayloadButton>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-96 rounded-md border-gray-200 bg-white text-gray-900 shadow-lg dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100">
         <DropdownMenuLabel className="px-2 py-1.5 font-semibold">

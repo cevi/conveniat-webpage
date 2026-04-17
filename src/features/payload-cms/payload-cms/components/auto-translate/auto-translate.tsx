@@ -1,5 +1,6 @@
 'use client';
 
+import { documentControlButtonClasses } from '@/features/payload-cms/payload-cms/components/shared/document-control-button-styles';
 import { cn } from '@/utils/tailwindcss-override';
 import { Button, useConfig, useDocumentInfo, useLocale, useTranslation } from '@payloadcms/ui';
 import {
@@ -92,7 +93,7 @@ const AutoTranslate: React.FC = () => {
       <span title={`Inhalt automatisch nach ${currentLocaleName} übersetzen`}>
         <Button
           buttonStyle="transparent"
-          className="inline-flex cursor-pointer items-center gap-x-[0.4rem] border border-(--theme-elevation-100) hover:border-(--theme-elevation-500)! hover:bg-(--theme-elevation-100)!"
+          className={documentControlButtonClasses.neutral()}
           size="medium"
           onClick={(event) => {
             event.preventDefault();
