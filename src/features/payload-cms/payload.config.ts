@@ -9,6 +9,7 @@ import { globalConfig } from '@/features/payload-cms/payload-cms/globals';
 import { onPayloadInit } from '@/features/payload-cms/payload-cms/initialization';
 import { LOCALE, locales } from '@/features/payload-cms/payload-cms/locales';
 import { formPluginConfiguration } from '@/features/payload-cms/payload-cms/plugins/form/form-plugin-configuration';
+import { importExportConfiguration } from '@/features/payload-cms/payload-cms/plugins/import-export-plugin-configuration';
 import { lexicalEditor } from '@/features/payload-cms/payload-cms/plugins/lexical-editor';
 import { redirectsPluginConfiguration } from '@/features/payload-cms/payload-cms/plugins/redirects/redirects-plugin-configuration';
 import { s3StorageConfiguration } from '@/features/payload-cms/payload-cms/plugins/s3-storage-plugin-configuration';
@@ -203,6 +204,7 @@ export const payloadConfig: RoutableConfig = {
     s3StorageConfiguration,
     searchPluginConfiguration,
     redirectsPluginConfiguration,
+    importExportConfiguration,
   ],
   jobs: jobsConfig,
   i18n: {

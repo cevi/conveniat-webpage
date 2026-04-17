@@ -33,27 +33,60 @@ export async function syncUserWithCeviDB(profile: HitobitoProfile): Promise<Payl
       nickname: profile.nickname,
     };
 
-    const matchedUsers = await payload.find({
+    // Phase 1: Try to find an existing user by cevi_db_uuid
+    const matchedByUuid = await payload.find({
       collection: 'users',
       where: { cevi_db_uuid: { equals: ceviDatabaseUuid } },
     });
 
-    if (matchedUsers.totalDocs > 1) {
-      const matchedIds = matchedUsers.docs.map((userDocument) => userDocument.id).join(', ');
+    if (matchedByUuid.totalDocs > 1) {
+      const matchedIds = matchedByUuid.docs.map((userDocument) => userDocument.id).join(', ');
       throw new Error(
         `Multiple users found with the same UUID (cevi_db_uuid: ${ceviDatabaseUuid}). Matched Payload IDs: ${matchedIds}`,
       );
     }
 
-    if (matchedUsers.totalDocs === 1 && matchedUsers.docs[0]?.id !== undefined) {
+    if (matchedByUuid.totalDocs === 1 && matchedByUuid.docs[0]?.id !== undefined) {
       return await payload.update({
         collection: 'users',
-        id: matchedUsers.docs[0].id,
+        id: matchedByUuid.docs[0].id,
         data: userData,
       });
     }
 
-    // save the new user to the database
+    // Phase 2: No UUID match — try to find by email (for manually created / CSV-imported users)
+    const matchedByEmail = await payload.find({
+      collection: 'users',
+      where: { email: { equals: profile.email } },
+    });
+
+    if (matchedByEmail.totalDocs > 1) {
+      const matchedIds = matchedByEmail.docs.map((userDocument) => userDocument.id).join(', ');
+      throw new Error(
+        `Multiple users found with the same email (${profile.email}). Matched Payload IDs: ${matchedIds}`,
+      );
+    }
+
+    if (matchedByEmail.totalDocs === 1 && matchedByEmail.docs[0]?.id !== undefined) {
+      const matchedUser = matchedByEmail.docs[0];
+      if (
+        matchedUser.cevi_db_uuid !== null &&
+        matchedUser.cevi_db_uuid !== undefined &&
+        matchedUser.cevi_db_uuid !== ceviDatabaseUuid
+      ) {
+        throw new Error(
+          `Email match conflict for ${profile.email}: existing user ${matchedUser.id} is already linked to cevi_db_uuid ${matchedUser.cevi_db_uuid}, cannot relink to ${ceviDatabaseUuid}.`,
+        );
+      }
+      // Link the existing user by setting their cevi_db_uuid
+      return await payload.update({
+        collection: 'users',
+        id: matchedUser.id,
+        data: userData,
+      });
+    }
+
+    // Phase 3: No match at all — create a new user
     return await payload.create({
       collection: 'users',
       data: userData,

@@ -69,18 +69,32 @@ async function saveAndFetchUserFromPayload(
       throw new TypeError(`Invalid user ID from Hitobito: ${userProfile.id}`);
     }
 
-    const matchedUsers = await payload.find({
+    const userData = {
+      cevi_db_uuid: ceviDatabaseUuid,
+      groups: userProfile.roles.map((role) => ({
+        id: role.group_id,
+        name: role.group_name,
+        role_name: role.role_name,
+        role_class: role.role_class,
+      })),
+      email: userProfile.email,
+      fullName: userProfile.first_name + ' ' + userProfile.last_name,
+      nickname: userProfile.nickname,
+    };
+
+    // Phase 1: Try to find an existing user by cevi_db_uuid
+    const matchedByUuid = await payload.find({
       collection: 'users',
       where: { cevi_db_uuid: { equals: ceviDatabaseUuid } },
     });
 
-    if (matchedUsers.totalDocs > 1) {
+    if (matchedByUuid.totalDocs > 1) {
       throw new Error('Multiple users found with the same UUID');
     }
 
-    // abort if the user already exists but still update user data
-    const payloadUserId = matchedUsers.docs[0]?.id;
-    if (matchedUsers.totalDocs === 1 && payloadUserId !== undefined) {
+    // User already exists by UUID — update and return
+    const payloadUserId = matchedByUuid.docs[0]?.id;
+    if (matchedByUuid.totalDocs === 1 && payloadUserId !== undefined) {
       await payload.update({
         collection: 'users',
         where: { cevi_db_uuid: { equals: ceviDatabaseUuid } },
@@ -98,21 +112,25 @@ async function saveAndFetchUserFromPayload(
       });
     }
 
-    // save the new user to the database
+    // Phase 2: No UUID match — try to find by email (for manually created / CSV-imported users)
+    const matchedByEmail = await payload.find({
+      collection: 'users',
+      where: { email: { equals: userProfile.email } },
+    });
+
+    if (matchedByEmail.totalDocs === 1 && matchedByEmail.docs[0]?.id !== undefined) {
+      // Link the existing user by setting their cevi_db_uuid
+      return await payload.update({
+        collection: 'users',
+        id: matchedByEmail.docs[0].id,
+        data: userData,
+      });
+    }
+
+    // Phase 3: No match at all — create a new user
     return await payload.create({
       collection: 'users',
-      data: {
-        cevi_db_uuid: ceviDatabaseUuid,
-        groups: userProfile.roles.map((role) => ({
-          id: role.group_id,
-          name: role.group_name,
-          role_name: role.role_name,
-          role_class: role.role_class,
-        })),
-        email: userProfile.email,
-        fullName: userProfile.first_name + ' ' + userProfile.last_name,
-        nickname: userProfile.nickname,
-      },
+      data: userData,
     });
   });
 }
@@ -337,7 +355,7 @@ export const authOptions: NextAuthConfig = {
           refresh_token: account.refresh_token,
           expires_at: account.expires_at ?? Math.floor(Date.now() / 1000) + 3600,
           uuid: payloadCMSUser.id,
-          cevi_db_uuid: payloadCMSUser.cevi_db_uuid, // the id of the user in the CeviDB as number
+          cevi_db_uuid: payloadCMSUser.cevi_db_uuid ?? undefined, // the id of the user in the CeviDB as number
           group_ids: profile.roles.map((role) => role.group_id),
           email: profile.email,
           name: profile.first_name + ' ' + profile.last_name,
