@@ -1,6 +1,7 @@
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { mapAnnotationDescriptionLexicalEditorSettings } from '@/features/payload-cms/payload-cms/collections/camp-map-collection';
 import { injectEnrollmentCount } from '@/features/payload-cms/payload-cms/components/filled-status/inject-enrollment-count';
+import { courseParticipantsExportHandler } from '@/features/payload-cms/payload-cms/endpoints/course-participants-export';
 import { accordion } from '@/features/payload-cms/payload-cms/shared-blocks/accordion';
 import { fileDownloadBlock } from '@/features/payload-cms/payload-cms/shared-blocks/file-download-block';
 import { richTextArticleBlock } from '@/features/payload-cms/payload-cms/shared-blocks/rich-text-article-block';
@@ -10,7 +11,6 @@ import { mainContentField } from '@/features/payload-cms/payload-cms/shared-fiel
 import { flushPageCacheOnChange } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import type { CollectionConfig, Field } from 'payload';
-import { courseParticipantsExportHandler } from '@/features/payload-cms/payload-cms/endpoints/course-participants-export';
 
 export const HelperShiftsCollection: CollectionConfig = {
   slug: 'helper-shifts',
@@ -300,7 +300,8 @@ export const HelperShiftsCollection: CollectionConfig = {
       type: 'ui',
       admin: {
         components: {
-          Field: '@/features/payload-cms/payload-cms/components/participants-admin-ui/participants-admin-ui#ParticipantsAdminUI',
+          Field:
+            '@/features/payload-cms/payload-cms/components/participants-admin-ui/participants-admin-ui#ParticipantsAdminUI',
         },
       },
     },
