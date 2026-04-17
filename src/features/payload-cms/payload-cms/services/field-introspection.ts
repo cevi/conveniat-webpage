@@ -67,9 +67,10 @@ export function getLocalizedFieldPaths(
       if ('name' in field && field.name) {
         groupPath.push(field.name);
       }
-      localizedFields.push(
-        ...getLocalizedFieldPaths(field.fields, groupPath, insideLocalizedParent),
-      );
+      // If this group itself is localized, children are inside a localized parent
+      const childIsLocalized =
+        insideLocalizedParent || ('localized' in field && field.localized === true);
+      localizedFields.push(...getLocalizedFieldPaths(field.fields, groupPath, childIsLocalized));
       continue;
     }
 
