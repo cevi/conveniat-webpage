@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@/utils/tailwindcss-override';
-import { Button, useConfig, useDocumentInfo, useLocale } from '@payloadcms/ui';
+import { Button, useConfig, useDocumentInfo, useLocale, useTranslation } from '@payloadcms/ui';
 import {
   Close as DialogClose,
   Content as DialogContent,
@@ -35,6 +35,7 @@ const AutoTranslate: React.FC = () => {
   const { code: targetLanguage } = useLocale();
   const { id, collectionSlug, globalSlug } = useDocumentInfo();
   const { config } = useConfig();
+  const { i18n } = useTranslation();
   const router = useRouter();
 
   // If this isn't a saved document yet (or is a global), we might not be able to auto-translate safely
@@ -100,7 +101,7 @@ const AutoTranslate: React.FC = () => {
         >
           <Sparkles className="mr-2 h-4 w-4" />
           <span className="truncate">
-            {autoTranslateActionString[targetLanguage] ?? autoTranslateActionString['en']}
+            {autoTranslateActionString[i18n.language] ?? autoTranslateActionString['en']}
           </span>
         </Button>
       </span>
