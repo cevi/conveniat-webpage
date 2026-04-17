@@ -2166,18 +2166,6 @@ export interface CampScheduleEntry {
      */
     time: string;
   };
-  /**
-   * Location of the Schedule Entry
-   */
-  location: string | CampMapAnnotation;
-  /**
-   * Organiser
-   */
-  organiser?: (string | User)[] | null;
-  enable_enrolment?: boolean | null;
-  hide_participant_list?: boolean | null;
-  participants_min?: number | null;
-  participants_max?: number | null;
   target_group?: {
     root: {
       type: string;
@@ -2193,6 +2181,18 @@ export interface CampScheduleEntry {
     };
     [k: string]: unknown;
   } | null;
+  /**
+   * Location of the Schedule Entry
+   */
+  location: string | CampMapAnnotation;
+  /**
+   * Organiser
+   */
+  organiser?: (string | User)[] | null;
+  enable_enrolment?: boolean | null;
+  hide_participant_list?: boolean | null;
+  participants_min?: number | null;
+  participants_max?: number | null;
   category?: (string | null) | CampCategory;
   lastEditedByUser?: (string | null) | User;
   enrolledCount?: number | null;
@@ -2939,35 +2939,6 @@ export interface HelperShift {
     time: string;
   };
   /**
-   * Location of the shift (optional).
-   */
-  location?: (string | null) | CampMapAnnotation;
-  /**
-   * Maximum number of helpers for this shift. Leave empty for unlimited.
-   */
-  participants_max?: number | null;
-  enable_enrolment?: boolean | null;
-  hide_participant_list?: boolean | null;
-  /**
-   * Admin-only notes about this shift (not shown to helpers).
-   */
-  notes?: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  } | null;
-  enrolledCount?: number | null;
-  /**
    * Detailed description of the shift (optional).
    */
   mainContent: (
@@ -3015,6 +2986,35 @@ export interface HelperShift {
         blockType: 'whiteSpace';
       }
   )[];
+  /**
+   * Location of the shift (optional).
+   */
+  location?: (string | null) | CampMapAnnotation;
+  /**
+   * Maximum number of helpers for this shift. Leave empty for unlimited.
+   */
+  participants_max?: number | null;
+  enable_enrolment?: boolean | null;
+  hide_participant_list?: boolean | null;
+  /**
+   * Admin-only notes about this shift (not shown to helpers).
+   */
+  notes?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  enrolledCount?: number | null;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -4594,13 +4594,13 @@ export interface CampScheduleEntrySelect<T extends boolean = true> {
         date?: T;
         time?: T;
       };
+  target_group?: T;
   location?: T;
   organiser?: T;
   enable_enrolment?: T;
   hide_participant_list?: T;
   participants_min?: T;
   participants_max?: T;
-  target_group?: T;
   category?: T;
   lastEditedByUser?: T;
   enrolledCount?: T;
@@ -4622,12 +4622,6 @@ export interface HelperShiftsSelect<T extends boolean = true> {
         date?: T;
         time?: T;
       };
-  location?: T;
-  participants_max?: T;
-  enable_enrolment?: T;
-  hide_participant_list?: T;
-  notes?: T;
-  enrolledCount?: T;
   mainContent?:
     | T
     | {
@@ -4662,6 +4656,12 @@ export interface HelperShiftsSelect<T extends boolean = true> {
               blockName?: T;
             };
       };
+  location?: T;
+  participants_max?: T;
+  enable_enrolment?: T;
+  hide_participant_list?: T;
+  notes?: T;
+  enrolledCount?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
