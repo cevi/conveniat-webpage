@@ -13,7 +13,7 @@ import { serverSideSlugToUrlResolution } from '@/utils/find-url-prefix';
 import { generatePreviewToken } from '@/utils/preview-token';
 import { useDocumentInfo, useLocale, useTheme } from '@payloadcms/ui';
 import { useQuery } from '@tanstack/react-query'; // Added for TanStack Query
-import { Check, Copy, Share } from 'lucide-react';
+import { Check, Copy, Share2 } from 'lucide-react';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import type { CollectionSlug } from 'payload';
@@ -399,7 +399,7 @@ const QRCode: React.FC<QRCodeProperties> = () => {
               : sharePreviewLinkText[locale as Locale]
           }
         >
-          <Share className="h-4 w-4" />
+          <Share2 className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-96 rounded-md border-gray-200 bg-white text-gray-900 shadow-lg dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100">
