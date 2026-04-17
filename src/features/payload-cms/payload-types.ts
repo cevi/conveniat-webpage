@@ -530,6 +530,10 @@ export interface Image {
    * Optional text to display below the image (e.g. image source, copyright information, explanatory text) (fr)
    */
   imageCaption_fr?: string | null;
+  /**
+   * Indicates if this image was generated as a PDF thumbnail.
+   */
+  isPdfThumbnail?: boolean | null;
   lastEditedByUser?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
@@ -4353,6 +4357,7 @@ export interface ImagesSelect<T extends boolean = true> {
   imageCaption_de?: T;
   imageCaption_en?: T;
   imageCaption_fr?: T;
+  isPdfThumbnail?: T;
   lastEditedByUser?: T;
   updatedAt?: T;
   createdAt?: T;

@@ -44,6 +44,7 @@ const uploadThumbnailToPayload = async (
       alt_de: 'PDF Thumbnail',
       alt_en: 'PDF Thumbnail',
       alt_fr: 'Miniature PDF',
+      isPdfThumbnail: true,
     },
     file: {
       data: imageBuffer,
