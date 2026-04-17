@@ -30,6 +30,30 @@ export const handleParticipantMutation: PayloadHandler = async (request) => {
         return Response.json({ error: 'Missing userId' }, { status: 400 });
       }
 
+      // Pre-flight fallback: Ensure the User exists in Prisma, as sometimes they are only in Mongo.
+      try {
+        const payloadUser = await request.payload.findByID({
+          collection: 'users',
+          id: userId,
+          depth: 0,
+        });
+
+        await prisma.user.upsert({
+          where: { uuid: userId },
+          update: { name: String(payloadUser.fullName) },
+          create: {
+            uuid: userId,
+            name: String(payloadUser.fullName),
+            lastSeen: new Date('1970-01-01T00:00:00Z'),
+          },
+        });
+      } catch {
+        return Response.json(
+          { error: 'Target user does not exist in the database.' },
+          { status: 404 },
+        );
+      }
+
       // Conflict validation logic
       const targetCollection = courseType === 'SHIFT' ? 'helper-shifts' : 'camp-schedule-entry';
       let course;
@@ -61,8 +85,12 @@ export const handleParticipantMutation: PayloadHandler = async (request) => {
       });
 
       if (userEnrollments.length > 0) {
-        const activeShifts = userEnrollments.filter((enrollment) => enrollment.courseType === 'SHIFT');
-        const activePrograms = userEnrollments.filter((enrollment) => enrollment.courseType === 'PROGRAM');
+        const activeShifts = userEnrollments.filter(
+          (enrollment) => enrollment.courseType === 'SHIFT',
+        );
+        const activePrograms = userEnrollments.filter(
+          (enrollment) => enrollment.courseType === 'PROGRAM',
+        );
 
         if (activeShifts.length > 0) {
           const otherShifts = await request.payload.find({
