@@ -73,10 +73,16 @@ const localizedOfflineShort: StaticTranslationString = {
   fr: 'Hors ligne',
 };
 
-const localizedConflictDescription: StaticTranslationString = {
+const localizedConflictDescWorkshop: StaticTranslationString = {
   de: 'Du bist bereits für einen Workshop angemeldet, der zur gleichen Zeit stattfindet:',
   en: 'You are already enrolled in a workshop at the same time:',
   fr: 'Vous êtes déjà inscrit à un atelier à la même heure:',
+};
+
+const localizedConflictDescShift: StaticTranslationString = {
+  de: 'Du bist bereits für einen Schichteinsatz angemeldet, der zur gleichen Zeit stattfindet:',
+  en: 'You are already enrolled in a shift at the same time:',
+  fr: 'Vous êtes déjà inscrit à un service à la même heure:',
 };
 
 const localizedSwitchWorkshop: StaticTranslationString = {
@@ -97,10 +103,16 @@ const localizedSwitching: StaticTranslationString = {
   fr: 'Changement...',
 };
 
-const localizedSwitchQuestion: StaticTranslationString = {
+const localizedSwitchQuestionWorkshop: StaticTranslationString = {
   de: 'Möchtest du dich vom anderen Kurs abmelden und dich für diesen Workshop anmelden?',
   en: 'Would you like to unenroll from the other course and enroll in this workshop?',
   fr: "Souhaitez-vous vous désinscrire de l'autre cours et vous inscrire à cet atelier?",
+};
+
+const localizedSwitchQuestionShift: StaticTranslationString = {
+  de: 'Möchtest du dich vom Schichteinsatz abmelden und dich für diesen Workshop anmelden?',
+  en: 'Would you like to unenroll from the other shift and enroll in this workshop?',
+  fr: "Souhaitez-vous vous désinscrire de l'autre service et vous inscrire à cet atelier?",
 };
 
 const localizedViewChat: StaticTranslationString = {
@@ -124,6 +136,7 @@ export const EnrollmentAction: React.FC<{
   const utils = trpc.useUtils();
   const { isStarred, toggleStar } = useStar();
   const [conflictDialogOpen, setConflictDialogOpen] = useState(false);
+  const [conflictType, setConflictType] = useState<'workshop' | 'shift'>('workshop');
   const [conflictInfo, setConflictInfo] = useState<ConflictInfo | undefined>();
 
   const enroll = trpc.schedule.enrollInCourse.useMutation({
@@ -141,10 +154,15 @@ export const EnrollmentAction: React.FC<{
       // Check if it's a time conflict error
       // Format: "Time conflict with [TITLE]|[ID]"
       if (error.message.includes('Time conflict with')) {
-        const match = error.message.match(/Time conflict with (.+)\|(.+)/);
+        const isShift = error.message.includes('with shift:');
+
+        const match = error.message.match(
+          /Time conflict with(?: (?:shift|workshop):)?\s*(.+)\|(.+)/,
+        );
         if (match) {
-          const conflictingCourseName = match[1] ?? 'another workshop';
+          const conflictingCourseName = match[1] ?? 'another course';
           const conflictingCourseId = match[2] ?? '';
+          setConflictType(isShift ? 'shift' : 'workshop');
           setConflictInfo({
             conflictingCourseName,
             conflictingCourseId,
@@ -297,7 +315,9 @@ export const EnrollmentAction: React.FC<{
           <ChatAlertDialogHeader>
             <ChatAlertDialogTitle>{localizedConflict[locale]}</ChatAlertDialogTitle>
             <ChatAlertDialogDescription>
-              {localizedConflictDescription[locale]}
+              {conflictType === 'shift'
+                ? localizedConflictDescShift[locale]
+                : localizedConflictDescWorkshop[locale]}
             </ChatAlertDialogDescription>
           </ChatAlertDialogHeader>
           <div className="flex flex-col items-center justify-center space-y-4">
@@ -306,7 +326,11 @@ export const EnrollmentAction: React.FC<{
                 {conflictInfo?.conflictingCourseName}
               </div>
             </div>
-            <p className="text-center text-sm text-gray-500">{localizedSwitchQuestion[locale]}</p>
+            <p className="text-center text-sm text-gray-500">
+              {conflictType === 'shift'
+                ? localizedSwitchQuestionShift[locale]
+                : localizedSwitchQuestionWorkshop[locale]}
+            </p>
           </div>
           <ChatAlertDialogFooter className="gap-3 sm:gap-0">
             <ChatAlertDialogAction
@@ -317,6 +341,7 @@ export const EnrollmentAction: React.FC<{
                   switchEnrollment.mutate({
                     fromCourseId: conflictInfo.conflictingCourseId,
                     toCourseId: courseId,
+                    fromCourseType: conflictType,
                   });
                 }
               }}
