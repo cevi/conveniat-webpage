@@ -1,39 +1,42 @@
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { mapAnnotationDescriptionLexicalEditorSettings } from '@/features/payload-cms/payload-cms/collections/camp-map-collection';
 import { injectEnrollmentCount } from '@/features/payload-cms/payload-cms/components/filled-status/inject-enrollment-count';
-import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared-fields/last-edited-by-user-field';
+import { accordion } from '@/features/payload-cms/payload-cms/shared-blocks/accordion';
+import { fileDownloadBlock } from '@/features/payload-cms/payload-cms/shared-blocks/file-download-block';
+import { richTextArticleBlock } from '@/features/payload-cms/payload-cms/shared-blocks/rich-text-article-block';
+import { singlePictureBlock } from '@/features/payload-cms/payload-cms/shared-blocks/single-picture-block';
+import { whiteSpaceBlock } from '@/features/payload-cms/payload-cms/shared-blocks/white-space-block';
+import { mainContentField } from '@/features/payload-cms/payload-cms/shared-fields/main-content-field';
 import { flushPageCacheOnChange } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
-import type { CollectionConfig } from 'payload';
+import type { CollectionConfig, Field } from 'payload';
 
-import { syncOrganisers } from '@/features/payload-cms/payload-cms/utils/sync-organisers';
-
-export const CampScheduleEntryCollection: CollectionConfig = {
-  slug: 'camp-schedule-entry',
+export const HelperShiftsCollection: CollectionConfig = {
+  slug: 'helper-shifts',
   trash: true,
   hooks: {
-    afterChange: [flushPageCacheOnChange, syncOrganisers],
+    afterChange: [flushPageCacheOnChange],
     afterRead: [injectEnrollmentCount],
   },
 
   labels: {
     singular: {
-      en: 'Camp Schedule Entry',
-      de: 'Lager-Programmblock',
-      fr: 'Entrée du programme du camp',
+      en: 'Helper Shift',
+      de: 'Schichteinsatz',
+      fr: 'Service de helpers',
     },
     plural: {
-      en: 'Camp Schedule Entries',
-      de: 'Lager-Programmblöcke',
-      fr: 'Entrées du programme du camp',
+      en: 'Helper Shifts',
+      de: 'Schichteinsätze',
+      fr: 'Services de helpers',
     },
   },
   admin: {
     useAsTitle: 'title',
     group: AdminPanelDashboardGroups.AppContent,
+    defaultColumns: ['title', 'timeslot', 'location', 'participants_max', 'enrolledStatus'],
     groupBy: true,
     disableCopyToLocale: true,
-    defaultColumns: ['title', 'timeslot', 'location', 'participants_max', 'enrolledStatus'],
   },
   access: {
     read: () => true,
@@ -49,33 +52,41 @@ export const CampScheduleEntryCollection: CollectionConfig = {
       type: 'text',
       required: true,
       localized: true,
-      admin: {
-        description: {
-          en: 'The title of the entry.',
-          de: 'Der Titel des Eintrags.',
-          fr: "Le titre de l'entrée.",
-        },
-      },
     },
     {
       name: 'description',
       label: {
-        en: 'Description',
-        de: 'Beschreibung',
-        fr: 'Description',
+        en: 'Short Description',
+        de: 'Kurzbeschreibung',
+        fr: 'Description courte',
       },
-      type: 'richText',
+      type: 'textarea',
       required: true,
       localized: true,
       admin: {
         description: {
-          en: 'The description of the entry',
-          de: 'Die Beschreibung des Eintrags',
-          fr: "La description de l'entrée",
+          en: 'A short description of the shift and what helpers will be doing.',
+          de: 'Eine kurze Beschreibung des Schichteinsatzes.',
+          fr: 'Une brève description du service.',
         },
       },
-      editor: mapAnnotationDescriptionLexicalEditorSettings,
-      hooks: patchRichTextLinkHook,
+    },
+    {
+      name: 'meetingPoint',
+      label: {
+        en: 'Meeting Point',
+        de: 'Treffpunkt',
+        fr: 'Point de rendez-vous',
+      },
+      type: 'text',
+      localized: true,
+      admin: {
+        description: {
+          en: 'Where helpers should meet before the shift starts.',
+          de: 'Wo sich die Helfenden vor dem Schichteinsatz treffen sollen.',
+          fr: 'Où les helpers doivent se retrouver avant le service.',
+        },
+      },
     },
     {
       name: 'timeslot',
@@ -85,13 +96,6 @@ export const CampScheduleEntryCollection: CollectionConfig = {
         fr: 'Créneau horaire',
       },
       type: 'group',
-      admin: {
-        description: {
-          en: 'Time slots for the schedule entry',
-          de: 'Zeitfenster für den Programmeintrag',
-          fr: 'Créneaux horaires pour l’entrée du programme',
-        },
-      },
       required: true,
       fields: [
         {
@@ -156,47 +160,37 @@ export const CampScheduleEntryCollection: CollectionConfig = {
         if (relationTo === 'camp-map-annotations') {
           return {
             or: [
-              {
-                annotationType: {
-                  equals: 'marker',
-                },
-              },
-              {
-                isInteractive: {
-                  not_equals: false,
-                },
-              },
+              { annotationType: { equals: 'marker' } },
+              { isInteractive: { not_equals: false } },
             ],
           };
         }
         return true;
       },
-      required: true,
+      required: false,
       admin: {
         description: {
-          en: 'Location of the Schedule Entry',
-          de: 'Ort des Programmeintrags',
-          fr: "Emplacement de l'entrée du programme",
+          en: 'Location of the shift (optional).',
+          de: 'Ort des Schichteinsatzes (optional).',
+          fr: 'Emplacement du service (optionnel).',
         },
         position: 'sidebar',
       },
     },
     {
-      name: 'organiser',
+      name: 'participants_max',
       label: {
-        en: 'Organiser',
-        de: 'Organisator',
-        fr: 'Organisateur',
+        en: 'Maximum Helpers',
+        de: 'Maximale Anzahl Helfende',
+        fr: 'Nombre maximum de helpers',
       },
-      type: 'relationship',
-      relationTo: 'users',
-      hasMany: true,
+      type: 'number',
       required: false,
       admin: {
         description: {
-          en: 'Organiser',
-          de: 'Organisator',
-          fr: 'Organisateur',
+          en: 'Maximum number of helpers for this shift. Leave empty for unlimited.',
+          de: 'Maximale Anzahl Helfende für diesen Schichteinsatz. Leer = unbegrenzt.',
+          fr: 'Nombre maximum de helpers. Vide = illimité.',
         },
         position: 'sidebar',
       },
@@ -204,12 +198,12 @@ export const CampScheduleEntryCollection: CollectionConfig = {
     {
       name: 'enable_enrolment',
       label: {
-        en: 'Allow User Enrolment',
-        de: 'Benutzeranmeldung erlauben',
-        fr: "Autoriser l'inscription des utilisateurs",
+        en: 'Allow Enrolment',
+        de: 'Anmeldung erlauben',
+        fr: "Autoriser l'inscription",
       },
       type: 'checkbox',
-      defaultValue: false,
+      defaultValue: true,
       admin: {
         position: 'sidebar',
       },
@@ -229,59 +223,26 @@ export const CampScheduleEntryCollection: CollectionConfig = {
       },
     },
     {
-      name: 'participants_min',
+      name: 'notes',
       label: {
-        en: 'Minimum Participants',
-        de: 'Minimale Teilnehmer',
-        fr: 'Participants minimum',
-      },
-      required: false,
-      type: 'number',
-      admin: {
-        condition: (data) => Boolean(data['enable_enrolment']),
-      },
-    },
-    {
-      name: 'participants_max',
-      label: {
-        en: 'Maximum Participants',
-        de: 'Maximale Teilnehmer',
-        fr: 'Participants maximum',
-      },
-      required: false,
-      type: 'number',
-      admin: {
-        condition: (data) => Boolean(data['enable_enrolment']),
-      },
-    },
-    {
-      name: 'target_group',
-      label: {
-        en: 'Target Group',
-        de: 'Zielgruppe',
-        fr: 'Groupe cible',
+        en: 'Internal Notes',
+        de: 'Interne Notizen',
+        fr: 'Notes internes',
       },
       type: 'richText',
-      localized: true,
+      localized: false,
       editor: mapAnnotationDescriptionLexicalEditorSettings,
-    },
-    {
-      name: 'category',
-      label: {
-        en: 'Category',
-        de: 'Kategorie',
-        fr: 'Catégorie',
-      },
-      type: 'relationship',
-      relationTo: 'camp-categories',
-      hasMany: false,
-      required: false,
+      hooks: patchRichTextLinkHook,
       admin: {
         position: 'sidebar',
+        description: {
+          en: 'Admin-only notes about this shift (not shown to helpers).',
+          de: 'Admininterne Notizen zu diesem Schichteinsatz (nicht für Helfende sichtbar).',
+          fr: 'Notes internes sur ce service (non visibles par les helpers).',
+        },
       },
     },
-    LastEditedByUserField,
-    // Virtual field populated by injectEnrollmentCount hook — used for admin badge cell
+    // Virtual field populated by injectEnrollmentCount hook — used for the admin badge cell
     {
       name: 'enrolledCount',
       type: 'number',
@@ -290,7 +251,7 @@ export const CampScheduleEntryCollection: CollectionConfig = {
         hidden: true,
       },
     },
-    // Custom admin column component rendered for capacity display
+    // Custom admin column component rendered for the enrolledStatus display
     {
       name: 'enrolledStatus',
       type: 'ui',
@@ -298,7 +259,33 @@ export const CampScheduleEntryCollection: CollectionConfig = {
         components: {
           Cell: '@/features/payload-cms/payload-cms/components/filled-status/filled-status-cell',
         },
+        custom: {
+          invertColors: true,
+        },
       },
     },
+    {
+      ...mainContentField,
+      label: {
+        en: 'Detailed Description',
+        de: 'Detailierte Beschreibung',
+        fr: 'Description détaillée',
+      },
+      admin: {
+        ...mainContentField.admin,
+        description: {
+          en: 'Detailed description of the shift (optional).',
+          de: 'Detailierte Beschreibung des Schichteinsatzes.',
+          fr: 'Description détaillée du service.',
+        },
+      },
+      blocks: [
+        richTextArticleBlock,
+        singlePictureBlock,
+        fileDownloadBlock,
+        accordion,
+        whiteSpaceBlock,
+      ],
+    } as Field,
   ],
 };

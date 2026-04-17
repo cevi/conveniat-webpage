@@ -1,12 +1,13 @@
 import { SetDynamicPageTitle } from '@/components/header/set-dynamic-app-title';
+import { ShiftsComponent } from '@/features/schedule/components/shifts-component';
 import type { StaticTranslationString } from '@/types/types';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import type React from 'react';
 
-const helperShiftsFeatureTranslation: StaticTranslationString = {
+const pageTitle: StaticTranslationString = {
   en: 'Helper Shifts',
   de: 'Schichteinsätze',
-  fr: "Postes d'aide",
+  fr: 'Services de helpers',
 };
 
 const HelperPortalPage: React.FC = async () => {
@@ -14,7 +15,8 @@ const HelperPortalPage: React.FC = async () => {
 
   return (
     <>
-      <SetDynamicPageTitle newTitle={helperShiftsFeatureTranslation[locale]} />
+      <SetDynamicPageTitle newTitle={pageTitle[locale]} />
+      <ShiftsComponent locale={locale} />
     </>
   );
 };
