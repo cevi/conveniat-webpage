@@ -63,7 +63,7 @@ export const scheduleRouter = createTRPCRouter({
     const isEnrolled = user
       ? enrollments.some((enrollment_) => enrollment_.userId === user.uuid)
       : false;
-    const organisers = course.organiser as PayloadUser[];
+    const organisers = (course.organiser ?? []) as PayloadUser[];
     const isAdmin = user ? organisers.some((o) => o.id === user.uuid) : false;
 
     // Check if a group chat exists for this course
@@ -165,7 +165,7 @@ export const scheduleRouter = createTRPCRouter({
         const isEnrolled = user
           ? enrollments.some((enrollment_) => enrollment_.userId === user.uuid)
           : false;
-        const organisers = course.organiser as PayloadUser[];
+        const organisers = (course.organiser ?? []) as PayloadUser[];
         const isAdmin = user ? organisers.some((o) => o.id === user.uuid) : false;
 
         result[courseId] = {
@@ -362,6 +362,7 @@ export const scheduleRouter = createTRPCRouter({
       z.object({
         fromCourseId: z.string(),
         toCourseId: z.string(),
+        fromCourseType: z.enum(['workshop', 'shift']).optional().default('workshop'),
       }),
     )
     .use(ensureUserExistsMiddleware)
@@ -369,14 +370,14 @@ export const scheduleRouter = createTRPCRouter({
     .mutation(async ({ input, ctx }) => {
       const { user, prisma } = ctx;
 
-      const { fromCourseId, toCourseId } = input;
+      const { fromCourseId, toCourseId, fromCourseType } = input;
 
       const payload = await getPayload({ config });
 
       // Fetch both courses with depth: 0 for consistent organizer ID checking
       const [fromCourse, toCourse] = await Promise.all([
         payload.findByID({
-          collection: 'camp-schedule-entry',
+          collection: fromCourseType === 'shift' ? 'helper-shifts' : 'camp-schedule-entry',
           id: fromCourseId,
           depth: 0,
         }),
@@ -388,7 +389,10 @@ export const scheduleRouter = createTRPCRouter({
       ]);
 
       // Check if user is an organizer of each course
-      const fromOrganisers = (fromCourse.organiser ?? []) as string[];
+      const fromOrganisers =
+        fromCourseType === 'workshop' && 'organiser' in fromCourse
+          ? ((fromCourse.organiser ?? []) as string[])
+          : [];
       const toOrganisers = (toCourse.organiser ?? []) as string[];
       const isFromOrganiser = fromOrganisers.includes(user.uuid);
       const isToOrganiser = toOrganisers.includes(user.uuid);
@@ -684,7 +688,7 @@ export const scheduleRouter = createTRPCRouter({
         depth: 0,
       });
 
-      const organisers = course.organiser as string[];
+      const organisers = (course.organiser ?? []) as string[];
       if (!organisers.includes(user.uuid)) {
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Only organisers can update details.' });
       }
@@ -735,7 +739,7 @@ export const scheduleRouter = createTRPCRouter({
         depth: 0,
       });
 
-      const organisers = course.organiser as string[];
+      const organisers = (course.organiser ?? []) as string[];
       if (!organisers.includes(user.uuid)) {
         throw new TRPCError({
           code: 'FORBIDDEN',
