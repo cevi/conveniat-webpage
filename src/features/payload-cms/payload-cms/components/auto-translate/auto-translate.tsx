@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@/utils/tailwindcss-override';
-import { useConfig, useDocumentInfo, useLocale } from '@payloadcms/ui';
+import { Button, useConfig, useDocumentInfo, useLocale } from '@payloadcms/ui';
 import {
   Close as DialogClose,
   Content as DialogContent,
@@ -9,9 +9,8 @@ import {
   Portal as DialogPortal,
   Root as DialogRoot,
   Title as DialogTitle,
-  Trigger as DialogTrigger,
 } from '@radix-ui/react-dialog';
-import { Languages } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 
@@ -20,6 +19,12 @@ const LOCALES = [
   { code: 'de', label: 'Deutsch' },
   { code: 'fr', label: 'Français' },
 ];
+
+const autoTranslateActionString: Record<string, string> = {
+  en: 'Auto-translate',
+  de: 'Übersetzen lassen',
+  fr: 'Traduction auto',
+};
 
 const AutoTranslate: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
@@ -83,24 +88,25 @@ const AutoTranslate: React.FC = () => {
 
   return (
     <DialogRoot open={modalOpen} onOpenChange={setModalOpen}>
-      <DialogTrigger asChild>
-        <button
-          type="button"
-          className={cn(
-            'btn btn--style-secondary btn--size-small',
-            'inline-flex h-8 cursor-pointer items-center gap-x-[0.4rem] px-[10px] py-[4px]',
-            'rounded-[4px] border border-(--theme-elevation-200) bg-(--theme-elevation-100) text-(--theme-text)',
-            'text-[13px]',
-          )}
-          title={`Inhalt automatisch nach ${currentLocaleName} übersetzen`}
+      <span title={`Inhalt automatisch nach ${currentLocaleName} übersetzen`}>
+        <Button
+          buttonStyle="transparent"
+          className="inline-flex cursor-pointer items-center gap-x-[0.4rem] border border-(--theme-elevation-100) hover:border-(--theme-elevation-500)! hover:bg-(--theme-elevation-100)!"
+          size="medium"
+          onClick={(event) => {
+            event.preventDefault();
+            setModalOpen(true);
+          }}
         >
-          <Languages className="size-4" />
-          <span>Auto-translate</span>
-        </button>
-      </DialogTrigger>
+          <Sparkles className="mr-2 h-4 w-4" />
+          <span className="truncate">
+            {autoTranslateActionString[targetLanguage] ?? autoTranslateActionString['en']}
+          </span>
+        </Button>
+      </span>
       <DialogPortal>
         <DialogOverlay className="fixed inset-0 z-9999 bg-black/50" />
-        <DialogContent className="fixed top-1/2 left-1/2 z-10000 max-w-[500px] min-w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-lg border border-(--theme-elevation-150) bg-[var(--theme-elevation-50)] p-8 text-[var(--theme-text)] shadow-[0_10px_30px_rgba(0,0,0,0.2)]">
+        <DialogContent className="fixed top-1/2 left-1/2 z-10000 max-w-[500px] min-w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-lg border border-(--theme-elevation-150) bg-(--theme-elevation-50) p-8 text-(--theme-text) shadow-[0_10px_30px_rgba(0,0,0,0.2)]">
           <DialogTitle className="mb-4 text-xl font-semibold">Automatische Übersetzung</DialogTitle>
 
           <div className="mb-4">
