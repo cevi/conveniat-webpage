@@ -1,10 +1,11 @@
 import React from 'react';
 
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { PublishingStatusType } from '@/features/payload-cms/payload-cms/components/multi-lang-publishing/type';
 import { cva } from 'class-variance-authority';
 
 export const languageStatusClasses = cva(
-  'text-sm font-medium me-2 px-2.5 py-0.5 rounded-sm relative group',
+  'text-sm font-medium me-2 px-2.5 py-0.5 rounded-sm relative group cursor-default select-none',
   {
     variants: {
       pendingChanges: {
@@ -50,12 +51,16 @@ export const LanguageStatus: React.FC<{
     tooltip = 'Published and up to date';
   }
   return (
-    <span className={languageStatusClasses({ published, pendingChanges })}>
-      {label}
-      <span className="absolute bottom-full left-1/2 mb-1 w-max -translate-x-1/2 transform rounded-sm bg-gray-700 px-2 py-1 text-xs text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-        {tooltip}
-      </span>
-    </span>
+    <TooltipProvider>
+      <Tooltip delayDuration={200}>
+        <TooltipTrigger asChild>
+          <span className={languageStatusClasses({ published, pendingChanges })}>{label}</span>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="rounded-sm bg-gray-700 px-2 py-1 text-xs text-white">
+          {tooltip}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 };
 

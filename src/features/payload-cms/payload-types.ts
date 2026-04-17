@@ -72,8 +72,11 @@ export interface Config {
     'form-submissions': FormSubmission;
     'search-collection': SearchCollection;
     go: Go;
+    exports: Export;
+    imports: Import;
     'payload-kv': PayloadKv;
     'payload-jobs': PayloadJob;
+    'payload-folders': FolderInterface;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
@@ -87,6 +90,9 @@ export interface Config {
     };
     forms: {
       submissions: 'form-submissions';
+    };
+    'payload-folders': {
+      documentsAndFolders: 'payload-folders' | 'documents';
     };
   };
   collectionsSelect: {
@@ -112,8 +118,11 @@ export interface Config {
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     'search-collection': SearchCollectionSelect<false> | SearchCollectionSelect<true>;
     go: GoSelect<false> | GoSelect<true>;
+    exports: ExportsSelect<false> | ExportsSelect<true>;
+    imports: ImportsSelect<false> | ImportsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-jobs': PayloadJobsSelect<false> | PayloadJobsSelect<true>;
+    'payload-folders': PayloadFoldersSelect<false> | PayloadFoldersSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
@@ -167,6 +176,9 @@ export interface Config {
       confirmationMessage: TaskConfirmationMessage;
       fetchSmtpBounces: TaskFetchSmtpBounces;
       checkHitobitoApprovals: TaskCheckHitobitoApprovals;
+      generatePdfThumbnail: TaskGeneratePdfThumbnail;
+      createCollectionExport: TaskCreateCollectionExport;
+      createCollectionImport: TaskCreateCollectionImport;
       inline: {
         input: unknown;
         output: unknown;
@@ -446,7 +458,7 @@ export interface LocalizedPublishingStatus {
   [k: string]: unknown;
 }
 /**
- * Represents a Hitobito user. These information get automatically synced whenever the user logs in.
+ * Represents a user. Data gets automatically synced from Hitobito whenever the user logs in. Users can also be created manually or imported via CSV.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users".
@@ -454,13 +466,16 @@ export interface LocalizedPublishingStatus {
 export interface User {
   id: string;
   /**
-   * The ID of the user in the CeviDB.
+   * The ID of the user in the CeviDB. Set automatically when the user logs in via Hitobito. Leave empty for manually created users.
    */
-  cevi_db_uuid: number;
+  cevi_db_uuid?: number | null;
   /**
    * Whether the user has access to the admin panel. This is set automatically based on the user groups.
    */
   adminPanelAccess?: boolean | null;
+  /**
+   * The email address of the user. Used for matching when the user logs in via Hitobito.
+   */
   email: string;
   /**
    * The full name of the user, as it will be displayed publicly.
@@ -470,7 +485,7 @@ export interface User {
    * The Ceviname of the user.
    */
   nickname?: string | null;
-  groups: GroupsOfTheUser;
+  groups?: GroupsOfTheUser;
   /**
    * The Hof of the user.
    */
@@ -515,6 +530,10 @@ export interface Image {
    * Optional text to display below the image (e.g. image source, copyright information, explanatory text) (fr)
    */
   imageCaption_fr?: string | null;
+  /**
+   * Indicates if this image was generated as a PDF thumbnail.
+   */
+  isPdfThumbnail?: boolean | null;
   lastEditedByUser?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
@@ -1364,8 +1383,14 @@ export interface SwisstopoMapEmbedding {
  */
 export interface Document {
   id: string;
+  /**
+   * Example: for the newsletter
+   */
+  internalDescription?: string | null;
+  pdfThumbnailUrl?: string | null;
   permissions?: (string | null) | Permission;
   lastEditedByUser?: (string | null) | User;
+  folder?: (string | null) | FolderInterface;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -1377,6 +1402,32 @@ export interface Document {
   height?: number | null;
   focalX?: number | null;
   focalY?: number | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-folders".
+ */
+export interface FolderInterface {
+  id: string;
+  name: string;
+  folder?: (string | null) | FolderInterface;
+  documentsAndFolders?: {
+    docs?: (
+      | {
+          relationTo?: 'payload-folders';
+          value: string | FolderInterface;
+        }
+      | {
+          relationTo?: 'documents';
+          value: string | Document;
+        }
+    )[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  folderType?: 'documents'[] | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2980,6 +3031,81 @@ export interface Go {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "exports".
+ */
+export interface Export {
+  id: string;
+  name?: string | null;
+  format: 'csv' | 'json';
+  limit?: number | null;
+  page?: number | null;
+  sort?: string | null;
+  sortOrder?: ('asc' | 'desc') | null;
+  locale?: ('all' | 'en' | 'de' | 'fr') | null;
+  drafts?: ('yes' | 'no') | null;
+  selectionToUse?: ('currentSelection' | 'currentFilters' | 'all') | null;
+  fields?: string[] | null;
+  collectionSlug: string;
+  where?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "imports".
+ */
+export interface Import {
+  id: string;
+  collectionSlug: string;
+  importMode?: ('create' | 'update' | 'upsert') | null;
+  matchField?: string | null;
+  status?: ('pending' | 'completed' | 'partial' | 'failed') | null;
+  summary?: {
+    imported?: number | null;
+    updated?: number | null;
+    total?: number | null;
+    issues?: number | null;
+    issueDetails?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -3057,7 +3183,10 @@ export interface PayloadJob {
           | 'ensureEventMembership'
           | 'confirmationMessage'
           | 'fetchSmtpBounces'
-          | 'checkHitobitoApprovals';
+          | 'checkHitobitoApprovals'
+          | 'generatePdfThumbnail'
+          | 'createCollectionExport'
+          | 'createCollectionImport';
         taskID: string;
         input?:
           | {
@@ -3103,6 +3232,9 @@ export interface PayloadJob {
         | 'confirmationMessage'
         | 'fetchSmtpBounces'
         | 'checkHitobitoApprovals'
+        | 'generatePdfThumbnail'
+        | 'createCollectionExport'
+        | 'createCollectionImport'
       )
     | null;
   queue?: string | null;
@@ -3214,6 +3346,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'go';
         value: string | Go;
+      } | null)
+    | ({
+        relationTo: 'payload-folders';
+        value: string | FolderInterface;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -4221,6 +4357,7 @@ export interface ImagesSelect<T extends boolean = true> {
   imageCaption_de?: T;
   imageCaption_en?: T;
   imageCaption_fr?: T;
+  isPdfThumbnail?: T;
   lastEditedByUser?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -4309,8 +4446,11 @@ export interface UserSubmittedImagesSelect<T extends boolean = true> {
  * via the `definition` "documents_select".
  */
 export interface DocumentsSelect<T extends boolean = true> {
+  internalDescription?: T;
+  pdfThumbnailUrl?: T;
   permissions?: T;
   lastEditedByUser?: T;
+  folder?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -4880,6 +5020,65 @@ export interface GoSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "exports_select".
+ */
+export interface ExportsSelect<T extends boolean = true> {
+  name?: T;
+  format?: T;
+  limit?: T;
+  page?: T;
+  sort?: T;
+  sortOrder?: T;
+  locale?: T;
+  drafts?: T;
+  selectionToUse?: T;
+  fields?: T;
+  collectionSlug?: T;
+  where?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "imports_select".
+ */
+export interface ImportsSelect<T extends boolean = true> {
+  collectionSlug?: T;
+  importMode?: T;
+  matchField?: T;
+  status?: T;
+  summary?:
+    | T
+    | {
+        imported?: T;
+        updated?: T;
+        total?: T;
+        issues?: T;
+        issueDetails?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv_select".
  */
 export interface PayloadKvSelect<T extends boolean = true> {
@@ -4916,6 +5115,18 @@ export interface PayloadJobsSelect<T extends boolean = true> {
   waitUntil?: T;
   processing?: T;
   meta?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-folders_select".
+ */
+export interface PayloadFoldersSelect<T extends boolean = true> {
+  name?: T;
+  folder?: T;
+  documentsAndFolders?: T;
+  folderType?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -5694,6 +5905,93 @@ export interface TaskFetchSmtpBounces {
  */
 export interface TaskCheckHitobitoApprovals {
   input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskGeneratePdfThumbnail".
+ */
+export interface TaskGeneratePdfThumbnail {
+  input: {
+    documentId: string;
+  };
+  output: {
+    success?: boolean | null;
+    imageId?: string | null;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskCreateCollectionExport".
+ */
+export interface TaskCreateCollectionExport {
+  input: {
+    id: string;
+    name: string;
+    batchSize?: number | null;
+    collectionSlug:
+      | 'blog'
+      | 'generic-page'
+      | 'timeline'
+      | 'camp-map-annotations'
+      | 'camp-categories'
+      | 'camp-schedule-entry'
+      | 'helper-jobs'
+      | 'images'
+      | 'userSubmittedImages'
+      | 'documents'
+      | 'users'
+      | 'permissions'
+      | 'push-notification-subscriptions'
+      | 'timelineCategory'
+      | 'chat-images'
+      | 'blocked-jobs'
+      | 'smtp-bounce-mail-tracking'
+      | 'outgoing-emails'
+      | 'forms'
+      | 'form-submissions'
+      | 'search-collection'
+      | 'go'
+      | 'exports'
+      | 'imports';
+    drafts?: ('yes' | 'no') | null;
+    exportCollection: string;
+    fields?: string[] | null;
+    format: 'csv' | 'json';
+    limit?: number | null;
+    locale?: string | null;
+    maxLimit?: number | null;
+    page?: number | null;
+    sort?: string | null;
+    userCollection?: string | null;
+    userID?: string | null;
+    where?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+  };
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskCreateCollectionImport".
+ */
+export interface TaskCreateCollectionImport {
+  input: {
+    importId: string;
+    importCollection: string;
+    userID?: string | null;
+    userCollection?: string | null;
+    batchSize?: number | null;
+    debug?: boolean | null;
+    defaultVersionStatus?: ('draft' | 'published') | null;
+    maxLimit?: number | null;
+  };
   output?: unknown;
 }
 /**

@@ -3,11 +3,13 @@ import { buildSecureConfig } from '@/features/payload-cms/payload-cms/access-rul
 import { collectionsConfig } from '@/features/payload-cms/payload-cms/collections';
 import { UserCollection } from '@/features/payload-cms/payload-cms/collections/user-collection';
 import { emailSettings } from '@/features/payload-cms/payload-cms/email-settings';
+import { autoTranslateHandler } from '@/features/payload-cms/payload-cms/endpoints/auto-translate';
 import { dropRouteInfo } from '@/features/payload-cms/payload-cms/global-routes';
 import { globalConfig } from '@/features/payload-cms/payload-cms/globals';
 import { onPayloadInit } from '@/features/payload-cms/payload-cms/initialization';
 import { LOCALE, locales } from '@/features/payload-cms/payload-cms/locales';
 import { formPluginConfiguration } from '@/features/payload-cms/payload-cms/plugins/form/form-plugin-configuration';
+import { importExportConfiguration } from '@/features/payload-cms/payload-cms/plugins/import-export-plugin-configuration';
 import { lexicalEditor } from '@/features/payload-cms/payload-cms/plugins/lexical-editor';
 import { redirectsPluginConfiguration } from '@/features/payload-cms/payload-cms/plugins/redirects/redirects-plugin-configuration';
 import { s3StorageConfiguration } from '@/features/payload-cms/payload-cms/plugins/s3-storage-plugin-configuration';
@@ -15,6 +17,7 @@ import { searchPluginConfiguration } from '@/features/payload-cms/payload-cms/pl
 import { checkHitobitoApprovalsTask } from '@/features/payload-cms/payload-cms/tasks/check-hitobito-approvals';
 import { DEFAULT_QUEUE } from '@/features/payload-cms/payload-cms/tasks/cleanup-stale-jobs';
 import { fetchSmtpBouncesTask } from '@/features/payload-cms/payload-cms/tasks/fetch-smtp-bounces';
+import { generatePdfThumbnailTask } from '@/features/payload-cms/payload-cms/tasks/generate-pdf-thumbnail';
 import { smartphoneBreakpoints } from '@/features/payload-cms/utils/smartphone-breakpoints';
 import { registrationWorkflow } from '@/features/registration_process/workflows/registration-workflow';
 import { blockJobStep } from '@/features/registration_process/workflows/steps/block-job';
@@ -140,6 +143,7 @@ const jobsConfig: JobsConfig = {
     confirmationMessageStep,
     fetchSmtpBouncesTask,
     checkHitobitoApprovalsTask,
+    generatePdfThumbnailTask,
   ],
   workflows: [registrationWorkflow, brevoContactWorkflow],
   autoRun: env.FEATURE_ENABLE_WORKFLOWS
@@ -159,11 +163,22 @@ const jobsConfig: JobsConfig = {
 };
 
 export const payloadConfig: RoutableConfig = {
+  serverURL: env.APP_HOST_URL,
   onInit: onPayloadInit,
   admin: payloadConfigAdminSettings,
+  endpoints: [
+    {
+      path: '/auto-translate',
+      method: 'post',
+      handler: autoTranslateHandler,
+    },
+  ],
   collections: collectionsConfig,
   editor: lexicalEditor,
   globals: globalConfig,
+  upload: {
+    uploadTimeout: 300_000,
+  },
   localization: {
     locales,
     defaultLocale: LOCALE.DE,
@@ -189,6 +204,7 @@ export const payloadConfig: RoutableConfig = {
     s3StorageConfiguration,
     searchPluginConfiguration,
     redirectsPluginConfiguration,
+    importExportConfiguration,
   ],
   jobs: jobsConfig,
   i18n: {

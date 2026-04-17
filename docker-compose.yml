@@ -12,11 +12,10 @@ services:
     volumes:
       - .:/home/node/app
       - next-cache:/home/node/app/.next
-      - node-cache:/nodecache
       - node_modules:/home/node/app/node_modules
     working_dir: /home/node/app/
     command: >
-      sh -c "export PRISMA_OUTPUT='src/lib/prisma/client/' && npx prisma generate --no-hints && npx prisma db push --accept-data-loss && npx prisma studio --browser none & corepack enable pnpm && pnpm i --frozen-lockfile && sh /home/node/app/create_build_info.sh && pnpm dev-next"
+      sh -c "export PRISMA_OUTPUT='src/lib/prisma/client/' && rm -rf .next/* /nodecache/* && npx prisma generate --no-hints && npx prisma db push --accept-data-loss && npx prisma studio --browser none & corepack enable pnpm && pnpm i --frozen-lockfile && sh /home/node/app/create_build_info.sh && pnpm dev-next"
     dns:
       - 8.8.8.8
       - 1.1.1.1
@@ -29,7 +28,6 @@ services:
     env_file:
       - .env
     environment:
-      - NODE_COMPILE_CACHE=/nodecache # see https://nodejs.org/en/blog/release/v22.1.0
       - NEXT_PUBLIC_DISABLE_SERWIST=true
       - CI=true
 

@@ -31,9 +31,15 @@ import { default as default_b8a91c281781c959c4c68385023a0bcf } from '@/features/
 import { default as default_bfb7b08888889fc5b15d089d71fdfbc6 } from '@/features/payload-cms/payload-cms/components/multi-lang-publishing/publishing-status-client'
 import { default as default_a4ebed491f9244748218c109a1d489e3 } from '@/features/payload-cms/payload-cms/components/qr-code/qr-code'
 import { default as default_5c23d4f2c41ff08443297cc41aafe3d1 } from '@/features/payload-cms/payload-cms/components/live-preview-restorer'
+import { default as default_a13782f3ac0bcff5be1ba175a38107f2 } from '@/features/payload-cms/payload-cms/components/auto-translate/auto-translate'
 import { default as default_ad2ab9e4ee1f1c863c85f67238030f8f } from '@/features/payload-cms/payload-cms/components/multi-lang-publishing/publish-localized'
 import { default as default_5e6e3bcc43a18e826de12d19a3b1de10 } from '@/features/payload-cms/payload-cms/components/fields/icon-select-field'
 import { default as default_4c4fde438445a819805cfbe983551661 } from '@/features/payload-cms/payload-cms/shared-fields/map-polygon/map-polygon-field'
+import { default as default_1e95e18ff98032b69bda4bd8327a52ac } from '@/features/payload-cms/payload-cms/components/pdf-report-generator-ui'
+import { FolderTableCell as FolderTableCell_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
+import { FolderField as FolderField_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
+import { ExportListMenuItem as ExportListMenuItem_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
+import { ImportListMenuItem as ImportListMenuItem_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
 import { default as default_c9f917d9608a57eb8358fce7a7898bd3 } from '@/features/payload-cms/payload-cms/components/push-notification/push-notification'
 import { default as default_7d02a833b9164544e9c8d7653b246eb7 } from '@/features/payload-cms/components/push-notification/push-notification-history.tsx'
 import { default as default_30bb34ba732976b67b42694b834628a5 } from '@/features/payload-cms/payload-cms/components/email-preview/email-preview-field'
@@ -51,6 +57,20 @@ import { default as default_6f32ab4bbcf6fb111c3fe87675a4a1c3 } from '@/features/
 import { default as default_c671a40aa094e16dd185957e6f1a1b99 } from '@/features/payload-cms/payload-cms/components/workflow-results/workflow-results-field'
 import { LinkToDoc as LinkToDoc_aead06e4cbf6b2620c5c51c9ab283634 } from '@payloadcms/plugin-search/client'
 import { ReindexButton as ReindexButton_aead06e4cbf6b2620c5c51c9ab283634 } from '@payloadcms/plugin-search/client'
+import { FormatField as FormatField_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
+import { LimitField as LimitField_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
+import { Page as Page_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
+import { SortBy as SortBy_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
+import { SortOrder as SortOrder_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
+import { LocaleField as LocaleField_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
+import { SelectionToUseField as SelectionToUseField_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
+import { FieldsToExport as FieldsToExport_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
+import { CollectionField as CollectionField_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
+import { ExportPreview as ExportPreview_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
+import { ExportSaveButton as ExportSaveButton_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
+import { ImportPreview as ImportPreview_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
+import { ImportSaveButton as ImportSaveButton_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
+import { FolderTypeField as FolderTypeField_2b8867833a34864a02ddf429b0728a40 } from '@payloadcms/next/client'
 import { MainEntryRowLabel as MainEntryRowLabel_576220226adef27d36922a63f8de9abd } from '@/features/payload-cms/payload-cms/components/main-menu-row-label'
 import { default as default_72094444c4748ea6819cf00010baebe6 } from '@/features/payload-cms/payload-cms/components/alert-settings-key-component'
 import { FeatureFlagToggle as FeatureFlagToggle_970a7ebdf4155aada53759bd86956a49 } from '@/features/payload-cms/payload-cms/components/fields/feature-flag-toggle'
@@ -63,6 +83,7 @@ import { ConveniatLogo as ConveniatLogo_1dcd95bfbb6787f73675c94df91c942d } from 
 import { default as default_d432a7de1921f0e10a01eefbe71b022a } from '@/features/payload-cms/payload-cms/components/login-page/admin-panel-login-page'
 import { default as default_a79319ae20aa3b9aa7415044aaf68603 } from '@/features/payload-cms/payload-cms/components/dashboard-welcome-banner'
 import { S3ClientUploadHandler as S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24 } from '@payloadcms/storage-s3/client'
+import { ImportExportProvider as ImportExportProvider_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
 import { default as default_e7ca4c1ba39ad98f5b6b68aa103e80ee } from '@/features/payload-cms/payload-cms/widgets/emergency-widget'
 import { default as default_264aa1452821b700131c9a40a3b93a91 } from '@/features/payload-cms/payload-cms/widgets/user-count-widget'
 import { default as default_ff22a191d3f87d6a73e8d33d6e422fd0 } from '@/features/payload-cms/payload-cms/widgets/email-stats-widget'
@@ -102,9 +123,15 @@ export const importMap = {
   "@/features/payload-cms/payload-cms/components/multi-lang-publishing/publishing-status-client#default": default_bfb7b08888889fc5b15d089d71fdfbc6,
   "@/features/payload-cms/payload-cms/components/qr-code/qr-code#default": default_a4ebed491f9244748218c109a1d489e3,
   "@/features/payload-cms/payload-cms/components/live-preview-restorer#default": default_5c23d4f2c41ff08443297cc41aafe3d1,
+  "@/features/payload-cms/payload-cms/components/auto-translate/auto-translate#default": default_a13782f3ac0bcff5be1ba175a38107f2,
   "@/features/payload-cms/payload-cms/components/multi-lang-publishing/publish-localized#default": default_ad2ab9e4ee1f1c863c85f67238030f8f,
   "@/features/payload-cms/payload-cms/components/fields/icon-select-field#default": default_5e6e3bcc43a18e826de12d19a3b1de10,
   "@/features/payload-cms/payload-cms/shared-fields/map-polygon/map-polygon-field#default": default_4c4fde438445a819805cfbe983551661,
+  "@/features/payload-cms/payload-cms/components/pdf-report-generator-ui#default": default_1e95e18ff98032b69bda4bd8327a52ac,
+  "@payloadcms/next/rsc#FolderTableCell": FolderTableCell_f9c02e79a4aed9a3924487c0cd4cafb1,
+  "@payloadcms/next/rsc#FolderField": FolderField_f9c02e79a4aed9a3924487c0cd4cafb1,
+  "@payloadcms/plugin-import-export/rsc#ExportListMenuItem": ExportListMenuItem_cdf7e044479f899a31f804427d568b36,
+  "@payloadcms/plugin-import-export/rsc#ImportListMenuItem": ImportListMenuItem_cdf7e044479f899a31f804427d568b36,
   "@/features/payload-cms/payload-cms/components/push-notification/push-notification#default": default_c9f917d9608a57eb8358fce7a7898bd3,
   "@/features/payload-cms/components/push-notification/push-notification-history.tsx#default": default_7d02a833b9164544e9c8d7653b246eb7,
   "@/features/payload-cms/payload-cms/components/email-preview/email-preview-field#default": default_30bb34ba732976b67b42694b834628a5,
@@ -122,6 +149,20 @@ export const importMap = {
   "@/features/payload-cms/payload-cms/components/workflow-results/workflow-results-field#default": default_c671a40aa094e16dd185957e6f1a1b99,
   "@payloadcms/plugin-search/client#LinkToDoc": LinkToDoc_aead06e4cbf6b2620c5c51c9ab283634,
   "@payloadcms/plugin-search/client#ReindexButton": ReindexButton_aead06e4cbf6b2620c5c51c9ab283634,
+  "@payloadcms/plugin-import-export/rsc#FormatField": FormatField_cdf7e044479f899a31f804427d568b36,
+  "@payloadcms/plugin-import-export/rsc#LimitField": LimitField_cdf7e044479f899a31f804427d568b36,
+  "@payloadcms/plugin-import-export/rsc#Page": Page_cdf7e044479f899a31f804427d568b36,
+  "@payloadcms/plugin-import-export/rsc#SortBy": SortBy_cdf7e044479f899a31f804427d568b36,
+  "@payloadcms/plugin-import-export/rsc#SortOrder": SortOrder_cdf7e044479f899a31f804427d568b36,
+  "@payloadcms/plugin-import-export/rsc#LocaleField": LocaleField_cdf7e044479f899a31f804427d568b36,
+  "@payloadcms/plugin-import-export/rsc#SelectionToUseField": SelectionToUseField_cdf7e044479f899a31f804427d568b36,
+  "@payloadcms/plugin-import-export/rsc#FieldsToExport": FieldsToExport_cdf7e044479f899a31f804427d568b36,
+  "@payloadcms/plugin-import-export/rsc#CollectionField": CollectionField_cdf7e044479f899a31f804427d568b36,
+  "@payloadcms/plugin-import-export/rsc#ExportPreview": ExportPreview_cdf7e044479f899a31f804427d568b36,
+  "@payloadcms/plugin-import-export/rsc#ExportSaveButton": ExportSaveButton_cdf7e044479f899a31f804427d568b36,
+  "@payloadcms/plugin-import-export/rsc#ImportPreview": ImportPreview_cdf7e044479f899a31f804427d568b36,
+  "@payloadcms/plugin-import-export/rsc#ImportSaveButton": ImportSaveButton_cdf7e044479f899a31f804427d568b36,
+  "@payloadcms/next/client#FolderTypeField": FolderTypeField_2b8867833a34864a02ddf429b0728a40,
   "@/features/payload-cms/payload-cms/components/main-menu-row-label#MainEntryRowLabel": MainEntryRowLabel_576220226adef27d36922a63f8de9abd,
   "@/features/payload-cms/payload-cms/components/alert-settings-key-component#default": default_72094444c4748ea6819cf00010baebe6,
   "@/features/payload-cms/payload-cms/components/fields/feature-flag-toggle#FeatureFlagToggle": FeatureFlagToggle_970a7ebdf4155aada53759bd86956a49,
@@ -134,6 +175,7 @@ export const importMap = {
   "@/features/payload-cms/payload-cms/components/login-page/admin-panel-login-page#default": default_d432a7de1921f0e10a01eefbe71b022a,
   "@/features/payload-cms/payload-cms/components/dashboard-welcome-banner#default": default_a79319ae20aa3b9aa7415044aaf68603,
   "@payloadcms/storage-s3/client#S3ClientUploadHandler": S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24,
+  "@payloadcms/plugin-import-export/rsc#ImportExportProvider": ImportExportProvider_cdf7e044479f899a31f804427d568b36,
   "@/features/payload-cms/payload-cms/widgets/emergency-widget#default": default_e7ca4c1ba39ad98f5b6b68aa103e80ee,
   "@/features/payload-cms/payload-cms/widgets/user-count-widget#default": default_264aa1452821b700131c9a40a3b93a91,
   "@/features/payload-cms/payload-cms/widgets/email-stats-widget#default": default_ff22a191d3f87d6a73e8d33d6e422fd0,

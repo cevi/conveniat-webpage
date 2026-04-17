@@ -10,7 +10,15 @@ export const filterOptionsOnlyPublished: ({
     const { payload, locale } = req;
 
     if (
-      ['images', 'documents', 'camp-map-annotations', 'camp-schedule-entry'].includes(relationTo)
+      [
+        'images',
+        'documents',
+        'camp-map-annotations',
+        'camp-schedule-entry',
+        'forms',
+        'users',
+        'permissions',
+      ].includes(relationTo)
     ) {
       // these collections do not have localized status
       return {};
@@ -21,7 +29,8 @@ export const filterOptionsOnlyPublished: ({
         collection: relationTo,
         draft: false,
         locale: locale as Locale,
-        limit: 20,
+        limit: 10_000,
+        pagination: false,
         where: {
           _localized_status: {
             equals: {

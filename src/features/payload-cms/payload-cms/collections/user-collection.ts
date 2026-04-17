@@ -5,15 +5,9 @@ import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared
 import type { User } from '@/features/payload-cms/payload-types';
 import prisma from '@/lib/db/prisma';
 import { getAuthenticateUsingCeviDB } from '@/utils/auth-helpers';
-import type { BaseListFilter, CollectionConfig } from 'payload';
+import type { CollectionConfig } from 'payload';
 
 const GROUPS_WITH_API_ACCESS = new Set(environmentVariables.GROUPS_WITH_API_ACCESS);
-
-const baseListFilter: BaseListFilter = () => ({
-  'groups.id': {
-    in: [...GROUPS_WITH_API_ACCESS],
-  },
-});
 
 const syncUserToPostgres: NonNullable<
   NonNullable<CollectionConfig['hooks']>['afterChange']
@@ -63,21 +57,20 @@ export const UserCollection: CollectionConfig = {
 
   access: {
     admin: canAccessAdminPanel,
-    create: () => false,
-    delete: () => false,
-    update: () => false,
+    create: canAccessAdminPanel,
+    delete: canAccessAdminPanel,
+    update: canAccessAdminPanel,
   },
   admin: {
     description:
-      'Represents a Hitobito user. These information get automatically synced whenever the user logs in.',
+      'Represents a user. Data gets automatically synced from Hitobito whenever the user logs in. Users can also be created manually or imported via CSV.',
     useAsTitle: 'email',
     group: AdminPanelDashboardGroups.InternalCollections,
     groupBy: true,
     /** this is broken with our localized versions */
     disableCopyToLocale: true,
-    defaultColumns: ['nickname', 'fullName', 'adminPanelAccess'],
+    defaultColumns: ['nickname', 'fullName', 'email', 'adminPanelAccess'],
     listSearchableFields: ['nickname', 'fullName', 'email'],
-    baseListFilter,
   },
   auth: {
     disableLocalStrategy: true,
@@ -94,10 +87,10 @@ export const UserCollection: CollectionConfig = {
       name: 'cevi_db_uuid',
       label: 'UserID inside CeviDB',
       type: 'number',
-      required: true,
+      required: false,
       admin: {
-        readOnly: true,
-        description: 'The ID of the user in the CeviDB.',
+        description:
+          'The ID of the user in the CeviDB. Set automatically when the user logs in via Hitobito. Leave empty for manually created users.',
       },
       unique: true,
     },
@@ -116,7 +109,9 @@ export const UserCollection: CollectionConfig = {
         afterRead: [
           ({ data }): boolean => {
             if (!data) return false;
-            return (data as User).groups.some((group) => GROUPS_WITH_API_ACCESS.has(group.id));
+            const groups = (data as User).groups;
+            if (!Array.isArray(groups)) return false;
+            return groups.some((group) => GROUPS_WITH_API_ACCESS.has(group.id));
           },
         ],
       },
@@ -127,7 +122,8 @@ export const UserCollection: CollectionConfig = {
       type: 'email',
       required: true,
       admin: {
-        readOnly: true,
+        description:
+          'The email address of the user. Used for matching when the user logs in via Hitobito.',
       },
       unique: true,
     },
@@ -137,7 +133,6 @@ export const UserCollection: CollectionConfig = {
       type: 'text',
       required: true,
       admin: {
-        readOnly: true,
         description: 'The full name of the user, as it will be displayed publicly.',
       },
     },
@@ -147,7 +142,6 @@ export const UserCollection: CollectionConfig = {
       type: 'text',
       required: false,
       admin: {
-        readOnly: true,
         description: 'The Ceviname of the user.',
       },
     },
@@ -155,10 +149,10 @@ export const UserCollection: CollectionConfig = {
       name: 'groups',
       label: 'Groups of the User',
       type: 'json',
-      required: true,
+      required: false,
+      defaultValue: [],
       admin: {
-        readOnly: true,
-        description: 'The groups the user is in.',
+        description: 'The groups the user is in. Updated automatically from Hitobito on login.',
       },
       jsonSchema: {
         schema: {

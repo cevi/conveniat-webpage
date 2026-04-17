@@ -3,11 +3,23 @@ import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/ad
 import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared-fields/last-edited-by-user-field';
 import { permissionsField } from '@/features/payload-cms/payload-cms/shared-fields/permissions-field';
 import { flushPageCacheOnChange } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
-import type { CollectionConfig } from 'payload';
+import type { Document } from '@/features/payload-cms/payload-types';
+import type { CollectionAfterChangeHook, CollectionConfig } from 'payload';
+
+const schedulePdfThumbnail: CollectionAfterChangeHook<Document> = async ({ doc, req }) => {
+  if (doc.mimeType === 'application/pdf' && req.context['skipPdfThumbnail'] !== true) {
+    await req.payload.jobs.queue({
+      task: 'generatePdfThumbnail',
+      input: { documentId: String(doc.id) },
+    });
+  }
+  return doc;
+};
 
 export const DocumentsCollection: CollectionConfig = {
   slug: 'documents',
-  hooks: { afterChange: [flushPageCacheOnChange] },
+  folders: true,
+  hooks: { afterChange: [flushPageCacheOnChange, schedulePdfThumbnail] },
 
   labels: {
     singular: {
@@ -30,6 +42,37 @@ export const DocumentsCollection: CollectionConfig = {
   access: {
     read: canAccessDocuments,
   },
-  fields: [permissionsField, LastEditedByUserField],
-  upload: true,
+  fields: [
+    {
+      name: 'internalDescription',
+      label: {
+        en: 'Internal Description',
+        de: 'Interne Beschreibung',
+        fr: 'Description interne',
+      },
+      type: 'text',
+      admin: {
+        description: {
+          en: 'Example: for the newsletter',
+          de: 'Beispiel: für im Newsletter',
+          fr: 'Exemple: pour la newsletter',
+        },
+      },
+    },
+    {
+      name: 'pdfThumbnailUrl',
+      type: 'text',
+      admin: {
+        hidden: true,
+      },
+    },
+    permissionsField,
+    LastEditedByUserField,
+  ],
+  upload: {
+    adminThumbnail: ({ doc }) =>
+      typeof doc['pdfThumbnailUrl'] === 'string' && doc['pdfThumbnailUrl'].length > 0
+        ? doc['pdfThumbnailUrl']
+        : false,
+  },
 };

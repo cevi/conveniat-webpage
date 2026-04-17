@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, jsonify, send_from_directory
 import os
+import time
 
 app = Flask(__name__)
 
@@ -99,7 +100,8 @@ def token():
             "access_token": access_token,
             "token_type": "bearer",
             "expires_in": 3600,
-            "refresh_token": refresh_token 
+            "refresh_token": refresh_token,
+            "created_at": int(time.time()),
         })
 
     auth_code = request.form.get("code")
@@ -127,7 +129,8 @@ def token():
         "access_token": access_token,
         "token_type": "bearer",
         "expires_in": 3600,
-        "refresh_token": refresh_token
+        "refresh_token": refresh_token,
+        "created_at": int(time.time()),
     }
     return jsonify(response)
 

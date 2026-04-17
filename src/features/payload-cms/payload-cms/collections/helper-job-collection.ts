@@ -1,6 +1,7 @@
 import { RESSORT_OPTIONS } from '@/features/payload-cms/constants/ressort-options';
 import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
+import { helperJobsPdfReportHandler } from '@/features/payload-cms/payload-cms/endpoints/helper-jobs-pdf-report';
 import { asLocalizedCollection } from '@/features/payload-cms/payload-cms/utils/localized-collection';
 import type { CollectionConfig } from 'payload';
 
@@ -23,7 +24,17 @@ export const JobCollection: CollectionConfig = asLocalizedCollection({
     useAsTitle: 'title',
     group: AdminPanelDashboardGroups.HelferAnmeldung,
     defaultColumns: ['title', 'category', 'dateRangeCategory', 'maxQuota'],
+    components: {
+      beforeListTable: ['@/features/payload-cms/payload-cms/components/pdf-report-generator-ui'],
+    },
   },
+  endpoints: [
+    {
+      path: '/report/pdf',
+      method: 'get',
+      handler: helperJobsPdfReportHandler,
+    },
+  ],
   access: {
     read: canAccessAdminPanel,
     create: canAccessAdminPanel,

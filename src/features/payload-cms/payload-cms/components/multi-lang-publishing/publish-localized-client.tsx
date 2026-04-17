@@ -3,6 +3,7 @@
 import * as qs from 'qs-esm';
 
 import { ConfirmationModal } from '@/features/payload-cms/payload-cms/components/shared/confirmation-modal';
+import { documentControlButtonClasses } from '@/features/payload-cms/payload-cms/components/shared/document-control-button-styles';
 import { usePublishingStatus } from '@/features/payload-cms/payload-cms/hooks/use-publishing-status';
 import type { Config } from '@/features/payload-cms/payload-types';
 import type { StaticTranslationString } from '@/types/types';
@@ -17,7 +18,6 @@ import {
   useLocale,
   useOperation,
 } from '@payloadcms/ui';
-import { cva } from 'class-variance-authority';
 import React, { useCallback, useState } from 'react';
 
 const unpublishingActionString: StaticTranslationString = {
@@ -253,18 +253,18 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
     return <></>;
   }
 
-  const unpublishClasses = cva({
-    'border-solid border border-red-300 bg-red-200 text-red-900 dark:bg-red-800 dark:text-red-100': true,
-    'cursor-not-allowed opacity-40': !isCurrentLocalePublished,
-  });
+  const unpublishClasses = documentControlButtonClasses.unpublish(
+    isCurrentLocalePublished ? undefined : 'cursor-not-allowed opacity-40',
+  );
 
   // Determine if the publish button should be disabled due to non-unpublishable and up-to-date state
   const isLockedPublished = !canUnpublish && isCurrentLocalePublished && !hasPendingChanges;
 
-  const publishClasses = cva({
-    'border-solid border border-green-300 bg-green-200 text-green-900 dark:bg-green-700 dark:text-green-100': true,
-    'cursor-not-allowed opacity-40': isLockedPublished || (!canPublish && isCurrentLocalePublished),
-  });
+  const publishClasses = documentControlButtonClasses.publish(
+    isLockedPublished || (!canPublish && isCurrentLocalePublished)
+      ? 'cursor-not-allowed opacity-40'
+      : undefined,
+  );
 
   const showUnpublish =
     globalSlug === undefined && canUnpublish && isCurrentLocalePublished && !hasPendingChanges;
@@ -309,7 +309,7 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
       />
       {showUnpublish ? (
         <FormSubmit
-          className={unpublishClasses()}
+          className={unpublishClasses}
           buttonId="action-save"
           disabled={!isCurrentLocalePublished}
           onClick={() => unpublishSpecificLocale()}
@@ -321,7 +321,7 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
       ) : (
         <div className="group relative">
           <FormSubmit
-            className={publishClasses()}
+            className={publishClasses}
             buttonId="action-save"
             disabled={isLockedPublished || (!canPublish && isCurrentLocalePublished) || isCreating}
             onClick={() => publishSpecificLocale()}

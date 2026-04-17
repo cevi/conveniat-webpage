@@ -87,6 +87,11 @@ export const ImageCollection: CollectionConfig = {
     /** this is broken with our localized versions */
     disableCopyToLocale: true,
     defaultColumns: ['filename', 'alt_de', 'caption_de', 'updatedAt'],
+    baseListFilter: () => ({
+      isPdfThumbnail: {
+        not_equals: true,
+      },
+    }),
   },
   access: {
     read: () => true,
@@ -98,6 +103,18 @@ export const ImageCollection: CollectionConfig = {
     { ...imageCaption('de') },
     { ...imageCaption('en') },
     { ...imageCaption('fr') },
+    {
+      name: 'isPdfThumbnail',
+      type: 'checkbox',
+      defaultValue: false,
+      admin: {
+        description: {
+          en: 'Indicates if this image was generated as a PDF thumbnail.',
+          de: 'Gibt an, ob dieses Bild als PDF-Vorschaubild generiert wurde.',
+          fr: 'Indique si cette image a été générée en tant que miniature de PDF.',
+        },
+      },
+    },
     LastEditedByUserField,
   ],
   upload: {

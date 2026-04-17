@@ -41,7 +41,7 @@ const postHogRewrites = (): Rewrite[] => {
 
 const nextConfig: NextConfig = {
   output: 'standalone',
-  serverExternalPackages: ['esbuild-wasm'],
+  serverExternalPackages: ['esbuild-wasm', 'pdfkit', 'pdfkit-table'],
   productionBrowserSourceMaps: true,
   transpilePackages: ['@t3-oss/env-nextjs', '@t3-oss/env-core'],
   poweredByHeader: false,
@@ -67,14 +67,13 @@ const nextConfig: NextConfig = {
     inlineCss: true,
     authInterrupts: true,
 
-    // Forward browser logs to the terminal for easier debugging
-    browserDebugInfoInTerminal: true,
-
     // enable server source maps for better error tracking
     serverSourceMaps: true,
 
     // Enable filesystem caching for `next dev`
-    turbopackFileSystemCacheForDev: true,
+    // We disable this in Docker to prevent "Module factory not available" errors
+    // caused by filesystem sync latency between host and container.
+    turbopackFileSystemCacheForDev: false,
 
     staleTimes: {
       dynamic: 0, // this must be set to 0 for payload to work correctly
@@ -86,7 +85,12 @@ const nextConfig: NextConfig = {
     },
   },
 
-  logging: { fetches: { fullUrl: true } },
+  logging: {
+    fetches: { fullUrl: true },
+
+    // Forward browser logs to the terminal for easier debugging
+    browserToTerminal: true,
+  },
   images: {
     minimumCacheTTL: optimizedImageMinimumCacheTTL,
     formats: ['image/avif', 'image/webp'],
