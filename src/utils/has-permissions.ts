@@ -1,4 +1,5 @@
 import type { Permission } from '@/features/payload-cms/payload-types';
+import type { Session } from 'next-auth';
 
 export const isPermissionPublic = (permission: Permission | null | undefined): boolean => {
   return permission?.special_permissions?.public === true;
@@ -6,8 +7,10 @@ export const isPermissionPublic = (permission: Permission | null | undefined): b
 
 const isPermissionLoggedInRequired = async (
   permission: Permission | null | undefined,
+  userSession?: Session | null,
 ): Promise<boolean> => {
   if (permission?.special_permissions?.logged_in === true) {
+    if (userSession) return true;
     const { auth } = await import('@/utils/auth');
     const userPerm = await auth();
     return userPerm !== null;
@@ -34,8 +37,15 @@ const hasGroupPermissions = (
   return hasAccess;
 };
 
+/**
+ * Checks if the current user (passed as userSession or fetched via auth()) has permission.
+ *
+ * @param permission - The permission profile to check
+ * @param userSession - Optional pre-fetched user session to avoid redundant auth() calls
+ */
 export const hasPermissions = async (
   permission: undefined | null | Permission,
+  userSession?: Session | null,
 ): Promise<boolean> => {
   if (!permission) {
     return true;
@@ -45,14 +55,19 @@ export const hasPermissions = async (
     return true;
   }
 
-  const { auth } = await import('@/utils/auth');
-  const userPerm = await auth();
+  const userPerm =
+    userSession ??
+    (await (async (): Promise<Session | null> => {
+      const { auth } = await import('@/utils/auth');
+      return await auth();
+    })());
+
   if (!userPerm) {
     return false;
   }
 
   const userGroupIds = userPerm.user.group_ids;
-  const isLoggedInOk = await isPermissionLoggedInRequired(permission);
+  const isLoggedInOk = await isPermissionLoggedInRequired(permission, userPerm);
   const isGroupOk = hasGroupPermissions(permission, userGroupIds);
   return isLoggedInOk && isGroupOk;
 };
