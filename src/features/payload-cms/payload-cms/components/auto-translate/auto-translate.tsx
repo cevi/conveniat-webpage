@@ -1,5 +1,6 @@
 'use client';
 
+import { cn } from '@/utils/tailwindcss-override';
 import { useConfig, useDocumentInfo, useLocale } from '@payloadcms/ui';
 import {
   Close as DialogClose,
@@ -10,6 +11,7 @@ import {
   Title as DialogTitle,
   Trigger as DialogTrigger,
 } from '@radix-ui/react-dialog';
+import { Languages } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 
@@ -42,7 +44,7 @@ const AutoTranslate: React.FC = () => {
     setError(undefined);
 
     try {
-      const response = await fetch(`${config.serverURL || ''}${config.routes.api}/auto-translate`, {
+      const response = await fetch(`${config.serverURL}${config.routes.api}/auto-translate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -57,7 +59,7 @@ const AutoTranslate: React.FC = () => {
 
       if (!response.ok) {
         const errorData = (await response.json()) as { error?: string };
-        throw new Error(errorData.error || 'Failed to auto-translate content');
+        throw new Error(errorData.error ?? 'Failed to auto-translate content');
       }
 
       setModalOpen(false);
@@ -76,7 +78,7 @@ const AutoTranslate: React.FC = () => {
     }
   };
 
-  const currentLocaleName = LOCALES.find((l) => l.code === targetLanguage)?.label || targetLanguage;
+  const currentLocaleName = LOCALES.find((l) => l.code === targetLanguage)?.label ?? targetLanguage;
   const availableSources = LOCALES.filter((l) => l.code !== targetLanguage);
 
   return (
@@ -84,58 +86,25 @@ const AutoTranslate: React.FC = () => {
       <DialogTrigger asChild>
         <button
           type="button"
-          className="btn btn--style-secondary btn--size-small"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            cursor: 'pointer',
-            padding: '4px 10px',
-            fontSize: '13px',
-            borderRadius: '4px',
-            border: '1px solid var(--theme-elevation-200)',
-            background: 'var(--theme-elevation-100)',
-            color: 'var(--theme-text)',
-            height: '32px',
-          }}
+          className={cn(
+            'btn btn--style-secondary btn--size-small',
+            'inline-flex h-8 cursor-pointer items-center gap-x-[0.4rem] px-[10px] py-[4px]',
+            'rounded-[4px] border border-(--theme-elevation-200) bg-(--theme-elevation-100) text-(--theme-text)',
+            'text-[13px]',
+          )}
           title={`Inhalt automatisch nach ${currentLocaleName} übersetzen`}
         >
-          <span style={{ fontSize: '1.1em' }}>🌐</span>
+          <Languages className="size-4" />
           <span>Auto-translate</span>
         </button>
       </DialogTrigger>
       <DialogPortal>
-        <DialogOverlay
-          style={{
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            position: 'fixed',
-            inset: 0,
-            zIndex: 9999,
-          }}
-        />
-        <DialogContent
-          style={{
-            backgroundColor: 'var(--theme-elevation-50)',
-            padding: '2rem',
-            borderRadius: '8px',
-            position: 'fixed',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            zIndex: 10_000,
-            minWidth: '400px',
-            maxWidth: '500px',
-            color: 'var(--theme-text)',
-            border: '1px solid var(--theme-elevation-150)',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
-          }}
-        >
-          <DialogTitle style={{ margin: '0 0 1rem', fontSize: '1.25rem', fontWeight: 600 }}>
-            Automatische Übersetzung
-          </DialogTitle>
+        <DialogOverlay className="fixed inset-0 z-9999 bg-black/50" />
+        <DialogContent className="fixed top-1/2 left-1/2 z-10000 max-w-[500px] min-w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-lg border border-(--theme-elevation-150) bg-[var(--theme-elevation-50)] p-8 text-[var(--theme-text)] shadow-[0_10px_30px_rgba(0,0,0,0.2)]">
+          <DialogTitle className="mb-4 text-xl font-semibold">Automatische Übersetzung</DialogTitle>
 
-          <div style={{ marginBottom: '1rem' }}>
-            <p style={{ marginBottom: '1rem', fontSize: '0.9rem' }}>
+          <div className="mb-4">
+            <p className="mb-4 text-sm">
               Wähle die Sprache aus, von der der Inhalt nach <strong>{currentLocaleName}</strong>{' '}
               übersetzt werden soll.
               <br />
@@ -144,24 +113,14 @@ const AutoTranslate: React.FC = () => {
               überschrieben!
             </p>
 
-            <label
-              htmlFor="source-lang-select"
-              style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}
-            >
+            <label htmlFor="source-lang-select" className="mb-2 block font-medium">
               Quellsprache
             </label>
             <select
               id="source-lang-select"
               value={sourceLanguage}
               onChange={(event) => setSourceLanguage(event.target.value)}
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                border: '1px solid var(--theme-elevation-150)',
-                borderRadius: '4px',
-                backgroundColor: 'var(--theme-elevation-100)',
-                color: 'var(--theme-text)',
-              }}
+              className="w-full rounded border border-(--theme-elevation-150) bg-(--theme-elevation-100) p-2 text-(--theme-text) disabled:opacity-50"
               disabled={isSubmitting}
             >
               <option value="">-- Bitte wählen --</option>
@@ -173,33 +132,14 @@ const AutoTranslate: React.FC = () => {
             </select>
           </div>
 
-          {error && (
-            <div style={{ color: 'red', marginTop: '1rem', fontSize: '0.9rem' }}>
-              Fehler: {error}
-            </div>
-          )}
+          {error && <div className="mt-4 text-sm text-red-500">Fehler: {error}</div>}
 
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'flex-end',
-              gap: '1rem',
-              marginTop: '1.5rem',
-            }}
-          >
+          <div className="mt-6 flex justify-end gap-4">
             <DialogClose asChild>
               <button
                 type="button"
                 disabled={isSubmitting}
-                className="btn btn--style-secondary"
-                style={{
-                  padding: '0.5rem 1rem',
-                  border: '1px solid var(--theme-elevation-150)',
-                  borderRadius: '4px',
-                  background: 'transparent',
-                  cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                  color: 'var(--theme-text)',
-                }}
+                className="btn btn--style-secondary h-auto cursor-pointer rounded border border-(--theme-elevation-150) bg-transparent px-4 py-2 text-(--theme-text) disabled:cursor-not-allowed"
               >
                 Abbrechen
               </button>
@@ -208,16 +148,10 @@ const AutoTranslate: React.FC = () => {
               type="button"
               onClick={() => void handleTranslate()}
               disabled={sourceLanguage.length === 0 || isSubmitting}
-              className="btn btn--style-primary"
-              style={{
-                padding: '0.5rem 1rem',
-                borderRadius: '4px',
-                cursor: sourceLanguage.length > 0 && !isSubmitting ? 'pointer' : 'not-allowed',
-                opacity: sourceLanguage.length > 0 && !isSubmitting ? 1 : 0.5,
-                border: 'none',
-                backgroundColor: '#16a34a',
-                color: 'white',
-              }}
+              className={cn(
+                'btn btn--style-primary h-auto rounded border-none bg-[#16a34a] px-4 py-2 text-white',
+                (sourceLanguage.length === 0 || isSubmitting) && 'cursor-not-allowed opacity-50',
+              )}
             >
               {isSubmitting ? 'Übersetze...' : 'Übersetzen'}
             </button>
