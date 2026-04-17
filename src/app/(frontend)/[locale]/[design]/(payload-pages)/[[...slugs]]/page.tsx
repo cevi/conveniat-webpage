@@ -106,7 +106,8 @@ export const generateMetadata = async ({
   }>;
   searchParams: Promise<SearchParameters>;
 }): Promise<Metadata> => {
-  const isPreview = (await searchParams).preview === 'true';
+  // eslint-disable-next-line unicorn/no-await-expression-member
+  const isPreview = (await searchParams)['preview'] === 'true';
 
   const { slugs, locale, design } = await params;
   const awaitedParameters = await params;
