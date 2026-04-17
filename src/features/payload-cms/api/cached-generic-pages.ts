@@ -32,6 +32,15 @@ export const getGenericPageBySlugCached = cache(
             draft ? {} : { _localized_status: { equals: { published: true } } },
           ],
         },
+        // Select only fields needed for frontend rendering.
+        // Skipping admin-only relationship fields (authors, lastEditedByUser)
+        // eliminates the users collection population cascade (~104ms).
+        select: {
+          _localized_status: true,
+          internalPageName: true,
+          content: true,
+          seo: true,
+        },
       });
 
       // deduplicate by id in case of internal payload cms duplicate bugs
@@ -39,7 +48,9 @@ export const getGenericPageBySlugCached = cache(
         ...new Map(result.docs.map((document_) => [document_.id, document_])).values(),
       ];
 
-      return { docs: uniqueDocuments };
+      // Cast is safe: selected fields cover everything the frontend rendering
+      // path accesses (id, _locale, _localized_status, internalPageName, content, seo).
+      return { docs: uniqueDocuments as unknown as GenericPage[] };
     });
   },
 );
@@ -106,13 +117,21 @@ export const getGenericPageByIDCached = cache(
     return await withSpan('getGenericPageByIDCached', async () => {
       const payload = await getPayload({ config });
 
-      return payload.findByID({
+      // Cast is safe: selected fields cover everything the frontend rendering path accesses.
+      return (await payload.findByID({
         collection: 'generic-page',
         depth: 1,
         id,
         locale,
         draft,
-      });
+        // Same select as getGenericPageBySlugCached — skip admin-only fields.
+        select: {
+          _localized_status: true,
+          internalPageName: true,
+          content: true,
+          seo: true,
+        },
+      })) as unknown as GenericPage;
     });
   },
 );
