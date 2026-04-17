@@ -203,7 +203,26 @@ const generateMetadataInternal = async (
   };
 };
 
-GenericPage.generateMetadata = async ({ locale, slugs }): Promise<Metadata> => {
+const generateMetadataPreview = async (
+  locale: Locale,
+  slugs: string[] | undefined,
+): Promise<Metadata> => {
+  const slug = slugs?.join('/') ?? '';
+  const result = await getGenericPageBySlugCached(slug, locale, true);
+
+  const page = result.docs[0];
+  if (!page) return { title: 'Preview Mode' };
+
+  return {
+    title: page.seo?.metaTitle || page.content?.pageTitle || 'Preview Mode',
+    description: page.seo?.metaDescription || undefined,
+  };
+};
+
+GenericPage.generateMetadata = async ({ locale, slugs, isPreview }): Promise<Metadata> => {
+  if (isPreview) {
+    return generateMetadataPreview(locale, slugs);
+  }
   return generateMetadataInternal(locale, slugs);
 };
 

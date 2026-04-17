@@ -63,7 +63,7 @@ const handleSpecialPage = (collection: string, locale: Locale): Metadata => {
  * Cached helper to generate metadata, avoiding redundant DB lookups.
  */
 const generateMetadataCached = cache(
-  async (locale: Locale, slugs: string[] | undefined): Promise<Metadata> => {
+  async (locale: Locale, slugs: string[] | undefined, isPreview: boolean): Promise<Metadata> => {
     // Check if we should bail out during build time
     if (await forceDynamicOnBuild()) {
       return {};
@@ -87,6 +87,7 @@ const generateMetadataCached = cache(
       return await collectionPage.component.generateMetadata({
         locale,
         slugs: remainingSlugs,
+        isPreview,
       });
     }
 
@@ -96,13 +97,17 @@ const generateMetadataCached = cache(
 
 export const generateMetadata = async ({
   params,
+  searchParams,
 }: {
   params: Promise<{
     locale: string;
     design: string;
     slugs: string[] | undefined;
   }>;
+  searchParams: Promise<SearchParameters>;
 }): Promise<Metadata> => {
+  const isPreview = (await searchParams).preview === 'true';
+
   const { slugs, locale, design } = await params;
   const awaitedParameters = await params;
 
@@ -120,7 +125,7 @@ export const generateMetadata = async ({
   // for this specific execution if it were truly dynamic.
   // HOWEVER, preventing the DB connection manually via our helper is safer for avoiding build errors.
   await connection();
-  return await generateMetadataCached(locale as Locale, slugs);
+  return await generateMetadataCached(locale as Locale, slugs, isPreview);
 };
 
 /**
