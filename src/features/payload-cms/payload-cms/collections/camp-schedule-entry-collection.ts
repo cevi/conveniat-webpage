@@ -7,8 +7,8 @@ import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/
 import type { CollectionConfig } from 'payload';
 
 import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
-import { syncOrganisers } from '@/features/payload-cms/payload-cms/utils/sync-organisers';
 import { courseParticipantsExportHandler } from '@/features/payload-cms/payload-cms/endpoints/course-participants-export';
+import { syncOrganisers } from '@/features/payload-cms/payload-cms/utils/sync-organisers';
 
 export const CampScheduleEntryCollection: CollectionConfig = {
   slug: 'camp-schedule-entry',
@@ -314,7 +314,8 @@ export const CampScheduleEntryCollection: CollectionConfig = {
       type: 'ui',
       admin: {
         components: {
-          Field: '@/features/payload-cms/payload-cms/components/participants-admin-ui/participants-admin-ui#ParticipantsAdminUI',
+          Field:
+            '@/features/payload-cms/payload-cms/components/participants-admin-ui/participants-admin-ui#ParticipantsAdminUI',
         },
       },
     },

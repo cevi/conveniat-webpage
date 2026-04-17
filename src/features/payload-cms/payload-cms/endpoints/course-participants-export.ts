@@ -1,7 +1,6 @@
-/* eslint-disable */
 import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
-import type { PayloadHandler } from 'payload';
 import prisma from '@/lib/db/prisma';
+import type { PayloadHandler } from 'payload';
 import { utils, write } from 'xlsx';
 
 interface PDFDocumentWithTables extends Omit<InstanceType<typeof import('pdfkit')>, 'table'> {
@@ -56,7 +55,6 @@ export const courseParticipantsExportHandler: PayloadHandler = async (request) =
         email: payloadUser?.email || '',
         hof: payloadUser?.hof ? String(payloadUser.hof) : '',
         quartier: payloadUser?.quartier ? String(payloadUser.quartier) : '',
-        enrolledAt: (enrollment as any).createdAt ? new Date((enrollment as any).createdAt).toISOString() : '',
       };
     });
 
@@ -112,9 +110,7 @@ export const courseParticipantsExportHandler: PayloadHandler = async (request) =
           document_.on('end', () => resolve(Buffer.concat(buffers)));
           document_.on('error', (error: Error) => reject(error));
 
-          document_
-            .fontSize(20)
-            .text(`Teilnehmerliste für ${courseId}`, { align: 'center' });
+          document_.fontSize(20).text(`Teilnehmerliste für ${courseId}`, { align: 'center' });
           document_.moveDown();
 
           const rows = participantData.map((p) => [
@@ -132,7 +128,7 @@ export const courseParticipantsExportHandler: PayloadHandler = async (request) =
               rows: rows,
             });
           } else {
-             document_.fontSize(12).text('Keine Teilnehmer angemeldet.');
+            document_.fontSize(12).text('Keine Teilnehmer angemeldet.');
           }
 
           document_.end();

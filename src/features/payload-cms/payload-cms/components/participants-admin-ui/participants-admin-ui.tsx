@@ -1,4 +1,3 @@
-/* eslint-disable */
 'use client';
 
 import { useDocumentInfo } from '@payloadcms/ui';
@@ -8,10 +7,8 @@ type Participant = {
   uuid: string;
   fullName: string;
   nickname: string;
-  email: string;
   hof: string;
   quartier: string;
-  enrolledAt: string;
 };
 
 export const ParticipantsAdminUI: React.FC = () => {
@@ -50,10 +47,22 @@ export const ParticipantsAdminUI: React.FC = () => {
 
   return (
     <div className="field-type" style={{ marginTop: '2rem', marginBottom: '2rem' }}>
-      <header className="field-type__header" style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+      <header
+        className="field-type__header"
+        style={{
+          marginBottom: '1rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-end',
+        }}
+      >
         <div>
-          <h3 className="field-type__label" style={{ fontSize: '1.25rem', margin: 0 }}>Enrolled Participants</h3>
-          <p style={{ margin: 0, opacity: 0.7, fontSize: '0.875rem' }}>Users who have enrolled for this module.</p>
+          <h3 className="field-type__label" style={{ fontSize: '1.25rem', margin: 0 }}>
+            Enrolled Participants
+          </h3>
+          <p style={{ margin: 0, opacity: 0.7, fontSize: '0.875rem' }}>
+            Users who have enrolled for this module.
+          </p>
         </div>
 
         <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -84,7 +93,14 @@ export const ParticipantsAdminUI: React.FC = () => {
         </div>
       </header>
 
-      <div style={{ background: 'var(--theme-elevation-50)', padding: '1rem', borderRadius: '4px', border: '1px solid var(--theme-elevation-150)' }}>
+      <div
+        style={{
+          background: 'var(--theme-elevation-50)',
+          padding: '1rem',
+          borderRadius: '4px',
+          border: '1px solid var(--theme-elevation-150)',
+        }}
+      >
         {loading && <p>Loading participants...</p>}
         {error && <p style={{ color: 'var(--theme-error-500)' }}>{error}</p>}
         {!loading && !error && participants.length === 0 && (
@@ -100,7 +116,6 @@ export const ParticipantsAdminUI: React.FC = () => {
                   <th style={{ padding: '0.5rem' }}>Email</th>
                   <th style={{ padding: '0.5rem' }}>Hof</th>
                   <th style={{ padding: '0.5rem' }}>Quartier</th>
-                  <th style={{ padding: '0.5rem' }}>Enrolled At</th>
                 </tr>
               </thead>
               <tbody>
@@ -111,9 +126,6 @@ export const ParticipantsAdminUI: React.FC = () => {
                     <td style={{ padding: '0.5rem' }}>{p.email}</td>
                     <td style={{ padding: '0.5rem' }}>{p.hof}</td>
                     <td style={{ padding: '0.5rem' }}>{p.quartier}</td>
-                    <td style={{ padding: '0.5rem' }}>
-                      {p.enrolledAt ? new Date(p.enrolledAt).toLocaleDateString() : ''}
-                    </td>
                   </tr>
                 ))}
               </tbody>
