@@ -78,27 +78,29 @@ class IgnoreTempoErrorLogger implements DiagLogger {
   }
 
   private shouldIgnore(message: string, args: unknown[]): boolean {
+    const message_ = typeof message === 'string' ? message : '';
+
     // Suppress tempo and localhost/127.0.0.1 OTLP connection errors
     if (
-      message.includes('getaddrinfo ENOTFOUND tempo') ||
-      message.includes('ECONNREFUSED tempo') ||
-      message.includes('ECONNREFUSED 127.0.0.1:4318') ||
-      message.includes('ECONNREFUSED localhost:4318')
+      message_.includes('getaddrinfo ENOTFOUND tempo') ||
+      message_.includes('ECONNREFUSED tempo') ||
+      message_.includes('ECONNREFUSED 127.0.0.1:4318') ||
+      message_.includes('ECONNREFUSED localhost:4318')
     ) {
       return true;
     }
 
     // Suppress clock skew warnings from MongoDB instrumentation
     // This is a known issue: https://github.com/open-telemetry/opentelemetry-js/issues/4363
-    if (message.includes('Inconsistent start and end time')) {
+    if (message_.includes('Inconsistent start and end time')) {
       return true;
     }
 
     // Suppress "operation on ended span" warnings - happens when async callbacks
     // try to modify a span after it's ended (timing race in instrumentation)
     if (
-      message.includes('Operation attempted on ended Span') ||
-      message.includes('Cannot execute the operation on ended Span')
+      message_.includes('Operation attempted on ended Span') ||
+      message_.includes('Cannot execute the operation on ended Span')
     ) {
       return true;
     }

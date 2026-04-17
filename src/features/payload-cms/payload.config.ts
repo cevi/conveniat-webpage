@@ -3,6 +3,7 @@ import { buildSecureConfig } from '@/features/payload-cms/payload-cms/access-rul
 import { collectionsConfig } from '@/features/payload-cms/payload-cms/collections';
 import { UserCollection } from '@/features/payload-cms/payload-cms/collections/user-collection';
 import { emailSettings } from '@/features/payload-cms/payload-cms/email-settings';
+import { autoTranslateHandler } from '@/features/payload-cms/payload-cms/endpoints/auto-translate';
 import { dropRouteInfo } from '@/features/payload-cms/payload-cms/global-routes';
 import { globalConfig } from '@/features/payload-cms/payload-cms/globals';
 import { onPayloadInit } from '@/features/payload-cms/payload-cms/initialization';
@@ -164,6 +165,13 @@ export const payloadConfig: RoutableConfig = {
   serverURL: env.APP_HOST_URL,
   onInit: onPayloadInit,
   admin: payloadConfigAdminSettings,
+  endpoints: [
+    {
+      path: '/auto-translate',
+      method: 'post',
+      handler: autoTranslateHandler,
+    },
+  ],
   collections: collectionsConfig,
   editor: lexicalEditor,
   globals: globalConfig,
