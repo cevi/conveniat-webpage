@@ -60,11 +60,28 @@ export async function syncUserWithCeviDB(profile: HitobitoProfile): Promise<Payl
       where: { email: { equals: profile.email } },
     });
 
+    if (matchedByEmail.totalDocs > 1) {
+      const matchedIds = matchedByEmail.docs.map((userDocument) => userDocument.id).join(', ');
+      throw new Error(
+        `Multiple users found with the same email (${profile.email}). Matched Payload IDs: ${matchedIds}`,
+      );
+    }
+
     if (matchedByEmail.totalDocs === 1 && matchedByEmail.docs[0]?.id !== undefined) {
+      const matchedUser = matchedByEmail.docs[0];
+      if (
+        matchedUser.cevi_db_uuid !== null &&
+        matchedUser.cevi_db_uuid !== undefined &&
+        matchedUser.cevi_db_uuid !== ceviDatabaseUuid
+      ) {
+        throw new Error(
+          `Email match conflict for ${profile.email}: existing user ${matchedUser.id} is already linked to cevi_db_uuid ${matchedUser.cevi_db_uuid}, cannot relink to ${ceviDatabaseUuid}.`,
+        );
+      }
       // Link the existing user by setting their cevi_db_uuid
       return await payload.update({
         collection: 'users',
-        id: matchedByEmail.docs[0].id,
+        id: matchedUser.id,
         data: userData,
       });
     }

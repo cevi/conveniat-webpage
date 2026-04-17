@@ -1,6 +1,7 @@
 import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { importExportPlugin } from '@payloadcms/plugin-import-export';
+import type { CollectionConfig } from 'payload';
 
 /**
  * Configuration for the Payload CMS Import/Export plugin.
@@ -23,7 +24,11 @@ export const importExportConfiguration = importExportPlugin({
       },
     },
   ],
-  overrideExportCollection: ({ collection }) => ({
+  overrideExportCollection: ({
+    collection,
+  }: {
+    collection: CollectionConfig;
+  }): CollectionConfig => ({
     ...collection,
     admin: {
       ...collection.admin,
@@ -35,7 +40,11 @@ export const importExportConfiguration = importExportPlugin({
       create: canAccessAdminPanel,
     },
   }),
-  overrideImportCollection: ({ collection }) => ({
+  overrideImportCollection: ({
+    collection,
+  }: {
+    collection: CollectionConfig;
+  }): CollectionConfig => ({
     ...collection,
     admin: {
       ...collection.admin,
