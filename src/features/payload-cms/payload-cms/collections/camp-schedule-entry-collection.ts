@@ -7,6 +7,7 @@ import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/
 import type { CollectionConfig } from 'payload';
 
 import { syncOrganisers } from '@/features/payload-cms/payload-cms/utils/sync-organisers';
+import { courseParticipantsExportHandler } from '@/features/payload-cms/payload-cms/endpoints/course-participants-export';
 
 export const CampScheduleEntryCollection: CollectionConfig = {
   slug: 'camp-schedule-entry',
@@ -15,6 +16,13 @@ export const CampScheduleEntryCollection: CollectionConfig = {
     afterChange: [flushPageCacheOnChange, syncOrganisers],
     afterRead: [injectEnrollmentCount],
   },
+  endpoints: [
+    {
+      path: '/:id/participants-export',
+      method: 'get',
+      handler: courseParticipantsExportHandler,
+    },
+  ],
 
   labels: {
     singular: {
@@ -297,6 +305,15 @@ export const CampScheduleEntryCollection: CollectionConfig = {
       admin: {
         components: {
           Cell: '@/features/payload-cms/payload-cms/components/filled-status/filled-status-cell',
+        },
+      },
+    },
+    {
+      name: 'participantsList',
+      type: 'ui',
+      admin: {
+        components: {
+          Field: '@/features/payload-cms/payload-cms/components/participants-admin-ui/participants-admin-ui#ParticipantsAdminUI',
         },
       },
     },
