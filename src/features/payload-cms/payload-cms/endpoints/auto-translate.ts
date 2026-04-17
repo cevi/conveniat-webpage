@@ -177,7 +177,8 @@ export const autoTranslateHandler: PayloadHandler = async (request) => {
 
     return Response.json({ success: true, result });
   } catch (error) {
-    request.payload.logger.error({ err: error }, 'Failed to auto-translate document');
-    return Response.json({ error: 'Internal Server Error' }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    request.payload.logger.error({ err: error }, `Failed to auto-translate document: ${message}`);
+    return Response.json({ error: message }, { status: 500 });
   }
 };

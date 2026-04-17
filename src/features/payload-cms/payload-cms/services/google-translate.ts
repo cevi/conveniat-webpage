@@ -78,7 +78,16 @@ export async function translateTexts(
 
         if (!response.ok) {
           const errorBody = await response.text();
-          throw new Error(`Google Translate API Error ${response.status}: ${errorBody}`);
+          let errorMessage = `Google Translate API Error ${response.status}`;
+          try {
+            const parsedError = JSON.parse(errorBody) as { error?: { message?: string } };
+            if (parsedError.error?.message) {
+              errorMessage = parsedError.error.message;
+            }
+          } catch {
+            errorMessage = `${errorMessage}: ${errorBody}`;
+          }
+          throw new Error(errorMessage);
         }
 
         const data = (await response.json()) as unknown as GoogleTranslateResponse;
@@ -102,7 +111,7 @@ export async function translateTexts(
     }
 
     if (!success) {
-      throw lastError || new Error('Unknown translation error');
+      throw lastError ?? new Error('Unknown translation error');
     }
 
     // Small delay between batches to prevent overwhelming the API or network
