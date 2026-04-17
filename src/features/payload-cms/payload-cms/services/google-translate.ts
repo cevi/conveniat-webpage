@@ -46,8 +46,8 @@ export async function translateTexts(
   const BATCH_SIZE = 128;
   const results: TranslateResult[] = [];
 
-  for (let i = 0; i < texts.length; i += BATCH_SIZE) {
-    const batch = texts.slice(i, i + BATCH_SIZE);
+  for (let index = 0; index < texts.length; index += BATCH_SIZE) {
+    const batch = texts.slice(index, index + BATCH_SIZE);
 
     let lastError: Error | undefined;
     let attempt = 0;
@@ -60,7 +60,7 @@ export async function translateTexts(
         url.searchParams.append('key', apiKey);
 
         // Use a timeout to avoid hanging indefinitely and trigger retries
-        const signal = AbortSignal.timeout(60000); // 60 seconds
+        const signal = AbortSignal.timeout(60_000); // 60 seconds
 
         const response = await fetch(url.toString(), {
           method: 'POST',
@@ -81,9 +81,10 @@ export async function translateTexts(
           throw new Error(`Google Translate API Error ${response.status}: ${errorBody}`);
         }
 
-        const data = (await response.json() as unknown) as GoogleTranslateResponse;
+        const data = (await response.json()) as unknown as GoogleTranslateResponse;
         const batchResults = data.data.translations.map((t) => ({
-          translatedText: format === 'text' ? decodeHTMLEntities(t.translatedText) : t.translatedText,
+          translatedText:
+            format === 'text' ? decodeHTMLEntities(t.translatedText) : t.translatedText,
         }));
         results.push(...batchResults);
         success = true;
@@ -91,7 +92,10 @@ export async function translateTexts(
         attempt++;
         lastError = error instanceof Error ? error : new Error(String(error));
         if (attempt < maxAttempts) {
-          console.warn(`Translation attempt ${attempt} failed, retrying in ${attempt * 1000}ms...`, lastError.message);
+          console.warn(
+            `Translation attempt ${attempt} failed, retrying in ${attempt * 1000}ms...`,
+            lastError.message,
+          );
           await sleep(attempt * 1000);
         }
       }
@@ -102,7 +106,7 @@ export async function translateTexts(
     }
 
     // Small delay between batches to prevent overwhelming the API or network
-    if (i + BATCH_SIZE < texts.length) {
+    if (index + BATCH_SIZE < texts.length) {
       await sleep(100);
     }
   }
@@ -211,13 +215,13 @@ function parseHTMLToLexical(html: string, referenceMap: LexicalNode[]): LexicalN
 
         const matchFormat = token.match(/data-format="(\d+)"/);
         const matchStyle = token.match(/data-style="([^"]*)"/);
-        
+
         newNode.type = 'text';
         newNode.text = '';
         if (!('mode' in newNode)) newNode.mode = 'normal';
         if (!('version' in newNode)) newNode.version = 1;
         if (!('detail' in newNode)) newNode['detail'] = 0;
-        
+
         if (matchFormat) {
           newNode.format = Number.parseInt(matchFormat[1] || '0', 10);
         } else if (!('format' in newNode)) {
@@ -285,7 +289,9 @@ export async function translateLexicalRichText(
 
   collectUnits(clone);
 
-  if (units.length === 0) { return clone; }
+  if (units.length === 0) {
+    return clone;
+  }
 
   const htmls = units.map((u) => u.html);
   const results = await translateTexts(htmls, targetLang, sourceLang, 'html');

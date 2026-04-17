@@ -67,7 +67,9 @@ export function getLocalizedFieldPaths(
       if ('name' in field && field.name) {
         groupPath.push(field.name);
       }
-      localizedFields.push(...getLocalizedFieldPaths(field.fields, groupPath, insideLocalizedParent));
+      localizedFields.push(
+        ...getLocalizedFieldPaths(field.fields, groupPath, insideLocalizedParent),
+      );
       continue;
     }
 
@@ -77,8 +79,11 @@ export function getLocalizedFieldPaths(
         arrayPath.push(field.name);
       }
       // If this array itself is localized, children are inside a localized parent
-      const childIsLocalized = insideLocalizedParent || ('localized' in field && field.localized === true);
-      localizedFields.push(...getLocalizedFieldPaths(field.fields, [...arrayPath, '[]'], childIsLocalized));
+      const childIsLocalized =
+        insideLocalizedParent || ('localized' in field && field.localized === true);
+      localizedFields.push(
+        ...getLocalizedFieldPaths(field.fields, [...arrayPath, '[]'], childIsLocalized),
+      );
       continue;
     }
 
@@ -88,10 +93,15 @@ export function getLocalizedFieldPaths(
         blocksPath.push(field.name);
       }
       // If this blocks field is localized, children are inside a localized parent
-      const childIsLocalized = insideLocalizedParent || ('localized' in field && field.localized === true);
+      const childIsLocalized =
+        insideLocalizedParent || ('localized' in field && field.localized === true);
       for (const block of field.blocks) {
         localizedFields.push(
-          ...getLocalizedFieldPaths(block.fields, [...blocksPath, '[]', block.slug], childIsLocalized),
+          ...getLocalizedFieldPaths(
+            block.fields,
+            [...blocksPath, '[]', block.slug],
+            childIsLocalized,
+          ),
         );
       }
       continue;

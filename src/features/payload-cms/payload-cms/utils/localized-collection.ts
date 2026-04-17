@@ -71,7 +71,6 @@ export const asLocalizedCollection = (config: CollectionConfig): CollectionConfi
         },
       },
 
-
       // add the localized publishing status field
       {
         name: '_localized_status',

@@ -1,17 +1,17 @@
 'use client';
 
-import {
-  Root as DialogRoot,
-  Trigger as DialogTrigger,
-  Portal as DialogPortal,
-  Overlay as DialogOverlay,
-  Content as DialogContent,
-  Title as DialogTitle,
-  Close as DialogClose,
-} from '@radix-ui/react-dialog';
 import { useConfig, useDocumentInfo, useLocale } from '@payloadcms/ui';
-import React, { useState } from 'react';
+import {
+  Close as DialogClose,
+  Content as DialogContent,
+  Overlay as DialogOverlay,
+  Portal as DialogPortal,
+  Root as DialogRoot,
+  Title as DialogTitle,
+  Trigger as DialogTrigger,
+} from '@radix-ui/react-dialog';
 import { useRouter } from 'next/navigation';
+import React, { useState } from 'react';
 
 const LOCALES = [
   { code: 'en', label: 'English' },
@@ -32,7 +32,7 @@ const AutoTranslate: React.FC = () => {
 
   // If this isn't a saved document yet (or is a global), we might not be able to auto-translate safely
   if (!id || globalSlug) {
-    return null;
+    return;
   }
 
   const handleTranslate = async (): Promise<void> => {
@@ -174,7 +174,9 @@ const AutoTranslate: React.FC = () => {
           </div>
 
           {error && (
-            <div style={{ color: 'red', marginTop: '1rem', fontSize: '0.9rem' }}>Fehler: {error}</div>
+            <div style={{ color: 'red', marginTop: '1rem', fontSize: '0.9rem' }}>
+              Fehler: {error}
+            </div>
           )}
 
           <div

@@ -34,11 +34,11 @@ async function translateData(
           const isObject = typeof item === 'object' && item !== null;
           if (isObject) {
             const itemObject = item as Record<string, unknown>;
-            await (itemObject["blockType"]
-              ? traverse(itemObject, [...newPath, '[]', itemObject["blockType"] as string])
+            await (itemObject['blockType']
+              ? traverse(itemObject, [...newPath, '[]', itemObject['blockType'] as string])
               : traverse(itemObject, [...newPath, '[]']));
           } else {
-             await traverse(item, [...newPath, '[]']);
+            await traverse(item, [...newPath, '[]']);
           }
         }
         continue;
@@ -92,16 +92,16 @@ export const autoTranslateHandler: PayloadHandler = async (request) => {
     try {
       body =
         typeof request.json === 'function'
-          ? (await request.json() as Record<string, unknown>)
+          ? ((await request.json()) as Record<string, unknown>)
           : (request as unknown as { body: Record<string, unknown> }).body;
     } catch {
       return Response.json({ error: 'Invalid JSON body' }, { status: 400 });
     }
 
-    const collection = body["collection"] as string | undefined;
-    const id = body["id"] as string | number | undefined;
-    const sourceLocale = body["sourceLocale"] as "all" | "en" | "de" | "fr" | undefined;
-    const targetLocale = body["targetLocale"] as "all" | "en" | "de" | "fr" | undefined;
+    const collection = body['collection'] as string | undefined;
+    const id = body['id'] as string | number | undefined;
+    const sourceLocale = body['sourceLocale'] as 'all' | 'en' | 'de' | 'fr' | undefined;
+    const targetLocale = body['targetLocale'] as 'all' | 'en' | 'de' | 'fr' | undefined;
 
     if (!collection || !id || !sourceLocale || !targetLocale) {
       return Response.json({ error: 'Missing required parameters' }, { status: 400 });
@@ -118,7 +118,7 @@ export const autoTranslateHandler: PayloadHandler = async (request) => {
     const localizedFieldPaths = getLocalizedFieldPaths(collectionConfig.fields);
 
     // Fetch the document in the SOURCE locale
-    
+
     const sourceData = await payload.findByID({
       collection: collection as never,
       id: id,
@@ -127,7 +127,7 @@ export const autoTranslateHandler: PayloadHandler = async (request) => {
     });
 
     // Now, let's also fetch the document in the TARGET locale in order to prevent overwriting existing data (if overwriteExisting is false)
-    
+
     const targetData = await payload.findByID({
       collection: collection as never,
       id: id,
@@ -144,25 +144,23 @@ export const autoTranslateHandler: PayloadHandler = async (request) => {
     delete fieldsToTranslate['urlSlug']; // We don't translate urlSlugs directly
 
     // We should not modify the existing publishing status for the target locale
-    const currentStatus = ((targetData as Record<string, unknown>)["_localized_status"] as Record<
-      string,
-      { published: boolean }
-    >)
+    // targetData was fetched with targetLocale, so _localized_status is already flat.
+    const currentStatus =
+      Boolean((targetData as Record<string, unknown>)['_localized_status']) ||
+      ({
+        published: false,
+      } as Record<string, unknown>);
 
     // Let's actually execute the deep translation
     await translateData(fieldsToTranslate, localizedFieldPaths, targetLocale, sourceLocale);
 
-    fieldsToTranslate["_localized_status"] = {
-      ...((sourceData as Record<string, unknown>)["_localized_status"] as Record<
-        string,
-        { published: boolean }
-      >),
-      [targetLocale]: currentStatus[targetLocale] || { published: false },
-    };
+    // Keep the target locale's existing publishing status unchanged
+    fieldsToTranslate['_localized_status'] = currentStatus;
+
+    // Ensure the internal _locale field matches the target
+    fieldsToTranslate['_locale'] = targetLocale;
 
     // Save back to the payload using the TARGET locale
-    // We update using draft: false or true based on publishing behavior,
-    // payload.update handles versions automatically.
     const result = await payload.update({
       req: request,
       collection: collection as never,
