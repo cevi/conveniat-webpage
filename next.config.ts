@@ -100,6 +100,27 @@ const nextConfig: NextConfig = {
         hostname: 'www.cevi.ch',
         port: '',
       },
+      {
+        protocol: 'https',
+        hostname: 'conveniat27.ch',
+        port: '',
+      },
+      {
+        protocol: 'https',
+        hostname: 'conveniat27.cevi.tools',
+        port: '',
+      },
+      ...(process.env['APP_HOST_URL']
+        ? [
+            {
+              protocol: new URL(process.env['APP_HOST_URL']).protocol.replace(':', '') as
+                | 'http'
+                | 'https',
+              hostname: new URL(process.env['APP_HOST_URL']).hostname,
+              port: new URL(process.env['APP_HOST_URL']).port,
+            },
+          ]
+        : []),
     ],
   },
 
