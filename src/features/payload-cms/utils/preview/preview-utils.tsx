@@ -1,12 +1,9 @@
 import 'server-only';
 
 import { PreviewWarningClient } from '@/components/preview-warning-client';
-import { canUserAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import type { Locale, SearchParameters } from '@/types/types';
-import { auth } from '@/utils/auth';
-import { isValidNextAuthUser } from '@/utils/auth-helpers';
+import { isAdminSession } from '@/utils/is-admin-session';
 import { isPreviewTokenValid } from '@/utils/preview-token';
-import { draftMode } from 'next/headers';
 import type React from 'react';
 
 /**
@@ -71,18 +68,8 @@ export const canAccessPreviewOfCurrentPage = async (
   const hasValidPreviewToken = await isValidPreviewToken(previewToken, url);
   if (hasValidPreviewToken) return true;
 
-  // check if cookie is set
-  const draft = await draftMode();
-  if (!draft.isEnabled) return false;
-
-  const session = await auth();
-  if (session === null) return false;
-
-  // check if user is an admin
-  const user = session.user;
-  if (!isValidNextAuthUser(user)) return false;
-
-  return canUserAccessAdminPanel({ user });
+  // check if user has an authenticated admin session
+  return await isAdminSession();
 };
 
 export const PreviewWarning: React.FC<{

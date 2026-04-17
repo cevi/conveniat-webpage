@@ -7,16 +7,13 @@ import { LinkComponent } from '@/components/ui/link-component';
 import { getLanguagePrefix } from '@/features/payload-cms/utils/get-language-prefix';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { ForceDynamicOnBuild } from '@/utils/is-pre-rendering';
-import { draftMode } from 'next/headers';
 import React from 'react';
 
 export const HeaderComponent: React.FC<{
   locale: Locale;
   inAppDesign: boolean;
-}> = async ({ locale, inAppDesign }) => {
+}> = ({ locale, inAppDesign }) => {
   const languagePrefix = getLanguagePrefix(locale);
-
-  const draft = await draftMode();
 
   const landingPageAreaLinktText: StaticTranslationString = {
     de: 'conveniat27 Startseite',
@@ -26,11 +23,9 @@ export const HeaderComponent: React.FC<{
 
   return (
     <header className="fixed top-0 left-0 z-50 h-[60px] w-full">
-      {draft.isEnabled && (
-        <React.Suspense fallback={undefined}>
-          <PreviewModeBannerServerComponent />
-        </React.Suspense>
-      )}
+      <React.Suspense fallback={<div className="bg-gray-900" />}>
+        <PreviewModeBannerServerComponent />
+      </React.Suspense>
 
       <div className="mb-[32px] border-b-2 border-gray-200 bg-white">
         <div className="text-conveniat-green relative mx-auto h-[60px] w-full max-w-2xl xl:ml-4">

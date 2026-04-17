@@ -43,6 +43,6 @@ function useDebouncedRouteRefresh(delayMs: number): () => void {
 export const RefreshRouteOnSave: React.FC<{
   serverURL: string;
 }> = ({ serverURL }) => {
-  const handleRefresh = useDebouncedRouteRefresh(750);
+  const handleRefresh = useDebouncedRouteRefresh(2500);
   return <PayloadLivePreview refresh={handleRefresh} serverURL={serverURL} />;
 };

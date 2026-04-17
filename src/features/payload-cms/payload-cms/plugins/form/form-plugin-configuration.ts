@@ -259,6 +259,9 @@ export const formPluginConfiguration = formBuilderPlugin({
               path: '@/features/payload-cms/payload-cms/components/multi-lang-publishing/publishing-status-client',
             },
             {
+              path: '@/features/payload-cms/payload-cms/components/live-preview-restorer',
+            },
+            {
               path: '@/features/payload-cms/payload-cms/components/qr-code/qr-code',
             },
           ],

@@ -20,26 +20,24 @@ import type { GenericPage as GenericPageType } from '@/features/payload-cms/payl
 const getArticlesCachedPersistent = async (
   slug: string,
   locale: Locale,
-  renderInPreviewMode: boolean,
 ): Promise<{ docs: GenericPageType[] }> => {
   'use cache';
   cacheLife('hours');
   cacheTag('payload', 'generic-page', `collection:generic-page`);
 
-  return getGenericPageBySlugCached(slug, locale, renderInPreviewMode);
+  return getGenericPageBySlugCached(slug, locale, false);
 };
 
 // Wrapper for persistent caching of the ID fetch
 const getFallbackArticleCachedPersistent = async (
   id: string,
   locale: Locale,
-  renderInPreviewMode: boolean,
 ): Promise<GenericPageType> => {
   'use cache';
   cacheLife('hours');
   cacheTag('payload', 'generic-page', `doc:generic-page:${id}`);
 
-  return getGenericPageByIDCached(id, locale, renderInPreviewMode);
+  return getGenericPageByIDCached(id, locale, false);
 };
 
 const GenericPage: LocalizedCollectionComponent = async ({
@@ -53,11 +51,19 @@ const GenericPage: LocalizedCollectionComponent = async ({
     console.log('Preview mode enabled');
   }
 
-  const articlesInPrimaryLanguage = await getArticlesCachedPersistent(
-    slug,
-    locale,
-    renderInPreviewMode,
-  );
+  // Depending on whether we are in preview mode, we use the cached
+  // or the uncached fetch flow. The uncached flow is necessary to allow
+  // real-time hot-reloading inside the payload CMS live preview iframe.
+  let documents: GenericPageType[] = [];
+  if (renderInPreviewMode) {
+    const fetchResult = await getGenericPageBySlugCached(slug, locale, true);
+    documents = fetchResult.docs;
+  } else {
+    const fetchResult = await getArticlesCachedPersistent(slug, locale);
+    documents = fetchResult.docs;
+  }
+
+  const articlesInPrimaryLanguage = { docs: documents };
 
   if (articlesInPrimaryLanguage.docs.length > 1) {
     const conflicting = articlesInPrimaryLanguage.docs
@@ -93,7 +99,11 @@ const GenericPage: LocalizedCollectionComponent = async ({
   const locales: Locale[] = i18nConfig.locales.filter((l) => l !== locale) as Locale[];
 
   const articles = await Promise.all(
-    locales.map((l) => getArticlesCachedPersistent(slug, l, renderInPreviewMode)),
+    locales.map(async (l) => {
+      return await (renderInPreviewMode
+        ? getGenericPageBySlugCached(slug, l, true)
+        : getArticlesCachedPersistent(slug, l));
+    }),
   )
     .then((results) =>
       results
@@ -131,11 +141,9 @@ const GenericPage: LocalizedCollectionComponent = async ({
 
   if (fallbackDocumentId === undefined) notFound();
 
-  const article = await getFallbackArticleCachedPersistent(
-    fallbackDocumentId,
-    locale,
-    renderInPreviewMode,
-  );
+  const article = await (renderInPreviewMode
+    ? getGenericPageByIDCached(fallbackDocumentId, locale, true)
+    : getFallbackArticleCachedPersistent(fallbackDocumentId, locale));
 
   // check if published in target locale
   if (article._localized_status.published !== true) {

@@ -10,7 +10,7 @@ import type { Locale, SearchParameters } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { forceDynamicOnBuild } from '@/utils/is-pre-rendering';
 import type { Metadata } from 'next';
-import { draftMode } from 'next/headers';
+
 import { notFound, redirect } from 'next/navigation';
 import { connection } from 'next/server';
 import type React from 'react';
@@ -159,29 +159,24 @@ const CMSPage: React.FC<{
   }
   const validatedLocale = locale as Locale;
 
-  const draft = await draftMode();
+  const previewParameter = searchParameters['preview'];
+  const isPreviewRequested =
+    previewParameter === 'true' ||
+    (Array.isArray(previewParameter) && previewParameter[0] === 'true');
 
   // check if the user is allowed to access the preview of the current page
-  let previewModeAllowed = false;
-  if (draft.isEnabled) {
+  let renderInPreviewMode = false;
+  if (isPreviewRequested) {
     const { canAccessPreviewOfCurrentPage } =
       await import('@/features/payload-cms/utils/preview/preview-utils');
 
     const url = `/${locale}/${slugs?.join('/') ?? ''}`;
-    previewModeAllowed = await canAccessPreviewOfCurrentPage(searchParameters, url);
+    renderInPreviewMode = await canAccessPreviewOfCurrentPage(searchParameters, url);
   }
 
   // check if part of a routable collection of the form [collection]/[slug]
   const collection = slugs?.[0] ?? '';
   const remainingSlugs = slugs?.slice(1) ?? [];
-
-  const isDraftSession = draft.isEnabled && previewModeAllowed;
-  const previewParameter = searchParameters['preview'];
-  const isPreviewDisabled =
-    previewParameter === 'false' ||
-    (Array.isArray(previewParameter) && previewParameter[0] === 'false');
-
-  const renderInPreviewMode = isDraftSession && !isPreviewDisabled;
 
   // check if the collection is in the special page table
   if (isSpecialPage(collection)) {
@@ -202,7 +197,7 @@ const CMSPage: React.FC<{
             locale={validatedLocale}
             searchParams={searchParametersPromise}
           />
-          {isDraftSession && (
+          {renderInPreviewMode && (
             <PreviewWarning
               params={Promise.resolve({ locale: validatedLocale })}
               renderInPreviewMode={renderInPreviewMode}
@@ -240,7 +235,7 @@ const CMSPage: React.FC<{
             renderInPreviewMode={renderInPreviewMode}
           />
 
-          {isDraftSession && (
+          {renderInPreviewMode && (
             <PreviewWarning
               params={Promise.resolve({ locale: validatedLocale })}
               renderInPreviewMode={renderInPreviewMode}

@@ -29,13 +29,12 @@ const languagePreposition: StaticTranslationString = {
 const getBlogArticlesCachedPersistent = async (
   slug: string,
   locale: Locale,
-  renderInPreviewMode: boolean,
 ): Promise<{ docs: Blog[] }> => {
   'use cache';
   cacheLife('hours');
   cacheTag('payload', 'blog', 'collection:blog');
 
-  return getBlogArticleBySlugCached(slug, locale, renderInPreviewMode);
+  return getBlogArticleBySlugCached(slug, locale, false);
 };
 
 const BlogPostPage: LocalizedCollectionComponent = async ({
@@ -45,11 +44,15 @@ const BlogPostPage: LocalizedCollectionComponent = async ({
 }) => {
   const slug = slugs.join('/');
 
-  const articlesInPrimaryLanguage = await getBlogArticlesCachedPersistent(
-    slug,
-    locale,
-    renderInPreviewMode,
-  );
+  let documents: Blog[] = [];
+  if (renderInPreviewMode) {
+    const fetchResult = await getBlogArticleBySlugCached(slug, locale, true);
+    documents = fetchResult.docs;
+  } else {
+    const fetchResult = await getBlogArticlesCachedPersistent(slug, locale);
+    documents = fetchResult.docs;
+  }
+  const articlesInPrimaryLanguage = { docs: documents };
 
   if (articlesInPrimaryLanguage.docs.length > 1) {
     const conflicting = articlesInPrimaryLanguage.docs
@@ -78,7 +81,11 @@ const BlogPostPage: LocalizedCollectionComponent = async ({
   const locales: Locale[] = i18nConfig.locales.filter((l) => l !== locale) as Locale[];
 
   const articles = await Promise.all(
-    locales.map((l) => getBlogArticlesCachedPersistent(slug, l, renderInPreviewMode)),
+    locales.map(async (l) => {
+      return await (renderInPreviewMode
+        ? getBlogArticleBySlugCached(slug, l, true)
+        : getBlogArticlesCachedPersistent(slug, l));
+    }),
   )
     .then((results) =>
       results
