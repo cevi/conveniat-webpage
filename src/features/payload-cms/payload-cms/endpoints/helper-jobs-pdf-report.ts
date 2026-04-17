@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return, @typescript-eslint/restrict-template-expressions, @typescript-eslint/no-floating-promises, @typescript-eslint/prefer-promise-reject-errors, unicorn/no-null, consistent-return, prefer-promise-reject-errors, unicorn/prefer-logical-operator-over-ternary, @typescript-eslint/strict-boolean-expressions */
+/* eslint-disable @typescript-eslint/prefer-promise-reject-errors, unicorn/no-null, unicorn/prefer-logical-operator-over-ternary, @typescript-eslint/strict-boolean-expressions */
 import { RESSORT_OPTIONS } from '@/features/payload-cms/constants/ressort-options';
 import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import type { FormSubmission, HelperJob } from '@/features/payload-cms/payload-types';

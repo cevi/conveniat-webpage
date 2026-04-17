@@ -18,7 +18,7 @@ export const courseParticipantsExportHandler: PayloadHandler = async (request) =
     }
 
     const { url, routeParams } = request;
-    const courseId = routeParams?.id as string | undefined;
+    const courseId = (routeParams as { id?: string })?.id;
     if (!courseId) {
       return Response.json({ error: 'Missing course ID' }, { status: 400 });
     }

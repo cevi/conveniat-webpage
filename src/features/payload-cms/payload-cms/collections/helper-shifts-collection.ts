@@ -2,6 +2,7 @@ import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/ad
 import { mapAnnotationDescriptionLexicalEditorSettings } from '@/features/payload-cms/payload-cms/collections/camp-map-collection';
 import { injectEnrollmentCount } from '@/features/payload-cms/payload-cms/components/filled-status/inject-enrollment-count';
 import { courseParticipantsExportHandler } from '@/features/payload-cms/payload-cms/endpoints/course-participants-export';
+import { handleParticipantMutation } from '@/features/payload-cms/payload-cms/endpoints/course-participants-manager';
 import { accordion } from '@/features/payload-cms/payload-cms/shared-blocks/accordion';
 import { fileDownloadBlock } from '@/features/payload-cms/payload-cms/shared-blocks/file-download-block';
 import { richTextArticleBlock } from '@/features/payload-cms/payload-cms/shared-blocks/rich-text-article-block';
@@ -24,6 +25,16 @@ export const HelperShiftsCollection: CollectionConfig = {
       path: '/:id/participants-export',
       method: 'get',
       handler: courseParticipantsExportHandler,
+    },
+    {
+      path: '/:id/participants',
+      method: 'post',
+      handler: handleParticipantMutation,
+    },
+    {
+      path: '/:id/participants',
+      method: 'delete',
+      handler: handleParticipantMutation,
     },
   ],
 

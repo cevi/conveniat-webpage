@@ -12,7 +12,7 @@ export interface HelperShiftFrontendType {
   id: string;
   title: string;
   description: string;
-  meetingPoint?: string | undefined; // eslint-disable-line unicorn/no-null
+  meetingPoint?: string | undefined;
   timeslot: {
     date: string;
     time: string;
@@ -51,7 +51,7 @@ const getHelperShiftsCached = async (
       meetingPoint:
         document_.meetingPoint != undefined && typeof document_.meetingPoint === 'string'
           ? document_.meetingPoint
-          : undefined, // eslint-disable-line unicorn/no-null
+          : undefined,
       timeslot: {
         date: String(document_.timeslot.date),
         time: String(document_.timeslot.time),

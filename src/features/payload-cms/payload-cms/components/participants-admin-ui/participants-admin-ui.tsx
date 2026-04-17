@@ -1,48 +1,139 @@
 'use client';
 
 import { useDocumentInfo } from '@payloadcms/ui';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import Select from 'react-select';
 
-type Participant = {
+interface Participant {
   uuid: string;
   fullName: string;
   nickname: string;
+  email: string;
   hof: string;
   quartier: string;
-};
+}
+
+interface UserOption {
+  value: string;
+  label: string;
+}
+
+interface PayloadUserResponse {
+  id: string;
+  fullName?: string;
+  nickname?: string;
+}
 
 export const ParticipantsAdminUI: React.FC = () => {
   const { id, collectionSlug } = useDocumentInfo();
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | undefined>();
+
+  const [users, setUsers] = useState<UserOption[]>([]);
+  const [selectedUser, setSelectedUser] = useState<UserOption | undefined>();
+  const [mutating, setMutating] = useState<boolean>(false);
+
+  const fetchParticipants = useCallback(async (): Promise<void> => {
+    if (id == undefined || collectionSlug == undefined) {
+      return;
+    }
+    try {
+      const response = await fetch(`/api/${collectionSlug}/${id}/participants-export?format=json`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch participants');
+      }
+      const data = (await response.json()) as { participants?: Participant[] };
+      setParticipants(data.participants ?? []);
+    } catch (error_) {
+      setError(error_ instanceof Error ? error_.message : String(error_));
+    } finally {
+      setLoading(false);
+    }
+  }, [id, collectionSlug]);
+
+  const fetchUsers = useCallback(async (): Promise<void> => {
+    try {
+      const response = await fetch(`/api/users?limit=1000`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch available users');
+      }
+
+      const data = (await response.json()) as { docs?: PayloadUserResponse[] };
+      const options = (data.docs ?? []).map((u) => {
+        const namePart = u.fullName ?? 'Unbekannt';
+        const nickPart = u.nickname !== undefined && u.nickname !== '' ? `(${u.nickname})` : '';
+        return {
+          value: u.id,
+          label: `${namePart} ${nickPart}`,
+        };
+      });
+      setUsers(options);
+    } catch (error_) {
+      console.warn('Could not load user list for manual enrollment.', error_);
+    }
+  }, []);
 
   useEffect(() => {
-    if (!id || !collectionSlug) {
+    if (id === undefined || collectionSlug === undefined) {
       setLoading(false);
       return;
     }
 
-    const fetchParticipants = async () => {
-      try {
-        const res = await fetch(`/api/${collectionSlug}/${id}/participants-export?format=json`);
-        if (!res.ok) {
-          throw new Error('Failed to fetch participants');
-        }
-        const data = await res.json();
-        setParticipants(data.participants || []);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : String(err));
-      } finally {
-        setLoading(false);
-      }
-    };
-
     void fetchParticipants();
-  }, [id, collectionSlug]);
+    void fetchUsers();
+  }, [id, collectionSlug, fetchParticipants, fetchUsers]);
 
-  if (!id) {
-    return null;
+  const handleEnroll = async (): Promise<void> => {
+    if (selectedUser === undefined || id === undefined || collectionSlug === undefined) return;
+
+    setMutating(true);
+    try {
+      const response = await fetch(`/api/${collectionSlug}/${id}/participants`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: selectedUser.value }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to enroll user');
+      }
+
+      await fetchParticipants();
+      setSelectedUser(undefined);
+    } catch (error_) {
+      alert(error_ instanceof Error ? error_.message : String(error_));
+    } finally {
+      setMutating(false);
+    }
+  };
+
+  const handleUnenroll = async (userId: string): Promise<void> => {
+    if (id === undefined || collectionSlug === undefined) return;
+    if (!confirm('Wirklich abmelden?')) return;
+
+    setMutating(true);
+    try {
+      const response = await fetch(`/api/${collectionSlug}/${id}/participants?userId=${userId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to unenroll user');
+      }
+
+      await fetchParticipants();
+    } catch (error_) {
+      alert(error_ instanceof Error ? error_.message : String(error_));
+    } finally {
+      setMutating(false);
+    }
+  };
+
+  if (id === undefined || collectionSlug === undefined) {
+    return;
   }
 
   return (
@@ -101,13 +192,13 @@ export const ParticipantsAdminUI: React.FC = () => {
           border: '1px solid var(--theme-elevation-150)',
         }}
       >
-        {loading && <p>Loading participants...</p>}
-        {error && <p style={{ color: 'var(--theme-error-500)' }}>{error}</p>}
-        {!loading && !error && participants.length === 0 && (
-          <p style={{ margin: 0 }}>No participants enrolled yet.</p>
+        {loading === true && <p>Loading participants...</p>}
+        {error !== undefined && <p style={{ color: 'var(--theme-error-500)' }}>{error}</p>}
+        {loading === false && error === undefined && participants.length === 0 && (
+          <p style={{ margin: 0, marginBottom: '1rem' }}>No participants enrolled yet.</p>
         )}
-        {!loading && !error && participants.length > 0 && (
-          <div style={{ overflowX: 'auto' }}>
+        {loading === false && error === undefined && participants.length > 0 && (
+          <div style={{ overflowX: 'auto', marginBottom: '2rem' }}>
             <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--theme-elevation-150)' }}>
@@ -116,6 +207,7 @@ export const ParticipantsAdminUI: React.FC = () => {
                   <th style={{ padding: '0.5rem' }}>Email</th>
                   <th style={{ padding: '0.5rem' }}>Hof</th>
                   <th style={{ padding: '0.5rem' }}>Quartier</th>
+                  <th style={{ padding: '0.5rem', width: '80px' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -126,12 +218,69 @@ export const ParticipantsAdminUI: React.FC = () => {
                     <td style={{ padding: '0.5rem' }}>{p.email}</td>
                     <td style={{ padding: '0.5rem' }}>{p.hof}</td>
                     <td style={{ padding: '0.5rem' }}>{p.quartier}</td>
+                    <td style={{ padding: '0.5rem' }}>
+                      <button
+                        type="button"
+                        onClick={(): void => {
+                          void handleUnenroll(p.uuid);
+                        }}
+                        disabled={mutating}
+                        style={{
+                          background: 'transparent',
+                          color: 'var(--theme-error-500)',
+                          border: 'none',
+                          cursor: mutating ? 'not-allowed' : 'pointer',
+                          fontWeight: 'bold',
+                        }}
+                        title="Un-enroll Participant"
+                      >
+                        ✕ Remove
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
+
+        <div style={{ borderTop: '1px solid var(--theme-elevation-150)', paddingTop: '1rem' }}>
+          <h4 style={{ fontSize: '1rem', margin: '0 0 0.5rem 0' }}>Manual Enrollment</h4>
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            <div style={{ flex: 1, maxWidth: '400px' }}>
+              <Select
+                options={users}
+                value={selectedUser}
+                onChange={(option): void => {
+                  setSelectedUser((option as UserOption | undefined) ?? undefined);
+                }}
+                isClearable
+                isSearchable
+                placeholder="Search user..."
+                isDisabled={loading || mutating}
+                styles={{
+                  control: (base) => ({
+                    ...base,
+                    minHeight: '40px',
+                    borderRadius: '4px',
+                    borderColor: 'var(--theme-elevation-150)',
+                  }),
+                }}
+              />
+            </div>
+            <button
+              type="button"
+              className="btn btn--style-primary"
+              onClick={(): void => {
+                void handleEnroll();
+              }}
+              disabled={selectedUser === undefined || mutating}
+              style={{ minHeight: '40px' }}
+            >
+              {mutating ? 'Enrolling...' : 'Enroll User'}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

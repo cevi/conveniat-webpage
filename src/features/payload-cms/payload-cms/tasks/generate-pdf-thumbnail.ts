@@ -146,7 +146,7 @@ export const generatePdfThumbnailTask: TaskConfig<{
         );
 
         // We'll store the generated image's tiny URL if available, else standard URL
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+
         const imageUrl: string = imageDocument.sizes?.tiny?.url || imageDocument.url || '';
 
         await updateDocumentThumbnailUrl(payload, req, documentId, imageUrl);
@@ -156,7 +156,7 @@ export const generatePdfThumbnailTask: TaskConfig<{
         return {
           output: {
             success: true,
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument
+
             imageId: String(imageDocument.id),
           },
         };

@@ -7,6 +7,7 @@ import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/
 import type { CollectionConfig } from 'payload';
 
 import { courseParticipantsExportHandler } from '@/features/payload-cms/payload-cms/endpoints/course-participants-export';
+import { handleParticipantMutation } from '@/features/payload-cms/payload-cms/endpoints/course-participants-manager';
 import { syncOrganisers } from '@/features/payload-cms/payload-cms/utils/sync-organisers';
 
 export const CampScheduleEntryCollection: CollectionConfig = {
@@ -21,6 +22,16 @@ export const CampScheduleEntryCollection: CollectionConfig = {
       path: '/:id/participants-export',
       method: 'get',
       handler: courseParticipantsExportHandler,
+    },
+    {
+      path: '/:id/participants',
+      method: 'post',
+      handler: handleParticipantMutation,
+    },
+    {
+      path: '/:id/participants',
+      method: 'delete',
+      handler: handleParticipantMutation,
     },
   ],
 
