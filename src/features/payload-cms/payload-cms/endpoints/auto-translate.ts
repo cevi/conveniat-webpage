@@ -16,6 +16,12 @@ async function translateData(
   targetLang: string,
   sourceLang: string,
 ): Promise<Record<string, unknown>> {
+  // Precompute a lookup map for translatable paths
+  const pathMap = new Map<string, LocalizedFieldReference>();
+  for (const p of paths) {
+    pathMap.set(p.path.join('.'), p);
+  }
+
   // Accumulate plaintext fields for batching
   const plainTextFields: { obj: Record<string, unknown>; key: string; text: string }[] = [];
 
@@ -44,8 +50,8 @@ async function translateData(
         continue;
       }
 
-      // Check if this path matches a localized leaf node
-      const match = paths.find((p) => p.path.join('.') === newPath.join('.'));
+      // Check if this path matches a localized leaf node using the map
+      const match = pathMap.get(newPath.join('.'));
 
       if (match && typeof val === 'string' && val.trim() !== '') {
         if (match.type === 'text' || match.type === 'textarea') {
@@ -146,7 +152,7 @@ export const autoTranslateHandler: PayloadHandler = async (request) => {
     // We should not modify the existing publishing status for the target locale
     // targetData was fetched with targetLocale, so _localized_status is already flat.
     const currentStatus =
-      Boolean((targetData as Record<string, unknown>)['_localized_status']) ||
+      (targetData as Record<string, unknown>)['_localized_status'] ||
       ({
         published: false,
       } as Record<string, unknown>);
