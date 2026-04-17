@@ -106,25 +106,32 @@ export const generateMetadata = async ({
   }>;
   searchParams: Promise<SearchParameters>;
 }): Promise<Metadata> => {
-  // eslint-disable-next-line unicorn/no-await-expression-member
-  const isPreview = (await searchParams)['preview'] === 'true';
+  const awaitedSearchParameters = await searchParams;
+  const previewParameter = awaitedSearchParameters['preview'];
+  const isPreviewRequested =
+    previewParameter === 'true' ||
+    (Array.isArray(previewParameter) && previewParameter[0] === 'true');
 
   const { slugs, locale, design } = await params;
-  const awaitedParameters = await params;
 
   const displaySlug =
     locale === '_next'
       ? `/_next/${design}/${(slugs ?? []).join('/')}`
       : `/${(slugs ?? []).join('/')}`;
 
-  console.log(
-    `Generate metadata for page with slug: ${displaySlug}, from: ${JSON.stringify(awaitedParameters)}`,
-  );
+  console.log(`Generate metadata for page with slug: ${displaySlug}`);
+
+  let isPreview = false;
+  if (isPreviewRequested) {
+    const { canAccessPreviewOfCurrentPage } =
+      await import('@/features/payload-cms/utils/preview/preview-utils');
+    const url = `/${locale}/${slugs?.join('/') ?? ''}`;
+    isPreview = await canAccessPreviewOfCurrentPage(awaitedSearchParameters, url);
+  }
 
   // During build, 'await connection()' signals that this function depends on
   // request-time info (like headers), effectively opting out of static pre-rendering
   // for this specific execution if it were truly dynamic.
-  // HOWEVER, preventing the DB connection manually via our helper is safer for avoiding build errors.
   await connection();
   return await generateMetadataCached(locale as Locale, slugs, isPreview);
 };
