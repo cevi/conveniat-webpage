@@ -27,6 +27,12 @@ ingester:
   max_block_bytes: 1_000_000 # Cut the head block when it hits this size or
   max_block_duration: 5m # this much time passes
 
+  lifecycler:
+    ring:
+      replication_factor: 1
+      kvstore:
+        store: inmemory
+
 # Configuration block to determine where to store TSDB blocks.
 storage:
   trace:
