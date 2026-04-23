@@ -160,6 +160,21 @@ Unlike the standard Payload documentation recommendations, this project **does n
 
 Instead, the `preview` search parameter acts as a manual trigger within server components (like `GenericPage`) to swap from `'use cache'` memoized database functions into direct, uncached Payload database fetches, enabling real-time iframe updates while keeping the rest of the Admin Panel fast.
 
+#### Preview Mode Activation
+
+The preview bar (the dark banner at the top of the frontend) is **not** shown to every admin by default. It is gated behind a **session cookie** (`payload-admin-visited`):
+
+1. **Cookie is set** when an admin visits any page under `/admin` (via the `SetPreviewSessionCookie` client component in the admin layout).
+2. **Banner appears** on the frontend only if the session cookie is present AND the user has admin panel access.
+3. **Dismissing the banner** (via the ✕ button) deletes the session cookie, hiding the banner until the admin visits `/admin` again.
+4. **Browser close** clears the session cookie automatically (no `max-age` / `expires`).
+
+This design ensures that admins browsing the public site are not distracted by preview controls unless they have actively entered the admin panel during their current session.
+
+#### Guest Preview Links
+
+External reviewers without admin accounts can preview draft content via **signed preview tokens** (`?preview=true&preview-token=...`). These tokens are validated server-side (JWT-style) and are independent of the session cookie mechanism.
+
 ### Caching in Development
 
 In development mode (`NODE_ENV=development`), the custom cache handler (Redis/FileSystem) is **disabled**. Next.js uses its default in-memory cache in development.

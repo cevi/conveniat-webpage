@@ -3,7 +3,9 @@ import 'server-only';
 import { PreviewWarningClient } from '@/components/preview-warning-client';
 import type { Locale, SearchParameters } from '@/types/types';
 import { isAdminSession } from '@/utils/is-admin-session';
+import { PREVIEW_SESSION_COOKIE } from '@/utils/preview-session-cookie';
 import { isPreviewTokenValid } from '@/utils/preview-token';
+import { cookies } from 'next/headers';
 import type React from 'react';
 
 /**
@@ -46,10 +48,11 @@ const isValidPreviewToken = async (
 
 /**
  * Checks if the page should be rendered in preview mode.
- * This is the case of the `preview` query parameter is set to `true` and
+ * This is the case if the `preview` query parameter is set to `true` and
  *
- * 1) the cookie `preview` is set and the use can access the payload admin panel
- * 2) or if the `preview-token` query parameter is set and valid
+ * 1) the user has a valid `preview-token` query parameter (e.g. shared preview link)
+ * 2) or the user has an authenticated admin session AND has visited the admin panel
+ *    during the current browser session (indicated by the `payload-admin-visited` cookie)
  *
  * @param searchParameters
  * @param url
@@ -67,6 +70,11 @@ export const canAccessPreviewOfCurrentPage = async (
   // check if preview token is set and valid
   const hasValidPreviewToken = await isValidPreviewToken(previewToken, url);
   if (hasValidPreviewToken) return true;
+
+  // check if the admin has visited the admin panel in this session
+  const cookieStore = await cookies();
+  const hasVisitedAdmin = cookieStore.has(PREVIEW_SESSION_COOKIE);
+  if (!hasVisitedAdmin) return false;
 
   // check if user has an authenticated admin session
   return await isAdminSession();
