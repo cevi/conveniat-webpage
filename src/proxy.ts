@@ -4,6 +4,30 @@ import { proxyChain } from '@/proxy/proxy-chain';
 
 import type { ProxyModule } from '@/proxy/types';
 import { isExcludedFromPathRewrites } from '@/proxy/utils/is-excluded-from-path-rewrites';
+import { auth } from '@/utils/auth';
+
+const authSessionProxy: ProxyModule = (next) => {
+  return async (request, event, response) => {
+    // We want auth() to run for most paths (including /admin and /api),
+    // but not for purely static assets to save overhead.
+    const isStaticAsset =
+      request.nextUrl.pathname.match(/\.(png|ico|svg|webmanifest|json|xml|txt|jpg|jpeg|gif)$/i) ??
+      request.nextUrl.pathname.startsWith('/imgs/');
+    if (isStaticAsset) {
+      return next(request, event, response);
+    }
+
+    // Call auth() to trigger the jwt callback and potential token refresh.
+    // Since proxy.ts has access to modify headers, NextAuth will successfully
+    // inject the Set-Cookie header if the token is rotated.
+    //
+    // This does not do an auth check itself (only rotates the token if needed)
+    // this aligns with NextJS's recommendation to only do optimistic checks in proxy
+    await auth();
+
+    return next(request, event, response);
+  };
+};
 
 const skipExcludedPaths: ProxyModule = (next) => {
   return async (request, _event, response) => {
@@ -20,6 +44,7 @@ const pathnameProxy: ProxyModule = (next) => {
 };
 
 export const proxy = proxyChain([
+  { proxy: authSessionProxy, name: 'authSession' },
   { proxy: skipExcludedPaths, name: 'skipExcludedPaths' },
   { proxy: pathnameProxy, name: 'pathname' },
   { proxy: i18nProxy, name: 'i18n' },
