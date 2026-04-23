@@ -115,6 +115,22 @@ export const ImageCollection: CollectionConfig = {
         },
       },
     },
+    {
+      name: 'internalDescription',
+      label: {
+        en: 'Internal Description',
+        de: 'Interne Beschreibung',
+        fr: 'Description interne',
+      },
+      type: 'text',
+      admin: {
+        description: {
+          en: 'Example: for the newsletter',
+          de: 'Beispiel: für im Newsletter',
+          fr: 'Exemple: pour la newsletter',
+        },
+      },
+    },
     LastEditedByUserField,
   ],
   upload: {

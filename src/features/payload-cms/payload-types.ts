@@ -534,6 +534,10 @@ export interface Image {
    * Indicates if this image was generated as a PDF thumbnail.
    */
   isPdfThumbnail?: boolean | null;
+  /**
+   * Example: for the newsletter
+   */
+  internalDescription?: string | null;
   lastEditedByUser?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
@@ -4358,6 +4362,7 @@ export interface ImagesSelect<T extends boolean = true> {
   imageCaption_en?: T;
   imageCaption_fr?: T;
   isPdfThumbnail?: T;
+  internalDescription?: T;
   lastEditedByUser?: T;
   updatedAt?: T;
   createdAt?: T;
