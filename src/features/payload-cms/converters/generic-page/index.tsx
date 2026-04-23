@@ -9,7 +9,7 @@ export const GenericPageConverter: React.FC<{
   page: GenericPage;
   locale: Locale;
   renderInPreviewMode?: boolean;
-}> = ({ page, locale, renderInPreviewMode }) => {
+}> = ({ page, locale, renderInPreviewMode = false }) => {
   return (
     <>
       <article className="my-8 w-full">
