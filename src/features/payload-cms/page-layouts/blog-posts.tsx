@@ -150,7 +150,9 @@ const generateMetadataInternal = async (
     currentDate,
   });
 
-  const germanAlternative = blogAlternatives.find((a) => a._locale.startsWith('de'));
+  const germanAlternative = blogAlternatives.find((a) =>
+    (a._locale as string | undefined)?.startsWith('de'),
+  );
   const canonicalLocale = germanAlternative?._locale ?? locale;
   const canonicalSlug = germanAlternative?.seo.urlSlug ?? slug;
 

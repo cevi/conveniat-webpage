@@ -193,7 +193,9 @@ const generateMetadataInternal = async (
     internalPageName: page.internalPageName,
   });
 
-  const germanAlternative = pageAlternatives.find((a) => a._locale.startsWith('de'));
+  const germanAlternative = pageAlternatives.find((a) =>
+    (a._locale as string | undefined)?.startsWith('de'),
+  );
   const canonicalLocale = germanAlternative?._locale ?? locale;
   const canonicalSlug = germanAlternative?.seo.urlSlug ?? slug;
 
