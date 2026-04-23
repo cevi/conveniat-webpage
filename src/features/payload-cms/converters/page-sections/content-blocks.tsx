@@ -84,6 +84,7 @@ export type SectionRenderer<T = object> = React.FC<
     sectionClassName?: string;
     sectionOverrides?: { [key in ContentBlockTypeNames]?: string };
     locale: Locale;
+    renderInPreviewMode?: boolean;
   }
 >;
 
@@ -125,6 +126,7 @@ export const RenderTimelineEntries: SectionRenderer<TimelineEntries> = async ({
   locale,
   sectionClassName,
   sectionOverrides,
+  renderInPreviewMode,
 }) => {
   const timelineEntryCategories: (string | TimelineCategory)[] =
     block.timelineEntryCategories ?? [];
@@ -135,10 +137,9 @@ export const RenderTimelineEntries: SectionRenderer<TimelineEntries> = async ({
     .flat()
     .filter((entry: string | Timeline) => typeof entry === 'string');
 
-  const { docs: timelineEntriesUnsorted } = await getTimelineEntriesCachedPersistent(
-    timelineEntryUuids,
-    locale,
-  );
+  const { docs: timelineEntriesUnsorted } = await (renderInPreviewMode
+    ? getTimelineEntriesCached(timelineEntryUuids, locale, true)
+    : getTimelineEntriesCachedPersistent(timelineEntryUuids, locale));
 
   const timelineEntries = timelineEntriesUnsorted
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition

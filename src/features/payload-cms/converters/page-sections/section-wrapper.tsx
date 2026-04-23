@@ -1,8 +1,8 @@
 import type { ContentBlockTypeNames } from '@/features/payload-cms/converters/page-sections/content-blocks';
 import { SectionErrorBoundary } from '@/features/payload-cms/converters/page-sections/section-error-boundary';
 import type { Locale, StaticTranslationString } from '@/types/types';
+import { isAdminSession } from '@/utils/is-admin-session';
 import { cn } from '@/utils/tailwindcss-override';
-import { draftMode } from 'next/headers';
 import React from 'react';
 
 export type ContentBlock<T = object> = { blockType: ContentBlockTypeNames; id: string } & T;
@@ -23,8 +23,7 @@ const SectionWrapper = async ({
   locale: Locale;
 }): Promise<React.ReactElement> => {
   const blockTypeOverrideClassName = sectionOverrides?.[block.blockType];
-  const draft = await draftMode();
-  const isDraftMode = draft.isEnabled;
+  const isDraftMode = await isAdminSession();
 
   // Pre-validate block in draft mode to avoid render crashes (e.g. missing required fields)
   if (isDraftMode) {

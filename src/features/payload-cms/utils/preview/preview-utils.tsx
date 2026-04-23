@@ -1,12 +1,11 @@
 import 'server-only';
 
 import { PreviewWarningClient } from '@/components/preview-warning-client';
-import { canUserAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import type { Locale, SearchParameters } from '@/types/types';
-import { auth } from '@/utils/auth';
-import { isValidNextAuthUser } from '@/utils/auth-helpers';
+import { isAdminSession } from '@/utils/is-admin-session';
+import { PREVIEW_SESSION_COOKIE } from '@/utils/preview-session-cookie';
 import { isPreviewTokenValid } from '@/utils/preview-token';
-import { draftMode } from 'next/headers';
+import { cookies } from 'next/headers';
 import type React from 'react';
 
 /**
@@ -49,10 +48,11 @@ const isValidPreviewToken = async (
 
 /**
  * Checks if the page should be rendered in preview mode.
- * This is the case of the `preview` query parameter is set to `true` and
+ * This is the case if the `preview` query parameter is set to `true` and
  *
- * 1) the cookie `preview` is set and the use can access the payload admin panel
- * 2) or if the `preview-token` query parameter is set and valid
+ * 1) the user has a valid `preview-token` query parameter (e.g. shared preview link)
+ * 2) or the user has an authenticated admin session AND has visited the admin panel
+ *    during the current browser session (indicated by the `payload-admin-visited` cookie)
  *
  * @param searchParameters
  * @param url
@@ -71,18 +71,13 @@ export const canAccessPreviewOfCurrentPage = async (
   const hasValidPreviewToken = await isValidPreviewToken(previewToken, url);
   if (hasValidPreviewToken) return true;
 
-  // check if cookie is set
-  const draft = await draftMode();
-  if (!draft.isEnabled) return false;
+  // check if the admin has visited the admin panel in this session
+  const cookieStore = await cookies();
+  const hasVisitedAdmin = cookieStore.has(PREVIEW_SESSION_COOKIE);
+  if (!hasVisitedAdmin) return false;
 
-  const session = await auth();
-  if (session === null) return false;
-
-  // check if user is an admin
-  const user = session.user;
-  if (!isValidNextAuthUser(user)) return false;
-
-  return canUserAccessAdminPanel({ user });
+  // check if user has an authenticated admin session
+  return await isAdminSession();
 };
 
 export const PreviewWarning: React.FC<{

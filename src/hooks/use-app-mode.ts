@@ -13,7 +13,7 @@ export const useAppMode = (): void => {
       // Clear the initial entry cookie as soon as the client-side takes over
       // The Service Worker will handle subsequent requests via headers
       // eslint-disable-next-line unicorn/no-document-cookie
-      document.cookie = 'x-app-mode-initial=; Max-Age=0; path=/;';
+      globalThis.document.cookie = 'x-app-mode-initial=; Max-Age=0; path=/;';
 
       if ('serviceWorker' in navigator) {
         const sendAppModeMessage = (): void => {

@@ -151,7 +151,29 @@ CMS.
    `src/features/payload-cms/page-layouts`) is rendered. Complex CMS fields (like Blocks or Rich Text) are mapped
    to React components using converters (`src/features/payload-cms/converters`).
 
-To improve performance, calls to Payload CMS are cached server-side using Next.js 'use cache' functionality.
+To improve performance, calls to Payload CMS are cached server-side using Next.js `'use cache'` functionality.
+
+### Live Preview Architecture
+
+Payload CMS's built-in Live Preview is supported by bypassing the Next.js cache when the `?preview=true` search parameter is present.
+Unlike the standard Payload documentation recommendations, this project avoids using Next.js `draftMode()` completely. Because the frontend and the Payload Admin UI share the same robust Next.js application (same domain), enabling `draftMode()` would propagate the `__prerender_bypass` cookie to the Admin Panel, globally disabling caching and severely downgrading the Payload UI performance.
+
+Instead, the `preview` search parameter acts as a manual trigger within server components (like `GenericPage`) to swap from `'use cache'` memoized database functions into direct, uncached Payload database fetches, enabling real-time iframe updates while keeping the rest of the Admin Panel fast. Both admin previews and token-based shared preview links utilize stateless URL parameters (`?preview=true` and `?preview-token=...`) instead of stateful Next.js draft mode cookies.
+
+#### Preview Mode Activation
+
+The preview bar (the dark banner at the top of the frontend) is **not** shown to every admin by default. It is gated behind a **session cookie** (`payload-admin-visited`):
+
+1. **Cookie is set** when an admin visits any page under `/admin` (via the `SetPreviewSessionCookie` client component in the admin layout).
+2. **Banner appears** on the frontend only if the session cookie is present AND the user has admin panel access.
+3. **Dismissing the banner** (via the ✕ button) deletes the session cookie, hiding the banner until the admin visits `/admin` again.
+4. **Browser close** clears the session cookie automatically (no `max-age` / `expires`).
+
+This design ensures that admins browsing the public site are not distracted by preview controls unless they have actively entered the admin panel during their current session.
+
+#### Guest Preview Links
+
+External reviewers without admin accounts can preview draft content via **signed preview tokens** (`?preview=true&preview-token=...`). These tokens are validated server-side (JWT-style) and are independent of the session cookie mechanism.
 
 ### Caching in Development
 

@@ -1,40 +1,38 @@
 import { PreviewModeBanner } from '@/components/header/preview-mode-banner';
-import { canUserAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
-import { isValidNextAuthUser } from '@/utils/auth-helpers';
+import { getAdminSession } from '@/utils/is-admin-session';
+import { PREVIEW_SESSION_COOKIE } from '@/utils/preview-session-cookie';
 import { cookies } from 'next/headers';
 import React from 'react';
 
 /**
+ * The preview mode banner is a small gray banner at the top of the screen.
  *
- * The preview mode banner is a small gray banner at the top of the screen and
- * is visible whenever the user is viewing at a page in preview mode.
- * The preview banner is part of the previewing system.
+ * It is only visible when:
+ * 1. The user is an authenticated admin (has admin panel access), AND
+ * 2. The user has visited the admin panel during the current browser session
+ *    (indicated by the `payload-admin-visited` session cookie).
  *
- * The preview banner cannot be closed while a page in preview mode is visited.
- * If the visiting user is a Payload admin (e.g. a user that can access the admin panel).
- * The preview banner becomes visible as soon as the user has signed in to the Payload CMS and
- * visited the admin panel (see middleware.ts).
- *
- * The preview banner can be closed (e.g. hidden away) whenever a non-preview page is accessed.
- * The preview banner of a non-payload admin is only visible on the specific page that is in preview mode.
- *
+ * The user can dismiss the banner via the close button, which deletes the
+ * session cookie. The banner will reappear the next time they visit `/admin`.
  */
 export const PreviewModeBannerServerComponent: React.FC = async () => {
-  const { auth } = await import('@/utils/auth');
-  const session = await auth();
+  // First, check the cheap cookie — avoids the auth() call for non-admin visitors
+  const cookieStore = await cookies();
+  const hasVisitedAdmin = cookieStore.has(PREVIEW_SESSION_COOKIE);
 
-  const serverCookies = await cookies();
-  const previewModeActive = serverCookies.get('__prerender_bypass')?.value !== undefined;
+  // If the user has NOT visited the admin panel, they might be a guest with a preview link.
+  // We render the client component with default props, skipping expensive auth queries.
+  // The client component will check searchParams and no-op if no token is present.
+  if (!hasVisitedAdmin) {
+    return <PreviewModeBanner user={undefined} canAccessAdmin={false} />;
+  }
 
-  const canAccessAdminDashboard = await canUserAccessAdminPanel({
-    user: isValidNextAuthUser(session?.user) ? session.user : undefined,
-  });
+  // Only do expensive auth queries if they are flagged as having visited the admin panel.
+  const session = await getAdminSession();
 
-  return (
-    <PreviewModeBanner
-      user={session?.user}
-      canAccessAdmin={canAccessAdminDashboard}
-      previewModeActive={previewModeActive}
-    />
-  );
+  if (!session) {
+    return <PreviewModeBanner user={undefined} canAccessAdmin={false} />;
+  }
+
+  return <PreviewModeBanner user={session.user} canAccessAdmin />;
 };

@@ -1,20 +1,20 @@
 'use client';
 
 import { generatePreviewUrl } from '@/features/payload-cms/utils/preview/generate-preview-url';
-import { useDocumentInfo, useFormFields, useLivePreviewContext } from '@payloadcms/ui';
-import { useSearchParams } from 'next/navigation';
+import { useDocumentInfo, useFormFields, useLivePreviewContext, useLocale } from '@payloadcms/ui';
 import type { Locale } from 'payload';
 import React, { useEffect, useRef } from 'react';
 
 export const LivePreviewRestorer: React.FC = () => {
   const { setURL, isLivePreviewing, url: contextUrl } = useLivePreviewContext();
   const { collectionSlug, id } = useDocumentInfo();
+  const { code: currentLocaleCode } = useLocale();
 
   const urlSlugField = useFormFields(
     ([fields]) => fields['seo.urlSlug']?.value as string | undefined,
   );
-  const searchParameters = useSearchParams();
-  const localeCode = searchParameters.get('locale') ?? 'de';
+
+  const localeCode = currentLocaleCode;
 
   const urlReference = useRef<string | undefined>(undefined);
 

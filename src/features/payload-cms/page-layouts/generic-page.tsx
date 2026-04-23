@@ -13,6 +13,7 @@ import { getPayload } from 'payload';
 import {
   getGenericPageByIDCached,
   getGenericPageBySlugCached,
+  getGenericPageExistsBySlugCached,
 } from '@/features/payload-cms/api/cached-generic-pages';
 import type { GenericPage as GenericPageType } from '@/features/payload-cms/payload-types';
 
@@ -20,26 +21,36 @@ import type { GenericPage as GenericPageType } from '@/features/payload-cms/payl
 const getArticlesCachedPersistent = async (
   slug: string,
   locale: Locale,
-  renderInPreviewMode: boolean,
 ): Promise<{ docs: GenericPageType[] }> => {
   'use cache';
   cacheLife('hours');
   cacheTag('payload', 'generic-page', `collection:generic-page`);
 
-  return getGenericPageBySlugCached(slug, locale, renderInPreviewMode);
+  return getGenericPageBySlugCached(slug, locale, false);
+};
+
+// Wrapper for persistent caching of the lightweight existence check
+const getArticlesExistsCachedPersistent = async (
+  slug: string,
+  locale: Locale,
+): Promise<{ docs: GenericPageType[] }> => {
+  'use cache';
+  cacheLife('hours');
+  cacheTag('payload', 'generic-page', `collection:generic-page`);
+
+  return getGenericPageExistsBySlugCached(slug, locale, false);
 };
 
 // Wrapper for persistent caching of the ID fetch
 const getFallbackArticleCachedPersistent = async (
   id: string,
   locale: Locale,
-  renderInPreviewMode: boolean,
 ): Promise<GenericPageType> => {
   'use cache';
   cacheLife('hours');
   cacheTag('payload', 'generic-page', `doc:generic-page:${id}`);
 
-  return getGenericPageByIDCached(id, locale, renderInPreviewMode);
+  return getGenericPageByIDCached(id, locale, false);
 };
 
 const GenericPage: LocalizedCollectionComponent = async ({
@@ -53,11 +64,19 @@ const GenericPage: LocalizedCollectionComponent = async ({
     console.log('Preview mode enabled');
   }
 
-  const articlesInPrimaryLanguage = await getArticlesCachedPersistent(
-    slug,
-    locale,
-    renderInPreviewMode,
-  );
+  // Depending on whether we are in preview mode, we use the cached
+  // or the uncached fetch flow. The uncached flow is necessary to allow
+  // real-time hot-reloading inside the payload CMS live preview iframe.
+  let documents: GenericPageType[] = [];
+  if (renderInPreviewMode) {
+    const fetchResult = await getGenericPageBySlugCached(slug, locale, true);
+    documents = fetchResult.docs;
+  } else {
+    const fetchResult = await getArticlesCachedPersistent(slug, locale);
+    documents = fetchResult.docs;
+  }
+
+  const articlesInPrimaryLanguage = { docs: documents };
 
   if (articlesInPrimaryLanguage.docs.length > 1) {
     const conflicting = articlesInPrimaryLanguage.docs
@@ -76,7 +95,13 @@ const GenericPage: LocalizedCollectionComponent = async ({
       renderInPreviewMode ||
       (await hasPermissions(articleInPrimaryLanguage.content.permissions as Permission))
     ) {
-      return <GenericPageConverter page={articleInPrimaryLanguage} locale={locale} />;
+      return (
+        <GenericPageConverter
+          page={articleInPrimaryLanguage}
+          locale={locale}
+          renderInPreviewMode={renderInPreviewMode}
+        />
+      );
     } else {
       console.log('Access denied: Redirecting to 401 or 403');
       const { auth } = await import('@/utils/auth');
@@ -93,7 +118,13 @@ const GenericPage: LocalizedCollectionComponent = async ({
   const locales: Locale[] = i18nConfig.locales.filter((l) => l !== locale) as Locale[];
 
   const articles = await Promise.all(
-    locales.map((l) => getArticlesCachedPersistent(slug, l, renderInPreviewMode)),
+    locales.map(async (l) => {
+      // Use the lightweight existence check — it skips mainContent blocks,
+      // fetching only id, _locale, and content.permissions.
+      return await (renderInPreviewMode
+        ? getGenericPageExistsBySlugCached(slug, l, true)
+        : getArticlesExistsCachedPersistent(slug, l));
+    }),
   )
     .then((results) =>
       results
@@ -131,11 +162,9 @@ const GenericPage: LocalizedCollectionComponent = async ({
 
   if (fallbackDocumentId === undefined) notFound();
 
-  const article = await getFallbackArticleCachedPersistent(
-    fallbackDocumentId,
-    locale,
-    renderInPreviewMode,
-  );
+  const article = await (renderInPreviewMode
+    ? getGenericPageByIDCached(fallbackDocumentId, locale, true)
+    : getFallbackArticleCachedPersistent(fallbackDocumentId, locale));
 
   // check if published in target locale
   if (article._localized_status.published !== true) {
@@ -170,7 +199,9 @@ const generateMetadataInternal = async (
     internalPageName: page.internalPageName,
   });
 
-  const germanAlternative = pageAlternatives.find((a) => a._locale.startsWith('de'));
+  const germanAlternative = pageAlternatives.find((a) =>
+    (a._locale as string | undefined)?.startsWith('de'),
+  );
   const canonicalLocale = germanAlternative?._locale ?? locale;
   const canonicalSlug = germanAlternative?.seo.urlSlug ?? slug;
 
@@ -195,7 +226,42 @@ const generateMetadataInternal = async (
   };
 };
 
-GenericPage.generateMetadata = async ({ locale, slugs }): Promise<Metadata> => {
+const generateMetadataPreview = async (
+  locale: Locale,
+  slugs: string[] | undefined,
+): Promise<Metadata> => {
+  const slug = slugs?.join('/') ?? '';
+
+  const payload = await getPayload({ config });
+  const result = await payload.find({
+    collection: 'generic-page',
+    depth: 0,
+    pagination: false,
+    locale: locale,
+    fallbackLocale: false,
+    draft: true,
+    where: {
+      'seo.urlSlug': { equals: slug },
+    },
+    select: {
+      seo: true,
+      content: true,
+    },
+  });
+
+  const page = result.docs[0];
+  if (!page) return { title: 'Preview Mode' };
+
+  return {
+    title: page.seo.metaTitle || page.content.pageTitle || 'Preview Mode',
+    description: page.seo.metaDescription || undefined,
+  };
+};
+
+GenericPage.generateMetadata = async ({ locale, slugs, isPreview }): Promise<Metadata> => {
+  if (isPreview) {
+    return generateMetadataPreview(locale, slugs);
+  }
   return generateMetadataInternal(locale, slugs);
 };
 

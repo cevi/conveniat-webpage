@@ -1,4 +1,4 @@
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useCallback, useMemo } from 'react';
 
 /**
@@ -18,26 +18,22 @@ export const usePreviewMode = (): {
   togglePreviewMode: (value: 'enabled' | 'disabled') => void;
 } => {
   const searchParameters = useSearchParams();
-  const router = useRouter();
 
   const isInPreviewMode = useMemo(() => {
-    return searchParameters.get('preview') === 'false' ? 'disabled' : 'enabled';
+    return searchParameters.get('preview') === 'true' ? 'enabled' : 'disabled';
   }, [searchParameters]);
 
-  const togglePreviewMode = useCallback(
-    (value: 'enabled' | 'disabled') => {
-      const newUrl = new URL(globalThis.location.href);
+  const togglePreviewMode = useCallback((value: 'enabled' | 'disabled') => {
+    const newUrl = new URL(globalThis.location.href);
 
-      if (value === 'enabled') {
-        newUrl.searchParams.delete('preview');
-      } else {
-        newUrl.searchParams.set('preview', 'false');
-      }
+    if (value === 'enabled') {
+      newUrl.searchParams.set('preview', 'true');
+    } else {
+      newUrl.searchParams.set('preview', 'false');
+    }
 
-      router.push(newUrl.toString());
-    },
-    [router],
-  );
+    globalThis.location.assign(newUrl.toString());
+  }, []);
 
   return { isInPreviewMode, togglePreviewMode };
 };

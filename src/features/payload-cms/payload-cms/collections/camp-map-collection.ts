@@ -53,6 +53,15 @@ export const CampMapAnnotationsCollection: CollectionConfig = {
     groupBy: true,
     /** this is broken with our localized versions */
     disableCopyToLocale: true,
+    components: {
+      edit: {
+        beforeDocumentControls: [
+          {
+            path: '@/features/payload-cms/payload-cms/components/live-preview-restorer',
+          },
+        ],
+      },
+    },
   },
   access: {
     read: () => true,

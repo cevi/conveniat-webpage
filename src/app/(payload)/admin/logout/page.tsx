@@ -4,7 +4,9 @@ import { ConveniatLogo } from '@/components/svg-logos/conveniat-logo';
 import { AdminPanelBackgroundFaker } from '@/features/payload-cms/payload-cms/components/login-page/admin-panel-background-faker';
 import { Config } from '@/features/payload-cms/payload-types';
 import { StaticTranslationString } from '@/types/types';
+import { PREVIEW_SESSION_COOKIE } from '@/utils/preview-session-cookie';
 import { useLocale } from '@payloadcms/ui';
+import Cookies from 'js-cookie';
 import { signOut } from 'next-auth/react';
 import { useEffect } from 'react';
 
@@ -19,7 +21,9 @@ const Page = () => {
 
   useEffect(() => {
     const doLogout = async () => {
-      await fetch('/api/draft?disable=true');
+      // Clear the preview session cookie before logging out
+      Cookies.remove(PREVIEW_SESSION_COOKIE, { path: '/' });
+
       await signOut({
         redirect: true,
         callbackUrl: '/',
