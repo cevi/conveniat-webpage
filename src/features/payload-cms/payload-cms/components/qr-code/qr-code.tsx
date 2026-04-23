@@ -139,12 +139,12 @@ const prepareQRCodeData = async (
     throw new Error('Failed to generate preview token');
   }
 
-  const previewTokenQueryParameter = `?auth=secret&preview=true&preview-token=${previewToken}&slug=${basePreviewURL}`;
-  const fullURLForToken = `${domain}/api/draft`;
+  const previewTokenQueryParameter = `?preview=true&preview-token=${previewToken}`;
+  const directURL = `${domain}${basePreviewURL}${previewTokenQueryParameter}`;
 
   return {
-    qrCodeContent: fullURLForToken + previewTokenQueryParameter,
-    displayURL: fullURLForToken + previewTokenQueryParameter,
+    qrCodeContent: directURL,
+    displayURL: directURL,
   };
 };
 

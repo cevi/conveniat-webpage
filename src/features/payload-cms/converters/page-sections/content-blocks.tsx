@@ -84,6 +84,7 @@ export type SectionRenderer<T = object> = React.FC<
     sectionClassName?: string;
     sectionOverrides?: { [key in ContentBlockTypeNames]?: string };
     locale: Locale;
+    renderInPreviewMode?: boolean;
   }
 >;
 

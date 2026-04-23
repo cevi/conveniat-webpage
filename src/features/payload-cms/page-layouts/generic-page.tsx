@@ -95,7 +95,13 @@ const GenericPage: LocalizedCollectionComponent = async ({
       renderInPreviewMode ||
       (await hasPermissions(articleInPrimaryLanguage.content.permissions as Permission))
     ) {
-      return <GenericPageConverter page={articleInPrimaryLanguage} locale={locale} />;
+      return (
+        <GenericPageConverter
+          page={articleInPrimaryLanguage}
+          locale={locale}
+          renderInPreviewMode={renderInPreviewMode}
+        />
+      );
     } else {
       console.log('Access denied: Redirecting to 401 or 403');
       const { auth } = await import('@/utils/auth');

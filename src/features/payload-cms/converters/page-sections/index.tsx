@@ -41,6 +41,7 @@ export const PageSectionsConverter: React.FC<
     blocks?: ContentBlock[] | null;
     sectionClassName?: string;
     sectionOverrides?: { [key in ContentBlockTypeNames]?: string };
+    renderInPreviewMode?: boolean;
   }
 > = (sectionProperties) => {
   const { blocks } = sectionProperties;

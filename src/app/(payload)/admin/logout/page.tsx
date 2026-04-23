@@ -24,7 +24,6 @@ const Page = () => {
       // Clear the preview session cookie before logging out
       Cookies.remove(PREVIEW_SESSION_COOKIE, { path: '/' });
 
-      await fetch('/api/draft?disable=true');
       await signOut({
         redirect: true,
         callbackUrl: '/',
