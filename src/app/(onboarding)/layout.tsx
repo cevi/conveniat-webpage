@@ -30,7 +30,11 @@ const AppEntrypointLayout: React.FC<LayoutProperties> = async ({ children }) => 
   const locale = await getLocaleFromCookies();
 
   return (
-    <html className={`${montserrat.className} ${inter.className} overscroll-y-none`} lang={locale}>
+    <html
+      suppressHydrationWarning
+      className={`${montserrat.className} ${inter.className} overscroll-y-none`}
+      lang={locale}
+    >
       <head>
         {!environmentVariables.NEXT_PUBLIC_DISABLE_SERWIST && (
           <link rel="manifest" href="/manifest.webmanifest" />
