@@ -1,6 +1,5 @@
 import { PreviewModeBanner } from '@/components/header/preview-mode-banner';
-import { auth } from '@/utils/auth';
-import { isAdminSession } from '@/utils/is-admin-session';
+import { getAdminSession } from '@/utils/is-admin-session';
 import { PREVIEW_SESSION_COOKIE } from '@/utils/preview-session-cookie';
 import { cookies } from 'next/headers';
 import React from 'react';
@@ -29,13 +28,11 @@ export const PreviewModeBannerServerComponent: React.FC = async () => {
   }
 
   // Only do expensive auth queries if they are flagged as having visited the admin panel.
-  const isAdmin = await isAdminSession();
+  const session = await getAdminSession();
 
-  if (!isAdmin) {
+  if (!session) {
     return <PreviewModeBanner user={undefined} canAccessAdmin={false} />;
   }
 
-  const session = await auth();
-
-  return <PreviewModeBanner user={session?.user} canAccessAdmin />;
+  return <PreviewModeBanner user={session.user} canAccessAdmin />;
 };
