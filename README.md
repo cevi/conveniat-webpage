@@ -156,9 +156,9 @@ To improve performance, calls to Payload CMS are cached server-side using Next.j
 ### Live Preview Architecture
 
 Payload CMS's built-in Live Preview is supported by bypassing the Next.js cache when the `?preview=true` search parameter is present.
-Unlike the standard Payload documentation recommendations, this project avoids using Next.js `draftMode()` for the admin/live-preview flow. Because the frontend and the Payload Admin UI share the same robust Next.js application (same domain), enabling `draftMode()` for that flow would propagate the `__prerender_bypass` cookie to the Admin Panel, globally disabling caching and severely downgrading the Payload UI performance.
+Unlike the standard Payload documentation recommendations, this project avoids using Next.js `draftMode()` completely. Because the frontend and the Payload Admin UI share the same robust Next.js application (same domain), enabling `draftMode()` would propagate the `__prerender_bypass` cookie to the Admin Panel, globally disabling caching and severely downgrading the Payload UI performance.
 
-Instead, the `preview` search parameter acts as a manual trigger within server components (like `GenericPage`) to swap from `'use cache'` memoized database functions into direct, uncached Payload database fetches, enabling real-time iframe updates while keeping the rest of the Admin Panel fast. Next.js `draftMode()` is still used separately in `/api/draft` for token-based shared preview redirects, where that behavior is intentional and scoped to the shared preview use case.
+Instead, the `preview` search parameter acts as a manual trigger within server components (like `GenericPage`) to swap from `'use cache'` memoized database functions into direct, uncached Payload database fetches, enabling real-time iframe updates while keeping the rest of the Admin Panel fast. Both admin previews and token-based shared preview links utilize stateless URL parameters (`?preview=true` and `?preview-token=...`) instead of stateful Next.js draft mode cookies.
 
 #### Preview Mode Activation
 
