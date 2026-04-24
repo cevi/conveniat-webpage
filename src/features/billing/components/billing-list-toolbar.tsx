@@ -19,6 +19,10 @@ interface ActionResult {
   errors?: string[];
 }
 
+const handleCsvExport = (): void => {
+  window.open('/api/confidential/billing/export-csv', '_blank');
+};
+
 /**
  * Toolbar component rendered above the bill-participants list table.
  * Provides bulk actions: Sync, Generate, Send, CSV export, and Regenerate all.
@@ -35,7 +39,7 @@ export const BillingListToolbar: React.FC = () => {
     setActionResult(undefined);
 
     try {
-      const response = await fetch(`/api/billing/${action}`, { method: 'POST' });
+      const response = await fetch(`/api/confidential/billing/${action}`, { method: 'POST' });
       const result = (await response.json()) as ActionResult;
       setActionResult(result);
     } catch (error) {
@@ -47,10 +51,6 @@ export const BillingListToolbar: React.FC = () => {
       setLoading(false);
     }
   }, []);
-
-  const handleCsvExport = (): void => {
-    window.open('/api/billing/export-csv', '_blank');
-  };
 
   return (
     <div className="mb-4">

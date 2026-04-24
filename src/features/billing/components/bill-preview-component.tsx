@@ -4,7 +4,7 @@ import React from 'react';
 
 /**
  * Custom Payload CMS component that renders an iframe showing a live preview
- * of the QR Bill PDF. The iframe loads the /api/billing/preview-pdf endpoint
+ * of the QR Bill PDF. The iframe loads the /api/confidential/billing/preview-pdf endpoint
  * which generates a sample bill using the current bill-settings values.
  */
 export const BillPreviewComponent: React.FC = () => {
@@ -45,7 +45,7 @@ export const BillPreviewComponent: React.FC = () => {
       </div>
       <iframe
         key={iframeKey}
-        src={`/api/billing/preview-pdf?t=${String(iframeKey)}`}
+        src={`/api/confidential/billing/preview-pdf?t=${String(iframeKey)}`}
         title="QR Bill Preview"
         style={{
           width: '100%',

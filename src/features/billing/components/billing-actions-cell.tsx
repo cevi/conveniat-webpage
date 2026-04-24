@@ -29,14 +29,14 @@ export const BillingActionsCell: React.FC<{
 
   const handlePreview = (): void => {
     window.open(
-      `/api/billing/preview-pdf?participantId=${encodeURIComponent(rowData.id)}`,
+      `/api/confidential/billing/preview-pdf?participantId=${encodeURIComponent(rowData.id)}`,
       '_blank',
     );
   };
 
   const handleDownload = (): void => {
     const link = document.createElement('a');
-    link.href = `/api/billing/preview-pdf?participantId=${encodeURIComponent(rowData.id)}&download=true`;
+    link.href = `/api/confidential/billing/preview-pdf?participantId=${encodeURIComponent(rowData.id)}&download=true`;
     link.download = `Rechnung-${rowData.invoiceNumber ?? 'Unbekannt'}.pdf`;
     document.body.append(link);
     link.click();
@@ -46,7 +46,7 @@ export const BillingActionsCell: React.FC<{
   const handleSendEmail = async (): Promise<void> => {
     setLoading(true);
     try {
-      await fetch('/api/billing/send-single', {
+      await fetch('/api/confidential/billing/send-single', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ participantId: rowData.id }),
@@ -62,7 +62,7 @@ export const BillingActionsCell: React.FC<{
   const handleRegenerate = async (): Promise<void> => {
     setLoading(true);
     try {
-      await fetch('/api/billing/regenerate-single', {
+      await fetch('/api/confidential/billing/regenerate-single', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ participantId: rowData.id }),

@@ -2,7 +2,7 @@ import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-r
 import type { PayloadHandler } from 'payload';
 
 /**
- * POST /api/billing/sync – Sync participants from Cevi.DB
+ * POST /api/confidential/billing/sync – Sync participants from Cevi.DB
  */
 export const billingSyncHandler: PayloadHandler = async (request) => {
   try {
@@ -22,7 +22,7 @@ export const billingSyncHandler: PayloadHandler = async (request) => {
 };
 
 /**
- * POST /api/billing/generate – Generate QR Bill PDFs
+ * POST /api/confidential/billing/generate – Generate QR Bill PDFs
  */
 export const billingGenerateHandler: PayloadHandler = async (request) => {
   try {
@@ -42,7 +42,7 @@ export const billingGenerateHandler: PayloadHandler = async (request) => {
 };
 
 /**
- * POST /api/billing/regenerate-all – Regenerate all existing bills
+ * POST /api/confidential/billing/regenerate-all – Regenerate all existing bills
  */
 export const billingRegenerateAllHandler: PayloadHandler = async (request) => {
   try {
@@ -80,7 +80,7 @@ export const billingRegenerateAllHandler: PayloadHandler = async (request) => {
 };
 
 /**
- * POST /api/billing/regenerate-single – Regenerate a single bill
+ * POST /api/confidential/billing/regenerate-single – Regenerate a single bill
  */
 export const billingRegenerateSingleHandler: PayloadHandler = async (request) => {
   try {
@@ -111,7 +111,7 @@ export const billingRegenerateSingleHandler: PayloadHandler = async (request) =>
 };
 
 /**
- * POST /api/billing/send – Send bills via email
+ * POST /api/confidential/billing/send – Send bills via email
  */
 export const billingSendHandler: PayloadHandler = async (request) => {
   try {
@@ -131,7 +131,7 @@ export const billingSendHandler: PayloadHandler = async (request) => {
 };
 
 /**
- * POST /api/billing/send-single – Send bill via email for a single participant
+ * POST /api/confidential/billing/send-single – Send bill via email for a single participant
  */
 export const billingSendSingleHandler: PayloadHandler = async (request) => {
   try {
@@ -156,7 +156,7 @@ export const billingSendSingleHandler: PayloadHandler = async (request) => {
 };
 
 /**
- * GET /api/billing/export-csv – Download finance CSV
+ * GET /api/confidential/billing/export-csv – Download finance CSV
  */
 export const billingExportCsvHandler: PayloadHandler = async (request) => {
   try {
@@ -182,7 +182,7 @@ export const billingExportCsvHandler: PayloadHandler = async (request) => {
 };
 
 /**
- * GET /api/billing/preview-pdf – Serve a bill PDF
+ * GET /api/confidential/billing/preview-pdf – Serve a bill PDF
  *
  * If `?participantId=...` is provided, fetches the stored base64 PDF for that participant.
  * If `?download=true` is also set, serves as attachment instead of inline.

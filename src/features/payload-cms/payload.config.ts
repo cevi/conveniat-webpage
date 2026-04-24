@@ -1,14 +1,5 @@
 import { environmentVariables as env } from '@/config/environment-variables';
-import {
-  billingExportCsvHandler,
-  billingGenerateHandler,
-  billingPreviewPdfHandler,
-  billingRegenerateAllHandler,
-  billingRegenerateSingleHandler,
-  billingSendHandler,
-  billingSendSingleHandler,
-  billingSyncHandler,
-} from '@/features/billing/api/bill-admin-api';
+import { billingEndpoints } from '@/features/billing/api/billing-endpoints';
 import { buildSecureConfig } from '@/features/payload-cms/payload-cms/access-rules/build-secure-config';
 import { collectionsConfig } from '@/features/payload-cms/payload-cms/collections';
 import { UserCollection } from '@/features/payload-cms/payload-cms/collections/user-collection';
@@ -49,7 +40,7 @@ import {
   widgetDefaultLayout,
 } from '@/features/payload-cms/payload-cms/widgets/widget-configuration';
 import { dbConfig } from '@/lib/db/mongodb';
-import type { JobsConfig, MetaConfig } from 'payload';
+import type { Endpoint, JobsConfig, MetaConfig } from 'payload';
 import { de } from 'payload/i18n/de';
 import { en } from 'payload/i18n/en';
 import { fr } from 'payload/i18n/fr';
@@ -176,57 +167,20 @@ const jobsConfig: JobsConfig = {
     : [],
 };
 
+const customEndpoints: Endpoint[] = [
+  {
+    path: '/auto-translate',
+    method: 'post',
+    handler: autoTranslateHandler,
+  },
+  ...billingEndpoints,
+];
+
 export const payloadConfig: RoutableConfig = {
   serverURL: env.APP_HOST_URL,
   onInit: onPayloadInit,
   admin: payloadConfigAdminSettings,
-  endpoints: [
-    {
-      path: '/auto-translate',
-      method: 'post',
-      handler: autoTranslateHandler,
-    },
-    {
-      path: '/billing/sync',
-      method: 'post',
-      handler: billingSyncHandler,
-    },
-    {
-      path: '/billing/generate',
-      method: 'post',
-      handler: billingGenerateHandler,
-    },
-    {
-      path: '/billing/regenerate-all',
-      method: 'post',
-      handler: billingRegenerateAllHandler,
-    },
-    {
-      path: '/billing/regenerate-single',
-      method: 'post',
-      handler: billingRegenerateSingleHandler,
-    },
-    {
-      path: '/billing/send',
-      method: 'post',
-      handler: billingSendHandler,
-    },
-    {
-      path: '/billing/send-single',
-      method: 'post',
-      handler: billingSendSingleHandler,
-    },
-    {
-      path: '/billing/export-csv',
-      method: 'get',
-      handler: billingExportCsvHandler,
-    },
-    {
-      path: '/billing/preview-pdf',
-      method: 'get',
-      handler: billingPreviewPdfHandler,
-    },
-  ],
+  endpoints: [...customEndpoints],
   collections: collectionsConfig,
   editor: lexicalEditor,
   globals: globalConfig,
