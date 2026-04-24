@@ -270,7 +270,7 @@ export const billingPreviewPdfHandler: PayloadHandler = async (request) => {
     }
 
     // ── Generate a fictive preview PDF ──────────────────────────────────
-    const { generateQrBillPdf } =
+    const { generateQrBillPdf, generateQrReference } =
       await import('@/features/billing/services/bill-generator-service');
 
     const settings = await request.payload.findGlobal({
@@ -279,7 +279,8 @@ export const billingPreviewPdfHandler: PayloadHandler = async (request) => {
     });
 
     const creditorName = (settings.creditorName as string | undefined) ?? 'conveniat27';
-    const creditorIban = (settings.creditorIban as string | undefined) ?? 'CH8500700114904034095';
+    const creditorIban = (settings.creditorIban as string | undefined) ?? 'CH1030700114904034095';
+    const creditorUid = (settings.creditorUid as string | undefined) ?? 'CHE-470.917.124';
     const creditorStreet = (settings.creditorStreet as string | undefined) ?? 'Musterstrasse';
     const creditorBuildingNumber =
       (settings.creditorBuildingNumber as string | undefined) ?? undefined;
@@ -303,15 +304,16 @@ export const billingPreviewPdfHandler: PayloadHandler = async (request) => {
     const roleLabel = participantPricing?.label || 'Teilnehmer:in';
     const vatCode = participantPricing?.vatCode;
 
-    const customReferenceTemplate = settings.customReferenceTemplate as string | undefined;
-    let customReference: string | undefined;
-    if (customReferenceTemplate) {
-      customReference = customReferenceTemplate
-        .replaceAll('{{year}}', new Date().getFullYear().toString())
-        .replaceAll('{{event-id}}', '1234')
-        .replaceAll('{{group-id}}', '5678')
-        .replaceAll('{{participation-id}}', '9012');
-    }
+    const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
+    const customReference = settings.customReferenceTemplate
+      ? settings.customReferenceTemplate
+          .replaceAll('{{year}}', new Date().getFullYear().toString())
+          .replaceAll('{{month}}', currentMonth)
+          .replaceAll('{{event-id}}', '1234')
+          .replaceAll('{{group-id}}', '5678')
+          .replaceAll('{{participation-id}}', '9012')
+          .replaceAll('{{people-id}}', '123456')
+      : undefined;
 
     const documentTitle =
       (settings.documentTitle as string | undefined) ?? 'ANMELDEBESTÄTIGUNG UND RECHNUNG';
@@ -325,6 +327,7 @@ export const billingPreviewPdfHandler: PayloadHandler = async (request) => {
         zip: creditorZip,
         city: creditorCity,
         account: creditorIban,
+        uid: creditorUid,
         country: 'CH',
       },
       debtor: {
@@ -337,13 +340,15 @@ export const billingPreviewPdfHandler: PayloadHandler = async (request) => {
       },
       amount,
       currency,
-      reference: '000000000000000000000000000',
+      reference: generateQrReference('123456', '1234', '9012', 1),
       ...(customReference ? { customReference } : {}),
       invoiceNumber: `${((settings.invoiceNumberPrefix as string) || '{{year}}')
         .replaceAll('{{year}}', new Date().getFullYear().toString())
+        .replaceAll('{{month}}', currentMonth)
         .replaceAll('{{event-id}}', '1234')
         .replaceAll('{{group-id}}', '5678')
-        .replaceAll('{{participation-id}}', '9012')}-0001`,
+        .replaceAll('{{participation-id}}', '9012')
+        .replaceAll('{{people-id}}', '123456')}-0001`,
       invoiceLetterText,
       roleLabel,
       vatCode,

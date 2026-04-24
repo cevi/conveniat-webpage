@@ -6347,7 +6347,7 @@ export interface BillSetting {
          */
         eventName: string;
         /**
-         * Hitobito group ID this event belongs to
+         * Hitobito group ID this event belongs to (max 999)
          */
         groupId: string;
         id?: string | null;
@@ -6364,10 +6364,6 @@ export interface BillSetting {
   creditorWebsite?: string | null;
   currency?: string | null;
   /**
-   * Prefix for QR reference numbers. Sequential number will be appended.
-   */
-  referencePrefix?: string | null;
-  /**
    * Auto-incrementing counter for unique reference numbers.
    */
   nextReferenceNumber?: number | null;
@@ -6376,11 +6372,11 @@ export interface BillSetting {
    */
   documentTitle?: string | null;
   /**
-   * Prefix for the invoice number. Placeholders: {{year}}, {{event-id}}, {{group-id}}, {{participation-id}}.
+   * Prefix for the invoice number. Placeholders: {{year}}, {{month}}, {{event-id}}, {{group-id}}, {{participation-id}}, {{people-id}}.
    */
   invoiceNumberPrefix?: string | null;
   /**
-   * Printed on the PDF and encoded in the QR bill. Placeholders: {{year}}, {{event-id}}, {{group-id}}, {{participation-id}}.
+   * Printed on the PDF and encoded in the QR bill. Placeholders: {{year}}, {{month}}, {{event-id}}, {{group-id}}, {{participation-id}}, {{people-id}}.
    */
   customReferenceTemplate?: string | null;
   paymentDeadlineDays?: number | null;
@@ -6657,7 +6653,6 @@ export interface BillSettingsSelect<T extends boolean = true> {
   creditorEmail?: T;
   creditorWebsite?: T;
   currency?: T;
-  referencePrefix?: T;
   nextReferenceNumber?: T;
   documentTitle?: T;
   invoiceNumberPrefix?: T;

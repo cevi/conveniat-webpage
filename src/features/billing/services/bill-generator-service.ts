@@ -18,7 +18,6 @@ interface BillSettings {
   creditorEmail?: string;
   creditorWebsite?: string;
   currency: string;
-  referencePrefix: string;
   nextReferenceNumber: number;
   invoiceNumberPrefix: string;
   customReferenceTemplate?: string;
@@ -67,20 +66,43 @@ function resolvePricing(
 /**
  * Generates a QR reference number from the prefix and sequential counter.
  */
-interface Logger {
-  warn: (message: string) => void;
-}
 
-function generateQrReference(prefix: string, counter: number, logger?: Logger): string {
-  const baseReference = `${prefix}${String(counter).padStart(6, '0')}`;
-  if (baseReference.length > 26 && logger) {
-    logger.warn(
-      `QR Reference prefix is too long! Base reference '${baseReference}' exceeds 26 digits. Truncating from the beginning to preserve the counter.`,
-    );
-  }
-  const padded = baseReference.padStart(26, '0').slice(-26);
-  const checkDigit = calculateModule10Recursive(padded);
-  return `${padded}${String(checkDigit)}`;
+export function generateQrReference(
+  personId: string | number,
+  eventId: string | number,
+  participationId: string | number,
+  counter: number,
+): string {
+  // Format: 09 0UUUU UUEEE EEPPP PPPPC CCCCX (27 digits total)
+  // 090       = fixer Präfix (Referenznummer-Bereich für Anmelde-Rechnungen)
+  // UUUUUU    = Personen-ID (max. 6-stellig)
+  // EEEEE     = Event-ID (max. 5-stellig)
+  // PPPPPPP   = Teilnahme-ID (max. 7-stellig)
+  // CCCCC     = Rechnungszähler (5-stellig)
+  // X         = Mod-10 Prüfziffer (Swiss QR standard, always last digit)
+  const personString = String(personId || '')
+    .replaceAll(/\D/g, '')
+    .slice(-6)
+    .padStart(6, '0');
+  const eventString = String(eventId || '')
+    .replaceAll(/\D/g, '')
+    .slice(-5)
+    .padStart(5, '0');
+  const partString = String(participationId || '')
+    .replaceAll(/\D/g, '')
+    .slice(-7)
+    .padStart(7, '0');
+  const counterString = String(counter || 0)
+    .replaceAll(/\D/g, '')
+    .slice(-5)
+    .padStart(5, '0');
+
+  // 090 (3) + u (6) + e (5) + p (7) + c (5) = 26 base digits
+  const baseReference = `090${personString}${eventString}${partString}${counterString}`;
+
+  const checkDigit = calculateModule10Recursive(baseReference);
+
+  return `${baseReference}${String(checkDigit)}`;
 }
 
 /**
@@ -93,6 +115,113 @@ function calculateModule10Recursive(reference: string): number {
     carry = table[(carry + Number.parseInt(char, 10)) % 10] ?? 0;
   }
   return (10 - carry) % 10;
+}
+
+/**
+ * Renders text with basic markdown support (**bold**, *italic*, ***bold italic***).
+ * Splits the input into segments and switches PDFKit fonts inline.
+ */
+function renderMarkdownText(
+  document_: PDFKit.PDFDocument,
+  text: string,
+  x: number,
+  y: number,
+  options: { width: number; lineGap?: number },
+): void {
+  // Split text into paragraphs (double newline)
+  const paragraphs = text.split(/\n\n/);
+
+  document_.font('Helvetica');
+  let isFirstSegment = true;
+
+  for (const paragraph of paragraphs) {
+    if (!isFirstSegment) {
+      document_.moveDown(0.5);
+    }
+
+    // Parse markdown segments: ***bold italic***, **bold**, *italic*, plain
+    const segments = parseMarkdownSegments(paragraph);
+
+    for (const segment of segments) {
+      switch (segment.style) {
+        case 'boldItalic': {
+          document_.font('Helvetica-BoldOblique');
+          break;
+        }
+        case 'bold': {
+          document_.font('Helvetica-Bold');
+          break;
+        }
+        case 'italic': {
+          document_.font('Helvetica-Oblique');
+          break;
+        }
+        default: {
+          document_.font('Helvetica');
+        }
+      }
+
+      const isLastInParagraph = segment === segments.at(-1);
+
+      if (isFirstSegment) {
+        // Position the very first segment at x, y
+        document_.text(segment.text, x, y, {
+          width: options.width,
+          lineGap: options.lineGap,
+          continued: !isLastInParagraph,
+        });
+        isFirstSegment = false;
+      } else {
+        document_.text(segment.text, {
+          width: options.width,
+          lineGap: options.lineGap,
+          continued: !isLastInParagraph,
+        });
+      }
+    }
+  }
+}
+
+/**
+ * Parses a string into segments with style annotations for markdown bold/italic.
+ */
+function parseMarkdownSegments(
+  text: string,
+): Array<{ text: string; style: 'plain' | 'bold' | 'italic' | 'boldItalic' }> {
+  const segments: Array<{ text: string; style: 'plain' | 'bold' | 'italic' | 'boldItalic' }> = [];
+  // Match ***text***, **text**, or *text* (non-greedy)
+  const regex = /(\*{3})(.*?)\1|(\*{2})(.*?)\3|(\*)(.*?)\5/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(text)) !== null) {
+    // Add plain text before match
+    if (match.index > lastIndex) {
+      segments.push({ text: text.slice(lastIndex, match.index), style: 'plain' });
+    }
+
+    if (match[1] === '***') {
+      segments.push({ text: match[2] ?? '', style: 'boldItalic' });
+    } else if (match[3] === '**') {
+      segments.push({ text: match[4] ?? '', style: 'bold' });
+    } else if (match[5] === '*') {
+      segments.push({ text: match[6] ?? '', style: 'italic' });
+    }
+
+    lastIndex = regex.lastIndex;
+  }
+
+  // Add remaining plain text
+  if (lastIndex < text.length) {
+    segments.push({ text: text.slice(lastIndex), style: 'plain' });
+  }
+
+  // Ensure at least one segment
+  if (segments.length === 0) {
+    segments.push({ text, style: 'plain' });
+  }
+
+  return segments;
 }
 
 /**
@@ -190,6 +319,20 @@ export async function generateBills(
       const personResult = await personService.getDetails({ personId: userId });
       const personAttributes = personResult.success ? personResult.attributes : undefined;
 
+      payload.logger.info(
+        {
+          userId,
+          success: personResult.success,
+          address: personAttributes?.address,
+          street: personAttributes?.street,
+          housenumber: personAttributes?.housenumber,
+          house_number: personAttributes?.house_number,
+          zip: personAttributes?.zip,
+          town: personAttributes?.town,
+        },
+        `[Billing] Hitobito person attributes for userId=${userId}`,
+      );
+
       const firstName = personAttributes?.first_name ?? document_.fullName.split(' ')[0] ?? '';
       const lastName =
         personAttributes?.last_name ?? document_.fullName.split(' ').slice(1).join(' ');
@@ -205,7 +348,7 @@ export async function generateBills(
       if (hitobitoStreet) {
         // Use native structured fields if available
         street = hitobitoStreet;
-        buildingNumber = hitobitoHouseNumber;
+        buildingNumber = hitobitoHouseNumber ?? undefined;
       } else if (hitobitoAddress) {
         // Fallback: parse combined address string
         const match = hitobitoAddress.match(/^(.*?)\s*(\d+[a-zA-Z]?.*)?$/);
@@ -216,25 +359,32 @@ export async function generateBills(
       const zip = personAttributes?.zip ?? '';
       const city = personAttributes?.town ?? '';
 
-      // Generate reference number
       const referenceNumber = generateQrReference(
-        settings.referencePrefix,
+        document_.userId || '',
+        document_.eventId,
+        document_.participationUuid,
         currentReferenceNumber,
-        payload.logger,
       );
       const currentYear = new Date().getFullYear().toString();
+      const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
       const prefix = settings.invoiceNumberPrefix
         .replaceAll('{{year}}', currentYear)
+        .replaceAll('{{month}}', currentMonth)
         .replaceAll('{{event-id}}', document_.eventId)
         .replaceAll('{{group-id}}', document_.groupId || '')
-        .replaceAll('{{participation-id}}', document_.participationUuid);
+        .replaceAll('{{participation-id}}', document_.participationUuid)
+        .replaceAll('{{people-id}}', String(document_.userId || ''));
       const invoiceNumber = `${prefix}-${String(currentReferenceNumber).padStart(4, '0')}`;
 
-      const customReference = (settings.customReferenceTemplate || '')
-        .replaceAll('{{year}}', currentYear)
-        .replaceAll('{{event-id}}', document_.eventId)
-        .replaceAll('{{group-id}}', document_.groupId || '')
-        .replaceAll('{{participation-id}}', document_.participationUuid);
+      const customReference = settings.customReferenceTemplate
+        ? settings.customReferenceTemplate
+            .replaceAll('{{year}}', currentYear)
+            .replaceAll('{{month}}', currentMonth)
+            .replaceAll('{{event-id}}', document_.eventId)
+            .replaceAll('{{group-id}}', document_.groupId || '')
+            .replaceAll('{{participation-id}}', document_.participationUuid)
+            .replaceAll('{{people-id}}', String(document_.userId || ''))
+        : undefined;
 
       // Generate PDF
       const documentTitle = settings.documentTitle || 'ANMELDEBESTÄTIGUNG UND RECHNUNG';
@@ -264,7 +414,7 @@ export async function generateBills(
         currency: settings.currency,
         reference: referenceNumber,
         invoiceNumber,
-        customReference,
+        ...(customReference ? { customReference } : {}),
         invoiceLetterText: settings.invoiceLetterText,
         roleLabel,
         vatCode,
@@ -472,7 +622,7 @@ export async function generateQrBillPdf(parameters: PdfGenerationParameters): Pr
     document_.text('Zahlbar bis:', mm2pt(22), mm2pt(90), { width: mm2pt(35), align: 'left' });
     document_.text('Rechnung Nr.:', mm2pt(22), mm2pt(95), { width: mm2pt(35), align: 'left' });
     if (parameters.customReference) {
-      document_.text('Referenz:', mm2pt(22), mm2pt(100), { width: mm2pt(35), align: 'left' });
+      document_.text('Anmeldenummer:', mm2pt(22), mm2pt(100), { width: mm2pt(35), align: 'left' });
     }
 
     // Values
@@ -510,10 +660,10 @@ export async function generateQrBillPdf(parameters: PdfGenerationParameters): Pr
     const letterY = parameters.customReference ? 130 : 125;
     document_.fontSize(10);
     document_.fillColor('#000000');
-    document_.font('Helvetica');
-    document_.text(letterText, mm2pt(22), mm2pt(letterY), {
+
+    // Render markdown-style bold/italic text
+    renderMarkdownText(document_, letterText, mm2pt(22), mm2pt(letterY), {
       width: mm2pt(165),
-      align: 'left',
       lineGap: 2,
     });
 
@@ -669,12 +819,11 @@ export async function generateQrBillPdf(parameters: PdfGenerationParameters): Pr
     document_.addPage();
     drawLogo();
 
-    // Note: QR-References require a QR-IBAN. Since we use a regular IBAN,
-    // we omit the reference field (NON reference type).
-    // When a QR-IBAN is configured, the reference field should be re-added.
+    // Include the generated QR reference (required for QR-IBANs)
     const qrBillData = {
       currency: parameters.currency as 'CHF' | 'EUR',
       amount: parameters.amount,
+      reference: parameters.reference,
       creditor: {
         name: parameters.creditor.name,
         address: parameters.creditor.street,
@@ -696,9 +845,9 @@ export async function generateQrBillPdf(parameters: PdfGenerationParameters): Pr
         city: parameters.debtor.city,
         country: parameters.debtor.country,
       },
-      message: parameters.customReference
-        ? `Ref: ${parameters.invoiceNumber}/${parameters.customReference}`
-        : `Ref: ${parameters.invoiceNumber}`,
+      ...(parameters.customReference
+        ? { additionalInformation: `REF: ${parameters.customReference}` }
+        : {}),
     };
 
     const qrBill = new SwissQRBill(qrBillData, {

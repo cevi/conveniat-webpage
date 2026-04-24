@@ -92,10 +92,16 @@ export const BillSettingsGlobal: GlobalConfig = {
                   },
                   admin: {
                     description: {
-                      en: 'Hitobito group ID this event belongs to',
-                      de: 'Hitobito Gruppen-ID, zu der dieser Anlass gehört',
-                      fr: 'ID du groupe Hitobito auquel cet événement appartient',
+                      en: 'Hitobito group ID this event belongs to (max 999)',
+                      de: 'Hitobito Gruppen-ID, zu der dieser Anlass gehört (max 999)',
+                      fr: 'ID du groupe Hitobito auquel cet événement appartient (max 999)',
                     },
+                  },
+                  validate: (val: string | null | undefined): string | true => {
+                    if (val && !/^\d{1,3}$/.test(val)) {
+                      return 'Group ID must be a number up to 3 digits (max 999)';
+                    }
+                    return true;
                   },
                 },
               ],
@@ -124,17 +130,19 @@ export const BillSettingsGlobal: GlobalConfig = {
                     de: 'Name des Zahlungsempfängers',
                     fr: 'Nom du bénéficiaire',
                   },
+                  admin: { readOnly: true },
                 },
                 {
                   name: 'creditorIban',
                   type: 'text',
                   required: true,
-                  defaultValue: 'CH8500700114904034095',
+                  defaultValue: 'CH1030700114904034095',
                   label: {
                     en: 'IBAN',
                     de: 'IBAN',
                     fr: 'IBAN',
                   },
+                  admin: { readOnly: true },
                 },
               ],
             },
@@ -151,6 +159,7 @@ export const BillSettingsGlobal: GlobalConfig = {
                     de: 'Strasse des Zahlungsempfängers',
                     fr: 'Rue du bénéficiaire',
                   },
+                  admin: { readOnly: true },
                 },
                 {
                   name: 'creditorBuildingNumber',
@@ -162,6 +171,7 @@ export const BillSettingsGlobal: GlobalConfig = {
                     de: 'Hausnummer des Zahlungsempfängers',
                     fr: 'Numéro de bâtiment du bénéficiaire',
                   },
+                  admin: { readOnly: true },
                 },
                 {
                   name: 'creditorZip',
@@ -172,6 +182,7 @@ export const BillSettingsGlobal: GlobalConfig = {
                     de: 'PLZ des Zahlungsempfängers',
                     fr: 'NPA du bénéficiaire',
                   },
+                  admin: { readOnly: true },
                 },
                 {
                   name: 'creditorCity',
@@ -182,6 +193,7 @@ export const BillSettingsGlobal: GlobalConfig = {
                     de: 'Ort des Zahlungsempfängers',
                     fr: 'Ville du bénéficiaire',
                   },
+                  admin: { readOnly: true },
                 },
               ],
             },
@@ -192,11 +204,13 @@ export const BillSettingsGlobal: GlobalConfig = {
                   name: 'creditorUid',
                   type: 'text',
                   required: false,
+                  defaultValue: 'CHE-470.917.124',
                   label: {
                     en: 'UID / MWST-Nr.',
                     de: 'UID / MWST-Nr. (z.B. CHE-123.456.789)',
                     fr: 'IDE / Numéro de TVA',
                   },
+                  admin: { readOnly: true },
                 },
                 {
                   name: 'creditorEmail',
@@ -229,27 +243,11 @@ export const BillSettingsGlobal: GlobalConfig = {
                 de: 'Währung',
                 fr: 'Devise',
               },
+              admin: { readOnly: true },
             },
             {
               type: 'row',
               fields: [
-                {
-                  name: 'referencePrefix',
-                  type: 'text',
-                  defaultValue: '210000000003139471430',
-                  label: {
-                    en: 'Reference Number Prefix',
-                    de: 'Referenznummer-Präfix',
-                    fr: 'Préfixe du numéro de référence',
-                  },
-                  admin: {
-                    description: {
-                      en: 'Prefix for QR reference numbers. Sequential number will be appended.',
-                      de: 'Präfix für QR-Referenznummern. Fortlaufende Nummer wird angehängt.',
-                      fr: 'Préfixe pour les numéros de référence QR. Un numéro séquentiel sera ajouté.',
-                    },
-                  },
-                },
                 {
                   name: 'nextReferenceNumber',
                   type: 'number',
@@ -298,9 +296,9 @@ export const BillSettingsGlobal: GlobalConfig = {
               },
               admin: {
                 description: {
-                  en: 'Prefix for the invoice number. Placeholders: {{year}}, {{event-id}}, {{group-id}}, {{participation-id}}.',
-                  de: 'Rechnungsnummer-Präfix (Zusätzliche Infos). Platzhalter: {{year}}, {{event-id}}, {{group-id}}, {{participation-id}}.',
-                  fr: 'Préfixe pour le numéro de facture. Espaces réservés: {{year}}, {{event-id}}, {{group-id}}, {{participation-id}}.',
+                  en: 'Prefix for the invoice number. Placeholders: {{year}}, {{month}}, {{event-id}}, {{group-id}}, {{participation-id}}, {{people-id}}.',
+                  de: 'Rechnungsnummer-Präfix (Zusätzliche Infos). Platzhalter: {{year}}, {{month}}, {{event-id}}, {{group-id}}, {{participation-id}}, {{people-id}}.',
+                  fr: 'Préfixe pour le numéro de facture. Espaces réservés: {{year}}, {{month}}, {{event-id}}, {{group-id}}, {{participation-id}}, {{people-id}}.',
                 },
               },
             },
@@ -309,15 +307,15 @@ export const BillSettingsGlobal: GlobalConfig = {
               type: 'text',
               defaultValue: '{{event-id}}-{{participation-id}}',
               label: {
-                en: 'Custom Reference Number',
-                de: 'Benutzerdefinierte Referenznummer',
-                fr: 'Numéro de référence personnalisé',
+                en: 'Registration Number',
+                de: 'Anmeldenummer',
+                fr: "Numéro d'inscription",
               },
               admin: {
                 description: {
-                  en: 'Printed on the PDF and encoded in the QR bill. Placeholders: {{year}}, {{event-id}}, {{group-id}}, {{participation-id}}.',
-                  de: 'Wird auf das PDF gedruckt und in die QR-Rechnung codiert. Platzhalter: {{year}}, {{event-id}}, {{group-id}}, {{participation-id}}.',
-                  fr: 'Imprimé sur le PDF et encodé dans la facture QR. Espaces réservés: {{year}}, {{event-id}}, {{group-id}}, {{participation-id}}.',
+                  en: 'Printed on the PDF and encoded in the QR bill. Placeholders: {{year}}, {{month}}, {{event-id}}, {{group-id}}, {{participation-id}}, {{people-id}}.',
+                  de: 'Wird auf das PDF gedruckt und in die QR-Rechnung codiert. Platzhalter: {{year}}, {{month}}, {{event-id}}, {{group-id}}, {{participation-id}}, {{people-id}}.',
+                  fr: 'Imprimé sur le PDF et encodé dans la facture QR. Espaces réservés: {{year}}, {{month}}, {{event-id}}, {{group-id}}, {{participation-id}}, {{people-id}}.',
                 },
               },
             },
