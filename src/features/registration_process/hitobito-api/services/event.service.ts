@@ -1,5 +1,11 @@
 import type { HitobitoClient } from '@/features/registration_process/hitobito-api/client';
+import {
+  EventParticipationListResponseSchema,
+  type EventParticipationWithPersonSchema,
+  type IncludedPersonSchema,
+} from '@/features/registration_process/hitobito-api/event-participation-schemas';
 import type { Logger, RoleResource } from '@/features/registration_process/hitobito-api/types';
+import type { z } from 'zod';
 
 export interface FindParticipationParameters {
   personId: string;
@@ -196,5 +202,92 @@ export class EventService {
       this.logger?.warn(`updateParticipation failed: ${String(error)}`);
       throw error;
     }
+  }
+
+  /**
+   * List all participations for an event using the official JSON:API.
+   *
+   * Uses GET /api/event_participations with filter[event_id][eq] and
+   * include=participant,roles to sideload person data and role types.
+   * Handles pagination automatically via links.next.
+   *
+   * This replaces any browser-cookie-based scraping for reading event participants.
+   */
+  async listEventParticipations(
+    eventId: string,
+  ): Promise<z.infer<typeof EventParticipationWithPersonSchema>[]> {
+    const allParticipations: z.infer<typeof EventParticipationWithPersonSchema>[] = [];
+    const includedPeople = new Map<string, z.infer<typeof IncludedPersonSchema>['attributes']>();
+    const roleTypes = new Map<string, string>(); // participationId -> roleType
+
+    let nextUrl: string | null = `/api/event_participations`;
+    const baseParameters: Record<string, string> = {
+      'filter[event_id][eq]': eventId,
+      include: 'participant,roles',
+    };
+
+    let isFirstPage = true;
+
+    while (nextUrl !== null) {
+      const response = await this.client.apiRequest<unknown>(
+        'GET',
+        nextUrl,
+        isFirstPage ? { params: baseParameters } : {},
+      );
+
+      const parsed = EventParticipationListResponseSchema.safeParse(response);
+      if (!parsed.success) {
+        this.logger?.error(
+          `Failed to parse event_participations response: ${parsed.error.message}`,
+        );
+        break;
+      }
+
+      // Collect included people resources
+      if (parsed.data.included) {
+        for (const included of parsed.data.included) {
+          if (included.type === 'people') {
+            includedPeople.set(included.id, included.attributes);
+          } else {
+            // event_roles type (from discriminated union)
+            const participationId = String(included.attributes.participation_id ?? '');
+            if (participationId.length > 0 && included.attributes.type) {
+              roleTypes.set(participationId, included.attributes.type);
+            }
+          }
+        }
+      }
+
+      // Process participation data
+      for (const participation of parsed.data.data) {
+        const participantId =
+          participation.relationships?.participant?.data?.id ??
+          String(participation.attributes.participant_id);
+
+        const person = includedPeople.get(participantId);
+        const firstName = person?.first_name ?? '';
+        const lastName = person?.last_name ?? '';
+        const fullName = `${firstName} ${lastName}`.trim() || `Person ${participantId}`;
+
+        const roleType = roleTypes.get(participation.id) ?? 'unknown';
+
+        allParticipations.push({
+          participationId: participation.id,
+          participantId,
+          eventId: String(participation.attributes.event_id),
+          fullName,
+          roleType,
+          enrollmentDate: participation.attributes.created_at ?? new Date().toISOString(),
+          active: participation.attributes.active ?? true,
+        });
+      }
+
+      // eslint-disable-next-line unicorn/no-null -- API may return null for last page
+      nextUrl = parsed.data.links?.next ?? null;
+      isFirstPage = false;
+    }
+
+    this.logger?.info(`Fetched ${allParticipations.length} participations for event ${eventId}`);
+    return allParticipations;
   }
 }

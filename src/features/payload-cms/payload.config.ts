@@ -1,4 +1,14 @@
 import { environmentVariables as env } from '@/config/environment-variables';
+import {
+  billingExportCsvHandler,
+  billingGenerateHandler,
+  billingPreviewPdfHandler,
+  billingRegenerateAllHandler,
+  billingRegenerateSingleHandler,
+  billingSendHandler,
+  billingSendSingleHandler,
+  billingSyncHandler,
+} from '@/features/billing/api/bill-admin-api';
 import { buildSecureConfig } from '@/features/payload-cms/payload-cms/access-rules/build-secure-config';
 import { collectionsConfig } from '@/features/payload-cms/payload-cms/collections';
 import { UserCollection } from '@/features/payload-cms/payload-cms/collections/user-collection';
@@ -91,6 +101,9 @@ const payloadConfigAdminSettings: RoutableConfig['admin'] = {
         path: '@/features/payload-cms/payload-cms/components/login-page/admin-panel-login-page',
       },
     ],
+    views: {
+      // Custom views can be added here
+    },
   },
   user: UserCollection.slug,
   importMap: {
@@ -172,6 +185,46 @@ export const payloadConfig: RoutableConfig = {
       path: '/auto-translate',
       method: 'post',
       handler: autoTranslateHandler,
+    },
+    {
+      path: '/billing/sync',
+      method: 'post',
+      handler: billingSyncHandler,
+    },
+    {
+      path: '/billing/generate',
+      method: 'post',
+      handler: billingGenerateHandler,
+    },
+    {
+      path: '/billing/regenerate-all',
+      method: 'post',
+      handler: billingRegenerateAllHandler,
+    },
+    {
+      path: '/billing/regenerate-single',
+      method: 'post',
+      handler: billingRegenerateSingleHandler,
+    },
+    {
+      path: '/billing/send',
+      method: 'post',
+      handler: billingSendHandler,
+    },
+    {
+      path: '/billing/send-single',
+      method: 'post',
+      handler: billingSendSingleHandler,
+    },
+    {
+      path: '/billing/export-csv',
+      method: 'get',
+      handler: billingExportCsvHandler,
+    },
+    {
+      path: '/billing/preview-pdf',
+      method: 'get',
+      handler: billingPreviewPdfHandler,
     },
   ],
   collections: collectionsConfig,

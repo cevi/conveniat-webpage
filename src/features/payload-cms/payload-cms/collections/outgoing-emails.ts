@@ -99,6 +99,16 @@ export const OutgoingEmails: CollectionConfig = {
       },
     },
     {
+      name: 'billParticipant',
+      type: 'relationship',
+      relationTo: 'bill-participants',
+      hasMany: false,
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+      },
+    },
+    {
       type: 'tabs',
       tabs: [
         {

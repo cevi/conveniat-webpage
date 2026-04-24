@@ -69,6 +69,7 @@ export interface Config {
     'blocked-jobs': BlockedJob;
     'smtp-bounce-mail-tracking': SmtpBounceMailTracking;
     'outgoing-emails': OutgoingEmail;
+    'bill-participants': BillParticipant;
     forms: Form;
     'form-submissions': FormSubmission;
     'search-collection': SearchCollection;
@@ -88,6 +89,9 @@ export interface Config {
     };
     timelineCategory: {
       relatedTimelineEntries: 'timeline';
+    };
+    'bill-participants': {
+      relatedEmails: 'outgoing-emails';
     };
     forms: {
       submissions: 'form-submissions';
@@ -116,6 +120,7 @@ export interface Config {
     'blocked-jobs': BlockedJobsSelect<false> | BlockedJobsSelect<true>;
     'smtp-bounce-mail-tracking': SmtpBounceMailTrackingSelect<false> | SmtpBounceMailTrackingSelect<true>;
     'outgoing-emails': OutgoingEmailsSelect<false> | OutgoingEmailsSelect<true>;
+    'bill-participants': BillParticipantsSelect<false> | BillParticipantsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     'search-collection': SearchCollectionSelect<false> | SearchCollectionSelect<true>;
@@ -144,6 +149,7 @@ export interface Config {
     'alert-management': AlertManagement;
     'all-chats-management': AllChatsManagement;
     'registration-management': RegistrationManagement;
+    'bill-settings': BillSetting;
     'payload-jobs-stats': PayloadJobsStat;
   };
   globalsSelect: {
@@ -157,6 +163,7 @@ export interface Config {
     'alert-management': AlertManagementSelect<false> | AlertManagementSelect<true>;
     'all-chats-management': AllChatsManagementSelect<false> | AllChatsManagementSelect<true>;
     'registration-management': RegistrationManagementSelect<false> | RegistrationManagementSelect<true>;
+    'bill-settings': BillSettingsSelect<false> | BillSettingsSelect<true>;
     'payload-jobs-stats': PayloadJobsStatsSelect<false> | PayloadJobsStatsSelect<true>;
   };
   locale: 'en' | 'de' | 'fr';
@@ -3367,6 +3374,7 @@ export interface OutgoingEmail {
   to: string;
   subject: string;
   formSubmission?: (string | null) | FormSubmission;
+  billParticipant?: (string | null) | BillParticipant;
   html?: string | null;
   smtpResults?:
     | {
@@ -3389,6 +3397,64 @@ export interface OutgoingEmail {
   rawDsnEmail?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+/**
+ * Synced from Cevi.DB. Use the toolbar above the table to sync, generate, and send bills.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "bill-participants".
+ */
+export interface BillParticipant {
+  id: string;
+  /**
+   * The UUID of the event_participation object in the Cevi.DB. Changes on re-enrollment.
+   */
+  participationUuid: string;
+  /**
+   * The person ID in the Cevi.DB. Stable across re-enrollments.
+   */
+  userId: string;
+  eventId: string;
+  groupId?: string | null;
+  fullName: string;
+  /**
+   * Hitobito event role type (e.g. Event::Camp::Role::Participant)
+   */
+  roleType?: string | null;
+  enrollmentDate?: string | null;
+  firstSyncDate?: string | null;
+  lastSyncDate?: string | null;
+  billCreatedDate?: string | null;
+  billSentDate?: string | null;
+  removedDate?: string | null;
+  reAddedDate?: string | null;
+  referenceNumber?: string | null;
+  invoiceNumber?: string | null;
+  invoiceAmount?: number | null;
+  billPdfPath?: string | null;
+  status: 'new' | 'bill_created' | 'bill_sent' | 'removed' | 're_added' | 'reminder_sent';
+  /**
+   * Array of { date, action } entries for audit trail.
+   */
+  syncHistory?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Emails sent for this bill.
+   */
+  relatedEmails?: {
+    docs?: (string | OutgoingEmail)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This is a collection of automatically created search results. These results are used by the global site search and will be updated automatically as documents in the CMS are created or updated.
@@ -3746,6 +3812,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'outgoing-emails';
         value: string | OutgoingEmail;
+      } | null)
+    | ({
+        relationTo: 'bill-participants';
+        value: string | BillParticipant;
       } | null)
     | ({
         relationTo: 'forms';
@@ -5259,12 +5329,41 @@ export interface OutgoingEmailsSelect<T extends boolean = true> {
   to?: T;
   subject?: T;
   formSubmission?: T;
+  billParticipant?: T;
   html?: T;
   smtpResults?: T;
   rawSmtpResults?: T;
   rawDsnEmail?: T;
   createdAt?: T;
   updatedAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "bill-participants_select".
+ */
+export interface BillParticipantsSelect<T extends boolean = true> {
+  participationUuid?: T;
+  userId?: T;
+  eventId?: T;
+  groupId?: T;
+  fullName?: T;
+  roleType?: T;
+  enrollmentDate?: T;
+  firstSyncDate?: T;
+  lastSyncDate?: T;
+  billCreatedDate?: T;
+  billSentDate?: T;
+  removedDate?: T;
+  reAddedDate?: T;
+  referenceNumber?: T;
+  invoiceNumber?: T;
+  invoiceAmount?: T;
+  billPdfPath?: T;
+  status?: T;
+  syncHistory?: T;
+  relatedEmails?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -6189,6 +6288,90 @@ export interface RegistrationManagement {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "bill-settings".
+ */
+export interface BillSetting {
+  id: string;
+  /**
+   * Configure which Hitobito events should be synced for billing.
+   */
+  events?:
+    | {
+        eventId: string;
+        /**
+         * Display name, e.g. "Hof Süd"
+         */
+        eventName: string;
+        /**
+         * Hitobito group ID this event belongs to
+         */
+        groupId: string;
+        id?: string | null;
+      }[]
+    | null;
+  creditorName: string;
+  creditorIban: string;
+  creditorStreet: string;
+  creditorBuildingNumber?: string | null;
+  creditorZip?: string | null;
+  creditorCity?: string | null;
+  creditorUid?: string | null;
+  creditorEmail?: string | null;
+  creditorWebsite?: string | null;
+  currency?: string | null;
+  /**
+   * Prefix for QR reference numbers. Sequential number will be appended.
+   */
+  referencePrefix?: string | null;
+  /**
+   * Auto-incrementing counter for unique reference numbers.
+   */
+  nextReferenceNumber?: number | null;
+  /**
+   * The main title printed on the PDF.
+   */
+  documentTitle?: string | null;
+  /**
+   * Prefix for the invoice number. Placeholders: {{year}}, {{event-id}}, {{group-id}}, {{participation-id}}.
+   */
+  invoiceNumberPrefix?: string | null;
+  /**
+   * Printed on the PDF and encoded in the QR bill. Placeholders: {{year}}, {{event-id}}, {{group-id}}, {{participation-id}}.
+   */
+  customReferenceTemplate?: string | null;
+  paymentDeadlineDays?: number | null;
+  /**
+   * Text for the PDF letter page before the QR bill.
+   */
+  invoiceLetterText?: string | null;
+  /**
+   * Define the camp fee per Hitobito event role type. Role types are matched as substring (e.g. "Participant" matches "Event::Camp::Role::Participant").
+   */
+  rolePricing?:
+    | {
+        roleTypePattern: string;
+        label: string;
+        vatCode?: string | null;
+        amount: number;
+        id?: string | null;
+      }[]
+    | null;
+  accountDebit?: string | null;
+  accountCredit?: string | null;
+  /**
+   * Comma-separated list of email addresses to receive the CSV export.
+   */
+  financeEmailRecipients?: string | null;
+  invoiceEmailSubject?: string | null;
+  /**
+   * Use {{firstName}}, {{lastName}}, {{fullName}}, {{amount}}, {{reference}} as placeholders.
+   */
+  invoiceEmailBody?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-jobs-stats".
  */
 export interface PayloadJobsStat {
@@ -6403,6 +6586,54 @@ export interface AllChatsManagementSelect<T extends boolean = true> {
 export interface RegistrationManagementSelect<T extends boolean = true> {
   confirmationEmail?: T;
   browserCookie?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "bill-settings_select".
+ */
+export interface BillSettingsSelect<T extends boolean = true> {
+  events?:
+    | T
+    | {
+        eventId?: T;
+        eventName?: T;
+        groupId?: T;
+        id?: T;
+      };
+  creditorName?: T;
+  creditorIban?: T;
+  creditorStreet?: T;
+  creditorBuildingNumber?: T;
+  creditorZip?: T;
+  creditorCity?: T;
+  creditorUid?: T;
+  creditorEmail?: T;
+  creditorWebsite?: T;
+  currency?: T;
+  referencePrefix?: T;
+  nextReferenceNumber?: T;
+  documentTitle?: T;
+  invoiceNumberPrefix?: T;
+  customReferenceTemplate?: T;
+  paymentDeadlineDays?: T;
+  invoiceLetterText?: T;
+  rolePricing?:
+    | T
+    | {
+        roleTypePattern?: T;
+        label?: T;
+        vatCode?: T;
+        amount?: T;
+        id?: T;
+      };
+  accountDebit?: T;
+  accountCredit?: T;
+  financeEmailRecipients?: T;
+  invoiceEmailSubject?: T;
+  invoiceEmailBody?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
@@ -6661,6 +6892,7 @@ export interface TaskCreateCollectionExport {
       | 'blocked-jobs'
       | 'smtp-bounce-mail-tracking'
       | 'outgoing-emails'
+      | 'bill-participants'
       | 'forms'
       | 'form-submissions'
       | 'search-collection'

@@ -48,6 +48,12 @@ import { default as default_30bb34ba732976b67b42694b834628a5 } from '@/features/
 import { default as default_5ef9787d26b4ecd448f299564fb6b977 } from '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-cell'
 import { default as default_a06f68e0cdad6b2fba6e2223cd5b6303 } from '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-field'
 import { default as default_84e24e99aa7b2bdd4ca81a1fd23b526b } from '@/features/payload-cms/payload-cms/components/smtp-results/raw-smtp-results-field'
+import { default as default_720f56d8cf9ba0434ee963ba588968d8 } from '@/features/billing/components/billing-status-cell'
+import { default as default_76bea7d0da84feab859623aecb60b1b6 } from '@/features/billing/components/sync-history-field'
+import { default as default_213735919c76873cbbfc040670fae11b } from '@/features/billing/components/related-emails-cell'
+import { default as default_90d0188c5b32bd3d10c2e47fb1e9e710 } from '@/features/billing/components/hitobito-link-cell'
+import { default as default_06b30d36d4fec532358cb0f29e42cc3e } from '@/features/billing/components/billing-actions-cell'
+import { default as default_7e46c70b38f19ab508dd58722ced6657 } from '@/features/billing/components/billing-list-toolbar'
 import { FormBlockLabel as FormBlockLabel_38d14c2698379009ac744a1a2c27c19b } from '@/features/payload-cms/payload-cms/components/form-block-label'
 import { FormSectionRowLabel as FormSectionRowLabel_95958b8088bc2dff497e1d7f3b2a3955 } from '@/features/payload-cms/payload-cms/components/form-section-row-label'
 import { default as default_3be47662410c932a09263aa429c0578f } from '@/features/payload-cms/payload-cms/components/fields/email-from-warning'
@@ -81,6 +87,7 @@ import { default as default_ab019a1f47fb69008664ade9a2845503 } from '@/features/
 import { default as default_b1f955abb547154f4667abb221790e2b } from '@/features/payload-cms/payload-cms/views/all-chats-management'
 import { default as default_a77c604b4ed076fec72f698268103ca5 } from '@/features/registration_process/components/management-view'
 import { default as default_8d520ff6bc17ad01077b15db1b6b9440 } from '@/features/registration_process/components/enrollment-view'
+import { BillPreviewComponent as BillPreviewComponent_d78523c13a506b78b722b6b8ac6d4236 } from '@/features/billing/components/bill-preview-component'
 import { ConveniatLogo as ConveniatLogo_1dcd95bfbb6787f73675c94df91c942d } from '@/components/svg-logos/conveniat-logo.tsx'
 import { default as default_d432a7de1921f0e10a01eefbe71b022a } from '@/features/payload-cms/payload-cms/components/login-page/admin-panel-login-page'
 import { default as default_a79319ae20aa3b9aa7415044aaf68603 } from '@/features/payload-cms/payload-cms/components/dashboard-welcome-banner'
@@ -143,6 +150,12 @@ export const importMap = {
   "@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-cell#default": default_5ef9787d26b4ecd448f299564fb6b977,
   "@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-field#default": default_a06f68e0cdad6b2fba6e2223cd5b6303,
   "@/features/payload-cms/payload-cms/components/smtp-results/raw-smtp-results-field#default": default_84e24e99aa7b2bdd4ca81a1fd23b526b,
+  "@/features/billing/components/billing-status-cell#default": default_720f56d8cf9ba0434ee963ba588968d8,
+  "@/features/billing/components/sync-history-field#default": default_76bea7d0da84feab859623aecb60b1b6,
+  "@/features/billing/components/related-emails-cell#default": default_213735919c76873cbbfc040670fae11b,
+  "@/features/billing/components/hitobito-link-cell#default": default_90d0188c5b32bd3d10c2e47fb1e9e710,
+  "@/features/billing/components/billing-actions-cell#default": default_06b30d36d4fec532358cb0f29e42cc3e,
+  "@/features/billing/components/billing-list-toolbar#default": default_7e46c70b38f19ab508dd58722ced6657,
   "@/features/payload-cms/payload-cms/components/form-block-label#FormBlockLabel": FormBlockLabel_38d14c2698379009ac744a1a2c27c19b,
   "@/features/payload-cms/payload-cms/components/form-section-row-label#FormSectionRowLabel": FormSectionRowLabel_95958b8088bc2dff497e1d7f3b2a3955,
   "@/features/payload-cms/payload-cms/components/fields/email-from-warning#default": default_3be47662410c932a09263aa429c0578f,
@@ -176,6 +189,7 @@ export const importMap = {
   "@/features/payload-cms/payload-cms/views/all-chats-management#default": default_b1f955abb547154f4667abb221790e2b,
   "@/features/registration_process/components/management-view#default": default_a77c604b4ed076fec72f698268103ca5,
   "@/features/registration_process/components/enrollment-view#default": default_8d520ff6bc17ad01077b15db1b6b9440,
+  "@/features/billing/components/bill-preview-component#BillPreviewComponent": BillPreviewComponent_d78523c13a506b78b722b6b8ac6d4236,
   "@/components/svg-logos/conveniat-logo.tsx#ConveniatLogo": ConveniatLogo_1dcd95bfbb6787f73675c94df91c942d,
   "@/features/payload-cms/payload-cms/components/login-page/admin-panel-login-page#default": default_d432a7de1921f0e10a01eefbe71b022a,
   "@/features/payload-cms/payload-cms/components/dashboard-welcome-banner#default": default_a79319ae20aa3b9aa7415044aaf68603,

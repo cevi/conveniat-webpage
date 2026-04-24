@@ -321,6 +321,9 @@ importers:
       superjson:
         specifier: ^2.2.6
         version: 2.2.6
+      swissqrbill:
+        specifier: ^4.3.0
+        version: 4.3.0(pdfkit@0.18.0)(typescript@5.7.2)
       tailwind-merge:
         specifier: ^2.6.1
         version: 2.6.1
@@ -394,6 +397,9 @@ importers:
       '@types/node':
         specifier: ^24.12.2
         version: 24.12.2
+      '@types/nodemailer':
+        specifier: ^8.0.0
+        version: 8.0.0
       '@types/pdfkit':
         specifier: ^0.17.6
         version: 0.17.6
@@ -4599,6 +4605,9 @@ packages:
 
   '@types/node@24.12.2':
     resolution: {integrity: sha512-A1sre26ke7HDIuY/M23nd9gfB+nrmhtYyMINbjI1zHJxYteKR6qSMX56FsmjMcDb3SMcjJg5BiRRgOCC/yBD0g==}
+
+  '@types/nodemailer@8.0.0':
+    resolution: {integrity: sha512-fyf8jWULsCo0d0BuoQ75i6IeoHs47qcqxWc7yUdUcV0pOZGjUTTOvwdG1PRXUDqN/8A64yQdQdnA2pZgcdi+cA==}
 
   '@types/normalize-package-data@2.4.4':
     resolution: {integrity: sha512-37i+OaWTh9qeK4LSHPsyRC7NahnGotNuZvjLSgcPzblpHB3rrCJxAOgI5gCdKm7coonsaX1Of0ILiTcnZjbfxA==}
@@ -9432,8 +9441,23 @@ packages:
     resolution: {integrity: sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==}
     engines: {node: '>= 0.4'}
 
+  svg-engine@0.3.0:
+    resolution: {integrity: sha512-s172jAcwfoCcvM/6DwNBvmWN3brztHGFENCR+RU3CBJKeBxPrRlTltVxX1Je5hst782QgP8PM6U37vUR/RhPng==}
+
   sweepline-intersections@1.5.0:
     resolution: {integrity: sha512-AoVmx72QHpKtItPu72TzFL+kcYjd67BPLDoR0LarIk+xyaRg+pDTMFXndIEvZf9xEKnJv6JdhgRMnocoG0D3AQ==}
+
+  swissqrbill@4.3.0:
+    resolution: {integrity: sha512-FzSPEVWVQ3R6B0vghqi7VJCLp54AMYxCSiJGr2QzXo8OSU8JBv7XJcF67BAVAriGkuaZqVfhxuD6yRFT6WAXEA==}
+    engines: {node: '>=18.0.0'}
+    peerDependencies:
+      pdfkit: '>=0.13.0'
+      typescript: '>=4.7.0'
+    peerDependenciesMeta:
+      pdfkit:
+        optional: true
+      typescript:
+        optional: true
 
   symbol-tree@3.2.4:
     resolution: {integrity: sha512-9QNk5KwDF+Bvz+PyObkmSYjI5ksVUYtjW7AU22r2NKcfLJcXp96hkDWU3+XndOsUb+AQ9QhfzfCT2O+CNWT5Tw==}
@@ -15910,6 +15934,10 @@ snapshots:
     dependencies:
       undici-types: 7.16.0
 
+  '@types/nodemailer@8.0.0':
+    dependencies:
+      '@types/node': 24.12.2
+
   '@types/normalize-package-data@2.4.4': {}
 
   '@types/oracledb@6.5.2':
@@ -21391,9 +21419,18 @@ snapshots:
 
   supports-preserve-symlinks-flag@1.0.0: {}
 
+  svg-engine@0.3.0: {}
+
   sweepline-intersections@1.5.0:
     dependencies:
       tinyqueue: 2.0.3
+
+  swissqrbill@4.3.0(pdfkit@0.18.0)(typescript@5.7.2):
+    dependencies:
+      svg-engine: 0.3.0
+    optionalDependencies:
+      pdfkit: 0.18.0
+      typescript: 5.7.2
 
   symbol-tree@3.2.4: {}
 

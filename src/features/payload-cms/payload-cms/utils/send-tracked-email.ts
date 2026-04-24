@@ -7,6 +7,7 @@ export const sendTrackedEmail = async (
   payload: Payload,
   emailOptions: SendEmailOptions,
   formSubmissionId?: string,
+  billParticipantId?: string,
 ): Promise<void> => {
   const options = emailOptions as unknown as {
     to?: string | string[];
@@ -29,6 +30,7 @@ export const sendTrackedEmail = async (
     subject: string;
     html?: string;
     formSubmission?: string;
+    billParticipant?: string;
     deliveryStatus: 'pending' | 'success' | 'error';
   } = {
     to,
@@ -39,6 +41,9 @@ export const sendTrackedEmail = async (
 
   if (typeof formSubmissionId === 'string' && formSubmissionId.length > 0) {
     data.formSubmission = formSubmissionId;
+  }
+  if (typeof billParticipantId === 'string' && billParticipantId.length > 0) {
+    data.billParticipant = billParticipantId;
   }
 
   let outgoingEmailDocument;
