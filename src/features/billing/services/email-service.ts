@@ -80,6 +80,17 @@ export async function sendBills(payload: Payload, participantId?: string): Promi
     return summary;
   }
 
+  // 4. Create S3 client once for all PDF fetches
+  const s3 = new S3Client({
+    endpoint: environmentVariables.MINIO_HOST,
+    region: 'us-east-1',
+    credentials: {
+      accessKeyId: environmentVariables.MINIO_ACCESS_KEY_ID,
+      secretAccessKey: environmentVariables.MINIO_SECRET_ACCESS_KEY,
+    },
+    forcePathStyle: true,
+  });
+
   for (const document_ of participants.docs) {
     try {
       const userId = document_.userId;
@@ -111,16 +122,6 @@ export async function sendBills(payload: Payload, participantId?: string): Promi
         summary.failedCount++;
         continue;
       }
-
-      const s3 = new S3Client({
-        endpoint: environmentVariables.MINIO_HOST,
-        region: 'us-east-1',
-        credentials: {
-          accessKeyId: environmentVariables.MINIO_ACCESS_KEY_ID,
-          secretAccessKey: environmentVariables.MINIO_SECRET_ACCESS_KEY,
-        },
-        forcePathStyle: true,
-      });
 
       const command = new GetObjectCommand({
         Bucket: environmentVariables.MINIO_BUCKET_NAME,

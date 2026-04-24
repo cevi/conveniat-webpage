@@ -186,7 +186,7 @@ export const billingExportCsvHandler: PayloadHandler = async (request) => {
 /**
  * GET /api/confidential/billing/preview-pdf – Serve a bill PDF
  *
- * If `?participantId=...` is provided, fetches the stored base64 PDF for that participant.
+ * If `?participantId=...` is provided, fetches the stored PDF binary for that participant from MinIO/S3.
  * If `?download=true` is also set, serves as attachment instead of inline.
  * Otherwise, generates a preview PDF for a fictive participant using current bill-settings.
  */
