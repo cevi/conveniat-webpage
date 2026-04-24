@@ -267,7 +267,9 @@ export class EventService {
         const person = includedPeople.get(participantId);
         const firstName = person?.first_name ?? '';
         const lastName = person?.last_name ?? '';
-        const fullName = `${firstName} ${lastName}`.trim() || `Person ${participantId}`;
+        const nickname = person?.nickname ?? '';
+        const trimmedName = `${firstName} ${lastName}`.trim();
+        const fullName = trimmedName.length > 0 ? trimmedName : `Person ${participantId}`;
 
         const roleType = roleTypes.get(participation.id) ?? 'unknown';
 
@@ -275,6 +277,9 @@ export class EventService {
           participationId: participation.id,
           participantId,
           eventId: String(participation.attributes.event_id),
+          firstName,
+          lastName,
+          nickname,
           fullName,
           roleType,
           enrollmentDate: participation.attributes.created_at ?? new Date().toISOString(),

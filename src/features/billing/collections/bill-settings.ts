@@ -1,3 +1,4 @@
+import { canAccessBilling } from '@/features/payload-cms/payload-cms/access-rules/can-access-billing';
 import type { GlobalConfig } from 'payload';
 
 /**
@@ -14,6 +15,7 @@ export const BillSettingsGlobal: GlobalConfig = {
     fr: 'Paramètres de facturation',
   },
   admin: {
+    hideAPIURL: true,
     group: {
       en: 'Billing',
       de: 'Rechnungen',
@@ -21,8 +23,8 @@ export const BillSettingsGlobal: GlobalConfig = {
     },
   },
   access: {
-    read: () => true,
-    update: () => true,
+    read: canAccessBilling,
+    update: canAccessBilling,
   },
   fields: [
     {

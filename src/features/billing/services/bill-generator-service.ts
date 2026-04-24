@@ -212,16 +212,16 @@ export async function generateBills(payload: Payload): Promise<GenerationSummary
       const currentYear = new Date().getFullYear().toString();
       const prefix = settings.invoiceNumberPrefix
         .replaceAll('{{year}}', currentYear)
-        .replaceAll('{{event-id}}', document_.eventId ?? '')
-        .replaceAll('{{group-id}}', document_.groupId ?? '')
-        .replaceAll('{{participation-id}}', document_.participationUuid ?? '');
+        .replaceAll('{{event-id}}', document_.eventId)
+        .replaceAll('{{group-id}}', document_.groupId || '')
+        .replaceAll('{{participation-id}}', document_.participationUuid);
       const invoiceNumber = `${prefix}-${String(invoiceCounter).padStart(4, '0')}`;
 
       const customReference = (settings.customReferenceTemplate || '')
         .replaceAll('{{year}}', currentYear)
-        .replaceAll('{{event-id}}', document_.eventId ?? '')
-        .replaceAll('{{group-id}}', document_.groupId ?? '')
-        .replaceAll('{{participation-id}}', document_.participationUuid ?? '');
+        .replaceAll('{{event-id}}', document_.eventId)
+        .replaceAll('{{group-id}}', document_.groupId || '')
+        .replaceAll('{{participation-id}}', document_.participationUuid);
 
       // Generate PDF
       const documentTitle = settings.documentTitle || 'ANMELDEBESTÄTIGUNG UND RECHNUNG';
@@ -282,8 +282,9 @@ export async function generateBills(payload: Payload): Promise<GenerationSummary
       invoiceCounter++;
       summary.generatedCount++;
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       summary.errors.push(
-        `Participant ${String(document_.id)} (${String(document_.fullName)}): ${String(error)}`,
+        `Participant ${String(document_.id)} (${String(document_.fullName)}): ${errorMessage}`,
       );
     }
   }

@@ -12,6 +12,7 @@ interface SyncHistoryEntry {
 export const SyncHistoryField: React.FC<{ path: string }> = ({ path }) => {
   const { value } = useField<SyncHistoryEntry[]>({ path });
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (!value || !Array.isArray(value) || value.length === 0) {
     return (
       <div className="field-type">

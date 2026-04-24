@@ -1,3 +1,8 @@
+import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
+import {
+  canAccessBillingField,
+  canUserAccessBilling,
+} from '@/features/payload-cms/payload-cms/access-rules/can-access-billing';
 import type { CollectionConfig } from 'payload';
 
 /**
@@ -21,6 +26,8 @@ export const BillParticipantsCollection: CollectionConfig = {
     },
   },
   admin: {
+    hidden: ({ user }): boolean => !canUserAccessBilling(user),
+    hideAPIURL: true,
     group: {
       en: 'Billing',
       de: 'Rechnungen',
@@ -48,7 +55,7 @@ export const BillParticipantsCollection: CollectionConfig = {
     },
   },
   access: {
-    read: (): boolean => true,
+    read: canAccessAdminPanel,
     // Only allow create/update/delete from internal API calls (billing services),
     // not from the admin panel UI.
     create: ({ req }): boolean => req.context['internal'] === true,
@@ -59,6 +66,7 @@ export const BillParticipantsCollection: CollectionConfig = {
     // Identity fields
     {
       name: 'participationUuid',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
       type: 'text',
       required: true,
       unique: true,
@@ -78,6 +86,7 @@ export const BillParticipantsCollection: CollectionConfig = {
     },
     {
       name: 'userId',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
       type: 'text',
       required: true,
       index: true,
@@ -96,6 +105,7 @@ export const BillParticipantsCollection: CollectionConfig = {
     },
     {
       name: 'eventId',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
       type: 'text',
       required: true,
       index: true,
@@ -107,6 +117,7 @@ export const BillParticipantsCollection: CollectionConfig = {
     },
     {
       name: 'groupId',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
       type: 'text',
       label: {
         en: 'Group ID',
@@ -116,6 +127,33 @@ export const BillParticipantsCollection: CollectionConfig = {
     },
 
     // Person info
+    {
+      name: 'firstName',
+      type: 'text',
+      label: {
+        en: 'First Name',
+        de: 'Vorname',
+        fr: 'Prénom',
+      },
+    },
+    {
+      name: 'lastName',
+      type: 'text',
+      label: {
+        en: 'Last Name',
+        de: 'Nachname',
+        fr: 'Nom de famille',
+      },
+    },
+    {
+      name: 'nickname',
+      type: 'text',
+      label: {
+        en: 'Nickname',
+        de: 'Ceviname',
+        fr: 'Surnom',
+      },
+    },
     {
       name: 'fullName',
       type: 'text',
@@ -128,6 +166,7 @@ export const BillParticipantsCollection: CollectionConfig = {
     },
     {
       name: 'roleType',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
       type: 'text',
       label: {
         en: 'Role Type',
@@ -146,6 +185,7 @@ export const BillParticipantsCollection: CollectionConfig = {
     // Date tracking
     {
       name: 'enrollmentDate',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
       type: 'date',
       label: {
         en: 'Enrollment Date (Cevi.DB)',
@@ -155,6 +195,7 @@ export const BillParticipantsCollection: CollectionConfig = {
     },
     {
       name: 'firstSyncDate',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
       type: 'date',
       label: {
         en: 'First Sync Date',
@@ -164,6 +205,7 @@ export const BillParticipantsCollection: CollectionConfig = {
     },
     {
       name: 'lastSyncDate',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
       type: 'date',
       label: {
         en: 'Last Sync Date',
@@ -173,6 +215,7 @@ export const BillParticipantsCollection: CollectionConfig = {
     },
     {
       name: 'billCreatedDate',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
       type: 'date',
       label: {
         en: 'Bill Created Date',
@@ -182,6 +225,7 @@ export const BillParticipantsCollection: CollectionConfig = {
     },
     {
       name: 'billSentDate',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
       type: 'date',
       label: {
         en: 'Bill Sent Date',
@@ -191,6 +235,7 @@ export const BillParticipantsCollection: CollectionConfig = {
     },
     {
       name: 'removedDate',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
       type: 'date',
       label: {
         en: 'Removed Date',
@@ -200,6 +245,7 @@ export const BillParticipantsCollection: CollectionConfig = {
     },
     {
       name: 'reAddedDate',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
       type: 'date',
       label: {
         en: 'Re-Added Date',
@@ -211,6 +257,7 @@ export const BillParticipantsCollection: CollectionConfig = {
     // Invoice details
     {
       name: 'referenceNumber',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
       type: 'text',
       label: {
         en: 'QR Reference Number',
@@ -220,6 +267,7 @@ export const BillParticipantsCollection: CollectionConfig = {
     },
     {
       name: 'invoiceNumber',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
       type: 'text',
       unique: true,
       label: {
@@ -230,6 +278,7 @@ export const BillParticipantsCollection: CollectionConfig = {
     },
     {
       name: 'invoiceAmount',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
       type: 'number',
       label: {
         en: 'Invoice Amount (CHF)',
@@ -239,6 +288,7 @@ export const BillParticipantsCollection: CollectionConfig = {
     },
     {
       name: 'billPdfPath',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
       type: 'text',
       maxLength: 50_000_000,
       label: {
@@ -255,6 +305,7 @@ export const BillParticipantsCollection: CollectionConfig = {
     // Status
     {
       name: 'status',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
       type: 'select',
       required: true,
       defaultValue: 'new',
@@ -297,6 +348,7 @@ export const BillParticipantsCollection: CollectionConfig = {
     // Audit trail
     {
       name: 'syncHistory',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
       type: 'json',
       label: {
         en: 'Sync History',
@@ -322,45 +374,33 @@ export const BillParticipantsCollection: CollectionConfig = {
       collection: 'outgoing-emails',
       on: 'billParticipant',
       label: {
-        en: 'Outgoing Emails',
-        de: 'Ausgehende E-Mails',
-        fr: 'E-mails sortants',
+        en: 'Related Emails',
+        de: 'Verknüpfte E-Mails',
+        fr: 'E-mails liés',
       },
       admin: {
-        description: {
-          en: 'Emails sent for this bill.',
-          de: 'E-Mails, die für diese Rechnung gesendet wurden.',
-          fr: 'E-mails envoyés pour cette facture.',
-        },
         components: {
           Cell: '@/features/billing/components/related-emails-cell',
         },
       },
+      access: { read: canAccessBillingField },
     },
 
     // Virtual field for per-row actions in the list view
     {
       name: 'hitobitoLink',
       type: 'ui',
-      label: {
-        en: 'Cevi.DB',
-        de: 'Cevi.DB',
-        fr: 'Cevi.DB',
-      },
       admin: {
         components: {
           Cell: '@/features/billing/components/hitobito-link-cell',
         },
       },
     },
+
+    // Virtual field for actions (PDF, Resend, etc.)
     {
       name: 'actions',
       type: 'ui',
-      label: {
-        en: 'Actions',
-        de: 'Aktionen',
-        fr: 'Actions',
-      },
       admin: {
         components: {
           Cell: '@/features/billing/components/billing-actions-cell',
@@ -369,3 +409,5 @@ export const BillParticipantsCollection: CollectionConfig = {
     },
   ],
 };
+
+export default BillParticipantsCollection;

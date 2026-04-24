@@ -16,6 +16,7 @@ interface RowData {
 export const HitobitoLinkCell: React.FC<{
   rowData: RowData;
 }> = ({ rowData }) => {
+  // eslint-disable-next-line n/no-process-env
   const hitobitoApiUrl = process.env['NEXT_PUBLIC_HITOBITO_API_URL'];
   const { groupId, eventId, participationUuid } = rowData;
 

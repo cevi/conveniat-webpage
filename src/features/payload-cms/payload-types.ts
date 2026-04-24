@@ -3416,6 +3416,9 @@ export interface BillParticipant {
   userId: string;
   eventId: string;
   groupId?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  nickname?: string | null;
   fullName: string;
   /**
    * Hitobito event role type (e.g. Event::Camp::Role::Participant)
@@ -3445,9 +3448,6 @@ export interface BillParticipant {
     | number
     | boolean
     | null;
-  /**
-   * Emails sent for this bill.
-   */
   relatedEmails?: {
     docs?: (string | OutgoingEmail)[];
     hasNextPage?: boolean;
@@ -5346,6 +5346,9 @@ export interface BillParticipantsSelect<T extends boolean = true> {
   userId?: T;
   eventId?: T;
   groupId?: T;
+  firstName?: T;
+  lastName?: T;
+  nickname?: T;
   fullName?: T;
   roleType?: T;
   enrollmentDate?: T;

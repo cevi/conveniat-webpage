@@ -96,26 +96,57 @@ export async function syncParticipants(payload: Payload): Promise<SyncSummary> {
           const document_ = existing.docs[0];
           if (document_ === undefined) continue;
 
-          const hasRoleChanged = document_.roleType !== participation.roleType;
-          const hasNameChanged = document_.fullName !== participation.fullName;
-          const hasGroupIdChanged = document_.groupId !== event.groupId;
+          const normalize = (val: unknown): string => (typeof val === 'string' ? val : '');
+          const hasRoleChanged =
+            normalize(document_.roleType) !== normalize(participation.roleType);
+          const hasNameChanged =
+            normalize(document_.fullName) !== normalize(participation.fullName);
+          const hasFirstNameChanged =
+            normalize(document_.firstName) !== normalize(participation.firstName);
+          const hasLastNameChanged =
+            normalize(document_.lastName) !== normalize(participation.lastName);
+          const hasNicknameChanged =
+            normalize(document_.nickname) !== normalize(participation.nickname);
+          const hasGroupIdChanged = normalize(document_.groupId) !== normalize(event.groupId);
 
           const history = (document_.syncHistory as SyncHistoryEntry[] | undefined) ?? [];
 
-          if (hasRoleChanged || hasNameChanged || hasGroupIdChanged) {
+          if (
+            hasRoleChanged ||
+            hasNameChanged ||
+            hasFirstNameChanged ||
+            hasLastNameChanged ||
+            hasNicknameChanged ||
+            hasGroupIdChanged
+          ) {
             const diff: Record<string, { from: string; to: string }> = {};
             if (hasRoleChanged)
-              diff.roleType = {
-                from: String(document_.roleType ?? ''),
+              diff['roleType'] = {
+                from: String(document_.roleType),
                 to: participation.roleType,
               };
+            if (hasFirstNameChanged)
+              diff['firstName'] = {
+                from: String(document_.firstName),
+                to: participation.firstName,
+              };
+            if (hasLastNameChanged)
+              diff['lastName'] = {
+                from: String(document_.lastName),
+                to: participation.lastName,
+              };
+            if (hasNicknameChanged)
+              diff['nickname'] = {
+                from: String(document_.nickname),
+                to: participation.nickname,
+              };
             if (hasNameChanged)
-              diff.fullName = {
-                from: String(document_.fullName ?? ''),
+              diff['fullName'] = {
+                from: String(document_.fullName),
                 to: participation.fullName,
               };
             if (hasGroupIdChanged)
-              diff.groupId = { from: String(document_.groupId ?? ''), to: event.groupId };
+              diff['groupId'] = { from: String(document_.groupId), to: event.groupId };
 
             await payload.update({
               collection: 'bill-participants',
@@ -124,6 +155,9 @@ export async function syncParticipants(payload: Payload): Promise<SyncSummary> {
               data: {
                 lastSyncDate: now,
                 groupId: event.groupId,
+                firstName: participation.firstName,
+                lastName: participation.lastName,
+                nickname: participation.nickname,
                 fullName: participation.fullName,
                 roleType: participation.roleType,
                 status: 'updated',
@@ -164,6 +198,9 @@ export async function syncParticipants(payload: Payload): Promise<SyncSummary> {
             userId: participation.participantId,
             eventId: event.eventId,
             groupId: event.groupId,
+            firstName: participation.firstName,
+            lastName: participation.lastName,
+            nickname: participation.nickname,
             fullName: participation.fullName,
             roleType: participation.roleType,
             enrollmentDate: participation.enrollmentDate,
@@ -220,7 +257,8 @@ export async function syncParticipants(payload: Payload): Promise<SyncSummary> {
         }
       }
     } catch (error) {
-      summary.errors.push(`Event ${event.eventId} (${event.eventName}): ${String(error)}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      summary.errors.push(`Event ${event.eventId} (${event.eventName}): ${errorMessage}`);
     }
   }
 
