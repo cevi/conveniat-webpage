@@ -1,4 +1,4 @@
-import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
+import { canAccessBilling } from '@/features/payload-cms/payload-cms/access-rules/can-access-billing';
 import type { PayloadHandler } from 'payload';
 
 /**
@@ -6,7 +6,7 @@ import type { PayloadHandler } from 'payload';
  */
 export const billingSyncHandler: PayloadHandler = async (request) => {
   try {
-    const hasAccess = await canAccessAdminPanel({ req: request });
+    const hasAccess = await canAccessBilling({ req: request });
     if (!hasAccess) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -26,7 +26,7 @@ export const billingSyncHandler: PayloadHandler = async (request) => {
  */
 export const billingGenerateHandler: PayloadHandler = async (request) => {
   try {
-    const hasAccess = await canAccessAdminPanel({ req: request });
+    const hasAccess = await canAccessBilling({ req: request });
     if (!hasAccess) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -46,7 +46,7 @@ export const billingGenerateHandler: PayloadHandler = async (request) => {
  */
 export const billingRegenerateAllHandler: PayloadHandler = async (request) => {
   try {
-    const hasAccess = await canAccessAdminPanel({ req: request });
+    const hasAccess = await canAccessBilling({ req: request });
     if (!hasAccess) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     // Find all participants with a bill
@@ -84,7 +84,7 @@ export const billingRegenerateAllHandler: PayloadHandler = async (request) => {
  */
 export const billingRegenerateSingleHandler: PayloadHandler = async (request) => {
   try {
-    const hasAccess = await canAccessAdminPanel({ req: request });
+    const hasAccess = await canAccessBilling({ req: request });
     if (!hasAccess) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = (await (request as unknown as Request).json()) as { participantId?: string };
@@ -115,7 +115,7 @@ export const billingRegenerateSingleHandler: PayloadHandler = async (request) =>
  */
 export const billingSendHandler: PayloadHandler = async (request) => {
   try {
-    const hasAccess = await canAccessAdminPanel({ req: request });
+    const hasAccess = await canAccessBilling({ req: request });
     if (!hasAccess) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -135,7 +135,7 @@ export const billingSendHandler: PayloadHandler = async (request) => {
  */
 export const billingSendSingleHandler: PayloadHandler = async (request) => {
   try {
-    const hasAccess = await canAccessAdminPanel({ req: request });
+    const hasAccess = await canAccessBilling({ req: request });
     if (!hasAccess) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -160,7 +160,7 @@ export const billingSendSingleHandler: PayloadHandler = async (request) => {
  */
 export const billingExportCsvHandler: PayloadHandler = async (request) => {
   try {
-    const hasAccess = await canAccessAdminPanel({ req: request });
+    const hasAccess = await canAccessBilling({ req: request });
     if (!hasAccess) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -190,7 +190,7 @@ export const billingExportCsvHandler: PayloadHandler = async (request) => {
  */
 export const billingPreviewPdfHandler: PayloadHandler = async (request) => {
   try {
-    const hasAccess = await canAccessAdminPanel({ req: request });
+    const hasAccess = await canAccessBilling({ req: request });
     if (!hasAccess) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }

@@ -1,5 +1,5 @@
-import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import {
+  canAccessBilling,
   canAccessBillingField,
   canUserAccessBilling,
 } from '@/features/payload-cms/payload-cms/access-rules/can-access-billing';
@@ -55,7 +55,7 @@ export const BillParticipantsCollection: CollectionConfig = {
     },
   },
   access: {
-    read: canAccessAdminPanel,
+    read: canAccessBilling,
     // Only allow create/update/delete from internal API calls (billing services),
     // not from the admin panel UI.
     create: ({ req }): boolean => req.context['internal'] === true,
