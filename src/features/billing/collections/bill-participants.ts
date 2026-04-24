@@ -287,14 +287,15 @@ export const BillParticipantsCollection: CollectionConfig = {
       },
     },
     {
-      name: 'billPdfPath',
+      name: 'billPdfs',
       access: { read: canAccessBillingField, update: canAccessBillingField },
-      type: 'text',
-      maxLength: 50_000_000,
+      type: 'upload',
+      relationTo: 'bill-pdfs',
+      hasMany: true,
       label: {
-        en: 'Bill PDF Path',
-        de: 'Rechnungs-PDF-Pfad',
-        fr: 'Chemin du PDF de la facture',
+        en: 'Bill PDFs',
+        de: 'Rechnungs-PDFs',
+        fr: 'PDFs de factures',
       },
       admin: {
         disableListColumn: true,

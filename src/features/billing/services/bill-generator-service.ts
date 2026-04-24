@@ -259,10 +259,27 @@ export async function generateBills(payload: Payload): Promise<GenerationSummary
         firstName,
       });
 
-      // Store PDF buffer as base64
-      const pdfBase64 = pdfBuffer.toString('base64');
+      // Upload PDF buffer to MinIO
+      const pdfFileName = `Rechnung-${invoiceNumber}-${Date.now()}.pdf`;
+      const uploadedPdf = await payload.create({
+        collection: 'bill-pdfs',
+        data: {},
+        file: {
+          data: pdfBuffer,
+          name: pdfFileName,
+          mimetype: 'application/pdf',
+          size: pdfBuffer.length,
+        },
+        context: { internal: true },
+      });
 
       const history = (document_.syncHistory as SyncHistoryEntry[] | undefined) ?? [];
+      const currentPdfs = (document_.billPdfs as (string | { id: string })[] | undefined) ?? [];
+      const updatedPdfs = [
+        ...currentPdfs.map((p) => (typeof p === 'object' ? p.id : p)),
+        String(uploadedPdf.id),
+      ];
+
       await payload.update({
         collection: 'bill-participants',
         context: { internal: true },
@@ -273,7 +290,7 @@ export async function generateBills(payload: Payload): Promise<GenerationSummary
           referenceNumber,
           invoiceNumber,
           invoiceAmount: amount,
-          billPdfPath: pdfBase64,
+          billPdfs: updatedPdfs,
           syncHistory: [...history, { date: new Date().toISOString(), action: 'bill_generated' }],
         },
       });

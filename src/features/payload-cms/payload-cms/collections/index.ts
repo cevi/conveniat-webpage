@@ -1,4 +1,5 @@
 import { BillParticipantsCollection } from '@/features/billing/collections/bill-participants';
+import { BillPdfsCollection } from '@/features/billing/collections/bill-pdfs-collection';
 import { BlogArticleCollection } from '@/features/payload-cms/payload-cms/collections/blog-article';
 import { CampCategoryCollection } from '@/features/payload-cms/payload-cms/collections/camp-category';
 import { CampMapAnnotationsCollection } from '@/features/payload-cms/payload-cms/collections/camp-map-collection';
@@ -51,6 +52,7 @@ const rawCollectionsConfig: CollectionConfig[] = [
   SmtpBounceMailTracking,
   OutgoingEmails,
   BillParticipantsCollection,
+  BillPdfsCollection,
 ];
 
 /**

@@ -11,7 +11,7 @@ import React from 'react';
 
 interface RowData {
   id: string;
-  billPdfPath?: string;
+  billPdfs?: (string | { id: string })[];
   invoiceNumber?: string;
 }
 
@@ -25,7 +25,7 @@ export const BillingActionsCell: React.FC<{
   const [confirmOpen, setConfirmOpen] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
 
-  const hasPdf = Boolean(rowData.billPdfPath);
+  const hasPdf = Array.isArray(rowData.billPdfs) && rowData.billPdfs.length > 0;
 
   const handlePreview = (): void => {
     window.open(

@@ -1,4 +1,6 @@
+import { environmentVariables } from '@/config/environment-variables';
 import { canAccessBilling } from '@/features/payload-cms/payload-cms/access-rules/can-access-billing';
+import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import type { PayloadHandler } from 'payload';
 
 /**
@@ -207,25 +209,64 @@ export const billingPreviewPdfHandler: PayloadHandler = async (request) => {
         context: { internal: true },
       });
 
-      const base64Pdf = document_.billPdfPath as string | undefined;
-      if (!base64Pdf) {
+      const pdfDocuments = (document_.billPdfs as (string | { id: string })[] | undefined) ?? [];
+      const latestPdfId = pdfDocuments.at(-1);
+
+      if (!latestPdfId) {
         return Response.json({ error: 'No PDF available for this participant' }, { status: 404 });
       }
 
-      const pdfBuffer = Buffer.from(base64Pdf, 'base64');
+      const pdfDocumentId = typeof latestPdfId === 'object' ? latestPdfId.id : latestPdfId;
+      const pdfDocument = await request.payload.findByID({
+        collection: 'bill-pdfs',
+        id: pdfDocumentId,
+        context: { internal: true },
+      });
+
+      if (!pdfDocument.filename) {
+        return Response.json({ error: 'PDF file missing' }, { status: 404 });
+      }
+
       const invoiceNumber = (document_.invoiceNumber as string | undefined) ?? 'Rechnung';
       const disposition = isDownload
         ? `attachment; filename="Rechnung-${invoiceNumber}.pdf"`
         : `inline; filename="Rechnung-${invoiceNumber}.pdf"`;
 
-      return new Response(pdfBuffer, {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/pdf',
-          'Content-Disposition': disposition,
-          'Cache-Control': 'no-cache',
+      const s3 = new S3Client({
+        endpoint: environmentVariables.MINIO_HOST,
+        region: 'us-east-1',
+        credentials: {
+          accessKeyId: environmentVariables.MINIO_ACCESS_KEY_ID,
+          secretAccessKey: environmentVariables.MINIO_SECRET_ACCESS_KEY,
         },
+        forcePathStyle: true,
       });
+
+      const command = new GetObjectCommand({
+        Bucket: environmentVariables.MINIO_BUCKET_NAME,
+        Key: pdfDocument.filename,
+      });
+
+      try {
+        const response = await s3.send(command);
+        if (!response.Body) {
+          return Response.json({ error: 'Failed to read PDF from storage' }, { status: 500 });
+        }
+
+        const pdfBuffer = Buffer.from(await response.Body.transformToByteArray());
+
+        return new Response(pdfBuffer, {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/pdf',
+            'Content-Disposition': disposition,
+            'Cache-Control': 'no-cache',
+          },
+        });
+      } catch (error) {
+        request.payload.logger.error({ err: error }, 'Failed to fetch PDF from MinIO');
+        return Response.json({ error: 'Failed to fetch PDF from storage' }, { status: 500 });
+      }
     }
 
     // ── Generate a fictive preview PDF ──────────────────────────────────

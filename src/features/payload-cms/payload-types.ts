@@ -70,6 +70,7 @@ export interface Config {
     'smtp-bounce-mail-tracking': SmtpBounceMailTracking;
     'outgoing-emails': OutgoingEmail;
     'bill-participants': BillParticipant;
+    'bill-pdfs': BillPdf;
     forms: Form;
     'form-submissions': FormSubmission;
     'search-collection': SearchCollection;
@@ -121,6 +122,7 @@ export interface Config {
     'smtp-bounce-mail-tracking': SmtpBounceMailTrackingSelect<false> | SmtpBounceMailTrackingSelect<true>;
     'outgoing-emails': OutgoingEmailsSelect<false> | OutgoingEmailsSelect<true>;
     'bill-participants': BillParticipantsSelect<false> | BillParticipantsSelect<true>;
+    'bill-pdfs': BillPdfsSelect<false> | BillPdfsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     'search-collection': SearchCollectionSelect<false> | SearchCollectionSelect<true>;
@@ -3434,7 +3436,7 @@ export interface BillParticipant {
   referenceNumber?: string | null;
   invoiceNumber?: string | null;
   invoiceAmount?: number | null;
-  billPdfPath?: string | null;
+  billPdfs?: (string | BillPdf)[] | null;
   status: 'new' | 'bill_created' | 'bill_sent' | 'removed' | 're_added' | 'updated' | 'reminder_sent';
   /**
    * Array of { date, action } entries for audit trail.
@@ -3455,6 +3457,24 @@ export interface BillParticipant {
   };
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "bill-pdfs".
+ */
+export interface BillPdf {
+  id: string;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
 }
 /**
  * This is a collection of automatically created search results. These results are used by the global site search and will be updated automatically as documents in the CMS are created or updated.
@@ -3816,6 +3836,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'bill-participants';
         value: string | BillParticipant;
+      } | null)
+    | ({
+        relationTo: 'bill-pdfs';
+        value: string | BillPdf;
       } | null)
     | ({
         relationTo: 'forms';
@@ -5361,12 +5385,29 @@ export interface BillParticipantsSelect<T extends boolean = true> {
   referenceNumber?: T;
   invoiceNumber?: T;
   invoiceAmount?: T;
-  billPdfPath?: T;
+  billPdfs?: T;
   status?: T;
   syncHistory?: T;
   relatedEmails?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "bill-pdfs_select".
+ */
+export interface BillPdfsSelect<T extends boolean = true> {
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -6896,6 +6937,7 @@ export interface TaskCreateCollectionExport {
       | 'smtp-bounce-mail-tracking'
       | 'outgoing-emails'
       | 'bill-participants'
+      | 'bill-pdfs'
       | 'forms'
       | 'form-submissions'
       | 'search-collection'

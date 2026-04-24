@@ -1,8 +1,10 @@
+import { environmentVariables } from '@/config/environment-variables';
 import type { SendSummary } from '@/features/billing/types';
 import { sendTrackedEmail } from '@/features/payload-cms/payload-cms/utils/send-tracked-email';
 import { HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api';
 import { HitobitoClient } from '@/features/registration_process/hitobito-api/client';
 import { PersonService } from '@/features/registration_process/hitobito-api/services/person.service';
+import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import type { Payload } from 'payload';
 
 interface SyncHistoryEntry {
@@ -84,13 +86,53 @@ export async function sendBills(payload: Payload, participantId?: string): Promi
       const lastName = fullName.split(' ').slice(1).join(' ');
       const referenceNumber = (document_.referenceNumber as string | undefined) ?? '';
       const invoiceAmount = (document_.invoiceAmount as number | undefined) ?? 0;
-      const pdfBase64 = document_.billPdfPath as string;
+      const pdfDocuments = (document_.billPdfs as (string | { id: string })[] | undefined) ?? [];
+      const latestPdfId = pdfDocuments.at(-1);
 
-      if (!pdfBase64) {
+      if (!latestPdfId) {
         summary.errors.push(`No PDF for participant ${String(document_.id)} (${fullName})`);
         summary.failedCount++;
         continue;
       }
+
+      const pdfDocumentId = typeof latestPdfId === 'object' ? latestPdfId.id : latestPdfId;
+      const pdfDocument = await payload.findByID({
+        collection: 'bill-pdfs',
+        id: pdfDocumentId,
+        context: { internal: true },
+      });
+
+      if (!pdfDocument.filename) {
+        summary.errors.push(
+          `No PDF file found for participant ${String(document_.id)} (${fullName})`,
+        );
+        summary.failedCount++;
+        continue;
+      }
+
+      const s3 = new S3Client({
+        endpoint: environmentVariables.MINIO_HOST,
+        region: 'us-east-1',
+        credentials: {
+          accessKeyId: environmentVariables.MINIO_ACCESS_KEY_ID,
+          secretAccessKey: environmentVariables.MINIO_SECRET_ACCESS_KEY,
+        },
+        forcePathStyle: true,
+      });
+
+      const command = new GetObjectCommand({
+        Bucket: environmentVariables.MINIO_BUCKET_NAME,
+        Key: pdfDocument.filename,
+      });
+
+      const response = await s3.send(command);
+      if (!response.Body) {
+        summary.errors.push(`Empty PDF body for participant ${String(document_.id)} (${fullName})`);
+        summary.failedCount++;
+        continue;
+      }
+
+      const pdfBuffer = Buffer.from(await response.Body.transformToByteArray());
 
       // Fetch email from Cevi.DB
       const personResult = await personService.getDetails({ personId: userId });
@@ -121,7 +163,7 @@ export async function sendBills(payload: Payload, participantId?: string): Promi
           attachments: [
             {
               filename: `rechnung-${(document_.invoiceNumber as string | undefined) ?? 'bill'}.pdf`,
-              content: Buffer.from(pdfBase64, 'base64'),
+              content: pdfBuffer,
               contentType: 'application/pdf',
             },
             // eslint-disable-next-line @typescript-eslint/no-explicit-any -- nodemailer attachment type
