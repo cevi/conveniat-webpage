@@ -89,7 +89,10 @@ function calculateModule10Recursive(reference: string): number {
 /**
  * Generates QR Bill PDFs for all participants with status 'new' or 're_added'.
  */
-export async function generateBills(payload: Payload): Promise<GenerationSummary> {
+export async function generateBills(
+  payload: Payload,
+  participantId?: string,
+): Promise<GenerationSummary> {
   const summary: GenerationSummary = {
     generatedCount: 0,
     skippedCount: 0,
@@ -140,13 +143,15 @@ export async function generateBills(payload: Payload): Promise<GenerationSummary
   const participants = await payload.find({
     collection: 'bill-participants',
     context: { internal: true },
-    where: {
-      or: [
-        { status: { equals: 'new' } },
-        { status: { equals: 're_added' } },
-        { status: { equals: 'updated' } },
-      ],
-    },
+    where: participantId
+      ? { id: { equals: participantId } }
+      : {
+          or: [
+            { status: { equals: 'new' } },
+            { status: { equals: 're_added' } },
+            { status: { equals: 'updated' } },
+          ],
+        },
     limit: 10_000,
   });
 
@@ -157,7 +162,6 @@ export async function generateBills(payload: Payload): Promise<GenerationSummary
 
   // 3. Track current reference number
   let currentReferenceNumber = settings.nextReferenceNumber;
-  let invoiceCounter = 1;
 
   for (const document_ of participants.docs) {
     try {
@@ -215,7 +219,7 @@ export async function generateBills(payload: Payload): Promise<GenerationSummary
         .replaceAll('{{event-id}}', document_.eventId)
         .replaceAll('{{group-id}}', document_.groupId || '')
         .replaceAll('{{participation-id}}', document_.participationUuid);
-      const invoiceNumber = `${prefix}-${String(invoiceCounter).padStart(4, '0')}`;
+      const invoiceNumber = `${prefix}-${String(currentReferenceNumber).padStart(4, '0')}`;
 
       const customReference = (settings.customReferenceTemplate || '')
         .replaceAll('{{year}}', currentYear)
@@ -296,7 +300,6 @@ export async function generateBills(payload: Payload): Promise<GenerationSummary
       });
 
       currentReferenceNumber++;
-      invoiceCounter++;
       summary.generatedCount++;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);

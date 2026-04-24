@@ -103,7 +103,7 @@ export const billingRegenerateSingleHandler: PayloadHandler = async (request) =>
     });
 
     const { generateBills } = await import('@/features/billing/services/bill-generator-service');
-    const result = await generateBills(request.payload);
+    const result = await generateBills(request.payload, body.participantId);
     return Response.json({ success: true, ...result });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
