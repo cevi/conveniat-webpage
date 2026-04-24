@@ -9,6 +9,9 @@ export const PersonAttributesSchema = z.object({
   zip: z.string().nullable().optional(),
   town: z.string().nullable().optional(),
   address: z.string().nullable().optional(),
+  street: z.string().nullable().optional(),
+  housenumber: z.string().nullable().optional(),
+  house_number: z.string().nullable().optional(),
   birthday: z.string().nullable().optional(),
 });
 

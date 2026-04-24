@@ -198,13 +198,9 @@ export async function generateBills(
       let street = '';
       let buildingNumber: string | undefined = undefined;
 
-      const hitobitoAddress = (personAttributes?.address as string | undefined) ?? '';
-      const hitobitoStreet = (personAttributes as Record<string, unknown> | undefined)?.[
-        'street'
-      ] as string | undefined;
-      const hitobitoHouseNumber = (personAttributes as Record<string, unknown> | undefined)?.[
-        'house_number'
-      ] as string | undefined;
+      const hitobitoAddress = personAttributes?.address ?? '';
+      const hitobitoStreet = personAttributes?.street;
+      const hitobitoHouseNumber = personAttributes?.house_number ?? personAttributes?.housenumber;
 
       if (hitobitoStreet) {
         // Use native structured fields if available
