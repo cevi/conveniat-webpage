@@ -67,9 +67,18 @@ function resolvePricing(
 /**
  * Generates a QR reference number from the prefix and sequential counter.
  */
-function generateQrReference(prefix: string, counter: number): string {
+interface Logger {
+  warn: (message: string) => void;
+}
+
+function generateQrReference(prefix: string, counter: number, logger?: Logger): string {
   const baseReference = `${prefix}${String(counter).padStart(6, '0')}`;
-  const padded = baseReference.padStart(26, '0').slice(0, 26);
+  if (baseReference.length > 26 && logger) {
+    logger.warn(
+      `QR Reference prefix is too long! Base reference '${baseReference}' exceeds 26 digits. Truncating from the beginning to preserve the counter.`,
+    );
+  }
+  const padded = baseReference.padStart(26, '0').slice(-26);
   const checkDigit = calculateModule10Recursive(padded);
   return `${padded}${String(checkDigit)}`;
 }
@@ -212,7 +221,11 @@ export async function generateBills(
       const city = personAttributes?.town ?? '';
 
       // Generate reference number
-      const referenceNumber = generateQrReference(settings.referencePrefix, currentReferenceNumber);
+      const referenceNumber = generateQrReference(
+        settings.referencePrefix,
+        currentReferenceNumber,
+        payload.logger,
+      );
       const currentYear = new Date().getFullYear().toString();
       const prefix = settings.invoiceNumberPrefix
         .replaceAll('{{year}}', currentYear)
