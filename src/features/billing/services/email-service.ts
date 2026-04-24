@@ -62,6 +62,8 @@ export async function sendBills(payload: Payload, participantId?: string): Promi
   const personService = new PersonService(client, logger);
 
   // 3. Query participants needing email
+  // Note: When participantId is provided (e.g., admin clicking "Email senden" in the UI),
+  // we intentionally bypass the 'bill_created' status check to allow force-resending bills.
   const whereClause = participantId
     ? { id: { equals: participantId } }
     : { status: { equals: 'bill_created' } };
@@ -173,13 +175,16 @@ export async function sendBills(payload: Payload, participantId?: string): Promi
         String(document_.id),
       );
 
+      const isReminderSent = document_.status === 'reminder_sent';
+      const newStatus = isReminderSent ? 'reminder_sent' : 'bill_sent';
+
       const history = (document_.syncHistory as SyncHistoryEntry[] | undefined) ?? [];
       await payload.update({
         collection: 'bill-participants',
         context: { internal: true },
         id: document_.id,
         data: {
-          status: 'bill_sent',
+          status: newStatus,
           billSentDate: new Date().toISOString(),
           syncHistory: [
             ...history,
