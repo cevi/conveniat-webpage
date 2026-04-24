@@ -28,6 +28,7 @@ export interface SyncSummary {
   newCount: number;
   removedCount: number;
   reAddedCount: number;
+  changedCount: number;
   unchangedCount: number;
   syncDate: string;
   errors: string[];

@@ -141,7 +141,11 @@ export async function generateBills(payload: Payload): Promise<GenerationSummary
     collection: 'bill-participants',
     context: { internal: true },
     where: {
-      or: [{ status: { equals: 'new' } }, { status: { equals: 're_added' } }],
+      or: [
+        { status: { equals: 'new' } },
+        { status: { equals: 're_added' } },
+        { status: { equals: 'updated' } },
+      ],
     },
     limit: 10_000,
   });

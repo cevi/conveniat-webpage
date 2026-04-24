@@ -13,6 +13,7 @@ interface BillSettingsEvent {
 interface SyncHistoryEntry {
   date: string;
   action: string;
+  diff?: Record<string, { from: string; to: string }>;
 }
 
 /**
@@ -30,6 +31,7 @@ export async function syncParticipants(payload: Payload): Promise<SyncSummary> {
     newCount: 0,
     removedCount: 0,
     reAddedCount: 0,
+    changedCount: 0,
     unchangedCount: 0,
     syncDate: now,
     errors: [],
@@ -90,23 +92,57 @@ export async function syncParticipants(payload: Payload): Promise<SyncSummary> {
         });
 
         if (existing.docs.length > 0) {
-          // Already known → update lastSyncDate
+          // Already known → check if properties changed
           const document_ = existing.docs[0];
           if (document_ === undefined) continue;
+
+          const hasRoleChanged = document_.roleType !== participation.roleType;
+          const hasNameChanged = document_.fullName !== participation.fullName;
+          const hasGroupIdChanged = document_.groupId !== event.groupId;
+
           const history = (document_.syncHistory as SyncHistoryEntry[] | undefined) ?? [];
-          await payload.update({
-            collection: 'bill-participants',
-            context: { internal: true },
-            id: document_.id,
-            data: {
-              lastSyncDate: now,
-              groupId: event.groupId,
-              fullName: participation.fullName,
-              roleType: participation.roleType,
-              syncHistory: [...history, { date: now, action: 'sync_confirmed' }],
-            },
-          });
-          summary.unchangedCount++;
+
+          if (hasRoleChanged || hasNameChanged || hasGroupIdChanged) {
+            const diff: Record<string, { from: string; to: string }> = {};
+            if (hasRoleChanged)
+              diff.roleType = {
+                from: String(document_.roleType ?? ''),
+                to: participation.roleType,
+              };
+            if (hasNameChanged)
+              diff.fullName = {
+                from: String(document_.fullName ?? ''),
+                to: participation.fullName,
+              };
+            if (hasGroupIdChanged)
+              diff.groupId = { from: String(document_.groupId ?? ''), to: event.groupId };
+
+            await payload.update({
+              collection: 'bill-participants',
+              context: { internal: true },
+              id: document_.id,
+              data: {
+                lastSyncDate: now,
+                groupId: event.groupId,
+                fullName: participation.fullName,
+                roleType: participation.roleType,
+                status: 'updated',
+                syncHistory: [...history, { date: now, action: 'participant_updated', diff }],
+              },
+            });
+            summary.changedCount++;
+          } else {
+            await payload.update({
+              collection: 'bill-participants',
+              context: { internal: true },
+              id: document_.id,
+              data: {
+                lastSyncDate: now,
+                syncHistory: [...history, { date: now, action: 'sync_confirmed' }],
+              },
+            });
+            summary.unchangedCount++;
+          }
         } else {
           // Check if this is a re-added user (same userId+eventId, different participationUuid)
           const previousForUser = await payload.find({
@@ -189,7 +225,7 @@ export async function syncParticipants(payload: Payload): Promise<SyncSummary> {
   }
 
   payload.logger.info(
-    `Sync complete: ${String(summary.newCount)} new, ${String(summary.removedCount)} removed, ${String(summary.reAddedCount)} re-added, ${String(summary.unchangedCount)} unchanged`,
+    `Sync complete: ${String(summary.newCount)} new, ${String(summary.removedCount)} removed, ${String(summary.reAddedCount)} re-added, ${String(summary.changedCount)} changed, ${String(summary.unchangedCount)} unchanged`,
   );
 
   return summary;

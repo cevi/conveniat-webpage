@@ -1,4 +1,3 @@
-import type { Endpoint } from 'payload';
 import {
   billingExportCsvHandler,
   billingGenerateHandler,
@@ -9,6 +8,7 @@ import {
   billingSendSingleHandler,
   billingSyncHandler,
 } from '@/features/billing/api/bill-admin-api';
+import type { Endpoint } from 'payload';
 
 export const billingEndpoints: Endpoint[] = [
   {

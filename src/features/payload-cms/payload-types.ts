@@ -3432,7 +3432,7 @@ export interface BillParticipant {
   invoiceNumber?: string | null;
   invoiceAmount?: number | null;
   billPdfPath?: string | null;
-  status: 'new' | 'bill_created' | 'bill_sent' | 'removed' | 're_added' | 'reminder_sent';
+  status: 'new' | 'bill_created' | 'bill_sent' | 'removed' | 're_added' | 'updated' | 'reminder_sent';
   /**
    * Array of { date, action } entries for audit trail.
    */

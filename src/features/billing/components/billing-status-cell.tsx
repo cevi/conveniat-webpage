@@ -8,6 +8,7 @@ type BillingStatus =
   | 'bill_sent'
   | 'removed'
   | 're_added'
+  | 'updated'
   | 'reminder_sent';
 
 const statusConfig: Record<BillingStatus, { label: string; colorClasses: string }> = {
@@ -35,6 +36,11 @@ const statusConfig: Record<BillingStatus, { label: string; colorClasses: string 
     label: 'Erneut hinzugefügt',
     colorClasses:
       'border-violet-200 bg-violet-100 text-violet-800 dark:border-violet-800 dark:bg-violet-900/40 dark:text-violet-200',
+  },
+  updated: {
+    label: 'Aktualisiert',
+    colorClasses:
+      'border-amber-200 bg-amber-100 text-amber-800 dark:border-amber-800 dark:bg-amber-900/40 dark:text-amber-200',
   },
   reminder_sent: {
     label: 'Mahnung gesendet',

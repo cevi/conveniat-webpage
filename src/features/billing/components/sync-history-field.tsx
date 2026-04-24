@@ -6,6 +6,7 @@ import React from 'react';
 interface SyncHistoryEntry {
   date: string;
   action: string;
+  diff?: Record<string, { from: string; to: string }>;
 }
 
 export const SyncHistoryField: React.FC<{ path: string }> = ({ path }) => {
@@ -50,6 +51,21 @@ export const SyncHistoryField: React.FC<{ path: string }> = ({ path }) => {
                   {entry.action}
                 </span>
               </div>
+              {entry.diff && Object.keys(entry.diff).length > 0 && (
+                <div className="mt-2 rounded bg-gray-50 p-2 text-xs text-gray-600 dark:bg-gray-800/50 dark:text-gray-400">
+                  <ul className="list-inside list-disc">
+                    {Object.entries(entry.diff).map(([key, change]) => (
+                      <li key={key}>
+                        <span className="font-medium text-gray-700 dark:text-gray-300">{key}:</span>{' '}
+                        <span className="line-through opacity-70">{change.from}</span> &rarr;{' '}
+                        <span className="font-semibold text-green-600 dark:text-green-400">
+                          {change.to}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           );
         })}

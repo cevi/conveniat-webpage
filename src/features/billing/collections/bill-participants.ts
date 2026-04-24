@@ -274,6 +274,10 @@ export const BillParticipantsCollection: CollectionConfig = {
           value: 're_added',
         },
         {
+          label: { en: 'Updated', de: 'Aktualisiert', fr: 'Mis à jour' },
+          value: 'updated',
+        },
+        {
           label: { en: 'Reminder Sent', de: 'Mahnung gesendet', fr: 'Rappel envoyé' },
           value: 'reminder_sent',
         },

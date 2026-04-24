@@ -11,6 +11,7 @@ interface ActionResult {
   newCount?: number;
   removedCount?: number;
   reAddedCount?: number;
+  changedCount?: number;
   unchangedCount?: number;
   generatedCount?: number;
   skippedCount?: number;
@@ -148,6 +149,9 @@ export const BillingListToolbar: React.FC = () => {
               )}
               {actionResult.reAddedCount !== undefined && (
                 <span> | Erneut: {actionResult.reAddedCount}</span>
+              )}
+              {actionResult.changedCount !== undefined && (
+                <span> | Aktualisiert: {actionResult.changedCount}</span>
               )}
               {actionResult.unchangedCount !== undefined && (
                 <span> | Unverändert: {actionResult.unchangedCount}</span>
