@@ -51,9 +51,9 @@ const confirmButtonString: StaticTranslationString = {
 };
 
 const unpublishingConfirmationString: StaticTranslationString = {
-  en: 'Are you sure you want to unpublish this document in this locale?',
-  de: 'Sind Sie sicher, dass Sie dieses Dokument in dieser Sprache unveröffentlichen möchten?',
-  fr: 'Êtes-vous sûr de vouloir dépublier ce document dans cette langue?',
+  en: 'Are you sure you want to unpublish this document in this locale? Already shared links to this page will no longer work!',
+  de: 'Sind Sie sicher, dass Sie dieses Dokument in dieser Sprache unveröffentlichen möchten? Bereits geteilte Links zu dieser Seite funktionieren nicht mehr!',
+  fr: 'Êtes-vous sûr de vouloir dépublier ce document dans cette langue? Les liens déjà partagés vers cette page ne fonctionneront plus!',
 };
 
 const publishingTextString: StaticTranslationString = {
