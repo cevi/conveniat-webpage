@@ -57,7 +57,8 @@ export const MainMenu: React.FC<{
   const actionURL = specialPagesTable['search']?.alternatives[locale] ?? '/suche';
 
   // if the user is logged in as admin, we show the preview for the menu
-  const showPreviewForMainMenu: boolean = await isAdminSession();
+
+  const showPreviewForMainMenu: boolean = !inAppDesign && await isAdminSession();
   const mainMenu = await getMainMenuFromPayloadCached(locale, showPreviewForMainMenu);
 
   // fallback to an empty array if mainMenu is not an array, to avoid runtime errors
