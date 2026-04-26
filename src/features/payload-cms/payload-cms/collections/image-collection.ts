@@ -1,3 +1,7 @@
+import {
+  hasAdminOrWebAccess,
+  shouldHideInAdminPanel,
+} from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared-fields/last-edited-by-user-field';
 import { flushPageCacheOnChange } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
@@ -92,9 +96,13 @@ export const ImageCollection: CollectionConfig = {
         not_equals: true,
       },
     }),
+    hidden: shouldHideInAdminPanel,
   },
   access: {
     read: () => true,
+    update: hasAdminOrWebAccess,
+    create: hasAdminOrWebAccess,
+    delete: hasAdminOrWebAccess,
   },
   fields: [
     { ...altField('de') },

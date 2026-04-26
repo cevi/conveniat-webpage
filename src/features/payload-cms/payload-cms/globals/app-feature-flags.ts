@@ -1,3 +1,4 @@
+import { shouldHideInAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { setFeatureFlag } from '@/lib/db/redis';
 import type { GlobalConfig } from 'payload';
@@ -11,6 +12,7 @@ export const AppFeatureFlags: GlobalConfig = {
   },
   admin: {
     group: AdminPanelDashboardGroups.BackofficeAppFeatures,
+    hidden: shouldHideInAdminPanel,
   },
   access: {
     read: () => true,

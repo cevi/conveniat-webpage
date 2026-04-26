@@ -1,3 +1,4 @@
+import { shouldHideInAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import type { GlobalConfig } from 'payload';
 
@@ -23,6 +24,7 @@ export const AlertManagement: GlobalConfig = {
         },
       },
     },
+    hidden: shouldHideInAdminPanel,
   },
   fields: [
     {

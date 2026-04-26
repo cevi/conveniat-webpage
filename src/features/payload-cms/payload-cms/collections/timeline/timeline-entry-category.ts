@@ -1,3 +1,7 @@
+import {
+  hasAdminOrWebAccess,
+  shouldHideInAdminPanel,
+} from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import type { CollectionConfig } from 'payload';
 
@@ -20,6 +24,14 @@ export const TimelineEntryCategory: CollectionConfig = {
   admin: {
     group: AdminPanelDashboardGroups.GlobalSettings,
     useAsTitle: 'name',
+    hidden: shouldHideInAdminPanel,
+  },
+
+  access: {
+    read: () => true,
+    update: hasAdminOrWebAccess,
+    create: hasAdminOrWebAccess,
+    delete: hasAdminOrWebAccess,
   },
 
   fields: [

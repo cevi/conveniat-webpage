@@ -33,6 +33,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { brevoContactWorkflow } from '@/features/marketing/workflows/brevo-contact-workflow';
+import { shouldHideInAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import {
   enabledWidgets,
   widgetDefaultLayout,
@@ -130,7 +131,7 @@ const jobsConfig: JobsConfig = {
     ...defaultJobsCollection,
     admin: {
       ...defaultJobsCollection.admin,
-      hidden: false,
+      hidden: shouldHideInAdminPanel,
     },
   }),
   tasks: [
@@ -217,6 +218,9 @@ export const payloadConfig: RoutableConfig = {
     },
   },
   ...emailSettings,
+  folders: {
+    browseByFolder: false,
+  },
 };
 
 // export the config for PayloadCMS

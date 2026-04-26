@@ -1,4 +1,8 @@
 import { canAccessDocuments } from '@/features/payload-cms/payload-cms/access-rules/can-access-id-in-collection';
+import {
+  hasAdminOrWebAccess,
+  shouldHideInAdminPanel,
+} from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared-fields/last-edited-by-user-field';
 import { permissionsField } from '@/features/payload-cms/payload-cms/shared-fields/permissions-field';
@@ -38,9 +42,13 @@ export const DocumentsCollection: CollectionConfig = {
     groupBy: true,
     /** this is broken with our localized versions */
     disableCopyToLocale: true,
+    hidden: shouldHideInAdminPanel,
   },
   access: {
     read: canAccessDocuments,
+    update: hasAdminOrWebAccess,
+    create: hasAdminOrWebAccess,
+    delete: hasAdminOrWebAccess,
   },
   fields: [
     {

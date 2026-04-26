@@ -7,7 +7,7 @@
 */
 
 import { environmentVariables } from '@/config/environment-variables';
-import type { PayloadRequest, Where } from 'payload';
+import type { ClientUser, PayloadRequest, TypedUser, Where } from 'payload';
 
 const CEVIDB_GROUP_FULL_ADMIN = environmentVariables.CEVIDB_GROUP_FULL_ADMIN;
 const CEVIDB_GROUP_WEB_CORE_TEAM = environmentVariables.CEVIDB_GROUP_WEB_CORE_TEAM;
@@ -138,4 +138,18 @@ export const ProgramTeamAccessForGenericPage = ({
   };
 
   return query;
+};
+
+export const shouldHideInAdminPanel: ({
+  user,
+}: {
+  user: ClientUser | TypedUser | null;
+}) => boolean = ({ user }) => {
+  if (!user) return true;
+  const allowedRoles = [Roles.FullAdmin, Roles.WebCoreTeam];
+  const hasAccess = hasAccessToThisUser({
+    user: { groups: user['groups'] as { id: number }[] },
+    requiredRoles: allowedRoles,
+  });
+  return !hasAccess;
 };
