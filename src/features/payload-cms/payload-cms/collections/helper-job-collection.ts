@@ -1,5 +1,5 @@
 import { RESSORT_OPTIONS } from '@/features/payload-cms/constants/ressort-options';
-import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
+import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { helperJobsPdfReportHandler } from '@/features/payload-cms/payload-cms/endpoints/helper-jobs-pdf-report';
 import { asLocalizedCollection } from '@/features/payload-cms/payload-cms/utils/localized-collection';
@@ -36,10 +36,10 @@ export const JobCollection: CollectionConfig = asLocalizedCollection({
     },
   ],
   access: {
-    read: canAccessAdminPanel,
-    create: canAccessAdminPanel,
-    update: canAccessAdminPanel,
-    delete: canAccessAdminPanel,
+    read: hasAdminOrWebAccess,
+    create: hasAdminOrWebAccess,
+    update: hasAdminOrWebAccess,
+    delete: hasAdminOrWebAccess,
   },
   fields: [
     {

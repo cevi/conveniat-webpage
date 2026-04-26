@@ -1,12 +1,14 @@
 import 'server-only';
 
 import { PreviewWarningClient } from '@/components/preview-warning-client';
+import { hasAccessToThisUser, Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import type { Locale, SearchParameters } from '@/types/types';
-import { isAdminSession } from '@/utils/is-admin-session';
+import { getAdminSession, isAdminSession } from '@/utils/is-admin-session';
 import { PREVIEW_SESSION_COOKIE } from '@/utils/preview-session-cookie';
 import { isPreviewTokenValid } from '@/utils/preview-token';
 import { cookies } from 'next/headers';
 import type React from 'react';
+import { isValidNextAuthUser } from '@/utils/auth-helpers';
 
 /**
  * Checks if the preview token is valid.
@@ -76,8 +78,16 @@ export const canAccessPreviewOfCurrentPage = async (
   const hasVisitedAdmin = cookieStore.has(PREVIEW_SESSION_COOKIE);
   if (!hasVisitedAdmin) return false;
 
-  // check if user has an authenticated admin session
-  return await isAdminSession();
+  const session = await getAdminSession();
+
+  if (session === undefined) return false;
+
+  // check if user is an admin
+  const user = session.user;
+  if (!isValidNextAuthUser(user)) return false;
+
+  // TODO: does Program Team have access to the preview mode?
+  return hasAccessToThisUser({ user, requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam] });
 };
 
 export const PreviewWarning: React.FC<{

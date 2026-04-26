@@ -1,4 +1,6 @@
 import { PreviewModeBanner } from '@/components/header/preview-mode-banner';
+import { hasAccessToThisUser, Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import { isValidNextAuthUser } from '@/utils/auth-helpers';
 import { getAdminSession } from '@/utils/is-admin-session';
 import { PREVIEW_SESSION_COOKIE } from '@/utils/preview-session-cookie';
 import { cookies } from 'next/headers';
@@ -29,10 +31,19 @@ export const PreviewModeBannerServerComponent: React.FC = async () => {
 
   // Only do expensive auth queries if they are flagged as having visited the admin panel.
   const session = await getAdminSession();
+  
 
   if (!session) {
     return <PreviewModeBanner user={undefined} canAccessAdmin={false} />;
   }
 
-  return <PreviewModeBanner user={session.user} canAccessAdmin />;
+  // TODO: for ProgramTeam, do they get access to the preview?
+  const canAccessAdminDashboard = hasAccessToThisUser({
+    user: isValidNextAuthUser(session?.user)
+      ? { group_ids: session.user.group_ids }
+      : { group_ids: [] },
+    requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam],
+  });
+  
+  return <PreviewModeBanner user={session.user} canAccessAdmin={canAccessAdminDashboard} />;
 };

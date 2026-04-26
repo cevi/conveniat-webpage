@@ -1,5 +1,8 @@
 import { environmentVariables } from '@/config/environment-variables';
-import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
+import {
+  hasAccessToThisHelper,
+  Roles,
+} from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { parseSmtpResultsHook } from '@/features/payload-cms/payload-cms/hooks/parse-smtp-results';
 import type { CollectionConfig } from 'payload';
@@ -32,7 +35,7 @@ export const OutgoingEmails: CollectionConfig = {
   },
   access: {
     // read only for admins, only access programmatically
-    read: canAccessAdminPanel,
+    read: hasAccessToThisHelper({ requiredRoles: [Roles.FullAdmin] }),
     create: () => false,
     update: () => false,
     delete: () => false,

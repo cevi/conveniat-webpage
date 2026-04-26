@@ -1,5 +1,9 @@
 import { environmentVariables } from '@/config/environment-variables';
-import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
+import {
+  hasAccessToThisHelper,
+  hasAdminOrWebAccess,
+  Roles,
+} from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared-fields/last-edited-by-user-field';
 import type { User } from '@/features/payload-cms/payload-types';
@@ -56,10 +60,14 @@ export const UserCollection: CollectionConfig = {
   },
 
   access: {
-    admin: canAccessAdminPanel,
-    create: canAccessAdminPanel,
-    delete: canAccessAdminPanel,
-    update: canAccessAdminPanel,
+    // All roles must be able to log into the admin dashboard
+    admin: hasAccessToThisHelper({
+      requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam, Roles.ProgramTeam, Roles.TranslationTeam],
+    }),
+    read: hasAdminOrWebAccess,
+    create: () => false,
+    delete: () => false,
+    update: () => false,
   },
   admin: {
     description:

@@ -40,6 +40,39 @@ FAKE_USERS = [
         ],
         "comment": "Dieser Benutzer hat aktuell keinen Zugriff auf das conveniat27.ch-Backend."
     },
+    {
+        "id": "4",
+        "email": "benutzer4@conveniat27.ch",
+        "first_name": "WebCoreTeam User",
+        "last_name": "WebCoreTeam",
+        "nickname": "WebCore",
+        "roles": [
+            {"group_id": 105, "group_name": "Web Core Team", "role_name": "Web Core", "role_class": "editor"}
+        ],
+        "comment": "Dieser Benutzer gehört zum Web Core Team."
+    },
+    {
+        "id": "5",
+        "email": "benutzer5@conveniat27.ch",
+        "first_name": "TranslationTeam User",
+        "last_name": "TranslationTeam",
+        "nickname": "TranslationTeam",
+        "roles": [
+            {"group_id": 106, "group_name": "Translation Team", "role_name": "Translation Team", "role_class": "editor"}
+        ],
+        "comment": "Dieser Benutzer gehört zum Translation Team." 
+    },
+    {
+        "id": "6",
+        "email": "benutzer6@conveniat27.ch",
+        "first_name": "ProgramTeam User",
+        "last_name": "ProgramTeam",
+        "nickname": "ProgramTeam",
+        "roles": [
+            {"group_id": 107, "group_name": "Program Team", "role_name": "Program Team", "role_class": "editor"}
+        ],
+        "comment": "Dieser Benutzer gehört zum Program Team." 
+    }
 ]
 
 # Store issued tokens

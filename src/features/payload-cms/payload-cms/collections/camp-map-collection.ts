@@ -1,3 +1,4 @@
+import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { minimalEditorFeatures } from '@/features/payload-cms/payload-cms/plugins/lexical-editor';
 import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared-fields/last-edited-by-user-field';
@@ -64,7 +65,7 @@ export const CampMapAnnotationsCollection: CollectionConfig = {
     },
   },
   access: {
-    read: () => true,
+    read: hasAdminOrWebAccess,
   },
   fields: [
     {

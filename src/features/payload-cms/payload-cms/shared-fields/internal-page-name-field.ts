@@ -1,3 +1,4 @@
+import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { beforeDuplicateAddCopySuffix } from '@/features/payload-cms/payload-cms/shared-fields/hooks/before-duplicate-add-copy-suffix';
 import type { Field } from 'payload';
 
@@ -38,5 +39,9 @@ export const internalPageNameField: Field = {
       en: 'Name of the page for internal purposes.',
       fr: 'Nom de la page à des fins internes.',
     },
+  },
+  access: {
+    read: () => true,
+    update: hasAdminOrWebAccess,
   },
 };

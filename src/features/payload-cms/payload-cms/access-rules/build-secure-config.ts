@@ -1,4 +1,8 @@
-import { canAccessAPI } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
+import {
+  hasAccessToThisHelper,
+  hasAdminOrWebAccess,
+  Roles,
+} from '@/features/payload-cms/payload-cms/access-rules/roles';
 import type { Config, SanitizedConfig } from 'payload';
 import { buildConfig } from 'payload';
 
@@ -8,7 +12,7 @@ import { buildConfig } from 'payload';
  * as we have the unique situation that all users with a CeviDB login can sign in
  * to the page, but they should not be able to access the admin panel or the API.
  *
- * See https://payloadcms.com/docs/beta/access-control/overview
+ * See https://payloadcms.com/docs/access-control/overview
  *
  * This function will also apply the default buildConfig function to the config.
  *
@@ -19,9 +23,9 @@ export const buildSecureConfig = (config: Config): Promise<SanitizedConfig> => {
   if (config.globals)
     for (const global of config.globals) {
       global.access = {
-        read: canAccessAPI,
-        update: canAccessAPI,
-        readVersions: canAccessAPI,
+        read: hasAdminOrWebAccess,
+        update: hasAdminOrWebAccess,
+        readVersions: hasAdminOrWebAccess,
         ...global.access,
       };
     }
@@ -30,12 +34,16 @@ export const buildSecureConfig = (config: Config): Promise<SanitizedConfig> => {
   if (config.collections)
     for (const collection of config.collections) {
       collection.access = {
-        read: canAccessAPI,
-        create: canAccessAPI,
-        update: canAccessAPI,
-        delete: canAccessAPI,
-        readVersions: canAccessAPI,
-        unlock: canAccessAPI,
+        read: hasAccessToThisHelper({
+          requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam, Roles.TranslationTeam],
+        }),
+        create: hasAdminOrWebAccess,
+        update: hasAccessToThisHelper({
+          requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam, Roles.TranslationTeam],
+        }),
+        delete: hasAdminOrWebAccess,
+        readVersions: hasAdminOrWebAccess,
+        unlock: hasAccessToThisHelper({ requiredRoles: [Roles.FullAdmin] }),
         ...collection.access,
       };
     }
