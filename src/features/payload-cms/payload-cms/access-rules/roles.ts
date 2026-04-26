@@ -26,14 +26,14 @@ export const isFullAdmin: ({ req }: { req: PayloadRequest }) => boolean | Promis
   req: { user },
 }) => {
   if (!user) return false;
-  return user.groups.some((group) => group.id === CEVIDB_GROUP_FULL_ADMIN);
+  return user.groups?.some((group) => group.id === CEVIDB_GROUP_FULL_ADMIN) ?? false;
 };
 
 export const isWebCoreTeam: ({ req }: { req: PayloadRequest }) => boolean | Promise<boolean> = ({
   req: { user },
 }) => {
   if (!user) return false;
-  return user.groups.some((group) => group.id === CEVIDB_GROUP_WEB_CORE_TEAM);
+  return user.groups?.some((group) => group.id === CEVIDB_GROUP_WEB_CORE_TEAM) ?? false;
 };
 
 export const isTranslationTeam: ({
@@ -42,14 +42,14 @@ export const isTranslationTeam: ({
   req: PayloadRequest;
 }) => boolean | Promise<boolean> = ({ req: { user } }) => {
   if (!user) return false;
-  return user.groups.some((group) => group.id === CEVIDB_GROUP_TRANSLATION_TEAM);
+  return user.groups?.some((group) => group.id === CEVIDB_GROUP_TRANSLATION_TEAM) ?? false;
 };
 
 export const isProgramTeam: ({ req }: { req: PayloadRequest }) => boolean | Promise<boolean> = ({
   req: { user },
 }) => {
   if (!user) return false;
-  return user.groups.some((group) => group.id === CEVIDB_GROUP_PROGRAM_TEAM);
+  return user.groups?.some((group) => group.id === CEVIDB_GROUP_PROGRAM_TEAM) ?? false;
 };
 
 export const hasAccessToThisUser: ({

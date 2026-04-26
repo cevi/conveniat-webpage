@@ -3,12 +3,12 @@ import 'server-only';
 import { PreviewWarningClient } from '@/components/preview-warning-client';
 import { hasAccessToThisUser, Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import type { Locale, SearchParameters } from '@/types/types';
-import { getAdminSession, isAdminSession } from '@/utils/is-admin-session';
+import { isValidNextAuthUser } from '@/utils/auth-helpers';
+import { getAdminSession } from '@/utils/is-admin-session';
 import { PREVIEW_SESSION_COOKIE } from '@/utils/preview-session-cookie';
 import { isPreviewTokenValid } from '@/utils/preview-token';
 import { cookies } from 'next/headers';
 import type React from 'react';
-import { isValidNextAuthUser } from '@/utils/auth-helpers';
 
 /**
  * Checks if the preview token is valid.

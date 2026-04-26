@@ -31,7 +31,6 @@ export const PreviewModeBannerServerComponent: React.FC = async () => {
 
   // Only do expensive auth queries if they are flagged as having visited the admin panel.
   const session = await getAdminSession();
-  
 
   if (!session) {
     return <PreviewModeBanner user={undefined} canAccessAdmin={false} />;
@@ -39,11 +38,11 @@ export const PreviewModeBannerServerComponent: React.FC = async () => {
 
   // TODO: for ProgramTeam, do they get access to the preview?
   const canAccessAdminDashboard = hasAccessToThisUser({
-    user: isValidNextAuthUser(session?.user)
+    user: isValidNextAuthUser(session.user)
       ? { group_ids: session.user.group_ids }
       : { group_ids: [] },
     requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam],
   });
-  
+
   return <PreviewModeBanner user={session.user} canAccessAdmin={canAccessAdminDashboard} />;
 };
