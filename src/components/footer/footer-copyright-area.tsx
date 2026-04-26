@@ -29,6 +29,18 @@ const FooterLayoutCached: React.FC<{ locale: Locale }> = async ({ locale }) => {
   const instagramLink = socialLinks?.instagram;
   const youTubeLink = socialLinks?.youtube;
 
+  const instagramAriaLabel: StaticTranslationString = {
+    de: 'Folge uns auf Instagram',
+    en: 'Follow us on Instagram',
+    fr: 'Suivez-nous sur Instagram',
+  };
+
+  const youTubeAriaLabel: StaticTranslationString = {
+    de: 'Abonniere unseren YouTube-Kanal',
+    en: 'Subscribe to our YouTube channel',
+    fr: 'Abonnez-vous à notre chaîne YouTube',
+  };
+
   return (
     <>
       <div className="mb-2 flex justify-center gap-x-4 text-xs">
@@ -52,7 +64,7 @@ const FooterLayoutCached: React.FC<{ locale: Locale }> = async ({ locale }) => {
             openInNewTab
             rel="noopener noreferrer"
             className="rounded-full p-2 transition-colors duration-200"
-            aria-label="Follow us on Instagram"
+            aria-label={instagramAriaLabel[locale]}
           >
             <SiInstagram className="h-5 w-5" />
           </LinkComponent>
@@ -65,7 +77,7 @@ const FooterLayoutCached: React.FC<{ locale: Locale }> = async ({ locale }) => {
             openInNewTab
             rel="noopener noreferrer"
             className="rounded-full p-2 transition-colors duration-200"
-            aria-label="Subscribe to our YouTube channel"
+            aria-label={youTubeAriaLabel[locale]}
           >
             <SiYoutube className="h-5 w-5" />
           </LinkComponent>

@@ -1,8 +1,9 @@
 'use client';
 
+import { environmentVariables } from '@/config/environment-variables';
 import { PREVIEW_SESSION_COOKIE } from '@/utils/preview-session-cookie';
 import Cookies from 'js-cookie';
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 
 /**
  * Invisible client component rendered inside the Payload admin layout.
@@ -16,9 +17,15 @@ import { useEffect } from 'react';
  * The cookie has no `max-age` / `expires`, making it a true session cookie
  * that is cleared when the browser closes.
  */
+const isLocalhost = environmentVariables.NEXT_PUBLIC_APP_HOST_URL.includes('localhost');
+
 export const SetPreviewSessionCookie: React.FC = () => {
   useEffect(() => {
-    Cookies.set(PREVIEW_SESSION_COOKIE, 'true', { path: '/', sameSite: 'lax' });
+    Cookies.set(PREVIEW_SESSION_COOKIE, 'true', {
+      path: '/',
+      sameSite: 'lax',
+      secure: !isLocalhost,
+    });
   }, []);
 
   return <></>;

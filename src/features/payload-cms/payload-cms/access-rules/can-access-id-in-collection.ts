@@ -16,22 +16,18 @@ export const canAccessDocuments: Access = async ({ req }) => {
       req, // Pass the request to maintain auth context
     });
 
-    // Check which permission profiles the currently authenticated user is allowed to access
-    const allowedPermissionIds: string[] = [];
-
     // Fetch the session ONCE to avoid redundant auth() calls in the loop
     const { auth } = await import('@/utils/auth');
     const userSession = await auth();
 
-    await Promise.all(
+    const results = await Promise.all(
       allPermissions.docs.map(async (permission) => {
-        // Evaluate the permission strictly based on the permission profile and user context
         const isAllowed = await hasPermissions(permission, userSession);
-        if (isAllowed) {
-          allowedPermissionIds.push(permission.id);
-        }
+        return isAllowed ? permission.id : undefined;
       }),
     );
+    // Check which permission profiles the currently authenticated user is allowed to access
+    const allowedPermissionIds = results.filter((id): id is string => id !== undefined);
 
     // Return a query constraint that filters documents at the database level.
     // A document is accessible if:
