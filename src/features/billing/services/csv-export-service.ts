@@ -36,8 +36,20 @@ export async function generateFinanceCsv(payload: Payload): Promise<string> {
     sort: 'invoiceNumber',
   });
 
+  const csvHeaders = [
+    'Date',
+    'DocInvoice',
+    'ExternalReference',
+    'AccountDebit',
+    'AccountCredit',
+    'Amount',
+    'VatCode',
+    'DateExpiration',
+    'Description',
+  ];
+
   if (participants.docs.length === 0) {
-    return 'No bills found.';
+    return csvHeaders.join(';');
   }
 
   // 3. Build CSV rows
@@ -70,16 +82,10 @@ export async function generateFinanceCsv(payload: Payload): Promise<string> {
   });
 
   // 4. Generate CSV
-  const firstRow = rows[0];
-  if (firstRow === undefined) {
-    return 'No bills found.';
-  }
-
-  const headers = Object.keys(firstRow);
   const csvLines = [
-    headers.join(';'),
+    csvHeaders.join(';'),
     ...rows.map((row) =>
-      headers
+      csvHeaders
         .map((header) => {
           const value = row[header as keyof FinanceCsvRow];
           if (typeof value === 'number') return value.toFixed(2);

@@ -6379,6 +6379,10 @@ export interface BillSetting {
    * Printed on the PDF and encoded in the QR bill. Placeholders: {{year}}, {{month}}, {{event-id}}, {{group-id}}, {{participation-id}}, {{people-id}}.
    */
   customReferenceTemplate?: string | null;
+  /**
+   * Printed on the PDF below the Registration Number. Placeholders: {{year}}, {{month}}, {{event-id}}, {{group-id}}, {{participation-id}}, {{people-id}}.
+   */
+  eventNumberTemplate?: string | null;
   paymentDeadlineDays?: number | null;
   /**
    * Text for the PDF letter page before the QR bill.
@@ -6657,6 +6661,7 @@ export interface BillSettingsSelect<T extends boolean = true> {
   documentTitle?: T;
   invoiceNumberPrefix?: T;
   customReferenceTemplate?: T;
+  eventNumberTemplate?: T;
   paymentDeadlineDays?: T;
   invoiceLetterText?: T;
   rolePricing?:

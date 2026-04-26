@@ -21,6 +21,7 @@ interface BillSettings {
   nextReferenceNumber: number;
   invoiceNumberPrefix: string;
   customReferenceTemplate?: string;
+  eventNumberTemplate?: string;
   documentTitle?: string;
   paymentDeadlineDays: number;
   invoiceLetterText: string;
@@ -386,6 +387,16 @@ export async function generateBills(
             .replaceAll('{{people-id}}', String(document_.userId || ''))
         : undefined;
 
+      const eventNumber = settings.eventNumberTemplate
+        ? settings.eventNumberTemplate
+            .replaceAll('{{year}}', currentYear)
+            .replaceAll('{{month}}', currentMonth)
+            .replaceAll('{{event-id}}', document_.eventId)
+            .replaceAll('{{group-id}}', document_.groupId || '')
+            .replaceAll('{{participation-id}}', document_.participationUuid)
+            .replaceAll('{{people-id}}', String(document_.userId || ''))
+        : undefined;
+
       // Generate PDF
       const documentTitle = settings.documentTitle || 'ANMELDEBESTÄTIGUNG UND RECHNUNG';
 
@@ -415,6 +426,7 @@ export async function generateBills(
         reference: referenceNumber,
         invoiceNumber,
         ...(customReference ? { customReference } : {}),
+        ...(eventNumber ? { eventNumber } : {}),
         invoiceLetterText: settings.invoiceLetterText,
         roleLabel,
         vatCode,
@@ -511,6 +523,7 @@ interface PdfGenerationParameters {
   reference: string;
   invoiceNumber: string;
   customReference?: string;
+  eventNumber?: string;
   documentTitle: string;
   invoiceLetterText: string;
   roleLabel: string;
@@ -618,34 +631,67 @@ export async function generateQrBillPdf(parameters: PdfGenerationParameters): Pr
     document_.fillColor('gray');
 
     // Labels
-    document_.text('Rechnungsdatum:', mm2pt(22), mm2pt(85), { width: mm2pt(35), align: 'left' });
-    document_.text('Zahlbar bis:', mm2pt(22), mm2pt(90), { width: mm2pt(35), align: 'left' });
-    document_.text('Rechnung Nr.:', mm2pt(22), mm2pt(95), { width: mm2pt(35), align: 'left' });
+    let currentY = 85;
+    document_.text('Rechnungsdatum:', mm2pt(22), mm2pt(currentY), {
+      width: mm2pt(35),
+      align: 'left',
+    });
+    currentY += 5;
+    document_.text('Zahlbar bis:', mm2pt(22), mm2pt(currentY), { width: mm2pt(35), align: 'left' });
+    currentY += 5;
+    document_.text('Rechnung Nr.:', mm2pt(22), mm2pt(currentY), {
+      width: mm2pt(35),
+      align: 'left',
+    });
+    currentY += 5;
     if (parameters.customReference) {
-      document_.text('Anmeldenummer:', mm2pt(22), mm2pt(100), { width: mm2pt(35), align: 'left' });
+      document_.text('Anmelde-Nummer:', mm2pt(22), mm2pt(currentY), {
+        width: mm2pt(35),
+        align: 'left',
+      });
+      currentY += 5;
+    }
+    if (parameters.eventNumber) {
+      document_.text('Lager-Nummer:', mm2pt(22), mm2pt(currentY), {
+        width: mm2pt(35),
+        align: 'left',
+      });
+      currentY += 5;
     }
 
     // Values
+    let valY = 85;
     document_.fillColor('black');
-    document_.text(dateString, mm2pt(57), mm2pt(85), { width: mm2pt(40), align: 'left' });
-    document_.text(dueDateString, mm2pt(57), mm2pt(90), { width: mm2pt(40), align: 'left' });
-    document_.text(parameters.invoiceNumber, mm2pt(57), mm2pt(95), {
+    document_.text(dateString, mm2pt(57), mm2pt(valY), { width: mm2pt(40), align: 'left' });
+    valY += 5;
+    document_.text(dueDateString, mm2pt(57), mm2pt(valY), { width: mm2pt(40), align: 'left' });
+    valY += 5;
+    document_.text(parameters.invoiceNumber, mm2pt(57), mm2pt(valY), {
       width: mm2pt(80),
       align: 'left',
     });
+    valY += 5;
     if (parameters.customReference) {
-      document_.text(parameters.customReference, mm2pt(57), mm2pt(100), {
+      document_.text(parameters.customReference, mm2pt(57), mm2pt(valY), {
         width: mm2pt(80),
         align: 'left',
       });
+      valY += 5;
+    }
+    if (parameters.eventNumber) {
+      document_.text(parameters.eventNumber, mm2pt(57), mm2pt(valY), {
+        width: mm2pt(80),
+        align: 'left',
+      });
+      valY += 5;
     }
 
     // Title
     document_.fontSize(15);
     document_.fillColor('#47564C'); // Accent Green
     document_.font('Montserrat-ExtraBold');
-    // Shift title down slightly if custom reference is present
-    const titleY = parameters.customReference ? 115 : 110;
+    // Shift title down slightly based on currentY
+    const titleY = currentY + 10;
     document_.text(parameters.documentTitle, mm2pt(22), mm2pt(titleY), {
       width: mm2pt(165),
       align: 'left',
@@ -657,7 +703,7 @@ export async function generateQrBillPdf(parameters: PdfGenerationParameters): Pr
       .replaceAll('{{amount}}', String(parameters.amount))
       .replaceAll('{{reference}}', parameters.reference);
 
-    const letterY = parameters.customReference ? 130 : 125;
+    const letterY = titleY + 15;
     document_.fontSize(10);
     document_.fillColor('#000000');
 
@@ -688,9 +734,9 @@ export async function generateQrBillPdf(parameters: PdfGenerationParameters): Pr
         columns: [
           { text: 'Pos', width: mm2pt(10), fontSize: 9 },
           { text: 'Beschreibung', width: mm2pt(75) },
-          { text: 'Menge', width: mm2pt(20), fontSize: 9, textOptions: { align: 'center' } },
-          { text: 'Einzelpreis', width: mm2pt(30), fontSize: 9, textOptions: { align: 'center' } },
-          { text: 'Total (CHF)', width: mm2pt(30), fontSize: 9, textOptions: { align: 'center' } },
+          { text: 'Menge', width: mm2pt(20), fontSize: 9, align: 'center' },
+          { text: 'Einzelpreis', width: mm2pt(30), fontSize: 9, align: 'right' },
+          { text: 'Total (CHF)', width: mm2pt(30), fontSize: 9, align: 'right' },
         ],
       },
       {
@@ -703,18 +749,18 @@ export async function generateQrBillPdf(parameters: PdfGenerationParameters): Pr
             fontSize: 9,
             width: mm2pt(75),
           },
-          { text: '1', width: mm2pt(20), fontSize: 9, textOptions: { align: 'center' } },
+          { text: '1', width: mm2pt(20), fontSize: 9, align: 'center' },
           {
-            text: `CHF ${isVatApplied ? subtotal.toFixed(2) : amountNumber.toFixed(2)}`,
+            text: `CHF ${amountNumber.toFixed(2)}`,
             width: mm2pt(30),
             fontSize: 9,
-            textOptions: { align: 'center' },
+            align: 'right',
           },
           {
-            text: `CHF ${isVatApplied ? subtotal.toFixed(2) : amountNumber.toFixed(2)}`,
+            text: `CHF ${amountNumber.toFixed(2)}`,
             width: mm2pt(30),
             fontSize: 9,
-            textOptions: { align: 'center' },
+            align: 'right',
           },
         ],
       },
@@ -726,31 +772,53 @@ export async function generateQrBillPdf(parameters: PdfGenerationParameters): Pr
           borderColor: '#ECF0F1',
           borderWidth: [1, 0, 0, 0],
           columns: [
-            { text: ' ', width: mm2pt(10) },
-            { text: 'Zwischensumme', fontSize: 9, width: mm2pt(75) },
-            { text: ' ', width: mm2pt(20) },
-            { text: ' ', width: mm2pt(30) },
             {
-              text: `CHF ${subtotal.toFixed(2)}`,
+              text: 'Zwischensumme',
+              fontSize: 9,
+              width: mm2pt(135),
+              align: 'right',
+            },
+            {
+              text: `CHF ${amountNumber.toFixed(2)}`,
               width: mm2pt(30),
               fontSize: 9,
-              textOptions: { align: 'center' },
+              align: 'right',
             },
           ],
         },
         {
           borderColor: '#ECF0F1',
-          borderWidth: [1, 0, 0, 0],
+          borderWidth: [0, 0, 0, 0],
           columns: [
-            { text: ' ', width: mm2pt(10) },
-            { text: `zzgl. Mehrwertsteuer ${parameters.vatCode}`, fontSize: 9, width: mm2pt(75) },
-            { text: ' ', width: mm2pt(20) },
-            { text: ' ', width: mm2pt(30) },
+            {
+              text: 'Betrag netto',
+              fontSize: 9,
+              width: mm2pt(135),
+              align: 'right',
+            },
+            {
+              text: `CHF ${subtotal.toFixed(2)}`,
+              width: mm2pt(30),
+              fontSize: 9,
+              align: 'right',
+            },
+          ],
+        },
+        {
+          borderColor: '#ECF0F1',
+          borderWidth: [0, 0, 0, 0],
+          columns: [
+            {
+              text: `MWST ${parameters.vatCode}%`,
+              fontSize: 9,
+              width: mm2pt(135),
+              align: 'right',
+            },
             {
               text: `CHF ${vatAmount.toFixed(2)}`,
               width: mm2pt(30),
               fontSize: 9,
-              textOptions: { align: 'center' },
+              align: 'right',
             },
           ],
         },
@@ -759,23 +827,21 @@ export async function generateQrBillPdf(parameters: PdfGenerationParameters): Pr
 
     tableRows.push({
       borderColor: '#ECF0F1',
-      borderWidth: [1, 0, 0, 0],
+      borderWidth: [1, 0, 1, 0],
       columns: [
-        { text: ' ', width: mm2pt(10) },
         {
-          text: 'Total',
+          text: 'Gesamtbetrag',
           fontName: 'Helvetica-Bold',
           fontSize: 9,
-          width: mm2pt(75),
+          width: mm2pt(135),
+          align: 'right',
         },
-        { text: ' ', width: mm2pt(20) },
-        { text: ' ', width: mm2pt(30) },
         {
           text: `CHF ${amountNumber.toFixed(2)}`,
           fontName: 'Helvetica-Bold',
           width: mm2pt(30),
           fontSize: 9,
-          textOptions: { align: 'center' },
+          align: 'right',
         },
       ],
     });
@@ -794,9 +860,9 @@ export async function generateQrBillPdf(parameters: PdfGenerationParameters): Pr
     // Legal Footer
     const footerLines = [];
     footerLines.push(
-      `${parameters.creditor.name}, ${parameters.creditor.street} ${parameters.creditor.buildingNumber ?? ''}`
+      `${parameters.creditor.name} | ${parameters.creditor.street} ${parameters.creditor.buildingNumber ?? ''}`
         .trim()
-        .replace(/,$/, ''),
+        .replace(/ \|$/, ''),
     );
     if (parameters.creditor.zip && parameters.creditor.city)
       footerLines.push(`${parameters.creditor.zip} ${parameters.creditor.city}`);

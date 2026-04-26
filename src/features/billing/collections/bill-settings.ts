@@ -320,6 +320,23 @@ export const BillSettingsGlobal: GlobalConfig = {
               },
             },
             {
+              name: 'eventNumberTemplate',
+              type: 'text',
+              defaultValue: '{{event-id}}',
+              label: {
+                en: 'Event Number',
+                de: 'Eventnummer',
+                fr: "Numéro d'événement",
+              },
+              admin: {
+                description: {
+                  en: 'Printed on the PDF below the Registration Number. Placeholders: {{year}}, {{month}}, {{event-id}}, {{group-id}}, {{participation-id}}, {{people-id}}.',
+                  de: 'Wird auf das PDF unterhalb der Anmeldenummer gedruckt. Platzhalter: {{year}}, {{month}}, {{event-id}}, {{group-id}}, {{participation-id}}, {{people-id}}.',
+                  fr: "Imprimé sur le PDF sous le numéro d'inscription. Espaces réservés: {{year}}, {{month}}, {{event-id}}, {{group-id}}, {{participation-id}}, {{people-id}}.",
+                },
+              },
+            },
+            {
               name: 'paymentDeadlineDays',
               type: 'number',
               defaultValue: 30,

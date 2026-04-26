@@ -315,6 +315,16 @@ export const billingPreviewPdfHandler: PayloadHandler = async (request) => {
           .replaceAll('{{people-id}}', '123456')
       : undefined;
 
+    const eventNumber = settings.eventNumberTemplate
+      ? settings.eventNumberTemplate
+          .replaceAll('{{year}}', new Date().getFullYear().toString())
+          .replaceAll('{{month}}', currentMonth)
+          .replaceAll('{{event-id}}', '1234')
+          .replaceAll('{{group-id}}', '5678')
+          .replaceAll('{{participation-id}}', '9012')
+          .replaceAll('{{people-id}}', '123456')
+      : undefined;
+
     const documentTitle =
       (settings.documentTitle as string | undefined) ?? 'ANMELDEBESTÄTIGUNG UND RECHNUNG';
 
@@ -342,6 +352,7 @@ export const billingPreviewPdfHandler: PayloadHandler = async (request) => {
       currency,
       reference: generateQrReference('123456', '1234', '9012', 1),
       ...(customReference ? { customReference } : {}),
+      ...(eventNumber ? { eventNumber } : {}),
       invoiceNumber: `${((settings.invoiceNumberPrefix as string) || '{{year}}')
         .replaceAll('{{year}}', new Date().getFullYear().toString())
         .replaceAll('{{month}}', currentMonth)
