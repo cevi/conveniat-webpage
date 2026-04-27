@@ -1,4 +1,4 @@
-import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
+import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { importExportPlugin } from '@payloadcms/plugin-import-export';
 import type { CollectionConfig } from 'payload';
@@ -36,8 +36,10 @@ export const importExportConfiguration = importExportPlugin({
     },
     access: {
       ...collection.access,
-      read: canAccessAdminPanel,
-      create: canAccessAdminPanel,
+      read: hasAdminOrWebAccess,
+      create: hasAdminOrWebAccess,
+      update: hasAdminOrWebAccess,
+      delete: hasAdminOrWebAccess,
     },
   }),
   overrideImportCollection: ({
@@ -52,8 +54,10 @@ export const importExportConfiguration = importExportPlugin({
     },
     access: {
       ...collection.access,
-      read: canAccessAdminPanel,
-      create: canAccessAdminPanel,
+      read: hasAdminOrWebAccess,
+      update: hasAdminOrWebAccess,
+      create: hasAdminOrWebAccess,
+      delete: hasAdminOrWebAccess,
     },
   }),
 });

@@ -86,7 +86,10 @@ export const designRewriteProxy: ProxyModule = (next) => async (request, event, 
 
   const isRefererTrigger = appModeForDashboardBasedOnReferer(pathname, request);
 
-  if (forceAppMode || implicitAppMode || isOfflinePage || isRefererTrigger) {
+  const userAgent = request.headers.get('user-agent') ?? '';
+  const isNativeApp = userAgent.includes('KonektaApp');
+
+  if (forceAppMode || implicitAppMode || isOfflinePage || isRefererTrigger || isNativeApp) {
     designPrefix = DesignCodes.APP_DESIGN;
   }
 

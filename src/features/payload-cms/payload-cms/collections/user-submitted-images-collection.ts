@@ -1,4 +1,7 @@
-import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
+import {
+  hasAdminOrWebAccess,
+  shouldHideInAdminPanel,
+} from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { generateImageName } from '@/features/payload-cms/payload-cms/collections/image-collection';
 import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared-fields/last-edited-by-user-field';
@@ -24,12 +27,13 @@ export const UserSubmittedImagesCollection: CollectionConfig = {
     groupBy: true,
     disableCopyToLocale: true,
     defaultColumns: ['filename', 'updatedAt', 'user'],
+    hidden: shouldHideInAdminPanel,
   },
   access: {
-    admin: canAccessAdminPanel,
-    create: canAccessAdminPanel,
-    delete: canAccessAdminPanel,
-    update: canAccessAdminPanel,
+    admin: hasAdminOrWebAccess,
+    create: hasAdminOrWebAccess,
+    delete: hasAdminOrWebAccess,
+    update: hasAdminOrWebAccess,
   },
   fields: [
     {

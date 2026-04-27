@@ -17,6 +17,10 @@ export const getFooterCached = cache(async (locale: Locale): Promise<Footer> => 
     return await payload.findGlobal({
       slug: 'footer',
       locale,
+      select: {
+        minimalFooterMenu: true,
+        socialLinks: true,
+      },
     });
   });
 });
@@ -32,6 +36,9 @@ export const getHeaderCached = cache(
         slug: 'header',
         locale,
         draft,
+        select: {
+          mainMenu: true,
+        },
       });
     });
   },
@@ -45,6 +52,13 @@ export const getSEOCached = cache(async (): Promise<SEO> => {
     const payload = await getPayload({ config });
     return await payload.findGlobal({
       slug: 'SEO',
+      select: {
+        defaultTitle: true,
+        defaultDescription: true,
+        defaultKeywords: true,
+        publisher: true,
+        googleSearchConsoleVerification: true,
+      },
     });
   });
 });
@@ -65,6 +79,9 @@ export const getAlertSettingsCached = cache(
         locale,
         draft,
         fallbackLocale,
+        select: {
+          questions: true,
+        },
       });
     });
   },

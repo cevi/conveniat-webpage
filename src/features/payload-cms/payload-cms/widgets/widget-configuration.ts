@@ -1,3 +1,6 @@
+import { hasAccessToThisUser, Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import { auth } from '@/utils/auth';
+import { isValidNextAuthUser } from '@/utils/auth-helpers';
 import type { Widget, WidgetInstance } from 'payload';
 
 export const enabledWidgets: Widget[] = [
@@ -15,19 +18,22 @@ export const enabledWidgets: Widget[] = [
   },
 ];
 
-export const widgetDefaultLayout = (): WidgetInstance[] => {
-  /*
-
-  // Example restriction for default widgets, make this function async and import auth if needed
+export const widgetDefaultLayout = async (): Promise<WidgetInstance[]> => {
   const session = await auth();
-  // import { isValidNextAuthUser } from '@/utils/auth-helpers';
   const user = isValidNextAuthUser(session?.user) ? session.user : undefined;
 
-  if (user?.group_ids.includes(541)) {
-    return [{ widgetSlug: 'emergency-alerts', width: 'small' }];
+  const userGroups = user?.group_ids ?? [];
+
+  const hasAccessToWidgets = hasAccessToThisUser({
+    user: { group_ids: userGroups },
+    requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam],
+  });
+
+  if (!hasAccessToWidgets) {
+    // for translation and program team -> only collections
+    return [{ widgetSlug: 'collections', width: 'full' }];
   }
 
-  */
   return [
     { widgetSlug: 'emergency-alerts', width: 'small' },
     { widgetSlug: 'user-count', width: 'small' },

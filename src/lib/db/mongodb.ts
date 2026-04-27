@@ -12,7 +12,7 @@ import { mongooseAdapter } from '@payloadcms/db-mongodb';
 export const dbConfig = mongooseAdapter({
   url: env.DATABASE_URI,
   connectOptions: {
-    minPoolSize: 5,
-    maxPoolSize: 100,
+    minPoolSize: 50,
+    maxPoolSize: 200,
   },
 });

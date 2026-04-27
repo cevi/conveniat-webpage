@@ -1,7 +1,7 @@
 import { DashboardUpcomingEvents } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/components/dashboard-upcoming-events';
 import { SetDynamicPageTitle } from '@/components/header/set-dynamic-app-title';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
-import { getScheduleEntries } from '@/features/schedule/api/get-schedule-entries';
+import { getScheduleEntriesForDashboard } from '@/features/schedule/api/get-schedule-entries';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import {
   Calendar,
@@ -45,7 +45,7 @@ const FeatureCard: React.FC<FeatureCardProperties> = ({
   <Link href={href} className="block">
     <div className="bg-conveniat-green/10 border-conveniat-green/20 hover:bg-conveniat-green/15 h-28 w-72 rounded-lg border p-4 transition-all duration-200 hover:shadow-md">
       <div className="flex h-full items-center gap-3">
-        <div className="flex w-16 flex-shrink-0 justify-center">
+        <div className="flex w-16 shrink-0 justify-center">
           <div className="bg-conveniat-green/20 rounded-full p-2">
             <IconComponent className="text-conveniat-green h-6 w-6" />
           </div>
@@ -179,7 +179,7 @@ const Dashboard: React.FC<{
   params: Promise<{ locale: Locale }>;
 }> = async ({ params }) => {
   const { locale } = await params;
-  const scheduleEvents = await getScheduleEntries();
+  const scheduleEvents = await getScheduleEntriesForDashboard(locale);
 
   return (
     <>

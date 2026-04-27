@@ -13,11 +13,11 @@ import type { Header } from '@/features/payload-cms/payload-types';
 import { specialPagesTable } from '@/features/payload-cms/special-pages-table';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { getBuildInfo } from '@/utils/get-build-info';
+import { isAdminSession } from '@/utils/is-admin-session';
 import { cn } from '@/utils/tailwindcss-override';
 import { Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/react';
 import { ChevronDown, OctagonAlert } from 'lucide-react';
 import { cacheLife, cacheTag } from 'next/cache';
-import { draftMode } from 'next/headers';
 import type React from 'react';
 
 import { AppFeatures } from '@/components/menu/app-features';
@@ -56,9 +56,9 @@ export const MainMenu: React.FC<{
   const build = await getBuildInfo(locale);
   const actionURL = specialPagesTable['search']?.alternatives[locale] ?? '/suche';
 
-  // if the user is logged in, we show the preview for the menu
-  const draft = await draftMode();
-  const showPreviewForMainMenu: boolean = draft.isEnabled;
+  // if the user is logged in as admin, we show the preview for the menu
+
+  const showPreviewForMainMenu: boolean = !inAppDesign && (await isAdminSession());
   const mainMenu = await getMainMenuFromPayloadCached(locale, showPreviewForMainMenu);
 
   // fallback to an empty array if mainMenu is not an array, to avoid runtime errors

@@ -1,3 +1,7 @@
+import {
+  hasAdminOrWebAccess,
+  shouldHideInAdminPanel,
+} from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { SlugField } from '@/features/payload-cms/payload-cms/shared-fields/slug-field';
 import { redirectsPlugin } from '@payloadcms/plugin-redirects';
@@ -20,6 +24,13 @@ export const redirectsPluginConfiguration = redirectsPlugin({
           ],
         },
       },
+      hidden: shouldHideInAdminPanel,
+    },
+    access: {
+      read: () => true,
+      update: hasAdminOrWebAccess,
+      create: hasAdminOrWebAccess,
+      delete: hasAdminOrWebAccess,
     },
     labels: {
       singular: 'Redirect',

@@ -4,7 +4,8 @@ import '@payloadcms/next/css';
 import { handleServerFunctions, RootLayout } from '@payloadcms/next/layouts';
 import type { ServerFunctionClient } from 'payload';
 import React, { Suspense } from 'react';
-import { EnableDraftMode } from '../../features/payload-cms/components/enable-draft-mode';
+
+import { SetPreviewSessionCookie } from '@/features/payload-cms/components/set-preview-session-cookie';
 import { QueryClientProvider } from '../../providers/query-client-provider';
 import { importMap } from './admin/importMap.js';
 import './custom.scss';
@@ -26,9 +27,11 @@ const serverFunction: ServerFunctionClient = async function (args) {
 const Layout = ({ children }: Args) => (
   <Suspense fallback={null}>
     <RootLayout config={config} importMap={importMap} serverFunction={serverFunction}>
-      <EnableDraftMode />
       <PostHogProvider>
-        <QueryClientProvider>{children}</QueryClientProvider>
+        <QueryClientProvider>
+          <SetPreviewSessionCookie />
+          {children}
+        </QueryClientProvider>
       </PostHogProvider>
     </RootLayout>
   </Suspense>

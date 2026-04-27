@@ -55,6 +55,7 @@ export type LocalizedCollectionComponent = React.FC<LocalizedCollectionPage> & {
   generateMetadata?: (parameters: {
     locale: Locale;
     slugs: string[] | undefined;
+    isPreview?: boolean;
   }) => Promise<Metadata>;
 };
 

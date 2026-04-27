@@ -49,8 +49,9 @@ export function isDraftOrPreviewMode(cookieString?: string | null): boolean {
  * Helper to safely get document.cookie in browser environments.
  */
 function getDocumentCookie(): string | undefined {
-  if (typeof document === 'undefined') {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (globalThis.document === undefined) {
     return undefined;
   }
-  return document.cookie;
+  return globalThis.document.cookie;
 }

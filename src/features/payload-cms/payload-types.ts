@@ -534,6 +534,10 @@ export interface Image {
    * Indicates if this image was generated as a PDF thumbnail.
    */
   isPdfThumbnail?: boolean | null;
+  /**
+   * Example: for the newsletter
+   */
+  internalDescription?: string | null;
   lastEditedByUser?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
@@ -1825,6 +1829,7 @@ export interface GenericPage {
     keywords?: string | null;
   };
   lastEditedByUser?: (string | null) | User;
+  allowsEditsByUser?: (string | User)[] | null;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -4192,6 +4197,7 @@ export interface GenericPageSelect<T extends boolean = true> {
         keywords?: T;
       };
   lastEditedByUser?: T;
+  allowsEditsByUser?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
@@ -4358,6 +4364,7 @@ export interface ImagesSelect<T extends boolean = true> {
   imageCaption_en?: T;
   imageCaption_fr?: T;
   isPdfThumbnail?: T;
+  internalDescription?: T;
   lastEditedByUser?: T;
   updatedAt?: T;
   createdAt?: T;

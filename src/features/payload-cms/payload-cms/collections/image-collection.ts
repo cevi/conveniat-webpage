@@ -1,3 +1,7 @@
+import {
+  hasAdminOrWebAccess,
+  shouldHideInAdminPanel,
+} from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared-fields/last-edited-by-user-field';
 import { flushPageCacheOnChange } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
@@ -92,9 +96,13 @@ export const ImageCollection: CollectionConfig = {
         not_equals: true,
       },
     }),
+    hidden: shouldHideInAdminPanel,
   },
   access: {
     read: () => true,
+    update: hasAdminOrWebAccess,
+    create: hasAdminOrWebAccess,
+    delete: hasAdminOrWebAccess,
   },
   fields: [
     { ...altField('de') },
@@ -112,6 +120,22 @@ export const ImageCollection: CollectionConfig = {
           en: 'Indicates if this image was generated as a PDF thumbnail.',
           de: 'Gibt an, ob dieses Bild als PDF-Vorschaubild generiert wurde.',
           fr: 'Indique si cette image a été générée en tant que miniature de PDF.',
+        },
+      },
+    },
+    {
+      name: 'internalDescription',
+      label: {
+        en: 'Internal Description',
+        de: 'Interne Beschreibung',
+        fr: 'Description interne',
+      },
+      type: 'text',
+      admin: {
+        description: {
+          en: 'Example: for the newsletter',
+          de: 'Beispiel: für im Newsletter',
+          fr: 'Exemple: pour la newsletter',
         },
       },
     },

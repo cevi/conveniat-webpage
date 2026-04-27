@@ -172,6 +172,12 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
 
   const isAppModeClient = event.clientId !== '' && isClientInAppMode(event.clientId);
 
+  // Detect native app WebView via User-Agent (matches the server-side check in design-rewrite-proxy.ts).
+  // This is the most reliable signal: the WebView ALWAYS sends 'KonektaApp/1.0' in the UA,
+  // regardless of SW state, client ID tracking, or query params.
+  const userAgent = event.request.headers.get('user-agent') ?? '';
+  const isNativeAppWebView = userAgent.includes('KonektaApp');
+
   if (isApi) {
     try {
       return await fetch(event.request);
@@ -179,7 +185,7 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
       return offlineFallback(
         event.request,
         url,
-        isAppModeClient || url.searchParams.get('app-mode') === 'true',
+        isAppModeClient || isNativeAppWebView || url.searchParams.get('app-mode') === 'true',
       );
     }
   }
@@ -190,7 +196,9 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
       (async (): Promise<void> => {
         const hasAppModeParameter = url.searchParams.get('app-mode') === 'true';
         if (
-          (hasAppModeParameter || (event.clientId !== '' && isClientInAppMode(event.clientId))) &&
+          (hasAppModeParameter ||
+            isNativeAppWebView ||
+            (event.clientId !== '' && isClientInAppMode(event.clientId))) &&
           event.resultingClientId !== ''
         ) {
           addAppModeClient(event.resultingClientId);
@@ -203,7 +211,7 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
   // 2. Targeted Injection (Header Strategy)
   // User Requirement: Use Header for everything (Documents, API, RSC). Never Query Param.
   const hasAppModeParameter = url.searchParams.get('app-mode') === 'true';
-  const isAppMode = hasAppModeParameter || isAppModeClient;
+  const isAppMode = hasAppModeParameter || isAppModeClient || isNativeAppWebView;
 
   if (url.origin === self.location.origin && isAppMode) {
     console.log(`[SW] App Mode Detected for ${url.pathname}. Injecting Header.`);
@@ -222,13 +230,23 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
     // console.log(`[SW] Cross-Origin request: ${url.origin}`);
   }
 
-  // 3. Proactive Cache Check for Documents (App Mode only)
-  let cachedDocumentFallback: Response | undefined;
-  if (isDocument && isAppMode) {
-    cachedDocumentFallback = await matchCachedPage(url.toString());
-  }
-
   try {
+    // If we are in App Mode and requesting a Document or RSC payload, bypass Serwist's
+    // automatic precache which might contain Web Mode versions. Do a manual network-first fetch.
+    if (isAppMode && (isDocument || isRsc)) {
+      const networkResponse = await fetch(requestToHandle);
+
+      const contentType = networkResponse.headers.get('content-type') ?? '';
+      const isJsAsset = url.pathname.endsWith('.js') || url.pathname.endsWith('.mjs');
+
+      if (!networkResponse.ok && isJsAsset && contentType.includes('text/html')) {
+        return Response.error();
+      }
+
+      if (isRsc) return sanitizeRscResponse(networkResponse);
+      return networkResponse;
+    }
+
     // 3. Serwist Strategies
     const response = await serwist.handleRequest({
       request: requestToHandle,
@@ -238,17 +256,6 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
     if (response) {
       if (isRsc) {
         return sanitizeRscResponse(response);
-      }
-
-      if (isDocument && isAppMode) {
-        const contentType = response.headers.get('content-type') ?? '';
-        if (contentType.includes('text/x-component')) {
-          console.warn(`[SW] Document request got RSC Content-Type, using cached page.`);
-          // Use prepared cache fallback (no async lookup needed)
-          if (cachedDocumentFallback) return cachedDocumentFallback;
-          const offlinePage = await caches.match('/~offline', { ignoreVary: true });
-          if (offlinePage) return offlinePage;
-        }
       }
 
       return response;

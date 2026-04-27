@@ -93,7 +93,7 @@ const resolveInternalLink = (fields: LinkFields, currentLocale?: Locale): string
       }
       default: {
         console.warn(`Unhandled link relationTo: ${fields.doc.relationTo}`);
-        if (typeof globalThis !== 'undefined') {
+        if (typeof document !== 'undefined') {
           void import('posthog-js').then(({ default: posthog }) => {
             posthog.capture('rich_text_link_unhandled_relation', {
               relationTo: fields.doc.relationTo,
@@ -134,7 +134,7 @@ const createLinkConverter =
       );
     } catch (error) {
       console.error('Error converting link node:', error);
-      if (typeof globalThis !== 'undefined') {
+      if (typeof document !== 'undefined') {
         void import('posthog-js').then(({ default: posthog }) => {
           posthog.captureException(error);
         });

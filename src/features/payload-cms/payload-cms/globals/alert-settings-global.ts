@@ -1,3 +1,4 @@
+import { shouldHideInAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { AlertSettingsNextKeyField } from '@/features/payload-cms/payload-cms/shared-fields/alert-settings-key-field';
 import type { GlobalConfig } from 'payload';
@@ -10,6 +11,7 @@ export const AlertSettingsGlobal: GlobalConfig = {
   },
   admin: {
     group: AdminPanelDashboardGroups.BackofficeAppFeatures,
+    hidden: shouldHideInAdminPanel,
   },
   fields: [
     {

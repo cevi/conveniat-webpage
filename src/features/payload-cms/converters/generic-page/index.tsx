@@ -8,7 +8,8 @@ import React from 'react';
 export const GenericPageConverter: React.FC<{
   page: GenericPage;
   locale: Locale;
-}> = ({ page, locale }) => {
+  renderInPreviewMode?: boolean;
+}> = ({ page, locale, renderInPreviewMode = false }) => {
   return (
     <>
       <article className="my-8 w-full">
@@ -18,6 +19,7 @@ export const GenericPageConverter: React.FC<{
         <PageSectionsConverter
           blocks={page.content.mainContent as ContentBlock[]}
           locale={locale}
+          renderInPreviewMode={renderInPreviewMode}
         />
       </article>
     </>

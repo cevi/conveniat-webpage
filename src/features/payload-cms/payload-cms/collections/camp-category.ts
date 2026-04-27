@@ -1,3 +1,4 @@
+import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import type { CollectionConfig } from 'payload';
 
@@ -21,7 +22,7 @@ export const CampCategoryCollection: CollectionConfig = {
     },
   },
   access: {
-    read: () => true,
+    read: hasAdminOrWebAccess,
   },
   fields: [
     {

@@ -16,6 +16,9 @@ export const offlinePages = [
   '/entrypoint?app-mode=true',
   '/entrypoint?force-app-mode=true',
 
+  // Landing page
+  '/',
+
   // Main application dashboard
   '/app/dashboard',
 

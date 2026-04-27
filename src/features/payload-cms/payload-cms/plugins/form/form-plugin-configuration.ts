@@ -1,7 +1,10 @@
 import { environmentVariables } from '@/config/environment-variables';
-import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
+import {
+  hasAccessToThisHelper,
+  hasAdminOrWebAccess,
+  Roles,
+} from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
-
 import { parseSmtpResultsHook } from '@/features/payload-cms/payload-cms/hooks/parse-smtp-results';
 import { getPublishingStatus } from '@/features/payload-cms/payload-cms/hooks/publishing-status';
 import { triggerPastWorkflowsHandler } from '@/features/payload-cms/payload-cms/plugins/form/endpoints/trigger-past-workflows';
@@ -143,7 +146,7 @@ export const formPluginConfiguration = formBuilderPlugin({
       defaultColumns: ['id', 'form', 'createdAt', 'smtpResults', 'workflowResults'],
     },
     access: {
-      read: canAccessAdminPanel,
+      read: hasAccessToThisHelper({ requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam] }),
       create: () => true, // allow creating submissions
       update: () => false, // disable update for submissions
       delete: () => false, // disable delete for submissions
@@ -225,10 +228,10 @@ export const formPluginConfiguration = formBuilderPlugin({
       },
     },
     access: {
-      read: canAccessAdminPanel,
-      create: canAccessAdminPanel,
-      update: canAccessAdminPanel,
-      delete: canAccessAdminPanel,
+      read: hasAdminOrWebAccess,
+      create: hasAdminOrWebAccess,
+      update: hasAdminOrWebAccess,
+      delete: hasAdminOrWebAccess,
     },
     endpoints: [
       {
@@ -257,6 +260,9 @@ export const formPluginConfiguration = formBuilderPlugin({
           beforeDocumentControls: [
             {
               path: '@/features/payload-cms/payload-cms/components/multi-lang-publishing/publishing-status-client',
+            },
+            {
+              path: '@/features/payload-cms/payload-cms/components/live-preview-restorer',
             },
             {
               path: '@/features/payload-cms/payload-cms/components/qr-code/qr-code',

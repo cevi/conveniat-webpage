@@ -98,7 +98,9 @@ export const OfflineContentSettings: React.FC<OfflineContentSettingsProperties> 
         <div className="space-y-1">
           <div className="flex justify-between text-xs font-medium text-blue-600">
             <span>{downloadingText[locale]}</span>
-            <span>{Math.round((progress.current / progress.total) * 100)}%</span>
+            <span>
+              {progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0}%
+            </span>
           </div>
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
             <motion.div

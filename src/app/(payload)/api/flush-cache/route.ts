@@ -1,4 +1,4 @@
-import { canUserAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
+import { hasAccessToThisUser, Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { auth } from '@/utils/auth';
 import { isValidNextAuthUser } from '@/utils/auth-helpers';
 import { revalidateTag } from 'next/cache';
@@ -15,8 +15,9 @@ const GET = async (): Promise<Response> => {
   const user = isValidNextAuthUser(session.user) ? session.user : undefined;
   if (!user) return new Response('No valid user found!', { status: 401 });
 
-  const isAuthenticated = await canUserAccessAdminPanel({
+  const isAuthenticated = hasAccessToThisUser({
     user: user,
+    requiredRoles: [Roles.FullAdmin],
   });
 
   if (!isAuthenticated) {

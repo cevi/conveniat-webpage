@@ -1,3 +1,7 @@
+import {
+  hasAdminOrWebAccess,
+  shouldHideInAdminPanel,
+} from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import type { FieldsOverride } from 'node_modules/@payloadcms/plugin-search/dist/types';
 import type { CollectionConfig } from 'payload';
@@ -21,6 +25,13 @@ export const searchOverrides: { fields?: FieldsOverride } & Partial<
   admin: {
     group: AdminPanelDashboardGroups.GlobalSettings,
     useAsTitle: 'search_title',
+    hidden: shouldHideInAdminPanel,
+  },
+  access: {
+    read: () => true,
+    update: hasAdminOrWebAccess,
+    create: hasAdminOrWebAccess,
+    delete: hasAdminOrWebAccess,
   },
   fields: ({ defaultFields }) => [
     ...defaultFields,

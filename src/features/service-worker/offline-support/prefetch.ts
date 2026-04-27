@@ -135,7 +135,12 @@ async function cacheAsset(url: string): Promise<void> {
   const isMapTile = url.includes('vectortiles') || url.includes('geo.admin.ch');
   const response = await fetchWithRetryAndTimeout(
     url,
-    { mode: 'cors' },
+    {
+      mode: 'cors',
+      headers: {
+        [DesignModeTriggers.HEADER_IMPLICIT]: 'true',
+      },
+    },
     TIMEOUTS.ASSET_FETCH,
     isMapTile,
   );

@@ -220,6 +220,42 @@ const ensureGlobalsCollectionIndexes = async (
   await processIndexes(collection, tasks, 'globals');
 };
 
+/**
+ * Ensures high-performance indices for authentication and preferences collections.
+ *
+ * Why: These collections are queried sequentially on almost every authenticated admin or API request.
+ *
+ * @param connection The MongoDB connection
+ */
+const ensureAuthAndPreferencesIndexes = async (
+  connection: MongooseAdapter['connection'],
+): Promise<void> => {
+  // users collection
+  const usersCollection = connection.collection('users');
+  await processIndexes(
+    usersCollection,
+    [
+      { name: 'email', spec: { email: 1 } },
+      // payload frequently queries by _id + deletedAt for auth resolution
+      { name: 'id_deletedAt', spec: { _id: 1, deletedAt: 1 } },
+    ],
+    'users',
+  );
+
+  // payload-preferences collection
+  const preferencesCollection = connection.collection('payload-preferences');
+  await processIndexes(
+    preferencesCollection,
+    [
+      {
+        name: 'key_userRelation_userValue',
+        spec: { key: 1, 'user.relationTo': 1, 'user.value': 1 },
+      },
+    ],
+    'payload-preferences',
+  );
+};
+
 export const ensureIndexes = async (payload: Payload): Promise<void> => {
   const { db, config } = payload;
 
@@ -250,6 +286,9 @@ export const ensureIndexes = async (payload: Payload): Promise<void> => {
 
   // Kick off Globals (Promise)
   const globalsPromise = ensureGlobalsCollectionIndexes(connection);
+
+  // Kick off Auth & Preferences (Promise)
+  const authPreferencesPromise = ensureAuthAndPreferencesIndexes(connection);
 
   // Kick off Entity Processing (Promise)
   const entityPromises = entities.map(async (entity) => {
@@ -286,7 +325,7 @@ export const ensureIndexes = async (payload: Payload): Promise<void> => {
     await Promise.all(entityTasks);
   });
 
-  await Promise.all([formPromise, globalsPromise, ...entityPromises]);
+  await Promise.all([formPromise, globalsPromise, authPreferencesPromise, ...entityPromises]);
 
   console.log(`${LOG_PREFIX} Finished ensuring indices.`);
 };

@@ -1,4 +1,4 @@
-import { canUserAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
+import { hasAccessToThisUser, Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import config from '@/features/payload-cms/payload.config';
 import { registrationInputSchema } from '@/features/registration_process/workflows/input-schema';
 import { createTRPCRouter, trpcBaseProcedure } from '@/trpc/init';
@@ -8,7 +8,10 @@ import { getPayload } from 'payload';
 import { z } from 'zod';
 
 const adminProcedure = trpcBaseProcedure.use(async ({ ctx, next }) => {
-  const hasAccess = await canUserAccessAdminPanel({ user: ctx.user });
+  const hasAccess = hasAccessToThisUser({
+    user: ctx.user,
+    requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam],
+  });
   if (!hasAccess) {
     throw new TRPCError({ code: 'FORBIDDEN' });
   }
