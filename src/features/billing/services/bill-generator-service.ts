@@ -329,6 +329,7 @@ export async function generateBills(
           housenumber: personAttributes?.housenumber,
           house_number: personAttributes?.house_number,
           zip: personAttributes?.zip,
+          zip_code: personAttributes?.zip_code,
           town: personAttributes?.town,
         },
         `[Billing] Hitobito person attributes for userId=${userId}`,
@@ -357,7 +358,7 @@ export async function generateBills(
         buildingNumber = match?.[2]?.trim();
       }
 
-      const zip = personAttributes?.zip ?? '';
+      const zip = personAttributes?.zip ?? personAttributes?.zip_code ?? '';
       const city = personAttributes?.town ?? '';
 
       const referenceNumber = generateQrReference(
