@@ -236,7 +236,7 @@ export const FormBlock: React.FC<
                     className={cn(
                       'w-full',
                       (isDualCardLayout || withBorder) &&
-                        'space-y-6 rounded-xl border border-gray-100 bg-white p-8 shadow-sm',
+                        'space-y-4 rounded-xl border border-gray-100 bg-white p-8 shadow-sm',
                     )}
                   >
                     {steps.length > 1 && currentActualStep && (
@@ -255,19 +255,17 @@ export const FormBlock: React.FC<
                         renderMode={isDualCardLayout ? 'sidebar' : 'all'}
                       />
                     )}
-                    <div className="pt-4">
-                      <FormControls
-                        locale={locale}
-                        isFirst={isFirstStep}
-                        isLast={isLastStep}
-                        isSubmitting={status === 'loading'}
-                        // eslint-disable-next-line @typescript-eslint/no-misused-promises
-                        onNext={handleNext}
-                        onPrev={prev}
-                        submitLabel={config.submitButtonLabel ?? ''}
-                        formId={config.id}
-                      />
-                    </div>
+                    <FormControls
+                      locale={locale}
+                      isFirst={isFirstStep}
+                      isLast={isLastStep}
+                      isSubmitting={status === 'loading'}
+                      // eslint-disable-next-line @typescript-eslint/no-misused-promises
+                      onNext={handleNext}
+                      onPrev={prev}
+                      submitLabel={config.submitButtonLabel ?? ''}
+                      formId={config.id}
+                    />
                   </aside>
 
                   {isDualCardLayout && (
