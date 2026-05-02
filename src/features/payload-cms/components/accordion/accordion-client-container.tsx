@@ -83,6 +83,7 @@ const AccordionClientContainer: React.FC<{
   // Change expandedId to an array to hold multiple expanded fragments
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
   const accordionItemReferences = useRef<Record<string, HTMLDivElement | null>>({});
+  const lastHandledHashReference = useRef<string | null>(null);
 
   // Helper functions that depend on component state/props remain inside
   const updateURLFragment = useCallback((fragment?: string) => {
@@ -132,24 +133,31 @@ const AccordionClientContainer: React.FC<{
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, @typescript-eslint/strict-boolean-expressions
     if (typeof globalThis !== 'undefined' && globalThis.location) {
       const hash = globalThis.location.hash.slice(1); // Remove the '#'
-      if (hash !== '') {
-        const isValidFragment = accordionBlocks?.some(
-          (block) => getFragmentFromBlock(block) === hash,
-        );
-        if (isValidFragment === true) {
-          const timer1 = setTimeout(() => {
-            setExpandedIds([hash]);
-          }, 0);
+      if (hash === '') {
+        lastHandledHashReference.current = null;
+        return;
+      }
 
-          const timer2 = setTimeout(() => {
-            scrollToElement(hash);
-          }, 150);
+      if (lastHandledHashReference.current === hash) {
+        return;
+      }
 
-          return (): void => {
-            clearTimeout(timer1);
-            clearTimeout(timer2);
-          };
-        }
+      const isValidFragment = accordionBlocks?.some((block) => getFragmentFromBlock(block) === hash);
+      if (isValidFragment === true) {
+        lastHandledHashReference.current = hash;
+
+        const timer1 = setTimeout(() => {
+          setExpandedIds([hash]);
+        }, 0);
+
+        const timer2 = setTimeout(() => {
+          scrollToElement(hash);
+        }, 150);
+
+        return (): void => {
+          clearTimeout(timer1);
+          clearTimeout(timer2);
+        };
       }
     }
   }, [accordionBlocks, scrollToElement, isNested]);
