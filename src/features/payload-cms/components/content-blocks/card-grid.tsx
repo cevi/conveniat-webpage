@@ -106,8 +106,8 @@ const CardGridItem: React.FC<{
         >
           {renderIcon()}
         </div>
-        <h3 className="font-heading text-conveniat-green mb-2 text-lg font-bold">{card.title}</h3>
-        <p className="font-body mb-4 text-sm leading-relaxed text-gray-500">{card.description}</p>
+        <h3 className="font-heading text-conveniat-green mb-2 text-lg font-bold hyphens-auto">{card.title}</h3>
+        <p className="font-body mb-4 text-sm leading-relaxed text-gray-500 hyphens-auto">{card.description}</p>
       </div>
       {url ? (
         <div className="text-conveniat-green font-body flex items-center gap-1 text-sm font-medium">
