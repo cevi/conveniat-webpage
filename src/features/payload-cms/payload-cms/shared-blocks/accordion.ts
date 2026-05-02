@@ -3,7 +3,12 @@ import { fileDownloadBlock } from '@/features/payload-cms/payload-cms/shared-blo
 import { formBlock } from '@/features/payload-cms/payload-cms/shared-blocks/form-block';
 import { LinkField } from '@/features/payload-cms/payload-cms/shared-fields/link-field';
 import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
-import { defaultEditorLexicalConfig, lexicalEditor } from '@payloadcms/richtext-lexical';
+import {
+  defaultEditorLexicalConfig,
+  lexicalEditor,
+  OrderedListFeature,
+  UnorderedListFeature,
+} from '@payloadcms/richtext-lexical';
 import type { Block, Field } from 'payload';
 
 const plainTextBlock: Block = {
@@ -16,7 +21,7 @@ const plainTextBlock: Block = {
       type: 'richText',
       required: true,
       editor: lexicalEditor({
-        features: [...minimalEditorFeatures],
+        features: [...minimalEditorFeatures, UnorderedListFeature(), OrderedListFeature()],
         lexical: defaultEditorLexicalConfig,
       }),
       hooks: patchRichTextLinkHook,
