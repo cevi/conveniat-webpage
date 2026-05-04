@@ -73,7 +73,7 @@ export function convertMarkdownToLexical(markdown: string): SerializedEditorStat
         format: '',
         indent: 0,
       };
-      children.push(listNode as unknown as SerializedLexicalNode);
+      children.push(listNode);
       currentListItems = [];
     }
   };
@@ -123,7 +123,7 @@ function createParagraphNode(textNodes: TextNode[]): ParagraphNode {
   return {
     type: 'paragraph',
     version: 1,
-    children: textNodes as unknown as SerializedLexicalNode[],
+    children: textNodes,
     direction: 'ltr',
     format: '',
     indent: 0,

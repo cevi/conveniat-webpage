@@ -141,8 +141,9 @@ export const handleParticipantMutation: PayloadHandler = async (request) => {
 
       await prisma.enrollment.upsert({
         where: {
-          courseId_userId: {
+          courseId_courseType_userId: {
             courseId,
+            courseType,
             userId,
           },
         },
@@ -168,6 +169,7 @@ export const handleParticipantMutation: PayloadHandler = async (request) => {
         where: {
           courseId,
           userId,
+          courseType,
         },
       });
 

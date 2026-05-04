@@ -1,9 +1,10 @@
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { mapAnnotationDescriptionLexicalEditorSettings } from '@/features/payload-cms/payload-cms/collections/camp-map-collection';
-import { injectEnrollmentCount } from '@/features/payload-cms/payload-cms/components/filled-status/inject-enrollment-count';
+import { makeInjectEnrollmentCount } from '@/features/payload-cms/payload-cms/components/filled-status/inject-enrollment-count';
 import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared-fields/last-edited-by-user-field';
 import { flushPageCacheOnChange } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
+import { CourseType } from '@/lib/prisma';
 import type { CollectionConfig } from 'payload';
 
 import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
@@ -16,7 +17,7 @@ export const CampScheduleEntryCollection: CollectionConfig = {
   trash: true,
   hooks: {
     afterChange: [flushPageCacheOnChange, syncOrganisers],
-    afterRead: [injectEnrollmentCount],
+    afterRead: [makeInjectEnrollmentCount(CourseType.PROGRAM)],
   },
   endpoints: [
     {

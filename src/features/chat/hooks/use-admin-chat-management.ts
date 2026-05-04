@@ -83,7 +83,7 @@ export const useAdminChatManagement = ({
 
   return {
     chats,
-    messages: messages as unknown as ChatMessage[], // Ensure type compatibility if needed
+    messages: messages, // Ensure type compatibility if needed
     loadingChats,
     loadingMessages,
     sending: sendMessageMutation.isPending,

@@ -144,7 +144,7 @@ export const sendTrackedEmail = async (
         id: formSubmissionId,
         data: {
           smtpResults: subResults,
-        } as Record<string, unknown>,
+        },
       });
     } catch (error) {
       payload.logger.error({

@@ -26,7 +26,7 @@ export const getById = async (
       fallbackLocale: 'de',
     });
 
-    return entry as unknown as CampScheduleEntryFrontendType;
+    return entry;
   } catch {
     return null;
   }

@@ -24,19 +24,18 @@ interface MockNextResponse {
   headers: { get: (key: string) => string | null };
 }
 
-const mockResponse = (rewriteUrl?: string | null): MockNextResponse =>
-  ({
-    headers: {
-      get: jest.fn((header: string) => {
-        if (header === (Header.MIDDLEWARE_REWRITES as string)) {
-          // eslint-disable-next-line unicorn/no-null
-          return rewriteUrl ?? null; // Rewritten URL
-        }
+const mockResponse = (rewriteUrl?: string | null): MockNextResponse => ({
+  headers: {
+    get: jest.fn((header: string) => {
+      if (header === (Header.MIDDLEWARE_REWRITES as string)) {
         // eslint-disable-next-line unicorn/no-null
-        return null;
-      }),
-    },
-  }) as MockNextResponse;
+        return rewriteUrl ?? null; // Rewritten URL
+      }
+      // eslint-disable-next-line unicorn/no-null
+      return null;
+    }),
+  },
+});
 
 describe('getLocaleFromUrl', () => {
   /**
@@ -51,7 +50,7 @@ describe('getLocaleFromUrl', () => {
   it('Valid Locale Returned Correctly', () => {
     const request = {
       url: 'https://example.com/de/some-page',
-    } as MockNextRequest;
+    };
 
     const response = mockResponse();
 
@@ -70,7 +69,7 @@ describe('getLocaleFromUrl', () => {
   it('Locale from Rewrite URL', () => {
     const request = {
       url: 'https://example.com/some-page', // Original request might not have locale
-    } as MockNextRequest;
+    };
 
     const response = mockResponse('https://example.com/fr/some-page');
 
@@ -90,7 +89,7 @@ describe('getLocaleFromUrl', () => {
   it('No Locale Segment Present Returns Undefined', () => {
     const request = {
       url: 'https://example.com/some-page/without-locale',
-    } as MockNextRequest;
+    };
 
     const response = mockResponse();
 
@@ -109,7 +108,7 @@ describe('getLocaleFromUrl', () => {
   it('Invalid Locale Segment Returns Undefined', () => {
     const request = {
       url: 'https://example.com/es/some-page', // 'es' is not in our mock i18nConfig
-    } as MockNextRequest;
+    };
 
     const response = mockResponse();
 
@@ -120,7 +119,7 @@ describe('getLocaleFromUrl', () => {
   it('should return undefined for the root path', () => {
     const request = {
       url: 'https://example.com/',
-    } as MockNextRequest;
+    };
 
     const response = mockResponse();
 
@@ -139,7 +138,7 @@ describe('getLocaleFromUrl', () => {
   it('Handles URLs with Trailing Slashes', () => {
     const request = {
       url: 'https://example.com/en/',
-    } as MockNextRequest;
+    };
 
     const response = mockResponse();
 
@@ -158,7 +157,7 @@ describe('getLocaleFromUrl', () => {
   it('Only Checks First Path Segment', () => {
     const request = {
       url: 'https://example.com/not-a-locale/de/some-page',
-    } as MockNextRequest;
+    };
 
     const response = mockResponse();
 
@@ -179,7 +178,7 @@ describe('getLocaleFromUrl', () => {
   it('Prefer Rewrite URL Over Request URL', () => {
     const request = {
       url: 'https://example.com/en/some-page', // Original request
-    } as MockNextRequest;
+    };
 
     const response = mockResponse('https://example.com/de/some-other-page');
 

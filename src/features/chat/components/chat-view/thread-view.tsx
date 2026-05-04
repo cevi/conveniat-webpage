@@ -1,7 +1,6 @@
 'use client';
 
 import { Button } from '@/components/ui/buttons/button';
-import type { ChatMessage } from '@/features/chat/api/types';
 import { ChatTextAreaInput } from '@/features/chat/components/chat-view/chat-text-area-input';
 import { MessageList } from '@/features/chat/components/chat-view/message-list';
 import { trpc } from '@/trpc/client';
@@ -65,12 +64,7 @@ export const ThreadView: React.FC<ThreadViewProperties> = ({ threadId, onClose }
           </div>
         )}
         {!isLoadingParent && parentMessage && (
-          <MessageList
-            parentId={threadId}
-            hideReplyCount
-            isThread
-            parentMessage={parentMessage as ChatMessage}
-          />
+          <MessageList parentId={threadId} hideReplyCount isThread parentMessage={parentMessage} />
         )}
       </div>
 

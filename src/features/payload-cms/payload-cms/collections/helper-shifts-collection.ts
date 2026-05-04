@@ -1,6 +1,6 @@
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { mapAnnotationDescriptionLexicalEditorSettings } from '@/features/payload-cms/payload-cms/collections/camp-map-collection';
-import { injectEnrollmentCount } from '@/features/payload-cms/payload-cms/components/filled-status/inject-enrollment-count';
+import { makeInjectEnrollmentCount } from '@/features/payload-cms/payload-cms/components/filled-status/inject-enrollment-count';
 import { courseParticipantsExportHandler } from '@/features/payload-cms/payload-cms/endpoints/course-participants-export';
 import { handleParticipantMutation } from '@/features/payload-cms/payload-cms/endpoints/course-participants-manager';
 import { accordion } from '@/features/payload-cms/payload-cms/shared-blocks/accordion';
@@ -11,6 +11,7 @@ import { whiteSpaceBlock } from '@/features/payload-cms/payload-cms/shared-block
 import { mainContentField } from '@/features/payload-cms/payload-cms/shared-fields/main-content-field';
 import { flushPageCacheOnChange } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
+import { CourseType } from '@/lib/prisma';
 import type { CollectionConfig, Field } from 'payload';
 
 export const HelperShiftsCollection: CollectionConfig = {
@@ -18,7 +19,7 @@ export const HelperShiftsCollection: CollectionConfig = {
   trash: true,
   hooks: {
     afterChange: [flushPageCacheOnChange],
-    afterRead: [injectEnrollmentCount],
+    afterRead: [makeInjectEnrollmentCount(CourseType.SHIFT)],
   },
   endpoints: [
     {

@@ -20,9 +20,7 @@ export const getBuildInfo = async (locale: Locale): Promise<BuildInfo | undefine
   return await withSpan('getBuildInfo', async () => {
     try {
       // eslint-disable-next-line import/no-restricted-paths
-      const { default: rawBuildInfo } = (await import('@/build')) as {
-        default: BuildInfo;
-      };
+      const { default: rawBuildInfo } = await import('@/build');
 
       // parse the timestamp from the build info
       const buildInfo = structuredClone(rawBuildInfo);

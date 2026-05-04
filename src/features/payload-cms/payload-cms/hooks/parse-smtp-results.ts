@@ -53,7 +53,7 @@ export const parseDsnsFromText = (raw: string): ParsedDsnInfo[] => {
     const origRecpMatch = line.match(/^Original-Recipient:\s*(?:rfc822;\s*)?([^\s;]+)/i);
     if (origRecpMatch) {
       currentDsn ??= { ...globalInfo };
-      currentDsn.originalRecipient = origRecpMatch[1] as string;
+      currentDsn.originalRecipient = origRecpMatch[1];
       continue;
     }
 
@@ -68,7 +68,7 @@ export const parseDsnsFromText = (raw: string): ParsedDsnInfo[] => {
         /^Diagnostic-Code:\s*.*?<([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})>/i,
       );
       if (diagForwardMatch && currentDsn.forwardedTo === undefined) {
-        currentDsn.forwardedTo = diagForwardMatch[1] as string;
+        currentDsn.forwardedTo = diagForwardMatch[1];
       }
 
       const diagCodeMatch = line.match(/^Diagnostic-Code:\s*(.*)/i);

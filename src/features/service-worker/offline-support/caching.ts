@@ -99,7 +99,7 @@ const rscCaching: RuntimeCaching = {
           }
           return cachedResponse;
         },
-      } as SerwistPlugin,
+      },
       safeRscCachePlugin,
     ],
   }),
@@ -111,7 +111,7 @@ const fontCaching: RuntimeCaching = {
     cacheName: CACHE_NAMES.FONTS,
     plugins: [
       new CacheableResponsePlugin({ statuses: [200] }) as SerwistPlugin,
-      new ExpirationPlugin({ maxEntries: 50 }) as SerwistPlugin,
+      new ExpirationPlugin({ maxEntries: 50 }),
     ],
   }),
 };

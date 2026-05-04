@@ -27,7 +27,7 @@ interface PayloadUserResponse {
 export const ParticipantsAdminUI: React.FC = () => {
   const { id, collectionSlug } = useDocumentInfo();
   const [participants, setParticipants] = useState<Participant[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(id !== undefined && collectionSlug !== undefined);
   const [error, setError] = useState<string | undefined>();
 
   const [users, setUsers] = useState<UserOption[]>([]);
@@ -76,7 +76,6 @@ export const ParticipantsAdminUI: React.FC = () => {
 
   useEffect(() => {
     if (id === undefined || collectionSlug === undefined) {
-      setLoading(false);
       return;
     }
 
@@ -133,7 +132,8 @@ export const ParticipantsAdminUI: React.FC = () => {
   };
 
   if (id === undefined || collectionSlug === undefined) {
-    return;
+    // eslint-disable-next-line unicorn/no-null
+    return null;
   }
 
   return (

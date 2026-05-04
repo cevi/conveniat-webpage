@@ -18,24 +18,29 @@ export const courseParticipantsExportHandler: PayloadHandler = async (request) =
     }
 
     const { url, routeParams } = request;
-    const courseId = (routeParams as { id?: string })?.id;
+    const courseId = (routeParams as { id?: string }).id;
     if (!courseId) {
       return Response.json({ error: 'Missing course ID' }, { status: 400 });
     }
 
-    const format = new URL(url || '').searchParams.get('format') || 'json';
+    const parsedUrl = new URL(url || '', 'http://localhost');
+    const format = parsedUrl.searchParams.get('format') || 'json';
+
+    // Infer courseType from the collection path, matching the logic in course-participants-manager
+    const courseType =
+      typeof url === 'string' && url.includes('camp-schedule-entry') ? 'PROGRAM' : 'SHIFT';
 
     const enrollments = await prisma.enrollment.findMany({
-      where: { courseId: courseId },
+      where: { courseId, courseType },
       include: {
         user: true, // Includes full Prisma User (name, uuid)
       },
     });
 
-    const userUuids = enrollments.map((e) => e.userId);
+    const userUuids = enrollments.map((enrollment) => enrollment.userId);
 
     // Fetch Payload users to get extended Hitobito details (nickname, email, groups, hof, quartier, etc.)
-    const payloadUsersRes = await request.payload.find({
+    const payloadUsersResult = await request.payload.find({
       collection: 'users',
       where: {
         id: { in: userUuids },
@@ -44,7 +49,7 @@ export const courseParticipantsExportHandler: PayloadHandler = async (request) =
       depth: 0,
     });
 
-    const payloadUsersById = new Map(payloadUsersRes.docs.map((u) => [u.id, u]));
+    const payloadUsersById = new Map(payloadUsersResult.docs.map((u) => [u.id, u]));
 
     const participantData = enrollments.map((enrollment) => {
       const payloadUser = payloadUsersById.get(enrollment.userId);
@@ -63,14 +68,17 @@ export const courseParticipantsExportHandler: PayloadHandler = async (request) =
     }
 
     if (format === 'csv') {
+      // Escape a CSV field value: wrap in double-quotes, doubling any embedded double-quotes
+      const escapeCsvValue = (value: string): string => `"${value.replaceAll('"', '""')}"`;
+
       const header = ['FullName', 'Nickname', 'Email', 'Hof', 'Quartier'].join(';');
       const rows = participantData.map((p) =>
         [
-          `"${p.fullName}"`,
-          `"${p.nickname}"`,
-          `"${p.email}"`,
-          `"${p.hof}"`,
-          `"${p.quartier}"`,
+          escapeCsvValue(p.fullName),
+          escapeCsvValue(p.nickname),
+          escapeCsvValue(p.email),
+          escapeCsvValue(p.hof),
+          escapeCsvValue(p.quartier),
         ].join(';'),
       );
       const csvContent = [header, ...rows].join('\n');
@@ -86,7 +94,8 @@ export const courseParticipantsExportHandler: PayloadHandler = async (request) =
       const ws = utils.json_to_sheet(participantData);
       const wb = utils.book_new();
       utils.book_append_sheet(wb, ws, 'Teilnehmer');
-      const buffer = write(wb, { type: 'buffer', bookType: 'xlsx' });
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const buffer: Buffer = write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
 
       return new Response(buffer, {
         headers: {
@@ -133,7 +142,7 @@ export const courseParticipantsExportHandler: PayloadHandler = async (request) =
 
           document_.end();
         } catch (error) {
-          reject(error);
+          reject(error instanceof Error ? error : new Error(String(error)));
         }
       });
 

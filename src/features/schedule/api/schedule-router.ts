@@ -67,8 +67,8 @@ export const scheduleRouter = createTRPCRouter({
     const isAdmin = user ? organisers.some((o) => o.id === user.uuid) : false;
 
     // Check if a group chat exists for this course
-    const courseChat = await prisma.chat.findUnique({
-      where: { courseId },
+    const courseChat = await prisma.chat.findFirst({
+      where: { courseId, courseType: CourseType.PROGRAM },
       select: { uuid: true },
     });
 
@@ -88,9 +88,7 @@ export const scheduleRouter = createTRPCRouter({
             }))
           : [],
       // Markdown versions for editing
-      descriptionMarkdown: isAdmin
-        ? convertLexicalToMarkdown(course.description as SerializedEditorState)
-        : undefined,
+      descriptionMarkdown: isAdmin ? convertLexicalToMarkdown(course.description) : undefined,
       targetGroupMarkdown: isAdmin
         ? convertLexicalToMarkdown(course.target_group as SerializedEditorState)
         : undefined,
@@ -138,7 +136,7 @@ export const scheduleRouter = createTRPCRouter({
 
       // Batch fetch all course chats
       const courseChats = await prisma.chat.findMany({
-        where: { courseId: { in: courseIds } },
+        where: { courseId: { in: courseIds }, courseType: CourseType.PROGRAM },
         select: { uuid: true, courseId: true },
       });
       const chatsByCourse = new Map(courseChats.map((c) => [c.courseId, c.uuid]));
@@ -300,8 +298,8 @@ export const scheduleRouter = createTRPCRouter({
       });
 
       // Add user to course group chat if it exists
-      const courseChat = await prisma.chat.findUnique({
-        where: { courseId },
+      const courseChat = await prisma.chat.findFirst({
+        where: { courseId, courseType: CourseType.PROGRAM },
         select: { uuid: true },
       });
 
@@ -398,12 +396,10 @@ export const scheduleRouter = createTRPCRouter({
       const isToOrganiser = toOrganisers.includes(user.uuid);
 
       // Verify user is enrolled in the from course
-      const existingEnrollment = await prisma.enrollment.findUnique({
+      const existingEnrollment = await prisma.enrollment.findFirst({
         where: {
-          courseId_userId: {
-            courseId: fromCourseId,
-            userId: user.uuid,
-          },
+          courseId: fromCourseId,
+          userId: user.uuid,
         },
       });
 
@@ -442,19 +438,31 @@ export const scheduleRouter = createTRPCRouter({
       // Note: We don't verify overlap here - the client is calling this endpoint
       // because it received a time conflict error, so we trust the switch is intentional.
 
-      // Check for other conflicts (excluding the course we're switching from)
-      const userEnrollments = await prisma.enrollment.findMany({
-        where: {
-          userId: user.uuid,
-          NOT: { courseId: fromCourseId },
-        },
-      });
+      // Check for other conflicts (excluding the course we're switching from).
+      // Split by courseType so we query the correct Payload collection for each.
+      const [remainingProgramEnrollments, remainingShiftEnrollments] = await Promise.all([
+        prisma.enrollment.findMany({
+          where: {
+            userId: user.uuid,
+            courseType: CourseType.PROGRAM,
+            NOT: { courseId: fromCourseId },
+          },
+        }),
+        prisma.enrollment.findMany({
+          where: {
+            userId: user.uuid,
+            courseType: CourseType.SHIFT,
+            NOT: { courseId: fromCourseId },
+          },
+        }),
+      ]);
 
-      if (userEnrollments.length > 0) {
+      // Check PROGRAM enrollments against camp-schedule-entry
+      if (remainingProgramEnrollments.length > 0) {
         const otherCourses = await payload.find({
           collection: 'camp-schedule-entry',
           where: {
-            id: { in: userEnrollments.map((event_) => event_.courseId) },
+            id: { in: remainingProgramEnrollments.map((event_) => event_.courseId) },
           },
         });
 
@@ -475,24 +483,51 @@ export const scheduleRouter = createTRPCRouter({
         }
       }
 
+      // Check SHIFT enrollments against helper-shifts
+      if (remainingShiftEnrollments.length > 0) {
+        const otherShifts = await payload.find({
+          collection: 'helper-shifts',
+          where: {
+            id: { in: remainingShiftEnrollments.map((event_) => event_.courseId) },
+          },
+        });
+
+        for (const other of otherShifts.docs) {
+          if (
+            isOverlapping(
+              toCourse.timeslot.time,
+              toCourse.timeslot.date,
+              String(other.timeslot.time),
+              String(other.timeslot.date),
+            )
+          ) {
+            throw new TRPCError({
+              code: 'CONFLICT',
+              message: `Time conflict with shift: ${String(other.title)}`,
+            });
+          }
+        }
+      }
+
       // Perform the switch atomically
       await prisma.enrollment.delete({
         where: {
-          courseId_userId: {
+          courseId_courseType_userId: {
             courseId: fromCourseId,
+            courseType: fromCourseType === 'shift' ? CourseType.SHIFT : CourseType.PROGRAM,
             userId: user.uuid,
           },
         },
       });
 
       await prisma.enrollment.create({
-        data: { userId: user.uuid, courseId: toCourseId },
+        data: { userId: user.uuid, courseId: toCourseId, courseType: CourseType.PROGRAM },
       });
 
       // Handle chat membership changes
       // Remove from old course chat if exists
-      const fromCourseChat = await prisma.chat.findUnique({
-        where: { courseId: fromCourseId },
+      const fromCourseChat = await prisma.chat.findFirst({
+        where: { courseId: fromCourseId, courseType: CourseType.PROGRAM },
         select: { uuid: true },
       });
 
@@ -540,8 +575,8 @@ export const scheduleRouter = createTRPCRouter({
       }
 
       // Add to new course chat if exists
-      const toCourseChat = await prisma.chat.findUnique({
-        where: { courseId: toCourseId },
+      const toCourseChat = await prisma.chat.findFirst({
+        where: { courseId: toCourseId, courseType: CourseType.PROGRAM },
         select: { uuid: true },
       });
 
@@ -608,8 +643,8 @@ export const scheduleRouter = createTRPCRouter({
       });
 
       // Remove user from course group chat if it exists
-      const courseChat = await prisma.chat.findUnique({
-        where: { courseId },
+      const courseChat = await prisma.chat.findFirst({
+        where: { courseId, courseType: CourseType.PROGRAM },
         select: { uuid: true },
       });
 
@@ -748,8 +783,8 @@ export const scheduleRouter = createTRPCRouter({
       }
 
       // Check if a chat already exists for this course
-      const existingChat = await prisma.chat.findUnique({
-        where: { courseId: input.courseId },
+      const existingChat = await prisma.chat.findFirst({
+        where: { courseId: input.courseId, courseType: CourseType.PROGRAM },
         select: { uuid: true },
       });
 
@@ -811,9 +846,10 @@ export const scheduleRouter = createTRPCRouter({
 
         const existingStar = await prisma.star.findUnique({
           where: {
-            courseId_userId: {
+            courseId_userId_courseType: {
               courseId,
               userId: user.uuid,
+              courseType: CourseType.PROGRAM,
             },
           },
         });
@@ -861,14 +897,16 @@ export const scheduleRouter = createTRPCRouter({
         for (const courseId of courseIds) {
           await prisma.star.upsert({
             where: {
-              courseId_userId: {
+              courseId_userId_courseType: {
                 courseId,
                 userId: user.uuid,
+                courseType: CourseType.PROGRAM,
               },
             },
             create: {
               courseId,
               userId: user.uuid,
+              courseType: CourseType.PROGRAM,
             },
             update: {},
           });

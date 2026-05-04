@@ -60,11 +60,7 @@ const createTitleElement = (
   if (accordionBlock.titleOrPortrait === 'portrait') {
     if (accordionBlock.teamLeaderGroup === undefined) return <></>;
 
-    const teamLeaderGroup = accordionBlock.teamLeaderGroup as {
-      name: string;
-      ceviname?: string | null;
-      portrait?: string | null | Image;
-    };
+    const teamLeaderGroup = accordionBlock.teamLeaderGroup;
 
     const name: string = teamLeaderGroup.name;
     const ceviname: string = teamLeaderGroup.ceviname ?? '';

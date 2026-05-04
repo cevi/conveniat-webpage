@@ -80,5 +80,5 @@ export const buildEmptyFormState = (config: ExtendedFormType): DefaultValues<Fie
     processFields(sectionWrapper.formSection.fields);
   }
 
-  return values as DefaultValues<FieldValues>;
+  return values;
 };

@@ -70,7 +70,7 @@ model Chat {
   type ChatType @default(GROUP)
 
   /// links to the objectID in the courses collection in MongoDB (for COURSE_GROUP type)
-  courseId String? @unique
+  courseId String?
 
   /// discriminates between program schedule entries and helper shifts
   courseType CourseType @default(PROGRAM)
@@ -82,6 +82,7 @@ model Chat {
   @@index([name])
   @@index([description])
   @@index([lastUpdate])
+  @@unique([courseId, courseType])
 }
 
 enum ChatMembershipPermission {
@@ -235,7 +236,7 @@ model Enrollment {
   /// discriminates between program schedule entries and helper shifts
   courseType CourseType @default(PROGRAM)
 
-  @@unique([courseId, userId]) // every user can only be enrolled once per course
+  @@unique([courseId, courseType, userId]) // every user can only be enrolled once per course and course type
   @@index([courseId])
   @@index([userId])
   @@index([courseType])
@@ -254,7 +255,7 @@ model Star {
 
   createdAt DateTime @default(now())
 
-  @@unique([courseId, userId])
+  @@unique([courseId, userId, courseType])
   @@index([courseId])
   @@index([userId])
   @@index([courseType])

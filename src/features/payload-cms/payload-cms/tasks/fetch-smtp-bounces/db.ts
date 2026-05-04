@@ -63,7 +63,7 @@ export const updateTrackingRecords = async (
       await payload.update({
         collection: 'form-submissions',
         id: envelopeId,
-        data: { smtpResults: subResults } as Record<string, unknown>,
+        data: { smtpResults: subResults },
       });
       return true;
     } catch {
@@ -123,7 +123,7 @@ export const updateTrackingRecords = async (
         await payload.update({
           collection: 'form-submissions',
           id: formSubmissionId,
-          data: { smtpResults: subResults } as Record<string, unknown>,
+          data: { smtpResults: subResults },
         });
       } catch (error: unknown) {
         payload.logger.error({

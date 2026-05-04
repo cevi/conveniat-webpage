@@ -37,7 +37,7 @@ export const ChatActionsProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   const quoteMessage = (messageId: string): void => {
-    setQuotedMessageId(messageId as string | undefined);
+    setQuotedMessageId(messageId);
   };
 
   const cancelQuote = (): void => {

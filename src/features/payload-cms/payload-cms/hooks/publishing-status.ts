@@ -145,8 +145,8 @@ const hasDiffs = (
 
     if (name !== undefined) {
       try {
-        value1 = document1[name] as unknown;
-        value2 = document2[name] as unknown;
+        value1 = document1[name];
+        value2 = document2[name];
       } catch {}
     }
 

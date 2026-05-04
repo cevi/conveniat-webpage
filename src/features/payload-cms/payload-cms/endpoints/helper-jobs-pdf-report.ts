@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/prefer-promise-reject-errors, unicorn/no-null, unicorn/prefer-logical-operator-over-ternary, @typescript-eslint/strict-boolean-expressions */
 import { RESSORT_OPTIONS } from '@/features/payload-cms/constants/ressort-options';
 import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
-import type { FormSubmission, HelperJob } from '@/features/payload-cms/payload-types';
+import type { HelperJob } from '@/features/payload-cms/payload-types';
 import type { PayloadHandler } from 'payload';
 interface PDFDocumentWithTables extends Omit<InstanceType<typeof import('pdfkit')>, 'table'> {
   table: (tableData: { title?: string; headers?: string[]; rows?: string[][] }) => void;
@@ -49,15 +49,13 @@ export const helperJobsPdfReportHandler: PayloadHandler = async (request) => {
       depth: 0,
     });
 
-    const jobsById = new Map<string, HelperJob>(
-      allJobs.docs.map((job) => [job.id, job as unknown as HelperJob]),
-    );
+    const jobsById = new Map<string, HelperJob>(allJobs.docs.map((job) => [job.id, job]));
 
     const counts = new Map<string, number>();
     const ressortGroups = new Map<string, Array<[string, string, string]>>();
 
     for (const sub of submissions.docs) {
-      const formSub = sub as unknown as FormSubmission;
+      const formSub = sub;
       const matchedJobs = Array.isArray(formSub['helper-jobs']) ? formSub['helper-jobs'] : [];
 
       const subData = Array.isArray(formSub.submissionData) ? formSub.submissionData : [];
@@ -74,8 +72,7 @@ export const helperJobsPdfReportHandler: PayloadHandler = async (request) => {
         const jid = typeof index === 'string' ? index : index.id;
         counts.set(jid, (counts.get(jid) || 0) + 1);
 
-        const jobObject =
-          typeof index === 'string' ? jobsById.get(index) : (index as unknown as HelperJob);
+        const jobObject = typeof index === 'string' ? jobsById.get(index) : index;
         if (!jobObject) continue;
 
         const categoryValue = jobObject.category;
@@ -126,7 +123,7 @@ export const helperJobsPdfReportHandler: PayloadHandler = async (request) => {
         let overallFilledQuota = 0;
 
         for (const job of allJobs.docs) {
-          const hj = job as unknown as HelperJob;
+          const hj = job;
           const c = counts.get(hj.id) || 0;
           const isFull = !!hj.maxQuota && c >= hj.maxQuota;
 
@@ -193,7 +190,7 @@ export const helperJobsPdfReportHandler: PayloadHandler = async (request) => {
 
         // Summary Table
         const summaryRows = allJobs.docs.map((job) => {
-          const hj = job as unknown as HelperJob;
+          const hj = job;
           const c = counts.get(hj.id) || 0;
           const quota = hj.maxQuota ? hj.maxQuota : 'Unlimitiert';
           const isFull = hj.maxQuota && c >= hj.maxQuota;

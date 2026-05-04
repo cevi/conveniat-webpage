@@ -44,7 +44,7 @@ const ManagementContent: React.FC = () => {
             onRefresh={() => void recentJobsQuery.refetch()}
             page={state.page}
             searchQuery={state.search}
-            statusFilter={state.status as JobStatusFilter}
+            statusFilter={state.status}
             setPage={actions.setPage}
             setSearchQuery={actions.setSearch}
             setStatusFilter={actions.setStatus as (status?: JobStatusFilter) => void}

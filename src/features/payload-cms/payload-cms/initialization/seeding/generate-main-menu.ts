@@ -20,7 +20,7 @@ export const generateMainMenu = (
           value: contactPageId,
         },
         openInNewTab: false,
-      } as LinkFieldDataType,
+      },
       subMenu: [],
     },
     {
@@ -34,7 +34,7 @@ export const generateMainMenu = (
               relationTo: 'generic-page',
               value: aboutUsPageId,
             },
-          } as LinkFieldDataType,
+          },
         },
         {
           label: 'FAQ',
@@ -44,7 +44,7 @@ export const generateMainMenu = (
               relationTo: 'generic-page',
               value: faqPageId,
             },
-          } as LinkFieldDataType,
+          },
         },
         {
           label: 'Cevi CH',
@@ -52,7 +52,7 @@ export const generateMainMenu = (
             type: 'custom',
             url: 'https://cevi.ch',
             openInNewTab: true,
-          } as LinkFieldDataType,
+          },
         },
       ],
     },
@@ -65,7 +65,7 @@ export const generateMainMenu = (
           value: internalPageId,
         },
         openInNewTab: false,
-      } as LinkFieldDataType,
+      },
       subMenu: [],
     },
   ];

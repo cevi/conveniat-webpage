@@ -48,7 +48,7 @@ async function processSubscription(
 
   // We delegate logging to sendNotificationToSubscription by passing userId
   return sendNotificationToSubscription(
-    subscription as webpush.PushSubscription,
+    subscription,
     message,
     chatURL,
     userId,

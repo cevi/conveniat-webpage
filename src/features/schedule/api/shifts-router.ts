@@ -224,12 +224,10 @@ export const shiftsRouter = createTRPCRouter({
       }
 
       // Verify user is enrolled in the from course (can be shift or workshop)
-      const existingEnrollment = await prisma.enrollment.findUnique({
+      const existingEnrollment = await prisma.enrollment.findFirst({
         where: {
-          courseId_userId: {
-            courseId: fromCourseId,
-            userId: user.uuid,
-          },
+          courseId: fromCourseId,
+          userId: user.uuid,
         },
       });
 
@@ -319,8 +317,9 @@ export const shiftsRouter = createTRPCRouter({
       // Atomic Unenroll & Enroll
       await prisma.enrollment.delete({
         where: {
-          courseId_userId: {
+          courseId_courseType_userId: {
             courseId: fromCourseId,
+            courseType: existingEnrollment.courseType,
             userId: user.uuid,
           },
         },
