@@ -1,10 +1,10 @@
 'use client';
 
+import { usePostHog } from '@/providers/posthog-context';
 import type { Locale } from '@/types/types'; // Import Locale
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { useCurrentLocale } from 'next-i18n-router/client';
-import { usePostHog } from 'posthog-js/react';
 import React, { useEffect, useMemo } from 'react';
 import {
   FormProvider,
@@ -160,7 +160,7 @@ export const FormBlock: React.FC<
   const isDualCardLayout = isSplit && shouldRenderMain;
 
   const onInvalid = (errors: FieldErrors): void => {
-    posthog.capture('form_validation_failed', {
+    posthog?.capture('form_validation_failed', {
       form_id: config.id,
       error_message: formatFieldErrors(errors),
       source: 'client_final_step',
@@ -170,7 +170,7 @@ export const FormBlock: React.FC<
   const handleNext = async (): Promise<void> => {
     const isValid = await next();
     if (!isValid) {
-      posthog.capture('form_validation_failed', {
+      posthog?.capture('form_validation_failed', {
         form_id: config.id,
         error_message: formatFieldErrors(formMethods.formState.errors),
         source: 'client_step_transition',

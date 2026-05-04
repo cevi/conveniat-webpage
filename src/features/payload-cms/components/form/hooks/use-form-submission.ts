@@ -8,9 +8,9 @@ import {
 } from '@/features/payload-cms/components/form/static-form-texts';
 import type { ExtendedFormType, FormSection } from '@/features/payload-cms/components/form/types';
 import { getFormStorageKey } from '@/features/payload-cms/components/form/utils/get-form-storage-key';
+import { usePostHog } from '@/providers/posthog-context';
 import { type Locale, type StaticTranslationString } from '@/types/types';
 import { useRouter } from 'next/navigation';
-import { usePostHog } from 'posthog-js/react';
 import { useState } from 'react';
 import type { FieldValues, UseFormSetError } from 'react-hook-form';
 
@@ -172,7 +172,7 @@ export const useFormSubmission = ({
               setError(error.field, { type: 'server', message });
             }
 
-            posthog.capture('form_validation_failed', {
+            posthog?.capture('form_validation_failed', {
               form_id: formId,
               error_message: capturedErrors.join(', '),
               source: 'server',
@@ -234,14 +234,14 @@ export const useFormSubmission = ({
         // Validation errors are already captured prior to throwing this error
         setErrorMessage(message);
       } else if (message.includes('initializing Payload')) {
-        posthog.capture('form_submission_error', {
+        posthog?.capture('form_submission_error', {
           error_type: 'payload_initialization',
           form_id: formId,
           original_message: message,
         });
         setErrorMessage(failedToSubmitText[locale]);
       } else {
-        posthog.capture('form_submission_error', {
+        posthog?.capture('form_submission_error', {
           error_type: 'submission_failed',
           form_id: formId,
           error_message: message,
