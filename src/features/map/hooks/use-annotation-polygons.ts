@@ -1,8 +1,8 @@
 import { useMap } from '@/features/map/components/maplibre-renderer/map-context-provider';
 import type { CampMapAnnotationPoint, CampMapAnnotationPolygon } from '@/features/map/types/types';
 import { formatHexColor } from '@/utils/format-hex-color';
-import type { GeoJSONSource, MapGeoJSONFeature, Map as MapLibre, MapMouseEvent } from 'maplibre-gl';
-import { useEffect, useRef, useState } from 'react';
+import type { GeoJSONSource, MapGeoJSONFeature, MapMouseEvent } from 'maplibre-gl';
+import { useEffect, useState } from 'react';
 
 interface ClickedFeaturesState {
   polygons: CampMapAnnotationPolygon[];
@@ -30,9 +30,6 @@ export const useAnnotationPolygons = (
   const [clickedPolygonState, setClickedPolygonState] = useState<
     ClickedFeaturesState | undefined
   >();
-
-  const mapReference = useRef<MapLibre | undefined>(undefined);
-  mapReference.current = map;
 
   // Effect for setting up and tearing down map sources and layers
   useEffect(() => {

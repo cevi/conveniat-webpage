@@ -16,10 +16,6 @@ jest.mock('@/types/types', () => ({
   },
 }));
 
-interface MockNextRequest {
-  url: string;
-}
-
 interface MockNextResponse {
   headers: { get: (key: string) => string | null };
 }

@@ -41,6 +41,7 @@ export const PreviewModeBanner: React.FC<PreviewModeBannerProperties> = ({
 
   // Fix React hydration mismatch: useSearchParams() differs between static SSR and client.
   React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsMounted(true);
   }, []);
 

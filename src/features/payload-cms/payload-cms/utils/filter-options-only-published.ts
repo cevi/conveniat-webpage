@@ -13,7 +13,7 @@ export const filterOptionsOnlyPublished: ({
       'forms',
       'users',
       'permissions',
-    ].includes(relationTo as string)
+    ].includes(relationTo)
   ) {
     // these collections do not have localized status
     return {};

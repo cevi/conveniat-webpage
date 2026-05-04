@@ -18,6 +18,7 @@ export const ClientOnly: React.FC<{
 }> = ({ children, fallback, ...delegated }) => {
   const [hasMounted, setHasMounted] = React.useState(false);
   React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setHasMounted(true);
   }, []);
   if (!hasMounted) {

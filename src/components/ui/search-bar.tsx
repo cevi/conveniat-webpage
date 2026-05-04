@@ -22,6 +22,7 @@ export const SearchBar: React.FC<{ initialQuery: string; actionURL: string }> = 
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setQuery(initialQuery);
   }, [initialQuery]);
 

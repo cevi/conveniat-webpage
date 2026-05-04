@@ -79,6 +79,7 @@ export const ParticipantsAdminUI: React.FC = () => {
       return;
     }
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void fetchParticipants();
     void fetchUsers();
   }, [id, collectionSlug, fetchParticipants, fetchUsers]);

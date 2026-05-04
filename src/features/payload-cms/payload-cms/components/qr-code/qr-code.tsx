@@ -378,7 +378,7 @@ const QRCode: React.FC<QRCodeProperties> = () => {
       }
       event.preventDefault();
     },
-    [qrInputDataSource?.displayURL],
+    [qrInputDataSource],
   );
 
   const handleExpiryChange = (event: ChangeEvent<HTMLSelectElement>): void => {

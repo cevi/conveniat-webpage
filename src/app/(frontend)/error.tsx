@@ -92,6 +92,7 @@ const ErrorPage: React.FC<{
       !navigator.onLine ||
       (error instanceof TypeError && error.message.includes('Failed to fetch'))
     ) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsOffline(true);
     } else {
       console.error(error);
