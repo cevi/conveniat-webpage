@@ -84,12 +84,17 @@ export const PostHogProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       // Silent fail Payload Live Preview iframe cross-origin disconnects (noise during rapid save)
       // and generic background telemetry network errors from PostHog.
+      const isPostHogIframeError = message.includes('bufferbelongstoiframe');
+
       if (
         message !== '' &&
         (message.includes('blocked a frame with origin') ||
           message === 'network error' ||
-          message.includes('failed to fetch')) &&
-        (errorEvent.filename.includes('posthog') || errorEvent.filename === '')
+          message.includes('failed to fetch') ||
+          isPostHogIframeError) &&
+        (errorEvent.filename.includes('posthog') ||
+          errorEvent.filename === '' ||
+          isPostHogIframeError)
       ) {
         errorEvent.stopImmediatePropagation();
         errorEvent.preventDefault();

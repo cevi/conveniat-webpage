@@ -46,6 +46,23 @@ export const filterPostHogNoise = (event: CaptureResult | null): CaptureResult |
       // eslint-disable-next-line unicorn/no-null
       return null; // drop the event
     }
+
+    const exceptionList = props['$exception_list'] as unknown;
+    if (Array.isArray(exceptionList)) {
+      for (const exc of exceptionList as Array<
+        { type?: unknown; value?: unknown } | null | undefined
+      >) {
+        const type = exc?.type;
+        const value = exc?.value;
+        if (
+          (typeof type === 'string' && noiseMessages.some((m) => type.includes(m))) ||
+          (typeof value === 'string' && noiseMessages.some((m) => value.includes(m)))
+        ) {
+          // eslint-disable-next-line unicorn/no-null
+          return null; // drop the event
+        }
+      }
+    }
   }
   // eslint-disable-next-line unicorn/no-null
   return event ?? null;
