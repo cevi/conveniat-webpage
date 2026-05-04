@@ -1,6 +1,9 @@
 import { LinkComponent } from '@/components/ui/link-component';
 import type { LinkFieldDataType } from '@/features/payload-cms/payload-cms/shared-fields/link-field';
-import { getImageAltInLocale } from '@/features/payload-cms/payload-cms/utils/images-meta-fields';
+import {
+  getImageAltInLocale,
+  getRelativeImageUrl,
+} from '@/features/payload-cms/payload-cms/utils/images-meta-fields';
 import {
   getURLForLinkField,
   openURLInNewTab,
@@ -84,7 +87,7 @@ const CardGridItem: React.FC<{
     if (card.iconType === 'image' && card.customImage?.url) {
       return (
         <ImageNode
-          src={card.customImage.url}
+          src={getRelativeImageUrl(card.customImage.url)}
           alt={getImageAltInLocale(locale, card.customImage)}
           width={48}
           height={48}

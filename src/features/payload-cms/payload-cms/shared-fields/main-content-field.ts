@@ -6,6 +6,7 @@ import { cardGridBlock } from '@/features/payload-cms/payload-cms/shared-blocks/
 import { contactPersonBlock } from '@/features/payload-cms/payload-cms/shared-blocks/contact-person-block';
 import { countdownBlock } from '@/features/payload-cms/payload-cms/shared-blocks/countdown-block';
 import { detailsTable } from '@/features/payload-cms/payload-cms/shared-blocks/details-table';
+import { featuredSectionBlock } from '@/features/payload-cms/payload-cms/shared-blocks/featured-section-block';
 import { fileDownloadBlock } from '@/features/payload-cms/payload-cms/shared-blocks/file-download-block';
 import { formBlock } from '@/features/payload-cms/payload-cms/shared-blocks/form-block';
 import { instagramEmbedBlock } from '@/features/payload-cms/payload-cms/shared-blocks/instagram-embed-block';
@@ -93,5 +94,6 @@ export const mainContentField: Field = {
     contactPersonBlock,
     twoColumnBlock,
     sponsorGridBlock,
+    featuredSectionBlock,
   ],
 };

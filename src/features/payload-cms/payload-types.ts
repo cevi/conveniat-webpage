@@ -427,6 +427,7 @@ export interface Blog {
       | ContactPersonBlock
       | TwoColumnBlock
       | SponsorGridBlock
+      | FeaturedSectionBlock
     )[];
   };
   seo: {
@@ -1826,6 +1827,7 @@ export interface GenericPage {
       | ContactPersonBlock
       | TwoColumnBlock
       | SponsorGridBlock
+      | FeaturedSectionBlock
     )[];
   };
   seo: {
@@ -2773,6 +2775,93 @@ export interface SponsorGridBlock {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "FeaturedSectionBlock".
+ */
+export interface FeaturedSectionBlock {
+  mainFeature: {
+    image: string | Image;
+    label?: string | null;
+    title: string;
+    description?: string | null;
+    linkField?: {
+      type?: ('reference' | 'custom' | 'email') | null;
+      reference?:
+        | ({
+            relationTo: 'blog';
+            value: string | Blog;
+          } | null)
+        | ({
+            relationTo: 'generic-page';
+            value: string | GenericPage;
+          } | null)
+        | ({
+            relationTo: 'images';
+            value: string | Image;
+          } | null)
+        | ({
+            relationTo: 'documents';
+            value: string | Document;
+          } | null)
+        | ({
+            relationTo: 'camp-map-annotations';
+            value: string | CampMapAnnotation;
+          } | null)
+        | ({
+            relationTo: 'camp-schedule-entry';
+            value: string | CampScheduleEntry;
+          } | null);
+      url?: string | null;
+      email?: string | null;
+      openInNewTab?: boolean | null;
+    };
+    id?: string | null;
+  };
+  subFeatures?:
+    | {
+        image: string | Image;
+        label?: string | null;
+        title: string;
+        description?: string | null;
+        linkField?: {
+          type?: ('reference' | 'custom' | 'email') | null;
+          reference?:
+            | ({
+                relationTo: 'blog';
+                value: string | Blog;
+              } | null)
+            | ({
+                relationTo: 'generic-page';
+                value: string | GenericPage;
+              } | null)
+            | ({
+                relationTo: 'images';
+                value: string | Image;
+              } | null)
+            | ({
+                relationTo: 'documents';
+                value: string | Document;
+              } | null)
+            | ({
+                relationTo: 'camp-map-annotations';
+                value: string | CampMapAnnotation;
+              } | null)
+            | ({
+                relationTo: 'camp-schedule-entry';
+                value: string | CampScheduleEntry;
+              } | null);
+          url?: string | null;
+          email?: string | null;
+          openInNewTab?: boolean | null;
+        };
+        id?: string | null;
+      }[]
+    | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'featuredSection';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "AccordionTimelineElementBlock".
  */
 export interface AccordionTimelineElementBlock {
@@ -3541,6 +3630,7 @@ export interface BlogSelect<T extends boolean = true> {
               contactPerson?: T | ContactPersonBlockSelect<T>;
               twoColumnBlock?: T | TwoColumnBlockSelect<T>;
               sponsorGrid?: T | SponsorGridBlockSelect<T>;
+              featuredSection?: T | FeaturedSectionBlockSelect<T>;
             };
       };
   seo?:
@@ -4098,6 +4188,50 @@ export interface SponsorGridBlockSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "FeaturedSectionBlock_select".
+ */
+export interface FeaturedSectionBlockSelect<T extends boolean = true> {
+  mainFeature?:
+    | T
+    | {
+        image?: T;
+        label?: T;
+        title?: T;
+        description?: T;
+        linkField?:
+          | T
+          | {
+              type?: T;
+              reference?: T;
+              url?: T;
+              email?: T;
+              openInNewTab?: T;
+            };
+        id?: T;
+      };
+  subFeatures?:
+    | T
+    | {
+        image?: T;
+        label?: T;
+        title?: T;
+        description?: T;
+        linkField?:
+          | T
+          | {
+              type?: T;
+              reference?: T;
+              url?: T;
+              email?: T;
+              openInNewTab?: T;
+            };
+        id?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "generic-page_select".
  */
 export interface GenericPageSelect<T extends boolean = true> {
@@ -4216,6 +4350,7 @@ export interface GenericPageSelect<T extends boolean = true> {
               contactPerson?: T | ContactPersonBlockSelect<T>;
               twoColumnBlock?: T | TwoColumnBlockSelect<T>;
               sponsorGrid?: T | SponsorGridBlockSelect<T>;
+              featuredSection?: T | FeaturedSectionBlockSelect<T>;
             };
       };
   seo?:

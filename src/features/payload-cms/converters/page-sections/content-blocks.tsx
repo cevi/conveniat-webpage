@@ -15,6 +15,7 @@ import type { ContactPersonType } from '@/features/payload-cms/components/conten
 import { ContactPersonBlock } from '@/features/payload-cms/components/content-blocks/contact-person';
 import type { CountdownType } from '@/features/payload-cms/components/content-blocks/countdown';
 import { Countdown } from '@/features/payload-cms/components/content-blocks/countdown';
+import { FeaturedSection } from '@/features/payload-cms/components/content-blocks/featured-section';
 import type { FileDownloadType } from '@/features/payload-cms/components/content-blocks/file-download';
 import { FileDownload } from '@/features/payload-cms/components/content-blocks/file-download';
 import type { InlineSwisstopoMapEmbedType } from '@/features/payload-cms/components/content-blocks/inline-swisstopo-map-embed';
@@ -37,9 +38,11 @@ import { YoutubeEmbed } from '@/features/payload-cms/components/content-blocks/y
 import type { FormBlockType } from '@/features/payload-cms/components/form';
 import type { ContentBlock } from '@/features/payload-cms/converters/page-sections/section-wrapper';
 import SectionWrapper from '@/features/payload-cms/converters/page-sections/section-wrapper';
+import { getRelativeImageUrl } from '@/features/payload-cms/payload-cms/utils/images-meta-fields';
 import { resolveRichTextLinks } from '@/features/payload-cms/payload-cms/utils/resolve-rich-text-links';
 import type {
   AccordionBlocks,
+  FeaturedSectionBlock,
   Timeline,
   TimelineCategory,
   TimelineEntries,
@@ -76,7 +79,8 @@ export type ContentBlockTypeNames =
   | 'twoColumnBlock'
   | 'cardGrid'
   | 'contactPerson'
-  | 'sponsorGrid';
+  | 'sponsorGrid'
+  | 'featuredSection';
 
 export type SectionRenderer<T = object> = React.FC<
   LocalizedPageType & {
@@ -368,7 +372,7 @@ export const RenderSinglePicture: SectionRenderer<{
       <div className="mt-10 w-[calc(100%+32px)] max-md:mx-[-16px]">
         {imageUrl !== undefined && imageUrl !== '' && (
           <Image
-            src={imageUrl}
+            src={getRelativeImageUrl(imageUrl)}
             alt={block.image?.alt ?? 'copyright by conveniat27'}
             className={cn('block w-full rounded-2xl', aspectClass && `${aspectClass} object-cover`)}
             width={dimensions.width}
@@ -775,6 +779,32 @@ export const RenderSponsorGrid: SectionRenderer<SponsorGridType> = ({
       locale={locale}
     >
       <SponsorGrid {...block} locale={locale} />
+    </SectionWrapper>
+  );
+};
+
+export const RenderFeaturedSection: SectionRenderer<FeaturedSectionBlock> = ({
+  block,
+  sectionClassName,
+  sectionOverrides,
+  locale,
+}) => {
+  return (
+    <SectionWrapper
+      block={block}
+      sectionClassName={sectionClassName}
+      sectionOverrides={sectionOverrides}
+      errorFallbackMessage={errorMessageForType(
+        {
+          de: 'Der hervorgehobene Bereich',
+          en: 'featured section',
+          fr: 'la section en vedette',
+        },
+        locale,
+      )}
+      locale={locale}
+    >
+      <FeaturedSection {...block} locale={locale} />
     </SectionWrapper>
   );
 };
