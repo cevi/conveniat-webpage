@@ -2262,7 +2262,7 @@ export interface CardGridBlock {
     /**
      * The text for the link (e.g. "Learn more →").
      */
-    linkLabel: string;
+    linkLabel?: string | null;
     linkField?: {
       type?: ('reference' | 'custom' | 'email') | null;
       reference?:

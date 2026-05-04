@@ -41,7 +41,7 @@ export interface CardGridCard {
   customImage?: Image;
   title: string;
   description: string;
-  linkLabel: string;
+  linkLabel?: string | null;
   linkField?: LinkFieldDataType;
 }
 
@@ -113,7 +113,7 @@ const CardGridItem: React.FC<{
           {card.description}
         </p>
       </div>
-      {url ? (
+      {url && card.linkLabel ? (
         <div className="text-conveniat-green font-body flex items-center gap-1 text-sm font-medium">
           {card.linkLabel}
           <ArrowRight className="size-4 transition-transform duration-200 group-hover:translate-x-1" />

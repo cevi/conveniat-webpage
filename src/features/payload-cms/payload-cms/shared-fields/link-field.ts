@@ -41,7 +41,10 @@ export interface LinkFieldDataType {
   openInNewTab?: boolean | null;
 }
 
-const validateEmail: TextFieldSingleValidation = (email) => {
+const validateEmail: TextFieldSingleValidation = (email, options) => {
+  if (!options.required && (email === undefined || email === null || email.trim() === '')) {
+    return true;
+  }
   if (email === undefined || email === null || email.trim() === '') {
     return 'Email is required';
   }
@@ -52,7 +55,10 @@ const validateEmail: TextFieldSingleValidation = (email) => {
   return true;
 };
 
-const validateURL: TextFieldSingleValidation = (url) => {
+const validateURL: TextFieldSingleValidation = (url, options) => {
+  if (!options.required && (url === undefined || url === null || url.trim() === '')) {
+    return true;
+  }
   // Check if the URL is provided
   if (url === undefined || url === null || url.trim() === '') {
     return 'URL is required';

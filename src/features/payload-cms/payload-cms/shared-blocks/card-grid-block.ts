@@ -155,7 +155,7 @@ export const cardGridBlock: Block = {
         {
           name: 'linkLabel',
           type: 'text',
-          required: true,
+          required: false,
           label: {
             de: 'Link-Text',
             en: 'Link Label',
