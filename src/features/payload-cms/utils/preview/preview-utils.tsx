@@ -49,7 +49,6 @@ const isValidPreviewToken = async (
  */
 export const canAccessPreviewOfCurrentPage = async (
   searchParameters: SearchParameters,
-  url: string,
 ): Promise<boolean> => {
   let previewToken = searchParameters['preview-token'];
   let previewId = searchParameters['previewId'];

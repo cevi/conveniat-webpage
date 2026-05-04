@@ -1,21 +1,31 @@
 import type { CollectionBeforeChangeHook } from 'payload';
 
 export const trackSlugHistory: CollectionBeforeChangeHook = ({ data, originalDoc }) => {
-  if (originalDoc?.seo?.urlSlug && data?.seo?.urlSlug && originalDoc.seo.urlSlug !== data.seo.urlSlug) {
-      const currentHistory = Array.isArray(data.seo.urlSlugHistory)
-        ? data.seo.urlSlugHistory
-        : Array.isArray(originalDoc.seo?.urlSlugHistory)
-          ? originalDoc.seo.urlSlugHistory
-          : [];
+  const incomingData = data as Record<string, any>;
+  const existingDocument = originalDoc as Record<string, any>;
 
-      // Avoid duplicates
-      const alreadyExists = currentHistory.some(
-        (item: { slug?: string }) => item.slug === originalDoc.seo.urlSlug,
-      );
+  if (
+    existingDocument?.['seo']?.['urlSlug'] &&
+    incomingData?.['seo']?.['urlSlug'] &&
+    existingDocument['seo']['urlSlug'] !== incomingData['seo']['urlSlug']
+  ) {
+    const currentHistory = Array.isArray(incomingData['seo']['urlSlugHistory'])
+      ? incomingData['seo']['urlSlugHistory']
+      : Array.isArray(existingDocument['seo']?.['urlSlugHistory'])
+        ? existingDocument['seo']['urlSlugHistory']
+        : [];
 
-      if (!alreadyExists) {
-        data.seo.urlSlugHistory = [{ slug: originalDoc.seo.urlSlug }, ...currentHistory];
-      }
+    // Avoid duplicates
+    const alreadyExists = currentHistory.some(
+      (item: { slug?: string }) => item.slug === existingDocument['seo']['urlSlug'],
+    );
+
+    if (!alreadyExists) {
+      incomingData['seo']['urlSlugHistory'] = [
+        { slug: existingDocument['seo']['urlSlug'] },
+        ...currentHistory,
+      ];
     }
+  }
   return data;
 };
