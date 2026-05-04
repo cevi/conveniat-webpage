@@ -29,7 +29,7 @@ export const getGenericPageBySlugCached = cache(
           and: [
             { 'seo.urlSlug': { equals: slug } },
             // we only resolve published pages unless in preview mode
-            draft ? {} : { _localized_status: { equals: { published: true } } },
+            ...(draft ? [] : [{ _localized_status: { equals: { published: true } } }]),
           ],
         },
         // Select only fields needed for frontend rendering.
@@ -87,7 +87,7 @@ export const getGenericPageExistsBySlugCached = cache(
         where: {
           and: [
             { 'seo.urlSlug': { equals: slug } },
-            draft ? {} : { _localized_status: { equals: { published: true } } },
+            ...(draft ? [] : [{ _localized_status: { equals: { published: true } } }]),
           ],
         },
         select: {
@@ -159,7 +159,7 @@ export const getGenericPageBySlugHistoryCached = cache(
         where: {
           and: [
             { 'seo.urlSlugHistory.slug': { equals: slug } },
-            draft ? {} : { _localized_status: { equals: { published: true } } },
+            ...(draft ? [] : [{ _localized_status: { equals: { published: true } } }]),
           ],
         },
         select: {
