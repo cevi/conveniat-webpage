@@ -28,6 +28,11 @@ const noiseMessages = [
   // rrweb/posthog-js internal error when terminating session recording involving cross-origin iframes on Safari.
   // This causes an 'undefined is not an object (evaluating 'r.bufferBelongsToIframe')' error.
   'bufferBelongsToIframe',
+
+  // Safari quirk/extension injecting code that tries to detect Firefox reader mode.
+  // This causes an 'undefined is not an object (evaluating 'window.__firefox__.reader')' error.
+  // see: https://github.com/cevi/conveniat-webpage/issues/1150
+  'window.__firefox__.reader',
 ];
 
 export const filterPostHogNoise = (event: CaptureResult | null): CaptureResult | null => {
