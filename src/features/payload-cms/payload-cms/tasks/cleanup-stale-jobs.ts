@@ -13,10 +13,10 @@ export const DEFAULT_QUEUE = 'default';
 export async function cleanupStaleScheduledJobs(
   request: PayloadRequest,
   taskSlug: string,
-  maxAgeDays: number = 7,
+  maxAgeMinutes: number = 15,
 ): Promise<void> {
   const cutoffDate = new Date();
-  cutoffDate.setDate(cutoffDate.getDate() - maxAgeDays);
+  cutoffDate.setMinutes(cutoffDate.getMinutes() - maxAgeMinutes);
 
   const staleJobs = await request.payload.find({
     collection: 'payload-jobs',
@@ -33,7 +33,7 @@ export async function cleanupStaleScheduledJobs(
 
   if (staleJobs.docs.length > 0) {
     request.payload.logger.warn(
-      `Cleaning up ${staleJobs.docs.length} stale ${taskSlug} job(s) older than ${maxAgeDays} days`,
+      `Cleaning up ${staleJobs.docs.length} stale ${taskSlug} job(s) older than ${maxAgeMinutes} minutes`,
     );
     for (const staleJob of staleJobs.docs) {
       await request.payload.delete({
