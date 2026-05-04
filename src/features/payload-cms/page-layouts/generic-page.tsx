@@ -168,7 +168,10 @@ const GenericPage: LocalizedCollectionComponent = async ({
 
     if (historyResult.docs.length > 0) {
       const historicArticle = historyResult.docs[0];
-      if (historicArticle?.seo?.urlSlug) {
+      if (typeof historicArticle?.seo.urlSlug === 'string') {
+        const historicSlug = historicArticle.seo.urlSlug;
+        const redirectPath = historicSlug === '' ? `/${locale}` : `/${locale}/${historicSlug}`;
+
         let queryString = '';
         if (searchParams) {
           const awaitedParameters = await searchParams;
@@ -184,10 +187,11 @@ const GenericPage: LocalizedCollectionComponent = async ({
           if (string_) queryString = `?${string_}`;
         }
 
+        const currentPath = slug === '' ? `/${locale}` : `/${locale}/${slug}`;
         console.log(
-          `Redirecting from historic slug /${locale}/${slug} to /${locale}/${historicArticle.seo.urlSlug}${queryString}`,
+          `Redirecting from historic slug ${currentPath} to ${redirectPath}${queryString}`,
         );
-        redirect(`/${locale}/${historicArticle.seo.urlSlug}${queryString}`, 'replace');
+        redirect(`${redirectPath}${queryString}`, 'replace');
       }
     }
 
