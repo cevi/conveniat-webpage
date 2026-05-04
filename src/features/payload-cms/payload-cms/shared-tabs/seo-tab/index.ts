@@ -27,6 +27,7 @@ export const seoTab = (properties: CustomSlugComponentProperties): Tab => ({
     {
       name: 'urlSlugHistory',
       type: 'array',
+      localized: true,
       admin: {
         readOnly: true,
       },
