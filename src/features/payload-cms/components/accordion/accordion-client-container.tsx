@@ -1,10 +1,24 @@
 'use client';
 
 import AccordionItem from '@/features/payload-cms/components/accordion/accordion-item';
+import { AccordionSearchBar } from '@/features/payload-cms/components/accordion/accordion-search-bar';
 import { TeamLeaderPortrait } from '@/features/payload-cms/components/accordion/team-members/team-leader-portrait';
 import type { AccordionBlocks, Image } from '@/features/payload-cms/payload-types';
+import type { Locale, StaticTranslationString } from '@/types/types';
 import { replaceUmlautsAndAccents } from '@/utils/node-to-anchor-reference';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+const searchPlaceholder: StaticTranslationString = {
+  de: 'Suche…',
+  en: 'Search…',
+  fr: 'Rechercher…',
+};
+
+const noResultsLabel: StaticTranslationString = {
+  de: 'Keine Einträge gefunden.',
+  en: 'No entries found.',
+  fr: 'Aucun résultat trouvé.',
+};
 
 /**
  * Sanitizes a title string into a URL-friendly fragment.
@@ -79,11 +93,36 @@ const AccordionClientContainer: React.FC<{
     [key: string]: React.ReactNode;
   };
   isNested?: boolean;
-}> = ({ accordionBlocks, childs, isNested }) => {
+  enableSearch?: boolean;
+  searchIndex?: Record<string, string>;
+  locale?: Locale;
+}> = ({ accordionBlocks, childs, isNested, enableSearch, searchIndex, locale }) => {
   // Change expandedId to an array to hold multiple expanded fragments
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
+  const [rawQuery, setRawQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const accordionItemReferences = useRef<Record<string, HTMLDivElement | null>>({});
   const lastHandledHashReference = useRef<string | undefined>(undefined);
+
+  // Debounce the search query by 150 ms
+  useEffect((): (() => void) => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(rawQuery.trim().toLowerCase());
+    }, 150);
+    return (): void => clearTimeout(timer);
+  }, [rawQuery]);
+
+  // Filter blocks based on the debounced query
+  const visibleBlocks = useMemo(() => {
+    if (!enableSearch || debouncedQuery === '' || searchIndex === undefined) {
+      return accordionBlocks ?? [];
+    }
+    return (accordionBlocks ?? []).filter((block) => {
+      const indexed =
+        block.id !== undefined && block.id !== null ? (searchIndex[block.id] ?? '') : '';
+      return indexed.includes(debouncedQuery);
+    });
+  }, [accordionBlocks, debouncedQuery, enableSearch, searchIndex]);
 
   // Helper functions that depend on component state/props remain inside
   const updateURLFragment = useCallback((fragment?: string) => {
@@ -164,33 +203,48 @@ const AccordionClientContainer: React.FC<{
     }
   }, [accordionBlocks, scrollToElement, isNested]);
 
+  const totalCount = accordionBlocks?.length ?? 0;
+  const effectiveLocale: Locale = locale ?? 'de';
+
   return (
-    <div className="space-y-4">
-      {accordionBlocks?.map((accordionBlock) => {
-        const fragment = getFragmentFromBlock(accordionBlock);
-        return (
-          <div
-            key={fragment}
-            ref={(element) => {
-              accordionItemReferences.current[fragment] = element;
-            }}
-            className="scroll-mt-10"
-          >
-            {accordionBlock.id !== undefined && accordionBlock.id !== null && (
-              <AccordionItem
-                titleElement={createTitleElement(accordionBlock)}
-                showChevron={accordionBlock.titleOrPortrait !== 'portrait'}
-                accordionId={accordionBlock.id}
-                isExpanded={expandedIds.includes(fragment)}
-                onToggle={() => toggleExpand(accordionBlock)}
-                isNested={isNested ?? false}
-              >
-                {expandedIds.includes(fragment) && childs[accordionBlock.id ?? '']}
-              </AccordionItem>
-            )}
-          </div>
-        );
-      })}
+    <div>
+      {enableSearch === true && isNested !== true && (
+        <AccordionSearchBar
+          query={rawQuery}
+          onChange={setRawQuery}
+          placeholder={searchPlaceholder[effectiveLocale]}
+          noResultsLabel={noResultsLabel[effectiveLocale]}
+          resultCount={visibleBlocks.length}
+          totalCount={totalCount}
+        />
+      )}
+      <div className="space-y-4">
+        {visibleBlocks.map((accordionBlock) => {
+          const fragment = getFragmentFromBlock(accordionBlock);
+          return (
+            <div
+              key={accordionBlock.id ?? fragment}
+              ref={(element) => {
+                accordionItemReferences.current[fragment] = element;
+              }}
+              className="scroll-mt-10"
+            >
+              {accordionBlock.id !== undefined && accordionBlock.id !== null && (
+                <AccordionItem
+                  titleElement={createTitleElement(accordionBlock)}
+                  showChevron={accordionBlock.titleOrPortrait !== 'portrait'}
+                  accordionId={accordionBlock.id}
+                  isExpanded={expandedIds.includes(fragment)}
+                  onToggle={() => toggleExpand(accordionBlock)}
+                  isNested={isNested ?? false}
+                >
+                  {expandedIds.includes(fragment) && childs[accordionBlock.id ?? '']}
+                </AccordionItem>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };

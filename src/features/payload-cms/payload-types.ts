@@ -1483,6 +1483,10 @@ export interface DetailsTable {
  * via the `definition` "AccordionBlocks".
  */
 export interface AccordionBlocks {
+  /**
+   * Shows a search bar above the accordion blocks. Users can filter blocks by title, content, and keywords.
+   */
+  enableSearch?: boolean | null;
   accordionBlocks?:
     | {
         /**
@@ -1498,6 +1502,10 @@ export interface AccordionBlocks {
           ceviname?: string | null;
           portrait?: (string | null) | Image;
         };
+        /**
+         * Optional keywords to improve the discoverability of this entry in the search bar. Only used when the search bar is enabled for this accordion block.
+         */
+        searchKeywords?: string | null;
         /**
          * This is the content of the accordion block. It will be displayed when the block is expanded.
          */
@@ -3615,6 +3623,7 @@ export interface DetailsTableSelect<T extends boolean = true> {
  * via the `definition` "AccordionBlocks_select".
  */
 export interface AccordionBlocksSelect<T extends boolean = true> {
+  enableSearch?: T;
   accordionBlocks?:
     | T
     | {
@@ -3627,6 +3636,7 @@ export interface AccordionBlocksSelect<T extends boolean = true> {
               ceviname?: T;
               portrait?: T;
             };
+        searchKeywords?: T;
         valueBlocks?:
           | T
           | {

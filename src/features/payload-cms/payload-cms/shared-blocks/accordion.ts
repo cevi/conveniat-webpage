@@ -232,6 +232,23 @@ export const accordion: Block = {
 
   fields: [
     {
+      name: 'enableSearch',
+      label: {
+        de: 'Suchleiste aktivieren',
+        en: 'Enable Search Bar',
+        fr: 'Activer la barre de recherche',
+      },
+      type: 'checkbox',
+      defaultValue: false,
+      admin: {
+        description: {
+          de: 'Zeigt eine Suchleiste über den Akkordeonblöcken an. Benutzer können die Blöcke nach Titel, Inhalt und Schlüsselwörtern filtern.',
+          en: 'Shows a search bar above the accordion blocks. Users can filter blocks by title, content, and keywords.',
+          fr: 'Affiche une barre de recherche au-dessus des blocs accordéon. Les utilisateurs peuvent filtrer les blocs par titre, contenu et mots-clés.',
+        },
+      },
+    },
+    {
       type: 'array',
       name: 'accordionBlocks',
       admin: {
@@ -275,7 +292,7 @@ export const accordion: Block = {
             description: {
               de: 'Wählen Sie, ob der Titel oder ein Portrait in der miniaturisierten Ansicht angezeigt werden soll.',
               en: 'Choose whether to display the title or a portrait in the miniaturized view.',
-              fr: 'Choisissez d’afficher le titre ou un portrait dans la vue miniaturisée.',
+              fr: "Choisissez d'afficher le titre ou un portrait dans la vue miniaturisée.",
             },
           },
         },
@@ -301,6 +318,23 @@ export const accordion: Block = {
           ...teamLeaderGroup,
           admin: {
             condition: (_, siblingData) => siblingData['titleOrPortrait'] === 'portrait',
+          },
+        },
+        {
+          name: 'searchKeywords',
+          label: {
+            de: 'Suchbegriffe (optional)',
+            en: 'Search Keywords (optional)',
+            fr: 'Mots-clés de recherche (optionnel)',
+          },
+          type: 'text',
+          required: false,
+          admin: {
+            description: {
+              de: 'Optionale Schlüsselwörter, die die Auffindbarkeit dieses Eintrags in der Suchleiste verbessern. Wird nur verwendet, wenn die Suchleiste für diesen Akkordeonblock aktiviert ist.',
+              en: 'Optional keywords to improve the discoverability of this entry in the search bar. Only used when the search bar is enabled for this accordion block.',
+              fr: 'Mots-clés optionnels pour améliorer la visibilité de cet entrée dans la barre de recherche. Utilisé uniquement si la barre de recherche est activée pour ce bloc accordéon.',
+            },
           },
         },
         {
