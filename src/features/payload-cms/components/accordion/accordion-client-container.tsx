@@ -83,7 +83,7 @@ const AccordionClientContainer: React.FC<{
   // Change expandedId to an array to hold multiple expanded fragments
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
   const accordionItemReferences = useRef<Record<string, HTMLDivElement | null>>({});
-  const lastHandledHashReference = useRef<string | null>(null);
+  const lastHandledHashReference = useRef<string | undefined>(undefined);
 
   // Helper functions that depend on component state/props remain inside
   const updateURLFragment = useCallback((fragment?: string) => {
@@ -134,7 +134,7 @@ const AccordionClientContainer: React.FC<{
     if (typeof globalThis !== 'undefined' && globalThis.location) {
       const hash = globalThis.location.hash.slice(1); // Remove the '#'
       if (hash === '') {
-        lastHandledHashReference.current = null;
+        lastHandledHashReference.current = undefined;
         return;
       }
 

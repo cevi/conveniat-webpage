@@ -18,6 +18,8 @@ export const ParagraphJSXConverter: JSXConverters<SerializedParagraphNode> = {
     const normalizedChildren = Array.isArray(children) ? children : [children];
 
     const format = node.format;
+    const paddingInlineStart =
+      typeof node.indent === 'number' && node.indent > 0 ? `${node.indent * 2}rem` : undefined;
 
     if (normalizedChildren.length === 0) {
       return (
@@ -28,6 +30,7 @@ export const ParagraphJSXConverter: JSXConverters<SerializedParagraphNode> = {
             format === 'right' && 'text-right',
             format === 'justify' && 'text-justify',
           )}
+          style={{ paddingInlineStart }}
         >
           <br />
         </ParagraphText>
@@ -65,6 +68,7 @@ export const ParagraphJSXConverter: JSXConverters<SerializedParagraphNode> = {
           format === 'right' && 'text-right',
           format === 'justify' && 'text-justify',
         )}
+        style={{ paddingInlineStart }}
       >
         {childrenWithLinkedPunctuation}
       </ParagraphText>
