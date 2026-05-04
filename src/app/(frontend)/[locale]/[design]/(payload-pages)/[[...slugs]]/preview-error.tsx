@@ -63,6 +63,12 @@ const issuedAtText: StaticTranslationString = {
   fr: 'Délivré le :',
 };
 
+const documentIdText: StaticTranslationString = {
+  en: 'Document ID:',
+  de: 'Dokumenten-ID:',
+  fr: 'ID du document :',
+};
+
 const expiresAtText: StaticTranslationString = {
   en: 'Expires At:',
   de: 'Ablaufdatum:',
@@ -127,7 +133,8 @@ const dateStringFormat: Intl.DateTimeFormatOptions = {
 interface DecodedToken {
   iat: number | string;
   exp: number | string;
-  url: string;
+  url?: string;
+  id?: string;
 }
 
 interface PreviewTokenAnalysisProperties {
@@ -175,16 +182,23 @@ const PreviewTokenAnalysis: React.FC<PreviewTokenAnalysisProperties> = ({
     <div className="mx-0 my-8 border-t-[4px] border-t-red-800 bg-red-100 p-6 md:mx-12">
       {decoded && (
         <ul className="mt-4 list-disc pl-5">
-          <li>
-            <strong>{previewForUrlText[locale]}</strong>{' '}
-            {doesUrlMatch ? (
-              <>{decoded.url}</>
-            ) : (
-              <span className="text-red-700">
-                {decoded.url} ({urlDoesNotMatchText[locale]} {path})
-              </span>
-            )}
-          </li>
+          {decoded.url !== undefined && (
+            <li>
+              <strong>{previewForUrlText[locale]}</strong>{' '}
+              {doesUrlMatch ? (
+                <>{decoded.url}</>
+              ) : (
+                <span className="text-red-700">
+                  {decoded.url} ({urlDoesNotMatchText[locale]} {path})
+                </span>
+              )}
+            </li>
+          )}
+          {decoded.id !== undefined && (
+            <li>
+              <strong>{documentIdText[locale]}</strong> {decoded.id}
+            </li>
+          )}
           <li>
             <strong>{issuedAtText[locale]}</strong> {iatDate}
           </li>
@@ -213,7 +227,8 @@ export const PreviewError: React.FC = () => {
   const decoded = decodeJwtPayload<{
     iat: number | string;
     exp: number | string;
-    url: string;
+    url?: string;
+    id?: string;
   }>(previewToken);
 
   const isValidPreviewToken = decoded !== undefined && typeof decoded === 'object';

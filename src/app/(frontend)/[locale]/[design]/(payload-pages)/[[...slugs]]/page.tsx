@@ -125,8 +125,7 @@ export const generateMetadata = async ({
   if (isPreviewRequested) {
     const { canAccessPreviewOfCurrentPage } =
       await import('@/features/payload-cms/utils/preview/preview-utils');
-    const url = `/${locale}/${slugs?.join('/') ?? ''}`;
-    isPreview = await canAccessPreviewOfCurrentPage(awaitedSearchParameters, url);
+    isPreview = await canAccessPreviewOfCurrentPage(awaitedSearchParameters);
   }
 
   // During build, 'await connection()' signals that this function depends on
@@ -183,8 +182,7 @@ const CMSPage: React.FC<{
     const { canAccessPreviewOfCurrentPage } =
       await import('@/features/payload-cms/utils/preview/preview-utils');
 
-    const url = `/${locale}/${slugs?.join('/') ?? ''}`;
-    renderInPreviewMode = await canAccessPreviewOfCurrentPage(searchParameters, url);
+    renderInPreviewMode = await canAccessPreviewOfCurrentPage(searchParameters);
   }
 
   // check if part of a routable collection of the form [collection]/[slug]
@@ -246,6 +244,7 @@ const CMSPage: React.FC<{
             locale={validatedLocale}
             slugs={remainingSlugs}
             renderInPreviewMode={renderInPreviewMode}
+            searchParams={searchParametersPromise}
           />
 
           {renderInPreviewMode && (

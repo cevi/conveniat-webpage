@@ -1,25 +1,26 @@
 'use server';
 
 import { environmentVariables } from '@/config/environment-variables';
-import { stripDefaultLocale } from '@/utils/url-helpers';
 import * as jwt from 'jsonwebtoken';
 
 export const generatePreviewToken = async (
-  url: string,
+  id: string,
   expiresIn: number = 86_400,
 ): Promise<string> =>
-  new Promise((resolve) => {
+  new Promise((resolve, reject) => {
+    if (!id) return reject(new Error('Preview ID cannot be empty'));
     const JWT_SECRET_KEY = environmentVariables.JWT_SECRET;
-    resolve(jwt.sign({ url }, JWT_SECRET_KEY, { expiresIn: expiresIn }));
+    resolve(jwt.sign({ id }, JWT_SECRET_KEY, { expiresIn: expiresIn }));
   });
 
-export const isPreviewTokenValid = async (url: string, token: string): Promise<boolean> =>
+export const isPreviewTokenValid = async (id: string, token: string): Promise<boolean> =>
   new Promise((resolve) => {
+    if (!id) return resolve(false);
     const JWT_SECRET_KEY = environmentVariables.JWT_SECRET;
 
     try {
-      const decoded = jwt.verify(token, JWT_SECRET_KEY) as unknown as { url: string };
-      return resolve(stripDefaultLocale(decoded.url) === stripDefaultLocale(url));
+      const decoded = jwt.verify(token, JWT_SECRET_KEY) as unknown as { id: string };
+      return resolve(decoded.id === id);
     } catch {
       return resolve(false);
     }

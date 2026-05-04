@@ -443,6 +443,12 @@ export interface Blog {
      * These are the keywords that will be used to improve the visibility of the page in search engines.
      */
     keywords?: string | null;
+    urlSlugHistory?:
+      | {
+          slug?: string | null;
+          id?: string | null;
+        }[]
+      | null;
   };
   lastEditedByUser?: (string | null) | User;
   updatedAt: string;
@@ -1836,6 +1842,12 @@ export interface GenericPage {
      * These are the keywords that will be used to improve the visibility of the page in search engines.
      */
     keywords?: string | null;
+    urlSlugHistory?:
+      | {
+          slug?: string | null;
+          id?: string | null;
+        }[]
+      | null;
   };
   lastEditedByUser?: (string | null) | User;
   allowsEditsByUser?: (string | User)[] | null;
@@ -3538,6 +3550,12 @@ export interface BlogSelect<T extends boolean = true> {
         metaTitle?: T;
         metaDescription?: T;
         keywords?: T;
+        urlSlugHistory?:
+          | T
+          | {
+              slug?: T;
+              id?: T;
+            };
       };
   lastEditedByUser?: T;
   updatedAt?: T;
@@ -4207,6 +4225,12 @@ export interface GenericPageSelect<T extends boolean = true> {
         metaTitle?: T;
         metaDescription?: T;
         keywords?: T;
+        urlSlugHistory?:
+          | T
+          | {
+              slug?: T;
+              id?: T;
+            };
       };
   lastEditedByUser?: T;
   allowsEditsByUser?: T;

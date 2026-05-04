@@ -23,28 +23,15 @@ import type React from 'react';
  */
 const isValidPreviewToken = async (
   previewToken: string | undefined,
-  url: string,
+  previewId: string | undefined,
 ): Promise<boolean> => {
-  if (previewToken === undefined) {
-    console.log('Preview token is undefined');
+  if (previewToken === undefined || previewId === undefined) {
     return false;
   }
 
-  // normalize url: remove trailing slash
-  const normalizedUrl = url.endsWith('/') ? url.slice(0, -1) : url;
+  const isValid = await isPreviewTokenValid(previewId, previewToken);
 
-  const isValid = await isPreviewTokenValid(normalizedUrl, previewToken);
-
-  if (!isValid) {
-    // try with trailing slash
-    const isValidWithSlash = await isPreviewTokenValid(normalizedUrl + '/', previewToken);
-    if (isValidWithSlash) {
-      console.log('Preview token valid with trailing slash');
-      return true;
-    }
-  }
-
-  console.log(`Preview token validation for URL '${normalizedUrl}' (orig: '${url}'): ${isValid}`);
+  console.log(`Preview token validation for ID '${previewId}': ${isValid}`);
   return isValid;
 };
 
@@ -61,16 +48,19 @@ const isValidPreviewToken = async (
  */
 export const canAccessPreviewOfCurrentPage = async (
   searchParameters: SearchParameters,
-  url: string,
 ): Promise<boolean> => {
   let previewToken = searchParameters['preview-token'];
+  let previewId = searchParameters['previewId'];
 
   if (Array.isArray(previewToken)) {
     previewToken = previewToken[0];
   }
+  if (Array.isArray(previewId)) {
+    previewId = previewId[0];
+  }
 
   // check if preview token is set and valid
-  const hasValidPreviewToken = await isValidPreviewToken(previewToken, url);
+  const hasValidPreviewToken = await isValidPreviewToken(previewToken, previewId);
   if (hasValidPreviewToken) return true;
 
   // check if the admin has visited the admin panel in this session

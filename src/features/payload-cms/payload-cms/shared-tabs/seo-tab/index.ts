@@ -19,5 +19,24 @@ export const seoTab = (properties: CustomSlugComponentProperties): Tab => ({
     de: 'SEO',
     fr: 'SEO',
   },
-  fields: [SlugField(properties), metaTitle, metaDescription, metaKeywords],
+  fields: [
+    SlugField(properties),
+    metaTitle,
+    metaDescription,
+    metaKeywords,
+    {
+      name: 'urlSlugHistory',
+      type: 'array',
+      localized: true,
+      admin: {
+        readOnly: true,
+      },
+      fields: [
+        {
+          name: 'slug',
+          type: 'text',
+        },
+      ],
+    },
+  ],
 });
