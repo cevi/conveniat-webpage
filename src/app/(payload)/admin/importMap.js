@@ -35,8 +35,8 @@ import { default as default_a13782f3ac0bcff5be1ba175a38107f2 } from '@/features/
 import { default as default_ad2ab9e4ee1f1c863c85f67238030f8f } from '@/features/payload-cms/payload-cms/components/multi-lang-publishing/publish-localized'
 import { default as default_5e6e3bcc43a18e826de12d19a3b1de10 } from '@/features/payload-cms/payload-cms/components/fields/icon-select-field'
 import { default as default_4c4fde438445a819805cfbe983551661 } from '@/features/payload-cms/payload-cms/shared-fields/map-polygon/map-polygon-field'
-import { ParticipantsAdminUI as ParticipantsAdminUI_6073fbd2f4ec389b3079bf8bb78b9c59 } from '@/features/payload-cms/payload-cms/components/participants-admin-ui/participants-admin-ui'
 import { default as default_9a47e1efa5ebe7e17cc6bea1c1b3bad9 } from '@/features/payload-cms/payload-cms/components/filled-status/filled-status-cell'
+import { ParticipantsAdminUI as ParticipantsAdminUI_6073fbd2f4ec389b3079bf8bb78b9c59 } from '@/features/payload-cms/payload-cms/components/participants-admin-ui/participants-admin-ui'
 import { default as default_1e95e18ff98032b69bda4bd8327a52ac } from '@/features/payload-cms/payload-cms/components/pdf-report-generator-ui'
 import { FolderTableCell as FolderTableCell_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 import { FolderField as FolderField_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
@@ -129,8 +129,8 @@ export const importMap = {
   "@/features/payload-cms/payload-cms/components/multi-lang-publishing/publish-localized#default": default_ad2ab9e4ee1f1c863c85f67238030f8f,
   "@/features/payload-cms/payload-cms/components/fields/icon-select-field#default": default_5e6e3bcc43a18e826de12d19a3b1de10,
   "@/features/payload-cms/payload-cms/shared-fields/map-polygon/map-polygon-field#default": default_4c4fde438445a819805cfbe983551661,
-  "@/features/payload-cms/payload-cms/components/participants-admin-ui/participants-admin-ui#ParticipantsAdminUI": ParticipantsAdminUI_6073fbd2f4ec389b3079bf8bb78b9c59,
   "@/features/payload-cms/payload-cms/components/filled-status/filled-status-cell#default": default_9a47e1efa5ebe7e17cc6bea1c1b3bad9,
+  "@/features/payload-cms/payload-cms/components/participants-admin-ui/participants-admin-ui#ParticipantsAdminUI": ParticipantsAdminUI_6073fbd2f4ec389b3079bf8bb78b9c59,
   "@/features/payload-cms/payload-cms/components/pdf-report-generator-ui#default": default_1e95e18ff98032b69bda4bd8327a52ac,
   "@payloadcms/next/rsc#FolderTableCell": FolderTableCell_f9c02e79a4aed9a3924487c0cd4cafb1,
   "@payloadcms/next/rsc#FolderField": FolderField_f9c02e79a4aed9a3924487c0cd4cafb1,
