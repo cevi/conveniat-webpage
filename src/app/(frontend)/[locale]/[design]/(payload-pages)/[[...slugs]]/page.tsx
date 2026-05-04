@@ -246,6 +246,7 @@ const CMSPage: React.FC<{
             locale={validatedLocale}
             slugs={remainingSlugs}
             renderInPreviewMode={renderInPreviewMode}
+            searchParams={searchParametersPromise}
           />
 
           {renderInPreviewMode && (

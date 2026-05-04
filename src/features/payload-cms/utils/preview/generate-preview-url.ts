@@ -71,8 +71,9 @@ export const generatePreviewUrl = ({
       ? ''
       : `/${urlSlug}`;
 
-  console.log('urlSlug', urlSlug);
+  const previewIdQuery = data.id ? `&previewId=${data.id}` : '';
+
   return `${host}${prefix}${
     collectionConfig?.slug === 'blog' ? `/blog` : ''
-  }${slugPath}?preview=true`;
+  }${slugPath}?preview=true${previewIdQuery}`;
 };
