@@ -59,7 +59,7 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
           queueable,
           req,
         }): Promise<{ shouldSchedule: boolean; input: Record<string, never> }> => {
-          await cleanupStaleScheduledJobs(req, 'fetchSmtpBounces');
+          await cleanupStaleScheduledJobs(req, 'fetchSmtpBounces', 15);
 
           const runnableOrActiveJobsForQueue = await countRunnableOrActiveJobsForQueue({
             queue: queueable.scheduleConfig.queue,
