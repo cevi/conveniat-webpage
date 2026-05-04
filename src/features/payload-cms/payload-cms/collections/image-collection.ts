@@ -134,7 +134,7 @@ export const ImageCollection: CollectionConfig = {
       admin: {
         description: {
           en: 'Example: for the newsletter',
-          de: 'Beispiel: für im Newsletter',
+          de: 'Beispiel: für den Newsletter',
           fr: 'Exemple: pour la newsletter',
         },
       },
