@@ -169,10 +169,25 @@ const GenericPage: LocalizedCollectionComponent = async ({
     if (historyResult.docs.length > 0) {
       const historicArticle = historyResult.docs[0];
       if (historicArticle?.seo?.urlSlug) {
+        let queryString = '';
+        if (searchParams) {
+          const awaitedParameters = await searchParams;
+          const urlSearchParameters = new URLSearchParams();
+          for (const [key, value] of Object.entries(awaitedParameters)) {
+            if (Array.isArray(value)) {
+              for (const v of value) urlSearchParameters.append(key, v);
+            } else {
+              urlSearchParameters.append(key, value);
+            }
+          }
+          const string_ = urlSearchParameters.toString();
+          if (string_) queryString = `?${string_}`;
+        }
+
         console.log(
-          `Redirecting from historic slug /${locale}/${slug} to /${locale}/${historicArticle.seo.urlSlug}`,
+          `Redirecting from historic slug /${locale}/${slug} to /${locale}/${historicArticle.seo.urlSlug}${queryString}`,
         );
-        redirect(`/${locale}/${historicArticle.seo.urlSlug}`, 'replace');
+        redirect(`/${locale}/${historicArticle.seo.urlSlug}${queryString}`, 'replace');
       }
     }
 
