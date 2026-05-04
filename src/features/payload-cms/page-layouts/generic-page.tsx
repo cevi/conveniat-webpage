@@ -81,7 +81,7 @@ const GenericPage: LocalizedCollectionComponent = async ({
     if (previewId) {
       try {
         const document_ = await getGenericPageByIDCached(previewId, locale, true);
-        if (document_) documents = [document_];
+        documents = [document_];
       } catch {
         // Fallback to slug if ID fetch fails
         const fetchResult = await getGenericPageBySlugCached(slug, locale, true);
