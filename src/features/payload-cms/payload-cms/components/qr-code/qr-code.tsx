@@ -133,13 +133,18 @@ const prepareQRCodeData = async (
   const maxExpirySeconds = 86_400 * 7; // 7 days
   const currentExpiry = expirySeconds <= maxExpirySeconds ? expirySeconds : 10_800;
 
-  const previewToken = await generatePreviewToken(savedDocumentData?.id ?? '', currentExpiry);
+  if (!savedDocumentData?.id) {
+    console.error('Cannot generate preview token: document ID is missing');
+    throw new Error('Cannot generate preview token: document ID is missing');
+  }
+
+  const previewToken = await generatePreviewToken(savedDocumentData.id, currentExpiry);
   if (previewToken === '') {
     console.error('Failed to generate preview token');
     throw new Error('Failed to generate preview token');
   }
 
-  const previewTokenQueryParameter = `?preview=true&previewId=${savedDocumentData?.id ?? ''}&preview-token=${previewToken}`;
+  const previewTokenQueryParameter = `?preview=true&previewId=${savedDocumentData.id}&preview-token=${previewToken}`;
   const directURL = `${domain}${basePreviewURL}${previewTokenQueryParameter}`;
 
   return {

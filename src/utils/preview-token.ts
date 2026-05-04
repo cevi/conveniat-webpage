@@ -7,13 +7,15 @@ export const generatePreviewToken = async (
   id: string,
   expiresIn: number = 86_400,
 ): Promise<string> =>
-  new Promise((resolve) => {
+  new Promise((resolve, reject) => {
+    if (!id) return reject(new Error('Preview ID cannot be empty'));
     const JWT_SECRET_KEY = environmentVariables.JWT_SECRET;
     resolve(jwt.sign({ id }, JWT_SECRET_KEY, { expiresIn: expiresIn }));
   });
 
 export const isPreviewTokenValid = async (id: string, token: string): Promise<boolean> =>
   new Promise((resolve) => {
+    if (!id) return resolve(false);
     const JWT_SECRET_KEY = environmentVariables.JWT_SECRET;
 
     try {
