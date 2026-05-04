@@ -26,7 +26,6 @@ const isValidPreviewToken = async (
   previewId: string | undefined,
 ): Promise<boolean> => {
   if (previewToken === undefined || previewId === undefined) {
-    console.log('Preview token or previewId is undefined');
     return false;
   }
 
