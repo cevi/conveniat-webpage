@@ -35,8 +35,8 @@ import { default as default_a13782f3ac0bcff5be1ba175a38107f2 } from '@/features/
 import { default as default_ad2ab9e4ee1f1c863c85f67238030f8f } from '@/features/payload-cms/payload-cms/components/multi-lang-publishing/publish-localized'
 import { default as default_5e6e3bcc43a18e826de12d19a3b1de10 } from '@/features/payload-cms/payload-cms/components/fields/icon-select-field'
 import { default as default_4c4fde438445a819805cfbe983551661 } from '@/features/payload-cms/payload-cms/shared-fields/map-polygon/map-polygon-field'
-import { default as default_9a47e1efa5ebe7e17cc6bea1c1b3bad9 } from '@/features/payload-cms/payload-cms/components/filled-status/filled-status-cell'
 import { ParticipantsAdminUI as ParticipantsAdminUI_6073fbd2f4ec389b3079bf8bb78b9c59 } from '@/features/payload-cms/payload-cms/components/participants-admin-ui/participants-admin-ui'
+import { default as default_9a47e1efa5ebe7e17cc6bea1c1b3bad9 } from '@/features/payload-cms/payload-cms/components/filled-status/filled-status-cell'
 import { default as default_1e95e18ff98032b69bda4bd8327a52ac } from '@/features/payload-cms/payload-cms/components/pdf-report-generator-ui'
 import { FolderTableCell as FolderTableCell_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 import { FolderField as FolderField_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
@@ -91,6 +91,7 @@ import { default as default_264aa1452821b700131c9a40a3b93a91 } from '@/features/
 import { default as default_ff22a191d3f87d6a73e8d33d6e422fd0 } from '@/features/payload-cms/payload-cms/widgets/email-stats-widget'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 
+/** @type import('payload').ImportMap */
 export const importMap = {
   "@/features/payload-cms/payload-cms/components/multi-lang-publishing/publishing-status#default": default_a7ff98973d56a39b3183d8ad49f7b649,
   "@payloadcms/richtext-lexical/rsc#RscEntryLexicalCell": RscEntryLexicalCell_44fe37237e0ebf4470c9990d8cb7b07e,
@@ -129,8 +130,8 @@ export const importMap = {
   "@/features/payload-cms/payload-cms/components/multi-lang-publishing/publish-localized#default": default_ad2ab9e4ee1f1c863c85f67238030f8f,
   "@/features/payload-cms/payload-cms/components/fields/icon-select-field#default": default_5e6e3bcc43a18e826de12d19a3b1de10,
   "@/features/payload-cms/payload-cms/shared-fields/map-polygon/map-polygon-field#default": default_4c4fde438445a819805cfbe983551661,
-  "@/features/payload-cms/payload-cms/components/filled-status/filled-status-cell#default": default_9a47e1efa5ebe7e17cc6bea1c1b3bad9,
   "@/features/payload-cms/payload-cms/components/participants-admin-ui/participants-admin-ui#ParticipantsAdminUI": ParticipantsAdminUI_6073fbd2f4ec389b3079bf8bb78b9c59,
+  "@/features/payload-cms/payload-cms/components/filled-status/filled-status-cell#default": default_9a47e1efa5ebe7e17cc6bea1c1b3bad9,
   "@/features/payload-cms/payload-cms/components/pdf-report-generator-ui#default": default_1e95e18ff98032b69bda4bd8327a52ac,
   "@payloadcms/next/rsc#FolderTableCell": FolderTableCell_f9c02e79a4aed9a3924487c0cd4cafb1,
   "@payloadcms/next/rsc#FolderField": FolderField_f9c02e79a4aed9a3924487c0cd4cafb1,

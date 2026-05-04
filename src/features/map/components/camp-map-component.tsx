@@ -133,6 +133,7 @@ export const CampMapComponent: React.FC<{
           campMapAnnotationPolygons={campMapAnnotationPolygons}
           validateStyle={environmentVariables.NODE_ENV !== 'production'}
           schedules={schedulesPerAnnotations}
+          enableSearch
         />
       </div>
 
