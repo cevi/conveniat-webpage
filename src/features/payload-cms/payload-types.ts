@@ -1542,6 +1542,7 @@ export interface PlainTextBlock {
     };
     [k: string]: unknown;
   };
+  showVerticalSeparator?: boolean | null;
   id?: string | null;
   blockName?: string | null;
   blockType: 'accordionPlainTextBlock';
@@ -3654,6 +3655,7 @@ export interface AccordionBlocksSelect<T extends boolean = true> {
  */
 export interface PlainTextBlockSelect<T extends boolean = true> {
   value?: T;
+  showVerticalSeparator?: T;
   id?: T;
   blockName?: T;
 }

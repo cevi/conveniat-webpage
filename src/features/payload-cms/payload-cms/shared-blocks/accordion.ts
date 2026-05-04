@@ -26,6 +26,16 @@ const plainTextBlock: Block = {
       }),
       hooks: patchRichTextLinkHook,
     },
+    {
+      name: 'showVerticalSeparator',
+      label: {
+        de: 'Vertikale Trennlinie nach Block anzeigen',
+        en: 'Show vertical separator after block',
+        fr: 'Afficher le séparateur vertical après le bloc',
+      },
+      type: 'checkbox',
+      defaultValue: true,
+    },
   ],
 };
 
