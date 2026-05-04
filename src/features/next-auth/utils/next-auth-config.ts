@@ -175,7 +175,11 @@ async function syncProfileToPayloadAsync(profile: HitobitoProfile): Promise<void
 const inflightRefreshes = new Map<string, Promise<JWT>>();
 
 async function refreshAccessToken(token: JWT): Promise<JWT> {
-  const userId = token.uuid ?? 'unknown';
+  const userId = token.uuid;
+
+  if (!userId) {
+    return doRefreshAccessToken(token); // skip dedup for tokens without a UUID
+  }
 
   // If a refresh is already in-flight for this user, wait for it
   const existing = inflightRefreshes.get(userId);
