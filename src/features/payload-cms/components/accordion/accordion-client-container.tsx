@@ -142,7 +142,9 @@ const AccordionClientContainer: React.FC<{
         return;
       }
 
-      const isValidFragment = accordionBlocks?.some((block) => getFragmentFromBlock(block) === hash);
+      const isValidFragment = accordionBlocks?.some(
+        (block) => getFragmentFromBlock(block) === hash,
+      );
       if (isValidFragment === true) {
         lastHandledHashReference.current = hash;
 

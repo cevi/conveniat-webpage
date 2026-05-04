@@ -17,11 +17,23 @@ export const ParagraphJSXConverter: JSXConverters<SerializedParagraphNode> = {
     });
     const normalizedChildren = Array.isArray(children) ? children : [children];
 
+    const format = node.format;
+
     if (normalizedChildren.length === 0) {
-      return <></>;
+      return (
+        <ParagraphText
+          className={cn(
+            format === 'left' && 'text-left',
+            format === 'center' && 'text-center text-balance',
+            format === 'right' && 'text-right',
+            format === 'justify' && 'text-justify',
+          )}
+        >
+          <br />
+        </ParagraphText>
+      );
     }
 
-    const format = node.format;
     const childrenWithLinkedPunctuation = normalizedChildren.flatMap((child, index) => {
       // fix for punctuation being separated from links when they are directly adjacent in the text, e.g. "This is a [link](url)."
       // see https://github.com/cevi/conveniat-webpage/issues/1134
