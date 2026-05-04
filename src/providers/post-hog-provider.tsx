@@ -49,7 +49,7 @@ const PostHogPageView: React.FC = () => {
 
 const SuspendedPostHogPageView: React.FC = () => {
   return (
-    <Suspense>
+    <Suspense fallback={<></>}>
       <PostHogPageView />
     </Suspense>
   );
