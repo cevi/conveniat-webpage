@@ -34,7 +34,7 @@ export const FeaturedSection: React.FC<FeaturedSectionBlock & { locale: Locale }
           <div className="h-full w-full bg-gray-200" />
         )}
       </div>
-      <div className="mt-6 flex flex-col lg:mt-8">
+      <div className="mt-6 flex flex-col @3xl:mt-8">
         {mainFeature.label != undefined && mainFeature.label !== '' && (
           <span className="font-heading text-sm font-bold tracking-widest text-gray-500 uppercase">
             {mainFeature.label}
@@ -54,9 +54,9 @@ export const FeaturedSection: React.FC<FeaturedSectionBlock & { locale: Locale }
 
   return (
     <div className="@container w-full">
-      <div className="flex flex-col gap-12 lg:flex-row lg:gap-16">
+      <div className="flex flex-col gap-12 @3xl:flex-row @3xl:gap-12 @5xl:gap-16">
         {/* Main Feature */}
-        <div className="w-full lg:w-1/2">
+        <div className="w-full @3xl:w-1/2">
           {mainFeatureUrl === '' ? (
             MainFeatureContent
           ) : (
@@ -72,14 +72,14 @@ export const FeaturedSection: React.FC<FeaturedSectionBlock & { locale: Locale }
         </div>
 
         {/* Sub Features */}
-        <div className="flex w-full flex-col gap-10 lg:w-1/2">
+        <div className="flex w-full flex-col gap-10 @3xl:w-1/2">
           {subFeatures?.map((subFeature, index) => {
             const subFeatureUrl = getURLForLinkField(subFeature.linkField, locale) ?? '';
             const subImage = typeof subFeature.image === 'object' ? subFeature.image : undefined;
 
             const SubFeatureContent = (
-              <div className="group flex h-full flex-col gap-6 sm:flex-row sm:items-start">
-                <div className="relative aspect-square w-full shrink-0 overflow-hidden rounded-lg border border-gray-200/60 sm:w-32 md:w-40 lg:w-36 xl:w-48">
+              <div className="group flex h-full flex-col gap-6 @sm:flex-row @sm:items-start">
+                <div className="relative aspect-square w-24 shrink-0 overflow-hidden rounded-lg border border-gray-200/60 @md:w-32 @lg:w-40 @xl:w-48">
                   {subImage?.url != undefined && subImage.url !== '' && (
                     <ImageNode
                       src={getRelativeImageUrl(subImage.url)}
@@ -89,7 +89,7 @@ export const FeaturedSection: React.FC<FeaturedSectionBlock & { locale: Locale }
                     />
                   )}
                 </div>
-                <div className="flex flex-1 flex-col sm:py-1">
+                <div className="flex flex-1 flex-col @sm:py-1">
                   {subFeature.label != undefined && subFeature.label !== '' && (
                     <span className="font-heading text-xs font-bold tracking-widest text-gray-500 uppercase">
                       {subFeature.label}

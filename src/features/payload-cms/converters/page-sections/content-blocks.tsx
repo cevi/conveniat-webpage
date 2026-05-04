@@ -369,7 +369,7 @@ export const RenderSinglePicture: SectionRenderer<{
       )}
       locale={locale}
     >
-      <div className="mt-10 w-[calc(100%+32px)] max-md:mx-[-16px]">
+      <div className="mt-10 w-full max-md:mx-[-16px] max-md:w-[calc(100%+32px)]">
         {imageUrl !== undefined && imageUrl !== '' && (
           <Image
             src={getRelativeImageUrl(imageUrl)}
