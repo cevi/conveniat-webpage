@@ -9,11 +9,16 @@ export const DEFAULT_QUEUE = 'default';
  * `countRunnableOrActiveJobsForQueue` already excludes properly errored jobs
  * (those with the `error` field set), but crash-orphaned jobs lack this field
  * and remain counted as active indefinitely.
+ *
+ * @param request The Payload request object
+ * @param taskSlug The slug of the task to clean up
+ * @param maxAgeMinutes The maximum allowed age of an incomplete job in minutes before it is considered stale.
+ *                      Default is 10080 (7 days). This should be set per-task based on its expected maximum runtime.
  */
 export async function cleanupStaleScheduledJobs(
   request: PayloadRequest,
   taskSlug: string,
-  maxAgeMinutes: number = 15,
+  maxAgeMinutes: number = 7 * 24 * 60, // 7 days default
 ): Promise<void> {
   const cutoffDate = new Date();
   cutoffDate.setMinutes(cutoffDate.getMinutes() - maxAgeMinutes);
