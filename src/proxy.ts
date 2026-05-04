@@ -10,9 +10,13 @@ const authSessionProxy: ProxyModule = (next) => {
   return async (request, event, response) => {
     // We want auth() to run for most paths (including /admin and /api),
     // but not for purely static assets to save overhead.
+    const { pathname } = request.nextUrl;
     const isStaticAsset =
-      request.nextUrl.pathname.match(/\.(png|ico|svg|webmanifest|json|xml|txt|jpg|jpeg|gif)$/i) ??
-      request.nextUrl.pathname.startsWith('/imgs/');
+      /\.(png|ico|svg|webmanifest|xml|txt|jpg|jpeg|gif|js|map)$/i.test(pathname) ||
+      pathname.startsWith('/imgs/') ||
+      pathname === '/sw.js' ||
+      pathname === '/sw.js.map' ||
+      pathname.startsWith('/serwist/');
     if (isStaticAsset) {
       return next(request, event, response);
     }
