@@ -8,6 +8,7 @@ import { FooterCopyrightClientWrapper } from '@/components/footer/footer-copyrig
 import { GlobalAppFooterClientWrapper } from '@/components/footer/global-app-footer-client-wrapper';
 import { HideFooterProvider } from '@/components/footer/hide-footer-context';
 import { HeaderComponent } from '@/components/header/header-component';
+import { HideBackgroundLogoProvider } from '@/components/ui/hide-background-logo-context';
 import { ServiceWorkerManager } from '@/components/service-worker/service-worker-manager';
 import { environmentVariables } from '@/config/environment-variables';
 import type { Locale } from '@/types/types';
@@ -73,20 +74,22 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
       >
         <SessionProvider>
           <HideFooterProvider>
-            <ChunkErrorHandler />
-            <ServiceWorkerManager>
-              <AppShell
-                header={<HeaderComponent locale={locale} inAppDesign={isInAppDesign} />}
-                footer={
-                  <Suspense fallback={undefined}>
-                    <GlobalAppFooterWrapper locale={locale} design={design} />
-                  </Suspense>
-                }
-                inAppDesign={isInAppDesign}
-              >
-                {children}
-              </AppShell>
-            </ServiceWorkerManager>
+            <HideBackgroundLogoProvider>
+              <ChunkErrorHandler />
+              <ServiceWorkerManager>
+                <AppShell
+                  header={<HeaderComponent locale={locale} inAppDesign={isInAppDesign} />}
+                  footer={
+                    <Suspense fallback={undefined}>
+                      <GlobalAppFooterWrapper locale={locale} design={design} />
+                    </Suspense>
+                  }
+                  inAppDesign={isInAppDesign}
+                >
+                  {children}
+                </AppShell>
+              </ServiceWorkerManager>
+            </HideBackgroundLogoProvider>
           </HideFooterProvider>
         </SessionProvider>
       </body>
