@@ -35,7 +35,14 @@ interface UsePushNotificationStateResult {
   toggleSubscription: () => Promise<boolean>;
 }
 
-export function usePushNotificationState(): UsePushNotificationStateResult {
+export interface UsePushNotificationStateProperties {
+  registrationSource?: '/entrypoint' | '/app/settings';
+}
+
+export function usePushNotificationState(
+  props?: UsePushNotificationStateProperties,
+): UsePushNotificationStateResult {
+  const registrationSource = props?.registrationSource;
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const [isSupported, setIsSupported] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
@@ -87,7 +94,7 @@ export function usePushNotificationState(): UsePushNotificationStateResult {
     setIsLoading(true);
     setErrorMessage(undefined);
     try {
-      await subscribeToPushNotifications(locale);
+      await subscribeToPushNotifications(locale, registrationSource);
 
       setIsSubscribed(true);
       return true;
@@ -119,7 +126,7 @@ export function usePushNotificationState(): UsePushNotificationStateResult {
     } finally {
       setIsLoading(false);
     }
-  }, [locale]);
+  }, [locale, registrationSource]);
 
   const unsubscribeFromPush = useCallback(async (): Promise<boolean> => {
     setIsLoading(true);
