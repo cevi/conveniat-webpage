@@ -99,6 +99,28 @@ interface FileItem {
   descriptionError?: string;
 }
 
+const checkImageDimensions = (
+  file: File,
+): Promise<{ isValid: boolean; width: number; height: number }> => {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.addEventListener('load', (event) => {
+      const img = new Image();
+      img.addEventListener('load', () => {
+        const width = img.width;
+        const height = img.height;
+        resolve({
+          isValid: (width >= 1920 && height >= 1080) || (height >= 1920 && width >= 1080),
+          width,
+          height,
+        });
+      });
+      img.src = event.target?.result as string;
+    });
+    reader.readAsDataURL(file);
+  });
+};
+
 const ImageUploadPage: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
@@ -110,28 +132,6 @@ const ImageUploadPage: React.FC = () => {
   const [showSuccessView, setShowSuccessView] = useState(false);
 
   const { uploadImage, isUploading } = useUserUpload();
-
-  const checkImageDimensions = (
-    file: File,
-  ): Promise<{ isValid: boolean; width: number; height: number }> => {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.addEventListener('load', (event) => {
-        const img = new Image();
-        img.addEventListener('load', () => {
-          const width = img.width;
-          const height = img.height;
-          resolve({
-            isValid: (width >= 1920 && height >= 1080) || (height >= 1920 && width >= 1080),
-            width,
-            height,
-          });
-        });
-        img.src = event.target?.result as string;
-      });
-      reader.readAsDataURL(file);
-    });
-  };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>): void => {
     const files = event.target.files;
