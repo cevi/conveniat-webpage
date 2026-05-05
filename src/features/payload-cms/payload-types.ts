@@ -2076,6 +2076,10 @@ export interface CampMapAnnotation {
       )
     | null;
   /**
+   * Controls at which zoom levels the annotation is visible (High = always, Medium = slightly zoomed in, Low = fully zoomed in).
+   */
+  importance: 'high' | 'medium' | 'low';
+  /**
    * @minItems 2
    * @maxItems 2
    */
@@ -4858,6 +4862,7 @@ export interface CampMapAnnotationsSelect<T extends boolean = true> {
   color?: T;
   annotationType?: T;
   icon?: T;
+  importance?: T;
   geometry?: T;
   polygonCoordinates?: T;
   isInteractive?: T;

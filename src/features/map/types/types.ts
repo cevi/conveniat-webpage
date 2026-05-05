@@ -45,6 +45,7 @@ export interface CampMapAnnotationPoint {
   geometry: { coordinates: [number, number] };
   icon: 'MapPin' | 'Tent';
   color: string;
+  importance: 'high' | 'medium' | 'low';
 }
 
 export interface CampMapAnnotationPolygon {
@@ -57,6 +58,7 @@ export interface CampMapAnnotationPolygon {
   icon: 'MapPin' | 'Tent';
   color: string;
   isInteractive: boolean;
+  importance: 'high' | 'medium' | 'low';
 }
 
 export interface MapControlOptions {

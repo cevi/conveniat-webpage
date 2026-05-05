@@ -16,7 +16,7 @@ export const useAnnotationPointMarkers = (
   currentAnnotation: CampMapAnnotationPoint | CampMapAnnotationPolygon | undefined,
   setCurrentAnnotation: (annotation: CampMapAnnotationPoint | undefined) => void,
 ): void => {
-  const activeMarkers = useRef<Marker[]>([]);
+  const activeMarkers = useRef<{ marker: Marker; importance: 'high' | 'medium' | 'low' }[]>([]);
   const map = useMap();
   const { starredEntries } = useStar();
 
@@ -24,8 +24,20 @@ export const useAnnotationPointMarkers = (
     if (!map) return;
 
     // Clear old markers
-    for (const marker of activeMarkers.current) marker.remove();
+    for (const { marker } of activeMarkers.current) marker.remove();
     activeMarkers.current = [];
+
+    // Function to update visibility of all markers based on current zoom
+    const updateMarkerVisibility = (): void => {
+      const zoom = map.getZoom();
+      for (const { marker, importance } of activeMarkers.current) {
+        let visible = true;
+        if (importance === 'medium' && zoom < 14) visible = false;
+        if (importance === 'low' && zoom < 16) visible = false;
+
+        marker.getElement().style.display = visible ? '' : 'none';
+      }
+    };
 
     for (const annotation of annotations) {
       const popup = new Popup();
@@ -56,8 +68,18 @@ export const useAnnotationPointMarkers = (
         marker.togglePopup();
       });
 
-      activeMarkers.current.push(marker);
+      activeMarkers.current.push({ marker, importance: annotation.importance });
     }
+
+    // Set initial visibility
+    updateMarkerVisibility();
+
+    // Attach zoom listener
+    map.on('zoom', updateMarkerVisibility);
+
+    return (): void => {
+      map.off('zoom', updateMarkerVisibility);
+    };
 
     // Re-run effect when selectedAnnotationId or starredEntries changes to update markers
   }, [map, annotations, setCurrentAnnotation, currentAnnotation, starredEntries]);
