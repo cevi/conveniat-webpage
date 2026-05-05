@@ -1,9 +1,9 @@
 'use client';
 
-import { CenteredConveniatLogo } from '@/features/onboarding/components/centered-conveniat-logo';
 import { SetHideHeader } from '@/components/header/hide-header-context';
 import { SetHideBackgroundLogo } from '@/components/ui/hide-background-logo-context';
 import { LinkComponent } from '@/components/ui/link-component';
+import { CenteredConveniatLogo } from '@/features/onboarding/components/centered-conveniat-logo';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { handleLogin } from '@/utils/login-handler';
@@ -41,7 +41,7 @@ export const UnauthorizedPage = (): React.JSX.Element => {
       <div className="flex w-full max-w-md flex-col items-center text-center">
         <CenteredConveniatLogo />
 
-        <p className="mt-2 mb-8 text-balance text-lg text-gray-600">{loginText[locale]}</p>
+        <p className="mt-2 mb-8 text-lg text-balance text-gray-600">{loginText[locale]}</p>
 
         <button
           onClick={() => handleLogin()}

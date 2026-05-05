@@ -1,7 +1,7 @@
 'use client';
+import { LinkComponent } from '@/components/ui/link-component';
 import { CenteredConveniatLogo } from '@/features/onboarding/components/centered-conveniat-logo';
 import { AdminPanelBackgroundFaker } from '@/features/payload-cms/payload-cms/components/login-page/admin-panel-background-faker';
-import { LinkComponent } from '@/components/ui/link-component';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { LogIn } from 'lucide-react';

@@ -8,8 +8,8 @@ import { FooterCopyrightClientWrapper } from '@/components/footer/footer-copyrig
 import { GlobalAppFooterClientWrapper } from '@/components/footer/global-app-footer-client-wrapper';
 import { HideFooterProvider } from '@/components/footer/hide-footer-context';
 import { HeaderComponent } from '@/components/header/header-component';
-import { HideBackgroundLogoProvider } from '@/components/ui/hide-background-logo-context';
 import { ServiceWorkerManager } from '@/components/service-worker/service-worker-manager';
+import { HideBackgroundLogoProvider } from '@/components/ui/hide-background-logo-context';
 import { environmentVariables } from '@/config/environment-variables';
 import type { Locale } from '@/types/types';
 import { DesignCodes } from '@/utils/design-codes';

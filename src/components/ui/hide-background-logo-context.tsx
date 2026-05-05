@@ -7,7 +7,9 @@ interface HideBackgroundLogoContextValue {
   setHideBackgroundLogo: (value: boolean) => void;
 }
 
-const HideBackgroundLogoContext = createContext<HideBackgroundLogoContextValue | undefined>(undefined);
+const HideBackgroundLogoContext = createContext<HideBackgroundLogoContextValue | undefined>(
+  undefined,
+);
 
 export const HideBackgroundLogoProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [hideBackgroundLogo, setHideBackgroundLogo] = useState(false);

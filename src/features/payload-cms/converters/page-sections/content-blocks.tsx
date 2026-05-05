@@ -810,7 +810,10 @@ export const RenderFeaturedSection: SectionRenderer<FeaturedSectionBlock> = ({
   );
 };
 
-import { TabsBlock, type TabsBlockPayloadType } from '@/features/payload-cms/components/content-blocks/tabs-block';
+import {
+  TabsBlock,
+  type TabsBlockPayloadType,
+} from '@/features/payload-cms/components/content-blocks/tabs-block';
 
 export const RenderTabsBlock: SectionRenderer<TabsBlockPayloadType> = ({
   block,
@@ -826,7 +829,7 @@ export const RenderTabsBlock: SectionRenderer<TabsBlockPayloadType> = ({
         {
           de: 'Tab-Block',
           en: 'Tabs Block',
-          fr: 'Bloc d\'onglets',
+          fr: "Bloc d'onglets",
         },
         rest.locale,
       )}
