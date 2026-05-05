@@ -1,4 +1,5 @@
 'use client';
+import { flushPersonalData } from '@/lib/flush-personal-data';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { Loader2 } from 'lucide-react';
@@ -26,6 +27,7 @@ export const LogoutButton: React.FC = () => {
     <button
       onClick={() => {
         setIsLoading(true);
+        flushPersonalData();
         signOut({
           redirect: true,
           redirectTo: '/',

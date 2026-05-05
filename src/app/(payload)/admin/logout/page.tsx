@@ -3,6 +3,7 @@
 import { ConveniatLogo } from '@/components/svg-logos/conveniat-logo';
 import { AdminPanelBackgroundFaker } from '@/features/payload-cms/payload-cms/components/login-page/admin-panel-background-faker';
 import { Config } from '@/features/payload-cms/payload-types';
+import { flushPersonalData } from '@/lib/flush-personal-data';
 import { StaticTranslationString } from '@/types/types';
 import { PREVIEW_SESSION_COOKIE } from '@/utils/preview-session-cookie';
 import { useLocale } from '@payloadcms/ui';
@@ -21,6 +22,9 @@ const Page = () => {
 
   useEffect(() => {
     const doLogout = async () => {
+      // Flush all cached personal data before logging out
+      flushPersonalData();
+
       // Clear the preview session cookie before logging out
       Cookies.remove(PREVIEW_SESSION_COOKIE, { path: '/' });
 

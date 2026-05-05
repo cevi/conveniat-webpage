@@ -1,3 +1,4 @@
+import { flushPersonalData } from '@/lib/flush-personal-data';
 import { Cookie } from '@/types/types';
 import Cookies from 'js-cookie';
 import { signIn, signOut } from 'next-auth/react';
@@ -27,6 +28,9 @@ export const handleLogin = (callbackUrl?: string): void => {
  * Clears any existing login state and sets a cookie to remember the choice.
  */
 export const handleSkipLogin = (): void => {
+  // Clear any cached personal data from a previous session
+  flushPersonalData();
+
   // Clear any existing auth state
   void signOut({ redirect: false }).catch((error: unknown) => {
     console.error('Sign-out error', error);
