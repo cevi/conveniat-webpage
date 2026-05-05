@@ -246,9 +246,9 @@ export const ChatTextAreaInput: React.FC = () => {
         </div>
       )}
 
-      <div className="flex items-end gap-1 rounded-[24px] border border-gray-200 bg-white p-1 shadow-sm transition-all focus-within:border-gray-300 focus-within:ring-1 focus-within:ring-gray-300">
+      <div className="flex items-end rounded-[24px] border border-gray-200 bg-white shadow-sm focus-within:border-gray-300 focus-within:ring-0">
         {canUploadPictures && (
-          <>
+          <div className="mb-1 ml-1 pb-1">
             <input
               type="file"
               ref={fileInputReference}
@@ -262,43 +262,46 @@ export const ChatTextAreaInput: React.FC = () => {
               onClick={() => fileInputReference.current?.click()}
               size="icon"
               variant="ghost"
-              className="h-10 w-10 shrink-0 cursor-pointer rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+              className="h-10 w-10 shrink-0 cursor-pointer rounded-full text-gray-500 hover:bg-transparent"
             >
-              <Paperclip className="h-5 w-5" />
+              <Paperclip size={20} />
             </Button>
-          </>
+          </div>
         )}
         {/* Input box */}
-        <div className="flex-1 py-1">
+        <div className="flex-1">
           <textarea
             {...textareaProps}
             placeholder={messagePlaceholder[locale]}
-            className="font-body w-full resize-none border-0 bg-transparent px-3 py-1.5 placeholder:text-gray-400 focus:ring-0 focus:outline-none"
+            className="font-body w-full resize-none border-0 bg-transparent px-3 py-3 text-base placeholder:text-gray-500 focus:ring-0 focus:outline-none"
             rows={1}
-            style={{ minHeight: '24px', maxHeight: '250px' }}
+            style={{ minHeight: '48px', maxHeight: '250px' }}
             aria-label={messagePlaceholder[locale]}
           />
         </div>
 
         {/* Send button - sticky at bottom */}
-        {isTooLong ? (
-          <Button
-            onClick={handleSplitAndSend}
-            size="sm"
-            className="h-10 shrink-0 rounded-full bg-orange-500 px-4 text-white shadow-sm hover:bg-orange-600"
-          >
-            {splitAndSendText[locale]}
-          </Button>
-        ) : (
-          <Button
-            onClick={handleSendMessage}
-            size="icon"
-            className="bg-cevi-blue hover:bg-cevi-blue/90 h-10 w-10 shrink-0 rounded-full text-white shadow-sm transition-colors disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none"
-            disabled={isSendButtonDisabled}
-          >
-            <Send className="ml-0.5 h-5 w-5" />
-          </Button>
-        )}
+        <div className="mr-1 mb-1 pb-1">
+          {isTooLong ? (
+            <Button
+              onClick={handleSplitAndSend}
+              size="sm"
+              className="mb-1 h-8 shrink-0 rounded-[16px] bg-orange-500 px-4 text-white shadow-sm hover:bg-orange-600"
+            >
+              {splitAndSendText[locale]}
+            </Button>
+          ) : (
+            <Button
+              onClick={handleSendMessage}
+              size="icon"
+              variant="ghost"
+              className="text-cevi-blue h-10 w-10 shrink-0 rounded-full hover:bg-transparent hover:text-blue-700 disabled:bg-transparent disabled:text-gray-300"
+              disabled={isSendButtonDisabled}
+            >
+              <Send size={20} />
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -69,6 +69,23 @@ export const useChatScrollManager = ({
     }
   }, [sortedMessages]);
 
+  // Handle container resize (e.g. when text input grows or keyboard appears)
+  useEffect(() => {
+    const container = scrollContainerReference.current;
+    if (!container) return;
+
+    const resizeObserver = new ResizeObserver(() => {
+      if (isAtBottomReference.current) {
+        messagesEndReference.current?.scrollIntoView({ behavior: 'instant' });
+      }
+    });
+
+    resizeObserver.observe(container);
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
+
   return {
     scrollContainerReference,
     messagesEndReference,
