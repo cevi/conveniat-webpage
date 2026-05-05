@@ -26,7 +26,7 @@ export const TabsBlock: React.FC<
         blocks={tab.content}
         {...(renderInPreviewMode === undefined ? {} : { renderInPreviewMode })}
       />
-    ) : null,
+    ) : undefined,
   }));
 
   return <TabsClientContainer tabs={mappedTabs} />;
