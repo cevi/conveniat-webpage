@@ -32,8 +32,11 @@ export const formatMessageContent = (
     const userNicknameString = typeof userNickname === 'string' ? userNickname : '';
 
     return [
-      <div key="emergency-alert" className="rounded-md bg-red-100 p-2 font-bold text-red-600">
-        {alertMessageText[locale]} {userNameString || userNicknameString} <br />
+      <div
+        key="emergency-alert"
+        className="my-1 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-[0.95rem] font-semibold text-red-700 shadow-sm"
+      >
+        {alertMessageText[locale]} {userNameString || userNicknameString}
       </div>,
     ];
   }

@@ -90,7 +90,7 @@ export const MessageList: React.FC<{
         {Object.entries(messagesByDate).map(([date, messagesForDate]) => (
           <div key={date}>
             <div className={cn('flex justify-center', isThread ? 'my-3' : 'my-6')}>
-              <div className="font-body rounded-full border border-gray-200 bg-gray-100 px-4 py-1 text-xs font-medium text-gray-500 shadow-sm">
+              <div className="font-body rounded-full bg-black/5 px-3 py-1 text-[11px] font-semibold tracking-wider text-gray-500 uppercase backdrop-blur-sm">
                 {date === new Date().toLocaleDateString() ? todayText[locale] : date}
               </div>
             </div>
