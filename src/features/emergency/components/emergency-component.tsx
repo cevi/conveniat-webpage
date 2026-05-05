@@ -9,7 +9,7 @@ import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { Accordion } from '@radix-ui/react-accordion';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Search, X } from 'lucide-react';
+import { BriefcaseMedical, Search, X } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import { useRouter } from 'next/navigation';
@@ -85,10 +85,16 @@ const alertProcedures = {
   },
 };
 
+const tapForDetailsText: StaticTranslationString = {
+  de: 'Tippe für details',
+  en: 'Tap for details',
+  fr: 'Appuyez pour plus de détails',
+};
+
 const searchPlaceholder: StaticTranslationString = {
-  de: 'Alarmtypen suchen...',
-  en: 'Search alert types...',
-  fr: "Rechercher types d'alerte...",
+  de: 'Alarmtypen suchen',
+  en: 'Search alert types',
+  fr: "Rechercher types d'alerte",
 };
 
 const descriptionLabel: StaticTranslationString = {
@@ -330,35 +336,54 @@ export const EmergencyComponent: React.FC = () => {
                 onChange={(event: ChangeEvent<HTMLInputElement>) =>
                   setSearchTerm(event.target.value)
                 }
-                className="pl-10"
+                className="h-14 rounded-2xl border-gray-200 bg-white pr-12 text-base shadow-sm focus-visible:border-gray-300 focus-visible:ring-0"
               />
-              <Search
-                className="absolute top-1/2 left-3 -translate-y-1/2 transform text-gray-400"
-                size={20}
-              />
-              {searchTerm !== '' && (
+              {searchTerm === '' ? (
+                <Search
+                  className="absolute top-1/2 right-4 -translate-y-1/2 transform text-gray-500"
+                  size={24}
+                />
+              ) : (
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute top-1/2 right-2 -translate-y-1/2 transform"
+                  className="absolute top-1/2 right-3 -translate-y-1/2 transform text-gray-500 hover:bg-transparent"
                   onClick={clearSearch}
                 >
-                  <X size={16} />
+                  <X size={24} />
                 </Button>
               )}
             </div>
           </div>
         </div>
 
-        <Accordion type="single" collapsible className="mb-20">
+        <Accordion type="single" collapsible className="mb-20 flex flex-col gap-4">
           {filteredAlerts.map((alert, index) => (
-            <AccordionItem value={`item-${index}`} key={index}>
-              <AccordionTrigger>
-                <span className="font-semibold text-gray-900">
-                  {alertTypeTranslations[alert.title as keyof typeof alertTypeTranslations][locale]}
-                </span>
+            <AccordionItem
+              value={`item-${index}`}
+              key={index}
+              className="overflow-hidden rounded-2xl border-none bg-white px-4 shadow-sm"
+            >
+              <AccordionTrigger className="py-4 hover:no-underline [&>svg]:h-8 [&>svg]:w-8 [&>svg]:rounded-xl [&>svg]:bg-gray-100 [&>svg]:p-1.5 [&>svg]:text-gray-600">
+                <div className="flex w-full items-center gap-4 pr-4 text-left">
+                  <div className="shrink-0 rounded-xl bg-gray-100 p-2.5">
+                    <BriefcaseMedical className="h-6 w-6 text-gray-700" />
+                  </div>
+                  <div className="flex flex-1 flex-col">
+                    <span className="text-lg font-bold text-gray-900">
+                      {
+                        alertTypeTranslations[alert.title as keyof typeof alertTypeTranslations][
+                          locale
+                        ]
+                      }
+                    </span>
+                    <span className="text-sm font-normal text-gray-500">
+                      {tapForDetailsText[locale]}
+                    </span>
+                  </div>
+                </div>
               </AccordionTrigger>
-              <AccordionContent>
+              <AccordionContent className="pt-2 pb-4 text-gray-600">
                 <p className="mb-2 text-gray-800">
                   <strong>{descriptionLabel[locale]}</strong>{' '}
                   {alertDescriptions[alert.title as keyof typeof alertDescriptions][locale]}
