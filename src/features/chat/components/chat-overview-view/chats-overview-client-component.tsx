@@ -17,7 +17,8 @@ import { MessageSquare, MessageSquarePlus } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
 import type React from 'react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 const searchPlaceholderText: StaticTranslationString = {
   en: 'Search conversations...',
@@ -93,6 +94,10 @@ export const ChatsOverviewClientComponent: React.FC<{ user: HitobitoNextAuthUser
   const [searchQuery, setSearchQuery] = useState('');
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
+  const [mounted, setMounted] = useState(false);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => setMounted(true), []);
+
   // Filter chats based on a search query
   const filteredChats =
     chats?.filter((chat): boolean => {
@@ -118,12 +123,17 @@ export const ChatsOverviewClientComponent: React.FC<{ user: HitobitoNextAuthUser
         onClear={() => setSearchQuery('')}
       />
 
-      {createChatsEnabled && (
+      {createChatsEnabled === true && (
         <>
-          {/* New Chat Button */}
-          <div className="flex justify-end gap-2">
-            {user?.uuid && <QRCodeClientComponent url={user.uuid} />}
-          </div>
+          {/* QR Code Button (Header Injection via Portal) */}
+          {mounted && typeof document !== 'undefined'
+            ? createPortal(
+                <div className="fixed top-[18px] right-6 z-[60]">
+                  {user?.uuid ? <QRCodeClientComponent url={user.uuid} /> : undefined}
+                </div>,
+                document.body,
+              )
+            : undefined}
 
           <div className="fixed right-6 bottom-18 z-50">
             <Link href="/app/chat/new">
