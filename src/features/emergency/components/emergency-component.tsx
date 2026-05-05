@@ -279,12 +279,20 @@ export const EmergencyComponent: React.FC = () => {
 
     try {
       const locationPromise = new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject);
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        if (!navigator.geolocation) {
+          reject(new Error('Geolocation not supported'));
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          timeout: 10_000,
+          maximumAge: 60_000,
+        });
       });
 
       location = await locationPromise;
     } catch (error) {
-      console.error('Failed to get location:', error);
+      console.warn('Failed to get location (denied or timeout):', error);
     }
 
     const response = emergencyQuery.mutate(
