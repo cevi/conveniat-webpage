@@ -822,7 +822,7 @@ export const RenderTabsBlock: SectionRenderer<TabsBlockPayloadType> = ({
 }) => {
   return (
     <SectionWrapper
-      block={block as never}
+      block={block}
       sectionClassName={sectionClassName}
       sectionOverrides={rest.sectionOverrides}
       errorFallbackMessage={errorMessageForType(
