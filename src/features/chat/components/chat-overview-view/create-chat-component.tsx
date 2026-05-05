@@ -1,12 +1,13 @@
 'use client';
 import { AppFooterController } from '@/components/footer/hide-footer-context';
+import { AppSearchBar } from '@/components/ui/app-search-bar';
 import { Button } from '@/components/ui/buttons/button';
 import { Input } from '@/components/ui/input';
 import type { Contact } from '@/features/chat/api/queries/list-contacts';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { ArrowLeft, MessageSquarePlus, Search, Users, X } from 'lucide-react';
+import { ArrowLeft, MessageSquarePlus, Users, X } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -208,12 +209,11 @@ export const CreateNewChatPage: React.FC = () => {
 
           {/* Search Input */}
           <div className="relative">
-            <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <Input
+            <AppSearchBar
               placeholder={searchContactsPlaceholder[locale]}
-              className="font-body focus:border-conveniat-green focus:ring-conveniat-green border-gray-300 pl-10"
               value={searchQuery}
               onChange={(changeEvent) => setSearchQuery(changeEvent.target.value)}
+              onClear={() => setSearchQuery('')}
             />
           </div>
 
