@@ -5,9 +5,8 @@ export const tabsBlock: Block = {
   slug: 'tabsBlock',
   interfaceName: 'TabsBlock',
 
-  // Optionally we can provide an image for the admin panel, otherwise it's fine without it.
-  // imageURL: '/admin-block-images/tabs-block.png',
-  // imageAltText: 'Tabs Block',
+  imageURL: '/admin-block-images/feat-tabs.png',
+  imageAltText: 'Tabs Block',
 
   fields: [
     {
