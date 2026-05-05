@@ -29,7 +29,7 @@ export const FileUploadZone: React.FC<FileUploadZoneProperties & { compact?: boo
 
   if (compact) {
     return (
-      <div className="relative overflow-hidden rounded-xl border border-dashed border-gray-300 bg-gray-50/50 transition-all hover:border-blue-400/50 hover:bg-blue-50/50">
+      <div className="relative">
         <input
           id="images-compact"
           type="file"
@@ -40,12 +40,10 @@ export const FileUploadZone: React.FC<FileUploadZoneProperties & { compact?: boo
         />
         <label
           htmlFor="images-compact"
-          className="flex cursor-pointer items-center justify-center gap-3 p-4"
+          className="flex cursor-pointer items-center justify-center gap-2 rounded-full bg-gray-200/50 py-3.5 text-sm font-semibold text-gray-700 transition-all hover:bg-gray-200 hover:text-gray-900 active:scale-[0.98]"
         >
-          <LucideImageIcon className="h-5 w-5 text-gray-500" />
-          <span className="text-sm font-medium text-gray-600 hover:text-blue-600">
-            {selectImages[locale]}
-          </span>
+          <LucideImageIcon className="h-5 w-5" />
+          <span>{selectImages[locale]}</span>
         </label>
       </div>
     );

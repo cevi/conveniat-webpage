@@ -37,13 +37,13 @@ const FilePreviewItem: React.FC<{
   return (
     <div
       className={cn(
-        'flex items-center justify-between rounded border p-3 transition-colors',
-        errorMessage ? 'border-red-200 bg-red-50' : 'border-gray-200 bg-gray-50 hover:bg-gray-100',
+        'flex items-center justify-between p-4 transition-colors',
+        errorMessage ? 'bg-red-50' : 'bg-transparent',
       )}
     >
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex items-center gap-2">
-          <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded bg-gray-100">
+          <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-gray-100 shadow-sm">
             {preview ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={preview} alt={file.name} className="h-full w-full object-cover" />
@@ -58,8 +58,8 @@ const FilePreviewItem: React.FC<{
           <div className="flex min-w-0 flex-col">
             <span
               className={cn(
-                'truncate text-sm font-medium',
-                errorMessage ? 'text-red-900' : 'text-gray-700',
+                'truncate text-base font-semibold',
+                errorMessage ? 'text-red-900' : 'text-gray-900',
               )}
             >
               {file.name}
@@ -69,12 +69,12 @@ const FilePreviewItem: React.FC<{
             </span>
           </div>
         </div>
-        {errorMessage && <p className="text-xs font-medium text-red-600">{errorMessage}</p>}
+        {errorMessage && <p className="mt-1 text-sm font-medium text-red-600">{errorMessage}</p>}
       </div>
       <button
         type="button"
         onClick={() => onRemove(index)}
-        className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded text-gray-400 transition-colors hover:bg-white hover:text-red-600 hover:shadow-sm focus:ring-2 focus:ring-red-500 focus:outline-none"
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600 focus:ring-2 focus:ring-red-500 focus:outline-none"
         aria-label={`Remove ${file.name}`}
       >
         <Trash2 className="h-4 w-4" />

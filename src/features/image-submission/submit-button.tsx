@@ -29,10 +29,10 @@ export const SubmitButton: React.FC<SubmitButtonProperties> = ({
     <button
       type="submit"
       disabled={isDisabled || isLoading}
-      className={`w-full rounded-lg px-4 py-3 text-sm font-medium transition-all duration-200 focus:ring-2 focus:ring-offset-2 focus:outline-none ${
+      className={`w-full rounded-full px-4 py-3.5 text-base font-bold tracking-wide transition-all duration-300 focus:ring-4 focus:outline-none ${
         isDisabled || isLoading
-          ? 'cursor-not-allowed bg-gray-300 text-gray-500'
-          : 'bg-conveniat-green hover:bg-conveniat-green-dark focus:ring-conveniat-green transform cursor-pointer text-white hover:scale-[1.02] active:scale-[0.98]'
+          ? 'cursor-not-allowed bg-gray-200 text-gray-400'
+          : 'bg-conveniat-green hover:bg-conveniat-green-dark focus:ring-conveniat-green/30 shadow-conveniat-green/20 transform cursor-pointer text-white shadow-lg hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0'
       }`}
     >
       {isLoading ? (

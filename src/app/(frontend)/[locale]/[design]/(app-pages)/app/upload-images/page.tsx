@@ -349,7 +349,7 @@ const ImageUploadPage: React.FC = () => {
   }
 
   return (
-    <div className="container mx-auto max-w-2xl px-4 py-8">
+    <div className="container mx-auto min-h-screen max-w-2xl bg-gray-50/50 px-4 py-8">
       {/* Header */}
       <div className="mb-8 border-b border-gray-200 pb-6">
         <HeadlineH1>{pageTitle[locale]}</HeadlineH1>
@@ -366,32 +366,36 @@ const ImageUploadPage: React.FC = () => {
 
         {/* Selected Files List - Rendered FIRST as requested */}
         {selectedFiles.length > 0 && (
-          <div className="space-y-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <label className="block text-lg font-semibold text-gray-800">
-              {selectedImages[locale]} ({selectedFiles.length})
-            </label>
+          <div className="space-y-6">
+            <div className="mb-2 flex items-center justify-between px-2">
+              <label className="text-xl font-extrabold tracking-tight text-gray-900">
+                {selectedImages[locale]} ({selectedFiles.length})
+              </label>
+            </div>
             {selectedFiles.map((fileItem, index) => (
-              <div key={fileItem.file.name} className="group">
-                <div className="mb-4">
-                  <FilePreviewList
-                    files={[fileItem.file]}
-                    onRemoveFile={() => removeFile(index)}
-                    {...(fileItem.error ? { errorMessage: fileItem.error } : {})}
-                  />
-                </div>
+              <div
+                key={fileItem.file.name}
+                className="group overflow-hidden rounded-3xl border border-gray-200/60 bg-white shadow-sm transition-shadow hover:shadow-md"
+              >
+                <FilePreviewList
+                  files={[fileItem.file]}
+                  onRemoveFile={() => removeFile(index)}
+                  {...(fileItem.error ? { errorMessage: fileItem.error } : {})}
+                />
                 {/* Only show description input if there is no error on the file */}
                 {!fileItem.error && (
-                  <div className="pl-14">
+                  <div className="px-5 pb-5">
                     <DescriptionInput
                       value={fileDescriptions[fileItem.file.name] || ''}
                       onChange={(desc) => handleDescriptionChange(fileItem.file.name, desc)}
                     />
                     {fileItem.descriptionError && (
-                      <p className="mt-1 text-sm text-red-600">{fileItem.descriptionError}</p>
+                      <p className="mt-2 text-sm font-medium text-red-600">
+                        {fileItem.descriptionError}
+                      </p>
                     )}
                   </div>
                 )}
-                {index < selectedFiles.length - 1 && <hr className="my-6 border-gray-100" />}
               </div>
             ))}
           </div>
@@ -402,26 +406,23 @@ const ImageUploadPage: React.FC = () => {
           <FileUploadZone onFileSelect={handleFileSelect} compact={selectedFiles.length > 0} />
         </div>
 
-        <hr className="border-gray-200" />
         <div
           className={cn(
             selectedFiles.length > 0
-              ? 'pointer-events-none fixed right-0 bottom-20 left-0 z-10 p-4 md:static md:p-0'
+              ? 'pointer-events-none fixed right-0 bottom-[76px] left-0 z-40 p-4 md:static md:p-0'
               : '',
           )}
         >
-          <div className="pointer-events-auto container mx-auto -mb-8 max-w-2xl md:mb-0 md:px-0">
-            <div className="rounded-lg shadow-xl">
-              <SubmitButton
-                isDisabled={isSubmitDisabled}
-                fileCount={selectedFiles.filter((f) => !f.error).length}
-                isLoading={isUploading}
-              />
-            </div>
+          <div className="pointer-events-auto container mx-auto max-w-2xl md:px-0">
+            <SubmitButton
+              isDisabled={isSubmitDisabled}
+              fileCount={selectedFiles.filter((f) => !f.error).length}
+              isLoading={isUploading}
+            />
           </div>
         </div>
         {/* Spacer for sticky button on mobile */}
-        {selectedFiles.length > 0 && <div className="h-48 md:hidden" />}
+        {selectedFiles.length > 0 && <div className="h-32 md:hidden" />}
 
         <CopyrightModal
           open={showCopyrightModal}
