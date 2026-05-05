@@ -9,14 +9,16 @@ import type { CampScheduleEntry } from '@/features/payload-cms/payload-types';
 import { ScheduleDetailContent } from '@/features/schedule/components/schedule-detail-content';
 import { ScheduleDetailSkeleton } from '@/features/schedule/components/schedule-detail-skeleton';
 import { ScheduleEditHeaderActions } from '@/features/schedule/components/schedule-edit-header-actions';
+import { useAdjacentEntries } from '@/features/schedule/hooks/use-adjacent-entries';
 import { useScheduleEdit } from '@/features/schedule/hooks/use-schedule-edit';
 import { trpc } from '@/trpc/client';
-import type { Locale } from '@/types/types';
+import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { ChevronLeft } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import { useRouter } from 'next/navigation';
-import type React from 'react';
+import React, { useCallback, useState } from 'react';
 
 const labels = {
   back: { de: 'Zurück', en: 'Back', fr: 'Retour' },
@@ -29,17 +31,48 @@ const labels = {
   },
 } as const;
 
+const previousEntryLabel: StaticTranslationString = {
+  de: 'Vorheriger Eintrag',
+  en: 'Previous entry',
+  fr: 'Entrée précédente',
+};
+
+const nextEntryLabel: StaticTranslationString = {
+  de: 'Nächster Eintrag',
+  en: 'Next entry',
+  fr: 'Entrée suivante',
+};
+
 interface ScheduleDetailViewProperties {
   id: string;
 }
 
+const SWIPE_THRESHOLD = 60;
+
+const slideVariants = {
+  enter: (direction: number): { x: string; opacity: number } => ({
+    x: direction > 0 ? '30%' : '-30%',
+    opacity: 0,
+  }),
+  center: {
+    x: '0%',
+    opacity: 1,
+  },
+  exit: (direction: number): { x: string; opacity: number } => ({
+    x: direction > 0 ? '-30%' : '30%',
+    opacity: 0,
+  }),
+};
+
 /**
- * Full-screen schedule detail view.
+ * Full-screen schedule detail view with swipe navigation.
  * Fetches data via tRPC with offline support from TanStack DB cache.
+ * Swipe left/right to navigate between schedule entries.
  */
 export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const router = useRouter();
+  const [slideDirection, setSlideDirection] = useState(0);
 
   // 1. Try to find the entry in the local TanStack DB cache first (offline support)
   const { entries: localEntries } = useScheduleEntries();
@@ -95,6 +128,37 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id 
     locale,
     courseStatus: courseStatus ?? undefined,
   });
+
+  // 6. Adjacent entries for swipe navigation
+  const { previous, next } = useAdjacentEntries(id);
+
+  const navigateToEntry = useCallback(
+    (entryId: string, direction: number): void => {
+      setSlideDirection(direction);
+      router.replace(`/app/schedule/${entryId}`);
+    },
+    [router],
+  );
+
+  const handleDragEnd = useCallback(
+    (_: unknown, info: { offset: { x: number }; velocity: { x: number } }): void => {
+      // Don't allow swiping while editing
+      if (isEditing) return;
+
+      const swipe = info.offset.x;
+      const velocity = Math.abs(info.velocity.x);
+
+      // Swipe left → next entry
+      if (swipe < -SWIPE_THRESHOLD && next && velocity > 50) {
+        navigateToEntry(next.id, 1);
+      }
+      // Swipe right → previous entry
+      else if (swipe > SWIPE_THRESHOLD && previous && velocity > 50) {
+        navigateToEntry(previous.id, -1);
+      }
+    },
+    [isEditing, next, previous, navigateToEntry],
+  );
 
   // Loading state (only when fetching and no cache)
   if (isLoading && !entry) {
@@ -185,30 +249,80 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id 
           />
         </header>
 
-        {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto">
-          <SafeErrorBoundary
-            fallback={
-              <div className="flex h-full flex-col items-center justify-center p-8 text-center text-gray-500">
-                <p>{labels.errorLoading[locale]}</p>
-                <Button onClick={() => globalThis.location.reload()} className="mt-4">
-                  {labels.retry[locale]}
-                </Button>
-              </div>
-            }
+        {/* Swipeable Content */}
+        <AnimatePresence initial={false} mode="wait" custom={slideDirection}>
+          <motion.div
+            key={id}
+            custom={slideDirection}
+            variants={slideVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{
+              duration: 0.2,
+              ease: 'easeOut',
+            }}
+            drag={isEditing ? false : 'x'}
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.15}
+            onDragEnd={handleDragEnd}
+            className="flex-1 touch-pan-y overflow-y-auto"
           >
-            <ScheduleDetailContent
-              entry={entry}
-              locale={locale}
-              isEditing={isEditing}
-              isAdmin={isAdmin}
-              courseStatus={courseStatus ?? undefined}
-              editData={editData}
-              onEditDataChange={setEditData}
-              editError={editError}
-            />
-          </SafeErrorBoundary>
-        </div>
+            <SafeErrorBoundary
+              fallback={
+                <div className="flex h-full flex-col items-center justify-center p-8 text-center text-gray-500">
+                  <p>{labels.errorLoading[locale]}</p>
+                  <Button onClick={() => globalThis.location.reload()} className="mt-4">
+                    {labels.retry[locale]}
+                  </Button>
+                </div>
+              }
+            >
+              <ScheduleDetailContent
+                entry={entry}
+                locale={locale}
+                isEditing={isEditing}
+                isAdmin={isAdmin}
+                courseStatus={courseStatus ?? undefined}
+                editData={editData}
+                onEditDataChange={setEditData}
+                editError={editError}
+              />
+            </SafeErrorBoundary>
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Navigation Footer */}
+        {!isEditing && (previous || next) && (
+          <nav className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-2">
+            {previous ? (
+              <button
+                type="button"
+                onClick={() => navigateToEntry(previous.id, -1)}
+                className="flex max-w-[45%] min-w-0 cursor-pointer items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-sm text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
+                aria-label={previousEntryLabel[locale]}
+              >
+                <ChevronLeft className="h-4 w-4 shrink-0" />
+                <span className="truncate">{previous.title}</span>
+              </button>
+            ) : (
+              <div />
+            )}
+            {next ? (
+              <button
+                type="button"
+                onClick={() => navigateToEntry(next.id, 1)}
+                className="flex max-w-[45%] min-w-0 cursor-pointer items-center gap-1.5 rounded-lg px-2 py-1.5 text-right text-sm text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
+                aria-label={nextEntryLabel[locale]}
+              >
+                <span className="truncate">{next.title}</span>
+                <ChevronRight className="h-4 w-4 shrink-0" />
+              </button>
+            ) : (
+              <div />
+            )}
+          </nav>
+        )}
       </div>
     </>
   );
