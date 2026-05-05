@@ -58,7 +58,7 @@ export const getJobs = async (
       return {
         ...job,
         availableQuota,
-      } as JobWithQuota;
+      };
     }),
   );
 

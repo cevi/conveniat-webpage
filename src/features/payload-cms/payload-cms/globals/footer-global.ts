@@ -61,6 +61,37 @@ export const FooterGlobal: GlobalConfig = asLocalizedGlobal({
         },
       ],
     },
+    {
+      name: 'sponsors',
+      type: 'array',
+      maxRows: 6,
+      label: {
+        en: 'Sponsors',
+        de: 'Sponsoren',
+        fr: 'Sponsors',
+      },
+      admin: {
+        description: {
+          en: 'Up to 6 sponsor logos displayed in the footer',
+          de: 'Bis zu 6 Sponsoren-Logos, die in der Fusszeile angezeigt werden',
+          fr: "Jusqu'à 6 logos de sponsors affichés dans le pied de page",
+        },
+      },
+      fields: [
+        {
+          name: 'logo',
+          type: 'upload',
+          relationTo: 'images',
+          required: true,
+          label: {
+            en: 'Logo',
+            de: 'Logo',
+            fr: 'Logo',
+          },
+        },
+        LinkField(false),
+      ],
+    },
   ],
   admin: {
     description: {

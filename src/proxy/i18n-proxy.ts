@@ -32,8 +32,7 @@ export const localeReplacingRewrite = (config: {
 
   const segments = pathname.split('/').filter((segment) => segment.length > 0);
   const localeSegment = segments[0];
-  const isValidLocaleSegment =
-    localeSegment !== undefined && validLocales.has(localeSegment as Locale);
+  const isValidLocaleSegment = localeSegment !== undefined && validLocales.has(localeSegment);
 
   const remainingSegments = isValidLocaleSegment ? segments.slice(1) : segments;
 

@@ -51,6 +51,7 @@ const GlobalError: React.FC<{
         '[GlobalError] Transient error in admin/preview mode. Auto-reloading in 2s:',
         error.message,
       );
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsRecovering(true);
       const timer = setTimeout((): void => {
         globalThis.location.reload();

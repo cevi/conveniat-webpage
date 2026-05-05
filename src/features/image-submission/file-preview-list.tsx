@@ -1,14 +1,13 @@
 'use client';
 
-import type { StaticTranslationString } from '@/types/types';
-import { i18nConfig, type Locale } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
 import { Image as LucideImageIcon, Trash2 } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
-import type React from 'react';
+import React from 'react';
 
 interface FilePreviewListProperties {
   files: File[];
   onRemoveFile: (index: number) => void;
+  errorMessage?: string;
 }
 
 const formatFileSize = (bytes: number): string => {
@@ -19,47 +18,90 @@ const formatFileSize = (bytes: number): string => {
   return `${(bytes / Math.pow(k, index)).toFixed(2)} ${sizes[index]}`;
 };
 
-const selectedImages: StaticTranslationString = {
-  en: 'Selected Images',
-  de: 'Ausgewählte Bilder',
-  fr: 'Images sélectionnées',
+const FilePreviewItem: React.FC<{
+  file: File;
+  index: number;
+  errorMessage?: string | undefined;
+  onRemove: (index: number) => void;
+}> = ({ file, index, errorMessage, onRemove }) => {
+  const [preview, setPreview] = React.useState<string | undefined>();
+
+  React.useEffect((): (() => void) => {
+    const objectUrl = URL.createObjectURL(file);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPreview(objectUrl);
+
+    // Free memory when component is unmounted
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [file]);
+
+  return (
+    <div
+      className={cn(
+        'flex items-center justify-between p-4 transition-colors',
+        errorMessage ? 'bg-red-50' : 'bg-transparent',
+      )}
+    >
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <div className="flex items-center gap-2">
+          <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-gray-100 shadow-sm">
+            {preview ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={preview} alt={file.name} className="h-full w-full object-cover" />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center">
+                <LucideImageIcon
+                  className={cn('h-4 w-4', errorMessage ? 'text-red-400' : 'text-gray-400')}
+                />
+              </div>
+            )}
+          </div>
+          <div className="flex min-w-0 flex-col">
+            <span
+              className={cn(
+                'truncate text-base font-semibold',
+                errorMessage ? 'text-red-900' : 'text-gray-900',
+              )}
+            >
+              {file.name}
+            </span>
+            <span className={cn('text-xs', errorMessage ? 'text-red-500' : 'text-gray-500')}>
+              {formatFileSize(file.size)}
+            </span>
+          </div>
+        </div>
+        {errorMessage && <p className="mt-1 text-sm font-medium text-red-600">{errorMessage}</p>}
+      </div>
+      <button
+        type="button"
+        onClick={() => onRemove(index)}
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600 focus:ring-2 focus:ring-red-500 focus:outline-none"
+        aria-label={`Remove ${file.name}`}
+      >
+        <Trash2 className="h-4 w-4" />
+      </button>
+    </div>
+  );
 };
 
-export const FilePreviewList: React.FC<FilePreviewListProperties> = ({ files, onRemoveFile }) => {
-  const locale = useCurrentLocale(i18nConfig) as Locale;
-
+export const FilePreviewList: React.FC<FilePreviewListProperties> = ({
+  files,
+  onRemoveFile,
+  errorMessage,
+}) => {
   if (files.length === 0) return <></>;
 
   return (
     <div className="space-y-2">
-      <label className="block text-sm font-medium text-gray-700">
-        {selectedImages[locale]} ({files.length})
-      </label>
-      <div className="max-h-40 space-y-2 overflow-y-auto">
-        {files.map((file, index) => (
-          <div
-            key={`${file.name}-${index}`}
-            className="flex items-center justify-between rounded border bg-gray-50 p-2 transition-colors hover:bg-gray-100"
-          >
-            <div className="flex min-w-0 flex-1 items-center gap-2">
-              <LucideImageIcon className="h-4 w-4 text-gray-400" />
-
-              <span className="truncate text-sm">{file.name}</span>
-              <span className="flex-shrink-0 text-xs text-gray-500">
-                {formatFileSize(file.size)}
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={() => onRemoveFile(index)}
-              className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600 focus:ring-2 focus:ring-red-500 focus:outline-none"
-              aria-label={`Remove ${file.name}`}
-            >
-              <Trash2 className="h-4 w-4 text-red-600" />
-            </button>
-          </div>
-        ))}
-      </div>
+      {files.map((file, index) => (
+        <FilePreviewItem
+          key={`${file.name}-${index}`}
+          file={file}
+          index={index}
+          onRemove={onRemoveFile}
+          errorMessage={errorMessage}
+        />
+      ))}
     </div>
   );
 };

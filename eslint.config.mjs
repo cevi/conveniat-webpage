@@ -33,6 +33,7 @@ const features_folder = [
   'push-tracking',
   'auth',
   'registration_process',
+  'billing',
 ];
 
 const featuresDirectory = path.join(__dirname, 'src', 'features');
@@ -221,7 +222,12 @@ const config = defineConfig([
               .map((feature) => ({
                 target: `./src/features/${feature}`,
                 from: './src/features',
-                except: [`./${feature}`, './payload-cms'],
+                except: [
+                  `./${feature}`,
+                  './payload-cms',
+                  // billing needs access to registration_process for Hitobito API client
+                  ...(feature === 'billing' ? ['./registration_process'] : []),
+                ],
                 message: `Do not import from ${feature} directly, use the shared modules instead.`,
               })),
 

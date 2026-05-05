@@ -1,8 +1,13 @@
 import { useMap } from '@/features/map/components/maplibre-renderer/map-context-provider';
 import type { CampMapAnnotationPoint, CampMapAnnotationPolygon } from '@/features/map/types/types';
 import { formatHexColor } from '@/utils/format-hex-color';
-import type { GeoJSONSource, MapGeoJSONFeature, Map as MapLibre, MapMouseEvent } from 'maplibre-gl';
-import { useEffect, useRef, useState } from 'react';
+import type {
+  FilterSpecification,
+  GeoJSONSource,
+  MapGeoJSONFeature,
+  MapMouseEvent,
+} from 'maplibre-gl';
+import { useEffect, useState } from 'react';
 
 interface ClickedFeaturesState {
   polygons: CampMapAnnotationPolygon[];
@@ -31,9 +36,6 @@ export const useAnnotationPolygons = (
     ClickedFeaturesState | undefined
   >();
 
-  const mapReference = useRef<MapLibre | undefined>(undefined);
-  mapReference.current = map;
-
   // Effect for setting up and tearing down map sources and layers
   useEffect(() => {
     if (!map) return;
@@ -58,6 +60,7 @@ export const useAnnotationPolygons = (
               title: annotation.title,
               color: formatHexColor(annotation.color),
               isInteractive: annotation.isInteractive,
+              importance: annotation.importance,
             },
             geometry: {
               type: 'Polygon' as const,
@@ -106,6 +109,23 @@ export const useAnnotationPolygons = (
           },
         });
       }
+
+      const updatePolygonFilters = (): void => {
+        const zoom = map.getZoom();
+
+        const filter: FilterSpecification = [
+          'any',
+          ['==', ['get', 'importance'], 'high'],
+          ['all', ['==', ['get', 'importance'], 'medium'], zoom >= 14],
+          ['all', ['==', ['get', 'importance'], 'low'], zoom >= 16],
+        ];
+
+        map.setFilter(POLYGONS_FILL_LAYER_ID, filter);
+        map.setFilter(POLYGONS_OUTLINE_LAYER_ID, filter);
+      };
+
+      updatePolygonFilters();
+      map.on('zoom', updatePolygonFilters);
 
       // 4. Add selection highlight source and layer (initially empty)
       const selectedPolygon = annotations.find((a) => a.id === currentAnnotation?.id);
@@ -211,6 +231,7 @@ export const useAnnotationPolygons = (
             title: annotation.title,
             color: formatHexColor(annotation.color),
             isInteractive: annotation.isInteractive,
+            importance: annotation.importance,
           },
           geometry: {
             type: 'Polygon' as const,

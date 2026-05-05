@@ -1,5 +1,6 @@
 import { ProgramTeamAccessForGenericPage } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
+import { trackSlugHistory } from '@/features/payload-cms/payload-cms/hooks/track-slug-history';
 import { AllowsEditsByUserField } from '@/features/payload-cms/payload-cms/shared-fields/allows-edits-by-user-field';
 import { internalAuthorsField } from '@/features/payload-cms/payload-cms/shared-fields/internal-authors-field';
 import { internalPageNameField } from '@/features/payload-cms/payload-cms/shared-fields/internal-page-name-field';
@@ -17,7 +18,7 @@ import type { CollectionConfig } from 'payload';
 export const GenericPage: CollectionConfig = asLocalizedCollection({
   slug: 'generic-page',
   trash: true,
-  hooks: { afterChange: [flushPageCacheOnChange] },
+  hooks: { beforeChange: [trackSlugHistory], afterChange: [flushPageCacheOnChange] },
 
   labels: {
     singular: {

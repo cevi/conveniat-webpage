@@ -29,7 +29,7 @@ export const ChatSelectionHeader: React.FC = () => {
   };
 
   return (
-    <div className="animate-in slide-in-from-top flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 shadow-md duration-200">
+    <div className="animate-in slide-in-from-top mb-[32px] flex h-[60px] items-center justify-between border-b-2 border-gray-200 bg-white px-4 duration-200">
       <div className="flex items-center gap-4">
         <Button
           variant="ghost"

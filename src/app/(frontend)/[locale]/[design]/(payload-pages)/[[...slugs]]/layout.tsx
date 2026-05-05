@@ -15,9 +15,11 @@ const Layout: React.FC<LayoutProperties> = ({ children, params }) => {
   return (
     <SafeErrorBoundary
       fallback={
-        <CustomErrorBoundaryFallback>
-          <NotFound locale={locale} />
-        </CustomErrorBoundaryFallback>
+        <React.Suspense fallback={<></>}>
+          <CustomErrorBoundaryFallback>
+            <NotFound locale={locale} />
+          </CustomErrorBoundaryFallback>
+        </React.Suspense>
       }
     >
       {children}

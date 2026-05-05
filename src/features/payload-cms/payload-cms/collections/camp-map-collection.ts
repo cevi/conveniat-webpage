@@ -290,6 +290,29 @@ export const CampMapAnnotationsCollection: CollectionConfig = {
                     },
                   },
                 },
+                {
+                  name: 'importance',
+                  label: {
+                    en: 'Importance',
+                    de: 'Wichtigkeit',
+                    fr: 'Importance',
+                  },
+                  type: 'select',
+                  required: true,
+                  defaultValue: 'high',
+                  options: [
+                    { label: 'High', value: 'high' },
+                    { label: 'Medium', value: 'medium' },
+                    { label: 'Low', value: 'low' },
+                  ],
+                  admin: {
+                    description: {
+                      en: 'Controls at which zoom levels the annotation is visible (High = always, Medium = slightly zoomed in, Low = fully zoomed in).',
+                      de: 'Steuert, auf welchen Zoomstufen die Markierung sichtbar ist (Hoch = immer, Mittel = leicht herangezoomt, Niedrig = voll herangezoomt).',
+                      fr: "Contrôle à quels niveaux de zoom l'annotation est visible (Haut = toujours, Moyen = légèrement zoomé, Bas = complètement zoomé).",
+                    },
+                  },
+                },
               ],
             },
             AnnotationPointField,

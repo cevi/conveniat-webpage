@@ -21,6 +21,7 @@ export const environmentVariables = createEnv({
     HITOBITO_FORWARD_URL: z.string().url(),
     API_TOKEN: z.string().default(''),
     HELPER_GROUP: z.string().optional(),
+    BILLING_ADMIN_GROUP_ID: z.string().optional(),
     EVENT_ID: z.string().optional(),
     BREVO_API_KEY: z.string().optional(),
     GOOGLE_TRANSLATE_API_KEY: z.string().optional(),

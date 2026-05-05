@@ -1,6 +1,9 @@
 import { LinkComponent } from '@/components/ui/link-component';
 import type { LinkFieldDataType } from '@/features/payload-cms/payload-cms/shared-fields/link-field';
-import { getImageAltInLocale } from '@/features/payload-cms/payload-cms/utils/images-meta-fields';
+import {
+  getImageAltInLocale,
+  getRelativeImageUrl,
+} from '@/features/payload-cms/payload-cms/utils/images-meta-fields';
 import {
   getURLForLinkField,
   openURLInNewTab,
@@ -41,7 +44,7 @@ export interface CardGridCard {
   customImage?: Image;
   title: string;
   description: string;
-  linkLabel: string;
+  linkLabel?: string | null;
   linkField?: LinkFieldDataType;
 }
 
@@ -84,7 +87,7 @@ const CardGridItem: React.FC<{
     if (card.iconType === 'image' && card.customImage?.url) {
       return (
         <ImageNode
-          src={card.customImage.url}
+          src={getRelativeImageUrl(card.customImage.url)}
           alt={getImageAltInLocale(locale, card.customImage)}
           width={48}
           height={48}
@@ -106,10 +109,14 @@ const CardGridItem: React.FC<{
         >
           {renderIcon()}
         </div>
-        <h3 className="font-heading text-conveniat-green mb-2 text-lg font-bold">{card.title}</h3>
-        <p className="font-body mb-4 text-sm leading-relaxed text-gray-500">{card.description}</p>
+        <h3 className="font-heading text-conveniat-green mb-2 text-lg font-bold hyphens-auto">
+          {card.title}
+        </h3>
+        <p className="font-body mb-4 text-sm leading-relaxed hyphens-auto text-gray-500">
+          {card.description}
+        </p>
       </div>
-      {url ? (
+      {url && card.linkLabel ? (
         <div className="text-conveniat-green font-body flex items-center gap-1 text-sm font-medium">
           {card.linkLabel}
           <ArrowRight className="size-4 transition-transform duration-200 group-hover:translate-x-1" />

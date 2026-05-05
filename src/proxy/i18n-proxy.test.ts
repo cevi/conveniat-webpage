@@ -124,7 +124,7 @@ describe('i18n-proxy', () => {
     const request = mockRequest('https://example.com/en/products/123?sort=new#info', 'fr');
 
     // Execute
-    await handler(request as NextRequest, {} as NextFetchEvent, mockResponse);
+    await handler(request, {} as NextFetchEvent, mockResponse);
 
     // assert call redirect to URL without locale prefix
     expect(mockRedirect).toHaveBeenCalledTimes(1);
@@ -157,7 +157,7 @@ describe('i18n-proxy', () => {
     const request = mockRequest('https://example.com/fr/products/123', 'en');
 
     // Execute
-    await handler(request as NextRequest, {} as NextFetchEvent, mockResponse);
+    await handler(request, {} as NextFetchEvent, mockResponse);
 
     // assert rewrite is called. The new path is /fr/products/123
     expect(mockRewrite).toHaveBeenCalledTimes(1);
@@ -192,7 +192,7 @@ describe('i18n-proxy', () => {
     const request = mockRequest('https://example.com/products/123', 'de');
 
     // Execute
-    await handler(request as NextRequest, {} as NextFetchEvent, mockResponse);
+    await handler(request, {} as NextFetchEvent, mockResponse);
 
     expect(mockRewrite).toHaveBeenCalledTimes(1);
     expect(mockRewrite).toHaveBeenCalledWith(new URL('https://example.com/de/products/123'));
@@ -224,7 +224,7 @@ describe('i18n-proxy', () => {
     const request = mockRequest('https://example.com/products/123'); // No cookie
 
     // Execute
-    await handler(request as NextRequest, {} as NextFetchEvent, mockResponse);
+    await handler(request, {} as NextFetchEvent, mockResponse);
 
     // assert rewrite is called with the default locale and prefixed path
     expect(mockRewrite).toHaveBeenCalledTimes(1);
@@ -258,7 +258,7 @@ describe('i18n-proxy', () => {
     const request = mockRequest('https://example.com/fr/products/123', 'de');
 
     // Execute
-    await handler(request as NextRequest, {} as NextFetchEvent, mockResponse);
+    await handler(request, {} as NextFetchEvent, mockResponse);
 
     // assert rewrite is called with the URL locale ('fr')
     expect(mockRewrite).toHaveBeenCalledTimes(1);
@@ -291,7 +291,7 @@ describe('i18n-proxy', () => {
     const request = mockRequest('https://example.com/en/products/123', 'fr');
 
     // Execute
-    await handler(request as NextRequest, {} as NextFetchEvent, mockResponse);
+    await handler(request, {} as NextFetchEvent, mockResponse);
 
     // assert call redirect to URL without locale prefix
     expect(mockRedirect).toHaveBeenCalledTimes(1);
@@ -322,7 +322,7 @@ describe('i18n-proxy', () => {
     const request = mockRequest('https://example.com/products/123', 'es');
 
     // Execute
-    await handler(request as NextRequest, {} as NextFetchEvent, mockResponse);
+    await handler(request, {} as NextFetchEvent, mockResponse);
 
     // assert rewrite is called with the invalid cookie locale ('es')
     expect(mockRewrite).toHaveBeenCalledTimes(1);
@@ -354,7 +354,7 @@ describe('i18n-proxy', () => {
     const request = mockRequest('https://example.com/es/products/123', 'fr');
 
     // Execute
-    await handler(request as NextRequest, {} as NextFetchEvent, mockResponse);
+    await handler(request, {} as NextFetchEvent, mockResponse);
 
     // assert rewrite is called with the cookie locale ('fr') and original path prefixed
     expect(mockRewrite).toHaveBeenCalledTimes(1);
@@ -385,7 +385,7 @@ describe('i18n-proxy', () => {
     const request = mockRequest('https://example.com/es/products/123', 'it'); // 'it' is invalid
 
     // Execute
-    await handler(request as NextRequest, {} as NextFetchEvent, mockResponse);
+    await handler(request, {} as NextFetchEvent, mockResponse);
 
     // assert rewrite is called with the invalid cookie locale ('it') and original path prefixed
     expect(mockRewrite).toHaveBeenCalledTimes(1);

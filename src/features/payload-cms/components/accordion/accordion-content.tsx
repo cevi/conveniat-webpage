@@ -88,9 +88,11 @@ const AccordionContent: React.FC<AccordionContentProperties> = ({
                     locale={locale}
                   />
                 </div>
-                {index !== valueBlocks.length - 1 && !isTimelineElementContent && (
-                  <hr className="my-6 border border-gray-100" />
-                )}
+                {index !== valueBlocks.length - 1 &&
+                  !isTimelineElementContent &&
+                  (_block as PlainTextBlock).showVerticalSeparator !== false && (
+                    <hr className="my-6 border border-gray-100" />
+                  )}
               </Fragment>
             );
           }

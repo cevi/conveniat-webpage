@@ -6,6 +6,7 @@ import { cardGridBlock } from '@/features/payload-cms/payload-cms/shared-blocks/
 import { contactPersonBlock } from '@/features/payload-cms/payload-cms/shared-blocks/contact-person-block';
 import { countdownBlock } from '@/features/payload-cms/payload-cms/shared-blocks/countdown-block';
 import { detailsTable } from '@/features/payload-cms/payload-cms/shared-blocks/details-table';
+import { featuredSectionBlock } from '@/features/payload-cms/payload-cms/shared-blocks/featured-section-block';
 import { fileDownloadBlock } from '@/features/payload-cms/payload-cms/shared-blocks/file-download-block';
 import { formBlock } from '@/features/payload-cms/payload-cms/shared-blocks/form-block';
 import { instagramEmbedBlock } from '@/features/payload-cms/payload-cms/shared-blocks/instagram-embed-block';
@@ -16,6 +17,7 @@ import { singlePictureBlock } from '@/features/payload-cms/payload-cms/shared-bl
 import { sponsorGridBlock } from '@/features/payload-cms/payload-cms/shared-blocks/sponsor-grid-block';
 import { summaryBoxBlock } from '@/features/payload-cms/payload-cms/shared-blocks/summary-box-block';
 import { swisstopoMapEmbedBlock } from '@/features/payload-cms/payload-cms/shared-blocks/swisstopo-embed-block';
+import { tabsBlock } from '@/features/payload-cms/payload-cms/shared-blocks/tabs-block';
 import { timelineEntries } from '@/features/payload-cms/payload-cms/shared-blocks/timeline-entries';
 import { twoColumnBlock } from '@/features/payload-cms/payload-cms/shared-blocks/two-column-block';
 import { whiteSpaceBlock } from '@/features/payload-cms/payload-cms/shared-blocks/white-space-block';
@@ -93,5 +95,7 @@ export const mainContentField: Field = {
     contactPersonBlock,
     twoColumnBlock,
     sponsorGridBlock,
+    featuredSectionBlock,
+    tabsBlock,
   ],
 };

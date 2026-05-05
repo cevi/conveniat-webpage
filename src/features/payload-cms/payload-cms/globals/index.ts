@@ -1,3 +1,4 @@
+import { BillSettingsGlobal } from '@/features/billing/collections/bill-settings';
 import { AlertManagement } from '@/features/payload-cms/payload-cms/globals/alert-management';
 import { AlertSettingsGlobal } from '@/features/payload-cms/payload-cms/globals/alert-settings-global';
 import { AllChatsManagement } from '@/features/payload-cms/payload-cms/globals/all-chats-management';
@@ -21,4 +22,5 @@ export const globalConfig: GlobalConfig[] = [
   AlertManagement,
   AllChatsManagement,
   RegistrationManagement,
+  BillSettingsGlobal,
 ];

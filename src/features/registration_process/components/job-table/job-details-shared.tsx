@@ -37,7 +37,8 @@ export const renderValue = (value: unknown): React.ReactNode => {
   if (value === null || value === undefined || value === '') {
     return <span className="text-zinc-400 dark:text-zinc-600">N/A</span>;
   }
-  return String(value as string | number | boolean);
+  // eslint-disable-next-line @typescript-eslint/no-base-to-string
+  return String(value);
 };
 
 /**

@@ -140,7 +140,7 @@ export const confirmationMessageStep: TaskConfig<{
 
       if (Array.isArray(lexicalData.root.children)) {
         for (const child of lexicalData.root.children) {
-          replaceVariables(child as MinimalLexicalNode);
+          replaceVariables(child);
         }
       }
 

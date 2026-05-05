@@ -25,3 +25,20 @@ export const getImageCaptionInLocale = (
   else if (locale === 'en') return image.imageCaption_en;
   return image.imageCaption_fr;
 };
+
+export const getRelativeImageUrl = (url?: string | null): string => {
+  if (!url) return '';
+  try {
+    // eslint-disable-next-line n/no-process-env
+    const appHostUrl = process.env['NEXT_PUBLIC_APP_HOST_URL'] || process.env['APP_HOST_URL'];
+    if (appHostUrl && url.startsWith(appHostUrl)) {
+      return url.replace(appHostUrl, '');
+    }
+    if (url.startsWith('http://localhost:3000')) {
+      return url.replace('http://localhost:3000', '');
+    }
+  } catch {
+    // Ignore errors
+  }
+  return url;
+};

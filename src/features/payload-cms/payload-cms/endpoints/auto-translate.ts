@@ -29,7 +29,7 @@ async function translateData(
     if (!object_ || typeof object_ !== 'object') return;
 
     // Check if the current object corresponds to a known array path
-    for (const key of Object.keys(object_ as Record<string, unknown>)) {
+    for (const key of Object.keys(object_)) {
       const parentObject = object_ as Record<string, unknown>;
       const val = parentObject[key];
       const newPath = [...currentPath, key];
@@ -137,7 +137,7 @@ export const autoTranslateHandler: PayloadHandler = async (request) => {
     const targetData = await payload.findByID({
       collection: collection as never,
       id: id,
-      locale: targetLocale as never,
+      locale: targetLocale,
       depth: 0,
     });
 
@@ -151,11 +151,9 @@ export const autoTranslateHandler: PayloadHandler = async (request) => {
 
     // We should not modify the existing publishing status for the target locale
     // targetData was fetched with targetLocale, so _localized_status is already flat.
-    const currentStatus =
-      (targetData as Record<string, unknown>)['_localized_status'] ||
-      ({
-        published: false,
-      } as Record<string, unknown>);
+    const currentStatus = (targetData as Record<string, unknown>)['_localized_status'] || {
+      published: false,
+    };
 
     // Let's actually execute the deep translation
     await translateData(fieldsToTranslate, localizedFieldPaths, targetLocale, sourceLocale);

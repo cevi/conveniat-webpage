@@ -19,7 +19,7 @@ export const getLocaleFromUrl = (
 
   const localeSegment = url.pathname.split('/').find((segment) => segment.length > 0);
   const validLocales = new Set<string>(Object.values(i18nConfig.locales));
-  if (localeSegment !== undefined && validLocales.has(localeSegment as Locale)) {
+  if (localeSegment !== undefined && validLocales.has(localeSegment)) {
     return localeSegment as Locale;
   }
 

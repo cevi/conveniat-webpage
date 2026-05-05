@@ -1,9 +1,13 @@
 'use client';
 
+import { SetHideHeader } from '@/components/header/hide-header-context';
+import { SetHideBackgroundLogo } from '@/components/ui/hide-background-logo-context';
+import { LinkComponent } from '@/components/ui/link-component';
 import { CenteredConveniatLogo } from '@/features/onboarding/components/centered-conveniat-logo';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { handleLogin } from '@/utils/login-handler';
+import { LogIn } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 
@@ -19,22 +23,43 @@ const loginButtonText: StaticTranslationString = {
   fr: 'Connexion avec Cevi.DB',
 };
 
+const helpLinkText: StaticTranslationString = {
+  en: 'What is Cevi.DB?',
+  de: 'Was ist Cevi.DB?',
+  fr: 'Qu’est-ce que Cevi.DB ?',
+};
+
 export const UnauthorizedPage = (): React.JSX.Element => {
   const currentLocale = useCurrentLocale(i18nConfig);
   const locale = (currentLocale ?? 'en') as Locale;
 
   return (
-    <article className="mx-4 my-16 flex h-full items-center justify-center">
-      <div className="flex flex-col rounded-lg p-8 text-center">
+    <article className="mx-4 flex min-h-[calc(100dvh-300px)] items-center justify-center py-16">
+      <SetHideHeader value />
+      <SetHideBackgroundLogo value />
+
+      <div className="flex w-full max-w-md flex-col items-center text-center">
         <CenteredConveniatLogo />
 
-        <p className="mt-6 mb-4 text-balance text-gray-700">{loginText[locale]}</p>
+        <p className="mt-2 mb-8 text-lg text-balance text-gray-600">{loginText[locale]}</p>
+
         <button
           onClick={() => handleLogin()}
-          className="font-heading cursor-pointer rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg leading-normal font-bold text-red-100 duration-100 hover:bg-red-800"
+          className="font-heading flex cursor-pointer items-center gap-3 rounded-[12px] border-none bg-red-800 px-10 py-4 text-center text-xl font-bold text-red-50 shadow-none transition-all duration-200 hover:scale-[1.02] hover:bg-red-900 active:scale-[0.98]"
         >
+          <LogIn className="size-6" />
           {loginButtonText[locale]}
         </button>
+
+        <div className="mt-8">
+          <LinkComponent
+            href="https://wiki.cevi.ch/index.php/Cevi.DB"
+            openInNewTab
+            className="text-sm font-medium text-gray-500 underline-offset-4 hover:text-gray-800 hover:underline"
+          >
+            {helpLinkText[locale]}
+          </LinkComponent>
+        </div>
       </div>
     </article>
   );

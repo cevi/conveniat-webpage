@@ -1,7 +1,6 @@
 'use client';
 
 import { Button } from '@/components/ui/buttons/button';
-import type { ChatMessage } from '@/features/chat/api/types';
 import { ChatTextAreaInput } from '@/features/chat/components/chat-view/chat-text-area-input';
 import { MessageList } from '@/features/chat/components/chat-view/message-list';
 import { trpc } from '@/trpc/client';
@@ -39,7 +38,7 @@ export const ThreadView: React.FC<ThreadViewProperties> = ({ threadId, onClose }
   return (
     <div className="flex h-full w-full flex-col bg-gray-50">
       {/* Thread Header */}
-      <div className="flex items-center gap-4 border-b border-gray-200 bg-white px-4 py-3 shadow-sm">
+      <div className="mb-[32px] flex h-[60px] items-center gap-4 border-b-2 border-gray-200 bg-white px-4">
         <Button
           onClick={onClose}
           variant="ghost"
@@ -65,12 +64,7 @@ export const ThreadView: React.FC<ThreadViewProperties> = ({ threadId, onClose }
           </div>
         )}
         {!isLoadingParent && parentMessage && (
-          <MessageList
-            parentId={threadId}
-            hideReplyCount
-            isThread
-            parentMessage={parentMessage as ChatMessage}
-          />
+          <MessageList parentId={threadId} hideReplyCount isThread parentMessage={parentMessage} />
         )}
       </div>
 

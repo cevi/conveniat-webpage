@@ -1,5 +1,5 @@
 import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
-import type { Permission, TeamMembersBlock } from '@/features/payload-cms/payload-types';
+import type { Permission } from '@/features/payload-cms/payload-types';
 import type { Locale } from '@/types/types';
 import type { RequiredDataFromCollectionSlug } from 'payload';
 
@@ -138,7 +138,7 @@ export const aboutUsContent = (
                         ceviname: 'Müsterli',
                         portrait: teamLeaderImage,
                       },
-                    } as TeamMembersBlock,
+                    },
                   ],
                 },
               ],

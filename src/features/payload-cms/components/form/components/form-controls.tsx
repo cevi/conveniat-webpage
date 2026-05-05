@@ -41,7 +41,7 @@ export const FormControls: React.FC<FormControlsProperties> = ({
   formId,
 }) => {
   return (
-    <div className="mt-6 flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+    <div className="mt-2 flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
       {isFirst ? (
         <span className="hidden sm:block sm:w-1/3" />
       ) : (

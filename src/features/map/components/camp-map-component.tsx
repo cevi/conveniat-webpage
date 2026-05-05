@@ -95,6 +95,7 @@ export const CampMapComponent: React.FC<{
           openingHours: document_.openingHours,
           images: document_.images ?? [],
           color: formatHexColor(document_.color) ?? '#47564c',
+          importance: document_.importance,
         }) as CampMapAnnotationPoint,
     );
 
@@ -120,6 +121,7 @@ export const CampMapComponent: React.FC<{
         images: isInteractive ? (document_.images ?? []) : [],
         color: formatHexColor(document_.color) ?? '#47564c',
         isInteractive,
+        importance: document_.importance,
       } as CampMapAnnotationPolygon;
     });
 
@@ -133,6 +135,7 @@ export const CampMapComponent: React.FC<{
           campMapAnnotationPolygons={campMapAnnotationPolygons}
           validateStyle={environmentVariables.NODE_ENV !== 'production'}
           schedules={schedulesPerAnnotations}
+          enableSearch
         />
       </div>
 

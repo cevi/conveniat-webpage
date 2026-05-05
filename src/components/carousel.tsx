@@ -141,6 +141,7 @@ const Carousel = React.forwardRef<
         return;
       }
 
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       onSelect(api);
       api.on('reInit', onSelect);
       api.on('select', onSelect);
@@ -303,6 +304,7 @@ const CarouselDescription = React.forwardRef<
   const [isVisible, setIsVisible] = React.useState(false);
 
   React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsVisible(current - 1 === index);
   }, [current, index]);
 

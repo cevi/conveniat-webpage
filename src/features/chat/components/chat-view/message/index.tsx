@@ -202,8 +202,8 @@ export const MessageComponent: React.FC<MessageProperties> = ({
       )}
     >
       {!isCurrentUser && chatType === 'GROUP' && (
-        <div className="mb-1 ml-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100">
-          <UserCircle className="h-6 w-6 text-gray-400" />
+        <div className="mb-1 ml-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white bg-linear-to-br from-gray-100 to-gray-200 shadow-sm">
+          <UserCircle className="h-5 w-5 text-gray-500" />
         </div>
       )}
 
@@ -237,12 +237,13 @@ export const MessageComponent: React.FC<MessageProperties> = ({
         >
           <div
             className={cn(
-              'font-body relative rounded-[18px] px-4 pt-3 pb-6 shadow-sm transition-transform duration-150',
-              'min-w-[120px]',
+              'font-body relative rounded-2xl px-4 py-2.5 shadow-sm transition-transform duration-150',
+              'max-w-full min-w-[100px]',
               isCurrentUser
-                ? 'bg-cevi-blue rounded-br-md text-white'
-                : 'rounded-bl-md border border-gray-200 bg-white text-gray-900',
-              message.status === MessageEventType.CREATED && 'opacity-60',
+                ? 'bg-cevi-blue rounded-br-[4px] text-white'
+                : 'rounded-bl-[4px] border border-gray-100 bg-white text-gray-800',
+              message.status === MessageEventType.CREATED &&
+                'bg-cevi-blue/80 animate-pulse text-white/90',
               (isLongPressing || isSelected) && 'scale-[0.98]',
               isSelected && 'ring-cevi-blue/30 ring-2',
             )}
@@ -283,18 +284,18 @@ export const MessageComponent: React.FC<MessageProperties> = ({
                 <ImageMessage message={message} />
               </div>
             ) : (
-              renderedContent
+              <div className="text-[0.95rem] leading-relaxed">{renderedContent}</div>
             )}
-            {/* Timestamp and status - absolutely positioned at bottom right */}
-            <span
+            {/* Timestamp and status */}
+            <div
               className={cn(
-                'absolute right-3 bottom-1.5 inline-flex items-center gap-0.5 text-[10px]',
-                isCurrentUser ? 'text-white/70' : 'text-gray-400',
+                'mt-1 flex items-center justify-end gap-1 text-[10px]',
+                isCurrentUser ? 'text-white/80' : 'text-gray-400',
               )}
             >
               <span className="font-body">{formatMessageTimeOnly(message.createdAt)}</span>
               {renderMessageStatus()}
-            </span>
+            </div>
           </div>
         </div>
 
@@ -328,8 +329,8 @@ export const MessageComponent: React.FC<MessageProperties> = ({
       </div>
 
       {isCurrentUser && chatType === 'GROUP' && (
-        <div className="bg-conveniat-green/10 mr-2 mb-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
-          <UserCircle className="text-conveniat-green h-6 w-6" />
+        <div className="mr-2 mb-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white bg-gradient-to-br from-green-50 to-green-100 shadow-sm">
+          <UserCircle className="text-conveniat-green h-5 w-5" />
         </div>
       )}
     </div>

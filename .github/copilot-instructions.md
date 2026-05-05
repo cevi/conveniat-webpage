@@ -10,6 +10,10 @@ help me write clean, maintainable, and consistent code that aligns with our esta
 - Icons: lucide-react
 - i18n: next-i18n-router
 
+## Package Manager
+
+- **Strictly pnpm**: We exclusively use **`pnpm`** for all package management. Do NOT use `yarn` or `npm`. Run `pnpm install`, `pnpm add`, `pnpm run lint`, etc.
+
 ## Project Architecture
 
 Our codebase follows a strict feature-based modular architecture to ensure scalability and separation of concerns.

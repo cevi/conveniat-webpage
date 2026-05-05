@@ -1,4 +1,3 @@
-import type { FormSubmission } from '@/features/payload-cms/payload-types';
 import type { Payload } from 'payload';
 
 export type JobStatus = 'pending' | 'success' | 'error';
@@ -39,6 +38,6 @@ export const updateWorkflowStatus = async (
     id: formSubmissionId,
     data: {
       workflowResults: currentResults,
-    } as Partial<FormSubmission>,
+    },
   });
 };

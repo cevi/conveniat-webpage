@@ -13,6 +13,7 @@ import { getPayload } from 'payload';
 import {
   getGenericPageByIDCached,
   getGenericPageBySlugCached,
+  getGenericPageBySlugHistoryCached,
   getGenericPageExistsBySlugCached,
 } from '@/features/payload-cms/api/cached-generic-pages';
 import type { GenericPage as GenericPageType } from '@/features/payload-cms/payload-types';
@@ -57,8 +58,16 @@ const GenericPage: LocalizedCollectionComponent = async ({
   slugs,
   locale,
   renderInPreviewMode,
+  searchParams,
 }) => {
   const slug = slugs.join('/');
+
+  let previewId: string | undefined;
+  if (renderInPreviewMode && searchParams) {
+    const awaitedParameters = await searchParams;
+    const pid = awaitedParameters['previewId'];
+    previewId = Array.isArray(pid) ? pid[0] : pid;
+  }
 
   if (renderInPreviewMode) {
     console.log('Preview mode enabled');
@@ -69,8 +78,19 @@ const GenericPage: LocalizedCollectionComponent = async ({
   // real-time hot-reloading inside the payload CMS live preview iframe.
   let documents: GenericPageType[] = [];
   if (renderInPreviewMode) {
-    const fetchResult = await getGenericPageBySlugCached(slug, locale, true);
-    documents = fetchResult.docs;
+    if (previewId) {
+      try {
+        const document_ = await getGenericPageByIDCached(previewId, locale, true);
+        documents = [document_];
+      } catch {
+        // Fallback to slug if ID fetch fails
+        const fetchResult = await getGenericPageBySlugCached(slug, locale, true);
+        documents = fetchResult.docs;
+      }
+    } else {
+      const fetchResult = await getGenericPageBySlugCached(slug, locale, true);
+      documents = fetchResult.docs;
+    }
   } else {
     const fetchResult = await getArticlesCachedPersistent(slug, locale);
     documents = fetchResult.docs;
@@ -141,6 +161,40 @@ const GenericPage: LocalizedCollectionComponent = async ({
 
   // no article found --> 404
   if (articles.length === 0) {
+    // Check if the slug exists in the URL history
+    const historyResult = await (renderInPreviewMode
+      ? getGenericPageBySlugHistoryCached(slug, locale, true)
+      : getGenericPageBySlugHistoryCached(slug, locale, false));
+
+    if (historyResult.docs.length > 0) {
+      const historicArticle = historyResult.docs[0];
+      if (typeof historicArticle?.seo.urlSlug === 'string') {
+        const historicSlug = historicArticle.seo.urlSlug;
+        const redirectPath = historicSlug === '' ? `/${locale}` : `/${locale}/${historicSlug}`;
+
+        let queryString = '';
+        if (searchParams) {
+          const awaitedParameters = await searchParams;
+          const urlSearchParameters = new URLSearchParams();
+          for (const [key, value] of Object.entries(awaitedParameters)) {
+            if (Array.isArray(value)) {
+              for (const v of value) urlSearchParameters.append(key, v);
+            } else {
+              urlSearchParameters.append(key, value);
+            }
+          }
+          const string_ = urlSearchParameters.toString();
+          if (string_) queryString = `?${string_}`;
+        }
+
+        const currentPath = slug === '' ? `/${locale}` : `/${locale}/${slug}`;
+        console.log(
+          `Redirecting from historic slug ${currentPath} to ${redirectPath}${queryString}`,
+        );
+        redirect(`${redirectPath}${queryString}`, 'replace');
+      }
+    }
+
     notFound();
   }
 

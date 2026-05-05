@@ -42,6 +42,7 @@ export const AnnotationForumAndReportSection: React.FC<{
   const [isRedirecting, setIsRedirecting] = React.useState(false);
 
   // ensure the report button state is reset on every mount
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   React.useEffect(() => setIsRedirecting(false), []);
 
   const { mutate: createReport, isPending } = trpc.chat.reportProblem.useMutation({

@@ -172,11 +172,36 @@ async function syncProfileToPayloadAsync(profile: HitobitoProfile): Promise<void
   }
 }
 
+const inflightRefreshes = new Map<string, Promise<JWT>>();
+
+async function refreshAccessToken(token: JWT): Promise<JWT> {
+  const userId = token.uuid;
+
+  if (!userId) {
+    return doRefreshAccessToken(token); // skip dedup for tokens without a UUID
+  }
+
+  // If a refresh is already in-flight for this user, wait for it
+  const existing = inflightRefreshes.get(userId);
+  if (existing) {
+    return existing;
+  }
+
+  // Start the actual refresh and store the promise
+  const refreshPromise = doRefreshAccessToken(token).finally(() => {
+    // Clean up after a short delay to handle near-simultaneous arrivals
+    setTimeout(() => inflightRefreshes.delete(userId), 1000);
+  });
+
+  inflightRefreshes.set(userId, refreshPromise);
+  return refreshPromise;
+}
+
 /**
  * Refreshes the access token using the refresh token.
  * returns the new token with updated expiration and access token
  */
-async function refreshAccessToken(token: JWT): Promise<JWT> {
+async function doRefreshAccessToken(token: JWT): Promise<JWT> {
   try {
     console.log('Refreshing access token for user', token.uuid);
 

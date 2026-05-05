@@ -38,6 +38,7 @@ export const useMapInitialization = (
 
     mapInstance.addControl(new AttributionControl({ compact: true }));
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMap(mapInstance);
 
     // Cleanup function to run when the component unmounts

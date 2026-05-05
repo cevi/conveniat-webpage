@@ -1,6 +1,11 @@
 import type { CampScheduleEntry } from '@/features/payload-cms/payload-types';
 import prisma from '@/lib/db/prisma';
-import { ChatMembershipPermission, MessageEventType, MessageType } from '@prisma/client';
+import {
+  ChatMembershipPermission,
+  CourseType,
+  MessageEventType,
+  MessageType,
+} from '@prisma/client';
 import type { CollectionAfterChangeHook } from 'payload';
 
 export const syncOrganisers: CollectionAfterChangeHook<CampScheduleEntry> = async ({ doc }) => {
@@ -11,8 +16,8 @@ export const syncOrganisers: CollectionAfterChangeHook<CampScheduleEntry> = asyn
   const organiserIds = new Set(organisers.map((org) => (typeof org === 'string' ? org : org.id)));
 
   // Find the course chat
-  const chat = await prisma.chat.findUnique({
-    where: { courseId },
+  const chat = await prisma.chat.findFirst({
+    where: { courseId, courseType: CourseType.PROGRAM },
     include: {
       chatMemberships: true,
     },

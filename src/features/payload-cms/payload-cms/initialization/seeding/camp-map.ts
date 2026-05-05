@@ -418,6 +418,7 @@ export const createRandomCampAnnotation = (
     ...baseAnnotation,
     annotationType: 'marker',
     icon: faker.helpers.arrayElement(iconMarkerSelectOptions),
+    importance: faker.helpers.arrayElement(['high', 'medium', 'low']),
     color: faker.helpers.arrayElement([
       '78909c',
       'fbc02d',
@@ -474,6 +475,7 @@ export const generateCampSites = (): RequiredDataFromCollectionSlug<'camp-map-an
         },
       },
       annotationType: 'polygon',
+      importance: faker.helpers.arrayElement(['high', 'medium', 'low']),
       icon: faker.helpers.arrayElement(iconMarkerSelectOptions),
       color: faker.helpers.arrayElement(['f848c7', 'b56aff']),
       polygonCoordinates: coordinates.map((coordinate) => ({
@@ -519,6 +521,7 @@ export const generatePlaygroundPolygons =
           },
         },
         annotationType: 'polygon',
+        importance: faker.helpers.arrayElement(['high', 'medium', 'low']),
         icon: faker.helpers.arrayElement(iconMarkerSelectOptions),
         color: '16a672',
         polygonCoordinates: coordinates.map((coordinate) => ({

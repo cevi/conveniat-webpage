@@ -4,6 +4,7 @@ import {
   blogArticleTitleField,
   blogTeaserText,
 } from '@/features/payload-cms/payload-cms/collections/blog-article/fields';
+import { trackSlugHistory } from '@/features/payload-cms/payload-cms/hooks/track-slug-history';
 import { internalAuthorsField } from '@/features/payload-cms/payload-cms/shared-fields/internal-authors-field';
 import { internalPageNameField } from '@/features/payload-cms/payload-cms/shared-fields/internal-page-name-field';
 import { internalStatusField } from '@/features/payload-cms/payload-cms/shared-fields/internal-status-field';
@@ -20,7 +21,7 @@ export const BlogArticleCollection: CollectionConfig = asLocalizedCollection({
   // Unique, URL-friendly string that will act as an identifier for this Collection.
   slug: 'blog',
   trash: true,
-  hooks: { afterChange: [flushPageCacheOnChange] },
+  hooks: { beforeChange: [trackSlugHistory], afterChange: [flushPageCacheOnChange] },
 
   labels: {
     singular: {

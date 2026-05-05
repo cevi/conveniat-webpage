@@ -56,6 +56,7 @@ export const useOfflineDownload = (
 
   // Use ref to avoid stale closures
   const onSuccessReference = useRef(onSuccess);
+  // eslint-disable-next-line react-hooks/refs
   onSuccessReference.current = onSuccess;
 
   // Check for existing cached content (settings page use case)
@@ -108,6 +109,7 @@ export const useOfflineDownload = (
     if (!checkSwReadyOnMount || status !== 'checking') return;
 
     if (swError) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setStatus('sw-error');
       return;
     }
@@ -128,6 +130,7 @@ export const useOfflineDownload = (
       };
     } else if (swReady && !navigator.serviceWorker.controller) {
       // Ready but no controller -> claims issue or hard refresh needed
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setStatus('sw-error');
     }
     return;
@@ -141,6 +144,7 @@ export const useOfflineDownload = (
       });
     } else {
       console.warn('Service Worker not ready');
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setStatus('sw-error');
 
       // Log error to PostHog

@@ -27,8 +27,8 @@ export const DescriptionInput: React.FC<DescriptionInputProperties> = ({ value, 
 
   return (
     <div className="space-y-4">
-      <label htmlFor="description" className="block text-base font-medium text-gray-700">
-        {imageDescription[locale]} <span className="text-cevi-red">*</span>
+      <label htmlFor="description" className="block text-sm font-semibold text-gray-700">
+        {imageDescription[locale]} <span className="text-red-500">*</span>
       </label>
       <textarea
         id="description"
@@ -36,7 +36,7 @@ export const DescriptionInput: React.FC<DescriptionInputProperties> = ({ value, 
         onChange={(event) => onChange(event.target.value)}
         placeholder={descriptionPlaceholder[locale]}
         rows={4}
-        className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder-gray-500 shadow-sm transition-colors focus:border-gray-400 focus:outline-none"
+        className="focus:border-conveniat-green/50 w-full resize-none rounded-2xl border-2 border-transparent bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-all focus:bg-white focus:outline-none"
       />
     </div>
   );

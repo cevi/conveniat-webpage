@@ -11,6 +11,7 @@ import {
   RenderCardGrid,
   RenderContactPerson,
   RenderCountdown,
+  RenderFeaturedSection,
   RenderFileDownload,
   RenderFormBlock,
   RenderInstagramEmbed,
@@ -19,6 +20,7 @@ import {
   RenderRichTextSection,
   RenderSinglePicture,
   RenderSponsorGrid,
+  RenderTabsBlock,
   RenderTimelineEntries,
   RenderWhiteSpace,
   RenderYoutubeEmbed,
@@ -71,6 +73,8 @@ export const PageSectionsConverter: React.FC<
     cardGrid: RenderCardGrid,
     contactPerson: RenderContactPerson,
     sponsorGrid: RenderSponsorGrid,
+    featuredSection: RenderFeaturedSection,
+    tabsBlock: RenderTabsBlock,
   };
 
   return (

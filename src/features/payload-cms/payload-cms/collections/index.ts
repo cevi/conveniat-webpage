@@ -1,3 +1,5 @@
+import { BillParticipantsCollection } from '@/features/billing/collections/bill-participants';
+import { BillPdfsCollection } from '@/features/billing/collections/bill-pdfs-collection';
 import { BlogArticleCollection } from '@/features/payload-cms/payload-cms/collections/blog-article';
 import { CampCategoryCollection } from '@/features/payload-cms/payload-cms/collections/camp-category';
 import { CampMapAnnotationsCollection } from '@/features/payload-cms/payload-cms/collections/camp-map-collection';
@@ -6,6 +8,7 @@ import { ChatImagesCollection } from '@/features/payload-cms/payload-cms/collect
 import { DocumentsCollection } from '@/features/payload-cms/payload-cms/collections/documents-collection';
 import { GenericPage as GenericPageCollection } from '@/features/payload-cms/payload-cms/collections/generic-page';
 import { JobCollection } from '@/features/payload-cms/payload-cms/collections/helper-job-collection';
+import { HelperShiftsCollection } from '@/features/payload-cms/payload-cms/collections/helper-shifts-collection';
 import { ImageCollection } from '@/features/payload-cms/payload-cms/collections/image-collection';
 import { OutgoingEmails } from '@/features/payload-cms/payload-cms/collections/outgoing-emails';
 import { PermissionsCollection } from '@/features/payload-cms/payload-cms/collections/permission-collection';
@@ -33,6 +36,7 @@ const rawCollectionsConfig: CollectionConfig[] = [
   CampMapAnnotationsCollection,
   CampCategoryCollection,
   CampScheduleEntryCollection,
+  HelperShiftsCollection,
   JobCollection,
 
   // general purpose collections, not routable
@@ -47,6 +51,8 @@ const rawCollectionsConfig: CollectionConfig[] = [
   BlockedJobs,
   SmtpBounceMailTracking,
   OutgoingEmails,
+  BillParticipantsCollection,
+  BillPdfsCollection,
 ];
 
 /**

@@ -28,6 +28,11 @@ const noiseMessages = [
   // rrweb/posthog-js internal error when terminating session recording involving cross-origin iframes on Safari.
   // This causes an 'undefined is not an object (evaluating 'r.bufferBelongsToIframe')' error.
   'bufferBelongsToIframe',
+
+  // Safari quirk/extension injecting code that tries to detect Firefox reader mode.
+  // This causes an 'undefined is not an object (evaluating 'window.__firefox__.reader')' error.
+  // see: https://github.com/cevi/conveniat-webpage/issues/1150
+  'window.__firefox__.reader',
 ];
 
 export const filterPostHogNoise = (event: CaptureResult | null): CaptureResult | null => {
@@ -40,6 +45,23 @@ export const filterPostHogNoise = (event: CaptureResult | null): CaptureResult |
     ) {
       // eslint-disable-next-line unicorn/no-null
       return null; // drop the event
+    }
+
+    const exceptionList = props['$exception_list'] as unknown;
+    if (Array.isArray(exceptionList)) {
+      for (const exc of exceptionList as Array<
+        { type?: unknown; value?: unknown } | null | undefined
+      >) {
+        const type = exc?.type;
+        const value = exc?.value;
+        if (
+          (typeof type === 'string' && noiseMessages.some((m) => type.includes(m))) ||
+          (typeof value === 'string' && noiseMessages.some((m) => value.includes(m)))
+        ) {
+          // eslint-disable-next-line unicorn/no-null
+          return null; // drop the event
+        }
+      }
     }
   }
   // eslint-disable-next-line unicorn/no-null

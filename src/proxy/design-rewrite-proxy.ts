@@ -1,6 +1,5 @@
 import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import type { ProxyModule } from '@/proxy/types';
-import type { Locale } from '@/types/types';
 import { Cookie, Header } from '@/types/types';
 import { DesignCodes, DesignModeTriggers } from '@/utils/design-codes';
 import type { NextRequest } from 'next/server';
@@ -33,8 +32,7 @@ export const createPrefixedRewriteResponse = (config: {
 
   const segments = pathname.split('/').filter((segment) => segment.length > 0);
   const localeSegment = segments[0];
-  const isValidLocaleSegment =
-    localeSegment !== undefined && validLocales.has(localeSegment as Locale);
+  const isValidLocaleSegment = localeSegment !== undefined && validLocales.has(localeSegment);
 
   const remainingSegments = isValidLocaleSegment ? segments.slice(1) : segments;
   const prefixSegments = isValidLocaleSegment ? [segments[0]] : [];

@@ -36,6 +36,7 @@ export const SmtpResultsField: React.FC<{
 
   const [currentTimeMs, setCurrentTimeMs] = React.useState(0);
   React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCurrentTimeMs(Date.now());
   }, []);
 

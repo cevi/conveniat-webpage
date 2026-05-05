@@ -199,7 +199,7 @@ export const deriveSmtpItems = (
       to: missingRecipient,
       bounceReport: true,
       _isPendingPlaceholder: true,
-    } as SmtpResult & { _isPendingPlaceholder?: boolean });
+    });
   }
 
   return finalItems;

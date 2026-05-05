@@ -114,6 +114,7 @@ export const ScheduleMiniMap: React.FC<ScheduleMiniMapProperties> = ({ location 
       icon: validIcon,
       color: location.color ?? '#f64955',
       isInteractive: false,
+      importance: 'high',
     } as CampMapAnnotationPolygon);
   }
 
@@ -134,6 +135,7 @@ export const ScheduleMiniMap: React.FC<ScheduleMiniMapProperties> = ({ location 
         icon: 'Tent',
         color: colorWithOpacity,
         isInteractive: false,
+        importance: 'high',
       } as unknown as CampMapAnnotationPolygon);
     }
   }
@@ -164,6 +166,7 @@ export const ScheduleMiniMap: React.FC<ScheduleMiniMapProperties> = ({ location 
                     geometry: { coordinates: location.geometry },
                     icon: validIcon,
                     color: location.color ?? '#f64955',
+                    importance: 'high',
                   },
                 ]
               : []

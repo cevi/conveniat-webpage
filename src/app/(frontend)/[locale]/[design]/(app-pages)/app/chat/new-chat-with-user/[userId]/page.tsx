@@ -51,6 +51,12 @@ const NewChatWithUserPage: React.FC<{
   }>;
 }> = async ({ params }) => {
   const locale = await getLocaleFromCookies();
+  let result:
+    | 'notLoggedIn'
+    | 'cannotCreateChat'
+    | { type: 'failedToCreate'; userId: string }
+    | { type: 'redirect'; url: string }
+    | 'error';
 
   try {
     const { userId } = await params;
@@ -60,81 +66,48 @@ const NewChatWithUserPage: React.FC<{
 
     // Check if user is authenticated
     if (user?.uuid === undefined) {
-      return (
-        <div className="flex h-screen flex-row items-center justify-center bg-gray-50">
-          <div className="font-body text-center text-gray-600">
-            {labels.mustBeLoggedIn[locale]}
-            <br />
-            <Link href="/app/chat" className="underline">
-              {labels.goBackToChats[locale]}
-            </Link>
-          </div>
-        </div>
-      );
+      result = 'notLoggedIn';
+    } else if (user.uuid === userId) {
+      result = { type: 'redirect', url: `/app/chat` };
+    } else {
+      // Check Feature Flag / Capability
+      const { checkCapability } = await import('@/lib/capabilities');
+      const { CapabilitySubject, CapabilityAction } = await import('@/lib/capabilities/types');
+
+      const canCreateChat = await checkCapability(CapabilityAction.Create, CapabilitySubject.Chat);
+
+      if (canCreateChat) {
+        const chatName = ''; // Private chats do not require a name
+        const contacts = [
+          {
+            uuid: userId,
+            name: '', // Name will be fetched from the user profile
+          },
+        ];
+        const chatId = await trpc.chat
+          .createChat({
+            chatName,
+            members: contacts.map((contact) => ({
+              userId: contact.uuid,
+            })),
+          })
+          .catch((error: unknown) => {
+            console.error('[NewChatWithUserPage] Failed to create chat via TRPC:', error);
+            // eslint-disable-next-line unicorn/no-useless-undefined
+            return undefined; // Return undefined if chat creation fails
+          });
+
+        if (chatId === undefined) {
+          console.warn('[NewChatWithUserPage] Chat creation returned undefined. userId:', userId);
+          result = { type: 'failedToCreate', userId };
+        } else {
+          console.log('[NewChatWithUserPage] Chat created successfully. chatId:', chatId);
+          result = { type: 'redirect', url: `/app/chat/${chatId}` };
+        }
+      } else {
+        result = 'cannotCreateChat';
+      }
     }
-
-    if (user.uuid === userId) {
-      redirect(`/app/chat`); // do not allow to create self-chat.
-    }
-
-    // Check Feature Flag / Capability
-    const { checkCapability } = await import('@/lib/capabilities');
-    const { CapabilitySubject, CapabilityAction } = await import('@/lib/capabilities/types');
-
-    const canCreateChat = await checkCapability(CapabilityAction.Create, CapabilitySubject.Chat);
-
-    if (!canCreateChat) {
-      return (
-        <div className="flex h-screen flex-row items-center justify-center bg-gray-50">
-          <div className="font-body text-center text-gray-600">
-            {labels.chatCreationPaused[locale]}
-            <br />
-            <Link href="/app/chat" className="underline">
-              {labels.goBackToChats[locale]}
-            </Link>
-          </div>
-        </div>
-      );
-    }
-
-    const chatName = ''; // Private chats do not require a name
-    const contacts = [
-      {
-        uuid: userId,
-        name: '', // Name will be fetched from the user profile
-      },
-    ];
-    const chatId = await trpc.chat
-      .createChat({
-        chatName,
-        members: contacts.map((contact) => ({
-          userId: contact.uuid,
-        })),
-      })
-      .catch((error: unknown) => {
-        console.error('[NewChatWithUserPage] Failed to create chat via TRPC:', error);
-        return; // Return undefined if chat creation fails
-      });
-
-    if (chatId === undefined) {
-      console.warn('[NewChatWithUserPage] Chat creation returned undefined. userId:', userId);
-      return (
-        <div className="flex h-screen flex-row items-center justify-center bg-gray-50">
-          <div className="font-body text-center text-gray-600">
-            <h2 className="mb-2 text-xl font-semibold text-gray-800">
-              {labels.failedToCreateChat[locale]}
-            </h2>
-            <p className="mb-4">{labels.pleaseTryAgain[locale]}</p>
-            <Link href="/app/chat" className="text-conveniat-blue font-medium underline">
-              {labels.goBackToChats[locale]}
-            </Link>
-          </div>
-        </div>
-      );
-    }
-
-    console.log('[NewChatWithUserPage] Chat created successfully. chatId:', chatId);
-    redirect(`/app/chat/${chatId}`);
   } catch (error) {
     // Re-throw redirect errors - they're not real errors
     if (isRedirectError(error)) {
@@ -142,13 +115,19 @@ const NewChatWithUserPage: React.FC<{
     }
 
     console.error('[NewChatWithUserPage] Fatal error in page:', error);
+    result = 'error';
+  }
+
+  if (typeof result === 'object' && result.type === 'redirect') {
+    redirect(result.url);
+  }
+
+  if (result === 'notLoggedIn') {
     return (
       <div className="flex h-screen flex-row items-center justify-center bg-gray-50">
         <div className="font-body text-center text-gray-600">
-          <h2 className="mb-2 text-xl font-semibold text-red-600">
-            {labels.unexpectedError[locale]}
-          </h2>
-          <p className="mb-4">Bitte versuche es später noch einmal.</p>
+          {labels.mustBeLoggedIn[locale]}
+          <br />
           <Link href="/app/chat" className="underline">
             {labels.goBackToChats[locale]}
           </Link>
@@ -156,6 +135,50 @@ const NewChatWithUserPage: React.FC<{
       </div>
     );
   }
+
+  if (result === 'cannotCreateChat') {
+    return (
+      <div className="flex h-screen flex-row items-center justify-center bg-gray-50">
+        <div className="font-body text-center text-gray-600">
+          {labels.chatCreationPaused[locale]}
+          <br />
+          <Link href="/app/chat" className="underline">
+            {labels.goBackToChats[locale]}
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (typeof result === 'object') {
+    return (
+      <div className="flex h-screen flex-row items-center justify-center bg-gray-50">
+        <div className="font-body text-center text-gray-600">
+          <h2 className="mb-2 text-xl font-semibold text-gray-800">
+            {labels.failedToCreateChat[locale]}
+          </h2>
+          <p className="mb-4">{labels.pleaseTryAgain[locale]}</p>
+          <Link href="/app/chat" className="text-conveniat-blue font-medium underline">
+            {labels.goBackToChats[locale]}
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-screen flex-row items-center justify-center bg-gray-50">
+      <div className="font-body text-center text-gray-600">
+        <h2 className="mb-2 text-xl font-semibold text-red-600">
+          {labels.unexpectedError[locale]}
+        </h2>
+        <p className="mb-4">Bitte versuche es später noch einmal.</p>
+        <Link href="/app/chat" className="underline">
+          {labels.goBackToChats[locale]}
+        </Link>
+      </div>
+    </div>
+  );
 };
 
 export default NewChatWithUserPage;

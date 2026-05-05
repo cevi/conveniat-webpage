@@ -37,6 +37,8 @@ const subscribedConfirmationPush: StaticTranslationString = {
 export async function subscribeUser(
   sub: webpush.PushSubscription,
   locale: 'de' | 'fr' | 'en',
+  userAgent?: string,
+  registrationSource?: '/entrypoint' | '/app/settings',
 ): Promise<{ success: boolean }> {
   const payload = await getPayload({ config });
   const session = await auth();
@@ -73,19 +75,36 @@ export async function subscribeUser(
         data: {
           ...sub,
           user: payloadUser,
+          // eslint-disable-next-line unicorn/no-null
+          userAgent: userAgent ?? null,
+          // eslint-disable-next-line unicorn/no-null
+          registrationSource: registrationSource ?? null,
         },
       });
     } else {
       await payload.create({
         collection: 'push-notification-subscriptions',
-        data: { ...sub, user: payloadUser },
+        data: {
+          ...sub,
+          user: payloadUser,
+          // eslint-disable-next-line unicorn/no-null
+          userAgent: userAgent ?? null,
+          // eslint-disable-next-line unicorn/no-null
+          registrationSource: registrationSource ?? null,
+        },
       });
     }
   } else {
     // create a new one
     await payload.create({
       collection: 'push-notification-subscriptions',
-      data: { ...sub },
+      data: {
+        ...sub,
+        // eslint-disable-next-line unicorn/no-null
+        userAgent: userAgent ?? null,
+        // eslint-disable-next-line unicorn/no-null
+        registrationSource: registrationSource ?? null,
+      },
     });
   }
 

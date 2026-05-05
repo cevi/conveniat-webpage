@@ -1,6 +1,7 @@
 import { SafeErrorBoundary } from '@/components/error-boundary/safe-error-boundary';
 import { FooterBuildInfoText } from '@/components/footer/footer-copyright-area';
 import { MainMenuLanguageSwitcher } from '@/components/menu/main-menu-language-switcher';
+import { PreviewMenuSwitcher } from '@/components/menu/preview-menu-switcher';
 import { SearchComponent } from '@/components/menu/search';
 import { LinkComponent } from '@/components/ui/link-component';
 import { getHeaderCached } from '@/features/payload-cms/api/cached-globals';
@@ -18,7 +19,7 @@ import { cn } from '@/utils/tailwindcss-override';
 import { Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/react';
 import { ChevronDown, OctagonAlert } from 'lucide-react';
 import { cacheLife, cacheTag } from 'next/cache';
-import type React from 'react';
+import React from 'react';
 
 import { AppFeatures } from '@/components/menu/app-features';
 const DeletedMenuEntry: React.FC<{ message: string }> = ({ message }) => {
@@ -49,6 +50,92 @@ const webContentTitle: StaticTranslationString = {
   fr: 'Contenu Web',
 };
 
+const MenuItemsList: React.FC<{
+  locale: Locale;
+  mainMenuWithFallback: NonNullable<Header['mainMenu']>;
+  showPreviewForMainMenu: boolean;
+}> = ({ locale, mainMenuWithFallback, showPreviewForMainMenu }) => {
+  return (
+    <>
+      {showPreviewForMainMenu && (
+        <div className="closeNavOnClick block cursor-pointer rounded-lg bg-orange-500 py-2 pr-3 pl-6 text-sm/7 font-semibold text-white">
+          Preview Menu
+        </div>
+      )}
+      {mainMenuWithFallback.map(async (item) => {
+        if (item.subMenu && item.subMenu.length > 0) {
+          const subMenuItemsWherePermitted = await Promise.all(
+            item.subMenu.map(async (subItem) => {
+              const hasPermission = await hasPermissionsForLinkField(subItem.linkField);
+              return { hasPerm: hasPermission, item: subItem };
+            }),
+          );
+
+          const allNull = subMenuItemsWherePermitted.every((subItem) => subItem.hasPerm === false);
+
+          if (allNull) {
+            return <React.Fragment key={item.id}></React.Fragment>;
+          }
+
+          return (
+            <SafeErrorBoundary fallback={<></>} key={item.id}>
+              <Disclosure as="div" className="-mx-3">
+                <DisclosureButton className="group flex w-full cursor-pointer items-center justify-between rounded-lg py-2 pr-3.5 pl-3 text-base/7 font-semibold text-gray-700 hover:bg-gray-50">
+                  {item.label}
+                  <ChevronDown
+                    aria-hidden="true"
+                    className="size-5 flex-none group-data-open:rotate-180"
+                  />
+                </DisclosureButton>
+                <DisclosurePanel className="mt-2 mb-4 space-y-2">
+                  {subMenuItemsWherePermitted.map((subItem) =>
+                    subItem.hasPerm ? (
+                      <LinkComponent
+                        key={subItem.item.id}
+                        href={getURLForLinkField(subItem.item.linkField, locale) ?? '/'}
+                        openInNewTab={openURLInNewTab(subItem.item.linkField)}
+                        className="closeNavOnClick block rounded-lg py-2 pr-3 pl-6 text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
+                        prefetch
+                      >
+                        {subItem.item.label}
+                      </LinkComponent>
+                    ) : (
+                      showPreviewForMainMenu && (
+                        <DeletedMenuEntry key={subItem.item.id} message={subItem.item.label} />
+                      )
+                    ),
+                  )}
+                </DisclosurePanel>
+              </Disclosure>
+            </SafeErrorBoundary>
+          );
+        }
+
+        const itemLink = getURLForLinkField(item.linkField, locale) ?? '/';
+
+        const hasPermission = await hasPermissionsForLinkField(item.linkField);
+
+        if (!hasPermission) {
+          return showPreviewForMainMenu && <DeletedMenuEntry key={item.id} message={item.label} />;
+        }
+
+        return (
+          <LinkComponent
+            key={item.id}
+            href={itemLink}
+            openInNewTab={openURLInNewTab(item.linkField)}
+            prefetch
+          >
+            <span className="closeNavOnClick -mx-3 block rounded-lg px-3 py-2 text-base/7 font-semibold text-gray-700 hover:bg-gray-50">
+              {item.label}
+            </span>
+          </LinkComponent>
+        );
+      })}
+    </>
+  );
+};
+
 export const MainMenu: React.FC<{
   locale: Locale;
   inAppDesign: boolean;
@@ -56,13 +143,17 @@ export const MainMenu: React.FC<{
   const build = await getBuildInfo(locale);
   const actionURL = specialPagesTable['search']?.alternatives[locale] ?? '/suche';
 
-  // if the user is logged in as admin, we show the preview for the menu
+  // if the user is logged in as admin, we fetch both preview and published menus
+  const isAdmin = !inAppDesign && (await isAdminSession());
 
-  const showPreviewForMainMenu: boolean = !inAppDesign && (await isAdminSession());
-  const mainMenu = await getMainMenuFromPayloadCached(locale, showPreviewForMainMenu);
+  const publishedMenuRaw = await getMainMenuFromPayloadCached(locale, false);
+  const publishedMenu = Array.isArray(publishedMenuRaw) ? publishedMenuRaw : [];
 
-  // fallback to an empty array if mainMenu is not an array, to avoid runtime errors
-  const mainMenuWithFallback = Array.isArray(mainMenu) ? mainMenu : [];
+  let draftMenu = publishedMenu;
+  if (isAdmin) {
+    const draftMenuRaw = await getMainMenuFromPayloadCached(locale, true);
+    draftMenu = Array.isArray(draftMenuRaw) ? draftMenuRaw : [];
+  }
 
   return (
     <div
@@ -84,83 +175,31 @@ export const MainMenu: React.FC<{
           {inAppDesign && (
             <h3 className="text-conveniat-green mb-2 font-bold">{webContentTitle[locale]}</h3>
           )}
-          {showPreviewForMainMenu && (
-            <div className="closeNavOnClick block cursor-pointer rounded-lg bg-orange-500 py-2 pr-3 pl-6 text-sm/7 font-semibold text-white">
-              Preview Menu
-            </div>
-          )}
-          {mainMenuWithFallback.map(async (item) => {
-            if (item.subMenu && item.subMenu.length > 0) {
-              const subMenuItemsWherePermitted = await Promise.all(
-                item.subMenu.map(async (subItem) => {
-                  const hasPermission = await hasPermissionsForLinkField(subItem.linkField);
-                  return { hasPerm: hasPermission, item: subItem };
-                }),
-              );
 
-              const allNull = subMenuItemsWherePermitted.every(
-                (subItem) => subItem.hasPerm === false,
-              );
-
-              if (allNull) {
-                return <></>;
+          {isAdmin ? (
+            <PreviewMenuSwitcher
+              publishedMenu={
+                <MenuItemsList
+                  locale={locale}
+                  mainMenuWithFallback={publishedMenu}
+                  showPreviewForMainMenu={false}
+                />
               }
-
-              return (
-                <SafeErrorBoundary fallback={<></>} key={item.id}>
-                  <Disclosure as="div" className="-mx-3">
-                    <DisclosureButton className="group flex w-full cursor-pointer items-center justify-between rounded-lg py-2 pr-3.5 pl-3 text-base/7 font-semibold text-gray-700 hover:bg-gray-50">
-                      {item.label}
-                      <ChevronDown
-                        aria-hidden="true"
-                        className="size-5 flex-none group-data-open:rotate-180"
-                      />
-                    </DisclosureButton>
-                    <DisclosurePanel className="mt-2 mb-4 space-y-2">
-                      {subMenuItemsWherePermitted.map((subItem) =>
-                        subItem.hasPerm ? (
-                          <LinkComponent
-                            key={subItem.item.id}
-                            href={getURLForLinkField(subItem.item.linkField, locale) ?? '/'}
-                            openInNewTab={openURLInNewTab(subItem.item.linkField)}
-                            className="closeNavOnClick block rounded-lg py-2 pr-3 pl-6 text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
-                            prefetch
-                          >
-                            {subItem.item.label}
-                          </LinkComponent>
-                        ) : (
-                          showPreviewForMainMenu && (
-                            <DeletedMenuEntry key={subItem.item.id} message={subItem.item.label} />
-                          )
-                        ),
-                      )}
-                    </DisclosurePanel>
-                  </Disclosure>
-                </SafeErrorBoundary>
-              );
-            }
-
-            const itemLink = getURLForLinkField(item.linkField, locale) ?? '/';
-
-            const hasPermission = await hasPermissionsForLinkField(item.linkField);
-
-            if (!hasPermission) {
-              return showPreviewForMainMenu && <DeletedMenuEntry message={item.label} />;
-            }
-
-            return (
-              <LinkComponent
-                key={item.id}
-                href={itemLink}
-                openInNewTab={openURLInNewTab(item.linkField)}
-                prefetch
-              >
-                <span className="closeNavOnClick -mx-3 block rounded-lg px-3 py-2 text-base/7 font-semibold text-gray-700 hover:bg-gray-50">
-                  {item.label}
-                </span>
-              </LinkComponent>
-            );
-          })}
+              draftMenu={
+                <MenuItemsList
+                  locale={locale}
+                  mainMenuWithFallback={draftMenu}
+                  showPreviewForMainMenu
+                />
+              }
+            />
+          ) : (
+            <MenuItemsList
+              locale={locale}
+              mainMenuWithFallback={publishedMenu}
+              showPreviewForMainMenu={false}
+            />
+          )}
         </div>
       </div>
 

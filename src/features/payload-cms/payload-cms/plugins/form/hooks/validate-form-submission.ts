@@ -46,7 +46,7 @@ function collectValidatableFields(
         // but we cast via the same helper for safety.
         for (const inner of field.fields) {
           if ('blockType' in inner && inner.blockType !== 'message') {
-            result.push(inner as ValidatableField);
+            result.push(inner);
           }
         }
       }
@@ -278,12 +278,7 @@ export const validateFormSubmission: CollectionBeforeChangeHook<FormSubmission> 
   }
 
   if (fieldErrors.length > 0) {
-    throw new APIError(
-      'Validation Error',
-      400,
-      fieldErrors as unknown as Record<string, unknown>[],
-      true,
-    );
+    throw new APIError('Validation Error', 400, fieldErrors, true);
   }
 
   return data;

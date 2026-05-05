@@ -22,9 +22,6 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useCallback, useMemo, useState } from 'react';
 
-// TODO: this should only be enabled in app mode
-const enableSearch: boolean = false; // Set to true to enable the search bar
-
 /**
  * Factory function to create a DOM element with the Cevi Logo SVG.
  * Used by the `useCeviLogoMarkers` hook.
@@ -46,6 +43,7 @@ export const MapLibreRenderer = ({
   hideDrawer = false,
   disableUrlSync = false,
   disableFlyTo = false,
+  enableSearch = false,
 }: {
   initialMapPose: InitialMapPose;
   ceviLogoMarkers: CeviLogoMarker[];
@@ -59,6 +57,7 @@ export const MapLibreRenderer = ({
   hideDrawer?: boolean;
   disableUrlSync?: boolean;
   disableFlyTo?: boolean;
+  enableSearch?: boolean;
 }): React.JSX.Element => {
   const [mapContainer, setMapContainer] = useState<HTMLDivElement | undefined>();
   const [openAnnotation, setOpenAnnotation] = useState<

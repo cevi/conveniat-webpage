@@ -117,7 +117,7 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
   editError,
 }) => {
   const location = entry.location as CampMapAnnotation;
-  const organisers = entry.organiser as User[];
+  const organisers = (entry.organiser ?? []) as User[];
   const dateTime = formatScheduleDateTime(locale, entry.timeslot.date, entry.timeslot.time);
   const isOnline = useOnlineStatus();
 

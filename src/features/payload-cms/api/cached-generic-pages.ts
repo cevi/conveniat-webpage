@@ -29,7 +29,7 @@ export const getGenericPageBySlugCached = cache(
           and: [
             { 'seo.urlSlug': { equals: slug } },
             // we only resolve published pages unless in preview mode
-            draft ? {} : { _localized_status: { equals: { published: true } } },
+            ...(draft ? [] : [{ _localized_status: { equals: { published: true } } }]),
           ],
         },
         // Select only fields needed for frontend rendering.
@@ -87,7 +87,7 @@ export const getGenericPageExistsBySlugCached = cache(
         where: {
           and: [
             { 'seo.urlSlug': { equals: slug } },
-            draft ? {} : { _localized_status: { equals: { published: true } } },
+            ...(draft ? [] : [{ _localized_status: { equals: { published: true } } }]),
           ],
         },
         select: {
@@ -132,6 +132,48 @@ export const getGenericPageByIDCached = cache(
           seo: true,
         },
       })) as unknown as GenericPage;
+    });
+  },
+);
+
+/**
+ * Fetches a Generic Page by its slug history (previous slugs).
+ * Used for fallback redirection when the current slug doesn't match any active page.
+ */
+export const getGenericPageBySlugHistoryCached = cache(
+  async (
+    slug: string,
+    locale: Locale,
+    draft: boolean = false,
+  ): Promise<{ docs: GenericPage[] }> => {
+    return await withSpan('getGenericPageBySlugHistoryCached', async () => {
+      const payload = await getPayload({ config });
+
+      const result = await payload.find({
+        depth: 1,
+        collection: 'generic-page',
+        pagination: false,
+        locale: locale,
+        fallbackLocale: false,
+        draft: draft,
+        where: {
+          and: [
+            { 'seo.urlSlugHistory.slug': { equals: slug } },
+            ...(draft ? [] : [{ _localized_status: { equals: { published: true } } }]),
+          ],
+        },
+        select: {
+          _localized_status: true,
+          internalPageName: true,
+          seo: true,
+        },
+      });
+
+      const uniqueDocuments = [
+        ...new Map(result.docs.map((document_) => [document_.id, document_])).values(),
+      ];
+
+      return { docs: uniqueDocuments as unknown as GenericPage[] };
     });
   },
 );

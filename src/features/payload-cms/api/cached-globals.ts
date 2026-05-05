@@ -20,6 +20,7 @@ export const getFooterCached = cache(async (locale: Locale): Promise<Footer> => 
       select: {
         minimalFooterMenu: true,
         socialLinks: true,
+        sponsors: true,
       },
     });
   });

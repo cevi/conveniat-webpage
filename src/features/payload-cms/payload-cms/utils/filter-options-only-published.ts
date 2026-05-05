@@ -1,9 +1,8 @@
 import type { FilterOptionsProps, Where } from 'payload';
 
-export const filterOptionsOnlyPublished: ({
-  req,
+export const filterOptionsOnlyPublished: ({ relationTo }: FilterOptionsProps<unknown>) => Where = ({
   relationTo,
-}: FilterOptionsProps<unknown>) => Where | Promise<Where> = ({ relationTo }) => {
+}) => {
   if (
     [
       'images',
@@ -13,7 +12,7 @@ export const filterOptionsOnlyPublished: ({
       'forms',
       'users',
       'permissions',
-    ].includes(relationTo as string)
+    ].includes(relationTo)
   ) {
     // these collections do not have localized status
     return {};

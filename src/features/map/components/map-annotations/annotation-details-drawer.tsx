@@ -14,7 +14,6 @@ import type {
 } from '@/features/map/types/types';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 const shareLocationError: StaticTranslationString = {
@@ -169,9 +168,7 @@ export const AnnotationDetailsDrawer: React.FC<{
             />
           </div>
 
-          <AnnotationDescriptionSection
-            description={annotation.description as SerializedEditorState}
-          />
+          <AnnotationDescriptionSection description={annotation.description} />
 
           <AnnotationOpeningHoursSection openingHours={annotation.openingHours} />
 

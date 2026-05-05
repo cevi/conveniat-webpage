@@ -1,8 +1,10 @@
 'use client';
-import { Button } from '@/components/ui/buttons/button';
+import { LinkComponent } from '@/components/ui/link-component';
+import { CenteredConveniatLogo } from '@/features/onboarding/components/centered-conveniat-logo';
 import { AdminPanelBackgroundFaker } from '@/features/payload-cms/payload-cms/components/login-page/admin-panel-background-faker';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { LogIn } from 'lucide-react';
 import { signIn } from 'next-auth/react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import React from 'react';
@@ -16,43 +18,54 @@ const handleLoginClick = (): void => {
   });
 };
 
-const localizedLoginText: StaticTranslationString = {
-  en: 'Login with CeviDB',
-  de: 'Mit CeviDB anmelden',
-  fr: 'Se connecter avec CeviDB',
+const loginButtonText: StaticTranslationString = {
+  en: 'Login with Cevi.DB',
+  de: 'Anmelden mit Cevi.DB',
+  fr: 'Connexion avec Cevi.DB',
+};
+
+const helpLinkText: StaticTranslationString = {
+  en: 'What is Cevi.DB?',
+  de: 'Was ist Cevi.DB?',
+  fr: 'Qu’est-ce que Cevi.DB ?',
 };
 
 /**
  * This component is used as the login button on the admin panel of the Payload CMS.
- * It redirects the user to the CeviDB login page and styles the background with the Cevi logo
+ * It redirects the user to the CeviDB login page and styles the background
  * identical to the frontend, to create a seamless transition between the two.
- *
- * @constructor
  */
 const AdminPanelLoginPage: React.FC = () => {
-  const locale = useCurrentLocale(i18nConfig) as Locale;
+  const locale = (useCurrentLocale(i18nConfig) ?? 'de') as Locale;
 
   return (
-    <>
-      <AdminPanelBackgroundFaker />
+    <article className="mx-4 flex min-h-[calc(100dvh-200px)] items-center justify-center py-16">
+      <AdminPanelBackgroundFaker hideLogo />
 
-      {/* login button */}
-      <div>
-        <div className="mt-2 flex justify-center">
-          <h1 className="text-conveniat-green mb-16 text-3xl font-extrabold">
-            conveniat27 | Admin
-          </h1>
-        </div>
-        <div className="flex justify-center">
-          <Button
-            onClick={handleLoginClick}
-            className="font-heading cursor-pointer rounded-[8px] border-none bg-red-700 px-8 py-3 text-center text-lg leading-normal font-bold text-red-100 duration-100 hover:bg-red-800"
+      <div className="flex w-full max-w-md flex-col items-center text-center">
+        <CenteredConveniatLogo />
+
+        <h1 className="text-conveniat-green mt-2 mb-12 text-xl font-bold">Admin Panel</h1>
+
+        <button
+          onClick={handleLoginClick}
+          className="font-heading flex cursor-pointer items-center gap-3 rounded-[12px] border-none bg-red-800 px-10 py-4 text-center text-xl font-bold text-red-50 shadow-none transition-all duration-200 hover:scale-[1.02] hover:bg-red-900 active:scale-[0.98]"
+        >
+          <LogIn className="size-6" />
+          {loginButtonText[locale]}
+        </button>
+
+        <div className="mt-8">
+          <LinkComponent
+            href="https://wiki.cevi.ch/index.php/Cevi.DB"
+            openInNewTab
+            className="text-sm font-medium text-gray-500 underline-offset-4 hover:text-gray-800 hover:underline"
           >
-            {localizedLoginText[locale]}
-          </Button>
+            {helpLinkText[locale]}
+          </LinkComponent>
         </div>
       </div>
-    </>
+    </article>
   );
 };
 

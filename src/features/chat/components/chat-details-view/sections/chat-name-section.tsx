@@ -36,17 +36,17 @@ const validationMessages = {
     de: 'Chat-Name darf nicht leer sein',
     en: 'Chat name cannot be empty',
     fr: 'Le nom du chat ne peut pas être vide',
-  } as StaticTranslationString,
+  },
   tooShort: {
     de: 'Chat-Name muss mindestens 2 Zeichen haben',
     en: 'Chat name must be at least 2 characters',
     fr: 'Le nom du chat doit contenir au moins 2 caractères',
-  } as StaticTranslationString,
+  },
   tooLong: {
     de: 'Chat-Name muss weniger als 50 Zeichen haben',
     en: 'Chat name must be less than 50 characters',
     fr: 'Le nom du chat doit contenir moins de 50 caractères',
-  } as StaticTranslationString,
+  },
 };
 
 const validateChatName = (name: string, locale: Locale): string => {

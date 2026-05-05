@@ -81,13 +81,13 @@ const rscCaching: RuntimeCaching = {
         statuses: [200],
       }) as SerwistPlugin,
       {
-        cacheKeyWillBeUsed: ({ request }) => {
+        cacheKeyWillBeUsed: ({ request }): string => {
           const url = new URL(request.url);
           const params = new URLSearchParams(url.searchParams);
           params.set('_rsc', '');
           return `${url.origin}${url.pathname}?${params.toString().replace('_rsc=', '_rsc')}`;
         },
-        cachedResponseWillBeUsed: ({ cachedResponse }) => {
+        cachedResponseWillBeUsed: ({ cachedResponse }): Response | null | undefined => {
           if (cachedResponse) {
             const newHeaders = new Headers(cachedResponse.headers);
             newHeaders.delete('Vary');
@@ -99,7 +99,7 @@ const rscCaching: RuntimeCaching = {
           }
           return cachedResponse;
         },
-      } as SerwistPlugin,
+      },
       safeRscCachePlugin,
     ],
   }),
@@ -111,7 +111,7 @@ const fontCaching: RuntimeCaching = {
     cacheName: CACHE_NAMES.FONTS,
     plugins: [
       new CacheableResponsePlugin({ statuses: [200] }) as SerwistPlugin,
-      new ExpirationPlugin({ maxEntries: 50 }) as SerwistPlugin,
+      new ExpirationPlugin({ maxEntries: 50 }),
     ],
   }),
 };

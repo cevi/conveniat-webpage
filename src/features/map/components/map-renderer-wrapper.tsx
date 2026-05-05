@@ -72,6 +72,7 @@ export interface MapLibreRendererProperties {
   hideDrawer?: boolean;
   disableUrlSync?: boolean;
   disableFlyTo?: boolean;
+  enableSearch?: boolean;
 }
 
 export const MapLibreRenderer = ({
@@ -87,6 +88,7 @@ export const MapLibreRenderer = ({
   hideDrawer,
   disableUrlSync,
   disableFlyTo,
+  enableSearch,
 }: MapLibreRendererProperties): React.JSX.Element => {
   const reference = useRef<HTMLDivElement>(null);
   const isVisible = useIntersectionObserver(reference);
@@ -111,6 +113,7 @@ export const MapLibreRenderer = ({
           {...(hideDrawer !== undefined && { hideDrawer })}
           {...(disableUrlSync !== undefined && { disableUrlSync })}
           {...(disableFlyTo !== undefined && { disableFlyTo })}
+          {...(enableSearch !== undefined && { enableSearch })}
         />
       ) : (
         <MapLoadingFallback />
@@ -132,6 +135,7 @@ export const MiniMapLibreRenderer = ({
   hideDrawer,
   disableUrlSync,
   disableFlyTo,
+  enableSearch,
 }: MapLibreRendererProperties): React.JSX.Element => {
   const reference = useRef<HTMLDivElement>(null);
   const isVisible = useIntersectionObserver(reference);
@@ -156,6 +160,7 @@ export const MiniMapLibreRenderer = ({
           {...(hideDrawer !== undefined && { hideDrawer })}
           {...(disableUrlSync !== undefined && { disableUrlSync })}
           {...(disableFlyTo !== undefined && { disableFlyTo })}
+          {...(enableSearch !== undefined && { enableSearch })}
         />
       ) : (
         <MiniMapLoadingFallback />

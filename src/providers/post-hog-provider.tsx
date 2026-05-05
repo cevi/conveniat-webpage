@@ -1,12 +1,12 @@
 'use client';
 
 import { environmentVariables } from '@/config/environment-variables';
+import { PostHogContext, usePostHog } from '@/providers/posthog-context';
 import { filterPostHogNoise } from '@/utils/posthog-filters';
 import { usePathname, useSearchParams } from 'next/navigation';
-import posthog from 'posthog-js';
-import { PostHogProvider as ReactPostHogProvider, usePostHog } from 'posthog-js/react';
+import type { PostHog } from 'posthog-js';
 import type React from 'react';
-import { Suspense, useEffect } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 
 const PostHogPageView: React.FC = () => {
   const pathname = usePathname();
@@ -14,7 +14,7 @@ const PostHogPageView: React.FC = () => {
   const _posthog = usePostHog();
 
   useEffect(() => {
-    if (pathname !== '') {
+    if (pathname !== '' && _posthog) {
       let url = globalThis.origin + pathname;
       const search = searchParameters.toString();
       if (search !== '') {
@@ -30,7 +30,7 @@ const PostHogPageView: React.FC = () => {
         type?: string;
         payload?: { event: string; properties?: Record<string, unknown> };
       };
-      if (data.type === 'CAPTURE_POSTHOG_EVENT' && data.payload) {
+      if (data.type === 'CAPTURE_POSTHOG_EVENT' && data.payload && _posthog) {
         _posthog.capture(data.payload.event, data.payload.properties);
       }
     };
@@ -49,13 +49,15 @@ const PostHogPageView: React.FC = () => {
 
 const SuspendedPostHogPageView: React.FC = () => {
   return (
-    <Suspense>
+    <Suspense fallback={<></>}>
       <PostHogPageView />
     </Suspense>
   );
 };
 
 export const PostHogProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [client, setClient] = useState<PostHog | undefined>();
+
   useEffect(() => {
     // Suppress ResizeObserver loop errors (often caused by browser extensions)
     const handleError = (errorEvent: ErrorEvent): void => {
@@ -82,12 +84,17 @@ export const PostHogProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       // Silent fail Payload Live Preview iframe cross-origin disconnects (noise during rapid save)
       // and generic background telemetry network errors from PostHog.
+      const isPostHogIframeError = message.includes('bufferbelongstoiframe');
+
       if (
         message !== '' &&
         (message.includes('blocked a frame with origin') ||
           message === 'network error' ||
-          message.includes('failed to fetch')) &&
-        (errorEvent.filename.includes('posthog') || errorEvent.filename === '')
+          message.includes('failed to fetch') ||
+          isPostHogIframeError) &&
+        (errorEvent.filename.includes('posthog') ||
+          errorEvent.filename === '' ||
+          isPostHogIframeError)
       ) {
         errorEvent.stopImmediatePropagation();
         errorEvent.preventDefault();
@@ -133,19 +140,23 @@ export const PostHogProvider: React.FC<{ children: React.ReactNode }> = ({ child
       );
 
     if (isConfigured) {
-      posthog.init(environmentVariables.NEXT_PUBLIC_POSTHOG_KEY ?? '', {
-        api_host: '/ingest',
-        ui_host: 'https://eu.posthog.com',
-        person_profiles: 'identified_only',
-        capture_pageview: false, // page views are captured manually
-        capture_pageleave: true,
-        // filter out known noise like CefSharp bot errors (e.g., from Outlook Safe Links)
-        // see: https://github.com/cevi/conveniat-webpage/issues/1013
-        before_send: filterPostHogNoise,
-        // Silently handle PostHog network errors so they never bubble up
-        on_request_error: (error: unknown) => {
-          console.debug('[PostHog] Request failed silently:', error);
-        },
+      void import('posthog-js').then((module_) => {
+        const posthog = module_.default;
+        posthog.init(environmentVariables.NEXT_PUBLIC_POSTHOG_KEY ?? '', {
+          api_host: '/ingest',
+          ui_host: 'https://eu.posthog.com',
+          person_profiles: 'identified_only',
+          capture_pageview: false, // page views are captured manually
+          capture_pageleave: true,
+          // filter out known noise like CefSharp bot errors (e.g., from Outlook Safe Links)
+          // see: https://github.com/cevi/conveniat-webpage/issues/1013
+          before_send: filterPostHogNoise,
+          // Silently handle PostHog network errors so they never bubble up
+          on_request_error: (error: unknown) => {
+            console.debug('[PostHog] Request failed silently:', error);
+          },
+        });
+        setClient(posthog);
       });
     }
 
@@ -158,9 +169,9 @@ export const PostHogProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, []);
 
   return (
-    <ReactPostHogProvider client={posthog}>
+    <PostHogContext.Provider value={client}>
       <SuspendedPostHogPageView />
       {children}
-    </ReactPostHogProvider>
+    </PostHogContext.Provider>
   );
 };

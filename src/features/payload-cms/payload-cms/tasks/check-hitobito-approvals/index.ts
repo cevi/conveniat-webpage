@@ -43,7 +43,7 @@ export const checkHitobitoApprovalsTask: TaskConfig<'checkHitobitoApprovals'> = 
           queueable,
           req,
         }): Promise<{ shouldSchedule: boolean; input: Record<string, never> }> => {
-          await cleanupStaleScheduledJobs(req, 'checkHitobitoApprovals');
+          await cleanupStaleScheduledJobs(req, 'checkHitobitoApprovals', 15);
 
           const runnableOrActiveJobsForQueue = await countRunnableOrActiveJobsForQueue({
             queue: queueable.scheduleConfig.queue,

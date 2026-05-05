@@ -29,6 +29,7 @@ const MapCoordinatesField: PointFieldClientComponent = ({ path }) => {
   const [mapLoaded, setMapLoaded] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { environmentVariables } from '@/config/environment-variables';
+import { flushPersonalData } from '@/lib/flush-personal-data';
 import { makeQueryClient } from '@/trpc/query-client';
 import type { AppRouter } from '@/trpc/routers/_app';
 import type { QueryClient } from '@tanstack/react-query';
@@ -21,6 +22,7 @@ const fetchWithAuthRedirect: typeof fetch = async (input, init) => {
   const response = await fetch(input, init);
 
   if (response.status === 401) {
+    flushPersonalData();
     await signOut({ redirect: false });
     globalThis.location.href = '/entrypoint';
     // Return the response anyway to prevent further processing
