@@ -3,15 +3,21 @@ import { CeviSchweiz } from '@/components/svg-logos/cevi-schweiz';
 import { LinkComponent } from '@/components/ui/link-component';
 import { getFooterCached } from '@/features/payload-cms/api/cached-globals';
 import {
+  getImageAltInLocale,
+  getRelativeImageUrl,
+} from '@/features/payload-cms/payload-cms/utils/images-meta-fields';
+import {
   getURLForLinkField,
   openURLInNewTab,
 } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
+import type { Image as ImageType } from '@/features/payload-cms/payload-types';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { getBuildInfo } from '@/utils/get-build-info';
 import { ForceDynamicOnBuild } from '@/utils/is-pre-rendering';
 import { cn } from '@/utils/tailwindcss-override';
 import { SiInstagram, SiYoutube } from '@icons-pack/react-simple-icons';
 import { cacheLife, cacheTag } from 'next/cache';
+import ImageNode from 'next/image';
 import type React from 'react';
 import { Fragment } from 'react';
 
@@ -24,7 +30,7 @@ const FooterLayoutCached: React.FC<{ locale: Locale }> = async ({ locale }) => {
   cacheLife('hours');
   cacheTag('payload', 'footer');
 
-  const { minimalFooterMenu, socialLinks } = await getFooterCached(locale);
+  const { minimalFooterMenu, socialLinks, sponsors } = await getFooterCached(locale);
 
   const instagramLink = socialLinks?.instagram;
   const youTubeLink = socialLinks?.youtube;
@@ -55,6 +61,46 @@ const FooterLayoutCached: React.FC<{ locale: Locale }> = async ({ locale }) => {
           </Fragment>
         ))}
       </div>
+
+      {sponsors !== undefined && sponsors !== null && sponsors.length > 0 && (
+        <div className="mt-6 mb-4 flex flex-wrap items-center justify-center gap-4">
+          {sponsors.map((sponsor) => {
+            const url = getURLForLinkField(sponsor.linkField, locale);
+            const image = sponsor.logo as ImageType | undefined;
+
+            if (!image?.url) return <></>;
+
+            const cardContent = (
+              <div className="flex aspect-square w-24 items-center justify-center overflow-hidden rounded bg-white p-2 sm:w-32">
+                <div className="relative size-full">
+                  <ImageNode
+                    src={getRelativeImageUrl(image.url)}
+                    alt={getImageAltInLocale(locale, image)}
+                    fill
+                    className="object-contain"
+                  />
+                </div>
+              </div>
+            );
+
+            if (sponsor.linkField !== undefined && url !== undefined && url !== '') {
+              return (
+                <LinkComponent
+                  key={sponsor.id}
+                  href={url}
+                  openInNewTab={openURLInNewTab(sponsor.linkField)}
+                  hideExternalIcon
+                  className="block no-underline"
+                >
+                  {cardContent}
+                </LinkComponent>
+              );
+            }
+
+            return <Fragment key={sponsor.id}>{cardContent}</Fragment>;
+          })}
+        </div>
+      )}
 
       <div className="mb-2 flex items-center justify-center gap-2">
         {instagramLink !== null && instagramLink !== undefined && (

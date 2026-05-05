@@ -5974,6 +5974,46 @@ export interface Footer {
     instagram?: string | null;
     youtube?: string | null;
   };
+  /**
+   * Up to 6 sponsor logos displayed in the footer
+   */
+  sponsors?:
+    | {
+        logo: string | Image;
+        linkField?: {
+          type?: ('reference' | 'custom' | 'email') | null;
+          reference?:
+            | ({
+                relationTo: 'blog';
+                value: string | Blog;
+              } | null)
+            | ({
+                relationTo: 'generic-page';
+                value: string | GenericPage;
+              } | null)
+            | ({
+                relationTo: 'images';
+                value: string | Image;
+              } | null)
+            | ({
+                relationTo: 'documents';
+                value: string | Document;
+              } | null)
+            | ({
+                relationTo: 'camp-map-annotations';
+                value: string | CampMapAnnotation;
+              } | null)
+            | ({
+                relationTo: 'camp-schedule-entry';
+                value: string | CampScheduleEntry;
+              } | null);
+          url?: string | null;
+          email?: string | null;
+          openInNewTab?: boolean | null;
+        };
+        id?: string | null;
+      }[]
+    | null;
   _status?: ('draft' | 'published') | null;
   updatedAt?: string | null;
   createdAt?: string | null;
@@ -6233,6 +6273,21 @@ export interface FooterSelect<T extends boolean = true> {
     | {
         instagram?: T;
         youtube?: T;
+      };
+  sponsors?:
+    | T
+    | {
+        logo?: T;
+        linkField?:
+          | T
+          | {
+              type?: T;
+              reference?: T;
+              url?: T;
+              email?: T;
+              openInNewTab?: T;
+            };
+        id?: T;
       };
   _status?: T;
   updatedAt?: T;
