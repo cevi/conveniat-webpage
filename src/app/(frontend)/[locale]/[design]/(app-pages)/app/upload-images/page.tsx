@@ -312,7 +312,7 @@ const ImageUploadPage: React.FC = () => {
       <div className="container mx-auto max-w-2xl px-4 py-16">
         <div className="flex flex-col items-center justify-center text-center">
           <div className="bg-conveniat-green/10 relative mb-10 flex h-36 w-36 items-center justify-center rounded-full shadow-inner">
-            <div className="bg-conveniat-green/20 absolute inset-0 animate-ping rounded-full opacity-20 duration-[2000ms]" />
+            <div className="bg-conveniat-green/20 absolute inset-0 animate-ping rounded-full opacity-20 duration-2000" />
             <LucideImageIcon className="text-conveniat-green h-14 w-14" />
             <div className="absolute -top-2 -right-2">
               <Sparkles className="h-10 w-10 animate-pulse text-yellow-400 drop-shadow-sm" />
@@ -354,7 +354,7 @@ const ImageUploadPage: React.FC = () => {
       <form onSubmit={(event) => void handleFormSubmit(event)} className="space-y-8">
         {errorMessage !== '' && (
           <div className="flex items-center gap-4 rounded-xl border border-red-100 bg-red-50 p-4 text-red-800">
-            <LucideImageIcon className="h-6 w-6 flex-shrink-0 opacity-80" />
+            <LucideImageIcon className="h-6 w-6 shrink-0 opacity-80" />
             <p className="text-sm font-medium">{errorMessage}</p>
           </div>
         )}

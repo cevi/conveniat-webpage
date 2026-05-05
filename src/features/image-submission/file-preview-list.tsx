@@ -28,6 +28,7 @@ const FilePreviewItem: React.FC<{
 
   React.useEffect((): (() => void) => {
     const objectUrl = URL.createObjectURL(file);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPreview(objectUrl);
 
     // Free memory when component is unmounted
