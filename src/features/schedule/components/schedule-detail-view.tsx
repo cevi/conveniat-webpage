@@ -69,10 +69,14 @@ const slideVariants = {
  * Fetches data via tRPC with offline support from TanStack DB cache.
  * Swipe left/right to navigate between schedule entries.
  */
-export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id }) => {
+export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id: initialId }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const router = useRouter();
+  const [currentId, setCurrentId] = useState(initialId);
   const [slideDirection, setSlideDirection] = useState(0);
+
+  // Use the locally tracked ID for all data fetching and display
+  const id = currentId;
 
   // 1. Try to find the entry in the local TanStack DB cache first (offline support)
   const { entries: localEntries } = useScheduleEntries();
@@ -132,13 +136,13 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id 
   // 6. Adjacent entries for swipe navigation
   const { previous, next } = useAdjacentEntries(id);
 
-  const navigateToEntry = useCallback(
-    (entryId: string, direction: number): void => {
-      setSlideDirection(direction);
-      router.replace(`/app/schedule/${entryId}`);
-    },
-    [router],
-  );
+  const navigateToEntry = useCallback((entryId: string, direction: number): void => {
+    setSlideDirection(direction);
+    setCurrentId(entryId);
+    // Update the URL without triggering a Next.js navigation to avoid
+    // tearing down the React tree (which breaks TRPCProvider's promise chain)
+    globalThis.history.replaceState(undefined, '', `/app/schedule/${entryId}`);
+  }, []);
 
   const handleDragEnd = useCallback(
     (_: unknown, info: { offset: { x: number }; velocity: { x: number } }): void => {
