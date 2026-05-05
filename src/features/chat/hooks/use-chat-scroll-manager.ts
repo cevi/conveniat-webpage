@@ -81,7 +81,7 @@ export const useChatScrollManager = ({
     });
 
     resizeObserver.observe(container);
-    return () => {
+    return (): void => {
       resizeObserver.disconnect();
     };
   }, []);
