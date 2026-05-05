@@ -1,3 +1,5 @@
+'use client';
+
 import { starsCollection, userPreferencesCollection } from '@/lib/tanstack-db';
 
 /**
@@ -39,17 +41,21 @@ export function flushPersonalData(): void {
   //    We iterate and delete rather than dropping the collection so that
   //    reactive subscribers (useLiveQuery) update cleanly.
   try {
-    for (const item of starsCollection.state.values()) {
+    const starsItems = [...starsCollection.state.values()];
+    for (const item of starsItems) {
       starsCollection.delete(item.id);
     }
+    localStorage.removeItem('tanstack-db-stars');
   } catch {
     // Collection may not be initialised yet — safe to ignore.
   }
 
   try {
-    for (const item of userPreferencesCollection.state.values()) {
+    const userPrefsItems = [...userPreferencesCollection.state.values()];
+    for (const item of userPrefsItems) {
       userPreferencesCollection.delete(item.key);
     }
+    localStorage.removeItem('tanstack-db-user-preferences');
   } catch {
     // Collection may not be initialised yet — safe to ignore.
   }
