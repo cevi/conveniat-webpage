@@ -67,6 +67,26 @@ export const PushNotificationSubscriptions: CollectionConfig = asPushNotificatio
         },
       ],
     },
+    {
+      type: 'text',
+      name: 'userAgent',
+      required: false,
+      admin: {
+        readOnly: true,
+      },
+    },
+    {
+      type: 'select',
+      name: 'registrationSource',
+      required: false,
+      options: [
+        { label: '/entrypoint', value: '/entrypoint' },
+        { label: '/app/settings', value: '/app/settings' },
+      ],
+      admin: {
+        readOnly: true,
+      },
+    },
   ],
 
   // hidden from the admin panel

@@ -3273,6 +3273,8 @@ export interface PushNotificationSubscription {
     p256dh: string;
     auth: string;
   };
+  userAgent?: string | null;
+  registrationSource?: ('/entrypoint' | '/app/settings') | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -5270,6 +5272,8 @@ export interface PushNotificationSubscriptionsSelect<T extends boolean = true> {
         p256dh?: T;
         auth?: T;
       };
+  userAgent?: T;
+  registrationSource?: T;
   updatedAt?: T;
   createdAt?: T;
 }

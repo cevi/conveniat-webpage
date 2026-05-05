@@ -28,7 +28,7 @@ const notSupportedText: StaticTranslationString = {
 
 export const PushNotificationSettings: React.FC<{ locale: Locale }> = ({ locale }) => {
   const { isSupported, isSubscribed, isLoading, errorMessage, toggleSubscription } =
-    usePushNotificationState();
+    usePushNotificationState({ registrationSource: '/app/settings' });
 
   return (
     <SettingsRow

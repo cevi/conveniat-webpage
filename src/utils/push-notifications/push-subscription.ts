@@ -32,6 +32,7 @@ const retry = async <T>(
 
 export const subscribeToPushNotifications = async (
   locale: 'de' | 'fr' | 'en',
+  registrationSource?: '/entrypoint' | '/app/settings',
 ): Promise<PushSubscription> => {
   if (Notification.permission === 'denied') {
     throw new Error('Notifications are blocked. Please enable them in your browser settings.');
@@ -72,7 +73,18 @@ export const subscribeToPushNotifications = async (
 
   // 4. Send subscription to backend (with retry)
   try {
-    await retry(() => subscribeUser(sub.toJSON() as webpush.PushSubscription, locale), 3, 1000);
+    const userAgent = typeof navigator === 'undefined' ? undefined : navigator.userAgent;
+    await retry(
+      () =>
+        subscribeUser(
+          sub.toJSON() as webpush.PushSubscription,
+          locale,
+          userAgent,
+          registrationSource,
+        ),
+      3,
+      1000,
+    );
   } catch (error) {
     // Attempt to unsubscribe from Push Manager to keep state consistent
     try {
