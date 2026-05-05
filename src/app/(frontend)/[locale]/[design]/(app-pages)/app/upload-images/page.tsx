@@ -309,36 +309,31 @@ const ImageUploadPage: React.FC = () => {
 
   if (showSuccessView) {
     return (
-      <div className="container mx-auto max-w-2xl px-4 py-12">
-        <div className="mb-8 border-b border-gray-200 pb-6 text-center">
-          <HeadlineH1>{successTitle[locale]}</HeadlineH1>
-        </div>
+      <div className="container mx-auto max-w-2xl px-4 py-16">
         <div className="flex flex-col items-center justify-center text-center">
-          <div className="relative mb-8 flex h-32 w-32 items-center justify-center rounded-full bg-gradient-to-tr from-blue-50 to-blue-100 shadow-inner">
-            <div className="absolute inset-0 animate-ping rounded-full bg-blue-400 opacity-10 duration-[2000ms]" />
-            <LucideImageIcon className="h-12 w-12 text-blue-600" />
-            <div className="absolute -top-3 -right-3">
-              <Sparkles
-                className="h-10 w-10 animate-pulse text-yellow-400 drop-shadow-sm"
-                fill="currentColor"
-              />
+          <div className="bg-conveniat-green/10 relative mb-10 flex h-36 w-36 items-center justify-center rounded-full shadow-inner">
+            <div className="bg-conveniat-green/20 absolute inset-0 animate-ping rounded-full opacity-20 duration-[2000ms]" />
+            <LucideImageIcon className="text-conveniat-green h-14 w-14" />
+            <div className="absolute -top-2 -right-2">
+              <Sparkles className="h-10 w-10 animate-pulse text-yellow-400 drop-shadow-sm" />
             </div>
-            <div className="absolute -bottom-2 -left-2">
-              <Sparkles
-                className="h-6 w-6 animate-bounce text-yellow-400 drop-shadow-sm delay-150"
-                fill="currentColor"
-              />
+            <div className="absolute -bottom-1 -left-1">
+              <Sparkles className="h-6 w-6 animate-bounce text-yellow-400 drop-shadow-sm delay-150" />
             </div>
           </div>
-          <h2 className="mb-3 text-2xl font-bold tracking-tight text-gray-900">
+
+          <HeadlineH1 className="mb-4 text-center">{successTitle[locale]}</HeadlineH1>
+
+          <h2 className="mb-3 text-xl font-bold tracking-tight text-gray-900 md:text-2xl">
             {successMessage[locale]}
           </h2>
-          <p className="mb-8 text-lg font-medium text-gray-600">
+          <p className="mb-10 text-lg font-medium text-gray-500">
             {uploadSecurelyTransferred[locale]}
           </p>
+
           <button
             onClick={resetToForm}
-            className="flex transform items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-4 text-base font-semibold text-white shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl focus:ring-4 focus:ring-blue-500/30 cursor-pointer"
+            className="bg-conveniat-green shadow-conveniat-green/20 hover:bg-conveniat-green-dark focus:ring-conveniat-green/30 flex transform cursor-pointer items-center justify-center gap-3 rounded-full px-8 py-4 text-base font-bold tracking-wide text-white shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl focus:ring-4 active:translate-y-0"
           >
             <LucideImageIcon className="h-5 w-5" />
             {submitMoreButton[locale]}
