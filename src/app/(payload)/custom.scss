@@ -43,3 +43,11 @@ div#action-unpublish-popup {
   width: 45%;
   height: calc(100vh - var(--doc-controls-height) - 130px);
 }
+
+/**
+ * Hide the default Payload login branding because we provide our own
+ * centered branding in the AdminPanelLoginPage component.
+ */
+.login__brand {
+  display: none;
+}

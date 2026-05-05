@@ -45,7 +45,7 @@ export const UnauthorizedPage = (): React.JSX.Element => {
 
         <button
           onClick={() => handleLogin()}
-          className="font-heading flex cursor-pointer items-center gap-3 rounded-[12px] bg-red-800 px-10 py-4 text-center text-xl font-bold text-red-50 transition-all duration-200 hover:scale-[1.02] hover:bg-red-900 active:scale-[0.98]"
+          className="font-heading flex cursor-pointer items-center gap-3 rounded-[12px] border-none bg-red-800 px-10 py-4 text-center text-xl font-bold text-red-50 shadow-none transition-all duration-200 hover:scale-[1.02] hover:bg-red-900 active:scale-[0.98]"
         >
           <LogIn className="size-6" />
           {loginButtonText[locale]}
