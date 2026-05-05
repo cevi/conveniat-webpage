@@ -430,6 +430,7 @@ export interface Blog {
       | TwoColumnBlock
       | SponsorGridBlock
       | FeaturedSectionBlock
+      | TabsBlock
     )[];
   };
   seo: {
@@ -1830,6 +1831,7 @@ export interface GenericPage {
       | TwoColumnBlock
       | SponsorGridBlock
       | FeaturedSectionBlock
+      | TabsBlock
     )[];
   };
   seo: {
@@ -2865,6 +2867,190 @@ export interface FeaturedSectionBlock {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TabsBlock".
+ */
+export interface TabsBlock {
+  tabs: {
+    title: string;
+    content: (
+      | {
+          richTextSection: {
+            root: {
+              type: string;
+              children: {
+                type: any;
+                version: number;
+                [k: string]: unknown;
+              }[];
+              direction: ('ltr' | 'rtl') | null;
+              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+              indent: number;
+              version: number;
+            };
+            [k: string]: unknown;
+          };
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'richTextSection';
+        }
+      | {
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'blogPostsOverview';
+        }
+      | FormBlock
+      | {
+          images: (string | Image)[];
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'photoCarousel';
+        }
+      | {
+          image: string | Image;
+          /**
+           * Choose the aspect ratio of the image.
+           */
+          aspectRatio: 'video' | '3/2' | '2/1' | '4/3' | '1/1' | '21/9' | 'auto';
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'singlePicture';
+        }
+      | YoutubeEmbedding
+      | InstagramEmbedding
+      | SwisstopoMapEmbedding
+      | {
+          file: string | Document;
+          openInNewTab?: boolean | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'fileDownload';
+        }
+      | DetailsTable
+      | AccordionBlocks
+      | SummaryBox
+      | TimelineEntries
+      | Countdown
+      | {
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'whiteSpace';
+        }
+      | {
+          /**
+           * Label for the button
+           */
+          label?: string | null;
+          linkField?: {
+            type?: ('reference' | 'custom' | 'email') | null;
+            reference?:
+              | ({
+                  relationTo: 'blog';
+                  value: string | Blog;
+                } | null)
+              | ({
+                  relationTo: 'generic-page';
+                  value: string | GenericPage;
+                } | null)
+              | ({
+                  relationTo: 'images';
+                  value: string | Image;
+                } | null)
+              | ({
+                  relationTo: 'documents';
+                  value: string | Document;
+                } | null)
+              | ({
+                  relationTo: 'camp-map-annotations';
+                  value: string | CampMapAnnotation;
+                } | null)
+              | ({
+                  relationTo: 'camp-schedule-entry';
+                  value: string | CampScheduleEntry;
+                } | null);
+            url?: string | null;
+            email?: string | null;
+            openInNewTab?: boolean | null;
+          };
+          /**
+           * Show inverted colors
+           */
+          inverted?: boolean | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'callToAction';
+        }
+      | {
+          linkField?: {
+            type?: ('reference' | 'custom' | 'email') | null;
+            reference?:
+              | ({
+                  relationTo: 'blog';
+                  value: string | Blog;
+                } | null)
+              | ({
+                  relationTo: 'generic-page';
+                  value: string | GenericPage;
+                } | null)
+              | ({
+                  relationTo: 'images';
+                  value: string | Image;
+                } | null)
+              | ({
+                  relationTo: 'documents';
+                  value: string | Document;
+                } | null)
+              | ({
+                  relationTo: 'camp-map-annotations';
+                  value: string | CampMapAnnotation;
+                } | null)
+              | ({
+                  relationTo: 'camp-schedule-entry';
+                  value: string | CampScheduleEntry;
+                } | null);
+            url?: string | null;
+            email?: string | null;
+            openInNewTab?: boolean | null;
+          };
+          headline: string;
+          date: string;
+          image?: (string | null) | Image;
+          paragraph?: {
+            root: {
+              type: string;
+              children: {
+                type: any;
+                version: number;
+                [k: string]: unknown;
+              }[];
+              direction: ('ltr' | 'rtl') | null;
+              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+              indent: number;
+              version: number;
+            };
+            [k: string]: unknown;
+          } | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'newsCard';
+        }
+      | {
+          date: string;
+          location?: (string | null) | CampMapAnnotation;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'campScheduleEntryBlock';
+        }
+      | CardGridBlock
+      | ContactPersonBlock
+    )[];
+    id?: string | null;
+  }[];
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'tabsBlock';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "AccordionTimelineElementBlock".
  */
 export interface AccordionTimelineElementBlock {
@@ -3741,6 +3927,7 @@ export interface BlogSelect<T extends boolean = true> {
               twoColumnBlock?: T | TwoColumnBlockSelect<T>;
               sponsorGrid?: T | SponsorGridBlockSelect<T>;
               featuredSection?: T | FeaturedSectionBlockSelect<T>;
+              tabsBlock?: T | TabsBlockSelect<T>;
             };
       };
   seo?:
@@ -4342,6 +4529,121 @@ export interface FeaturedSectionBlockSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TabsBlock_select".
+ */
+export interface TabsBlockSelect<T extends boolean = true> {
+  tabs?:
+    | T
+    | {
+        title?: T;
+        content?:
+          | T
+          | {
+              richTextSection?:
+                | T
+                | {
+                    richTextSection?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              blogPostsOverview?:
+                | T
+                | {
+                    id?: T;
+                    blockName?: T;
+                  };
+              formBlock?: T | FormBlockSelect<T>;
+              photoCarousel?:
+                | T
+                | {
+                    images?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              singlePicture?:
+                | T
+                | {
+                    image?: T;
+                    aspectRatio?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              youtubeEmbed?: T | YoutubeEmbeddingSelect<T>;
+              instagramEmbed?: T | InstagramEmbeddingSelect<T>;
+              swisstopoEmbed?: T | SwisstopoMapEmbeddingSelect<T>;
+              fileDownload?:
+                | T
+                | {
+                    file?: T;
+                    openInNewTab?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              detailsTable?: T | DetailsTableSelect<T>;
+              accordion?: T | AccordionBlocksSelect<T>;
+              summaryBox?: T | SummaryBoxSelect<T>;
+              timelineEntries?: T | TimelineEntriesSelect<T>;
+              countdown?: T | CountdownSelect<T>;
+              whiteSpace?:
+                | T
+                | {
+                    id?: T;
+                    blockName?: T;
+                  };
+              callToAction?:
+                | T
+                | {
+                    label?: T;
+                    linkField?:
+                      | T
+                      | {
+                          type?: T;
+                          reference?: T;
+                          url?: T;
+                          email?: T;
+                          openInNewTab?: T;
+                        };
+                    inverted?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              newsCard?:
+                | T
+                | {
+                    linkField?:
+                      | T
+                      | {
+                          type?: T;
+                          reference?: T;
+                          url?: T;
+                          email?: T;
+                          openInNewTab?: T;
+                        };
+                    headline?: T;
+                    date?: T;
+                    image?: T;
+                    paragraph?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              campScheduleEntryBlock?:
+                | T
+                | {
+                    date?: T;
+                    location?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              cardGrid?: T | CardGridBlockSelect<T>;
+              contactPerson?: T | ContactPersonBlockSelect<T>;
+            };
+        id?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "generic-page_select".
  */
 export interface GenericPageSelect<T extends boolean = true> {
@@ -4461,6 +4763,7 @@ export interface GenericPageSelect<T extends boolean = true> {
               twoColumnBlock?: T | TwoColumnBlockSelect<T>;
               sponsorGrid?: T | SponsorGridBlockSelect<T>;
               featuredSection?: T | FeaturedSectionBlockSelect<T>;
+              tabsBlock?: T | TabsBlockSelect<T>;
             };
       };
   seo?:

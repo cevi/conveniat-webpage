@@ -80,6 +80,7 @@ export type ContentBlockTypeNames =
   | 'cardGrid'
   | 'contactPerson'
   | 'sponsorGrid'
+  | 'tabsBlock'
   | 'featuredSection';
 
 export type SectionRenderer<T = object> = React.FC<
@@ -805,6 +806,33 @@ export const RenderFeaturedSection: SectionRenderer<FeaturedSectionBlock> = ({
       locale={locale}
     >
       <FeaturedSection {...block} locale={locale} />
+    </SectionWrapper>
+  );
+};
+
+import { TabsBlock, type TabsBlockPayloadType } from '@/features/payload-cms/components/content-blocks/tabs-block';
+
+export const RenderTabsBlock: SectionRenderer<TabsBlockPayloadType> = ({
+  block,
+  sectionClassName,
+  ...rest
+}) => {
+  return (
+    <SectionWrapper
+      block={block as never}
+      sectionClassName={sectionClassName}
+      sectionOverrides={rest.sectionOverrides}
+      errorFallbackMessage={errorMessageForType(
+        {
+          de: 'Tab-Block',
+          en: 'Tabs Block',
+          fr: 'Bloc d\'onglets',
+        },
+        rest.locale,
+      )}
+      {...rest}
+    >
+      <TabsBlock {...block} {...rest} />
     </SectionWrapper>
   );
 };

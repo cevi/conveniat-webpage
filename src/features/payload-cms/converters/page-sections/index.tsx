@@ -20,6 +20,7 @@ import {
   RenderRichTextSection,
   RenderSinglePicture,
   RenderSponsorGrid,
+  RenderTabsBlock,
   RenderTimelineEntries,
   RenderWhiteSpace,
   RenderYoutubeEmbed,
@@ -73,6 +74,7 @@ export const PageSectionsConverter: React.FC<
     contactPerson: RenderContactPerson,
     sponsorGrid: RenderSponsorGrid,
     featuredSection: RenderFeaturedSection,
+    tabsBlock: RenderTabsBlock,
   };
 
   return (
