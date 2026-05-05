@@ -30,13 +30,15 @@ export const HeaderComponent: React.FC<{
       <div className="mb-[32px] border-b-2 border-gray-200 bg-white">
         <div className="text-conveniat-green relative mx-auto h-[60px] w-full max-w-2xl xl:ml-4">
           <div className="flex items-center justify-between px-6">
-            <LinkComponent
-              href={`/${languagePrefix}`}
-              aria-label={landingPageAreaLinktText[locale]}
-              prefetch
-            >
-              <ConveniatLogo className="absolute top-[12px] left-[24px] z-100" />
-            </LinkComponent>
+            {!inAppDesign && (
+              <LinkComponent
+                href={`/${languagePrefix}`}
+                aria-label={landingPageAreaLinktText[locale]}
+                prefetch
+              >
+                <ConveniatLogo className="absolute top-[12px] left-[24px] z-100" />
+              </LinkComponent>
+            )}
 
             <span className="absolute top-[16px] left-0 flex w-full items-center justify-center font-['Montserrat'] text-[24px] leading-normal font-extrabold xl:hidden">
               <DynamicAppTitleName />

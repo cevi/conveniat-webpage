@@ -1,15 +1,14 @@
 'use client';
 
 import { AccordionContent, AccordionItem, AccordionTrigger } from '@/components/accordion';
-import { Button } from '@/components/ui/buttons/button';
-import { Input } from '@/components/ui/input';
+import { AppSearchBar } from '@/components/ui/app-search-bar';
 import { ConfirmationSlider } from '@/features/emergency/components/slide-to-confirm';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { Accordion } from '@radix-ui/react-accordion';
 import { AnimatePresence, motion } from 'framer-motion';
-import { BriefcaseMedical, Search, X } from 'lucide-react';
+import { BriefcaseMedical } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import { useRouter } from 'next/navigation';
@@ -328,32 +327,12 @@ export const EmergencyComponent: React.FC = () => {
       <div className="mx-auto w-full max-w-2xl space-y-6 px-8">
         <div className="pb-4">
           <div className="mb-2">
-            <div className="relative">
-              <Input
-                type="text"
-                placeholder={searchPlaceholder[locale]}
-                value={searchTerm}
-                onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                  setSearchTerm(event.target.value)
-                }
-                className="h-14 rounded-2xl border-gray-200 bg-white pr-12 text-base shadow-sm focus-visible:border-gray-300 focus-visible:ring-0"
-              />
-              {searchTerm === '' ? (
-                <Search
-                  className="absolute top-1/2 right-4 -translate-y-1/2 transform text-gray-500"
-                  size={24}
-                />
-              ) : (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute top-1/2 right-3 -translate-y-1/2 transform text-gray-500 hover:bg-transparent"
-                  onClick={clearSearch}
-                >
-                  <X size={24} />
-                </Button>
-              )}
-            </div>
+            <AppSearchBar
+              placeholder={searchPlaceholder[locale]}
+              value={searchTerm}
+              onChange={(event: ChangeEvent<HTMLInputElement>) => setSearchTerm(event.target.value)}
+              onClear={clearSearch}
+            />
           </div>
         </div>
 

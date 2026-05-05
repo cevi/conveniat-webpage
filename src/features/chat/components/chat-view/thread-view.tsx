@@ -38,7 +38,7 @@ export const ThreadView: React.FC<ThreadViewProperties> = ({ threadId, onClose }
   return (
     <div className="flex h-full w-full flex-col bg-gray-50">
       {/* Thread Header */}
-      <div className="flex items-center gap-4 border-b border-gray-200 bg-white px-4 py-3 shadow-sm">
+      <div className="mb-[32px] flex h-[60px] items-center gap-4 border-b-2 border-gray-200 bg-white px-4">
         <Button
           onClick={onClose}
           variant="ghost"

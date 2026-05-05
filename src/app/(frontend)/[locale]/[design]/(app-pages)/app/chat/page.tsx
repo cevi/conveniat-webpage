@@ -20,9 +20,11 @@ const ChatPage: React.FC<{
 
   return (
     <>
-      <div className="fixed top-0 z-0 flex h-[calc(100dvh-80px)] w-screen flex-col overflow-y-hidden bg-gray-50 xl:top-[62px] xl:left-[480px] xl:h-[calc(100dvh-62px-80px)] xl:w-[calc(100dvw-480px)]">
-        <div className="flex-1 overflow-y-auto px-4 py-4">
-          <ChatsOverviewClientComponent user={user} />
+      <div className="fixed top-[62px] z-0 flex h-[calc(100dvh-62px-80px)] w-screen flex-col overflow-y-hidden bg-gray-50 xl:left-[480px] xl:w-[calc(100dvw-480px)]">
+        <div className="flex-1 overflow-y-auto">
+          <div className="container mx-auto mt-8 max-w-2xl px-8 py-6">
+            <ChatsOverviewClientComponent user={user} />
+          </div>
         </div>
       </div>
       {design !== DesignCodes.APP_DESIGN && <AppAdvertisement locale={locale} type="chat" />}

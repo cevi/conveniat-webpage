@@ -115,6 +115,7 @@ export const ChatsOverviewClientComponent: React.FC<{ user: HitobitoNextAuthUser
         placeholder={searchPlaceholderText[locale]}
         value={searchQuery}
         onChange={(event) => setSearchQuery(event.target.value)}
+        onClear={() => setSearchQuery('')}
       />
 
       {createChatsEnabled && (

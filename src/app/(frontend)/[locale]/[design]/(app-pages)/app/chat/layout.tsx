@@ -1,4 +1,3 @@
-import { SetHideHeader } from '@/components/header/hide-header-context';
 import { SetDynamicPageTitle } from '@/components/header/set-dynamic-app-title';
 import { SetOnlineStatus } from '@/features/chat/components/set-online-status';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -24,7 +23,6 @@ const Layout: React.FC<LayoutProperties> = async ({ children, params }) => {
   return (
     <>
       <SetOnlineStatus />
-      <SetHideHeader value />
       <SetDynamicPageTitle newTitle={chatsTitle[locale]} />
       {children}
     </>

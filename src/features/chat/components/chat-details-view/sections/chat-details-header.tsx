@@ -30,7 +30,7 @@ export const ChatDetailsHeader: React.FC<ChatDetailsHeaderProperties> = ({
   locale,
 }) => {
   return (
-    <div className="flex h-16 items-center gap-3 border-b-2 border-gray-200 bg-white px-4">
+    <div className="mb-[32px] flex h-[60px] items-center gap-3 border-b-2 border-gray-200 bg-white px-4">
       <Link href={`/app/chat/${chatId}`}>
         <Button variant="ghost" size="icon" className="mr-2 hover:bg-gray-100">
           <ArrowLeft className="h-5 w-5 text-gray-700" />

@@ -33,7 +33,7 @@ const participantsText: StaticTranslationString = {
 };
 
 export const ChatHeaderSkeleton: React.FC = () => (
-  <div className="flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 shadow-sm">
+  <div className="mb-[32px] flex h-[60px] items-center justify-between border-b-2 border-gray-200 bg-white px-4">
     <Link href="/app/chat">
       <Button variant="ghost" size="icon" className="mr-1 hover:bg-gray-100">
         <ArrowLeft className="h-5 w-5 text-gray-700" />
@@ -67,7 +67,7 @@ export const ChatHeader: React.FC = () => {
 
   return (
     <>
-      <div className="flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 shadow-sm">
+      <div className="mb-[32px] flex h-[60px] items-center justify-between border-b-2 border-gray-200 bg-white px-4">
         <div className="flex min-w-0 items-center gap-3">
           <Link href="/app/chat">
             <Button variant="ghost" size="icon" className="mr-1 hover:bg-gray-100">
