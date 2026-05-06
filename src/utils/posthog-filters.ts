@@ -38,6 +38,10 @@ const noiseMessages = [
   // Common Android WebView error triggered by injected scripts (like Facebook in-app browser)
   // attempting to use a JS bridge that has already been destroyed during navigation or backgrounding.
   'Error invoking postMessage: Java object is gone',
+
+  // see: https://github.com/cevi/conveniat-webpage/issues/1168
+  // Another variant of the Android WebView JS bridge error.
+  'Error invoking enableDidUserTypeOnKeyboardLogging: Java object is gone',
 ];
 
 export const filterPostHogNoise = (event: CaptureResult | null): CaptureResult | null => {
