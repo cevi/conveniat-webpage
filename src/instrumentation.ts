@@ -66,11 +66,18 @@ export const onRequestError = async (
       if (request.headers['x-forwarded-for'] !== undefined)
         properties['x-forwarded-for'] = request.headers['x-forwarded-for'];
 
+      let errorMessage = '';
       if (error !== null && typeof error === 'object') {
         if ('digest' in error) properties['digest'] = error.digest;
         if ('message' in error && typeof error.message === 'string') {
+          errorMessage = error.message;
           properties['errorMessage'] = error.message;
         }
+      }
+
+      const { noiseMessages } = await import('@/utils/posthog-filters');
+      if (noiseMessages.some((message) => errorMessage.includes(message))) {
+        return;
       }
 
       posthog.captureException(error, distinctId, properties);

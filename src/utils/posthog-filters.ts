@@ -3,7 +3,7 @@ import type { CaptureResult } from 'posthog-js';
 /**
  * Filter out known noise like CefSharp bot errors (e.g., from Outlook Safe Links)
  */
-const noiseMessages = [
+export const noiseMessages = [
   // see: https://github.com/cevi/conveniat-webpage/issues/1012
   'Object Not Found Matching Id',
 
@@ -47,6 +47,10 @@ const noiseMessages = [
   // DOMException in Mobile Safari usually related to Private Browsing, ITP,
   // or network flakiness when trying to load/register the service worker.
   'SecurityError: Script https://conveniat27.ch/sw.js load failed',
+
+  // see: https://github.com/cevi/conveniat-webpage/issues/1135
+  // Next.js App Router error when a client sends a malformed or outdated Next-Router-State-Tree header.
+  'The router state header was sent but could not be parsed',
 ];
 
 export const filterPostHogNoise = (event: CaptureResult | null): CaptureResult | null => {
