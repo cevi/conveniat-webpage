@@ -271,7 +271,7 @@ const generateMetadataInternal = async (
     }),
     twitter: {
       card: 'summary',
-      title: page.seo.metaTitle ?? page.content.pageTitle,
+      title: page.seo.metaTitle ?? page.internalPageName,
       description: page.seo.metaDescription ?? undefined,
     },
   };

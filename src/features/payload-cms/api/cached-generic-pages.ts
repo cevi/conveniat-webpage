@@ -1,5 +1,6 @@
 import type { GenericPage } from '@/features/payload-cms/payload-types';
 import type { Locale } from '@/types/types';
+import { i18nConfig } from '@/types/types';
 import { withSpan } from '@/utils/tracing-helpers';
 import config from '@payload-config';
 import { getPayload } from 'payload';
@@ -211,14 +212,15 @@ export const getGenericPageMetadataBySlugCached = cache(
 
 /**
  * Fetches all published locale variants of a page by internalPageName.
- * Replaces findAlternatives() which fires N parallel queries (one per locale).
+ * Wraps one `payload.find` per supported locale in `cache()` for request-level
+ * memoization, avoiding redundant DB round-trips within the same render pass.
  */
 export const getGenericPageAlternativesCached = cache(
   async (internalPageName: string): Promise<GenericPage[]> => {
     return await withSpan('getGenericPageAlternativesCached', async () => {
       const payload = await getPayload({ config });
       const results = await Promise.all(
-        (['de', 'fr', 'en'] as Locale[]).map((l) =>
+        (i18nConfig.locales as Locale[]).map((l) =>
           payload.find({
             collection: 'generic-page',
             pagination: false,

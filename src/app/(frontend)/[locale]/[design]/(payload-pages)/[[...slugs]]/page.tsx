@@ -128,8 +128,12 @@ export const generateMetadata = async ({
         await import('@/features/payload-cms/utils/preview/preview-utils');
       isPreview = await canAccessPreviewOfCurrentPage(awaitedSearchParameters);
     }
-  } catch {
+  } catch (error) {
     // During prerendering, searchParams rejects — preview is never active.
+    // Re-throw unexpected errors so they remain visible in logs.
+    if (!(error instanceof Error && error.message.includes('searchParams'))) {
+      console.error('Unexpected error while resolving preview state:', error);
+    }
   }
 
   // During build, 'await connection()' signals that this function depends on
