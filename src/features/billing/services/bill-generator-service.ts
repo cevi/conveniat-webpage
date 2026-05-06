@@ -362,7 +362,8 @@ export async function generateBills(
       const city = personAttributes?.town ?? '';
 
       const referenceNumber = generateQrReference(
-        document_.userId || '',
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        document_.userId ?? '',
         document_.eventId,
         document_.participationUuid,
         currentReferenceNumber,
@@ -373,9 +374,10 @@ export async function generateBills(
         .replaceAll('{{year}}', currentYear)
         .replaceAll('{{month}}', currentMonth)
         .replaceAll('{{event-id}}', document_.eventId)
-        .replaceAll('{{group-id}}', document_.groupId || '')
+        .replaceAll('{{group-id}}', document_.groupId ?? '')
         .replaceAll('{{participation-id}}', document_.participationUuid)
-        .replaceAll('{{people-id}}', String(document_.userId || ''));
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        .replaceAll('{{people-id}}', String(document_.userId ?? ''));
       const invoiceNumber = `${prefix}-${String(currentReferenceNumber).padStart(4, '0')}`;
 
       const customReference = settings.customReferenceTemplate
@@ -383,9 +385,10 @@ export async function generateBills(
             .replaceAll('{{year}}', currentYear)
             .replaceAll('{{month}}', currentMonth)
             .replaceAll('{{event-id}}', document_.eventId)
-            .replaceAll('{{group-id}}', document_.groupId || '')
+            .replaceAll('{{group-id}}', document_.groupId ?? '')
             .replaceAll('{{participation-id}}', document_.participationUuid)
-            .replaceAll('{{people-id}}', String(document_.userId || ''))
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+            .replaceAll('{{people-id}}', String(document_.userId ?? ''))
         : undefined;
 
       const eventNumber = settings.eventNumberTemplate
@@ -393,13 +396,14 @@ export async function generateBills(
             .replaceAll('{{year}}', currentYear)
             .replaceAll('{{month}}', currentMonth)
             .replaceAll('{{event-id}}', document_.eventId)
-            .replaceAll('{{group-id}}', document_.groupId || '')
+            .replaceAll('{{group-id}}', document_.groupId ?? '')
             .replaceAll('{{participation-id}}', document_.participationUuid)
-            .replaceAll('{{people-id}}', String(document_.userId || ''))
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+            .replaceAll('{{people-id}}', String(document_.userId ?? ''))
         : undefined;
 
       // Generate PDF
-      const documentTitle = settings.documentTitle || 'ANMELDEBESTÄTIGUNG UND RECHNUNG';
+      const documentTitle = settings.documentTitle ?? 'ANMELDEBESTÄTIGUNG UND RECHNUNG';
 
       const pdfBuffer = await generateQrBillPdf({
         documentTitle,

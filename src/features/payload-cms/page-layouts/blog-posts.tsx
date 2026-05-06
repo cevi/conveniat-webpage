@@ -206,8 +206,9 @@ const generateMetadataPreview = async (
   if (!article) return { title: 'Preview Mode' };
 
   return {
-    title: article.seo.metaTitle || article.content.blogH1 || 'Preview Mode',
-    description: article.seo.metaDescription || undefined,
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    title: article.seo.metaTitle ?? article.content.blogH1 ?? 'Preview Mode',
+    description: article.seo.metaDescription ?? undefined,
   };
 };
 

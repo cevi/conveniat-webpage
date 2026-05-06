@@ -20,7 +20,9 @@ const SearchOnlyBlog: React.FC<{ searchParameters: SearchParameters }> = async (
 
     const page = Number(Array.isArray(pageParameter) ? pageParameter[0] : pageParameter) || 1;
 
-    const searchQuery = Array.isArray(searchQueryQ) ? searchQueryQ[0] || '' : searchQueryQ || '';
+    const searchQuery = Array.isArray(searchQueryQ)
+      ? (searchQueryQ[0] ?? '')
+      : (searchQueryQ ?? '');
 
     const limit = 10; // Number of results per page
 

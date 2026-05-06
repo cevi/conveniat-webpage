@@ -35,9 +35,7 @@ export const ChatManagementMessages: React.FC<ChatManagementMessagesProperties> 
   const messagesByDate: { [date: string]: ChatMessage[] } = {};
   for (const message of messages) {
     const date = new Date(message.createdAt).toLocaleDateString();
-    if (!messagesByDate[date]) {
-      messagesByDate[date] = [];
-    }
+    messagesByDate[date] ??= [];
     messagesByDate[date].push(message);
   }
 
@@ -49,7 +47,7 @@ export const ChatManagementMessages: React.FC<ChatManagementMessagesProperties> 
     return (
       <div className="flex flex-1 flex-col items-center justify-center space-y-2 opacity-50">
         <Loader2 className="animate-spin" />
-        <div className="text-sm">{loadingMessagesText[locale] || loadingMessagesText['en']}</div>
+        <div className="text-sm">{loadingMessagesText[locale] ?? loadingMessagesText['en']}</div>
       </div>
     );
   }
@@ -63,7 +61,7 @@ export const ChatManagementMessages: React.FC<ChatManagementMessagesProperties> 
             <div className="my-6 flex justify-center">
               <div className="font-body rounded-full border border-[var(--theme-elevation-200)] bg-[var(--theme-elevation-50)] px-4 py-1 text-xs font-medium text-[var(--theme-text)] opacity-70 shadow-sm">
                 {date === new Date().toLocaleDateString()
-                  ? todayText[locale] || todayText['en']
+                  ? (todayText[locale] ?? todayText['en'])
                   : date}
               </div>
             </div>

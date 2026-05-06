@@ -130,7 +130,7 @@ export const ChatManagementInput: React.FC<ChatManagementInputProperties> = ({
           className={`text-right text-xs ${isTooLong ? 'font-semibold text-[var(--theme-error-500)]' : 'text-[var(--theme-warning-500)]'}`}
         >
           {messageLength}/{MAX_MESSAGE_LENGTH}
-          {isTooLong && ` - ${messageTooLongText[locale] || messageTooLongText['en']}`}
+          {isTooLong && ` - ${messageTooLongText[locale] ?? messageTooLongText['en']}`}
         </div>
       )}
       <div className="flex items-end gap-2">
@@ -167,7 +167,7 @@ export const ChatManagementInput: React.FC<ChatManagementInputProperties> = ({
             // Trigger auto resize logic if needed, usually handled by hook on value change or manual call
           }}
           onKeyDown={handleKeyDown}
-          placeholder={messagePlaceholder[locale] || messagePlaceholder['en']}
+          placeholder={messagePlaceholder[locale] ?? messagePlaceholder['en']}
           className="flex-1 resize-none rounded border border-[var(--theme-elevation-300)] bg-[var(--theme-elevation-100)] p-2 text-sm focus:ring-1 focus:ring-[var(--theme-success-500)] focus:outline-none"
           rows={1}
           disabled={sending || isUploading}
@@ -182,7 +182,7 @@ export const ChatManagementInput: React.FC<ChatManagementInputProperties> = ({
             disabled={sending || isUploading}
             className="rounded bg-[var(--theme-warning-500)] px-4 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[var(--theme-warning-600)]"
           >
-            {splitAndSendText[locale] || splitAndSendText['en']}
+            {splitAndSendText[locale] ?? splitAndSendText['en']}
           </Button>
         ) : (
           <Button

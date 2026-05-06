@@ -301,7 +301,7 @@ export const billingPreviewPdfHandler: PayloadHandler = async (request) => {
       rolePricing.find((rp) => rp.roleTypePattern.toLowerCase().includes('participant')) ??
       rolePricing[0];
     const amount = Number(participantPricing?.amount) || 150;
-    const roleLabel = participantPricing?.label || 'Teilnehmer:in';
+    const roleLabel = participantPricing?.label ?? 'Teilnehmer:in';
     const vatCode = participantPricing?.vatCode;
 
     const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
@@ -353,7 +353,7 @@ export const billingPreviewPdfHandler: PayloadHandler = async (request) => {
       reference: generateQrReference('123456', '1234', '9012', 1),
       ...(customReference ? { customReference } : {}),
       ...(eventNumber ? { eventNumber } : {}),
-      invoiceNumber: `${((settings.invoiceNumberPrefix as string) || '{{year}}')
+      invoiceNumber: `${((settings.invoiceNumberPrefix as string | undefined) ?? '{{year}}')
         .replaceAll('{{year}}', new Date().getFullYear().toString())
         .replaceAll('{{month}}', currentMonth)
         .replaceAll('{{event-id}}', '1234')

@@ -139,7 +139,7 @@ export const MapLibreRenderer = ({
         />
       )}
       <div className="h-full w-full" ref={(element) => setMapContainer(element ?? undefined)} />
-      {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */}
+      {}
       {enableSearch && <SearchBar onSearch={handleSearch} />}
       <MaplibreMap
         openAnnotation={openAnnotation}

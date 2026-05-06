@@ -51,8 +51,8 @@ export const IconSelectField: SelectFieldClientComponent = ({ path, field }) => 
     if (typeof option === 'string') return option;
     if (typeof option.label === 'string') return option.label;
     if (typeof option.label === 'object') {
-      const lang = i18n.language || 'de';
-      return option.label[lang] || option.label['en'] || Object.values(option.label)[0] || '';
+      const lang = i18n.language;
+      return option.label[lang] ?? option.label['en'] ?? Object.values(option.label)[0] ?? '';
     }
     return option.value;
   };
@@ -78,13 +78,13 @@ export const IconSelectField: SelectFieldClientComponent = ({ path, field }) => 
       <label className="field-label">
         {typeof field.label === 'string'
           ? field.label
-          : (field.label as LocalizedLabel)[i18n.language || 'de'] ||
-            (field.label as LocalizedLabel)['en'] ||
-            field.name}
+          : ((field.label as LocalizedLabel)[i18n.language] ??
+            (field.label as LocalizedLabel)['en'] ??
+            field.name)}
         {field.required && <span className="ml-1 text-red-500">*</span>}
       </label>
 
-      <Select value={value || ''} onValueChange={(val: string) => setValue(val)}>
+      <Select value={value} onValueChange={(val: string) => setValue(val)}>
         <SelectTrigger className="h-[40px] w-full border-gray-300 bg-[var(--theme-bg)] focus:ring-blue-500 dark:border-gray-700">
           <div className="flex items-center overflow-hidden">
             {value ? (
@@ -123,7 +123,7 @@ export const IconSelectField: SelectFieldClientComponent = ({ path, field }) => 
         <div className="field-description">
           {typeof field.admin.description === 'string'
             ? field.admin.description
-            : (field.admin.description as LocalizedLabel)[i18n.language || 'de']}
+            : (field.admin.description as LocalizedLabel)[i18n.language]}
         </div>
       )}
     </div>

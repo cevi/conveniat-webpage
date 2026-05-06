@@ -182,7 +182,7 @@ const config = defineConfig([
       '@typescript-eslint/no-non-null-assertion': 'error',
       '@typescript-eslint/no-unsafe-call': 'error',
       '@typescript-eslint/prefer-for-of': 'error',
-      '@typescript-eslint/prefer-nullish-coalescing': 'warn',
+      '@typescript-eslint/prefer-nullish-coalescing': 'error',
       '@typescript-eslint/prefer-optional-chain': 'error',
       '@typescript-eslint/restrict-plus-operands': [
         'error',

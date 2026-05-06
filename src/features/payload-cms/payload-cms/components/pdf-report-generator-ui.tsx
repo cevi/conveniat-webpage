@@ -158,7 +158,7 @@ export default function PdfReportGeneratorUI(): React.ReactNode {
                       if (typeof f.title === 'string') {
                         displayName = f.title;
                       } else if (typeof f.title === 'object') {
-                        displayName = f.title.de || f.title.en || f.title.fr || f.id;
+                        displayName = f.title.de ?? f.title.en ?? f.title.fr ?? f.id;
                       }
                     }
                     if (!displayName || displayName === '') displayName = f.id;

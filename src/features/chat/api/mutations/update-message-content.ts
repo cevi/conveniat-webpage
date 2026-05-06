@@ -62,7 +62,7 @@ export const updateMessageContent = trpcBaseProcedure
         fallbackLocale: 'de',
       });
 
-      const questions = alertSettings.questions || [];
+      const questions = alertSettings.questions ?? [];
       const currentQuestionIndex = questions.findIndex((q) => q.id === content['questionRefId']);
 
       if (currentQuestionIndex !== -1) {

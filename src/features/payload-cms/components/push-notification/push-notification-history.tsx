@@ -141,7 +141,7 @@ function SendPushNotificationTrigger({
 }): JSX.Element {
   const { i18n } = useTranslation();
   const t =
-    (translations as Record<string, typeof translations.en>)[i18n.language] || translations.en;
+    (translations as Record<string, typeof translations.en>)[i18n.language] ?? translations.en;
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
@@ -176,7 +176,7 @@ function SendPushNotificationTrigger({
 function DocumentJsonViewer({ data }: { data: Record<string, unknown> }): JSX.Element {
   const { i18n } = useTranslation();
   const t =
-    (translations as Record<string, typeof translations.en>)[i18n.language] || translations.en;
+    (translations as Record<string, typeof translations.en>)[i18n.language] ?? translations.en;
   const [copied, setCopied] = useState(false);
   const jsonString = JSON.stringify(data, undefined, 2);
 
@@ -272,7 +272,7 @@ function renderStatusBadge(
 function NotificationHistory({ userId }: { userId: string }): JSX.Element {
   const { i18n } = useTranslation();
   const t =
-    (translations as Record<string, typeof translations.en>)[i18n.language] || translations.en;
+    (translations as Record<string, typeof translations.en>)[i18n.language] ?? translations.en;
   const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isRefetching } =
     trpc.pushTracking.getRecentLogs.useInfiniteQuery(
       { userId, limit: 10 },
@@ -334,6 +334,7 @@ function NotificationHistory({ userId }: { userId: string }): JSX.Element {
 
                 const isFailed = status === 'FAILED' || error;
                 const isInteracted = !!interactedAt;
+                // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- intentional: we want truthy check for boolean/Date values
                 const isDelivered = status === 'DELIVERED' || deliveredAt || interactedAt;
 
                 let displayMessage = log.content;
@@ -432,7 +433,7 @@ function PushSubscriptionViewContent(): JSX.Element {
   const { savedDocumentData } = useDocumentInfo();
   const { i18n } = useTranslation();
   const t =
-    (translations as Record<string, typeof translations.en>)[i18n.language] || translations.en;
+    (translations as Record<string, typeof translations.en>)[i18n.language] ?? translations.en;
 
   if (!savedDocumentData) {
     return (

@@ -151,7 +151,7 @@ export const autoTranslateHandler: PayloadHandler = async (request) => {
 
     // We should not modify the existing publishing status for the target locale
     // targetData was fetched with targetLocale, so _localized_status is already flat.
-    const currentStatus = (targetData as Record<string, unknown>)['_localized_status'] || {
+    const currentStatus = (targetData as Record<string, unknown>)['_localized_status'] ?? {
       published: false,
     };
 

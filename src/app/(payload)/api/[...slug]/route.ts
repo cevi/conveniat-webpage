@@ -36,7 +36,6 @@ const GET: typeof payloadGet = async (request, context) => {
       const locale = localeMatch?.[1] ?? 'de';
       const loginCallbackUrl = new URL(request.url).pathname;
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call
       return new Response(buildAccessDeniedHtml(locale, loginCallbackUrl), {
         status: 403,
         headers: {

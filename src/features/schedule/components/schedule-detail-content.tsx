@@ -252,6 +252,7 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
                 </div>
 
                 {/* Target Group */}
+                {/* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- intentional: hide section when target_group is falsy */}
                 {(entry.target_group || isEditing) && (
                   <div className="flex gap-3">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
@@ -294,7 +295,7 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
                       <input
                         type="number"
                         min={courseStatus?.enrolledCount ?? 0}
-                        value={editData.maxParticipants || ''}
+                        value={editData.maxParticipants}
                         onChange={handleMaxParticipantsChange}
                         className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none"
                         placeholder="0 = unlimited"
