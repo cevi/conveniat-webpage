@@ -177,3 +177,72 @@ export const getGenericPageBySlugHistoryCached = cache(
     });
   },
 );
+
+/**
+ * Lightweight metadata-only fetch: seo + internalPageName only, no relationship population.
+ * Used exclusively by generateMetadata to avoid the depth:1 cascade.
+ */
+export const getGenericPageMetadataBySlugCached = cache(
+  async (slug: string, locale: Locale): Promise<{ docs: GenericPage[] }> => {
+    return await withSpan('getGenericPageMetadataBySlugCached', async () => {
+      const payload = await getPayload({ config });
+      const result = await payload.find({
+        depth: 0,
+        collection: 'generic-page',
+        pagination: false,
+        locale,
+        fallbackLocale: false,
+        draft: false,
+        where: {
+          and: [
+            { 'seo.urlSlug': { equals: slug } },
+            { _localized_status: { equals: { published: true } } },
+          ],
+        },
+        select: {
+          seo: true,
+          internalPageName: true,
+        },
+      });
+      return { docs: result.docs as unknown as GenericPage[] };
+    });
+  },
+);
+
+/**
+ * Fetches all published locale variants of a page by internalPageName.
+ * Replaces findAlternatives() which fires N parallel queries (one per locale).
+ */
+export const getGenericPageAlternativesCached = cache(
+  async (internalPageName: string): Promise<GenericPage[]> => {
+    return await withSpan('getGenericPageAlternativesCached', async () => {
+      const payload = await getPayload({ config });
+      const results = await Promise.all(
+        (['de', 'fr', 'en'] as Locale[]).map((l) =>
+          payload.find({
+            collection: 'generic-page',
+            pagination: false,
+            fallbackLocale: false,
+            locale: l,
+            draft: false,
+            depth: 0,
+            where: {
+              and: [
+                { internalPageName: { equals: internalPageName } },
+                { _localized_status: { equals: { published: true } } },
+              ],
+            },
+            select: {
+              seo: true,
+              internalPageName: true,
+            },
+          }),
+        ),
+      );
+      return results
+        .filter((r) => r.docs.length === 1)
+        .flatMap((r) => r.docs[0] as unknown as GenericPage)
+        .filter(Boolean);
+    });
+  },
+);

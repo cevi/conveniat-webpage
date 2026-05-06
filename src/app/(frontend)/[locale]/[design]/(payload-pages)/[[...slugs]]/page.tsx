@@ -106,12 +106,6 @@ export const generateMetadata = async ({
   }>;
   searchParams: Promise<SearchParameters>;
 }): Promise<Metadata> => {
-  const awaitedSearchParameters = await searchParams;
-  const previewParameter = awaitedSearchParameters['preview'];
-  const isPreviewRequested =
-    previewParameter === 'true' ||
-    (Array.isArray(previewParameter) && previewParameter[0] === 'true');
-
   const { slugs, locale, design } = await params;
 
   const displaySlug =
@@ -122,10 +116,20 @@ export const generateMetadata = async ({
   console.log(`Generate metadata for page with slug: ${displaySlug}`);
 
   let isPreview = false;
-  if (isPreviewRequested) {
-    const { canAccessPreviewOfCurrentPage } =
-      await import('@/features/payload-cms/utils/preview/preview-utils');
-    isPreview = await canAccessPreviewOfCurrentPage(awaitedSearchParameters);
+  try {
+    const awaitedSearchParameters = await searchParams;
+    const previewParameter = awaitedSearchParameters['preview'];
+    const isPreviewRequested =
+      previewParameter === 'true' ||
+      (Array.isArray(previewParameter) && previewParameter[0] === 'true');
+
+    if (isPreviewRequested) {
+      const { canAccessPreviewOfCurrentPage } =
+        await import('@/features/payload-cms/utils/preview/preview-utils');
+      isPreview = await canAccessPreviewOfCurrentPage(awaitedSearchParameters);
+    }
+  } catch {
+    // During prerendering, searchParams rejects — preview is never active.
   }
 
   // During build, 'await connection()' signals that this function depends on
