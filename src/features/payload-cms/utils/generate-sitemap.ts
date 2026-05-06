@@ -150,7 +150,7 @@ function processDocumentsForSitemap(
     APP_HOST_URL: string;
     defaultLocale: Locale;
     canonicalURLPriorityList: Locale[];
-    publicPermissionIds: Set<string | number>;
+    publicPermissionIds: Set<string>;
   },
 ): void {
   for (const document_ of documents) {
@@ -166,7 +166,7 @@ function processDocumentsForSitemap(
       canonicalURLPriorityList,
     );
 
-    let permissionId: string | number | undefined;
+    let permissionId: string | undefined;
     if (document_.content.permissions) {
       permissionId =
         typeof document_.content.permissions === 'object'
@@ -174,7 +174,11 @@ function processDocumentsForSitemap(
           : document_.content.permissions;
     }
 
-    if (canonicalUrl && canonicalLocale && permissionId && publicPermissionIds.has(permissionId)) {
+    if (
+      canonicalUrl &&
+      canonicalLocale &&
+      (permissionId === undefined || publicPermissionIds.has(permissionId))
+    ) {
       const alternates = buildLocalizedAlternates(pageUrlsByLocale, canonicalLocale);
       sitemap.push(createSitemapEntry(canonicalUrl, document_, alternates));
     }
@@ -204,7 +208,7 @@ export const cachedSitemapGenerator = async (): Promise<MetadataRoute.Sitemap> =
   const { docs: permissions } = await payload.find({
     collection: 'permissions',
     depth: 0,
-    limit: 1000,
+    limit: 0,
     where: {
       'special_permissions.public': {
         equals: true,
