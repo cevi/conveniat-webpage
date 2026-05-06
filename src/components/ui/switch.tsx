@@ -13,7 +13,14 @@ interface SwitchProperties extends React.ButtonHTMLAttributes<HTMLButtonElement>
 
 const Switch = React.forwardRef<HTMLButtonElement, SwitchProperties>(
   (
-    { className, checked = false, onCheckedChange, disabled, loading, ...properties },
+    {
+      className,
+      checked = false,
+      onCheckedChange,
+      disabled = false,
+      loading = false,
+      ...properties
+    },
     reference,
   ) => {
     const handleClick = (): void => {
@@ -27,7 +34,7 @@ const Switch = React.forwardRef<HTMLButtonElement, SwitchProperties>(
         type="button"
         role="switch"
         aria-checked={checked}
-        disabled={disabled ?? loading}
+        disabled={disabled || loading}
         onClick={handleClick}
         ref={reference}
         className={cn(
