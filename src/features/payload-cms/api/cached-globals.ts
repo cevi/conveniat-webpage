@@ -1,4 +1,10 @@
-import type { AlertSetting, Footer, Header, SEO } from '@/features/payload-cms/payload-types';
+import type {
+  AlertSetting,
+  AppFeatureFlag,
+  Footer,
+  Header,
+  SEO,
+} from '@/features/payload-cms/payload-types';
 import type { Locale } from '@/types/types';
 import { withSpan } from '@/utils/tracing-helpers';
 import config from '@payload-config';
@@ -87,3 +93,22 @@ export const getAlertSettingsCached = cache(
     });
   },
 );
+
+/**
+ * Fetches the App Feature Flags global with request-level memoization.
+ *
+ * Returns the menu-visibility toggles (helper shifts, image upload, reservations).
+ */
+export const getAppFeatureFlagsCached = cache(async (): Promise<AppFeatureFlag> => {
+  return await withSpan('getAppFeatureFlagsCached', async () => {
+    const payload = await getPayload({ config });
+    return await payload.findGlobal({
+      slug: 'app-feature-flags',
+      select: {
+        helperShiftsEnabled: true,
+        imageUploadEnabled: true,
+        reservationsEnabled: true,
+      },
+    });
+  });
+});
