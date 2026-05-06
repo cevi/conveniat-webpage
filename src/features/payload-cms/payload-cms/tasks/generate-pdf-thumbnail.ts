@@ -126,7 +126,7 @@ export const generatePdfThumbnailTask: TaskConfig<{
 
       let documentUrl = document_.url;
       if (documentUrl.startsWith('/')) {
-        const hostUrl = environmentVariables.APP_HOST_URL || 'http://localhost:3000';
+        const hostUrl = environmentVariables.APP_HOST_URL;
         documentUrl = `${hostUrl}${documentUrl}`;
       }
 
@@ -148,7 +148,7 @@ export const generatePdfThumbnailTask: TaskConfig<{
 
         // We'll store the generated image's tiny URL if available, else standard URL
 
-        const imageUrl: string = imageDocument.sizes?.tiny?.url || imageDocument.url || '';
+        const imageUrl: string = imageDocument.sizes?.tiny?.url ?? imageDocument.url ?? '';
 
         await updateDocumentThumbnailUrl(payload, req, documentId, imageUrl);
 

@@ -68,7 +68,7 @@ export const SendNotificationModal: React.FC<SendNotificationModalProperties> = 
 }) => {
   const { i18n } = useTranslation();
   const t =
-    (translations as Record<string, typeof translations.en>)[i18n.language] || translations.en;
+    (translations as Record<string, typeof translations.en>)[i18n.language] ?? translations.en;
 
   const [content, setContent] = useState('');
   const [url, setUrl] = useState('');

@@ -153,11 +153,11 @@ export class Orchestrator implements CacheOrchestrator {
   private hydrateEntry(valueBuffer: Buffer, metadata?: Partial<CacheEntry>): CacheEntry {
     return {
       value: this.createStream(valueBuffer),
-      timestamp: metadata?.timestamp || Date.now(),
-      revalidate: metadata?.revalidate || 0,
-      tags: metadata?.tags || [],
-      expire: metadata?.expire || 0,
-      stale: metadata?.stale || 0,
+      timestamp: metadata?.timestamp ?? Date.now(),
+      revalidate: metadata?.revalidate ?? 0,
+      tags: metadata?.tags ?? [],
+      expire: metadata?.expire ?? 0,
+      stale: metadata?.stale ?? 0,
     };
   }
 

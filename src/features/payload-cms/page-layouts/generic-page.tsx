@@ -307,8 +307,8 @@ const generateMetadataPreview = async (
   if (!page) return { title: 'Preview Mode' };
 
   return {
-    title: page.seo.metaTitle || page.content.pageTitle || 'Preview Mode',
-    description: page.seo.metaDescription || undefined,
+    title: page.seo.metaTitle,
+    description: page.seo.metaDescription ?? undefined,
   };
 };
 

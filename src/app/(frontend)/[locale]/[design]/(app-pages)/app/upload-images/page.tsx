@@ -381,7 +381,7 @@ const ImageUploadPage: React.FC = () => {
                 {!fileItem.error && (
                   <div className="px-5 pb-5">
                     <DescriptionInput
-                      value={fileDescriptions[fileItem.file.name] || ''}
+                      value={fileDescriptions[fileItem.file.name] ?? ''}
                       onChange={(desc) => handleDescriptionChange(fileItem.file.name, desc)}
                     />
                     {fileItem.descriptionError && (

@@ -130,7 +130,7 @@ export const useOfflineDownload = (
       };
     } else if (swReady && !navigator.serviceWorker.controller) {
       // Ready but no controller -> claims issue or hard refresh needed
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+
       setStatus('sw-error');
     }
     return;
@@ -144,7 +144,7 @@ export const useOfflineDownload = (
       });
     } else {
       console.warn('Service Worker not ready');
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+
       setStatus('sw-error');
 
       // Log error to PostHog

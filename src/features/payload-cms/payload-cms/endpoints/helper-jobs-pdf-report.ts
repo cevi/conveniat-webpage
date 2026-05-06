@@ -19,9 +19,9 @@ export const helperJobsPdfReportHandler: PayloadHandler = async (request) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const url = new URL(request.url || '');
+    const url = new URL(request.url ?? '');
     const formId = url.searchParams.get('formId');
-    const fieldsParameter = url.searchParams.get('fields') || '';
+    const fieldsParameter = url.searchParams.get('fields') ?? '';
     const includeDetailsParameter = url.searchParams.get('includeDetails');
     const includeDetails = includeDetailsParameter !== 'false';
 
@@ -70,7 +70,7 @@ export const helperJobsPdfReportHandler: PayloadHandler = async (request) => {
 
       for (const index of matchedJobs) {
         const jid = typeof index === 'string' ? index : index.id;
-        counts.set(jid, (counts.get(jid) || 0) + 1);
+        counts.set(jid, (counts.get(jid) ?? 0) + 1);
 
         const jobObject = typeof index === 'string' ? jobsById.get(index) : index;
         if (!jobObject) continue;
@@ -90,13 +90,13 @@ export const helperJobsPdfReportHandler: PayloadHandler = async (request) => {
 
         const currentGroup = ressortGroups.get(categoryLabelDe);
         if (currentGroup) {
-          currentGroup.push([jobObject.title || 'Ohne Titel', zeitraum, contactString]);
+          currentGroup.push([jobObject.title, zeitraum, contactString]);
         }
       }
     }
 
     const PDFDocumentModule = await import('pdfkit-table');
-    const PDFDocument = ((PDFDocumentModule as { default?: unknown }).default ||
+    const PDFDocument = ((PDFDocumentModule as { default?: unknown }).default ??
       PDFDocumentModule) as PDFDocumentConstructor;
 
     const pdfBuffer = await new Promise<Buffer>((resolve, reject) => {
@@ -124,7 +124,7 @@ export const helperJobsPdfReportHandler: PayloadHandler = async (request) => {
 
         for (const job of allJobs.docs) {
           const hj = job;
-          const c = counts.get(hj.id) || 0;
+          const c = counts.get(hj.id) ?? 0;
           const isFull = !!hj.maxQuota && c >= hj.maxQuota;
 
           const categoryValue = hj.category;
@@ -139,7 +139,7 @@ export const helperJobsPdfReportHandler: PayloadHandler = async (request) => {
             overallFilledQuota += c;
           }
 
-          const stat = ressortStats.get(categoryLabelDe) || {
+          const stat = ressortStats.get(categoryLabelDe) ?? {
             totalJobs: 0,
             fullJobs: 0,
             totalQuota: 0,
@@ -191,11 +191,11 @@ export const helperJobsPdfReportHandler: PayloadHandler = async (request) => {
         // Summary Table
         const summaryRows = allJobs.docs.map((job) => {
           const hj = job;
-          const c = counts.get(hj.id) || 0;
-          const quota = hj.maxQuota ? hj.maxQuota : 'Unlimitiert';
+          const c = counts.get(hj.id) ?? 0;
+          const quota = hj.maxQuota ?? 'Unlimitiert';
           const isFull = hj.maxQuota && c >= hj.maxQuota;
 
-          return [hj.title || 'Ohne Titel', `${c} / ${quota}`, isFull ? 'Voll' : 'Offen'];
+          return [hj.title, `${c} / ${quota}`, isFull ? 'Voll' : 'Offen'];
         });
 
         if (summaryRows.length > 0) {

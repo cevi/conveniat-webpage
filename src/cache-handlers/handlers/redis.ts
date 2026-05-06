@@ -5,7 +5,7 @@ import Redis from 'ioredis';
 
 const LOG_PREFIX = '[RedisCache]';
 // eslint-disable-next-line n/no-process-env
-const REDIS_URL = process.env['REDIS_URL'] || 'redis://localhost:6379';
+const REDIS_URL = process.env['REDIS_URL'] ?? 'redis://localhost:6379';
 
 const meter = metrics.getMeter('nextjs-redis-cache');
 const cacheInvalidationCounter = meter.createCounter('cache_invalidation_total', {

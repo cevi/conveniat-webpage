@@ -54,7 +54,7 @@ const getFieldLabel = (field: Field, locale: Locale): string => {
   }
   // Check if it's a localized object (Record with locale keys)
   if (typeof label === 'object' && locale in label) {
-    return (label as Record<string, string>)[locale] || locale;
+    return (label as Record<string, string>)[locale] ?? locale;
   }
 
   // Fallback to name if available
@@ -71,10 +71,10 @@ const getBlockLabel = (blockDefinition: Block, locale: Locale): string => {
     if (labels.singular) {
       if (typeof labels.singular === 'string') return labels.singular;
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
-      return (labels.singular as any)[locale] || (Object.values(labels.singular)[0] as string);
+      return (labels.singular as any)[locale] ?? (Object.values(labels.singular)[0] as string);
     }
   }
-  return blockDefinition.imageAltText || blockDefinition.slug;
+  return blockDefinition.imageAltText ?? blockDefinition.slug;
 };
 
 export const validateContentBlock = (

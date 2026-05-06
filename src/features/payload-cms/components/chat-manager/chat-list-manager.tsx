@@ -171,8 +171,8 @@ export const ChatListManager: React.FC = () => {
     limit,
   });
 
-  const chats = data?.chats || [];
-  const total = data?.total || 0;
+  const chats = data?.chats ?? [];
+  const total = data?.total ?? 0;
   const totalPages = Math.ceil(total / limit);
 
   const toggleCapabilityMutation = trpc.admin.toggleChatCapability.useMutation({

@@ -297,6 +297,7 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
         </AnimatePresence>
 
         {/* Navigation Footer */}
+        {/* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- intentional: checking truthiness of objects */}
         {!isEditing && (previous || next) && (
           <nav className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-2">
             {previous ? (

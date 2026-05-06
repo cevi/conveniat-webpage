@@ -23,8 +23,8 @@ export const courseParticipantsExportHandler: PayloadHandler = async (request) =
       return Response.json({ error: 'Missing course ID' }, { status: 400 });
     }
 
-    const parsedUrl = new URL(url || '', 'http://localhost');
-    const format = parsedUrl.searchParams.get('format') || 'json';
+    const parsedUrl = new URL(url ?? '', 'http://localhost');
+    const format = parsedUrl.searchParams.get('format') ?? 'json';
 
     // Infer courseType from the collection path, matching the logic in course-participants-manager
     const courseType =
@@ -55,9 +55,9 @@ export const courseParticipantsExportHandler: PayloadHandler = async (request) =
       const payloadUser = payloadUsersById.get(enrollment.userId);
       return {
         uuid: enrollment.userId,
-        fullName: payloadUser?.fullName || enrollment.user.name || 'Unbekannt',
-        nickname: payloadUser?.nickname || '',
-        email: payloadUser?.email || '',
+        fullName: payloadUser?.fullName ?? enrollment.user.name,
+        nickname: payloadUser?.nickname ?? '',
+        email: payloadUser?.email ?? '',
         hof: payloadUser?.hof ? String(payloadUser.hof) : '',
         quartier: payloadUser?.quartier ? String(payloadUser.quartier) : '',
       };
@@ -94,7 +94,7 @@ export const courseParticipantsExportHandler: PayloadHandler = async (request) =
       const ws = utils.json_to_sheet(participantData);
       const wb = utils.book_new();
       utils.book_append_sheet(wb, ws, 'Teilnehmer');
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
       const buffer: Buffer = write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
 
       return new Response(buffer, {
@@ -107,7 +107,7 @@ export const courseParticipantsExportHandler: PayloadHandler = async (request) =
 
     if (format === 'pdf') {
       const PDFDocumentModule = await import('pdfkit-table');
-      const PDFDocument = ((PDFDocumentModule as { default?: unknown }).default ||
+      const PDFDocument = ((PDFDocumentModule as { default?: unknown }).default ??
         PDFDocumentModule) as PDFDocumentConstructor;
 
       const pdfBuffer = await new Promise<Buffer>((resolve, reject) => {

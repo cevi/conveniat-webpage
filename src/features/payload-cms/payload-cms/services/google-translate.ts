@@ -152,7 +152,7 @@ function serializeToHTML(children: LexicalNode[], referenceMap: LexicalNode[]): 
       case 'text': {
         const index = referenceMap.length;
         referenceMap.push(child);
-        html += `<span data-text-index="${index}" data-format="${child.format || 0}" data-style="${child.style || ''}">${escapeHTML(child.text || '')}</span>`;
+        html += `<span data-text-index="${index}" data-format="${child.format ?? 0}" data-style="${child.style ?? ''}">${escapeHTML(child.text ?? '')}</span>`;
         break;
       }
       case 'linebreak': {
@@ -164,7 +164,7 @@ function serializeToHTML(children: LexicalNode[], referenceMap: LexicalNode[]): 
       case 'autolink': {
         const index = referenceMap.length;
         referenceMap.push(child);
-        html += `<a data-index="${index}">${serializeToHTML(child.children || [], referenceMap)}</a>`;
+        html += `<a data-index="${index}">${serializeToHTML(child.children ?? [], referenceMap)}</a>`;
 
         break;
       }
@@ -194,7 +194,7 @@ function parseHTMLToLexical(html: string, referenceMap: LexicalNode[]): LexicalN
       const matchIndex = token.match(/data-index="(\d+)"/);
 
       if (token.includes('class="untranslatable"') && matchIndex) {
-        const index = Number.parseInt(matchIndex[1] || '0', 10);
+        const index = Number.parseInt(matchIndex[1] ?? '0', 10);
         const originalNode = referenceMap[index];
         if (originalNode) parent?.children?.push({ ...originalNode });
         if (!token.endsWith('/>') && !token.includes('</span')) {
@@ -204,7 +204,7 @@ function parseHTMLToLexical(html: string, referenceMap: LexicalNode[]): LexicalN
       }
 
       if (token.startsWith('<a') && matchIndex) {
-        const index = Number.parseInt(matchIndex[1] || '0', 10);
+        const index = Number.parseInt(matchIndex[1] ?? '0', 10);
         const originalNode = referenceMap[index];
         const newNode = { ...originalNode, children: [] };
         parent?.children?.push(newNode);
@@ -214,7 +214,7 @@ function parseHTMLToLexical(html: string, referenceMap: LexicalNode[]): LexicalN
         let newNode: LexicalNode = {};
 
         if (matchTextIndex) {
-          const index = Number.parseInt(matchTextIndex[1] || '0', 10);
+          const index = Number.parseInt(matchTextIndex[1] ?? '0', 10);
           const originalNode = referenceMap[index];
           if (originalNode) {
             newNode = { ...originalNode };
@@ -232,7 +232,7 @@ function parseHTMLToLexical(html: string, referenceMap: LexicalNode[]): LexicalN
         if (!('detail' in newNode)) newNode['detail'] = 0;
 
         if (matchFormat) {
-          newNode.format = Number.parseInt(matchFormat[1] || '0', 10);
+          newNode.format = Number.parseInt(matchFormat[1] ?? '0', 10);
         } else if (!('format' in newNode)) {
           newNode.format = 0;
         }
@@ -245,7 +245,7 @@ function parseHTMLToLexical(html: string, referenceMap: LexicalNode[]): LexicalN
     } else if (parent) {
       const text = decodeHTMLEntities(token);
       if (parent.type === 'text') {
-        parent.text = (parent.text || '') + text;
+        parent.text = (parent.text ?? '') + text;
       } else if (parent.type !== 'ignore') {
         parent.children?.push({
           type: 'text',
@@ -257,7 +257,7 @@ function parseHTMLToLexical(html: string, referenceMap: LexicalNode[]): LexicalN
       }
     }
   }
-  return root.children || [];
+  return root.children ?? [];
 }
 
 export async function translateLexicalRichText(
@@ -306,7 +306,7 @@ export async function translateLexicalRichText(
   const results = await translateTexts(htmls, targetLang, sourceLang, 'html');
 
   for (const [index, unit] of units.entries()) {
-    const translatedHtml = results[index]?.translatedText || '';
+    const translatedHtml = results[index]?.translatedText ?? '';
     const newChildren = parseHTMLToLexical(translatedHtml, referenceMap);
     unit.node.children = newChildren;
   }

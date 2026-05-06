@@ -12,7 +12,7 @@ export const syncOrganisers: CollectionAfterChangeHook<CampScheduleEntry> = asyn
   const courseId = doc.id;
 
   // Normalize organisers to string IDs
-  const organisers = doc.organiser || [];
+  const organisers = doc.organiser ?? [];
   const organiserIds = new Set(organisers.map((org) => (typeof org === 'string' ? org : org.id)));
 
   // Find the course chat

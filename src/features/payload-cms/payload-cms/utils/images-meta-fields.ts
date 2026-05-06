@@ -30,7 +30,7 @@ export const getRelativeImageUrl = (url?: string | null): string => {
   if (!url) return '';
   try {
     // eslint-disable-next-line n/no-process-env
-    const appHostUrl = process.env['NEXT_PUBLIC_APP_HOST_URL'] || process.env['APP_HOST_URL'];
+    const appHostUrl = process.env['NEXT_PUBLIC_APP_HOST_URL'] ?? process.env['APP_HOST_URL'];
     if (appHostUrl && url.startsWith(appHostUrl)) {
       return url.replace(appHostUrl, '');
     }
