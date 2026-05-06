@@ -53,6 +53,10 @@ export const noiseMessages = [
   // often due to the tab being closed mid-load or aggressive battery saving.
   "AbortError: Failed to register a ServiceWorker for scope ('https://conveniat27.ch/') with script ('https://conveniat27.ch/sw.js')",
 
+  // react-youtube / youtube-player internal bug when unmounting quickly.
+  // The internal container ref becomes null but createPlayer still executes.
+  "Cannot read properties of null (reading 'playVideo')",
+
   // see: https://github.com/cevi/conveniat-webpage/issues/1135
   // Next.js App Router error when a client sends a malformed or outdated Next-Router-State-Tree header.
   'The router state header was sent but could not be parsed',
