@@ -1,9 +1,9 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
-import type { Blog, GenericPage, Permission } from '@/features/payload-cms/payload-types';
+import type { Blog, GenericPage } from '@/features/payload-cms/payload-types';
 import { specialPagesTable } from '@/features/payload-cms/special-pages-table';
 import { i18nConfig, type Locale } from '@/types/types';
-import { isPermissionPublic } from '@/utils/has-permissions';
+
 import config from '@payload-config';
 import type { MetadataRoute } from 'next';
 import { cacheLife, cacheTag } from 'next/cache';
@@ -145,10 +145,12 @@ function processDocumentsForSitemap(
     APP_HOST_URL,
     defaultLocale,
     canonicalURLPriorityList,
+    publicPermissionIds,
   }: {
     APP_HOST_URL: string;
     defaultLocale: Locale;
     canonicalURLPriorityList: Locale[];
+    publicPermissionIds: Set<string | number>;
   },
 ): void {
   for (const document_ of documents) {
@@ -164,11 +166,15 @@ function processDocumentsForSitemap(
       canonicalURLPriorityList,
     );
 
-    if (
-      canonicalUrl &&
-      canonicalLocale &&
-      isPermissionPublic(document_.content.permissions as Permission)
-    ) {
+    let permissionId: string | number | undefined;
+    if (document_.content.permissions) {
+      permissionId =
+        typeof document_.content.permissions === 'object'
+          ? document_.content.permissions.id
+          : document_.content.permissions;
+    }
+
+    if (canonicalUrl && canonicalLocale && permissionId && publicPermissionIds.has(permissionId)) {
       const alternates = buildLocalizedAlternates(pageUrlsByLocale, canonicalLocale);
       sitemap.push(createSitemapEntry(canonicalUrl, document_, alternates));
     }
@@ -194,6 +200,19 @@ export const cachedSitemapGenerator = async (): Promise<MetadataRoute.Sitemap> =
 
   const canonicalURLPriorityList: Locale[] = [LOCALE.DE, LOCALE.FR, LOCALE.EN];
 
+  // Fetch all public permissions first to avoid depth: 1 cascades
+  const { docs: permissions } = await payload.find({
+    collection: 'permissions',
+    depth: 0,
+    limit: 1000,
+    where: {
+      'special_permissions.public': {
+        equals: true,
+      },
+    },
+  });
+  const publicPermissionIds = new Set(permissions.map((p) => p.id));
+
   const collectionsToProcess = [
     { name: 'generic-page', basePath: '' },
     { name: 'blog', basePath: 'blog' },
@@ -202,7 +221,7 @@ export const cachedSitemapGenerator = async (): Promise<MetadataRoute.Sitemap> =
   for (const { name, basePath } of collectionsToProcess) {
     const { docs } = await payload.find({
       collection: name as CollectionSlug,
-      depth: 1,
+      depth: 0,
       limit: 1000,
       locale: 'all',
       where: {
@@ -216,6 +235,7 @@ export const cachedSitemapGenerator = async (): Promise<MetadataRoute.Sitemap> =
       APP_HOST_URL,
       defaultLocale,
       canonicalURLPriorityList,
+      publicPermissionIds,
     });
   }
 
