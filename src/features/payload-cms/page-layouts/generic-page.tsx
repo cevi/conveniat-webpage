@@ -1,6 +1,6 @@
 import { GenericPageConverter } from '@/features/payload-cms/converters/generic-page';
 import type { Permission } from '@/features/payload-cms/payload-types';
-import { buildMetadata, findAlternatives } from '@/features/payload-cms/utils/metadata-helper';
+import { buildMetadata } from '@/features/payload-cms/utils/metadata-helper';
 import type { Locale, LocalizedCollectionComponent } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { hasPermissions } from '@/utils/has-permissions';
@@ -11,10 +11,12 @@ import { forbidden, notFound, redirect, unauthorized } from 'next/navigation';
 import { getPayload } from 'payload';
 
 import {
+  getGenericPageAlternativesCached,
   getGenericPageByIDCached,
   getGenericPageBySlugCached,
   getGenericPageBySlugHistoryCached,
   getGenericPageExistsBySlugCached,
+  getGenericPageMetadataBySlugCached,
 } from '@/features/payload-cms/api/cached-generic-pages';
 import type { GenericPage as GenericPageType } from '@/features/payload-cms/payload-types';
 
@@ -240,18 +242,13 @@ const generateMetadataInternal = async (
 
   const slug = slugs?.join('/') ?? '';
 
-  // Use the SAME cached fetcher as the component to deduplicate the request
-  const result = await getGenericPageBySlugCached(slug, locale, false);
+  // Lean metadata-only query — depth:0, only seo + internalPageName
+  const result = await getGenericPageMetadataBySlugCached(slug, locale);
 
   const page = result.docs[0];
   if (!page) return {};
 
-  const payload = await getPayload({ config });
-  const pageAlternatives = await findAlternatives({
-    payload,
-    collection: 'generic-page',
-    internalPageName: page.internalPageName,
-  });
+  const pageAlternatives = await getGenericPageAlternativesCached(page.internalPageName);
 
   const germanAlternative = pageAlternatives.find((a) =>
     (a._locale as string | undefined)?.startsWith('de'),
@@ -274,7 +271,7 @@ const generateMetadataInternal = async (
     }),
     twitter: {
       card: 'summary',
-      title: page.seo.metaTitle ?? page.content.pageTitle,
+      title: page.seo.metaTitle ?? page.internalPageName,
       description: page.seo.metaDescription ?? undefined,
     },
   };
