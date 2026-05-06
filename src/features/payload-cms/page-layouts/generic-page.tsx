@@ -307,7 +307,8 @@ const generateMetadataPreview = async (
   if (!page) return { title: 'Preview Mode' };
 
   return {
-    title: page.seo.metaTitle,
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    title: page.seo.metaTitle ?? page.content.pageTitle ?? 'Preview Mode',
     description: page.seo.metaDescription ?? undefined,
   };
 };

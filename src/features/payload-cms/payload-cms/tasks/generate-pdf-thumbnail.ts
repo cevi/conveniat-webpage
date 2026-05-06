@@ -126,7 +126,8 @@ export const generatePdfThumbnailTask: TaskConfig<{
 
       let documentUrl = document_.url;
       if (documentUrl.startsWith('/')) {
-        const hostUrl = environmentVariables.APP_HOST_URL;
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- runtime safety: env var may be unset in task worker contexts
+        const hostUrl = environmentVariables.APP_HOST_URL ?? 'http://localhost:3000';
         documentUrl = `${hostUrl}${documentUrl}`;
       }
 
