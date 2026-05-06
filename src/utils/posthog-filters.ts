@@ -33,6 +33,11 @@ const noiseMessages = [
   // This causes an 'undefined is not an object (evaluating 'window.__firefox__.reader')' error.
   // see: https://github.com/cevi/conveniat-webpage/issues/1150
   'window.__firefox__.reader',
+
+  // see: https://github.com/cevi/conveniat-webpage/issues/1169
+  // Common Android WebView error triggered by injected scripts (like Facebook in-app browser)
+  // attempting to use a JS bridge that has already been destroyed during navigation or backgrounding.
+  'Error invoking postMessage: Java object is gone',
 ];
 
 export const filterPostHogNoise = (event: CaptureResult | null): CaptureResult | null => {
