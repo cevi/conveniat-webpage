@@ -48,6 +48,11 @@ export const noiseMessages = [
   // or network flakiness when trying to load/register the service worker.
   'SecurityError: Script https://conveniat27.ch/sw.js load failed',
 
+  // see: https://github.com/cevi/conveniat-webpage/issues/1124
+  // Mobile Safari AbortError when registering/updating the Service Worker,
+  // often due to the tab being closed mid-load or aggressive battery saving.
+  "AbortError: Failed to register a ServiceWorker for scope ('https://conveniat27.ch/') with script ('https://conveniat27.ch/sw.js')",
+
   // see: https://github.com/cevi/conveniat-webpage/issues/1135
   // Next.js App Router error when a client sends a malformed or outdated Next-Router-State-Tree header.
   'The router state header was sent but could not be parsed',
