@@ -42,6 +42,11 @@ const noiseMessages = [
   // see: https://github.com/cevi/conveniat-webpage/issues/1168
   // Another variant of the Android WebView JS bridge error.
   'Error invoking enableDidUserTypeOnKeyboardLogging: Java object is gone',
+
+  // see: https://github.com/cevi/conveniat-webpage/issues/1148
+  // DOMException in Mobile Safari usually related to Private Browsing, ITP,
+  // or network flakiness when trying to load/register the service worker.
+  'SecurityError: Script https://conveniat27.ch/sw.js load failed',
 ];
 
 export const filterPostHogNoise = (event: CaptureResult | null): CaptureResult | null => {
