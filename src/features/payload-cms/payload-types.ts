@@ -6270,6 +6270,18 @@ export interface AppFeatureFlag {
    * Toggles the ability for users to create new chats (1-on-1 and Group). Emergency/Support chats are excluded.
    */
   createChatsEnabled?: boolean | null;
+  /**
+   * Toggles visibility of the Helper Shifts (Schichteinsätze) menu item in the app.
+   */
+  helperShiftsEnabled?: boolean | null;
+  /**
+   * Toggles visibility of the Image Upload menu item in the app.
+   */
+  imageUploadEnabled?: boolean | null;
+  /**
+   * Toggles visibility of the Reservations menu item in the app.
+   */
+  reservationsEnabled?: boolean | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -6593,6 +6605,9 @@ export interface AlertSettingsSelect<T extends boolean = true> {
 export interface AppFeatureFlagsSelect<T extends boolean = true> {
   globalMessagingEnabled?: T;
   createChatsEnabled?: T;
+  helperShiftsEnabled?: T;
+  imageUploadEnabled?: T;
+  reservationsEnabled?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

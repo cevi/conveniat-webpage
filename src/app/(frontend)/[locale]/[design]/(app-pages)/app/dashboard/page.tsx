@@ -1,6 +1,7 @@
 import { DashboardUpcomingEvents } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/components/dashboard-upcoming-events';
 import { SetDynamicPageTitle } from '@/components/header/set-dynamic-app-title';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
+import { getAppFeatureFlagsCached } from '@/features/payload-cms/api/cached-globals';
 import { getScheduleEntriesForDashboard } from '@/features/schedule/api/get-schedule-entries';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import {
@@ -61,8 +62,16 @@ const FeatureCard: React.FC<FeatureCardProperties> = ({
   </Link>
 );
 
-const AppFeatures: React.FC<{ locale: Locale }> = ({ locale }) => {
-  const features = [
+interface FeatureDefinition extends FeatureCardProperties {
+  /** When set, this feature is only shown if the corresponding flag is not false. */
+  featureFlagKey?: 'imageUploadEnabled' | 'reservationsEnabled';
+}
+
+const AppFeatures: React.FC<{
+  locale: Locale;
+  hiddenFeatureHrefs: Set<string>;
+}> = ({ locale, hiddenFeatureHrefs }) => {
+  const features: FeatureDefinition[] = [
     {
       title: { en: 'Chat', de: 'Chat', fr: 'Chat' }[locale],
       description: {
@@ -161,12 +170,14 @@ const AppFeatures: React.FC<{ locale: Locale }> = ({ locale }) => {
     },
   ];
 
+  const visibleFeatures = features.filter((feature) => !hiddenFeatureHrefs.has(feature.href));
+
   return (
     <div>
       <HeadlineH1 className="mb-4">{appFeaturesTitle[locale]}</HeadlineH1>
       <div className="overflow-x-auto pb-4">
         <div className="flex w-max gap-4">
-          {features.map((feature, index) => (
+          {visibleFeatures.map((feature, index) => (
             <FeatureCard key={index} {...feature} />
           ))}
         </div>
@@ -179,7 +190,15 @@ const Dashboard: React.FC<{
   params: Promise<{ locale: Locale }>;
 }> = async ({ params }) => {
   const { locale } = await params;
-  const scheduleEvents = await getScheduleEntriesForDashboard(locale);
+  const [scheduleEvents, featureFlags] = await Promise.all([
+    getScheduleEntriesForDashboard(locale),
+    getAppFeatureFlagsCached(),
+  ]);
+
+  // Build set of hrefs that should be hidden based on feature flags
+  const hiddenFeatureHrefs = new Set<string>();
+  if (featureFlags.imageUploadEnabled === false) hiddenFeatureHrefs.add('/app/upload-images');
+  if (featureFlags.reservationsEnabled === false) hiddenFeatureHrefs.add('/app/reservations');
 
   return (
     <>
@@ -187,7 +206,7 @@ const Dashboard: React.FC<{
       <section className="container mx-auto mt-8 py-6">
         <article className="mx-auto w-full max-w-2xl space-y-6 px-8">
           {/* App Features Section */}
-          <AppFeatures locale={locale} />
+          <AppFeatures locale={locale} hiddenFeatureHrefs={hiddenFeatureHrefs} />
 
           {/* Upcoming Program Elements Section */}
           <DashboardUpcomingEvents locale={locale} scheduleEvents={scheduleEvents} />

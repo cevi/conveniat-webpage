@@ -1,5 +1,6 @@
 import { shouldHideInAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
+import { flushPageCacheOnChangeGlobal } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import { setFeatureFlag } from '@/lib/db/redis';
 import type { GlobalConfig } from 'payload';
 
@@ -16,6 +17,9 @@ export const AppFeatureFlags: GlobalConfig = {
   },
   access: {
     read: () => true,
+  },
+  hooks: {
+    afterChange: [flushPageCacheOnChangeGlobal],
   },
   fields: [
     {
@@ -56,6 +60,79 @@ export const AppFeatureFlags: GlobalConfig = {
           async ({ value }): Promise<void> => {
             // Redis key matching the constant: 'create_chats_enabled'
             await setFeatureFlag('create_chats_enabled', Boolean(value));
+          },
+        ],
+      },
+    },
+    {
+      name: 'helperShiftsEnabled',
+      label: {
+        en: 'Show Helper Shifts (Schichteinsätze)',
+        de: 'Schichteinsätze anzeigen',
+        fr: 'Afficher les services de helpers',
+      },
+      type: 'checkbox',
+      defaultValue: true,
+      admin: {
+        description:
+          'Toggles visibility of the Helper Shifts (Schichteinsätze) menu item in the app.',
+        components: {
+          Field:
+            '@/features/payload-cms/payload-cms/components/fields/feature-flag-toggle#FeatureFlagToggle',
+        },
+      },
+      hooks: {
+        afterChange: [
+          async ({ value }): Promise<void> => {
+            await setFeatureFlag('helper_shifts_enabled', Boolean(value));
+          },
+        ],
+      },
+    },
+    {
+      name: 'imageUploadEnabled',
+      label: {
+        en: 'Show Image Upload',
+        de: 'Bilder hochladen anzeigen',
+        fr: 'Afficher le téléchargement de photos',
+      },
+      type: 'checkbox',
+      defaultValue: true,
+      admin: {
+        description: 'Toggles visibility of the Image Upload menu item in the app.',
+        components: {
+          Field:
+            '@/features/payload-cms/payload-cms/components/fields/feature-flag-toggle#FeatureFlagToggle',
+        },
+      },
+      hooks: {
+        afterChange: [
+          async ({ value }): Promise<void> => {
+            await setFeatureFlag('image_upload_enabled', Boolean(value));
+          },
+        ],
+      },
+    },
+    {
+      name: 'reservationsEnabled',
+      label: {
+        en: 'Show Reservations',
+        de: 'Reservationen anzeigen',
+        fr: 'Afficher les réservations',
+      },
+      type: 'checkbox',
+      defaultValue: true,
+      admin: {
+        description: 'Toggles visibility of the Reservations menu item in the app.',
+        components: {
+          Field:
+            '@/features/payload-cms/payload-cms/components/fields/feature-flag-toggle#FeatureFlagToggle',
+        },
+      },
+      hooks: {
+        afterChange: [
+          async ({ value }): Promise<void> => {
+            await setFeatureFlag('reservations_enabled', Boolean(value));
           },
         ],
       },
