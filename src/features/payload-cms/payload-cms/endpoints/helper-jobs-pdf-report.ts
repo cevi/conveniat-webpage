@@ -192,7 +192,8 @@ export const helperJobsPdfReportHandler: PayloadHandler = async (request) => {
         const summaryRows = allJobs.docs.map((job) => {
           const hj = job;
           const c = counts.get(hj.id) ?? 0;
-          const quota = hj.maxQuota ?? 'Unlimitiert';
+          // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+          const quota = hj.maxQuota || 'Unlimitiert';
           const isFull = hj.maxQuota && c >= hj.maxQuota;
 
           return [hj.title, `${c} / ${quota}`, isFull ? 'Voll' : 'Offen'];

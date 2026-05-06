@@ -353,7 +353,7 @@ export const billingPreviewPdfHandler: PayloadHandler = async (request) => {
       reference: generateQrReference('123456', '1234', '9012', 1),
       ...(customReference ? { customReference } : {}),
       ...(eventNumber ? { eventNumber } : {}),
-      invoiceNumber: `${(settings.invoiceNumberPrefix as string)
+      invoiceNumber: `${((settings.invoiceNumberPrefix as string | undefined) ?? '{{year}}')
         .replaceAll('{{year}}', new Date().getFullYear().toString())
         .replaceAll('{{month}}', currentMonth)
         .replaceAll('{{event-id}}', '1234')
