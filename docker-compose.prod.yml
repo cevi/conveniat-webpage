@@ -201,7 +201,7 @@ services:
 
   tempo:
     user: '0:0'
-    image: grafana/tempo:latest
+    image: grafana/tempo:2.10.5
     command: ['-config.file=/etc/tempo/tempo.yml']
     volumes:
       - /cluster/dist_storage_insane/service_data/conveniat-prod/tempo:/tmp/tempo
@@ -212,7 +212,7 @@ services:
       - observability-net
 
   loki:
-    image: grafana/loki
+    image: grafana/loki:3.7.2
     volumes:
       - /cluster/dist_storage_insane/service_data/conveniat-prod/loki:/loki
     command:
@@ -236,12 +236,12 @@ services:
 
 configs:
   loki-config:
-    name: loki_config_conveniat_dev-${STAMP:-0}
-    file: /cluster/swarm/configs/conveniat27/loki/loki-config.yml
+    name: loki_config_conveniat_prod-${STAMP:-0}
+    file: /cluster/dist_storage_insane/config/conveniat27/loki/loki-config.yml
 
   tempo-config:
-    name: tempo_config_conveniat_dev-${STAMP:-0}
-    file: /cluster/swarm/configs/conveniat27/tempo/tempo.yml
+    name: tempo_config_conveniat_prod-${STAMP:-0}
+    file: /cluster/dist_storage_insane/config/conveniat27/tempo/tempo.yml
 
 networks:
   traefik-net:

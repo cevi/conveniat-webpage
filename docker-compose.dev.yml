@@ -154,9 +154,9 @@ services:
       - backend-net
 
   prometheus:
-    image: prom/prometheus
+    image: prom/prometheus:v3.11.3
     volumes:
-      - /cluster/swarm/data/conveniat-dev/prometheus:/prometheus
+      - /cluster/dist_storage_insane/service_data/conveniat-dev/prometheus:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
@@ -171,7 +171,7 @@ services:
 
   tempo:
     user: '0:0'
-    image: grafana/tempo:latest
+    image: grafana/tempo:2.10.5
     command: ['-config.file=/etc/tempo/tempo.yml']
     volumes:
       - /cluster/dist_storage_insane/service_data/conveniat-dev/tempo:/tmp/tempo
@@ -183,7 +183,7 @@ services:
       - backend-net
 
   loki:
-    image: grafana/loki
+    image: grafana/loki:3.7.2
     volumes:
       - /cluster/dist_storage_insane/service_data/conveniat-dev/loki:/loki
     command:
@@ -206,15 +206,15 @@ services:
 configs:
   loki-config:
     name: loki_config_conveniat_dev-${STAMP:-0}
-    file: /cluster/swarm/configs/conveniat27-dev/loki/loki-config.yml
+    file: /cluster/dist_storage_insane/config/conveniat27-dev/loki/loki-config.yml
 
   tempo-config:
     name: tempo_config_conveniat_dev-${STAMP:-0}
-    file: /cluster/swarm/configs/conveniat27-dev/tempo/tempo.yml
+    file: /cluster/dist_storage_insane/config/conveniat27-dev/tempo/tempo.yml
 
   prometheus-config:
     name: prometheus_config_conveniat_dev-${STAMP:-0}
-    file: /cluster/swarm/configs/conveniat27-dev/prometheus/prometheus.yml
+    file: /cluster/dist_storage_insane/config/conveniat27-dev/prometheus/prometheus.yml
 
 networks:
   traefik-net:
