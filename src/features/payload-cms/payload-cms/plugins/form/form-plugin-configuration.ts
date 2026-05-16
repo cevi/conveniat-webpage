@@ -7,6 +7,8 @@ import {
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { parseSmtpResultsHook } from '@/features/payload-cms/payload-cms/hooks/parse-smtp-results';
 import { getPublishingStatus } from '@/features/payload-cms/payload-cms/hooks/publishing-status';
+import { getFormSubmissionResendOptionsHandler } from '@/features/payload-cms/payload-cms/plugins/form/endpoints/get-form-submission-resend-options';
+import { resendFormSubmissionEmailsHandler } from '@/features/payload-cms/payload-cms/plugins/form/endpoints/resend-form-submission-emails';
 import { triggerPastWorkflowsHandler } from '@/features/payload-cms/payload-cms/plugins/form/endpoints/trigger-past-workflows';
 import { beforeEmailChangeHook } from '@/features/payload-cms/payload-cms/plugins/form/fix-links-in-mails';
 import { extractEmailLinksHook } from '@/features/payload-cms/payload-cms/plugins/form/hooks/extract-email-links';
@@ -143,7 +145,7 @@ export const formPluginConfiguration = formBuilderPlugin({
     admin: {
       group: AdminPanelDashboardGroups.GlobalSettings,
       groupBy: true,
-      defaultColumns: ['id', 'form', 'createdAt', 'smtpResults', 'workflowResults'],
+      defaultColumns: ['id', 'form', 'createdAt', 'smtpResults', 'workflowResults', 'resendMail'],
     },
     access: {
       read: hasAccessToThisHelper({ requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam] }),
@@ -198,6 +200,16 @@ export const formPluginConfiguration = formBuilderPlugin({
         },
       },
       {
+        name: 'resendMail',
+        type: 'ui',
+        admin: {
+          position: 'sidebar',
+          components: {
+            Cell: '@/features/payload-cms/payload-cms/components/form-submissions/resend-mail-cell',
+          },
+        },
+      },
+      {
         name: 'helper-jobs',
         type: 'relationship',
         relationTo: 'helper-jobs',
@@ -238,6 +250,16 @@ export const formPluginConfiguration = formBuilderPlugin({
         path: '/:id/trigger-workflows',
         method: 'post',
         handler: triggerPastWorkflowsHandler,
+      },
+      {
+        path: '/:id/resend-options',
+        method: 'get',
+        handler: getFormSubmissionResendOptionsHandler,
+      },
+      {
+        path: '/:id/resend',
+        method: 'post',
+        handler: resendFormSubmissionEmailsHandler,
       },
     ],
     defaultPopulate: {
