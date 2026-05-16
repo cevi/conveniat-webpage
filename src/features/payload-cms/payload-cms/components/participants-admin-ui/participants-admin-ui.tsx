@@ -33,6 +33,7 @@ export const ParticipantsAdminUI: React.FC = () => {
   const [users, setUsers] = useState<UserOption[]>([]);
   const [selectedUser, setSelectedUser] = useState<UserOption | undefined>();
   const [mutating, setMutating] = useState<boolean>(false);
+  const [hideHofAndQuartier, setHideHofAndQuartier] = useState<boolean>(false);
 
   const fetchParticipants = useCallback(async (): Promise<void> => {
     if (id == undefined || collectionSlug == undefined) {
@@ -74,6 +75,20 @@ export const ParticipantsAdminUI: React.FC = () => {
     }
   }, []);
 
+  const fetchFeatureFlag = useCallback(async (): Promise<void> => {
+    try {
+      const response = await fetch(`/api/globals/app-feature-flags/`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch feature flags');
+      }
+      const data = (await response.json()) as { hideHofAndQuartier?: boolean };
+      setHideHofAndQuartier(data.hideHofAndQuartier ?? false);
+    } catch (error_) {
+      console.warn('Error fetching feature flags, defaulting to false', error_);
+      setHideHofAndQuartier(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (id === undefined || collectionSlug === undefined) {
       return;
@@ -82,7 +97,8 @@ export const ParticipantsAdminUI: React.FC = () => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void fetchParticipants();
     void fetchUsers();
-  }, [id, collectionSlug, fetchParticipants, fetchUsers]);
+    void fetchFeatureFlag();
+  }, [id, collectionSlug, fetchParticipants, fetchUsers, fetchFeatureFlag]);
 
   const handleEnroll = async (): Promise<void> => {
     if (selectedUser === undefined || id === undefined || collectionSlug === undefined) return;
@@ -206,8 +222,12 @@ export const ParticipantsAdminUI: React.FC = () => {
                   <th style={{ padding: '0.5rem' }}>Name</th>
                   <th style={{ padding: '0.5rem' }}>Ceviname</th>
                   <th style={{ padding: '0.5rem' }}>Email</th>
-                  <th style={{ padding: '0.5rem' }}>Hof</th>
-                  <th style={{ padding: '0.5rem' }}>Quartier</th>
+                  {hideHofAndQuartier ? undefined : (
+                    <>
+                      <th style={{ padding: '0.5rem' }}>Hof</th>
+                      <th style={{ padding: '0.5rem' }}>Quartier</th>
+                    </>
+                  )}
                   <th style={{ padding: '0.5rem', width: '80px' }}>Actions</th>
                 </tr>
               </thead>
@@ -217,8 +237,12 @@ export const ParticipantsAdminUI: React.FC = () => {
                     <td style={{ padding: '0.5rem' }}>{p.fullName}</td>
                     <td style={{ padding: '0.5rem' }}>{p.nickname}</td>
                     <td style={{ padding: '0.5rem' }}>{p.email}</td>
-                    <td style={{ padding: '0.5rem' }}>{p.hof}</td>
-                    <td style={{ padding: '0.5rem' }}>{p.quartier}</td>
+                    {hideHofAndQuartier ? undefined : (
+                      <>
+                        <td style={{ padding: '0.5rem' }}>{p.hof}</td>
+                        <td style={{ padding: '0.5rem' }}>{p.quartier}</td>
+                      </>
+                    )}
                     <td style={{ padding: '0.5rem' }}>
                       <button
                         type="button"

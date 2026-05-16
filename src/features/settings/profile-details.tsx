@@ -11,6 +11,8 @@ import { ExternalLink, Hash, LifeBuoy, LogIn, Mail, MapPin, User } from 'lucide-
 import React from 'react';
 
 import { SettingsRow } from '@/features/settings/components/settings-row';
+import { getFeatureFlag } from '@/lib/db/redis';
+import { FEATURE_HIDE_HOF_AND_QUARTIER } from '@/lib/feature-flags';
 
 const notAvailable: StaticTranslationString = {
   de: 'nicht verfügbar',
@@ -81,6 +83,11 @@ export const ProfileDetails: React.FC = async () => {
     supportMailContent[locale].replace('__ID__', getDetail(user?.uuid)),
   )}`;
 
+  const hideHofAndQuartier = await getFeatureFlag(FEATURE_HIDE_HOF_AND_QUARTIER);
+  const shouldShowHofAndQuartier =
+    isAuthenticated && /*(user?.hof || user?.quartier) &&*/ !hideHofAndQuartier;
+
+  console.log(hideHofAndQuartier, shouldShowHofAndQuartier);
   return (
     <div className="space-y-6">
       {/* Profile Header */}
@@ -109,9 +116,12 @@ export const ProfileDetails: React.FC = async () => {
             <div className="mt-6 space-y-4">
               <SettingsRow icon={Mail} title="E-Mail" subtitle={getDetail(user.email)} />
 
-              <SettingsRow icon={MapPin} title="Hof" subtitle={getDetail(user.hof)} />
-
-              <SettingsRow icon={MapPin} title="Quartier" subtitle={getDetail(user.quartier)} />
+              {shouldShowHofAndQuartier && (
+                <>
+                  <SettingsRow icon={MapPin} title="Hof" subtitle={getDetail(user.hof)} />
+                  <SettingsRow icon={MapPin} title="Quartier" subtitle={getDetail(user.quartier)} />
+                </>
+              )}
 
               <SettingsRow
                 icon={Hash}

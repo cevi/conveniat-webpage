@@ -6293,6 +6293,10 @@ export interface AppFeatureFlag {
    * Toggles the ability for users to create new chats (1-on-1 and Group). Emergency/Support chats are excluded.
    */
   createChatsEnabled?: boolean | null;
+  /**
+   * Hides the Hof and Quartier sections in the app. This is used for testing purposes.
+   */
+  hideHofAndQuartier?: boolean | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -6616,6 +6620,7 @@ export interface AlertSettingsSelect<T extends boolean = true> {
 export interface AppFeatureFlagsSelect<T extends boolean = true> {
   globalMessagingEnabled?: T;
   createChatsEnabled?: T;
+  hideHofAndQuartier?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
