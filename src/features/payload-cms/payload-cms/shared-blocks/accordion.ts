@@ -184,6 +184,35 @@ const accordionTimelineElement: Block = {
   ],
 };
 
+const titleOnlyAccordionValueBlock: Block = {
+  slug: 'titleOnlyAccordionValueBlock',
+  interfaceName: 'TitleOnlyAccordionValueBlock',
+  labels: {
+    singular: {
+      de: 'Akkordeon-Texttitel',
+      en: 'Accordion Title',
+      fr: "Titre d'accordéon",
+    },
+    plural: {
+      de: 'Akkordeon-Texttitel',
+      en: 'Accordion Titles',
+      fr: "Titres d'accordéon",
+    },
+  },
+  fields: [
+    {
+      name: 'title',
+      label: {
+        de: 'Titel',
+        en: 'Title',
+        fr: 'Titre',
+      },
+      type: 'text',
+      required: true,
+    },
+  ],
+};
+
 const nestedAccordion: Block = {
   slug: 'nestedAccordion',
   interfaceName: 'NestedAccordionBlocks',
@@ -207,6 +236,7 @@ const nestedAccordion: Block = {
             formBlock,
             fileDownloadBlock,
             accordionTimelineElement,
+            titleOnlyAccordionValueBlock,
           ],
         },
       ],
@@ -219,6 +249,7 @@ const valueBlocks: Block[] = [
   teamMembersBlock,
   formBlock,
   accordionTimelineElement,
+  titleOnlyAccordionValueBlock,
   nestedAccordion,
   fileDownloadBlock,
 ];

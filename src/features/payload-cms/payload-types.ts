@@ -1533,6 +1533,7 @@ export interface AccordionBlocks {
           | TeamMembersBlock
           | FormBlock
           | AccordionTimelineElementBlock
+          | TitleOnlyAccordionValueBlock
           | NestedAccordionBlocks
           | {
               file: string | Document;
@@ -3089,6 +3090,16 @@ export interface AccordionTimelineElementBlock {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TitleOnlyAccordionValueBlock".
+ */
+export interface TitleOnlyAccordionValueBlock {
+  title: string;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'titleOnlyAccordionValueBlock';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "NestedAccordionBlocks".
  */
 export interface NestedAccordionBlocks {
@@ -3107,6 +3118,7 @@ export interface NestedAccordionBlocks {
               blockType: 'fileDownload';
             }
           | AccordionTimelineElementBlock
+          | TitleOnlyAccordionValueBlock
         )[];
         id?: string | null;
       }[]
@@ -4150,6 +4162,7 @@ export interface AccordionBlocksSelect<T extends boolean = true> {
               accordionTeamMembersBlock?: T | TeamMembersBlockSelect<T>;
               formBlock?: T | FormBlockSelect<T>;
               accordionTimelineElement?: T | AccordionTimelineElementBlockSelect<T>;
+              titleOnlyAccordionValueBlock?: T | TitleOnlyAccordionValueBlockSelect<T>;
               nestedAccordion?: T | NestedAccordionBlocksSelect<T>;
               fileDownload?:
                 | T
@@ -4234,6 +4247,15 @@ export interface AccordionTimelineElementBlockSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TitleOnlyAccordionValueBlock_select".
+ */
+export interface TitleOnlyAccordionValueBlockSelect<T extends boolean = true> {
+  title?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "NestedAccordionBlocks_select".
  */
 export interface NestedAccordionBlocksSelect<T extends boolean = true> {
@@ -4256,6 +4278,7 @@ export interface NestedAccordionBlocksSelect<T extends boolean = true> {
                     blockName?: T;
                   };
               accordionTimelineElement?: T | AccordionTimelineElementBlockSelect<T>;
+              titleOnlyAccordionValueBlock?: T | TitleOnlyAccordionValueBlockSelect<T>;
             };
         id?: T;
       };
