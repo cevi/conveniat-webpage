@@ -33,7 +33,7 @@ export const FeatureFlagToggle: React.FC<ExtendedCheckboxProperties> = ({
   }
 
   return (
-    <div className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm">
+    <div className="m-2 flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm">
       <div className="space-y-0.5">
         <label className="text-base font-medium text-gray-900 dark:text-gray-100">{label}</label>
         {field.admin?.description && (
