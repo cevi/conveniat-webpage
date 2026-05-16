@@ -5,7 +5,6 @@ import { helperJobsPdfReportHandler } from '@/features/payload-cms/payload-cms/e
 import { asLocalizedCollection } from '@/features/payload-cms/payload-cms/utils/localized-collection';
 import type { CollectionConfig, DateFieldValidation } from 'payload';
 
-
 const EndAfterStartDateValidation: DateFieldValidation = (value, { siblingData }) => {
   const startDateRaw = (siblingData as { startDate?: string }).startDate;
   if (!startDateRaw) return 'Start date is required.';

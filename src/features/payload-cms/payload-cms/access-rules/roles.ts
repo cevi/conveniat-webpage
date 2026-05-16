@@ -65,7 +65,10 @@ export const hasAccessToThisUser: ({
     user.groups === undefined ? (user.group_ids ?? []) : user.groups.map((group) => group.id);
 
   // if any of the user's groups match any of the required roles, return true
-  if (requiredRoles.includes(Roles.FullAdmin) && userGroupIds.some((id) => CEVIDB_GROUP_FULL_ADMIN.includes(id))) {
+  if (
+    requiredRoles.includes(Roles.FullAdmin) &&
+    userGroupIds.some((id) => CEVIDB_GROUP_FULL_ADMIN.includes(id))
+  ) {
     return true;
   }
   if (
