@@ -37,9 +37,12 @@ export function useNativePush(): {
   const { mutateAsync: unregisterDevice } = trpc.nativePush.unregisterDevice.useMutation();
 
   useEffect(() => {
-    setIsNativeApp(isNativeAppWebView());
+    const isNative = isNativeAppWebView();
+    const timeoutId = setTimeout(() => {
+      setIsNativeApp(isNative);
+    }, 0);
 
-    if (!isNativeAppWebView()) return;
+    if (!isNative) return;
 
     const handleNativeEvent = (event: Event) => {
       const customEvent = event as CustomEvent<{ type?: string; payload?: Record<string, unknown> }>;
@@ -110,23 +113,24 @@ export function useNativePush(): {
     globalThis.AppWebViewNativePush?.getStatus();
 
     return () => {
+      clearTimeout(timeoutId);
       globalThis.removeEventListener('app-webview-native-push-event', handleNativeEvent);
     };
   }, [router, registerDevice, unregisterDevice]);
 
-  const requestPermission = () => {
+  const requestPermission = (): void => {
     if (isNativeApp) {
       globalThis.AppWebViewNativePush?.requestPermission();
     }
   };
 
-  const deleteToken = () => {
+  const deleteToken = (): void => {
     if (isNativeApp) {
       globalThis.AppWebViewNativePush?.deleteToken();
     }
   };
 
-  const openSettings = () => {
+  const openSettings = (): void => {
     if (isNativeApp) {
       globalThis.AppWebViewNativePush?.openSettings();
     }

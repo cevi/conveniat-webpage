@@ -1,5 +1,6 @@
 import { environmentVariables } from '@/config/environment-variables';
 import * as admin from 'firebase-admin';
+import * as fs from 'node:fs';
 
 let firebaseAdminInitialized = false;
 
@@ -15,8 +16,7 @@ export function getFirebaseAdmin(): typeof admin | undefined {
   }
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const serviceAccount = require(keyPath) as admin.ServiceAccount;
+    const serviceAccount = JSON.parse(fs.readFileSync(keyPath, 'utf8')) as admin.ServiceAccount;
 
     // Check if there's an already initialized app to prevent multiple initializations in dev
     if (admin.apps.length === 0) {
