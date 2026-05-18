@@ -65,6 +65,7 @@ services:
 
     volumes:
       - /cluster/dist_storage_insane/service_data/conveniat-dev/next-cache:/app/.next/cache
+      - /cluster/dist_storage_insane/service_data/conveniat-dev/firebase-service-account.json:/app/firebase-service-account.json:ro
 
     dns:
       - 8.8.8.8 # Replace with your desired DNS server

@@ -274,10 +274,16 @@ model PushNotificationLog {
   interactedAt    DateTime?
   interactionType String?
   userAgent       String?
+  channel         PushNotificationChannel @default(WEB_PUSH)
   status          PushNotificationStatus @default(PENDING)
   error           String?
 
   @@index([userId])
+}
+
+enum PushNotificationChannel {
+  WEB_PUSH
+  NATIVE_FCM
 }
 
 enum PushNotificationStatus {

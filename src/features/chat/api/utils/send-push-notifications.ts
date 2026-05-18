@@ -2,7 +2,6 @@ import { environmentVariables } from '@/config/environment-variables';
 import type { PushNotificationSubscription } from '@/features/payload-cms/payload-types';
 import config from '@payload-config';
 import { getPayload } from 'payload';
-import type webpush from 'web-push';
 
 async function getSubscriptions(
   recipientUserIds: string[],
@@ -26,7 +25,7 @@ async function getSubscriptions(
 }
 
 async function processSubscription(
-  subscription: webpush.PushSubscription & { user?: string | { id: string } },
+  subscription: PushNotificationSubscription,
   message: string,
   chatURL: string,
   messageId?: string,
@@ -34,7 +33,7 @@ async function processSubscription(
 ): Promise<{ success: boolean; error?: string }> {
   const { sendNotificationToSubscription } = await import('@/utils/push-notification-api');
 
-  const userId = typeof subscription.user === 'object' ? subscription.user.id : subscription.user;
+  const userId = typeof subscription.user === 'object' ? subscription.user?.id : subscription.user;
 
   // For chat messages, we log a JSON object instead of the actual message content for privacy
   const logContent =
@@ -86,13 +85,7 @@ export async function sendNotification(
 
   try {
     const webPushPromises = subscriptions.map((subscription) =>
-      processSubscription(
-        subscription as webpush.PushSubscription & { user?: string | { id: string } },
-        message,
-        chatURL,
-        messageId,
-        chatId,
-      ),
+      processSubscription(subscription, message, chatURL, messageId, chatId),
     );
     await Promise.all(webPushPromises);
 

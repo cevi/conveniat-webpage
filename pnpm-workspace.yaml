@@ -1,4 +1,5 @@
 allowBuilds:
+  '@firebase/util': true
   '@posthog/cli': true
   '@prisma/engines': true
   '@swc/core': true

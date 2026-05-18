@@ -1,10 +1,13 @@
 'use server';
 
 import { environmentVariables } from '@/config/environment-variables';
+import type { PushNotificationSubscription } from '@/features/payload-cms/payload-types';
+import { sendFcmNotification } from '@/lib/firebase-admin';
 import type { StaticTranslationString } from '@/types/types';
 import { auth } from '@/utils/auth';
 import { getPayloadUserFromNextAuthUser, isValidNextAuthUser } from '@/utils/auth-helpers';
 import config from '@payload-config';
+import { PushNotificationChannel } from '@prisma/client';
 import type { Where } from 'payload';
 import { getPayload } from 'payload';
 import webpush from 'web-push';
@@ -85,13 +88,16 @@ export async function subscribeUser(
       await payload.create({
         collection: 'push-notification-subscriptions',
         data: {
-          ...sub,
-          user: payloadUser,
+          platform: 'web',
+          endpoint: sub.endpoint,
+          keys: sub.keys,
+          user: payloadUser.id,
           // eslint-disable-next-line unicorn/no-null
           userAgent: userAgent ?? null,
           // eslint-disable-next-line unicorn/no-null
           registrationSource: registrationSource ?? null,
-        },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any,
       });
     }
   } else {
@@ -99,12 +105,15 @@ export async function subscribeUser(
     await payload.create({
       collection: 'push-notification-subscriptions',
       data: {
-        ...sub,
+        platform: 'web',
+        endpoint: sub.endpoint,
+        keys: sub.keys,
         // eslint-disable-next-line unicorn/no-null
         userAgent: userAgent ?? null,
         // eslint-disable-next-line unicorn/no-null
         registrationSource: registrationSource ?? null,
-      },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any,
     });
   }
 
@@ -153,7 +162,7 @@ export async function unsubscribeUser(
 }
 
 export async function sendNotificationToSubscription(
-  subscription: webpush.PushSubscription,
+  subscription: webpush.PushSubscription | PushNotificationSubscription,
   message: string,
   url?: string,
   userId?: string,
@@ -164,6 +173,11 @@ export async function sendNotificationToSubscription(
   const { default: prisma } = await import('@/lib/db/prisma');
   let logId = existingLogId;
 
+  const isNative =
+    'platform' in subscription &&
+    (subscription.platform === 'ios' || subscription.platform === 'android');
+  const channel = isNative ? PushNotificationChannel.NATIVE_FCM : PushNotificationChannel.WEB_PUSH;
+
   // If userId is provided and no existingLogId, create a new log entry
   if (userId && !logId) {
     try {
@@ -172,6 +186,7 @@ export async function sendNotificationToSubscription(
           userId,
           content: logContent ?? message,
           status: 'PENDING',
+          channel,
         },
       });
       logId = log.id;
@@ -182,17 +197,43 @@ export async function sendNotificationToSubscription(
   }
 
   try {
-    await webpush.sendNotification(
-      subscription,
-      JSON.stringify({
+    if (isNative) {
+      const nativeSub = subscription;
+      if (!nativeSub.token) throw new Error('Native token is missing');
+      const result = await sendFcmNotification(nativeSub.token, {
         title: 'conveniat27',
         body: message,
         data: {
-          url: urlToSend,
-          notificationId: logId,
+          ...(urlToSend && { url: urlToSend }),
+          ...(logId && { notificationId: logId }),
         },
-      }),
-    );
+      });
+      if (!result.success) throw new Error(result.error);
+    } else {
+      let webSub = subscription as webpush.PushSubscription;
+      // If it's a Payload subscription, format it for web-push
+      if ('endpoint' in subscription && 'keys' in subscription && 'platform' in subscription) {
+        webSub = {
+          endpoint: subscription.endpoint ?? '',
+          keys: {
+            p256dh: subscription.keys?.p256dh ?? '',
+            auth: subscription.keys?.auth ?? '',
+          },
+        };
+      }
+
+      await webpush.sendNotification(
+        webSub,
+        JSON.stringify({
+          title: 'conveniat27',
+          body: message,
+          data: {
+            url: urlToSend,
+            notificationId: logId,
+          },
+        }),
+      );
+    }
 
     if (logId) {
       await prisma.pushNotificationLog.update({
@@ -205,7 +246,7 @@ export async function sendNotificationToSubscription(
     }
 
     return { success: true };
-  } catch (error) {
+  } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('Error sending push notification:', error);
 

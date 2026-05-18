@@ -13,6 +13,7 @@ services:
       - .:/home/node/app
       - next-cache:/home/node/app/.next
       - node_modules:/home/node/app/node_modules
+      - ./firebase-service-account.json:/home/node/app/firebase-service-account.json:ro
     working_dir: /home/node/app/
     command: >
       sh -c "export PRISMA_OUTPUT='src/lib/prisma/client/' && rm -rf .next/* /nodecache/* && npx prisma generate --no-hints && npx prisma db push --accept-data-loss && npx prisma studio --browser none & corepack enable pnpm && pnpm i --frozen-lockfile && sh /home/node/app/create_build_info.sh && pnpm dev-next"
@@ -52,6 +53,7 @@ services:
       - next-cache:/home/node/app/.next
       - node-cache:/nodecache
       - node_modules:/home/node/app/node_modules
+      - ./firebase-service-account.json:/home/node/app/firebase-service-account.json:ro
     working_dir: /home/node/app/
     command: >
       sh -c "export PRISMA_OUTPUT='src/lib/prisma/client/' && npx prisma generate --no-hints && npx prisma db push --accept-data-loss && npx prisma studio --browser none & corepack enable pnpm && pnpm i --frozen-lockfile && sh /home/node/app/create_build_info.sh && pnpm build && mkdir -p .next/standalone/.next/cache && cp -r .next/cache/fs-fallback .next/standalone/.next/cache/ && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/ || true && node .next/standalone/server.js"
