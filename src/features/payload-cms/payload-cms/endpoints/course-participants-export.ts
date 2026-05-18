@@ -2,8 +2,8 @@ import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-r
 import prisma from '@/lib/db/prisma';
 import { getFeatureFlag } from '@/lib/db/redis';
 import { FEATURE_HIDE_HOF_AND_QUARTIER } from '@/lib/feature-flags';
+import ExcelJS from 'exceljs';
 import type { PayloadHandler } from 'payload';
-import { utils, write } from 'xlsx';
 
 interface PDFDocumentWithTables extends Omit<InstanceType<typeof import('pdfkit')>, 'table'> {
   table: (tableData: { title?: string; headers?: string[]; rows?: string[][] }) => void;
@@ -106,11 +106,20 @@ export const courseParticipantsExportHandler: PayloadHandler = async (request) =
     }
 
     if (format === 'xlsx') {
-      const ws = utils.json_to_sheet(participantData);
-      const wb = utils.book_new();
-      utils.book_append_sheet(wb, ws, 'Teilnehmer');
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const buffer: Buffer = write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Teilnehmer');
+
+      const columns = hideHofAndQuartier
+        ? ['uuid', 'fullName', 'nickname', 'email']
+        : ['uuid', 'fullName', 'nickname', 'email', 'hof', 'quartier'];
+
+      worksheet.columns = columns.map((key) => ({ header: key, key }));
+
+      for (const participant of participantData) {
+        worksheet.addRow(participant);
+      }
+
+      const buffer = await workbook.xlsx.writeBuffer();
 
       return new Response(buffer, {
         headers: {
