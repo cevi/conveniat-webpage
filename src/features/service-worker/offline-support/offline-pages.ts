@@ -31,6 +31,7 @@ export const offlinePages = [
   // Map viewer with tile caching
   '/app/map',
 
-  // offline page
+  // Offline pages
   '/~offline',
+  '/~offline?app-mode=true',
 ] as const;

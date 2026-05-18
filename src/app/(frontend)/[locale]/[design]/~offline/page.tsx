@@ -46,8 +46,7 @@ export default async function OfflinePage({
 }
 
 export const generateStaticParams = (): { locale: Locale; design: DesignCodes }[] => {
-  // Offline page is only used in app mode, so we only generate for APP_DESIGN
-  const designs: DesignCodes[] = [DesignCodes.APP_DESIGN];
+  const designs: DesignCodes[] = [DesignCodes.APP_DESIGN, DesignCodes.WEB_DESIGN];
   const locales: Locale[] = ['de', 'fr', 'en'];
 
   return designs.flatMap((design) => locales.map((locale) => ({ locale, design })));

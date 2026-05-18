@@ -105,8 +105,9 @@ async function offlineFallback(request: Request, url: URL, isAppMode: boolean): 
   }
 
   // PWA only: Browser users should see the standard browser offline error for documents and assets.
-  if (!isAppMode) {
-    console.log(`[SW] Offline fallback skipped for browser user: ${url.pathname}`);
+  // Wait, we now want web users to also see the /~offline page fallback. We only skip asset fallbacks for them.
+  if (!isAppMode && request.destination !== 'document') {
+    console.log(`[SW] Offline fallback skipped for non-document web request: ${url.pathname}`);
     return Response.error();
   }
 
@@ -116,16 +117,18 @@ async function offlineFallback(request: Request, url: URL, isAppMode: boolean): 
     if (cachedPage) return cachedPage;
 
     // Generic Offline Page (final fallback for documents)
-    // Try multiple cache lookup strategies for /~offline
+    const offlineUrl = isAppMode ? '/~offline?app-mode=true' : '/~offline';
+
+    // Try multiple cache lookup strategies for the offline page
     const pagesCache = await caches.open(CACHE_NAMES.PAGES);
-    const offlineFromPages = await pagesCache.match('/~offline', { ignoreVary: true });
+    const offlineFromPages = await pagesCache.match(offlineUrl, { ignoreVary: true });
     if (offlineFromPages) return offlineFromPages;
 
     // Try global cache match (e.g., precache)
-    const offlinePage = await caches.match('/~offline', { ignoreVary: true });
+    const offlinePage = await caches.match(offlineUrl, { ignoreVary: true });
     if (offlinePage) return offlinePage;
     console.error(`[SW] No offline fallback found for document: ${url.toString()}`);
-    return Response.redirect('/~offline', 302);
+    return Response.redirect(offlineUrl, 302);
   }
 
   // Strategy C: Assets (Non-Document Only)
