@@ -6297,6 +6297,18 @@ export interface AppFeatureFlag {
    * Hides the Hof and Quartier sections in the app. This is used for testing purposes.
    */
   hideHofAndQuartier?: boolean | null;
+  /**
+   * Toggles visibility of the Helper Shifts (Schichteinsätze) menu item in the app.
+   */
+  helperShiftsEnabled?: boolean | null;
+  /**
+   * Toggles visibility of the Image Upload menu item in the app.
+   */
+  imageUploadEnabled?: boolean | null;
+  /**
+   * Toggles visibility of the Reservations menu item in the app.
+   */
+  reservationsEnabled?: boolean | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -6621,6 +6633,9 @@ export interface AppFeatureFlagsSelect<T extends boolean = true> {
   globalMessagingEnabled?: T;
   createChatsEnabled?: T;
   hideHofAndQuartier?: T;
+  helperShiftsEnabled?: T;
+  imageUploadEnabled?: T;
+  reservationsEnabled?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

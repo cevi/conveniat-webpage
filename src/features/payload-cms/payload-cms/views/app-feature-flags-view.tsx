@@ -48,6 +48,9 @@ export const AppFeatureFlagsActions: React.FC = () => {
     const booleanFlags = [
       { key: 'globalMessagingEnabled', label: 'Global Messaging' },
       { key: 'createChatsEnabled', label: 'Create Chats' },
+      { key: 'helperShiftsEnabled', label: 'Helper Shifts (Schichteinsätze)' },
+      { key: 'imageUploadEnabled', label: 'Image Upload' },
+      { key: 'reservationsEnabled', label: 'Reservations' },
     ];
 
     for (const flag of booleanFlags) {
