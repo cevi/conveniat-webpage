@@ -6,7 +6,8 @@ import { SetDynamicPageTitle } from '@/components/header/set-dynamic-app-title';
 import { getAppFeatureFlagsCached } from '@/features/payload-cms/api/cached-globals';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { withSpan } from '@/utils/tracing-helpers';
-import React, { Suspense } from 'react';
+import type React from 'react';
+import { Suspense } from 'react';
 
 const dashboardTitle: StaticTranslationString = {
   en: 'Dashboard',

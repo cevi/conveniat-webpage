@@ -4,6 +4,9 @@ import { flushPageCacheOnChangeGlobal } from '@/features/payload-cms/payload-cms
 import { setFeatureFlag } from '@/lib/db/redis';
 import {
   FEATURE_FLAG_CREATE_CHATS_ENABLED,
+  FEATURE_FLAG_HELPER_SHIFTS_ENABLED,
+  FEATURE_FLAG_IMAGE_UPLOAD_ENABLED,
+  FEATURE_FLAG_RESERVATIONS_ENABLED,
   FEATURE_FLAG_SEND_MESSAGES,
   FEATURE_HIDE_HOF_AND_QUARTIER,
 } from '@/lib/feature-flags';
@@ -110,7 +113,7 @@ export const AppFeatureFlags: GlobalConfig = {
       hooks: {
         afterChange: [
           async ({ value }): Promise<void> => {
-            await setFeatureFlag('helper_shifts_enabled', Boolean(value));
+            await setFeatureFlag(FEATURE_FLAG_HELPER_SHIFTS_ENABLED, Boolean(value));
           },
         ],
       },
@@ -134,7 +137,7 @@ export const AppFeatureFlags: GlobalConfig = {
       hooks: {
         afterChange: [
           async ({ value }): Promise<void> => {
-            await setFeatureFlag('image_upload_enabled', Boolean(value));
+            await setFeatureFlag(FEATURE_FLAG_IMAGE_UPLOAD_ENABLED, Boolean(value));
           },
         ],
       },
@@ -158,7 +161,7 @@ export const AppFeatureFlags: GlobalConfig = {
       hooks: {
         afterChange: [
           async ({ value }): Promise<void> => {
-            await setFeatureFlag('reservations_enabled', Boolean(value));
+            await setFeatureFlag(FEATURE_FLAG_RESERVATIONS_ENABLED, Boolean(value));
           },
         ],
       },
