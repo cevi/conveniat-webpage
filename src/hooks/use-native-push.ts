@@ -42,7 +42,7 @@ export function useNativePush(): {
       setIsNativeApp(isNative);
     }, 0);
 
-    if (!isNative) return;
+    if (!isNative) return (): void => clearTimeout(timeoutId);
 
     const handleNativeEvent = (event: Event): void => {
       const customEvent = event as CustomEvent<
@@ -100,7 +100,10 @@ export function useNativePush(): {
         }
         case 'native-push-open': {
           if (typeof payload['url'] === 'string') {
-            router.push(payload['url']);
+            // Only allow relative (same-origin) paths to prevent open redirects
+            const url = payload['url'];
+            const isRelative = url.startsWith('/') && !url.startsWith('//');
+            router.push(isRelative ? url : '/app/dashboard');
           } else {
             router.push('/app/dashboard');
           }

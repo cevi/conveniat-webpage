@@ -1,6 +1,7 @@
 import { createTRPCRouter, trpcBaseProcedure } from '@/trpc/init';
 import { getPayloadUserFromNextAuthUser } from '@/utils/auth-helpers';
 import config from '@payload-config';
+import { TRPCError } from '@trpc/server';
 import { getPayload } from 'payload';
 import { z } from 'zod';
 
@@ -17,7 +18,7 @@ export const nativePushRouter = createTRPCRouter({
       const payloadUser = await getPayloadUserFromNextAuthUser(payload, ctx.user);
 
       if (!payloadUser) {
-        throw new Error('User not found');
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found' });
       }
 
       // Check if token already exists
@@ -60,7 +61,7 @@ export const nativePushRouter = createTRPCRouter({
       const payloadUser = await getPayloadUserFromNextAuthUser(payload, ctx.user);
 
       if (!payloadUser) {
-        throw new Error('User not found');
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found' });
       }
 
       await payload.delete({

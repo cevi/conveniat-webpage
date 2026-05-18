@@ -59,13 +59,11 @@ export async function subscribeUser(
     environmentVariables.NEXT_PUBLIC_APP_HOST_URL.includes('conveniat27');
 
   if (payloadUser) {
-    // check if the user already has a subscription
+    // check if the user already has a web subscription
     const existingSubscription = await payload.find({
       collection: 'push-notification-subscriptions',
       where: {
-        user: {
-          equals: payloadUser.id,
-        },
+        and: [{ user: { equals: payloadUser.id } }, { platform: { equals: 'web' } }],
       },
     });
 
@@ -167,7 +165,7 @@ export async function sendNotificationToSubscription(
   existingLogId?: string,
   logContent?: string,
 ): Promise<{ success: boolean; error?: string }> {
-  const urlToSend = url && url == '' ? undefined : url; // empty url is undefined
+  const urlToSend = url === '' ? undefined : url; // empty url is undefined
   const { default: prisma } = await import('@/lib/db/prisma');
   let logId = existingLogId;
 
@@ -195,15 +193,17 @@ export async function sendNotificationToSubscription(
   }
 
   try {
-    if (isNative) {
-      const nativeSub = subscription;
-      if (!nativeSub.token) throw new Error('Native token is missing');
-      const result = await sendFcmNotification(nativeSub.token, {
+    if (
+      'platform' in subscription &&
+      (subscription.platform === 'ios' || subscription.platform === 'android')
+    ) {
+      if (!subscription.token) throw new Error('Native token is missing');
+      const result = await sendFcmNotification(subscription.token, {
         title: 'conveniat27',
         body: message,
         data: {
-          ...(urlToSend && { url: urlToSend }),
-          ...(logId && { notificationId: logId }),
+          ...(urlToSend !== undefined && { url: urlToSend }),
+          ...(logId !== undefined && { notificationId: logId }),
         },
       });
       if (!result.success) throw new Error(result.error);

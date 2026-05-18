@@ -11,6 +11,10 @@ node_modules
 .env
 .env.example
 
+# Firebase credentials (mounted at runtime via docker-compose bind mount)
+firebase-service-account.json
+
 # directories used for generating build information
 !.git/HEAD
 !.git/refs/heads/*
+§
