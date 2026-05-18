@@ -27,10 +27,10 @@ export const seedPushNotifications = async (payload: Payload, userIds: string[])
         p256dh: 'BAs-test-p256dh-key-placeholder-value-exactly-sixty-five-bytes-long',
         auth: 'test-auth-key-placeholder',
       },
-    } as any,
+    },
     locale: LOCALE.DE,
     context: { disableRevalidation: true },
-  } as any);
+  });
 
   // 2. Create several test logs in Prisma for each user
   const logData = [];

@@ -48,7 +48,7 @@ export const PushNotificationSettings: React.FC<{ locale: Locale }> = ({ locale 
   const isLoading = isNativeApp ? isNativeLoading : isWebLoading;
   const errorMessage = isNativeApp ? undefined : webError;
 
-  const handleToggle = () => {
+  const handleToggle = (): void => {
     if (isNativeApp) {
       if (isNativeSubscribed) {
         deleteToken();

@@ -96,8 +96,7 @@ export async function subscribeUser(
           userAgent: userAgent ?? null,
           // eslint-disable-next-line unicorn/no-null
           registrationSource: registrationSource ?? null,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } as any,
+        },
       });
     }
   } else {
@@ -112,8 +111,7 @@ export async function subscribeUser(
         userAgent: userAgent ?? null,
         // eslint-disable-next-line unicorn/no-null
         registrationSource: registrationSource ?? null,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any,
+      },
     });
   }
 
@@ -216,8 +214,8 @@ export async function sendNotificationToSubscription(
         webSub = {
           endpoint: subscription.endpoint ?? '',
           keys: {
-            p256dh: subscription.keys?.p256dh ?? '',
-            auth: subscription.keys?.auth ?? '',
+            p256dh: subscription.keys.p256dh ?? '',
+            auth: subscription.keys.auth ?? '',
           },
         };
       }

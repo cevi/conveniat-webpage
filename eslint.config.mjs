@@ -260,6 +260,7 @@ const config = defineConfig([
                 './utils',
                 './config',
                 './context',
+                './trpc',
               ],
             },
           ],

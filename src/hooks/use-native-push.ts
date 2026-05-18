@@ -44,8 +44,15 @@ export function useNativePush(): {
 
     if (!isNative) return;
 
-    const handleNativeEvent = (event: Event) => {
-      const customEvent = event as CustomEvent<{ type?: string; payload?: Record<string, unknown> }>;
+    const handleNativeEvent = (event: Event): void => {
+      const customEvent = event as CustomEvent<
+        | {
+            type?: string;
+            payload?: Record<string, unknown>;
+          }
+        | null
+        | undefined
+      >;
       const detail = customEvent.detail ?? {};
       const type = detail.type;
       const payload = detail.payload ?? {};
@@ -112,7 +119,7 @@ export function useNativePush(): {
     // Initial status check
     globalThis.AppWebViewNativePush?.getStatus();
 
-    return () => {
+    return (): void => {
       clearTimeout(timeoutId);
       globalThis.removeEventListener('app-webview-native-push-event', handleNativeEvent);
     };

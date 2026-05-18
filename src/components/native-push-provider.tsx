@@ -2,7 +2,7 @@
 
 import { useNativePush } from '@/hooks/use-native-push';
 
-export function NativePushProvider({ children }: { children: React.ReactNode }) {
+export function NativePushProvider({ children }: { children: React.ReactNode }): React.ReactNode {
   // Initialize the hook so it listens to events
   useNativePush();
 
