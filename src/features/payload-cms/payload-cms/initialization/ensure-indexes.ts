@@ -172,8 +172,10 @@ const ensureVersionCollectionIndices = async (
  * Ensures indices for upload-enabled collections (media).
  *
  * Why:
- * 1. Filename: Used for duplicate checks and lookups by filename.
- * 2. UpdatedAt: Used for sorting in the admin panel list view.
+ * 1. UpdatedAt: Used for sorting in the admin panel list view.
+ *
+ * Note: Payload already creates the upload filename index and marks it unique by default.
+ * Re-creating a plain filename index here collides with Payload's auto-generated index name.
  *
  * @param connection The MongoDB connection
  * @param collectionName The name of the collection
@@ -185,10 +187,6 @@ const ensureUploadCollectionIndexes = async (
   const collection = connection.collection(collectionName);
 
   const tasks: IndexTask[] = [
-    {
-      name: 'filename',
-      spec: { filename: 1 },
-    },
     {
       name: 'updatedAt',
       spec: { updatedAt: -1 },
@@ -225,6 +223,9 @@ const ensureGlobalsCollectionIndexes = async (
  *
  * Why: These collections are queried sequentially on almost every authenticated admin or API request.
  *
+ * Note: Payload already creates the unique users.email index from the auth field config.
+ * Re-creating a plain email index here collides with that auto-generated index name.
+ *
  * @param connection The MongoDB connection
  */
 const ensureAuthAndPreferencesIndexes = async (
@@ -235,7 +236,6 @@ const ensureAuthAndPreferencesIndexes = async (
   await processIndexes(
     usersCollection,
     [
-      { name: 'email', spec: { email: 1 } },
       // payload frequently queries by _id + deletedAt for auth resolution
       { name: 'id_deletedAt', spec: { _id: 1, deletedAt: 1 } },
     ],

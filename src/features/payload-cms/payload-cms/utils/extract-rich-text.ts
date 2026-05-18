@@ -26,6 +26,13 @@ const extractAccordionBlock = (accordion: AccordionBlocks): string => {
               if (valueBlock.blockType === 'accordionPlainTextBlock') {
                 return convertLexicalToPlaintext({ data: valueBlock.value });
               }
+
+              if (
+                (valueBlock as { blockType: string }).blockType === 'titleOnlyAccordionValueBlock'
+              ) {
+                return (valueBlock as { title?: string }).title ?? '';
+              }
+
               return '';
             })
             .join(' ')

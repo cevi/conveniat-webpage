@@ -33,10 +33,30 @@ export const environmentVariables = createEnv({
         .map((s) => Number(s.trim()))
         .filter((n) => !Number.isNaN(n)),
     ),
-    CEVIDB_GROUP_FULL_ADMIN: z.coerce.number(),
-    CEVIDB_GROUP_WEB_CORE_TEAM: z.coerce.number(),
-    CEVIDB_GROUP_TRANSLATION_TEAM: z.coerce.number(),
-    CEVIDB_GROUP_PROGRAM_TEAM: z.coerce.number(),
+    CEVIDB_GROUP_FULL_ADMIN: z.string().transform((value) =>
+      value
+        .split(',')
+        .map((s) => Number(s.trim()))
+        .filter((n) => !Number.isNaN(n)),
+    ),
+    CEVIDB_GROUP_WEB_CORE_TEAM: z.string().transform((value) =>
+      value
+        .split(',')
+        .map((s) => Number(s.trim()))
+        .filter((n) => !Number.isNaN(n)),
+    ),
+    CEVIDB_GROUP_TRANSLATION_TEAM: z.string().transform((value) =>
+      value
+        .split(',')
+        .map((s) => Number(s.trim()))
+        .filter((n) => !Number.isNaN(n)),
+    ),
+    CEVIDB_GROUP_PROGRAM_TEAM: z.string().transform((value) =>
+      value
+        .split(',')
+        .map((s) => Number(s.trim()))
+        .filter((n) => !Number.isNaN(n)),
+    ),
 
     CEVI_DB_CLIENT_ID: z.string().min(1),
     CEVI_DB_CLIENT_SECRET: z.string().min(1),

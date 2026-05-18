@@ -99,16 +99,20 @@ export const getAlertSettingsCached = cache(
  *
  * Returns the menu-visibility toggles (helper shifts, image upload, reservations).
  */
-export const getAppFeatureFlagsCached = cache(async (): Promise<AppFeatureFlag> => {
-  return await withSpan('getAppFeatureFlagsCached', async () => {
-    const payload = await getPayload({ config });
-    return await payload.findGlobal({
-      slug: 'app-feature-flags',
-      select: {
-        helperShiftsEnabled: true,
-        imageUploadEnabled: true,
-        reservationsEnabled: true,
-      },
+export const getAppFeatureFlagsCached = cache(
+  async (): Promise<
+    Pick<AppFeatureFlag, 'helperShiftsEnabled' | 'imageUploadEnabled' | 'reservationsEnabled'>
+  > => {
+    return await withSpan('getAppFeatureFlagsCached', async () => {
+      const payload = await getPayload({ config });
+      return await payload.findGlobal({
+        slug: 'app-feature-flags',
+        select: {
+          helperShiftsEnabled: true,
+          imageUploadEnabled: true,
+          reservationsEnabled: true,
+        },
+      });
     });
-  });
-});
+  },
+);

@@ -26,14 +26,14 @@ export const isFullAdmin: ({ req }: { req: PayloadRequest }) => boolean | Promis
   req: { user },
 }) => {
   if (!user) return false;
-  return user.groups?.some((group) => group.id === CEVIDB_GROUP_FULL_ADMIN) ?? false;
+  return user.groups?.some((group) => CEVIDB_GROUP_FULL_ADMIN.includes(group.id)) ?? false;
 };
 
 export const isWebCoreTeam: ({ req }: { req: PayloadRequest }) => boolean | Promise<boolean> = ({
   req: { user },
 }) => {
   if (!user) return false;
-  return user.groups?.some((group) => group.id === CEVIDB_GROUP_WEB_CORE_TEAM) ?? false;
+  return user.groups?.some((group) => CEVIDB_GROUP_WEB_CORE_TEAM.includes(group.id)) ?? false;
 };
 
 export const isTranslationTeam: ({
@@ -42,14 +42,14 @@ export const isTranslationTeam: ({
   req: PayloadRequest;
 }) => boolean | Promise<boolean> = ({ req: { user } }) => {
   if (!user) return false;
-  return user.groups?.some((group) => group.id === CEVIDB_GROUP_TRANSLATION_TEAM) ?? false;
+  return user.groups?.some((group) => CEVIDB_GROUP_TRANSLATION_TEAM.includes(group.id)) ?? false;
 };
 
 export const isProgramTeam: ({ req }: { req: PayloadRequest }) => boolean | Promise<boolean> = ({
   req: { user },
 }) => {
   if (!user) return false;
-  return user.groups?.some((group) => group.id === CEVIDB_GROUP_PROGRAM_TEAM) ?? false;
+  return user.groups?.some((group) => CEVIDB_GROUP_PROGRAM_TEAM.includes(group.id)) ?? false;
 };
 
 export const hasAccessToThisUser: ({
@@ -65,24 +65,27 @@ export const hasAccessToThisUser: ({
     user.groups === undefined ? (user.group_ids ?? []) : user.groups.map((group) => group.id);
 
   // if any of the user's groups match any of the required roles, return true
-  if (requiredRoles.includes(Roles.FullAdmin) && userGroupIds.includes(CEVIDB_GROUP_FULL_ADMIN)) {
+  if (
+    requiredRoles.includes(Roles.FullAdmin) &&
+    userGroupIds.some((id) => CEVIDB_GROUP_FULL_ADMIN.includes(id))
+  ) {
     return true;
   }
   if (
     requiredRoles.includes(Roles.WebCoreTeam) &&
-    userGroupIds.includes(CEVIDB_GROUP_WEB_CORE_TEAM)
+    userGroupIds.some((id) => CEVIDB_GROUP_WEB_CORE_TEAM.includes(id))
   ) {
     return true;
   }
   if (
     requiredRoles.includes(Roles.TranslationTeam) &&
-    userGroupIds.includes(CEVIDB_GROUP_TRANSLATION_TEAM)
+    userGroupIds.some((id) => CEVIDB_GROUP_TRANSLATION_TEAM.includes(id))
   ) {
     return true;
   }
   if (
     requiredRoles.includes(Roles.ProgramTeam) &&
-    userGroupIds.includes(CEVIDB_GROUP_PROGRAM_TEAM)
+    userGroupIds.some((id) => CEVIDB_GROUP_PROGRAM_TEAM.includes(id))
   ) {
     return true;
   }

@@ -63,6 +63,7 @@ import { FormExportButton as FormExportButton_fe5d55229fbe6ce6db571a8c425d41f4 }
 import { FormSubmissionCount as FormSubmissionCount_fa7a19089a3d6737b1d85b7fdf6c8f81 } from '@/features/payload-cms/payload-cms/components/form-submission-count'
 import { default as default_6f32ab4bbcf6fb111c3fe87675a4a1c3 } from '@/features/payload-cms/payload-cms/components/workflow-results/workflow-results-cell'
 import { default as default_c671a40aa094e16dd185957e6f1a1b99 } from '@/features/payload-cms/payload-cms/components/workflow-results/workflow-results-field'
+import { default as default_168c8ff1f0fec04eb904cf9d3e9d2f4b } from '@/features/payload-cms/payload-cms/components/form-submissions/resend-mail-cell'
 import { LinkToDoc as LinkToDoc_aead06e4cbf6b2620c5c51c9ab283634 } from '@payloadcms/plugin-search/client'
 import { ReindexButton as ReindexButton_aead06e4cbf6b2620c5c51c9ab283634 } from '@payloadcms/plugin-search/client'
 import { FormatField as FormatField_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
@@ -165,6 +166,7 @@ export const importMap = {
   "@/features/payload-cms/payload-cms/components/form-submission-count#FormSubmissionCount": FormSubmissionCount_fa7a19089a3d6737b1d85b7fdf6c8f81,
   "@/features/payload-cms/payload-cms/components/workflow-results/workflow-results-cell#default": default_6f32ab4bbcf6fb111c3fe87675a4a1c3,
   "@/features/payload-cms/payload-cms/components/workflow-results/workflow-results-field#default": default_c671a40aa094e16dd185957e6f1a1b99,
+  "@/features/payload-cms/payload-cms/components/form-submissions/resend-mail-cell#default": default_168c8ff1f0fec04eb904cf9d3e9d2f4b,
   "@payloadcms/plugin-search/client#LinkToDoc": LinkToDoc_aead06e4cbf6b2620c5c51c9ab283634,
   "@payloadcms/plugin-search/client#ReindexButton": ReindexButton_aead06e4cbf6b2620c5c51c9ab283634,
   "@payloadcms/plugin-import-export/rsc#FormatField": FormatField_cdf7e044479f899a31f804427d568b36,

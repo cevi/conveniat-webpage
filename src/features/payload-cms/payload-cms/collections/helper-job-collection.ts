@@ -3,7 +3,18 @@ import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-r
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { helperJobsPdfReportHandler } from '@/features/payload-cms/payload-cms/endpoints/helper-jobs-pdf-report';
 import { asLocalizedCollection } from '@/features/payload-cms/payload-cms/utils/localized-collection';
-import type { CollectionConfig } from 'payload';
+import type { CollectionConfig, DateFieldValidation } from 'payload';
+
+const EndAfterStartDateValidation: DateFieldValidation = (value, { siblingData }) => {
+  const startDateRaw = (siblingData as { startDate?: string }).startDate;
+  if (!startDateRaw) return 'Start date is required.';
+  const startDate = new Date(startDateRaw);
+  const endDate = new Date(value as unknown as string);
+  if (endDate <= startDate) {
+    return 'End date must be later than start date.';
+  }
+  return true;
+};
 
 export const JobCollection: CollectionConfig = asLocalizedCollection({
   slug: 'helper-jobs',
@@ -134,6 +145,7 @@ export const JobCollection: CollectionConfig = asLocalizedCollection({
               fr: 'Date de fin du poste.',
             },
           },
+          validate: EndAfterStartDateValidation,
         },
       ],
     },

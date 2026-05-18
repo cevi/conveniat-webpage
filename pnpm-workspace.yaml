@@ -1,0 +1,10 @@
+allowBuilds:
+  '@posthog/cli': true
+  '@prisma/engines': true
+  '@swc/core': true
+  core-js: true
+  esbuild: true
+  prisma: true
+  protobufjs: true
+  sharp: true
+  unrs-resolver: true

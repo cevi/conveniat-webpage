@@ -12,11 +12,13 @@ import type {
   AccordionTimelineElementBlock,
   PlainTextBlock,
   TeamMembersBlock,
+  TitleOnlyAccordionValueBlock,
 } from '@/features/payload-cms/payload-types';
 import type { Locale } from '@/types/types';
 import type React from 'react';
 import { Fragment } from 'react';
 import { TeamMembers } from 'src/features/payload-cms/components/accordion/team-members';
+
 export interface AccordionContentProperties {
   valueBlocks: Array<
     | TeamMembersBlock
@@ -25,6 +27,7 @@ export interface AccordionContentProperties {
     | AccordionBlocks
     | FileDownloadType
     | AccordionTimelineElementBlock
+    | TitleOnlyAccordionValueBlock
   >;
   locale: Locale;
   isTimelineElementContent?: boolean;
@@ -45,7 +48,8 @@ const AccordionContent: React.FC<AccordionContentProperties> = ({
             | FormBlockType
             | AccordionBlocks
             | FileDownloadType
-            | AccordionTimelineElementBlock,
+            | AccordionTimelineElementBlock
+            | TitleOnlyAccordionValueBlock,
           index: number,
         ): React.ReactElement => {
           if (
@@ -123,6 +127,21 @@ const AccordionContent: React.FC<AccordionContentProperties> = ({
                   locale={locale}
                 />
                 {!isNextBlockTimeline && index !== valueBlocks.length - 1 && (
+                  <hr className="my-6 border border-gray-100" />
+                )}
+              </Fragment>
+            );
+          }
+
+          if ((_block as { blockType: string }).blockType === 'titleOnlyAccordionValueBlock') {
+            const title = (_block as TitleOnlyAccordionValueBlock).title;
+
+            return (
+              <Fragment key={index}>
+                <div className="w-full rounded-lg border-2 border-gray-200 bg-gray-50 px-6 py-4 text-left shadow-xs">
+                  <h4 className="text-lg font-medium text-gray-900">{title}</h4>
+                </div>
+                {index !== valueBlocks.length - 1 && !isTimelineElementContent && (
                   <hr className="my-6 border border-gray-100" />
                 )}
               </Fragment>

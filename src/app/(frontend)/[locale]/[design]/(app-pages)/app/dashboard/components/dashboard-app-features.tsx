@@ -3,6 +3,7 @@ import type { AppFeatureFlag } from '@/features/payload-cms/payload-types';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import {
   Calendar,
+  CalendarCheck2,
   Compass,
   ImageUp,
   LucideMessageCircleQuestion,
@@ -53,14 +54,16 @@ const FeatureCard: React.FC<FeatureCardProperties> = ({
   </Link>
 );
 
+type AppFeatureFlagKey = 'helperShiftsEnabled' | 'imageUploadEnabled' | 'reservationsEnabled';
+
 interface FeatureDefinition extends FeatureCardProperties {
   /** When set, this feature is only shown if the corresponding flag is not false. */
-  featureFlagKey?: keyof AppFeatureFlag;
+  featureFlagKey?: AppFeatureFlagKey;
 }
 
 export const DashboardAppFeatures: React.FC<{
   locale: Locale;
-  featureFlags: AppFeatureFlag;
+  featureFlags: Pick<AppFeatureFlag, AppFeatureFlagKey>;
 }> = ({ locale, featureFlags }) => {
   const features: FeatureDefinition[] = [
     {
@@ -102,6 +105,17 @@ export const DashboardAppFeatures: React.FC<{
       }[locale],
       href: '/app/schedule',
       icon: Calendar,
+    },
+    {
+      title: { en: 'Helper Shifts', de: 'Schichteinsätze', fr: 'Services de helpers' }[locale],
+      description: {
+        en: 'View and manage your helper shifts',
+        de: 'Sehe und verwalte deine Schichteinsätze',
+        fr: 'Voir et gérer vos services de helpers',
+      }[locale],
+      href: '/app/helper-portal',
+      icon: CalendarCheck2,
+      featureFlagKey: 'helperShiftsEnabled',
     },
     {
       title: { en: 'Upload Images', de: 'Bilder hochladen', fr: 'Télécharger des images' }[locale],
@@ -164,7 +178,7 @@ export const DashboardAppFeatures: React.FC<{
   ];
 
   const visibleFeatures = features.filter((feature) => {
-    if (!feature.featureFlagKey) return true;
+    if (feature.featureFlagKey === undefined) return true;
     return featureFlags[feature.featureFlagKey] !== false;
   });
 
