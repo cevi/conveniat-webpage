@@ -29,7 +29,7 @@ export const SubmitButton: React.FC<SubmitButtonProperties> = ({
     <button
       type="submit"
       disabled={isDisabled || isLoading}
-      className={`w-full rounded-full px-4 py-3.5 text-base font-bold tracking-wide transition-all duration-300 focus:ring-4 focus:outline-none ${
+      className={`w-full rounded-full px-4 py-3.5 text-base font-bold tracking-wide transition-all duration-300 focus:outline-none focus:ring-4 ${
         isDisabled || isLoading
           ? 'cursor-not-allowed bg-gray-200 text-gray-400'
           : 'bg-conveniat-green hover:bg-conveniat-green-dark focus:ring-conveniat-green/30 shadow-conveniat-green/20 transform cursor-pointer text-white shadow-lg hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0'

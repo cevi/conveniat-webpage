@@ -5,7 +5,7 @@ import type React from 'react';
  */
 export default function UploadImagesLoading(): React.ReactNode {
   return (
-    <div className="fixed top-[62px] left-0 z-30 h-[calc(100dvh-62px)] w-full overflow-y-auto bg-[#f8fafc] xl:left-[480px] xl:w-[calc(100dvw-480px)]">
+    <div className="fixed left-0 top-[62px] z-30 h-[calc(100dvh-62px)] w-full overflow-y-auto bg-[#f8fafc] xl:left-[480px] xl:w-[calc(100dvw-480px)]">
       <div className="container mx-auto mt-8 max-w-2xl px-4">
         {/* Header */}
         <div className="border-b border-gray-200 px-6 py-4">

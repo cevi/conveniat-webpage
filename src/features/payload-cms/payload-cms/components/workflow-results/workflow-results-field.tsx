@@ -108,7 +108,7 @@ export const WorkflowResultsField: React.FC<{ path: string }> = ({ path }) => {
                 </div>
               </div>
 
-              <div className="mt-2 font-mono text-xs break-all text-gray-700 dark:text-gray-300">
+              <div className="mt-2 break-all font-mono text-xs text-gray-700 dark:text-gray-300">
                 {typeof result['error'] === 'string' && result['error'].length > 0 && (
                   <span className="text-red-600 dark:text-red-400">
                     {errorLabel[code] ?? errorLabel['en']} {result['error']}

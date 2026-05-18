@@ -51,13 +51,13 @@ export const PushNotificationActions: React.FC<PushNotificationActionsProperties
       </p>
 
       {errorMessage && (
-        <p className="mb-4 rounded bg-red-50 p-2 text-sm text-balance text-red-600">
+        <p className="mb-4 text-balance rounded bg-red-50 p-2 text-sm text-red-600">
           {errorMessage}
         </p>
       )}
 
       <button
-        className="font-heading flex cursor-pointer items-center justify-center gap-2 rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg leading-normal font-bold text-red-100 duration-100 hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-50"
+        className="font-heading flex cursor-pointer items-center justify-center gap-2 rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg font-bold leading-normal text-red-100 duration-100 hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-50"
         onClick={() => {
           void onToggle().then((success) => {
             if (success) onContinue();

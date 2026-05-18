@@ -138,7 +138,7 @@ const AccordionContent: React.FC<AccordionContentProperties> = ({
 
             return (
               <Fragment key={index}>
-                <div className="w-full rounded-lg border-2 border-gray-200 bg-gray-50 px-6 py-4 text-left shadow-xs">
+                <div className="shadow-xs w-full rounded-lg border-2 border-gray-200 bg-gray-50 px-6 py-4 text-left">
                   <h4 className="text-lg font-medium text-gray-900">{title}</h4>
                 </div>
                 {index !== valueBlocks.length - 1 && !isTimelineElementContent && (

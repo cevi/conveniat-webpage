@@ -35,7 +35,7 @@ const ErrorFallback: React.FC<{
 }> = ({ locale, message, error, isDraftMode, resetErrorBoundary, title }) => {
   return (
     <div className="flex flex-col gap-4 rounded-lg border border-gray-200 bg-gray-50 p-6 text-gray-800">
-      <div className="flex items-center gap-2 text-sm font-semibold tracking-wider text-gray-500 uppercase">
+      <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-gray-500">
         <span className="h-2 w-2 rounded-full bg-gray-400" />
         {isDraftMode ? (title ?? errorMessageText[locale]) : 'Render Error'}
       </div>
@@ -50,7 +50,7 @@ const ErrorFallback: React.FC<{
               <div className="text-sm font-medium text-gray-800">{error.message}</div>
             )}
 
-          <div className="text-sm text-gray-600 italic">{draftModeHint[locale]}</div>
+          <div className="text-sm italic text-gray-600">{draftModeHint[locale]}</div>
 
           {resetErrorBoundary && (
             <div className="pt-2">

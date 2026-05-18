@@ -40,7 +40,7 @@ export const AppSearchBar: React.FC<AppSearchBarProperties> = ({
         <Button
           variant="ghost"
           size="icon"
-          className="absolute top-1/2 right-3 -translate-y-1/2 transform text-gray-500 hover:bg-transparent"
+          className="absolute right-3 top-1/2 -translate-y-1/2 transform text-gray-500 hover:bg-transparent"
           onClick={onClear}
           type="button"
         >
@@ -48,7 +48,7 @@ export const AppSearchBar: React.FC<AppSearchBarProperties> = ({
         </Button>
       ) : (
         <Search
-          className="absolute top-1/2 right-4 -translate-y-1/2 transform text-gray-500"
+          className="absolute right-4 top-1/2 -translate-y-1/2 transform text-gray-500"
           size={24}
         />
       )}

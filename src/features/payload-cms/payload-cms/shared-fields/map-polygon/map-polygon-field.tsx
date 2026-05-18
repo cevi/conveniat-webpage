@@ -593,7 +593,7 @@ const MapPolygonField: FieldClientComponent = ({ path }) => {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between rounded-t-md border border-gray-200 bg-gray-50 p-1 px-2">
-        <span className="flex items-center gap-1.5 text-xs font-semibold tracking-wider text-gray-500 uppercase">
+        <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-gray-500">
           <Hexagon size={14} className="text-blue-500" />
           Polygon Editor
         </span>

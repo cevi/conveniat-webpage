@@ -76,7 +76,7 @@ export const JobDetails: React.FC<JobDetailsProperties> = ({ job }) => {
     <div className="grid grid-cols-1 divide-x divide-zinc-100 lg:grid-cols-[320px_1fr] dark:divide-zinc-800">
       {/* Left Column: Timeline */}
       <div className="bg-zinc-50/50 p-6 dark:bg-zinc-900/20">
-        <h3 className="mb-4 text-xs font-bold tracking-wider text-zinc-500 uppercase">
+        <h3 className="mb-4 text-xs font-bold uppercase tracking-wider text-zinc-500">
           Process Timeline
         </h3>
         <JobTimeline
@@ -107,7 +107,7 @@ export const JobDetails: React.FC<JobDetailsProperties> = ({ job }) => {
               if (job.completedAt !== undefined && job.completedAt !== null) return 'default';
               return 'outline';
             })()}
-            className="text-[10px] tracking-wider uppercase"
+            className="text-[10px] uppercase tracking-wider"
           >
             {((): string => {
               if (job.hasError === true) return 'Failed';

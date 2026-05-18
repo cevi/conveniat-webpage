@@ -26,7 +26,7 @@ const AccordionItem: React.FC<AccordionItemProperties> = ({
   return (
     <div
       className={cn(
-        'rounded-lg border-2 border-gray-200 shadow-xs',
+        'shadow-xs rounded-lg border-2 border-gray-200',
         'transition-transform duration-300',
         isNested === true ? 'bg-gray-50' : 'bg-white',
         {
@@ -37,7 +37,7 @@ const AccordionItem: React.FC<AccordionItemProperties> = ({
     >
       <div
         onClick={onToggle}
-        className="flex w-full cursor-pointer items-center justify-between px-6 py-4 text-left focus:outline-hidden"
+        className="focus:outline-hidden flex w-full cursor-pointer items-center justify-between px-6 py-4 text-left"
         aria-expanded={isExpanded}
         aria-controls={`content-${blockId}`}
       >
@@ -56,7 +56,7 @@ const AccordionItem: React.FC<AccordionItemProperties> = ({
           isExpanded ? 'opacity-100' : 'max-h-0 opacity-0',
         )}
       >
-        <div className="border-t border-gray-100 px-6 pt-4 pb-6">{children}</div>
+        <div className="border-t border-gray-100 px-6 pb-6 pt-4">{children}</div>
       </div>
     </div>
   );

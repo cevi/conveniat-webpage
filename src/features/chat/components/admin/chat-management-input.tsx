@@ -168,7 +168,7 @@ export const ChatManagementInput: React.FC<ChatManagementInputProperties> = ({
           }}
           onKeyDown={handleKeyDown}
           placeholder={messagePlaceholder[locale] || messagePlaceholder['en']}
-          className="flex-1 resize-none rounded border border-[var(--theme-elevation-300)] bg-[var(--theme-elevation-100)] p-2 text-sm focus:ring-1 focus:ring-[var(--theme-success-500)] focus:outline-none"
+          className="flex-1 resize-none rounded border border-[var(--theme-elevation-300)] bg-[var(--theme-elevation-100)] p-2 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--theme-success-500)]"
           rows={1}
           disabled={sending || isUploading}
           style={{ minHeight: '40px', maxHeight: '200px' }}

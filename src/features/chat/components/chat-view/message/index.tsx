@@ -18,7 +18,7 @@ import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useRef, useState } from 'react';
 
 const DoubleCheck: React.FC<{ className?: string }> = ({ className }) => (
-  <div className={cn('relative flex h-2 w-4.5 items-center', className)}>
+  <div className={cn('w-4.5 relative flex h-2 items-center', className)}>
     <Check className="absolute left-0 h-2 w-2" />
     <Check className="absolute left-1.5 h-2 w-2" />
   </div>
@@ -202,7 +202,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
       )}
     >
       {!isCurrentUser && chatType === 'GROUP' && (
-        <div className="mb-1 ml-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white bg-linear-to-br from-gray-100 to-gray-200 shadow-sm">
+        <div className="bg-linear-to-br mb-1 ml-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white from-gray-100 to-gray-200 shadow-sm">
           <UserCircle className="h-5 w-5 text-gray-500" />
         </div>
       )}
@@ -238,7 +238,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
           <div
             className={cn(
               'font-body relative rounded-2xl px-4 py-2.5 shadow-sm transition-transform duration-150',
-              'max-w-full min-w-[100px]',
+              'min-w-[100px] max-w-full',
               isCurrentUser
                 ? 'bg-cevi-blue rounded-br-[4px] text-white'
                 : 'rounded-bl-[4px] border border-gray-100 bg-white text-gray-800',
@@ -253,7 +253,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
           >
             {/* Thread Root Label */}
             {isThreadRoot && (
-              <div className="mb-2 flex items-center gap-1.5 text-[0.7rem] font-semibold tracking-wide uppercase opacity-70">
+              <div className="mb-2 flex items-center gap-1.5 text-[0.7rem] font-semibold uppercase tracking-wide opacity-70">
                 <MessageSquare className="h-3 w-3" />
                 <span>Thread</span>
               </div>
@@ -315,7 +315,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
             <div className="relative">
               <MessageSquare className="h-3.5 w-3.5" />
               {message.hasUnreadReplies && activeThreadId !== message.id && (
-                <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                <span className="absolute -right-1 -top-1 flex h-2 w-2">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75"></span>
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500"></span>
                 </span>
@@ -329,7 +329,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
       </div>
 
       {isCurrentUser && chatType === 'GROUP' && (
-        <div className="mr-2 mb-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white bg-gradient-to-br from-green-50 to-green-100 shadow-sm">
+        <div className="mb-1 mr-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white bg-gradient-to-br from-green-50 to-green-100 shadow-sm">
           <UserCircle className="text-conveniat-green h-5 w-5" />
         </div>
       )}

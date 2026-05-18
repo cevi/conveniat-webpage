@@ -61,9 +61,9 @@ export const ExpandableSection: React.FC<{
       <button
         type="button"
         onClick={() => setIsExpanded(!isExpanded)}
-        className="flex w-full cursor-pointer items-center justify-between border-transparent bg-zinc-50/50 px-6 py-3 ring-0 transition-colors outline-none hover:bg-zinc-100/50 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none dark:bg-zinc-900/30 dark:hover:bg-zinc-800/50"
+        className="flex w-full cursor-pointer items-center justify-between border-transparent bg-zinc-50/50 px-6 py-3 outline-none ring-0 transition-colors hover:bg-zinc-100/50 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 dark:bg-zinc-900/30 dark:hover:bg-zinc-800/50"
       >
-        <h3 className="text-xs font-bold tracking-wider text-zinc-500 uppercase">{title}</h3>
+        <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-500">{title}</h3>
         <ChevronDown
           className={cn(
             'h-4 w-4 text-zinc-400 transition-transform duration-200',
@@ -101,7 +101,7 @@ export const InputViewer: React.FC<{ data: unknown }> = ({ data }) => {
               key={key}
               className="flex flex-col gap-2 border-b border-zinc-100 py-2 first:pt-0 last:border-0 last:pb-0 dark:border-zinc-800"
             >
-              <span className="text-xs font-medium text-zinc-500 capitalize">
+              <span className="text-xs font-medium capitalize text-zinc-500">
                 {key.replaceAll(/([A-Z])/g, ' $1').trim()}
               </span>
               <div className="flex flex-wrap gap-1.5">
@@ -152,10 +152,10 @@ export const InputViewer: React.FC<{ data: unknown }> = ({ data }) => {
             key={key}
             className="flex items-start justify-between gap-4 border-b border-zinc-100 py-2 text-xs first:pt-0 last:border-0 last:pb-0 dark:border-zinc-800"
           >
-            <span className="font-medium text-zinc-500 capitalize">
+            <span className="font-medium capitalize text-zinc-500">
               {key.replaceAll(/([A-Z])/g, ' $1').trim()}
             </span>
-            <span className="text-right font-mono wrap-break-word text-zinc-900 dark:text-zinc-200">
+            <span className="wrap-break-word text-right font-mono text-zinc-900 dark:text-zinc-200">
               {renderValue(val)}
             </span>
           </div>

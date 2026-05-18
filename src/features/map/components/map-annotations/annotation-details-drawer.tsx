@@ -139,12 +139,12 @@ export const AnnotationDetailsDrawer: React.FC<{
   return (
     <div
       ref={drawerReference}
-      className="fixed right-0 bottom-[80px] left-0 z-[999] overflow-hidden rounded-t-2xl bg-white shadow-[0px_-4px_38px_-19px_rgba(1,1,1,0.5)] xl:left-[480px]"
+      className="fixed bottom-[80px] left-0 right-0 z-[999] overflow-hidden rounded-t-2xl bg-white shadow-[0px_-4px_38px_-19px_rgba(1,1,1,0.5)] xl:left-[480px]"
       style={{ height: `${drawerHeight}vh` }}
     >
       <div
         ref={scrollableContentReference}
-        className={cn('flex h-full flex-col px-4 pt-4 select-none', {
+        className={cn('flex h-full select-none flex-col px-4 pt-4', {
           'overflow-hidden': isResizing,
           'overflow-y-auto': !isResizing,
         })}
@@ -156,8 +156,8 @@ export const AnnotationDetailsDrawer: React.FC<{
             onMouseDown={handleMouseDown}
             onTouchStart={handleTouchStart}
           >
-            <div className="absolute top-[-16px] right-0 left-0 z-30 flex h-4 cursor-ns-resize items-center justify-center bg-white pt-2">
-              <div className="mt-2 mb-4 h-1 w-20 rounded-full bg-gray-300"></div>
+            <div className="absolute left-0 right-0 top-[-16px] z-30 flex h-4 cursor-ns-resize items-center justify-center bg-white pt-2">
+              <div className="mb-4 mt-2 h-1 w-20 rounded-full bg-gray-300"></div>
             </div>
 
             <AnnotationDrawerHeader

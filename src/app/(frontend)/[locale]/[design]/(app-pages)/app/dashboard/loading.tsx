@@ -6,7 +6,7 @@ import type React from 'react';
  */
 export default function DashboardLoading(): React.ReactNode {
   return (
-    <div className="fixed top-[62px] left-0 z-30 h-[calc(100dvh-62px)] w-full overflow-y-auto bg-[#f8fafc] xl:left-[480px] xl:w-[calc(100dvw-480px)]">
+    <div className="fixed left-0 top-[62px] z-30 h-[calc(100dvh-62px)] w-full overflow-y-auto bg-[#f8fafc] xl:left-[480px] xl:w-[calc(100dvw-480px)]">
       <section className="container mx-auto mt-8 py-6">
         <article className="mx-auto w-full max-w-2xl space-y-6 px-8">
           {/* App Features Section Skeleton */}

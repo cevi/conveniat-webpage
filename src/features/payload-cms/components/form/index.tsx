@@ -195,7 +195,7 @@ export const FormBlock: React.FC<
       <div
         className={cn(
           'relative w-full',
-          isDualCardLayout ? 'max-w-2xl @[1600px]:max-w-full' : 'max-w-2xl',
+          isDualCardLayout ? '@[1600px]:max-w-full max-w-2xl' : 'max-w-2xl',
           'min-h-[100px] bg-transparent p-0 shadow-none',
         )}
       >
@@ -228,7 +228,7 @@ export const FormBlock: React.FC<
                   className={cn(
                     '',
                     isDualCardLayout
-                      ? 'grid grid-cols-1 items-start gap-8 @[1600px]:grid-cols-[36rem_1fr] @[1600px]:gap-12'
+                      ? '@[1600px]:grid-cols-[36rem_1fr] @[1600px]:gap-12 grid grid-cols-1 items-start gap-8'
                       : 'flex flex-col gap-6',
                   )}
                 >
@@ -285,7 +285,7 @@ export const FormBlock: React.FC<
                           renderMode="main"
                         />
                       </div>
-                      <div className="pt-8 @[1600px]:hidden">
+                      <div className="@[1600px]:hidden pt-8">
                         <FormControls
                           locale={locale}
                           isFirst={isFirstStep}

@@ -188,7 +188,7 @@ export const ScheduleMiniMap: React.FC<ScheduleMiniMapProperties> = ({ location 
       </div>
 
       {/* Overlay Button: Open in Map - styled like maplibregl controls */}
-      <div className="absolute top-2 right-2 z-10">
+      <div className="absolute right-2 top-2 z-10">
         <Link
           href={`/app/map?locationId=${location.id}`}
           className="flex h-10 w-10 items-center justify-center rounded border border-gray-200 bg-white text-gray-700 shadow-md transition-colors hover:bg-gray-100"

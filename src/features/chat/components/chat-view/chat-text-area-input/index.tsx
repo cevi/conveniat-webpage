@@ -273,7 +273,7 @@ export const ChatTextAreaInput: React.FC = () => {
           <textarea
             {...textareaProps}
             placeholder={messagePlaceholder[locale]}
-            className="font-body w-full resize-none border-0 bg-transparent px-3 py-3 text-base placeholder:text-gray-500 focus:ring-0 focus:outline-none"
+            className="font-body w-full resize-none border-0 bg-transparent px-3 py-3 text-base placeholder:text-gray-500 focus:outline-none focus:ring-0"
             rows={1}
             style={{ minHeight: '48px', maxHeight: '250px' }}
             aria-label={messagePlaceholder[locale]}
@@ -281,7 +281,7 @@ export const ChatTextAreaInput: React.FC = () => {
         </div>
 
         {/* Send button - sticky at bottom */}
-        <div className="mr-1 mb-1 pb-1">
+        <div className="mb-1 mr-1 pb-1">
           {isTooLong ? (
             <Button
               onClick={handleSplitAndSend}
@@ -333,10 +333,10 @@ const QuotedMessagePreview: React.FC<{
     <div className="flex items-center justify-between rounded-t-xl border border-b-0 border-gray-200 bg-gray-50/80 px-4 py-2 text-xs backdrop-blur-sm">
       <div className="border-cevi-blue flex flex-1 items-center gap-3 overflow-hidden border-l-[3px] pl-3">
         <div className="flex flex-col overflow-hidden">
-          <span className="text-cevi-blue text-[10px] font-bold tracking-tight uppercase">
+          <span className="text-cevi-blue text-[10px] font-bold uppercase tracking-tight">
             {replyingToText[locale]}
           </span>
-          <span className="truncate text-gray-600 italic">{truncatedSnippet}</span>
+          <span className="truncate italic text-gray-600">{truncatedSnippet}</span>
         </div>
       </div>
       <button

@@ -20,7 +20,7 @@ const ChatPage: React.FC<{
 
   return (
     <>
-      <article className="container mx-auto mt-8 mb-20 py-6">
+      <article className="container mx-auto mb-20 mt-8 py-6">
         <div className="mx-auto w-full max-w-2xl px-8">
           <ChatsOverviewClientComponent user={user} />
         </div>

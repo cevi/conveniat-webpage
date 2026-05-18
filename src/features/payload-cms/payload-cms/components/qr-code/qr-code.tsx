@@ -204,7 +204,7 @@ export const QRCodeImage: React.FC<QRCodeImageProperties> = ({
             <Button
               variant="ghost"
               size="sm"
-              className="absolute top-1/2 right-1 -translate-y-1/2 transform" // Ensure correct centering
+              className="absolute right-1 top-1/2 -translate-y-1/2 transform" // Ensure correct centering
               onClick={handleCopy}
               aria-label="Copy link"
             >

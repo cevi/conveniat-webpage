@@ -99,7 +99,7 @@ const CardGridItem: React.FC<{
   };
 
   const cardContent = (
-    <div className="group flex h-full flex-col justify-between rounded-lg border-2 border-gray-200 bg-white p-6 shadow-xs transition-transform duration-300 hover:scale-[1.01]">
+    <div className="shadow-xs group flex h-full flex-col justify-between rounded-lg border-2 border-gray-200 bg-white p-6 transition-transform duration-300 hover:scale-[1.01]">
       <div>
         <div
           className={cn(
@@ -109,10 +109,10 @@ const CardGridItem: React.FC<{
         >
           {renderIcon()}
         </div>
-        <h3 className="font-heading text-conveniat-green mb-2 text-lg font-bold hyphens-auto">
+        <h3 className="font-heading text-conveniat-green mb-2 hyphens-auto text-lg font-bold">
           {card.title}
         </h3>
-        <p className="font-body mb-4 text-sm leading-relaxed hyphens-auto text-gray-500">
+        <p className="font-body mb-4 hyphens-auto text-sm leading-relaxed text-gray-500">
           {card.description}
         </p>
       </div>
@@ -144,7 +144,7 @@ const CardGridItem: React.FC<{
 export const CardGrid: React.FC<CardGridType> = ({ cards, locale }) => {
   return (
     <div className="@container">
-      <div className="grid grid-cols-1 gap-4 @lg:grid-cols-2 @2xl:grid-cols-3">
+      <div className="@lg:grid-cols-2 @2xl:grid-cols-3 grid grid-cols-1 gap-4">
         {cards.map((card, index) => (
           <CardGridItem key={card.id ?? String(index)} card={card} locale={locale} />
         ))}

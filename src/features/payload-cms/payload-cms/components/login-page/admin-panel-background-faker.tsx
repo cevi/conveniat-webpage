@@ -10,7 +10,7 @@ export const AdminPanelBackgroundFaker = ({
   hideLogo?: boolean;
 }): React.JSX.Element => {
   return (
-    <div className="fixed top-0 left-0 z-[-999] flex h-screen w-full items-center justify-center bg-[#f8fafc] p-[56px]">
+    <div className="fixed left-0 top-0 z-[-999] flex h-screen w-full items-center justify-center bg-[#f8fafc] p-[56px]">
       {!hideLogo && (
         <CeviLogo className="admin-panel-blur mx-auto h-full max-h-[60vh] w-full max-w-[384px] opacity-10" />
       )}

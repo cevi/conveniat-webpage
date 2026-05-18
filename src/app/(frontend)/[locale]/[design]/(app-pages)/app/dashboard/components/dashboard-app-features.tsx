@@ -45,7 +45,7 @@ const FeatureCard: React.FC<FeatureCardProperties> = ({
         </div>
         <div className="w-2/3 flex-1">
           <h3 className="mb-1 text-base font-semibold text-gray-900">{title}</h3>
-          <p className="line-clamp-3 text-xs leading-tight text-balance text-gray-600">
+          <p className="line-clamp-3 text-balance text-xs leading-tight text-gray-600">
             {description}
           </p>
         </div>

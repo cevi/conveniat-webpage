@@ -25,7 +25,7 @@ import { AppFeatures } from '@/components/menu/app-features';
 const DeletedMenuEntry: React.FC<{ message: string }> = ({ message }) => {
   return (
     <>
-      <div className="closeNavOnClick block cursor-pointer items-center gap-2 rounded-lg py-2 pr-3 pl-6 text-sm/7 font-semibold text-gray-500 hover:bg-gray-50">
+      <div className="closeNavOnClick block cursor-pointer items-center gap-2 rounded-lg py-2 pl-6 pr-3 text-sm/7 font-semibold text-gray-500 hover:bg-gray-50">
         {message} <OctagonAlert color="red" />
       </div>
     </>
@@ -58,7 +58,7 @@ const MenuItemsList: React.FC<{
   return (
     <>
       {showPreviewForMainMenu && (
-        <div className="closeNavOnClick block cursor-pointer rounded-lg bg-orange-500 py-2 pr-3 pl-6 text-sm/7 font-semibold text-white">
+        <div className="closeNavOnClick block cursor-pointer rounded-lg bg-orange-500 py-2 pl-6 pr-3 text-sm/7 font-semibold text-white">
           Preview Menu
         </div>
       )}
@@ -80,21 +80,21 @@ const MenuItemsList: React.FC<{
           return (
             <SafeErrorBoundary fallback={<></>} key={item.id}>
               <Disclosure as="div" className="-mx-3">
-                <DisclosureButton className="group flex w-full cursor-pointer items-center justify-between rounded-lg py-2 pr-3.5 pl-3 text-base/7 font-semibold text-gray-700 hover:bg-gray-50">
+                <DisclosureButton className="group flex w-full cursor-pointer items-center justify-between rounded-lg py-2 pl-3 pr-3.5 text-base/7 font-semibold text-gray-700 hover:bg-gray-50">
                   {item.label}
                   <ChevronDown
                     aria-hidden="true"
-                    className="size-5 flex-none group-data-open:rotate-180"
+                    className="group-data-open:rotate-180 size-5 flex-none"
                   />
                 </DisclosureButton>
-                <DisclosurePanel className="mt-2 mb-4 space-y-2">
+                <DisclosurePanel className="mb-4 mt-2 space-y-2">
                   {subMenuItemsWherePermitted.map((subItem) =>
                     subItem.hasPerm ? (
                       <LinkComponent
                         key={subItem.item.id}
                         href={getURLForLinkField(subItem.item.linkField, locale) ?? '/'}
                         openInNewTab={openURLInNewTab(subItem.item.linkField)}
-                        className="closeNavOnClick block rounded-lg py-2 pr-3 pl-6 text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
+                        className="closeNavOnClick block rounded-lg py-2 pl-6 pr-3 text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
                         prefetch
                       >
                         {subItem.item.label}
@@ -158,12 +158,12 @@ export const MainMenu: React.FC<{
   return (
     <div
       className={cn(
-        'mx-auto mt-8 flex h-[calc(100%-100px)] max-w-md flex-col justify-between divide-gray-100 overflow-x-hidden overflow-y-auto px-4 xl:px-8',
+        'mx-auto mt-8 flex h-[calc(100%-100px)] max-w-md flex-col justify-between divide-gray-100 overflow-y-auto overflow-x-hidden px-4 xl:px-8',
         { 'pb-16': inAppDesign },
       )}
     >
       <div>
-        <span className="text-conveniat-green hidden w-full font-['Montserrat'] text-[24px] leading-normal font-extrabold xl:block">
+        <span className="text-conveniat-green hidden w-full font-['Montserrat'] text-[24px] font-extrabold leading-normal xl:block">
           <LinkComponent key="home" href="/">
             conveniat27
           </LinkComponent>

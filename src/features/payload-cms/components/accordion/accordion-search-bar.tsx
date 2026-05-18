@@ -25,14 +25,14 @@ export const AccordionSearchBar: React.FC<AccordionSearchBarProperties> = ({
   return (
     <div className="mb-4 space-y-2">
       <div className="relative">
-        <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
         <Input
           type="text"
           value={query}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
           className={cn(
-            'font-body h-10 rounded-lg border-2 border-gray-200 bg-white pr-9 pl-9',
+            'font-body h-10 rounded-lg border-2 border-gray-200 bg-white pl-9 pr-9',
             'ring-0 ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0',
             'focus-visible:border-conveniat-green focus-visible:outline-hidden',
             'text-gray-900 placeholder:text-gray-400',
@@ -43,7 +43,7 @@ export const AccordionSearchBar: React.FC<AccordionSearchBarProperties> = ({
             type="button"
             onClick={() => onChange('')}
             aria-label="Clear search"
-            className="absolute top-1/2 right-3 -translate-y-1/2 cursor-pointer text-gray-400 transition-colors hover:text-gray-600"
+            className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 transition-colors hover:text-gray-600"
           >
             <X className="h-4 w-4" />
           </button>

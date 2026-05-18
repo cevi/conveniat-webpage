@@ -390,7 +390,7 @@ export const ChatListManager: React.FC = () => {
 
       <div className="flex flex-col gap-4 md:flex-row md:items-center">
         <div className="relative flex-1">
-          <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+          <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
           <Input
             placeholder={t.searchPlaceholder}
             value={search}
@@ -438,7 +438,7 @@ export const ChatListManager: React.FC = () => {
                 .replace('{total}', total.toString())}
             </div>
             <div className="flex items-center gap-4">
-              <div className="text-muted-foreground text-sm whitespace-nowrap">
+              <div className="text-muted-foreground whitespace-nowrap text-sm">
                 {t.pageOf
                   .replace('{page}', page.toString())
                   .replace('{total}', totalPages.toString())}

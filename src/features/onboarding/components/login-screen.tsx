@@ -70,11 +70,11 @@ export const LoginScreen: React.FC<{ locale: 'de' | 'fr' | 'en' }> = ({ locale }
 
   return (
     <>
-      <p className="mb-8 text-lg text-balance text-gray-700">{loginText[locale]}</p>
+      <p className="mb-8 text-balance text-lg text-gray-700">{loginText[locale]}</p>
       <button
         onClick={handleLoginClick}
         disabled={isLoading}
-        className={`font-heading flex min-h-[52px] w-full transform items-center justify-center gap-2 rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg leading-normal font-bold text-red-100 shadow-md duration-100 ${
+        className={`font-heading flex min-h-[52px] w-full transform items-center justify-center gap-2 rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg font-bold leading-normal text-red-100 shadow-md duration-100 ${
           isLoading
             ? 'cursor-wait'
             : 'cursor-pointer hover:scale-[1.02] hover:bg-red-800 active:scale-[0.98]'

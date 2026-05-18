@@ -121,14 +121,14 @@ export const JobTable: React.FC<JobTableProperties> = ({
             <input
               type="text"
               placeholder="Filter tasks..."
-              className="block w-full rounded-md border border-zinc-200 bg-white py-1.5 pr-8 pl-9 text-xs transition-all placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none dark:border-zinc-800 dark:bg-transparent dark:text-white dark:placeholder:text-zinc-600 dark:focus:border-white"
+              className="block w-full rounded-md border border-zinc-200 bg-white py-1.5 pl-9 pr-8 text-xs transition-all placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none dark:border-zinc-800 dark:bg-transparent dark:text-white dark:placeholder:text-zinc-600 dark:focus:border-white"
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
             />
             {searchQuery !== '' && (
               <button
                 type="button"
-                className="absolute inset-y-0 right-0 flex cursor-pointer items-center border-none bg-transparent pr-3 pl-2 text-zinc-400 transition-colors hover:text-zinc-900 focus:outline-none dark:text-zinc-500 dark:hover:text-zinc-300"
+                className="absolute inset-y-0 right-0 flex cursor-pointer items-center border-none bg-transparent pl-2 pr-3 text-zinc-400 transition-colors hover:text-zinc-900 focus:outline-none dark:text-zinc-500 dark:hover:text-zinc-300"
                 onClick={() => setSearchQuery('')}
               >
                 <X className="h-4 w-4" />
@@ -178,7 +178,7 @@ export const JobTable: React.FC<JobTableProperties> = ({
             <thead>
               <tr className="border-b border-zinc-100 bg-zinc-50/50 dark:border-zinc-800 dark:bg-zinc-900/50">
                 <th
-                  className="group w-[140px] cursor-pointer px-4 py-3 text-xs font-bold tracking-wider text-zinc-500 uppercase transition-colors hover:bg-zinc-100/50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-white/5 dark:hover:text-white"
+                  className="group w-[140px] cursor-pointer px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500 transition-colors hover:bg-zinc-100/50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-white/5 dark:hover:text-white"
                   onClick={() => handleSort('id')}
                 >
                   <div className="flex items-center gap-1.5">
@@ -187,7 +187,7 @@ export const JobTable: React.FC<JobTableProperties> = ({
                   </div>
                 </th>
                 <th
-                  className="group w-auto cursor-pointer px-4 py-3 text-xs font-bold tracking-wider text-zinc-500 uppercase transition-colors hover:bg-zinc-100/50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-white/5 dark:hover:text-white"
+                  className="group w-auto cursor-pointer px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500 transition-colors hover:bg-zinc-100/50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-white/5 dark:hover:text-white"
                   onClick={() => handleSort('log')}
                 >
                   <div className="flex items-center gap-1.5">
@@ -196,7 +196,7 @@ export const JobTable: React.FC<JobTableProperties> = ({
                   </div>
                 </th>
                 <th
-                  className="group w-[140px] cursor-pointer px-4 py-3 text-right text-xs font-bold tracking-wider text-zinc-500 uppercase transition-colors hover:bg-zinc-100/50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-white/5 dark:hover:text-white"
+                  className="group w-[140px] cursor-pointer px-4 py-3 text-right text-xs font-bold uppercase tracking-wider text-zinc-500 transition-colors hover:bg-zinc-100/50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-white/5 dark:hover:text-white"
                   onClick={() => handleSort('status')}
                 >
                   <div className="flex items-center justify-end gap-1.5">
@@ -205,7 +205,7 @@ export const JobTable: React.FC<JobTableProperties> = ({
                   </div>
                 </th>
                 <th
-                  className="group w-[160px] cursor-pointer px-4 py-3 text-right text-xs font-bold tracking-wider text-zinc-500 uppercase transition-colors hover:bg-zinc-100/50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-white/5 dark:hover:text-white"
+                  className="group w-[160px] cursor-pointer px-4 py-3 text-right text-xs font-bold uppercase tracking-wider text-zinc-500 transition-colors hover:bg-zinc-100/50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-white/5 dark:hover:text-white"
                   onClick={() => handleSort('createdAt')}
                 >
                   <div className="flex items-center justify-end gap-1.5">
@@ -213,7 +213,7 @@ export const JobTable: React.FC<JobTableProperties> = ({
                     <SortIndicator field="createdAt" currentSort={sort} />
                   </div>
                 </th>
-                <th className="w-[60px] px-4 py-3 text-right text-xs font-bold tracking-wider text-zinc-500 uppercase" />
+                <th className="w-[60px] px-4 py-3 text-right text-xs font-bold uppercase tracking-wider text-zinc-500" />
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
@@ -286,7 +286,7 @@ export const JobTable: React.FC<JobTableProperties> = ({
 
       {/* -- Pagination -- */}
       <div className="flex items-center justify-between border-t border-zinc-50 py-4 dark:border-zinc-900">
-        <p className="text-[11px] font-bold tracking-widest text-zinc-400 uppercase">
+        <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-400">
           Showing{' '}
           <span className="text-zinc-900 dark:text-white">
             {(page - 1) * 10 + 1}-{Math.min(page * 10, totalDocs)}

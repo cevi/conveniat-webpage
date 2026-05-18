@@ -104,20 +104,20 @@ export const DiffView: React.FC<DiffViewProperties> = ({ candidate, inputData })
             </div>
             <div
               className={cn(
-                'border-l border-zinc-100 p-2 break-all dark:border-zinc-800',
+                'break-all border-l border-zinc-100 p-2 dark:border-zinc-800',
                 textClass,
               )}
             >
-              {inputValue ?? <span className="text-zinc-400 italic dark:text-zinc-600">N/A</span>}
+              {inputValue ?? <span className="italic text-zinc-400 dark:text-zinc-600">N/A</span>}
             </div>
             <div
               className={cn(
-                'flex items-center justify-between gap-2 border-l border-zinc-100 p-2 break-all dark:border-zinc-800',
+                'flex items-center justify-between gap-2 break-all border-l border-zinc-100 p-2 dark:border-zinc-800',
                 textClass,
               )}
             >
               <span>
-                {apiValue ?? <span className="text-zinc-400 italic dark:text-zinc-600">N/A</span>}
+                {apiValue ?? <span className="italic text-zinc-400 dark:text-zinc-600">N/A</span>}
               </span>
               {icon}
             </div>

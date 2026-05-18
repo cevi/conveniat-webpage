@@ -276,7 +276,7 @@ const MapCoordinatesField: PointFieldClientComponent = ({ path }) => {
   return (
     <>
       <div className="flex items-center justify-between rounded-t-md border border-gray-200 bg-gray-50 p-1 px-2">
-        <span className="flex items-center gap-1.5 text-xs font-semibold tracking-wider text-gray-500 uppercase">
+        <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-gray-500">
           <MapPin size={14} className="text-blue-500" />
           Marker Coordinates
         </span>
@@ -312,23 +312,23 @@ const MapCoordinatesField: PointFieldClientComponent = ({ path }) => {
         <div className="flex flex-col gap-3 rounded-b-md border-x-2 border-b-2 border-gray-200 bg-gray-50 p-3">
           <div className="flex gap-3">
             <div className="flex flex-1 flex-col gap-1">
-              <span className="ml-1 text-[10px] font-bold text-gray-400 uppercase">Longitude</span>
+              <span className="ml-1 text-[10px] font-bold uppercase text-gray-400">Longitude</span>
               <input
                 type="text"
                 placeholder="0.0000"
                 value={manualLng}
                 onChange={(event) => setManualLng(event.target.value)}
-                className="w-full rounded-md border border-gray-300 p-2 text-sm shadow-inner transition-all outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-md border border-gray-300 p-2 text-sm shadow-inner outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div className="flex flex-1 flex-col gap-1">
-              <span className="ml-1 text-[10px] font-bold text-gray-400 uppercase">Latitude</span>
+              <span className="ml-1 text-[10px] font-bold uppercase text-gray-400">Latitude</span>
               <input
                 type="text"
                 placeholder="0.0000"
                 value={manualLat}
                 onChange={(event) => setManualLat(event.target.value)}
-                className="w-full rounded-md border border-gray-300 p-2 text-sm shadow-inner transition-all outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-md border border-gray-300 p-2 text-sm shadow-inner outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div className="flex flex-col gap-1 pt-4">

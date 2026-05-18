@@ -39,7 +39,7 @@ export const EnrollmentView: React.FC = () => {
     <TRPCProvider>
       <div className="min-h-screen bg-zinc-50 px-8 py-12 transition-colors duration-300 lg:px-12 dark:bg-[#141414]">
         <div className="mb-12">
-          <h2 className="text-sm font-black tracking-widest text-zinc-900 uppercase dark:text-white">
+          <h2 className="text-sm font-black uppercase tracking-widest text-zinc-900 dark:text-white">
             Helfer Anmeldung
           </h2>
           <p className="mt-2 text-sm font-medium text-zinc-500 dark:text-zinc-400">

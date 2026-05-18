@@ -7,7 +7,7 @@ import Link from 'next/link';
 import type React from 'react';
 
 export const CreateChatSkeleton: React.FC = () => (
-  <div className="fixed top-0 z-[100] flex h-dvh w-screen flex-col bg-gray-50 xl:top-[62px] xl:left-[480px] xl:z-0 xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
+  <div className="fixed top-0 z-[100] flex h-dvh w-screen flex-col bg-gray-50 xl:left-[480px] xl:top-[62px] xl:z-0 xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
     <AppFooterController hideAppFooter />
 
     <div className="flex h-16 items-center gap-3 border-b-2 border-gray-200 bg-white px-4">

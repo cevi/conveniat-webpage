@@ -61,7 +61,7 @@ export const SearchBar: React.FC<SearchBarProperties> = ({ onSearch }) => {
 
   return (
     <div
-      className={`absolute top-12 left-4 z-50 flex items-center rounded-full border-2 border-gray-100 bg-white transition-all duration-300 ease-in-out ${isExpanded ? 'w-80 p-2' : 'h-10 w-10 p-2'} `}
+      className={`absolute left-4 top-12 z-50 flex items-center rounded-full border-2 border-gray-100 bg-white transition-all duration-300 ease-in-out ${isExpanded ? 'w-80 p-2' : 'h-10 w-10 p-2'} `}
     >
       <button
         onClick={handleToggleExpand}

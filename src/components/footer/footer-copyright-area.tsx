@@ -63,7 +63,7 @@ const FooterLayoutCached: React.FC<{ locale: Locale }> = async ({ locale }) => {
       </div>
 
       {sponsors !== undefined && sponsors !== null && sponsors.length > 0 && (
-        <div className="mt-6 mb-4 flex flex-wrap items-center justify-center gap-4">
+        <div className="mb-4 mt-6 flex flex-wrap items-center justify-center gap-4">
           {sponsors.map((sponsor) => {
             const url = getURLForLinkField(sponsor.linkField, locale);
             const image = sponsor.logo as ImageType | undefined;
@@ -141,7 +141,7 @@ const FooterCopyrightText: React.FC = async () => {
   const copyright = `© ${year} · conveniat27`;
 
   return (
-    <span className="font-heading mt-[32px] text-[22px] leading-[24x] font-bold">{copyright}</span>
+    <span className="font-heading mt-[32px] text-[22px] font-bold leading-[24x]">{copyright}</span>
   );
 };
 
@@ -152,7 +152,7 @@ const footerCopyrightText: StaticTranslationString = {
 };
 
 export const FooterBuildInfoText: React.FC<Arguments> = ({ children }: Arguments) => {
-  return <span className="text-[12px] leading-[16px] font-light">{children}</span>;
+  return <span className="text-[12px] font-light leading-[16px]">{children}</span>;
 };
 
 export const FooterCopyrightArea: React.FC<{

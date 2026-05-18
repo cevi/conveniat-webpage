@@ -71,7 +71,7 @@ const SearchOnlyPagesClient: React.FC<{
             className="flex-inline bg-conveniat-green flex justify-center rounded px-4 py-2 text-white"
             href={buildPageLink(prevPage)}
           >
-            <MoveLeft className="mt-0.5 mr-2" />
+            <MoveLeft className="mr-2 mt-0.5" />
           </LinkComponent>
         ) : (
           <div></div>
@@ -84,7 +84,7 @@ const SearchOnlyPagesClient: React.FC<{
             className="flex-inline bg-conveniat-green flex justify-center rounded px-4 py-2 text-white"
             href={buildPageLink(nextPage)}
           >
-            <MoveRight className="mt-0.5 ml-2" />
+            <MoveRight className="ml-2 mt-0.5" />
           </LinkComponent>
         ) : (
           <div></div>

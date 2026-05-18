@@ -188,7 +188,7 @@ export const ScheduleComponent: React.FC = () => {
       />
 
       {/* Search and Filter Bar */}
-      <div className="mt-6 mb-4">
+      <div className="mb-4 mt-6">
         <SearchFilterBar
           filters={filters}
           onFiltersChange={handleFiltersChange}

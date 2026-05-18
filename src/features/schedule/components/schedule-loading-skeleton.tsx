@@ -29,7 +29,7 @@ export const ScheduleLoadingSkeleton: React.FC = () => {
       </div>
 
       {/* SearchFilterBar Skeleton */}
-      <div className="mt-6 mb-4">
+      <div className="mb-4 mt-6">
         <div className="flex items-center gap-2">
           {/* Search input */}
           <div className="relative flex-1">
@@ -48,7 +48,7 @@ export const ScheduleLoadingSkeleton: React.FC = () => {
       <div className="relative min-h-[300px]">
         <div className="relative space-y-6">
           {/* Timeline line */}
-          <div className="absolute top-4 bottom-4 left-[23px] w-0.5 bg-gray-200" />
+          <div className="absolute bottom-4 left-[23px] top-4 w-0.5 bg-gray-200" />
 
           {/* Schedule item groups */}
           {[1, 2, 3].map((groupIndex) => (

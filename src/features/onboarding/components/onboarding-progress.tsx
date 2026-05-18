@@ -40,7 +40,7 @@ export const OnboardingProgress: React.FC<OnboardingProgressProperties> = ({
             type="button"
             disabled={!isCompleted && !isActive}
             className={cn(
-              'group relative flex items-center justify-center p-2 focus:outline-hidden',
+              'focus:outline-hidden group relative flex items-center justify-center p-2',
               !isCompleted && !isActive ? 'cursor-not-allowed opacity-50' : 'cursor-pointer',
             )}
           >

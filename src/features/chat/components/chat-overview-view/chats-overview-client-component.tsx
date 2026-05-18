@@ -128,14 +128,14 @@ export const ChatsOverviewClientComponent: React.FC<{ user: HitobitoNextAuthUser
           {/* QR Code Button (Header Injection via Portal) */}
           {mounted && typeof document !== 'undefined'
             ? createPortal(
-                <div className="fixed top-[18px] right-6 z-[60]">
+                <div className="fixed right-6 top-[18px] z-[60]">
                   {user?.uuid ? <QRCodeClientComponent url={user.uuid} /> : undefined}
                 </div>,
                 document.body,
               )
             : undefined}
 
-          <div className="fixed right-6 bottom-18 z-50">
+          <div className="bottom-18 fixed right-6 z-50">
             <Link href="/app/chat/new">
               <div className="bg-conveniat-green flex h-14 w-14 items-center justify-center rounded-2xl text-white shadow-lg transition-transform hover:scale-105 hover:bg-green-600">
                 <MessageSquarePlus className="h-7 w-7" />
@@ -184,7 +184,7 @@ export const ChatsOverviewClientComponent: React.FC<{ user: HitobitoNextAuthUser
               <p className="font-heading text-lg font-semibold text-gray-700">
                 {searchQuery === '' ? noChatsYetText[locale] : noChatsFoundText[locale]}
               </p>
-              <p className="font-body mt-2 text-sm text-balance text-gray-500">
+              <p className="font-body mt-2 text-balance text-sm text-gray-500">
                 {searchQuery === ''
                   ? newConversationText[locale]
                   : adjustingSearchTermsText[locale]}

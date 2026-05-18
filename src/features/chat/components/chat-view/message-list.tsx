@@ -75,7 +75,7 @@ export const MessageList: React.FC<{
     <div
       ref={scrollContainerReference}
       onScroll={handleScroll}
-      className={cn('flex h-full flex-col overflow-x-hidden overflow-y-auto bg-gray-50')}
+      className={cn('flex h-full flex-col overflow-y-auto overflow-x-hidden bg-gray-50')}
     >
       {!isThread && <div className="flex-1" />}
       <div className={cn('px-2', isThread ? 'space-y-3 py-1' : 'space-y-6 py-4')}>
@@ -90,7 +90,7 @@ export const MessageList: React.FC<{
         {Object.entries(messagesByDate).map(([date, messagesForDate]) => (
           <div key={date}>
             <div className={cn('flex justify-center', isThread ? 'my-3' : 'my-6')}>
-              <div className="font-body rounded-full bg-black/5 px-3 py-1 text-[11px] font-semibold tracking-wider text-gray-500 uppercase backdrop-blur-sm">
+              <div className="font-body rounded-full bg-black/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-gray-500 backdrop-blur-sm">
                 {date === new Date().toLocaleDateString() ? todayText[locale] : date}
               </div>
             </div>

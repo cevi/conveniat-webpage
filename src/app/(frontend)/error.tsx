@@ -122,19 +122,19 @@ const ErrorPage: React.FC<{
     return (
       <article className="my-4 w-full max-w-2xl px-4 max-xl:mx-auto sm:my-8 sm:px-8">
         <div className="flex flex-col gap-4 rounded-lg border border-gray-200 bg-gray-50 p-4 text-gray-800 sm:p-6">
-          <div className="flex items-center gap-2 text-sm font-semibold tracking-wider text-gray-500 uppercase">
+          <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-gray-500">
             <span className="h-2 w-2 shrink-0 rounded-full bg-gray-400" />
             {previewErrorMessage[locale as Locale]}
           </div>
 
           <div className="flex flex-col gap-2">
             {shouldShowErrorMessage && (
-              <div className="text-sm font-medium wrap-break-word text-gray-800">
+              <div className="wrap-break-word text-sm font-medium text-gray-800">
                 {error.message}
               </div>
             )}
 
-            <div className="text-sm text-gray-600 italic">
+            <div className="text-sm italic text-gray-600">
               {previewErrorDescription[locale as Locale]}
             </div>
 
@@ -155,7 +155,7 @@ const ErrorPage: React.FC<{
                 {showDetailsText[locale as Locale]}
               </summary>
               <div className="mt-2 rounded bg-gray-100 p-3">
-                <pre className="max-h-40 overflow-auto text-xs break-all whitespace-pre-wrap">
+                <pre className="max-h-40 overflow-auto whitespace-pre-wrap break-all text-xs">
                   {error.message}
                   {error.stack !== undefined && error.stack !== '' ? `\n\n${error.stack}` : ''}
                 </pre>

@@ -74,7 +74,7 @@ export const ChatCapabilities: React.FC<ChatCapabilitiesProperties> = ({
           );
         })}
         {allPossibleCapabilities.length === 0 && (
-          <p className="font-body text-sm text-gray-500 italic">{noCapabilitiesText[locale]}</p>
+          <p className="font-body text-sm italic text-gray-500">{noCapabilitiesText[locale]}</p>
         )}
       </div>
     </div>

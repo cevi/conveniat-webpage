@@ -43,7 +43,7 @@ const SponsorCard: React.FC<{
   const url = getURLForLinkField(sponsor.linkField, locale);
 
   const cardContent = (
-    <div className="group relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-xl border border-gray-100 bg-white p-4 shadow-xs transition-all duration-300 hover:border-gray-200 hover:shadow-md md:p-6">
+    <div className="shadow-xs group relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-xl border border-gray-100 bg-white p-4 transition-all duration-300 hover:border-gray-200 hover:shadow-md md:p-6">
       <div className="relative size-full">
         <ImageNode
           src={sponsor.image.url ?? ''}

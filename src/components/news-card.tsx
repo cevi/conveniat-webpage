@@ -60,7 +60,7 @@ export const NewsCardBlock: React.FC<NewsCardType> = ({
         </span>
         <h4
           className={cn(
-            'font-heading text-conveniat-green mb-6 line-clamp-3 min-h-6 font-extrabold text-ellipsis',
+            'font-heading text-conveniat-green mb-6 line-clamp-3 min-h-6 text-ellipsis font-extrabold',
             isSmall ? 'text-sm' : 'text-base',
           )}
         >

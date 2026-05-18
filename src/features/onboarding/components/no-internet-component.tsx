@@ -38,7 +38,7 @@ export const NoInternetComponent: React.FC<NoInternetComponentProperties> = ({ l
 
       <button
         onClick={() => globalThis.location.reload()}
-        className="font-heading w-full transform cursor-pointer rounded-[8px] bg-gray-800 px-8 py-3 text-center text-lg leading-normal font-bold text-white shadow-md duration-100 hover:scale-[1.02] hover:bg-gray-700 active:scale-[0.98]"
+        className="font-heading w-full transform cursor-pointer rounded-[8px] bg-gray-800 px-8 py-3 text-center text-lg font-bold leading-normal text-white shadow-md duration-100 hover:scale-[1.02] hover:bg-gray-700 active:scale-[0.98]"
       >
         {tryAgainButton[locale]}
       </button>

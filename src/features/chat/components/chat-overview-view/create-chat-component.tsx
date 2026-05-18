@@ -153,7 +153,7 @@ export const CreateNewChatPage: React.FC = () => {
   };
 
   return (
-    <div className="fixed top-0 z-[100] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50 xl:top-[62px] xl:left-[480px] xl:z-0 xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
+    <div className="fixed top-0 z-[100] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50 xl:left-[480px] xl:top-[62px] xl:z-0 xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
       <AppFooterController hideAppFooter />
 
       {/* Header */}
@@ -267,7 +267,7 @@ export const CreateNewChatPage: React.FC = () => {
                 <div className="flex items-center justify-center py-12">
                   <div className="text-center">
                     <Users className="mx-auto h-12 w-12 text-gray-400" />
-                    <p className="font-body mt-2 text-sm text-balance text-gray-500">
+                    <p className="font-body mt-2 text-balance text-sm text-gray-500">
                       {searchQuery === ''
                         ? 'No contacts available'
                         : 'No contacts found matching your search'}

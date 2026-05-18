@@ -73,7 +73,7 @@ export const ShiftCard: React.FC<{
             {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </button>
 
-          {isExpanded && <div className="mt-4 sm:mr-[-1.5rem] sm:ml-[-1.5rem]">{children}</div>}
+          {isExpanded && <div className="mt-4 sm:ml-[-1.5rem] sm:mr-[-1.5rem]">{children}</div>}
         </div>
       )}
     </div>

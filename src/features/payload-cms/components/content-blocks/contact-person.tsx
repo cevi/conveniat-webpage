@@ -54,15 +54,15 @@ export const ContactPersonBlock: React.FC<ContactPersonType> = ({
   };
 
   const cardContent = (
-    <div className="group w-full rounded-lg border-2 border-gray-200 bg-white p-6 shadow-xs transition-transform duration-300 hover:scale-[1.01] sm:p-8">
-      <div className="mb-6 text-xs font-bold tracking-widest text-gray-500 uppercase">{label}</div>
+    <div className="shadow-xs group w-full rounded-lg border-2 border-gray-200 bg-white p-6 transition-transform duration-300 hover:scale-[1.01] sm:p-8">
+      <div className="mb-6 text-xs font-bold uppercase tracking-widest text-gray-500">{label}</div>
       <div className="flex flex-col items-start gap-6 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-4">
           <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-full">
             {renderAvatar()}
           </div>
           <div>
-            <h3 className="font-heading text-conveniat-green mb-1 text-lg leading-tight font-bold">
+            <h3 className="font-heading text-conveniat-green mb-1 text-lg font-bold leading-tight">
               {name}
             </h3>
             <p className="font-body text-sm leading-snug text-gray-500">{description}</p>

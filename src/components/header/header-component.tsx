@@ -22,7 +22,7 @@ export const HeaderComponent: React.FC<{
   };
 
   return (
-    <header className="fixed top-0 left-0 z-50 h-[60px] w-full">
+    <header className="fixed left-0 top-0 z-50 h-[60px] w-full">
       <React.Suspense fallback={<div className="bg-gray-900" />}>
         <PreviewModeBannerServerComponent />
       </React.Suspense>
@@ -36,11 +36,11 @@ export const HeaderComponent: React.FC<{
                 aria-label={landingPageAreaLinktText[locale]}
                 prefetch
               >
-                <ConveniatLogo className="absolute top-[12px] left-[24px] z-100" />
+                <ConveniatLogo className="z-100 absolute left-[24px] top-[12px]" />
               </LinkComponent>
             )}
 
-            <span className="absolute top-[16px] left-0 flex w-full items-center justify-center font-['Montserrat'] text-[24px] leading-normal font-extrabold xl:hidden">
+            <span className="absolute left-0 top-[16px] flex w-full items-center justify-center font-['Montserrat'] text-[24px] font-extrabold leading-normal xl:hidden">
               <DynamicAppTitleName />
             </span>
 

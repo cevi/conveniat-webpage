@@ -45,7 +45,7 @@ const AdminPanelLoginPage: React.FC = () => {
       <div className="flex w-full max-w-md flex-col items-center text-center">
         <CenteredConveniatLogo />
 
-        <h1 className="text-conveniat-green mt-2 mb-12 text-xl font-bold">Admin Panel</h1>
+        <h1 className="text-conveniat-green mb-12 mt-2 text-xl font-bold">Admin Panel</h1>
 
         <button
           onClick={handleLoginClick}

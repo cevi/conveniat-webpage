@@ -113,7 +113,7 @@ const GlobalError: React.FC<{
               Es tut uns leid, aber es ist ein Fehler aufgetreten. Bitte versuche es erneut.
             </p>
             <button
-              className="font-heading transform cursor-pointer rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg leading-normal font-bold text-red-100 shadow-md duration-100 hover:scale-[1.02] hover:bg-red-800 active:scale-[0.98]"
+              className="font-heading transform cursor-pointer rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg font-bold leading-normal text-red-100 shadow-md duration-100 hover:scale-[1.02] hover:bg-red-800 active:scale-[0.98]"
               onClick={() => globalThis.location.reload()}
             >
               Nochmals versuchen

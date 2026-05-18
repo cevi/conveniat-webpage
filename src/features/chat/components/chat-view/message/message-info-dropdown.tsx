@@ -111,7 +111,7 @@ export const MessageInfoDropdown: React.FC<{
                 {message.status === MessageEventType.STORED && (
                   <Check className="h-4 w-4 text-gray-400" />
                 )}
-                <span className="font-body text-sm text-gray-500 capitalize">
+                <span className="font-body text-sm capitalize text-gray-500">
                   {message.status.toLowerCase()}
                 </span>
               </div>

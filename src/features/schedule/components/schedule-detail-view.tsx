@@ -170,7 +170,7 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
       <>
         <SetHideHeader value />
         <AppFooterController hideAppFooter />
-        <div className="fixed inset-0 z-100 flex flex-col overflow-hidden bg-gray-50">
+        <div className="z-100 fixed inset-0 flex flex-col overflow-hidden bg-gray-50">
           <header className="flex h-16 items-center gap-3 border-b-2 border-gray-200 bg-white px-4">
             <button
               type="button"
@@ -196,7 +196,7 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
       <>
         <SetHideHeader value />
         <AppFooterController hideAppFooter />
-        <div className="fixed inset-0 z-100 flex flex-col items-center justify-center bg-gray-50 p-8 text-center">
+        <div className="z-100 fixed inset-0 flex flex-col items-center justify-center bg-gray-50 p-8 text-center">
           <p className="mb-4 text-gray-500">{labels.notFound[locale]}</p>
           <Button onClick={() => router.back()}>{labels.back[locale]}</Button>
         </div>
@@ -210,7 +210,7 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
       <>
         <SetHideHeader value />
         <AppFooterController hideAppFooter />
-        <div className="fixed inset-0 z-100 flex items-center justify-center bg-gray-50">
+        <div className="z-100 fixed inset-0 flex items-center justify-center bg-gray-50">
           <div className="text-gray-400">Loading...</div>
         </div>
       </>
@@ -223,7 +223,7 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
       <AppFooterController hideAppFooter />
 
       {/* Full-screen container */}
-      <div className="fixed inset-0 z-100 flex flex-col overflow-hidden bg-gray-50">
+      <div className="z-100 fixed inset-0 flex flex-col overflow-hidden bg-gray-50">
         {/* Header */}
         <header className="flex h-16 items-center justify-between gap-3 border-b-2 border-gray-200 bg-white px-4">
           <div className="flex items-center gap-3 overflow-hidden">
@@ -303,7 +303,7 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
               <button
                 type="button"
                 onClick={() => navigateToEntry(previous.id, -1)}
-                className="flex max-w-[45%] min-w-0 cursor-pointer items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-sm text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
+                className="flex min-w-0 max-w-[45%] cursor-pointer items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-sm text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
                 aria-label={previousEntryLabel[locale]}
               >
                 <ChevronLeft className="h-4 w-4 shrink-0" />
@@ -316,7 +316,7 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
               <button
                 type="button"
                 onClick={() => navigateToEntry(next.id, 1)}
-                className="flex max-w-[45%] min-w-0 cursor-pointer items-center gap-1.5 rounded-lg px-2 py-1.5 text-right text-sm text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
+                className="flex min-w-0 max-w-[45%] cursor-pointer items-center gap-1.5 rounded-lg px-2 py-1.5 text-right text-sm text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
                 aria-label={nextEntryLabel[locale]}
               >
                 <span className="truncate">{next.title}</span>

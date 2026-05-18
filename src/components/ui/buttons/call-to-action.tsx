@@ -16,7 +16,7 @@ export const CallToAction: React.FC<{
     return (
       <div className={containerClasses}>
         <LinkComponent href={href} hideExternalIcon>
-          <button className="font-heading cursor-pointer rounded-[8px] border-red-700 bg-none px-8 py-3 text-center text-lg leading-normal font-bold text-red-700 outline-2 duration-100 hover:border-red-800 hover:text-red-800">
+          <button className="font-heading cursor-pointer rounded-[8px] border-red-700 bg-none px-8 py-3 text-center text-lg font-bold leading-normal text-red-700 outline-2 duration-100 hover:border-red-800 hover:text-red-800">
             {children}
           </button>
         </LinkComponent>
@@ -26,7 +26,7 @@ export const CallToAction: React.FC<{
   return (
     <div className={containerClasses}>
       <LinkComponent href={href} hideExternalIcon>
-        <button className="font-heading cursor-pointer rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg leading-normal font-bold text-red-100 duration-100 hover:bg-red-800">
+        <button className="font-heading cursor-pointer rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg font-bold leading-normal text-red-100 duration-100 hover:bg-red-800">
           {children}
         </button>
       </LinkComponent>

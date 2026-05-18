@@ -109,7 +109,7 @@ export const JobApprovalSection: React.FC<JobApprovalSectionProperties> = ({
           {/* Candidates List */}
           {candidates.length > 0 && (
             <div className="flex flex-col gap-3">
-              <h4 className="flex items-center justify-between text-[10px] font-bold tracking-wider text-zinc-500 uppercase">
+              <h4 className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-zinc-500">
                 <span>Potential Matches Found ({candidates.length})</span>
               </h4>
               <div className="grid gap-3 sm:grid-cols-2">
@@ -130,7 +130,7 @@ export const JobApprovalSection: React.FC<JobApprovalSectionProperties> = ({
             <button
               type="button"
               onClick={() => setIsOtherActionsOpen(!isOtherActionsOpen)}
-              className="flex items-center gap-2 text-[10px] font-bold tracking-wider text-zinc-500 uppercase hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300"
+              className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300"
             >
               {isOtherActionsOpen ? (
                 <ChevronDown className="h-3 w-3" />
@@ -144,7 +144,7 @@ export const JobApprovalSection: React.FC<JobApprovalSectionProperties> = ({
                 <div className="flex flex-col gap-2">
                   <label
                     htmlFor="manualPersonId"
-                    className="text-[10px] font-bold text-zinc-500 uppercase dark:text-zinc-400"
+                    className="text-[10px] font-bold uppercase text-zinc-500 dark:text-zinc-400"
                   >
                     Link Manual People ID
                   </label>
@@ -155,7 +155,7 @@ export const JobApprovalSection: React.FC<JobApprovalSectionProperties> = ({
                       value={manualPersonId}
                       onChange={(event_) => setManualPersonId(event_.target.value)}
                       placeholder="e.g. 12345"
-                      className="flex-1 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-400 focus:ring-0 focus:outline-none dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100"
+                      className="flex-1 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none focus:ring-0 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100"
                     />
                     <button
                       type="button"

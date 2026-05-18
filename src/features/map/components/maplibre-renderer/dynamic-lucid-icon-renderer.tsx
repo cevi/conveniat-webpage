@@ -47,12 +47,12 @@ const CirclePin = ({
     <div className="z-0 -mt-1 flex flex-col items-center">
       {/* Outer Triangle (White border) */}
       <div
-        className="h-0 w-0 border-t-12 border-r-10 border-l-10 border-r-transparent border-l-transparent"
+        className="border-t-12 border-r-10 border-l-10 h-0 w-0 border-l-transparent border-r-transparent"
         style={{ borderTopColor: 'white' }}
       />
       {/* Inner Triangle (Color) */}
       <div
-        className="z-10 -mt-[11px] h-0 w-0 border-t-10 border-r-8 border-l-8 border-r-transparent border-l-transparent"
+        className="border-t-10 z-10 -mt-[11px] h-0 w-0 border-l-8 border-r-8 border-l-transparent border-r-transparent"
         style={{ borderTopColor: color }}
       />
       {/* Precision Tip / Shadow */}

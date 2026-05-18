@@ -75,7 +75,7 @@ const FilePreviewItem: React.FC<{
       <button
         type="button"
         onClick={() => onRemove(index)}
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600 focus:ring-2 focus:ring-red-500 focus:outline-none"
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-red-500"
         aria-label={`Remove ${file.name}`}
       >
         <Trash2 className="h-4 w-4" />

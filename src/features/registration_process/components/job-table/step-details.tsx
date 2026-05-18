@@ -68,7 +68,7 @@ export const StepDetails: React.FC<StepDetailsProperties> = ({ step }) => {
           <button
             type="button"
             onClick={() => setIsErrorExpanded(!isErrorExpanded)}
-            className="flex w-full cursor-pointer items-start justify-between border-transparent px-6 py-3 ring-0 transition-colors outline-none hover:bg-red-100/50 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none dark:hover:bg-red-900/20"
+            className="flex w-full cursor-pointer items-start justify-between border-transparent px-6 py-3 outline-none ring-0 transition-colors hover:bg-red-100/50 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 dark:hover:bg-red-900/20"
           >
             <div className="flex flex-col items-start gap-1">
               <h3 className="flex items-center gap-2 text-sm font-bold text-red-600 dark:text-red-400">
@@ -81,7 +81,7 @@ export const StepDetails: React.FC<StepDetailsProperties> = ({ step }) => {
                 </div>
               )}
             </div>
-            <div className="flex shrink-0 items-center justify-center pt-1 pl-4">
+            <div className="flex shrink-0 items-center justify-center pl-4 pt-1">
               <ChevronDown
                 className={cn(
                   'h-4 w-4 text-red-600 transition-transform duration-200 dark:text-red-400',
@@ -95,10 +95,10 @@ export const StepDetails: React.FC<StepDetailsProperties> = ({ step }) => {
               {errorStack === undefined ? (
                 <JsonBlock
                   data={step.error}
-                  className="mt-2 text-[10px] break-all whitespace-pre-wrap text-red-600 dark:text-red-300"
+                  className="mt-2 whitespace-pre-wrap break-all text-[10px] text-red-600 dark:text-red-300"
                 />
               ) : (
-                <pre className="overflow-x-auto font-mono text-[10px] leading-relaxed wrap-break-word whitespace-pre-wrap text-red-600 dark:text-red-300">
+                <pre className="wrap-break-word overflow-x-auto whitespace-pre-wrap font-mono text-[10px] leading-relaxed text-red-600 dark:text-red-300">
                   {errorStack}
                 </pre>
               )}
@@ -116,7 +116,7 @@ export const StepDetails: React.FC<StepDetailsProperties> = ({ step }) => {
               <DetailRow
                 key={key}
                 label={key}
-                value={<span className="font-mono wrap-break-word">{renderValue(value)}</span>}
+                value={<span className="wrap-break-word font-mono">{renderValue(value)}</span>}
               />
             ),
           )}
