@@ -78,38 +78,88 @@ export const ChatManagementSidebar: React.FC<ChatManagementSidebarProperties> = 
           ? Array.from({ length: 5 }).map((_, index) => (
               <Skeleton key={index} className="h-20 w-full" />
             ))
-          : chats.map((chat) => (
-              <button
-                key={chat.id}
-                onClick={() => onSelectChat(chat.id)}
-                className={`w-full cursor-pointer rounded border p-3 text-left transition-all ${
-                  selectedChatId === chat.id
-                    ? 'border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-100)]'
-                    : 'border-transparent hover:bg-[var(--theme-elevation-50)]'
-                }`}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <span className="truncate text-sm font-semibold text-[var(--theme-elevation-900)]">
-                    {chat.name}
-                  </span>
-                  <span
-                    className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${
-                      chat.status === ChatStatus.OPEN
-                        ? 'bg-[var(--theme-success-100)] text-[var(--theme-success-600)]'
-                        : 'bg-[var(--theme-elevation-100)] text-[var(--theme-elevation-500)]'
-                    }`}
+          : chats.map((chat) => {
+              const hasUnread = chat.unreadCount > 0;
+              const isEmergency = chat.chatType === 'EMERGENCY';
+
+              // Determine classes cleanly without nested ternaries
+              let cardBgClass = 'border-transparent hover:bg-[var(--theme-elevation-50)]';
+              if (selectedChatId === chat.id) {
+                cardBgClass =
+                  'border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-100)] shadow-sm';
+              } else if (hasUnread) {
+                cardBgClass =
+                  'border-[var(--theme-elevation-100)] bg-[var(--theme-elevation-50)] hover:bg-[var(--theme-elevation-100)]';
+              }
+
+              const titleTextClass =
+                selectedChatId === chat.id || hasUnread
+                  ? 'text-[var(--theme-elevation-900)]'
+                  : 'text-[var(--theme-elevation-800)]';
+
+              const descriptionTextClass = hasUnread
+                ? 'text-[var(--theme-elevation-700)] font-medium'
+                : 'text-[var(--theme-elevation-500)]';
+
+              const messageCountTextClass = hasUnread
+                ? 'text-[var(--theme-elevation-500)] font-semibold'
+                : 'text-[var(--theme-elevation-400)]';
+
+              return (
+                <button
+                  key={chat.id}
+                  onClick={() => onSelectChat(chat.id)}
+                  className={`relative w-full cursor-pointer rounded border p-3 pl-4 text-left transition-all ${cardBgClass}`}
+                >
+                  {/* Glowing left accent indicator strip for unread chats */}
+                  {hasUnread && (
+                    <div
+                      className={`absolute top-2 bottom-2 left-0 w-1 rounded-r transition-all ${
+                        isEmergency
+                          ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]'
+                          : 'bg-[var(--theme-success-500)] shadow-[0_0_8px_var(--theme-success-500)]'
+                      }`}
+                    />
+                  )}
+
+                  <div className="flex items-start justify-between gap-2">
+                    <span
+                      className={`truncate text-sm font-semibold transition-colors ${titleTextClass}`}
+                    >
+                      {chat.name}
+                    </span>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      {hasUnread && (
+                        <span
+                          className={`flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-[10px] leading-none font-bold text-white shadow-sm ${
+                            isEmergency ? 'bg-red-500' : 'bg-[var(--theme-success-500)]'
+                          }`}
+                        >
+                          {chat.unreadCount}
+                        </span>
+                      )}
+                      <span
+                        className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${
+                          chat.status === ChatStatus.OPEN
+                            ? 'bg-[var(--theme-success-100)] text-[var(--theme-success-600)]'
+                            : 'bg-[var(--theme-elevation-100)] text-[var(--theme-elevation-500)]'
+                        }`}
+                      >
+                        {chat.status}
+                      </span>
+                    </div>
+                  </div>
+                  <div
+                    className={`mt-1 truncate text-xs transition-colors ${descriptionTextClass}`}
                   >
-                    {chat.status}
-                  </span>
-                </div>
-                <div className="mt-1 truncate text-xs text-[var(--theme-elevation-500)]">
-                  {chat.description ?? 'No description'}
-                </div>
-                <div className="mt-1 text-[10px] text-[var(--theme-elevation-400)]">
-                  {chat.messageCount} messages
-                </div>
-              </button>
-            ))}
+                    {chat.description ?? 'No description'}
+                  </div>
+                  <div className={`mt-1 text-[10px] transition-colors ${messageCountTextClass}`}>
+                    {chat.messageCount} messages
+                  </div>
+                </button>
+              );
+            })}
         {!loadingChats && chats.length === 0 && (
           <div className="p-4 text-center text-sm text-[var(--theme-elevation-400)]">
             No chats found.
