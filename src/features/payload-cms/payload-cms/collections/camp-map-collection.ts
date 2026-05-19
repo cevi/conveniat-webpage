@@ -6,13 +6,14 @@ import { MapCoordinates } from '@/features/payload-cms/payload-cms/shared-fields
 import { MapPolygon } from '@/features/payload-cms/payload-cms/shared-fields/map-polygon/map-polygon';
 import { flushPageCacheOnChange } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
+import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
 import type { CampMapAnnotation } from '@/features/payload-cms/payload-types';
 import {
   defaultEditorLexicalConfig,
   HeadingFeature,
   lexicalEditor,
 } from '@payloadcms/richtext-lexical';
-import type { CollectionConfig, Field } from 'payload';
+import type { CollectionConfig, Field, TextFieldSingleValidation } from 'payload';
 
 export const mapAnnotationDescriptionLexicalEditorSettings = lexicalEditor({
   features: [
@@ -393,13 +394,22 @@ export const CampMapAnnotationsCollection: CollectionConfig = {
                       fr: "Heures d'ouverture au format HH:mm (par exemple, 08h00 - 18h00)",
                     },
                   },
-                  validate: (value: string | string[] | undefined | null): true | string => {
+                  validate: ((
+                    value: string | string[] | undefined | null,
+                    options: Parameters<TextFieldSingleValidation>[1],
+                  ): true | string => {
+                    const localeString = options.req.i18n.language;
+                    const errorMessage = getValidationMessage(localeString, {
+                      en: 'Invalid time format. Use HH:mm - HH:mm.',
+                      de: 'Ungültiges Zeitformat. Bitte HH:mm - HH:mm verwenden.',
+                      fr: 'Format de temps invalide. Utilisez HH:mm - HH:mm.',
+                    });
                     if (typeof value !== 'string') {
-                      return 'Invalid time format. Use HH:mm - HH:mm.';
+                      return errorMessage;
                     }
                     const timePattern = /^([01]\d|2[0-3]):([0-5]\d) - ([01]\d|2[0-3]):([0-5]\d)$/;
-                    return timePattern.test(value) || 'Invalid time format. Use HH:mm - HH:mm.';
-                  },
+                    return timePattern.test(value) || errorMessage;
+                  }) as TextFieldSingleValidation,
                 },
               ],
             },

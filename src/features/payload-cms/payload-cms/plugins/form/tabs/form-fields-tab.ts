@@ -1,32 +1,51 @@
 import { RESSORT_OPTIONS } from '@/features/payload-cms/constants/ressort-options';
 import { minimalEditorFeatures } from '@/features/payload-cms/payload-cms/plugins/lexical-editor';
 import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
+import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
 import { defaultEditorLexicalConfig, lexicalEditor } from '@payloadcms/richtext-lexical';
 import type { Block, Field, Tab, TextFieldSingleValidation } from 'payload';
 
 /**
  * validate that the field name is lowercase, no special characters, and not empty
  */
-const formNameValidation: TextFieldSingleValidation = (value) => {
+const formNameValidation: TextFieldSingleValidation = (value, options) => {
+  const localeString = options.req.i18n.language;
   if (value === null || value === undefined || value.trim() === '') {
-    return 'Name is required';
+    return getValidationMessage(localeString, {
+      en: 'Name is required',
+      de: 'Name ist erforderlich',
+      fr: 'Le nom est requis',
+    });
   }
   if (value !== value.toLowerCase()) {
-    return 'Name must be lowercase';
+    return getValidationMessage(localeString, {
+      en: 'Name must be lowercase',
+      de: 'Name muss kleingeschrieben sein',
+      fr: 'Le nom doit être en minuscules',
+    });
   }
   if (/[^a-z0-9_]/.test(value)) {
-    return 'Name can only contain lowercase letters, numbers, and underscores';
+    return getValidationMessage(localeString, {
+      en: 'Name can only contain lowercase letters, numbers, and underscores',
+      de: 'Name darf nur Kleinbuchstaben, Zahlen und Unterstriche enthalten',
+      fr: 'Le nom ne peut contenir que des lettres minuscules, des chiffres et des traits de soulignement',
+    });
   }
   return true;
 };
 
-const validateRegex: TextFieldSingleValidation = (value) => {
+const validateRegex: TextFieldSingleValidation = (value, options) => {
+  const localeString = options.req.i18n.language;
   if (value == undefined) return true; // allow empty values
   try {
     new RegExp(value);
     return true;
   } catch {
-    return 'Invalid regular expression';
+    return getValidationMessage(localeString, {
+      en: 'Invalid regular expression',
+      de: 'Ungültiger regulärer Ausdruck',
+      fr: 'Expression régulière invalide',
+    });
   }
 };
 
