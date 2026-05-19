@@ -38,11 +38,14 @@ export function useNativePush(): {
 
   useEffect(() => {
     const isNative = isNativeAppWebView();
+    // Maintain backward compatibility for older app versions that don't inject the bridge
+    const isBridgeReady = globalThis.AppWebViewNativePush !== undefined;
+
     const timeoutId = setTimeout(() => {
-      setIsNativeApp(isNative);
+      setIsNativeApp(isNative && isBridgeReady);
     }, 0);
 
-    if (!isNative) return (): void => clearTimeout(timeoutId);
+    if (!isNative || !isBridgeReady) return (): void => clearTimeout(timeoutId);
 
     const handleNativeEvent = (event: Event): void => {
       const customEvent = event as CustomEvent<
@@ -63,9 +66,13 @@ export function useNativePush(): {
           break;
         }
         case 'native-push-status': {
-          if (typeof payload['status'] === 'string') {
-            setStatus(payload['status'] as NativePushStatus);
-            setHasToken(!!payload['hasToken']);
+          const statusValue = payload['authorizationLabel'] ?? payload['status'];
+          if (typeof statusValue === 'string') {
+            setStatus(statusValue as NativePushStatus);
+            const tokenValue = payload['token'];
+            const hasTokenValue =
+              payload['hasToken'] === undefined ? !!tokenValue : !!payload['hasToken'];
+            setHasToken(hasTokenValue);
           }
           break;
         }
