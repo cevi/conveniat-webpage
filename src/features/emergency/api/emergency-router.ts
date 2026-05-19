@@ -1,6 +1,7 @@
 import { getAlertSettingsCached } from '@/features/payload-cms/api/cached-globals';
 import type { AlertSetting } from '@/features/payload-cms/payload-types';
 import { ChatCapability, SYSTEM_MSG_TYPE_EMERGENCY_ALERT } from '@/lib/chat-shared';
+import { chatPubSub } from '@/lib/db/chat-pubsub';
 import { createTRPCRouter, publicProcedure, trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import config from '@payload-config';
@@ -164,6 +165,39 @@ export const emergencyRouter = createTRPCRouter({
           capabilities: [ChatCapability.CAN_SEND_MESSAGES],
         },
       });
+
+      // Fetch the created messages from DB to get their real UUIDs and content payloads
+      const createdMessages = await prisma.message.findMany({
+        where: { chatId: chat.uuid },
+        include: {
+          contentVersions: {
+            take: 1,
+            orderBy: { revision: 'desc' },
+          },
+        },
+        orderBy: { createdAt: 'asc' },
+      });
+
+      // Publish new_message events for each message to notify administrators in real-time
+      for (const message of createdMessages) {
+        chatPubSub
+          .publish({
+            type: 'new_message',
+            chatId: chat.uuid,
+            senderId: message.senderId ?? user.uuid,
+            message: {
+              id: message.uuid,
+              createdAt: message.createdAt,
+              messagePayload: message.contentVersions[0]?.payload ?? {},
+              senderId: message.senderId ?? undefined,
+              status: MessageEventType.STORED,
+              type: message.type,
+            },
+          })
+          .catch((error: unknown) => {
+            console.error('Failed to publish real-time event for emergency message:', error);
+          });
+      }
 
       return { success: true, redirectUrl: `/app/chat/${chat.uuid}` };
     }),

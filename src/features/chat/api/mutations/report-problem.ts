@@ -1,4 +1,5 @@
 import { ChatCapability } from '@/lib/chat-shared';
+import { chatPubSub } from '@/lib/db/chat-pubsub';
 import { ChatType, MessageEventType, MessageType } from '@/lib/prisma';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
@@ -42,24 +43,26 @@ export const reportProblem = trpcBaseProcedure
       },
     });
 
+    const payloadContent = {
+      ...systemMessageContent,
+      ...(input?.location
+        ? {
+            location: {
+              longitude: input.location[0],
+              latitude: input.location[1],
+            },
+          }
+        : {}),
+    };
+
     // 1. Create the initial system message
-    await prisma.message.create({
+    const systemMessage = await prisma.message.create({
       data: {
         chatId: chat.uuid,
         type: MessageType.SYSTEM_MSG,
         contentVersions: {
           create: {
-            payload: {
-              ...systemMessageContent,
-              ...(input?.location
-                ? {
-                    location: {
-                      longitude: input.location[0],
-                      latitude: input.location[1],
-                    },
-                  }
-                : {}),
-            },
+            payload: payloadContent,
           },
         },
         messageEvents: {
@@ -69,6 +72,25 @@ export const reportProblem = trpcBaseProcedure
         },
       },
     });
+
+    // Publish the initial system message real-time event to chatPubSub so that active admin streams display it instantly
+    chatPubSub
+      .publish({
+        type: 'new_message',
+        chatId: chat.uuid,
+        senderId: user.uuid,
+        message: {
+          id: systemMessage.uuid,
+          createdAt: systemMessage.createdAt,
+          messagePayload: payloadContent,
+          senderId: user.uuid,
+          status: MessageEventType.STORED,
+          type: MessageType.SYSTEM_MSG,
+        },
+      })
+      .catch((error: unknown) => {
+        console.error('Failed to publish real-time event for problem report:', error);
+      });
 
     return chat;
   });
