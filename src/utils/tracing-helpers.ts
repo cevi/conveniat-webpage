@@ -14,9 +14,13 @@ export async function withSpan<T>(
   callback: (span: Span) => Promise<T>,
   attributes?: Attributes,
 ): Promise<T> {
-  // If we are in the build phase, we skip tracing to avoid Date.now() errors
-  // during prerendering in Next.js Server Components.
-  if (isBuildPhase()) {
+  // Skip tracing during build-time prerendering AND dev-mode prerendering.
+  // The OpenTelemetry tracer internally calls Date.now() inside startActiveSpan(),
+  // which Next.js 16 forbids in Server Components before accessing uncached data
+  // (cookies(), headers(), connection()) or fetch(). This affects both production
+  // builds (NEXT_PHASE === PHASE_PRODUCTION_BUILD) and dev-mode prerendering.
+  // eslint-disable-next-line n/no-process-env
+  if (isBuildPhase() || process.env['NODE_ENV'] === 'development') {
     const dummySpan = {
       end: () => {},
       recordException: () => {},
