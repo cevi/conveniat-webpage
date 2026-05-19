@@ -70,7 +70,7 @@ const performOptimisticMessageUpdate = async (
   }
 
   const optimisticMessage: ChatMessage = {
-    id: `optimistic-${Date.now()}`,
+    id: `optimistic-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
     messagePayload: {
       text: content.trim(),
       ...(typeof quotedMessageId === 'string' &&
@@ -233,9 +233,11 @@ export const useMessageSend = (): UseMessageSendMutation => {
               ...page,
               items: page.items
                 .map((item) => {
+                  const optimisticId = (context as OptimisticUpdateResult | undefined)
+                    ?.optimisticMessageId;
                   const isMatch =
-                    typeof context.optimisticMessageId === 'string'
-                      ? item.id === context.optimisticMessageId
+                    typeof optimisticId === 'string'
+                      ? item.id === optimisticId
                       : item.id.startsWith('optimistic-');
                   if (isMatch) {
                     return alreadyHasStored ? undefined : createdMessage;
@@ -260,9 +262,11 @@ export const useMessageSend = (): UseMessageSendMutation => {
             ...oldData,
             messages: oldData.messages
               .map((item) => {
+                const optimisticId = (context as OptimisticUpdateResult | undefined)
+                  ?.optimisticMessageId;
                 const isMatch =
-                  typeof context.optimisticMessageId === 'string'
-                    ? item.id === context.optimisticMessageId
+                  typeof optimisticId === 'string'
+                    ? item.id === optimisticId
                     : item.id.startsWith('optimistic-');
                 if (isMatch) {
                   return alreadyHasStored ? undefined : createdMessage;

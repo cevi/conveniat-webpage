@@ -78,7 +78,7 @@ export const useAdminChatManagement = ({
       const currentUserId = previousMessages?.currentUserId ?? 'current-admin-user';
 
       const optimisticMessage = {
-        id: `optimistic-${Date.now()}`,
+        id: `optimistic-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
         createdAt: new Date(),
         messagePayload: type === MessageType.IMAGE_MSG ? { url: content } : { text: content },
         senderId: currentUserId,
@@ -116,9 +116,11 @@ export const useAdminChatManagement = ({
           ...old,
           messages: old.messages
             .map((m) => {
+              const optimisticId = (context as { optimisticMessageId?: string } | undefined)
+                ?.optimisticMessageId;
               const isMatch =
-                typeof context.optimisticMessageId === 'string'
-                  ? m.id === context.optimisticMessageId
+                typeof optimisticId === 'string'
+                  ? m.id === optimisticId
                   : m.id.startsWith('optimistic-');
               if (isMatch) {
                 return alreadyHasStored
