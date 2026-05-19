@@ -2,7 +2,6 @@
 
 import type { ChatMessage } from '@/features/chat/api/types';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
-import { MessageEventType } from '@/lib/prisma/client';
 import { trpc } from '@/trpc/client';
 import { useEffect, useState } from 'react';
 
@@ -56,7 +55,6 @@ export const useMessageReadStatus = ({
 
       if (
         latestMessageToRead !== undefined &&
-        latestMessageToRead.status !== MessageEventType.READ &&
         (lastMarkedReadId === undefined || latestMessageToRead.id > lastMarkedReadId)
       ) {
         markChatAsRead({
