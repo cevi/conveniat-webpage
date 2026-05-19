@@ -32,6 +32,42 @@ services:
       labels:
         - swarmpit.service.deployment.autoredeploy=true
 
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2048M
+
+    volumes:
+      - /cluster/dist_storage_insane/service_data/conveniat-dev/next-cache:/app/.next/cache
+      - /cluster/dist_storage_insane/service_data/conveniat-dev/firebase-service-account.json:/app/firebase-service-account.json:ro
+
+    dns:
+      - 8.8.8.8 # Replace with your desired DNS server
+
+    depends_on:
+      - mongo
+      - redis
+    env_file:
+      - .env
+
+    networks:
+      - backend-net
+      - observability-net
+
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -fs http://localhost:3000/status | grep -q "status\":\"ok"']
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  nginx:
+    image: nginx:alpine
+    deploy:
+      replicas: 2
+      labels:
+        - swarmpit.service.deployment.autoredeploy=true
+
         # Enable Traefik for this service, to make it available in the public network
         - traefik.enable=true
 
@@ -58,35 +94,16 @@ services:
         - traefik.http.services.conveniat27-dev.loadbalancer.healthcheck.interval=5s
         - traefik.http.services.conveniat27-dev.loadbalancer.healthcheck.timeout=3s
 
-      resources:
-        limits:
-          cpus: '2.0'
-          memory: 2048M
-
+    configs:
+      - source: nginx-config
+        target: /etc/nginx/nginx.conf
     volumes:
-      - /cluster/dist_storage_insane/service_data/conveniat-dev/next-cache:/app/.next/cache
-      - /cluster/dist_storage_insane/service_data/conveniat-dev/firebase-service-account.json:/app/firebase-service-account.json:ro
-
-    dns:
-      - 8.8.8.8 # Replace with your desired DNS server
-
-    depends_on:
-      - mongo
-      - redis
-    env_file:
-      - .env
-
+      - /cluster/dist_storage_insane/service_data/conveniat-dev/nginx-cache:/var/cache/nginx
     networks:
-      - traefik-net
       - backend-net
-      - observability-net
-
-    healthcheck:
-      test: ['CMD-SHELL', 'curl -fs http://localhost:3000/status | grep -q "status\":\"ok"']
-      interval: 5s
-      timeout: 3s
-      retries: 3
-      start_period: 10s
+      - traefik-net-1400
+    depends_on:
+      - payload
 
   mongo:
     image: mongo:latest
@@ -138,7 +155,7 @@ services:
       - /cluster/dist_storage_insane/service_data/conveniat-dev/minio-data:/data
 
     networks:
-      - traefik-net
+      - traefik-net-1400
       - backend-net
       - observability-net
 
@@ -205,6 +222,10 @@ services:
       driver: none
 
 configs:
+  nginx-config:
+    name: nginx_conveniat27_dev_v2
+    external: true
+
   loki-config:
     name: loki_config_conveniat_dev-${STAMP:-0}
     file: /cluster/dist_storage_insane/config/conveniat27-dev/loki/loki-config.yml
@@ -218,7 +239,7 @@ configs:
     file: /cluster/dist_storage_insane/config/conveniat27-dev/prometheus/prometheus.yml
 
 networks:
-  traefik-net:
+  traefik-net-1400:
     external: true
 
   backend-net:
@@ -226,5 +247,4 @@ networks:
     attachable: true
 
   observability-net:
-    driver: overlay
-    attachable: true
+    external: true

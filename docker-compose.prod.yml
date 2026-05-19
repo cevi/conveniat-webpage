@@ -104,7 +104,7 @@ services:
       - .env
 
     networks:
-      - traefik-net
+      - traefik-net-1400
       - backend-net
       - observability-net
 
@@ -185,7 +185,7 @@ services:
       - /cluster/dist_storage_insane/service_data/conveniat-prod/minio-data:/data
 
     networks:
-      - traefik-net
+      - traefik-net-1400
       - backend-net
 
   postgres:
@@ -253,5 +253,4 @@ networks:
     attachable: true
 
   observability-net:
-    driver: overlay
-    attachable: true
+    external: true
