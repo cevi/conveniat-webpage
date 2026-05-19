@@ -96,6 +96,7 @@ export async function GET(request: NextRequest): Promise<Response> {
           controller.enqueue(encoder.encode(':keepalive\n\n'));
         } catch {
           // Stream might be already closed, handled in cancel/abort
+          cleanup();
         }
       }, 30_000);
 
