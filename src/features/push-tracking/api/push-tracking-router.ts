@@ -34,6 +34,32 @@ export const pushTrackingRouter = createTRPCRouter({
       return { success: true };
     }),
 
+  sendTestNotification: publicProcedure
+    .input(
+      z.object({
+        subscription: z.object({
+          endpoint: z.string(),
+          keys: z.object({
+            p256dh: z.string(),
+            auth: z.string(),
+          }),
+        }),
+        message: z.string(),
+        url: z.string().optional(),
+        userId: z.string().optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const { sendNotificationToSubscription } = await import('@/utils/push-notification-api');
+      const result = await sendNotificationToSubscription(
+        input.subscription,
+        input.message,
+        input.url,
+        input.userId,
+      );
+      return result;
+    }),
+
   getRecentLogs: publicProcedure
     .input(
       z.object({
@@ -49,7 +75,9 @@ export const pushTrackingRouter = createTRPCRouter({
         where: {
           userId: userId,
         },
-        ...(cursor ? { cursor: { id: cursor } } : {}),
+        ...(cursor !== undefined && cursor !== null && cursor !== ''
+          ? { cursor: { id: cursor } }
+          : {}),
         orderBy: {
           sentAt: 'desc',
         },

@@ -46,6 +46,9 @@ enum ChatType {
 
   /// an automatically managed group chat for a schedule entry (workshop)
   COURSE_GROUP
+
+  /// a channel for broadcasting read-only announcements to target groups
+  ANNOUNCEMENT
 }
 
 enum ChatStatus {

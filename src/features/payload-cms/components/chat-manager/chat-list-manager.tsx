@@ -236,6 +236,8 @@ export const ChatListManager: React.FC = () => {
       'bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-900/30 dark:text-gray-400 dark:border-gray-800/50',
     [ChatType.ONE_TO_ONE]:
       'bg-teal-100 text-teal-700 border-teal-200 dark:bg-teal-900/30 dark:text-teal-400 dark:border-teal-800/50',
+    [ChatType.ANNOUNCEMENT]:
+      'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800/50',
   };
 
   const renderTypeBadge = (type: ChatType): React.ReactNode => {

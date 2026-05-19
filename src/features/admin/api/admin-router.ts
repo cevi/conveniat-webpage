@@ -591,6 +591,11 @@ export const adminRouter = createTRPCRouter({
           de: 'Ein Admin hat diesen Chat geschlossen.',
           fr: 'Un administrateur a fermé ce chat.',
         },
+        [ChatType.ANNOUNCEMENT]: {
+          en: 'This announcement channel has been closed.',
+          de: 'Dieser Ankündigungskanal wurde geschlossen.',
+          fr: "Ce canal d'annonces a été fermé.",
+        },
       };
 
       // Add system message
@@ -700,6 +705,11 @@ export const adminRouter = createTRPCRouter({
           en: 'An admin has reopened this chat.',
           de: 'Ein Admin hat diesen Chat wieder geöffnet.',
           fr: 'Un administrateur a rouvert ce chat.',
+        },
+        [ChatType.ANNOUNCEMENT]: {
+          en: 'This announcement channel has been reopened.',
+          de: 'Dieser Ankündigungskanal wurde wieder geöffnet.',
+          fr: "Ce canal d'annonces a été rouvert.",
         },
       };
 

@@ -19,6 +19,7 @@ import { checkHitobitoApprovalsTask } from '@/features/payload-cms/payload-cms/t
 import { DEFAULT_QUEUE } from '@/features/payload-cms/payload-cms/tasks/cleanup-stale-jobs';
 import { fetchSmtpBouncesTask } from '@/features/payload-cms/payload-cms/tasks/fetch-smtp-bounces';
 import { generatePdfThumbnailTask } from '@/features/payload-cms/payload-cms/tasks/generate-pdf-thumbnail';
+import { publishScheduledAnnouncementsTask } from '@/features/payload-cms/payload-cms/tasks/publish-scheduled-announcements';
 import { smartphoneBreakpoints } from '@/features/payload-cms/utils/smartphone-breakpoints';
 import { registrationWorkflow } from '@/features/registration_process/workflows/registration-workflow';
 import { blockJobStep } from '@/features/registration_process/workflows/steps/block-job';
@@ -113,7 +114,14 @@ const payloadConfigAdminSettings: RoutableConfig['admin'] = {
     // The default locale 'de' omits the prefix.
     url: `${env.APP_HOST_URL}/preview-fallback?preview=true`,
     breakpoints: smartphoneBreakpoints,
-    collections: ['blog', 'generic-page', 'timeline', 'forms', 'camp-map-annotations'],
+    collections: [
+      'blog',
+      'generic-page',
+      'timeline',
+      'forms',
+      'camp-map-annotations',
+      'announcements',
+    ],
   },
   dashboard: {
     widgets: enabledWidgets,
@@ -149,6 +157,7 @@ const jobsConfig: JobsConfig = {
     fetchSmtpBouncesTask,
     checkHitobitoApprovalsTask,
     generatePdfThumbnailTask,
+    publishScheduledAnnouncementsTask,
   ],
   workflows: [registrationWorkflow, brevoContactWorkflow],
   autoRun: env.FEATURE_ENABLE_WORKFLOWS

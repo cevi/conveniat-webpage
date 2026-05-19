@@ -58,6 +58,8 @@ export interface Config {
     'camp-schedule-entry': CampScheduleEntry;
     'helper-shifts': HelperShift;
     'helper-jobs': HelperJob;
+    'announcement-channels': AnnouncementChannel;
+    announcements: Announcement;
     images: Image;
     userSubmittedImages: UserSubmittedImage;
     documents: Document;
@@ -110,6 +112,8 @@ export interface Config {
     'camp-schedule-entry': CampScheduleEntrySelect<false> | CampScheduleEntrySelect<true>;
     'helper-shifts': HelperShiftsSelect<false> | HelperShiftsSelect<true>;
     'helper-jobs': HelperJobsSelect<false> | HelperJobsSelect<true>;
+    'announcement-channels': AnnouncementChannelsSelect<false> | AnnouncementChannelsSelect<true>;
+    announcements: AnnouncementsSelect<false> | AnnouncementsSelect<true>;
     images: ImagesSelect<false> | ImagesSelect<true>;
     userSubmittedImages: UserSubmittedImagesSelect<false> | UserSubmittedImagesSelect<true>;
     documents: DocumentsSelect<false> | DocumentsSelect<true>;
@@ -188,6 +192,7 @@ export interface Config {
       fetchSmtpBounces: TaskFetchSmtpBounces;
       checkHitobitoApprovals: TaskCheckHitobitoApprovals;
       generatePdfThumbnail: TaskGeneratePdfThumbnail;
+      publishScheduledAnnouncements: TaskPublishScheduledAnnouncements;
       createCollectionExport: TaskCreateCollectionExport;
       createCollectionImport: TaskCreateCollectionImport;
       inline: {
@@ -3232,6 +3237,71 @@ export interface HelperShift {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "announcement-channels".
+ */
+export interface AnnouncementChannel {
+  id: string;
+  name: string;
+  description?: string | null;
+  targetType: 'all' | 'roles' | 'cevi_groups';
+  targetRoles?: ('full-admin' | 'web-core-team' | 'translation-team' | 'program-team')[] | null;
+  targetCeviGroups?:
+    | {
+        groupId: number;
+        groupName: string;
+        id?: string | null;
+      }[]
+    | null;
+  chatUuid?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "announcements".
+ */
+export interface Announcement {
+  id: string;
+  publishingStatus?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  _localized_status: LocalizedPublishingStatus;
+  _disable_unpublishing?: boolean | null;
+  _locale: string;
+  title: string;
+  content: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  channel: string | AnnouncementChannel;
+  status: 'scheduled' | 'published';
+  scheduledAt?: string | null;
+  publishedAt?: string | null;
+  author?: (string | null) | User;
+  chatMessageUuid?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "userSubmittedImages".
  */
 export interface UserSubmittedImage {
@@ -3700,6 +3770,7 @@ export interface PayloadJob {
           | 'fetchSmtpBounces'
           | 'checkHitobitoApprovals'
           | 'generatePdfThumbnail'
+          | 'publishScheduledAnnouncements'
           | 'createCollectionExport'
           | 'createCollectionImport';
         taskID: string;
@@ -3748,6 +3819,7 @@ export interface PayloadJob {
         | 'fetchSmtpBounces'
         | 'checkHitobitoApprovals'
         | 'generatePdfThumbnail'
+        | 'publishScheduledAnnouncements'
         | 'createCollectionExport'
         | 'createCollectionImport'
       )
@@ -3805,6 +3877,14 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'helper-jobs';
         value: string | HelperJob;
+      } | null)
+    | ({
+        relationTo: 'announcement-channels';
+        value: string | AnnouncementChannel;
+      } | null)
+    | ({
+        relationTo: 'announcements';
+        value: string | Announcement;
       } | null)
     | ({
         relationTo: 'images';
@@ -5119,6 +5199,47 @@ export interface HelperJobsSelect<T extends boolean = true> {
   dateRangeCategory?: T;
   prerequisites?: T;
   submissions?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "announcement-channels_select".
+ */
+export interface AnnouncementChannelsSelect<T extends boolean = true> {
+  name?: T;
+  description?: T;
+  targetType?: T;
+  targetRoles?: T;
+  targetCeviGroups?:
+    | T
+    | {
+        groupId?: T;
+        groupName?: T;
+        id?: T;
+      };
+  chatUuid?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "announcements_select".
+ */
+export interface AnnouncementsSelect<T extends boolean = true> {
+  publishingStatus?: T;
+  _localized_status?: T;
+  _disable_unpublishing?: T;
+  _locale?: T;
+  title?: T;
+  content?: T;
+  channel?: T;
+  status?: T;
+  scheduledAt?: T;
+  publishedAt?: T;
+  author?: T;
+  chatMessageUuid?: T;
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
@@ -6962,6 +7083,14 @@ export interface TaskGeneratePdfThumbnail {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskPublishScheduledAnnouncements".
+ */
+export interface TaskPublishScheduledAnnouncements {
+  input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskCreateCollectionExport".
  */
 export interface TaskCreateCollectionExport {
@@ -6978,6 +7107,8 @@ export interface TaskCreateCollectionExport {
       | 'camp-schedule-entry'
       | 'helper-shifts'
       | 'helper-jobs'
+      | 'announcement-channels'
+      | 'announcements'
       | 'images'
       | 'userSubmittedImages'
       | 'documents'

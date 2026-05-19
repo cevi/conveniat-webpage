@@ -6,28 +6,37 @@ export const canAccessDocuments: Access = async ({ req }) => {
   return await withSpan('canAccessDocuments', async () => {
     const { payload } = req;
 
-    // Fetch all available permission profiles.
-    // There are usually very few of these compared to the total number of documents.
-    const allPermissions = await payload.find({
-      collection: 'permissions',
-      pagination: false,
-      limit: 0, // Get all
-      draft: false,
-      req, // Pass the request to maintain auth context
-    });
+    let allowedPermissionIds: string[] = [];
+    try {
+      // Fetch all available permission profiles.
+      // There are usually very few of these compared to the total number of documents.
+      const allPermissions = await payload.find({
+        collection: 'permissions',
+        pagination: false,
+        limit: 0, // Get all
+        draft: false,
+        req, // Pass the request to maintain auth context
+      });
 
-    // Fetch the session ONCE to avoid redundant auth() calls in the loop
-    const { auth } = await import('@/utils/auth');
-    const userSession = await auth();
+      // Fetch the session ONCE to avoid redundant auth() calls in the loop
+      const { auth } = await import('@/utils/auth');
+      const userSession = await auth();
 
-    const results = await Promise.all(
-      allPermissions.docs.map(async (permission) => {
-        const isAllowed = await hasPermissions(permission, userSession);
-        return isAllowed ? permission.id : undefined;
-      }),
-    );
-    // Check which permission profiles the currently authenticated user is allowed to access
-    const allowedPermissionIds = results.filter((id): id is string => id !== undefined);
+      const results = await Promise.all(
+        allPermissions.docs.map(async (permission) => {
+          const isAllowed = await hasPermissions(permission, userSession);
+          return isAllowed ? permission.id : undefined;
+        }),
+      );
+      // Check which permission profiles the currently authenticated user is allowed to access
+      allowedPermissionIds = results.filter((id): id is string => id !== undefined);
+    } catch (error) {
+      if (error instanceof Error && error.name === 'MongoNotConnectedError') {
+        payload.logger.warn('MongoDB not connected yet. Proceeding with public access rules.');
+      } else {
+        payload.logger.error({ err: error }, 'Failed to fetch permissions during access check:');
+      }
+    }
 
     // Return a query constraint that filters documents at the database level.
     // A document is accessible if:

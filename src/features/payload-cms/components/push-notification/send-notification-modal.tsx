@@ -2,7 +2,6 @@
 
 import { Input } from '@/components/ui/input';
 import { trpc } from '@/trpc/client';
-import { sendNotificationToSubscriptionAction } from '@/utils/push-notification-actions';
 import { cva } from 'class-variance-authority';
 import { AlertCircle, Send, X } from 'lucide-react';
 import React, { useState } from 'react';
@@ -68,19 +67,20 @@ export const SendNotificationModal: React.FC<SendNotificationModalProperties> = 
 }) => {
   const { i18n } = useTranslation();
   const t =
-    (translations as Record<string, typeof translations.en>)[i18n.language] || translations.en;
+    (translations as Record<string, typeof translations.en>)[i18n.language] ?? translations.en;
 
   const [content, setContent] = useState('');
   const [url, setUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const utils = trpc.useUtils();
+  const sendTestNotificationMutation = trpc.pushTracking.sendTestNotification.useMutation();
 
   // eslint-disable-next-line unicorn/no-null
   if (!isOpen) return null;
 
   const handleSend = async (): Promise<void> => {
-    if (!content.trim()) {
+    if (content.trim() === '') {
       setError(t.enterContent);
       return;
     }
@@ -89,7 +89,18 @@ export const SendNotificationModal: React.FC<SendNotificationModalProperties> = 
     setError(undefined);
 
     try {
-      const result = await sendNotificationToSubscriptionAction(subscription, content, url, userId);
+      const result = await sendTestNotificationMutation.mutateAsync({
+        subscription: {
+          endpoint: subscription.endpoint,
+          keys: {
+            p256dh: subscription.keys.p256dh,
+            auth: subscription.keys.auth,
+          },
+        },
+        message: content,
+        url: url === '' ? undefined : url,
+        userId: userId !== undefined && userId !== '' ? userId : undefined,
+      });
       if (result.success) {
         setContent('');
         setUrl('');
@@ -97,7 +108,7 @@ export const SendNotificationModal: React.FC<SendNotificationModalProperties> = 
         onClose();
       } else {
         await utils.pushTracking.getRecentLogs.invalidate();
-        setError(result.error ?? t.unknownError);
+        setError(result.error !== undefined && result.error !== '' ? result.error : t.unknownError);
       }
     } catch (error_) {
       console.error(error_);
@@ -137,7 +148,7 @@ export const SendNotificationModal: React.FC<SendNotificationModalProperties> = 
               value={content}
               onChange={(event) => {
                 setContent(event.target.value);
-                if (error) setError(undefined);
+                if (error !== undefined && error !== '') setError(undefined);
               }}
               className="bg-white dark:bg-gray-950"
             />
@@ -154,7 +165,7 @@ export const SendNotificationModal: React.FC<SendNotificationModalProperties> = 
             />
           </div>
 
-          {error && (
+          {error !== undefined && error !== '' && (
             <div className="flex items-start gap-2 rounded-md bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
               <span>{error}</span>

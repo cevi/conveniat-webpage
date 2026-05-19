@@ -4,7 +4,7 @@ import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types
 import { i18nConfig, type Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { ChatType } from '@prisma/client';
-import { Siren, Users } from 'lucide-react';
+import { Megaphone, Siren, Users } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -68,6 +68,11 @@ export const ChatPreview: React.FC<{
               <Siren size={20} className="text-blue-500" />
             </div>
           )}
+          {chat.chatType === ChatType.ANNOUNCEMENT && (
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-rose-50 shadow-md ring-2 ring-rose-500">
+              <Megaphone size={20} className="text-rose-500" />
+            </div>
+          )}
         </div>
 
         <div className="min-w-0 flex-1">
@@ -79,6 +84,7 @@ export const ChatPreview: React.FC<{
                     'text-gray-900': hasUnread,
                     'text-gray-800': !hasUnread,
                     'text-red-500': chat.chatType === ChatType.EMERGENCY,
+                    'text-rose-600': chat.chatType === ChatType.ANNOUNCEMENT,
                   })}
                 >
                   {chat.name}
