@@ -6,7 +6,7 @@
 TYPE=$1 # prod or dev
 
 if [ "$TYPE" == "prod" ]; then
-  NETWORK="conveniat_maintenance-net"
+  NETWORK="conveniat_backend-net"
 
   PG_HOST="postgres"
   MONGO_HOST="mongo"
@@ -14,16 +14,14 @@ if [ "$TYPE" == "prod" ]; then
   echo "INFO: Establishing tunnel to PRODUCTION..."
 
 elif [ "$TYPE" == "dev" ]; then
-  # UPDATED: Use the attachable maintenance network
-  NETWORK="conveniat-dev_maintenance-net"
+  NETWORK="conveniat-dev_backend-net"
   PG_HOST="postgres"
   MONGO_HOST="mongo"
   NAME="db-tunnel-dev"
   echo "INFO: Establishing tunnel to DEVELOPMENT (Network: $NETWORK)..."
 
 elif [ "$TYPE" == "konekta" ]; then
-  # UPDATED: Use the attachable maintenance network
-  NETWORK="konekta-dev_maintenance-net"
+  NETWORK="konekta-dev_backend-net"
   PG_HOST="postgres"
   MONGO_HOST="mongo"
   NAME="db-tunnel-konekta"
