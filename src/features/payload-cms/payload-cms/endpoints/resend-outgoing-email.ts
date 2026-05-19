@@ -1,4 +1,5 @@
 import { environmentVariables } from '@/config/environment-variables';
+import { hasAccessToThis, Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import type { PayloadHandler } from 'payload';
 
 export const resendOutgoingEmailHandler: PayloadHandler = async (request) => {
@@ -7,6 +8,14 @@ export const resendOutgoingEmailHandler: PayloadHandler = async (request) => {
 
   if (!user) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const hasAccess = hasAccessToThis({
+    req: request,
+    requiredRoles: [Roles.FullAdmin],
+  });
+  if (!hasAccess) {
+    return Response.json({ error: 'Unauthorized' }, { status: 403 });
   }
 
   if (typeof id !== 'string' || id.length === 0) {
@@ -66,7 +75,10 @@ export const resendOutgoingEmailHandler: PayloadHandler = async (request) => {
       smtpResult['error'] = responseOrError;
     }
 
-    const results = Array.isArray(emailDocument.smtpResults) ? [...emailDocument.smtpResults] : [];
+    // Use rawSmtpResults to avoid copying computed/ephemeral hooks data (like parsedDsn) from smtpResults
+    const results = Array.isArray(emailDocument.rawSmtpResults)
+      ? [...emailDocument.rawSmtpResults]
+      : [];
     results.push(smtpResult);
 
     await payload.update({
@@ -81,7 +93,11 @@ export const resendOutgoingEmailHandler: PayloadHandler = async (request) => {
       },
     });
 
-    return Response.json({ success, result: smtpResult });
+    return Response.json({
+      success,
+      result: smtpResult,
+      ...(success ? {} : { error: String(responseOrError) }),
+    });
   } catch (error) {
     payload.logger.error({ err: error, msg: 'Error in resendOutgoingEmailHandler' });
     return Response.json({ error: String(error) }, { status: 500 });

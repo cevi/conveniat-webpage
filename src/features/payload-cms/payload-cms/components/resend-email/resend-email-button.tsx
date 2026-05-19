@@ -35,12 +35,16 @@ export const ResendEmailButton: React.FC = () => {
         method: 'POST',
       });
 
+      const data = (await response.json().catch(() => ({}))) as {
+        success?: boolean;
+        error?: string;
+      };
+
       if (!response.ok) {
-        throw new Error('Failed to resend email');
+        throw new Error(data.error ?? 'Failed to resend email');
       }
 
-      const data = (await response.json()) as { success: boolean; error?: string };
-      if (data.success) {
+      if (data.success === true) {
         const successMessage = t('general:updatedSuccessfully');
         toast.success(
           typeof successMessage === 'string' && successMessage.length > 0
