@@ -97,7 +97,7 @@ export async function syncPiketMembersToOpenChats(payload: Payload): Promise<voi
 
   for (const schedule of activeSchedules.docs) {
     const users = schedule.users;
-    if (users === null || users === undefined || !Array.isArray(users)) {
+    if (users === null || users === undefined) {
       continue;
     }
     const chatTypes = schedule.chatTypes;
@@ -105,9 +105,11 @@ export async function syncPiketMembersToOpenChats(payload: Payload): Promise<voi
       continue;
     }
 
+    const usersList = Array.isArray(users) ? users : [users];
+
     // Normalize user list
     const membersToSync: PiketMember[] = [];
-    for (const u of users) {
+    for (const u of usersList) {
       if (typeof u === 'object') {
         membersToSync.push({
           id: u.id,

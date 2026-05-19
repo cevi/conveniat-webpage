@@ -149,7 +149,7 @@ class ChatPubSub {
     }
 
     try {
-      await prisma.$executeRawUnsafe("SELECT pg_notify('chat_events', $1)", payload);
+      await prisma.$executeRaw`SELECT pg_notify('chat_events', ${payload})`;
     } catch (error) {
       console.error('[ChatPubSub] Failed to execute pg_notify:', error);
     }
