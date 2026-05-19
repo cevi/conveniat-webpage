@@ -17,28 +17,42 @@ import type { Serwist } from 'serwist';
 
 declare const self: ServiceWorkerGlobalScope;
 
-const logImage404ToPostHog = (url: string, clientId: string): void => {
+/** URLs already reported in this SW lifecycle to prevent duplicate PostHog events on browser retries. */
+const reportedImage404s = new Set<string>();
+
+const logImage404ToPostHog = async (url: string, clientId: string): Promise<void> => {
+  if (reportedImage404s.has(url)) return;
+  reportedImage404s.add(url);
+
   console.error(`[SW] Image not found (404): ${url}`);
-  void (async (): Promise<void> => {
-    try {
-      const client = clientId === '' ? undefined : await self.clients.get(clientId);
-      if (client) {
-        client.postMessage({
-          type: ServiceWorkerMessages.CAPTURE_POSTHOG_EVENT,
-          payload: {
-            event: 'image_load_error',
-            properties: {
-              $exception_message: `Image not found: ${url}`,
-              error: 'Image 404 Not Found',
-              url,
-            },
-          },
-        });
+
+  try {
+    const message = {
+      type: ServiceWorkerMessages.CAPTURE_POSTHOG_EVENT,
+      payload: {
+        event: 'image_load_error',
+        properties: {
+          $exception_message: `Image not found: ${url}`,
+          error: 'Image 404 Not Found',
+          url,
+        },
+      },
+    };
+
+    // Try the specific client first; fall back to broadcasting to all clients
+    // (matches the pattern used by logToPostHog in sw.ts)
+    const client = clientId === '' ? undefined : await self.clients.get(clientId);
+    if (client) {
+      client.postMessage(message);
+    } else {
+      const clients = await self.clients.matchAll();
+      for (const c of clients) {
+        c.postMessage(message);
       }
-    } catch (error) {
-      console.debug('[SW] Failed to report image 404 to PostHog', error);
     }
-  })();
+  } catch (error) {
+    console.debug('[SW] Failed to report image 404 to PostHog', error);
+  }
 };
 
 async function matchCachedPage(originalUrl: string): Promise<Response | undefined> {
@@ -289,7 +303,7 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
       }
 
       if (response.status === 404 && requestToHandle.destination === 'image') {
-        logImage404ToPostHog(requestToHandle.url, event.clientId);
+        event.waitUntil(logImage404ToPostHog(requestToHandle.url, event.clientId));
       }
 
       return response;
@@ -309,7 +323,7 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
     }
 
     if (networkResponse.status === 404 && requestToHandle.destination === 'image') {
-      logImage404ToPostHog(requestToHandle.url, event.clientId);
+      event.waitUntil(logImage404ToPostHog(requestToHandle.url, event.clientId));
     }
 
     return networkResponse;
