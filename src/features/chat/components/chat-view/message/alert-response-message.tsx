@@ -22,7 +22,7 @@ export const AlertResponseMessage: React.FC<AlertResponseMessageProperties> = ({
 
   return (
     <div className="flex min-w-[200px] flex-col space-y-3 p-1">
-      <p className="whitespace-pre-wrap text-[var(--theme-text)]">{payload.message}</p>
+      <p className="whitespace-pre-wrap text-(--theme-elevation-900,#111827)">{payload.message}</p>
       <button
         onClick={handleCall}
         className="bg-conveniat-green flex w-full cursor-pointer items-center justify-center space-x-2 rounded-xl px-4 py-3 text-white shadow-sm transition-all duration-200 hover:bg-green-700 hover:shadow-md active:scale-[0.98]"

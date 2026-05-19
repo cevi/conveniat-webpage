@@ -160,10 +160,8 @@ export const ChatsOverviewClientComponent: React.FC<{ user: HitobitoNextAuthUser
                       'rounded-md border-2 border-gray-200 bg-white transition-shadow',
                       'hover:bg-gray-100 hover:shadow-md',
                       {
-                        'bg-white': !(chat.unreadCount > 0),
-                        'border-l-conveniat-green border-l-4 bg-green-50':
-                          chat.unreadCount > 0 && chat.chatType !== ChatType.EMERGENCY,
-                        'bg-linear-to-r from-red-50 to-orange-50 hover:from-red-100 hover:to-orange-100':
+                        'bg-white dark:bg-gray-800': chat.chatType !== ChatType.EMERGENCY,
+                        'bg-linear-to-r from-red-50 to-orange-50 hover:from-red-100 hover:to-orange-100 dark:from-red-900/20 dark:to-orange-900/20':
                           chat.chatType === ChatType.EMERGENCY,
                         'border-l-4 border-l-red-500':
                           chat.chatType === ChatType.EMERGENCY && chat.unreadCount > 0,

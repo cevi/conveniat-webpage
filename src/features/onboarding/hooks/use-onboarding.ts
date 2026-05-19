@@ -51,7 +51,7 @@ export const useOnboarding = (): UseOnboardingReturn => {
   const isOnline = useOnlineStatus();
 
   // 4. Push Notification Status (Reusing existing hook)
-  const { isSubscribed: hasPushSubscription } = usePushNotificationState();
+  const { isSubscribed: hasPushSubscription } = usePushNotificationState({ locale });
 
   const { status } = useSession();
   const searchParameters = useSearchParams();
@@ -130,11 +130,30 @@ export const useOnboarding = (): UseOnboardingReturn => {
   useEffect(() => {
     const forceAppMode = searchParameters.get(DesignModeTriggers.QUERY_PARAM_FORCE) === 'true';
     const isWebkitBasedBrowser = isSafariOnAppleDevice();
-    if (forceAppMode || isWebkitBasedBrowser) {
+    const currentMode = Cookies.get(Cookie.DESIGN_MODE);
+
+    let shouldUpdateCookie = false;
+    let shouldRedirect = false;
+
+    if (forceAppMode) {
+      shouldUpdateCookie = true;
+      shouldRedirect = true;
+    } else if (isWebkitBasedBrowser && currentMode !== DesignCodes.APP_DESIGN) {
+      shouldUpdateCookie = true;
+      // No need to redirect if we're just setting the cookie based on browser detection
+    }
+
+    if (shouldUpdateCookie) {
       Cookies.set(Cookie.DESIGN_MODE, DesignCodes.APP_DESIGN, { expires: 730 });
+    }
+
+    if (shouldRedirect) {
       const params = new URLSearchParams(searchParameters.toString());
       params.delete(DesignModeTriggers.QUERY_PARAM_FORCE);
-      router.replace(`${pathname}?${params.toString()}`);
+      // Construct the new URL carefully to avoid empty query strings
+      const queryString = params.toString();
+      const newUrl = queryString ? `${pathname}?${queryString}` : pathname;
+      router.replace(newUrl);
     }
   }, [searchParameters, pathname, router]);
 

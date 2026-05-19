@@ -42,7 +42,7 @@ export const useAdminChatManagement = ({
     includeId: selectedChatId ?? undefined,
   });
 
-  const { data: messages = [], isLoading: loadingMessages } = trpc.admin.getChatMessages.useQuery(
+  const { data: messagesData, isLoading: loadingMessages } = trpc.admin.getChatMessages.useQuery(
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     { chatId: selectedChatId! },
     {
@@ -83,7 +83,7 @@ export const useAdminChatManagement = ({
 
   return {
     chats,
-    messages: messages, // Ensure type compatibility if needed
+    messages: messagesData?.messages ?? [], // Ensure type compatibility if needed
     loadingChats,
     loadingMessages,
     sending: sendMessageMutation.isPending,

@@ -11,6 +11,7 @@ export interface ChatMessage {
   replyCount?: number | undefined;
   parentId?: string | undefined;
   hasUnreadReplies?: boolean | undefined;
+  isAdminMessage?: boolean;
 }
 
 interface ChatParticipant {

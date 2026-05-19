@@ -34,7 +34,7 @@ export const PushNotificationSettings: React.FC<{ locale: Locale }> = ({ locale 
     isLoading: isWebLoading,
     errorMessage: webError,
     toggleSubscription,
-  } = usePushNotificationState({ registrationSource: '/app/settings' });
+  } = usePushNotificationState({ registrationSource: '/app/settings', locale });
 
   const { isNativeApp, status, hasToken, requestPermission, deleteToken, openSettings } =
     useNativePush();

@@ -349,7 +349,26 @@ export const adminRouter = createTRPCRouter({
   getChatMessages: adminProcedure
     .input(z.object({ chatId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const { prisma } = ctx;
+      const { prisma, user } = ctx;
+
+      const chat = await prisma.chat.findUnique({
+        where: { uuid: input.chatId },
+        include: {
+          chatMemberships: {
+            select: { userId: true },
+          },
+        },
+      });
+
+      if (!chat) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Chat not found',
+        });
+      }
+
+      const customerIds = new Set(chat.chatMemberships.map((m) => m.userId));
+
       const messages = await prisma.message.findMany({
         where: { chatId: input.chatId },
         include: {
@@ -366,15 +385,26 @@ export const adminRouter = createTRPCRouter({
         orderBy: { createdAt: 'asc' },
       });
 
-      return messages.map((m) => ({
-        id: m.uuid,
-        createdAt: m.createdAt,
-        messagePayload: m.contentVersions[0]?.payload ?? {},
-        senderId: m.senderId ?? SYSTEM_SENDER_ID,
-        senderName: m.sender?.name,
-        type: m.type,
-        status: getStatusFromMessageEvents(m.messageEvents),
-      }));
+      const formattedMessages = messages.map((m) => {
+        const senderId = m.senderId ?? SYSTEM_SENDER_ID;
+        const isAdminMessage = senderId !== SYSTEM_SENDER_ID && !customerIds.has(senderId);
+
+        return {
+          id: m.uuid,
+          createdAt: m.createdAt,
+          messagePayload: m.contentVersions[0]?.payload ?? {},
+          senderId,
+          senderName: m.sender?.name,
+          type: m.type,
+          status: getStatusFromMessageEvents(m.messageEvents),
+          isAdminMessage,
+        };
+      });
+
+      return {
+        messages: formattedMessages,
+        currentUserId: user.uuid,
+      };
     }),
 
   postAdminMessage: adminProcedure
@@ -404,7 +434,8 @@ export const adminRouter = createTRPCRouter({
           type: input.type,
           contentVersions: {
             create: {
-              payload: input.content,
+              payload:
+                input.type === MessageType.IMAGE_MSG ? { url: input.content } : input.content,
             },
           },
           messageEvents: {

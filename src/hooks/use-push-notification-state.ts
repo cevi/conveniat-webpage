@@ -2,7 +2,6 @@
 
 import { useServiceWorkerStatus } from '@/hooks/use-service-worker-status';
 import type { Locale } from '@/types/types';
-import { i18nConfig } from '@/types/types';
 import {
   getPushSubscription,
   isPushSupported,
@@ -11,7 +10,6 @@ import {
   subscribeToPushNotifications,
   unsubscribeFromPushNotifications,
 } from '@/utils/push-notifications/push-subscription';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import { useCallback, useEffect, useState } from 'react';
 
 // TODO: extract to i18n file or constants
@@ -37,13 +35,13 @@ interface UsePushNotificationStateResult {
 
 export interface UsePushNotificationStateProperties {
   registrationSource?: '/entrypoint' | '/app/settings';
+  locale: Locale;
 }
 
 export function usePushNotificationState(
-  props?: UsePushNotificationStateProperties,
+  props: UsePushNotificationStateProperties,
 ): UsePushNotificationStateResult {
-  const registrationSource = props?.registrationSource;
-  const locale = useCurrentLocale(i18nConfig) as Locale;
+  const { registrationSource, locale } = props;
   const [isSupported, setIsSupported] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
