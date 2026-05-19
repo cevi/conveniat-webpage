@@ -17,6 +17,10 @@ export const canUserArchiveChat = (
     chatMemberships: { userId: string; chatPermission: ChatMembershipPermission }[];
   },
 ): boolean => {
+  if (chat.type === ChatType.ANNOUNCEMENT) {
+    return false;
+  }
+
   const userUuid = user.uuid;
 
   const chatMemberships = chat.chatMemberships;
