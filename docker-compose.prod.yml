@@ -245,7 +245,7 @@ configs:
     file: /cluster/dist_storage_insane/config/conveniat27/tempo/tempo.yml
 
 networks:
-  traefik-net:
+  traefik-net-1400:
     external: true
 
   backend-net:
