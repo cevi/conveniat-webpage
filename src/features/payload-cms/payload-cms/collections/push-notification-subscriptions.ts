@@ -1,6 +1,7 @@
 import {
   hasAccessToThisHelper,
   Roles,
+  shouldHideInAdminPanelIfNotAdmin,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { asPushNotificationCollection } from '@/features/payload-cms/payload-cms/utils/push-notification-collection';
@@ -113,6 +114,7 @@ export const PushNotificationSubscriptions: CollectionConfig = asPushNotificatio
 
   // hidden from the admin panel
   admin: {
+    hidden: shouldHideInAdminPanelIfNotAdmin,
     group: AdminPanelDashboardGroups.GlobalSettings,
     groupBy: true,
     /** this is broken with our localized versions */
