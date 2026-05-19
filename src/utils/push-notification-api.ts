@@ -63,7 +63,12 @@ export async function subscribeUser(
     const existingSubscription = await payload.find({
       collection: 'push-notification-subscriptions',
       where: {
-        and: [{ user: { equals: payloadUser.id } }, { platform: { equals: 'web' } }],
+        and: [
+          { user: { equals: payloadUser.id } },
+          {
+            or: [{ platform: { equals: 'web' } }, { platform: { exists: false } }],
+          },
+        ],
       },
     });
 
@@ -198,11 +203,21 @@ export async function sendNotificationToSubscription(
       (subscription.platform === 'ios' || subscription.platform === 'android')
     ) {
       if (!subscription.token) throw new Error('Native token is missing');
+
+      let normalizedUrl = urlToSend;
+      if (
+        normalizedUrl &&
+        NEXT_PUBLIC_APP_HOST_URL &&
+        normalizedUrl.startsWith(NEXT_PUBLIC_APP_HOST_URL)
+      ) {
+        normalizedUrl = normalizedUrl.replace(NEXT_PUBLIC_APP_HOST_URL, '');
+      }
+
       const result = await sendFcmNotification(subscription.token, {
         title: 'conveniat27',
         body: message,
         data: {
-          ...(urlToSend !== undefined && { url: urlToSend }),
+          ...(normalizedUrl !== undefined && { url: normalizedUrl }),
           ...(logId !== undefined && { notificationId: logId }),
         },
       });
@@ -210,12 +225,15 @@ export async function sendNotificationToSubscription(
     } else {
       let webSub = subscription as webpush.PushSubscription;
       // If it's a Payload subscription, format it for web-push
-      if ('endpoint' in subscription && 'keys' in subscription && 'platform' in subscription) {
+      if ('endpoint' in subscription && 'keys' in subscription) {
+        if (!subscription.endpoint || !subscription.keys.p256dh || !subscription.keys.auth) {
+          throw new Error('Web Push subscription is missing required fields (endpoint or keys).');
+        }
         webSub = {
-          endpoint: subscription.endpoint ?? '',
+          endpoint: subscription.endpoint,
           keys: {
-            p256dh: subscription.keys.p256dh ?? '',
-            auth: subscription.keys.auth ?? '',
+            p256dh: subscription.keys.p256dh,
+            auth: subscription.keys.auth,
           },
         };
       }

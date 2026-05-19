@@ -17,4 +17,3 @@ firebase-service-account.json
 # directories used for generating build information
 !.git/HEAD
 !.git/refs/heads/*
-§

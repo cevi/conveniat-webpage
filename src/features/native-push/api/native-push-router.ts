@@ -21,30 +21,22 @@ export const nativePushRouter = createTRPCRouter({
         throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found' });
       }
 
-      // Check if token already exists
-      const existing = await payload.find({
+      // Delete any existing subscriptions with the same token and platform to ensure global uniqueness
+      await payload.delete({
         collection: 'push-notification-subscriptions',
         where: {
-          and: [
-            { token: { equals: input.token } },
-            { platform: { equals: input.platform } },
-            { user: { equals: payloadUser.id } },
-          ],
+          and: [{ token: { equals: input.token } }, { platform: { equals: input.platform } }],
         },
       });
 
-      if (existing.totalDocs === 0) {
-        await payload.create({
-          collection: 'push-notification-subscriptions',
-          data: {
-            platform: input.platform,
-            token: input.token,
-            user: payloadUser.id,
-          },
-        });
-
-        // Send a silent confirmation or just rely on the bridge
-      }
+      await payload.create({
+        collection: 'push-notification-subscriptions',
+        data: {
+          platform: input.platform,
+          token: input.token,
+          user: payloadUser.id,
+        },
+      });
 
       return { success: true };
     }),

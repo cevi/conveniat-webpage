@@ -1,3 +1,5 @@
+import 'server-only';
+
 import { environmentVariables } from '@/config/environment-variables';
 import * as admin from 'firebase-admin';
 import * as fs from 'node:fs';

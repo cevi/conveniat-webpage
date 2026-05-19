@@ -33,7 +33,10 @@ async function processSubscription(
 ): Promise<{ success: boolean; error?: string }> {
   const { sendNotificationToSubscription } = await import('@/utils/push-notification-api');
 
-  const userId = typeof subscription.user === 'object' ? subscription.user?.id : subscription.user;
+  const userId =
+    typeof subscription.user === 'object'
+      ? subscription.user?.id
+      : (subscription.user ?? undefined);
 
   // For chat messages, we log a JSON object instead of the actual message content for privacy
   const logContent =
