@@ -32,7 +32,7 @@ export const AppSearchBar: React.FC<AppSearchBarProperties> = ({
         onFocus={onFocus}
         onBlur={onBlur}
         className={cn(
-          'h-14 rounded-2xl border-gray-200 bg-white pr-12 text-base shadow-sm focus-visible:border-gray-300 focus-visible:ring-0',
+          'h-14 rounded-2xl border-gray-200 bg-white pr-12 text-base shadow-sm transition-colors duration-200 hover:border-gray-300 hover:outline-hidden hover:outline-none focus-visible:border-gray-300 focus-visible:ring-0',
           className,
         )}
       />
