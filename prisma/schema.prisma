@@ -67,6 +67,9 @@ model Chat {
   /// the time when the chat was archived, null if the chat is not archived
   archivedAt DateTime?
 
+  /// the time when the chat was last read by an administrator, null if never
+  adminReadAt DateTime?
+
   type ChatType @default(GROUP)
 
   /// links to the objectID in the courses collection in MongoDB (for COURSE_GROUP type)
