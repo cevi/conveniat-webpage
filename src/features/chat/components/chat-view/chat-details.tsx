@@ -100,24 +100,29 @@ export const ChatDetails: React.FC = () => {
             }}
           />
 
-          {chatDetails.type === 'COURSE_GROUP' && chatDetails.courseId && (
-            <ChatCourseSection courseId={chatDetails.courseId} locale={locale} />
-          )}
+          {chatDetails.type === 'COURSE_GROUP' &&
+            chatDetails.courseId !== null &&
+            chatDetails.courseId !== undefined &&
+            chatDetails.courseId !== '' && (
+              <ChatCourseSection courseId={chatDetails.courseId} locale={locale} />
+            )}
 
           {/* --- Participants Section --- */}
-          <ParticipantsList
-            participants={chatDetails.participants}
-            currentUser={currentUser ?? ''}
-            isGroupChat={isGroupChat}
-            isManaging={isManagingParticipants}
-            onToggleManage={() => setIsManagingParticipants(!isManagingParticipants)}
-            onRemoveParticipant={handleRemoveParticipant}
-            isRemoving={removeParticipantMutation.isPending}
-            locale={locale}
-          />
+          {chatDetails.type !== 'ANNOUNCEMENT' && (
+            <ParticipantsList
+              participants={chatDetails.participants}
+              currentUser={currentUser ?? ''}
+              isGroupChat={isGroupChat}
+              isManaging={isManagingParticipants}
+              onToggleManage={() => setIsManagingParticipants(!isManagingParticipants)}
+              onRemoveParticipant={handleRemoveParticipant}
+              isRemoving={removeParticipantMutation.isPending}
+              locale={locale}
+            />
+          )}
 
           {/* --- Add Participants Section (Visible only when managing) --- */}
-          {isManagingParticipants && (
+          {chatDetails.type !== 'ANNOUNCEMENT' && isManagingParticipants && (
             <AddParticipants
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}

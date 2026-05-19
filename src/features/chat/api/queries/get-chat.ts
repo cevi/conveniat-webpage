@@ -83,7 +83,10 @@ export const getChat = trpcBaseProcedure
           type: message.type,
         };
       }),
-      participants: chat.chatMemberships.map((membership) => ({
+      participants: (chat.type === 'ANNOUNCEMENT'
+        ? chat.chatMemberships.filter((membership) => membership.user.uuid === user.uuid)
+        : chat.chatMemberships
+      ).map((membership) => ({
         id: membership.user.uuid,
         name: membership.user.name,
         isOnline: membership.user.lastSeen > new Date(Date.now() - 30 * 1000),
