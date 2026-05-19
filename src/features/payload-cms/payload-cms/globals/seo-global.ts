@@ -1,11 +1,14 @@
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { flushPageCacheOnChangeGlobal } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import { localizedDefaultValue } from '@/features/payload-cms/payload-cms/utils/localized-default-value';
-import type { GlobalConfig } from 'payload';
+import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
+import type { GlobalConfig, TextFieldSingleValidation } from 'payload';
 
 const googleSearchConsoleVerificationValidation = (
   value: string | null | undefined,
+  options: Parameters<TextFieldSingleValidation>[1],
 ): true | string => {
+  const localeString = options.req.i18n.language;
   if (value === undefined || value === null || value === '') return true;
 
   const disallowedCharacters = ['<', '>', '/', '"', '='];
@@ -15,7 +18,11 @@ const googleSearchConsoleVerificationValidation = (
       return value.includes(disallowedCharacter);
     })
   ) {
-    return 'Please paste only the content of the meta tag, not the whole meta tag.';
+    return getValidationMessage(localeString, {
+      en: 'Please paste only the content of the meta tag, not the whole meta tag.',
+      de: 'Bitte fügen Sie nur den Inhalt des Meta-Tags ein, nicht das gesamte Meta-Tag.',
+      fr: 'Veuillez coller uniquement le contenu de la balise meta, pas la balise meta entière.',
+    });
   }
 
   return true;

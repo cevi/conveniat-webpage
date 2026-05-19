@@ -1,3 +1,4 @@
+import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
 import type { Locale } from '@/types/types';
 import { withSpan } from '@/utils/tracing-helpers';
 import type { CollectionSlug, TextFieldSingleValidation } from 'payload';
@@ -6,21 +7,42 @@ import { text } from 'payload/shared';
 const slugMinLength = 3;
 const slugMaxLength = 100;
 
-const checkForbiddenRegexes = (value: string): { error: boolean; message: string } => {
+const checkForbiddenRegexes = (
+  value: string,
+  locale?: string | null,
+): { error: boolean; message: string } => {
   // slug can only contain lowercase letters, numbers, and hyphens
   if (!/^[a-z0-9-/]+$/.test(value)) {
     return {
       error: true,
-      message: 'Slug can only contain lowercase letters, numbers, and hyphens',
+      message: getValidationMessage(locale, {
+        en: 'Slug can only contain lowercase letters, numbers, and hyphens',
+        de: 'Slug darf nur Kleinbuchstaben, Zahlen und Bindestriche enthalten',
+        fr: "Le slug ne peut contenir que des lettres minuscules, des chiffres et des traits d'union",
+      }),
     };
   }
 
   // slug cannot start or end with a hyphen and cannot contain consecutive hyphens
   if (/^-|-$/.test(value)) {
-    return { error: true, message: 'Slug cannot start or end with a hyphen' };
+    return {
+      error: true,
+      message: getValidationMessage(locale, {
+        en: 'Slug cannot start or end with a hyphen',
+        de: 'Slug darf nicht mit einem Bindestrich beginnen oder enden',
+        fr: "Le slug ne peut pas commencer ou se terminer par un trait d'union",
+      }),
+    };
   }
   if (/--/.test(value)) {
-    return { error: true, message: 'Slug cannot contain consecutive hyphens' };
+    return {
+      error: true,
+      message: getValidationMessage(locale, {
+        en: 'Slug cannot contain consecutive hyphens',
+        de: 'Slug darf keine aufeinanderfolgenden Bindestriche enthalten',
+        fr: "Le slug ne peut pas contenir de traits d'union consécutifs",
+      }),
+    };
   }
 
   // slug cannot be one of the reserved words
@@ -37,7 +59,14 @@ const checkForbiddenRegexes = (value: string): { error: boolean; message: string
   ];
   for (const word of reservedWords) {
     if (value.startsWith(word)) {
-      return { error: true, message: `Slug cannot start with reserved word "${word}"` };
+      return {
+        error: true,
+        message: getValidationMessage(locale, {
+          en: `Slug cannot start with reserved word "${word}"`,
+          de: `Slug darf nicht mit dem reservierten Wort "${word}" beginnen`,
+          fr: `Le slug ne peut pas commencer par le mot réservé "${word}"`,
+        }),
+      };
     }
   }
 
@@ -47,20 +76,37 @@ const checkForbiddenRegexes = (value: string): { error: boolean; message: string
 
 export const slugValidation: TextFieldSingleValidation = async (value, arguments_) => {
   return await withSpan('slugValidation', async () => {
-    if (value === undefined || value === null) return 'Slug is required';
+    const localeString = arguments_.req.i18n.language;
+
+    if (value === undefined || value === null) {
+      return getValidationMessage(localeString, {
+        en: 'Slug is required',
+        de: 'Slug ist erforderlich',
+        fr: 'Le slug est requis',
+      });
+    }
 
     // for landing page we allow empty slug
     if (value === '') return true;
 
-    const forbidden = checkForbiddenRegexes(value);
+    const forbidden = checkForbiddenRegexes(value, localeString);
     if (forbidden.error) {
       return forbidden.message;
     }
 
     if (value.length < slugMinLength)
-      return `Slug must be at least ${slugMinLength} characters long`;
+      return getValidationMessage(localeString, {
+        en: `Slug must be at least ${slugMinLength} characters long`,
+        de: `Slug muss mindestens ${slugMinLength} Zeichen lang sein`,
+        fr: `Le slug doit comporter au moins ${slugMinLength} caractères`,
+      });
+
     if (value.length > slugMaxLength)
-      return `Slug cannot be longer than ${slugMaxLength} characters`;
+      return getValidationMessage(localeString, {
+        en: `Slug cannot be longer than ${slugMaxLength} characters`,
+        de: `Slug darf nicht länger als ${slugMaxLength} Zeichen sein`,
+        fr: `Le slug ne peut pas dépasser ${slugMaxLength} caractères`,
+      });
 
     // check if the slug is unique
     const { payload, locale } = arguments_.req;
@@ -96,8 +142,7 @@ export const slugValidation: TextFieldSingleValidation = async (value, arguments
       },
     });
     if (duplicates.totalDocs > 0) {
-      return `Slug must be unique, found duplicates in ${duplicates.docs
-
+      const dups = duplicates.docs
         .map(
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (ele: any) =>
@@ -109,7 +154,13 @@ export const slugValidation: TextFieldSingleValidation = async (value, arguments
               ele['id']
             })`,
         )
-        .join(', ')}!`;
+        .join(', ');
+
+      return getValidationMessage(localeString, {
+        en: `Slug must be unique, found duplicates in ${dups}!`,
+        de: `Slug muss eindeutig sein, Duplikate gefunden in ${dups}!`,
+        fr: `Le slug doit être unique, doublons trouvés dans ${dups}!`,
+      });
     }
 
     // use default text validation
