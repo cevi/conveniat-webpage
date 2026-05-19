@@ -9,7 +9,6 @@ import { useEffect, useState } from 'react';
 export type NativePushStatus = 'granted' | 'denied' | 'prompt' | 'unknown';
 
 declare global {
-  // eslint-disable-next-line no-var
   var AppWebViewNativePush:
     | {
         getStatus: () => void;

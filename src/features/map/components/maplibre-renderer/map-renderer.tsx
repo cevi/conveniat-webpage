@@ -64,7 +64,7 @@ export const MapLibreRenderer = ({
     CampMapAnnotationPoint | CampMapAnnotationPolygon | undefined
   >(() => {
     // Initialize with selected annotation if provided
-    if (selectedAnnotationId) {
+    if (selectedAnnotationId !== undefined && selectedAnnotationId !== '') {
       const selectedPoint = campMapAnnotationPoints.find((a) => a.id === selectedAnnotationId);
       if (selectedPoint) return selectedPoint;
       const selectedPolygon = campMapAnnotationPolygons.find((a) => a.id === selectedAnnotationId);
@@ -139,7 +139,6 @@ export const MapLibreRenderer = ({
         />
       )}
       <div className="h-full w-full" ref={(element) => setMapContainer(element ?? undefined)} />
-      {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */}
       {enableSearch && <SearchBar onSearch={handleSearch} />}
       <MaplibreMap
         openAnnotation={openAnnotation}
