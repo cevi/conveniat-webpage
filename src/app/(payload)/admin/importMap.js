@@ -44,6 +44,7 @@ import { ExportListMenuItem as ExportListMenuItem_cdf7e044479f899a31f804427d568b
 import { ImportListMenuItem as ImportListMenuItem_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
 import { default as default_c9f917d9608a57eb8358fce7a7898bd3 } from '@/features/payload-cms/payload-cms/components/push-notification/push-notification'
 import { default as default_7d02a833b9164544e9c8d7653b246eb7 } from '@/features/payload-cms/components/push-notification/push-notification-history.tsx'
+import { ResendEmailButton as ResendEmailButton_e62af8aa593181d6540c08021abb9c8b } from '@/features/payload-cms/payload-cms/components/resend-email/resend-email-button'
 import { default as default_30bb34ba732976b67b42694b834628a5 } from '@/features/payload-cms/payload-cms/components/email-preview/email-preview-field'
 import { default as default_5ef9787d26b4ecd448f299564fb6b977 } from '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-cell'
 import { default as default_a06f68e0cdad6b2fba6e2223cd5b6303 } from '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-field'
@@ -147,6 +148,7 @@ export const importMap = {
   "@payloadcms/plugin-import-export/rsc#ImportListMenuItem": ImportListMenuItem_cdf7e044479f899a31f804427d568b36,
   "@/features/payload-cms/payload-cms/components/push-notification/push-notification#default": default_c9f917d9608a57eb8358fce7a7898bd3,
   "@/features/payload-cms/components/push-notification/push-notification-history.tsx#default": default_7d02a833b9164544e9c8d7653b246eb7,
+  "@/features/payload-cms/payload-cms/components/resend-email/resend-email-button#ResendEmailButton": ResendEmailButton_e62af8aa593181d6540c08021abb9c8b,
   "@/features/payload-cms/payload-cms/components/email-preview/email-preview-field#default": default_30bb34ba732976b67b42694b834628a5,
   "@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-cell#default": default_5ef9787d26b4ecd448f299564fb6b977,
   "@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-field#default": default_a06f68e0cdad6b2fba6e2223cd5b6303,
