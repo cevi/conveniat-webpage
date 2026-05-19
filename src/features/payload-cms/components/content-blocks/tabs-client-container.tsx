@@ -18,7 +18,7 @@ export const TabsClientContainer: React.FC<{
               key={index}
               onClick={() => setActiveTabIndex(index)}
               className={cn(
-                'focus-visible:ring-primary cursor-pointer rounded-full px-6 py-2 text-sm font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-offset-2',
+                'focus-visible:ring-primary cursor-pointer rounded-full px-6 py-2 text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
                 activeTabIndex === index
                   ? 'bg-white text-gray-900 shadow-sm'
                   : 'text-gray-500 hover:text-gray-900',

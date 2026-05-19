@@ -26,7 +26,7 @@ export const ParagraphJSXConverter: JSXConverters<SerializedParagraphNode> = {
         <ParagraphText
           className={cn(
             format === 'left' && 'text-left',
-            format === 'center' && 'text-balance text-center',
+            format === 'center' && 'text-center text-balance',
             format === 'right' && 'text-right',
             format === 'justify' && 'text-justify',
           )}
@@ -64,7 +64,7 @@ export const ParagraphJSXConverter: JSXConverters<SerializedParagraphNode> = {
       <ParagraphText
         className={cn(
           format === 'left' && 'text-left',
-          format === 'center' && 'text-balance text-center',
+          format === 'center' && 'text-center text-balance',
           format === 'right' && 'text-right',
           format === 'justify' && 'text-justify',
         )}

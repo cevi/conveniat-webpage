@@ -312,9 +312,9 @@ const ImageUploadPage: React.FC = () => {
       <div className="container mx-auto max-w-2xl px-4 py-16">
         <div className="flex flex-col items-center justify-center text-center">
           <div className="bg-conveniat-green/10 relative mb-10 flex h-36 w-36 items-center justify-center rounded-full shadow-inner">
-            <div className="bg-conveniat-green/20 duration-2000 absolute inset-0 animate-ping rounded-full opacity-20" />
+            <div className="bg-conveniat-green/20 absolute inset-0 animate-ping rounded-full opacity-20 duration-2000" />
             <LucideImageIcon className="text-conveniat-green h-14 w-14" />
-            <div className="absolute -right-2 -top-2">
+            <div className="absolute -top-2 -right-2">
               <Sparkles className="h-10 w-10 animate-pulse text-yellow-400 drop-shadow-sm" />
             </div>
             <div className="absolute -bottom-1 -left-1">
@@ -404,11 +404,11 @@ const ImageUploadPage: React.FC = () => {
         <div
           className={cn(
             selectedFiles.length > 0
-              ? 'pointer-events-none fixed bottom-[76px] left-0 right-0 z-40 p-4 md:static md:p-0'
+              ? 'pointer-events-none fixed right-0 bottom-[76px] left-0 z-40 p-4 md:static md:p-0'
               : '',
           )}
         >
-          <div className="container pointer-events-auto mx-auto max-w-2xl md:px-0">
+          <div className="pointer-events-auto container mx-auto max-w-2xl md:px-0">
             <SubmitButton
               isDisabled={isSubmitDisabled}
               fileCount={selectedFiles.filter((f) => !f.error).length}

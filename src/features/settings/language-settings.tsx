@@ -49,7 +49,7 @@ export const LanguageSettings: React.FC<{ locale: Locale }> = ({ locale }) => {
   return (
     <div className="space-y-2">
       <Disclosure as="div" className="-mx-3">
-        <DisclosureButton className="group flex w-full cursor-pointer items-center justify-between rounded-lg py-2 pl-3 pr-3.5 hover:bg-gray-50">
+        <DisclosureButton className="group flex w-full cursor-pointer items-center justify-between rounded-lg py-2 pr-3.5 pl-3 hover:bg-gray-50">
           <div className="flex items-center gap-3">
             <Languages className="h-5 w-5 text-gray-400" />
             <div className="text-left">
@@ -59,7 +59,7 @@ export const LanguageSettings: React.FC<{ locale: Locale }> = ({ locale }) => {
           </div>
           <ChevronDown
             aria-hidden="true"
-            className="group-data-open:rotate-180 size-5 flex-none text-gray-400"
+            className="size-5 flex-none text-gray-400 group-data-open:rotate-180"
           />
         </DisclosureButton>
         <DisclosurePanel className="mt-2 space-y-1 px-3.5">

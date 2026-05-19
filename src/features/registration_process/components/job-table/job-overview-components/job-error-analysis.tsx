@@ -71,7 +71,7 @@ export const JobOverviewError: React.FC<JobOverviewErrorProperties> = ({ job }) 
             <div className="relative">
               <button
                 onClick={handleCopyError}
-                className="absolute right-2 top-2 flex h-8 w-8 cursor-pointer items-center justify-center rounded-md border border-red-200 bg-white/50 hover:bg-red-100 dark:border-red-900/30 dark:bg-black/20 dark:hover:bg-red-900/50"
+                className="absolute top-2 right-2 flex h-8 w-8 cursor-pointer items-center justify-center rounded-md border border-red-200 bg-white/50 hover:bg-red-100 dark:border-red-900/30 dark:bg-black/20 dark:hover:bg-red-900/50"
                 title="Copy JSON"
                 type="button"
               >
@@ -83,7 +83,7 @@ export const JobOverviewError: React.FC<JobOverviewErrorProperties> = ({ job }) 
               </button>
               <JsonBlock
                 data={parsedData}
-                className="whitespace-pre-wrap break-all border-red-100 bg-red-50/50 text-red-700 dark:border-red-900/30 dark:bg-red-950/10 dark:text-red-300"
+                className="border-red-100 bg-red-50/50 break-all whitespace-pre-wrap text-red-700 dark:border-red-900/30 dark:bg-red-950/10 dark:text-red-300"
               />
             </div>
           </div>
@@ -107,7 +107,7 @@ export const JobOverviewError: React.FC<JobOverviewErrorProperties> = ({ job }) 
         <button
           onClick={() => void handleRestart()}
           disabled={restartJobMutation.isPending}
-          className="flex cursor-pointer items-center gap-1.5 rounded-md border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-700 shadow-sm transition-colors hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300 dark:hover:bg-red-900/40"
+          className="flex cursor-pointer items-center gap-1.5 rounded-md border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-700 shadow-sm transition-colors hover:bg-red-50 focus:ring-2 focus:ring-red-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300 dark:hover:bg-red-900/40"
           type="button"
         >
           <RefreshCcw

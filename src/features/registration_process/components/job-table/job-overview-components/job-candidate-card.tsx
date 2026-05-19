@@ -36,7 +36,7 @@ export const JobCandidateCard: React.FC<JobCandidateCardProperties> = ({
         <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[10px]">
           {typeof candidate.details.email === 'string' && candidate.details.email !== '' && (
             <div className="flex flex-col">
-              <span className="uppercase text-zinc-400">Email</span>
+              <span className="text-zinc-400 uppercase">Email</span>
               <span className="truncate text-zinc-700 dark:text-zinc-300">
                 {candidate.details.email}
               </span>
@@ -44,7 +44,7 @@ export const JobCandidateCard: React.FC<JobCandidateCardProperties> = ({
           )}
           {typeof candidate.details.birthday === 'string' && candidate.details.birthday !== '' && (
             <div className="flex flex-col">
-              <span className="uppercase text-zinc-400">Birthday</span>
+              <span className="text-zinc-400 uppercase">Birthday</span>
               <span className="text-zinc-700 dark:text-zinc-300">{candidate.details.birthday}</span>
             </div>
           )}

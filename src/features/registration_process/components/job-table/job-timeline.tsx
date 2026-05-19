@@ -47,7 +47,7 @@ export const JobTimeline: React.FC<JobTimelineProperties> = ({
 
   return (
     <div className="relative flex flex-col gap-6 pl-2">
-      <div className="absolute bottom-2 left-[19px] top-2 w-px bg-zinc-200 dark:bg-zinc-800" />
+      <div className="absolute top-2 bottom-2 left-[19px] w-px bg-zinc-200 dark:bg-zinc-800" />
 
       {groupedLogs.map((group, groupIndex): React.ReactNode => {
         // Use the last entry for status
@@ -163,7 +163,7 @@ export const JobTimeline: React.FC<JobTimelineProperties> = ({
                   </div>
                 )}
                 {isSkipped && skipReason && (
-                  <div className="mt-1 text-xs italic text-blue-600 dark:text-blue-400">
+                  <div className="mt-1 text-xs text-blue-600 italic dark:text-blue-400">
                     {skipReason}
                   </div>
                 )}
@@ -172,7 +172,7 @@ export const JobTimeline: React.FC<JobTimelineProperties> = ({
 
             {/* Retry Sub-steps (if more than one try) */}
             {group.entries.length > 1 && (
-              <div className="ml-[39px] mt-2 flex flex-col gap-1">
+              <div className="mt-2 ml-[39px] flex flex-col gap-1">
                 {group.entries.map((entry, subIndex): React.ReactNode => {
                   const realIndex = group.indices[subIndex];
                   const isSubSelected = selectedStepIndex === realIndex;
@@ -192,7 +192,7 @@ export const JobTimeline: React.FC<JobTimelineProperties> = ({
                       className={cn(
                         'cursor-pointer rounded-md px-3 py-1.5 text-xs transition-colors',
                         isSubSelected
-                          ? 'shadow-xs bg-zinc-100 font-semibold text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100'
+                          ? 'bg-zinc-100 font-semibold text-zinc-900 shadow-xs dark:bg-zinc-800 dark:text-zinc-100'
                           : 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700 dark:hover:bg-zinc-900/50 dark:hover:text-zinc-300',
                       )}
                       onClick={(event) => {
@@ -204,7 +204,7 @@ export const JobTimeline: React.FC<JobTimelineProperties> = ({
                         <span>Attempt {subIndex + 1}</span>
                         <span className="opacity-50">{retryTime}</span>
                         {entry.state === 'failed' && (
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-red-500">
+                          <span className="text-[10px] font-bold tracking-wider text-red-500 uppercase">
                             Failed
                           </span>
                         )}

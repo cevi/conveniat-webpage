@@ -140,7 +140,7 @@ export const WorkshopAdminActions: React.FC<WorkshopAdminActionsProperties> = ({
               </div>
             ))}
             {status.participants.length === 0 && (
-              <div className="col-span-2 text-sm italic text-gray-400">
+              <div className="col-span-2 text-sm text-gray-400 italic">
                 {labels.noParticipants[locale]}
               </div>
             )}

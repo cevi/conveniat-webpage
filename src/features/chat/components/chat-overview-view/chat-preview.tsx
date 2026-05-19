@@ -86,7 +86,7 @@ export const ChatPreview: React.FC<{
               </div>
             </div>
             <span
-              className={cn('font-body shrink-0 whitespace-nowrap text-xs text-gray-500', {
+              className={cn('font-body shrink-0 text-xs whitespace-nowrap text-gray-500', {
                 'text-red-500': chat.chatType === ChatType.EMERGENCY,
               })}
             >

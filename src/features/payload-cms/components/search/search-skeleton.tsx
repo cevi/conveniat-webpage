@@ -16,12 +16,12 @@ export const SearchSkeleton: React.FC = () => {
   return (
     <article className="my-8 w-full max-w-2xl animate-pulse px-8 max-xl:mx-auto">
       {/* Headline Skeleton - Matching HeadlineH1 spacing */}
-      <div className="mb-4 mt-8 pt-8 md:pt-20">
+      <div className="mt-8 mb-4 pt-8 md:pt-20">
         <div className="h-8 w-3/4 rounded bg-gray-100" />
       </div>
 
       {/* Search Bar Skeleton - Matching SearchBar spacing and layout */}
-      <div className="mb-8 mt-6 flex gap-2">
+      <div className="mt-6 mb-8 flex gap-2">
         <div className="h-10 w-full rounded border border-gray-300 bg-gray-50" />
         <div className="flex h-10 min-w-[100px] items-center justify-center rounded bg-gray-200" />
       </div>

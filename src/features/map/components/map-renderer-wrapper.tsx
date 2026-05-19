@@ -28,7 +28,7 @@ const MapLoadingFallback: React.FC = () => {
   return (
     <div className="flex h-full w-full items-center justify-center bg-gray-100">
       <div className="text-center">
-        <div className="border-conveniat-green border-3 mx-auto h-12 w-12 animate-spin rounded-full border-solid border-t-transparent" />
+        <div className="border-conveniat-green mx-auto h-12 w-12 animate-spin rounded-full border-3 border-solid border-t-transparent" />
         <p className="mt-4 text-sm text-gray-500">{mapLoadingText[locale]}</p>
       </div>
     </div>

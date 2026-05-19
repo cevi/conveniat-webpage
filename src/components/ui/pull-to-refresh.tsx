@@ -56,7 +56,7 @@ export const PullToRefresh: React.FC<PullToRefreshProperties> = ({
     <div className={cn('relative', className)}>
       {/* Spinner shown only while refreshing */}
       {isRefreshing && (
-        <div className="absolute left-0 top-4 z-20 flex w-full justify-center">
+        <div className="absolute top-4 left-0 z-20 flex w-full justify-center">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-md">
             {isOnline ? (
               <Loader2 className="text-conveniat-green h-6 w-6 animate-spin" />

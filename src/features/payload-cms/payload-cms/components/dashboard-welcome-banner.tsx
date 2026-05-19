@@ -222,7 +222,7 @@ const DashboardWelcomeBanner: React.FC<{ locale: Locale }> = ({ locale = 'de' })
           <button
             type="button"
             onClick={() => openModal('reset-instance')}
-            className="font-heading cursor-pointer rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg font-bold leading-normal text-red-100 duration-100 hover:bg-red-800"
+            className="font-heading cursor-pointer rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg leading-normal font-bold text-red-100 duration-100 hover:bg-red-800"
           >
             Reset this instance
           </button>
@@ -231,7 +231,7 @@ const DashboardWelcomeBanner: React.FC<{ locale: Locale }> = ({ locale = 'de' })
         <button
           type="button"
           onClick={() => openModal('flush-cache')}
-          className="font-heading bg-conveniat-green cursor-pointer rounded-[8px] px-8 py-3 text-center text-lg font-bold leading-normal text-white duration-100 hover:brightness-110"
+          className="font-heading bg-conveniat-green cursor-pointer rounded-[8px] px-8 py-3 text-center text-lg leading-normal font-bold text-white duration-100 hover:brightness-110"
         >
           Flush Cache
         </button>

@@ -49,7 +49,7 @@ export const AnnotationImagesSection: React.FC<AnnotationImagesSectionProperties
           onClick={() => setSelectedImage(undefined)}
         >
           <div
-            className="absolute inset-0 bg-black bg-opacity-50"
+            className="bg-opacity-50 absolute inset-0 bg-black"
             style={{ backdropFilter: 'blur(8px)' }}
           ></div>
 
@@ -58,7 +58,7 @@ export const AnnotationImagesSection: React.FC<AnnotationImagesSectionProperties
             onClick={(event) => event.stopPropagation()}
           >
             <button
-              className="absolute right-4 top-4 z-20 text-3xl font-bold text-white"
+              className="absolute top-4 right-4 z-20 text-3xl font-bold text-white"
               onClick={() => setSelectedImage(undefined)}
             >
               &times;
@@ -70,7 +70,7 @@ export const AnnotationImagesSection: React.FC<AnnotationImagesSectionProperties
               width={1000}
               height={800}
               objectFit="contain"
-              className="max-w-screen max-h-screen"
+              className="max-h-screen max-w-screen"
             />
           </div>
         </div>

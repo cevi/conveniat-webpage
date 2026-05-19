@@ -53,7 +53,7 @@ export const OfflineContentEntrypointComponent: React.FC<
       <div className="mb-8 flex flex-col items-center gap-4">
         <div className="space-y-2 text-center">
           <h2 className="text-xl font-bold text-gray-800">{offlineContentTitle[locale]}</h2>
-          <p className="text-balance text-lg text-gray-700">{offlineContentDescription[locale]}</p>
+          <p className="text-lg text-balance text-gray-700">{offlineContentDescription[locale]}</p>
         </div>
       </div>
 
@@ -72,7 +72,7 @@ export const OfflineContentEntrypointComponent: React.FC<
           <div className="flex flex-col gap-3">
             <button
               onClick={handleDownload}
-              className="font-heading w-full transform cursor-pointer rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg font-bold leading-normal text-red-100 shadow-md duration-100 hover:scale-[1.02] hover:bg-red-800 active:scale-[0.98]"
+              className="font-heading w-full transform cursor-pointer rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg leading-normal font-bold text-red-100 shadow-md duration-100 hover:scale-[1.02] hover:bg-red-800 active:scale-[0.98]"
             >
               {offlineContentDownloadButton[locale]}
             </button>
@@ -122,7 +122,7 @@ export const OfflineContentEntrypointComponent: React.FC<
             </div>
             <button
               onClick={handleNotNow}
-              className="font-heading w-full transform cursor-pointer rounded-[8px] bg-gray-400 px-8 py-3 text-center text-lg font-bold leading-normal text-white shadow-md duration-100 hover:scale-[1.02] hover:bg-gray-500 active:scale-[0.98]"
+              className="font-heading w-full transform cursor-pointer rounded-[8px] bg-gray-400 px-8 py-3 text-center text-lg leading-normal font-bold text-white shadow-md duration-100 hover:scale-[1.02] hover:bg-gray-500 active:scale-[0.98]"
             >
               {offlineContentNotNowButton[locale]}
             </button>

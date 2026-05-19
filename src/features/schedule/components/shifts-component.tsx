@@ -57,7 +57,7 @@ export const ShiftsComponent: React.FC<{ locale: Locale }> = async ({ locale }) 
       <div className="space-y-8">
         {grouped.map(({ date, shifts: dayShifts }) => (
           <section key={date}>
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-400">
+            <h2 className="mb-3 text-sm font-semibold tracking-wide text-gray-400 uppercase">
               {new Date(date).toLocaleDateString(locale, {
                 weekday: 'long',
                 day: 'numeric',

@@ -19,7 +19,7 @@ export const PreviewWarningClient: React.FC<Properties> = ({ locale, renderInPre
   };
 
   return (
-    <div className="fixed bottom-0 right-0 z-50 p-4">
+    <div className="fixed right-0 bottom-0 z-50 p-4">
       <div
         className={cn(
           'cursor-pointer rounded-lg px-4 py-2 font-bold text-white shadow-lg transition-all duration-300 ease-in-out',

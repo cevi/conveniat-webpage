@@ -33,14 +33,14 @@ export const SearchComponent: React.FC<{ locale: Locale; actionURL: string }> = 
   return (
     <div className="mx-auto w-full max-w-md py-6">
       <form
-        className="focus-within:ring-conveniat-green shadow-xs mx-2 flex overflow-hidden rounded-lg border border-[#cbd5d1] bg-white focus-within:ring-2"
+        className="focus-within:ring-conveniat-green mx-2 flex overflow-hidden rounded-lg border border-[#cbd5d1] bg-white shadow-xs focus-within:ring-2"
         id="search-form"
         onSubmit={onSubmit}
       >
         <input
           id="search-input"
           name="searchInput"
-          className="focus:outline-hidden h-12 grow px-4 font-['Inter'] text-sm text-[#333] placeholder-[#999]"
+          className="h-12 grow px-4 font-['Inter'] text-sm text-[#333] placeholder-[#999] focus:outline-hidden"
           type="text"
           placeholder={searchButtonText[locale]}
         />

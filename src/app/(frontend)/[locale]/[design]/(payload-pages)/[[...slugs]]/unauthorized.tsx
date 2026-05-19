@@ -41,7 +41,7 @@ export const UnauthorizedPage = (): React.JSX.Element => {
       <div className="flex w-full max-w-md flex-col items-center text-center">
         <CenteredConveniatLogo />
 
-        <p className="mb-8 mt-2 text-balance text-lg text-gray-600">{loginText[locale]}</p>
+        <p className="mt-2 mb-8 text-lg text-balance text-gray-600">{loginText[locale]}</p>
 
         <button
           onClick={() => handleLogin()}

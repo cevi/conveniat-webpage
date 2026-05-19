@@ -72,17 +72,17 @@ export const TriggerRegistrationForm: React.FC<TriggerRegistrationFormProperties
   return (
     <div className="flex flex-col gap-8">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold uppercase tracking-tight text-zinc-900 transition-colors dark:text-white">
+        <h3 className="text-sm font-bold tracking-tight text-zinc-900 uppercase transition-colors dark:text-white">
           Manual Trigger
         </h3>
 
         {/* Inset Tile Toggler (Linear Style) */}
-        <div className="dark:bg-white/3 inline-flex rounded-xl border border-zinc-200 bg-zinc-50/50 p-1 shadow-inner transition-all dark:border-zinc-800">
+        <div className="inline-flex rounded-xl border border-zinc-200 bg-zinc-50/50 p-1 shadow-inner transition-all dark:border-zinc-800 dark:bg-white/3">
           <button
             type="button"
             onClick={() => setMode('id')}
             className={cn(
-              'cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-black uppercase tracking-wider transition-all',
+              'cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-black tracking-wider uppercase transition-all',
               mode === 'id'
                 ? 'bg-white text-zinc-900 shadow-sm ring-1 ring-zinc-200 dark:bg-white dark:text-zinc-900 dark:ring-white/10'
                 : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200',
@@ -94,7 +94,7 @@ export const TriggerRegistrationForm: React.FC<TriggerRegistrationFormProperties
             type="button"
             onClick={() => setMode('details')}
             className={cn(
-              'cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-black uppercase tracking-wider transition-all',
+              'cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-black tracking-wider uppercase transition-all',
               mode === 'details'
                 ? 'bg-white text-zinc-900 shadow-sm ring-1 ring-zinc-200 dark:bg-white dark:text-zinc-900 dark:ring-white/10'
                 : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200',
@@ -152,7 +152,7 @@ export const TriggerRegistrationForm: React.FC<TriggerRegistrationFormProperties
           <button
             type="submit"
             disabled={isPending}
-            className="group relative inline-flex cursor-pointer items-center gap-2.5 rounded-xl bg-zinc-900 px-6 py-2.5 text-[11px] font-black uppercase tracking-widest text-white shadow-lg transition-all hover:bg-zinc-800 disabled:bg-zinc-200 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100 dark:disabled:bg-zinc-800 dark:disabled:text-zinc-600"
+            className="group relative inline-flex cursor-pointer items-center gap-2.5 rounded-xl bg-zinc-900 px-6 py-2.5 text-[11px] font-black tracking-widest text-white uppercase shadow-lg transition-all hover:bg-zinc-800 disabled:bg-zinc-200 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100 dark:disabled:bg-zinc-800 dark:disabled:text-zinc-600"
           >
             {isPending ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />

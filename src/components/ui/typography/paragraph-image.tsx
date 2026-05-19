@@ -12,7 +12,7 @@ export const ParagraphImage: React.FC = () => {
         height={456}
       />
 
-      <div className="mx-auto mt-1 w-full text-balance py-2 text-center text-xs text-gray-300 transition-opacity duration-300 lg:max-w-md">
+      <div className="mx-auto mt-1 w-full py-2 text-center text-xs text-balance text-gray-300 transition-opacity duration-300 lg:max-w-md">
         Lorem Ipsum is simply dummy text of the printing and typesetting industry.
       </div>
     </div>

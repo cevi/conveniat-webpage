@@ -82,7 +82,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProperties> = ({
       {/* Header with label and preview toggle */}
       <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2">
         {label && (
-          <span className="text-xs font-bold uppercase tracking-wider text-gray-400">{label}</span>
+          <span className="text-xs font-bold tracking-wider text-gray-400 uppercase">{label}</span>
         )}
         <button
           type="button"
@@ -106,7 +106,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProperties> = ({
             onChange={handleChange}
             placeholder={placeholder}
             rows={rows}
-            className="w-full resize-none border-0 bg-transparent p-0 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-0"
+            className="w-full resize-none border-0 bg-transparent p-0 text-sm text-gray-700 placeholder-gray-400 focus:ring-0 focus:outline-none"
           />
         )}
       </div>

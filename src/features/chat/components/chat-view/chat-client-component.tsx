@@ -52,7 +52,7 @@ const tryAgainLater: StaticTranslationString = {
 const ChatOfflineMessage: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   return (
-    <div className="fixed top-0 z-50 flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50 xl:left-[480px] xl:top-[62px] xl:z-0 xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
+    <div className="fixed top-0 z-50 flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50 xl:top-[62px] xl:left-[480px] xl:z-0 xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
       <ChatHeaderSkeleton />
       <div className="flex flex-1 items-center justify-center p-4 text-center text-gray-500">
         <span>
@@ -69,7 +69,7 @@ export const ChatErrorMessage: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
   return (
-    <div className="fixed top-0 z-50 flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50 xl:left-[480px] xl:top-[62px] xl:z-0 xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
+    <div className="fixed top-0 z-50 flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50 xl:top-[62px] xl:left-[480px] xl:z-0 xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
       <ChatHeaderSkeleton />
       <div className="flex flex-1 items-center justify-center p-4 text-center text-red-500">
         <span>
@@ -102,7 +102,7 @@ const ChatClientContent: React.FC = () => {
   if (isError || (isLoading && errorUpdateCount !== 0)) return <ChatErrorMessage />;
 
   return (
-    <div className="fixed top-0 z-50 flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50 xl:left-[480px] xl:top-[62px] xl:z-0 xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
+    <div className="fixed top-0 z-50 flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50 xl:top-[62px] xl:left-[480px] xl:z-0 xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
       <AppFooterController hideAppFooter />
       <ChatHeader />
       {isPaused && <OfflineBanner />}

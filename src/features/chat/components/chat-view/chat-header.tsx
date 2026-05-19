@@ -76,7 +76,7 @@ export const ChatHeader: React.FC = () => {
           </Link>
 
           <div className="flex min-w-0 flex-col">
-            <h1 className="font-heading truncate text-lg font-bold leading-tight text-gray-900">
+            <h1 className="font-heading truncate text-lg leading-tight font-bold text-gray-900">
               {chatDetails.name}
             </h1>
             {isOneToOne && (
@@ -100,7 +100,7 @@ export const ChatHeader: React.FC = () => {
               </div>
             )}
             {isGroupChat && (
-              <p className="font-body mt-0.5 text-[11px] font-medium uppercase tracking-wider text-gray-500">
+              <p className="font-body mt-0.5 text-[11px] font-medium tracking-wider text-gray-500 uppercase">
                 {chatDetails.participants.length} {participantsText[locale]}
               </p>
             )}

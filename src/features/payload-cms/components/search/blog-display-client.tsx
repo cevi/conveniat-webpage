@@ -27,7 +27,7 @@ const BlogDisplayClient: React.FC<{
               timeZone: 'Europe/Zurich',
             })}
           </span>
-          <h4 className="font-heading text-conveniat-green mb-6 line-clamp-3 min-h-[1.5rem] text-ellipsis text-base font-extrabold">
+          <h4 className="font-heading text-conveniat-green mb-6 line-clamp-3 min-h-[1.5rem] text-base font-extrabold text-ellipsis">
             {blog.content.blogH1}
           </h4>
         </div>

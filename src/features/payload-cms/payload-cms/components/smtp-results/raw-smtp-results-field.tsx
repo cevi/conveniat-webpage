@@ -38,7 +38,7 @@ export const RawSmtpResultsField: React.FC<{
   return (
     <div className="field-type custom-field mb-4">
       <label className="field-label">{labelText}</label>
-      <pre className="border-border bg-background mt-2 w-full overflow-x-auto whitespace-pre-wrap rounded border border-gray-200 bg-gray-50 p-4 font-mono text-xs dark:border-gray-800 dark:bg-gray-900">
+      <pre className="border-border bg-background mt-2 w-full overflow-x-auto rounded border border-gray-200 bg-gray-50 p-4 font-mono text-xs whitespace-pre-wrap dark:border-gray-800 dark:bg-gray-900">
         {JSON.stringify(value, undefined, 2)}
       </pre>
     </div>

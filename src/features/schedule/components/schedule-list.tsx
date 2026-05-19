@@ -17,7 +17,7 @@ export const ScheduleList: React.FC<ScheduleListProperties> = ({
   return (
     <div className="relative space-y-6">
       {/* Timeline line - softer gray */}
-      <div className="absolute bottom-4 left-[23px] top-4 w-0.5 bg-gray-200" />
+      <div className="absolute top-4 bottom-4 left-[23px] w-0.5 bg-gray-200" />
 
       {groupedEntries.map((group) => (
         <div key={group.time} className="relative flex gap-4">

@@ -54,29 +54,29 @@ export const MainMenuLanguageSwitcher: React.FC<{ locale: Locale }> = ({ locale 
   return (
     <div className="mx-auto max-w-md space-y-2 py-6">
       <Disclosure as="div" className="-mx-3">
-        <DisclosureButton className="group flex w-full cursor-pointer items-center justify-between rounded-lg py-2 pl-3 pr-3.5 text-base/7 font-semibold text-gray-700 hover:bg-gray-50">
+        <DisclosureButton className="group flex w-full cursor-pointer items-center justify-between rounded-lg py-2 pr-3.5 pl-3 text-base/7 font-semibold text-gray-700 hover:bg-gray-50">
           <div className="flex items-center gap-2">
             <Languages aria-hidden="true" className="size-5" />
             {language[locale]}
           </div>
-          <ChevronDown aria-hidden="true" className="group-data-open:rotate-180 size-5 flex-none" />
+          <ChevronDown aria-hidden="true" className="size-5 flex-none group-data-open:rotate-180" />
         </DisclosureButton>
-        <DisclosurePanel className="mb-4 mt-2 space-y-2">
+        <DisclosurePanel className="mt-2 mb-4 space-y-2">
           <DisclosureButton
             onClick={() => handleLanguageChange('de')}
-            className="block w-full cursor-pointer rounded-lg py-2 pl-6 pr-3 text-left text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
+            className="block w-full cursor-pointer rounded-lg py-2 pr-3 pl-6 text-left text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
           >
             Deutsch
           </DisclosureButton>
           <DisclosureButton
             onClick={() => handleLanguageChange('fr')}
-            className="block w-full cursor-pointer rounded-lg py-2 pl-6 pr-3 text-left text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
+            className="block w-full cursor-pointer rounded-lg py-2 pr-3 pl-6 text-left text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
           >
             Français
           </DisclosureButton>
           <DisclosureButton
             onClick={() => handleLanguageChange('en')}
-            className="block w-full cursor-pointer rounded-lg py-2 pl-6 pr-3 text-left text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
+            className="block w-full cursor-pointer rounded-lg py-2 pr-3 pl-6 text-left text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
           >
             English
           </DisclosureButton>

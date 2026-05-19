@@ -9,7 +9,7 @@ import type React from 'react';
  */
 export default function ScheduleLoading(): React.ReactNode {
   return (
-    <div className="fixed left-0 top-[62px] z-30 h-[calc(100dvh-62px)] w-full overflow-y-auto bg-[#f8fafc] xl:left-[480px] xl:w-[calc(100dvw-480px)]">
+    <div className="fixed top-[62px] left-0 z-30 h-[calc(100dvh-62px)] w-full overflow-y-auto bg-[#f8fafc] xl:left-[480px] xl:w-[calc(100dvw-480px)]">
       <article className="mx-auto w-full max-w-2xl px-4 py-8">
         {/* DateCarousel Skeleton */}
         <div className="flex justify-center">
@@ -30,7 +30,7 @@ export default function ScheduleLoading(): React.ReactNode {
         </div>
 
         {/* SearchFilterBar Skeleton */}
-        <div className="mb-4 mt-6">
+        <div className="mt-6 mb-4">
           <div className="flex items-center gap-2">
             {/* Search input */}
             <div className="relative flex-1">
@@ -49,7 +49,7 @@ export default function ScheduleLoading(): React.ReactNode {
         <div className="relative min-h-[300px]">
           <div className="relative space-y-6">
             {/* Timeline line */}
-            <div className="absolute bottom-4 left-[23px] top-4 w-0.5 bg-gray-200" />
+            <div className="absolute top-4 bottom-4 left-[23px] w-0.5 bg-gray-200" />
 
             {/* Schedule item groups */}
             {[1, 2, 3].map((groupIndex) => (

@@ -44,7 +44,7 @@ const OfflinePage: React.FC<Properties> = async ({ params }) => {
 
           <HeadlineH1>{offlineTitleTranslation[locale]}</HeadlineH1>
 
-          <div className="mb-8 mt-4">
+          <div className="mt-4 mb-8">
             <ParagraphText className="text-center">
               {offlineLongTextTranslation[locale]}
             </ParagraphText>

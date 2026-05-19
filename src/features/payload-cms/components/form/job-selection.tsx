@@ -239,13 +239,13 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
   const renderSearch = (): React.ReactElement => (
     <div className="relative flex h-8 w-8 shrink-0 items-center justify-end">
       {isSearchOpen ? (
-        <div className="animate-in fade-in slide-in-from-right-2 absolute right-0 top-0 z-10 duration-200">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+        <div className="animate-in fade-in slide-in-from-right-2 absolute top-0 right-0 z-10 duration-200">
+          <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
             autoFocus
             type="text"
             placeholder={searchPlaceholderText[locale]}
-            className="w-48 rounded-full border border-gray-200 bg-gray-50 py-1.5 pl-9 pr-8 text-xs shadow-sm transition-all focus:w-64 focus:border-green-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-500/20"
+            className="w-48 rounded-full border border-gray-200 bg-gray-50 py-1.5 pr-8 pl-9 text-xs shadow-sm transition-all focus:w-64 focus:border-green-500 focus:bg-white focus:ring-2 focus:ring-green-500/20 focus:outline-none"
             value={searchTerm}
             onKeyDown={(event) => {
               if (event.key === 'Enter') {
@@ -269,7 +269,7 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
               onClick={() => {
                 setSearchTerm('');
               }}
-              className="clear-search-button absolute right-2.5 top-1/2 flex h-4 w-4 -translate-y-1/2 items-center justify-center rounded-full text-gray-400 hover:bg-gray-200 hover:text-gray-600 focus:outline-none"
+              className="clear-search-button absolute top-1/2 right-2.5 flex h-4 w-4 -translate-y-1/2 items-center justify-center rounded-full text-gray-400 hover:bg-gray-200 hover:text-gray-600 focus:outline-none"
             >
               <X className="h-3 w-3" />
             </button>
@@ -332,7 +332,7 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
   if (renderMode === 'sidebar') {
     return (
       <div className="@container mb-4 w-full">
-        <div className="@lg:flex-row @lg:items-center @lg:justify-between mb-4 flex flex-col gap-4">
+        <div className="mb-4 flex flex-col gap-4 @lg:flex-row @lg:items-center @lg:justify-between">
           <label className="font-body mb-0 block text-sm font-bold text-gray-900">
             {label}
             {Boolean(required) && <Required />}
@@ -348,7 +348,7 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
     <div className="@container mb-4 w-full">
       <div className="flex flex-col gap-4">
         <div className="mb-6">
-          <div className="@lg:flex-row @lg:items-center @lg:justify-between mb-4 flex flex-col gap-4">
+          <div className="mb-4 flex flex-col gap-4 @lg:flex-row @lg:items-center @lg:justify-between">
             <label className="font-body block text-sm font-bold text-gray-900">
               {label}
               {Boolean(required) && <Required />}
@@ -369,7 +369,7 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
           rules={{ required: required === true ? requiredFieldMessage[locale] : false }}
           render={({ field: { onChange, value }, fieldState: { error } }) => (
             <div className="@container flex flex-col gap-4">
-              <div className={cn('@xl:grid-cols-2 grid grid-cols-1 gap-4')}>
+              <div className={cn('grid grid-cols-1 gap-4 @xl:grid-cols-2')}>
                 {sortedJobs.length > 0 ? (
                   sortedJobs.map((job: JobWithQuota) => {
                     const isSelected = value === job.id;
@@ -390,7 +390,7 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
                         }}
                         disabled={isDisabled}
                         className={cn(
-                          'relative flex flex-col rounded-lg border-2 p-4 text-left transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2',
+                          'relative flex flex-col rounded-lg border-2 p-4 text-left transition-all duration-200 focus:ring-2 focus:ring-offset-2 focus:outline-none',
                           {
                             'cursor-pointer': !isDisabled,
                             'cursor-not-allowed border-gray-200 bg-gray-50 opacity-50 grayscale':
@@ -405,7 +405,7 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
                         )}
                       >
                         <div className="mb-2 flex items-start justify-between gap-2">
-                          <span className="font-heading wrap-break-word hyphens-auto text-sm font-bold leading-tight text-gray-900">
+                          <span className="font-heading text-sm leading-tight font-bold wrap-break-word hyphens-auto text-gray-900">
                             {job.title}
                           </span>
                         </div>
@@ -418,7 +418,7 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
                           {job.description}
                         </div>
 
-                        <div className="mt-auto flex items-center justify-between text-[10px] font-medium uppercase tracking-tight">
+                        <div className="mt-auto flex items-center justify-between text-[10px] font-medium tracking-tight uppercase">
                           <span className="text-gray-400">
                             {new Date(job.dateRange.startDate).toLocaleDateString(locale)}
                             {' - '}
@@ -441,7 +441,7 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
                         {isSelected && (
                           <div
                             className={cn(
-                              'absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full text-white shadow-sm',
+                              'absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full text-white shadow-sm',
                               {
                                 'bg-green-600': !hasError,
                                 'bg-red-600': hasError,

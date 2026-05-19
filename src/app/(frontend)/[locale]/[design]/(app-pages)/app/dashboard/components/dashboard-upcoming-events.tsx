@@ -58,7 +58,7 @@ const EventCard: React.FC<{
               <div className="mb-2">
                 <span
                   className={cn(
-                    'rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide',
+                    'rounded-full border px-2.5 py-0.5 text-[10px] font-bold tracking-wide uppercase',
                     categoryData.className,
                   )}
                 >
@@ -67,7 +67,7 @@ const EventCard: React.FC<{
               </div>
             )}
 
-            <h3 className="group-hover:text-conveniat-green mb-1 text-base font-semibold leading-snug text-gray-900 transition-colors">
+            <h3 className="group-hover:text-conveniat-green mb-1 text-base leading-snug font-semibold text-gray-900 transition-colors">
               {entry.title}
             </h3>
 

@@ -210,7 +210,7 @@ function DocumentJsonViewer({ data }: { data: Record<string, unknown> }): JSX.El
         </Button>
       </div>
       <div className="relative rounded-md border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-900/50">
-        <pre className="text-muted-foreground max-h-[300px] overflow-auto whitespace-pre-wrap break-all font-mono text-xs leading-relaxed">
+        <pre className="text-muted-foreground max-h-[300px] overflow-auto font-mono text-xs leading-relaxed break-all whitespace-pre-wrap">
           {jsonString}
         </pre>
       </div>
@@ -357,7 +357,7 @@ function NotificationHistory({ userId }: { userId: string }): JSX.Element {
                     key={log.id}
                     className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-900/50"
                   >
-                    <td className="whitespace-nowrap px-4 py-3">
+                    <td className="px-4 py-3 whitespace-nowrap">
                       {renderStatusBadge(isFailed, isInteracted, isDelivered, t)}
                     </td>
                     <td className="px-4 py-3">
@@ -382,16 +382,16 @@ function NotificationHistory({ userId }: { userId: string }): JSX.Element {
                         )}
                       </div>
                     </td>
-                    <td className="text-muted-foreground whitespace-nowrap px-4 py-3">
+                    <td className="text-muted-foreground px-4 py-3 whitespace-nowrap">
                       {format(sentAt, 'MMM d, HH:mm')}
                     </td>
-                    <td className="text-muted-foreground whitespace-nowrap px-4 py-3">
+                    <td className="text-muted-foreground px-4 py-3 whitespace-nowrap">
                       {deliveredAt ? format(deliveredAt, 'MMM d, HH:mm') : '-'}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3">
+                    <td className="px-4 py-3 whitespace-nowrap">
                       {interactedAt ? (
                         <div className="flex flex-col gap-1">
-                          <span className="text-muted-foreground/80 text-[10px] font-bold uppercase tracking-wider">
+                          <span className="text-muted-foreground/80 text-[10px] font-bold tracking-wider uppercase">
                             {log.interactionType}
                           </span>
                           <span className="text-muted-foreground">

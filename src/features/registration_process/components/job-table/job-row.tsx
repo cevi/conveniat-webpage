@@ -65,12 +65,12 @@ export const JobRow: React.FC<JobRowProperties> = ({ job, isExpanded, onToggle }
     <React.Fragment>
       <tr
         className={cn(
-          'dark:hover:bg-white/2 group bg-white transition-colors hover:bg-zinc-50 dark:bg-transparent',
-          isExpanded && 'dark:bg-white/2 bg-zinc-50',
+          'group bg-white transition-colors hover:bg-zinc-50 dark:bg-transparent dark:hover:bg-white/2',
+          isExpanded && 'bg-zinc-50 dark:bg-white/2',
         )}
         onClick={onToggle}
       >
-        <td className="whitespace-nowrap border-b border-zinc-50 px-4 py-4 align-top dark:border-zinc-800/50">
+        <td className="border-b border-zinc-50 px-4 py-4 align-top whitespace-nowrap dark:border-zinc-800/50">
           {/* ID Column */}
           <div className="flex items-center gap-3">
             <TooltipProvider>
@@ -88,7 +88,7 @@ export const JobRow: React.FC<JobRowProperties> = ({ job, isExpanded, onToggle }
 
             <button
               onClick={handleCopy}
-              className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border-none bg-transparent opacity-0 outline-none ring-0 transition-all hover:bg-zinc-200 focus:outline-none focus:ring-0 group-hover:opacity-100 dark:hover:bg-white/10"
+              className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border-none bg-transparent opacity-0 ring-0 transition-all outline-none group-hover:opacity-100 hover:bg-zinc-200 focus:ring-0 focus:outline-none dark:hover:bg-white/10"
               title="Copy ID"
             >
               {copiedId ? (
@@ -110,7 +110,7 @@ export const JobRow: React.FC<JobRowProperties> = ({ job, isExpanded, onToggle }
           </div>
         </td>
 
-        <td className="whitespace-nowrap border-b border-zinc-50 px-4 py-4 text-right align-top dark:border-zinc-800/50">
+        <td className="border-b border-zinc-50 px-4 py-4 text-right align-top whitespace-nowrap dark:border-zinc-800/50">
           <div className="flex flex-col items-end gap-0.5">
             <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300">
               {formatDistanceToNow(new Date(job.createdAt), { addSuffix: true })}
@@ -133,14 +133,14 @@ export const JobRow: React.FC<JobRowProperties> = ({ job, isExpanded, onToggle }
           </div>
         </td>
 
-        <td className="whitespace-nowrap border-b border-zinc-50 px-4 py-4 text-right align-top dark:border-zinc-800/50">
+        <td className="border-b border-zinc-50 px-4 py-4 text-right align-top whitespace-nowrap dark:border-zinc-800/50">
           <div className="flex justify-end">
             <button
               onClick={(event) => {
                 event.stopPropagation();
                 onToggle();
               }}
-              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-md border-none bg-transparent text-zinc-400 outline-none ring-0 transition-colors hover:bg-zinc-100 hover:text-zinc-900 focus:outline-none focus:ring-0 dark:hover:bg-white/5 dark:hover:text-zinc-100"
+              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-md border-none bg-transparent text-zinc-400 ring-0 transition-colors outline-none hover:bg-zinc-100 hover:text-zinc-900 focus:ring-0 focus:outline-none dark:hover:bg-white/5 dark:hover:text-zinc-100"
               title={isExpanded ? 'Collapse' : 'Expand'}
             >
               <ChevronRight

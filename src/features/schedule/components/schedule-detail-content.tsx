@@ -296,7 +296,7 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
                         min={courseStatus?.enrolledCount ?? 0}
                         value={editData.maxParticipants || ''}
                         onChange={handleMaxParticipantsChange}
-                        className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+                        className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none"
                         placeholder="0 = unlimited"
                       />
                       {courseStatus && courseStatus.enrolledCount > 0 && (

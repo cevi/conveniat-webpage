@@ -65,7 +65,7 @@ export const ScheduleItem: React.FC<ScheduleItemProperties> = ({
               {categoryLabel && (
                 <span
                   className={cn(
-                    'rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide',
+                    'rounded-full border px-2.5 py-0.5 text-[10px] font-bold tracking-wide uppercase',
                     categoryClassName,
                   )}
                 >
@@ -73,14 +73,14 @@ export const ScheduleItem: React.FC<ScheduleItemProperties> = ({
                 </span>
               )}
               {isEnrolled && (
-                <span className="bg-conveniat-green flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                <span className="bg-conveniat-green flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold tracking-wide text-white uppercase">
                   <CheckCircle className="h-3 w-3" />
                   {scheduleLabels.enrolledBadge[locale]}
                 </span>
               )}
             </div>
 
-            <h3 className="group-hover:text-conveniat-green mb-1 text-base font-semibold leading-snug text-gray-900 transition-colors">
+            <h3 className="group-hover:text-conveniat-green mb-1 text-base leading-snug font-semibold text-gray-900 transition-colors">
               {entry.title}
             </h3>
 

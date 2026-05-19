@@ -71,7 +71,7 @@ export const FileUploadZone: React.FC<FileUploadZoneProperties & { compact?: boo
             <span className="block text-base font-medium text-gray-700 group-hover:text-blue-600">
               {selectImages[locale]}
             </span>
-            <span className="block text-xs uppercase tracking-wide text-gray-400">
+            <span className="block text-xs tracking-wide text-gray-400 uppercase">
               {fileTypeText[locale]}
             </span>
           </div>

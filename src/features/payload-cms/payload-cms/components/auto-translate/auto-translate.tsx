@@ -107,8 +107,8 @@ const AutoTranslate: React.FC = () => {
         </Button>
       </span>
       <DialogPortal>
-        <DialogOverlay className="z-9999 fixed inset-0 bg-black/50" />
-        <DialogContent className="z-10000 border-(--theme-elevation-150) bg-(--theme-elevation-50) text-(--theme-text) fixed left-1/2 top-1/2 min-w-[400px] max-w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-lg border p-8 shadow-[0_10px_30px_rgba(0,0,0,0.2)]">
+        <DialogOverlay className="fixed inset-0 z-9999 bg-black/50" />
+        <DialogContent className="fixed top-1/2 left-1/2 z-10000 max-w-[500px] min-w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-lg border border-(--theme-elevation-150) bg-(--theme-elevation-50) p-8 text-(--theme-text) shadow-[0_10px_30px_rgba(0,0,0,0.2)]">
           <DialogTitle className="mb-4 text-xl font-semibold">Automatische Übersetzung</DialogTitle>
 
           <div className="mb-4">
@@ -128,7 +128,7 @@ const AutoTranslate: React.FC = () => {
               id="source-lang-select"
               value={sourceLanguage}
               onChange={(event) => setSourceLanguage(event.target.value)}
-              className="border-(--theme-elevation-150) bg-(--theme-elevation-100) text-(--theme-text) w-full rounded border p-2 disabled:opacity-50"
+              className="w-full rounded border border-(--theme-elevation-150) bg-(--theme-elevation-100) p-2 text-(--theme-text) disabled:opacity-50"
               disabled={isSubmitting}
             >
               <option value="">-- Bitte wählen --</option>
@@ -147,7 +147,7 @@ const AutoTranslate: React.FC = () => {
               <button
                 type="button"
                 disabled={isSubmitting}
-                className="btn btn--style-secondary border-(--theme-elevation-150) text-(--theme-text) h-auto cursor-pointer rounded border bg-transparent px-4 py-2 disabled:cursor-not-allowed"
+                className="btn btn--style-secondary h-auto cursor-pointer rounded border border-(--theme-elevation-150) bg-transparent px-4 py-2 text-(--theme-text) disabled:cursor-not-allowed"
               >
                 Abbrechen
               </button>

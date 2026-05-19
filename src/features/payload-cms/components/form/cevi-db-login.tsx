@@ -189,7 +189,7 @@ export const CeviDatabaseLogin: React.FC<CeviDatabaseLoginProperties> = ({
 
   return (
     <div className="mb-6">
-      {Boolean(label) && <SubheadingH3 className="mb-2 mt-0">{label}</SubheadingH3>}
+      {Boolean(label) && <SubheadingH3 className="mt-0 mb-2">{label}</SubheadingH3>}
 
       <div
         className={cn(
@@ -221,7 +221,7 @@ export const CeviDatabaseLogin: React.FC<CeviDatabaseLoginProperties> = ({
               type="button"
               onClick={handleLogin}
               className={cn(
-                'font-body relative flex cursor-pointer items-center justify-center rounded-lg border-2 border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 transition-all duration-200 hover:border-gray-400 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2',
+                'font-body relative flex cursor-pointer items-center justify-center rounded-lg border-2 border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 transition-all duration-200 hover:border-gray-400 hover:bg-gray-50 focus:ring-2 focus:ring-green-600 focus:ring-offset-2 focus:outline-none',
               )}
             >
               <span className="font-body text-center text-sm font-medium text-gray-500">

@@ -274,7 +274,7 @@ export const Select: React.FC<
             required: requiredFromProperties ? fieldIsRequiredText[locale as Locale] : false,
           }}
           render={({ field: { onChange, value } }) => (
-            <div className="@md:grid-cols-4 @lg:grid-cols-5 grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 @md:grid-cols-4 @lg:grid-cols-5">
               {options.map((option) => {
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                 const isSelected: boolean = allowMultiple
@@ -302,7 +302,7 @@ export const Select: React.FC<
                       }
                     }}
                     className={cn(
-                      'font-body relative flex cursor-pointer items-center justify-center rounded-lg border-2 px-4 py-3 text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2',
+                      'font-body relative flex cursor-pointer items-center justify-center rounded-lg border-2 px-4 py-3 text-sm font-medium transition-all duration-200 focus:ring-2 focus:ring-offset-2 focus:outline-none',
                       {
                         'border-green-600 bg-green-50 text-green-700 ring-green-600':
                           isSelected && !hasError,
@@ -321,7 +321,7 @@ export const Select: React.FC<
                     {isSelected && (
                       <div
                         className={cn(
-                          'absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full text-white',
+                          'absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full text-white',
                           {
                             'bg-green-600': !hasError,
                             'bg-red-600': hasError,

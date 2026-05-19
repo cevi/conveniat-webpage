@@ -8,8 +8,8 @@ export const FancyLoadingScreen: React.FC<{ locale?: 'de' | 'fr' | 'en' }> = ({
     <div className="relative flex w-full flex-col items-center justify-center">
       {/* Invisible Spacer to perfect match AcceptCookie card height */}
       <div className="invisible flex flex-col items-center">
-        <p className="mb-8 text-balance text-lg text-gray-700">{cookieInfoText[locale]}</p>
-        <button className="font-heading transform rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg font-bold leading-normal text-red-100 shadow-md">
+        <p className="mb-8 text-lg text-balance text-gray-700">{cookieInfoText[locale]}</p>
+        <button className="font-heading transform rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg leading-normal font-bold text-red-100 shadow-md">
           {acceptCookiesText[locale]}
         </button>
       </div>
@@ -17,7 +17,7 @@ export const FancyLoadingScreen: React.FC<{ locale?: 'de' | 'fr' | 'en' }> = ({
       {/* Actual Loading Bar Centered Overlay */}
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="relative h-1.5 w-64 overflow-hidden rounded-full bg-gray-100">
-          <div className="animate-loading absolute left-0 top-0 h-full w-1/2 rounded-full bg-red-700"></div>
+          <div className="animate-loading absolute top-0 left-0 h-full w-1/2 rounded-full bg-red-700"></div>
         </div>
       </div>
     </div>

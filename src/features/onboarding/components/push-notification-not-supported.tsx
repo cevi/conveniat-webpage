@@ -29,13 +29,13 @@ export const PushNotificationNotSupported: React.FC<PushNotificationNotSupported
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-center gap-2 rounded-lg bg-gray-100 p-3 text-gray-600">
-        <span className="text-balance font-semibold">
+        <span className="font-semibold text-balance">
           {isStandalone ? notSupportedDeviceText[locale] : notSupportedBrowserText[locale]}
         </span>
       </div>
       <button
         onClick={onSkip}
-        className="font-heading w-full transform cursor-pointer rounded-[8px] bg-gray-400 px-8 py-3 text-center text-lg font-bold leading-normal text-white shadow-md duration-100 hover:scale-[1.02] hover:bg-gray-500 active:scale-[0.98]"
+        className="font-heading w-full transform cursor-pointer rounded-[8px] bg-gray-400 px-8 py-3 text-center text-lg leading-normal font-bold text-white shadow-md duration-100 hover:scale-[1.02] hover:bg-gray-500 active:scale-[0.98]"
       >
         {offlineContentNotNowButton[locale]}
       </button>

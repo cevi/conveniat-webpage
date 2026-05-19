@@ -368,7 +368,7 @@ export const SmtpResultItem: React.FC<SmtpResultItemProperties> = ({
           {timeString}
         </span>
       </div>
-      <div className="break-all font-mono text-xs text-gray-700 dark:text-gray-300">
+      <div className="font-mono text-xs break-all text-gray-700 dark:text-gray-300">
         {responseText.split('\n').map((line, index, array) => (
           <React.Fragment key={index}>
             {line}

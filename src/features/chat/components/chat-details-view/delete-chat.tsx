@@ -120,7 +120,7 @@ export const DeleteChat: React.FC = () => {
               !canUserArchiveChat || updateChatMutation.isPending || deleteChatMutation.isPending
             }
             className={cn('mt-4 w-full rounded-md px-4 py-2', {
-              'cursor-pointer bg-red-600 text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2':
+              'cursor-pointer bg-red-600 text-white hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none':
                 canUserArchiveChat,
               'cursor-not-allowed bg-gray-300 text-gray-500': !canUserArchiveChat,
             })}

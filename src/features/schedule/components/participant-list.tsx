@@ -52,13 +52,13 @@ export const ParticipantList: React.FC<ParticipantListProperties> = ({ courseId 
 
   return (
     <div className="mt-6 rounded-xl border border-gray-200 bg-white p-4">
-      <h3 className="mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-gray-500">
+      <h3 className="mb-3 flex items-center gap-2 text-sm font-bold tracking-wider text-gray-500 uppercase">
         <Users className="h-4 w-4" />
         {labels.title[locale]} ({status.enrolledCount})
       </h3>
 
       {participants.length === 0 ? (
-        <p className="text-sm italic text-gray-400">{labels.noParticipants[locale]}</p>
+        <p className="text-sm text-gray-400 italic">{labels.noParticipants[locale]}</p>
       ) : (
         <div className="flex flex-wrap gap-2">
           {participants.map((p) => (

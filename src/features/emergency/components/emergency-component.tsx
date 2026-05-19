@@ -370,7 +370,7 @@ export const EmergencyComponent: React.FC = () => {
                   </div>
                 </div>
               </AccordionTrigger>
-              <AccordionContent className="pb-4 pt-2 text-gray-600">
+              <AccordionContent className="pt-2 pb-4 text-gray-600">
                 <p className="mb-2 text-gray-800">
                   <strong>{descriptionLabel[locale]}</strong>{' '}
                   {alertDescriptions[alert.title as keyof typeof alertDescriptions][locale]}

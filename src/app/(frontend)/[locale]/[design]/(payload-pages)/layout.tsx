@@ -12,7 +12,7 @@ const Layout: React.FC<LayoutProperties> = ({ children }) => {
   return (
     <>
       <SetDynamicPageTitle newTitle="conveniat27" />
-      <div className="min-w-full overflow-x-hidden pb-24 pt-8 xl:px-12">{children}</div>
+      <div className="min-w-full overflow-x-hidden pt-8 pb-24 xl:px-12">{children}</div>
     </>
   );
 };

@@ -70,7 +70,7 @@ export const AddParticipants: React.FC<AddParticipantsProperties> = ({
 
       {/* Search Input */}
       <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+        <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
         <Input
           placeholder={searchContactsPlaceholder[locale]}
           className="font-body focus:border-conveniat-green focus:ring-conveniat-green border-gray-300 pl-10"

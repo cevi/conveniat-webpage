@@ -231,7 +231,7 @@ export const ResendMailCell: React.FC<ResendMailCellProperties> = ({ rowData }) 
       <Dialog.Root open={isOpen} onOpenChange={setIsOpen}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-[999] bg-black/40 backdrop-blur-[2px]" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-[1000] w-[min(92vw,720px)] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-[var(--theme-elevation-150)] bg-[var(--theme-elevation-50)] p-6 text-[var(--theme-text)] shadow-[0_16px_50px_rgba(0,0,0,0.25)] dark:border-[var(--theme-elevation-150)] dark:bg-[var(--theme-elevation-50)]">
+          <Dialog.Content className="fixed top-1/2 left-1/2 z-[1000] w-[min(92vw,720px)] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-[var(--theme-elevation-150)] bg-[var(--theme-elevation-50)] p-6 text-[var(--theme-text)] shadow-[0_16px_50px_rgba(0,0,0,0.25)] dark:border-[var(--theme-elevation-150)] dark:bg-[var(--theme-elevation-50)]">
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
                 <Dialog.Title className="text-xl font-semibold">
@@ -273,7 +273,7 @@ export const ResendMailCell: React.FC<ResendMailCellProperties> = ({ rowData }) 
                       type="button"
                       onClick={toggleAll}
                       className={cn(
-                        'inline-flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--theme-success-500)] focus:ring-offset-2',
+                        'inline-flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition-all duration-200 focus:ring-2 focus:ring-[var(--theme-success-500)] focus:ring-offset-2 focus:outline-none',
                         {
                           'border-[var(--theme-success-400)] bg-[var(--theme-success-100)] text-[var(--theme-success-900)] shadow-sm hover:bg-[var(--theme-success-200)]':
                             allSelected,

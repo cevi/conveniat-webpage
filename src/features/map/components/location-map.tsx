@@ -70,7 +70,7 @@ export const LocationMap: React.FC<LocationMapProperties> = ({
         schedules={{}}
         limitUsage={false}
       />
-      <div className="absolute left-2 top-2 flex flex-col gap-2">
+      <div className="absolute top-2 left-2 flex flex-col gap-2">
         <button
           onClick={() => onToggleMaximize(true)}
           className="rounded border border-gray-200 bg-white p-2 text-gray-700 shadow-md transition-colors hover:bg-gray-100"
@@ -79,7 +79,7 @@ export const LocationMap: React.FC<LocationMapProperties> = ({
           <Maximize2 size={16} />
         </button>
       </div>
-      <div className="absolute right-2 top-2 rounded border border-[var(--theme-elevation-200)] bg-[var(--theme-elevation-50)] px-2 py-1 text-[10px] shadow">
+      <div className="absolute top-2 right-2 rounded border border-[var(--theme-elevation-200)] bg-[var(--theme-elevation-50)] px-2 py-1 text-[10px] shadow">
         {title}
       </div>
     </div>

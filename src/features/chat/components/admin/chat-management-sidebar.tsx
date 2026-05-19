@@ -58,7 +58,7 @@ export const ChatManagementSidebar: React.FC<ChatManagementSidebarProperties> = 
             value={searchQuery}
             onChange={(event) => onSearchChange(event.target.value)}
             placeholder="Search title, messages, users..."
-            className="w-full rounded border border-[var(--theme-elevation-300)] bg-[var(--theme-elevation-50)] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--theme-success-500)]"
+            className="w-full rounded border border-[var(--theme-elevation-300)] bg-[var(--theme-elevation-50)] px-3 py-2 text-sm focus:ring-1 focus:ring-[var(--theme-success-500)] focus:outline-none"
           />
           <label className="group flex cursor-pointer items-center gap-2">
             <input
