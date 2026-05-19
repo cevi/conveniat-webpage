@@ -14,6 +14,7 @@ import { HelperShiftsCollection } from '@/features/payload-cms/payload-cms/colle
 import { ImageCollection } from '@/features/payload-cms/payload-cms/collections/image-collection';
 import { OutgoingEmails } from '@/features/payload-cms/payload-cms/collections/outgoing-emails';
 import { PermissionsCollection } from '@/features/payload-cms/payload-cms/collections/permission-collection';
+import { PiketScheduleCollection } from '@/features/payload-cms/payload-cms/collections/piket-schedule-collection';
 import { PushNotificationSubscriptions } from '@/features/payload-cms/payload-cms/collections/push-notification-subscriptions';
 import { SmtpBounceMailTracking } from '@/features/payload-cms/payload-cms/collections/smtp-bounce-tracking';
 import { TimelineCollection } from '@/features/payload-cms/payload-cms/collections/timeline';
@@ -57,6 +58,7 @@ const rawCollectionsConfig: CollectionConfig[] = [
   OutgoingEmails,
   BillParticipantsCollection,
   BillPdfsCollection,
+  PiketScheduleCollection,
 ];
 
 /**

@@ -1,3 +1,5 @@
+import { getActivePiketMembers } from '@/features/chat/api/utils/piket-service';
+import { sendNotification } from '@/features/chat/api/utils/send-push-notifications';
 import { ChatCapability } from '@/lib/chat-shared';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
 import { ChatType, MessageEventType, MessageType } from '@/lib/prisma';
@@ -26,6 +28,30 @@ export const reportProblem = trpcBaseProcedure
 
     const chatName = `Problem Report - ${new Date().toLocaleDateString()} - ${user.name}`;
 
+    // Fetch active support piket members
+    const activePiketMembers = await getActivePiketMembers(
+      ChatType.SUPPORT_GROUP,
+      new Date(),
+    ).catch((error: unknown) => {
+      console.error('Failed to query active support piket members:', error);
+      return [];
+    });
+
+    // Ensure all active piket members exist in Postgres User table
+    for (const member of activePiketMembers) {
+      await prisma.user.upsert({
+        where: { uuid: member.id },
+        create: {
+          uuid: member.id,
+          name: member.name,
+          lastSeen: new Date('1970-01-01T00:00:00Z'),
+        },
+        update: {
+          name: member.name,
+        },
+      });
+    }
+
     // Create the support chat
     const chat = await prisma.chat.create({
       data: {
@@ -34,14 +60,38 @@ export const reportProblem = trpcBaseProcedure
         status: 'OPEN',
         description: 'User reported problem from map',
         chatMemberships: {
-          create: {
-            userId: user.uuid,
-            chatPermission: 'OWNER',
-          },
+          create: [
+            {
+              userId: user.uuid,
+              chatPermission: 'OWNER',
+            },
+            ...activePiketMembers.map((member) => ({
+              userId: member.id,
+              chatPermission: 'MEMBER' as const,
+            })),
+          ],
         },
         capabilities: [ChatCapability.PICTURE_UPLOAD, ChatCapability.CAN_SEND_MESSAGES],
       },
     });
+
+    // Send push notification to all support piket members
+    if (activePiketMembers.length > 0) {
+      const piketRecipientIds = activePiketMembers.map((m) => m.id);
+
+      let localizedAlertMessage = `New problem report from ${user.name}!`;
+      if (ctx.locale === 'de') {
+        localizedAlertMessage = `Neuer Problem-Bericht von ${user.name}!`;
+      } else if (ctx.locale === 'fr') {
+        localizedAlertMessage = `Nouveau rapport de problème de ${user.name}!`;
+      }
+
+      sendNotification(localizedAlertMessage, piketRecipientIds, chat.uuid).catch(
+        (error: unknown) => {
+          console.error('Failed to send support push notification to piket members:', error);
+        },
+      );
+    }
 
     const payloadContent = {
       ...systemMessageContent,

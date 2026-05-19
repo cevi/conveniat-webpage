@@ -9,6 +9,7 @@ interface ChatManagementHeaderProperties {
   locale: string;
   onCloseChat: () => void;
   onReopenChat: () => void;
+  onAddMember?: () => void;
 }
 
 const getCloseButtonText = (type: ChatType, locale: string): string => {
@@ -31,6 +32,7 @@ export const ChatManagementHeader: React.FC<ChatManagementHeaderProperties> = ({
   locale,
   onCloseChat,
   onReopenChat,
+  onAddMember,
 }) => {
   return (
     <div className="flex items-center justify-between border-b border-(--theme-border-color) bg-(--theme-elevation-50) px-6 py-4">
@@ -45,10 +47,18 @@ export const ChatManagementHeader: React.FC<ChatManagementHeaderProperties> = ({
         )}
       </div>
       <div className="ml-4 flex shrink-0 gap-2">
+        {selectedChat.status === ChatStatus.OPEN && onAddMember && (
+          <button
+            onClick={onAddMember}
+            className="cursor-pointer rounded border border-(--theme-border-color) bg-(--theme-elevation-100) px-4 py-2 text-sm font-medium text-(--theme-elevation-800) shadow-sm transition-colors hover:bg-(--theme-elevation-200)"
+          >
+            {locale === 'de' ? 'Mitglied hinzufügen' : 'Add Member'}
+          </button>
+        )}
         {selectedChat.status === ChatStatus.OPEN ? (
           <button
             onClick={onCloseChat}
-            className="cursor-pointer rounded border border-(--theme-error-500) bg-(--theme-error-500) px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[var(--theme-error-600)]"
+            className="cursor-pointer rounded border border-(--theme-error-500) bg-(--theme-error-500) px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-(--theme-error-600)"
           >
             {getCloseButtonText(chatType, locale)}
           </button>

@@ -783,4 +783,198 @@ export const adminRouter = createTRPCRouter({
 
       return updatedChat;
     }),
+
+  searchUsers: adminProcedure
+    .input(
+      z.object({
+        search: z.string().optional(),
+        hof: z.number().optional(),
+        quartier: z.number().optional(),
+        role: z.string().optional(),
+      }),
+    )
+    .query(async ({ input }) => {
+      const { getPayload } = await import('payload');
+      const { default: config } = await import('@payload-config');
+      const payload = await getPayload({ config });
+
+      const whereConditions: import('payload').Where[] = [];
+
+      if (typeof input.search === 'string' && input.search !== '') {
+        const search = input.search;
+        whereConditions.push({
+          or: [
+            { fullName: { contains: search } },
+            { nickname: { contains: search } },
+            { email: { contains: search } },
+          ],
+        });
+      }
+
+      if (input.hof !== undefined) {
+        whereConditions.push({ hof: { equals: input.hof } });
+      }
+
+      if (input.quartier !== undefined) {
+        whereConditions.push({ quartier: { equals: input.quartier } });
+      }
+
+      if (typeof input.role === 'string' && input.role !== '') {
+        const { environmentVariables: env } = await import('@/config/environment-variables');
+        let targetGroupIds: number[] = [];
+
+        switch (input.role) {
+          case 'full-admin': {
+            targetGroupIds = env.CEVIDB_GROUP_FULL_ADMIN;
+            break;
+          }
+          case 'web-core-team': {
+            targetGroupIds = env.CEVIDB_GROUP_WEB_CORE_TEAM;
+            break;
+          }
+          case 'translation-team': {
+            targetGroupIds = env.CEVIDB_GROUP_TRANSLATION_TEAM;
+            break;
+          }
+          case 'program-team': {
+            targetGroupIds = env.CEVIDB_GROUP_PROGRAM_TEAM;
+            break;
+          }
+          default: {
+            break;
+          }
+        }
+
+        if (targetGroupIds.length > 0) {
+          whereConditions.push({
+            'groups.id': {
+              in: targetGroupIds,
+            },
+          });
+        }
+      }
+
+      const queryWhere: import('payload').Where =
+        whereConditions.length > 0 ? { and: whereConditions } : {};
+
+      const { docs: users } = await payload.find({
+        collection: 'users',
+        where: queryWhere,
+        limit: 100,
+        depth: 0,
+      });
+
+      return users.map((u) => ({
+        id: u.id,
+        fullName: u.fullName,
+        nickname: u.nickname ?? '',
+        email: u.email,
+        hof: u.hof ?? undefined,
+        quartier: u.quartier ?? undefined,
+      }));
+    }),
+
+  addMemberToChat: adminProcedure
+    .input(
+      z.object({
+        chatId: z.string().uuid(),
+        userId: z.string(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { prisma } = ctx;
+      const { chatId, userId } = input;
+
+      const { getPayload } = await import('payload');
+      const { default: config } = await import('@payload-config');
+      const payload = await getPayload({ config });
+
+      const userDocument = await payload.findByID({
+        collection: 'users',
+        id: userId,
+      });
+
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (userDocument === undefined || userDocument === null) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'User not found in CMS.',
+        });
+      }
+
+      // Ensure the user exists in PostgreSQL to satisfy foreign key constraints
+      await prisma.user.upsert({
+        where: { uuid: userId },
+        create: {
+          uuid: userId,
+          name: userDocument.fullName,
+          lastSeen: new Date('1970-01-01T00:00:00Z'),
+        },
+        update: {
+          name: userDocument.fullName,
+        },
+      });
+
+      // Add user to chat
+      await prisma.chatMembership.upsert({
+        where: {
+          userId_chatId: {
+            userId,
+            chatId,
+          },
+        },
+        create: {
+          userId,
+          chatId,
+          chatPermission: ChatMembershipPermission.MEMBER,
+        },
+        update: {},
+      });
+
+      // Create a SYSTEM_MSG so it gets stored in history and displayed in the UI
+      const systemMessage = await prisma.message.create({
+        data: {
+          chatId,
+          type: MessageType.SYSTEM_MSG,
+          contentVersions: {
+            create: [
+              {
+                payload: `${userDocument.fullName} joined the group`,
+              },
+            ],
+          },
+          messageEvents: {
+            create: [{ type: MessageEventType.CREATED }, { type: MessageEventType.STORED }],
+          },
+        },
+      });
+
+      // Update chat lastUpdate timestamp so the chat re-sorts to the top
+      await prisma.chat.update({
+        where: { uuid: chatId },
+        data: { lastUpdate: new Date() },
+      });
+
+      // Publish the 'new_message' real-time event so frontend streams display the system message
+      // and automatically trigger invalidate('chatDetails') to reload the participants list.
+      chatPubSub
+        .publish({
+          type: 'new_message',
+          chatId,
+          senderId: SYSTEM_SENDER_ID,
+          message: {
+            id: systemMessage.uuid,
+            createdAt: systemMessage.createdAt,
+            messagePayload: `${userDocument.fullName} joined the group`,
+            senderId: SYSTEM_SENDER_ID,
+            status: MessageEventType.STORED,
+            type: MessageType.SYSTEM_MSG,
+          },
+        })
+        .catch((error: unknown) => {
+          console.error('Failed to publish real-time member added event:', error);
+        });
+
+      return { success: true };
+    }),
 });
