@@ -63,6 +63,7 @@ class ChatPubSub {
                 event.message.createdAt = new Date(event.message.createdAt);
               }
               this.emitter.emit(`chat:${event.chatId}`, event);
+              this.emitter.emit('chat:all', event);
             } catch (error) {
               console.error('[ChatPubSub] Failed to parse PG notification payload:', error);
             }

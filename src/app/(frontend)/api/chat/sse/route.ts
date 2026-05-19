@@ -30,19 +30,27 @@ export async function GET(request: NextRequest): Promise<Response> {
     return new Response('No valid chat IDs provided', { status: 400 });
   }
 
-  // Validate UUID format to prevent injection and invalid queries
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  for (const id of chatIds) {
-    if (!uuidRegex.test(id)) {
-      return new Response(`Invalid chat ID format: ${id}`, { status: 400 });
-    }
-  }
-
   // Verify membership for all requested chats (admins bypass membership check)
   const isAdmin = hasAccessToThisUser({
     user: { group_ids: user.group_ids },
     requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam],
   });
+
+  const containsAll = chatIds.includes('all');
+  if (containsAll && !isAdmin) {
+    return new Response('Forbidden: Non-admins cannot subscribe to the all channel', {
+      status: 403,
+    });
+  }
+
+  // Validate UUID format to prevent injection and invalid queries (except for 'all' channel)
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  for (const id of chatIds) {
+    if (id === 'all') continue;
+    if (!uuidRegex.test(id)) {
+      return new Response(`Invalid chat ID format: ${id}`, { status: 400 });
+    }
+  }
 
   if (!isAdmin) {
     const memberships = await prisma.chatMembership.findMany({
