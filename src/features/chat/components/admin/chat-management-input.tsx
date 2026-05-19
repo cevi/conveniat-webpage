@@ -4,7 +4,7 @@ import { useImageUpload } from '@/features/chat/hooks/use-image-upload';
 import { MessageEventType, MessageType } from '@/lib/prisma/client';
 import { trpc } from '@/trpc/client';
 import { Paperclip, Send } from 'lucide-react';
-import React, { useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 interface ChatManagementInputProperties {
   chatId: string;
@@ -45,6 +45,28 @@ export const ChatManagementInput: React.FC<ChatManagementInputProperties> = ({
   const [newMessage, setNewMessage] = useState('');
   const fileInputReference = useRef<HTMLInputElement>(null);
   const { textareaRef, resize } = useAutoResizeTextarea(newMessage);
+  const previousSending = useRef(sending);
+
+  const restoreFocus = useCallback((): void => {
+    textareaRef.current?.focus();
+    setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 50);
+    setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 150);
+  }, [textareaRef]);
+
+  useEffect((): void => {
+    if (previousSending.current && !sending) {
+      restoreFocus();
+    }
+    previousSending.current = sending;
+  }, [sending, restoreFocus]);
+
+  useEffect((): void => {
+    restoreFocus();
+  }, [chatId, restoreFocus]);
 
   const adminGetUploadUrlMutation = trpc.admin.getAdminUploadUrl.useMutation();
   const adminPostMessageMutation = trpc.admin.postAdminMessage.useMutation({
@@ -136,9 +158,12 @@ export const ChatManagementInput: React.FC<ChatManagementInputProperties> = ({
   // Override handleSendMessage to use the prop
   const handleSendMessage = async (): Promise<void> => {
     if (!newMessage.trim() || sending) return;
-    await onSendMessage(newMessage);
+    const content = newMessage;
     setNewMessage('');
     resize();
+    restoreFocus();
+    await onSendMessage(content);
+    restoreFocus();
   };
 
   const handleSplitAndSend = async (): Promise<void> => {
@@ -164,11 +189,13 @@ export const ChatManagementInput: React.FC<ChatManagementInputProperties> = ({
       if (chunks.length >= 5) break;
     }
 
+    setNewMessage('');
+    resize();
+    restoreFocus();
     for (const chunk of chunks) {
       await onSendMessage(chunk);
     }
-    setNewMessage('');
-    resize();
+    restoreFocus();
   };
 
   const messageLength = newMessage.length;
@@ -237,7 +264,7 @@ export const ChatManagementInput: React.FC<ChatManagementInputProperties> = ({
           placeholder={messagePlaceholder[locale] || messagePlaceholder['en']}
           className="flex-1 resize-none rounded border border-[var(--theme-elevation-150)] bg-[var(--theme-input-bg)] p-2 text-sm text-[var(--theme-elevation-800)] shadow-[0_2px_2px_-1px_rgba(0,0,0,0.1)] transition-[border,box-shadow] placeholder:text-[var(--theme-elevation-400)] hover:border-[var(--theme-elevation-250)] focus:border-[var(--theme-elevation-400)] focus:shadow-none focus:outline-none"
           rows={1}
-          disabled={sending || isUploading}
+          disabled={isUploading}
           style={{ minHeight: '40px', maxHeight: '200px' }}
         />
 

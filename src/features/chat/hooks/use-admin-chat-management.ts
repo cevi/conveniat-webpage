@@ -23,6 +23,7 @@ export const useAdminChatManagement = ({
 }: UseAdminChatManagementOptions): {
   chats: ChatWithMessagePreview[];
   messages: ChatMessage[];
+  currentUserId: string | undefined;
   loadingChats: boolean;
   loadingMessages: boolean;
   sending: boolean;
@@ -63,12 +64,13 @@ export const useAdminChatManagement = ({
       await utils.admin.getChatMessages.cancel({ chatId });
 
       const previousMessages = utils.admin.getChatMessages.getData({ chatId });
+      const currentUserId = previousMessages?.currentUserId ?? 'current-admin-user';
 
       const optimisticMessage = {
         id: `optimistic-${Date.now()}`,
         createdAt: new Date(),
         messagePayload: type === MessageType.IMAGE_MSG ? { url: content } : { text: content },
-        senderId: 'current-admin-user',
+        senderId: currentUserId,
         senderName: 'You (Admin)',
         type: type ?? MessageType.TEXT_MSG,
         status: MessageEventType.CREATED,
@@ -79,7 +81,7 @@ export const useAdminChatManagement = ({
         if (!old) {
           return {
             messages: [optimisticMessage],
-            currentUserId: 'current-admin-user',
+            currentUserId,
           };
         }
         return {
@@ -185,6 +187,7 @@ export const useAdminChatManagement = ({
   return {
     chats,
     messages: messagesData?.messages ?? [], // Ensure type compatibility if needed
+    currentUserId: messagesData?.currentUserId,
     loadingChats,
     loadingMessages,
     sending: sendMessageMutation.isPending,

@@ -6,6 +6,7 @@ import React, { useEffect, useRef } from 'react';
 
 interface ChatManagementMessagesProperties {
   messages: ChatMessage[];
+  currentUserId: string | undefined;
   loading: boolean;
   locale: string;
   chatType: ChatType;
@@ -25,6 +26,7 @@ const todayText: Record<string, string> = {
 
 export const ChatManagementMessages: React.FC<ChatManagementMessagesProperties> = ({
   messages,
+  currentUserId,
   loading,
   locale,
   chatType,
@@ -74,8 +76,8 @@ export const ChatManagementMessages: React.FC<ChatManagementMessagesProperties> 
                     5 * 60 * 1000
                   : false;
 
-                // Check if the message is from an admin
-                const isCurrentUser = Boolean(message.isAdminMessage);
+                // Check if the message is from the currently logged-in admin user
+                const isCurrentUser = message.senderId === currentUserId;
 
                 return (
                   <div
