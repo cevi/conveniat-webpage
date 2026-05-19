@@ -13,9 +13,33 @@ import { NodeSDK } from '@opentelemetry/sdk-node';
 import {
   AlwaysOnSampler,
   BatchSpanProcessor,
+  type IdGenerator,
   ParentBasedSampler,
 } from '@opentelemetry/sdk-trace-base';
 import { PrismaInstrumentation } from '@prisma/instrumentation';
+import { randomBytes } from 'node:crypto';
+
+/**
+ * Custom ID generator that uses `crypto.randomBytes()` instead of `Math.random()`.
+ *
+ * Next.js 16's prerender guard intercepts `Math.random()` inside `'use cache'` and
+ * ISR/static-generation contexts, causing `NEXT_STATIC_GEN_BAILOUT` errors when
+ * OpenTelemetry's default `RandomIdGenerator` creates span/trace IDs via `Math.random()`.
+ *
+ * `crypto.randomBytes()` is not intercepted by the prerender guard and produces
+ * cryptographically stronger IDs as a bonus.
+ *
+ * @see https://github.com/vercel/next.js/issues/54751
+ */
+class CryptoIdGenerator implements IdGenerator {
+  generateTraceId(): string {
+    return randomBytes(16).toString('hex');
+  }
+
+  generateSpanId(): string {
+    return randomBytes(8).toString('hex');
+  }
+}
 
 // Environment variables with fallbacks
 const TRACE_URL =
@@ -166,6 +190,7 @@ const postHogLogExporter = new OTLPLogExporter({
 export const sdk = new NodeSDK({
   traceExporter,
   metricReader: metricsReader,
+  idGenerator: new CryptoIdGenerator(),
   spanProcessors: [
     new BatchSpanProcessor(traceExporter, {
       exportTimeoutMillis: 5000,
