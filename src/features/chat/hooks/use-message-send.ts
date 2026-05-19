@@ -212,9 +212,60 @@ export const useMessageSend = (): UseMessageSendMutation => {
       }
     },
 
-    onSuccess: (_, { chatId }) => {
-      trpcUtils.chat.chatDetails.invalidate({ chatId }).catch(console.error);
-      trpcUtils.chat.infiniteMessages.invalidate({ chatId }).catch(console.error);
+    onSuccess: (createdMessageData, { chatId }) => {
+      const createdMessage = createdMessageData as unknown as ChatMessage | undefined;
+      if (createdMessage === undefined) return;
+
+      // Update the infinite query cache
+      trpcUtils.chat.infiniteMessages.setInfiniteData(
+        { chatId, limit: 25 },
+        (data: InfiniteMessagesData | undefined): InfiniteMessagesData | undefined => {
+          if (!data) return data;
+
+          const allItems = data.pages.flatMap((page) => page.items);
+          const alreadyHasStored = allItems.some((item) => item.id === createdMessage.id);
+
+          return {
+            ...data,
+            pages: data.pages.map((page) => ({
+              ...page,
+              items: page.items
+                .map((item) => {
+                  if (item.id.startsWith('optimistic-')) {
+                    return alreadyHasStored ? undefined : createdMessage;
+                  }
+                  return item;
+                })
+                .filter((item): item is ChatMessage => item !== undefined),
+            })),
+          };
+        },
+      );
+
+      // Update the chatDetails cache
+      trpcUtils.chat.chatDetails.setData(
+        { chatId },
+        (oldData: ChatDetails | undefined): ChatDetails | undefined => {
+          if (!oldData) return oldData;
+
+          const alreadyHasStored = oldData.messages.some((item) => item.id === createdMessage.id);
+
+          return {
+            ...oldData,
+            messages: oldData.messages
+              .map((item) => {
+                if (item.id.startsWith('optimistic-')) {
+                  return alreadyHasStored ? undefined : createdMessage;
+                }
+                return item;
+              })
+              .filter((item): item is ChatMessage => item !== undefined),
+          };
+        },
+      );
+
+      // Invalidate chats overview for unread counts and sidebar updates
+      void trpcUtils.chat.chats.invalidate();
     },
   });
 };

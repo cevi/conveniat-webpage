@@ -50,16 +50,31 @@ export const useChatSSE = (chatIds: string[]): void => {
                 return old;
               }
 
+              const hasOptimistic = allItems.some(
+                (item) => item.id.startsWith('optimistic-') && item.senderId === currentUser,
+              );
+
               return {
                 ...old,
-                pages: old.pages.map((page, index) =>
-                  index === 0
-                    ? {
+                pages: old.pages.map((page, index) => {
+                  if (index === 0) {
+                    if (hasOptimistic) {
+                      return {
                         ...page,
-                        items: [data.message, ...page.items],
-                      }
-                    : page,
-                ),
+                        items: page.items.map((item) =>
+                          item.id.startsWith('optimistic-') && item.senderId === currentUser
+                            ? data.message
+                            : item,
+                        ),
+                      };
+                    }
+                    return {
+                      ...page,
+                      items: [data.message, ...page.items],
+                    };
+                  }
+                  return page;
+                }),
               };
             },
           );
@@ -67,8 +82,34 @@ export const useChatSSE = (chatIds: string[]): void => {
           // Invalidate chat list overview for unread counts and sorting
           trpcUtils.chat.chats.invalidate().catch(console.error);
 
-          // Invalidate chat details to refresh lastUpdate and title
-          trpcUtils.chat.chatDetails.invalidate({ chatId: data.chatId }).catch(console.error);
+          // Direct TanStack cache injection for chatDetails instead of hard invalidation
+          trpcUtils.chat.chatDetails.setData({ chatId: data.chatId }, (old) => {
+            if (!old) return old;
+
+            if (old.messages.some((item) => item.id === data.message.id)) {
+              return old;
+            }
+
+            const hasOptimistic = old.messages.some(
+              (item) => item.id.startsWith('optimistic-') && item.senderId === currentUser,
+            );
+
+            if (hasOptimistic) {
+              return {
+                ...old,
+                messages: old.messages.map((item) =>
+                  item.id.startsWith('optimistic-') && item.senderId === currentUser
+                    ? data.message
+                    : item,
+                ),
+              };
+            }
+
+            return {
+              ...old,
+              messages: [...old.messages, data.message],
+            };
+          });
         }
 
         if (data.type === 'message_updated') {

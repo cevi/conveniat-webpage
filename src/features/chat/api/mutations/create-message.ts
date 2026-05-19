@@ -239,4 +239,21 @@ export const createMessage = trpcBaseProcedure
       .catch((error: unknown) => {
         console.error('Failed to publish real-time event:', error);
       });
+
+    return {
+      id: createdMessage.uuid,
+      createdAt: createdMessage.createdAt,
+      senderId: user.uuid,
+      status: MessageEventType.STORED,
+      type: createdMessage.type,
+      parentId: validatedMessage.parentId ?? undefined,
+      messagePayload:
+        validatedMessage.type === MessageType.IMAGE_MSG
+          ? { url: validatedMessage.content }
+          : {
+              text: validatedMessage.content,
+              quotedMessageId: validatedMessage.quotedMessageId,
+              quotedSnippet,
+            },
+    };
   });
