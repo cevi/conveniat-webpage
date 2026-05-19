@@ -59,13 +59,16 @@ export const useAdminChatManagement = ({
     },
   );
 
-  const markChatAsReadMutation = trpc.admin.markChatAsRead.useMutation();
+  const { mutate: markChatAsRead } = trpc.admin.markChatAsRead.useMutation();
+
+  const selectedChat = chats.find((c) => c.id === selectedChatId);
+  const hasUnread = selectedChat ? selectedChat.unreadCount > 0 : false;
 
   useEffect(() => {
-    if (selectedChatId) {
-      markChatAsReadMutation.mutate({ chatId: selectedChatId });
+    if (selectedChatId && hasUnread) {
+      markChatAsRead({ chatId: selectedChatId });
     }
-  }, [selectedChatId, markChatAsReadMutation]);
+  }, [selectedChatId, hasUnread, markChatAsRead]);
 
   const sendMessageMutation = trpc.admin.postAdminMessage.useMutation({
     async onMutate({ chatId, content, type }) {
