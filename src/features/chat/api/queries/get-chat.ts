@@ -63,6 +63,7 @@ export const getChat = trpcBaseProcedure
         chat.name,
         chat.chatMemberships.map((membership) => membership.user),
         user,
+        chat.type,
       ),
       id: chat.uuid,
       archivedAt: chat.archivedAt,

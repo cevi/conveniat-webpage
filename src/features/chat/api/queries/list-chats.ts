@@ -124,6 +124,7 @@ export const getChatList = trpcBaseProcedure
             uuid: membership.user.uuid,
           })),
           user,
+          chat.type,
         ),
         description: chat.description,
         status: chat.status,
