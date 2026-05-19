@@ -71,6 +71,20 @@ class ChatPubSub {
 
         client.on('error', (error: Error) => {
           console.error('[ChatPubSub] Dedicated PG client error:', error);
+
+          // Explicitly close the errored client to release connection handles and event listeners
+          try {
+            client.end().catch((error_: unknown) => {
+              console.error('[ChatPubSub] Error ending bad PG client:', error_);
+            });
+          } catch {
+            // Ignore synchronous errors
+          }
+
+          if (this.pgClient === client) {
+            this.pgClient = undefined;
+          }
+
           this.isListening = false;
           this.connectingPromise = undefined;
           // Attempt reconnection after delay
@@ -94,8 +108,28 @@ class ChatPubSub {
     return this.connectingPromise;
   }
 
-  public async publish(event: ChatRealtimeEvent): Promise<void> {
+  public async publish(
+    chatIdOrEvent: string | ChatRealtimeEvent,
+    possibleEvent?: ChatRealtimeEvent,
+  ): Promise<void> {
     if (isBuild) return;
+
+    let event: ChatRealtimeEvent | undefined;
+    if (typeof chatIdOrEvent === 'string') {
+      if (!possibleEvent) {
+        console.error('[ChatPubSub] publish called with string but missing event object');
+        return;
+      }
+      event = possibleEvent;
+    } else {
+      event = chatIdOrEvent;
+    }
+
+    const runtimeEvent = event as unknown;
+    if (runtimeEvent === undefined || runtimeEvent === null) {
+      console.error('[ChatPubSub] publish called with undefined event');
+      return;
+    }
 
     const payload = JSON.stringify(event);
 
@@ -150,6 +184,11 @@ const globalForChatPubSub = globalThis as unknown as {
 
 export const chatPubSub = globalForChatPubSub.chatPubSub ?? new ChatPubSub();
 
+// During development, Next.js fast-refresh / HMR will re-evaluate modules frequently,
+// which would result in multiple redundant ChatPubSub instances. By saving the instance
+// to globalThis, we preserve the active listening client across module re-evaluations.
+// In production, the standard Node.js module caching system guarantees a single process-level
+// singleton, so we do not pollute the global scope.
 if (environmentVariables.NODE_ENV !== 'production') {
   globalForChatPubSub.chatPubSub = chatPubSub;
 }

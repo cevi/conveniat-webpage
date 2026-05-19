@@ -1,4 +1,5 @@
 import type { ChatDetails, ChatMessage } from '@/features/chat/api/types';
+import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
 import { useChatActions } from '@/features/chat/context/chat-actions-context';
 import { SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import { ChatType, MessageEventType, MessageType } from '@/lib/prisma/client';
@@ -35,12 +36,12 @@ const performOptimisticMessageUpdate = async (
   }: { chatId: string; content: string; quotedMessageId?: string | undefined },
 ): Promise<OptimisticUpdateResult> => {
   await trpcUtils.chat.chatDetails.cancel({ chatId });
-  await trpcUtils.chat.infiniteMessages.cancel({ chatId, limit: 25 });
+  await trpcUtils.chat.infiniteMessages.cancel({ chatId, limit: CHAT_PAGE_SIZE });
 
   const previousChatData = trpcUtils.chat.chatDetails.getData({ chatId });
   const previousInfiniteData = trpcUtils.chat.infiniteMessages.getInfiniteData({
     chatId,
-    limit: 25,
+    limit: CHAT_PAGE_SIZE,
   }) as InfiniteMessagesData | undefined;
 
   // Find quoted message text if quotedMessageId is provided
@@ -83,7 +84,7 @@ const performOptimisticMessageUpdate = async (
 
   // optimistically update the infinite messages
   trpcUtils.chat.infiniteMessages.setInfiniteData(
-    { chatId, limit: 25 },
+    { chatId, limit: CHAT_PAGE_SIZE },
     (data: InfiniteMessagesData | undefined): InfiniteMessagesData | undefined => {
       if (!data) {
         return {
@@ -204,7 +205,7 @@ export const useMessageSend = (): UseMessageSendMutation => {
 
       if (optimisticContext?.previousInfiniteData) {
         trpcUtils.chat.infiniteMessages.setInfiniteData(
-          { chatId, limit: 25 },
+          { chatId, limit: CHAT_PAGE_SIZE },
           optimisticContext.previousInfiniteData,
         );
       } else {
@@ -218,7 +219,7 @@ export const useMessageSend = (): UseMessageSendMutation => {
 
       // Update the infinite query cache
       trpcUtils.chat.infiniteMessages.setInfiniteData(
-        { chatId, limit: 25 },
+        { chatId, limit: CHAT_PAGE_SIZE },
         (data: InfiniteMessagesData | undefined): InfiniteMessagesData | undefined => {
           if (!data) return data;
 

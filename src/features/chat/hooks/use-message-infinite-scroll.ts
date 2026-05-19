@@ -1,6 +1,7 @@
 'use client';
 
 import type { ChatMessage } from '@/features/chat/api/types';
+import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
 import { trpc } from '@/trpc/client';
 import type React from 'react';
 import { useEffect, useRef } from 'react';
@@ -26,7 +27,7 @@ export const useMessageInfiniteScroll = ({
     hasNextPage,
     isFetchingNextPage,
   } = trpc.chat.infiniteMessages.useInfiniteQuery(
-    { chatId, limit: 25, parentId: parentId ?? undefined },
+    { chatId, limit: CHAT_PAGE_SIZE, parentId: parentId ?? undefined },
     {
       getNextPageParam: (lastPage): string | undefined => {
         return lastPage.nextCursor ?? undefined;

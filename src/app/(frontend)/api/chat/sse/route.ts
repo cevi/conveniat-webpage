@@ -63,6 +63,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   let keepAliveInterval: NodeJS.Timeout | undefined = undefined;
   const activeListeners = new Map<string, (event: ChatRealtimeEvent) => void>();
   let cleanedUp = false;
+  const isCleanedUp = (): boolean => cleanedUp;
 
   const cleanup = (): void => {
     if (cleanedUp) return;
@@ -92,6 +93,8 @@ export async function GET(request: NextRequest): Promise<Response> {
 
       // Register subscriber for each chat channel
       for (const chatId of chatIds) {
+        if (isCleanedUp()) break;
+
         // eslint-disable-next-line unicorn/consistent-function-scoping
         const listener = (event: ChatRealtimeEvent): void => {
           try {
@@ -103,6 +106,13 @@ export async function GET(request: NextRequest): Promise<Response> {
         };
 
         await chatPubSub.subscribe(chatId, listener);
+
+        // Guard against race conditions if client aborted during the await
+        if (isCleanedUp()) {
+          chatPubSub.unsubscribe(chatId, listener);
+          break;
+        }
+
         activeListeners.set(chatId, listener);
       }
     },
