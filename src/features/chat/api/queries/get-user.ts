@@ -6,9 +6,9 @@ export const getUser = trpcBaseProcedure
   .query(async ({ ctx }) => {
     const { user, prisma } = ctx;
 
-    const prismaUser = await prisma.user.findUniqueOrThrow({
+    const prismaUser = await prisma.user.findUnique({
       where: { uuid: user.uuid },
     });
 
-    return prismaUser.uuid;
+    return prismaUser?.uuid ?? user.uuid;
   });
