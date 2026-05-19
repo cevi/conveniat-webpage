@@ -78,7 +78,7 @@ export const useAdminChatManagement = ({
       const currentUserId = previousMessages?.currentUserId ?? 'current-admin-user';
 
       const optimisticMessage = {
-        id: `optimistic-${Date.now()}`,
+        id: `optimistic-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
         createdAt: new Date(),
         messagePayload: type === MessageType.IMAGE_MSG ? { url: content } : { text: content },
         senderId: currentUserId,
@@ -101,14 +101,14 @@ export const useAdminChatManagement = ({
         };
       });
 
-      return { previousMessages };
+      return { previousMessages, optimisticMessageId: optimisticMessage.id };
     },
     onError: (_error, { chatId }, context) => {
       if (context?.previousMessages) {
         utils.admin.getChatMessages.setData({ chatId }, context.previousMessages);
       }
     },
-    onSuccess: (createdMessage, { chatId, content, type }) => {
+    onSuccess: (createdMessage, { chatId, content, type }, context) => {
       utils.admin.getChatMessages.setData({ chatId }, (old) => {
         if (!old) return old;
         const alreadyHasStored = old.messages.some((m) => m.id === createdMessage.uuid);
@@ -116,7 +116,13 @@ export const useAdminChatManagement = ({
           ...old,
           messages: old.messages
             .map((m) => {
-              if (m.id.startsWith('optimistic-')) {
+              const optimisticId = (context as { optimisticMessageId?: string } | undefined)
+                ?.optimisticMessageId;
+              const isMatch =
+                typeof optimisticId === 'string'
+                  ? m.id === optimisticId
+                  : m.id.startsWith('optimistic-');
+              if (isMatch) {
                 return alreadyHasStored
                   ? undefined
                   : {
