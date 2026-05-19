@@ -16,6 +16,9 @@ import { countRunnableOrActiveJobsForQueue } from 'payload';
 
 const FETCH_SMTP_BOUNCES_CRON = '*/5 * * * *'; // Every 5 minutes
 
+let consecutiveConnectionFailures = 0;
+let nextAllowedAttemptTime = 0;
+
 export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
   slug: 'fetchSmtpBounces',
   retries: 0,
@@ -85,6 +88,11 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
   handler: async ({ req }: { req: PayloadRequest }): Promise<{ output: { status: string } }> => {
     const { payload } = req;
     const { logger } = payload;
+
+    if (Date.now() < nextAllowedAttemptTime) {
+      return { output: { status: 'backed-off' } };
+    }
+
     const host =
       typeof environmentVariables.SMTP_HOST === 'string'
         ? environmentVariables.SMTP_HOST
@@ -114,6 +122,10 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
 
     try {
       const listResponseRaw = await pop3.UIDL();
+      // Reset backoff on successful connection
+      consecutiveConnectionFailures = 0;
+      nextAllowedAttemptTime = 0;
+
       const messages = parsePop3Messages(listResponseRaw);
 
       if (messages.length === 0) {
@@ -335,10 +347,29 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
         `Bounce check complete: ${messages.length} messages scanned, ${matchedCount} matched, ${ignoredCount} ignored (other instance), ${poisonPillCount} poison-pill deleted, ${errorCount} errors`,
       );
     } catch (error: unknown) {
-      logger.error({
-        err: error instanceof Error ? error : new Error(String(error)),
-        msg: 'POP3 fetch error in fetchSmtpBounces',
-      });
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const isConnectionError =
+        errorMessage.includes('ETIMEDOUT') ||
+        errorMessage.includes('ECONNREFUSED') ||
+        errorMessage.includes('EHOSTUNREACH') ||
+        errorMessage.includes('ENOTFOUND');
+
+      if (isConnectionError) {
+        consecutiveConnectionFailures++;
+        // Exponential backoff: 5m, 10m, 20m, 40m... max 4 hours
+        const backoffMinutes = Math.min(5 * 2 ** (consecutiveConnectionFailures - 1), 240);
+        nextAllowedAttemptTime = Date.now() + backoffMinutes * 60 * 1000;
+
+        logger.error({
+          err: error instanceof Error ? error : new Error(String(error)),
+          msg: `POP3 connection error in fetchSmtpBounces. Backing off for ${backoffMinutes} minutes.`,
+        });
+      } else {
+        logger.error({
+          err: error instanceof Error ? error : new Error(String(error)),
+          msg: 'POP3 fetch error in fetchSmtpBounces',
+        });
+      }
       return { output: { status: 'error' } };
     } finally {
       // Guaranteed resource cleanup, even if exceptions are thrown early
