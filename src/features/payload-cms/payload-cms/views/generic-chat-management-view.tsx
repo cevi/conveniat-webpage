@@ -173,7 +173,7 @@ const GenericChatManagementContent: React.FC<GenericChatManagementViewProperties
         submittingText={locale === 'de' ? 'Wird geöffnet...' : 'Reopening...'}
         confirmVariant="primary"
       />
-      <div className="flex h-[calc(100vh-140px)] overflow-hidden bg-[var(--theme-bg)] text-[var(--theme-text)]">
+      <div className="flex h-[calc(100vh-140px)] overflow-hidden bg-[var(--theme-elevation-0)] text-[var(--theme-elevation-900)]">
         <ChatManagementSidebar
           title={title}
           chats={chats}
@@ -236,7 +236,7 @@ const GenericChatManagementContent: React.FC<GenericChatManagementViewProperties
               </div>
 
               {/* Input Area */}
-              <div className="border-t border-[var(--theme-elevation-150)] bg-[var(--theme-elevation-50)] p-4">
+              <div className="border-t border-[var(--theme-border-color)] bg-[var(--theme-elevation-50)] p-4">
                 <ChatManagementInput
                   chatId={selectedChat.id}
                   onSendMessage={sendMessage}
@@ -247,9 +247,11 @@ const GenericChatManagementContent: React.FC<GenericChatManagementViewProperties
               </div>
             </ChatIdProvider>
           ) : (
-            <div className="flex flex-1 flex-col items-center justify-center opacity-30">
+            <div className="flex flex-1 flex-col items-center justify-center">
               <div className="mb-4 text-6xl">💬</div>
-              <div className="text-xl font-bold">Select a chat to view details</div>
+              <div className="text-xl font-semibold text-[var(--theme-elevation-300)]">
+                Select a chat to view details
+              </div>
             </div>
           )}
         </div>

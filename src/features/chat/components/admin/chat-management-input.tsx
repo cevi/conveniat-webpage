@@ -117,7 +117,7 @@ export const ChatManagementInput: React.FC<ChatManagementInputProperties> = ({
 
   if (disabled) {
     return (
-      <div className="py-2 text-center text-sm italic opacity-50">
+      <div className="py-2 text-center text-sm text-[var(--theme-elevation-400)] italic">
         This chat is resolved and locked.
       </div>
     );
@@ -150,7 +150,7 @@ export const ChatManagementInput: React.FC<ChatManagementInputProperties> = ({
           onClick={() => fileInputReference.current?.click()}
           size="icon"
           variant="outline"
-          className="h-10 w-10 shrink-0 rounded-full text-gray-500 hover:bg-[var(--theme-elevation-100)]"
+          className="h-10 w-10 shrink-0 rounded-full border-[var(--theme-elevation-150)] text-[var(--theme-elevation-500)] hover:bg-[var(--theme-elevation-100)] hover:text-[var(--theme-elevation-800)]"
           disabled={sending || isUploading}
         >
           <Paperclip className="h-5 w-5" />
@@ -168,7 +168,7 @@ export const ChatManagementInput: React.FC<ChatManagementInputProperties> = ({
           }}
           onKeyDown={handleKeyDown}
           placeholder={messagePlaceholder[locale] || messagePlaceholder['en']}
-          className="flex-1 resize-none rounded border border-[var(--theme-elevation-300)] bg-[var(--theme-elevation-100)] p-2 text-sm focus:ring-1 focus:ring-[var(--theme-success-500)] focus:outline-none"
+          className="flex-1 resize-none rounded border border-[var(--theme-elevation-150)] bg-[var(--theme-input-bg)] p-2 text-sm text-[var(--theme-elevation-800)] shadow-[0_2px_2px_-1px_rgba(0,0,0,0.1)] transition-[border,box-shadow] placeholder:text-[var(--theme-elevation-400)] hover:border-[var(--theme-elevation-250)] focus:border-[var(--theme-elevation-400)] focus:shadow-none focus:outline-none"
           rows={1}
           disabled={sending || isUploading}
           style={{ minHeight: '40px', maxHeight: '200px' }}
