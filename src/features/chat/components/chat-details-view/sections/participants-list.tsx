@@ -71,7 +71,7 @@ export const ParticipantsList: React.FC<ParticipantsListProperties> = ({
         )}
       </div>
 
-      <div className="max-h-60 space-y-3 overflow-y-auto">
+      <div className="space-y-3">
         {participants.map((participant) => (
           <div key={participant.id} className="flex items-center justify-between gap-3">
             <div className="flex flex-1 items-center gap-3">
