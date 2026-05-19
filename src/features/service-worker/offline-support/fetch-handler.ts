@@ -12,7 +12,48 @@ import {
 } from '@/features/service-worker/offline-support/rsc-utils';
 import { DesignModeTriggers } from '@/utils/design-codes';
 import { isDraftMode } from '@/utils/draft-mode';
+import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
 import type { Serwist } from 'serwist';
+
+declare const self: ServiceWorkerGlobalScope;
+
+/** URLs already reported in this SW lifecycle to prevent duplicate PostHog events on browser retries. */
+const reportedImage404s = new Set<string>();
+
+const logImage404ToPostHog = async (url: string, clientId: string): Promise<void> => {
+  if (reportedImage404s.has(url)) return;
+  reportedImage404s.add(url);
+
+  console.error(`[SW] Image not found (404): ${url}`);
+
+  try {
+    const message = {
+      type: ServiceWorkerMessages.CAPTURE_POSTHOG_EVENT,
+      payload: {
+        event: 'image_load_error',
+        properties: {
+          $exception_message: `Image not found: ${url}`,
+          error: 'Image 404 Not Found',
+          url,
+        },
+      },
+    };
+
+    // Try the specific client first; fall back to broadcasting to all clients
+    // (matches the pattern used by logToPostHog in sw.ts)
+    const client = clientId === '' ? undefined : await self.clients.get(clientId);
+    if (client) {
+      client.postMessage(message);
+    } else {
+      const clients = await self.clients.matchAll();
+      for (const c of clients) {
+        c.postMessage(message);
+      }
+    }
+  } catch (error) {
+    console.debug('[SW] Failed to report image 404 to PostHog', error);
+  }
+};
 
 async function matchCachedPage(originalUrl: string): Promise<Response | undefined> {
   const pagesCache = await caches.open(CACHE_NAMES.PAGES);
@@ -261,6 +302,10 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
         return sanitizeRscResponse(response);
       }
 
+      if (response.status === 404 && requestToHandle.destination === 'image') {
+        event.waitUntil(logImage404ToPostHog(requestToHandle.url, event.clientId));
+      }
+
       return response;
     }
 
@@ -275,6 +320,10 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
         `[SW] Blocked HTML response for script fetch: ${requestToHandle.url} (Status: ${networkResponse.status})`,
       );
       return Response.error(); // Trigger Next.js chunk-load error handling cleanly
+    }
+
+    if (networkResponse.status === 404 && requestToHandle.destination === 'image') {
+      event.waitUntil(logImage404ToPostHog(requestToHandle.url, event.clientId));
     }
 
     return networkResponse;
