@@ -69,11 +69,11 @@ export function useNativePush(): {
           const statusValue = payload['authorizationLabel'] ?? payload['status'];
           if (typeof statusValue === 'string') {
             setStatus(statusValue as NativePushStatus);
+            const tokenValue = payload['token'];
+            const hasTokenValue =
+              payload['hasToken'] === undefined ? !!tokenValue : !!payload['hasToken'];
+            setHasToken(hasTokenValue);
           }
-          const tokenValue = payload['token'];
-          const hasTokenValue =
-            payload['hasToken'] === undefined ? !!tokenValue : !!payload['hasToken'];
-          setHasToken(hasTokenValue);
           break;
         }
         case 'native-push-token': {
