@@ -104,9 +104,12 @@ const AppFeatureMenuItem: React.FC<AppFeatureMenuItemProperties> = ({
   );
 };
 
+import { connection } from 'next/server';
+
 export const AppFeatures: React.FC<{
   locale: Locale;
 }> = async ({ locale }) => {
+  await connection();
   const featureFlags = await getAppFeatureFlagsCached();
 
   return (
