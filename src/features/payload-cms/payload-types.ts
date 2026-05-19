@@ -3414,6 +3414,7 @@ export interface OutgoingEmail {
     | null;
   rawDsnEmail?: string | null;
   createdAt: string;
+  lastRetriggeredBy?: (string | null) | User;
   updatedAt: string;
 }
 /**
@@ -5390,6 +5391,7 @@ export interface OutgoingEmailsSelect<T extends boolean = true> {
   rawSmtpResults?: T;
   rawDsnEmail?: T;
   createdAt?: T;
+  lastRetriggeredBy?: T;
   updatedAt?: T;
 }
 /**
