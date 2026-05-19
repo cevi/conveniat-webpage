@@ -6,6 +6,7 @@ export interface ChatMessage {
   createdAt: Date;
   messagePayload: string | number | boolean | JsonObject | JsonArray;
   senderId: string | undefined;
+  senderName?: string | undefined;
   status: MessageEventType;
   type: string;
   replyCount?: number | undefined;

@@ -57,6 +57,7 @@ export const getChatMessages = trpcBaseProcedure
             take: 1,
             orderBy: { revision: 'desc' },
           },
+          sender: { select: { name: true } },
           _count: {
             select: {
               replies: true,
@@ -87,17 +88,23 @@ export const getChatMessages = trpcBaseProcedure
       }
       console.error('Final nextCursor:', nextCursor);
 
-      const mappedMessages = messages.map((message) => ({
-        id: message.uuid,
-        createdAt: message.createdAt,
-        messagePayload: message.contentVersions[0]?.payload ?? {},
-        senderId: message.senderId ?? undefined,
-        status: getStatusFromMessageEvents(message.messageEvents),
-        type: message.type,
-        replyCount: message._count.replies,
-        parentId: message.parentId ?? undefined,
-        hasUnreadReplies: message.replies.length > 0,
-      }));
+      const mappedMessages = messages.map((message) => {
+        const isReadByAdmin = chat.adminReadAt !== null && message.createdAt <= chat.adminReadAt;
+        return {
+          id: message.uuid,
+          createdAt: message.createdAt,
+          messagePayload: message.contentVersions[0]?.payload ?? {},
+          senderId: message.senderId ?? undefined,
+          ...(message.sender?.name ? { senderName: message.sender.name } : {}),
+          status: isReadByAdmin
+            ? MessageEventType.READ
+            : getStatusFromMessageEvents(message.messageEvents),
+          type: message.type,
+          replyCount: message._count.replies,
+          parentId: message.parentId ?? undefined,
+          hasUnreadReplies: message.replies.length > 0,
+        };
+      });
 
       return {
         items: mappedMessages,

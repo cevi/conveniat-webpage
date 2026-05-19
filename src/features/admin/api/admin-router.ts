@@ -290,6 +290,10 @@ export const adminRouter = createTRPCRouter({
         return {
           unreadCount: messages
             .filter((message) => message.senderId !== user.uuid)
+            .filter((message) => {
+              const lastRead = chat.adminReadAt ? chat.adminReadAt.getTime() : 0;
+              return message.createdAt.getTime() > lastRead;
+            })
             .filter(
               (message) =>
                 !message.messageEvents.some((event) => event.type === MessageEventType.READ),
@@ -351,6 +355,19 @@ export const adminRouter = createTRPCRouter({
     .input(z.object({ chatId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       const { prisma, user } = ctx;
+
+      // Automatically update the adminReadAt timestamp to mark as read
+      await prisma.chat.update({
+        where: { uuid: input.chatId },
+        data: { adminReadAt: new Date() },
+      });
+
+      // Publish real-time event to update standard users' checkmarks instantly
+      void chatPubSub.publish({
+        type: 'chat_read_by_admin',
+        chatId: input.chatId,
+        senderId: user.uuid,
+      });
 
       const chat = await prisma.chat.findUnique({
         where: { uuid: input.chatId },
@@ -487,6 +504,7 @@ export const adminRouter = createTRPCRouter({
                 ? { url: input.content }
                 : { text: input.content },
             senderId: user.uuid,
+            senderName: user.name,
             status: MessageEventType.STORED,
             type: input.type,
             parentId: undefined,

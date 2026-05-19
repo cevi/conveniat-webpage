@@ -7,10 +7,10 @@ import { useEffect } from 'react';
 import superjson from 'superjson';
 
 interface ChatRealtimeEvent {
-  type: 'new_message' | 'message_updated';
+  type: 'new_message' | 'message_updated' | 'chat_read_by_admin';
   chatId: string;
   senderId: string;
-  message: ChatMessage;
+  message?: ChatMessage;
 }
 
 // Global registry of all active chat subscribers on the client to enable multiplexing/deduplication
@@ -87,20 +87,32 @@ export const useChatSSE = (chatIds: string[]): void => {
     const ids = chatIdsString.split(',').filter(Boolean);
 
     const listener = (data: ChatRealtimeEvent): void => {
+      if (data.type === 'chat_read_by_admin') {
+        trpcUtils.chat.infiniteMessages.invalidate({ chatId: data.chatId }).catch(console.error);
+        trpcUtils.chat.chatDetails.invalidate({ chatId: data.chatId }).catch(console.error);
+        trpcUtils.chat.chats.invalidate().catch(console.error);
+        return;
+      }
+
+      if (!data.message) {
+        return;
+      }
+      const message = data.message;
+
       if (data.type === 'new_message') {
         // Direct TanStack cache injection for infinite messages
         trpcUtils.chat.infiniteMessages.setInfiniteData(
           {
             chatId: data.chatId,
             limit: CHAT_PAGE_SIZE,
-            parentId: data.message.parentId ?? undefined,
+            parentId: message.parentId ?? undefined,
           },
           (old) => {
             if (!old) return old;
 
             // Avoid duplicates
             const allItems = old.pages.flatMap((page) => page.items);
-            if (allItems.some((item) => item.id === data.message.id)) {
+            if (allItems.some((item) => item.id === message.id)) {
               return old;
             }
 
@@ -117,14 +129,14 @@ export const useChatSSE = (chatIds: string[]): void => {
                       ...page,
                       items: page.items.map((item) =>
                         item.id.startsWith('optimistic-') && item.senderId === currentUser
-                          ? data.message
+                          ? message
                           : item,
                       ),
                     };
                   }
                   return {
                     ...page,
-                    items: [data.message, ...page.items],
+                    items: [message, ...page.items],
                   };
                 }
                 return page;
@@ -137,7 +149,7 @@ export const useChatSSE = (chatIds: string[]): void => {
         trpcUtils.chat.chats.invalidate().catch(console.error);
 
         // If a system message arrives, invalidate chatDetails to refresh capabilities and status (e.g. closing/locking chat)
-        if (data.message.type === 'SYSTEM_MSG') {
+        if (message.type === 'SYSTEM_MSG') {
           trpcUtils.chat.chatDetails.invalidate({ chatId: data.chatId }).catch(console.error);
         }
 
@@ -147,8 +159,8 @@ export const useChatSSE = (chatIds: string[]): void => {
 
           // Optimistically update capabilities on system messages
           let newCapabilities = old.capabilities;
-          if (data.message.type === 'SYSTEM_MSG') {
-            const payload = data.message.messagePayload;
+          if (message.type === 'SYSTEM_MSG') {
+            const payload = message.messagePayload;
             let text = '';
             if (typeof payload === 'string') {
               text = payload;
@@ -179,7 +191,7 @@ export const useChatSSE = (chatIds: string[]): void => {
             }
           }
 
-          if (old.messages.some((item) => item.id === data.message.id)) {
+          if (old.messages.some((item) => item.id === message.id)) {
             return {
               ...old,
               capabilities: newCapabilities,
@@ -192,11 +204,9 @@ export const useChatSSE = (chatIds: string[]): void => {
 
           const newMessages = hasOptimistic
             ? old.messages.map((item) =>
-                item.id.startsWith('optimistic-') && item.senderId === currentUser
-                  ? data.message
-                  : item,
+                item.id.startsWith('optimistic-') && item.senderId === currentUser ? message : item,
               )
-            : [...old.messages, data.message];
+            : [...old.messages, message];
 
           return {
             ...old,
@@ -212,7 +222,7 @@ export const useChatSSE = (chatIds: string[]): void => {
           .invalidate({
             chatId: data.chatId,
             limit: CHAT_PAGE_SIZE,
-            parentId: data.message.parentId ?? undefined,
+            parentId: message.parentId ?? undefined,
           })
           .catch(console.error);
       }

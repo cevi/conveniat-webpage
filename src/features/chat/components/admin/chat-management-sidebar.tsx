@@ -81,27 +81,30 @@ export const ChatManagementSidebar: React.FC<ChatManagementSidebarProperties> = 
           : chats.map((chat) => {
               const hasUnread = chat.unreadCount > 0;
               const isEmergency = chat.chatType === 'EMERGENCY';
+              const showUnread = hasUnread && selectedChatId !== chat.id;
 
               // Determine classes cleanly without nested ternaries
               let cardBgClass = 'border-transparent hover:bg-[var(--theme-elevation-50)]';
               if (selectedChatId === chat.id) {
                 cardBgClass =
                   'border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-100)] shadow-sm';
-              } else if (hasUnread) {
+              } else if (showUnread) {
                 cardBgClass =
                   'border-[var(--theme-elevation-100)] bg-[var(--theme-elevation-50)] hover:bg-[var(--theme-elevation-100)]';
               }
 
-              const titleTextClass =
-                selectedChatId === chat.id || hasUnread
-                  ? 'text-[var(--theme-elevation-900)]'
-                  : 'text-[var(--theme-elevation-800)]';
+              let titleTextClass = 'text-[var(--theme-elevation-800)]';
+              if (selectedChatId === chat.id) {
+                titleTextClass = 'text-[var(--theme-elevation-900)]';
+              } else if (showUnread) {
+                titleTextClass = 'text-[var(--theme-elevation-900)] font-bold';
+              }
 
-              const descriptionTextClass = hasUnread
+              const descriptionTextClass = showUnread
                 ? 'text-[var(--theme-elevation-700)] font-medium'
                 : 'text-[var(--theme-elevation-500)]';
 
-              const messageCountTextClass = hasUnread
+              const messageCountTextClass = showUnread
                 ? 'text-[var(--theme-elevation-500)] font-semibold'
                 : 'text-[var(--theme-elevation-400)]';
 
@@ -112,7 +115,7 @@ export const ChatManagementSidebar: React.FC<ChatManagementSidebarProperties> = 
                   className={`relative w-full cursor-pointer rounded border p-3 pl-4 text-left transition-all ${cardBgClass}`}
                 >
                   {/* Glowing left accent indicator strip for unread chats */}
-                  {hasUnread && (
+                  {showUnread && (
                     <div
                       className={`absolute top-2 bottom-2 left-0 w-1 rounded-r transition-all ${
                         isEmergency
@@ -129,7 +132,7 @@ export const ChatManagementSidebar: React.FC<ChatManagementSidebarProperties> = 
                       {chat.name}
                     </span>
                     <div className="flex shrink-0 items-center gap-1.5">
-                      {hasUnread && (
+                      {showUnread && (
                         <span
                           className={`flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-[10px] leading-none font-bold text-white shadow-sm ${
                             isEmergency ? 'bg-red-500' : 'bg-[var(--theme-success-500)]'

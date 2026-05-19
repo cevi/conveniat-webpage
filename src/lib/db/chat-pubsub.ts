@@ -12,14 +12,15 @@ const isBuild =
   process.env['NEXT_PHASE'] === 'phase-production-build';
 
 export interface ChatRealtimeEvent {
-  type: 'new_message' | 'message_updated';
+  type: 'new_message' | 'message_updated' | 'chat_read_by_admin';
   chatId: string;
   senderId: string;
-  message: {
+  message?: {
     id: string;
     createdAt: Date;
     messagePayload: unknown;
     senderId: string | undefined;
+    senderName?: string;
     status: string;
     type: string;
     parentId?: string | undefined;
@@ -59,7 +60,7 @@ class ChatPubSub {
             try {
               const event = JSON.parse(message.payload) as ChatRealtimeEvent;
               // Parse date correctly if present
-              if (typeof event.message.createdAt === 'string') {
+              if (event.message && typeof event.message.createdAt === 'string') {
                 event.message.createdAt = new Date(event.message.createdAt);
               }
               this.emitter.emit(`chat:${event.chatId}`, event);
