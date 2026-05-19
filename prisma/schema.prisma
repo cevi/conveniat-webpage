@@ -117,6 +117,9 @@ model ChatMembership {
   /// indicates whether the user has deleted the chat
   hasDeleted Boolean @default(false)
 
+  /// High-water mark for read receipts
+  lastReadMessageId      String?
+
   chatPermission ChatMembershipPermission @default(MEMBER)
 
   @@id([userId, chatId])
@@ -145,7 +148,7 @@ enum MessageType {
 }
 
 model Message {
-  uuid String      @id @default(uuid())
+  uuid String      @id @default(uuid(7))
   type MessageType @default(TEXT_MSG)
 
   createdAt DateTime @default(now())
@@ -173,7 +176,7 @@ model Message {
 
 // we split the content of the message into a separate model to allow for versioning
 model MessageContent {
-  uuid String @id @default(uuid())
+  uuid String @id @default(uuid(7))
 
   /// versioning for content updates (e.g. editing messages)
   revision Int @default(0)

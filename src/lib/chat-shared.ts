@@ -49,3 +49,5 @@ export const getStatusFromMessageEvents = (
 
   return MessageEventType.CREATED;
 };
+
+export const LARGE_CHAT_THRESHOLD = 128;
