@@ -52,7 +52,16 @@ export const updateMessageContent = trpcBaseProcedure
     });
 
     // Check if this was an alert question being answered
-    if (message.type === MessageType.ALERT_QUESTION && content['selectedOption']) {
+    if (
+      message.type === MessageType.ALERT_QUESTION &&
+      typeof content['selectedOption'] === 'string'
+    ) {
+      // Touch the parent chat to update lastUpdate timestamp
+      await prisma.chat.update({
+        where: { uuid: message.chatId },
+        data: { lastUpdate: new Date() },
+      });
+
       const { getPayload } = await import('payload');
       const config = await import('@payload-config');
       const payloadAPI = await getPayload({ config: config.default });
@@ -63,7 +72,7 @@ export const updateMessageContent = trpcBaseProcedure
         fallbackLocale: 'de',
       });
 
-      const questions = alertSettings.questions || [];
+      const questions = alertSettings.questions ?? [];
       const currentQuestionIndex = questions.findIndex((q) => q.id === content['questionRefId']);
 
       if (currentQuestionIndex !== -1) {
