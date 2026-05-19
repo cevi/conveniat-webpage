@@ -94,7 +94,7 @@ class ChatPubSub {
     return this.connectingPromise;
   }
 
-  public async publish(_chatId: string, event: ChatRealtimeEvent): Promise<void> {
+  public async publish(event: ChatRealtimeEvent): Promise<void> {
     if (isBuild) return;
 
     const payload = JSON.stringify(event);
@@ -108,7 +108,11 @@ class ChatPubSub {
       return;
     }
 
-    await prisma.$executeRawUnsafe("SELECT pg_notify('chat_events', $1)", payload);
+    try {
+      await prisma.$executeRawUnsafe("SELECT pg_notify('chat_events', $1)", payload);
+    } catch (error) {
+      console.error('[ChatPubSub] Failed to execute pg_notify:', error);
+    }
   }
 
   public async subscribe(

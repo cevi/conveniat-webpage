@@ -59,7 +59,7 @@ export const ChatManagementMessages: React.FC<ChatManagementMessagesProperties> 
         {Object.entries(messagesByDate).map(([date, messagesForDate]) => (
           <div key={date}>
             <div className="my-6 flex justify-center">
-              <div className="rounded-full border border-(--theme-elevation-150) bg-(--theme-elevation-50) px-4 py-1 text-xs font-medium text-[var(--theme-elevation-500)] shadow-sm">
+              <div className="rounded-full border border-(--theme-elevation-150) bg-(--theme-elevation-50) px-4 py-1 text-xs font-medium text-(--theme-elevation-500) shadow-sm">
                 {date === new Date().toLocaleDateString()
                   ? (todayText[locale] ?? todayText['en'])
                   : date}

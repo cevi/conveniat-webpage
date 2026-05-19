@@ -62,6 +62,19 @@ export async function GET(request: NextRequest): Promise<Response> {
   const encoder = new TextEncoder();
   let keepAliveInterval: NodeJS.Timeout | undefined = undefined;
   const activeListeners = new Map<string, (event: ChatRealtimeEvent) => void>();
+  let cleanedUp = false;
+
+  const cleanup = (): void => {
+    if (cleanedUp) return;
+    cleanedUp = true;
+    if (keepAliveInterval) {
+      clearInterval(keepAliveInterval);
+    }
+    for (const [chatId, listener] of activeListeners.entries()) {
+      chatPubSub.unsubscribe(chatId, listener);
+    }
+    activeListeners.clear();
+  };
 
   const stream = new ReadableStream({
     async start(controller: ReadableStreamDefaultController<Uint8Array>): Promise<void> {
@@ -95,26 +108,14 @@ export async function GET(request: NextRequest): Promise<Response> {
     },
 
     cancel(): void {
-      if (keepAliveInterval) {
-        clearInterval(keepAliveInterval);
-      }
-      for (const [chatId, listener] of activeListeners.entries()) {
-        chatPubSub.unsubscribe(chatId, listener);
-      }
-      activeListeners.clear();
+      cleanup();
       console.log(`[SSE] Stream cancelled for user ${user.uuid}`);
     },
   });
 
   // Handle client abort gracefully
   request.signal.addEventListener('abort', () => {
-    if (keepAliveInterval) {
-      clearInterval(keepAliveInterval);
-    }
-    for (const [chatId, listener] of activeListeners.entries()) {
-      chatPubSub.unsubscribe(chatId, listener);
-    }
-    activeListeners.clear();
+    cleanup();
   });
 
   return new Response(stream, {

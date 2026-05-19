@@ -475,7 +475,7 @@ export const adminRouter = createTRPCRouter({
 
       // Publish real-time event via PostgreSQL NOTIFY (fire-and-forget)
       chatPubSub
-        .publish(input.chatId, {
+        .publish({
           type: 'new_message',
           chatId: input.chatId,
           senderId: user.uuid,

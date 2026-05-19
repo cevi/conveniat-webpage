@@ -215,7 +215,7 @@ export const createMessage = trpcBaseProcedure
 
     // Publish real-time event via PostgreSQL NOTIFY (fire-and-forget)
     chatPubSub
-      .publish(validatedMessage.chatId, {
+      .publish({
         type: 'new_message',
         chatId: validatedMessage.chatId,
         senderId: user.uuid,

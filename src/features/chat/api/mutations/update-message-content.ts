@@ -124,7 +124,7 @@ export const updateMessageContent = trpcBaseProcedure
 
         // Publish new_message event for the new question/response
         chatPubSub
-          .publish(message.chatId, {
+          .publish({
             type: 'new_message',
             chatId: message.chatId,
             senderId: createdNextMessage.senderId ?? '',
@@ -157,7 +157,7 @@ export const updateMessageContent = trpcBaseProcedure
 
     // Publish message_updated event for the original message
     chatPubSub
-      .publish(message.chatId, {
+      .publish({
         type: 'message_updated',
         chatId: message.chatId,
         senderId: user.uuid,
