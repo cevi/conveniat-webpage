@@ -1,5 +1,6 @@
 import type { ChatMessage } from '@/features/chat/api/types';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
+import { generateOptimisticId, isOptimisticMessageMatch } from '@/features/chat/utils';
 import { ChatStatus } from '@/lib/chat-shared';
 import type { ChatRealtimeEvent } from '@/lib/db/chat-pubsub';
 import type { ChatType } from '@/lib/prisma/client';
@@ -78,7 +79,7 @@ export const useAdminChatManagement = ({
       const currentUserId = previousMessages?.currentUserId ?? 'current-admin-user';
 
       const optimisticMessage = {
-        id: `optimistic-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        id: generateOptimisticId(),
         createdAt: new Date(),
         messagePayload: type === MessageType.IMAGE_MSG ? { url: content } : { text: content },
         senderId: currentUserId,
@@ -116,12 +117,10 @@ export const useAdminChatManagement = ({
           ...old,
           messages: old.messages
             .map((m) => {
-              const optimisticId = (context as { optimisticMessageId?: string } | undefined)
-                ?.optimisticMessageId;
-              const isMatch =
-                typeof optimisticId === 'string'
-                  ? m.id === optimisticId
-                  : m.id.startsWith('optimistic-');
+              const isMatch = isOptimisticMessageMatch(
+                m.id,
+                (context as { optimisticMessageId?: string } | undefined)?.optimisticMessageId,
+              );
               if (isMatch) {
                 return alreadyHasStored
                   ? undefined

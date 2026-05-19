@@ -1,6 +1,7 @@
 import type { ChatDetails, ChatMessage } from '@/features/chat/api/types';
 import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
 import { useChatActions } from '@/features/chat/context/chat-actions-context';
+import { generateOptimisticId, isOptimisticMessageMatch } from '@/features/chat/utils';
 import { SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import { ChatType, MessageEventType, MessageType } from '@/lib/prisma/client';
 import { toast } from '@/lib/toast';
@@ -70,7 +71,7 @@ const performOptimisticMessageUpdate = async (
   }
 
   const optimisticMessage: ChatMessage = {
-    id: `optimistic-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+    id: generateOptimisticId(),
     messagePayload: {
       text: content.trim(),
       ...(typeof quotedMessageId === 'string' &&
@@ -233,12 +234,10 @@ export const useMessageSend = (): UseMessageSendMutation => {
               ...page,
               items: page.items
                 .map((item) => {
-                  const optimisticId = (context as OptimisticUpdateResult | undefined)
-                    ?.optimisticMessageId;
-                  const isMatch =
-                    typeof optimisticId === 'string'
-                      ? item.id === optimisticId
-                      : item.id.startsWith('optimistic-');
+                  const isMatch = isOptimisticMessageMatch(
+                    item.id,
+                    (context as OptimisticUpdateResult | undefined)?.optimisticMessageId,
+                  );
                   if (isMatch) {
                     return alreadyHasStored ? undefined : createdMessage;
                   }
@@ -262,12 +261,10 @@ export const useMessageSend = (): UseMessageSendMutation => {
             ...oldData,
             messages: oldData.messages
               .map((item) => {
-                const optimisticId = (context as OptimisticUpdateResult | undefined)
-                  ?.optimisticMessageId;
-                const isMatch =
-                  typeof optimisticId === 'string'
-                    ? item.id === optimisticId
-                    : item.id.startsWith('optimistic-');
+                const isMatch = isOptimisticMessageMatch(
+                  item.id,
+                  (context as OptimisticUpdateResult | undefined)?.optimisticMessageId,
+                );
                 if (isMatch) {
                   return alreadyHasStored ? undefined : createdMessage;
                 }
