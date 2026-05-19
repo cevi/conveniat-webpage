@@ -8,7 +8,6 @@ import { FooterCopyrightClientWrapper } from '@/components/footer/footer-copyrig
 import { GlobalAppFooterClientWrapper } from '@/components/footer/global-app-footer-client-wrapper';
 import { HideFooterProvider } from '@/components/footer/hide-footer-context';
 import { HeaderComponent } from '@/components/header/header-component';
-import { NativePushProvider } from '@/components/native-push-provider';
 import { ServiceWorkerManager } from '@/components/service-worker/service-worker-manager';
 import { HideBackgroundLogoProvider } from '@/components/ui/hide-background-logo-context';
 import { environmentVariables } from '@/config/environment-variables';
@@ -78,19 +77,17 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
             <HideBackgroundLogoProvider>
               <ChunkErrorHandler />
               <ServiceWorkerManager>
-                <NativePushProvider>
-                  <AppShell
-                    header={<HeaderComponent locale={locale} inAppDesign={isInAppDesign} />}
-                    footer={
-                      <Suspense fallback={undefined}>
-                        <GlobalAppFooterWrapper locale={locale} design={design} />
-                      </Suspense>
-                    }
-                    inAppDesign={isInAppDesign}
-                  >
-                    {children}
-                  </AppShell>
-                </NativePushProvider>
+                <AppShell
+                  header={<HeaderComponent locale={locale} inAppDesign={isInAppDesign} />}
+                  footer={
+                    <Suspense fallback={undefined}>
+                      <GlobalAppFooterWrapper locale={locale} design={design} />
+                    </Suspense>
+                  }
+                  inAppDesign={isInAppDesign}
+                >
+                  {children}
+                </AppShell>
               </ServiceWorkerManager>
             </HideBackgroundLogoProvider>
           </HideFooterProvider>

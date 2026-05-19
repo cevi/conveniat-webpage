@@ -3,11 +3,11 @@
 import { environmentVariables } from '@/config/environment-variables';
 import type { PushNotificationSubscription } from '@/features/payload-cms/payload-types';
 import { sendFcmNotification } from '@/lib/firebase-admin';
+import { PushNotificationChannel } from '@/lib/prisma';
 import type { StaticTranslationString } from '@/types/types';
 import { auth } from '@/utils/auth';
 import { getPayloadUserFromNextAuthUser, isValidNextAuthUser } from '@/utils/auth-helpers';
 import config from '@payload-config';
-import { PushNotificationChannel } from '@prisma/client';
 import type { Where } from 'payload';
 import { getPayload } from 'payload';
 import webpush from 'web-push';
