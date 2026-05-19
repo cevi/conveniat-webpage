@@ -34,6 +34,30 @@ export const ChatManagementSidebar: React.FC<ChatManagementSidebarProperties> = 
   showClosed,
   onShowClosedChange,
 }) => {
+  const scrollContainerReference = React.useRef<HTMLDivElement>(null);
+
+  const handleScroll = (): void => {
+    if (scrollContainerReference.current) {
+      sessionStorage.setItem(
+        `chat-sidebar-scroll-${title}`,
+        String(scrollContainerReference.current.scrollTop),
+      );
+    }
+  };
+
+  React.useEffect(() => {
+    if (!loadingChats && scrollContainerReference.current) {
+      const saved = sessionStorage.getItem(`chat-sidebar-scroll-${title}`);
+      if (saved !== null && saved !== '') {
+        const container = scrollContainerReference.current;
+        const targetScroll = Number(saved);
+        requestAnimationFrame(() => {
+          container.scrollTop = targetScroll;
+        });
+      }
+    }
+  }, [loadingChats, chats, title]);
+
   return (
     <div className="flex w-[340px] shrink-0 flex-col border-r border-(--theme-border-color)">
       <div className="space-y-4 border-b border-(--theme-border-color) p-4">
@@ -73,7 +97,11 @@ export const ChatManagementSidebar: React.FC<ChatManagementSidebarProperties> = 
           </label>
         </div>
       </div>
-      <div className="flex-1 space-y-1 overflow-y-auto p-2">
+      <div
+        ref={scrollContainerReference}
+        onScroll={handleScroll}
+        className="flex-1 space-y-1 overflow-y-auto p-2"
+      >
         {loadingChats
           ? Array.from({ length: 5 }).map((_, index) => (
               <Skeleton key={index} className="h-20 w-full" />
