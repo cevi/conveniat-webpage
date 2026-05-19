@@ -10,20 +10,32 @@ import { getPayloadUserFromNextAuthUser, isValidNextAuthUser } from '@/utils/aut
 import config from '@payload-config';
 import type { Where } from 'payload';
 import { getPayload } from 'payload';
-import webpush from 'web-push';
+import type webpush from 'web-push';
+
+type WebPushSubscription = webpush.PushSubscription;
 
 const NEXT_PUBLIC_APP_HOST_URL = environmentVariables.NEXT_PUBLIC_APP_HOST_URL;
 
 // vapid subject must be mailto or https, thus we fall back to https://conveniat27.ch
 // if the NEXT_PUBLIC_APP_HOST_URL is not set or localhost
-const subject: string | undefined =
+const subject: string =
   NEXT_PUBLIC_APP_HOST_URL !== '' && NEXT_PUBLIC_APP_HOST_URL.includes('https://')
     ? NEXT_PUBLIC_APP_HOST_URL
     : 'https://conveniat27.ch';
 const publicKey: string = environmentVariables.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 const privateKey: string = environmentVariables.VAPID_PRIVATE_KEY;
 
-webpush.setVapidDetails(subject, publicKey, privateKey);
+// Lazy-init web-push to avoid top-level side effects that break
+// client-side module evaluation (web-push is Node.js-only).
+let webpushInstance: typeof webpush | undefined;
+async function getWebPush(): Promise<typeof webpush> {
+  if (!webpushInstance) {
+    const module_ = await import('web-push');
+    webpushInstance = module_.default;
+    webpushInstance.setVapidDetails(subject, publicKey, privateKey);
+  }
+  return webpushInstance;
+}
 
 const subscribedConfirmationPush: StaticTranslationString = {
   de: 'Du hast dich erfolgreich für Push-Benachrichtigungen angemeldet.',
@@ -38,7 +50,7 @@ const subscribedConfirmationPush: StaticTranslationString = {
  * @param locale
  */
 export async function subscribeUser(
-  sub: webpush.PushSubscription,
+  sub: WebPushSubscription,
   locale: 'de' | 'fr' | 'en',
   userAgent?: string,
   registrationSource?: '/entrypoint' | '/app/settings',
@@ -132,9 +144,7 @@ export async function subscribeUser(
 /**
  * Unsubscribes the user from push notifications.
  */
-export async function unsubscribeUser(
-  sub: webpush.PushSubscription,
-): Promise<{ success: boolean }> {
+export async function unsubscribeUser(sub: WebPushSubscription): Promise<{ success: boolean }> {
   const payload = await getPayload({ config });
 
   const query: Where = {
@@ -238,7 +248,8 @@ export async function sendNotificationToSubscription(
         };
       }
 
-      await webpush.sendNotification(
+      const wp = await getWebPush();
+      await wp.sendNotification(
         webSub,
         JSON.stringify({
           title: 'conveniat27',

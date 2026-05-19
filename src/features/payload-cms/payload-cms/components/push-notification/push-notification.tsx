@@ -1,6 +1,6 @@
 'use client';
 
-import { sendNotificationToSubscription } from '@/utils/push-notification-api';
+import { sendNotificationToSubscriptionAction } from '@/utils/push-notification-actions';
 import { useDocumentInfo } from '@payloadcms/ui';
 import type webpush from 'web-push';
 
@@ -27,7 +27,7 @@ const SendPushNotification: React.FC = () => {
       userId = (userField as { id: string }).id;
     }
 
-    const success = await sendNotificationToSubscription(
+    const success = await sendNotificationToSubscriptionAction(
       subscription,
       (document.querySelector('#send-push-content') as HTMLInputElement).value,
       (document.querySelector('#send-push-url') as HTMLInputElement).value,

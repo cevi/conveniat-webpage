@@ -2,7 +2,7 @@
 
 import { Input } from '@/components/ui/input';
 import { trpc } from '@/trpc/client';
-import { sendNotificationToSubscription } from '@/utils/push-notification-api';
+import { sendNotificationToSubscriptionAction } from '@/utils/push-notification-actions';
 import { cva } from 'class-variance-authority';
 import { AlertCircle, Send, X } from 'lucide-react';
 import React, { useState } from 'react';
@@ -89,7 +89,7 @@ export const SendNotificationModal: React.FC<SendNotificationModalProperties> = 
     setError(undefined);
 
     try {
-      const result = await sendNotificationToSubscription(subscription, content, url, userId);
+      const result = await sendNotificationToSubscriptionAction(subscription, content, url, userId);
       if (result.success) {
         setContent('');
         setUrl('');
