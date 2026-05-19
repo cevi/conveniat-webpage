@@ -11,6 +11,8 @@ import { getMessagePreviewText } from '@/features/chat/api/utils/get-message-pre
 // eslint-disable-next-line import/no-restricted-paths
 import { resolveChatName } from '@/features/chat/api/utils/resolve-chat-name';
 // eslint-disable-next-line import/no-restricted-paths
+import { sendNotification } from '@/features/chat/api/utils/send-push-notifications';
+// eslint-disable-next-line import/no-restricted-paths
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { hasAccessToThisUser, Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { getFeatureFlag, setFeatureFlag } from '@/lib/db/redis';
@@ -386,6 +388,15 @@ export const adminRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const { prisma, user } = ctx;
 
+      const chat = await prisma.chat.findUnique({
+        where: { uuid: input.chatId },
+        select: { chatMemberships: true },
+      });
+
+      if (!chat) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Chat not found' });
+      }
+
       const message = await prisma.message.create({
         data: {
           chatId: input.chatId,
@@ -409,6 +420,26 @@ export const adminRouter = createTRPCRouter({
         where: { uuid: input.chatId },
         data: { lastUpdate: new Date() },
       });
+
+      const recipientUserIds = chat.chatMemberships
+        .filter((membership) => membership.userId !== user.uuid)
+        .map((membership) => membership.userId);
+
+      sendNotification(input.content, recipientUserIds, input.chatId, message.uuid).catch(
+        (error: unknown) => {
+          console.error('Failed to send admin push notification:', error);
+        },
+      );
+
+      if (recipientUserIds.length > 0) {
+        await prisma.messageEvent.createMany({
+          data: recipientUserIds.map((userId) => ({
+            userId: userId,
+            messageId: message.uuid,
+            type: MessageEventType.DISTRIBUTED,
+          })),
+        });
+      }
 
       return message;
     }),

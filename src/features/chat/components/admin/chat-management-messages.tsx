@@ -47,7 +47,7 @@ export const ChatManagementMessages: React.FC<ChatManagementMessagesProperties> 
 
   if (loading && messages.length === 0) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center space-y-2 opacity-50">
+      <div className="flex flex-1 flex-col items-center justify-center space-y-2 text-[var(--theme-elevation-400)]">
         <Loader2 className="animate-spin" />
         <div className="text-sm">{loadingMessagesText[locale] || loadingMessagesText['en']}</div>
       </div>
@@ -55,13 +55,13 @@ export const ChatManagementMessages: React.FC<ChatManagementMessagesProperties> 
   }
 
   return (
-    <div className="flex flex-1 flex-col overflow-y-auto bg-[var(--theme-bg)] p-4">
+    <div className="flex flex-1 flex-col overflow-y-auto bg-[var(--theme-elevation-0)] p-4">
       <div className="flex-1" />
       <div className="space-y-6">
         {Object.entries(messagesByDate).map(([date, messagesForDate]) => (
           <div key={date}>
             <div className="my-6 flex justify-center">
-              <div className="font-body rounded-full border border-[var(--theme-elevation-200)] bg-[var(--theme-elevation-50)] px-4 py-1 text-xs font-medium text-[var(--theme-text)] opacity-70 shadow-sm">
+              <div className="rounded-full border border-[var(--theme-elevation-150)] bg-[var(--theme-elevation-50)] px-4 py-1 text-xs font-medium text-[var(--theme-elevation-500)] shadow-sm">
                 {date === new Date().toLocaleDateString()
                   ? todayText[locale] || todayText['en']
                   : date}
