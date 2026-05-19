@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/buttons/button';
 import { useAutoResizeTextarea } from '@/features/chat/components/chat-view/chat-text-area-input/hooks/use-auto-resize-textarea';
 import { useImageUpload } from '@/features/chat/hooks/use-image-upload';
+import { MessageEventType, MessageType } from '@/lib/prisma/client';
 import { trpc } from '@/trpc/client';
 import { Paperclip, Send } from 'lucide-react';
 import React, { useRef, useState } from 'react';
@@ -46,15 +47,81 @@ export const ChatManagementInput: React.FC<ChatManagementInputProperties> = ({
   const { textareaRef, resize } = useAutoResizeTextarea(newMessage);
 
   const adminGetUploadUrlMutation = trpc.admin.getAdminUploadUrl.useMutation();
-  const adminPostMessageMutation = trpc.admin.postAdminMessage.useMutation();
+  const adminPostMessageMutation = trpc.admin.postAdminMessage.useMutation({
+    async onMutate(input) {
+      await trpcUtils.admin.getChatMessages.cancel({ chatId: input.chatId });
+
+      const previousMessages = trpcUtils.admin.getChatMessages.getData({ chatId: input.chatId });
+
+      const optimisticMessage = {
+        id: `optimistic-${Date.now()}`,
+        createdAt: new Date(),
+        messagePayload:
+          input.type === MessageType.IMAGE_MSG ? { url: input.content } : { text: input.content },
+        senderId: 'current-admin-user',
+        senderName: 'You (Admin)',
+        type: input.type ?? MessageType.TEXT_MSG,
+        status: MessageEventType.CREATED,
+        isAdminMessage: true,
+      };
+
+      trpcUtils.admin.getChatMessages.setData({ chatId: input.chatId }, (old) => {
+        if (!old) {
+          return {
+            messages: [optimisticMessage],
+            currentUserId: 'current-admin-user',
+          };
+        }
+        return {
+          ...old,
+          messages: [...old.messages, optimisticMessage],
+        };
+      });
+
+      return { previousMessages };
+    },
+    onError: (_error, input, context) => {
+      if (context?.previousMessages) {
+        trpcUtils.admin.getChatMessages.setData({ chatId: input.chatId }, context.previousMessages);
+      }
+    },
+    onSuccess: (createdMessage, input) => {
+      trpcUtils.admin.getChatMessages.setData({ chatId: input.chatId }, (old) => {
+        if (!old) return old;
+        const alreadyHasStored = old.messages.some((m) => m.id === createdMessage.uuid);
+        return {
+          ...old,
+          messages: old.messages
+            .map((m) => {
+              if (m.id.startsWith('optimistic-')) {
+                return alreadyHasStored
+                  ? undefined
+                  : {
+                      id: createdMessage.uuid,
+                      createdAt: createdMessage.createdAt,
+                      messagePayload:
+                        input.type === MessageType.IMAGE_MSG
+                          ? { url: input.content }
+                          : { text: input.content },
+                      senderId: createdMessage.senderId ?? 'current-admin-user',
+                      senderName: 'You (Admin)',
+                      type: input.type ?? MessageType.TEXT_MSG,
+                      status: MessageEventType.STORED,
+                      isAdminMessage: true,
+                    };
+              }
+              return m;
+            })
+            .filter((m): m is (typeof old.messages)[0] => m !== undefined),
+        };
+      });
+      void trpcUtils.admin.listSupportChats.invalidate();
+    },
+  });
 
   const { uploadImage, isPending: isUploading } = useImageUpload({
     chatId,
-    onSuccess: () => {
-      // Refresh or handle success
-      // Invalidate chat messages query
-      void trpcUtils.admin.getChatMessages.invalidate({ chatId });
-    },
+    onSuccess: () => {},
     onError: (error) => {
       alert('Failed to upload image: ' + error.message);
     },

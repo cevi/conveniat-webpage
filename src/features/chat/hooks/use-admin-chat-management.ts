@@ -2,6 +2,7 @@ import type { ChatMessage } from '@/features/chat/api/types';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { ChatStatus } from '@/lib/chat-shared';
 import type { ChatType } from '@/lib/prisma/client';
+import { MessageEventType, MessageType } from '@/lib/prisma/client';
 import { trpc } from '@/trpc/client';
 import { useEffect } from 'react';
 
@@ -56,10 +57,70 @@ export const useAdminChatManagement = ({
   );
 
   const sendMessageMutation = trpc.admin.postAdminMessage.useMutation({
-    onSuccess: () => {
-      if (selectedChatId) {
-        void utils.admin.getChatMessages.invalidate({ chatId: selectedChatId });
+    async onMutate({ chatId, content, type }) {
+      await utils.admin.getChatMessages.cancel({ chatId });
+
+      const previousMessages = utils.admin.getChatMessages.getData({ chatId });
+
+      const optimisticMessage = {
+        id: `optimistic-${Date.now()}`,
+        createdAt: new Date(),
+        messagePayload: type === MessageType.IMAGE_MSG ? { url: content } : { text: content },
+        senderId: 'current-admin-user',
+        senderName: 'You (Admin)',
+        type: type ?? MessageType.TEXT_MSG,
+        status: MessageEventType.CREATED,
+        isAdminMessage: true,
+      };
+
+      utils.admin.getChatMessages.setData({ chatId }, (old) => {
+        if (!old) {
+          return {
+            messages: [optimisticMessage],
+            currentUserId: 'current-admin-user',
+          };
+        }
+        return {
+          ...old,
+          messages: [...old.messages, optimisticMessage],
+        };
+      });
+
+      return { previousMessages };
+    },
+    onError: (_error, { chatId }, context) => {
+      if (context?.previousMessages) {
+        utils.admin.getChatMessages.setData({ chatId }, context.previousMessages);
       }
+    },
+    onSuccess: (createdMessage, { chatId, content, type }) => {
+      utils.admin.getChatMessages.setData({ chatId }, (old) => {
+        if (!old) return old;
+        const alreadyHasStored = old.messages.some((m) => m.id === createdMessage.uuid);
+        return {
+          ...old,
+          messages: old.messages
+            .map((m) => {
+              if (m.id.startsWith('optimistic-')) {
+                return alreadyHasStored
+                  ? undefined
+                  : {
+                      id: createdMessage.uuid,
+                      createdAt: createdMessage.createdAt,
+                      messagePayload:
+                        type === MessageType.IMAGE_MSG ? { url: content } : { text: content },
+                      senderId: createdMessage.senderId ?? 'current-admin-user',
+                      senderName: 'You (Admin)',
+                      type: type ?? MessageType.TEXT_MSG,
+                      status: MessageEventType.STORED,
+                      isAdminMessage: true,
+                    };
+              }
+              return m;
+            })
+            .filter((m): m is (typeof old.messages)[0] => m !== undefined),
+        };
+      });
       void utils.admin.listSupportChats.invalidate();
     },
   });
