@@ -73,6 +73,7 @@ export interface Config {
     'outgoing-emails': OutgoingEmail;
     'bill-participants': BillParticipant;
     'bill-pdfs': BillPdf;
+    'piket-schedules': PiketSchedule;
     forms: Form;
     'form-submissions': FormSubmission;
     'search-collection': SearchCollection;
@@ -127,6 +128,7 @@ export interface Config {
     'outgoing-emails': OutgoingEmailsSelect<false> | OutgoingEmailsSelect<true>;
     'bill-participants': BillParticipantsSelect<false> | BillParticipantsSelect<true>;
     'bill-pdfs': BillPdfsSelect<false> | BillPdfsSelect<true>;
+    'piket-schedules': PiketSchedulesSelect<false> | PiketSchedulesSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     'search-collection': SearchCollectionSelect<false> | SearchCollectionSelect<true>;
@@ -193,6 +195,7 @@ export interface Config {
       checkHitobitoApprovals: TaskCheckHitobitoApprovals;
       generatePdfThumbnail: TaskGeneratePdfThumbnail;
       publishScheduledAnnouncements: TaskPublishScheduledAnnouncements;
+      syncActivePiketMembers: TaskSyncActivePiketMembers;
       createCollectionExport: TaskCreateCollectionExport;
       createCollectionImport: TaskCreateCollectionImport;
       inline: {
@@ -3564,6 +3567,21 @@ export interface BillPdf {
   focalY?: number | null;
 }
 /**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "piket-schedules".
+ */
+export interface PiketSchedule {
+  id: string;
+  users: (string | User)[];
+  startTime: string;
+  endTime: string;
+  chatTypes: ('EMERGENCY' | 'SUPPORT_GROUP')[];
+  lastEditedByUser?: (string | null) | User;
+  updatedAt: string;
+  createdAt: string;
+  deletedAt?: string | null;
+}
+/**
  * This is a collection of automatically created search results. These results are used by the global site search and will be updated automatically as documents in the CMS are created or updated.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -3771,6 +3789,7 @@ export interface PayloadJob {
           | 'checkHitobitoApprovals'
           | 'generatePdfThumbnail'
           | 'publishScheduledAnnouncements'
+          | 'syncActivePiketMembers'
           | 'createCollectionExport'
           | 'createCollectionImport';
         taskID: string;
@@ -3820,6 +3839,7 @@ export interface PayloadJob {
         | 'checkHitobitoApprovals'
         | 'generatePdfThumbnail'
         | 'publishScheduledAnnouncements'
+        | 'syncActivePiketMembers'
         | 'createCollectionExport'
         | 'createCollectionImport'
       )
@@ -3937,6 +3957,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'bill-pdfs';
         value: string | BillPdf;
+      } | null)
+    | ({
+        relationTo: 'piket-schedules';
+        value: string | PiketSchedule;
       } | null)
     | ({
         relationTo: 'forms';
@@ -5565,6 +5589,20 @@ export interface BillPdfsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "piket-schedules_select".
+ */
+export interface PiketSchedulesSelect<T extends boolean = true> {
+  users?: T;
+  startTime?: T;
+  endTime?: T;
+  chatTypes?: T;
+  lastEditedByUser?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  deletedAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "forms_select".
  */
 export interface FormsSelect<T extends boolean = true> {
@@ -7091,6 +7129,14 @@ export interface TaskPublishScheduledAnnouncements {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskSyncActivePiketMembers".
+ */
+export interface TaskSyncActivePiketMembers {
+  input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskCreateCollectionExport".
  */
 export interface TaskCreateCollectionExport {
@@ -7122,6 +7168,7 @@ export interface TaskCreateCollectionExport {
       | 'outgoing-emails'
       | 'bill-participants'
       | 'bill-pdfs'
+      | 'piket-schedules'
       | 'forms'
       | 'form-submissions'
       | 'search-collection'
