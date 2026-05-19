@@ -69,7 +69,7 @@ export async function GET(request: NextRequest): Promise<Response> {
 
   const encoder = new TextEncoder();
   let keepAliveInterval: NodeJS.Timeout | undefined = undefined;
-  const activeListeners = new Map<string, (event: ChatRealtimeEvent) => void>();
+  const activeListeners = new Map<string, () => void>();
   let cleanedUp = false;
   const isCleanedUp = (): boolean => cleanedUp;
 
@@ -79,8 +79,8 @@ export async function GET(request: NextRequest): Promise<Response> {
     if (keepAliveInterval) {
       clearInterval(keepAliveInterval);
     }
-    for (const [chatId, listener] of activeListeners.entries()) {
-      chatPubSub.unsubscribe(chatId, listener);
+    for (const unsubscribe of activeListeners.values()) {
+      unsubscribe();
     }
     activeListeners.clear();
   };
@@ -113,15 +113,20 @@ export async function GET(request: NextRequest): Promise<Response> {
           }
         };
 
-        await chatPubSub.subscribe(chatId, listener);
+        try {
+          const unsubscribe = await chatPubSub.subscribe(chatId, listener);
 
-        // Guard against race conditions if client aborted during the await
-        if (isCleanedUp()) {
-          chatPubSub.unsubscribe(chatId, listener);
-          break;
+          // Guard against race conditions if client aborted during the await
+          if (isCleanedUp()) {
+            unsubscribe();
+            break;
+          }
+
+          activeListeners.set(chatId, unsubscribe);
+        } catch (error) {
+          console.error(`[SSE] Failed to subscribe to chat ${chatId}:`, error);
+          // Could optionally send an error event to the client here
         }
-
-        activeListeners.set(chatId, listener);
       }
     },
 

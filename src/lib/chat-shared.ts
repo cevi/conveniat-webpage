@@ -17,10 +17,7 @@ export const CHAT_CAPABILITY_PICTURE_UPLOAD = ChatCapability.PICTURE_UPLOAD;
 
 export const SYSTEM_MSG_TYPE_EMERGENCY_ALERT = 'emergency_alert';
 
-export enum ChatStatus {
-  OPEN = 'OPEN',
-  CLOSED = 'CLOSED',
-}
+export { ChatStatus } from '@/lib/prisma/client';
 
 export const USER_RELEVANT_MESSAGE_EVENTS = [
   MessageEventType.STORED, // show one tick

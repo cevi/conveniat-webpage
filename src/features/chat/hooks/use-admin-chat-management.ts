@@ -5,7 +5,7 @@ import type { ChatRealtimeEvent } from '@/lib/db/chat-pubsub';
 import type { ChatType } from '@/lib/prisma/client';
 import { MessageEventType, MessageType } from '@/lib/prisma/client';
 import { trpc } from '@/trpc/client';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import superjson from 'superjson';
 
 interface UseAdminChatManagementOptions {
@@ -13,6 +13,7 @@ interface UseAdminChatManagementOptions {
   selectedChatId: string | undefined | null;
   showClosed: boolean;
   debouncedSearch: string;
+  locale: string;
 }
 
 export const useAdminChatManagement = ({
@@ -20,6 +21,7 @@ export const useAdminChatManagement = ({
   selectedChatId,
   showClosed,
   debouncedSearch,
+  locale,
 }: UseAdminChatManagementOptions): {
   chats: ChatWithMessagePreview[];
   messages: ChatMessage[];
@@ -30,7 +32,7 @@ export const useAdminChatManagement = ({
   isClosing: boolean;
   isReopening: boolean;
   fetchChats: () => Promise<void>;
-  sendMessage: (content: string) => Promise<void>;
+  sendMessage: (content: string, type?: MessageType) => Promise<void>;
   closeChat: () => Promise<void>;
   reopenChat: () => Promise<void>;
 } => {
@@ -54,10 +56,16 @@ export const useAdminChatManagement = ({
       enabled: typeof selectedChatId === 'string' && selectedChatId !== '',
       // TODO:
       //   - Refetch perodically or rely on invalidation?
-      //   - Admin might want live updates?
-      //   - Let's stick to standard behavior + invalidation on actions.
     },
   );
+
+  const markChatAsReadMutation = trpc.admin.markChatAsRead.useMutation();
+
+  useEffect(() => {
+    if (selectedChatId) {
+      markChatAsReadMutation.mutate({ chatId: selectedChatId });
+    }
+  }, [selectedChatId, markChatAsReadMutation]);
 
   const sendMessageMutation = trpc.admin.postAdminMessage.useMutation({
     async onMutate({ chatId, content, type }) {
@@ -71,7 +79,7 @@ export const useAdminChatManagement = ({
         createdAt: new Date(),
         messagePayload: type === MessageType.IMAGE_MSG ? { url: content } : { text: content },
         senderId: currentUserId,
-        senderName: 'You (Admin)',
+        senderName: locale === 'de' ? 'Du (Admin)' : 'You (Admin)',
         type: type ?? MessageType.TEXT_MSG,
         status: MessageEventType.CREATED,
         isAdminMessage: true,
@@ -114,7 +122,7 @@ export const useAdminChatManagement = ({
                       messagePayload:
                         type === MessageType.IMAGE_MSG ? { url: content } : { text: content },
                       senderId: createdMessage.senderId ?? 'current-admin-user',
-                      senderName: 'You (Admin)',
+                      senderName: locale === 'de' ? 'Du (Admin)' : 'You (Admin)',
                       type: type ?? MessageType.TEXT_MSG,
                       status: MessageEventType.STORED,
                       isAdminMessage: true,
@@ -138,6 +146,11 @@ export const useAdminChatManagement = ({
     },
   });
 
+  const selectedChatIdReference = useRef(selectedChatId);
+  useEffect(() => {
+    selectedChatIdReference.current = selectedChatId;
+  }, [selectedChatId]);
+
   useEffect(() => {
     const url = `/api/chat/sse?chatIds=all`;
     const eventSource = new EventSource(url);
@@ -155,12 +168,13 @@ export const useAdminChatManagement = ({
         // We explicitly ignore 'chat_read_by_admin' events to prevent an infinite feedback loop,
         // as fetching admin messages automatically updates the admin read timestamp and publishes
         // a 'chat_read_by_admin' event.
+        const currentSelectedChatId = selectedChatIdReference.current;
         if (
-          selectedChatId &&
-          chatEvent.chatId === selectedChatId &&
+          currentSelectedChatId &&
+          chatEvent.chatId === currentSelectedChatId &&
           chatEvent.type !== 'chat_read_by_admin'
         ) {
-          void utils.admin.getChatMessages.invalidate({ chatId: selectedChatId });
+          void utils.admin.getChatMessages.invalidate({ chatId: currentSelectedChatId });
         }
       } catch (error) {
         console.error('[Admin SSE] Failed to parse real-time event:', error);
@@ -173,7 +187,7 @@ export const useAdminChatManagement = ({
       eventSource.removeEventListener('message', handleMessage);
       eventSource.close();
     };
-  }, [selectedChatId, utils]);
+  }, [utils]);
 
   const reopenChatMutation = trpc.admin.reopenChat.useMutation({
     onSuccess: () => {
@@ -196,9 +210,9 @@ export const useAdminChatManagement = ({
     fetchChats: async (): Promise<void> => {
       await refetchChats();
     },
-    sendMessage: async (content: string): Promise<void> => {
+    sendMessage: async (content: string, type?: MessageType): Promise<void> => {
       if (!selectedChatId) return;
-      await sendMessageMutation.mutateAsync({ chatId: selectedChatId, content });
+      await sendMessageMutation.mutateAsync({ chatId: selectedChatId, content, type });
     },
     closeChat: async (): Promise<void> => {
       if (!selectedChatId) return;

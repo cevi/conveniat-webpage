@@ -33,13 +33,13 @@ export const ChatManagementHeader: React.FC<ChatManagementHeaderProperties> = ({
   onReopenChat,
 }) => {
   return (
-    <div className="flex items-center justify-between border-b border-[var(--theme-border-color)] bg-[var(--theme-elevation-50)] px-6 py-4">
+    <div className="flex items-center justify-between border-b border-(--theme-border-color) bg-(--theme-elevation-50) px-6 py-4">
       <div className="min-w-0 flex-1">
-        <h2 className="truncate text-lg font-semibold text-[var(--theme-elevation-900)]">
+        <h2 className="truncate text-lg font-semibold text-(--theme-elevation-900)">
           {selectedChat.name}
         </h2>
-        {selectedChat.description && (
-          <div className="mt-0.5 truncate text-sm text-[var(--theme-elevation-500)]">
+        {selectedChat.description != undefined && (
+          <div className="mt-0.5 truncate text-sm text-(--theme-elevation-500)">
             {selectedChat.description}
           </div>
         )}
@@ -48,14 +48,14 @@ export const ChatManagementHeader: React.FC<ChatManagementHeaderProperties> = ({
         {selectedChat.status === ChatStatus.OPEN ? (
           <button
             onClick={onCloseChat}
-            className="cursor-pointer rounded border border-[var(--theme-error-500)] bg-[var(--theme-error-500)] px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[var(--theme-error-600)]"
+            className="cursor-pointer rounded border border-(--theme-error-500) bg-(--theme-error-500) px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[var(--theme-error-600)]"
           >
             {getCloseButtonText(chatType, locale)}
           </button>
         ) : (
           <button
             onClick={onReopenChat}
-            className="cursor-pointer rounded border border-[var(--theme-success-500)] bg-transparent px-4 py-2 text-sm font-medium text-[var(--theme-success-500)] shadow-sm transition-colors hover:bg-[var(--theme-success-500)] hover:text-white"
+            className="cursor-pointer rounded border border-(--theme-success-500) bg-transparent px-4 py-2 text-sm font-medium text-[var(--theme-success-500)] shadow-sm transition-colors hover:bg-[var(--theme-success-500)] hover:text-white"
           >
             {getReopenButtonText(chatType, locale)}
           </button>

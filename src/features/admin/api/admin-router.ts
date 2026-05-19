@@ -1,5 +1,5 @@
+import type { ChatCapability } from '@/lib/chat-shared';
 import {
-  ChatCapability,
   ChatStatus,
   getStatusFromMessageEvents,
   SYSTEM_SENDER_ID,
@@ -271,7 +271,7 @@ export const adminRouter = createTRPCRouter({
               user,
             ),
             description: chat.description,
-            status: chat.status as ChatStatus,
+            status: chat.status,
             chatType: chat.type,
             lastUpdate: chat.lastUpdate,
             unreadCount: 0,
@@ -308,7 +308,7 @@ export const adminRouter = createTRPCRouter({
             user,
           ),
           description: chat.description,
-          status: chat.status as ChatStatus,
+          status: chat.status,
           chatType: chat.type,
           id: chat.uuid,
           messageCount: chat._count.messages,
@@ -355,19 +355,6 @@ export const adminRouter = createTRPCRouter({
     .input(z.object({ chatId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       const { prisma, user } = ctx;
-
-      // Automatically update the adminReadAt timestamp to mark as read
-      await prisma.chat.update({
-        where: { uuid: input.chatId },
-        data: { adminReadAt: new Date() },
-      });
-
-      // Publish real-time event to update standard users' checkmarks instantly
-      void chatPubSub.publish({
-        type: 'chat_read_by_admin',
-        chatId: input.chatId,
-        senderId: user.uuid,
-      });
 
       const chat = await prisma.chat.findUnique({
         where: { uuid: input.chatId },
@@ -423,6 +410,26 @@ export const adminRouter = createTRPCRouter({
         messages: formattedMessages,
         currentUserId: user.uuid,
       };
+    }),
+
+  markChatAsRead: adminProcedure
+    .input(z.object({ chatId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const { prisma, user } = ctx;
+
+      await prisma.chat.update({
+        where: { uuid: input.chatId },
+        data: { adminReadAt: new Date() },
+      });
+
+      // Publish real-time event to update standard users' checkmarks instantly
+      void chatPubSub.publish({
+        type: 'chat_read_by_admin',
+        chatId: input.chatId,
+        senderId: user.uuid,
+      });
+
+      return { success: true };
     }),
 
   postAdminMessage: adminProcedure
@@ -558,17 +565,6 @@ export const adminRouter = createTRPCRouter({
       });
 
       if (!chat) throw new TRPCError({ code: 'NOT_FOUND' });
-
-      // Remove CAN_SEND_MESSAGES
-      const newCapabilities = chat.capabilities.filter(
-        (c) => (c as string) !== (ChatCapability.CAN_SEND_MESSAGES as string),
-      );
-
-      await prisma.chat.update({
-        where: { uuid: input.chatId },
-        data: { capabilities: newCapabilities },
-      });
-
       const closeMessages: Record<ChatType, { en: string; de: string; fr: string }> = {
         [ChatType.EMERGENCY]: {
           en: `${user.name} has marked the emergency alert as completed.`,
@@ -604,7 +600,10 @@ export const adminRouter = createTRPCRouter({
           type: MessageType.SYSTEM_MSG,
           contentVersions: {
             create: {
-              payload: closeMessages[chat.type],
+              payload: {
+                ...closeMessages[chat.type],
+                systemMessageType: 'CHAT_CLOSED',
+              },
             },
           },
           messageEvents: {
@@ -619,7 +618,7 @@ export const adminRouter = createTRPCRouter({
       const updatedChat = await prisma.chat.update({
         where: { uuid: input.chatId },
         data: {
-          status: 'CLOSED',
+          status: ChatStatus.CLOSED,
           lastUpdate: new Date(),
         },
       });
@@ -633,7 +632,10 @@ export const adminRouter = createTRPCRouter({
           message: {
             id: systemMessage.uuid,
             createdAt: systemMessage.createdAt,
-            messagePayload: closeMessages[chat.type],
+            messagePayload: {
+              ...closeMessages[chat.type],
+              systemMessageType: 'CHAT_CLOSED',
+            },
             senderId: SYSTEM_SENDER_ID,
             status: MessageEventType.STORED,
             type: MessageType.SYSTEM_MSG,
@@ -642,6 +644,21 @@ export const adminRouter = createTRPCRouter({
         })
         .catch((error: unknown) => {
           console.error('Failed to publish real-time system event on close:', error);
+        });
+
+      // Publish chat_updated event
+      chatPubSub
+        .publish({
+          type: 'chat_updated',
+          chatId: input.chatId,
+          senderId: SYSTEM_SENDER_ID,
+          chat: {
+            status: ChatStatus.CLOSED,
+            capabilities: chat.capabilities,
+          },
+        })
+        .catch((error: unknown) => {
+          console.error('Failed to publish chat_updated event on close:', error);
         });
 
       return updatedChat;
@@ -657,16 +674,6 @@ export const adminRouter = createTRPCRouter({
       });
 
       if (!chat) throw new TRPCError({ code: 'NOT_FOUND' });
-
-      // Add CAN_SEND_MESSAGES
-      const newCapabilities = [
-        ...new Set([...chat.capabilities, ChatCapability.CAN_SEND_MESSAGES]),
-      ];
-
-      await prisma.chat.update({
-        where: { uuid: input.chatId },
-        data: { capabilities: newCapabilities },
-      });
 
       const reopenMessages: Record<ChatType, { en: string; de: string; fr: string }> = {
         [ChatType.EMERGENCY]: {
@@ -703,7 +710,10 @@ export const adminRouter = createTRPCRouter({
           type: MessageType.SYSTEM_MSG,
           contentVersions: {
             create: {
-              payload: reopenMessages[chat.type],
+              payload: {
+                ...reopenMessages[chat.type],
+                systemMessageType: 'CHAT_REOPENED',
+              },
             },
           },
           messageEvents: {
@@ -718,7 +728,7 @@ export const adminRouter = createTRPCRouter({
       const updatedChat = await prisma.chat.update({
         where: { uuid: input.chatId },
         data: {
-          status: 'OPEN',
+          status: ChatStatus.OPEN,
           lastUpdate: new Date(),
         },
       });
@@ -732,7 +742,10 @@ export const adminRouter = createTRPCRouter({
           message: {
             id: systemMessage.uuid,
             createdAt: systemMessage.createdAt,
-            messagePayload: reopenMessages[chat.type],
+            messagePayload: {
+              ...reopenMessages[chat.type],
+              systemMessageType: 'CHAT_REOPENED',
+            },
             senderId: SYSTEM_SENDER_ID,
             status: MessageEventType.STORED,
             type: MessageType.SYSTEM_MSG,
@@ -741,6 +754,21 @@ export const adminRouter = createTRPCRouter({
         })
         .catch((error: unknown) => {
           console.error('Failed to publish real-time system event on reopen:', error);
+        });
+
+      // Publish chat_updated event
+      chatPubSub
+        .publish({
+          type: 'chat_updated',
+          chatId: input.chatId,
+          senderId: SYSTEM_SENDER_ID,
+          chat: {
+            status: ChatStatus.OPEN,
+            capabilities: chat.capabilities,
+          },
+        })
+        .catch((error: unknown) => {
+          console.error('Failed to publish chat_updated event on reopen:', error);
         });
 
       return updatedChat;

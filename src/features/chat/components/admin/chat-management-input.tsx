@@ -1,14 +1,14 @@
 import { Button } from '@/components/ui/buttons/button';
 import { useAutoResizeTextarea } from '@/features/chat/components/chat-view/chat-text-area-input/hooks/use-auto-resize-textarea';
 import { useImageUpload } from '@/features/chat/hooks/use-image-upload';
-import { MessageEventType, MessageType } from '@/lib/prisma/client';
+import type { MessageType } from '@/lib/prisma/client';
 import { trpc } from '@/trpc/client';
 import { Paperclip, Send } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 interface ChatManagementInputProperties {
   chatId: string;
-  onSendMessage: (content: string) => Promise<void>;
+  onSendMessage: (content: string, type?: MessageType) => Promise<void>;
   sending: boolean;
   disabled: boolean;
   locale: string;
@@ -41,7 +41,6 @@ export const ChatManagementInput: React.FC<ChatManagementInputProperties> = ({
   disabled,
   locale,
 }) => {
-  const trpcUtils = trpc.useUtils();
   const [newMessage, setNewMessage] = useState('');
   const fileInputReference = useRef<HTMLInputElement>(null);
   const { textareaRef, resize } = useAutoResizeTextarea(newMessage);
@@ -69,77 +68,6 @@ export const ChatManagementInput: React.FC<ChatManagementInputProperties> = ({
   }, [chatId, restoreFocus]);
 
   const adminGetUploadUrlMutation = trpc.admin.getAdminUploadUrl.useMutation();
-  const adminPostMessageMutation = trpc.admin.postAdminMessage.useMutation({
-    async onMutate(input) {
-      await trpcUtils.admin.getChatMessages.cancel({ chatId: input.chatId });
-
-      const previousMessages = trpcUtils.admin.getChatMessages.getData({ chatId: input.chatId });
-
-      const optimisticMessage = {
-        id: `optimistic-${Date.now()}`,
-        createdAt: new Date(),
-        messagePayload:
-          input.type === MessageType.IMAGE_MSG ? { url: input.content } : { text: input.content },
-        senderId: 'current-admin-user',
-        senderName: 'You (Admin)',
-        type: input.type ?? MessageType.TEXT_MSG,
-        status: MessageEventType.CREATED,
-        isAdminMessage: true,
-      };
-
-      trpcUtils.admin.getChatMessages.setData({ chatId: input.chatId }, (old) => {
-        if (!old) {
-          return {
-            messages: [optimisticMessage],
-            currentUserId: 'current-admin-user',
-          };
-        }
-        return {
-          ...old,
-          messages: [...old.messages, optimisticMessage],
-        };
-      });
-
-      return { previousMessages };
-    },
-    onError: (_error, input, context) => {
-      if (context?.previousMessages) {
-        trpcUtils.admin.getChatMessages.setData({ chatId: input.chatId }, context.previousMessages);
-      }
-    },
-    onSuccess: (createdMessage, input) => {
-      trpcUtils.admin.getChatMessages.setData({ chatId: input.chatId }, (old) => {
-        if (!old) return old;
-        const alreadyHasStored = old.messages.some((m) => m.id === createdMessage.uuid);
-        return {
-          ...old,
-          messages: old.messages
-            .map((m) => {
-              if (m.id.startsWith('optimistic-')) {
-                return alreadyHasStored
-                  ? undefined
-                  : {
-                      id: createdMessage.uuid,
-                      createdAt: createdMessage.createdAt,
-                      messagePayload:
-                        input.type === MessageType.IMAGE_MSG
-                          ? { url: input.content }
-                          : { text: input.content },
-                      senderId: createdMessage.senderId ?? 'current-admin-user',
-                      senderName: 'You (Admin)',
-                      type: input.type ?? MessageType.TEXT_MSG,
-                      status: MessageEventType.STORED,
-                      isAdminMessage: true,
-                    };
-              }
-              return m;
-            })
-            .filter((m): m is (typeof old.messages)[0] => m !== undefined),
-        };
-      });
-      void trpcUtils.admin.listSupportChats.invalidate();
-    },
-  });
 
   const { uploadImage, isPending: isUploading } = useImageUpload({
     chatId,
@@ -149,15 +77,16 @@ export const ChatManagementInput: React.FC<ChatManagementInputProperties> = ({
     },
     uploadUrlMutation: adminGetUploadUrlMutation,
     sendMessageMutation: {
-      mutate: ({ chatId: id, content, type }) =>
-        adminPostMessageMutation.mutate({ chatId: id, content, type }),
-      isPending: adminPostMessageMutation.isPending,
+      mutate: ({ content, type }) => {
+        void onSendMessage(content, type);
+      },
+      isPending: sending,
     },
   });
 
   // Override handleSendMessage to use the prop
   const handleSendMessage = async (): Promise<void> => {
-    if (!newMessage.trim() || sending) return;
+    if (newMessage.trim().length === 0 || sending) return;
     const content = newMessage;
     setNewMessage('');
     resize();
@@ -211,7 +140,7 @@ export const ChatManagementInput: React.FC<ChatManagementInputProperties> = ({
 
   if (disabled) {
     return (
-      <div className="py-2 text-center text-sm text-[var(--theme-elevation-400)] italic">
+      <div className="py-2 text-center text-sm text-(--theme-elevation-400) italic">
         This chat is resolved and locked.
       </div>
     );
@@ -221,10 +150,10 @@ export const ChatManagementInput: React.FC<ChatManagementInputProperties> = ({
     <div className="flex flex-col gap-1">
       {isNearLimit && (
         <div
-          className={`text-right text-xs ${isTooLong ? 'font-semibold text-[var(--theme-error-500)]' : 'text-[var(--theme-warning-500)]'}`}
+          className={`text-right text-xs ${isTooLong ? 'font-semibold text-(--theme-error-500)' : 'text-(--theme-warning-500)'}`}
         >
           {messageLength}/{MAX_MESSAGE_LENGTH}
-          {isTooLong && ` - ${messageTooLongText[locale] || messageTooLongText['en']}`}
+          {isTooLong && ` - ${messageTooLongText[locale] ?? messageTooLongText['en']}`}
         </div>
       )}
       <div className="flex items-end gap-2">
@@ -244,7 +173,7 @@ export const ChatManagementInput: React.FC<ChatManagementInputProperties> = ({
           onClick={() => fileInputReference.current?.click()}
           size="icon"
           variant="outline"
-          className="h-10 w-10 shrink-0 rounded-full border-[var(--theme-elevation-150)] text-[var(--theme-elevation-500)] hover:bg-[var(--theme-elevation-100)] hover:text-[var(--theme-elevation-800)]"
+          className="h-10 w-10 shrink-0 rounded-full border-(--theme-elevation-150) text-(--theme-elevation-500) hover:bg-(--theme-elevation-100) hover:text-[var(--theme-elevation-800)]"
           disabled={sending || isUploading}
         >
           <Paperclip className="h-5 w-5" />
@@ -261,8 +190,8 @@ export const ChatManagementInput: React.FC<ChatManagementInputProperties> = ({
             // Trigger auto resize logic if needed, usually handled by hook on value change or manual call
           }}
           onKeyDown={handleKeyDown}
-          placeholder={messagePlaceholder[locale] || messagePlaceholder['en']}
-          className="flex-1 resize-none rounded border border-[var(--theme-elevation-150)] bg-[var(--theme-input-bg)] p-2 text-sm text-[var(--theme-elevation-800)] shadow-[0_2px_2px_-1px_rgba(0,0,0,0.1)] transition-[border,box-shadow] placeholder:text-[var(--theme-elevation-400)] hover:border-[var(--theme-elevation-250)] focus:border-[var(--theme-elevation-400)] focus:shadow-none focus:outline-none"
+          placeholder={messagePlaceholder[locale] ?? messagePlaceholder['en']}
+          className="flex-1 resize-none rounded border border-(--theme-elevation-150) bg-(--theme-input-bg) p-2 text-sm text-[var(--theme-elevation-800)] shadow-[0_2px_2px_-1px_rgba(0,0,0,0.1)] transition-[border,box-shadow] placeholder:text-[var(--theme-elevation-400)] hover:border-[var(--theme-elevation-250)] focus:border-[var(--theme-elevation-400)] focus:shadow-none focus:outline-none"
           rows={1}
           disabled={isUploading}
           style={{ minHeight: '40px', maxHeight: '200px' }}
@@ -274,17 +203,17 @@ export const ChatManagementInput: React.FC<ChatManagementInputProperties> = ({
               void handleSplitAndSend();
             }}
             disabled={sending || isUploading}
-            className="rounded bg-[var(--theme-warning-500)] px-4 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[var(--theme-warning-600)]"
+            className="rounded bg-(--theme-warning-500) px-4 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[var(--theme-warning-600)]"
           >
-            {splitAndSendText[locale] || splitAndSendText['en']}
+            {splitAndSendText[locale] ?? splitAndSendText['en']}
           </Button>
         ) : (
           <Button
             onClick={() => {
               void handleSendMessage();
             }}
-            disabled={sending || !newMessage.trim() || isUploading}
-            className="rounded bg-[var(--theme-success-500)] px-6 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[var(--theme-success-600)] disabled:opacity-50"
+            disabled={sending || newMessage.trim().length === 0 || isUploading}
+            className="rounded bg-(--theme-success-500) px-6 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[var(--theme-success-600)] disabled:opacity-50"
           >
             {sending || isUploading ? '...' : <Send className="h-5 w-5" />}
           </Button>

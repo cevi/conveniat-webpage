@@ -89,6 +89,7 @@ const GenericChatManagementContent: React.FC<GenericChatManagementViewProperties
     selectedChatId,
     showClosed,
     debouncedSearch,
+    locale,
   });
 
   const selectedChat = chats.find((c) => c.id === selectedChatId);

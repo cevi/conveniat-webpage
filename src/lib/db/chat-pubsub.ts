@@ -12,7 +12,7 @@ const isBuild =
   process.env['NEXT_PHASE'] === 'phase-production-build';
 
 export interface ChatRealtimeEvent {
-  type: 'new_message' | 'message_updated' | 'chat_read_by_admin';
+  type: 'new_message' | 'message_updated' | 'chat_read_by_admin' | 'chat_updated';
   chatId: string;
   senderId: string;
   message?: {
@@ -24,6 +24,10 @@ export interface ChatRealtimeEvent {
     status: string;
     type: string;
     parentId?: string | undefined;
+  };
+  chat?: {
+    status: string;
+    capabilities: string[];
   };
 }
 
@@ -154,15 +158,13 @@ class ChatPubSub {
   public async subscribe(
     chatId: string,
     callback: (event: ChatRealtimeEvent) => void,
-  ): Promise<void> {
-    if (isBuild) return;
+  ): Promise<() => void> {
+    if (isBuild) return () => {};
     await this.ensureListening();
     this.emitter.on(`chat:${chatId}`, callback);
-  }
-
-  public unsubscribe(chatId: string, callback: (event: ChatRealtimeEvent) => void): void {
-    if (isBuild) return;
-    this.emitter.off(`chat:${chatId}`, callback);
+    return () => {
+      this.emitter.off(`chat:${chatId}`, callback);
+    };
   }
 
   public async close(): Promise<void> {

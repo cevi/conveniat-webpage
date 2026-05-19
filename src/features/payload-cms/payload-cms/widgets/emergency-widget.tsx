@@ -20,14 +20,15 @@ const actionButton: StaticTranslationString = {
 };
 
 function InternalEmergencyCounter(): React.ReactElement {
+  const { code: locale } = useLocale();
+
   const { chats } = useAdminChatManagement({
     chatType: ChatType.EMERGENCY,
     showClosed: false,
     debouncedSearch: '',
     selectedChatId: undefined,
+    locale,
   });
-
-  const { code: locale } = useLocale();
 
   return (
     <div className={cn('card', { 'bg-red-300': chats.length > 0 })}>

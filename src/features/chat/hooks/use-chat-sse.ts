@@ -2,15 +2,20 @@
 
 import type { ChatMessage } from '@/features/chat/api/types';
 import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
+import type { ChatStatus } from '@/lib/chat-shared';
 import { trpc } from '@/trpc/client';
 import { useEffect } from 'react';
 import superjson from 'superjson';
 
 interface ChatRealtimeEvent {
-  type: 'new_message' | 'message_updated' | 'chat_read_by_admin';
+  type: 'new_message' | 'message_updated' | 'chat_read_by_admin' | 'chat_updated';
   chatId: string;
   senderId: string;
   message?: ChatMessage;
+  chat?: {
+    status: string;
+    capabilities: string[];
+  };
 }
 
 // Global registry of all active chat subscribers on the client to enable multiplexing/deduplication
@@ -24,7 +29,7 @@ const handleError = (): void => {
 
 function updateGlobalEventSource(currentUser: string): void {
   const allSubscribedIds = [...activeChatSubscribers.keys()].sort();
-  const subscribedIdsString = allSubscribedIds.join(',');
+  const subscribedIdsString = `${currentUser}|${allSubscribedIds.join(',')}`;
 
   if (subscribedIdsString === currentSubscribedIdsString) {
     return;
@@ -42,7 +47,7 @@ function updateGlobalEventSource(currentUser: string): void {
     return;
   }
 
-  const url = `/api/chat/sse?chatIds=${subscribedIdsString}`;
+  const url = `/api/chat/sse?chatIds=${allSubscribedIds.join(',')}`;
   const eventSource = new EventSource(url);
   globalEventSource = eventSource;
 
@@ -90,6 +95,19 @@ export const useChatSSE = (chatIds: string[]): void => {
       if (data.type === 'chat_read_by_admin') {
         trpcUtils.chat.infiniteMessages.invalidate({ chatId: data.chatId }).catch(console.error);
         trpcUtils.chat.chatDetails.invalidate({ chatId: data.chatId }).catch(console.error);
+        trpcUtils.chat.chats.invalidate().catch(console.error);
+        return;
+      }
+
+      if (data.type === 'chat_updated' && data.chat) {
+        const updatedChatStatus = data.chat.status as ChatStatus;
+        trpcUtils.chat.chatDetails.setData({ chatId: data.chatId }, (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            status: updatedChatStatus,
+          };
+        });
         trpcUtils.chat.chats.invalidate().catch(console.error);
         return;
       }
@@ -157,45 +175,8 @@ export const useChatSSE = (chatIds: string[]): void => {
         trpcUtils.chat.chatDetails.setData({ chatId: data.chatId }, (old) => {
           if (!old) return old;
 
-          // Optimistically update capabilities on system messages
-          let newCapabilities = old.capabilities;
-          if (message.type === 'SYSTEM_MSG') {
-            const payload = message.messagePayload;
-            let text = '';
-            if (typeof payload === 'string') {
-              text = payload;
-            } else if (payload && typeof payload === 'object') {
-              const deValue = (payload as Record<string, unknown>)['de'];
-              const enValue = (payload as Record<string, unknown>)['en'];
-              const deText = typeof deValue === 'string' ? deValue : '';
-              const enText = typeof enValue === 'string' ? enValue : '';
-              text = deText === '' ? enText : deText;
-            }
-
-            const isReopen =
-              text.includes('reopen') ||
-              text.includes('wieder geöffnet') ||
-              text.includes('rouvert');
-            const isClose =
-              text.includes('closed') ||
-              text.includes('abgeschlossen') ||
-              text.includes('gelöst') ||
-              text.includes('terminée') ||
-              text.includes('résolu') ||
-              text.includes('fermé');
-
-            if (isReopen && old.capabilities.includes('CAN_SEND_MESSAGES') === false) {
-              newCapabilities = [...old.capabilities, 'CAN_SEND_MESSAGES'];
-            } else if (isClose && old.capabilities.includes('CAN_SEND_MESSAGES')) {
-              newCapabilities = old.capabilities.filter((c) => c !== 'CAN_SEND_MESSAGES');
-            }
-          }
-
           if (old.messages.some((item) => item.id === message.id)) {
-            return {
-              ...old,
-              capabilities: newCapabilities,
-            };
+            return old;
           }
 
           const hasOptimistic = old.messages.some(
@@ -210,7 +191,6 @@ export const useChatSSE = (chatIds: string[]): void => {
 
           return {
             ...old,
-            capabilities: newCapabilities,
             messages: newMessages,
           };
         });

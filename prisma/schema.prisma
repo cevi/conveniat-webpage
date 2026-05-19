@@ -48,6 +48,11 @@ enum ChatType {
   COURSE_GROUP
 }
 
+enum ChatStatus {
+  OPEN
+  CLOSED
+}
+
 enum ChatCapability {
   CAN_SEND_MESSAGES
   PICTURE_UPLOAD
@@ -59,7 +64,7 @@ model Chat {
   name String
 
   description String?
-  status      String  @default("OPEN")
+  status      ChatStatus  @default(OPEN)
 
   lastUpdate DateTime @default(now())
   createdAt  DateTime @default(now())
