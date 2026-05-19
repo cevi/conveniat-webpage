@@ -12,7 +12,7 @@ import {
   type CapabilityContext,
   CapabilitySubject,
 } from '@/lib/capabilities/types';
-import { ChatCapability } from '@/lib/chat-shared';
+import { ChatCapability, ChatStatus } from '@/lib/chat-shared';
 import prisma from '@/lib/db/prisma';
 import { getFeatureFlag } from '@/lib/db/redis';
 import { FEATURE_FLAG_CREATE_CHATS_ENABLED, FEATURE_FLAG_SEND_MESSAGES } from '@/lib/feature-flags';
@@ -43,11 +43,16 @@ export class MessageCapabilities implements Capability {
     if (chatId) {
       const chat = await prisma.chat.findUnique({
         where: { uuid: chatId },
-        select: { capabilities: true },
+        select: { capabilities: true, status: true },
       });
 
-      if (chat && !chat.capabilities.includes(ChatCapability.CAN_SEND_MESSAGES)) {
-        return false;
+      if (chat) {
+        if (chat.status === ChatStatus.CLOSED) {
+          return false;
+        }
+        if (!chat.capabilities.includes(ChatCapability.CAN_SEND_MESSAGES)) {
+          return false;
+        }
       }
     }
 

@@ -1,5 +1,5 @@
+import type { ChatCapability } from '@/lib/chat-shared';
 import {
-  ChatCapability,
   ChatStatus,
   getStatusFromMessageEvents,
   SYSTEM_SENDER_ID,
@@ -15,6 +15,7 @@ import { sendNotification } from '@/features/chat/api/utils/send-push-notificati
 // eslint-disable-next-line import/no-restricted-paths
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { hasAccessToThisUser, Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import { chatPubSub } from '@/lib/db/chat-pubsub';
 import { getFeatureFlag, setFeatureFlag } from '@/lib/db/redis';
 import {
   ChatMembershipPermission,
@@ -270,7 +271,7 @@ export const adminRouter = createTRPCRouter({
               user,
             ),
             description: chat.description,
-            status: chat.status as ChatStatus,
+            status: chat.status,
             chatType: chat.type,
             lastUpdate: chat.lastUpdate,
             unreadCount: 0,
@@ -289,6 +290,10 @@ export const adminRouter = createTRPCRouter({
         return {
           unreadCount: messages
             .filter((message) => message.senderId !== user.uuid)
+            .filter((message) => {
+              const lastRead = chat.adminReadAt ? chat.adminReadAt.getTime() : 0;
+              return message.createdAt.getTime() > lastRead;
+            })
             .filter(
               (message) =>
                 !message.messageEvents.some((event) => event.type === MessageEventType.READ),
@@ -303,7 +308,7 @@ export const adminRouter = createTRPCRouter({
             user,
           ),
           description: chat.description,
-          status: chat.status as ChatStatus,
+          status: chat.status,
           chatType: chat.type,
           id: chat.uuid,
           messageCount: chat._count.messages,
@@ -407,6 +412,26 @@ export const adminRouter = createTRPCRouter({
       };
     }),
 
+  markChatAsRead: adminProcedure
+    .input(z.object({ chatId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const { prisma, user } = ctx;
+
+      await prisma.chat.update({
+        where: { uuid: input.chatId },
+        data: { adminReadAt: new Date() },
+      });
+
+      // Publish real-time event to update standard users' checkmarks instantly
+      void chatPubSub.publish({
+        type: 'chat_read_by_admin',
+        chatId: input.chatId,
+        senderId: user.uuid,
+      });
+
+      return { success: true };
+    }),
+
   postAdminMessage: adminProcedure
     .input(
       z.object({
@@ -472,6 +497,30 @@ export const adminRouter = createTRPCRouter({
         });
       }
 
+      // Publish real-time event via PostgreSQL NOTIFY (fire-and-forget)
+      chatPubSub
+        .publish({
+          type: 'new_message',
+          chatId: input.chatId,
+          senderId: user.uuid,
+          message: {
+            id: message.uuid,
+            createdAt: message.createdAt,
+            messagePayload:
+              input.type === MessageType.IMAGE_MSG
+                ? { url: input.content }
+                : { text: input.content },
+            senderId: user.uuid,
+            senderName: user.name,
+            status: MessageEventType.STORED,
+            type: input.type,
+            parentId: undefined,
+          },
+        })
+        .catch((error: unknown) => {
+          console.error('Failed to publish real-time admin event:', error);
+        });
+
       return message;
     }),
 
@@ -516,17 +565,6 @@ export const adminRouter = createTRPCRouter({
       });
 
       if (!chat) throw new TRPCError({ code: 'NOT_FOUND' });
-
-      // Remove CAN_SEND_MESSAGES
-      const newCapabilities = chat.capabilities.filter(
-        (c) => (c as string) !== (ChatCapability.CAN_SEND_MESSAGES as string),
-      );
-
-      await prisma.chat.update({
-        where: { uuid: input.chatId },
-        data: { capabilities: newCapabilities },
-      });
-
       const closeMessages: Record<ChatType, { en: string; de: string; fr: string }> = {
         [ChatType.EMERGENCY]: {
           en: `${user.name} has marked the emergency alert as completed.`,
@@ -556,13 +594,16 @@ export const adminRouter = createTRPCRouter({
       };
 
       // Add system message
-      await prisma.message.create({
+      const systemMessage = await prisma.message.create({
         data: {
           chatId: input.chatId,
           type: MessageType.SYSTEM_MSG,
           contentVersions: {
             create: {
-              payload: closeMessages[chat.type],
+              payload: {
+                ...closeMessages[chat.type],
+                systemMessageType: 'CHAT_CLOSED',
+              },
             },
           },
           messageEvents: {
@@ -574,13 +615,53 @@ export const adminRouter = createTRPCRouter({
         },
       });
 
-      return prisma.chat.update({
+      const updatedChat = await prisma.chat.update({
         where: { uuid: input.chatId },
         data: {
-          status: 'CLOSED',
+          status: ChatStatus.CLOSED,
           lastUpdate: new Date(),
         },
       });
+
+      // Publish real-time system message event via PostgreSQL NOTIFY
+      chatPubSub
+        .publish({
+          type: 'new_message',
+          chatId: input.chatId,
+          senderId: SYSTEM_SENDER_ID,
+          message: {
+            id: systemMessage.uuid,
+            createdAt: systemMessage.createdAt,
+            messagePayload: {
+              ...closeMessages[chat.type],
+              systemMessageType: 'CHAT_CLOSED',
+            },
+            senderId: SYSTEM_SENDER_ID,
+            status: MessageEventType.STORED,
+            type: MessageType.SYSTEM_MSG,
+            parentId: undefined,
+          },
+        })
+        .catch((error: unknown) => {
+          console.error('Failed to publish real-time system event on close:', error);
+        });
+
+      // Publish chat_updated event
+      chatPubSub
+        .publish({
+          type: 'chat_updated',
+          chatId: input.chatId,
+          senderId: SYSTEM_SENDER_ID,
+          chat: {
+            status: ChatStatus.CLOSED,
+            capabilities: chat.capabilities,
+          },
+        })
+        .catch((error: unknown) => {
+          console.error('Failed to publish chat_updated event on close:', error);
+        });
+
+      return updatedChat;
     }),
 
   reopenChat: adminProcedure
@@ -593,16 +674,6 @@ export const adminRouter = createTRPCRouter({
       });
 
       if (!chat) throw new TRPCError({ code: 'NOT_FOUND' });
-
-      // Add CAN_SEND_MESSAGES
-      const newCapabilities = [
-        ...new Set([...chat.capabilities, ChatCapability.CAN_SEND_MESSAGES]),
-      ];
-
-      await prisma.chat.update({
-        where: { uuid: input.chatId },
-        data: { capabilities: newCapabilities },
-      });
 
       const reopenMessages: Record<ChatType, { en: string; de: string; fr: string }> = {
         [ChatType.EMERGENCY]: {
@@ -633,13 +704,16 @@ export const adminRouter = createTRPCRouter({
       };
 
       // Add system message
-      await prisma.message.create({
+      const systemMessage = await prisma.message.create({
         data: {
           chatId: input.chatId,
           type: MessageType.SYSTEM_MSG,
           contentVersions: {
             create: {
-              payload: reopenMessages[chat.type],
+              payload: {
+                ...reopenMessages[chat.type],
+                systemMessageType: 'CHAT_REOPENED',
+              },
             },
           },
           messageEvents: {
@@ -651,12 +725,52 @@ export const adminRouter = createTRPCRouter({
         },
       });
 
-      return prisma.chat.update({
+      const updatedChat = await prisma.chat.update({
         where: { uuid: input.chatId },
         data: {
-          status: 'OPEN',
+          status: ChatStatus.OPEN,
           lastUpdate: new Date(),
         },
       });
+
+      // Publish real-time system message event via PostgreSQL NOTIFY
+      chatPubSub
+        .publish({
+          type: 'new_message',
+          chatId: input.chatId,
+          senderId: SYSTEM_SENDER_ID,
+          message: {
+            id: systemMessage.uuid,
+            createdAt: systemMessage.createdAt,
+            messagePayload: {
+              ...reopenMessages[chat.type],
+              systemMessageType: 'CHAT_REOPENED',
+            },
+            senderId: SYSTEM_SENDER_ID,
+            status: MessageEventType.STORED,
+            type: MessageType.SYSTEM_MSG,
+            parentId: undefined,
+          },
+        })
+        .catch((error: unknown) => {
+          console.error('Failed to publish real-time system event on reopen:', error);
+        });
+
+      // Publish chat_updated event
+      chatPubSub
+        .publish({
+          type: 'chat_updated',
+          chatId: input.chatId,
+          senderId: SYSTEM_SENDER_ID,
+          chat: {
+            status: ChatStatus.OPEN,
+            capabilities: chat.capabilities,
+          },
+        })
+        .catch((error: unknown) => {
+          console.error('Failed to publish chat_updated event on reopen:', error);
+        });
+
+      return updatedChat;
     }),
 });

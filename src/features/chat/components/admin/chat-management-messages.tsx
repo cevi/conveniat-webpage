@@ -6,6 +6,7 @@ import React, { useEffect, useRef } from 'react';
 
 interface ChatManagementMessagesProperties {
   messages: ChatMessage[];
+  currentUserId: string | undefined;
   loading: boolean;
   locale: string;
   chatType: ChatType;
@@ -25,6 +26,7 @@ const todayText: Record<string, string> = {
 
 export const ChatManagementMessages: React.FC<ChatManagementMessagesProperties> = ({
   messages,
+  currentUserId,
   loading,
   locale,
   chatType,
@@ -59,7 +61,7 @@ export const ChatManagementMessages: React.FC<ChatManagementMessagesProperties> 
         {Object.entries(messagesByDate).map(([date, messagesForDate]) => (
           <div key={date}>
             <div className="my-6 flex justify-center">
-              <div className="rounded-full border border-(--theme-elevation-150) bg-(--theme-elevation-50) px-4 py-1 text-xs font-medium text-[var(--theme-elevation-500)] shadow-sm">
+              <div className="rounded-full border border-(--theme-elevation-150) bg-(--theme-elevation-50) px-4 py-1 text-xs font-medium text-(--theme-elevation-500) shadow-sm">
                 {date === new Date().toLocaleDateString()
                   ? (todayText[locale] ?? todayText['en'])
                   : date}
@@ -74,8 +76,8 @@ export const ChatManagementMessages: React.FC<ChatManagementMessagesProperties> 
                     5 * 60 * 1000
                   : false;
 
-                // Check if the message is from an admin
-                const isCurrentUser = Boolean(message.isAdminMessage);
+                // Check if the message is from the currently logged-in admin user
+                const isCurrentUser = message.senderId === currentUserId;
 
                 return (
                   <div

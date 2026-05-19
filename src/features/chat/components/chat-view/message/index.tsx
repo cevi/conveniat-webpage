@@ -213,6 +213,11 @@ export const MessageComponent: React.FC<MessageProperties> = ({
           isCurrentUser ? 'items-end pr-2' : 'items-start pl-2',
         )}
       >
+        {!isCurrentUser && message.senderName && (
+          <span className="mb-1 px-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400">
+            {message.senderName}
+          </span>
+        )}
         <div
           onPointerDown={handlePointerDown}
           onPointerUp={handlePointerUp}

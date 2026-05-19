@@ -43,16 +43,7 @@ dns.setDefaultResultOrder('ipv4first');
 
 const checkInternetConnection = async (): Promise<boolean> => {
   try {
-    const controller = new AbortController();
-    const timeout = 3000;
-    const id = setTimeout(() => controller.abort(), timeout);
-
-    const response = await Promise.race([
-      fetch('https://www.google.com', { signal: controller.signal }),
-      new Promise<Response>((_, reject) => setTimeout(() => reject(new Error('Timeout')), timeout)),
-    ]);
-
-    clearTimeout(id);
+    const response = await fetchWithTimeout('https://www.google.com', 3000);
     return response.ok;
   } catch {
     return false;

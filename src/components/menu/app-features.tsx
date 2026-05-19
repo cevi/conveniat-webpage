@@ -13,6 +13,7 @@ import {
   Siren,
   Truck,
 } from 'lucide-react';
+import { connection } from 'next/server';
 import type React from 'react';
 
 const appFeaturesTitle: StaticTranslationString = {
@@ -103,8 +104,6 @@ const AppFeatureMenuItem: React.FC<AppFeatureMenuItemProperties> = ({
     </LinkComponent>
   );
 };
-
-import { connection } from 'next/server';
 
 export const AppFeatures: React.FC<{
   locale: Locale;

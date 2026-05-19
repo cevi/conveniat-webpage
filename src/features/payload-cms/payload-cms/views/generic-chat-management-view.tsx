@@ -74,6 +74,7 @@ const GenericChatManagementContent: React.FC<GenericChatManagementViewProperties
   const {
     chats,
     messages,
+    currentUserId,
     loadingChats,
     loadingMessages,
     sending,
@@ -88,6 +89,7 @@ const GenericChatManagementContent: React.FC<GenericChatManagementViewProperties
     selectedChatId,
     showClosed,
     debouncedSearch,
+    locale,
   });
 
   const selectedChat = chats.find((c) => c.id === selectedChatId);
@@ -229,6 +231,7 @@ const GenericChatManagementContent: React.FC<GenericChatManagementViewProperties
 
                 <ChatManagementMessages
                   messages={messages}
+                  currentUserId={currentUserId}
                   loading={loadingMessages}
                   locale={locale}
                   chatType={chatType}
