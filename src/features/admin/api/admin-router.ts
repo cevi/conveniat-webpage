@@ -580,7 +580,7 @@ export const adminRouter = createTRPCRouter({
       };
 
       // Add system message
-      await prisma.message.create({
+      const systemMessage = await prisma.message.create({
         data: {
           chatId: input.chatId,
           type: MessageType.SYSTEM_MSG,
@@ -598,13 +598,35 @@ export const adminRouter = createTRPCRouter({
         },
       });
 
-      return prisma.chat.update({
+      const updatedChat = await prisma.chat.update({
         where: { uuid: input.chatId },
         data: {
           status: 'CLOSED',
           lastUpdate: new Date(),
         },
       });
+
+      // Publish real-time system message event via PostgreSQL NOTIFY
+      chatPubSub
+        .publish({
+          type: 'new_message',
+          chatId: input.chatId,
+          senderId: SYSTEM_SENDER_ID,
+          message: {
+            id: systemMessage.uuid,
+            createdAt: systemMessage.createdAt,
+            messagePayload: closeMessages[chat.type],
+            senderId: SYSTEM_SENDER_ID,
+            status: MessageEventType.STORED,
+            type: MessageType.SYSTEM_MSG,
+            parentId: undefined,
+          },
+        })
+        .catch((error: unknown) => {
+          console.error('Failed to publish real-time system event on close:', error);
+        });
+
+      return updatedChat;
     }),
 
   reopenChat: adminProcedure
@@ -657,7 +679,7 @@ export const adminRouter = createTRPCRouter({
       };
 
       // Add system message
-      await prisma.message.create({
+      const systemMessage = await prisma.message.create({
         data: {
           chatId: input.chatId,
           type: MessageType.SYSTEM_MSG,
@@ -675,12 +697,34 @@ export const adminRouter = createTRPCRouter({
         },
       });
 
-      return prisma.chat.update({
+      const updatedChat = await prisma.chat.update({
         where: { uuid: input.chatId },
         data: {
           status: 'OPEN',
           lastUpdate: new Date(),
         },
       });
+
+      // Publish real-time system message event via PostgreSQL NOTIFY
+      chatPubSub
+        .publish({
+          type: 'new_message',
+          chatId: input.chatId,
+          senderId: SYSTEM_SENDER_ID,
+          message: {
+            id: systemMessage.uuid,
+            createdAt: systemMessage.createdAt,
+            messagePayload: reopenMessages[chat.type],
+            senderId: SYSTEM_SENDER_ID,
+            status: MessageEventType.STORED,
+            type: MessageType.SYSTEM_MSG,
+            parentId: undefined,
+          },
+        })
+        .catch((error: unknown) => {
+          console.error('Failed to publish real-time system event on reopen:', error);
+        });
+
+      return updatedChat;
     }),
 });

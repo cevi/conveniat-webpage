@@ -136,32 +136,72 @@ export const useChatSSE = (chatIds: string[]): void => {
         // Invalidate chat list overview for unread counts and sorting
         trpcUtils.chat.chats.invalidate().catch(console.error);
 
+        // If a system message arrives, invalidate chatDetails to refresh capabilities and status (e.g. closing/locking chat)
+        if (data.message.type === 'SYSTEM_MSG') {
+          trpcUtils.chat.chatDetails.invalidate({ chatId: data.chatId }).catch(console.error);
+        }
+
         // Direct TanStack cache injection for chatDetails instead of hard invalidation
         trpcUtils.chat.chatDetails.setData({ chatId: data.chatId }, (old) => {
           if (!old) return old;
 
+          // Optimistically update capabilities on system messages
+          let newCapabilities = old.capabilities;
+          if (data.message.type === 'SYSTEM_MSG') {
+            const payload = data.message.messagePayload;
+            let text = '';
+            if (typeof payload === 'string') {
+              text = payload;
+            } else if (payload && typeof payload === 'object') {
+              const deValue = (payload as Record<string, unknown>)['de'];
+              const enValue = (payload as Record<string, unknown>)['en'];
+              const deText = typeof deValue === 'string' ? deValue : '';
+              const enText = typeof enValue === 'string' ? enValue : '';
+              text = deText === '' ? enText : deText;
+            }
+
+            const isReopen =
+              text.includes('reopen') ||
+              text.includes('wieder geöffnet') ||
+              text.includes('rouvert');
+            const isClose =
+              text.includes('closed') ||
+              text.includes('abgeschlossen') ||
+              text.includes('gelöst') ||
+              text.includes('terminée') ||
+              text.includes('résolu') ||
+              text.includes('fermé');
+
+            if (isReopen && old.capabilities.includes('CAN_SEND_MESSAGES') === false) {
+              newCapabilities = [...old.capabilities, 'CAN_SEND_MESSAGES'];
+            } else if (isClose && old.capabilities.includes('CAN_SEND_MESSAGES')) {
+              newCapabilities = old.capabilities.filter((c) => c !== 'CAN_SEND_MESSAGES');
+            }
+          }
+
           if (old.messages.some((item) => item.id === data.message.id)) {
-            return old;
+            return {
+              ...old,
+              capabilities: newCapabilities,
+            };
           }
 
           const hasOptimistic = old.messages.some(
             (item) => item.id.startsWith('optimistic-') && item.senderId === currentUser,
           );
 
-          if (hasOptimistic) {
-            return {
-              ...old,
-              messages: old.messages.map((item) =>
+          const newMessages = hasOptimistic
+            ? old.messages.map((item) =>
                 item.id.startsWith('optimistic-') && item.senderId === currentUser
                   ? data.message
                   : item,
-              ),
-            };
-          }
+              )
+            : [...old.messages, data.message];
 
           return {
             ...old,
-            messages: [...old.messages, data.message],
+            capabilities: newCapabilities,
+            messages: newMessages,
           };
         });
       }
