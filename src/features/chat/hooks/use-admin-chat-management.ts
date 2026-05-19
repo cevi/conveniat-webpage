@@ -149,8 +149,15 @@ export const useAdminChatManagement = ({
         // Invalidate chats to instantly update new/unread list in the sidebar
         void utils.admin.listSupportChats.invalidate();
 
-        // If the event is for the active chat, refresh messages
-        if (selectedChatId && chatEvent.chatId === selectedChatId) {
+        // If the event is for the active chat and it's a new or updated message, refresh messages.
+        // We explicitly ignore 'chat_read_by_admin' events to prevent an infinite feedback loop,
+        // as fetching admin messages automatically updates the admin read timestamp and publishes
+        // a 'chat_read_by_admin' event.
+        if (
+          selectedChatId &&
+          chatEvent.chatId === selectedChatId &&
+          chatEvent.type !== 'chat_read_by_admin'
+        ) {
           void utils.admin.getChatMessages.invalidate({ chatId: selectedChatId });
         }
       } catch (error) {
