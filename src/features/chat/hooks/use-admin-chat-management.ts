@@ -1,10 +1,12 @@
 import type { ChatMessage } from '@/features/chat/api/types';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { ChatStatus } from '@/lib/chat-shared';
+import type { ChatRealtimeEvent } from '@/lib/db/chat-pubsub';
 import type { ChatType } from '@/lib/prisma/client';
 import { MessageEventType, MessageType } from '@/lib/prisma/client';
 import { trpc } from '@/trpc/client';
 import { useEffect } from 'react';
+import superjson from 'superjson';
 
 interface UseAdminChatManagementOptions {
   chatType: ChatType;
@@ -135,15 +137,25 @@ export const useAdminChatManagement = ({
   });
 
   useEffect(() => {
-    if (!selectedChatId) return;
-
-    const url = `/api/chat/sse?chatIds=${selectedChatId}`;
+    const url = `/api/chat/sse?chatIds=all`;
     const eventSource = new EventSource(url);
 
-    const handleMessage = (): void => {
-      // Invalidate queries to trigger instant UI refresh in admin panel
-      utils.admin.getChatMessages.invalidate({ chatId: selectedChatId }).catch(console.error);
-      utils.admin.listSupportChats.invalidate().catch(console.error);
+    const handleMessage = (event: MessageEvent): void => {
+      try {
+        if (typeof event.data !== 'string') return;
+        const data = superjson.parse<{ json: ChatRealtimeEvent }>(event.data);
+        const chatEvent = 'json' in data ? data.json : (data as unknown as ChatRealtimeEvent);
+
+        // Invalidate chats to instantly update new/unread list in the sidebar
+        void utils.admin.listSupportChats.invalidate();
+
+        // If the event is for the active chat, refresh messages
+        if (selectedChatId && chatEvent.chatId === selectedChatId) {
+          void utils.admin.getChatMessages.invalidate({ chatId: selectedChatId });
+        }
+      } catch (error) {
+        console.error('[Admin SSE] Failed to parse real-time event:', error);
+      }
     };
 
     eventSource.addEventListener('message', handleMessage);
