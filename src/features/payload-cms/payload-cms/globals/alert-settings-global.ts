@@ -1,4 +1,7 @@
-import { shouldHideInAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import {
+  isFullAdmin,
+  shouldHideInAdminPanelIfNotAdmin,
+} from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { AlertSettingsNextKeyField } from '@/features/payload-cms/payload-cms/shared-fields/alert-settings-key-field';
 import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
@@ -9,10 +12,11 @@ export const AlertSettingsGlobal: GlobalConfig = {
   label: { en: 'Alert Settings', de: 'Alert Einstellungen', fr: 'Paramètres Alert' },
   access: {
     read: () => true,
+    update: isFullAdmin,
   },
   admin: {
     group: AdminPanelDashboardGroups.BackofficeAppFeatures,
-    hidden: shouldHideInAdminPanel,
+    hidden: shouldHideInAdminPanelIfNotAdmin,
   },
   fields: [
     {

@@ -156,3 +156,17 @@ export const shouldHideInAdminPanel: ({
   });
   return !hasAccess;
 };
+
+export const shouldHideInAdminPanelIfNotAdmin: ({
+  user,
+}: {
+  user: ClientUser | TypedUser | null;
+}) => boolean = ({ user }) => {
+  if (!user) return true;
+  const allowedRoles = [Roles.FullAdmin];
+  const hasAccess = hasAccessToThisUser({
+    user: { groups: user['groups'] as { id: number }[] },
+    requiredRoles: allowedRoles,
+  });
+  return !hasAccess;
+};
