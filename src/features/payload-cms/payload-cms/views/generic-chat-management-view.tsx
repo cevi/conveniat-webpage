@@ -98,11 +98,17 @@ const GenericChatManagementContent: React.FC<GenericChatManagementViewProperties
 
   // Extract location from messages for the mini map
   const locationMessage = messages.find((m) => {
-    const payload = m.messagePayload as unknown as LocationPayload;
-    return (
-      payload.location !== undefined ||
-      (payload.latitude !== undefined && payload.longitude !== undefined)
-    );
+    const payload = m.messagePayload as unknown as LocationPayload | null | undefined;
+    if (payload === null || payload === undefined) {
+      return false;
+    }
+    const nestedLatitude = payload.location?.latitude;
+    const nestedLongitude = payload.location?.longitude;
+    const hasNestedLocation =
+      typeof nestedLatitude === 'number' && typeof nestedLongitude === 'number';
+    const hasTopLevelLocation =
+      typeof payload.latitude === 'number' && typeof payload.longitude === 'number';
+    return hasNestedLocation || hasTopLevelLocation;
   });
   const locationPayload = locationMessage?.messagePayload as unknown as LocationPayload | undefined;
   const locationData = locationPayload?.location ?? locationPayload;

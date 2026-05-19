@@ -84,7 +84,7 @@ export const AddMemberModal: React.FC<AddMemberModalProperties> = ({
       });
     }, 300);
     return (): void => clearTimeout(timer);
-  }, [search]);
+  }, [search, startTransition]);
 
   const parsedHof = hof === '' ? undefined : Number.parseInt(hof, 10);
   const parsedQuartier = quartier === '' ? undefined : Number.parseInt(quartier, 10);

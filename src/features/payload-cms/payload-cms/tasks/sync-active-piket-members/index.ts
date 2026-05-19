@@ -36,7 +36,7 @@ export const syncActivePiketMembersTask: TaskConfig = {
   },
   schedule: [
     {
-      cron: '*/30 * * * * *', // Every 30 seconds to catch shift changes promptly
+      cron: '* * * * *', // Every minute to catch shift changes promptly
       queue: DEFAULT_QUEUE,
       hooks: {
         beforeSchedule: async ({

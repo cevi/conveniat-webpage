@@ -73,6 +73,11 @@ export async function getActivePiketMembers(
   return [...uniqueUsers.values()];
 }
 
+/**
+ * Syncs currently active piket members to all matching open chats.
+ * Note: Piket members are intentionally kept in the chat once added, even after their shift ends,
+ * to ensure continuity of context and conversation history for the emergency/support ticket they responded to.
+ */
 export async function syncPiketMembersToOpenChats(payload: Payload): Promise<void> {
   const now = new Date();
   const dateString = now.toISOString();
@@ -152,13 +157,20 @@ export async function syncPiketMembersToOpenChats(payload: Payload): Promise<voi
           },
         });
 
-        // Add user to chat membership
-        await prisma.chatMembership.create({
-          data: {
+        // Add user to chat membership safely using upsert to avoid race conditions
+        await prisma.chatMembership.upsert({
+          where: {
+            userId_chatId: {
+              userId: member.id,
+              chatId: chat.uuid,
+            },
+          },
+          create: {
             chatId: chat.uuid,
             userId: member.id,
             chatPermission: ChatMembershipPermission.MEMBER,
           },
+          update: {},
         });
 
         // Localized system message text (since background cron runs without locale context, default to German/English)
