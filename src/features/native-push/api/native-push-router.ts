@@ -21,11 +21,11 @@ export const nativePushRouter = createTRPCRouter({
         throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found' });
       }
 
-      // Delete any existing subscriptions with the same token and platform to ensure global uniqueness
+      // Delete any existing subscriptions with the same token globally to ensure uniqueness
       await payload.delete({
         collection: 'push-notification-subscriptions',
         where: {
-          and: [{ token: { equals: input.token } }, { platform: { equals: input.platform } }],
+          token: { equals: input.token },
         },
       });
 
