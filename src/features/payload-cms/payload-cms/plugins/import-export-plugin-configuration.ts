@@ -23,6 +23,16 @@ export const importExportConfiguration = importExportPlugin({
         disableJobsQueue: true,
       },
     },
+    {
+      slug: 'piket-schedules',
+      import: {
+        disableJobsQueue: true,
+      },
+      export: {
+        format: 'csv',
+        disableJobsQueue: true,
+      },
+    },
   ],
   overrideExportCollection: ({
     collection,
