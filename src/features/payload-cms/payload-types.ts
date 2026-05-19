@@ -3279,11 +3279,13 @@ export interface UserSubmittedImage {
 export interface PushNotificationSubscription {
   id: string;
   user?: (string | null) | User;
-  endpoint: string;
+  platform: 'web' | 'ios' | 'android';
+  token?: string | null;
+  endpoint?: string | null;
   expirationTime?: number | null;
-  keys: {
-    p256dh: string;
-    auth: string;
+  keys?: {
+    p256dh?: string | null;
+    auth?: string | null;
   };
   userAgent?: string | null;
   registrationSource?: ('/entrypoint' | '/app/settings') | null;
@@ -5287,6 +5289,8 @@ export interface PermissionsSelect<T extends boolean = true> {
  */
 export interface PushNotificationSubscriptionsSelect<T extends boolean = true> {
   user?: T;
+  platform?: T;
+  token?: T;
   endpoint?: T;
   expirationTime?: T;
   keys?:

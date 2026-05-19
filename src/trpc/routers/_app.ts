@@ -2,6 +2,7 @@ import { adminRouter } from '@/features/admin/api/admin-router';
 import { chatRouter } from '@/features/chat/api/chat-router';
 import { emergencyRouter } from '@/features/emergency/api/emergency-router';
 import { mapRouter } from '@/features/map/api/map-router';
+import { nativePushRouter } from '@/features/native-push/api/native-push-router';
 import { uploadRouter } from '@/features/payload-cms/api/upload-router';
 import { pushTrackingRouter } from '@/features/push-tracking/api/push-tracking-router';
 import { registrationRouter } from '@/features/registration_process/api/registration-router';
@@ -19,6 +20,7 @@ export const appRouter = createTRPCRouter({
   pushTracking: pushTrackingRouter,
   registration: registrationRouter,
   upload: uploadRouter,
+  nativePush: nativePushRouter,
 });
 
 // export type definition of API

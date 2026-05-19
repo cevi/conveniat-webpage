@@ -18,6 +18,7 @@ export const seedPushNotifications = async (payload: Payload, userIds: string[])
   await payload.create({
     collection: 'push-notification-subscriptions',
     data: {
+      platform: 'web',
       user: testUserId,
       endpoint: 'https://fcm.googleapis.com/fcm/send/test-endpoint-placeholder',
       // eslint-disable-next-line unicorn/no-null

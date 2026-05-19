@@ -25,6 +25,7 @@ export const environmentVariables = createEnv({
     EVENT_ID: z.string().optional(),
     BREVO_API_KEY: z.string().optional(),
     GOOGLE_TRANSLATE_API_KEY: z.string().optional(),
+    FIREBASE_SERVICE_ACCOUNT_KEY_PATH: z.string().optional(),
 
     // Admin Panel Access Control
     GROUPS_WITH_API_ACCESS: z.string().transform((value) =>
