@@ -3,6 +3,7 @@ import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types
 import { ChatStatus } from '@/lib/chat-shared';
 import type { ChatType } from '@/lib/prisma/client';
 import { trpc } from '@/trpc/client';
+import { useEffect } from 'react';
 
 interface UseAdminChatManagementOptions {
   chatType: ChatType;
@@ -46,7 +47,7 @@ export const useAdminChatManagement = ({
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     { chatId: selectedChatId! },
     {
-      enabled: !!selectedChatId,
+      enabled: typeof selectedChatId === 'string' && selectedChatId !== '',
       // TODO:
       //   - Refetch perodically or rely on invalidation?
       //   - Admin might want live updates?
@@ -71,6 +72,26 @@ export const useAdminChatManagement = ({
       }
     },
   });
+
+  useEffect(() => {
+    if (!selectedChatId) return;
+
+    const url = `/api/chat/sse?chatIds=${selectedChatId}`;
+    const eventSource = new EventSource(url);
+
+    const handleMessage = (): void => {
+      // Invalidate queries to trigger instant UI refresh in admin panel
+      utils.admin.getChatMessages.invalidate({ chatId: selectedChatId }).catch(console.error);
+      utils.admin.listSupportChats.invalidate().catch(console.error);
+    };
+
+    eventSource.addEventListener('message', handleMessage);
+
+    return (): void => {
+      eventSource.removeEventListener('message', handleMessage);
+      eventSource.close();
+    };
+  }, [selectedChatId, utils]);
 
   const reopenChatMutation = trpc.admin.reopenChat.useMutation({
     onSuccess: () => {

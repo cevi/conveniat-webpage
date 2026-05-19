@@ -1,4 +1,5 @@
 import type { AlertSetting } from '@/features/payload-cms/payload-types';
+import { chatPubSub } from '@/lib/db/chat-pubsub';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { MessageType } from '@prisma/client';
@@ -79,7 +80,7 @@ export const updateMessageContent = trpcBaseProcedure
           undefined;
 
         // Send next question OR final response
-        await prisma.message.create({
+        const createdNextMessage = await prisma.message.create({
           data: nextQuestion
             ? {
                 chatId: message.chatId,
@@ -120,8 +121,59 @@ export const updateMessageContent = trpcBaseProcedure
                 },
               },
         });
+
+        // Publish new_message event for the new question/response
+        chatPubSub
+          .publish(message.chatId, {
+            type: 'new_message',
+            chatId: message.chatId,
+            senderId: createdNextMessage.senderId ?? '',
+            message: {
+              id: createdNextMessage.uuid,
+              createdAt: createdNextMessage.createdAt,
+              messagePayload: nextQuestion
+                ? {
+                    question: nextQuestion.question,
+                    options: nextQuestion.options
+                      .map((o) => o.option as string | undefined)
+                      .filter((o): o is string => o !== undefined),
+                    selectedOption: undefined,
+                    questionRefId: nextQuestion.id,
+                  }
+                : {
+                    message: alertSettings.finalResponseMessage,
+                    phoneNumber: alertSettings.emergencyPhoneNumber,
+                  },
+              senderId: createdNextMessage.senderId ?? undefined,
+              status: 'STORED',
+              type: createdNextMessage.type,
+            },
+          })
+          .catch((error: unknown) => {
+            console.error('Failed to publish new alert message event:', error);
+          });
       }
     }
+
+    // Publish message_updated event for the original message
+    chatPubSub
+      .publish(message.chatId, {
+        type: 'message_updated',
+        chatId: message.chatId,
+        senderId: user.uuid,
+        message: {
+          id: message.uuid,
+          createdAt: message.createdAt,
+          messagePayload: content,
+          senderId: message.senderId,
+          status: 'STORED',
+          type: message.type,
+          parentId: message.parentId ?? undefined,
+        },
+      })
+      .catch((error: unknown) => {
+        console.error('Failed to publish message_updated event:', error);
+      });
 
     return { success: true };
   });

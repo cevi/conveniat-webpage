@@ -15,6 +15,7 @@ import { sendNotification } from '@/features/chat/api/utils/send-push-notificati
 // eslint-disable-next-line import/no-restricted-paths
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { hasAccessToThisUser, Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import { chatPubSub } from '@/lib/db/chat-pubsub';
 import { getFeatureFlag, setFeatureFlag } from '@/lib/db/redis';
 import {
   ChatMembershipPermission,
@@ -471,6 +472,29 @@ export const adminRouter = createTRPCRouter({
           })),
         });
       }
+
+      // Publish real-time event via PostgreSQL NOTIFY (fire-and-forget)
+      chatPubSub
+        .publish(input.chatId, {
+          type: 'new_message',
+          chatId: input.chatId,
+          senderId: user.uuid,
+          message: {
+            id: message.uuid,
+            createdAt: message.createdAt,
+            messagePayload:
+              input.type === MessageType.IMAGE_MSG
+                ? { url: input.content }
+                : { text: input.content },
+            senderId: user.uuid,
+            status: MessageEventType.STORED,
+            type: input.type,
+            parentId: undefined,
+          },
+        })
+        .catch((error: unknown) => {
+          console.error('Failed to publish real-time admin event:', error);
+        });
 
       return message;
     }),
