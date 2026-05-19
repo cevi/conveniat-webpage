@@ -101,14 +101,14 @@ export const useAdminChatManagement = ({
         };
       });
 
-      return { previousMessages };
+      return { previousMessages, optimisticMessageId: optimisticMessage.id };
     },
     onError: (_error, { chatId }, context) => {
       if (context?.previousMessages) {
         utils.admin.getChatMessages.setData({ chatId }, context.previousMessages);
       }
     },
-    onSuccess: (createdMessage, { chatId, content, type }) => {
+    onSuccess: (createdMessage, { chatId, content, type }, context) => {
       utils.admin.getChatMessages.setData({ chatId }, (old) => {
         if (!old) return old;
         const alreadyHasStored = old.messages.some((m) => m.id === createdMessage.uuid);
@@ -116,7 +116,11 @@ export const useAdminChatManagement = ({
           ...old,
           messages: old.messages
             .map((m) => {
-              if (m.id.startsWith('optimistic-')) {
+              const isMatch =
+                typeof context.optimisticMessageId === 'string'
+                  ? m.id === context.optimisticMessageId
+                  : m.id.startsWith('optimistic-');
+              if (isMatch) {
                 return alreadyHasStored
                   ? undefined
                   : {

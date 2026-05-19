@@ -15,7 +15,7 @@ type UseMessageSendMutation = UseTRPCMutationResult<
   inferProcedureOutput<AppRouter['chat']['sendMessage']>,
   TRPCClientErrorLike<AppRouter>,
   inferProcedureInput<AppRouter['chat']['sendMessage']>,
-  unknown
+  OptimisticUpdateResult
 >;
 
 type InfiniteMessagesOutput = inferProcedureOutput<AppRouter['chat']['infiniteMessages']>;
@@ -24,6 +24,7 @@ type InfiniteMessagesData = InfiniteData<InfiniteMessagesOutput, string | null>;
 interface OptimisticUpdateResult {
   previousChatData: ChatDetails | undefined;
   previousInfiniteData: InfiniteMessagesData | undefined;
+  optimisticMessageId?: string;
 }
 
 const performOptimisticMessageUpdate = async (
@@ -167,7 +168,7 @@ const performOptimisticMessageUpdate = async (
     });
   });
 
-  return { previousChatData, previousInfiniteData };
+  return { previousChatData, previousInfiniteData, optimisticMessageId: optimisticMessage.id };
 };
 
 export const useMessageSend = (): UseMessageSendMutation => {
@@ -213,7 +214,7 @@ export const useMessageSend = (): UseMessageSendMutation => {
       }
     },
 
-    onSuccess: (createdMessageData, { chatId }) => {
+    onSuccess: (createdMessageData, { chatId }, context) => {
       const createdMessage = createdMessageData as unknown as ChatMessage | undefined;
       if (createdMessage === undefined) return;
 
@@ -232,7 +233,11 @@ export const useMessageSend = (): UseMessageSendMutation => {
               ...page,
               items: page.items
                 .map((item) => {
-                  if (item.id.startsWith('optimistic-')) {
+                  const isMatch =
+                    typeof context.optimisticMessageId === 'string'
+                      ? item.id === context.optimisticMessageId
+                      : item.id.startsWith('optimistic-');
+                  if (isMatch) {
                     return alreadyHasStored ? undefined : createdMessage;
                   }
                   return item;
@@ -255,7 +260,11 @@ export const useMessageSend = (): UseMessageSendMutation => {
             ...oldData,
             messages: oldData.messages
               .map((item) => {
-                if (item.id.startsWith('optimistic-')) {
+                const isMatch =
+                  typeof context.optimisticMessageId === 'string'
+                    ? item.id === context.optimisticMessageId
+                    : item.id.startsWith('optimistic-');
+                if (isMatch) {
                   return alreadyHasStored ? undefined : createdMessage;
                 }
                 return item;
