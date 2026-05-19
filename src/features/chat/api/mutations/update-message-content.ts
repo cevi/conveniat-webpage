@@ -122,6 +122,12 @@ export const updateMessageContent = trpcBaseProcedure
               },
         });
 
+        // Touch the parent chat to update lastUpdate timestamp
+        await prisma.chat.update({
+          where: { uuid: message.chatId },
+          data: { lastUpdate: new Date() },
+        });
+
         // Publish new_message event for the new question/response
         chatPubSub
           .publish({
