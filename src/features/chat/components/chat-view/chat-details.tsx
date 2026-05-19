@@ -140,9 +140,11 @@ export const ChatDetails: React.FC = () => {
           <ChatCapabilities capabilities={chatDetails.capabilities} locale={locale} />
 
           {/* --- Archive Chat Section --- */}
-          <div className="rounded-lg border border-gray-200 bg-white p-6">
-            <DeleteChat />
-          </div>
+          {chatDetails.type !== 'ANNOUNCEMENT' && (
+            <div className="rounded-lg border border-gray-200 bg-white p-6">
+              <DeleteChat />
+            </div>
+          )}
         </div>
       </div>
     </div>
