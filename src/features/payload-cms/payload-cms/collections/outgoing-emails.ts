@@ -4,6 +4,7 @@ import {
   Roles,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
+import { resendOutgoingEmailHandler } from '@/features/payload-cms/payload-cms/endpoints/resend-outgoing-email';
 import { parseSmtpResultsHook } from '@/features/payload-cms/payload-cms/hooks/parse-smtp-results';
 import type { CollectionConfig } from 'payload';
 
@@ -40,6 +41,13 @@ export const OutgoingEmails: CollectionConfig = {
     update: () => false,
     delete: () => false,
   },
+  endpoints: [
+    {
+      path: '/:id/resend',
+      method: 'post',
+      handler: resendOutgoingEmailHandler,
+    },
+  ],
   fields: [
     {
       name: 'deliveryStatus',
@@ -55,6 +63,17 @@ export const OutgoingEmails: CollectionConfig = {
         position: 'sidebar',
       },
       index: true,
+    },
+    {
+      name: 'resendAction',
+      type: 'ui',
+      admin: {
+        position: 'sidebar',
+        components: {
+          Field:
+            '@/features/payload-cms/payload-cms/components/resend-email/resend-email-button#ResendEmailButton',
+        },
+      },
     },
     {
       name: 'dsnReceivedAt',
@@ -192,6 +211,16 @@ export const OutgoingEmails: CollectionConfig = {
       name: 'createdAt',
       type: 'date',
       index: true,
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+      },
+    },
+    {
+      name: 'lastRetriggeredBy',
+      type: 'relationship',
+      relationTo: 'users',
+      hasMany: false,
       admin: {
         readOnly: true,
         position: 'sidebar',
