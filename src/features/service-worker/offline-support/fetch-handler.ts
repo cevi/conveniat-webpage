@@ -12,7 +12,34 @@ import {
 } from '@/features/service-worker/offline-support/rsc-utils';
 import { DesignModeTriggers } from '@/utils/design-codes';
 import { isDraftMode } from '@/utils/draft-mode';
+import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
 import type { Serwist } from 'serwist';
+
+declare const self: ServiceWorkerGlobalScope;
+
+const logImage404ToPostHog = (url: string, clientId: string): void => {
+  console.error(`[SW] Image not found (404): ${url}`);
+  void (async (): Promise<void> => {
+    try {
+      const client = clientId === '' ? undefined : await self.clients.get(clientId);
+      if (client) {
+        client.postMessage({
+          type: ServiceWorkerMessages.CAPTURE_POSTHOG_EVENT,
+          payload: {
+            event: 'image_load_error',
+            properties: {
+              $exception_message: `Image not found: ${url}`,
+              error: 'Image 404 Not Found',
+              url,
+            },
+          },
+        });
+      }
+    } catch (error) {
+      console.debug('[SW] Failed to report image 404 to PostHog', error);
+    }
+  })();
+};
 
 async function matchCachedPage(originalUrl: string): Promise<Response | undefined> {
   const pagesCache = await caches.open(CACHE_NAMES.PAGES);
@@ -261,6 +288,10 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
         return sanitizeRscResponse(response);
       }
 
+      if (response.status === 404 && requestToHandle.destination === 'image') {
+        logImage404ToPostHog(requestToHandle.url, event.clientId);
+      }
+
       return response;
     }
 
@@ -275,6 +306,10 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
         `[SW] Blocked HTML response for script fetch: ${requestToHandle.url} (Status: ${networkResponse.status})`,
       );
       return Response.error(); // Trigger Next.js chunk-load error handling cleanly
+    }
+
+    if (networkResponse.status === 404 && requestToHandle.destination === 'image') {
+      logImage404ToPostHog(requestToHandle.url, event.clientId);
     }
 
     return networkResponse;
