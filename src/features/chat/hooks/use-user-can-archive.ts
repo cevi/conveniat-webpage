@@ -10,6 +10,8 @@ export const useUserCanArchiveChat = (chatId: string): boolean => {
   const chatData = trpcUtils.chat.chatDetails.getData({ chatId: chatId });
   if (!chatData) return false;
 
+  if (chatData.type === ChatType.ANNOUNCEMENT) return false;
+
   if (chatData.type === ChatType.EMERGENCY) return true;
 
   // check permission of user

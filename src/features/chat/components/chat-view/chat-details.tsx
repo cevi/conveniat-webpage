@@ -17,6 +17,7 @@ import { useAddParticipants } from '@/features/chat/hooks/use-add-participants';
 import { useSuspenseChatDetail } from '@/features/chat/hooks/use-chats';
 import { useRemoveParticipants } from '@/features/chat/hooks/use-remove-participant';
 import { useUpdateChatMutation } from '@/features/chat/hooks/use-update-chat-mutation';
+import { ChatType } from '@/lib/prisma/client';
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
@@ -50,6 +51,8 @@ export const ChatDetails: React.FC = () => {
   }, [allContacts, chatDetails, searchQuery]);
 
   const isGroupChat = chatDetails.participants.length > 2;
+  const isAnnouncement = chatDetails.type === ChatType.ANNOUNCEMENT;
+  const isCourseGroup = chatDetails.type === ChatType.COURSE_GROUP;
 
   // --- Start of new handlers for participant management ---
   const handleToggleContactSelection = (contact: Contact): void => {
@@ -100,7 +103,7 @@ export const ChatDetails: React.FC = () => {
             }}
           />
 
-          {chatDetails.type === 'COURSE_GROUP' &&
+          {isCourseGroup &&
             chatDetails.courseId !== null &&
             chatDetails.courseId !== undefined &&
             chatDetails.courseId !== '' && (
@@ -108,7 +111,7 @@ export const ChatDetails: React.FC = () => {
             )}
 
           {/* --- Participants Section --- */}
-          {chatDetails.type !== 'ANNOUNCEMENT' && (
+          {!isAnnouncement && (
             <ParticipantsList
               participants={chatDetails.participants}
               currentUser={currentUser ?? ''}
@@ -122,7 +125,7 @@ export const ChatDetails: React.FC = () => {
           )}
 
           {/* --- Add Participants Section (Visible only when managing) --- */}
-          {chatDetails.type !== 'ANNOUNCEMENT' && isManagingParticipants && (
+          {!isAnnouncement && isManagingParticipants && (
             <AddParticipants
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
@@ -140,9 +143,11 @@ export const ChatDetails: React.FC = () => {
           <ChatCapabilities capabilities={chatDetails.capabilities} locale={locale} />
 
           {/* --- Archive Chat Section --- */}
-          <div className="rounded-lg border border-gray-200 bg-white p-6">
-            <DeleteChat />
-          </div>
+          {!isAnnouncement && (
+            <div className="rounded-lg border border-gray-200 bg-white p-6">
+              <DeleteChat />
+            </div>
+          )}
         </div>
       </div>
     </div>
