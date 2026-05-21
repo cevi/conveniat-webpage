@@ -54,7 +54,11 @@ const FeatureCard: React.FC<FeatureCardProperties> = ({
   </Link>
 );
 
-type AppFeatureFlagKey = 'helperShiftsEnabled' | 'imageUploadEnabled' | 'reservationsEnabled';
+type AppFeatureFlagKey =
+  | 'helperShiftsEnabled'
+  | 'imageUploadEnabled'
+  | 'reservationsEnabled'
+  | 'forumEnabled';
 
 interface FeatureDefinition extends FeatureCardProperties {
   /** When set, this feature is only shown if the corresponding flag is not false. */
@@ -137,6 +141,7 @@ export const DashboardAppFeatures: React.FC<{
       }[locale],
       href: '/app/forum',
       icon: LucideMessageCircleQuestion,
+      featureFlagKey: 'forumEnabled',
     },
     {
       title: {

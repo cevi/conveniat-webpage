@@ -1,8 +1,13 @@
 import type { FilterOptionsProps, Where } from 'payload';
 
-export const filterOptionsOnlyPublished: ({ relationTo }: FilterOptionsProps<unknown>) => Where = ({
+export const filterOptionsOnlyPublished = ({
   relationTo,
-}) => {
+  req,
+}: FilterOptionsProps<unknown>): Where => {
+  if (req.context['autoTranslating'] === true) {
+    return {};
+  }
+
   if (
     [
       'images',

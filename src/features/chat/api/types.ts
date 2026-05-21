@@ -13,6 +13,11 @@ export interface ChatMessage {
   parentId?: string | undefined;
   hasUnreadReplies?: boolean | undefined;
   isAdminMessage?: boolean;
+  reactions?: {
+    emoji: string;
+    userId: string;
+    userName: string;
+  }[];
 }
 
 interface ChatParticipant {
@@ -31,4 +36,5 @@ export interface ChatDetails {
   messages: ChatMessage[];
   participants: ChatParticipant[];
   capabilities: string[];
+  description?: string | null;
 }

@@ -8,7 +8,7 @@ import { useEffect } from 'react';
 import superjson from 'superjson';
 
 interface ChatRealtimeEvent {
-  type: 'new_message' | 'message_updated' | 'chat_read_by_admin' | 'chat_updated';
+  type: 'new_message' | 'message_updated' | 'chat_read_by_admin' | 'chat_updated' | 'new_chat';
   chatId: string;
   senderId: string;
   message?: ChatMessage;
@@ -92,6 +92,11 @@ export const useChatSSE = (chatIds: string[]): void => {
     const ids = chatIdsString.split(',').filter(Boolean);
 
     const listener = (data: ChatRealtimeEvent): void => {
+      if (data.type === 'new_chat') {
+        trpcUtils.chat.chats.invalidate().catch(console.error);
+        return;
+      }
+
       if (data.type === 'chat_read_by_admin') {
         trpcUtils.chat.infiniteMessages.invalidate({ chatId: data.chatId }).catch(console.error);
         trpcUtils.chat.chatDetails.invalidate({ chatId: data.chatId }).catch(console.error);
@@ -166,34 +171,96 @@ export const useChatSSE = (chatIds: string[]): void => {
         // Invalidate chat list overview for unread counts and sorting
         trpcUtils.chat.chats.invalidate().catch(console.error);
 
+        if (message.parentId !== undefined && message.parentId !== '') {
+          // Update the getMessage query cache for the parent message
+          trpcUtils.chat.getMessage.setData({ messageId: message.parentId }, (old) => {
+            if (!old) return old;
+            return {
+              ...old,
+              replyCount: old.replyCount + 1,
+              hasUnreadReplies: message.senderId === currentUser ? old.hasUnreadReplies : true,
+            };
+          });
+
+          trpcUtils.chat.infiniteMessages.setInfiniteData(
+            {
+              chatId: data.chatId,
+              limit: CHAT_PAGE_SIZE,
+              parentId: undefined,
+            },
+            (old) => {
+              if (!old) return old;
+              return {
+                ...old,
+                pages: old.pages.map((page) => ({
+                  ...page,
+                  items: page.items.map((item) => {
+                    if (item.id === message.parentId) {
+                      return {
+                        ...item,
+                        replyCount: (item.replyCount ?? 0) + 1,
+                        hasUnreadReplies:
+                          message.senderId === currentUser ? item.hasUnreadReplies : true,
+                      };
+                    }
+                    return item;
+                  }),
+                })),
+              };
+            },
+          );
+
+          trpcUtils.chat.chatDetails.setData({ chatId: data.chatId }, (old) => {
+            if (!old) return old;
+            return {
+              ...old,
+              messages: old.messages.map((item) => {
+                if (item.id === message.parentId) {
+                  return {
+                    ...item,
+                    replyCount: (item.replyCount ?? 0) + 1,
+                    hasUnreadReplies:
+                      message.senderId === currentUser ? item.hasUnreadReplies : true,
+                  };
+                }
+                return item;
+              }),
+            };
+          });
+        }
+
         // If a system message arrives, invalidate chatDetails to refresh capabilities and status (e.g. closing/locking chat)
         if (message.type === 'SYSTEM_MSG') {
           trpcUtils.chat.chatDetails.invalidate({ chatId: data.chatId }).catch(console.error);
         }
 
         // Direct TanStack cache injection for chatDetails instead of hard invalidation
-        trpcUtils.chat.chatDetails.setData({ chatId: data.chatId }, (old) => {
-          if (!old) return old;
+        if (!message.parentId) {
+          trpcUtils.chat.chatDetails.setData({ chatId: data.chatId }, (old) => {
+            if (!old) return old;
 
-          if (old.messages.some((item) => item.id === message.id)) {
-            return old;
-          }
+            if (old.messages.some((item) => item.id === message.id)) {
+              return old;
+            }
 
-          const hasOptimistic = old.messages.some(
-            (item) => item.id.startsWith('optimistic-') && item.senderId === currentUser,
-          );
+            const hasOptimistic = old.messages.some(
+              (item) => item.id.startsWith('optimistic-') && item.senderId === currentUser,
+            );
 
-          const newMessages = hasOptimistic
-            ? old.messages.map((item) =>
-                item.id.startsWith('optimistic-') && item.senderId === currentUser ? message : item,
-              )
-            : [...old.messages, message];
+            const newMessages = hasOptimistic
+              ? old.messages.map((item) =>
+                  item.id.startsWith('optimistic-') && item.senderId === currentUser
+                    ? message
+                    : item,
+                )
+              : [...old.messages, message];
 
-          return {
-            ...old,
-            messages: newMessages,
-          };
-        });
+            return {
+              ...old,
+              messages: newMessages,
+            };
+          });
+        }
       }
 
       if (data.type === 'message_updated') {
@@ -218,6 +285,14 @@ export const useChatSSE = (chatIds: string[]): void => {
       listeners.add(listener);
     }
 
+    // Also register listener for currentUser to receive personal / direct notifications
+    let userListeners = activeChatSubscribers.get(currentUser);
+    if (!userListeners) {
+      userListeners = new Set();
+      activeChatSubscribers.set(currentUser, userListeners);
+    }
+    userListeners.add(listener);
+
     // Trigger update of global event source
     updateGlobalEventSource(currentUser);
 
@@ -230,6 +305,15 @@ export const useChatSSE = (chatIds: string[]): void => {
           if (listeners.size === 0) {
             activeChatSubscribers.delete(chatId);
           }
+        }
+      }
+
+      // Also unregister listener for currentUser
+      const activeUserListeners = activeChatSubscribers.get(currentUser);
+      if (activeUserListeners) {
+        activeUserListeners.delete(listener);
+        if (activeUserListeners.size === 0) {
+          activeChatSubscribers.delete(currentUser);
         }
       }
 

@@ -135,6 +135,6 @@ export const PushNotificationSubscriptions: CollectionConfig = asPushNotificatio
     read: hasAccessToThisHelper({ requiredRoles: [Roles.FullAdmin] }),
     create: () => false, // disable creating subscriptions
     update: () => false, // disable update for subscriptions
-    delete: () => false, // disable delete for subscriptions
+    delete: hasAccessToThisHelper({ requiredRoles: [Roles.FullAdmin] }),
   },
 });

@@ -324,5 +324,52 @@ describe('smtp-results utils', () => {
         dsnCount: 1,
       });
     });
+
+    it('should handle manually triggered resend (success) after failed SMTP attempt', () => {
+      const results = [
+        { success: false, error: 'Timeout' },
+        { success: true, retriggeredBy: 'user123', retriggeredAt: new Date().toISOString() },
+      ];
+      expect(parseSmtpStats(results)).toEqual({
+        smtpState: 'success',
+        smtpCount: 1,
+        dsnState: 'pending',
+        dsnCount: 1,
+      });
+    });
+
+    it('should handle manually triggered resend (failure) after failed SMTP attempt', () => {
+      const results = [
+        { success: false, error: 'Timeout' },
+        {
+          success: false,
+          error: 'Connection refused',
+          retriggeredBy: 'user123',
+          retriggeredAt: new Date().toISOString(),
+        },
+      ];
+      expect(parseSmtpStats(results)).toEqual({
+        smtpState: 'error',
+        smtpCount: 1,
+        dsnState: 'pending',
+        dsnCount: 1,
+      });
+    });
+
+    it('should reset DSN timeout reference time to the manual resend time', () => {
+      const results = [
+        { success: false, error: 'Timeout' },
+        { success: true, retriggeredBy: 'user123', retriggeredAt: new Date().toISOString() },
+      ];
+      // Set the original creation date to be older than the DSN timeout limit
+      const olderDate = new Date(Date.now() - DSN_TIMEOUT_MS - 50_000).toISOString();
+      // It should still be pending because the resend is recent (less than DSN_TIMEOUT_MS from now)
+      expect(parseSmtpStats(results, olderDate)).toEqual({
+        smtpState: 'success',
+        smtpCount: 1,
+        dsnState: 'pending',
+        dsnCount: 1,
+      });
+    });
   });
 });

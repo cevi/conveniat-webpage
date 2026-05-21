@@ -3,7 +3,6 @@
 import { trpc } from '@/trpc/client';
 import { isNativeAppWebView } from '@/utils/standalone-check';
 import { useRouter } from 'next/navigation';
-import posthog from 'posthog-js';
 import { useEffect, useState } from 'react';
 
 export type NativePushStatus = 'granted' | 'denied' | 'prompt' | 'unknown';
@@ -83,7 +82,9 @@ export function useNativePush(): {
             }).catch((error: unknown) => {
               console.error('Failed to register native device token', error);
               if (error instanceof Error) {
-                posthog.capture('native_push_register_error', { error: error.message });
+                void import('posthog-js').then(({ default: ph }) => {
+                  ph.capture('native_push_register_error', { error: error.message });
+                });
               }
             });
             setStatus('granted');
@@ -117,7 +118,9 @@ export function useNativePush(): {
         }
         case 'native-push-error': {
           console.error('Native push error:', payload['error']);
-          posthog.capture('native_push_error', { error: payload['error'] });
+          void import('posthog-js').then(({ default: ph }) => {
+            ph.capture('native_push_error', { error: payload['error'] });
+          });
           break;
         }
       }

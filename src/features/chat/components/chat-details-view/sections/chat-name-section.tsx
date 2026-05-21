@@ -7,6 +7,7 @@ import { useState } from 'react';
 
 interface ChatNameSectionProperties {
   currentName: string;
+  description?: string | null | undefined;
   isGroupChat: boolean;
   onSaveName: (newName: string) => void;
   isSaving: boolean;
@@ -17,6 +18,12 @@ const chatNameSectionText: StaticTranslationString = {
   de: 'Chat-Name',
   en: 'Chat Name',
   fr: 'Nom du chat',
+};
+
+const chatDescriptionLabelText: StaticTranslationString = {
+  de: 'Beschreibung',
+  en: 'Description',
+  fr: 'Description',
 };
 
 const chatNamePlaceholder: StaticTranslationString = {
@@ -58,6 +65,7 @@ const validateChatName = (name: string, locale: Locale): string => {
 
 export const ChatNameSection: React.FC<ChatNameSectionProperties> = ({
   currentName,
+  description,
   isGroupChat,
   onSaveName,
   isSaving,
@@ -156,6 +164,16 @@ export const ChatNameSection: React.FC<ChatNameSectionProperties> = ({
         </div>
       ) : (
         <div className="font-heading text-lg font-semibold text-gray-900">{currentName}</div>
+      )}
+      {description && description.trim() !== '' && (
+        <div className="mt-6 border-t border-gray-100 pt-6">
+          <div className="font-body mb-2 text-sm font-medium text-gray-600">
+            {chatDescriptionLabelText[locale]}
+          </div>
+          <div className="font-body text-sm leading-relaxed whitespace-pre-wrap text-gray-800">
+            {description}
+          </div>
+        </div>
       )}
     </div>
   );

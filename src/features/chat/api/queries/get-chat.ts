@@ -17,6 +17,8 @@ export const getChat = trpcBaseProcedure
       where: { uuid: chatId },
       include: {
         messages: {
+          // eslint-disable-next-line unicorn/no-null
+          where: { parentId: null },
           orderBy: { createdAt: 'desc' }, // Get newest messages first
           take: 25, // limit to the last 25 messages
           include: {
@@ -94,5 +96,6 @@ export const getChat = trpcBaseProcedure
         chatPermission: membership.chatPermission,
       })),
       capabilities: chat.capabilities,
+      description: chat.description,
     };
   });

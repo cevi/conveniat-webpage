@@ -22,6 +22,15 @@ export const getMessage = trpcBaseProcedure
         _count: {
           select: { replies: true },
         },
+        reactions: {
+          include: {
+            user: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
         replies: {
           where: {
             senderId: { not: ctx.user.uuid },
@@ -49,5 +58,10 @@ export const getMessage = trpcBaseProcedure
       replyCount: message._count.replies,
       parentId: message.parentId ?? undefined,
       hasUnreadReplies: message.replies.length > 0,
+      reactions: message.reactions.map((r) => ({
+        emoji: r.emoji,
+        userId: r.userId,
+        userName: r.user.name,
+      })),
     };
   });

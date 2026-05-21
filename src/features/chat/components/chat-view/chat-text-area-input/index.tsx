@@ -36,9 +36,9 @@ const isGuestMessage: StaticTranslationString = {
 };
 
 const isAnnouncementChannelMessage: StaticTranslationString = {
-  de: 'Dies ist ein Ankündigungskanal. Nur Administratoren können Nachrichten senden.',
-  en: 'This is an announcement channel. Only administrators can send messages.',
-  fr: "Il s'agit d'un canal d'annonces. Seuls les administrateurs können envoyer des messages.",
+  de: 'Dies ist ein Ankündigungskanal. Du kannst hier keine Nachrichten senden.',
+  en: 'This is an announcement channel. You cannot send messages here.',
+  fr: "Il s'agit d'un canal d'annonces. Vous ne pouvez pas envoyer de messages ici.",
 };
 
 const messageTooLongText: StaticTranslationString = {
@@ -86,7 +86,7 @@ const messagingDisabledErrorText: StaticTranslationString = {
 export const ChatTextAreaInput: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const fileInputReference = React.useRef<HTMLInputElement>(null);
-  const { quotedMessageId, cancelQuote } = useChatActions();
+  const { activeThreadId, quotedMessageId, cancelQuote } = useChatActions();
 
   const { data: currentUser } = trpc.chat.user.useQuery({});
   const chatId = useChatId();
@@ -117,6 +117,16 @@ export const ChatTextAreaInput: React.FC = () => {
         participant.id === currentUser &&
         participant.chatPermission === ChatMembershipPermission.GUEST,
     ) ?? false;
+
+  const hasThreadsCapability = chatDetails?.capabilities.includes(ChatCapability.THREADS) ?? false;
+
+  const hasThreadRepliesCapability =
+    chatDetails?.capabilities.includes(ChatCapability.THREAD_REPLIES) ?? false;
+
+  // Guests are allowed to type/send if they are currently replying inside a thread view,
+  // AND the chat has both THREADS and THREAD_REPLIES capabilities enabled.
+  const isAllowedGuestThreadReplies =
+    isGuest && !!activeThreadId && hasThreadsCapability && hasThreadRepliesCapability;
 
   const canUploadPictures =
     chatDetails?.capabilities.includes(ChatCapability.PICTURE_UPLOAD) ?? false;
@@ -202,12 +212,12 @@ export const ChatTextAreaInput: React.FC = () => {
     textareaProps.onChange({ target: { value: '' } } as React.ChangeEvent<HTMLTextAreaElement>);
   };
 
-  if (isGuest) {
+  if (isGuest && !isAllowedGuestThreadReplies) {
     if (chatDetails?.type === ChatType.ANNOUNCEMENT) {
       return (
-        <div className="flex w-full items-center justify-center gap-3 rounded-xl border border-rose-100 bg-rose-50/50 p-4 text-center shadow-xs">
-          <Megaphone className="h-5 w-5 shrink-0 text-rose-500" />
-          <span className="font-heading text-sm font-semibold text-rose-800">
+        <div className="flex w-full items-center justify-center gap-3 rounded-xl bg-gray-50 p-4 text-center">
+          <Megaphone className="h-5 w-5 shrink-0 text-gray-400" />
+          <span className="font-body text-sm font-medium text-balance text-gray-500">
             {isAnnouncementChannelMessage[locale]}
           </span>
         </div>

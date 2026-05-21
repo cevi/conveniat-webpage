@@ -196,6 +196,7 @@ export interface Config {
       generatePdfThumbnail: TaskGeneratePdfThumbnail;
       publishScheduledAnnouncements: TaskPublishScheduledAnnouncements;
       syncActivePiketMembers: TaskSyncActivePiketMembers;
+      syncNewUserAnnouncementChats: TaskSyncNewUserAnnouncementChats;
       createCollectionExport: TaskCreateCollectionExport;
       createCollectionImport: TaskCreateCollectionImport;
       inline: {
@@ -3255,6 +3256,9 @@ export interface AnnouncementChannel {
         id?: string | null;
       }[]
     | null;
+  allowEmojiReactions?: boolean | null;
+  allowThreads?: boolean | null;
+  allowThreadReplies?: boolean | null;
   chatUuid?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -3790,6 +3794,7 @@ export interface PayloadJob {
           | 'generatePdfThumbnail'
           | 'publishScheduledAnnouncements'
           | 'syncActivePiketMembers'
+          | 'syncNewUserAnnouncementChats'
           | 'createCollectionExport'
           | 'createCollectionImport';
         taskID: string;
@@ -3840,6 +3845,7 @@ export interface PayloadJob {
         | 'generatePdfThumbnail'
         | 'publishScheduledAnnouncements'
         | 'syncActivePiketMembers'
+        | 'syncNewUserAnnouncementChats'
         | 'createCollectionExport'
         | 'createCollectionImport'
       )
@@ -5243,6 +5249,9 @@ export interface AnnouncementChannelsSelect<T extends boolean = true> {
         groupName?: T;
         id?: T;
       };
+  allowEmojiReactions?: T;
+  allowThreads?: T;
+  allowThreadReplies?: T;
   chatUuid?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -6475,6 +6484,10 @@ export interface AppFeatureFlag {
    */
   reservationsEnabled?: boolean | null;
   /**
+   * Toggles visibility of the conveniat27 Forum menu item in the app.
+   */
+  forumEnabled?: boolean | null;
+  /**
    * Toggles whether the scheduled task checks Hitobito approvals for pending registrations.
    */
   checkHitobitoApprovalsEnabled?: boolean | null;
@@ -6805,6 +6818,7 @@ export interface AppFeatureFlagsSelect<T extends boolean = true> {
   helperShiftsEnabled?: T;
   imageUploadEnabled?: T;
   reservationsEnabled?: T;
+  forumEnabled?: T;
   checkHitobitoApprovalsEnabled?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -7139,6 +7153,18 @@ export interface TaskPublishScheduledAnnouncements {
 export interface TaskSyncActivePiketMembers {
   input?: unknown;
   output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskSyncNewUserAnnouncementChats".
+ */
+export interface TaskSyncNewUserAnnouncementChats {
+  input: {
+    userId: string;
+  };
+  output: {
+    success?: boolean | null;
+  };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

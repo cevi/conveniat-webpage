@@ -21,14 +21,17 @@ export async function GET(request: NextRequest): Promise<Response> {
     return new Response('Missing chatIds parameter', { status: 400 });
   }
 
-  const chatIds = chatIdsParameter
+  const rawChatIds = chatIdsParameter
     .split(',')
     .map((id) => id.trim())
     .filter(Boolean);
 
-  if (chatIds.length === 0) {
+  if (rawChatIds.length === 0) {
     return new Response('No valid chat IDs provided', { status: 400 });
   }
+
+  // Filter out user.uuid as they automatically subscribe to their own channel
+  const chatIds = rawChatIds.filter((id) => id !== user.uuid);
 
   // Verify membership for all requested chats (admins bypass membership check)
   const isAdmin = hasAccessToThisUser({
@@ -36,7 +39,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam],
   });
 
-  const containsAll = chatIds.includes('all');
+  const containsAll = rawChatIds.includes('all');
   if (containsAll && !isAdmin) {
     return new Response('Forbidden: Non-admins cannot subscribe to the all channel', {
       status: 403,
@@ -52,7 +55,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     }
   }
 
-  if (!isAdmin) {
+  if (!isAdmin && chatIds.length > 0) {
     const memberships = await prisma.chatMembership.findMany({
       where: {
         userId: user.uuid,
@@ -100,19 +103,31 @@ export async function GET(request: NextRequest): Promise<Response> {
         }
       }, 30_000);
 
+      // eslint-disable-next-line unicorn/consistent-function-scoping
+      const listener = (event: ChatRealtimeEvent): void => {
+        try {
+          const dataString = superjson.stringify(event);
+          controller.enqueue(encoder.encode(`data: ${dataString}\n\n`));
+        } catch (error) {
+          console.error('[SSE] Failed to write event to stream controller:', error);
+        }
+      };
+
+      // Automatically subscribe to the user's personal channel (user.uuid) to receive direct updates
+      try {
+        const unsubscribeUser = await chatPubSub.subscribe(user.uuid, listener);
+        if (isCleanedUp()) {
+          unsubscribeUser();
+        } else {
+          activeListeners.set(user.uuid, unsubscribeUser);
+        }
+      } catch (error) {
+        console.error(`[SSE] Failed to subscribe to user channel ${user.uuid}:`, error);
+      }
+
       // Register subscriber for each chat channel
       for (const chatId of chatIds) {
         if (isCleanedUp()) break;
-
-        // eslint-disable-next-line unicorn/consistent-function-scoping
-        const listener = (event: ChatRealtimeEvent): void => {
-          try {
-            const dataString = superjson.stringify(event);
-            controller.enqueue(encoder.encode(`data: ${dataString}\n\n`));
-          } catch (error) {
-            console.error('[SSE] Failed to write event to stream controller:', error);
-          }
-        };
 
         try {
           const unsubscribe = await chatPubSub.subscribe(chatId, listener);
@@ -126,7 +141,6 @@ export async function GET(request: NextRequest): Promise<Response> {
           activeListeners.set(chatId, unsubscribe);
         } catch (error) {
           console.error(`[SSE] Failed to subscribe to chat ${chatId}:`, error);
-          // Could optionally send an error event to the client here
         }
       }
     },
