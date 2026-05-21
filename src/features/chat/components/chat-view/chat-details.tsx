@@ -38,6 +38,7 @@ export const ChatDetails: React.FC = () => {
   const addParticipantsMutation = useAddParticipants();
   const removeParticipantMutation = useRemoveParticipants();
   const { data: currentUser } = trpc.chat.user.useQuery({});
+  const currentUserMembership = chatDetails.participants.find((p) => p.id === currentUser);
 
   // Memoize the list of contacts that can be added (not already in the chat)
   const addableContacts = useMemo(() => {
@@ -141,7 +142,12 @@ export const ChatDetails: React.FC = () => {
           )}
 
           {/* --- Chat Capabilities Section --- */}
-          <ChatCapabilities capabilities={chatDetails.capabilities} locale={locale} />
+          <ChatCapabilities
+            capabilities={chatDetails.capabilities}
+            chatPermission={currentUserMembership?.chatPermission}
+            isAnnouncement={isAnnouncement}
+            locale={locale}
+          />
 
           {/* --- Archive Chat Section --- */}
           {!isAnnouncement && (

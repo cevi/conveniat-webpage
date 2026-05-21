@@ -1,4 +1,5 @@
 import { ChatCapability } from '@/lib/chat-shared';
+import { ChatMembershipPermission } from '@/lib/prisma/client';
 import { Check, X } from 'lucide-react';
 
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -6,6 +7,8 @@ import type React from 'react';
 
 interface ChatCapabilitiesProperties {
   capabilities: string[];
+  chatPermission?: ChatMembershipPermission | undefined;
+  isAnnouncement?: boolean;
   locale: Locale;
 }
 
@@ -49,6 +52,8 @@ const noCapabilitiesText: StaticTranslationString = {
 
 export const ChatCapabilities: React.FC<ChatCapabilitiesProperties> = ({
   capabilities,
+  chatPermission,
+  isAnnouncement = false,
   locale,
 }) => {
   return (
@@ -59,7 +64,27 @@ export const ChatCapabilities: React.FC<ChatCapabilitiesProperties> = ({
       <p className="font-body mb-4 text-xs text-gray-500">{adminOnlyRemarkText[locale]}</p>
       <div className="space-y-4">
         {allPossibleCapabilities.map((capabilityKey) => {
-          const isEnabled = capabilities.includes(capabilityKey);
+          let isEnabled = capabilities.includes(capabilityKey);
+
+          if (isAnnouncement) {
+            const isAdmin =
+              chatPermission === ChatMembershipPermission.OWNER ||
+              chatPermission === ChatMembershipPermission.ADMIN;
+            if (
+              !isAdmin &&
+              (capabilityKey === ChatCapability.CAN_SEND_MESSAGES ||
+                capabilityKey === ChatCapability.PICTURE_UPLOAD)
+            ) {
+              isEnabled = false;
+            }
+          } else if (
+            chatPermission === ChatMembershipPermission.GUEST &&
+            (capabilityKey === ChatCapability.CAN_SEND_MESSAGES ||
+              capabilityKey === ChatCapability.PICTURE_UPLOAD)
+          ) {
+            isEnabled = false;
+          }
+
           return (
             <div key={capabilityKey} className="flex items-center justify-between">
               <span className="font-body text-sm font-medium text-gray-700">
