@@ -68,7 +68,11 @@ export const createNewChat = async (
           })),
         ],
       },
-      capabilities: [ChatCapability.CAN_SEND_MESSAGES, ChatCapability.THREADS],
+      capabilities: [
+        ChatCapability.CAN_SEND_MESSAGES,
+        ChatCapability.THREADS,
+        ChatCapability.EMOJI_REACTIONS,
+      ],
     },
   });
 

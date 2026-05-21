@@ -135,7 +135,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
   const isGuest = currentUserParticipant?.chatPermission === 'GUEST';
   const hasEmojiReactionCapability =
     chatDetails?.capabilities.includes(ChatCapability.EMOJI_REACTIONS) ?? false;
-  const canReact = !isGuest || hasEmojiReactionCapability;
+  const canReact = hasEmojiReactionCapability;
   const canThread = chatDetails?.capabilities.includes(ChatCapability.THREADS) ?? false;
   const canSendMessagesInChat =
     chatDetails?.capabilities.includes(ChatCapability.CAN_SEND_MESSAGES) ?? true;

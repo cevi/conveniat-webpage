@@ -1,6 +1,5 @@
 import { ChatCapability } from '@/lib/chat-shared';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
-import { ChatMembershipPermission } from '@/lib/prisma/client';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { TRPCError } from '@trpc/server';
@@ -59,14 +58,11 @@ export const toggleReaction = trpcBaseProcedure
       });
     }
 
-    // 3. Permission checks: Guests can react only if EMOJI_REACTIONS capability is enabled
-    if (
-      membership.chatPermission === ChatMembershipPermission.GUEST &&
-      !chat.capabilities.includes(ChatCapability.EMOJI_REACTIONS)
-    ) {
+    // 3. Permission checks: Emoji reactions must be enabled for the chat
+    if (!chat.capabilities.includes(ChatCapability.EMOJI_REACTIONS)) {
       throw new TRPCError({
         code: 'FORBIDDEN',
-        message: 'Emoji reactions are not enabled for guests in this chat.',
+        message: 'Emoji reactions are not enabled for this chat.',
       });
     }
 
