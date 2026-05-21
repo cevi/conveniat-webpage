@@ -68,24 +68,15 @@ export const markThreadAsRead = trpcBaseProcedure
       return { count: 0 };
     }
 
-    // 4. Create READ events for these replies in parallel
-    const promises = unreadReplies.map(async (reply) => {
-      try {
-        return await prisma.messageEvent.create({
-          data: {
-            messageId: reply.uuid,
-            userId: user.uuid,
-            type: 'READ',
-          },
-        });
-      } catch (error: unknown) {
-        // Ignore unique constraint violation
-        console.warn(`Already read message ${reply.uuid}:`, error);
-        return;
-      }
+    // 4. Batch-create READ events, skipping any that already exist
+    const result = await prisma.messageEvent.createMany({
+      data: unreadReplies.map((reply) => ({
+        messageId: reply.uuid,
+        userId: user.uuid,
+        type: 'READ',
+      })),
+      skipDuplicates: true,
     });
 
-    const createdEvents = await Promise.all(promises);
-
-    return { count: createdEvents.filter((event) => event !== undefined).length };
+    return { count: result.count };
   });

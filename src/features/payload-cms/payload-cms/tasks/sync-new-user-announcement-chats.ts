@@ -76,7 +76,20 @@ export const syncNewUserAnnouncementChatsTask: TaskConfig<{
         return false;
       });
 
-      // 4. Upsert ChatMembership records in Prisma
+      // 4. Ensure the user exists in the Prisma User table before creating memberships
+      await prisma.user.upsert({
+        where: { uuid: userId },
+        update: {
+          name: user.fullName || user.nickname || 'Unknown User',
+        },
+        create: {
+          uuid: userId,
+          name: user.fullName || user.nickname || 'Unknown User',
+          lastSeen: new Date('1970-01-01T00:00:00Z'),
+        },
+      });
+
+      // 5. Upsert ChatMembership records in Prisma
       for (const channel of matchingChannels) {
         const chatUuid = channel.chatUuid;
         if (typeof chatUuid === 'string' && chatUuid !== '') {
