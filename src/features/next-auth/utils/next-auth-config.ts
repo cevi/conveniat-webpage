@@ -99,7 +99,12 @@ async function saveAndFetchUserFromPayload(
         collection: 'users',
         id: payloadUserId,
         data: {
-          groups: userProfile.roles,
+          groups: userProfile.roles.map((role) => ({
+            id: role.group_id,
+            name: role.group_name,
+            role_name: role.role_name,
+            role_class: role.role_class,
+          })),
           email: userProfile.email,
           fullName: userProfile.first_name + ' ' + userProfile.last_name,
           nickname: userProfile.nickname,

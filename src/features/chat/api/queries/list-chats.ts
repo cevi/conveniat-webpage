@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/no-null */
 import { getMessagePreviewText } from '@/features/chat/api/utils/get-message-preview-text';
 import { resolveChatName } from '@/features/chat/api/utils/resolve-chat-name';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
@@ -73,11 +74,24 @@ export const getChatList = trpcBaseProcedure
         const baseCondition: Prisma.MessageWhereInput = {
           chatId: chat.uuid,
           senderId: { not: prismaUser.uuid },
+          OR: [
+            {
+              parentId: null,
+              ...(lastReadId !== null && lastReadId !== undefined && lastReadId !== ''
+                ? { uuid: { gt: lastReadId } }
+                : {}),
+            },
+            {
+              parentId: { not: null },
+              messageEvents: {
+                none: {
+                  type: 'READ',
+                  userId: prismaUser.uuid,
+                },
+              },
+            },
+          ],
         };
-
-        if (lastReadId !== null && lastReadId !== undefined && lastReadId !== '') {
-          baseCondition.uuid = { gt: lastReadId };
-        }
 
         return baseCondition;
       });
