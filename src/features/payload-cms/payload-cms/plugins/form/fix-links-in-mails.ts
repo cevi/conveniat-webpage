@@ -207,7 +207,7 @@ export const beforeEmailChangeHook: BeforeEmail = async (
   }
 
   // 1. Create the outgoing-emails records synchronously first, so they are saved to the DB immediately
-  const emailsWithIds: { email: FormattedEmail; outgoingEmailId: string }[] = [];
+  const emailsWithIds: { email: FormattedEmail; outgoingEmailId: string | undefined }[] = [];
   for (const email of finalEmails) {
     try {
       const emailOptions = email as { to?: unknown; subject?: string; html?: string };
@@ -236,6 +236,8 @@ export const beforeEmailChangeHook: BeforeEmail = async (
         err: error instanceof Error ? error : new Error(String(error)),
         msg: `Failed to create outgoing-email record synchronously for email to: ${emailTo}`,
       });
+      // Queue the email for delivery anyway to avoid silent drop!
+      emailsWithIds.push({ email, outgoingEmailId: undefined });
     }
   }
 
