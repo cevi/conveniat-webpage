@@ -102,6 +102,38 @@ export const overrideOutgoingEmailStatusHandler: PayloadHandler = async (request
       },
     });
 
+    // Sync with Form Submission if it exists
+    const formSubmissionRelated = emailDocument.formSubmission;
+    const formSubmissionId =
+      typeof formSubmissionRelated === 'string'
+        ? formSubmissionRelated
+        : (formSubmissionRelated as { id?: string } | undefined)?.id;
+
+    if (typeof formSubmissionId === 'string' && formSubmissionId.length > 0) {
+      try {
+        const submission = (await payload.findByID({
+          collection: 'form-submissions',
+          id: formSubmissionId,
+        })) as { smtpResults?: unknown[] };
+
+        const subResults = Array.isArray(submission.smtpResults) ? [...submission.smtpResults] : [];
+        subResults.push(manualResult, manualDsnResult);
+
+        await payload.update({
+          collection: 'form-submissions',
+          id: formSubmissionId,
+          data: {
+            smtpResults: subResults,
+          },
+        });
+      } catch (error) {
+        payload.logger.error({
+          err: error,
+          msg: `Failed to update form-submissions record ${formSubmissionId} with overridden SMTP results in overrideOutgoingEmailStatusHandler.`,
+        });
+      }
+    }
+
     return Response.json({
       success: true,
       deliveryStatus: targetStatus,
