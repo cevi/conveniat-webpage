@@ -23,8 +23,7 @@ const ManagementContent: React.FC = () => {
     },
     {
       refetchInterval: 5000,
-      // @ts-expect-error - feature of tanstack query used by trpc
-      keepPreviousData: true,
+      placeholderData: (previousData) => previousData,
     },
   );
 

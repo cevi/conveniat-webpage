@@ -43,12 +43,17 @@ export const useAdminChatManagement = ({
     data: chats = [],
     isLoading: loadingChats,
     refetch: refetchChats,
-  } = trpc.admin.listSupportChats.useQuery({
-    type: chatType,
-    status: showClosed ? undefined : ChatStatus.OPEN,
-    search: debouncedSearch || undefined,
-    includeId: selectedChatId ?? undefined,
-  });
+  } = trpc.admin.listSupportChats.useQuery(
+    {
+      type: chatType,
+      status: showClosed ? undefined : ChatStatus.OPEN,
+      search: debouncedSearch || undefined,
+      includeId: selectedChatId ?? undefined,
+    },
+    {
+      placeholderData: (previousData) => previousData,
+    },
+  );
 
   const { data: messagesData, isLoading: loadingMessages } = trpc.admin.getChatMessages.useQuery(
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
