@@ -258,6 +258,7 @@ export const createMessage = trpcBaseProcedure
                   quotedSnippet,
                 },
           senderId: user.uuid,
+          senderName: user.name,
           status: MessageEventType.STORED,
           type: validatedMessage.type,
           parentId: validatedMessage.parentId ?? undefined,

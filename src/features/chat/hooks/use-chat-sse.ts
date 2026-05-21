@@ -167,6 +167,16 @@ export const useChatSSE = (chatIds: string[]): void => {
         trpcUtils.chat.chats.invalidate().catch(console.error);
 
         if (message.parentId !== undefined && message.parentId !== '') {
+          // Update the getMessage query cache for the parent message
+          trpcUtils.chat.getMessage.setData({ messageId: message.parentId }, (old) => {
+            if (!old) return old;
+            return {
+              ...old,
+              replyCount: old.replyCount + 1,
+              hasUnreadReplies: message.senderId === currentUser ? old.hasUnreadReplies : true,
+            };
+          });
+
           trpcUtils.chat.infiniteMessages.setInfiniteData(
             {
               chatId: data.chatId,
