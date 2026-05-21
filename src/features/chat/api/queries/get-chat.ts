@@ -94,5 +94,6 @@ export const getChat = trpcBaseProcedure
         chatPermission: membership.chatPermission,
       })),
       capabilities: chat.capabilities,
+      description: chat.description,
     };
   });

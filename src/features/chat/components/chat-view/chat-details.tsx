@@ -95,6 +95,7 @@ export const ChatDetails: React.FC = () => {
         <div className="mx-auto max-w-2xl space-y-6">
           <ChatNameSection
             currentName={chatDetails.name}
+            description={chatDetails.description}
             isGroupChat={isGroupChat}
             isSaving={updateChatMutation.isPending}
             locale={locale}
