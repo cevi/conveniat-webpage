@@ -95,9 +95,9 @@ async function saveAndFetchUserFromPayload(
     // User already exists by UUID — update and return
     const payloadUserId = matchedByUuid.docs[0]?.id;
     if (matchedByUuid.totalDocs === 1 && payloadUserId !== undefined) {
-      await payload.update({
+      const updatedUser = await payload.update({
         collection: 'users',
-        where: { cevi_db_uuid: { equals: ceviDatabaseUuid } },
+        id: payloadUserId,
         data: {
           groups: userProfile.roles,
           email: userProfile.email,
@@ -106,10 +106,13 @@ async function saveAndFetchUserFromPayload(
         },
       });
 
-      return await payload.findByID({
-        collection: 'users',
-        id: payloadUserId,
+      // Queue background job to sync announcement channels
+      await payload.jobs.queue({
+        task: 'syncNewUserAnnouncementChats',
+        input: { userId: payloadUserId },
       });
+
+      return updatedUser;
     }
 
     // Phase 2: No UUID match — try to find by email (for manually created / CSV-imported users)
@@ -120,18 +123,34 @@ async function saveAndFetchUserFromPayload(
 
     if (matchedByEmail.totalDocs === 1 && matchedByEmail.docs[0]?.id !== undefined) {
       // Link the existing user by setting their cevi_db_uuid
-      return await payload.update({
+      const updatedUser = await payload.update({
         collection: 'users',
         id: matchedByEmail.docs[0].id,
         data: userData,
       });
+
+      // Queue background job to sync announcement channels for first-time login
+      await payload.jobs.queue({
+        task: 'syncNewUserAnnouncementChats',
+        input: { userId: updatedUser.id },
+      });
+
+      return updatedUser;
     }
 
     // Phase 3: No match at all — create a new user
-    return await payload.create({
+    const newUser = await payload.create({
       collection: 'users',
       data: userData,
     });
+
+    // Queue background job to sync announcement channels for first-time login
+    await payload.jobs.queue({
+      task: 'syncNewUserAnnouncementChats',
+      input: { userId: newUser.id },
+    });
+
+    return newUser;
   });
 }
 

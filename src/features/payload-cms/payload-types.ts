@@ -196,6 +196,7 @@ export interface Config {
       generatePdfThumbnail: TaskGeneratePdfThumbnail;
       publishScheduledAnnouncements: TaskPublishScheduledAnnouncements;
       syncActivePiketMembers: TaskSyncActivePiketMembers;
+      syncNewUserAnnouncementChats: TaskSyncNewUserAnnouncementChats;
       createCollectionExport: TaskCreateCollectionExport;
       createCollectionImport: TaskCreateCollectionImport;
       inline: {
@@ -3793,6 +3794,7 @@ export interface PayloadJob {
           | 'generatePdfThumbnail'
           | 'publishScheduledAnnouncements'
           | 'syncActivePiketMembers'
+          | 'syncNewUserAnnouncementChats'
           | 'createCollectionExport'
           | 'createCollectionImport';
         taskID: string;
@@ -3843,6 +3845,7 @@ export interface PayloadJob {
         | 'generatePdfThumbnail'
         | 'publishScheduledAnnouncements'
         | 'syncActivePiketMembers'
+        | 'syncNewUserAnnouncementChats'
         | 'createCollectionExport'
         | 'createCollectionImport'
       )
@@ -7145,6 +7148,18 @@ export interface TaskPublishScheduledAnnouncements {
 export interface TaskSyncActivePiketMembers {
   input?: unknown;
   output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskSyncNewUserAnnouncementChats".
+ */
+export interface TaskSyncNewUserAnnouncementChats {
+  input: {
+    userId: string;
+  };
+  output: {
+    success?: boolean | null;
+  };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

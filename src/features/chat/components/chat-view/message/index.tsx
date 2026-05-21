@@ -145,7 +145,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
     isGuest && !!activeThreadId && canThread && hasThreadRepliesCapability;
 
   const canSendMessages =
-    !chatDetails?.isArchived && canSendMessagesInChat && (!isGuest || isAllowedGuestThreadReplies);
+    !chatDetails?.archivedAt && canSendMessagesInChat && (!isGuest || isAllowedGuestThreadReplies);
 
   const toggleReactionMutation = trpc.chat.toggleReaction.useMutation({
     onError: (error) => {
