@@ -166,6 +166,54 @@ export const useChatSSE = (chatIds: string[]): void => {
         // Invalidate chat list overview for unread counts and sorting
         trpcUtils.chat.chats.invalidate().catch(console.error);
 
+        if (message.parentId !== undefined && message.parentId !== '') {
+          trpcUtils.chat.infiniteMessages.setInfiniteData(
+            {
+              chatId: data.chatId,
+              limit: CHAT_PAGE_SIZE,
+              parentId: undefined,
+            },
+            (old) => {
+              if (!old) return old;
+              return {
+                ...old,
+                pages: old.pages.map((page) => ({
+                  ...page,
+                  items: page.items.map((item) => {
+                    if (item.id === message.parentId) {
+                      return {
+                        ...item,
+                        replyCount: (item.replyCount ?? 0) + 1,
+                        hasUnreadReplies:
+                          message.senderId === currentUser ? item.hasUnreadReplies : true,
+                      };
+                    }
+                    return item;
+                  }),
+                })),
+              };
+            },
+          );
+
+          trpcUtils.chat.chatDetails.setData({ chatId: data.chatId }, (old) => {
+            if (!old) return old;
+            return {
+              ...old,
+              messages: old.messages.map((item) => {
+                if (item.id === message.parentId) {
+                  return {
+                    ...item,
+                    replyCount: (item.replyCount ?? 0) + 1,
+                    hasUnreadReplies:
+                      message.senderId === currentUser ? item.hasUnreadReplies : true,
+                  };
+                }
+                return item;
+              }),
+            };
+          });
+        }
+
         // If a system message arrives, invalidate chatDetails to refresh capabilities and status (e.g. closing/locking chat)
         if (message.type === 'SYSTEM_MSG') {
           trpcUtils.chat.chatDetails.invalidate({ chatId: data.chatId }).catch(console.error);
