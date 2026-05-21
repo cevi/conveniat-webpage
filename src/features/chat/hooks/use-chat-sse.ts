@@ -172,28 +172,32 @@ export const useChatSSE = (chatIds: string[]): void => {
         }
 
         // Direct TanStack cache injection for chatDetails instead of hard invalidation
-        trpcUtils.chat.chatDetails.setData({ chatId: data.chatId }, (old) => {
-          if (!old) return old;
+        if (!message.parentId) {
+          trpcUtils.chat.chatDetails.setData({ chatId: data.chatId }, (old) => {
+            if (!old) return old;
 
-          if (old.messages.some((item) => item.id === message.id)) {
-            return old;
-          }
+            if (old.messages.some((item) => item.id === message.id)) {
+              return old;
+            }
 
-          const hasOptimistic = old.messages.some(
-            (item) => item.id.startsWith('optimistic-') && item.senderId === currentUser,
-          );
+            const hasOptimistic = old.messages.some(
+              (item) => item.id.startsWith('optimistic-') && item.senderId === currentUser,
+            );
 
-          const newMessages = hasOptimistic
-            ? old.messages.map((item) =>
-                item.id.startsWith('optimistic-') && item.senderId === currentUser ? message : item,
-              )
-            : [...old.messages, message];
+            const newMessages = hasOptimistic
+              ? old.messages.map((item) =>
+                  item.id.startsWith('optimistic-') && item.senderId === currentUser
+                    ? message
+                    : item,
+                )
+              : [...old.messages, message];
 
-          return {
-            ...old,
-            messages: newMessages,
-          };
-        });
+            return {
+              ...old,
+              messages: newMessages,
+            };
+          });
+        }
       }
 
       if (data.type === 'message_updated') {

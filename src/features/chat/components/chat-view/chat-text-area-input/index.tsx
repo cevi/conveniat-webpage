@@ -86,7 +86,7 @@ const messagingDisabledErrorText: StaticTranslationString = {
 export const ChatTextAreaInput: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const fileInputReference = React.useRef<HTMLInputElement>(null);
-  const { quotedMessageId, cancelQuote } = useChatActions();
+  const { activeThreadId, quotedMessageId, cancelQuote } = useChatActions();
 
   const { data: currentUser } = trpc.chat.user.useQuery({});
   const chatId = useChatId();
@@ -117,6 +117,16 @@ export const ChatTextAreaInput: React.FC = () => {
         participant.id === currentUser &&
         participant.chatPermission === ChatMembershipPermission.GUEST,
     ) ?? false;
+
+  const hasThreadsCapability = chatDetails?.capabilities.includes(ChatCapability.THREADS) ?? false;
+
+  const hasThreadRepliesCapability =
+    chatDetails?.capabilities.includes(ChatCapability.THREAD_REPLIES) ?? false;
+
+  // Guests are allowed to type/send if they are currently replying inside a thread view,
+  // AND the chat has both THREADS and THREAD_REPLIES capabilities enabled.
+  const isAllowedGuestThreadReplies =
+    isGuest && !!activeThreadId && hasThreadsCapability && hasThreadRepliesCapability;
 
   const canUploadPictures =
     chatDetails?.capabilities.includes(ChatCapability.PICTURE_UPLOAD) ?? false;
@@ -202,7 +212,7 @@ export const ChatTextAreaInput: React.FC = () => {
     textareaProps.onChange({ target: { value: '' } } as React.ChangeEvent<HTMLTextAreaElement>);
   };
 
-  if (isGuest) {
+  if (isGuest && !isAllowedGuestThreadReplies) {
     if (chatDetails?.type === ChatType.ANNOUNCEMENT) {
       return (
         <div className="flex w-full items-center justify-center gap-3 rounded-xl bg-gray-50 p-4 text-center">

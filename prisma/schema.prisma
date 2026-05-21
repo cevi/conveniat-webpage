@@ -19,6 +19,7 @@ model User {
   Enrollments          Enrollment[]
   Stars                Star[]
   pushNotificationLogs PushNotificationLog[]
+  reactions            MessageReaction[]
 
   @@index([name])
 }
@@ -60,6 +61,8 @@ enum ChatCapability {
   CAN_SEND_MESSAGES
   PICTURE_UPLOAD
   THREADS
+  THREAD_REPLIES
+  EMOJI_REACTIONS
 }
 
 model Chat {
@@ -170,6 +173,7 @@ model Message {
   parentId String?
   parent   Message?  @relation("Thread", fields: [parentId], references: [uuid], onDelete: Cascade)
   replies  Message[] @relation("Thread")
+  reactions MessageReaction[]
 
   @@index([chatId, createdAt(sort: Asc)])
 }
@@ -304,4 +308,20 @@ enum PushNotificationStatus {
   PENDING
   DELIVERED
   FAILED
+}
+
+model MessageReaction {
+  uuid      String   @id @default(uuid(7))
+  emoji     String
+  createdAt DateTime @default(now())
+
+  messageId String
+  message   Message  @relation(fields: [messageId], references: [uuid], onDelete: Cascade)
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [uuid])
+
+  @@unique([messageId, userId, emoji])
+  @@index([messageId])
+  @@index([userId])
 }

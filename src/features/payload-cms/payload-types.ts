@@ -3255,6 +3255,9 @@ export interface AnnouncementChannel {
         id?: string | null;
       }[]
     | null;
+  allowEmojiReactions?: boolean | null;
+  allowThreads?: boolean | null;
+  allowThreadReplies?: boolean | null;
   chatUuid?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -5243,6 +5246,9 @@ export interface AnnouncementChannelsSelect<T extends boolean = true> {
         groupName?: T;
         id?: T;
       };
+  allowEmojiReactions?: T;
+  allowThreads?: T;
+  allowThreadReplies?: T;
   chatUuid?: T;
   updatedAt?: T;
   createdAt?: T;

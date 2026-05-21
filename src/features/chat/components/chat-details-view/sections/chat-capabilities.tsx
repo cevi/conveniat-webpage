@@ -34,6 +34,16 @@ const capabilityLabels: Record<string, StaticTranslationString> = {
     en: 'Threads & Replies',
     fr: 'Fils de discussion et réponses',
   },
+  THREAD_REPLIES: {
+    de: 'Antworten in Threads',
+    en: 'Replies in Threads',
+    fr: 'Réponses dans les fils',
+  },
+  EMOJI_REACTIONS: {
+    de: 'Emoji-Reaktionen',
+    en: 'Emoji Reactions',
+    fr: 'Réactions emoji',
+  },
 };
 
 const allPossibleCapabilities = Object.values(ChatCapability);

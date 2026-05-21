@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/buttons/button';
 import { MessageInfoDropdown } from '@/features/chat/components/chat-view/message/message-info-dropdown';
 import { useChatActions } from '@/features/chat/context/chat-actions-context';
 import { useChatId } from '@/features/chat/context/chat-id-context';
+import { ChatCapability } from '@/lib/chat-shared';
 import { trpc } from '@/trpc/client';
 import { Info, MessageSquare, Quote, X } from 'lucide-react';
 import React from 'react';
@@ -32,7 +33,7 @@ export const ChatSelectionHeader: React.FC = () => {
     setSelectedMessage(undefined);
   };
 
-  const canThread = chatDetails?.capabilities.includes('THREADING') ?? false;
+  const canThread = chatDetails?.capabilities.includes(ChatCapability.THREADS) ?? false;
 
   return (
     <div className="animate-in slide-in-from-top mb-[32px] flex h-[60px] items-center justify-between border-b-2 border-gray-200 bg-white px-4 duration-200">

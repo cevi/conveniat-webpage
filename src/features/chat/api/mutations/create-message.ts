@@ -1,7 +1,7 @@
 import { sendNotification } from '@/features/chat/api/utils/send-push-notifications';
 import { Ability } from '@/lib/ability';
 import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
-import { LARGE_CHAT_THRESHOLD } from '@/lib/chat-shared';
+import { ChatCapability, LARGE_CHAT_THRESHOLD } from '@/lib/chat-shared';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
 import { ChatMembershipPermission, MessageEventType, MessageType } from '@/lib/prisma/client';
 import { trpcBaseProcedure } from '@/trpc/init';
@@ -92,6 +92,7 @@ export const createMessage = trpcBaseProcedure
     const chat = await prisma.chat.findUnique({
       where: { uuid: validatedMessage.chatId },
       select: {
+        capabilities: true,
         chatMemberships: {
           select: {
             userId: true,
@@ -118,14 +119,30 @@ export const createMessage = trpcBaseProcedure
     const userMembership = chat.chatMemberships.find(
       (membership) => membership.userId === user.uuid,
     );
-    if (!userMembership || userMembership.chatPermission === ChatMembershipPermission.GUEST) {
-      console.warn(
-        `User ${user.uuid} does not have permission to send messages in chat ${validatedMessage.chatId}. The user has permission: ${userMembership?.chatPermission}.`,
-      );
+
+    if (!userMembership) {
       throw new TRPCError({
-        code: 'FORBIDDEN',
-        message: 'You do not have permission to send messages in this chat.',
+        code: 'NOT_FOUND',
+        message: 'You are not a member of this chat.',
       });
+    }
+
+    if (userMembership.chatPermission === ChatMembershipPermission.GUEST) {
+      // Guests can send messages ONLY if they are replying in a thread (parentId exists),
+      // and BOTH THREADS and THREAD_REPLIES capabilities are enabled for this chat.
+      const isThreadReply = !!validatedMessage.parentId;
+      const hasThreadsCapability = chat.capabilities.includes(ChatCapability.THREADS);
+      const hasThreadRepliesCapability = chat.capabilities.includes(ChatCapability.THREAD_REPLIES);
+
+      if (!isThreadReply || !hasThreadsCapability || !hasThreadRepliesCapability) {
+        console.warn(
+          `User ${user.uuid} is a GUEST and attempted to send a message outside allowed thread replies context in chat ${validatedMessage.chatId}.`,
+        );
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'You do not have permission to send messages in this chat.',
+        });
+      }
     }
 
     console.log(
