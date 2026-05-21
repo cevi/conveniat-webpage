@@ -1,5 +1,6 @@
 import { syncPiketMembersToOpenChats } from '@/features/chat/api/utils/piket-service';
 import {
+  cleanupCompletedScheduledJobs,
   cleanupStaleScheduledJobs,
   DEFAULT_QUEUE,
 } from '@/features/payload-cms/payload-cms/tasks/cleanup-stale-jobs';
@@ -9,31 +10,6 @@ import { countRunnableOrActiveJobsForQueue } from 'payload';
 export const syncActivePiketMembersTask: TaskConfig = {
   slug: 'syncActivePiketMembers',
   retries: 0,
-  onSuccess: async ({ job, req }) => {
-    try {
-      if ((typeof job.id === 'string' && job.id.length > 0) || typeof job.id === 'number') {
-        await req.payload.delete({
-          collection: 'payload-jobs',
-          id: job.id,
-        });
-      }
-    } catch (error: unknown) {
-      if (
-        typeof error === 'object' &&
-        error !== null &&
-        'status' in error &&
-        error.status === 404
-      ) {
-        // Job was likely already deleted by another instance
-        return;
-      }
-
-      req.payload.logger.error({
-        err: error instanceof Error ? error : new Error(String(error)),
-        msg: `Failed to auto-delete completed syncActivePiketMembers job: ${String(job.id)}`,
-      });
-    }
-  },
   schedule: [
     {
       cron: '* * * * *', // Every minute to catch shift changes promptly
@@ -43,6 +19,7 @@ export const syncActivePiketMembersTask: TaskConfig = {
           queueable,
           req,
         }): Promise<{ shouldSchedule: boolean; input: Record<string, never> }> => {
+          await cleanupCompletedScheduledJobs(req, 'syncActivePiketMembers');
           await cleanupStaleScheduledJobs(req, 'syncActivePiketMembers', 15);
 
           const runnableOrActiveJobsForQueue = await countRunnableOrActiveJobsForQueue({

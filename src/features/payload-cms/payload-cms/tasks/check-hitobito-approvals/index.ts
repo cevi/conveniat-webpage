@@ -1,4 +1,5 @@
 import {
+  cleanupCompletedScheduledJobs,
   cleanupStaleScheduledJobs,
   DEFAULT_QUEUE,
 } from '@/features/payload-cms/payload-cms/tasks/cleanup-stale-jobs';
@@ -11,31 +12,6 @@ import { countRunnableOrActiveJobsForQueue } from 'payload';
 export const checkHitobitoApprovalsTask: TaskConfig<'checkHitobitoApprovals'> = {
   slug: 'checkHitobitoApprovals',
   retries: 0,
-  onSuccess: async ({ job, req }) => {
-    try {
-      if ((typeof job.id === 'string' && job.id.length > 0) || typeof job.id === 'number') {
-        await req.payload.delete({
-          collection: 'payload-jobs',
-          id: job.id,
-        });
-      }
-    } catch (error: unknown) {
-      if (
-        typeof error === 'object' &&
-        error !== null &&
-        'status' in error &&
-        error.status === 404
-      ) {
-        // Job was likely already deleted by another instance
-        return;
-      }
-
-      req.payload.logger.error({
-        err: error instanceof Error ? error : new Error(String(error)),
-        msg: `Failed to auto-delete completed checkHitobitoApprovals job: ${String(job.id)}`,
-      });
-    }
-  },
   schedule: [
     {
       cron: '*/5 * * * *', // Every 5 minutes
@@ -45,6 +21,9 @@ export const checkHitobitoApprovalsTask: TaskConfig<'checkHitobitoApprovals'> = 
           queueable,
           req,
         }): Promise<{ shouldSchedule: boolean; input: Record<string, never> }> => {
+          await cleanupCompletedScheduledJobs(req, 'checkHitobitoApprovals');
+          await cleanupStaleScheduledJobs(req, 'checkHitobitoApprovals', 15);
+
           const isEnabled = await getFeatureFlag(FEATURE_FLAG_CHECK_HITOBITO_APPROVALS_ENABLED);
           if (!isEnabled) {
             req.payload.logger.info(
@@ -55,8 +34,6 @@ export const checkHitobitoApprovalsTask: TaskConfig<'checkHitobitoApprovals'> = 
               input: {},
             };
           }
-
-          await cleanupStaleScheduledJobs(req, 'checkHitobitoApprovals', 15);
 
           const runnableOrActiveJobsForQueue = await countRunnableOrActiveJobsForQueue({
             queue: queueable.scheduleConfig.queue,

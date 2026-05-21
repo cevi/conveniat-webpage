@@ -1,5 +1,6 @@
 import { environmentVariables } from '@/config/environment-variables';
 import {
+  cleanupCompletedScheduledJobs,
   cleanupStaleScheduledJobs,
   DEFAULT_QUEUE,
 } from '@/features/payload-cms/payload-cms/tasks/cleanup-stale-jobs';
@@ -22,37 +23,6 @@ const REDIS_BACKOFF_NEXT_ATTEMPT_KEY = 'fetchSmtpBounces:backoff:nextAttempt';
 export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
   slug: 'fetchSmtpBounces',
   retries: 0,
-  /**
-   * We selectively auto-delete only the `fetchSmtpBounces` job upon successful completion
-   * to keep the `payload-jobs` collection clean, as this task runs very frequently (every 5 minutes).
-   * We do this here instead of using the global `deleteJobOnComplete: true` in the JobsConfig
-   * to preserve the execution history and observability for other critical workflows.
-   */
-  onSuccess: async ({ job, req }) => {
-    try {
-      if ((typeof job.id === 'string' && job.id.length > 0) || typeof job.id === 'number') {
-        await req.payload.delete({
-          collection: 'payload-jobs',
-          id: job.id,
-        });
-      }
-    } catch (error: unknown) {
-      if (
-        typeof error === 'object' &&
-        error !== null &&
-        'status' in error &&
-        error.status === 404
-      ) {
-        // Job was likely already deleted by another instance
-        return;
-      }
-
-      req.payload.logger.error({
-        err: error instanceof Error ? error : new Error(String(error)),
-        msg: `Failed to auto-delete completed fetchSmtpBounces job: ${String(job.id)}`,
-      });
-    }
-  },
   schedule: [
     {
       cron: FETCH_SMTP_BOUNCES_CRON,
@@ -88,6 +58,7 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
             };
           }
 
+          await cleanupCompletedScheduledJobs(req, 'fetchSmtpBounces');
           await cleanupStaleScheduledJobs(req, 'fetchSmtpBounces', 15);
 
           // 2. Prevent parallel execution: check if there is an uncompleted fetchSmtpBounces job

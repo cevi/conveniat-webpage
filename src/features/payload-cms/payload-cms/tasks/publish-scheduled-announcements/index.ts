@@ -4,6 +4,7 @@ import {
   publishAnnouncementToPostgres,
 } from '@/features/payload-cms/payload-cms/collections/announcements';
 import {
+  cleanupCompletedScheduledJobs,
   cleanupStaleScheduledJobs,
   DEFAULT_QUEUE,
 } from '@/features/payload-cms/payload-cms/tasks/cleanup-stale-jobs';
@@ -13,29 +14,6 @@ import { countRunnableOrActiveJobsForQueue } from 'payload';
 export const publishScheduledAnnouncementsTask: TaskConfig<'publishScheduledAnnouncements'> = {
   slug: 'publishScheduledAnnouncements',
   retries: 0,
-  onSuccess: async ({ job, req }) => {
-    try {
-      if ((typeof job.id === 'string' && job.id.length > 0) || typeof job.id === 'number') {
-        await req.payload.delete({
-          collection: 'payload-jobs',
-          id: job.id,
-        });
-      }
-    } catch (error: unknown) {
-      if (
-        typeof error === 'object' &&
-        error !== null &&
-        'status' in error &&
-        (error as { status?: number }).status === 404
-      ) {
-        return;
-      }
-      req.payload.logger.error({
-        err: error instanceof Error ? error : new Error(String(error)),
-        msg: `Failed to auto-delete completed publishScheduledAnnouncements job: ${String(job.id)}`,
-      });
-    }
-  },
   schedule: [
     {
       cron: '* * * * *', // Run every minute
@@ -45,6 +23,7 @@ export const publishScheduledAnnouncementsTask: TaskConfig<'publishScheduledAnno
           queueable,
           req,
         }): Promise<{ shouldSchedule: boolean; input: Record<string, never> }> => {
+          await cleanupCompletedScheduledJobs(req, 'publishScheduledAnnouncements');
           await cleanupStaleScheduledJobs(req, 'publishScheduledAnnouncements', 5);
 
           const runnableOrActiveJobsForQueue = await countRunnableOrActiveJobsForQueue({
