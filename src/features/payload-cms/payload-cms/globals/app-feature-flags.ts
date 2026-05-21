@@ -6,6 +6,7 @@ import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/ad
 import { flushPageCacheOnChangeGlobal } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import { setFeatureFlag } from '@/lib/db/redis';
 import {
+  FEATURE_FLAG_CHECK_HITOBITO_APPROVALS_ENABLED,
   FEATURE_FLAG_CREATE_CHATS_ENABLED,
   FEATURE_FLAG_HELPER_SHIFTS_ENABLED,
   FEATURE_FLAG_IMAGE_UPLOAD_ENABLED,
@@ -166,6 +167,31 @@ export const AppFeatureFlags: GlobalConfig = {
         afterChange: [
           async ({ value }): Promise<void> => {
             await setFeatureFlag(FEATURE_FLAG_RESERVATIONS_ENABLED, Boolean(value));
+          },
+        ],
+      },
+    },
+    {
+      name: 'checkHitobitoApprovalsEnabled',
+      label: {
+        en: 'Enable Check Hitobito Approvals Task',
+        de: 'Task "Check Hitobito Approvals" aktivieren',
+        fr: "Activer la tâche d'approbations Hitobito",
+      },
+      type: 'checkbox',
+      defaultValue: true,
+      admin: {
+        description:
+          'Toggles whether the scheduled task checks Hitobito approvals for pending registrations.',
+        components: {
+          Field:
+            '@/features/payload-cms/payload-cms/components/fields/feature-flag-toggle#FeatureFlagToggle',
+        },
+      },
+      hooks: {
+        afterChange: [
+          async ({ value }): Promise<void> => {
+            await setFeatureFlag(FEATURE_FLAG_CHECK_HITOBITO_APPROVALS_ENABLED, Boolean(value));
           },
         ],
       },

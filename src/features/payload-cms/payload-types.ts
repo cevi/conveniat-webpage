@@ -6474,6 +6474,10 @@ export interface AppFeatureFlag {
    * Toggles visibility of the Reservations menu item in the app.
    */
   reservationsEnabled?: boolean | null;
+  /**
+   * Toggles whether the scheduled task checks Hitobito approvals for pending registrations.
+   */
+  checkHitobitoApprovalsEnabled?: boolean | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -6801,6 +6805,7 @@ export interface AppFeatureFlagsSelect<T extends boolean = true> {
   helperShiftsEnabled?: T;
   imageUploadEnabled?: T;
   reservationsEnabled?: T;
+  checkHitobitoApprovalsEnabled?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
