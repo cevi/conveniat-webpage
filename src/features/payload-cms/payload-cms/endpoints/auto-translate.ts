@@ -89,6 +89,8 @@ async function translateData(
 
 export const autoTranslateHandler: PayloadHandler = async (request) => {
   try {
+    request.context['autoTranslating'] = true;
+
     const hasAccess = await canAccessAdminPanel({ req: request });
     if (!hasAccess) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
