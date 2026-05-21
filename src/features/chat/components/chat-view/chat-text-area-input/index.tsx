@@ -36,9 +36,9 @@ const isGuestMessage: StaticTranslationString = {
 };
 
 const isAnnouncementChannelMessage: StaticTranslationString = {
-  de: 'Dies ist ein Ankündigungskanal. Nur Administratoren können Nachrichten senden.',
-  en: 'This is an announcement channel. Only administrators can send messages.',
-  fr: "Il s'agit d'un canal d'annonces. Seuls les administrateurs können envoyer des messages.",
+  de: 'Dies ist ein Ankündigungskanal. Du kannst hier keine Nachrichten senden.',
+  en: 'This is an announcement channel. You cannot send messages here.',
+  fr: "Il s'agit d'un canal d'annonces. Vous ne pouvez pas envoyer de messages ici.",
 };
 
 const messageTooLongText: StaticTranslationString = {
