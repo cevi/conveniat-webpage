@@ -137,6 +137,7 @@ export const parseSmtpStats = (
   let dsnSuccess = 0;
   let dsnErrors = 0;
 
+  let activeCreatedAtString = createdAtString;
   let lastSmtpOverrideIndex = -1;
   let lastDsnOverrideIndex = -1;
 
@@ -148,12 +149,17 @@ export const parseSmtpStats = (
       if (result === null || typeof result !== 'object') continue;
 
       const recordItem = result as Record<string, unknown>;
+      const isBounce = recordItem['bounceReport'] === true;
       if (isManualOverrideItem(recordItem)) {
-        if (recordItem['bounceReport'] === true) {
+        if (isBounce) {
           lastDsnOverrideIndex = index;
         } else {
           lastSmtpOverrideIndex = index;
         }
+      } else if (recordItem['retriggeredBy'] !== undefined && !isBounce) {
+        // A manually triggered resend resets both SMTP and DSN active scopes
+        lastSmtpOverrideIndex = index;
+        lastDsnOverrideIndex = index;
       }
     }
 
@@ -192,6 +198,14 @@ export const parseSmtpStats = (
       if (hasError) dsnErrors++;
       else dsnSuccess++;
     }
+
+    const maxIndex = Math.max(lastSmtpOverrideIndex, lastDsnOverrideIndex);
+    if (maxIndex !== -1 && maxIndex < resultsArray.length) {
+      const boundaryItem = resultsArray[maxIndex] as Record<string, unknown>;
+      if (typeof boundaryItem['retriggeredAt'] === 'string') {
+        activeCreatedAtString = boundaryItem['retriggeredAt'];
+      }
+    }
   }
 
   // Derive Box 1 (SMTP) State
@@ -200,8 +214,8 @@ export const parseSmtpStats = (
   else if (smtpSuccess > 0) smtpState = 'success';
 
   let timeElapsedMs = 0;
-  if (typeof createdAtString === 'string' && createdAtString.length > 0) {
-    const createdAtDate = new Date(createdAtString);
+  if (typeof activeCreatedAtString === 'string' && activeCreatedAtString.length > 0) {
+    const createdAtDate = new Date(activeCreatedAtString);
     if (!Number.isNaN(createdAtDate.getTime())) {
       timeElapsedMs = Date.now() - createdAtDate.getTime();
     }
