@@ -1,5 +1,7 @@
 import { BillParticipantsCollection } from '@/features/billing/collections/bill-participants';
 import { BillPdfsCollection } from '@/features/billing/collections/bill-pdfs-collection';
+import { AnnouncementChannelsCollection } from '@/features/payload-cms/payload-cms/collections/announcement-channels';
+import { AnnouncementsCollection } from '@/features/payload-cms/payload-cms/collections/announcements';
 import { BlogArticleCollection } from '@/features/payload-cms/payload-cms/collections/blog-article';
 import { CampCategoryCollection } from '@/features/payload-cms/payload-cms/collections/camp-category';
 import { CampMapAnnotationsCollection } from '@/features/payload-cms/payload-cms/collections/camp-map-collection';
@@ -12,6 +14,7 @@ import { HelperShiftsCollection } from '@/features/payload-cms/payload-cms/colle
 import { ImageCollection } from '@/features/payload-cms/payload-cms/collections/image-collection';
 import { OutgoingEmails } from '@/features/payload-cms/payload-cms/collections/outgoing-emails';
 import { PermissionsCollection } from '@/features/payload-cms/payload-cms/collections/permission-collection';
+import { PiketScheduleCollection } from '@/features/payload-cms/payload-cms/collections/piket-schedule-collection';
 import { PushNotificationSubscriptions } from '@/features/payload-cms/payload-cms/collections/push-notification-subscriptions';
 import { SmtpBounceMailTracking } from '@/features/payload-cms/payload-cms/collections/smtp-bounce-tracking';
 import { TimelineCollection } from '@/features/payload-cms/payload-cms/collections/timeline';
@@ -38,6 +41,8 @@ const rawCollectionsConfig: CollectionConfig[] = [
   CampScheduleEntryCollection,
   HelperShiftsCollection,
   JobCollection,
+  AnnouncementChannelsCollection,
+  AnnouncementsCollection,
 
   // general purpose collections, not routable
   ImageCollection,
@@ -53,6 +58,7 @@ const rawCollectionsConfig: CollectionConfig[] = [
   OutgoingEmails,
   BillParticipantsCollection,
   BillPdfsCollection,
+  PiketScheduleCollection,
 ];
 
 /**

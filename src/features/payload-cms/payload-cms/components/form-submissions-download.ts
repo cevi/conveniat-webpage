@@ -134,14 +134,20 @@ export const downloadFormSubmissionsAsExcel = async (formId: string): Promise<st
       return rowObject;
     });
 
-    // 3. Import xlsx and generate the workbook
-    const XLSX = await import('xlsx');
-    const worksheet = XLSX.utils.json_to_sheet(rows, { header: headers });
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Submissions');
+    // 3. Import exceljs and generate the workbook
+    const ExcelJS = await import('exceljs');
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Submissions');
+
+    worksheet.columns = headers.map((header) => ({ header, key: header }));
+
+    for (const row of rows) {
+      worksheet.addRow(row);
+    }
 
     // 4. Write to base64 string
-    const base64Excel = XLSX.write(workbook, { type: 'base64', bookType: 'xlsx' }) as string;
+    const buffer = await workbook.xlsx.writeBuffer();
+    const base64Excel = Buffer.from(buffer).toString('base64');
     return base64Excel;
   });
 };

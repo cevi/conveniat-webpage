@@ -13,7 +13,7 @@ const isToday = (date: Date): boolean => {
   );
 };
 
-const getDateFnsLocale = (localeString: string): typeof enUS => {
+export const getDateFnsLocale = (localeString: string): typeof enUS => {
   switch (localeString) {
     case 'de': {
       return de;
@@ -69,4 +69,13 @@ export const useFormatDate = (): {
   };
 
   return { formatMessageTime, formatMessageTimeOnly };
+};
+
+export const formatMessageTimeOnlyRaw = (timestamp: Date | string, locale: string): string => {
+  const dateFnsLocale = getDateFnsLocale(locale);
+  const date = timestamp instanceof Date ? timestamp : new Date(timestamp);
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+  return format(date, 'HH:mm', { locale: dateFnsLocale });
 };

@@ -60,7 +60,7 @@ export const AlertQuestionMessage: React.FC<AlertQuestionMessageProperties> = ({
 
   return (
     <div className="flex min-w-[200px] flex-col space-y-2.5 p-1">
-      <h3 className="font-semibold text-[var(--theme-text)]">{payload.question}</h3>
+      <h3 className="font-semibold text-(--theme-elevation-900,#111827)">{payload.question}</h3>
       <div className="flex flex-col space-y-2">
         {payload.options.map((option) => {
           const isSelected = currentSelection === option;
@@ -75,10 +75,10 @@ export const AlertQuestionMessage: React.FC<AlertQuestionMessageProperties> = ({
                 'group flex items-center space-x-3 rounded-xl border-2 px-4 py-3 text-left transition-all duration-200',
                 isSelected
                   ? 'border-conveniat-green bg-conveniat-green/10 text-conveniat-green shadow-sm'
-                  : 'border-gray-200 bg-white text-[var(--theme-text)]',
+                  : 'border-(--theme-elevation-150,#e5e7eb) bg-(--theme-elevation-50,#ffffff) text-(--theme-elevation-900,#111827)',
                 isSelectable &&
                   !isSelected &&
-                  'cursor-pointer hover:border-gray-300 hover:bg-gray-50 hover:shadow-md active:scale-[0.98]',
+                  'cursor-pointer hover:border-(--theme-elevation-250,#d1d5db) hover:bg-(--theme-elevation-100,#f9fafb) hover:shadow-md active:scale-[0.98]',
                 !isSelectable && !isSelected && 'cursor-not-allowed opacity-50',
               )}
             >
@@ -95,8 +95,8 @@ export const AlertQuestionMessage: React.FC<AlertQuestionMessageProperties> = ({
                   className={cn(
                     'flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors duration-200',
                     isSelectable
-                      ? 'border-gray-300 group-hover:border-gray-400'
-                      : 'border-gray-200',
+                      ? 'border-(--theme-elevation-250,#d1d5db) group-hover:border-(--theme-elevation-400,#9ca3af)'
+                      : 'border-(--theme-elevation-150,#e5e7eb)',
                   )}
                 >
                   <Circle className="h-0 w-0" />

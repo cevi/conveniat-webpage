@@ -5,6 +5,7 @@ import { PullToRefresh } from '@/components/ui/pull-to-refresh';
 import { ChatPreview } from '@/features/chat/components/chat-overview-view/chat-preview';
 import { SwipeToDeleteChat } from '@/features/chat/components/chat-overview-view/swipe-to-delete-chat';
 import { QRCodeClientComponent } from '@/features/chat/components/qr-component';
+import { useChatSSE } from '@/features/chat/hooks/use-chat-sse';
 import { useChats } from '@/features/chat/hooks/use-chats';
 import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
 import { trpc } from '@/trpc/client';
@@ -17,7 +18,7 @@ import { MessageSquare, MessageSquarePlus } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
 import type React from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 const searchPlaceholderText: StaticTranslationString = {
@@ -80,6 +81,12 @@ export const ChatsOverviewClientComponent: React.FC<{ user: HitobitoNextAuthUser
 }) => {
   const { data: chats, isLoading } = useChats();
   const trpcUtils = trpc.useUtils();
+
+  const chatIds = useMemo(() => {
+    if (!chats) return [];
+    return [...chats].map((chat) => chat.id).sort();
+  }, [chats]);
+  useChatSSE(chatIds);
 
   // Check capability instead of raw feature flag
   const { data: createChatsEnabled } = trpc.chat.checkCapability.useQuery({

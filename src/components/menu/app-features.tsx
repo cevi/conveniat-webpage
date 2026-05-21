@@ -1,6 +1,5 @@
-'use client';
-
 import { LinkComponent } from '@/components/ui/link-component';
+import { getAppFeatureFlagsCached } from '@/features/payload-cms/api/cached-globals';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -14,6 +13,7 @@ import {
   Siren,
   Truck,
 } from 'lucide-react';
+import { connection } from 'next/server';
 import type React from 'react';
 
 const appFeaturesTitle: StaticTranslationString = {
@@ -107,7 +107,10 @@ const AppFeatureMenuItem: React.FC<AppFeatureMenuItemProperties> = ({
 
 export const AppFeatures: React.FC<{
   locale: Locale;
-}> = ({ locale }) => {
+}> = async ({ locale }) => {
+  await connection();
+  const featureFlags = await getAppFeatureFlagsCached();
+
   return (
     <>
       <div className="py-6">
@@ -142,21 +145,27 @@ export const AppFeatures: React.FC<{
           text={scheduleFeatureTranslation[locale]}
           prefetch
         />
-        <AppFeatureMenuItem
-          href="/app/helper-portal"
-          Icon={CalendarCheck2}
-          text={helperShiftsFeatureTranslation[locale]}
-        />
-        <AppFeatureMenuItem
-          href="/app/upload-images"
-          Icon={ImageUp}
-          text={uploadPicturesFeatureTranslation[locale]}
-        />
-        <AppFeatureMenuItem
-          href="/app/reservations"
-          Icon={Truck}
-          text={reservationsFeatureTranslation[locale]}
-        />
+        {featureFlags.helperShiftsEnabled !== false && (
+          <AppFeatureMenuItem
+            href="/app/helper-portal"
+            Icon={CalendarCheck2}
+            text={helperShiftsFeatureTranslation[locale]}
+          />
+        )}
+        {featureFlags.imageUploadEnabled !== false && (
+          <AppFeatureMenuItem
+            href="/app/upload-images"
+            Icon={ImageUp}
+            text={uploadPicturesFeatureTranslation[locale]}
+          />
+        )}
+        {featureFlags.reservationsEnabled !== false && (
+          <AppFeatureMenuItem
+            href="/app/reservations"
+            Icon={Truck}
+            text={reservationsFeatureTranslation[locale]}
+          />
+        )}
         <AppFeatureMenuItem
           href="/app/settings"
           Icon={Settings}

@@ -11,8 +11,9 @@ import { whiteSpaceBlock } from '@/features/payload-cms/payload-cms/shared-block
 import { mainContentField } from '@/features/payload-cms/payload-cms/shared-fields/main-content-field';
 import { flushPageCacheOnChange } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
+import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
 import { CourseType } from '@/lib/prisma';
-import type { CollectionConfig, Field } from 'payload';
+import type { CollectionConfig, Field, TextFieldSingleValidation } from 'payload';
 
 export const HelperShiftsCollection: CollectionConfig = {
   slug: 'helper-shifts',
@@ -160,13 +161,22 @@ export const HelperShiftsCollection: CollectionConfig = {
                       fr: 'Créneaux horaires au format HH:mm (ex : 08:00 - 18:00)',
                     },
                   },
-                  validate: (value: string | string[] | undefined | null): true | string => {
+                  validate: ((
+                    value: string | string[] | undefined | null,
+                    options: Parameters<TextFieldSingleValidation>[1],
+                  ): true | string => {
+                    const localeString = options.req.i18n.language;
+                    const errorMessage = getValidationMessage(localeString, {
+                      en: 'Invalid time format. Use HH:mm - HH:mm.',
+                      de: 'Ungültiges Zeitformat. Bitte HH:mm - HH:mm verwenden.',
+                      fr: 'Format de temps invalide. Utilisez HH:mm - HH:mm.',
+                    });
                     if (typeof value !== 'string') {
-                      return 'Invalid time format. Use HH:mm - HH:mm.';
+                      return errorMessage;
                     }
                     const timePattern = /^([01]\d|2[0-3]):([0-5]\d) - ([01]\d|2[0-3]):([0-5]\d)$/;
-                    return timePattern.test(value) || 'Invalid time format. Use HH:mm - HH:mm.';
-                  },
+                    return timePattern.test(value) || errorMessage;
+                  }) as TextFieldSingleValidation,
                 },
               ],
             },

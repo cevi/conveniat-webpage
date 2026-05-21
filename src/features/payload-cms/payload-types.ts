@@ -58,6 +58,8 @@ export interface Config {
     'camp-schedule-entry': CampScheduleEntry;
     'helper-shifts': HelperShift;
     'helper-jobs': HelperJob;
+    'announcement-channels': AnnouncementChannel;
+    announcements: Announcement;
     images: Image;
     userSubmittedImages: UserSubmittedImage;
     documents: Document;
@@ -71,6 +73,7 @@ export interface Config {
     'outgoing-emails': OutgoingEmail;
     'bill-participants': BillParticipant;
     'bill-pdfs': BillPdf;
+    'piket-schedules': PiketSchedule;
     forms: Form;
     'form-submissions': FormSubmission;
     'search-collection': SearchCollection;
@@ -110,6 +113,8 @@ export interface Config {
     'camp-schedule-entry': CampScheduleEntrySelect<false> | CampScheduleEntrySelect<true>;
     'helper-shifts': HelperShiftsSelect<false> | HelperShiftsSelect<true>;
     'helper-jobs': HelperJobsSelect<false> | HelperJobsSelect<true>;
+    'announcement-channels': AnnouncementChannelsSelect<false> | AnnouncementChannelsSelect<true>;
+    announcements: AnnouncementsSelect<false> | AnnouncementsSelect<true>;
     images: ImagesSelect<false> | ImagesSelect<true>;
     userSubmittedImages: UserSubmittedImagesSelect<false> | UserSubmittedImagesSelect<true>;
     documents: DocumentsSelect<false> | DocumentsSelect<true>;
@@ -123,6 +128,7 @@ export interface Config {
     'outgoing-emails': OutgoingEmailsSelect<false> | OutgoingEmailsSelect<true>;
     'bill-participants': BillParticipantsSelect<false> | BillParticipantsSelect<true>;
     'bill-pdfs': BillPdfsSelect<false> | BillPdfsSelect<true>;
+    'piket-schedules': PiketSchedulesSelect<false> | PiketSchedulesSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     'search-collection': SearchCollectionSelect<false> | SearchCollectionSelect<true>;
@@ -188,6 +194,8 @@ export interface Config {
       fetchSmtpBounces: TaskFetchSmtpBounces;
       checkHitobitoApprovals: TaskCheckHitobitoApprovals;
       generatePdfThumbnail: TaskGeneratePdfThumbnail;
+      publishScheduledAnnouncements: TaskPublishScheduledAnnouncements;
+      syncActivePiketMembers: TaskSyncActivePiketMembers;
       createCollectionExport: TaskCreateCollectionExport;
       createCollectionImport: TaskCreateCollectionImport;
       inline: {
@@ -1533,6 +1541,7 @@ export interface AccordionBlocks {
           | TeamMembersBlock
           | FormBlock
           | AccordionTimelineElementBlock
+          | TitleOnlyAccordionValueBlock
           | NestedAccordionBlocks
           | {
               file: string | Document;
@@ -3089,6 +3098,16 @@ export interface AccordionTimelineElementBlock {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TitleOnlyAccordionValueBlock".
+ */
+export interface TitleOnlyAccordionValueBlock {
+  title: string;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'titleOnlyAccordionValueBlock';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "NestedAccordionBlocks".
  */
 export interface NestedAccordionBlocks {
@@ -3107,6 +3126,7 @@ export interface NestedAccordionBlocks {
               blockType: 'fileDownload';
             }
           | AccordionTimelineElementBlock
+          | TitleOnlyAccordionValueBlock
         )[];
         id?: string | null;
       }[]
@@ -3220,6 +3240,71 @@ export interface HelperShift {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "announcement-channels".
+ */
+export interface AnnouncementChannel {
+  id: string;
+  name: string;
+  description?: string | null;
+  targetType: 'all' | 'roles' | 'cevi_groups';
+  targetRoles?: ('full-admin' | 'web-core-team' | 'translation-team' | 'program-team')[] | null;
+  targetCeviGroups?:
+    | {
+        groupId: number;
+        groupName: string;
+        id?: string | null;
+      }[]
+    | null;
+  chatUuid?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "announcements".
+ */
+export interface Announcement {
+  id: string;
+  publishingStatus?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  _localized_status: LocalizedPublishingStatus;
+  _disable_unpublishing?: boolean | null;
+  _locale: string;
+  title: string;
+  content: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  channel: string | AnnouncementChannel;
+  status: 'scheduled' | 'published';
+  scheduledAt?: string | null;
+  publishedAt?: string | null;
+  author?: (string | null) | User;
+  chatMessageUuid?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "userSubmittedImages".
  */
 export interface UserSubmittedImage {
@@ -3267,11 +3352,13 @@ export interface UserSubmittedImage {
 export interface PushNotificationSubscription {
   id: string;
   user?: (string | null) | User;
-  endpoint: string;
+  platform: 'web' | 'ios' | 'android';
+  token?: string | null;
+  endpoint?: string | null;
   expirationTime?: number | null;
-  keys: {
-    p256dh: string;
-    auth: string;
+  keys?: {
+    p256dh?: string | null;
+    auth?: string | null;
   };
   userAgent?: string | null;
   registrationSource?: ('/entrypoint' | '/app/settings') | null;
@@ -3400,6 +3487,7 @@ export interface OutgoingEmail {
     | null;
   rawDsnEmail?: string | null;
   createdAt: string;
+  lastRetriggeredBy?: (string | null) | User;
   updatedAt: string;
 }
 /**
@@ -3477,6 +3565,21 @@ export interface BillPdf {
   height?: number | null;
   focalX?: number | null;
   focalY?: number | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "piket-schedules".
+ */
+export interface PiketSchedule {
+  id: string;
+  users: (string | User)[];
+  startTime: string;
+  endTime: string;
+  chatTypes: ('EMERGENCY' | 'SUPPORT_GROUP')[];
+  lastEditedByUser?: (string | null) | User;
+  updatedAt: string;
+  createdAt: string;
+  deletedAt?: string | null;
 }
 /**
  * This is a collection of automatically created search results. These results are used by the global site search and will be updated automatically as documents in the CMS are created or updated.
@@ -3685,6 +3788,8 @@ export interface PayloadJob {
           | 'fetchSmtpBounces'
           | 'checkHitobitoApprovals'
           | 'generatePdfThumbnail'
+          | 'publishScheduledAnnouncements'
+          | 'syncActivePiketMembers'
           | 'createCollectionExport'
           | 'createCollectionImport';
         taskID: string;
@@ -3733,6 +3838,8 @@ export interface PayloadJob {
         | 'fetchSmtpBounces'
         | 'checkHitobitoApprovals'
         | 'generatePdfThumbnail'
+        | 'publishScheduledAnnouncements'
+        | 'syncActivePiketMembers'
         | 'createCollectionExport'
         | 'createCollectionImport'
       )
@@ -3792,6 +3899,14 @@ export interface PayloadLockedDocument {
         value: string | HelperJob;
       } | null)
     | ({
+        relationTo: 'announcement-channels';
+        value: string | AnnouncementChannel;
+      } | null)
+    | ({
+        relationTo: 'announcements';
+        value: string | Announcement;
+      } | null)
+    | ({
         relationTo: 'images';
         value: string | Image;
       } | null)
@@ -3842,6 +3957,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'bill-pdfs';
         value: string | BillPdf;
+      } | null)
+    | ({
+        relationTo: 'piket-schedules';
+        value: string | PiketSchedule;
       } | null)
     | ({
         relationTo: 'forms';
@@ -4150,6 +4269,7 @@ export interface AccordionBlocksSelect<T extends boolean = true> {
               accordionTeamMembersBlock?: T | TeamMembersBlockSelect<T>;
               formBlock?: T | FormBlockSelect<T>;
               accordionTimelineElement?: T | AccordionTimelineElementBlockSelect<T>;
+              titleOnlyAccordionValueBlock?: T | TitleOnlyAccordionValueBlockSelect<T>;
               nestedAccordion?: T | NestedAccordionBlocksSelect<T>;
               fileDownload?:
                 | T
@@ -4234,6 +4354,15 @@ export interface AccordionTimelineElementBlockSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TitleOnlyAccordionValueBlock_select".
+ */
+export interface TitleOnlyAccordionValueBlockSelect<T extends boolean = true> {
+  title?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "NestedAccordionBlocks_select".
  */
 export interface NestedAccordionBlocksSelect<T extends boolean = true> {
@@ -4256,6 +4385,7 @@ export interface NestedAccordionBlocksSelect<T extends boolean = true> {
                     blockName?: T;
                   };
               accordionTimelineElement?: T | AccordionTimelineElementBlockSelect<T>;
+              titleOnlyAccordionValueBlock?: T | TitleOnlyAccordionValueBlockSelect<T>;
             };
         id?: T;
       };
@@ -5099,6 +5229,47 @@ export interface HelperJobsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "announcement-channels_select".
+ */
+export interface AnnouncementChannelsSelect<T extends boolean = true> {
+  name?: T;
+  description?: T;
+  targetType?: T;
+  targetRoles?: T;
+  targetCeviGroups?:
+    | T
+    | {
+        groupId?: T;
+        groupName?: T;
+        id?: T;
+      };
+  chatUuid?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "announcements_select".
+ */
+export interface AnnouncementsSelect<T extends boolean = true> {
+  publishingStatus?: T;
+  _localized_status?: T;
+  _disable_unpublishing?: T;
+  _locale?: T;
+  title?: T;
+  content?: T;
+  channel?: T;
+  status?: T;
+  scheduledAt?: T;
+  publishedAt?: T;
+  author?: T;
+  chatMessageUuid?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "images_select".
  */
 export interface ImagesSelect<T extends boolean = true> {
@@ -5264,6 +5435,8 @@ export interface PermissionsSelect<T extends boolean = true> {
  */
 export interface PushNotificationSubscriptionsSelect<T extends boolean = true> {
   user?: T;
+  platform?: T;
+  token?: T;
   endpoint?: T;
   expirationTime?: T;
   keys?:
@@ -5363,6 +5536,7 @@ export interface OutgoingEmailsSelect<T extends boolean = true> {
   rawSmtpResults?: T;
   rawDsnEmail?: T;
   createdAt?: T;
+  lastRetriggeredBy?: T;
   updatedAt?: T;
 }
 /**
@@ -5412,6 +5586,20 @@ export interface BillPdfsSelect<T extends boolean = true> {
   height?: T;
   focalX?: T;
   focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "piket-schedules_select".
+ */
+export interface PiketSchedulesSelect<T extends boolean = true> {
+  users?: T;
+  startTime?: T;
+  endTime?: T;
+  chatTypes?: T;
+  lastEditedByUser?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  deletedAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -6270,6 +6458,26 @@ export interface AppFeatureFlag {
    * Toggles the ability for users to create new chats (1-on-1 and Group). Emergency/Support chats are excluded.
    */
   createChatsEnabled?: boolean | null;
+  /**
+   * Hides the Hof and Quartier sections in the app. This is used for testing purposes.
+   */
+  hideHofAndQuartier?: boolean | null;
+  /**
+   * Toggles visibility of the Helper Shifts (Schichteinsätze) menu item in the app.
+   */
+  helperShiftsEnabled?: boolean | null;
+  /**
+   * Toggles visibility of the Image Upload menu item in the app.
+   */
+  imageUploadEnabled?: boolean | null;
+  /**
+   * Toggles visibility of the Reservations menu item in the app.
+   */
+  reservationsEnabled?: boolean | null;
+  /**
+   * Toggles whether the scheduled task checks Hitobito approvals for pending registrations.
+   */
+  checkHitobitoApprovalsEnabled?: boolean | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -6593,6 +6801,11 @@ export interface AlertSettingsSelect<T extends boolean = true> {
 export interface AppFeatureFlagsSelect<T extends boolean = true> {
   globalMessagingEnabled?: T;
   createChatsEnabled?: T;
+  hideHofAndQuartier?: T;
+  helperShiftsEnabled?: T;
+  imageUploadEnabled?: T;
+  reservationsEnabled?: T;
+  checkHitobitoApprovalsEnabled?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
@@ -6913,6 +7126,22 @@ export interface TaskGeneratePdfThumbnail {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskPublishScheduledAnnouncements".
+ */
+export interface TaskPublishScheduledAnnouncements {
+  input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskSyncActivePiketMembers".
+ */
+export interface TaskSyncActivePiketMembers {
+  input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskCreateCollectionExport".
  */
 export interface TaskCreateCollectionExport {
@@ -6929,6 +7158,8 @@ export interface TaskCreateCollectionExport {
       | 'camp-schedule-entry'
       | 'helper-shifts'
       | 'helper-jobs'
+      | 'announcement-channels'
+      | 'announcements'
       | 'images'
       | 'userSubmittedImages'
       | 'documents'
@@ -6942,6 +7173,7 @@ export interface TaskCreateCollectionExport {
       | 'outgoing-emails'
       | 'bill-participants'
       | 'bill-pdfs'
+      | 'piket-schedules'
       | 'forms'
       | 'form-submissions'
       | 'search-collection'

@@ -46,6 +46,14 @@ enum ChatType {
 
   /// an automatically managed group chat for a schedule entry (workshop)
   COURSE_GROUP
+
+  /// a channel for broadcasting read-only announcements to target groups
+  ANNOUNCEMENT
+}
+
+enum ChatStatus {
+  OPEN
+  CLOSED
 }
 
 enum ChatCapability {
@@ -59,13 +67,16 @@ model Chat {
   name String
 
   description String?
-  status      String  @default("OPEN")
+  status      ChatStatus  @default(OPEN)
 
   lastUpdate DateTime @default(now())
   createdAt  DateTime @default(now())
 
   /// the time when the chat was archived, null if the chat is not archived
   archivedAt DateTime?
+
+  /// the time when the chat was last read by an administrator, null if never
+  adminReadAt DateTime?
 
   type ChatType @default(GROUP)
 
@@ -106,6 +117,9 @@ model ChatMembership {
   /// indicates whether the user has deleted the chat
   hasDeleted Boolean @default(false)
 
+  /// High-water mark for read receipts
+  lastReadMessageId      String?
+
   chatPermission ChatMembershipPermission @default(MEMBER)
 
   @@id([userId, chatId])
@@ -134,7 +148,7 @@ enum MessageType {
 }
 
 model Message {
-  uuid String      @id @default(uuid())
+  uuid String      @id @default(uuid(7))
   type MessageType @default(TEXT_MSG)
 
   createdAt DateTime @default(now())
@@ -162,7 +176,7 @@ model Message {
 
 // we split the content of the message into a separate model to allow for versioning
 model MessageContent {
-  uuid String @id @default(uuid())
+  uuid String @id @default(uuid(7))
 
   /// versioning for content updates (e.g. editing messages)
   revision Int @default(0)
@@ -274,10 +288,16 @@ model PushNotificationLog {
   interactedAt    DateTime?
   interactionType String?
   userAgent       String?
+  channel         PushNotificationChannel @default(WEB_PUSH)
   status          PushNotificationStatus @default(PENDING)
   error           String?
 
   @@index([userId])
+}
+
+enum PushNotificationChannel {
+  WEB_PUSH
+  NATIVE_FCM
 }
 
 enum PushNotificationStatus {

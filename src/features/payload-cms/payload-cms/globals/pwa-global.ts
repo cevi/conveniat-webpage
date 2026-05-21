@@ -1,3 +1,7 @@
+import {
+  isFullAdmin,
+  shouldHideInAdminPanelIfNotAdmin,
+} from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { flushManifestCacheOnChange } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import { localizedDefaultValue } from '@/features/payload-cms/payload-cms/utils/localized-default-value';
@@ -10,12 +14,18 @@ export const PWAGlobal: GlobalConfig = {
     afterChange: [flushManifestCacheOnChange],
   },
 
+  access: {
+    read: () => true,
+    update: isFullAdmin,
+  },
+
   label: {
     en: 'Progressive Web App Settings',
     de: 'Einstellungen für die Progressive Web App',
     fr: 'Paramètres de l’application web progressive',
   },
   admin: {
+    hidden: shouldHideInAdminPanelIfNotAdmin,
     group: AdminPanelDashboardGroups.GlobalSettings,
     description: {
       en: 'Settings for the Progressive Web App',

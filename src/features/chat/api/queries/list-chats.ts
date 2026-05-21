@@ -1,13 +1,13 @@
 import { getMessagePreviewText } from '@/features/chat/api/utils/get-message-preview-text';
 import { resolveChatName } from '@/features/chat/api/utils/resolve-chat-name';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
-import type { ChatStatus } from '@/lib/chat-shared';
 import {
+  LARGE_CHAT_THRESHOLD,
   SYSTEM_SENDER_ID,
   USER_RELEVANT_MESSAGE_EVENTS,
   getStatusFromMessageEvents,
 } from '@/lib/chat-shared';
-import { ChatMembershipPermission, MessageEventType } from '@/lib/prisma';
+import { ChatMembershipPermission, type Prisma } from '@/lib/prisma';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { TRPCError } from '@trpc/server';
@@ -41,7 +41,8 @@ export const getChatList = trpcBaseProcedure
       },
       include: {
         messages: {
-          orderBy: { createdAt: 'asc' },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
           include: {
             messageEvents: {
               where: { type: { in: USER_RELEVANT_MESSAGE_EVENTS } },
@@ -59,11 +60,46 @@ export const getChatList = trpcBaseProcedure
       orderBy: { lastUpdate: 'desc' },
     });
 
+    // 1. Prepare unread count conditions for all chats and fetch them in a single batch groupBy query
+    const unreadCountMap = new Map<string, number>();
+
+    if (_chats.length > 0) {
+      const unreadQueries = _chats.map((chat) => {
+        const currentUserMembership = chat.chatMemberships.find(
+          (m) => m.userId === prismaUser.uuid,
+        );
+        const lastReadId = currentUserMembership?.lastReadMessageId;
+
+        const baseCondition: Prisma.MessageWhereInput = {
+          chatId: chat.uuid,
+          senderId: { not: prismaUser.uuid },
+        };
+
+        if (lastReadId !== null && lastReadId !== undefined && lastReadId !== '') {
+          baseCondition.uuid = { gt: lastReadId };
+        }
+
+        return baseCondition;
+      });
+
+      const unreadCounts = await prisma.message.groupBy({
+        by: ['chatId'],
+        where: {
+          OR: unreadQueries,
+        },
+        _count: {
+          uuid: true,
+        },
+      });
+
+      for (const item of unreadCounts) {
+        unreadCountMap.set(item.chatId, item._count.uuid);
+      }
+    }
+
+    // 2. Map retrieved chats synchronously to their DTO representation
     return _chats.map((chat): ChatWithMessagePreview => {
-      const messages = chat.messages.sort(
-        (m1, m2) => m1.createdAt.getTime() - m2.createdAt.getTime(),
-      );
-      const lastMessage = messages.at(-1);
+      const lastMessage = chat.messages[0];
 
       if (lastMessage === undefined) {
         throw new TRPCError({
@@ -72,13 +108,14 @@ export const getChatList = trpcBaseProcedure
         });
       }
 
+      const currentUserMembership = chat.chatMemberships.find((m) => m.userId === prismaUser.uuid);
+      const isLarge = chat.chatMemberships.length >= LARGE_CHAT_THRESHOLD;
+
+      const rawCount = unreadCountMap.get(chat.uuid) ?? 0;
+      const unreadCount = isLarge && rawCount > 0 ? 1 : rawCount;
+
       return {
-        unreadCount: messages
-          .filter((message) => message.senderId !== prismaUser.uuid)
-          .filter(
-            (message) =>
-              !message.messageEvents.some((event) => event.type === MessageEventType.READ),
-          ).length,
+        unreadCount,
         lastUpdate: chat.lastUpdate,
         name: resolveChatName(
           chat.name,
@@ -87,9 +124,10 @@ export const getChatList = trpcBaseProcedure
             uuid: membership.user.uuid,
           })),
           user,
+          chat.type,
         ),
         description: chat.description,
-        status: chat.status as ChatStatus,
+        status: chat.status,
         chatType: chat.type,
         id: chat.uuid,
         messageCount: chat._count.messages,
@@ -100,9 +138,7 @@ export const getChatList = trpcBaseProcedure
           senderId: lastMessage.senderId ?? SYSTEM_SENDER_ID,
           status: getStatusFromMessageEvents(lastMessage.messageEvents),
         },
-        userChatPermission:
-          chat.chatMemberships.find((m) => m.userId === prismaUser.uuid)?.chatPermission ??
-          ChatMembershipPermission.GUEST,
+        userChatPermission: currentUserMembership?.chatPermission ?? ChatMembershipPermission.GUEST,
       };
     });
   });

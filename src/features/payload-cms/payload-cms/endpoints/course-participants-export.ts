@@ -1,7 +1,9 @@
 import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import prisma from '@/lib/db/prisma';
+import { getFeatureFlag } from '@/lib/db/redis';
+import { FEATURE_HIDE_HOF_AND_QUARTIER } from '@/lib/feature-flags';
+import ExcelJS from 'exceljs';
 import type { PayloadHandler } from 'payload';
-import { utils, write } from 'xlsx';
 
 interface PDFDocumentWithTables extends Omit<InstanceType<typeof import('pdfkit')>, 'table'> {
   table: (tableData: { title?: string; headers?: string[]; rows?: string[][] }) => void;
@@ -51,6 +53,8 @@ export const courseParticipantsExportHandler: PayloadHandler = async (request) =
 
     const payloadUsersById = new Map(payloadUsersResult.docs.map((u) => [u.id, u]));
 
+    const hideHofAndQuartier = await getFeatureFlag(FEATURE_HIDE_HOF_AND_QUARTIER);
+
     const participantData = enrollments.map((enrollment) => {
       const payloadUser = payloadUsersById.get(enrollment.userId);
       return {
@@ -71,16 +75,27 @@ export const courseParticipantsExportHandler: PayloadHandler = async (request) =
       // Escape a CSV field value: wrap in double-quotes, doubling any embedded double-quotes
       const escapeCsvValue = (value: string): string => `"${value.replaceAll('"', '""')}"`;
 
-      const header = ['FullName', 'Nickname', 'Email', 'Hof', 'Quartier'].join(';');
-      const rows = participantData.map((p) =>
-        [
-          escapeCsvValue(p.fullName),
-          escapeCsvValue(p.nickname),
-          escapeCsvValue(p.email),
-          escapeCsvValue(p.hof),
-          escapeCsvValue(p.quartier),
-        ].join(';'),
-      );
+      let header = ['FullName', 'Nickname', 'Email'].join(';');
+      if (!hideHofAndQuartier) {
+        header += ';Hof;Quartier';
+      }
+
+      const escapeRow = (p: (typeof participantData)[number]): string => {
+        return hideHofAndQuartier
+          ? [escapeCsvValue(p.fullName), escapeCsvValue(p.nickname), escapeCsvValue(p.email)].join(
+              ';',
+            )
+          : [
+              escapeCsvValue(p.fullName),
+              escapeCsvValue(p.nickname),
+              escapeCsvValue(p.email),
+              escapeCsvValue(p.hof),
+              escapeCsvValue(p.quartier),
+            ].join(';');
+      };
+
+      const rows = participantData.map((p) => escapeRow(p));
+
       const csvContent = [header, ...rows].join('\n');
       return new Response(csvContent, {
         headers: {
@@ -91,11 +106,20 @@ export const courseParticipantsExportHandler: PayloadHandler = async (request) =
     }
 
     if (format === 'xlsx') {
-      const ws = utils.json_to_sheet(participantData);
-      const wb = utils.book_new();
-      utils.book_append_sheet(wb, ws, 'Teilnehmer');
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const buffer: Buffer = write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Teilnehmer');
+
+      const columns = hideHofAndQuartier
+        ? ['uuid', 'fullName', 'nickname', 'email']
+        : ['uuid', 'fullName', 'nickname', 'email', 'hof', 'quartier'];
+
+      worksheet.columns = columns.map((key) => ({ header: key, key }));
+
+      for (const participant of participantData) {
+        worksheet.addRow(participant);
+      }
+
+      const buffer = await workbook.xlsx.writeBuffer();
 
       return new Response(buffer, {
         headers: {
@@ -122,18 +146,20 @@ export const courseParticipantsExportHandler: PayloadHandler = async (request) =
           document_.fontSize(20).text(`Teilnehmerliste für ${courseId}`, { align: 'center' });
           document_.moveDown();
 
-          const rows = participantData.map((p) => [
-            p.fullName,
-            p.nickname,
-            p.email,
-            p.hof,
-            p.quartier,
-          ]);
+          const mapRow = (p: (typeof participantData)[number]): string[] => {
+            return hideHofAndQuartier
+              ? [p.fullName, p.nickname, p.email]
+              : [p.fullName, p.nickname, p.email, p.hof, p.quartier];
+          };
+
+          const rows = participantData.map((p) => mapRow(p));
 
           if (rows.length > 0) {
             document_.table({
               title: 'Teilnehmer',
-              headers: ['Name', 'Ceviname', 'Email', 'Hof', 'Quartier'],
+              headers: hideHofAndQuartier
+                ? ['Name', 'Ceviname', 'Email']
+                : ['Name', 'Ceviname', 'Email', 'Hof', 'Quartier'],
               rows: rows,
             });
           } else {

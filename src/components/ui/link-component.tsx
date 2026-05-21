@@ -23,8 +23,15 @@ const isExternalURL = (url: string): boolean => {
     globalThis?.location === undefined ? environmentHost : globalThis.location.host;
 
   // check if url is external by comparing the host
-  const urlHost = new URL(url).host;
-  return urlHost !== environmentHost && urlHost !== currentHost;
+  try {
+    const urlHost = new URL(url).host;
+    return urlHost !== environmentHost && urlHost !== currentHost;
+  } catch {
+    // If the URL fails to parse but starts with http/https,
+    // it is likely a malformed external URL (e.g. from CMS input).
+    // Treat it as external and let the browser handle it, preventing server crash.
+    return true;
+  }
 };
 
 export const LinkComponent: React.FC<

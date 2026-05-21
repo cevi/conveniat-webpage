@@ -44,7 +44,7 @@ export const useChatDetail = (
     { chatId },
     {
       enabled: chatId !== '',
-      refetchInterval: 60_000,
+      refetchInterval: 300_000,
     },
   );
 };
@@ -67,7 +67,7 @@ export const useSuspenseChatDetail = (
   return trpc.chat.chatDetails.useSuspenseQuery(
     { chatId },
     {
-      refetchInterval: 60_000,
+      refetchInterval: 300_000,
       refetchOnMount: true,
       refetchOnWindowFocus: true,
       refetchOnReconnect: true,

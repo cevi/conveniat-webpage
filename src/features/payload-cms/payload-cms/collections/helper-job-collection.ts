@@ -3,7 +3,30 @@ import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-r
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { helperJobsPdfReportHandler } from '@/features/payload-cms/payload-cms/endpoints/helper-jobs-pdf-report';
 import { asLocalizedCollection } from '@/features/payload-cms/payload-cms/utils/localized-collection';
-import type { CollectionConfig } from 'payload';
+import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
+import type { CollectionConfig, DateFieldValidation } from 'payload';
+
+const EndAfterStartDateValidation: DateFieldValidation = (value, { siblingData, req }) => {
+  const localeString = req.i18n.language;
+  const startDateRaw = (siblingData as { startDate?: string }).startDate;
+  if (startDateRaw === undefined || startDateRaw === '') {
+    return getValidationMessage(localeString, {
+      en: 'Start date is required.',
+      de: 'Startdatum ist erforderlich.',
+      fr: 'La date de début est requise.',
+    });
+  }
+  const startDate = new Date(startDateRaw);
+  const endDate = new Date(value as unknown as string);
+  if (endDate <= startDate) {
+    return getValidationMessage(localeString, {
+      en: 'End date must be later than start date.',
+      de: 'Enddatum muss nach dem Startdatum liegen.',
+      fr: 'La date de fin doit être postérieure à la date de début.',
+    });
+  }
+  return true;
+};
 
 export const JobCollection: CollectionConfig = asLocalizedCollection({
   slug: 'helper-jobs',
@@ -134,6 +157,7 @@ export const JobCollection: CollectionConfig = asLocalizedCollection({
               fr: 'Date de fin du poste.',
             },
           },
+          validate: EndAfterStartDateValidation,
         },
       ],
     },

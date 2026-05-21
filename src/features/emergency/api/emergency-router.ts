@@ -1,6 +1,7 @@
 import { getAlertSettingsCached } from '@/features/payload-cms/api/cached-globals';
 import type { AlertSetting } from '@/features/payload-cms/payload-types';
 import { ChatCapability, SYSTEM_MSG_TYPE_EMERGENCY_ALERT } from '@/lib/chat-shared';
+import { chatPubSub } from '@/lib/db/chat-pubsub';
 import { createTRPCRouter, publicProcedure, trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import config from '@payload-config';
@@ -8,6 +9,10 @@ import type { Prisma } from '@prisma/client';
 import { ChatMembershipPermission, ChatType, MessageEventType, MessageType } from '@prisma/client';
 import { getPayload } from 'payload';
 import { z } from 'zod';
+// eslint-disable-next-line import/no-restricted-paths
+import { sendNotification } from '@/features/chat/api/utils/send-push-notifications';
+// eslint-disable-next-line import/no-restricted-paths
+import { getActivePiketMembers } from '@/features/chat/api/utils/piket-service';
 
 const GeolocationCoordinatesSchema = z.object({
   latitude: z.number(),
@@ -84,6 +89,30 @@ export const emergencyRouter = createTRPCRouter({
 
       // Prepare messages with explicit timestamps to ensure order: System -> Location -> Question
       const baseTime = new Date();
+
+      // Fetch currently active piket members for emergency
+      const activePiketMembers = await getActivePiketMembers(ChatType.EMERGENCY, baseTime).catch(
+        (error: unknown) => {
+          console.error('Failed to query active emergency piket members:', error);
+          return [];
+        },
+      );
+
+      // Ensure all active piket members exist in Postgres User table
+      for (const member of activePiketMembers) {
+        await prisma.user.upsert({
+          where: { uuid: member.id },
+          create: {
+            uuid: member.id,
+            name: member.name,
+            lastSeen: new Date('1970-01-01T00:00:00Z'),
+          },
+          update: {
+            name: member.name,
+          },
+        });
+      }
+
       const messagesToCreate: Prisma.MessageCreateWithoutChatInput[] = [];
 
       // 1. System Message
@@ -143,6 +172,31 @@ export const emergencyRouter = createTRPCRouter({
         });
       }
 
+      // 4. System messages for each auto-added Piket member
+      let piketIndex = 1;
+      for (const member of activePiketMembers) {
+        let messageText = `${member.name} was automatically added (Piket service)`;
+        if (ctx.locale === 'de') {
+          messageText = `${member.name} wurde automatisch hinzugefügt (Piket-Dienst)`;
+        } else if (ctx.locale === 'fr') {
+          messageText = `${member.name} a été ajouté automatiquement (Service de piquet)`;
+        }
+
+        messagesToCreate.push({
+          contentVersions: {
+            create: {
+              payload: messageText,
+            },
+          },
+          type: MessageType.SYSTEM_MSG,
+          createdAt: new Date(baseTime.getTime() + 200 + piketIndex * 10), // +210ms, +220ms, etc.
+          messageEvents: {
+            create: [{ type: MessageEventType.STORED }],
+          },
+        });
+        piketIndex++;
+      }
+
       // set up the emergency alert in the Payload CMS
       const chat = await prisma.chat.create({
         data: {
@@ -159,11 +213,66 @@ export const emergencyRouter = createTRPCRouter({
                 user: { connect: { uuid: user.uuid } },
                 chatPermission: ChatMembershipPermission.MEMBER,
               },
+              ...activePiketMembers.map((member) => ({
+                user: { connect: { uuid: member.id } },
+                chatPermission: ChatMembershipPermission.MEMBER,
+              })),
             ],
           },
           capabilities: [ChatCapability.CAN_SEND_MESSAGES],
         },
       });
+
+      // Send push notification to all piket members
+      if (activePiketMembers.length > 0) {
+        const piketRecipientIds = activePiketMembers.map((m) => m.id);
+
+        let localizedAlertMessage = `Emergency from ${user.nickname ?? user.name}!`;
+        if (ctx.locale === 'de') {
+          localizedAlertMessage = `Notfall von ${user.nickname ?? user.name}!`;
+        } else if (ctx.locale === 'fr') {
+          localizedAlertMessage = `Urgence de ${user.nickname ?? user.name}!`;
+        }
+
+        sendNotification(localizedAlertMessage, piketRecipientIds, chat.uuid).catch(
+          (error: unknown) => {
+            console.error('Failed to send push notification to piket members:', error);
+          },
+        );
+      }
+
+      // Fetch the created messages from DB to get their real UUIDs and content payloads
+      const createdMessages = await prisma.message.findMany({
+        where: { chatId: chat.uuid },
+        include: {
+          contentVersions: {
+            take: 1,
+            orderBy: { revision: 'desc' },
+          },
+        },
+        orderBy: { createdAt: 'asc' },
+      });
+
+      // Publish new_message events for each message to notify administrators in real-time
+      for (const message of createdMessages) {
+        chatPubSub
+          .publish({
+            type: 'new_message',
+            chatId: chat.uuid,
+            senderId: message.senderId ?? user.uuid,
+            message: {
+              id: message.uuid,
+              createdAt: message.createdAt,
+              messagePayload: message.contentVersions[0]?.payload ?? {},
+              senderId: message.senderId ?? undefined,
+              status: MessageEventType.STORED,
+              type: message.type,
+            },
+          })
+          .catch((error: unknown) => {
+            console.error('Failed to publish real-time event for emergency message:', error);
+          });
+      }
 
       return { success: true, redirectUrl: `/app/chat/${chat.uuid}` };
     }),

@@ -2,6 +2,7 @@ import { USER_RELEVANT_MESSAGE_EVENTS } from '@/features/chat/api/definitions';
 import type { ChatDetails } from '@/features/chat/api/types';
 import { getStatusFromMessageEvents } from '@/features/chat/api/utils/get-status-from-message-events';
 import { resolveChatName } from '@/features/chat/api/utils/resolve-chat-name';
+import { MessageEventType } from '@/lib/prisma/client';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
@@ -27,6 +28,7 @@ export const getChat = trpcBaseProcedure
               take: 1, // include only the latest content version
               orderBy: { revision: 'desc' },
             },
+            sender: { select: { name: true } },
           },
         },
         chatMemberships: { include: { user: true } },
@@ -61,21 +63,31 @@ export const getChat = trpcBaseProcedure
         chat.name,
         chat.chatMemberships.map((membership) => membership.user),
         user,
+        chat.type,
       ),
       id: chat.uuid,
       archivedAt: chat.archivedAt,
       type: chat.type,
       courseId: chat.courseId,
       // Reverse to chronological order (we fetched in desc to get newest 25)
-      messages: [...messages].reverse().map((message) => ({
-        id: message.uuid,
-        createdAt: message.createdAt,
-        messagePayload: message.contentVersions[0]?.payload ?? {},
-        senderId: message.senderId ?? undefined,
-        status: getStatusFromMessageEvents(message.messageEvents),
-        type: message.type,
-      })),
-      participants: chat.chatMemberships.map((membership) => ({
+      messages: [...messages].reverse().map((message) => {
+        const isReadByAdmin = chat.adminReadAt !== null && message.createdAt <= chat.adminReadAt;
+        return {
+          id: message.uuid,
+          createdAt: message.createdAt,
+          messagePayload: message.contentVersions[0]?.payload ?? {},
+          senderId: message.senderId ?? undefined,
+          ...(message.sender?.name ? { senderName: message.sender.name } : {}),
+          status: isReadByAdmin
+            ? MessageEventType.READ
+            : getStatusFromMessageEvents(message.messageEvents),
+          type: message.type,
+        };
+      }),
+      participants: (chat.type === 'ANNOUNCEMENT'
+        ? chat.chatMemberships.filter((membership) => membership.user.uuid === user.uuid)
+        : chat.chatMemberships
+      ).map((membership) => ({
         id: membership.user.uuid,
         name: membership.user.name,
         isOnline: membership.user.lastSeen > new Date(Date.now() - 30 * 1000),

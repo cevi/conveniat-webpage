@@ -7,6 +7,7 @@ import { MessageList } from '@/features/chat/components/chat-view/message-list';
 import { ThreadView } from '@/features/chat/components/chat-view/thread-view';
 import { ChatActionsProvider, useChatActions } from '@/features/chat/context/chat-actions-context';
 import { useChatId } from '@/features/chat/context/chat-id-context';
+import { useChatSSE } from '@/features/chat/hooks/use-chat-sse';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
@@ -96,6 +97,8 @@ const ChatClientContent: React.FC = () => {
   const chatId = useChatId();
   const { isLoading, isPaused, isPending, isError, errorUpdateCount } = useChatDetail(chatId);
   const { activeThreadId, closeThread } = useChatActions();
+
+  useChatSSE(chatId === '' ? [] : [chatId]);
 
   if (isLoading && errorUpdateCount === 0) return <ChatSkeleton />;
   if (isPaused && isPending) return <ChatOfflineMessage />;

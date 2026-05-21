@@ -10,8 +10,8 @@ import { ChatCapability } from '@/lib/chat-shared';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { ChatMembershipPermission } from '@prisma/client';
-import { Paperclip, Send, X } from 'lucide-react';
+import { ChatMembershipPermission, ChatType } from '@prisma/client';
+import { Megaphone, Paperclip, Send, X } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import React from 'react';
 
@@ -33,6 +33,12 @@ const isGuestMessage: StaticTranslationString = {
   de: 'Du bist ein Gast in diesem Chat. Du kannst keine Nachrichten senden.',
   en: 'You are a guest in this chat. You cannot send messages.',
   fr: 'Vous êtes un invité dans ce chat. Vous ne pouvez pas envoyer de messages.',
+};
+
+const isAnnouncementChannelMessage: StaticTranslationString = {
+  de: 'Dies ist ein Ankündigungskanal. Nur Administratoren können Nachrichten senden.',
+  en: 'This is an announcement channel. Only administrators can send messages.',
+  fr: "Il s'agit d'un canal d'annonces. Seuls les administrateurs können envoyer des messages.",
 };
 
 const messageTooLongText: StaticTranslationString = {
@@ -98,7 +104,7 @@ export const ChatTextAreaInput: React.FC = () => {
   } = useMessageInput();
 
   const getLocalizedError = (error: string | undefined): string | undefined => {
-    if (!error) return undefined;
+    if (error === undefined || error === '') return undefined;
     if (error.includes('disabled')) {
       return messagingDisabledErrorText[locale];
     }
@@ -197,6 +203,16 @@ export const ChatTextAreaInput: React.FC = () => {
   };
 
   if (isGuest) {
+    if (chatDetails?.type === ChatType.ANNOUNCEMENT) {
+      return (
+        <div className="flex w-full items-center justify-center gap-3 rounded-xl border border-rose-100 bg-rose-50/50 p-4 text-center shadow-xs">
+          <Megaphone className="h-5 w-5 shrink-0 text-rose-500" />
+          <span className="font-heading text-sm font-semibold text-rose-800">
+            {isAnnouncementChannelMessage[locale]}
+          </span>
+        </div>
+      );
+    }
     return <div className="text-balance text-gray-500">{isGuestMessage[locale]}</div>;
   }
 
@@ -225,14 +241,14 @@ export const ChatTextAreaInput: React.FC = () => {
   return (
     <div className="flex flex-col gap-1">
       {/* Error message when sending fails */}
-      {localizedError && (
+      {localizedError !== undefined && localizedError !== '' && (
         <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
           {localizedError}
         </div>
       )}
 
       {/* Quote Preview */}
-      {quotedMessageId && (
+      {quotedMessageId !== undefined && quotedMessageId !== '' && (
         <QuotedMessagePreview messageId={quotedMessageId} onCancel={cancelQuote} />
       )}
 

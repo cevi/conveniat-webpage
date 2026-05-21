@@ -1,5 +1,7 @@
 import type { ChatDetails, ChatMessage } from '@/features/chat/api/types';
+import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
 import { useChatActions } from '@/features/chat/context/chat-actions-context';
+import { generateOptimisticId, isOptimisticMessageMatch } from '@/features/chat/utils';
 import { SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import { ChatType, MessageEventType, MessageType } from '@/lib/prisma/client';
 import { toast } from '@/lib/toast';
@@ -14,7 +16,7 @@ type UseMessageSendMutation = UseTRPCMutationResult<
   inferProcedureOutput<AppRouter['chat']['sendMessage']>,
   TRPCClientErrorLike<AppRouter>,
   inferProcedureInput<AppRouter['chat']['sendMessage']>,
-  unknown
+  OptimisticUpdateResult
 >;
 
 type InfiniteMessagesOutput = inferProcedureOutput<AppRouter['chat']['infiniteMessages']>;
@@ -23,6 +25,7 @@ type InfiniteMessagesData = InfiniteData<InfiniteMessagesOutput, string | null>;
 interface OptimisticUpdateResult {
   previousChatData: ChatDetails | undefined;
   previousInfiniteData: InfiniteMessagesData | undefined;
+  optimisticMessageId?: string;
 }
 
 const performOptimisticMessageUpdate = async (
@@ -35,12 +38,12 @@ const performOptimisticMessageUpdate = async (
   }: { chatId: string; content: string; quotedMessageId?: string | undefined },
 ): Promise<OptimisticUpdateResult> => {
   await trpcUtils.chat.chatDetails.cancel({ chatId });
-  await trpcUtils.chat.infiniteMessages.cancel({ chatId, limit: 25 });
+  await trpcUtils.chat.infiniteMessages.cancel({ chatId, limit: CHAT_PAGE_SIZE });
 
   const previousChatData = trpcUtils.chat.chatDetails.getData({ chatId });
   const previousInfiniteData = trpcUtils.chat.infiniteMessages.getInfiniteData({
     chatId,
-    limit: 25,
+    limit: CHAT_PAGE_SIZE,
   }) as InfiniteMessagesData | undefined;
 
   // Find quoted message text if quotedMessageId is provided
@@ -68,7 +71,7 @@ const performOptimisticMessageUpdate = async (
   }
 
   const optimisticMessage: ChatMessage = {
-    id: `optimistic-${Date.now()}`,
+    id: generateOptimisticId(),
     messagePayload: {
       text: content.trim(),
       ...(typeof quotedMessageId === 'string' &&
@@ -83,7 +86,7 @@ const performOptimisticMessageUpdate = async (
 
   // optimistically update the infinite messages
   trpcUtils.chat.infiniteMessages.setInfiniteData(
-    { chatId, limit: 25 },
+    { chatId, limit: CHAT_PAGE_SIZE },
     (data: InfiniteMessagesData | undefined): InfiniteMessagesData | undefined => {
       if (!data) {
         return {
@@ -166,7 +169,7 @@ const performOptimisticMessageUpdate = async (
     });
   });
 
-  return { previousChatData, previousInfiniteData };
+  return { previousChatData, previousInfiniteData, optimisticMessageId: optimisticMessage.id };
 };
 
 export const useMessageSend = (): UseMessageSendMutation => {
@@ -204,7 +207,7 @@ export const useMessageSend = (): UseMessageSendMutation => {
 
       if (optimisticContext?.previousInfiniteData) {
         trpcUtils.chat.infiniteMessages.setInfiniteData(
-          { chatId, limit: 25 },
+          { chatId, limit: CHAT_PAGE_SIZE },
           optimisticContext.previousInfiniteData,
         );
       } else {
@@ -212,9 +215,68 @@ export const useMessageSend = (): UseMessageSendMutation => {
       }
     },
 
-    onSuccess: (_, { chatId }) => {
-      trpcUtils.chat.chatDetails.invalidate({ chatId }).catch(console.error);
-      trpcUtils.chat.infiniteMessages.invalidate({ chatId }).catch(console.error);
+    onSuccess: (createdMessageData, { chatId }, context) => {
+      const createdMessage = createdMessageData as unknown as ChatMessage | undefined;
+      if (createdMessage === undefined) return;
+
+      // Update the infinite query cache
+      trpcUtils.chat.infiniteMessages.setInfiniteData(
+        { chatId, limit: CHAT_PAGE_SIZE },
+        (data: InfiniteMessagesData | undefined): InfiniteMessagesData | undefined => {
+          if (!data) return data;
+
+          const allItems = data.pages.flatMap((page) => page.items);
+          const alreadyHasStored = allItems.some((item) => item.id === createdMessage.id);
+
+          return {
+            ...data,
+            pages: data.pages.map((page) => ({
+              ...page,
+              items: page.items
+                .map((item) => {
+                  const isMatch = isOptimisticMessageMatch(
+                    item.id,
+                    (context as OptimisticUpdateResult | undefined)?.optimisticMessageId,
+                  );
+                  if (isMatch) {
+                    return alreadyHasStored ? undefined : createdMessage;
+                  }
+                  return item;
+                })
+                .filter((item): item is ChatMessage => item !== undefined),
+            })),
+          };
+        },
+      );
+
+      // Update the chatDetails cache
+      trpcUtils.chat.chatDetails.setData(
+        { chatId },
+        (oldData: ChatDetails | undefined): ChatDetails | undefined => {
+          if (!oldData) return oldData;
+
+          const alreadyHasStored = oldData.messages.some((item) => item.id === createdMessage.id);
+
+          return {
+            ...oldData,
+            messages: oldData.messages
+              .map((item) => {
+                const isMatch = isOptimisticMessageMatch(
+                  item.id,
+                  (context as OptimisticUpdateResult | undefined)?.optimisticMessageId,
+                );
+                if (isMatch) {
+                  return alreadyHasStored ? undefined : createdMessage;
+                }
+                return item;
+              })
+              .filter((item): item is ChatMessage => item !== undefined),
+          };
+        },
+      );
+
+      // Invalidate chats overview for unread counts and sidebar updates
+      void trpcUtils.chat.chats.invalidate();
     },
   });
 };

@@ -1,5 +1,6 @@
 'use client';
 
+import { AddMemberModal } from '@/features/chat/components/admin/add-member-modal';
 import { ChatManagementHeader } from '@/features/chat/components/admin/chat-management-header';
 import { ChatManagementInput } from '@/features/chat/components/admin/chat-management-input';
 import { ChatManagementMessages } from '@/features/chat/components/admin/chat-management-messages';
@@ -50,13 +51,14 @@ const GenericChatManagementContent: React.FC<GenericChatManagementViewProperties
   const [isMapMaximized, setIsMapMaximized] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isReopenModalOpen, setIsReopenModalOpen] = useState(false);
+  const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
 
   // Sync to URL
   useEffect((): void => {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, @typescript-eslint/strict-boolean-expressions
     if (typeof globalThis !== 'undefined' && globalThis.location) {
       const url = new URL(globalThis.location.href);
-      if (selectedChatId) {
+      if (selectedChatId !== undefined && selectedChatId !== '') {
         url.searchParams.set('selectedChatId', selectedChatId);
       } else {
         url.searchParams.delete('selectedChatId');
@@ -74,6 +76,7 @@ const GenericChatManagementContent: React.FC<GenericChatManagementViewProperties
   const {
     chats,
     messages,
+    currentUserId,
     loadingChats,
     loadingMessages,
     sending,
@@ -88,14 +91,24 @@ const GenericChatManagementContent: React.FC<GenericChatManagementViewProperties
     selectedChatId,
     showClosed,
     debouncedSearch,
+    locale,
   });
 
   const selectedChat = chats.find((c) => c.id === selectedChatId);
 
   // Extract location from messages for the mini map
   const locationMessage = messages.find((m) => {
-    const payload = m.messagePayload as unknown as LocationPayload;
-    return payload.location ?? (payload.latitude !== undefined && payload.longitude !== undefined);
+    const payload = m.messagePayload as unknown as LocationPayload | null | undefined;
+    if (payload === null || payload === undefined) {
+      return false;
+    }
+    const nestedLatitude = payload.location?.latitude;
+    const nestedLongitude = payload.location?.longitude;
+    const hasNestedLocation =
+      typeof nestedLatitude === 'number' && typeof nestedLongitude === 'number';
+    const hasTopLevelLocation =
+      typeof payload.latitude === 'number' && typeof payload.longitude === 'number';
+    return hasNestedLocation || hasTopLevelLocation;
   });
   const locationPayload = locationMessage?.messagePayload as unknown as LocationPayload | undefined;
   const locationData = locationPayload?.location ?? locationPayload;
@@ -173,13 +186,24 @@ const GenericChatManagementContent: React.FC<GenericChatManagementViewProperties
         submittingText={locale === 'de' ? 'Wird geöffnet...' : 'Reopening...'}
         confirmVariant="primary"
       />
-      <div className="flex h-[calc(100vh-140px)] overflow-hidden bg-[var(--theme-bg)] text-[var(--theme-text)]">
+      {selectedChat === undefined ? (
+        <></>
+      ) : (
+        <AddMemberModal
+          isOpen={isAddMemberModalOpen}
+          onClose={() => setIsAddMemberModalOpen(false)}
+          chatId={selectedChat.id}
+          locale={locale}
+          key={`add-member-${selectedChat.id}-${String(isAddMemberModalOpen)}`}
+        />
+      )}
+      <div className="flex h-[calc(100vh-140px)] overflow-hidden bg-[var(--theme-elevation-0)] text-[var(--theme-elevation-900)]">
         <ChatManagementSidebar
           title={title}
           chats={chats}
           // eslint-disable-next-line unicorn/no-null
           selectedChatId={selectedChatId ?? null}
-          onSelectChat={(id) => setSelectedChatId(id || undefined)}
+          onSelectChat={(id) => setSelectedChatId(id === '' ? undefined : id)}
           loadingChats={loadingChats}
           loadingMessages={loadingMessages}
           onRefresh={() => void fetchChats()}
@@ -211,6 +235,7 @@ const GenericChatManagementContent: React.FC<GenericChatManagementViewProperties
                 locale={locale}
                 onCloseChat={() => setIsModalOpen(true)}
                 onReopenChat={() => setIsReopenModalOpen(true)}
+                onAddMember={() => setIsAddMemberModalOpen(true)}
               />
 
               {/* Content Area */}
@@ -229,6 +254,7 @@ const GenericChatManagementContent: React.FC<GenericChatManagementViewProperties
 
                 <ChatManagementMessages
                   messages={messages}
+                  currentUserId={currentUserId}
                   loading={loadingMessages}
                   locale={locale}
                   chatType={chatType}
@@ -236,7 +262,7 @@ const GenericChatManagementContent: React.FC<GenericChatManagementViewProperties
               </div>
 
               {/* Input Area */}
-              <div className="border-t border-[var(--theme-elevation-150)] bg-[var(--theme-elevation-50)] p-4">
+              <div className="border-t border-[var(--theme-border-color)] bg-[var(--theme-elevation-50)] p-4">
                 <ChatManagementInput
                   chatId={selectedChat.id}
                   onSendMessage={sendMessage}
@@ -247,9 +273,11 @@ const GenericChatManagementContent: React.FC<GenericChatManagementViewProperties
               </div>
             </ChatIdProvider>
           ) : (
-            <div className="flex flex-1 flex-col items-center justify-center opacity-30">
+            <div className="flex flex-1 flex-col items-center justify-center">
               <div className="mb-4 text-6xl">💬</div>
-              <div className="text-xl font-bold">Select a chat to view details</div>
+              <div className="text-xl font-semibold text-[var(--theme-elevation-300)]">
+                Select a chat to view details
+              </div>
             </div>
           )}
         </div>

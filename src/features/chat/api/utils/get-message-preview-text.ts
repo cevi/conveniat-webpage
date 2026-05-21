@@ -19,7 +19,7 @@ export const getMessagePreviewText = (lastMessage: {
 }): string | StaticTranslationString => {
   const payload = lastMessage.contentVersions[0]?.payload;
 
-  if (!payload || typeof payload !== 'object') {
+  if (payload === undefined || payload === null || typeof payload !== 'object') {
     if (typeof payload === 'string') return payload;
     return '';
   }
@@ -73,10 +73,40 @@ export const getMessagePreviewText = (lastMessage: {
     return p['question'];
   }
 
-  // Handle system messages with translations (e.g., closed chat messages)
-  // Check if this is a StaticTranslationString object with en, de, fr keys
-  if ('en' in p && 'de' in p && 'fr' in p) {
-    return p as unknown as StaticTranslationString;
+  // Handle system messages and announcements with translations
+  const languageKeys = ['de', 'en', 'fr'] as const;
+  const hasLangKey = languageKeys.some((key) => key in p);
+
+  if (hasLangKey) {
+    const deValue = p['de'];
+    const enValue = p['en'];
+    const frValue = p['fr'];
+
+    const extractText = (val: unknown): string => {
+      if (val === undefined || val === null) return '';
+      if (typeof val === 'string') return val;
+      if (typeof val === 'object') {
+        const objectValue = val as Record<string, unknown>;
+        return (objectValue['text'] ?? objectValue['body'] ?? objectValue['title'] ?? '') as string;
+      }
+      return '';
+    };
+
+    const deString = extractText(deValue);
+    const enString = extractText(enValue);
+    const frString = extractText(frValue);
+
+    const hasAnyContent = deString !== '' || enString !== '' || frString !== '';
+    if (hasAnyContent) {
+      const fallbackLanguage = enString === '' ? frString : enString;
+      const firstAvailable = deString === '' ? fallbackLanguage : deString;
+
+      return {
+        de: deString === '' ? firstAvailable : deString,
+        en: enString === '' ? firstAvailable : enString,
+        fr: frString === '' ? firstAvailable : frString,
+      };
+    }
   }
 
   return JSON.stringify(p);

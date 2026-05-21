@@ -1,17 +1,22 @@
-import { shouldHideInAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import {
+  isFullAdmin,
+  shouldHideInAdminPanelIfNotAdmin,
+} from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { AlertSettingsNextKeyField } from '@/features/payload-cms/payload-cms/shared-fields/alert-settings-key-field';
-import type { GlobalConfig } from 'payload';
+import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
+import type { GlobalConfig, TextFieldSingleValidation } from 'payload';
 
 export const AlertSettingsGlobal: GlobalConfig = {
   slug: 'alert_settings',
   label: { en: 'Alert Settings', de: 'Alert Einstellungen', fr: 'Paramètres Alert' },
   access: {
     read: () => true,
+    update: isFullAdmin,
   },
   admin: {
     group: AdminPanelDashboardGroups.BackofficeAppFeatures,
-    hidden: shouldHideInAdminPanel,
+    hidden: shouldHideInAdminPanelIfNotAdmin,
   },
   fields: [
     {
@@ -35,10 +40,12 @@ export const AlertSettingsGlobal: GlobalConfig = {
               fr: 'Clé optionnelle pour faire le lien depuis une autre question.',
             },
           },
-          validate: (
+          validate: ((
             value: string | string[] | null | undefined,
-            { data }: { data: unknown },
+            options: Parameters<TextFieldSingleValidation>[1],
           ): true | string => {
+            const { data, req } = options;
+            const localeString = req.i18n.language;
             if (value === null || value === undefined || value === '') {
               return true; // not required, so valid if empty
             }
@@ -46,10 +53,14 @@ export const AlertSettingsGlobal: GlobalConfig = {
             const allKeys = (dataTyped.questions ?? []).map((q) => q.key);
             const keyCount = allKeys.filter((k) => k === value).length;
             if (keyCount > 1) {
-              return 'Question keys must be unique';
+              return getValidationMessage(localeString, {
+                en: 'Question keys must be unique',
+                de: 'Frageschlüssel müssen eindeutig sein',
+                fr: 'Les clés de question doivent être uniques',
+              });
             }
             return true;
-          },
+          }) as TextFieldSingleValidation,
         },
         {
           name: 'question',

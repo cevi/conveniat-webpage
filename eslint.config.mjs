@@ -34,6 +34,7 @@ const features_folder = [
   'auth',
   'registration_process',
   'billing',
+  'native-push',
 ];
 
 const featuresDirectory = path.join(__dirname, 'src', 'features');
@@ -259,6 +260,7 @@ const config = defineConfig([
                 './utils',
                 './config',
                 './context',
+                './trpc',
               ],
             },
           ],

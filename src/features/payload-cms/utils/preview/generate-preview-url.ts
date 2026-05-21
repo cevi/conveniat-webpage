@@ -54,6 +54,10 @@ export const generatePreviewUrl = ({
       return `${host}${prefix}/${urlSlugs[lang as LocaleType]}/${data.id}?preview=true`;
     }
 
+    if (collectionConfig.slug === 'announcements' && data.id !== undefined) {
+      return `${host}${prefix}/design-mode-app/app/announcement-preview/${data.id}?preview=true`;
+    }
+
     if (collectionConfig.slug === 'camp-map-annotations' && data.id !== undefined) {
       return `${host}/app/map?locationId=${data.id}&preview=true`;
     }

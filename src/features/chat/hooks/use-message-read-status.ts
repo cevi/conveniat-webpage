@@ -2,7 +2,6 @@
 
 import type { ChatMessage } from '@/features/chat/api/types';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
-import { MessageEventType } from '@/lib/prisma/client';
 import { trpc } from '@/trpc/client';
 import { useEffect, useState } from 'react';
 
@@ -12,15 +11,20 @@ interface MessageReadStatusProperties {
   sortedMessages: ChatMessage[];
 }
 
+// Module-level watermark cache to persist last read message IDs across hook re-mounts/routes within the session
+const sessionReadWatermarks = new Map<string, string>();
+
 export const useMessageReadStatus = ({
   chatId,
   currentUser,
   sortedMessages,
 }: MessageReadStatusProperties): void => {
   const trpcUtils = trpc.useUtils();
-  const [readMessageIds, setReadMessageIds] = useState<Set<string>>(new Set());
+  const [lastMarkedReadId, setLastMarkedReadId] = useState<string | undefined>(() => {
+    return sessionReadWatermarks.get(chatId);
+  });
 
-  const { mutate: changeMessageStatus } = trpc.chat.messageStatus.useMutation({
+  const { mutate: markChatAsRead } = trpc.chat.markChatAsRead.useMutation({
     retry: false,
     onMutate: () => {
       // Optimistically update the chat overview
@@ -30,7 +34,7 @@ export const useMessageReadStatus = ({
           if (chat.id === chatId) {
             return {
               ...chat,
-              unreadCount: Math.max(0, chat.unreadCount - 1),
+              unreadCount: 0,
             };
           }
           return chat;
@@ -44,35 +48,24 @@ export const useMessageReadStatus = ({
 
   useEffect(() => {
     if (currentUser !== undefined && sortedMessages.length > 0) {
-      const newReadMessageIds = new Set(readMessageIds);
-      let statusChanged = false;
+      // Find the latest message not sent by the current user
+      const latestMessageToRead = [...sortedMessages]
+        .reverse()
+        .find((message) => message.senderId !== currentUser);
 
-      for (const message of sortedMessages) {
-        if (
-          message.senderId !== currentUser &&
-          message.status !== MessageEventType.READ &&
-          !newReadMessageIds.has(message.id)
-        ) {
-          console.log(`Changing status of message ${message.id} to READ`);
-          changeMessageStatus({
-            messageId: message.id,
-            status: MessageEventType.READ,
-          });
-          newReadMessageIds.add(message.id);
-          statusChanged = true;
-        }
-      }
-
-      if (statusChanged) {
-        // Schedule state update to avoid cascading render warning
+      if (
+        latestMessageToRead !== undefined &&
+        (lastMarkedReadId === undefined || latestMessageToRead.id > lastMarkedReadId)
+      ) {
+        markChatAsRead({
+          chatId: chatId,
+          lastMessageId: latestMessageToRead.id,
+        });
+        sessionReadWatermarks.set(chatId, latestMessageToRead.id);
         queueMicrotask(() => {
-          setReadMessageIds((previous) => {
-            const updated = new Set(previous);
-            for (const id of newReadMessageIds) updated.add(id);
-            return updated;
-          });
+          setLastMarkedReadId(latestMessageToRead.id);
         });
       }
     }
-  }, [changeMessageStatus, currentUser, sortedMessages, readMessageIds]);
+  }, [markChatAsRead, currentUser, sortedMessages, chatId, lastMarkedReadId]);
 };

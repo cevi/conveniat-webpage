@@ -1,4 +1,5 @@
 import { filterOptionsOnlyPublished } from '@/features/payload-cms/payload-cms/utils/filter-options-only-published';
+import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
 import type {
   Blog,
   CampMapAnnotation,
@@ -42,31 +43,60 @@ export interface LinkFieldDataType {
 }
 
 const validateEmail: TextFieldSingleValidation = (email, options) => {
-  if (!options.required && (email === undefined || email === null || email.trim() === '')) {
+  const localeString = options.req.i18n.language;
+  if (options.required !== true && (email === undefined || email === null || email.trim() === '')) {
     return true;
   }
   if (email === undefined || email === null || email.trim() === '') {
-    return 'Email is required';
+    return getValidationMessage(localeString, {
+      en: 'Email is required',
+      de: 'E-Mail ist erforderlich',
+      fr: 'Email est requis',
+    });
   }
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailPattern.test(email)) {
-    return 'Please enter a valid email address';
+    return getValidationMessage(localeString, {
+      en: 'Please enter a valid email address',
+      de: 'Bitte geben Sie eine gültige E-Mail-Adresse ein',
+      fr: 'Veuillez entrer une adresse e-mail valide',
+    });
   }
   return true;
 };
 
 const validateURL: TextFieldSingleValidation = (url, options) => {
-  if (!options.required && (url === undefined || url === null || url.trim() === '')) {
+  const localeString = options.req.i18n.language;
+  if (options.required !== true && (url === undefined || url === null || url.trim() === '')) {
     return true;
   }
   // Check if the URL is provided
   if (url === undefined || url === null || url.trim() === '') {
-    return 'URL is required';
+    return getValidationMessage(localeString, {
+      en: 'URL is required',
+      de: 'URL ist erforderlich',
+      fr: 'URL est requise',
+    });
   }
-  // Validate the URL format, starting with / or https://
-  const urlPattern = /^(https?:\/\/|\/)[^\s/$.?#].[^\s]*$/;
+  // Regular expression to validate a URL, excluding mailto
+  const urlPattern =
+    /^(?!mailto:)(?:(?:https?|ftp):\/\/)?(?:\S+(?::\S*)?@)?(?:(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}|localhost)(?::\d{2,5})?(?:\/[^\s]*)?$/;
+
+  // Additional check to avoid 'mailto:' URLs
+  if (url.startsWith('mailto:')) {
+    return getValidationMessage(localeString, {
+      en: 'Mailto URLs are not allowed here. Please select link type "Email" instead.',
+      de: 'Mailto-URLs sind hier nicht erlaubt. Bitte wählen Sie stattdessen den Link-Typ "E-Mail".',
+      fr: 'Les URL Mailto ne sont pas autorisées ici. Veuillez sélectionner le type de lien "Email" à la place.',
+    });
+  }
+
   if (!urlPattern.test(url)) {
-    return 'URL must be a valid URL starting with https:// or /';
+    return getValidationMessage(localeString, {
+      en: 'Please enter a valid URL',
+      de: 'Bitte geben Sie eine gültige URL ein',
+      fr: 'Veuillez entrer une URL valide',
+    });
   }
   return true; // Valid URL
 };

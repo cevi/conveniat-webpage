@@ -2,6 +2,7 @@
 
 import { Switch } from '@/components/ui/switch';
 import { SettingsRow } from '@/features/settings/components/settings-row';
+import { useNativePush } from '@/hooks/use-native-push';
 import { usePushNotificationState } from '@/hooks/use-push-notification-state';
 
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -27,8 +28,41 @@ const notSupportedText: StaticTranslationString = {
 };
 
 export const PushNotificationSettings: React.FC<{ locale: Locale }> = ({ locale }) => {
-  const { isSupported, isSubscribed, isLoading, errorMessage, toggleSubscription } =
-    usePushNotificationState({ registrationSource: '/app/settings' });
+  const {
+    isSupported: isWebSupported,
+    isSubscribed: isWebSubscribed,
+    isLoading: isWebLoading,
+    errorMessage: webError,
+    toggleSubscription,
+  } = usePushNotificationState({ registrationSource: '/app/settings', locale });
+
+  const { isNativeApp, status, hasToken, requestPermission, deleteToken, openSettings } =
+    useNativePush();
+
+  const isNativeSupported = true; // WebView bridge handles support
+  const isNativeSubscribed = hasToken && status === 'granted';
+  const isNativeLoading = status === 'unknown';
+
+  const isSupported = isNativeApp ? isNativeSupported : isWebSupported;
+  const isSubscribed = isNativeApp ? isNativeSubscribed : isWebSubscribed;
+  const isLoading = isNativeApp ? isNativeLoading : isWebLoading;
+  const errorMessage = isNativeApp ? undefined : webError;
+
+  const handleToggle = (): void => {
+    if (isNativeApp) {
+      if (isNativeSubscribed) {
+        deleteToken();
+      } else {
+        if (status === 'denied') {
+          openSettings();
+        } else {
+          requestPermission();
+        }
+      }
+    } else {
+      toggleSubscription().catch(console.error);
+    }
+  };
 
   return (
     <SettingsRow
@@ -39,9 +73,7 @@ export const PushNotificationSettings: React.FC<{ locale: Locale }> = ({ locale 
       action={
         <Switch
           checked={isSubscribed}
-          onCheckedChange={() => {
-            toggleSubscription().catch(console.error);
-          }}
+          onCheckedChange={handleToggle}
           disabled={!isSupported || isLoading || !!errorMessage}
           loading={isLoading}
         />

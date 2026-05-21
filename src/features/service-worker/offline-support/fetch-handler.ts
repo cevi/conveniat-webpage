@@ -12,7 +12,48 @@ import {
 } from '@/features/service-worker/offline-support/rsc-utils';
 import { DesignModeTriggers } from '@/utils/design-codes';
 import { isDraftMode } from '@/utils/draft-mode';
+import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
 import type { Serwist } from 'serwist';
+
+declare const self: ServiceWorkerGlobalScope;
+
+/** URLs already reported in this SW lifecycle to prevent duplicate PostHog events on browser retries. */
+const reportedImage404s = new Set<string>();
+
+const logImage404ToPostHog = async (url: string, clientId: string): Promise<void> => {
+  if (reportedImage404s.has(url)) return;
+  reportedImage404s.add(url);
+
+  console.error(`[SW] Image not found (404): ${url}`);
+
+  try {
+    const message = {
+      type: ServiceWorkerMessages.CAPTURE_POSTHOG_EVENT,
+      payload: {
+        event: 'image_load_error',
+        properties: {
+          $exception_message: `Image not found: ${url}`,
+          error: 'Image 404 Not Found',
+          url,
+        },
+      },
+    };
+
+    // Try the specific client first; fall back to broadcasting to all clients
+    // (matches the pattern used by logToPostHog in sw.ts)
+    const client = clientId === '' ? undefined : await self.clients.get(clientId);
+    if (client) {
+      client.postMessage(message);
+    } else {
+      const clients = await self.clients.matchAll();
+      for (const c of clients) {
+        c.postMessage(message);
+      }
+    }
+  } catch (error) {
+    console.debug('[SW] Failed to report image 404 to PostHog', error);
+  }
+};
 
 async function matchCachedPage(originalUrl: string): Promise<Response | undefined> {
   const pagesCache = await caches.open(CACHE_NAMES.PAGES);
@@ -105,8 +146,9 @@ async function offlineFallback(request: Request, url: URL, isAppMode: boolean): 
   }
 
   // PWA only: Browser users should see the standard browser offline error for documents and assets.
-  if (!isAppMode) {
-    console.log(`[SW] Offline fallback skipped for browser user: ${url.pathname}`);
+  // Wait, we now want web users to also see the /~offline page fallback. We only skip asset fallbacks for them.
+  if (!isAppMode && request.destination !== 'document') {
+    console.log(`[SW] Offline fallback skipped for non-document web request: ${url.pathname}`);
     return Response.error();
   }
 
@@ -116,16 +158,18 @@ async function offlineFallback(request: Request, url: URL, isAppMode: boolean): 
     if (cachedPage) return cachedPage;
 
     // Generic Offline Page (final fallback for documents)
-    // Try multiple cache lookup strategies for /~offline
+    const offlineUrl = isAppMode ? '/~offline?app-mode=true' : '/~offline';
+
+    // Try multiple cache lookup strategies for the offline page
     const pagesCache = await caches.open(CACHE_NAMES.PAGES);
-    const offlineFromPages = await pagesCache.match('/~offline', { ignoreVary: true });
+    const offlineFromPages = await pagesCache.match(offlineUrl, { ignoreVary: true });
     if (offlineFromPages) return offlineFromPages;
 
     // Try global cache match (e.g., precache)
-    const offlinePage = await caches.match('/~offline', { ignoreVary: true });
+    const offlinePage = await caches.match(offlineUrl, { ignoreVary: true });
     if (offlinePage) return offlinePage;
     console.error(`[SW] No offline fallback found for document: ${url.toString()}`);
-    return Response.redirect('/~offline', 302);
+    return Response.redirect(offlineUrl, 302);
   }
 
   // Strategy C: Assets (Non-Document Only)
@@ -258,6 +302,10 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
         return sanitizeRscResponse(response);
       }
 
+      if (response.status === 404 && requestToHandle.destination === 'image') {
+        event.waitUntil(logImage404ToPostHog(requestToHandle.url, event.clientId));
+      }
+
       return response;
     }
 
@@ -272,6 +320,10 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
         `[SW] Blocked HTML response for script fetch: ${requestToHandle.url} (Status: ${networkResponse.status})`,
       );
       return Response.error(); // Trigger Next.js chunk-load error handling cleanly
+    }
+
+    if (networkResponse.status === 404 && requestToHandle.destination === 'image') {
+      event.waitUntil(logImage404ToPostHog(requestToHandle.url, event.clientId));
     }
 
     return networkResponse;

@@ -13,7 +13,7 @@ export const PushNotificationSubscriptionManager: React.FC<{
   locale: 'de' | 'fr' | 'en';
 }> = ({ callback, locale }) => {
   const { isSupported, isSubscribed, isLoading, errorMessage, toggleSubscription } =
-    usePushNotificationState({ registrationSource: '/entrypoint' });
+    usePushNotificationState({ registrationSource: '/entrypoint', locale });
 
   if (!isSupported) {
     return <PushNotificationNotSupported locale={locale} onSkip={callback} />;

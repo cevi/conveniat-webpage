@@ -1,26 +1,41 @@
 'use server';
 
 import { environmentVariables } from '@/config/environment-variables';
+import type { PushNotificationSubscription } from '@/features/payload-cms/payload-types';
+import { sendFcmNotification } from '@/lib/firebase-admin';
+import { PushNotificationChannel } from '@/lib/prisma';
 import type { StaticTranslationString } from '@/types/types';
 import { auth } from '@/utils/auth';
 import { getPayloadUserFromNextAuthUser, isValidNextAuthUser } from '@/utils/auth-helpers';
 import config from '@payload-config';
 import type { Where } from 'payload';
 import { getPayload } from 'payload';
-import webpush from 'web-push';
+import type webpush from 'web-push';
+
+type WebPushSubscription = webpush.PushSubscription;
 
 const NEXT_PUBLIC_APP_HOST_URL = environmentVariables.NEXT_PUBLIC_APP_HOST_URL;
 
 // vapid subject must be mailto or https, thus we fall back to https://conveniat27.ch
 // if the NEXT_PUBLIC_APP_HOST_URL is not set or localhost
-const subject: string | undefined =
+const subject: string =
   NEXT_PUBLIC_APP_HOST_URL !== '' && NEXT_PUBLIC_APP_HOST_URL.includes('https://')
     ? NEXT_PUBLIC_APP_HOST_URL
     : 'https://conveniat27.ch';
 const publicKey: string = environmentVariables.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 const privateKey: string = environmentVariables.VAPID_PRIVATE_KEY;
 
-webpush.setVapidDetails(subject, publicKey, privateKey);
+// Lazy-init web-push to avoid top-level side effects that break
+// client-side module evaluation (web-push is Node.js-only).
+let webpushInstance: typeof webpush | undefined;
+async function getWebPush(): Promise<typeof webpush> {
+  if (!webpushInstance) {
+    const module_ = await import('web-push');
+    webpushInstance = module_.default;
+    webpushInstance.setVapidDetails(subject, publicKey, privateKey);
+  }
+  return webpushInstance;
+}
 
 const subscribedConfirmationPush: StaticTranslationString = {
   de: 'Du hast dich erfolgreich für Push-Benachrichtigungen angemeldet.',
@@ -35,7 +50,7 @@ const subscribedConfirmationPush: StaticTranslationString = {
  * @param locale
  */
 export async function subscribeUser(
-  sub: webpush.PushSubscription,
+  sub: WebPushSubscription,
   locale: 'de' | 'fr' | 'en',
   userAgent?: string,
   registrationSource?: '/entrypoint' | '/app/settings',
@@ -56,13 +71,16 @@ export async function subscribeUser(
     environmentVariables.NEXT_PUBLIC_APP_HOST_URL.includes('conveniat27');
 
   if (payloadUser) {
-    // check if the user already has a subscription
+    // check if the user already has a web subscription
     const existingSubscription = await payload.find({
       collection: 'push-notification-subscriptions',
       where: {
-        user: {
-          equals: payloadUser.id,
-        },
+        and: [
+          { user: { equals: payloadUser.id } },
+          {
+            or: [{ platform: { equals: 'web' } }, { platform: { exists: false } }],
+          },
+        ],
       },
     });
 
@@ -85,8 +103,10 @@ export async function subscribeUser(
       await payload.create({
         collection: 'push-notification-subscriptions',
         data: {
-          ...sub,
-          user: payloadUser,
+          platform: 'web',
+          endpoint: sub.endpoint,
+          keys: sub.keys,
+          user: payloadUser.id,
           // eslint-disable-next-line unicorn/no-null
           userAgent: userAgent ?? null,
           // eslint-disable-next-line unicorn/no-null
@@ -99,7 +119,9 @@ export async function subscribeUser(
     await payload.create({
       collection: 'push-notification-subscriptions',
       data: {
-        ...sub,
+        platform: 'web',
+        endpoint: sub.endpoint,
+        keys: sub.keys,
         // eslint-disable-next-line unicorn/no-null
         userAgent: userAgent ?? null,
         // eslint-disable-next-line unicorn/no-null
@@ -122,9 +144,7 @@ export async function subscribeUser(
 /**
  * Unsubscribes the user from push notifications.
  */
-export async function unsubscribeUser(
-  sub: webpush.PushSubscription,
-): Promise<{ success: boolean }> {
+export async function unsubscribeUser(sub: WebPushSubscription): Promise<{ success: boolean }> {
   const payload = await getPayload({ config });
 
   const query: Where = {
@@ -153,16 +173,21 @@ export async function unsubscribeUser(
 }
 
 export async function sendNotificationToSubscription(
-  subscription: webpush.PushSubscription,
+  subscription: webpush.PushSubscription | PushNotificationSubscription,
   message: string,
   url?: string,
   userId?: string,
   existingLogId?: string,
   logContent?: string,
 ): Promise<{ success: boolean; error?: string }> {
-  const urlToSend = url && url == '' ? undefined : url; // empty url is undefined
+  const urlToSend = url === '' ? undefined : url; // empty url is undefined
   const { default: prisma } = await import('@/lib/db/prisma');
   let logId = existingLogId;
+
+  const isNative =
+    'platform' in subscription &&
+    (subscription.platform === 'ios' || subscription.platform === 'android');
+  const channel = isNative ? PushNotificationChannel.NATIVE_FCM : PushNotificationChannel.WEB_PUSH;
 
   // If userId is provided and no existingLogId, create a new log entry
   if (userId && !logId) {
@@ -172,6 +197,7 @@ export async function sendNotificationToSubscription(
           userId,
           content: logContent ?? message,
           status: 'PENDING',
+          channel,
         },
       });
       logId = log.id;
@@ -182,17 +208,59 @@ export async function sendNotificationToSubscription(
   }
 
   try {
-    await webpush.sendNotification(
-      subscription,
-      JSON.stringify({
+    if (
+      'platform' in subscription &&
+      (subscription.platform === 'ios' || subscription.platform === 'android')
+    ) {
+      if (!subscription.token) throw new Error('Native token is missing');
+
+      let normalizedUrl = urlToSend;
+      if (
+        normalizedUrl &&
+        NEXT_PUBLIC_APP_HOST_URL &&
+        normalizedUrl.startsWith(NEXT_PUBLIC_APP_HOST_URL)
+      ) {
+        normalizedUrl = normalizedUrl.replace(NEXT_PUBLIC_APP_HOST_URL, '');
+      }
+
+      const result = await sendFcmNotification(subscription.token, {
         title: 'conveniat27',
         body: message,
         data: {
-          url: urlToSend,
-          notificationId: logId,
+          ...(normalizedUrl !== undefined && { url: normalizedUrl }),
+          ...(logId !== undefined && { notificationId: logId }),
         },
-      }),
-    );
+      });
+      if (!result.success) throw new Error(result.error);
+    } else {
+      let webSub = subscription as webpush.PushSubscription;
+      // If it's a Payload subscription, format it for web-push
+      if ('endpoint' in subscription && 'keys' in subscription) {
+        if (!subscription.endpoint || !subscription.keys.p256dh || !subscription.keys.auth) {
+          throw new Error('Web Push subscription is missing required fields (endpoint or keys).');
+        }
+        webSub = {
+          endpoint: subscription.endpoint,
+          keys: {
+            p256dh: subscription.keys.p256dh,
+            auth: subscription.keys.auth,
+          },
+        };
+      }
+
+      const wp = await getWebPush();
+      await wp.sendNotification(
+        webSub,
+        JSON.stringify({
+          title: 'conveniat27',
+          body: message,
+          data: {
+            url: urlToSend,
+            notificationId: logId,
+          },
+        }),
+      );
+    }
 
     if (logId) {
       await prisma.pushNotificationLog.update({
@@ -205,7 +273,7 @@ export async function sendNotificationToSubscription(
     }
 
     return { success: true };
-  } catch (error) {
+  } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('Error sending push notification:', error);
 

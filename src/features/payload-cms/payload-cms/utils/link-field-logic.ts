@@ -73,11 +73,18 @@ export const getURLForLinkField = (
 
     switch (relationTo) {
       case 'blog': {
-        const urlSlug = (value as Blog).seo.urlSlug;
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        if (typeof value !== 'object' || value === null || !('seo' in value) || !value.seo)
+          return undefined;
+        const urlSlug = value.seo.urlSlug;
         return urlSlug === '' ? undefined : `${langPrefix}/blog/${urlSlug}`;
       }
       case 'generic-page': {
-        const urlSlug = (value as GenericPage).seo.urlSlug;
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        if (typeof value !== 'object' || value === null || !('seo' in value) || !value.seo) {
+          return langPrefix === '' ? '/' : langPrefix;
+        }
+        const urlSlug = value.seo.urlSlug;
         if (urlSlug === '') {
           return langPrefix === '' ? '/' : langPrefix;
         }

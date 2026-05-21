@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/buttons/button';
 import { MessageInfoDropdown } from '@/features/chat/components/chat-view/message/message-info-dropdown';
 import { useChatActions } from '@/features/chat/context/chat-actions-context';
+import { useChatId } from '@/features/chat/context/chat-id-context';
 import { trpc } from '@/trpc/client';
 import { Info, MessageSquare, Quote, X } from 'lucide-react';
 import React from 'react';
@@ -11,6 +12,9 @@ export const ChatSelectionHeader: React.FC = () => {
   const { selectedMessage, setSelectedMessage, quoteMessage, replyInThread } = useChatActions();
   const [showInfo, setShowInfo] = React.useState(false);
   const { data: currentUserId } = trpc.chat.user.useQuery({});
+
+  const chatId = useChatId();
+  const { data: chatDetails } = trpc.chat.chatDetails.useQuery({ chatId });
 
   if (!selectedMessage) return;
 
@@ -27,6 +31,8 @@ export const ChatSelectionHeader: React.FC = () => {
     replyInThread(selectedMessage.id);
     setSelectedMessage(undefined);
   };
+
+  const canThread = chatDetails?.capabilities.includes('THREADING') ?? false;
 
   return (
     <div className="animate-in slide-in-from-top mb-[32px] flex h-[60px] items-center justify-between border-b-2 border-gray-200 bg-white px-4 duration-200">
@@ -52,15 +58,17 @@ export const ChatSelectionHeader: React.FC = () => {
         >
           <Quote className="h-5 w-5 text-gray-700" />
         </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={handleThread}
-          title="Reply in thread"
-          className="hover:bg-gray-100"
-        >
-          <MessageSquare className="h-5 w-5 text-gray-700" />
-        </Button>
+        {canThread && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleThread}
+            title="Reply in thread"
+            className="hover:bg-gray-100"
+          >
+            <MessageSquare className="h-5 w-5 text-gray-700" />
+          </Button>
+        )}
         <Button
           variant="ghost"
           size="icon"

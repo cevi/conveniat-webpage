@@ -17,9 +17,21 @@ export const formatMessageContent = (
   locale: Locale,
 ): React.ReactNode[] => {
   if (isStaticTranslationString(text)) {
-    // We know these values are strings (or undefined from Partial access), so we can use them directly.
     // Fallback order: current locale -> en -> empty string
-    return [text[locale] ?? text.en ?? ''];
+    const localizedValue = (text[locale] ?? text.en ?? '') as unknown;
+    if (typeof localizedValue === 'object' && localizedValue !== null) {
+      const innerText =
+        (localizedValue as Record<string, unknown>)['text'] ??
+        (localizedValue as Record<string, unknown>)['body'] ??
+        '';
+      if (typeof innerText === 'string') {
+        return formatMessageContent(innerText, locale);
+      }
+    }
+    if (typeof localizedValue === 'string') {
+      return formatMessageContent(localizedValue, locale);
+    }
+    return [''];
   }
   // If the payload is a JSON object, handle special message types.
   if (
@@ -36,7 +48,7 @@ export const formatMessageContent = (
         key="emergency-alert"
         className="my-1 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-[0.95rem] font-semibold text-red-700 shadow-sm"
       >
-        {alertMessageText[locale]} {userNameString || userNicknameString}
+        {alertMessageText[locale]} {userNameString === '' ? userNicknameString : userNameString}
       </div>,
     ];
   }
@@ -79,11 +91,13 @@ export const formatMessageContent = (
     return [JSON.stringify(text, undefined, 2)];
   }
 
-  const splitFormattingAndLinkRegex = /(\*.*?\*|_.*?_|~.*?~|https?:\/\/[^\s]+)/g;
+  const splitFormattingAndLinkRegex =
+    /(\*.*?\*|_.*?_|~.*?~|\[[^\]]+\]\(https?:\/\/[^\s)]+\)|https?:\/\/[^\s)]+)/g;
   const boldRegex = /^\*(.+)\*$/;
   const italicRegex = /^_(.+)_$/;
   const strikethroughRegex = /^~(.+)~$/;
-  const urlRegex = /^(https?:\/\/\S+)$/;
+  const markdownLinkRegex = /^\[(.+?)\]\((https?:\/\/[^\s)]+)\)$/;
+  const urlRegex = /^(https?:\/\/[^\s)]+)$/;
 
   const lines = text.split('\n');
 
@@ -92,16 +106,46 @@ export const formatMessageContent = (
     const formattedParts = parts.map((part, partIndex) => {
       let match;
       match = part.match(boldRegex);
-      if (match?.[1] != undefined)
+      if (match?.[1] !== undefined)
         return <strong key={`${lineIndex}-${partIndex}-bold`}>{match[1]}</strong>;
       match = part.match(italicRegex);
-      if (match?.[1] != undefined)
+      if (match?.[1] !== undefined)
         return <em key={`${lineIndex}-${partIndex}-italic`}>{match[1]}</em>;
       match = part.match(strikethroughRegex);
-      if (match?.[1] != undefined)
+      if (match?.[1] !== undefined)
         return <s key={`${lineIndex}-${partIndex}-strikethrough`}>{match[1]}</s>;
+      match = part.match(markdownLinkRegex);
+      if (match?.[1] !== undefined && match[2] !== undefined) {
+        const linkText = match[1];
+        const url = match[2];
+        const isInternalLink = url.startsWith(environmentVariables.NEXT_PUBLIC_APP_HOST_URL);
+
+        let linkProperties: { href: string; target?: string; rel?: string };
+
+        if (isInternalLink) {
+          let path = url.replace(environmentVariables.NEXT_PUBLIC_APP_HOST_URL, '');
+          if (path.startsWith('/') === false) {
+            path = `/${path}`;
+          }
+          linkProperties = {
+            href: path,
+          };
+        } else {
+          linkProperties = {
+            href: url,
+            target: '_blank',
+            rel: 'noopener noreferrer',
+          };
+        }
+
+        return (
+          <Link key={`${lineIndex}-${partIndex}-link`} className="underline" {...linkProperties}>
+            {linkText}
+          </Link>
+        );
+      }
       match = part.match(urlRegex);
-      if (match?.[1] != undefined) {
+      if (match?.[1] !== undefined) {
         const url = match[1];
         const isInternalLink = url.startsWith(environmentVariables.NEXT_PUBLIC_APP_HOST_URL);
 
@@ -109,7 +153,7 @@ export const formatMessageContent = (
 
         if (isInternalLink) {
           let path = url.replace(environmentVariables.NEXT_PUBLIC_APP_HOST_URL, '');
-          if (!path.startsWith('/')) {
+          if (path.startsWith('/') === false) {
             path = `/${path}`;
           }
           linkProperties = {

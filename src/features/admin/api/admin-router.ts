@@ -1,5 +1,5 @@
+import type { ChatCapability } from '@/lib/chat-shared';
 import {
-  ChatCapability,
   ChatStatus,
   getStatusFromMessageEvents,
   SYSTEM_SENDER_ID,
@@ -11,8 +11,11 @@ import { getMessagePreviewText } from '@/features/chat/api/utils/get-message-pre
 // eslint-disable-next-line import/no-restricted-paths
 import { resolveChatName } from '@/features/chat/api/utils/resolve-chat-name';
 // eslint-disable-next-line import/no-restricted-paths
+import { sendNotification } from '@/features/chat/api/utils/send-push-notifications';
+// eslint-disable-next-line import/no-restricted-paths
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { hasAccessToThisUser, Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import { chatPubSub } from '@/lib/db/chat-pubsub';
 import { getFeatureFlag, setFeatureFlag } from '@/lib/db/redis';
 import {
   ChatMembershipPermission,
@@ -266,9 +269,10 @@ export const adminRouter = createTRPCRouter({
                 uuid: membership.userId,
               })),
               user,
+              chat.type,
             ),
             description: chat.description,
-            status: chat.status as ChatStatus,
+            status: chat.status,
             chatType: chat.type,
             lastUpdate: chat.lastUpdate,
             unreadCount: 0,
@@ -287,6 +291,10 @@ export const adminRouter = createTRPCRouter({
         return {
           unreadCount: messages
             .filter((message) => message.senderId !== user.uuid)
+            .filter((message) => {
+              const lastRead = chat.adminReadAt ? chat.adminReadAt.getTime() : 0;
+              return message.createdAt.getTime() > lastRead;
+            })
             .filter(
               (message) =>
                 !message.messageEvents.some((event) => event.type === MessageEventType.READ),
@@ -299,9 +307,10 @@ export const adminRouter = createTRPCRouter({
               uuid: membership.userId,
             })),
             user,
+            chat.type,
           ),
           description: chat.description,
-          status: chat.status as ChatStatus,
+          status: chat.status,
           chatType: chat.type,
           id: chat.uuid,
           messageCount: chat._count.messages,
@@ -347,7 +356,26 @@ export const adminRouter = createTRPCRouter({
   getChatMessages: adminProcedure
     .input(z.object({ chatId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const { prisma } = ctx;
+      const { prisma, user } = ctx;
+
+      const chat = await prisma.chat.findUnique({
+        where: { uuid: input.chatId },
+        include: {
+          chatMemberships: {
+            select: { userId: true },
+          },
+        },
+      });
+
+      if (!chat) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Chat not found',
+        });
+      }
+
+      const customerIds = new Set(chat.chatMemberships.map((m) => m.userId));
+
       const messages = await prisma.message.findMany({
         where: { chatId: input.chatId },
         include: {
@@ -364,15 +392,46 @@ export const adminRouter = createTRPCRouter({
         orderBy: { createdAt: 'asc' },
       });
 
-      return messages.map((m) => ({
-        id: m.uuid,
-        createdAt: m.createdAt,
-        messagePayload: m.contentVersions[0]?.payload ?? {},
-        senderId: m.senderId ?? SYSTEM_SENDER_ID,
-        senderName: m.sender?.name,
-        type: m.type,
-        status: getStatusFromMessageEvents(m.messageEvents),
-      }));
+      const formattedMessages = messages.map((m) => {
+        const senderId = m.senderId ?? SYSTEM_SENDER_ID;
+        const isAdminMessage = senderId !== SYSTEM_SENDER_ID && !customerIds.has(senderId);
+
+        return {
+          id: m.uuid,
+          createdAt: m.createdAt,
+          messagePayload: m.contentVersions[0]?.payload ?? {},
+          senderId,
+          senderName: m.sender?.name,
+          type: m.type,
+          status: getStatusFromMessageEvents(m.messageEvents),
+          isAdminMessage,
+        };
+      });
+
+      return {
+        messages: formattedMessages,
+        currentUserId: user.uuid,
+      };
+    }),
+
+  markChatAsRead: adminProcedure
+    .input(z.object({ chatId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const { prisma, user } = ctx;
+
+      await prisma.chat.update({
+        where: { uuid: input.chatId },
+        data: { adminReadAt: new Date() },
+      });
+
+      // Publish real-time event to update standard users' checkmarks instantly
+      void chatPubSub.publish({
+        type: 'chat_read_by_admin',
+        chatId: input.chatId,
+        senderId: user.uuid,
+      });
+
+      return { success: true };
     }),
 
   postAdminMessage: adminProcedure
@@ -386,6 +445,15 @@ export const adminRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const { prisma, user } = ctx;
 
+      const chat = await prisma.chat.findUnique({
+        where: { uuid: input.chatId },
+        select: { chatMemberships: true },
+      });
+
+      if (!chat) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Chat not found' });
+      }
+
       const message = await prisma.message.create({
         data: {
           chatId: input.chatId,
@@ -393,7 +461,8 @@ export const adminRouter = createTRPCRouter({
           type: input.type,
           contentVersions: {
             create: {
-              payload: input.content,
+              payload:
+                input.type === MessageType.IMAGE_MSG ? { url: input.content } : input.content,
             },
           },
           messageEvents: {
@@ -409,6 +478,50 @@ export const adminRouter = createTRPCRouter({
         where: { uuid: input.chatId },
         data: { lastUpdate: new Date() },
       });
+
+      const recipientUserIds = chat.chatMemberships
+        .filter((membership) => membership.userId !== user.uuid)
+        .map((membership) => membership.userId);
+
+      sendNotification(input.content, recipientUserIds, input.chatId, message.uuid).catch(
+        (error: unknown) => {
+          console.error('Failed to send admin push notification:', error);
+        },
+      );
+
+      if (recipientUserIds.length > 0) {
+        await prisma.messageEvent.createMany({
+          data: recipientUserIds.map((userId) => ({
+            userId: userId,
+            messageId: message.uuid,
+            type: MessageEventType.DISTRIBUTED,
+          })),
+        });
+      }
+
+      // Publish real-time event via PostgreSQL NOTIFY (fire-and-forget)
+      chatPubSub
+        .publish({
+          type: 'new_message',
+          chatId: input.chatId,
+          senderId: user.uuid,
+          message: {
+            id: message.uuid,
+            createdAt: message.createdAt,
+            messagePayload:
+              input.type === MessageType.IMAGE_MSG
+                ? { url: input.content }
+                : { text: input.content },
+            senderId: user.uuid,
+            senderName: user.name,
+            status: MessageEventType.STORED,
+            type: input.type,
+            parentId: undefined,
+          },
+        })
+        .catch((error: unknown) => {
+          console.error('Failed to publish real-time admin event:', error);
+        });
 
       return message;
     }),
@@ -454,17 +567,6 @@ export const adminRouter = createTRPCRouter({
       });
 
       if (!chat) throw new TRPCError({ code: 'NOT_FOUND' });
-
-      // Remove CAN_SEND_MESSAGES
-      const newCapabilities = chat.capabilities.filter(
-        (c) => (c as string) !== (ChatCapability.CAN_SEND_MESSAGES as string),
-      );
-
-      await prisma.chat.update({
-        where: { uuid: input.chatId },
-        data: { capabilities: newCapabilities },
-      });
-
       const closeMessages: Record<ChatType, { en: string; de: string; fr: string }> = {
         [ChatType.EMERGENCY]: {
           en: `${user.name} has marked the emergency alert as completed.`,
@@ -491,16 +593,24 @@ export const adminRouter = createTRPCRouter({
           de: 'Ein Admin hat diesen Chat geschlossen.',
           fr: 'Un administrateur a fermé ce chat.',
         },
+        [ChatType.ANNOUNCEMENT]: {
+          en: 'This announcement channel has been closed.',
+          de: 'Dieser Ankündigungskanal wurde geschlossen.',
+          fr: "Ce canal d'annonces a été fermé.",
+        },
       };
 
       // Add system message
-      await prisma.message.create({
+      const systemMessage = await prisma.message.create({
         data: {
           chatId: input.chatId,
           type: MessageType.SYSTEM_MSG,
           contentVersions: {
             create: {
-              payload: closeMessages[chat.type],
+              payload: {
+                ...closeMessages[chat.type],
+                systemMessageType: 'CHAT_CLOSED',
+              },
             },
           },
           messageEvents: {
@@ -512,13 +622,53 @@ export const adminRouter = createTRPCRouter({
         },
       });
 
-      return prisma.chat.update({
+      const updatedChat = await prisma.chat.update({
         where: { uuid: input.chatId },
         data: {
-          status: 'CLOSED',
+          status: ChatStatus.CLOSED,
           lastUpdate: new Date(),
         },
       });
+
+      // Publish real-time system message event via PostgreSQL NOTIFY
+      chatPubSub
+        .publish({
+          type: 'new_message',
+          chatId: input.chatId,
+          senderId: SYSTEM_SENDER_ID,
+          message: {
+            id: systemMessage.uuid,
+            createdAt: systemMessage.createdAt,
+            messagePayload: {
+              ...closeMessages[chat.type],
+              systemMessageType: 'CHAT_CLOSED',
+            },
+            senderId: SYSTEM_SENDER_ID,
+            status: MessageEventType.STORED,
+            type: MessageType.SYSTEM_MSG,
+            parentId: undefined,
+          },
+        })
+        .catch((error: unknown) => {
+          console.error('Failed to publish real-time system event on close:', error);
+        });
+
+      // Publish chat_updated event
+      chatPubSub
+        .publish({
+          type: 'chat_updated',
+          chatId: input.chatId,
+          senderId: SYSTEM_SENDER_ID,
+          chat: {
+            status: ChatStatus.CLOSED,
+            capabilities: chat.capabilities,
+          },
+        })
+        .catch((error: unknown) => {
+          console.error('Failed to publish chat_updated event on close:', error);
+        });
+
+      return updatedChat;
     }),
 
   reopenChat: adminProcedure
@@ -531,16 +681,6 @@ export const adminRouter = createTRPCRouter({
       });
 
       if (!chat) throw new TRPCError({ code: 'NOT_FOUND' });
-
-      // Add CAN_SEND_MESSAGES
-      const newCapabilities = [
-        ...new Set([...chat.capabilities, ChatCapability.CAN_SEND_MESSAGES]),
-      ];
-
-      await prisma.chat.update({
-        where: { uuid: input.chatId },
-        data: { capabilities: newCapabilities },
-      });
 
       const reopenMessages: Record<ChatType, { en: string; de: string; fr: string }> = {
         [ChatType.EMERGENCY]: {
@@ -568,16 +708,24 @@ export const adminRouter = createTRPCRouter({
           de: 'Ein Admin hat diesen Chat wieder geöffnet.',
           fr: 'Un administrateur a rouvert ce chat.',
         },
+        [ChatType.ANNOUNCEMENT]: {
+          en: 'This announcement channel has been reopened.',
+          de: 'Dieser Ankündigungskanal wurde wieder geöffnet.',
+          fr: "Ce canal d'annonces a été rouvert.",
+        },
       };
 
       // Add system message
-      await prisma.message.create({
+      const systemMessage = await prisma.message.create({
         data: {
           chatId: input.chatId,
           type: MessageType.SYSTEM_MSG,
           contentVersions: {
             create: {
-              payload: reopenMessages[chat.type],
+              payload: {
+                ...reopenMessages[chat.type],
+                systemMessageType: 'CHAT_REOPENED',
+              },
             },
           },
           messageEvents: {
@@ -589,12 +737,246 @@ export const adminRouter = createTRPCRouter({
         },
       });
 
-      return prisma.chat.update({
+      const updatedChat = await prisma.chat.update({
         where: { uuid: input.chatId },
         data: {
-          status: 'OPEN',
+          status: ChatStatus.OPEN,
           lastUpdate: new Date(),
         },
       });
+
+      // Publish real-time system message event via PostgreSQL NOTIFY
+      chatPubSub
+        .publish({
+          type: 'new_message',
+          chatId: input.chatId,
+          senderId: SYSTEM_SENDER_ID,
+          message: {
+            id: systemMessage.uuid,
+            createdAt: systemMessage.createdAt,
+            messagePayload: {
+              ...reopenMessages[chat.type],
+              systemMessageType: 'CHAT_REOPENED',
+            },
+            senderId: SYSTEM_SENDER_ID,
+            status: MessageEventType.STORED,
+            type: MessageType.SYSTEM_MSG,
+            parentId: undefined,
+          },
+        })
+        .catch((error: unknown) => {
+          console.error('Failed to publish real-time system event on reopen:', error);
+        });
+
+      // Publish chat_updated event
+      chatPubSub
+        .publish({
+          type: 'chat_updated',
+          chatId: input.chatId,
+          senderId: SYSTEM_SENDER_ID,
+          chat: {
+            status: ChatStatus.OPEN,
+            capabilities: chat.capabilities,
+          },
+        })
+        .catch((error: unknown) => {
+          console.error('Failed to publish chat_updated event on reopen:', error);
+        });
+
+      return updatedChat;
+    }),
+
+  searchUsers: adminProcedure
+    .input(
+      z.object({
+        search: z.string().optional(),
+        hof: z.number().optional(),
+        quartier: z.number().optional(),
+        role: z.string().optional(),
+      }),
+    )
+    .query(async ({ input }) => {
+      const { getPayload } = await import('payload');
+      const { default: config } = await import('@payload-config');
+      const payload = await getPayload({ config });
+
+      const whereConditions: import('payload').Where[] = [];
+
+      if (typeof input.search === 'string' && input.search !== '') {
+        const search = input.search;
+        whereConditions.push({
+          or: [
+            { fullName: { contains: search } },
+            { nickname: { contains: search } },
+            { email: { contains: search } },
+          ],
+        });
+      }
+
+      if (input.hof !== undefined) {
+        whereConditions.push({ hof: { equals: input.hof } });
+      }
+
+      if (input.quartier !== undefined) {
+        whereConditions.push({ quartier: { equals: input.quartier } });
+      }
+
+      if (typeof input.role === 'string' && input.role !== '') {
+        const { environmentVariables: env } = await import('@/config/environment-variables');
+        let targetGroupIds: number[] = [];
+
+        switch (input.role) {
+          case 'full-admin': {
+            targetGroupIds = env.CEVIDB_GROUP_FULL_ADMIN;
+            break;
+          }
+          case 'web-core-team': {
+            targetGroupIds = env.CEVIDB_GROUP_WEB_CORE_TEAM;
+            break;
+          }
+          case 'translation-team': {
+            targetGroupIds = env.CEVIDB_GROUP_TRANSLATION_TEAM;
+            break;
+          }
+          case 'program-team': {
+            targetGroupIds = env.CEVIDB_GROUP_PROGRAM_TEAM;
+            break;
+          }
+          default: {
+            break;
+          }
+        }
+
+        if (targetGroupIds.length > 0) {
+          whereConditions.push({
+            'groups.id': {
+              in: targetGroupIds,
+            },
+          });
+        }
+      }
+
+      const queryWhere: import('payload').Where =
+        whereConditions.length > 0 ? { and: whereConditions } : {};
+
+      const { docs: users } = await payload.find({
+        collection: 'users',
+        where: queryWhere,
+        limit: 100,
+        depth: 0,
+      });
+
+      return users.map((u) => ({
+        id: u.id,
+        fullName: u.fullName,
+        nickname: u.nickname ?? '',
+        email: u.email,
+        hof: u.hof ?? undefined,
+        quartier: u.quartier ?? undefined,
+      }));
+    }),
+
+  addMemberToChat: adminProcedure
+    .input(
+      z.object({
+        chatId: z.string().uuid(),
+        userId: z.string(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { prisma } = ctx;
+      const { chatId, userId } = input;
+
+      const { getPayload } = await import('payload');
+      const { default: config } = await import('@payload-config');
+      const payload = await getPayload({ config });
+
+      const userDocument = await payload.findByID({
+        collection: 'users',
+        id: userId,
+      });
+
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (userDocument === undefined || userDocument === null) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'User not found in CMS.',
+        });
+      }
+
+      // Ensure the user exists in PostgreSQL to satisfy foreign key constraints
+      await prisma.user.upsert({
+        where: { uuid: userId },
+        create: {
+          uuid: userId,
+          name: userDocument.fullName,
+          lastSeen: new Date('1970-01-01T00:00:00Z'),
+        },
+        update: {
+          name: userDocument.fullName,
+        },
+      });
+
+      // Add user to chat
+      await prisma.chatMembership.upsert({
+        where: {
+          userId_chatId: {
+            userId,
+            chatId,
+          },
+        },
+        create: {
+          userId,
+          chatId,
+          chatPermission: ChatMembershipPermission.MEMBER,
+        },
+        update: {},
+      });
+
+      // Create a SYSTEM_MSG so it gets stored in history and displayed in the UI
+      const systemMessage = await prisma.message.create({
+        data: {
+          chatId,
+          type: MessageType.SYSTEM_MSG,
+          contentVersions: {
+            create: [
+              {
+                payload: `${userDocument.fullName} joined the group`,
+              },
+            ],
+          },
+          messageEvents: {
+            create: [{ type: MessageEventType.CREATED }, { type: MessageEventType.STORED }],
+          },
+        },
+      });
+
+      // Update chat lastUpdate timestamp so the chat re-sorts to the top
+      await prisma.chat.update({
+        where: { uuid: chatId },
+        data: { lastUpdate: new Date() },
+      });
+
+      // Publish the 'new_message' real-time event so frontend streams display the system message
+      // and automatically trigger invalidate('chatDetails') to reload the participants list.
+      chatPubSub
+        .publish({
+          type: 'new_message',
+          chatId,
+          senderId: SYSTEM_SENDER_ID,
+          message: {
+            id: systemMessage.uuid,
+            createdAt: systemMessage.createdAt,
+            messagePayload: `${userDocument.fullName} joined the group`,
+            senderId: SYSTEM_SENDER_ID,
+            status: MessageEventType.STORED,
+            type: MessageType.SYSTEM_MSG,
+          },
+        })
+        .catch((error: unknown) => {
+          console.error('Failed to publish real-time member added event:', error);
+        });
+
+      return { success: true };
     }),
 });

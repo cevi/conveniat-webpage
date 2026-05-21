@@ -3,7 +3,7 @@ import type { CaptureResult } from 'posthog-js';
 /**
  * Filter out known noise like CefSharp bot errors (e.g., from Outlook Safe Links)
  */
-const noiseMessages = [
+export const noiseMessages = [
   // see: https://github.com/cevi/conveniat-webpage/issues/1012
   'Object Not Found Matching Id',
 
@@ -33,6 +33,33 @@ const noiseMessages = [
   // This causes an 'undefined is not an object (evaluating 'window.__firefox__.reader')' error.
   // see: https://github.com/cevi/conveniat-webpage/issues/1150
   'window.__firefox__.reader',
+
+  // see: https://github.com/cevi/conveniat-webpage/issues/1169
+  // Common Android WebView error triggered by injected scripts (like Facebook in-app browser)
+  // attempting to use a JS bridge that has already been destroyed during navigation or backgrounding.
+  'Error invoking postMessage: Java object is gone',
+
+  // see: https://github.com/cevi/conveniat-webpage/issues/1168
+  // Another variant of the Android WebView JS bridge error.
+  'Error invoking enableDidUserTypeOnKeyboardLogging: Java object is gone',
+
+  // see: https://github.com/cevi/conveniat-webpage/issues/1148
+  // DOMException in Mobile Safari usually related to Private Browsing, ITP,
+  // or network flakiness when trying to load/register the service worker.
+  'SecurityError: Script https://conveniat27.ch/sw.js load failed',
+
+  // see: https://github.com/cevi/conveniat-webpage/issues/1124
+  // Mobile Safari AbortError when registering/updating the Service Worker,
+  // often due to the tab being closed mid-load or aggressive battery saving.
+  "AbortError: Failed to register a ServiceWorker for scope ('https://conveniat27.ch/') with script ('https://conveniat27.ch/sw.js')",
+
+  // react-youtube / youtube-player internal bug when unmounting quickly.
+  // The internal container ref becomes null but createPlayer still executes.
+  "Cannot read properties of null (reading 'playVideo')",
+
+  // see: https://github.com/cevi/conveniat-webpage/issues/1135
+  // Next.js App Router error when a client sends a malformed or outdated Next-Router-State-Tree header.
+  'The router state header was sent but could not be parsed',
 ];
 
 export const filterPostHogNoise = (event: CaptureResult | null): CaptureResult | null => {

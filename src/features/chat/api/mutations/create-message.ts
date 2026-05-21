@@ -1,6 +1,8 @@
 import { sendNotification } from '@/features/chat/api/utils/send-push-notifications';
 import { Ability } from '@/lib/ability';
 import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
+import { LARGE_CHAT_THRESHOLD } from '@/lib/chat-shared';
+import { chatPubSub } from '@/lib/db/chat-pubsub';
 import { ChatMembershipPermission, MessageEventType, MessageType } from '@/lib/prisma/client';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
@@ -89,7 +91,14 @@ export const createMessage = trpcBaseProcedure
     // 2. Validate that the user is part of the chat and has permission to send messages
     const chat = await prisma.chat.findUnique({
       where: { uuid: validatedMessage.chatId },
-      select: { chatMemberships: true },
+      select: {
+        chatMemberships: {
+          select: {
+            userId: true,
+            chatPermission: true,
+          },
+        },
+      },
     });
 
     if (
@@ -203,12 +212,58 @@ export const createMessage = trpcBaseProcedure
       console.error('Failed to send push notification:', error);
     });
 
-    // Record DISTRIBUTED event after a successful notification attempt
-    await prisma.messageEvent.createMany({
-      data: recipientUserIds.map((userId) => ({
-        userId: userId,
-        messageId: createdMessage.uuid,
-        type: MessageEventType.DISTRIBUTED,
-      })),
-    });
+    // Record DISTRIBUTED event after a successful notification attempt (only for chats with < LARGE_CHAT_THRESHOLD users)
+    if (recipientUserIds.length < LARGE_CHAT_THRESHOLD) {
+      await prisma.messageEvent.createMany({
+        data: recipientUserIds.map((userId) => ({
+          userId: userId,
+          messageId: createdMessage.uuid,
+          type: MessageEventType.DISTRIBUTED,
+        })),
+      });
+    }
+
+    // Publish real-time event via PostgreSQL NOTIFY (fire-and-forget)
+    chatPubSub
+      .publish({
+        type: 'new_message',
+        chatId: validatedMessage.chatId,
+        senderId: user.uuid,
+        message: {
+          id: createdMessage.uuid,
+          createdAt: createdMessage.createdAt,
+          messagePayload:
+            validatedMessage.type === MessageType.IMAGE_MSG
+              ? { url: validatedMessage.content }
+              : {
+                  text: validatedMessage.content,
+                  quotedMessageId: validatedMessage.quotedMessageId,
+                  quotedSnippet,
+                },
+          senderId: user.uuid,
+          status: MessageEventType.STORED,
+          type: validatedMessage.type,
+          parentId: validatedMessage.parentId ?? undefined,
+        },
+      })
+      .catch((error: unknown) => {
+        console.error('Failed to publish real-time event:', error);
+      });
+
+    return {
+      id: createdMessage.uuid,
+      createdAt: createdMessage.createdAt,
+      senderId: user.uuid,
+      status: MessageEventType.STORED,
+      type: createdMessage.type,
+      parentId: validatedMessage.parentId ?? undefined,
+      messagePayload:
+        validatedMessage.type === MessageType.IMAGE_MSG
+          ? { url: validatedMessage.content }
+          : {
+              text: validatedMessage.content,
+              quotedMessageId: validatedMessage.quotedMessageId,
+              quotedSnippet,
+            },
+    };
   });

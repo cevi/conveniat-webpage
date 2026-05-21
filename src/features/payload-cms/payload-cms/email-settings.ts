@@ -23,6 +23,7 @@ export const emailSettings = environmentVariables.ENABLE_NODEMAILER
             ? environmentVariables.SMTP_USER
             : 'noreply@cevi.tools',
         defaultFromName: 'conveniat27',
+        skipVerify: true,
         transportOptions: {
           host: environmentVariables.SMTP_HOST,
           port: environmentVariables.SMTP_PORT,
