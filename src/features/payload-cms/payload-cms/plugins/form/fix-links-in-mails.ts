@@ -206,17 +206,61 @@ export const beforeEmailChangeHook: BeforeEmail = async (
     throw new Error('formSubmissionId is required to send emails but was not provided.');
   }
 
-  // Use a sequential loop to avoid race conditions when updating form submission documents
+  // 1. Create the outgoing-emails records synchronously first, so they are saved to the DB immediately
+  const emailsWithIds: { email: FormattedEmail; outgoingEmailId: string }[] = [];
   for (const email of finalEmails) {
     try {
-      await sendTrackedEmail(payload, email, formSubmissionId);
+      const emailOptions = email as { to?: unknown; subject?: string; html?: string };
+      let to = 'unknown';
+      if (typeof emailOptions.to === 'string') {
+        to = emailOptions.to;
+      } else if (Array.isArray(emailOptions.to)) {
+        to = (emailOptions.to as unknown[]).map(String).join(', ');
+      }
+
+      const outgoingEmailDocument = await payload.create({
+        collection: 'outgoing-emails',
+        data: {
+          to,
+          subject: emailOptions.subject ?? 'No Subject',
+          formSubmission: formSubmissionId,
+          deliveryStatus: 'pending',
+          ...(emailOptions.html === undefined ? {} : { html: emailOptions.html }),
+        },
+      });
+      emailsWithIds.push({ email, outgoingEmailId: outgoingEmailDocument.id });
     } catch (error: unknown) {
+      const emailOptions = email as { to?: unknown };
+      const emailTo = typeof emailOptions.to === 'string' ? emailOptions.to : 'unknown';
       payload.logger.error({
         err: error instanceof Error ? error : new Error(String(error)),
-        msg: `sendTrackedEmail failed for email to: ${email.to}`,
+        msg: `Failed to create outgoing-email record synchronously for email to: ${emailTo}`,
       });
     }
   }
+
+  // 2. Process the actual email sending and tracking updates in a sequential background task
+  // to prevent race conditions while instantly returning the confirmation response.
+  void (async (): Promise<void> => {
+    for (const item of emailsWithIds) {
+      try {
+        await sendTrackedEmail(
+          payload,
+          item.email,
+          formSubmissionId,
+          undefined,
+          item.outgoingEmailId,
+        );
+      } catch (error: unknown) {
+        const itemEmailOptions = item.email as { to?: unknown };
+        const emailTo = typeof itemEmailOptions.to === 'string' ? itemEmailOptions.to : 'unknown';
+        payload.logger.error({
+          err: error instanceof Error ? error : new Error(String(error)),
+          msg: `Asynchronous sendTrackedEmail failed for email to: ${emailTo}`,
+        });
+      }
+    }
+  })();
 
   // Return empty array so the plugin doesn't send duplicate emails
   return [];
