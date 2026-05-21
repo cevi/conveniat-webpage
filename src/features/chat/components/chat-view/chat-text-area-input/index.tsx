@@ -205,9 +205,9 @@ export const ChatTextAreaInput: React.FC = () => {
   if (isGuest) {
     if (chatDetails?.type === ChatType.ANNOUNCEMENT) {
       return (
-        <div className="flex w-full items-center justify-center gap-3 rounded-xl border border-rose-100 bg-rose-50/50 p-4 text-center shadow-xs">
-          <Megaphone className="h-5 w-5 shrink-0 text-rose-500" />
-          <span className="font-heading text-sm font-semibold text-rose-800">
+        <div className="flex w-full items-center justify-center gap-3 rounded-xl bg-gray-50 p-4 text-center">
+          <Megaphone className="h-5 w-5 shrink-0 text-gray-400" />
+          <span className="font-body text-sm font-medium text-balance text-gray-500">
             {isAnnouncementChannelMessage[locale]}
           </span>
         </div>
