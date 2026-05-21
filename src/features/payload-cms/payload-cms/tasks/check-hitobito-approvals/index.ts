@@ -3,6 +3,8 @@ import {
   DEFAULT_QUEUE,
 } from '@/features/payload-cms/payload-cms/tasks/cleanup-stale-jobs';
 import { getHitobito, HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api';
+import { getFeatureFlag } from '@/lib/db/redis';
+import { FEATURE_FLAG_CHECK_HITOBITO_APPROVALS_ENABLED } from '@/lib/feature-flags';
 import type { PayloadRequest, TaskConfig } from 'payload';
 import { countRunnableOrActiveJobsForQueue } from 'payload';
 
@@ -43,6 +45,17 @@ export const checkHitobitoApprovalsTask: TaskConfig<'checkHitobitoApprovals'> = 
           queueable,
           req,
         }): Promise<{ shouldSchedule: boolean; input: Record<string, never> }> => {
+          const isEnabled = await getFeatureFlag(FEATURE_FLAG_CHECK_HITOBITO_APPROVALS_ENABLED);
+          if (!isEnabled) {
+            req.payload.logger.info(
+              'checkHitobitoApprovals task scheduler bypassed: task is disabled via feature flag.',
+            );
+            return {
+              shouldSchedule: false,
+              input: {},
+            };
+          }
+
           await cleanupStaleScheduledJobs(req, 'checkHitobitoApprovals', 15);
 
           const runnableOrActiveJobsForQueue = await countRunnableOrActiveJobsForQueue({
@@ -72,6 +85,13 @@ export const checkHitobitoApprovalsTask: TaskConfig<'checkHitobitoApprovals'> = 
   }): Promise<{ output: Record<string, unknown> }> => {
     const { payload } = req;
     const { logger } = payload;
+
+    const isEnabled = await getFeatureFlag(FEATURE_FLAG_CHECK_HITOBITO_APPROVALS_ENABLED);
+    if (!isEnabled) {
+      logger.info('checkHitobitoApprovals task bypassed: task is disabled via feature flag.');
+      return { output: {} };
+    }
+
     const { helperGroupId: groupId } = HITOBITO_CONFIG;
 
     if (groupId === undefined || groupId === '') {
