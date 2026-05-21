@@ -51,8 +51,7 @@ export const useAdminChatManagement = ({
       includeId: selectedChatId ?? undefined,
     },
     {
-      // @ts-expect-error - feature of tanstack query used by trpc
-      keepPreviousData: true,
+      placeholderData: (previousData) => previousData,
     },
   );
 

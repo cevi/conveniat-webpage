@@ -1,6 +1,7 @@
 import type { ChatMessage } from '@/features/chat/api/types';
 import { MessageComponent } from '@/features/chat/components/chat-view/message';
 import type { ChatType } from '@/lib/prisma/client';
+import type { Locale } from '@/types/types';
 import { Loader2 } from 'lucide-react';
 import React, { useEffect, useRef } from 'react';
 
@@ -88,6 +89,7 @@ export const ChatManagementMessages: React.FC<ChatManagementMessagesProperties> 
                       message={message}
                       isCurrentUser={isCurrentUser}
                       chatType={chatType}
+                      locale={locale as Locale}
                     />
                   </div>
                 );

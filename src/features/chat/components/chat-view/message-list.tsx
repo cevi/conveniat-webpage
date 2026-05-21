@@ -113,6 +113,7 @@ export const MessageList: React.FC<{
                       chatType={chatDetails.type}
                       hideReplyCount={hideReplyCount}
                       isThreadRoot={isThreadRoot}
+                      locale={locale}
                     />
                   </div>
                 );
