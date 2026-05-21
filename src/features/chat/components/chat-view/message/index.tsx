@@ -8,13 +8,11 @@ import { LocationMessage } from '@/features/chat/components/chat-view/message/lo
 import { SystemMessage } from '@/features/chat/components/chat-view/message/system-message';
 import { formatMessageContent } from '@/features/chat/components/chat-view/message/utils/format-message-content';
 import { useChatActions } from '@/features/chat/context/chat-actions-context';
-import { useFormatDate } from '@/features/chat/hooks/use-format-date';
+import { formatMessageTimeOnlyRaw } from '@/features/chat/hooks/use-format-date';
 import { MessageEventType, MessageType } from '@/lib/prisma/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
-import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { Check, Loader2, MessageSquare, UserCircle } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useRef, useState } from 'react';
 
 const DoubleCheck: React.FC<{ className?: string }> = ({ className }) => (
@@ -36,6 +34,7 @@ interface MessageProperties {
   chatType: string;
   hideReplyCount?: boolean;
   isThreadRoot?: boolean;
+  locale: Locale;
 }
 
 /**
@@ -52,15 +51,14 @@ export const MessageComponent: React.FC<MessageProperties> = ({
   chatType,
   hideReplyCount = false,
   isThreadRoot = false,
+  locale,
 }) => {
-  const locale = useCurrentLocale(i18nConfig) as Locale;
   const [isLongPressing, setIsLongPressing] = useState(false);
   const [swipeX, setSwipeX] = useState(0);
   const isPointerDown = useRef(false);
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
   const longPressTimerReference = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const { formatMessageTimeOnly } = useFormatDate();
   const renderedContent = formatMessageContent(message.messagePayload, locale);
   const {
     replyInThread,
@@ -298,7 +296,9 @@ export const MessageComponent: React.FC<MessageProperties> = ({
                 isCurrentUser ? 'text-white/80' : 'text-gray-400',
               )}
             >
-              <span className="font-body">{formatMessageTimeOnly(message.createdAt)}</span>
+              <span className="font-body">
+                {formatMessageTimeOnlyRaw(message.createdAt, locale)}
+              </span>
               {renderMessageStatus()}
             </div>
           </div>

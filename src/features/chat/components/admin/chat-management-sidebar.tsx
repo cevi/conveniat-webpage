@@ -45,8 +45,15 @@ export const ChatManagementSidebar: React.FC<ChatManagementSidebarProperties> = 
     }
   };
 
+  const hasRestoredScrollReference = React.useRef(false);
+
   React.useEffect(() => {
-    if (!loadingChats && scrollContainerReference.current) {
+    hasRestoredScrollReference.current = false;
+  }, [title]);
+
+  React.useEffect(() => {
+    if (!loadingChats && scrollContainerReference.current && !hasRestoredScrollReference.current) {
+      hasRestoredScrollReference.current = true;
       const saved = sessionStorage.getItem(`chat-sidebar-scroll-${title}`);
       if (saved !== null && saved !== '') {
         const container = scrollContainerReference.current;
@@ -56,7 +63,7 @@ export const ChatManagementSidebar: React.FC<ChatManagementSidebarProperties> = 
         });
       }
     }
-  }, [loadingChats, chats, title]);
+  }, [loadingChats, title]);
 
   return (
     <div className="flex w-[340px] shrink-0 flex-col border-r border-(--theme-border-color)">
