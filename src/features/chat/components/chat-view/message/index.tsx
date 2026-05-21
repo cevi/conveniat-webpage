@@ -17,7 +17,7 @@ import { toast } from '@/lib/toast';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { Check, Info, Loader2, MessageSquare, Quote, UserCircle } from 'lucide-react';
+import { Check, Info, Loader2, MessageSquare, Quote } from 'lucide-react';
 import React, { useRef, useState } from 'react';
 
 const DoubleCheck: React.FC<{ className?: string }> = ({ className }) => (
@@ -303,12 +303,6 @@ export const MessageComponent: React.FC<MessageProperties> = ({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {!isCurrentUser && chatType === 'GROUP' && (
-        <div className="mb-1 ml-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white bg-linear-to-br from-gray-100 to-gray-200 shadow-sm">
-          <UserCircle className="h-5 w-5 text-gray-500" />
-        </div>
-      )}
-
       <div
         className={cn(
           'relative flex max-w-[85%] flex-col py-1',
@@ -595,12 +589,6 @@ export const MessageComponent: React.FC<MessageProperties> = ({
           </div>
         )}
       </div>
-
-      {isCurrentUser && chatType === 'GROUP' && (
-        <div className="mr-2 mb-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white bg-gradient-to-br from-green-50 to-green-100 shadow-sm">
-          <UserCircle className="text-conveniat-green h-5 w-5" />
-        </div>
-      )}
 
       {showInfo && (
         <MessageInfoDropdown

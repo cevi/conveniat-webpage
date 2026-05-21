@@ -8,7 +8,7 @@ import { useEffect } from 'react';
 import superjson from 'superjson';
 
 interface ChatRealtimeEvent {
-  type: 'new_message' | 'message_updated' | 'chat_read_by_admin' | 'chat_updated';
+  type: 'new_message' | 'message_updated' | 'chat_read_by_admin' | 'chat_updated' | 'new_chat';
   chatId: string;
   senderId: string;
   message?: ChatMessage;
@@ -92,6 +92,11 @@ export const useChatSSE = (chatIds: string[]): void => {
     const ids = chatIdsString.split(',').filter(Boolean);
 
     const listener = (data: ChatRealtimeEvent): void => {
+      if (data.type === 'new_chat') {
+        trpcUtils.chat.chats.invalidate().catch(console.error);
+        return;
+      }
+
       if (data.type === 'chat_read_by_admin') {
         trpcUtils.chat.infiniteMessages.invalidate({ chatId: data.chatId }).catch(console.error);
         trpcUtils.chat.chatDetails.invalidate({ chatId: data.chatId }).catch(console.error);
@@ -280,6 +285,14 @@ export const useChatSSE = (chatIds: string[]): void => {
       listeners.add(listener);
     }
 
+    // Also register listener for currentUser to receive personal / direct notifications
+    let userListeners = activeChatSubscribers.get(currentUser);
+    if (!userListeners) {
+      userListeners = new Set();
+      activeChatSubscribers.set(currentUser, userListeners);
+    }
+    userListeners.add(listener);
+
     // Trigger update of global event source
     updateGlobalEventSource(currentUser);
 
@@ -292,6 +305,15 @@ export const useChatSSE = (chatIds: string[]): void => {
           if (listeners.size === 0) {
             activeChatSubscribers.delete(chatId);
           }
+        }
+      }
+
+      // Also unregister listener for currentUser
+      const activeUserListeners = activeChatSubscribers.get(currentUser);
+      if (activeUserListeners) {
+        activeUserListeners.delete(listener);
+        if (activeUserListeners.size === 0) {
+          activeChatSubscribers.delete(currentUser);
         }
       }
 
