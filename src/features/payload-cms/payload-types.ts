@@ -6484,6 +6484,10 @@ export interface AppFeatureFlag {
    */
   reservationsEnabled?: boolean | null;
   /**
+   * Toggles visibility of the conveniat27 Forum menu item in the app.
+   */
+  forumEnabled?: boolean | null;
+  /**
    * Toggles whether the scheduled task checks Hitobito approvals for pending registrations.
    */
   checkHitobitoApprovalsEnabled?: boolean | null;
@@ -6814,6 +6818,7 @@ export interface AppFeatureFlagsSelect<T extends boolean = true> {
   helperShiftsEnabled?: T;
   imageUploadEnabled?: T;
   reservationsEnabled?: T;
+  forumEnabled?: T;
   checkHitobitoApprovalsEnabled?: T;
   updatedAt?: T;
   createdAt?: T;

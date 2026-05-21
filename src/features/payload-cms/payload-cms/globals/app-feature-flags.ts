@@ -8,6 +8,7 @@ import { setFeatureFlag } from '@/lib/db/redis';
 import {
   FEATURE_FLAG_CHECK_HITOBITO_APPROVALS_ENABLED,
   FEATURE_FLAG_CREATE_CHATS_ENABLED,
+  FEATURE_FLAG_FORUM_ENABLED,
   FEATURE_FLAG_HELPER_SHIFTS_ENABLED,
   FEATURE_FLAG_IMAGE_UPLOAD_ENABLED,
   FEATURE_FLAG_RESERVATIONS_ENABLED,
@@ -167,6 +168,30 @@ export const AppFeatureFlags: GlobalConfig = {
         afterChange: [
           async ({ value }): Promise<void> => {
             await setFeatureFlag(FEATURE_FLAG_RESERVATIONS_ENABLED, Boolean(value));
+          },
+        ],
+      },
+    },
+    {
+      name: 'forumEnabled',
+      label: {
+        en: 'Show conveniat27 Forum',
+        de: 'conveniat27 Forum anzeigen',
+        fr: 'Afficher le forum conveniat27',
+      },
+      type: 'checkbox',
+      defaultValue: true,
+      admin: {
+        description: 'Toggles visibility of the conveniat27 Forum menu item in the app.',
+        components: {
+          Field:
+            '@/features/payload-cms/payload-cms/components/fields/feature-flag-toggle#FeatureFlagToggle',
+        },
+      },
+      hooks: {
+        afterChange: [
+          async ({ value }): Promise<void> => {
+            await setFeatureFlag(FEATURE_FLAG_FORUM_ENABLED, Boolean(value));
           },
         ],
       },
