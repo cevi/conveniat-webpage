@@ -30,6 +30,8 @@ export interface SmtpResult {
     };
   };
   error?: string;
+  manualOverride?: boolean;
+  retriggeredBy?: string;
 
   // Appended in component logic
   _isPendingPlaceholder?: boolean;

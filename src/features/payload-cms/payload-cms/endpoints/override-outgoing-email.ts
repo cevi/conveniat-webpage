@@ -50,6 +50,7 @@ export const overrideOutgoingEmailStatusHandler: PayloadHandler = async (request
       to: emailDocument.to,
       retriggeredBy: user.id,
       retriggeredAt: new Date().toISOString(),
+      manualOverride: true,
       response: {
         response: isSuccess
           ? `Status manually set to SUCCESS by Admin ${user.email} (${user.id})`
@@ -63,6 +64,7 @@ export const overrideOutgoingEmailStatusHandler: PayloadHandler = async (request
       to: emailDocument.to,
       retriggeredBy: user.id,
       retriggeredAt: new Date().toISOString(),
+      manualOverride: true,
       bounceReport: true, // For DSN status
       parsedDsn: {
         action: isSuccess ? 'delivered' : 'failed',
