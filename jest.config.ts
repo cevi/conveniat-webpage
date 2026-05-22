@@ -15,6 +15,8 @@ const config: Config = {
   transform: {
     '^.+\\.(t|j)sx?$': '@swc/jest',
   },
+
+  testPathIgnorePatterns: ['<rootDir>/node_modules/', '<rootDir>/.next/', '<rootDir>/e2e/'],
 };
 
 export default config;

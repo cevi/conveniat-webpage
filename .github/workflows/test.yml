@@ -15,6 +15,12 @@ jobs:
       - uses: actions/checkout@v4
         name: Checkout repository
 
+      - name: Copy environment variables
+        run: cp .env.example .env
+
+      - name: Start Docker services
+        run: docker compose up -d
+
       - name: Install pnpm
         uses: pnpm/action-setup@v4
 
