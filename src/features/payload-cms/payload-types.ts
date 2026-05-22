@@ -60,6 +60,7 @@ export interface Config {
     'helper-jobs': HelperJob;
     'announcement-channels': AnnouncementChannel;
     announcements: Announcement;
+    'emergency-cards': EmergencyCard;
     images: Image;
     userSubmittedImages: UserSubmittedImage;
     documents: Document;
@@ -115,6 +116,7 @@ export interface Config {
     'helper-jobs': HelperJobsSelect<false> | HelperJobsSelect<true>;
     'announcement-channels': AnnouncementChannelsSelect<false> | AnnouncementChannelsSelect<true>;
     announcements: AnnouncementsSelect<false> | AnnouncementsSelect<true>;
+    'emergency-cards': EmergencyCardsSelect<false> | EmergencyCardsSelect<true>;
     images: ImagesSelect<false> | ImagesSelect<true>;
     userSubmittedImages: UserSubmittedImagesSelect<false> | UserSubmittedImagesSelect<true>;
     documents: DocumentsSelect<false> | DocumentsSelect<true>;
@@ -3309,6 +3311,48 @@ export interface Announcement {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "emergency-cards".
+ */
+export interface EmergencyCard {
+  id: string;
+  publishingStatus?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  _localized_status: LocalizedPublishingStatus;
+  _disable_unpublishing?: boolean | null;
+  _locale: string;
+  title: string;
+  description: string;
+  procedure: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  documents?: (string | Document)[] | null;
+  images?: (string | Image)[] | null;
+  lastEditedByUser?: (string | null) | User;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "userSubmittedImages".
  */
 export interface UserSubmittedImage {
@@ -3911,6 +3955,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'announcements';
         value: string | Announcement;
+      } | null)
+    | ({
+        relationTo: 'emergency-cards';
+        value: string | EmergencyCard;
       } | null)
     | ({
         relationTo: 'images';
@@ -5273,6 +5321,25 @@ export interface AnnouncementsSelect<T extends boolean = true> {
   publishedAt?: T;
   author?: T;
   chatMessageUuid?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "emergency-cards_select".
+ */
+export interface EmergencyCardsSelect<T extends boolean = true> {
+  publishingStatus?: T;
+  _localized_status?: T;
+  _disable_unpublishing?: T;
+  _locale?: T;
+  title?: T;
+  description?: T;
+  procedure?: T;
+  documents?: T;
+  images?: T;
+  lastEditedByUser?: T;
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
@@ -7186,6 +7253,7 @@ export interface TaskCreateCollectionExport {
       | 'helper-jobs'
       | 'announcement-channels'
       | 'announcements'
+      | 'emergency-cards'
       | 'images'
       | 'userSubmittedImages'
       | 'documents'
