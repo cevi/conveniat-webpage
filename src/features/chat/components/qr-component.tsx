@@ -1,11 +1,12 @@
 'use client';
 
-import { QRCodeImage } from '@/features/payload-cms/payload-cms/components/qr-code/qr-code';
+import { QRCodeImage } from '@/features/payload-cms/payload-cms/components/qr-code/qr-code-image';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { useCurrentLocale } from 'next-i18n-router/client';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 
+import { APP_USER_AGENT, QR_CODE_BACKEND_URL } from '@/config/constants';
 import { environmentVariables } from '@/config/environment-variables';
 import {
   ChatDialog,
@@ -25,88 +26,60 @@ const qrCodeTitleText: StaticTranslationString = {
 
 export const QRCodeClientComponent: React.FC<{
   url: string;
-}> = ({ url }) => {
+  initialSvg?: string | undefined;
+}> = ({ url, initialSvg }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const [open, setOpen] = useState(false);
 
-  const [qrInputDataSource, setQrInputDataSource] = useState<
-    | {
-        qrCodeContent: string;
-      }
-    | undefined
-  >();
-  const [isPreparingQrData, setIsPreparingQrData] = useState(false);
-
-  useEffect(() => {
-    if (open) {
-      const prepare = (): void => {
-        setIsPreparingQrData(true);
-        setQrInputDataSource(undefined);
-        try {
-          const data = {
-            qrCodeContent: `${environmentVariables.NEXT_PUBLIC_ENABLE_CON27_SHORT_URLS ? 'https://con27.ch' : environmentVariables.NEXT_PUBLIC_APP_HOST_URL}/app/chat/new-chat-with-user/${url}`,
-          };
-          setQrInputDataSource(data);
-        } catch (error) {
-          console.error('Error preparing QR data:', error);
-          setQrInputDataSource(undefined);
-        } finally {
-          setIsPreparingQrData(false);
-        }
-      };
-      prepare();
-    }
-  }, [open, locale, url]);
+  const qrCodeContent = `${
+    environmentVariables.NEXT_PUBLIC_ENABLE_CON27_SHORT_URLS
+      ? 'https://con27.ch'
+      : environmentVariables.NEXT_PUBLIC_APP_HOST_URL
+  }/app/chat/new-chat-with-user/${url}`;
 
   const {
     data: qrImageData,
-    isLoading: isLoadingQRCodeImage,
+    isLoading,
     isError: isErrorQRCodeImage,
-    isSuccess: isSuccessQRCodeImage,
-  } = useQuery<string, Error>({
-    queryKey: ['qrCodeImage', qrInputDataSource?.qrCodeContent],
+  } = useQuery({
+    queryKey: ['qrCodeSvgImage', qrCodeContent],
+    meta: { persist: false },
     queryFn: async () => {
-      if (qrInputDataSource?.qrCodeContent == undefined) {
-        throw new Error('QR code content not available for fetching.');
+      if (initialSvg?.includes('<svg')) {
+        return initialSvg;
       }
-      const response = await fetch('https://backend.qr.cevi.tools/png', {
+      const response = await fetch(`${QR_CODE_BACKEND_URL}/svg`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': APP_USER_AGENT,
+        },
         body: JSON.stringify({
-          text: qrInputDataSource.qrCodeContent,
+          text: qrCodeContent,
           options: { color_scheme: 'cevi' },
         }),
       });
       if (!response.ok) {
         throw new Error(`QR code fetch failed: ${response.status}`);
       }
-      const blob = await response.blob();
-      const fixedBlob = new Blob([blob], { type: 'image/png' });
-      return URL.createObjectURL(fixedBlob);
+      const rawSvg = await response.text();
+      const processed = rawSvg
+        .replace(/b(['"])([\s\S]*?)\1/, (_, _q: string, p1: string) => {
+          return p1
+            .replaceAll(String.raw`\n`, '\n')
+            .replaceAll(String.raw`\'`, "'")
+            .replaceAll(String.raw`\"`, '"');
+        })
+        .replaceAll('ns0:', '');
+      return processed;
     },
-    enabled: !(qrInputDataSource?.qrCodeContent == undefined) && open,
-    refetchInterval: open ? 60_000 : false,
-    staleTime: 50_000,
+    enabled: open,
+    ...(initialSvg?.includes('<svg') ? { initialData: initialSvg } : {}),
+    refetchInterval: false,
+    staleTime: Infinity,
     refetchOnWindowFocus: false,
     retry: 1,
   });
-
-  const previousQrImageData = useRef<string | undefined>(undefined);
-  useEffect(() => {
-    if (previousQrImageData.current != undefined && previousQrImageData.current !== qrImageData) {
-      URL.revokeObjectURL(previousQrImageData.current);
-    }
-    previousQrImageData.current = qrImageData;
-
-    return (): void => {
-      if (previousQrImageData.current != undefined) {
-        URL.revokeObjectURL(previousQrImageData.current);
-        previousQrImageData.current = undefined;
-      }
-    };
-  }, [qrImageData]);
-
-  const isLoading = isPreparingQrData || (isLoadingQRCodeImage && !isSuccessQRCodeImage);
 
   return (
     <>
@@ -130,6 +103,7 @@ export const QRCodeClientComponent: React.FC<{
               copied={false}
               isLoading={isLoading}
               locale={locale}
+              isError={isErrorQRCodeImage}
             />
             {isErrorQRCodeImage && (
               <p className="px-2 text-center text-xs text-red-500">
@@ -138,7 +112,9 @@ export const QRCodeClientComponent: React.FC<{
             )}
           </div>
 
-          <h2 className="text-md mb-4 text-center font-bold">{qrCodeTitleText[locale]}</h2>
+          <h2 className="text-md mb-4 text-center font-bold select-none">
+            {qrCodeTitleText[locale]}
+          </h2>
         </ChatDialogContent>
       </ChatDialog>
     </>

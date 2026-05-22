@@ -1,11 +1,16 @@
 import { AppAdvertisement } from '@/components/app-advertisement';
 import { ChatsOverviewClientComponent } from '@/features/chat/components/chat-overview-view/chats-overview-client-component';
+import {
+  QRCodeServerComponent,
+  QrCodeIconSkeleton,
+} from '@/features/chat/components/qr-server-component';
 import type { Locale } from '@/types/types';
 import { auth } from '@/utils/auth';
 import { isValidNextAuthUser } from '@/utils/auth-helpers';
 import { DesignCodes } from '@/utils/design-codes';
 import { redirect } from 'next/navigation';
 import type React from 'react';
+import { Suspense } from 'react';
 
 const ChatPage: React.FC<{
   params: Promise<{ locale: Locale; design: DesignCodes }>;
@@ -18,11 +23,17 @@ const ChatPage: React.FC<{
     redirect('/entrypoint?clearSkip=true');
   }
 
+  const qrCodeButton = (
+    <Suspense fallback={<QrCodeIconSkeleton />}>
+      <QRCodeServerComponent userId={user.uuid} />
+    </Suspense>
+  );
+
   return (
     <>
       <article className="container mx-auto mt-8 mb-20 py-6">
         <div className="mx-auto w-full max-w-2xl px-8">
-          <ChatsOverviewClientComponent user={user} />
+          <ChatsOverviewClientComponent user={user} qrCodeButton={qrCodeButton} />
         </div>
       </article>
       {design !== DesignCodes.APP_DESIGN && <AppAdvertisement locale={locale} type="chat" />}
