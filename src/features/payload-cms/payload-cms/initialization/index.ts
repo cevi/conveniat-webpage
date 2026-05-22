@@ -22,6 +22,19 @@ export const onPayloadInit = async (payload: Payload): Promise<void> => {
     return;
   }
 
+  // Fast-path: Check if the lock file already exists and is marked as 'done'.
+  // Under Next.js dynamic routing / Fast Refresh / separate sandbox compilation,
+  // this avoids running database checks and index ensuring repeatedly on every single request.
+  try {
+    const lockContent = await fs.readFile(LOCK_FILE, 'utf8');
+    if (lockContent === 'done') {
+      globalForInit.__payloadInitCompleted__ = true;
+      return;
+    }
+  } catch {
+    // Lock file doesn't exist or is not written yet, proceed to normal checks
+  }
+
   // Check if database is already seeded first
   try {
     const { totalDocs: userCount } = await payload.count({ collection: 'users' });
