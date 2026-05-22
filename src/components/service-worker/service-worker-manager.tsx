@@ -21,6 +21,42 @@ export const ServiceWorkerManager: React.FC<ServiceWorkerManagerProperties> = ({
 }) => {
   useAppMode();
 
+  React.useEffect(() => {
+    if (
+      environmentVariables.NEXT_PUBLIC_DISABLE_SERWIST &&
+      typeof navigator !== 'undefined' &&
+      'serviceWorker' in navigator
+    ) {
+      navigator.serviceWorker
+        .getRegistrations()
+        .then((registrations) => {
+          let unregisteredAny = false;
+          const unregisterPromises = registrations.map((registration) =>
+            registration.unregister().then((success) => {
+              if (success) {
+                console.log(
+                  '[Service Worker Manager] Unregistered active service worker:',
+                  registration.scope,
+                );
+                unregisteredAny = true;
+              }
+            }),
+          );
+          Promise.all(unregisterPromises)
+            .then(() => {
+              if (unregisteredAny) {
+                console.log('[Service Worker Manager] Reloading page to clear stale cache.');
+                globalThis.location.reload();
+              }
+            })
+            .catch(console.error);
+        })
+        .catch((error: unknown) =>
+          console.error('[Service Worker Manager] Failed to unregister service workers:', error),
+        );
+    }
+  }, []);
+
   if (environmentVariables.NEXT_PUBLIC_DISABLE_SERWIST) {
     return <>{children}</>;
   }
