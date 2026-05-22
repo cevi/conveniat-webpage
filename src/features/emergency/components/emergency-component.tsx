@@ -340,13 +340,24 @@ export const EmergencyComponent: React.FC = () => {
                     // No default
                   }
 
-                  let captionText = imgOrId.imageCaption_de ?? undefined;
-                  if (locale === 'de' && imgOrId.imageCaption_de) {
-                    captionText = imgOrId.imageCaption_de;
-                  } else if (locale === 'en' && imgOrId.imageCaption_en) {
-                    captionText = imgOrId.imageCaption_en;
-                  } else if (locale === 'fr' && imgOrId.imageCaption_fr) {
-                    captionText = imgOrId.imageCaption_fr;
+                  let captionText: string | undefined;
+                  switch (locale) {
+                    case 'de': {
+                      captionText = imgOrId.imageCaption_de ?? undefined;
+
+                      break;
+                    }
+                    case 'en': {
+                      captionText = imgOrId.imageCaption_en ?? undefined;
+
+                      break;
+                    }
+                    case 'fr': {
+                      captionText = imgOrId.imageCaption_fr ?? undefined;
+
+                      break;
+                    }
+                    // No default
                   }
 
                   return (
