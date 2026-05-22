@@ -64,3 +64,7 @@ firebase-service-account.json
 public/sw.js
 public/sw.js.map
 seeding.lock
+
+# playwright
+/test-results/
+/playwright-report/

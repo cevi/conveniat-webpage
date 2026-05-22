@@ -9,3 +9,4 @@ src/features/payload-cms/payload-types.ts
 # auto generated folders
 coverage
 media
+test-results

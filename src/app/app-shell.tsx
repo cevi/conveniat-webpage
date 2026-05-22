@@ -8,6 +8,7 @@ import { HideHeaderProvider } from '@/components/header/hide-header-context';
 import { NativePushProvider } from '@/components/native-push-provider';
 import { CeviLogo } from '@/components/svg-logos/cevi-logo';
 import { useHideBackgroundLogo } from '@/components/ui/hide-background-logo-context';
+import { OfflineQueueSync } from '@/features/chat/hooks/use-offline-queue-processor';
 import { PostHogProvider } from '@/providers/post-hog-provider';
 import { TRPCProvider } from '@/trpc/client';
 import type { ReactNode } from 'react';
@@ -32,6 +33,7 @@ export const AppShell: React.FC<AppShellProperties> = ({ children, header, foote
   return (
     <PostHogProvider>
       <TRPCProvider>
+        <OfflineQueueSync />
         <NativePushProvider>
           <HideHeaderProvider>
             <DynamicAppTitleProvider>

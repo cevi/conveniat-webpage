@@ -5,6 +5,10 @@ export const makeQueryClient = (): QueryClient => {
     defaultOptions: {
       queries: {
         staleTime: 30 * 1000,
+        networkMode: 'offlineFirst',
+      },
+      mutations: {
+        networkMode: 'offlineFirst',
       },
       dehydrate: {
         shouldDehydrateQuery: (query) =>
