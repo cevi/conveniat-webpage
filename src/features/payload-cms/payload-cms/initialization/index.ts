@@ -7,18 +7,29 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { Payload } from 'payload';
 
-const LOCK_FILE = path.join(process.cwd(), '.next', 'seeding.lock');
+const LOCK_FILE = path.join(process.cwd(), 'seeding.lock');
 
 /**
  * This function is called when the Payload server has started.
  * @param payload The Payload instance
  */
 export const onPayloadInit = async (payload: Payload): Promise<void> => {
-  // Ensure .next directory exists
+  // Check if database is already seeded first
   try {
-    await fs.mkdir(path.dirname(LOCK_FILE), { recursive: true });
-  } catch {
-    // Ignore error if it exists
+    const { totalDocs: userCount } = await payload.count({ collection: 'users' });
+    const { totalDocs: genericPageCount } = await payload.count({ collection: 'generic-page' });
+    if (userCount > 0 || genericPageCount > 0) {
+      console.log('[Lock Manager] Database already seeded. Skipping seeding.');
+      // If the database is already seeded, make sure the lock file is marked as 'done' so other workers skip waiting
+      await fs.writeFile(LOCK_FILE, 'done').catch(() => {});
+
+      await withSpan('payload.init.ensureIndexes', async () => {
+        await ensureIndexes(payload);
+      }).catch(console.error);
+      return;
+    }
+  } catch (error) {
+    console.error('[Lock Manager] Failed to check database seeding status:', error);
   }
 
   // Attempt atomic lock acquisition using OS exclusive write flag
