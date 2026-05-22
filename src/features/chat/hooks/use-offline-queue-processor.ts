@@ -20,6 +20,11 @@ export const useOfflineQueueProcessor = (): void => {
   const trpcUtils = trpc.useUtils();
   const sendMessageMutation = trpc.chat.sendMessage.useMutation();
   const isProcessingReference = useRef(false);
+  const mutateAsyncReference = useRef(sendMessageMutation.mutateAsync);
+
+  useEffect(() => {
+    mutateAsyncReference.current = sendMessageMutation.mutateAsync;
+  }, [sendMessageMutation.mutateAsync]);
 
   useEffect(() => {
     if (!isOnline || isProcessingReference.current) return;
@@ -31,10 +36,13 @@ export const useOfflineQueueProcessor = (): void => {
       isProcessingReference.current = true;
       console.log(`[Offline Sync] Found ${queue.length} pending offline messages. Syncing...`);
 
+      let abortedDueToNetwork = false;
+      let syncedCount = 0;
+
       for (const message of queue) {
         try {
-          // Send mutation sequentially to preserve order
-          const createdMessageData = await sendMessageMutation.mutateAsync({
+          // Send mutation sequentially to preserve order using the stable ref
+          const createdMessageData = await mutateAsyncReference.current({
             chatId: message.chatId,
             content: message.content,
             quotedMessageId: message.quotedMessageId,
@@ -83,6 +91,7 @@ export const useOfflineQueueProcessor = (): void => {
 
           // 3. Remove message from localStorage outbox
           removeMessageFromOutbox(message.id);
+          syncedCount++;
           console.log(
             `[Offline Sync] Sequenced message synced: ${message.id} -> ${realMessage.id}`,
           );
@@ -97,6 +106,7 @@ export const useOfflineQueueProcessor = (): void => {
 
           if (isNetworkError) {
             // Stop queue processing and wait for connection to stabilize
+            abortedDueToNetwork = true;
             break;
           }
 
@@ -105,13 +115,15 @@ export const useOfflineQueueProcessor = (): void => {
         }
       }
 
-      // Invalidate chats list to refresh sidebars and unread counters
-      void trpcUtils.chat.chats.invalidate();
+      // Invalidate chats list to refresh sidebars and unread counters ONLY if we succeeded and did not abort
+      if (syncedCount > 0 && !abortedDueToNetwork) {
+        void trpcUtils.chat.chats.invalidate();
+      }
       isProcessingReference.current = false;
     };
 
     void processQueue();
-  }, [isOnline, trpcUtils, sendMessageMutation]);
+  }, [isOnline, trpcUtils]);
 };
 
 // eslint-disable-next-line unicorn/no-null

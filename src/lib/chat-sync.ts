@@ -1,6 +1,5 @@
+import { CHAT_PAGE_SIZE } from '@/lib/chat-shared';
 import type { trpc } from '@/trpc/client';
-
-const CHAT_PAGE_SIZE = 25;
 
 /**
  * Prefetches all chats, chat details, and recent messages (first page) for the current user.

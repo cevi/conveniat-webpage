@@ -1,12 +1,12 @@
 import { expect, test } from '@playwright/test';
 
 test.describe('Offline Chat Synchronization', () => {
-  let isOffline = false;
-  let lastSentContent = '';
-
-  test.beforeEach(async ({ page }) => {
-    isOffline = false;
-    lastSentContent = '';
+  test('should support offline read, queued offline write and sequential synchronization', async ({
+    page,
+    context,
+  }) => {
+    let isOffline = false;
+    let lastSentContent = '';
 
     // Mock next-auth session call to bypass authentication check client-side
     await page.route('**/api/auth/session', async (route) => {
@@ -219,12 +219,7 @@ test.describe('Offline Chat Synchronization', () => {
         body: JSON.stringify(response),
       });
     });
-  });
 
-  test('should support offline read, queued offline write and sequential synchronization', async ({
-    page,
-    context,
-  }) => {
     // 1. Load the page while online, verify it loads cached messages
     await page.goto('/de/app-design/app/chat/test-chat-id');
 

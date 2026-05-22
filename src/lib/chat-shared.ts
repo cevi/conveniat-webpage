@@ -53,3 +53,5 @@ export const getStatusFromMessageEvents = (
 };
 
 export const LARGE_CHAT_THRESHOLD = 128;
+
+export const CHAT_PAGE_SIZE = 25;
