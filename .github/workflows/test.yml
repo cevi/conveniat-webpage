@@ -33,11 +33,13 @@ jobs:
       - name: Generate Build Info
         run: bash create_build_info.sh
 
-      - name: Fix permissions
+      - name: Clean and Fix Permissions
         run: |
-          sudo chown -R $USER:$USER .
-          mkdir -p ~/.local/share/pnpm/store
-          sudo chown -R $USER:$USER ~/.local/share/pnpm/store || true
+          sudo chown -R $(id -u):$(id -g) . || true
+          STORE_PATH=$(pnpm store path 2>/dev/null || echo "~/.local/share/pnpm/store")
+          sudo mkdir -p "$STORE_PATH"
+          sudo chown -R $(id -u):$(id -g) "$STORE_PATH" || true
+          sudo rm -rf node_modules
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
