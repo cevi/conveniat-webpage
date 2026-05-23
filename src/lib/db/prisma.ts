@@ -18,7 +18,7 @@ let prisma: PrismaClient;
 
 if (isBuild) {
   prisma = new Proxy(
-    {},
+    {} as unknown as PrismaClient,
     {
       get: (_target, property): (() => Promise<null | undefined>) | undefined => {
         if (property === 'then') return undefined; // Should be undefined for promises
