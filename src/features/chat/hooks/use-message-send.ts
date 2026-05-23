@@ -211,9 +211,8 @@ export const useMessageSend = (): UseMessageSendMutation => {
     onError: (error, { chatId, parentId, content, quotedMessageId }, context) => {
       const isOfflineError =
         !navigator.onLine ||
-        error.message.includes('fetch') ||
-        error.message.includes('NetworkError') ||
-        error.message.includes('Failed to fetch');
+        error.message === 'Failed to fetch' ||
+        error.message.includes('Network request failed');
 
       if (isOfflineError) {
         if (context?.optimisticMessageId) {

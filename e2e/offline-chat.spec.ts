@@ -71,7 +71,8 @@ test.describe('Offline Chat Synchronization', () => {
                     id: 'test-chat-id',
                     name: 'Test Chat',
                     type: 'ONE_TO_ONE',
-                    archivedAt: undefined,
+                    // eslint-disable-next-line unicorn/no-null
+                    archivedAt: null,
                     messages: [],
                     participants: [
                       { id: 'user-123', name: 'User 123', isOnline: true, chatPermission: 'ADMIN' },
@@ -221,7 +222,7 @@ test.describe('Offline Chat Synchronization', () => {
     });
 
     // 1. Load the page while online, verify it loads cached messages
-    await page.goto('/de/app-design/app/chat/test-chat-id');
+    await page.goto('/de/app/chat/test-chat-id?app-mode=true');
 
     // Wait for the message list and verify the mock cached message is displayed
     const messageContainer = page.locator('id=message-msg-1');
