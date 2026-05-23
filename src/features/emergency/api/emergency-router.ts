@@ -45,6 +45,22 @@ export const emergencyRouter = createTRPCRouter({
     return await getAlertSettingsCached(ctx.locale, false, 'de'); // fallback to german
   }),
 
+  getEmergencyCards: publicProcedure.query(async ({ ctx }) => {
+    const payloadAPI = await getPayload({ config });
+    const response = await payloadAPI.find({
+      collection: 'emergency-cards',
+      limit: 100,
+      depth: 2, // Ensure documents and images relationships are populated
+      locale: ctx.locale,
+      where: {
+        _status: {
+          equals: 'published',
+        },
+      },
+    });
+    return response.docs;
+  }),
+
   newAlert: trpcBaseProcedure
     .input(newAlertSchema)
     .use(databaseTransactionWrapper) // Ensure database transaction is used

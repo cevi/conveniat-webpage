@@ -3,89 +3,22 @@
 import { AccordionContent, AccordionItem, AccordionTrigger } from '@/components/accordion';
 import { AppSearchBar } from '@/components/ui/app-search-bar';
 import { ConfirmationSlider } from '@/features/emergency/components/slide-to-confirm';
+import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
+import type { EmergencyCard } from '@/features/payload-cms/payload-types';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { Accordion } from '@radix-ui/react-accordion';
 import { AnimatePresence, motion } from 'framer-motion';
-import { BriefcaseMedical } from 'lucide-react';
+import { BriefcaseMedical, Download, FileText, ImageIcon } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import { useRouter } from 'next/navigation';
 import type { ChangeEvent } from 'react';
 import React, { useEffect, useState } from 'react';
 
-const alertTypeTranslations = {
-  'Medical Emergency': {
-    de: 'Medizinischer Notfall',
-    en: 'Medical Emergency',
-    fr: 'Urgence médicale',
-  },
-  Fire: {
-    de: 'Feuer',
-    en: 'Fire',
-    fr: 'Incendie',
-  },
-  'Lost Camper': {
-    de: 'Vermisster Teilnehmer',
-    en: 'Lost Camper',
-    fr: 'Campeur perdu',
-  },
-  'Severe Weather': {
-    de: 'Schweres Wetter',
-    en: 'Severe Weather',
-    fr: 'Intempéries',
-  },
-};
-
-const alertDescriptions = {
-  'Medical Emergency': {
-    de: 'Lebensbedrohliche Situationen, die sofortige medizinische Hilfe erfordern.',
-    en: 'Life-threatening situations requiring immediate medical attention.',
-    fr: 'Situations potentiellement mortelles nécessitant une attention médicale immédiate.',
-  },
-  Fire: {
-    de: 'Alle feuerbezogenen Notfälle innerhalb des Lagergeländes.',
-    en: 'Any fire-related emergencies within the camp premises.',
-    fr: 'Toute urgence liée au feu dans les locaux du camp.',
-  },
-  'Lost Camper': {
-    de: 'Wenn ein Teilnehmer als vermisst gemeldet wird oder nicht aufgefunden werden kann.',
-    en: 'When a camper is reported missing or cannot be located.',
-    fr: 'Quand un campeur est signalé disparu ou ne peut pas être localisé.',
-  },
-  'Severe Weather': {
-    de: 'Gefährliche Wetterbedingungen wie Stürme, Blitze oder Überschwemmungen.',
-    en: 'Dangerous weather conditions such as storms, lightning, or flooding.',
-    fr: 'Conditions météorologiques dangereuses telles que tempêtes, éclairs ou inondations.',
-  },
-};
-
-const alertProcedures = {
-  'Medical Emergency': {
-    de: 'Medizinische Verstärkung anfordern, Erste-Hilfe-Kasten bereitmachen, Bereich räumen.',
-    en: 'Call for medical backup, prepare first aid kit, clear the area.',
-    fr: 'Appeler des renforts médicaux, préparer la trousse de premiers secours, dégager la zone.',
-  },
-  Fire: {
-    de: 'Bereich evakuieren, Feuerwehr rufen, Feuerlöscher verwenden wenn sicher.',
-    en: 'Evacuate the area, call fire department, use fire extinguishers if safe.',
-    fr: 'Évacuer la zone, appeler les pompiers, utiliser les extincteurs si sûr.',
-  },
-  'Lost Camper': {
-    de: 'Suchteams organisieren, örtliche Behörden benachrichtigen, Lagerperimeter sichern.',
-    en: 'Organize search parties, notify local authorities, secure camp perimeter.',
-    fr: 'Organiser des équipes de recherche, aviser les autorités locales, sécuriser le périmètre du camp.',
-  },
-  'Severe Weather': {
-    de: 'Teilnehmer in bestimmte Schutzräume bringen, Wetterupdates überwachen, Notfallvorräte bereitstellen.',
-    en: 'Move campers to designated shelters, monitor weather updates, prepare emergency supplies.',
-    fr: "Déplacer les campeurs vers les abris désignés, surveiller les mises à jour météo, préparer les fournitures d'urgence.",
-  },
-};
-
 const tapForDetailsText: StaticTranslationString = {
-  de: 'Tippe für details',
+  de: 'Tippe für Details',
   en: 'Tap for details',
   fr: 'Appuyez pour plus de détails',
 };
@@ -106,6 +39,24 @@ const procedureLabel: StaticTranslationString = {
   de: 'Vorgehen:',
   en: 'Procedure:',
   fr: 'Procédure:',
+};
+
+const documentsHeading: StaticTranslationString = {
+  de: 'Zusätzliche Dokumente (PDFs):',
+  en: 'Additional Documents (PDFs):',
+  fr: 'Documents supplémentaires (PDFs):',
+};
+
+const imagesHeading: StaticTranslationString = {
+  de: 'Verknüpfte Bilder:',
+  en: 'Linked Images:',
+  fr: 'Images liées:',
+};
+
+const noAlertsFound: StaticTranslationString = {
+  de: 'Keine Notfallkarten gefunden.',
+  en: 'No emergency cards found.',
+  fr: 'Aucune carte d’urgence trouvée.',
 };
 
 const alarmText: StaticTranslationString = {
@@ -150,72 +101,6 @@ const errorStatusText: StaticTranslationString = {
   fr: 'Erreur - Veuillez appeler:',
 };
 
-const alertTypes = [
-  {
-    title: 'Medical Emergency',
-    description: 'Life-threatening situations requiring immediate medical attention.',
-    procedure: 'Call for medical backup, prepare first aid kit, clear the area.',
-  },
-  {
-    title: 'Fire',
-    description: 'Any fire-related emergencies within the camp premises.',
-    procedure: 'Evacuate the area, call fire department, use fire extinguishers if safe.',
-  },
-  {
-    title: 'Lost Camper',
-    description: 'When a camper is reported missing or cannot be located.',
-    procedure: 'Organize search parties, notify local authorities, secure camp perimeter.',
-  },
-  {
-    title: 'Severe Weather',
-    description: 'Dangerous weather conditions such as storms, lightning, or flooding.',
-    procedure:
-      'Move campers to designated shelters, monitor weather updates, prepare emergency supplies.',
-  },
-  {
-    title: 'Medical Emergency',
-    description: 'Life-threatening situations requiring immediate medical attention.',
-    procedure: 'Call for medical backup, prepare first aid kit, clear the area.',
-  },
-  {
-    title: 'Fire',
-    description: 'Any fire-related emergencies within the camp premises.',
-    procedure: 'Evacuate the area, call fire department, use fire extinguishers if safe.',
-  },
-  {
-    title: 'Lost Camper',
-    description: 'When a camper is reported missing or cannot be located.',
-    procedure: 'Organize search parties, notify local authorities, secure camp perimeter.',
-  },
-  {
-    title: 'Severe Weather',
-    description: 'Dangerous weather conditions such as storms, lightning, or flooding.',
-    procedure:
-      'Move campers to designated shelters, monitor weather updates, prepare emergency supplies.',
-  },
-  {
-    title: 'Medical Emergency',
-    description: 'Life-threatening situations requiring immediate medical attention.',
-    procedure: 'Call for medical backup, prepare first aid kit, clear the area.',
-  },
-  {
-    title: 'Fire',
-    description: 'Any fire-related emergencies within the camp premises.',
-    procedure: 'Evacuate the area, call fire department, use fire extinguishers if safe.',
-  },
-  {
-    title: 'Lost Camper',
-    description: 'When a camper is reported missing or cannot be located.',
-    procedure: 'Organize search parties, notify local authorities, secure camp perimeter.',
-  },
-  {
-    title: 'Severe Weather',
-    description: 'Dangerous weather conditions such as storms, lightning, or flooding.',
-    procedure:
-      'Move campers to designated shelters, monitor weather updates, prepare emergency supplies.',
-  },
-];
-
 export const EmergencyComponent: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showFallback, setShowFallback] = useState(true);
@@ -232,6 +117,11 @@ export const EmergencyComponent: React.FC = () => {
   const { data: alertSettings } = trpc.emergency.getAlertSettings.useQuery(undefined, {
     refetchInterval: 1000 * 60 * 60 * 2, // 2 hours
     refetchOnMount: true,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+
+  // Fetch dynamic emergency cards from Payload CMS
+  const { data: emergencyCards, isLoading } = trpc.emergency.getEmergencyCards.useQuery(undefined, {
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
@@ -261,10 +151,10 @@ export const EmergencyComponent: React.FC = () => {
     };
   }, [status]);
 
-  const filteredAlerts = alertTypes.filter((alert) =>
-    alertTypeTranslations[alert.title as keyof typeof alertTypeTranslations][locale]
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase()),
+  const cards: EmergencyCard[] = emergencyCards ?? [];
+
+  const filteredAlerts = cards.filter((card) =>
+    card.title.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   const clearSearch = (): void => {
@@ -330,6 +220,179 @@ export const EmergencyComponent: React.FC = () => {
     fallbackMessage = errorStatusText[locale];
   }
 
+  const renderAccordionContent = (): React.ReactNode => {
+    if (isLoading) {
+      return Array.from({ length: 4 }).map((_, index) => (
+        <div
+          key={`skeleton-${index}`}
+          className="animate-pulse overflow-hidden rounded-2xl bg-white px-4 py-5 shadow-sm"
+        >
+          <div className="flex w-full items-center gap-4 pr-4">
+            <div className="h-11 w-11 shrink-0 rounded-xl bg-gray-200" />
+            <div className="flex flex-1 flex-col gap-2">
+              <div className="h-4 w-1/3 rounded bg-gray-200" />
+              <div className="h-3 w-1/4 rounded bg-gray-200" />
+            </div>
+          </div>
+        </div>
+      ));
+    }
+
+    if (filteredAlerts.length === 0) {
+      return (
+        <div className="rounded-2xl border border-gray-100 bg-white p-6 py-8 text-center text-gray-500 shadow-sm">
+          {noAlertsFound[locale]}
+        </div>
+      );
+    }
+
+    return filteredAlerts.map((alert) => (
+      <AccordionItem
+        value={`item-${alert.id}`}
+        key={alert.id}
+        className="overflow-hidden rounded-2xl border-none bg-white px-4 shadow-sm"
+      >
+        <AccordionTrigger className="py-4 hover:no-underline [&>svg]:h-8 [&>svg]:w-8 [&>svg]:rounded-xl [&>svg]:bg-gray-100 [&>svg]:p-1.5 [&>svg]:text-gray-600">
+          <div className="flex w-full items-center gap-4 pr-4 text-left">
+            <div className="shrink-0 rounded-xl bg-gray-100 p-2.5">
+              <BriefcaseMedical className="h-6 w-6 text-gray-700" />
+            </div>
+            <div className="flex flex-1 flex-col">
+              <span className="text-lg font-bold text-gray-900">{alert.title}</span>
+              <span className="text-sm font-normal text-gray-500">{tapForDetailsText[locale]}</span>
+            </div>
+          </div>
+        </AccordionTrigger>
+        <AccordionContent className="space-y-4 pt-2 pb-4 text-gray-600">
+          <div className="text-gray-800">
+            <strong className="mb-1 block text-xs font-bold tracking-wider text-gray-500 uppercase">
+              {descriptionLabel[locale]}
+            </strong>
+            <p className="text-sm leading-relaxed">{alert.description}</p>
+          </div>
+
+          {alert.procedure.root.children.length > 0 && (
+            <div className="text-gray-800">
+              <strong className="mb-1 block text-xs font-bold tracking-wider text-gray-500 uppercase">
+                {procedureLabel[locale]}
+              </strong>
+              <div className="prose prose-sm max-w-none text-sm leading-relaxed">
+                <LexicalRichTextSection richTextSection={alert.procedure} locale={locale} />
+              </div>
+            </div>
+          )}
+
+          {alert.documents && alert.documents.length > 0 && (
+            <div className="mt-4 border-t border-gray-100 pt-3">
+              <strong className="mb-2 block flex items-center gap-1 text-xs font-bold tracking-wider text-gray-500 uppercase">
+                <FileText className="h-3.5 w-3.5 text-gray-400" />
+                {documentsHeading[locale]}
+              </strong>
+              <div className="flex flex-wrap gap-2">
+                {alert.documents.map((documentOrId) => {
+                  if (typeof documentOrId === 'string') return;
+                  const displayName =
+                    documentOrId.internalDescription || documentOrId.filename || 'Document';
+                  return (
+                    <a
+                      key={documentOrId.id}
+                      href={documentOrId.url ?? undefined}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-100"
+                    >
+                      <Download className="h-3.5 w-3.5 text-gray-500" />
+                      <span>{displayName}</span>
+                    </a>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {alert.images && alert.images.length > 0 && (
+            <div className="mt-4 border-t border-gray-100 pt-3">
+              <strong className="mb-2 block flex items-center gap-1 text-xs font-bold tracking-wider text-gray-500 uppercase">
+                <ImageIcon className="h-3.5 w-3.5 text-gray-400" />
+                {imagesHeading[locale]}
+              </strong>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {alert.images.map((imgOrId) => {
+                  if (typeof imgOrId === 'string') return;
+
+                  let altText = imgOrId.filename || 'Image';
+                  switch (locale) {
+                    case 'de': {
+                      altText = imgOrId.alt_de;
+
+                      break;
+                    }
+                    case 'en': {
+                      altText = imgOrId.alt_en;
+
+                      break;
+                    }
+                    case 'fr': {
+                      altText = imgOrId.alt_fr;
+
+                      break;
+                    }
+                    // No default
+                  }
+
+                  let captionText: string | undefined;
+                  switch (locale) {
+                    case 'de': {
+                      captionText = imgOrId.imageCaption_de ?? undefined;
+
+                      break;
+                    }
+                    case 'en': {
+                      captionText = imgOrId.imageCaption_en ?? undefined;
+
+                      break;
+                    }
+                    case 'fr': {
+                      captionText = imgOrId.imageCaption_fr ?? undefined;
+
+                      break;
+                    }
+                    // No default
+                  }
+
+                  return (
+                    <div
+                      key={imgOrId.id}
+                      className="group relative overflow-hidden rounded-xl border border-gray-200 bg-gray-50"
+                    >
+                      <a
+                        href={imgOrId.url ?? undefined}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block overflow-hidden"
+                      >
+                        <img
+                          src={imgOrId.url ?? undefined}
+                          alt={altText}
+                          className="h-28 w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
+                      </a>
+                      {captionText && (
+                        <div className="truncate border-t border-gray-100 bg-white p-1.5 text-center text-[10px] text-gray-500">
+                          {captionText}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </AccordionContent>
+      </AccordionItem>
+    ));
+  };
+
   return (
     <article className="container mx-auto mt-8 py-6">
       <div className="mx-auto w-full max-w-2xl space-y-6 px-8">
@@ -345,43 +408,7 @@ export const EmergencyComponent: React.FC = () => {
         </div>
 
         <Accordion type="single" collapsible className="mb-20 flex flex-col gap-4">
-          {filteredAlerts.map((alert, index) => (
-            <AccordionItem
-              value={`item-${index}`}
-              key={index}
-              className="overflow-hidden rounded-2xl border-none bg-white px-4 shadow-sm"
-            >
-              <AccordionTrigger className="py-4 hover:no-underline [&>svg]:h-8 [&>svg]:w-8 [&>svg]:rounded-xl [&>svg]:bg-gray-100 [&>svg]:p-1.5 [&>svg]:text-gray-600">
-                <div className="flex w-full items-center gap-4 pr-4 text-left">
-                  <div className="shrink-0 rounded-xl bg-gray-100 p-2.5">
-                    <BriefcaseMedical className="h-6 w-6 text-gray-700" />
-                  </div>
-                  <div className="flex flex-1 flex-col">
-                    <span className="text-lg font-bold text-gray-900">
-                      {
-                        alertTypeTranslations[alert.title as keyof typeof alertTypeTranslations][
-                          locale
-                        ]
-                      }
-                    </span>
-                    <span className="text-sm font-normal text-gray-500">
-                      {tapForDetailsText[locale]}
-                    </span>
-                  </div>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="pt-2 pb-4 text-gray-600">
-                <p className="mb-2 text-gray-800">
-                  <strong>{descriptionLabel[locale]}</strong>{' '}
-                  {alertDescriptions[alert.title as keyof typeof alertDescriptions][locale]}
-                </p>
-                <p className="text-gray-800">
-                  <strong>{procedureLabel[locale]}</strong>{' '}
-                  {alertProcedures[alert.title as keyof typeof alertProcedures][locale]}
-                </p>
-              </AccordionContent>
-            </AccordionItem>
-          ))}
+          {renderAccordionContent()}
         </Accordion>
 
         <div className="fixed bottom-20 left-0 w-full select-none xl:left-[480px] xl:w-[calc(100%-480px)]">
