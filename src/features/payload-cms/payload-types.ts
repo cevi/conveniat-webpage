@@ -495,6 +495,7 @@ export interface LocalizedPublishingStatus {
  */
 export interface User {
   id: string;
+  displayName?: string | null;
   /**
    * The ID of the user in the CeviDB. Set automatically when the user logs in via Hitobito. Leave empty for manually created users.
    */
@@ -5473,6 +5474,7 @@ export interface DocumentsSelect<T extends boolean = true> {
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
+  displayName?: T;
   cevi_db_uuid?: T;
   adminPanelAccess?: T;
   email?: T;
