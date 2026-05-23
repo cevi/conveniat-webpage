@@ -100,8 +100,14 @@ export const UserCollection: CollectionConfig = {
       },
       hooks: {
         afterRead: [
-          ({ data }): string => {
-            if (!data) return '';
+          ({ data }): string | undefined => {
+            if (!data) return undefined;
+
+            // Prevent silent fallback when document is partially selected
+            if (!('email' in data) && !('fullName' in data) && !('nickname' in data)) {
+              return undefined;
+            }
+
             const email = (data as User).email;
             const fullName = (data as User).fullName;
             const nickname = (data as User).nickname;
