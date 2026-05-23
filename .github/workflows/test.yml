@@ -19,7 +19,7 @@ jobs:
         run: cp .env.example .env
 
       - name: Start Docker services
-        run: docker compose up -d
+        run: COMPOSE_PROFILES="" docker compose up -d
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
