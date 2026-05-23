@@ -508,6 +508,7 @@ export const AnnouncementsCollection: CollectionConfig = asLocalizedCollection({
       admin: {
         date: {
           pickerAppearance: 'dayAndTime',
+          timeIntervals: 5,
         },
         condition: (data) => data['status'] === 'scheduled',
       },
@@ -524,6 +525,7 @@ export const AnnouncementsCollection: CollectionConfig = asLocalizedCollection({
         readOnly: true,
         date: {
           pickerAppearance: 'dayAndTime',
+          timeIntervals: 5,
         },
       },
     },

@@ -64,6 +64,15 @@ export const getChatMessages = trpcBaseProcedure
               // We want to know if there are replies that the current user hasn't read yet
             },
           },
+          reactions: {
+            include: {
+              user: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+          },
           replies: {
             where: {
               senderId: { not: ctx.user.uuid },
@@ -103,6 +112,11 @@ export const getChatMessages = trpcBaseProcedure
           replyCount: message._count.replies,
           parentId: message.parentId ?? undefined,
           hasUnreadReplies: message.replies.length > 0,
+          reactions: message.reactions.map((r) => ({
+            emoji: r.emoji,
+            userId: r.userId,
+            userName: r.user.name,
+          })),
         };
       });
 

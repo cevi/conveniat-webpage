@@ -101,7 +101,10 @@ export const getAlertSettingsCached = cache(
  */
 export const getAppFeatureFlagsCached = cache(
   async (): Promise<
-    Pick<AppFeatureFlag, 'helperShiftsEnabled' | 'imageUploadEnabled' | 'reservationsEnabled'>
+    Pick<
+      AppFeatureFlag,
+      'helperShiftsEnabled' | 'imageUploadEnabled' | 'reservationsEnabled' | 'forumEnabled'
+    >
   > => {
     return await withSpan('getAppFeatureFlagsCached', async () => {
       const payload = await getPayload({ config });
@@ -111,6 +114,7 @@ export const getAppFeatureFlagsCached = cache(
           helperShiftsEnabled: true,
           imageUploadEnabled: true,
           reservationsEnabled: true,
+          forumEnabled: true,
         },
       });
     });

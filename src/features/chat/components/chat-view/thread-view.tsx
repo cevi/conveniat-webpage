@@ -3,12 +3,14 @@
 import { Button } from '@/components/ui/buttons/button';
 import { ChatTextAreaInput } from '@/features/chat/components/chat-view/chat-text-area-input';
 import { MessageList } from '@/features/chat/components/chat-view/message-list';
+import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
+import { useChatId } from '@/features/chat/context/chat-id-context';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { ArrowLeft } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
-import React from 'react';
+import React, { useEffect } from 'react';
 
 const threadTitle: StaticTranslationString = {
   de: 'Thread',
@@ -29,11 +31,58 @@ interface ThreadViewProperties {
 
 export const ThreadView: React.FC<ThreadViewProperties> = ({ threadId, onClose }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
+  const chatId = useChatId();
+  const trpcUtils = trpc.useUtils();
 
   // Fetch parent message directly
   const { data: parentMessage, isLoading: isLoadingParent } = trpc.chat.getMessage.useQuery({
     messageId: threadId,
   });
+
+  const { mutate: markThreadAsRead } = trpc.chat.markThreadAsRead.useMutation({
+    onMutate: () => {
+      // 1. Optimistically update getMessage query for the thread message itself
+      trpcUtils.chat.getMessage.setData({ messageId: threadId }, (oldData) => {
+        if (!oldData) return oldData;
+        return {
+          ...oldData,
+          hasUnreadReplies: false,
+        };
+      });
+
+      // 2. Optimistically update infiniteMessages query for the chat
+      trpcUtils.chat.infiniteMessages.setInfiniteData(
+        { chatId, limit: CHAT_PAGE_SIZE, parentId: undefined },
+        (oldData) => {
+          if (!oldData) return oldData;
+          return {
+            ...oldData,
+            pages: oldData.pages.map((page) => ({
+              ...page,
+              items: page.items.map((item) => {
+                if (item.id === threadId) {
+                  return { ...item, hasUnreadReplies: false };
+                }
+                return item;
+              }),
+            })),
+          };
+        },
+      );
+    },
+    onSettled: () => {
+      trpcUtils.chat.getMessage.invalidate({ messageId: threadId }).catch(console.error);
+      trpcUtils.chat.infiniteMessages
+        .invalidate({ chatId, limit: CHAT_PAGE_SIZE, parentId: undefined })
+        .catch(console.error);
+    },
+  });
+
+  useEffect(() => {
+    if (chatId !== '' && threadId !== '') {
+      markThreadAsRead({ chatId, threadId });
+    }
+  }, [chatId, threadId, markThreadAsRead]);
 
   return (
     <div className="flex h-full w-full flex-col bg-gray-50">

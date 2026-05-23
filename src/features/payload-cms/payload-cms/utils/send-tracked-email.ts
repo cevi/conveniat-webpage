@@ -8,6 +8,7 @@ export const sendTrackedEmail = async (
   emailOptions: SendEmailOptions,
   formSubmissionId?: string,
   billParticipantId?: string,
+  existingOutgoingEmailId?: string,
 ): Promise<void> => {
   const options = emailOptions as unknown as {
     to?: string | string[];
@@ -24,45 +25,47 @@ export const sendTrackedEmail = async (
 
   const subject = options.subject ?? 'No Subject';
 
-  // 1. Create the outgoing-emails record first
-  const data: {
-    to: string;
-    subject: string;
-    html?: string;
-    formSubmission?: string;
-    billParticipant?: string;
-    deliveryStatus: 'pending' | 'success' | 'error';
-  } = {
-    to,
-    subject,
-    ...(options.html === undefined ? {} : { html: options.html }),
-    deliveryStatus: 'pending',
-  };
+  let outgoingEmailId = existingOutgoingEmailId;
 
-  if (typeof formSubmissionId === 'string' && formSubmissionId.length > 0) {
-    data.formSubmission = formSubmissionId;
-  }
-  if (typeof billParticipantId === 'string' && billParticipantId.length > 0) {
-    data.billParticipant = billParticipantId;
-  }
+  if (!outgoingEmailId) {
+    // 1. Create the outgoing-emails record first
+    const data: {
+      to: string;
+      subject: string;
+      html?: string;
+      formSubmission?: string;
+      billParticipant?: string;
+      deliveryStatus: 'pending' | 'success' | 'error';
+    } = {
+      to,
+      subject,
+      ...(options.html === undefined ? {} : { html: options.html }),
+      deliveryStatus: 'pending',
+    };
 
-  let outgoingEmailDocument;
-  try {
-    outgoingEmailDocument = await payload.create({
-      collection: 'outgoing-emails',
-      data,
-    });
-  } catch (error) {
-    payload.logger.error({
-      err: error,
-      msg: 'Failed to create outgoing-emails record before sending email.',
-    });
-    // Even if it fails, we shouldn't necessarily crash the email sending, but we can't track it properly with DSN without an ID.
-    // We'll proceed sending it without DSN tracking ID just to be safe it sends, or we can throw. Throwing is safer for ensuring tracking.
-    throw new Error(`Could not create outgoing email record: ${String(error)}`);
-  }
+    if (typeof formSubmissionId === 'string' && formSubmissionId.length > 0) {
+      data.formSubmission = formSubmissionId;
+    }
+    if (typeof billParticipantId === 'string' && billParticipantId.length > 0) {
+      data.billParticipant = billParticipantId;
+    }
 
-  const outgoingEmailId = outgoingEmailDocument.id;
+    try {
+      const outgoingEmailDocument = await payload.create({
+        collection: 'outgoing-emails',
+        data,
+      });
+      outgoingEmailId = outgoingEmailDocument.id;
+    } catch (error) {
+      payload.logger.error({
+        err: error,
+        msg: 'Failed to create outgoing-emails record before sending email.',
+      });
+      // Even if it fails, we shouldn't necessarily crash the email sending, but we can't track it properly with DSN without an ID.
+      // We'll proceed sending it without DSN tracking ID just to be safe it sends, or we can throw. Throwing is safer for ensuring tracking.
+      throw new Error(`Could not create outgoing email record: ${String(error)}`);
+    }
+  }
 
   // 2. Send the email with DSN tracking
   let success = false;

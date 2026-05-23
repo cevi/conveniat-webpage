@@ -122,11 +122,13 @@ export const AppFeatures: React.FC<{
           text={chatFeatureTranslation[locale]}
           prefetch
         />
-        <AppFeatureMenuItem
-          href="/app/forum"
-          Icon={LucideMessageCircleQuestion}
-          text={qaForumFeatureTranslation[locale]}
-        />
+        {featureFlags.forumEnabled !== false && (
+          <AppFeatureMenuItem
+            href="/app/forum"
+            Icon={LucideMessageCircleQuestion}
+            text={qaForumFeatureTranslation[locale]}
+          />
+        )}
         <AppFeatureMenuItem
           href="/app/emergency"
           Icon={Siren}

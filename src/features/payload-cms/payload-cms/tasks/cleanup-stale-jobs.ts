@@ -48,3 +48,37 @@ export async function cleanupStaleScheduledJobs(
     }
   }
 }
+
+/**
+ * Cleans up completed scheduled jobs for a specific task slug to keep the database size in check.
+ * This is safe to run in beforeSchedule since the job being scheduled hasn't started yet,
+ * and the previous job is fully completed.
+ *
+ * @param request The Payload request object
+ * @param taskSlug The slug of the task to clean up
+ */
+export async function cleanupCompletedScheduledJobs(
+  request: PayloadRequest,
+  taskSlug: string,
+): Promise<void> {
+  const completedJobs = await request.payload.find({
+    collection: 'payload-jobs',
+    where: {
+      and: [
+        { taskSlug: { equals: taskSlug } },
+        { completedAt: { exists: true } },
+        { 'meta.scheduled': { equals: true } },
+      ],
+    },
+    limit: 100, // Clean up in batches of 100 to prevent long-running queries
+  });
+
+  if (completedJobs.docs.length > 0) {
+    for (const completedJob of completedJobs.docs) {
+      await request.payload.delete({
+        collection: 'payload-jobs',
+        id: completedJob.id,
+      });
+    }
+  }
+}

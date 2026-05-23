@@ -1,5 +1,6 @@
 import { environmentVariables } from '@/config/environment-variables';
 import {
+  cleanupCompletedScheduledJobs,
   cleanupStaleScheduledJobs,
   DEFAULT_QUEUE,
 } from '@/features/payload-cms/payload-cms/tasks/cleanup-stale-jobs';
@@ -9,75 +10,134 @@ import {
   getOriginalEnvelopeId,
   parsePop3Messages,
 } from '@/features/payload-cms/payload-cms/tasks/fetch-smtp-bounces/email-parser';
+import { redis } from '@/lib/db/redis';
 import { simpleParser } from 'mailparser';
 import POP3Command from 'node-pop3';
 import type { PayloadRequest, TaskConfig } from 'payload';
-import { countRunnableOrActiveJobsForQueue } from 'payload';
 
-const FETCH_SMTP_BOUNCES_CRON = '*/5 * * * *'; // Every 5 minutes
+const FETCH_SMTP_BOUNCES_CRON = '*/15 * * * *'; // Every 15 minutes
 
-let consecutiveConnectionFailures = 0;
-let nextAllowedAttemptTime = 0;
+const REDIS_BACKOFF_FAILURES_KEY = 'fetchSmtpBounces:backoff:failures';
+const REDIS_BACKOFF_NEXT_ATTEMPT_KEY = 'fetchSmtpBounces:backoff:nextAttempt';
 
 export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
   slug: 'fetchSmtpBounces',
   retries: 0,
-  /**
-   * We selectively auto-delete only the `fetchSmtpBounces` job upon successful completion
-   * to keep the `payload-jobs` collection clean, as this task runs very frequently (every 5 minutes).
-   * We do this here instead of using the global `deleteJobOnComplete: true` in the JobsConfig
-   * to preserve the execution history and observability for other critical workflows.
-   */
-  onSuccess: async ({ job, req }) => {
-    try {
-      if ((typeof job.id === 'string' && job.id.length > 0) || typeof job.id === 'number') {
-        await req.payload.delete({
-          collection: 'payload-jobs',
-          id: job.id,
-        });
-      }
-    } catch (error: unknown) {
-      if (
-        typeof error === 'object' &&
-        error !== null &&
-        'status' in error &&
-        error.status === 404
-      ) {
-        // Job was likely already deleted by another instance
-        return;
-      }
-
-      req.payload.logger.error({
-        err: error instanceof Error ? error : new Error(String(error)),
-        msg: `Failed to auto-delete completed fetchSmtpBounces job: ${String(job.id)}`,
-      });
-    }
-  },
   schedule: [
     {
       cron: FETCH_SMTP_BOUNCES_CRON,
       queue: DEFAULT_QUEUE,
       hooks: {
         beforeSchedule: async ({
-          queueable,
           req,
         }): Promise<{ shouldSchedule: boolean; input: Record<string, never> }> => {
+          // 1. Calculate the 15-minute slot lock to ensure only one instance schedules the job in a cluster
+          const periodMs = 15 * 60 * 1000;
+          const currentSlot = Math.floor(Date.now() / periodMs) * periodMs;
+          const lockKey = `fetchSmtpBounces:schedule-lock:${currentSlot}`;
+
+          let hasLock = false;
+          try {
+            const result = await redis.set(lockKey, '1', 'PX', 60_000, 'NX');
+            hasLock = result === 'OK';
+          } catch (error) {
+            req.payload.logger.error({
+              err: error instanceof Error ? error : new Error(String(error)),
+              msg: 'Failed to acquire Redis scheduling lock. Falling back to DB checks.',
+            });
+            hasLock = true;
+          }
+
+          if (!hasLock) {
+            req.payload.logger.info(
+              'fetchSmtpBounces: another cluster instance already scheduled this slot. Skipping.',
+            );
+            return {
+              shouldSchedule: false,
+              input: {},
+            };
+          }
+
+          await cleanupCompletedScheduledJobs(req, 'fetchSmtpBounces');
           await cleanupStaleScheduledJobs(req, 'fetchSmtpBounces', 15);
 
-          const runnableOrActiveJobsForQueue = await countRunnableOrActiveJobsForQueue({
-            queue: queueable.scheduleConfig.queue,
-            req,
-            taskSlug: 'fetchSmtpBounces',
-            onlyScheduled: true,
-          });
+          // 2. Prevent parallel execution: check if there is an uncompleted fetchSmtpBounces job
+          let activeJobsCount = 0;
+          try {
+            const activeCountResult = await req.payload.count({
+              collection: 'payload-jobs',
+              where: {
+                and: [
+                  { taskSlug: { equals: 'fetchSmtpBounces' } },
+                  { completedAt: { exists: false } },
+                ],
+              },
+            });
+            activeJobsCount = activeCountResult.totalDocs;
+          } catch (error) {
+            req.payload.logger.error({
+              err: error instanceof Error ? error : new Error(String(error)),
+              msg: 'Failed to count active fetchSmtpBounces jobs. Skipping schedule to be safe.',
+            });
+            return {
+              shouldSchedule: false,
+              input: {},
+            };
+          }
+
+          if (activeJobsCount > 0) {
+            req.payload.logger.info(
+              `fetchSmtpBounces: ${activeJobsCount} active jobs already exist. Skipping scheduling.`,
+            );
+            return {
+              shouldSchedule: false,
+              input: {},
+            };
+          }
+
+          // 3. Only run POP3 check if we have outgoing emails sent in the last 7 days that are still missing dsnReceivedAt
+          const sevenDaysAgo = new Date();
+          sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+          let pendingDsnCount = 0;
+          try {
+            const pendingCountResult = await req.payload.count({
+              collection: 'outgoing-emails',
+              where: {
+                and: [
+                  { dsnReceivedAt: { exists: false } },
+                  { createdAt: { greater_than_equal: sevenDaysAgo.toISOString() } },
+                ],
+              },
+            });
+            pendingDsnCount = pendingCountResult.totalDocs;
+          } catch (error) {
+            req.payload.logger.error({
+              err: error instanceof Error ? error : new Error(String(error)),
+              msg: 'Failed to query pending DSN email count. Skipping schedule.',
+            });
+            return {
+              shouldSchedule: false,
+              input: {},
+            };
+          }
+
+          if (pendingDsnCount === 0) {
+            req.payload.logger.info(
+              'fetchSmtpBounces: No outgoing emails in the last 7 days are waiting for DSN. Skipping.',
+            );
+            return {
+              shouldSchedule: false,
+              input: {},
+            };
+          }
 
           req.payload.logger.info(
-            `Scheduler evaluated fetchSmtpBounces. Active/Runnable jobs: ${runnableOrActiveJobsForQueue}`,
+            `fetchSmtpBounces: Slot lock acquired, ${pendingDsnCount} pending DSN emails found. Scheduling job.`,
           );
 
-          // Prevent concurrent job execution to avoid read-modify-write race conditions when updating smtpResults
           return {
-            shouldSchedule: runnableOrActiveJobsForQueue < 1,
+            shouldSchedule: true,
             input: {},
           };
         },
@@ -89,7 +149,32 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
     const { payload } = req;
     const { logger } = payload;
 
+    let consecutiveConnectionFailures = 0;
+    let nextAllowedAttemptTime = 0;
+
+    try {
+      const failuresValue = await redis.get(REDIS_BACKOFF_FAILURES_KEY);
+      consecutiveConnectionFailures =
+        failuresValue !== null && failuresValue !== '' ? Number.parseInt(failuresValue, 10) : 0;
+
+      const nextAttemptValue = await redis.get(REDIS_BACKOFF_NEXT_ATTEMPT_KEY);
+      nextAllowedAttemptTime =
+        nextAttemptValue !== null && nextAttemptValue !== ''
+          ? Number.parseInt(nextAttemptValue, 10)
+          : 0;
+    } catch (error) {
+      logger.error({
+        err: error instanceof Error ? error : new Error(String(error)),
+        msg: 'Failed to read POP3 backoff state from Redis. Continuing without backoff.',
+      });
+    }
+
     if (Date.now() < nextAllowedAttemptTime) {
+      logger.info(
+        `fetchSmtpBounces task is backed-off. Next attempt allowed after: ${new Date(
+          nextAllowedAttemptTime,
+        ).toISOString()}`,
+      );
       return { output: { status: 'backed-off' } };
     }
 
@@ -126,6 +211,16 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
       consecutiveConnectionFailures = 0;
       nextAllowedAttemptTime = 0;
 
+      try {
+        await redis.set(REDIS_BACKOFF_FAILURES_KEY, '0');
+        await redis.set(REDIS_BACKOFF_NEXT_ATTEMPT_KEY, '0');
+      } catch (error) {
+        logger.error({
+          err: error instanceof Error ? error : new Error(String(error)),
+          msg: 'Failed to reset backoff state in Redis',
+        });
+      }
+
       const messages = parsePop3Messages(listResponseRaw);
 
       if (messages.length === 0) {
@@ -142,12 +237,13 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
       let poisonPillCount = 0;
       let errorCount = 0;
 
-      // Memoize the recent outgoing emails to prevent gigabytes of memory allocation
-      // when processing hundreds of bounce emails in a single fetch job
-      let cachedRecentOutgoing: { id: string | number; smtpResults: unknown }[] | undefined =
-        undefined;
+      // Memoize the recent outgoing emails in a map to prevent gigabytes of memory allocation
+      // and nested O(N*M) lookups when processing hundreds of bounce emails in a single fetch job
+      let cachedOutgoingIdMap: Map<string, string> | undefined = undefined;
 
       for (const { id: messageId, uid } of messages) {
+        // Sleep 500ms to maintain max 2 requests per second POP3 rate limit
+        await new Promise((resolve) => setTimeout(resolve, 500));
         // Check for previous failures
         const trackingResults = await payload.find({
           collection: 'smtp-bounce-mail-tracking',
@@ -247,7 +343,7 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
             const extractedIds = [...possibleIds];
 
             if (extractedIds.length > 0) {
-              if (cachedRecentOutgoing === undefined) {
+              if (cachedOutgoingIdMap === undefined) {
                 // Scan recent outgoing emails (up to 1000, within the last 30 days) for these IDs in their smtpResults
                 const thirtyDaysAgo = new Date();
                 thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -261,31 +357,30 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
                   },
                   limit: 1000,
                   sort: '-createdAt',
+                  select: {
+                    smtpResults: true,
+                  },
                 });
 
-                // Map to immediately clear heavy html strings from memory
-                cachedRecentOutgoing = recentOutgoing.docs.map((document_) => ({
-                  id: document_.id,
-                  smtpResults: document_.smtpResults,
-                }));
+                cachedOutgoingIdMap = new Map<string, string>();
+                for (const document_ of recentOutgoing.docs) {
+                  const resultsString = JSON.stringify(document_.smtpResults ?? []);
+                  // Extract all potential queue IDs, message IDs, and alphanumeric tokens
+                  const tokens = resultsString.match(/[a-zA-Z0-9_-]+/g) ?? [];
+                  for (const token of tokens) {
+                    cachedOutgoingIdMap.set(token.toLowerCase(), String(document_.id));
+                  }
+                }
               }
 
-              for (const outgoingDocument of cachedRecentOutgoing) {
-                const stringifiedResults = JSON.stringify(outgoingDocument.smtpResults ?? []);
-                const foundMatch = extractedIds.some((id) => {
-                  // Only match if the ID appears as a complete token, not as a substring
-                  const regex = new RegExp(
-                    `\\b${id.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\\$&`)}\\b`,
-                  );
-                  return regex.test(stringifiedResults);
-                });
-
-                if (foundMatch) {
-                  matched = await processTrackingUpdate(String(outgoingDocument.id));
+              for (const id of extractedIds) {
+                const matchedDocumentId = cachedOutgoingIdMap.get(id.toLowerCase());
+                if (matchedDocumentId !== undefined) {
+                  matched = await processTrackingUpdate(matchedDocumentId);
 
                   if (matched) {
                     logger.info(
-                      `Fallback processed bounce for outgoing email ${String(outgoingDocument.id)} using ID(s) ${extractedIds.join(',')}`,
+                      `Fallback processed bounce for outgoing email ${matchedDocumentId} using ID(s) ${extractedIds.join(',')}`,
                     );
                     break;
                   }
@@ -359,6 +454,16 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
         // Exponential backoff: 5m, 10m, 20m, 40m... max 4 hours
         const backoffMinutes = Math.min(5 * 2 ** (consecutiveConnectionFailures - 1), 240);
         nextAllowedAttemptTime = Date.now() + backoffMinutes * 60 * 1000;
+
+        try {
+          await redis.set(REDIS_BACKOFF_FAILURES_KEY, String(consecutiveConnectionFailures));
+          await redis.set(REDIS_BACKOFF_NEXT_ATTEMPT_KEY, String(nextAllowedAttemptTime));
+        } catch (redisError) {
+          logger.error({
+            err: redisError instanceof Error ? redisError : new Error(String(redisError)),
+            msg: 'Failed to save POP3 backoff state in Redis',
+          });
+        }
 
         logger.error({
           err: error instanceof Error ? error : new Error(String(error)),

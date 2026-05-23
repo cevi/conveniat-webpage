@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/buttons/button';
 import { PullToRefresh } from '@/components/ui/pull-to-refresh';
 import { ChatPreview } from '@/features/chat/components/chat-overview-view/chat-preview';
 import { SwipeToDeleteChat } from '@/features/chat/components/chat-overview-view/swipe-to-delete-chat';
-import { QRCodeClientComponent } from '@/features/chat/components/qr-component';
 import { useChatSSE } from '@/features/chat/hooks/use-chat-sse';
 import { useChats } from '@/features/chat/hooks/use-chats';
 import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
@@ -76,9 +75,10 @@ const ChatsOverviewLoadingPlaceholder: React.FC = () => {
   );
 };
 
-export const ChatsOverviewClientComponent: React.FC<{ user: HitobitoNextAuthUser | undefined }> = ({
-  user,
-}) => {
+export const ChatsOverviewClientComponent: React.FC<{
+  user: HitobitoNextAuthUser | undefined;
+  qrCodeButton?: React.ReactNode;
+}> = ({ qrCodeButton }) => {
   const { data: chats, isLoading } = useChats();
   const trpcUtils = trpc.useUtils();
 
@@ -132,12 +132,9 @@ export const ChatsOverviewClientComponent: React.FC<{ user: HitobitoNextAuthUser
 
       {createChatsEnabled === true && (
         <>
-          {/* QR Code Button (Header Injection via Portal) */}
           {mounted && typeof document !== 'undefined'
             ? createPortal(
-                <div className="fixed top-[18px] right-6 z-[60]">
-                  {user?.uuid ? <QRCodeClientComponent url={user.uuid} /> : undefined}
-                </div>,
+                <div className="fixed top-[18px] right-6 z-[60]">{qrCodeButton}</div>,
                 document.body,
               )
             : undefined}

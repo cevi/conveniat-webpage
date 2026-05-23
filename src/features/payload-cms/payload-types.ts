@@ -60,6 +60,7 @@ export interface Config {
     'helper-jobs': HelperJob;
     'announcement-channels': AnnouncementChannel;
     announcements: Announcement;
+    'emergency-cards': EmergencyCard;
     images: Image;
     userSubmittedImages: UserSubmittedImage;
     documents: Document;
@@ -115,6 +116,7 @@ export interface Config {
     'helper-jobs': HelperJobsSelect<false> | HelperJobsSelect<true>;
     'announcement-channels': AnnouncementChannelsSelect<false> | AnnouncementChannelsSelect<true>;
     announcements: AnnouncementsSelect<false> | AnnouncementsSelect<true>;
+    'emergency-cards': EmergencyCardsSelect<false> | EmergencyCardsSelect<true>;
     images: ImagesSelect<false> | ImagesSelect<true>;
     userSubmittedImages: UserSubmittedImagesSelect<false> | UserSubmittedImagesSelect<true>;
     documents: DocumentsSelect<false> | DocumentsSelect<true>;
@@ -196,6 +198,7 @@ export interface Config {
       generatePdfThumbnail: TaskGeneratePdfThumbnail;
       publishScheduledAnnouncements: TaskPublishScheduledAnnouncements;
       syncActivePiketMembers: TaskSyncActivePiketMembers;
+      syncNewUserAnnouncementChats: TaskSyncNewUserAnnouncementChats;
       createCollectionExport: TaskCreateCollectionExport;
       createCollectionImport: TaskCreateCollectionImport;
       inline: {
@@ -3255,6 +3258,9 @@ export interface AnnouncementChannel {
         id?: string | null;
       }[]
     | null;
+  allowEmojiReactions?: boolean | null;
+  allowThreads?: boolean | null;
+  allowThreadReplies?: boolean | null;
   chatUuid?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -3299,6 +3305,48 @@ export interface Announcement {
   publishedAt?: string | null;
   author?: (string | null) | User;
   chatMessageUuid?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "emergency-cards".
+ */
+export interface EmergencyCard {
+  id: string;
+  publishingStatus?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  _localized_status: LocalizedPublishingStatus;
+  _disable_unpublishing?: boolean | null;
+  _locale: string;
+  title: string;
+  description: string;
+  procedure: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  documents?: (string | Document)[] | null;
+  images?: (string | Image)[] | null;
+  lastEditedByUser?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
   _status?: ('draft' | 'published') | null;
@@ -3790,6 +3838,7 @@ export interface PayloadJob {
           | 'generatePdfThumbnail'
           | 'publishScheduledAnnouncements'
           | 'syncActivePiketMembers'
+          | 'syncNewUserAnnouncementChats'
           | 'createCollectionExport'
           | 'createCollectionImport';
         taskID: string;
@@ -3840,6 +3889,7 @@ export interface PayloadJob {
         | 'generatePdfThumbnail'
         | 'publishScheduledAnnouncements'
         | 'syncActivePiketMembers'
+        | 'syncNewUserAnnouncementChats'
         | 'createCollectionExport'
         | 'createCollectionImport'
       )
@@ -3905,6 +3955,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'announcements';
         value: string | Announcement;
+      } | null)
+    | ({
+        relationTo: 'emergency-cards';
+        value: string | EmergencyCard;
       } | null)
     | ({
         relationTo: 'images';
@@ -5243,6 +5297,9 @@ export interface AnnouncementChannelsSelect<T extends boolean = true> {
         groupName?: T;
         id?: T;
       };
+  allowEmojiReactions?: T;
+  allowThreads?: T;
+  allowThreadReplies?: T;
   chatUuid?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -5264,6 +5321,25 @@ export interface AnnouncementsSelect<T extends boolean = true> {
   publishedAt?: T;
   author?: T;
   chatMessageUuid?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "emergency-cards_select".
+ */
+export interface EmergencyCardsSelect<T extends boolean = true> {
+  publishingStatus?: T;
+  _localized_status?: T;
+  _disable_unpublishing?: T;
+  _locale?: T;
+  title?: T;
+  description?: T;
+  procedure?: T;
+  documents?: T;
+  images?: T;
+  lastEditedByUser?: T;
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
@@ -6474,6 +6550,14 @@ export interface AppFeatureFlag {
    * Toggles visibility of the Reservations menu item in the app.
    */
   reservationsEnabled?: boolean | null;
+  /**
+   * Toggles visibility of the conveniat27 Forum menu item in the app.
+   */
+  forumEnabled?: boolean | null;
+  /**
+   * Toggles whether the scheduled task checks Hitobito approvals for pending registrations.
+   */
+  checkHitobitoApprovalsEnabled?: boolean | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -6801,6 +6885,8 @@ export interface AppFeatureFlagsSelect<T extends boolean = true> {
   helperShiftsEnabled?: T;
   imageUploadEnabled?: T;
   reservationsEnabled?: T;
+  forumEnabled?: T;
+  checkHitobitoApprovalsEnabled?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
@@ -7137,6 +7223,18 @@ export interface TaskSyncActivePiketMembers {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskSyncNewUserAnnouncementChats".
+ */
+export interface TaskSyncNewUserAnnouncementChats {
+  input: {
+    userId: string;
+  };
+  output: {
+    success?: boolean | null;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskCreateCollectionExport".
  */
 export interface TaskCreateCollectionExport {
@@ -7155,6 +7253,7 @@ export interface TaskCreateCollectionExport {
       | 'helper-jobs'
       | 'announcement-channels'
       | 'announcements'
+      | 'emergency-cards'
       | 'images'
       | 'userSubmittedImages'
       | 'documents'

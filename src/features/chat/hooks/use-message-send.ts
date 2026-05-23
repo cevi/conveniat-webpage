@@ -35,15 +35,26 @@ const performOptimisticMessageUpdate = async (
     chatId,
     content,
     quotedMessageId,
-  }: { chatId: string; content: string; quotedMessageId?: string | undefined },
+    parentId,
+  }: {
+    chatId: string;
+    content: string;
+    quotedMessageId?: string | undefined;
+    parentId?: string | undefined;
+  },
 ): Promise<OptimisticUpdateResult> => {
   await trpcUtils.chat.chatDetails.cancel({ chatId });
-  await trpcUtils.chat.infiniteMessages.cancel({ chatId, limit: CHAT_PAGE_SIZE });
+  await trpcUtils.chat.infiniteMessages.cancel({
+    chatId,
+    limit: CHAT_PAGE_SIZE,
+    parentId: parentId ?? undefined,
+  });
 
   const previousChatData = trpcUtils.chat.chatDetails.getData({ chatId });
   const previousInfiniteData = trpcUtils.chat.infiniteMessages.getInfiniteData({
     chatId,
     limit: CHAT_PAGE_SIZE,
+    parentId: parentId ?? undefined,
   }) as InfiniteMessagesData | undefined;
 
   // Find quoted message text if quotedMessageId is provided
@@ -81,12 +92,12 @@ const performOptimisticMessageUpdate = async (
     senderId: currentUser,
     status: MessageEventType.CREATED,
     type: MessageType.TEXT_MSG,
-    parentId: undefined,
+    parentId: parentId ?? undefined,
   };
 
   // optimistically update the infinite messages
   trpcUtils.chat.infiniteMessages.setInfiniteData(
-    { chatId, limit: CHAT_PAGE_SIZE },
+    { chatId, limit: CHAT_PAGE_SIZE, parentId: parentId ?? undefined },
     (data: InfiniteMessagesData | undefined): InfiniteMessagesData | undefined => {
       if (!data) {
         return {
@@ -116,28 +127,30 @@ const performOptimisticMessageUpdate = async (
     },
   );
 
-  // optimistically update the chat details
-  trpcUtils.chat.chatDetails.setData(
-    { chatId },
-    (oldData: ChatDetails | undefined): ChatDetails => {
-      if (!oldData) {
+  // optimistically update the chat details if this is not a thread reply
+  if (!parentId) {
+    trpcUtils.chat.chatDetails.setData(
+      { chatId },
+      (oldData: ChatDetails | undefined): ChatDetails => {
+        if (!oldData) {
+          return {
+            // eslint-disable-next-line unicorn/no-null
+            archivedAt: null,
+            name: '',
+            participants: [],
+            id: chatId,
+            messages: [optimisticMessage],
+            capabilities: [],
+            type: ChatType.ONE_TO_ONE,
+          };
+        }
         return {
-          // eslint-disable-next-line unicorn/no-null
-          archivedAt: null,
-          name: '',
-          participants: [],
-          id: chatId,
-          messages: [optimisticMessage],
-          capabilities: [],
-          type: ChatType.ONE_TO_ONE,
+          ...oldData,
+          messages: [...oldData.messages, optimisticMessage],
         };
-      }
-      return {
-        ...oldData,
-        messages: [...oldData.messages, optimisticMessage],
-      };
-    },
-  );
+      },
+    );
+  }
 
   // optimistically update the chat overview
   trpcUtils.chat.chats.setData({}, (oldChats) => {
@@ -178,7 +191,7 @@ export const useMessageSend = (): UseMessageSendMutation => {
   const { cancelQuote } = useChatActions();
 
   return trpc.chat.sendMessage.useMutation({
-    async onMutate({ chatId, content, quotedMessageId }) {
+    async onMutate({ chatId, content, quotedMessageId, parentId }) {
       if (typeof currentUser !== 'string' || currentUser === '') {
         throw new Error('Current user is not defined');
       }
@@ -190,38 +203,43 @@ export const useMessageSend = (): UseMessageSendMutation => {
         chatId,
         content,
         quotedMessageId: quotedMessageId ?? undefined,
+        parentId: parentId ?? undefined,
       });
     },
 
-    onError: (error, { chatId }, context) => {
+    onError: (error, { chatId, parentId }, context) => {
       toast.error('Failed to send message', error);
       console.error('Failed to send message, rolling back optimistic update:', error);
 
       const optimisticContext = context;
 
-      if (optimisticContext?.previousChatData) {
-        trpcUtils.chat.chatDetails.setData({ chatId }, optimisticContext.previousChatData);
-      } else {
-        trpcUtils.chat.chatDetails.invalidate({ chatId }).catch(console.error);
+      if (!parentId) {
+        if (optimisticContext?.previousChatData) {
+          trpcUtils.chat.chatDetails.setData({ chatId }, optimisticContext.previousChatData);
+        } else {
+          trpcUtils.chat.chatDetails.invalidate({ chatId }).catch(console.error);
+        }
       }
 
       if (optimisticContext?.previousInfiniteData) {
         trpcUtils.chat.infiniteMessages.setInfiniteData(
-          { chatId, limit: CHAT_PAGE_SIZE },
+          { chatId, limit: CHAT_PAGE_SIZE, parentId: parentId ?? undefined },
           optimisticContext.previousInfiniteData,
         );
       } else {
-        trpcUtils.chat.infiniteMessages.invalidate({ chatId }).catch(console.error);
+        trpcUtils.chat.infiniteMessages
+          .invalidate({ chatId, limit: CHAT_PAGE_SIZE, parentId: parentId ?? undefined })
+          .catch(console.error);
       }
     },
 
-    onSuccess: (createdMessageData, { chatId }, context) => {
+    onSuccess: (createdMessageData, { chatId, parentId }, context) => {
       const createdMessage = createdMessageData as unknown as ChatMessage | undefined;
       if (createdMessage === undefined) return;
 
       // Update the infinite query cache
       trpcUtils.chat.infiniteMessages.setInfiniteData(
-        { chatId, limit: CHAT_PAGE_SIZE },
+        { chatId, limit: CHAT_PAGE_SIZE, parentId: parentId ?? undefined },
         (data: InfiniteMessagesData | undefined): InfiniteMessagesData | undefined => {
           if (!data) return data;
 
@@ -249,31 +267,33 @@ export const useMessageSend = (): UseMessageSendMutation => {
         },
       );
 
-      // Update the chatDetails cache
-      trpcUtils.chat.chatDetails.setData(
-        { chatId },
-        (oldData: ChatDetails | undefined): ChatDetails | undefined => {
-          if (!oldData) return oldData;
+      // Update the chatDetails cache only if it's not a thread reply
+      if (!parentId) {
+        trpcUtils.chat.chatDetails.setData(
+          { chatId },
+          (oldData: ChatDetails | undefined): ChatDetails | undefined => {
+            if (!oldData) return oldData;
 
-          const alreadyHasStored = oldData.messages.some((item) => item.id === createdMessage.id);
+            const alreadyHasStored = oldData.messages.some((item) => item.id === createdMessage.id);
 
-          return {
-            ...oldData,
-            messages: oldData.messages
-              .map((item) => {
-                const isMatch = isOptimisticMessageMatch(
-                  item.id,
-                  (context as OptimisticUpdateResult | undefined)?.optimisticMessageId,
-                );
-                if (isMatch) {
-                  return alreadyHasStored ? undefined : createdMessage;
-                }
-                return item;
-              })
-              .filter((item): item is ChatMessage => item !== undefined),
-          };
-        },
-      );
+            return {
+              ...oldData,
+              messages: oldData.messages
+                .map((item) => {
+                  const isMatch = isOptimisticMessageMatch(
+                    item.id,
+                    (context as OptimisticUpdateResult | undefined)?.optimisticMessageId,
+                  );
+                  if (isMatch) {
+                    return alreadyHasStored ? undefined : createdMessage;
+                  }
+                  return item;
+                })
+                .filter((item): item is ChatMessage => item !== undefined),
+            };
+          },
+        );
+      }
 
       // Invalidate chats overview for unread counts and sidebar updates
       void trpcUtils.chat.chats.invalidate();

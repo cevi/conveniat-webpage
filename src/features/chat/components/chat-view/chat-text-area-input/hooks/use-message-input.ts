@@ -87,10 +87,31 @@ export const useMessageInput = (): UseMessageInputLogicResult => {
           // Message sent successfully, clear the pending message ref
           pendingMessageReference.current = undefined;
           if (quotedMessageId) cancelQuote();
+
+          // Clear shared query parameters from the URL
+          if ('history' in globalThis && 'location' in globalThis) {
+            const url = new globalThis.URL(globalThis.location.href);
+            const hasText = url.searchParams.has('text');
+            const hasTitle = url.searchParams.has('title');
+            const hasUrl = url.searchParams.has('url');
+            if (hasText || hasTitle || hasUrl) {
+              url.searchParams.delete('text');
+              url.searchParams.delete('title');
+              url.searchParams.delete('url');
+              globalThis.history.replaceState(
+                globalThis.history.state,
+                '',
+                url.pathname + url.search,
+              );
+            }
+          }
         },
         onError: (error) => {
           // Restore the message on error so user can retry
-          if (pendingMessageReference.current) {
+          if (
+            pendingMessageReference.current !== undefined &&
+            pendingMessageReference.current !== ''
+          ) {
             setNewMessage(pendingMessageReference.current);
             pendingMessageReference.current = undefined;
           }

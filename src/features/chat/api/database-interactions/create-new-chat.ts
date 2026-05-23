@@ -42,7 +42,7 @@ export const createNewChat = async (
   const isGroupChat = members.length > 1;
   const chatType = options?.chatType ?? (isGroupChat ? ChatType.GROUP : ChatType.ONE_TO_ONE);
 
-  return prisma.chat.create({
+  const chat = await prisma.chat.create({
     data: {
       name: finalChatName,
       type: chatType,
@@ -68,7 +68,33 @@ export const createNewChat = async (
           })),
         ],
       },
-      capabilities: [ChatCapability.CAN_SEND_MESSAGES, ChatCapability.THREADS],
+      capabilities: [
+        ChatCapability.CAN_SEND_MESSAGES,
+        ChatCapability.THREADS,
+        ChatCapability.EMOJI_REACTIONS,
+      ],
     },
   });
+
+  // Publish the real-time new_chat event to all participants so their sidebars update instantly
+  import('@/lib/db/chat-pubsub')
+    .then(({ chatPubSub }) => {
+      const participantUuids = [user.uuid, ...members.map((m) => m.userId)];
+      for (const uuid of participantUuids) {
+        chatPubSub
+          .publish(uuid, {
+            type: 'new_chat',
+            chatId: uuid,
+            senderId: user.uuid,
+          })
+          .catch((error: unknown) => {
+            console.error(`Failed to publish new_chat event to user ${uuid}:`, error);
+          });
+      }
+    })
+    .catch((error: unknown) => {
+      console.error('Failed to import chatPubSub for new_chat event:', error);
+    });
+
+  return chat;
 };

@@ -8,6 +8,7 @@ import { CampMapAnnotationsCollection } from '@/features/payload-cms/payload-cms
 import { CampScheduleEntryCollection } from '@/features/payload-cms/payload-cms/collections/camp-schedule-entry-collection';
 import { ChatImagesCollection } from '@/features/payload-cms/payload-cms/collections/chat-images-collection';
 import { DocumentsCollection } from '@/features/payload-cms/payload-cms/collections/documents-collection';
+import { EmergencyCardsCollection } from '@/features/payload-cms/payload-cms/collections/emergency-cards';
 import { GenericPage as GenericPageCollection } from '@/features/payload-cms/payload-cms/collections/generic-page';
 import { JobCollection } from '@/features/payload-cms/payload-cms/collections/helper-job-collection';
 import { HelperShiftsCollection } from '@/features/payload-cms/payload-cms/collections/helper-shifts-collection';
@@ -43,6 +44,7 @@ const rawCollectionsConfig: CollectionConfig[] = [
   JobCollection,
   AnnouncementChannelsCollection,
   AnnouncementsCollection,
+  EmergencyCardsCollection,
 
   // general purpose collections, not routable
   ImageCollection,
@@ -66,7 +68,7 @@ const rawCollectionsConfig: CollectionConfig[] = [
  *
  * This mapping defines the URL prefixes for the collections that should be routable.
  *
- */
+ * */
 export const collectionsConfig: RoutableCollectionConfigs = rawCollectionsConfig.map(
   (collectionConfig: CollectionConfig) => {
     const collectionWithInstrumentation = asInstrumentalCollection(collectionConfig);

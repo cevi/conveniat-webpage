@@ -5,7 +5,7 @@ import { flushPersonalData } from '@/lib/flush-personal-data';
 import { makeQueryClient } from '@/trpc/query-client';
 import type { AppRouter } from '@/trpc/routers/_app';
 import type { QueryClient } from '@tanstack/react-query';
-import { QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider, defaultShouldDehydrateQuery } from '@tanstack/react-query';
 import type { Persister } from '@tanstack/react-query-persist-client';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { httpBatchLink } from '@trpc/client';
@@ -87,13 +87,33 @@ export const TRPCProvider: React.FC<{
     }
   }, []);
 
+  const persistOptions = React.useMemo(() => {
+    if (!persister) return;
+    return {
+      persister,
+      dehydrateOptions: {
+        shouldDehydrateQuery: (
+          query: Parameters<typeof defaultShouldDehydrateQuery>[0],
+        ): boolean => {
+          if (query.meta?.['persist'] === false) {
+            return false;
+          }
+          if (query.queryKey[0] === 'qrCodeSvgImage') {
+            return false;
+          }
+          return defaultShouldDehydrateQuery(query);
+        },
+      },
+    };
+  }, [persister]);
+
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
-      {persister ? (
+      {persister && persistOptions ? (
         <PersistQueryClientProvider
           key="persisted-query-client"
           client={queryClient}
-          persistOptions={{ persister }}
+          persistOptions={persistOptions}
         >
           {children}
         </PersistQueryClientProvider>

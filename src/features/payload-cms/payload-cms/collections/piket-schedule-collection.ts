@@ -1,7 +1,30 @@
 import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared-fields/last-edited-by-user-field';
-import type { CollectionConfig } from 'payload';
+import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
+import type { CollectionConfig, DateFieldValidation } from 'payload';
+
+const EndAfterStartTimeValidation: DateFieldValidation = (value, { siblingData, req }) => {
+  const localeString = req.i18n.language;
+  const startTimeRaw = (siblingData as { startTime?: string }).startTime;
+  if (startTimeRaw === undefined || startTimeRaw === '') {
+    return getValidationMessage(localeString, {
+      en: 'Start time is required.',
+      de: 'Startzeit ist erforderlich.',
+      fr: 'L’heure de début est requise.',
+    });
+  }
+  const startTime = new Date(startTimeRaw);
+  const endTime = new Date(value as unknown as string);
+  if (endTime <= startTime) {
+    return getValidationMessage(localeString, {
+      en: 'End time must be later than start time.',
+      de: 'Endzeit muss nach der Startzeit liegen.',
+      fr: 'L’heure de fin doit être postérieure à l’heure de début.',
+    });
+  }
+  return true;
+};
 
 export const PiketScheduleCollection: CollectionConfig = {
   slug: 'piket-schedules',
@@ -70,6 +93,7 @@ export const PiketScheduleCollection: CollectionConfig = {
       label: 'End Time',
       type: 'date',
       required: true,
+      validate: EndAfterStartTimeValidation,
       admin: {
         date: {
           pickerAppearance: 'dayAndTime',

@@ -23,10 +23,14 @@ export const SwipeToDeleteChat: React.FC<SwipeToDeleteChatProperties> = ({ chat,
   const [isDeleting, setIsDeleting] = useState(false);
 
   const canDelete =
-    chat.chatType === ChatType.EMERGENCY ||
-    (
-      [ChatMembershipPermission.OWNER, ChatMembershipPermission.ADMIN] as ChatMembershipPermission[]
-    ).includes(chat.userChatPermission);
+    chat.chatType !== ChatType.ANNOUNCEMENT &&
+    (chat.chatType === ChatType.EMERGENCY ||
+      (
+        [
+          ChatMembershipPermission.OWNER,
+          ChatMembershipPermission.ADMIN,
+        ] as ChatMembershipPermission[]
+      ).includes(chat.userChatPermission));
 
   const binOpacity = useTransform(draggingX, [0, 50], [0, 1]);
   const binScale = useTransform(draggingX, [0, 100], [0.8, 1.2]);

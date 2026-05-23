@@ -5,10 +5,12 @@ import { createMessage } from '@/features/chat/api/mutations/create-message';
 import { createMessageStatus } from '@/features/chat/api/mutations/create-message-status';
 import { getUploadUrl } from '@/features/chat/api/mutations/get-upload-url';
 import { markChatAsRead } from '@/features/chat/api/mutations/mark-chat-as-read';
+import { markThreadAsRead } from '@/features/chat/api/mutations/mark-thread-as-read';
 import { onlinePing } from '@/features/chat/api/mutations/online-ping';
 import { removeParticipant } from '@/features/chat/api/mutations/remove-participant';
 import { renameChat } from '@/features/chat/api/mutations/rename-chat';
 import { reportProblem } from '@/features/chat/api/mutations/report-problem';
+import { toggleReaction } from '@/features/chat/api/mutations/toggle-reaction';
 import { updateMessageContent } from '@/features/chat/api/mutations/update-message-content';
 import { getChat } from '@/features/chat/api/queries/get-chat';
 import { getChatMessages } from '@/features/chat/api/queries/get-chat-messages';
@@ -27,6 +29,7 @@ export const chatRouter = createTRPCRouter({
   archiveChat,
   messageStatus: createMessageStatus,
   markChatAsRead,
+  markThreadAsRead,
   createChat: createChat,
   user: getUser,
   contacts: listContacts,
@@ -35,6 +38,7 @@ export const chatRouter = createTRPCRouter({
   chats: getChatList,
   chatDetails: getChat,
   sendMessage: createMessage,
+  toggleReaction,
   infiniteMessages: getChatMessages,
   getMessage: getMessage,
   updateMessageContent: updateMessageContent,

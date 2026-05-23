@@ -107,6 +107,27 @@ export const parseSimplifiedRejectionReason = (
     : undefined;
 };
 
+export const isManualOverrideItem = (r: Record<string, unknown>): boolean => {
+  if (r['manualOverride'] === true) return true;
+
+  // Backward compatibility check for existing records in DB
+  const hasRetriggered = r['retriggeredBy'] !== undefined;
+
+  const responseObject = r['response'] as Record<string, unknown> | undefined;
+  const responseString = responseObject?.['response'] as string | undefined;
+  const isManualText =
+    typeof responseString === 'string' &&
+    (responseString.includes('manually set to') || responseString.includes('manually marked as'));
+
+  const parsedDsnObject = r['parsedDsn'] as Record<string, unknown> | undefined;
+  const diagnosticCode = parsedDsnObject?.['diagnosticCode'] as string | undefined;
+  const isDsnManualText =
+    typeof diagnosticCode === 'string' &&
+    (diagnosticCode.includes('Manually marked as') || diagnosticCode.includes('manually set to'));
+
+  return hasRetriggered && (isManualText || isDsnManualText);
+};
+
 export const parseSmtpStats = (
   cellData: unknown,
   createdAtString?: string,
@@ -116,23 +137,73 @@ export const parseSmtpStats = (
   let dsnSuccess = 0;
   let dsnErrors = 0;
 
+  let activeCreatedAtString = createdAtString;
+  let lastSmtpOverrideIndex = -1;
+  let lastDsnOverrideIndex = -1;
+
   if (Array.isArray(cellData) && cellData.length > 0) {
-    for (const result of cellData) {
+    const resultsArray = cellData as unknown[];
+
+    // 1. Scan for the last manual overrides of SMTP and DSN chronologically
+    for (const [index, result] of resultsArray.entries()) {
       if (result === null || typeof result !== 'object') continue;
 
-      const r = result as Record<string, unknown>;
-      const isBounce = r['bounceReport'] === true;
+      const recordItem = result as Record<string, unknown>;
+      const isBounce = recordItem['bounceReport'] === true;
+      if (isManualOverrideItem(recordItem)) {
+        if (isBounce) {
+          lastDsnOverrideIndex = index;
+        } else {
+          lastSmtpOverrideIndex = index;
+        }
+      } else if (recordItem['retriggeredBy'] !== undefined && !isBounce) {
+        // A manually triggered resend resets both SMTP and DSN active scopes
+        lastSmtpOverrideIndex = index;
+        lastDsnOverrideIndex = index;
+      }
+    }
+
+    // 2. Compute SMTP counts starting from the last SMTP override index
+    for (const [index, result] of resultsArray.entries()) {
+      if (index < lastSmtpOverrideIndex) continue;
+      if (result === null || typeof result !== 'object') continue;
+
+      const recordItem = result as Record<string, unknown>;
+      const isBounce = recordItem['bounceReport'] === true;
+      if (isBounce) continue;
+
       let hasError = false;
+      if (recordItem['success'] === false) hasError = true;
+      if (typeof recordItem['error'] === 'string' && recordItem['error'].length > 0)
+        hasError = true;
 
-      if (r['success'] === false) hasError = true;
-      if (typeof r['error'] === 'string' && r['error'].length > 0) hasError = true;
+      if (hasError) smtpErrors++;
+      else smtpSuccess++;
+    }
 
-      if (isBounce) {
-        if (hasError) dsnErrors++;
-        else dsnSuccess++;
-      } else {
-        if (hasError) smtpErrors++;
-        else smtpSuccess++;
+    // 3. Compute DSN counts starting from the last DSN override index
+    for (const [index, result] of resultsArray.entries()) {
+      if (index < lastDsnOverrideIndex) continue;
+      if (result === null || typeof result !== 'object') continue;
+
+      const recordItem = result as Record<string, unknown>;
+      const isBounce = recordItem['bounceReport'] === true;
+      if (!isBounce) continue;
+
+      let hasError = false;
+      if (recordItem['success'] === false) hasError = true;
+      if (typeof recordItem['error'] === 'string' && recordItem['error'].length > 0)
+        hasError = true;
+
+      if (hasError) dsnErrors++;
+      else dsnSuccess++;
+    }
+
+    const maxIndex = Math.max(lastSmtpOverrideIndex, lastDsnOverrideIndex);
+    if (maxIndex !== -1 && maxIndex < resultsArray.length) {
+      const boundaryItem = resultsArray[maxIndex] as Record<string, unknown>;
+      if (typeof boundaryItem['retriggeredAt'] === 'string') {
+        activeCreatedAtString = boundaryItem['retriggeredAt'];
       }
     }
   }
@@ -143,8 +214,8 @@ export const parseSmtpStats = (
   else if (smtpSuccess > 0) smtpState = 'success';
 
   let timeElapsedMs = 0;
-  if (typeof createdAtString === 'string' && createdAtString.length > 0) {
-    const createdAtDate = new Date(createdAtString);
+  if (typeof activeCreatedAtString === 'string' && activeCreatedAtString.length > 0) {
+    const createdAtDate = new Date(activeCreatedAtString);
     if (!Number.isNaN(createdAtDate.getTime())) {
       timeElapsedMs = Date.now() - createdAtDate.getTime();
     }

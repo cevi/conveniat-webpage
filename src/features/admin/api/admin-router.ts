@@ -1,5 +1,5 @@
-import type { ChatCapability } from '@/lib/chat-shared';
 import {
+  ChatCapability,
   ChatStatus,
   getStatusFromMessageEvents,
   SYSTEM_SENDER_ID,
@@ -269,6 +269,7 @@ export const adminRouter = createTRPCRouter({
                 uuid: membership.userId,
               })),
               user,
+              chat.type,
             ),
             description: chat.description,
             status: chat.status,
@@ -306,6 +307,7 @@ export const adminRouter = createTRPCRouter({
               uuid: membership.userId,
             })),
             user,
+            chat.type,
           ),
           description: chat.description,
           status: chat.status,
@@ -336,7 +338,7 @@ export const adminRouter = createTRPCRouter({
       const { prisma } = ctx;
       const chat = await prisma.chat.findUnique({
         where: { uuid: input.chatId },
-        select: { capabilities: true },
+        select: { capabilities: true, type: true },
       });
 
       if (!chat) throw new TRPCError({ code: 'NOT_FOUND' });
@@ -344,6 +346,49 @@ export const adminRouter = createTRPCRouter({
       const newCapabilities = input.isEnabled
         ? [...new Set([...chat.capabilities, input.capability as ChatCapability])]
         : chat.capabilities.filter((c) => (c as string) !== input.capability);
+
+      if (chat.type === ChatType.ANNOUNCEMENT) {
+        const { getPayload } = await import('payload');
+        const { default: config } = await import('@payload-config');
+        const payload = await getPayload({ config });
+
+        const announcementChannels = await payload.find({
+          collection: 'announcement-channels',
+          where: {
+            chatUuid: {
+              equals: input.chatId,
+            },
+          },
+          depth: 0,
+        });
+
+        if (announcementChannels.docs.length > 0) {
+          const document_ = announcementChannels.docs[0];
+
+          if (document_) {
+            const allowEmojiReactions = newCapabilities.includes(ChatCapability.EMOJI_REACTIONS);
+            const allowThreads = newCapabilities.includes(ChatCapability.THREADS);
+            const allowThreadReplies =
+              allowThreads && newCapabilities.includes(ChatCapability.THREAD_REPLIES);
+
+            await payload.update({
+              collection: 'announcement-channels',
+              id: document_.id,
+              data: {
+                allowEmojiReactions,
+                allowThreads,
+                allowThreadReplies,
+              },
+            });
+          }
+
+          const updatedChat = await prisma.chat.findUnique({
+            where: { uuid: input.chatId },
+          });
+          if (!updatedChat) throw new TRPCError({ code: 'NOT_FOUND' });
+          return updatedChat;
+        }
+      }
 
       return prisma.chat.update({
         where: { uuid: input.chatId },

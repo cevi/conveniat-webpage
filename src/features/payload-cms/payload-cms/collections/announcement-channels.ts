@@ -139,6 +139,18 @@ const afterChannelChange: CollectionAfterChangeHook<AnnouncementChannel> = async
 
   const currentAdminUuid = request.user?.id;
 
+  // Build the capabilities array dynamically based on the CMS selections
+  const capabilities: ChatCapability[] = [ChatCapability.CAN_SEND_MESSAGES];
+  if (doc['allowEmojiReactions']) {
+    capabilities.push(ChatCapability.EMOJI_REACTIONS);
+  }
+  if (doc['allowThreads']) {
+    capabilities.push(ChatCapability.THREADS);
+    if (doc['allowThreadReplies']) {
+      capabilities.push(ChatCapability.THREAD_REPLIES);
+    }
+  }
+
   if (operation === 'create' || chatUuid === undefined || chatUuid === null || chatUuid === '') {
     // A. CREATE: Set up PostgreSQL Chat & default Owner/Admin
     const newChat = await prisma.chat.create({
@@ -147,7 +159,7 @@ const afterChannelChange: CollectionAfterChangeHook<AnnouncementChannel> = async
         description: description ?? '',
         type: ChatType.ANNOUNCEMENT,
         status: ChatStatus.OPEN,
-        capabilities: [ChatCapability.CAN_SEND_MESSAGES, ChatCapability.THREADS],
+        capabilities: capabilities,
         messages: {
           create: {
             contentVersions: {
@@ -197,6 +209,7 @@ const afterChannelChange: CollectionAfterChangeHook<AnnouncementChannel> = async
       data: {
         name,
         description: description ?? '',
+        capabilities: capabilities,
         lastUpdate: new Date(),
       },
     });
@@ -349,6 +362,39 @@ export const AnnouncementChannelsCollection: CollectionConfig = {
           required: true,
         },
       ],
+    },
+    {
+      name: 'allowEmojiReactions',
+      label: {
+        en: 'Allow Emoji Reactions',
+        de: 'Emoji-Reaktionen erlauben',
+        fr: 'Autoriser les réactions emoji',
+      },
+      type: 'checkbox',
+      defaultValue: false,
+    },
+    {
+      name: 'allowThreads',
+      label: {
+        en: 'Allow Threads',
+        de: 'Threads erlauben',
+        fr: 'Autoriser les fils de discussion',
+      },
+      type: 'checkbox',
+      defaultValue: false,
+    },
+    {
+      name: 'allowThreadReplies',
+      label: {
+        en: 'Allow Replies in Threads (for Guest/Reader Users)',
+        de: 'Antworten in Threads erlauben (für Gäste/Leser)',
+        fr: 'Autoriser les réponses dans les fils (pour les invités/lecteurs)',
+      },
+      type: 'checkbox',
+      defaultValue: false,
+      admin: {
+        condition: (data) => !!data['allowThreads'],
+      },
     },
     {
       name: 'chatUuid',
