@@ -46,6 +46,7 @@ export const PushNotificationSubscriptions: CollectionConfig = asPushNotificatio
     {
       type: 'text',
       name: 'token',
+      unique: true,
       required: false,
       admin: {
         readOnly: true,

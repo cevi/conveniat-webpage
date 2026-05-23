@@ -43,7 +43,7 @@ export function useNativePush(): {
       setIsNativeApp(isNative && isBridgeReady);
     }, 0);
 
-    if (!isNative || !isBridgeReady) return (): void => clearTimeout(timeoutId);
+    if (!isNative) return (): void => clearTimeout(timeoutId);
 
     const handleNativeEvent = (event: Event): void => {
       const customEvent = event as CustomEvent<
@@ -60,6 +60,7 @@ export function useNativePush(): {
 
       switch (type) {
         case 'native-push-ready': {
+          setIsNativeApp(true);
           globalThis.AppWebViewNativePush?.getStatus();
           break;
         }
@@ -69,7 +70,9 @@ export function useNativePush(): {
             setStatus(statusValue as NativePushStatus);
             const tokenValue = payload['token'];
             const hasTokenValue =
-              payload['hasToken'] === undefined ? !!tokenValue : !!payload['hasToken'];
+              payload['hasToken'] === undefined
+                ? typeof tokenValue === 'string' && tokenValue !== ''
+                : payload['hasToken'] === true || payload['hasToken'] === 'true';
             setHasToken(hasTokenValue);
           }
           break;
