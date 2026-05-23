@@ -138,7 +138,7 @@ export const useQRCodeState = ({
       }
       const rawSvg = await response.text();
       return rawSvg
-        .replace(/b(['"])([\s\S]*?)\1/, (_, _q: string, p1: string) => {
+        .replaceAll(/b(['"])([\s\S]*?)\1/g, (_, _q: string, p1: string) => {
           return p1
             .replaceAll(String.raw`\n`, '\n')
             .replaceAll(String.raw`\'`, "'")

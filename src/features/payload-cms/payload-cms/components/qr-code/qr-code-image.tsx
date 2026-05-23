@@ -28,6 +28,88 @@ interface QRCodeImageProperties {
 }
 
 /**
+ * Safely sanitizes an inline SVG string using the browser's native DOMParser.
+ * Removes any non-SVG layout elements (like <script>) and strips event handler
+ * attributes (e.g., onload, onclick) or javascript: URIs in hrefs.
+ */
+const sanitizeSvg = (rawSvg: string): string => {
+  if (typeof globalThis === 'undefined') {
+    return rawSvg;
+  }
+
+  try {
+    const parser = new DOMParser();
+    const document_ = parser.parseFromString(rawSvg, 'image/svg+xml');
+
+    if (document_.querySelector('parsererror')) {
+      return '';
+    }
+
+    const svgElement = document_.documentElement;
+    if (svgElement.tagName.toLowerCase() !== 'svg') {
+      return '';
+    }
+
+    // List of allowed tags inside a standard QR code SVG
+    const allowedTags = new Set([
+      'svg',
+      'path',
+      'rect',
+      'circle',
+      'ellipse',
+      'line',
+      'polygon',
+      'polyline',
+      'g',
+      'defs',
+      'style',
+    ]);
+
+    const cleanElement = (element: Element): boolean => {
+      const tagName = element.tagName.toLowerCase();
+      if (!allowedTags.has(tagName)) {
+        return false;
+      }
+
+      const attributes = [...element.attributes];
+      for (const attribute of attributes) {
+        const attributeName = attribute.name.toLowerCase();
+        if (attributeName.startsWith('on')) {
+          element.removeAttribute(attribute.name);
+          continue;
+        }
+        if (attributeName === 'href' || attributeName === 'xlink:href') {
+          const val = attribute.value.trim().toLowerCase();
+          if (val.startsWith('javascript:') || val.startsWith('data:')) {
+            element.removeAttribute(attribute.name);
+          }
+        }
+      }
+
+      const children = [...element.children];
+      for (const child of children) {
+        const keep = cleanElement(child);
+        if (!keep) {
+          child.remove();
+        }
+      }
+
+      return true;
+    };
+
+    const keep = cleanElement(svgElement);
+    if (!keep) {
+      return '';
+    }
+
+    return svgElement.outerHTML;
+  } catch (error) {
+    console.error('Error sanitizing SVG:', error);
+    return '';
+  }
+};
+
+/**
  * A beautiful presentation component that renders a QR code.
  * Displays a pulse-animated loading skeleton while fetching from the backend API,
  * handles rendering of inline raw SVGs or fallback standard images, and provides
@@ -42,6 +124,28 @@ export const QRCodeImage: React.FC<QRCodeImageProperties> = ({
   locale = 'en',
   isError = false,
 }) => {
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => {
+    let active = true;
+    const timer = setTimeout(() => {
+      if (active) {
+        setMounted(true);
+      }
+    }, 0);
+    return (): void => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, []);
+
+  // Determine if the src is an inline SVG or a standard URL
+  const isSvg = qrImageSrc?.includes('<svg') ?? false;
+
+  const sanitizedSvg = React.useMemo(() => {
+    if (!isSvg || !qrImageSrc) return '';
+    return sanitizeSvg(qrImageSrc);
+  }, [isSvg, qrImageSrc]);
+
   const hasValidSvg = typeof qrImageSrc === 'string' && qrImageSrc.includes('<svg');
   const showLoading =
     !hasValidSvg &&
@@ -162,15 +266,12 @@ export const QRCodeImage: React.FC<QRCodeImageProperties> = ({
     );
   }
 
-  // Determine if the src is an inline SVG or a standard URL
-  const isSvg = qrImageSrc?.includes('<svg') ?? false;
-
   let qrElement: React.ReactNode;
   if (isSvg && qrImageSrc) {
     qrElement = (
       <div
         className="h-[200px] w-[200px] [&>svg]:h-full [&>svg]:w-full"
-        dangerouslySetInnerHTML={{ __html: qrImageSrc }}
+        dangerouslySetInnerHTML={{ __html: mounted ? sanitizedSvg : qrImageSrc }}
       />
     );
   } else if (qrImageSrc) {

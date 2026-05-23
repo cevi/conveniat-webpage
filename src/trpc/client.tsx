@@ -98,7 +98,7 @@ export const TRPCProvider: React.FC<{
           if (query.meta?.['persist'] === false) {
             return false;
           }
-          if (query.queryKey[0] === 'qrCodeImage' || query.queryKey[0] === 'qrCodeSvgImage') {
+          if (query.queryKey[0] === 'qrCodeSvgImage') {
             return false;
           }
           return defaultShouldDehydrateQuery(query);
