@@ -48,6 +48,10 @@ export async function sendFcmNotification(
   }
 
   try {
+    // Note: apns-collapse-id causes iOS to replace any previously displayed
+    // notification that carries the same value, rather than appending a new one.
+    // Callers must supply a fresh notificationId per distinct notification,
+    // or intentionally reuse the same notificationId to collapse duplicates.
     const notificationId =
       payload.data.notificationId !== undefined && payload.data.notificationId !== ''
         ? payload.data.notificationId

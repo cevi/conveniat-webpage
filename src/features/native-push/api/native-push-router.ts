@@ -29,14 +29,24 @@ export const nativePushRouter = createTRPCRouter({
         },
       });
 
-      await payload.create({
-        collection: 'push-notification-subscriptions',
-        data: {
-          platform: input.platform,
-          token: input.token,
-          user: payloadUser.id,
-        },
-      });
+      try {
+        await payload.create({
+          collection: 'push-notification-subscriptions',
+          data: {
+            platform: input.platform,
+            token: input.token,
+            user: payloadUser.id,
+          },
+        });
+      } catch (error: unknown) {
+        // Under concurrent requests, the delete+create pattern is non-atomic.
+        // If a duplicate key error occurs, we assume the token is already registered.
+        const message = error instanceof Error ? error.message : String(error);
+        console.warn(
+          'Failed to create push notification subscription (possibly concurrent duplicate):',
+          message,
+        );
+      }
 
       return { success: true };
     }),

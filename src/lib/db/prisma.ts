@@ -27,7 +27,7 @@ if (isBuild) {
         return () => Promise.resolve(null);
       },
     },
-  ) as PrismaClient;
+  ) as unknown as PrismaClient;
 } else {
   const adapter = new PrismaPg({ connectionString: environmentVariables.CHAT_DATABASE_URL });
   prisma =

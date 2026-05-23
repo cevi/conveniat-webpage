@@ -63,3 +63,4 @@ firebase-service-account.json
 # service worker and generated files
 public/sw.js
 public/sw.js.map
+seeding.lock
