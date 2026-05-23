@@ -2121,6 +2121,7 @@ export interface CampMapAnnotation {
    * If checked, the polygon will be clickable and show metadata. If unchecked, it will be a background-only shape.
    */
   isInteractive?: boolean | null;
+  enableSupportChat?: boolean | null;
   /**
    * A detailed description of the annotation.
    */

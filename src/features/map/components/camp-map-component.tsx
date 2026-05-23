@@ -96,6 +96,7 @@ export const CampMapComponent: React.FC<{
           images: document_.images ?? [],
           color: formatHexColor(document_.color) ?? '#47564c',
           importance: document_.importance,
+          enableSupportChat: document_.enableSupportChat ?? true,
         }) as CampMapAnnotationPoint,
     );
 
@@ -122,6 +123,7 @@ export const CampMapComponent: React.FC<{
         color: formatHexColor(document_.color) ?? '#47564c',
         isInteractive,
         importance: document_.importance,
+        enableSupportChat: isInteractive ? (document_.enableSupportChat ?? true) : false,
       } as CampMapAnnotationPolygon;
     });
 
