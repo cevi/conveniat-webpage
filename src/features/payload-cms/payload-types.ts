@@ -2121,6 +2121,9 @@ export interface CampMapAnnotation {
    * If checked, the polygon will be clickable and show metadata. If unchecked, it will be a background-only shape.
    */
   isInteractive?: boolean | null;
+  /**
+   * If checked, users will be able to report issues and start a support chat from this location.
+   */
   enableSupportChat?: boolean | null;
   /**
    * A detailed description of the annotation.
@@ -5147,6 +5150,7 @@ export interface CampMapAnnotationsSelect<T extends boolean = true> {
   geometry?: T;
   polygonCoordinates?: T;
   isInteractive?: T;
+  enableSupportChat?: T;
   description?: T;
   openingHours?:
     | T
