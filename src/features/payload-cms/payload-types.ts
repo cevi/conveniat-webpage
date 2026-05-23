@@ -2212,6 +2212,10 @@ export interface CampScheduleEntry {
     };
     [k: string]: unknown;
   } | null;
+  enable_enrolment?: boolean | null;
+  hide_participant_list?: boolean | null;
+  participants_min?: number | null;
+  participants_max?: number | null;
   /**
    * Location of the Schedule Entry
    */
@@ -2220,10 +2224,6 @@ export interface CampScheduleEntry {
    * Organiser
    */
   organiser?: (string | User)[] | null;
-  enable_enrolment?: boolean | null;
-  hide_participant_list?: boolean | null;
-  participants_min?: number | null;
-  participants_max?: number | null;
   category?: (string | null) | CampCategory;
   lastEditedByUser?: (string | null) | User;
   enrolledCount?: number | null;
@@ -5189,12 +5189,12 @@ export interface CampScheduleEntrySelect<T extends boolean = true> {
         time?: T;
       };
   target_group?: T;
-  location?: T;
-  organiser?: T;
   enable_enrolment?: T;
   hide_participant_list?: T;
   participants_min?: T;
   participants_max?: T;
+  location?: T;
+  organiser?: T;
   category?: T;
   lastEditedByUser?: T;
   enrolledCount?: T;

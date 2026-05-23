@@ -209,6 +209,64 @@ export const CampScheduleEntryCollection: CollectionConfig = {
             },
           ],
         },
+        {
+          label: {
+            en: 'Enrollment',
+            de: 'Anmeldung',
+            fr: 'Inscription',
+          },
+          fields: [
+            {
+              name: 'enable_enrolment',
+              label: {
+                en: 'Allow User Enrolment',
+                de: 'Benutzeranmeldung erlauben',
+                fr: "Autoriser l'inscription des utilisateurs",
+              },
+              type: 'checkbox',
+              defaultValue: false,
+            },
+            {
+              name: 'hide_participant_list',
+              label: {
+                en: 'Hide Participant List',
+                de: 'Teilnehmerliste ausblenden',
+                fr: 'Masquer la liste des participants',
+              },
+              type: 'checkbox',
+              defaultValue: false,
+              admin: {
+                condition: (data) => Boolean(data['enable_enrolment']),
+              },
+            },
+            {
+              name: 'participants_min',
+              label: {
+                en: 'Minimum Participants',
+                de: 'Minimale Teilnehmer',
+                fr: 'Participants minimum',
+              },
+              required: false,
+              type: 'number',
+              admin: {
+                condition: (data) => Boolean(data['enable_enrolment']),
+              },
+            },
+            {
+              name: 'participants_max',
+              label: {
+                en: 'Maximum Participants',
+                de: 'Maximale Teilnehmer',
+                fr: 'Participants maximum',
+              },
+              required: false,
+              type: 'number',
+              admin: {
+                condition: (data) => Boolean(data['enable_enrolment']),
+              },
+            },
+          ],
+        },
       ],
     },
     // Sidebar and hidden fields
@@ -277,59 +335,7 @@ export const CampScheduleEntryCollection: CollectionConfig = {
         position: 'sidebar',
       },
     },
-    {
-      name: 'enable_enrolment',
-      label: {
-        en: 'Allow User Enrolment',
-        de: 'Benutzeranmeldung erlauben',
-        fr: "Autoriser l'inscription des utilisateurs",
-      },
-      type: 'checkbox',
-      defaultValue: false,
-      admin: {
-        position: 'sidebar',
-      },
-    },
-    {
-      name: 'hide_participant_list',
-      label: {
-        en: 'Hide Participant List',
-        de: 'Teilnehmerliste ausblenden',
-        fr: 'Masquer la liste des participants',
-      },
-      type: 'checkbox',
-      defaultValue: false,
-      admin: {
-        position: 'sidebar',
-        condition: (data) => Boolean(data['enable_enrolment']),
-      },
-    },
-    {
-      name: 'participants_min',
-      label: {
-        en: 'Minimum Participants',
-        de: 'Minimale Teilnehmer',
-        fr: 'Participants minimum',
-      },
-      required: false,
-      type: 'number',
-      admin: {
-        condition: (data) => Boolean(data['enable_enrolment']),
-      },
-    },
-    {
-      name: 'participants_max',
-      label: {
-        en: 'Maximum Participants',
-        de: 'Maximale Teilnehmer',
-        fr: 'Participants maximum',
-      },
-      required: false,
-      type: 'number',
-      admin: {
-        condition: (data) => Boolean(data['enable_enrolment']),
-      },
-    },
+
     {
       name: 'category',
       label: {
