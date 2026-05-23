@@ -72,7 +72,7 @@ export const UserCollection: CollectionConfig = {
   admin: {
     description:
       'Represents a user. Data gets automatically synced from Hitobito whenever the user logs in. Users can also be created manually or imported via CSV.',
-    useAsTitle: 'email',
+    useAsTitle: 'displayName',
     group: AdminPanelDashboardGroups.InternalCollections,
     groupBy: true,
     /** this is broken with our localized versions */
@@ -91,6 +91,38 @@ export const UserCollection: CollectionConfig = {
     ],
   },
   fields: [
+    {
+      name: 'displayName',
+      type: 'text',
+      virtual: true,
+      admin: {
+        hidden: true,
+      },
+      hooks: {
+        afterRead: [
+          ({ data }): string => {
+            if (!data) return '';
+            const email = (data as User).email;
+            const fullName = (data as User).fullName;
+            const nickname = (data as User).nickname;
+
+            const nameParts: string[] = [];
+            if (typeof fullName === 'string' && fullName !== '') {
+              nameParts.push(fullName);
+            }
+            if (typeof nickname === 'string' && nickname !== '') {
+              nameParts.push(`v/o ${nickname}`);
+            }
+
+            const nameString = nameParts.join(' ');
+            if (typeof email === 'string' && email !== '') {
+              return nameString === '' ? email : `${nameString} (${email})`;
+            }
+            return nameString === '' ? 'Unnamed User' : nameString;
+          },
+        ],
+      },
+    },
     {
       name: 'cevi_db_uuid',
       label: 'UserID inside CeviDB',
