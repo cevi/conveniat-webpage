@@ -23,14 +23,11 @@ jobs:
       - name: Generate Build Info
         run: bash create_build_info.sh
 
-      - name: Install prettier
-        run: pnpm add prettier
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Run prettier
         run: pnpm prettier:check
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
 
       - name: generate prisma client
         run: npx prisma generate --no-hints
