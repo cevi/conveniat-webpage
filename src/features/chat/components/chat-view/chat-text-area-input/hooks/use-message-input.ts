@@ -98,7 +98,11 @@ export const useMessageInput = (): UseMessageInputLogicResult => {
               url.searchParams.delete('text');
               url.searchParams.delete('title');
               url.searchParams.delete('url');
-              globalThis.history.replaceState({}, '', url.pathname + url.search);
+              globalThis.history.replaceState(
+                globalThis.history.state,
+                '',
+                url.pathname + url.search,
+              );
             }
           }
         },
