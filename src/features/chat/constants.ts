@@ -1,1 +1,1 @@
-export const CHAT_PAGE_SIZE = 25;
+export { CHAT_PAGE_SIZE } from '@/lib/chat-shared';

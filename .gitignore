@@ -56,6 +56,7 @@ src/lib/prisma
 src/cache-handlers/**/*.js
 src/cache-handlers/**/*.cjs
 .eslintcache
+seeding.lock
 
 # Firebase credentials
 firebase-service-account.json
@@ -64,3 +65,7 @@ firebase-service-account.json
 public/sw.js
 public/sw.js.map
 seeding.lock
+
+# playwright
+/test-results/
+/playwright-report/

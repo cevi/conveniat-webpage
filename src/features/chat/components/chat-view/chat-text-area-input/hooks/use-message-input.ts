@@ -107,6 +107,17 @@ export const useMessageInput = (): UseMessageInputLogicResult => {
           }
         },
         onError: (error) => {
+          const isOfflineError =
+            !navigator.onLine ||
+            error.message === 'Failed to fetch' ||
+            error.message.includes('Network request failed');
+
+          if (isOfflineError) {
+            // Message was successfully queued by the global useMessageSend hook
+            pendingMessageReference.current = undefined;
+            return;
+          }
+
           // Restore the message on error so user can retry
           if (
             pendingMessageReference.current !== undefined &&

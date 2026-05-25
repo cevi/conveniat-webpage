@@ -2,6 +2,7 @@ import type { ChatDetails, ChatMessage } from '@/features/chat/api/types';
 import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
 import { useChatActions } from '@/features/chat/context/chat-actions-context';
 import { generateOptimisticId, isOptimisticMessageMatch } from '@/features/chat/utils';
+import { addMessageToOutbox } from '@/features/chat/utils/offline-outbox';
 import { SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import { ChatType, MessageEventType, MessageType } from '@/lib/prisma/client';
 import { toast } from '@/lib/toast';
@@ -207,7 +208,27 @@ export const useMessageSend = (): UseMessageSendMutation => {
       });
     },
 
-    onError: (error, { chatId, parentId }, context) => {
+    onError: (error, { chatId, parentId, content, quotedMessageId }, context) => {
+      const isOfflineError =
+        !navigator.onLine ||
+        error.message === 'Failed to fetch' ||
+        error.message.includes('Network request failed');
+
+      if (isOfflineError) {
+        if (context?.optimisticMessageId) {
+          addMessageToOutbox({
+            id: context.optimisticMessageId,
+            chatId,
+            content,
+            quotedMessageId: quotedMessageId ?? undefined,
+            parentId: parentId ?? undefined,
+            createdAt: new Date().toISOString(),
+          });
+        }
+        toast.success('Message queued. Will be sent when online.');
+        return;
+      }
+
       toast.error('Failed to send message', error);
       console.error('Failed to send message, rolling back optimistic update:', error);
 
