@@ -1,6 +1,6 @@
 {
   "name": "conveniat27",
-  "version": "0.53.0",
+  "version": "0.54.0",
   "description": "The official website of conveniat27",
   "license": "MIT",
   "author": "Cyrill Püntener v/o JPG (cyrill.puentener@cevi.ch)",
@@ -29,7 +29,8 @@
     "prettier": "prettier --config-path .prettierrc.json --write --cache --experimental-cli .",
     "prettier:check": "prettier  --config .prettierrc.json --check .",
     "start": "cross-env NODE_OPTIONS=--no-deprecation next start",
-    "test": "jest"
+    "test": "jest",
+    "test:e2e": "playwright test"
   },
   "lint-staged": {
     "**/package.json": "sort-package-json",
@@ -158,6 +159,7 @@
     "@eslint/js": "^9.39.4",
     "@faker-js/faker": "^9.9.0",
     "@next/eslint-plugin-next": "16.0.1",
+    "@playwright/test": "^1.60.0",
     "@serwist/build": "^9.5.11",
     "@serwist/cli": "^9.5.11",
     "@serwist/next": "^9.5.11",

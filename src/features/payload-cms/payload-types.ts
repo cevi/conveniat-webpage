@@ -60,6 +60,7 @@ export interface Config {
     'helper-jobs': HelperJob;
     'announcement-channels': AnnouncementChannel;
     announcements: Announcement;
+    'emergency-cards': EmergencyCard;
     images: Image;
     userSubmittedImages: UserSubmittedImage;
     documents: Document;
@@ -115,6 +116,7 @@ export interface Config {
     'helper-jobs': HelperJobsSelect<false> | HelperJobsSelect<true>;
     'announcement-channels': AnnouncementChannelsSelect<false> | AnnouncementChannelsSelect<true>;
     announcements: AnnouncementsSelect<false> | AnnouncementsSelect<true>;
+    'emergency-cards': EmergencyCardsSelect<false> | EmergencyCardsSelect<true>;
     images: ImagesSelect<false> | ImagesSelect<true>;
     userSubmittedImages: UserSubmittedImagesSelect<false> | UserSubmittedImagesSelect<true>;
     documents: DocumentsSelect<false> | DocumentsSelect<true>;
@@ -493,6 +495,7 @@ export interface LocalizedPublishingStatus {
  */
 export interface User {
   id: string;
+  displayName?: string | null;
   /**
    * The ID of the user in the CeviDB. Set automatically when the user logs in via Hitobito. Leave empty for manually created users.
    */
@@ -2120,6 +2123,10 @@ export interface CampMapAnnotation {
    */
   isInteractive?: boolean | null;
   /**
+   * If checked, users will be able to report issues and start a support chat from this location.
+   */
+  enableSupportChat?: boolean | null;
+  /**
    * A detailed description of the annotation.
    */
   description: {
@@ -2206,6 +2213,10 @@ export interface CampScheduleEntry {
     };
     [k: string]: unknown;
   } | null;
+  enable_enrolment?: boolean | null;
+  hide_participant_list?: boolean | null;
+  participants_min?: number | null;
+  participants_max?: number | null;
   /**
    * Location of the Schedule Entry
    */
@@ -2214,10 +2225,6 @@ export interface CampScheduleEntry {
    * Organiser
    */
   organiser?: (string | User)[] | null;
-  enable_enrolment?: boolean | null;
-  hide_participant_list?: boolean | null;
-  participants_min?: number | null;
-  participants_max?: number | null;
   category?: (string | null) | CampCategory;
   lastEditedByUser?: (string | null) | User;
   enrolledCount?: number | null;
@@ -3309,6 +3316,48 @@ export interface Announcement {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "emergency-cards".
+ */
+export interface EmergencyCard {
+  id: string;
+  publishingStatus?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  _localized_status: LocalizedPublishingStatus;
+  _disable_unpublishing?: boolean | null;
+  _locale: string;
+  title: string;
+  description: string;
+  procedure: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  documents?: (string | Document)[] | null;
+  images?: (string | Image)[] | null;
+  lastEditedByUser?: (string | null) | User;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "userSubmittedImages".
  */
 export interface UserSubmittedImage {
@@ -3911,6 +3960,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'announcements';
         value: string | Announcement;
+      } | null)
+    | ({
+        relationTo: 'emergency-cards';
+        value: string | EmergencyCard;
       } | null)
     | ({
         relationTo: 'images';
@@ -5098,6 +5151,7 @@ export interface CampMapAnnotationsSelect<T extends boolean = true> {
   geometry?: T;
   polygonCoordinates?: T;
   isInteractive?: T;
+  enableSupportChat?: T;
   description?: T;
   openingHours?:
     | T
@@ -5136,12 +5190,12 @@ export interface CampScheduleEntrySelect<T extends boolean = true> {
         time?: T;
       };
   target_group?: T;
-  location?: T;
-  organiser?: T;
   enable_enrolment?: T;
   hide_participant_list?: T;
   participants_min?: T;
   participants_max?: T;
+  location?: T;
+  organiser?: T;
   category?: T;
   lastEditedByUser?: T;
   enrolledCount?: T;
@@ -5279,6 +5333,25 @@ export interface AnnouncementsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "emergency-cards_select".
+ */
+export interface EmergencyCardsSelect<T extends boolean = true> {
+  publishingStatus?: T;
+  _localized_status?: T;
+  _disable_unpublishing?: T;
+  _locale?: T;
+  title?: T;
+  description?: T;
+  procedure?: T;
+  documents?: T;
+  images?: T;
+  lastEditedByUser?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "images_select".
  */
 export interface ImagesSelect<T extends boolean = true> {
@@ -5401,6 +5474,7 @@ export interface DocumentsSelect<T extends boolean = true> {
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
+  displayName?: T;
   cevi_db_uuid?: T;
   adminPanelAccess?: T;
   email?: T;
@@ -7186,6 +7260,7 @@ export interface TaskCreateCollectionExport {
       | 'helper-jobs'
       | 'announcement-channels'
       | 'announcements'
+      | 'emergency-cards'
       | 'images'
       | 'userSubmittedImages'
       | 'documents'

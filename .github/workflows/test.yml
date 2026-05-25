@@ -15,6 +15,12 @@ jobs:
       - uses: actions/checkout@v4
         name: Checkout repository
 
+      - name: Copy environment variables
+        run: cp .env.example .env
+
+      - name: Start Docker services
+        run: COMPOSE_PROFILES="" docker compose up -d
+
       - name: Install pnpm
         uses: pnpm/action-setup@v4
 
@@ -22,7 +28,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: 'pnpm'
 
       - name: Generate Build Info
         run: bash create_build_info.sh

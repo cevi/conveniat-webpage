@@ -256,6 +256,52 @@ const ensureAuthAndPreferencesIndexes = async (
   );
 };
 
+/**
+ * Deduplicates push notification subscriptions by token.
+ * Since a unique constraint is defined on the token field, existing duplicates
+ * will cause index creation to fail on MongoDB. This cleans them up beforehand.
+ *
+ * @param connection The MongoDB connection
+ */
+const deduplicatePushSubscriptions = async (
+  connection: MongooseAdapter['connection'],
+): Promise<void> => {
+  const collection = connection.collection('push-notification-subscriptions');
+
+  try {
+    const duplicates = await collection
+      .aggregate([
+        { $group: { _id: '$token', count: { $sum: 1 }, docs: { $push: '$_id' } } },
+        { $match: { count: { $gt: 1 }, _id: { $exists: true } } },
+      ])
+      .toArray();
+
+    if (duplicates.length > 0) {
+      console.log(`${LOG_PREFIX} Found ${duplicates.length} duplicate push tokens to clean up`);
+      let deletedCount = 0;
+
+      for (const document_ of duplicates) {
+        // Keep the most recent (assuming last is most recent, or just keep one)
+        // Actually Payload _id (ObjectId) sorts chronologically
+        const documents = document_['docs'] as string[];
+        documents.sort(); // Sort ObjectIds as strings
+        const remove = documents.slice(0, -1); // Remove all but the last one
+
+        if (remove.length > 0) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const result = await collection.deleteMany({ _id: { $in: remove as any[] } });
+          deletedCount += result.deletedCount;
+        }
+      }
+
+      console.log(`${LOG_PREFIX} Deleted ${deletedCount} duplicate push subscription records`);
+    }
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`${LOG_PREFIX} Failed to deduplicate push subscriptions: ${message}`);
+  }
+};
+
 export const ensureIndexes = async (payload: Payload): Promise<void> => {
   const { db, config } = payload;
 
@@ -280,6 +326,10 @@ export const ensureIndexes = async (payload: Payload): Promise<void> => {
   const entities = [...collections, ...globals];
 
   if (entities.length === 0) return;
+
+  // Run Deduplication for Push Notification Subscriptions BEFORE index creation
+  // to ensure the unique index on `token` can be created.
+  await deduplicatePushSubscriptions(connection);
 
   // Kick off Form Submissions (Promise)
   const formPromise = ensureFormSubmissionIndexes(connection, locales);

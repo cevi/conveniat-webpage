@@ -2,6 +2,7 @@ import 'server-only';
 
 import { environmentVariables } from '@/config/environment-variables';
 import * as admin from 'firebase-admin';
+import { randomUUID } from 'node:crypto';
 import * as fs from 'node:fs';
 
 let firebaseAdminInitialized = false;
@@ -47,6 +48,14 @@ export async function sendFcmNotification(
   }
 
   try {
+    // Note: apns-collapse-id causes iOS to replace any previously displayed
+    // notification that carries the same value, rather than appending a new one.
+    // Callers must supply a fresh notificationId per distinct notification,
+    // or intentionally reuse the same notificationId to collapse duplicates.
+    const notificationId =
+      payload.data.notificationId !== undefined && payload.data.notificationId !== ''
+        ? payload.data.notificationId
+        : randomUUID();
     await adminInstance.messaging().send({
       token,
       notification: {
@@ -55,7 +64,12 @@ export async function sendFcmNotification(
       },
       data: {
         url: payload.data.url ?? '/app/dashboard',
-        notificationId: payload.data.notificationId ?? '',
+        notificationId,
+      },
+      apns: {
+        headers: {
+          'apns-collapse-id': notificationId,
+        },
       },
     });
     return { success: true };

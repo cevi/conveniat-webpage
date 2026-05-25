@@ -1,3 +1,5 @@
+import { environmentVariables } from '@/config/environment-variables';
+
 /**
  * URL of the service worker to register.
  */
@@ -9,6 +11,30 @@ const SW_URL = '/sw.js' as const;
  */
 export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration | undefined> => {
   if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
+    return undefined;
+  }
+
+  if (environmentVariables.NEXT_PUBLIC_DISABLE_SERWIST) {
+    console.log(
+      '[Service Worker] Registration skipped because NEXT_PUBLIC_DISABLE_SERWIST is true.',
+    );
+    try {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      let unregisteredAny = false;
+      for (const registration of registrations) {
+        const success = await registration.unregister();
+        if (success) {
+          console.log('[Service Worker] Unregistered active service worker:', registration.scope);
+          unregisteredAny = true;
+        }
+      }
+      if (unregisteredAny) {
+        console.log('[Service Worker] Reloading page to clear stale cache.');
+        globalThis.location.reload();
+      }
+    } catch (error) {
+      console.error('[Service Worker] Failed to unregister service workers:', error);
+    }
     return undefined;
   }
 

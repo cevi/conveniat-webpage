@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/buttons/button';
 import { Switch } from '@/components/ui/switch';
 import { SettingsRow } from '@/features/settings/components/settings-row';
 import { useOfflineDownload } from '@/hooks/use-offline-download';
+import { syncChatsOffline } from '@/lib/chat-sync';
+import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { motion } from 'framer-motion';
 import { Download, RefreshCw } from 'lucide-react';
@@ -50,6 +52,7 @@ interface OfflineContentSettingsProperties {
 }
 
 export const OfflineContentSettings: React.FC<OfflineContentSettingsProperties> = ({ locale }) => {
+  const trpcUtils = trpc.useUtils();
   const { status, progress, startDownload, deleteContent } = useOfflineDownload({
     checkCacheOnMount: true,
   });
@@ -71,6 +74,7 @@ export const OfflineContentSettings: React.FC<OfflineContentSettingsProperties> 
               variant="ghost"
               size="icon"
               onClick={() => {
+                void syncChatsOffline(trpcUtils).catch(console.warn);
                 void startDownload();
               }}
               title={updateButton[locale]}
@@ -83,6 +87,7 @@ export const OfflineContentSettings: React.FC<OfflineContentSettingsProperties> 
             checked={displayStatus === 'has-content' || displayStatus === 'downloading'}
             onCheckedChange={(checked) => {
               if (checked) {
+                void syncChatsOffline(trpcUtils).catch(console.warn);
                 void startDownload();
               } else {
                 void deleteContent();

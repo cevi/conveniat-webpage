@@ -347,6 +347,23 @@ export const CampMapAnnotationsCollection: CollectionConfig = {
           },
           fields: [
             {
+              name: 'enableSupportChat',
+              label: {
+                en: 'Enable Support Chat',
+                de: 'Support-Chat aktivieren',
+                fr: 'Activer le chat de support',
+              },
+              type: 'checkbox',
+              defaultValue: true,
+              admin: {
+                description: {
+                  en: 'If checked, users will be able to report issues and start a support chat from this location.',
+                  de: 'Wenn aktiviert, können Benutzer Probleme melden und einen Support-Chat von diesem Ort aus starten.',
+                  fr: 'Si coché, les utilisateurs pourront signaler des problèmes et démarrer un chat de support depuis cet emplacement.',
+                },
+              },
+            },
+            {
               name: 'description',
               label: 'Description',
               type: 'richText',

@@ -7,18 +7,52 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { Payload } from 'payload';
 
-const LOCK_FILE = path.join(process.cwd(), '.next', 'seeding.lock');
+const LOCK_FILE = path.join(process.cwd(), 'seeding.lock');
 
 /**
  * This function is called when the Payload server has started.
  * @param payload The Payload instance
  */
 export const onPayloadInit = async (payload: Payload): Promise<void> => {
-  // Ensure .next directory exists
+  const globalForInit = globalThis as unknown as {
+    __payloadInitCompleted__?: boolean;
+  };
+
+  if (globalForInit.__payloadInitCompleted__ === true) {
+    return;
+  }
+
+  // Fast-path: Check if the lock file already exists and is marked as 'done'.
+  // Under Next.js dynamic routing / Fast Refresh / separate sandbox compilation,
+  // this avoids running database checks and index ensuring repeatedly on every single request.
   try {
-    await fs.mkdir(path.dirname(LOCK_FILE), { recursive: true });
+    const lockContent = await fs.readFile(LOCK_FILE, 'utf8');
+    if (lockContent === 'done') {
+      globalForInit.__payloadInitCompleted__ = true;
+      return;
+    }
   } catch {
-    // Ignore error if it exists
+    // Lock file doesn't exist or is not written yet, proceed to normal checks
+  }
+
+  // Check if database is already seeded first
+  try {
+    const { totalDocs: userCount } = await payload.count({ collection: 'users' });
+    const { totalDocs: genericPageCount } = await payload.count({ collection: 'generic-page' });
+    if (userCount > 0 || genericPageCount > 0) {
+      console.log('[Lock Manager] Database already seeded. Skipping seeding.');
+      // If the database is already seeded, make sure the lock file is marked as 'done' so other workers skip waiting
+      await fs.writeFile(LOCK_FILE, 'done').catch(() => {});
+
+      await withSpan('payload.init.ensureIndexes', async () => {
+        await ensureIndexes(payload);
+      }).catch(console.error);
+
+      globalForInit.__payloadInitCompleted__ = true;
+      return;
+    }
+  } catch (error) {
+    console.error('[Lock Manager] Failed to check database seeding status:', error);
   }
 
   // Attempt atomic lock acquisition using OS exclusive write flag
@@ -51,6 +85,7 @@ export const onPayloadInit = async (payload: Payload): Promise<void> => {
       // Mark the lock as successfully done
       await fs.writeFile(LOCK_FILE, 'done');
       console.log('[Lock Manager] Database initialization complete. Lock released.');
+      globalForInit.__payloadInitCompleted__ = true;
     } catch (error) {
       console.error('[Lock Manager] Database initialization failed:', error);
       // Clean up lock file on crash so initialization can be retried
@@ -66,6 +101,7 @@ export const onPayloadInit = async (payload: Payload): Promise<void> => {
           console.log(
             '[Lock Manager] Database initialization successfully completed by the other worker. Skipping.',
           );
+          globalForInit.__payloadInitCompleted__ = true;
           return;
         }
       } catch {
@@ -80,6 +116,12 @@ export const onPayloadInit = async (payload: Payload): Promise<void> => {
 
 export const deleteEverything = async (payload: Payload): Promise<void> => {
   console.log('########################\n# Deleting everything...\n########################\n');
+
+  // Reset the global initialization completed flag so a reset database re-runs seeding/indexing
+  const globalForInit = globalThis as unknown as {
+    __payloadInitCompleted__?: boolean;
+  };
+  globalForInit.__payloadInitCompleted__ = false;
 
   // Remove the lock file so a manual database reset allows fresh seeding
   await fs.rm(LOCK_FILE, { force: true }).catch(() => {});
