@@ -17,7 +17,7 @@ export const PushNotificationSubscriptionManager: React.FC<{
   callback: () => void;
   locale: 'de' | 'fr' | 'en';
 }> = ({ callback, locale }) => {
-  const [isNative, setIsNative] = useState(false);
+  const [isNative, setIsNative] = useState<boolean | null>(null);
 
   useEffect(() => {
     setIsNative(isNativeAppWebView());
@@ -27,6 +27,8 @@ export const PushNotificationSubscriptionManager: React.FC<{
   // The result is intentionally unused in native mode.
   const { isSupported, isSubscribed, isLoading, errorMessage, toggleSubscription } =
     usePushNotificationState({ registrationSource: '/entrypoint', locale });
+
+  if (isNative === null) return null;
 
   if (isNative) {
     return <NativePushSubscriptionManager callback={callback} locale={locale} />;

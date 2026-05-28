@@ -51,6 +51,7 @@ export const NativePushSubscriptionManager: React.FC<{
   const advance = useCallback((): void => {
     if (!hasAdvancedRef.current) {
       hasAdvancedRef.current = true;
+      setIsRequesting(false);
       callbackRef.current();
     }
   }, []);
