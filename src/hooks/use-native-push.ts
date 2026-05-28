@@ -39,7 +39,12 @@ export function useNativePush(): {
     // Maintain backward compatibility for older app versions that don't inject the bridge
     const isBridgeReady = globalThis.AppWebViewNativePush !== undefined;
 
-    console.log('[NativePush:PWA] hook mounted: isNative =', isNative, '| bridgeReady =', isBridgeReady);
+    console.log(
+      '[NativePush:PWA] hook mounted: isNative =',
+      isNative,
+      '| bridgeReady =',
+      isBridgeReady,
+    );
 
     const timeoutId = setTimeout(() => {
       setIsNativeApp(isNative && isBridgeReady);
@@ -77,7 +82,12 @@ export function useNativePush(): {
               payload['hasToken'] === undefined
                 ? typeof tokenValue === 'string' && tokenValue !== ''
                 : payload['hasToken'] === true || payload['hasToken'] === 'true';
-            console.log('[NativePush:PWA] status update: authLabel =', statusValue, '| hasToken =', hasTokenValue);
+            console.log(
+              '[NativePush:PWA] status update: authLabel =',
+              statusValue,
+              '| hasToken =',
+              hasTokenValue,
+            );
             setStatus(statusValue as NativePushStatus);
             setHasToken(hasTokenValue);
           }
@@ -86,22 +96,29 @@ export function useNativePush(): {
         case 'native-push-token': {
           const token = payload['token'];
           const platform = payload['platform'];
-          console.log('[NativePush:PWA] token received: platform =', platform, '| token =', typeof token === 'string' ? `${token.slice(0, 8)}…` : 'missing');
+          console.log(
+            '[NativePush:PWA] token received: platform =',
+            platform,
+            '| token =',
+            typeof token === 'string' ? `${token.slice(0, 8)}…` : 'missing',
+          );
           if (typeof token === 'string' && typeof platform === 'string') {
             console.log('[NativePush:PWA] calling registerDevice: platform =', platform);
             registerDevice({
               token,
               platform: platform as 'ios' | 'android',
-            }).then(() => {
-              console.log('[NativePush:PWA] registerDevice: success');
-            }).catch((error: unknown) => {
-              console.error('[NativePush:PWA] registerDevice: failed', error);
-              if (error instanceof Error) {
-                void import('posthog-js').then(({ default: ph }) => {
-                  ph.capture('native_push_register_error', { error: error.message });
-                });
-              }
-            });
+            })
+              .then(() => {
+                console.log('[NativePush:PWA] registerDevice: success');
+              })
+              .catch((error: unknown) => {
+                console.error('[NativePush:PWA] registerDevice: failed', error);
+                if (error instanceof Error) {
+                  void import('posthog-js').then(({ default: ph }) => {
+                    ph.capture('native_push_register_error', { error: error.message });
+                  });
+                }
+              });
             setStatus('granted');
             setHasToken(true);
           }
@@ -110,17 +127,24 @@ export function useNativePush(): {
         case 'native-push-token-deleted': {
           const token = payload['token'];
           const platform = payload['platform'];
-          console.log('[NativePush:PWA] token deleted: platform =', platform, '| token =', typeof token === 'string' ? `${token.slice(0, 8)}…` : 'missing');
+          console.log(
+            '[NativePush:PWA] token deleted: platform =',
+            platform,
+            '| token =',
+            typeof token === 'string' ? `${token.slice(0, 8)}…` : 'missing',
+          );
           if (typeof token === 'string' && typeof platform === 'string') {
             console.log('[NativePush:PWA] calling unregisterDevice: platform =', platform);
             unregisterDevice({
               token,
               platform: platform as 'ios' | 'android',
-            }).then(() => {
-              console.log('[NativePush:PWA] unregisterDevice: success');
-            }).catch((error: unknown) => {
-              console.error('[NativePush:PWA] unregisterDevice: failed', error);
-            });
+            })
+              .then(() => {
+                console.log('[NativePush:PWA] unregisterDevice: success');
+              })
+              .catch((error: unknown) => {
+                console.error('[NativePush:PWA] unregisterDevice: failed', error);
+              });
           }
           setHasToken(false);
           setStatus('prompt');
@@ -131,10 +155,15 @@ export function useNativePush(): {
             // Only allow relative (same-origin) paths to prevent open redirects
             const url = payload['url'];
             const isRelative = url.startsWith('/') && !url.startsWith('//');
-            console.log('[NativePush:PWA] notification opened, navigating to:', isRelative ? url : '/app/dashboard');
+            console.log(
+              '[NativePush:PWA] notification opened, navigating to:',
+              isRelative ? url : '/app/dashboard',
+            );
             router.push(isRelative ? url : '/app/dashboard');
           } else {
-            console.log('[NativePush:PWA] notification opened (no url), navigating to /app/dashboard');
+            console.log(
+              '[NativePush:PWA] notification opened (no url), navigating to /app/dashboard',
+            );
             router.push('/app/dashboard');
           }
           break;

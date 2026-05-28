@@ -15,7 +15,12 @@ export const nativePushRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       const tokenPreview = `${input.token.slice(0, 8)}…`;
-      console.log('[NativePush:API] registerDevice: platform =', input.platform, '| token =', tokenPreview);
+      console.log(
+        '[NativePush:API] registerDevice: platform =',
+        input.platform,
+        '| token =',
+        tokenPreview,
+      );
 
       const payload = await getPayload({ config });
       const payloadUser = await getPayloadUserFromNextAuthUser(payload, ctx.user);
@@ -25,7 +30,11 @@ export const nativePushRouter = createTRPCRouter({
         throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found' });
       }
 
-      console.log('[NativePush:API] registerDevice: user =', payloadUser.id, '| deduplicating existing token');
+      console.log(
+        '[NativePush:API] registerDevice: user =',
+        payloadUser.id,
+        '| deduplicating existing token',
+      );
 
       // Delete any existing subscriptions with the same token globally to ensure uniqueness
       const deleted = await payload.delete({
@@ -35,7 +44,11 @@ export const nativePushRouter = createTRPCRouter({
         },
       });
       if (deleted.docs.length > 0) {
-        console.log('[NativePush:API] registerDevice: removed', deleted.docs.length, 'existing record(s) for this token');
+        console.log(
+          '[NativePush:API] registerDevice: removed',
+          deleted.docs.length,
+          'existing record(s) for this token',
+        );
       }
 
       try {
@@ -47,7 +60,10 @@ export const nativePushRouter = createTRPCRouter({
             user: payloadUser.id,
           },
         });
-        console.log('[NativePush:API] registerDevice: success — token registered for user', payloadUser.id);
+        console.log(
+          '[NativePush:API] registerDevice: success — token registered for user',
+          payloadUser.id,
+        );
       } catch (error: unknown) {
         // Under concurrent requests, the delete+create pattern is non-atomic.
         // If a duplicate key error occurs, we assume the token is already registered.
@@ -70,7 +86,12 @@ export const nativePushRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       const tokenPreview = `${input.token.slice(0, 8)}…`;
-      console.log('[NativePush:API] unregisterDevice: platform =', input.platform, '| token =', tokenPreview);
+      console.log(
+        '[NativePush:API] unregisterDevice: platform =',
+        input.platform,
+        '| token =',
+        tokenPreview,
+      );
 
       const payload = await getPayload({ config });
       const payloadUser = await getPayloadUserFromNextAuthUser(payload, ctx.user);
@@ -91,7 +112,12 @@ export const nativePushRouter = createTRPCRouter({
         },
       });
 
-      console.log('[NativePush:API] unregisterDevice: removed', deleted.docs.length, 'record(s) for user', payloadUser.id);
+      console.log(
+        '[NativePush:API] unregisterDevice: removed',
+        deleted.docs.length,
+        'record(s) for user',
+        payloadUser.id,
+      );
       return { success: true };
     }),
 });
