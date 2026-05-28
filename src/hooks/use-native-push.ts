@@ -39,6 +39,8 @@ export function useNativePush(): {
     // Maintain backward compatibility for older app versions that don't inject the bridge
     const isBridgeReady = globalThis.AppWebViewNativePush !== undefined;
 
+    console.log('[NativePush:PWA] hook mounted: isNative =', isNative, '| bridgeReady =', isBridgeReady);
+
     const timeoutId = setTimeout(() => {
       setIsNativeApp(isNative && isBridgeReady);
     }, 0);
@@ -58,8 +60,11 @@ export function useNativePush(): {
       const type = detail.type;
       const payload = detail.payload ?? {};
 
+      console.log('[NativePush:PWA] event received:', type);
+
       switch (type) {
         case 'native-push-ready': {
+          console.log('[NativePush:PWA] bridge ready, requesting status');
           setIsNativeApp(true);
           globalThis.AppWebViewNativePush?.getStatus();
           break;
@@ -67,23 +72,30 @@ export function useNativePush(): {
         case 'native-push-status': {
           const statusValue = payload['authorizationLabel'] ?? payload['status'];
           if (typeof statusValue === 'string') {
-            setStatus(statusValue as NativePushStatus);
             const tokenValue = payload['token'];
             const hasTokenValue =
               payload['hasToken'] === undefined
                 ? typeof tokenValue === 'string' && tokenValue !== ''
                 : payload['hasToken'] === true || payload['hasToken'] === 'true';
+            console.log('[NativePush:PWA] status update: authLabel =', statusValue, '| hasToken =', hasTokenValue);
+            setStatus(statusValue as NativePushStatus);
             setHasToken(hasTokenValue);
           }
           break;
         }
         case 'native-push-token': {
-          if (typeof payload['token'] === 'string' && typeof payload['platform'] === 'string') {
+          const token = payload['token'];
+          const platform = payload['platform'];
+          console.log('[NativePush:PWA] token received: platform =', platform, '| token =', typeof token === 'string' ? `${token.slice(0, 8)}…` : 'missing');
+          if (typeof token === 'string' && typeof platform === 'string') {
+            console.log('[NativePush:PWA] calling registerDevice: platform =', platform);
             registerDevice({
-              token: payload['token'],
-              platform: payload['platform'] as 'ios' | 'android',
+              token,
+              platform: platform as 'ios' | 'android',
+            }).then(() => {
+              console.log('[NativePush:PWA] registerDevice: success');
             }).catch((error: unknown) => {
-              console.error('Failed to register native device token', error);
+              console.error('[NativePush:PWA] registerDevice: failed', error);
               if (error instanceof Error) {
                 void import('posthog-js').then(({ default: ph }) => {
                   ph.capture('native_push_register_error', { error: error.message });
@@ -96,12 +108,18 @@ export function useNativePush(): {
           break;
         }
         case 'native-push-token-deleted': {
-          if (typeof payload['token'] === 'string' && typeof payload['platform'] === 'string') {
+          const token = payload['token'];
+          const platform = payload['platform'];
+          console.log('[NativePush:PWA] token deleted: platform =', platform, '| token =', typeof token === 'string' ? `${token.slice(0, 8)}…` : 'missing');
+          if (typeof token === 'string' && typeof platform === 'string') {
+            console.log('[NativePush:PWA] calling unregisterDevice: platform =', platform);
             unregisterDevice({
-              token: payload['token'],
-              platform: payload['platform'] as 'ios' | 'android',
+              token,
+              platform: platform as 'ios' | 'android',
+            }).then(() => {
+              console.log('[NativePush:PWA] unregisterDevice: success');
             }).catch((error: unknown) => {
-              console.error('Failed to unregister native device token', error);
+              console.error('[NativePush:PWA] unregisterDevice: failed', error);
             });
           }
           setHasToken(false);
@@ -113,14 +131,16 @@ export function useNativePush(): {
             // Only allow relative (same-origin) paths to prevent open redirects
             const url = payload['url'];
             const isRelative = url.startsWith('/') && !url.startsWith('//');
+            console.log('[NativePush:PWA] notification opened, navigating to:', isRelative ? url : '/app/dashboard');
             router.push(isRelative ? url : '/app/dashboard');
           } else {
+            console.log('[NativePush:PWA] notification opened (no url), navigating to /app/dashboard');
             router.push('/app/dashboard');
           }
           break;
         }
         case 'native-push-error': {
-          console.error('Native push error:', payload['error']);
+          console.error('[NativePush:PWA] bridge error:', payload['error']);
           void import('posthog-js').then(({ default: ph }) => {
             ph.capture('native_push_error', { error: payload['error'] });
           });
@@ -132,6 +152,7 @@ export function useNativePush(): {
     globalThis.addEventListener('app-webview-native-push-event', handleNativeEvent);
 
     // Initial status check
+    console.log('[NativePush:PWA] requesting initial status');
     globalThis.AppWebViewNativePush?.getStatus();
 
     return (): void => {
@@ -142,18 +163,21 @@ export function useNativePush(): {
 
   const requestPermission = (): void => {
     if (isNativeApp) {
+      console.log('[NativePush:PWA] requestPermission called');
       globalThis.AppWebViewNativePush?.requestPermission();
     }
   };
 
   const deleteToken = (): void => {
     if (isNativeApp) {
+      console.log('[NativePush:PWA] deleteToken called');
       globalThis.AppWebViewNativePush?.deleteToken();
     }
   };
 
   const openSettings = (): void => {
     if (isNativeApp) {
+      console.log('[NativePush:PWA] openSettings called');
       globalThis.AppWebViewNativePush?.openSettings();
     }
   };
