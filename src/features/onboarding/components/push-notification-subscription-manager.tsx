@@ -6,7 +6,11 @@ import { PushNotificationNotSupported } from '@/features/onboarding/components/p
 import { usePushNotificationState } from '@/hooks/use-push-notification-state';
 import { isNativeAppWebView } from '@/utils/standalone-check';
 
-import React, { useEffect, useState } from 'react';
+import React, { useSyncExternalStore } from 'react';
+
+const noopUnsubscribe = (): undefined => undefined;
+const subscribeToNothing = (): (() => void) => noopUnsubscribe;
+const getServerIsNative = (): boolean => false;
 
 /**
  * PushNotificationManager is a React component that manages push notifications.
@@ -17,18 +21,12 @@ export const PushNotificationSubscriptionManager: React.FC<{
   callback: () => void;
   locale: 'de' | 'fr' | 'en';
 }> = ({ callback, locale }) => {
-  const [isNative, setIsNative] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    setIsNative(isNativeAppWebView());
-  }, []);
+  const isNative = useSyncExternalStore(subscribeToNothing, isNativeAppWebView, getServerIsNative);
 
   // Always call the web push hook so hook call order is stable across renders.
   // The result is intentionally unused in native mode.
   const { isSupported, isSubscribed, isLoading, errorMessage, toggleSubscription } =
     usePushNotificationState({ registrationSource: '/entrypoint', locale });
-
-  if (isNative === null) return null;
 
   if (isNative) {
     return <NativePushSubscriptionManager callback={callback} locale={locale} />;

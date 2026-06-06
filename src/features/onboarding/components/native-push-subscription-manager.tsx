@@ -33,6 +33,10 @@ const skipButtonText: StaticTranslationString = {
   fr: "Passer pour l'instant",
 };
 
+const handleOpenSettings = (): void => {
+  globalThis.AppWebViewNativePush?.openSettings();
+};
+
 interface NativePushEventDetail {
   type?: string;
   payload?: Record<string, unknown>;
@@ -44,15 +48,18 @@ export const NativePushSubscriptionManager: React.FC<{
 }> = ({ callback, locale }) => {
   const [isRequesting, setIsRequesting] = useState(false);
   const [isDenied, setIsDenied] = useState(false);
-  const callbackRef = useRef(callback);
-  callbackRef.current = callback;
-  const hasAdvancedRef = useRef(false);
+  const callbackReference = useRef(callback);
+  const hasAdvancedReference = useRef(false);
+
+  useEffect(() => {
+    callbackReference.current = callback;
+  }, [callback]);
 
   const advance = useCallback((): void => {
-    if (!hasAdvancedRef.current) {
-      hasAdvancedRef.current = true;
+    if (!hasAdvancedReference.current) {
+      hasAdvancedReference.current = true;
       setIsRequesting(false);
-      callbackRef.current();
+      callbackReference.current();
     }
   }, []);
 
@@ -77,10 +84,8 @@ export const NativePushSubscriptionManager: React.FC<{
           // not-determined or unknown — permission dialog dismissed without granting
           setIsRequesting(false);
         }
-      } else if (type === 'native-push-token') {
-        if (typeof payload['token'] === 'string') {
-          advance();
-        }
+      } else if (type === 'native-push-token' && typeof payload['token'] === 'string') {
+        advance();
       }
     };
 
@@ -93,10 +98,6 @@ export const NativePushSubscriptionManager: React.FC<{
   const handleEnable = (): void => {
     setIsRequesting(true);
     globalThis.AppWebViewNativePush?.requestPermission();
-  };
-
-  const handleOpenSettings = (): void => {
-    globalThis.AppWebViewNativePush?.openSettings();
   };
 
   if (isDenied) {
