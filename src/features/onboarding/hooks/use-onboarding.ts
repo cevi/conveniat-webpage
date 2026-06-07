@@ -16,6 +16,7 @@ import { isCookieTrue } from '@/utils/cookie-utils';
 import { DesignCodes, DesignModeTriggers } from '@/utils/design-codes';
 import { handleSkipLogin as skipLoginUtil } from '@/utils/login-handler';
 import { getPushSubscription } from '@/utils/push-notifications/push-manager-utils';
+import { isNativeAppWebView } from '@/utils/standalone-check';
 import Cookies from 'js-cookie';
 import { useSession } from 'next-auth/react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -115,6 +116,9 @@ export const useOnboarding = (): UseOnboardingReturn => {
     const hasSkipped = isCookieTrue(Cookie.SKIP_PUSH_NOTIFICATION);
     if (hasSkipped) {
       dispatch({ type: OnboardingAction.USER_ACTION_SKIP_PUSH });
+    } else if (isNativeAppWebView()) {
+      // Native push was granted via FCM — no Web Push subscription exists, advance directly
+      dispatch({ type: OnboardingAction.UPDATE_CONTEXT, payload: { hasPushSubscription: true } });
     } else {
       // Refresh push subscription status and update context
       void getPushSubscription().then((sub) => {
