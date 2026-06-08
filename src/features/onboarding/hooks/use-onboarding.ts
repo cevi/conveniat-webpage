@@ -92,7 +92,10 @@ export const useOnboarding = (): UseOnboardingReturn => {
         offlineContentHandled,
         hasCachedContent,
         pushPermission,
-        hasPushSubscription,
+        // In native mode, hasPushSubscription is managed exclusively by handlePushNotification.
+        // Excluding it here prevents async re-runs of this effect (triggered by hasCachedContent
+        // or other deps) from overwriting the true value set after native push is granted.
+        ...(isNativeAppWebView() ? {} : { hasPushSubscription }),
       },
     });
   }, [status, isOnline, offlineContentHandled, hasCachedContent, hasPushSubscription]);
