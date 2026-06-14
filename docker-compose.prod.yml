@@ -139,9 +139,9 @@ services:
       sh -c '
         while true; do
           echo "INFO: 🧹 Deleting backups older than 30 days...";
-          find /backup -type d -mtime +30 -exec rm -rf {} +;
+          find /backup -name "*.gz" -mtime +30 -delete;
           echo "INFO: Creating database backup...";
-          mongodump --host mongo --out /backup/dump_$$$$(date +%Y-%m-%d_%H-%M-%S);
+          mongodump --host mongo --archive=/backup/dump_$$$$(date +%Y-%m-%d_%H-%M-%S).gz --gzip;
           echo "INFO: Backup complete. Waiting 1 hour.";
           sleep 3600; # 1 hour
         done
