@@ -213,7 +213,17 @@ export class EventService {
    *
    * This replaces any browser-cookie-based scraping for reading event participants.
    */
+  /**
+   * List all participations for an event using the official JSON:API.
+   *
+   * Uses GET /api/event_participations with filter[event_id][eq] and
+   * include=participant,roles to sideload person data and role types.
+   * Handles pagination automatically via links.next.
+   *
+   * Falls back to legacy JSON API or HTML scraping if the participant profile is restricted.
+   */
   async listEventParticipations(
+    groupId: string,
     eventId: string,
   ): Promise<z.infer<typeof EventParticipationWithPersonSchema>[]> {
     const allParticipations: z.infer<typeof EventParticipationWithPersonSchema>[] = [];
@@ -251,7 +261,11 @@ export class EventService {
           } else {
             // event_roles type (from discriminated union)
             const participationId = String(included.attributes.participation_id ?? '');
-            if (participationId.length > 0 && included.attributes.type) {
+            if (
+              participationId.length > 0 &&
+              included.attributes.type !== undefined &&
+              included.attributes.type !== ''
+            ) {
               roleTypes.set(participationId, included.attributes.type);
             }
           }
@@ -260,11 +274,28 @@ export class EventService {
 
       // Process participation data
       for (const participation of parsed.data.data) {
-        const participantId =
-          participation.relationships?.participant?.data?.id ??
-          String(participation.attributes.participant_id);
+        let participantId = '';
+        const participantData = participation.relationships?.participant?.data;
+        if (participantData) {
+          participantId = String(participantData.id);
+        }
 
-        const person = includedPeople.get(participantId);
+        let person = participantId.length > 0 ? includedPeople.get(participantId) : undefined;
+
+        // Fallback: If relationship data is null/restricted, fetch via fallback methods
+        if (!participantData || !person) {
+          const fallbackPerson = await this.fetchRestrictedPersonDetails(
+            groupId,
+            eventId,
+            participation.id,
+          );
+          if (fallbackPerson) {
+            participantId = fallbackPerson.personId;
+            person = fallbackPerson.attributes;
+            includedPeople.set(participantId, person);
+          }
+        }
+
         const firstName = person?.first_name ?? '';
         const lastName = person?.last_name ?? '';
         const nickname = person?.nickname ?? '';
@@ -276,7 +307,7 @@ export class EventService {
         allParticipations.push({
           participationId: participation.id,
           participantId,
-          eventId: String(participation.attributes.event_id),
+          eventId: String(participation.attributes.event_id ?? eventId),
           firstName,
           lastName,
           nickname,
@@ -294,5 +325,239 @@ export class EventService {
 
     this.logger?.info(`Fetched ${allParticipations.length} participations for event ${eventId}`);
     return allParticipations;
+  }
+
+  /**
+   * Fetches the details of a restricted person profile using fallback methods.
+   */
+  private async fetchRestrictedPersonDetails(
+    groupId: string,
+    eventId: string,
+    participationId: string,
+  ): Promise<
+    | {
+        personId: string;
+        attributes: {
+          first_name: string;
+          last_name: string;
+          nickname: string;
+          email: string | undefined;
+          street: string | undefined;
+          housenumber: string | undefined;
+          zip_code: string | undefined;
+          town: string | undefined;
+          country: string | undefined;
+          birthday: string | undefined;
+        };
+      }
+    | undefined
+  > {
+    // 1. First level fallback: Try the legacy JSON API endpoint for the single participation
+    try {
+      const legacyJsonPath = `/groups/${groupId}/events/${eventId}/participations/${participationId}.json`;
+      const { response: legacyResponse, body: legacyBody } = await this.client.frontendRequest(
+        'GET',
+        legacyJsonPath,
+      );
+
+      if (legacyResponse.ok) {
+        const parsed = JSON.parse(legacyBody) as {
+          event_participations?: Array<{
+            links?: { person?: string | number };
+            first_name?: string | null;
+            last_name?: string | null;
+            nickname?: string | null;
+            email?: string | null;
+            street?: string | null;
+            housenumber?: string | null;
+            zip_code?: string | null;
+            town?: string | null;
+            country?: string | null;
+            birthday?: string | null;
+          }>;
+        };
+
+        const firstParticipation = parsed.event_participations?.[0];
+        const personIdRaw = firstParticipation?.links?.person;
+        if (firstParticipation && personIdRaw !== undefined) {
+          const personId = String(personIdRaw);
+          if (personId !== '') {
+            this.logger?.info(
+              `Successfully retrieved restricted person ${personId} details via legacy JSON fallback`,
+            );
+            return {
+              personId,
+              attributes: {
+                first_name: firstParticipation.first_name ?? '',
+                last_name: firstParticipation.last_name ?? '',
+                nickname: firstParticipation.nickname ?? '',
+                email: firstParticipation.email ?? undefined,
+                street: firstParticipation.street ?? undefined,
+                housenumber: firstParticipation.housenumber ?? undefined,
+                zip_code: firstParticipation.zip_code ?? undefined,
+                town: firstParticipation.town ?? undefined,
+                country: firstParticipation.country ?? undefined,
+                birthday: firstParticipation.birthday ?? undefined,
+              },
+            };
+          }
+        }
+      }
+    } catch (error) {
+      this.logger?.warn(
+        `First level fallback (legacy JSON) failed for participation ${participationId}: ${String(
+          error,
+        )}`,
+      );
+    }
+
+    // 2. Second level fallback: Scrape HTML show page -> get person ID & group ID -> GET edit HTML form -> parse inputs
+    try {
+      const showPath = `/groups/${groupId}/events/${eventId}/participations/${participationId}`;
+      const { response: showResponse, body: showHtml } = await this.client.frontendRequest(
+        'GET',
+        showPath,
+      );
+
+      if (!showResponse.ok) {
+        this.logger?.warn(
+          `Second level fallback failed to fetch show page ${showPath}: ${showResponse.status}`,
+        );
+        return undefined;
+      }
+
+      // Try to find the person ID and group ID in edit link or role links
+      const editLinkMatch = showHtml.match(/\/groups\/(\d+)\/people\/(\d+)\/edit/);
+      let personGroupId = editLinkMatch?.[1];
+      let personId = editLinkMatch?.[2];
+
+      if (
+        personId === undefined ||
+        personId === '' ||
+        personGroupId === undefined ||
+        personGroupId === ''
+      ) {
+        const roleAddMatch = showHtml.match(/person_id(?:%5D|\])=(\d+)/);
+        const matchedPersonId = roleAddMatch?.[1];
+        if (matchedPersonId !== undefined && matchedPersonId !== '') {
+          personId = matchedPersonId;
+          personGroupId = '1'; // Default to root group if not specified
+        }
+      }
+
+      if (
+        personId === undefined ||
+        personId === '' ||
+        personGroupId === undefined ||
+        personGroupId === ''
+      ) {
+        this.logger?.warn(
+          `Could not extract person ID or group ID from show HTML for participation ${participationId}`,
+        );
+        return undefined;
+      }
+
+      const editPath = `/groups/${personGroupId}/people/${personId}/edit`;
+      const { response: editResponse, body: editHtml } = await this.client.frontendRequest(
+        'GET',
+        editPath,
+      );
+
+      if (!editResponse.ok) {
+        this.logger?.warn(
+          `Second level fallback failed to fetch edit page ${editPath}: ${editResponse.status}`,
+        );
+        return undefined;
+      }
+
+      const fields = this.parseEditPageHtml(editHtml);
+      this.logger?.info(
+        `Successfully scraped restricted person ${personId} details via HTML scraping fallback`,
+      );
+
+      const getField = (name: string): string | undefined => {
+        const val = fields[name];
+        return val !== undefined && val !== '' ? val : undefined;
+      };
+
+      return {
+        personId,
+        attributes: {
+          first_name: fields['first_name'] ?? '',
+          last_name: fields['last_name'] ?? '',
+          nickname: fields['nickname'] ?? '',
+          email: getField('email'),
+          street: getField('street'),
+          housenumber: getField('housenumber'),
+          zip_code: getField('zip_code'),
+          town: getField('town'),
+          country: getField('country'),
+          birthday: getField('birthday'),
+        },
+      };
+    } catch (error) {
+      this.logger?.error(
+        `Second level fallback failed for participation ${participationId}: ${String(error)}`,
+      );
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Helper to parse form inputs from the person edit HTML page.
+   */
+  private parseEditPageHtml(html: string): Record<string, string> {
+    const inputRegex = /<(input|textarea|select)[^>]*name="person\[([^\]]+)\]"[^>]*>/g;
+    const fields: Record<string, string> = {};
+
+    let match = inputRegex.exec(html);
+    while (match !== null) {
+      const tag = match[0];
+      const type = match[1];
+      const fieldName = match[2];
+
+      if (type && fieldName && !tag.includes('type="file"')) {
+        let value = '';
+        const valueMatch = tag.match(/value="([^"]*)"/);
+        if (valueMatch?.[1] !== undefined) {
+          value = valueMatch[1];
+        }
+
+        if (type === 'textarea') {
+          const textareaMatch = html.match(
+            new RegExp(
+              `<textarea[^>]*name="person\\[${fieldName}\\]"[^>]*>([\\s\\S]*?)<\\/textarea>`,
+            ),
+          );
+          if (textareaMatch?.[1] !== undefined) {
+            value = textareaMatch[1].trim();
+          }
+        } else if (type === 'select') {
+          const selectMatch = html.match(
+            new RegExp(`<select[^>]*name="person\\[${fieldName}\\]"[^>]*>([\\s\\S]*?)<\\/select>`),
+          );
+          if (selectMatch?.[1] !== undefined) {
+            const optionMatch = selectMatch[1].match(
+              /<option[^>]*selected="selected"[^>]*value="([^"]*)"/,
+            );
+            if (optionMatch?.[1] === undefined) {
+              const optionMatchAlternative = selectMatch[1].match(
+                /<option[^>]*value="([^"]*)"[^>]*selected[^>]*>/,
+              );
+              if (optionMatchAlternative?.[1] !== undefined) {
+                value = optionMatchAlternative[1];
+              }
+            } else {
+              value = optionMatch[1];
+            }
+          }
+        }
+
+        fields[fieldName] = value;
+      }
+      match = inputRegex.exec(html);
+    }
+    return fields;
   }
 }

@@ -46,13 +46,22 @@ export async function syncParticipants(
     context: { internal: true },
   });
 
+  // Load registration management to get browser cookie
+  const regManagement = await payload.findGlobal({
+    slug: 'registration-management',
+    context: { internal: true },
+  });
+  const cookieValue = regManagement.browserCookie;
+  const browserCookie =
+    typeof cookieValue === 'string' && cookieValue.length > 0 ? cookieValue : '';
+
   const events = (settings.events as BillSettingsEvent[] | undefined) ?? [];
   if (events.length === 0) {
     summary.errors.push('No events configured in Bill Settings.');
     return summary;
   }
 
-  // 2. Create Hitobito client (token-only, no browser cookie needed)
+  // 2. Create Hitobito client
   const logger = {
     info: (message: string): void => {
       payload.logger.info(message);
@@ -71,7 +80,7 @@ export async function syncParticipants(
       {
         baseUrl: HITOBITO_CONFIG.baseUrl,
         apiToken: HITOBITO_CONFIG.apiToken,
-        browserCookie: '', // Not needed for JSON:API endpoints
+        browserCookie,
       },
       logger,
     );
@@ -80,7 +89,10 @@ export async function syncParticipants(
   // 3. Fetch participations for each event
   for (const event of events) {
     try {
-      const participations = await eventService.listEventParticipations(event.eventId);
+      const participations = await eventService.listEventParticipations(
+        event.groupId,
+        event.eventId,
+      );
       const fetchedParticipationIds = new Set<string>();
 
       for (const participation of participations) {
