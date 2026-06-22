@@ -500,13 +500,13 @@ export const BillingListToolbar: React.FC = () => {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button
-              buttonStyle="transparent"
-              className={documentControlButtonClasses.neutral()}
-              size="medium"
+            <button
+              type="button"
+              className={`btn btn--size-medium btn--style-transparent btn--color-neutral ${documentControlButtonClasses.neutral()}`}
+              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
             >
               <MoreHorizontal className="h-4 w-4" />
-            </Button>
+            </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="end"
