@@ -4,6 +4,7 @@ import { PayloadSettingsAdapter } from '@/features/billing/adapters/payload-sett
 import { S3StorageAdapter } from '@/features/billing/adapters/s3-storage.adapter';
 import { populateSubeventsUseCase } from '@/features/billing/services/populate-subevents';
 import { previewPdfUseCase } from '@/features/billing/services/preview-pdf';
+import { BillingJobStatus, BillingTaskSlug } from '@/features/billing/types';
 import { canAccessBilling } from '@/features/payload-cms/payload-cms/access-rules/can-access-billing';
 import { HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api';
 import type { PayloadHandler } from 'payload';
@@ -33,7 +34,7 @@ export const billingSyncHandler: PayloadHandler = async (request) => {
     }
 
     const job = await request.payload.jobs.queue({
-      task: 'syncParticipants',
+      task: BillingTaskSlug.SyncParticipants,
       input: {},
     });
 
@@ -56,7 +57,7 @@ export const billingGenerateHandler: PayloadHandler = async (request) => {
     }
 
     const job = await request.payload.jobs.queue({
-      task: 'generateBills',
+      task: BillingTaskSlug.GenerateBills,
       input: {},
     });
 
@@ -136,7 +137,7 @@ export const billingSendHandler: PayloadHandler = async (request) => {
     }
 
     const job = await request.payload.jobs.queue({
-      task: 'sendBills',
+      task: BillingTaskSlug.SendBills,
       input: {},
     });
 
@@ -297,8 +298,8 @@ export const billingPopulateSubeventsHandler: PayloadHandler = async (request) =
 
 interface SyncJobStatus {
   id: string;
-  taskSlug: 'syncParticipants' | 'generateBills' | 'sendBills';
-  status: 'pending' | 'failed' | 'success';
+  taskSlug: BillingTaskSlug;
+  status: BillingJobStatus;
   summary?: Record<string, unknown>;
   error?: string;
   updatedAt: string;
@@ -307,10 +308,11 @@ interface SyncJobStatus {
 function getJobDerivedStatus(job: {
   completedAt?: string | null;
   hasError?: boolean | null;
-}): 'pending' | 'failed' | 'success' {
-  if (job.hasError === true) return 'failed';
-  if (typeof job.completedAt === 'string' && job.completedAt.length > 0) return 'success';
-  return 'pending';
+}): BillingJobStatus {
+  if (job.hasError === true) return BillingJobStatus.Failed;
+  if (typeof job.completedAt === 'string' && job.completedAt.length > 0)
+    return BillingJobStatus.Success;
+  return BillingJobStatus.Pending;
 }
 
 function getJobErrorMessage(job: {
@@ -370,7 +372,7 @@ export const billingSyncStatusHandler: PayloadHandler = async (request) => {
 
       const jobData: SyncJobStatus = {
         id: job.id,
-        taskSlug: job.taskSlug as 'syncParticipants' | 'generateBills' | 'sendBills',
+        taskSlug: job.taskSlug as BillingTaskSlug,
         status,
         updatedAt: job.updatedAt,
       };
@@ -388,9 +390,7 @@ export const billingSyncStatusHandler: PayloadHandler = async (request) => {
     }
 
     // Otherwise, return the latest job for each task type
-    const getLatestJob = async (
-      taskSlug: 'syncParticipants' | 'generateBills' | 'sendBills',
-    ): Promise<SyncJobStatus | undefined> => {
+    const getLatestJob = async (taskSlug: BillingTaskSlug): Promise<SyncJobStatus | undefined> => {
       const result = await request.payload.find({
         collection: 'payload-jobs',
         where: {
@@ -405,7 +405,7 @@ export const billingSyncStatusHandler: PayloadHandler = async (request) => {
 
       const status = getJobDerivedStatus(job);
       const logs = Array.isArray(job.log) ? job.log : [];
-      const taskLog = logs.find((l) => l.taskSlug === taskSlug);
+      const taskLog = logs.find((l) => l.taskSlug === (taskSlug as string));
       const output = taskLog?.output as Record<string, unknown> | undefined;
       const error = getJobErrorMessage(job);
 
@@ -426,9 +426,9 @@ export const billingSyncStatusHandler: PayloadHandler = async (request) => {
     };
 
     const [syncJob, generateJob, sendJob] = await Promise.all([
-      getLatestJob('syncParticipants'),
-      getLatestJob('generateBills'),
-      getLatestJob('sendBills'),
+      getLatestJob(BillingTaskSlug.SyncParticipants),
+      getLatestJob(BillingTaskSlug.GenerateBills),
+      getLatestJob(BillingTaskSlug.SendBills),
     ]);
 
     return Response.json({

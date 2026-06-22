@@ -88,3 +88,21 @@ export interface FinanceCsvRow {
   DateExpiration: string;
   Description: string;
 }
+
+/**
+ * Task slug enum representing billing background operations.
+ */
+export enum BillingTaskSlug {
+  SyncParticipants = 'syncParticipants',
+  GenerateBills = 'generateBills',
+  SendBills = 'sendBills',
+}
+
+/**
+ * Status enum representing the status of background job runs.
+ */
+export enum BillingJobStatus {
+  Pending = 'pending',
+  Failed = 'failed',
+  Success = 'success',
+}
