@@ -381,3 +381,143 @@ export const billingPreviewPdfHandler: PayloadHandler = async (request) => {
     return Response.json({ error: message }, { status: 500 });
   }
 };
+
+interface GroupResource {
+  id: string;
+}
+
+interface GroupApiResponse {
+  data?: GroupResource[];
+  links?: {
+    next?: string | null;
+  };
+}
+
+interface EventResource {
+  id: string;
+  attributes?: {
+    name?: string;
+  };
+}
+
+interface EventApiResponse {
+  data?: EventResource[];
+}
+
+/**
+ * POST /api/confidential/billing/populate-subevents – Dynamically fetch subevents of group 4337 and save to settings
+ */
+export const billingPopulateSubeventsHandler: PayloadHandler = async (request) => {
+  try {
+    const hasAccess = await canAccessBilling({ req: request });
+    if (!hasAccess) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { Hitobito } = await import('@/features/registration_process/hitobito-api/hitobito');
+    const { HITOBITO_CONFIG } = await import('@/features/registration_process/hitobito-api/config');
+
+    const baseUrl = HITOBITO_CONFIG.baseUrl || 'https://db.cevi.ch';
+    const apiToken = HITOBITO_CONFIG.apiToken || '';
+
+    const hitobito = Hitobito.create(
+      { baseUrl, apiToken, browserCookie: '' },
+      {
+        info: (message) => request.payload.logger.info(message),
+        warn: (message) => request.payload.logger.warn(message),
+        error: (message) => request.payload.logger.error(message),
+      },
+    );
+
+    const parentGroupId = '4337';
+    request.payload.logger.info(
+      `Fetching subgroups of parent group ${parentGroupId} from Cevi.DB...`,
+    );
+
+    const subgroupLinks: string[] = [];
+    let nextUrl: string | undefined = `/api/groups`;
+    let isFirstPage = true;
+    const baseParameters: Record<string, string> = {
+      'filter[parent_id][eq]': parentGroupId,
+      'page[size]': '100',
+    };
+
+    while (nextUrl) {
+      const response: GroupApiResponse = await hitobito.client.apiRequest<GroupApiResponse>(
+        'GET',
+        nextUrl,
+        isFirstPage ? { params: baseParameters } : {},
+      );
+      if (response.data) {
+        for (const group of response.data) {
+          if (group.id) subgroupLinks.push(group.id);
+        }
+      }
+      nextUrl = response.links?.next ?? undefined;
+      isFirstPage = false;
+    }
+
+    request.payload.logger.info(`Found ${subgroupLinks.length} subgroups. Querying events...`);
+
+    const concurrencyLimit = 15;
+    const results: Array<{ eventId: string; eventName: string; groupId: string }> = [];
+
+    const executeBatch = async (ids: string[]): Promise<void[]> => {
+      return Promise.all(
+        ids.map(async (groupId) => {
+          try {
+            const response: EventApiResponse = await hitobito.client.apiRequest<EventApiResponse>(
+              'GET',
+              '/api/events',
+              {
+                params: {
+                  'filter[group_id][eq]': groupId,
+                },
+              },
+            );
+            if (response.data) {
+              for (const event of response.data) {
+                const name = event.attributes?.name || '';
+                if (name.includes('Hauptlager conveniat27') || name.includes('conveniat27')) {
+                  results.push({
+                    eventId: event.id,
+                    eventName: name,
+                    groupId: groupId,
+                  });
+                }
+              }
+            }
+          } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            request.payload.logger.warn(`Failed to fetch events for group ${groupId}: ${message}`);
+          }
+        }),
+      );
+    };
+
+    for (let index = 0; index < subgroupLinks.length; index += concurrencyLimit) {
+      const chunk = subgroupLinks.slice(index, index + concurrencyLimit);
+      await executeBatch(chunk);
+    }
+
+    // Sort results by eventName for clean structure in the UI
+    results.sort((a, b) => a.eventName.localeCompare(b.eventName));
+
+    request.payload.logger.info(
+      `Found ${results.length} matching events. Updating global settings...`,
+    );
+
+    await request.payload.updateGlobal({
+      slug: 'bill-settings',
+      data: {
+        events: results,
+      },
+    });
+
+    return Response.json({ success: true, count: results.length });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    request.payload.logger.error({ err: error }, `Populating subevents failed: ${message}`);
+    return Response.json({ error: message }, { status: 500 });
+  }
+};

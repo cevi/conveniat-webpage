@@ -6640,13 +6640,16 @@ export interface BillSetting {
    */
   events?:
     | {
+        /**
+         * Hitobito event ID to sync (up to 6 digits)
+         */
         eventId: string;
         /**
          * Display name, e.g. "Hof Süd"
          */
         eventName: string;
         /**
-         * Hitobito group ID this event belongs to (max 999)
+         * Hitobito group ID this event belongs to (up to 6 digits)
          */
         groupId: string;
         id?: string | null;

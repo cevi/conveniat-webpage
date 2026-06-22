@@ -39,6 +39,16 @@ export const BillSettingsGlobal: GlobalConfig = {
           },
           fields: [
             {
+              name: 'populateSubeventsButton',
+              type: 'ui',
+              admin: {
+                components: {
+                  Field:
+                    '@/features/billing/components/populate-subevents-button#PopulateSubeventsButton',
+                },
+              },
+            },
+            {
               name: 'events',
               type: 'array',
               label: {
@@ -62,6 +72,19 @@ export const BillSettingsGlobal: GlobalConfig = {
                     en: 'Event ID',
                     de: 'Anlass-ID',
                     fr: "ID de l'événement",
+                  },
+                  admin: {
+                    description: {
+                      en: 'Hitobito event ID to sync (up to 6 digits)',
+                      de: 'Hitobito Anlass-ID zum Synchronisieren (bis zu 6 Stellen)',
+                      fr: "ID de l'événement Hitobito à synchroniser (jusqu'à 6 chiffres)",
+                    },
+                  },
+                  validate: (val: string | null | undefined): string | true => {
+                    if (val && !/^\d{1,6}$/.test(val)) {
+                      return 'Event ID must be a number up to 6 digits';
+                    }
+                    return true;
                   },
                 },
                 {
@@ -92,14 +115,14 @@ export const BillSettingsGlobal: GlobalConfig = {
                   },
                   admin: {
                     description: {
-                      en: 'Hitobito group ID this event belongs to (max 999)',
-                      de: 'Hitobito Gruppen-ID, zu der dieser Anlass gehört (max 999)',
-                      fr: 'ID du groupe Hitobito auquel cet événement appartient (max 999)',
+                      en: 'Hitobito group ID this event belongs to (up to 6 digits)',
+                      de: 'Hitobito Gruppen-ID, zu der dieser Anlass gehört (bis zu 6 Stellen)',
+                      fr: "ID du groupe Hitobito auquel cet événement appartient (jusqu'à 6 chiffres)",
                     },
                   },
                   validate: (val: string | null | undefined): string | true => {
-                    if (val && !/^\d{1,3}$/.test(val)) {
-                      return 'Group ID must be a number up to 3 digits (max 999)';
+                    if (val && !/^\d{1,6}$/.test(val)) {
+                      return 'Group ID must be a number up to 6 digits';
                     }
                     return true;
                   },

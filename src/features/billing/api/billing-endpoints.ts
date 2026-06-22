@@ -1,6 +1,7 @@
 import {
   billingExportCsvHandler,
   billingGenerateHandler,
+  billingPopulateSubeventsHandler,
   billingPreviewPdfHandler,
   billingRegenerateAllHandler,
   billingRegenerateSingleHandler,
@@ -50,5 +51,10 @@ export const billingEndpoints: Endpoint[] = [
     path: '/confidential/billing/preview-pdf',
     method: 'get',
     handler: billingPreviewPdfHandler,
+  },
+  {
+    path: '/confidential/billing/populate-subevents',
+    method: 'post',
+    handler: billingPopulateSubeventsHandler,
   },
 ];
