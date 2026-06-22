@@ -19,6 +19,16 @@ export interface SyncedExternalParticipant {
   active: boolean;
 }
 
+export interface HitobitoPersonDetails {
+  firstName?: string | undefined;
+  lastName?: string | undefined;
+  street?: string | undefined;
+  houseNumber?: string | undefined;
+  zip?: string | undefined;
+  town?: string | undefined;
+  birthday?: string | undefined;
+}
+
 export interface HitobitoServicePort {
   fetchParticipations(groupId: string, eventId: string): Promise<SyncedExternalParticipant[]>;
   fetchParticipationAnswers(
@@ -28,4 +38,5 @@ export interface HitobitoServicePort {
   ): Promise<Record<string, string>>;
   fetchSubgroupLinks(parentGroupId: string): Promise<string[]>;
   fetchEventsForGroup(groupId: string): Promise<Array<{ id: string; name: string }>>;
+  fetchPersonDetails(personId: string): Promise<HitobitoPersonDetails | null>;
 }

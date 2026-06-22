@@ -31,4 +31,13 @@ export class PayloadSettingsAdapter implements SettingsPort {
       },
     });
   }
+
+  async updateNextReferenceNumber(nextReferenceNumber: number): Promise<void> {
+    await this.payload.updateGlobal({
+      slug: 'bill-settings',
+      data: {
+        nextReferenceNumber,
+      },
+    });
+  }
 }

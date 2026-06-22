@@ -1,38 +1,17 @@
+import { HitobitoServiceAdapter } from '@/features/billing/adapters/hitobito-service.adapter';
+import { PayloadParticipantRepositoryAdapter } from '@/features/billing/adapters/payload-participant-repository.adapter';
+import { PayloadSettingsAdapter } from '@/features/billing/adapters/payload-settings.adapter';
+import type { HitobitoServicePort } from '@/features/billing/ports/hitobito-service.port';
+import type { ParticipantRepositoryPort } from '@/features/billing/ports/participant-repository.port';
+import type { SettingsPort } from '@/features/billing/ports/settings.port';
 import type { GenerationSummary } from '@/features/billing/types';
 import { generateQrReference } from '@/features/billing/utils';
 import { HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api';
-import { HitobitoClient } from '@/features/registration_process/hitobito-api/client';
-import { PersonService } from '@/features/registration_process/hitobito-api/services/person.service';
+import type { HitobitoClient } from '@/features/registration_process/hitobito-api/client';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { Payload } from 'payload';
 import type { PDFRow } from 'swissqrbill/pdf';
-
-interface BillSettings {
-  creditorName: string;
-  creditorIban: string;
-  creditorStreet: string;
-  creditorBuildingNumber?: string;
-  creditorZip: string;
-  creditorCity: string;
-  creditorUid?: string;
-  creditorEmail?: string;
-  creditorWebsite?: string;
-  currency: string;
-  nextReferenceNumber: number;
-  invoiceNumberPrefix: string;
-  customReferenceTemplate?: string;
-  eventNumberTemplate?: string;
-  documentTitle?: string;
-  paymentDeadlineDays: number;
-  invoiceLetterText: string;
-  rolePricing: Array<{
-    roleTypePattern: string;
-    label: string;
-    amount: number;
-    vatCode?: string;
-  }>;
-}
 
 interface SyncHistoryEntry {
   date: string;
@@ -45,23 +24,75 @@ interface SyncHistoryEntry {
  */
 function resolvePricing(
   roleType: string,
-  rolePricing: BillSettings['rolePricing'],
+  rolePricing: Array<{
+    roleTypePattern: string;
+    label: string;
+    amount: number;
+    vatCode?: string | null;
+  }>,
 ): { amount: number; label: string; vatCode?: string | undefined } {
   for (const pricing of rolePricing) {
     if (roleType.toLowerCase().includes(pricing.roleTypePattern.toLowerCase())) {
+      const amt = Number(pricing.amount);
       return {
-        amount: Number(pricing.amount) || 0,
+        amount: Number.isNaN(amt) ? 0 : amt,
         label: pricing.label,
-        vatCode: pricing.vatCode,
+        vatCode: pricing.vatCode ?? undefined,
       };
     }
   }
   // Default to the first pricing entry if no match
   const defaultPricing = rolePricing[0];
+  const defaultAmt = Number(defaultPricing?.amount);
   return {
-    amount: Number(defaultPricing?.amount) || 0,
+    amount: Number.isNaN(defaultAmt) ? 0 : defaultAmt,
     label: defaultPricing?.label ?? 'Teilnehmer:in',
-    vatCode: defaultPricing?.vatCode,
+    vatCode: defaultPricing?.vatCode ?? undefined,
+  };
+}
+
+/**
+ * Calculates the VAT rate, VAT amount, and total gross amount based on net amount, vat code, and birthday.
+ */
+export function calculateVat(
+  netAmount: number,
+  vatCode: string | null | undefined,
+  birthday: string | null | undefined,
+  invoiceYear: number = new Date().getFullYear(),
+): {
+  isSub18: boolean;
+  vatRate: number;
+  vatAmount: number;
+  totalAmount: number;
+  formattedVatCode: string;
+} {
+  let isSub18 = false;
+  if (typeof birthday === 'string' && birthday !== '') {
+    const birthYearMatch = birthday.match(/\d{4}/);
+    if (birthYearMatch !== null) {
+      const birthYear = Number.parseInt(birthYearMatch[0], 10);
+      isSub18 = invoiceYear < 2027 ? birthYear >= invoiceYear - 17 : birthYear >= invoiceYear - 18;
+    }
+  }
+
+  const vatCodeString =
+    vatCode !== null && vatCode !== undefined && vatCode !== '' ? vatCode : '0.0%';
+  const formattedVatCode = vatCodeString.endsWith('%') ? vatCodeString : `${vatCodeString}%`;
+
+  let vatRate = 0;
+  if (isSub18 === false) {
+    vatRate = Number.parseFloat(formattedVatCode.replace('%', '').replace(',', '.'));
+  }
+
+  const vatAmount = isSub18 === false ? (netAmount * vatRate) / 100 : 0;
+  const totalAmount = netAmount + vatAmount;
+
+  return {
+    isSub18,
+    vatRate,
+    vatAmount,
+    totalAmount,
+    formattedVatCode,
   };
 }
 
@@ -175,10 +206,22 @@ function parseMarkdownSegments(
 /**
  * Generates QR Bill PDFs for all participants with status 'new' or 're_added'.
  */
-export async function generateBills(
-  payload: Payload,
+/**
+ * Generates bills for participants by orchestrating port operations.
+ */
+/**
+ * Generates bills for participants by orchestrating port operations.
+ */
+export async function generateBillsUseCase(
+  participantRepo: ParticipantRepositoryPort,
+  settingsRepo: SettingsPort,
+  hitobitoService: HitobitoServicePort,
+  logger: {
+    info: (message: string) => void;
+    warn: (message: string) => void;
+    error: (message: string) => void;
+  },
   participantId?: string,
-  dependencies?: { hitobitoClient?: HitobitoClient },
 ): Promise<GenerationSummary> {
   const summary: GenerationSummary = {
     generatedCount: 0,
@@ -188,68 +231,36 @@ export async function generateBills(
   };
 
   // 1. Load bill settings
-  const rawSettings = await payload.findGlobal({
-    slug: 'bill-settings',
-    context: { internal: true },
-  });
-  const settings = rawSettings as unknown as BillSettings;
+  const settings = await settingsRepo.getBillSettings();
 
-  if (!settings.creditorIban || !settings.creditorName) {
+  if (
+    typeof settings.creditorIban !== 'string' ||
+    settings.creditorIban === '' ||
+    typeof settings.creditorName !== 'string' ||
+    settings.creditorName === ''
+  ) {
     summary.errors.push('Creditor IBAN or name not configured in Bill Settings.');
     return summary;
   }
 
   const rolePricing = settings.rolePricing;
-  if (rolePricing.length === 0) {
+  if (rolePricing === undefined || rolePricing === null || rolePricing.length === 0) {
     summary.errors.push('No role pricing configured in Bill Settings.');
     return summary;
   }
 
-  const logger = {
-    info: (message: string): void => {
-      payload.logger.info(message);
-    },
-    warn: (message: string): void => {
-      payload.logger.warn(message);
-    },
-    error: (message: string): void => {
-      payload.logger.error(message);
-    },
-  };
-
-  const client =
-    dependencies?.hitobitoClient ??
-    new HitobitoClient(
-      {
-        baseUrl: HITOBITO_CONFIG.baseUrl,
-        apiToken: HITOBITO_CONFIG.apiToken,
-        browserCookie: '',
-      },
-      logger,
-    );
-  const personService = new PersonService(client, logger);
-
   // 2. Query participants needing bills
-  const participants = await payload.find({
-    collection: 'bill-participants',
-    context: { internal: true },
-    where: participantId
-      ? { id: { equals: participantId } }
-      : {
-          status: { equals: 'new' },
-        },
-    limit: 10_000,
-  });
+  const participants = await participantRepo.findPendingBilling(participantId);
 
-  if (participants.docs.length === 0) {
-    payload.logger.info('No participants need bill generation.');
+  if (participants.length === 0) {
+    logger.info('No participants need bill generation.');
     return summary;
   }
 
   // 3. Track current reference number
-  let currentReferenceNumber = settings.nextReferenceNumber;
+  let currentReferenceNumber = settings.nextReferenceNumber ?? 1;
 
-  for (const document_ of participants.docs) {
+  for (const document_ of participants) {
     try {
       if (document_.status !== 'new') {
         if (document_.status === 'bill_created' || document_.status === 'bill_sent') {
@@ -268,7 +279,7 @@ export async function generateBills(
       const pricing = resolvePricing(roleType, rolePricing);
       const amount = pricing.amount;
       const roleLabel = pricing.label;
-      const vatCode = pricing.vatCode;
+      const vatCode = pricing.vatCode ?? undefined;
 
       if (amount <= 0) {
         summary.skippedCount++;
@@ -276,138 +287,140 @@ export async function generateBills(
       }
 
       // Fetch person address from Cevi.DB
-      const personResult = await personService.getDetails({ personId: userId });
-      const personAttributes = personResult.success ? personResult.attributes : undefined;
+      const personAttributes = await hitobitoService.fetchPersonDetails(userId);
 
-      payload.logger.info(
-        {
-          userId,
-          success: personResult.success,
-          address: personAttributes?.address,
-          street: personAttributes?.street,
-          housenumber: personAttributes?.housenumber,
-          house_number: personAttributes?.house_number,
-          zip: personAttributes?.zip,
-          zip_code: personAttributes?.zip_code,
-          town: personAttributes?.town,
-        },
-        `[Billing] Hitobito person attributes for userId=${userId}`,
+      logger.info(
+        `[Billing] Hitobito person attributes for userId=${userId}: ` +
+          JSON.stringify({
+            success: personAttributes !== null,
+            firstName: personAttributes?.firstName,
+            lastName: personAttributes?.lastName,
+            street: personAttributes?.street,
+            houseNumber: personAttributes?.houseNumber,
+            zip: personAttributes?.zip,
+            town: personAttributes?.town,
+          }),
       );
 
-      const firstName = personAttributes?.first_name ?? document_.fullName.split(' ')[0] ?? '';
+      const firstName = personAttributes?.firstName ?? document_.fullName.split(' ')[0] ?? '';
       const lastName =
-        personAttributes?.last_name ?? document_.fullName.split(' ').slice(1).join(' ');
+        personAttributes?.lastName ?? document_.fullName.split(' ').slice(1).join(' ');
 
       // Parse Address to Structured format (SIX requirement)
       let street = '';
       let buildingNumber: string | undefined = undefined;
 
-      const hitobitoAddress = personAttributes?.address ?? '';
       const hitobitoStreet = personAttributes?.street;
-      const hitobitoHouseNumber = personAttributes?.house_number ?? personAttributes?.housenumber;
+      const hitobitoHouseNumber = personAttributes?.houseNumber;
 
-      if (hitobitoStreet) {
+      if (typeof hitobitoStreet === 'string' && hitobitoStreet !== '') {
         // Use native structured fields if available
         street = hitobitoStreet;
         buildingNumber = hitobitoHouseNumber ?? undefined;
-      } else if (hitobitoAddress) {
-        // Fallback: parse combined address string
-        const match = hitobitoAddress.match(/^(.*?)\s*(\d+[a-zA-Z]?.*)?$/);
-        street = match?.[1]?.trim() ?? hitobitoAddress;
-        buildingNumber = match?.[2]?.trim();
+      } else {
+        // Fallback to participant document fields or parse
+        const documentStreet = document_.street ?? '';
+        const match = documentStreet.match(/^(.*?)\s*(\d+[a-zA-Z]?.*)?$/);
+        street =
+          typeof match?.[1] === 'string' && match[1] !== '' ? match[1].trim() : documentStreet;
+        buildingNumber =
+          typeof match?.[2] === 'string' && match[2] !== '' ? match[2].trim() : undefined;
       }
 
-      const zip = personAttributes?.zip ?? personAttributes?.zip_code ?? '';
-      const city = personAttributes?.town ?? '';
+      const zip = personAttributes?.zip ?? document_.zipCode ?? document_.zip;
+      const city = personAttributes?.town ?? document_.town;
 
       const referenceNumber = generateQrReference(
-        document_.userId || '',
+        document_.userId,
         document_.eventId,
         document_.participationUuid,
         currentReferenceNumber,
       );
       const currentYear = new Date().getFullYear().toString();
       const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
-      const prefix = settings.invoiceNumberPrefix
+      const invoiceNumberPrefix = settings.invoiceNumberPrefix ?? '';
+      const prefix = invoiceNumberPrefix
         .replaceAll('{{year}}', currentYear)
         .replaceAll('{{month}}', currentMonth)
         .replaceAll('{{event-id}}', document_.eventId)
-        .replaceAll('{{group-id}}', document_.groupId || '')
+        .replaceAll('{{group-id}}', document_.groupId ?? '')
         .replaceAll('{{participation-id}}', document_.participationUuid)
-        .replaceAll('{{people-id}}', String(document_.userId || ''));
+        .replaceAll('{{people-id}}', document_.userId);
       const invoiceNumber = `${prefix}-${String(currentReferenceNumber).padStart(4, '0')}`;
 
-      const customReference = settings.customReferenceTemplate
-        ? settings.customReferenceTemplate
-            .replaceAll('{{year}}', currentYear)
-            .replaceAll('{{month}}', currentMonth)
-            .replaceAll('{{event-id}}', document_.eventId)
-            .replaceAll('{{group-id}}', document_.groupId || '')
-            .replaceAll('{{participation-id}}', document_.participationUuid)
-            .replaceAll('{{people-id}}', String(document_.userId || ''))
-        : undefined;
+      const customReferenceTemplate = settings.customReferenceTemplate;
+      const customReference =
+        typeof customReferenceTemplate === 'string' && customReferenceTemplate !== ''
+          ? customReferenceTemplate
+              .replaceAll('{{year}}', currentYear)
+              .replaceAll('{{month}}', currentMonth)
+              .replaceAll('{{event-id}}', document_.eventId)
+              .replaceAll('{{group-id}}', document_.groupId ?? '')
+              .replaceAll('{{participation-id}}', document_.participationUuid)
+              .replaceAll('{{people-id}}', document_.userId)
+          : undefined;
 
-      const eventNumber = settings.eventNumberTemplate
-        ? settings.eventNumberTemplate
-            .replaceAll('{{year}}', currentYear)
-            .replaceAll('{{month}}', currentMonth)
-            .replaceAll('{{event-id}}', document_.eventId)
-            .replaceAll('{{group-id}}', document_.groupId || '')
-            .replaceAll('{{participation-id}}', document_.participationUuid)
-            .replaceAll('{{people-id}}', String(document_.userId || ''))
-        : undefined;
+      const eventNumberTemplate = settings.eventNumberTemplate;
+      const eventNumber =
+        typeof eventNumberTemplate === 'string' && eventNumberTemplate !== ''
+          ? eventNumberTemplate
+              .replaceAll('{{year}}', currentYear)
+              .replaceAll('{{month}}', currentMonth)
+              .replaceAll('{{event-id}}', document_.eventId)
+              .replaceAll('{{group-id}}', document_.groupId ?? '')
+              .replaceAll('{{participation-id}}', document_.participationUuid)
+              .replaceAll('{{people-id}}', document_.userId)
+          : undefined;
 
       // Generate PDF
-      const documentTitle = settings.documentTitle || 'ANMELDEBESTÄTIGUNG UND RECHNUNG';
+      const documentTitle_ = settings.documentTitle;
+      const documentTitle =
+        typeof documentTitle_ === 'string' && documentTitle_ !== ''
+          ? documentTitle_
+          : 'ANMELDEBESTÄTIGUNG UND RECHNUNG';
+
+      const creditorBuildingNumber = settings.creditorBuildingNumber;
+
+      const { totalAmount } = calculateVat(amount, vatCode, document_.birthday ?? undefined);
 
       const pdfBuffer = await generateQrBillPdf({
         documentTitle,
         creditor: {
           name: settings.creditorName,
           street: settings.creditorStreet,
-          ...(settings.creditorBuildingNumber
-            ? { buildingNumber: settings.creditorBuildingNumber }
+          ...(typeof creditorBuildingNumber === 'string' && creditorBuildingNumber !== ''
+            ? { buildingNumber: creditorBuildingNumber }
             : {}),
-          zip: settings.creditorZip,
-          city: settings.creditorCity,
+          zip: settings.creditorZip ?? '',
+          city: settings.creditorCity ?? '',
           account: settings.creditorIban,
           country: 'CH',
         },
         debtor: {
           name: `${firstName} ${lastName}`.trim(),
           street,
-          ...(buildingNumber ? { buildingNumber } : {}),
-          zip,
-          city,
+          ...(buildingNumber !== undefined && buildingNumber !== '' ? { buildingNumber } : {}),
+          zip: zip ?? '',
+          city: city ?? '',
           country: 'CH',
         },
         amount,
-        currency: settings.currency,
+        currency: settings.currency ?? 'CHF',
         reference: referenceNumber,
         invoiceNumber,
-        ...(customReference ? { customReference } : {}),
-        ...(eventNumber ? { eventNumber } : {}),
-        invoiceLetterText: settings.invoiceLetterText,
+        ...(customReference !== undefined && customReference !== '' ? { customReference } : {}),
+        ...(eventNumber !== undefined && eventNumber !== '' ? { eventNumber } : {}),
+        invoiceLetterText: settings.invoiceLetterText ?? '',
         roleLabel,
         vatCode,
-        paymentDeadlineDays: settings.paymentDeadlineDays,
+        paymentDeadlineDays: settings.paymentDeadlineDays ?? 30,
         firstName,
         birthday: document_.birthday ?? undefined,
       });
 
-      // Upload PDF buffer to MinIO
+      // Upload PDF buffer using the port
       const pdfFileName = `Rechnung-${invoiceNumber}-${Date.now()}.pdf`;
-      const uploadedPdf = await payload.create({
-        collection: 'bill-pdfs',
-        data: {},
-        file: {
-          data: pdfBuffer,
-          name: pdfFileName,
-          mimetype: 'application/pdf',
-          size: pdfBuffer.length,
-        },
-        context: { internal: true },
-      });
+      const uploadedPdf = await participantRepo.uploadPdf(pdfFileName, pdfBuffer);
 
       const history = (document_.syncHistory as SyncHistoryEntry[] | undefined) ?? [];
       const currentPdfs = (document_.billPdfs as (string | { id: string })[] | undefined) ?? [];
@@ -416,19 +429,14 @@ export async function generateBills(
         String(uploadedPdf.id),
       ];
 
-      await payload.update({
-        collection: 'bill-participants',
-        context: { internal: true },
-        id: document_.id,
-        data: {
-          status: 'bill_created',
-          billCreatedDate: new Date().toISOString(),
-          referenceNumber,
-          invoiceNumber,
-          invoiceAmount: amount,
-          billPdfs: updatedPdfs,
-          syncHistory: [...history, { date: new Date().toISOString(), action: 'bill_generated' }],
-        },
+      await participantRepo.update(document_.id, {
+        status: 'bill_created',
+        billCreatedDate: new Date().toISOString(),
+        referenceNumber,
+        invoiceNumber,
+        invoiceAmount: totalAmount,
+        billPdfs: updatedPdfs,
+        syncHistory: [...history, { date: new Date().toISOString(), action: 'bill_generated' }],
       });
 
       currentReferenceNumber++;
@@ -441,19 +449,61 @@ export async function generateBills(
     }
   }
 
-  // Update the next reference number in settings
-  await payload.updateGlobal({
-    slug: 'bill-settings',
-    data: {
-      nextReferenceNumber: currentReferenceNumber,
-    },
-  });
+  // Update the next reference number in settings via the port
+  await settingsRepo.updateNextReferenceNumber(currentReferenceNumber);
 
-  payload.logger.info(
+  logger.info(
     `Bill generation complete: ${String(summary.generatedCount)} generated, ${String(summary.skippedCount)} skipped, ${String(summary.skippedAlreadyExistingCount)} skipped (already existing)`,
   );
 
   return summary;
+}
+
+/**
+ * Generates QR Bill PDFs for all participants with status 'new' or 're_added'.
+ * Backwards-compatible wrapper.
+ */
+export async function generateBills(
+  payload: Payload,
+  participantId?: string,
+  dependencies?: { hitobitoClient?: HitobitoClient },
+): Promise<GenerationSummary> {
+  const settingsRepo = new PayloadSettingsAdapter(payload);
+  const participantRepo = new PayloadParticipantRepositoryAdapter(payload);
+
+  const logger = {
+    info: (message: string): void => {
+      payload.logger.info(message);
+    },
+    warn: (message: string): void => {
+      payload.logger.warn(message);
+    },
+    error: (message: string): void => {
+      payload.logger.error(message);
+    },
+  };
+
+  const regManagement = await settingsRepo.getRegistrationManagement();
+  const cookieValue = regManagement.browserCookie;
+  const browserCookie =
+    typeof cookieValue === 'string' && cookieValue.length > 0 ? cookieValue : '';
+
+  const hitobitoService = new HitobitoServiceAdapter(
+    dependencies?.hitobitoClient ?? {
+      baseUrl: HITOBITO_CONFIG.baseUrl,
+      apiToken: HITOBITO_CONFIG.apiToken,
+      browserCookie,
+    },
+    logger,
+  );
+
+  return generateBillsUseCase(
+    participantRepo,
+    settingsRepo,
+    hitobitoService,
+    logger,
+    participantId,
+  );
 }
 
 // ─── PDF Generation ──────────────────────────────────────────────────────────
@@ -681,25 +731,16 @@ export async function generateQrBillPdf(parameters: PdfGenerationParameters): Pr
     // Invoice table
     const amountNumber = Number(parameters.amount) || 0;
 
-    const invoiceYear = new Date().getFullYear();
-    let isSub18 = false;
-    if (parameters.birthday) {
-      const birthYearMatch = parameters.birthday.match(/\d{4}/);
-      if (birthYearMatch) {
-        const birthYear = Number.parseInt(birthYearMatch[0], 10);
-        isSub18 =
-          invoiceYear < 2027 ? birthYear >= invoiceYear - 17 : birthYear >= invoiceYear - 18;
-      }
-    }
+    const { isSub18, vatAmount, totalAmount, formattedVatCode } = calculateVat(
+      amountNumber,
+      parameters.vatCode,
+      parameters.birthday,
+    );
+    const subtotal = amountNumber;
 
-    const isVatApplied = parameters.vatCode !== undefined && parameters.vatCode !== '';
-    let vatRate = 0;
-    if (isVatApplied && !isSub18 && parameters.vatCode !== undefined) {
-      vatRate = Number.parseFloat(parameters.vatCode.replace('%', '').replace(',', '.'));
-    }
-
-    const vatAmount = isVatApplied && !isSub18 ? (amountNumber * vatRate) / (100 + vatRate) : 0;
-    const subtotal = amountNumber - vatAmount;
+    const vatLabel = isSub18
+      ? 'MWST 0.0% (steuerbefreite Leistung an Jugendliche)'
+      : `MWST ${formattedVatCode}`;
 
     // Build the rows array dynamically
     const tableRows: PDFRow[] = [
@@ -739,91 +780,81 @@ export async function generateQrBillPdf(parameters: PdfGenerationParameters): Pr
           },
         ],
       },
+      {
+        borderColor: '#ECF0F1',
+        borderWidth: [1, 0, 0, 0],
+        columns: [
+          {
+            text: 'Zwischensumme',
+            fontSize: 9,
+            width: mm2pt(135),
+            align: 'right',
+          },
+          {
+            text: `CHF ${amountNumber.toFixed(2)}`,
+            width: mm2pt(30),
+            fontSize: 9,
+            align: 'right',
+          },
+        ],
+      },
+      {
+        borderColor: '#ECF0F1',
+        borderWidth: [0, 0, 0, 0],
+        columns: [
+          {
+            text: 'Betrag netto',
+            fontSize: 9,
+            width: mm2pt(135),
+            align: 'right',
+          },
+          {
+            text: `CHF ${subtotal.toFixed(2)}`,
+            width: mm2pt(30),
+            fontSize: 9,
+            align: 'right',
+          },
+        ],
+      },
+      {
+        borderColor: '#ECF0F1',
+        borderWidth: [0, 0, 0, 0],
+        columns: [
+          {
+            text: vatLabel,
+            fontSize: 9,
+            width: mm2pt(135),
+            align: 'right',
+          },
+          {
+            text: `CHF ${vatAmount.toFixed(2)}`,
+            width: mm2pt(30),
+            fontSize: 9,
+            align: 'right',
+          },
+        ],
+      },
+      {
+        borderColor: '#ECF0F1',
+        borderWidth: [1, 0, 1, 0],
+        columns: [
+          {
+            text: 'Gesamtbetrag',
+            fontName: 'Helvetica-Bold',
+            fontSize: 9,
+            width: mm2pt(135),
+            align: 'right',
+          },
+          {
+            text: `CHF ${totalAmount.toFixed(2)}`,
+            fontName: 'Helvetica-Bold',
+            width: mm2pt(30),
+            fontSize: 9,
+            align: 'right',
+          },
+        ],
+      },
     ];
-
-    if (isVatApplied) {
-      const vatLabel = isSub18
-        ? 'MWST 0.0% (steuerbefreite Leistung an Jugendliche)'
-        : `MWST ${parameters.vatCode}%`;
-
-      tableRows.push(
-        {
-          borderColor: '#ECF0F1',
-          borderWidth: [1, 0, 0, 0],
-          columns: [
-            {
-              text: 'Zwischensumme',
-              fontSize: 9,
-              width: mm2pt(135),
-              align: 'right',
-            },
-            {
-              text: `CHF ${amountNumber.toFixed(2)}`,
-              width: mm2pt(30),
-              fontSize: 9,
-              align: 'right',
-            },
-          ],
-        },
-        {
-          borderColor: '#ECF0F1',
-          borderWidth: [0, 0, 0, 0],
-          columns: [
-            {
-              text: 'Betrag netto',
-              fontSize: 9,
-              width: mm2pt(135),
-              align: 'right',
-            },
-            {
-              text: `CHF ${subtotal.toFixed(2)}`,
-              width: mm2pt(30),
-              fontSize: 9,
-              align: 'right',
-            },
-          ],
-        },
-        {
-          borderColor: '#ECF0F1',
-          borderWidth: [0, 0, 0, 0],
-          columns: [
-            {
-              text: vatLabel,
-              fontSize: 9,
-              width: mm2pt(135),
-              align: 'right',
-            },
-            {
-              text: `CHF ${vatAmount.toFixed(2)}`,
-              width: mm2pt(30),
-              fontSize: 9,
-              align: 'right',
-            },
-          ],
-        },
-      );
-    }
-
-    tableRows.push({
-      borderColor: '#ECF0F1',
-      borderWidth: [1, 0, 1, 0],
-      columns: [
-        {
-          text: 'Gesamtbetrag',
-          fontName: 'Helvetica-Bold',
-          fontSize: 9,
-          width: mm2pt(135),
-          align: 'right',
-        },
-        {
-          text: `CHF ${amountNumber.toFixed(2)}`,
-          fontName: 'Helvetica-Bold',
-          width: mm2pt(30),
-          fontSize: 9,
-          align: 'right',
-        },
-      ],
-    });
 
     const tableData = {
       width: mm2pt(165),
@@ -843,12 +874,16 @@ export async function generateQrBillPdf(parameters: PdfGenerationParameters): Pr
         .trim()
         .replace(/ \|$/, ''),
     );
-    if (parameters.creditor.zip && parameters.creditor.city)
+    if (parameters.creditor.zip !== '' && parameters.creditor.city !== '')
       footerLines.push(`${parameters.creditor.zip} ${parameters.creditor.city}`);
-    if (parameters.creditor.account) footerLines.push(`IBAN: ${parameters.creditor.account}`);
-    if (parameters.creditor.uid) footerLines.push(`MWST-Nr.: ${parameters.creditor.uid}`);
-    if (parameters.creditor.email) footerLines.push(`E-Mail: ${parameters.creditor.email}`);
-    if (parameters.creditor.website) footerLines.push(`Web: ${parameters.creditor.website}`);
+    if (parameters.creditor.account !== '')
+      footerLines.push(`IBAN: ${parameters.creditor.account}`);
+    if (parameters.creditor.uid !== undefined && parameters.creditor.uid !== '')
+      footerLines.push(`MWST-Nr.: ${parameters.creditor.uid}`);
+    if (parameters.creditor.email !== undefined && parameters.creditor.email !== '')
+      footerLines.push(`E-Mail: ${parameters.creditor.email}`);
+    if (parameters.creditor.website !== undefined && parameters.creditor.website !== '')
+      footerLines.push(`Web: ${parameters.creditor.website}`);
 
     if (footerLines.length > 0) {
       document_.fontSize(8);
@@ -867,15 +902,16 @@ export async function generateQrBillPdf(parameters: PdfGenerationParameters): Pr
     // Include the generated QR reference (required for QR-IBANs)
     const qrBillData = {
       currency: parameters.currency as 'CHF' | 'EUR',
-      amount: parameters.amount,
+      amount: totalAmount,
       reference: parameters.reference,
       creditor: {
         name: parameters.creditor.name,
         address: parameters.creditor.street,
-        ...(parameters.creditor.buildingNumber
+        ...(parameters.creditor.buildingNumber !== undefined &&
+        parameters.creditor.buildingNumber !== ''
           ? { buildingNumber: parameters.creditor.buildingNumber }
           : {}),
-        zip: parameters.creditor.zip || '',
+        zip: parameters.creditor.zip,
         city: parameters.creditor.city,
         account: parameters.creditor.account,
         country: parameters.creditor.country,
@@ -883,14 +919,15 @@ export async function generateQrBillPdf(parameters: PdfGenerationParameters): Pr
       debtor: {
         name: parameters.debtor.name,
         address: parameters.debtor.street,
-        ...(parameters.debtor.buildingNumber
+        ...(parameters.debtor.buildingNumber !== undefined &&
+        parameters.debtor.buildingNumber !== ''
           ? { buildingNumber: parameters.debtor.buildingNumber }
           : {}),
-        zip: parameters.debtor.zip || '',
+        zip: parameters.debtor.zip,
         city: parameters.debtor.city,
         country: parameters.debtor.country,
       },
-      ...(parameters.customReference
+      ...(parameters.customReference !== undefined && parameters.customReference !== ''
         ? { additionalInformation: `REF: ${parameters.customReference}` }
         : {}),
     };

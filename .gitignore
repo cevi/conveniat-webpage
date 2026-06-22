@@ -72,3 +72,6 @@ seeding.lock
 
 # claude cli settings
 /.claude/
+
+# openapi spec
+openapi.yaml

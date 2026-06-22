@@ -14,4 +14,6 @@ export interface ParticipantRepositoryPort {
     data: Partial<Omit<BillParticipant, 'id' | 'createdAt' | 'updatedAt' | 'relatedEmails'>>,
   ): Promise<BillParticipant>;
   findPdfFilenameById(id: string): Promise<string | null>;
+  findPendingBilling(participantId?: string): Promise<BillParticipant[]>;
+  uploadPdf(filename: string, buffer: Buffer): Promise<{ id: string }>;
 }

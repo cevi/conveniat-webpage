@@ -42,6 +42,8 @@ describe('Sync Service', () => {
       create: jest.fn(),
       update: jest.fn(),
       findPdfFilenameById: jest.fn(),
+      findPendingBilling: jest.fn(),
+      uploadPdf: jest.fn(),
     };
 
     mockHitobitoService = {
@@ -49,6 +51,7 @@ describe('Sync Service', () => {
       fetchParticipationAnswers: jest.fn(),
       fetchSubgroupLinks: jest.fn(),
       fetchEventsForGroup: jest.fn(),
+      fetchPersonDetails: jest.fn(),
     };
 
     mockSettingsRepo = {
@@ -57,6 +60,7 @@ describe('Sync Service', () => {
       }),
       getRegistrationManagement: jest.fn(),
       updateBillSettingsEvents: jest.fn(),
+      updateNextReferenceNumber: jest.fn(),
     };
 
     jest.clearAllMocks();

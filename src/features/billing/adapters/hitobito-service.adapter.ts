@@ -1,10 +1,12 @@
 /* eslint-disable unicorn/no-null */
 import type {
+  HitobitoPersonDetails,
   HitobitoServicePort,
   SyncedExternalParticipant,
 } from '@/features/billing/ports/hitobito-service.port';
 import { HitobitoClient } from '@/features/registration_process/hitobito-api/client';
 import { EventService } from '@/features/registration_process/hitobito-api/services/event.service';
+import { PersonService } from '@/features/registration_process/hitobito-api/services/person.service';
 import { trace } from '@opentelemetry/api';
 
 interface GroupResource {
@@ -48,18 +50,21 @@ interface LegacyParticipationsResponse {
 export class HitobitoServiceAdapter implements HitobitoServicePort {
   private readonly client: HitobitoClient;
   private readonly eventService: EventService;
+  private readonly personService: PersonService;
   private readonly participationsJsonCache = new Map<string, LegacyParticipationsResponse>();
 
   constructor(
-    config: { baseUrl: string; apiToken: string; browserCookie: string },
+    configOrClient: { baseUrl: string; apiToken: string; browserCookie: string } | HitobitoClient,
     logger: {
       info: (message: string) => void;
       warn: (message: string) => void;
       error: (message: string) => void;
     },
   ) {
-    this.client = new HitobitoClient(config, logger);
+    this.client =
+      'apiRequest' in configOrClient ? configOrClient : new HitobitoClient(configOrClient, logger);
     this.eventService = new EventService(this.client, logger);
+    this.personService = new PersonService(this.client, logger);
   }
 
   async fetchParticipations(
@@ -259,5 +264,21 @@ export class HitobitoServiceAdapter implements HitobitoServicePort {
       id: event.id,
       name: event.attributes?.name ?? '',
     }));
+  }
+
+  async fetchPersonDetails(personId: string): Promise<HitobitoPersonDetails | null> {
+    const result = await this.personService.getDetails({ personId });
+    if (!result.success || !result.attributes) {
+      return null;
+    }
+    return {
+      firstName: result.attributes.first_name ?? undefined,
+      lastName: result.attributes.last_name ?? undefined,
+      street: result.attributes.street ?? undefined,
+      houseNumber: result.attributes.house_number ?? result.attributes.housenumber ?? undefined,
+      zip: result.attributes.zip ?? result.attributes.zip_code ?? undefined,
+      town: result.attributes.town ?? undefined,
+      birthday: result.attributes.birthday ?? undefined,
+    };
   }
 }

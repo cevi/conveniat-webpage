@@ -6,4 +6,5 @@ export interface SettingsPort {
   updateBillSettingsEvents(
     events: Array<{ eventId: string; eventName: string; groupId: string }>,
   ): Promise<void>;
+  updateNextReferenceNumber(nextReferenceNumber: number): Promise<void>;
 }

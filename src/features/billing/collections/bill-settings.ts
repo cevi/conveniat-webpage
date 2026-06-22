@@ -432,9 +432,14 @@ export const BillSettingsGlobal: GlobalConfig = {
                 },
               },
               defaultValue: [
-                { roleTypePattern: 'Participant', label: 'Teilnehmer:in', amount: 150 },
-                { roleTypePattern: 'Leader', label: 'Leiter:in', amount: 50 },
-                { roleTypePattern: 'Helper', label: 'Helfer:in', amount: 50 },
+                {
+                  roleTypePattern: 'Participant',
+                  label: 'Teilnehmer:in',
+                  vatCode: '2.6%',
+                  amount: 150,
+                },
+                { roleTypePattern: 'Leader', label: 'Leiter:in', vatCode: '2.6%', amount: 50 },
+                { roleTypePattern: 'Helper', label: 'Helfer:in', vatCode: '2.6%', amount: 50 },
               ],
               fields: [
                 {

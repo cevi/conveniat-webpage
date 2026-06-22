@@ -100,4 +100,34 @@ export class PayloadParticipantRepositoryAdapter implements ParticipantRepositor
     });
     return pdfDocument.filename ?? null;
   }
+
+  async findPendingBilling(participantId?: string): Promise<BillParticipant[]> {
+    const result = await this.payload.find({
+      collection: 'bill-participants',
+      context: { internal: true },
+      where:
+        typeof participantId === 'string' && participantId.length > 0
+          ? { id: { equals: participantId } }
+          : {
+              status: { equals: 'new' },
+            },
+      limit: 10_000,
+    });
+    return result.docs;
+  }
+
+  async uploadPdf(filename: string, buffer: Buffer): Promise<{ id: string }> {
+    const created = await this.payload.create({
+      collection: 'bill-pdfs',
+      data: {},
+      file: {
+        data: buffer,
+        name: filename,
+        mimetype: 'application/pdf',
+        size: buffer.length,
+      },
+      context: { internal: true },
+    });
+    return { id: String(created.id) };
+  }
 }
