@@ -381,3 +381,193 @@ export const billingPreviewPdfHandler: PayloadHandler = async (request) => {
     return Response.json({ error: message }, { status: 500 });
   }
 };
+
+interface GroupResource {
+  id: string;
+}
+
+interface GroupApiResponse {
+  data?: GroupResource[];
+  links?: {
+    next?: string | null;
+  };
+}
+
+interface EventResource {
+  id: string;
+  attributes?: {
+    name?: string;
+  };
+}
+
+interface EventApiResponse {
+  data?: EventResource[];
+}
+
+/**
+ * POST /api/confidential/billing/populate-subevents – Dynamically fetch subevents of group 4337 and save to settings
+ */
+export const billingPopulateSubeventsHandler: PayloadHandler = async (request) => {
+  try {
+    const hasAccess = await canAccessBilling({ req: request });
+    if (!hasAccess) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { Hitobito } = await import('@/features/registration_process/hitobito-api/hitobito');
+    const { HITOBITO_CONFIG } = await import('@/features/registration_process/hitobito-api/config');
+
+    const baseUrl = HITOBITO_CONFIG.baseUrl || 'https://db.cevi.ch';
+    const apiToken = HITOBITO_CONFIG.apiToken;
+    if (apiToken === '') {
+      return Response.json(
+        { error: 'Cevi.DB API-Token ist nicht konfiguriert (HITOBITO_CONFIG.apiToken fehlt).' },
+        { status: 500 },
+      );
+    }
+
+    const hitobito = Hitobito.create(
+      { baseUrl, apiToken, browserCookie: '' },
+      {
+        info: (message) => request.payload.logger.info(message),
+        warn: (message) => request.payload.logger.warn(message),
+        error: (message) => request.payload.logger.error(message),
+      },
+    );
+
+    const parentGroupId = '4337';
+    request.payload.logger.info(
+      `Fetching subgroups of parent group ${parentGroupId} from Cevi.DB...`,
+    );
+
+    const subgroupLinks: string[] = [];
+    let nextUrl: string | undefined = `/api/groups`;
+    let isFirstPage = true;
+    const baseParameters: Record<string, string> = {
+      'filter[parent_id][eq]': parentGroupId,
+      'page[size]': '100',
+    };
+
+    while (nextUrl) {
+      const response: GroupApiResponse = await hitobito.client.apiRequest<GroupApiResponse>(
+        'GET',
+        nextUrl,
+        isFirstPage ? { params: baseParameters } : {},
+      );
+      if (response.data) {
+        for (const group of response.data) {
+          if (group.id) subgroupLinks.push(group.id);
+        }
+      }
+      nextUrl = response.links?.next ?? undefined;
+      isFirstPage = false;
+    }
+
+    request.payload.logger.info(`Found ${subgroupLinks.length} subgroups. Querying events...`);
+
+    const concurrencyLimit = 3;
+    const results: Array<{ eventId: string; eventName: string; groupId: string }> = [];
+
+    const executeBatch = async (ids: string[]): Promise<void[]> => {
+      return Promise.all(
+        ids.map(async (groupId) => {
+          let attempts = 0;
+          const maxAttempts = 3;
+          while (attempts < maxAttempts) {
+            try {
+              const response: EventApiResponse = await hitobito.client.apiRequest<EventApiResponse>(
+                'GET',
+                '/api/events',
+                {
+                  params: {
+                    'filter[group_id][eq]': groupId,
+                  },
+                },
+              );
+              if (response.data) {
+                for (const event of response.data) {
+                  const name = event.attributes?.name ?? '';
+                  if (name.includes('Hauptlager conveniat27') || name.includes('conveniat27')) {
+                    results.push({
+                      eventId: event.id,
+                      eventName: name,
+                      groupId: groupId,
+                    });
+                  }
+                }
+              }
+              break;
+            } catch (error: unknown) {
+              attempts++;
+              const errorMessage = error instanceof Error ? error.message : String(error);
+              const isTransient =
+                errorMessage.includes('503') ||
+                errorMessage.includes('429') ||
+                errorMessage.toLowerCase().includes('timeout');
+
+              if (attempts >= maxAttempts || !isTransient) {
+                request.payload.logger.warn(
+                  `Failed to fetch events for group ${groupId}: ${errorMessage}`,
+                );
+                break;
+              }
+
+              const backoffMs = attempts * 500;
+              request.payload.logger.info(
+                `Rate limited/Error 503 for group ${groupId}. Retrying (attempt ${attempts}/${maxAttempts}) in ${backoffMs}ms...`,
+              );
+              await new Promise((resolve) => setTimeout(resolve, backoffMs));
+            }
+          }
+        }),
+      );
+    };
+
+    for (let index = 0; index < subgroupLinks.length; index += concurrencyLimit) {
+      const chunk = subgroupLinks.slice(index, index + concurrencyLimit);
+      await executeBatch(chunk);
+      // Wait 150ms between batches to stay within rate limits
+      await new Promise((resolve) => setTimeout(resolve, 150));
+    }
+
+    // Fetch existing settings to merge rather than overwriting
+    const settings = await request.payload.findGlobal({
+      slug: 'bill-settings',
+      context: { internal: true },
+    });
+    const existingEvents = Array.isArray(settings.events) ? settings.events : [];
+
+    // Merge new results into existingEvents, using eventId as the key
+    const mergedEvents = [...existingEvents];
+    let newEventsCount = 0;
+    for (const newEvent of results) {
+      const exists = mergedEvents.some(
+        (existingEvent) => existingEvent.eventId === newEvent.eventId,
+      );
+      if (!exists) {
+        mergedEvents.push(newEvent);
+        newEventsCount++;
+      }
+    }
+
+    // Sort merged events by eventName for clean structure in the UI
+    mergedEvents.sort((a, b) => a.eventName.localeCompare(b.eventName));
+
+    request.payload.logger.info(
+      `Found ${results.length} matching events (${String(newEventsCount)} new). Updating global settings...`,
+    );
+
+    await request.payload.updateGlobal({
+      slug: 'bill-settings',
+      data: {
+        events: mergedEvents,
+      },
+    });
+
+    return Response.json({ success: true, count: newEventsCount });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    request.payload.logger.error({ err: error }, `Populating subevents failed: ${message}`);
+    return Response.json({ error: message }, { status: 500 });
+  }
+};
