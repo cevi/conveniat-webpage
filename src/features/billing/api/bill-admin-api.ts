@@ -459,37 +459,59 @@ export const billingPopulateSubeventsHandler: PayloadHandler = async (request) =
 
     request.payload.logger.info(`Found ${subgroupLinks.length} subgroups. Querying events...`);
 
-    const concurrencyLimit = 15;
+    const concurrencyLimit = 3;
     const results: Array<{ eventId: string; eventName: string; groupId: string }> = [];
 
     const executeBatch = async (ids: string[]): Promise<void[]> => {
       return Promise.all(
         ids.map(async (groupId) => {
-          try {
-            const response: EventApiResponse = await hitobito.client.apiRequest<EventApiResponse>(
-              'GET',
-              '/api/events',
-              {
-                params: {
-                  'filter[group_id][eq]': groupId,
+          let attempts = 0;
+          const maxAttempts = 3;
+          while (attempts < maxAttempts) {
+            try {
+              const response: EventApiResponse = await hitobito.client.apiRequest<EventApiResponse>(
+                'GET',
+                '/api/events',
+                {
+                  params: {
+                    'filter[group_id][eq]': groupId,
+                  },
                 },
-              },
-            );
-            if (response.data) {
-              for (const event of response.data) {
-                const name = event.attributes?.name || '';
-                if (name.includes('Hauptlager conveniat27') || name.includes('conveniat27')) {
-                  results.push({
-                    eventId: event.id,
-                    eventName: name,
-                    groupId: groupId,
-                  });
+              );
+              if (response.data) {
+                for (const event of response.data) {
+                  const name = event.attributes?.name ?? '';
+                  if (name.includes('Hauptlager conveniat27') || name.includes('conveniat27')) {
+                    results.push({
+                      eventId: event.id,
+                      eventName: name,
+                      groupId: groupId,
+                    });
+                  }
                 }
               }
+              break;
+            } catch (error: unknown) {
+              attempts++;
+              const errorMessage = error instanceof Error ? error.message : String(error);
+              const isTransient =
+                errorMessage.includes('503') ||
+                errorMessage.includes('429') ||
+                errorMessage.toLowerCase().includes('timeout');
+
+              if (attempts >= maxAttempts || !isTransient) {
+                request.payload.logger.warn(
+                  `Failed to fetch events for group ${groupId}: ${errorMessage}`,
+                );
+                break;
+              }
+
+              const backoffMs = attempts * 500;
+              request.payload.logger.info(
+                `Rate limited/Error 503 for group ${groupId}. Retrying (attempt ${attempts}/${maxAttempts}) in ${backoffMs}ms...`,
+              );
+              await new Promise((resolve) => setTimeout(resolve, backoffMs));
             }
-          } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : String(error);
-            request.payload.logger.warn(`Failed to fetch events for group ${groupId}: ${message}`);
           }
         }),
       );
@@ -498,6 +520,8 @@ export const billingPopulateSubeventsHandler: PayloadHandler = async (request) =
     for (let index = 0; index < subgroupLinks.length; index += concurrencyLimit) {
       const chunk = subgroupLinks.slice(index, index + concurrencyLimit);
       await executeBatch(chunk);
+      // Wait 150ms between batches to stay within rate limits
+      await new Promise((resolve) => setTimeout(resolve, 150));
     }
 
     // Sort results by eventName for clean structure in the UI
