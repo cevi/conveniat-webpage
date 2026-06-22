@@ -43,6 +43,7 @@ export interface SyncSummary {
 export interface GenerationSummary {
   generatedCount: number;
   skippedCount: number;
+  skippedAlreadyExistingCount: number;
   errors: string[];
 }
 

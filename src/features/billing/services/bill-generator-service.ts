@@ -183,6 +183,7 @@ export async function generateBills(
   const summary: GenerationSummary = {
     generatedCount: 0,
     skippedCount: 0,
+    skippedAlreadyExistingCount: 0,
     errors: [],
   };
 
@@ -239,6 +240,8 @@ export async function generateBills(
             { status: { equals: 'new' } },
             { status: { equals: 're_added' } },
             { status: { equals: 'updated' } },
+            { status: { equals: 'bill_created' } },
+            { status: { equals: 'bill_sent' } },
           ],
         },
     limit: 10_000,
@@ -254,6 +257,11 @@ export async function generateBills(
 
   for (const document_ of participants.docs) {
     try {
+      if (document_.status === 'bill_created' || document_.status === 'bill_sent') {
+        summary.skippedAlreadyExistingCount++;
+        continue;
+      }
+
       const userId = document_.userId;
       const roleType = document_.roleType as string;
       const pricing = resolvePricing(roleType, rolePricing);
@@ -440,7 +448,7 @@ export async function generateBills(
   });
 
   payload.logger.info(
-    `Bill generation complete: ${String(summary.generatedCount)} generated, ${String(summary.skippedCount)} skipped`,
+    `Bill generation complete: ${String(summary.generatedCount)} generated, ${String(summary.skippedCount)} skipped, ${String(summary.skippedAlreadyExistingCount)} skipped (already existing)`,
   );
 
   return summary;

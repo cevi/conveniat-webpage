@@ -1,8 +1,15 @@
 'use client';
 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { documentControlButtonClasses } from '@/features/payload-cms/payload-cms/components/shared/document-control-button-styles';
 import { Button } from '@payloadcms/ui';
-import { Download, FilePlus, RefreshCcw, RefreshCw, Send } from 'lucide-react';
+import { Download, FilePlus, MoreHorizontal, RefreshCcw, RefreshCw, Send } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React from 'react';
 
@@ -16,6 +23,7 @@ interface ActionResult {
   unchangedCount?: number;
   generatedCount?: number;
   skippedCount?: number;
+  skippedAlreadyExistingCount?: number;
   sentCount?: number;
   failedCount?: number;
   errors?: string[];
@@ -33,6 +41,7 @@ interface SyncJobStatus {
     unchangedCount?: number;
     generatedCount?: number;
     skippedCount?: number;
+    skippedAlreadyExistingCount?: number;
     sentCount?: number;
     failedCount?: number;
     errors?: string[];
@@ -86,12 +95,15 @@ export const BillingListToolbar: React.FC = () => {
   const [generateStatus, setGenerateStatus] = React.useState<SyncJobStatus | undefined>();
   const [sendStatus, setSendStatus] = React.useState<SyncJobStatus | undefined>();
 
-  const fetchStatuses = React.useCallback(async (): Promise<{
-    success: boolean;
-    sync?: SyncJobStatus;
-    generate?: SyncJobStatus;
-    send?: SyncJobStatus;
-  } | undefined> => {
+  const fetchStatuses = React.useCallback(async (): Promise<
+    | {
+        success: boolean;
+        sync?: SyncJobStatus;
+        generate?: SyncJobStatus;
+        send?: SyncJobStatus;
+      }
+    | undefined
+  > => {
     try {
       const response = await fetch('/api/confidential/billing/sync-status');
       const data = (await response.json()) as {
@@ -235,75 +247,82 @@ export const BillingListToolbar: React.FC = () => {
     }
   }, []);
 
-  const startJob = React.useCallback(async (action: 'sync' | 'generate' | 'send'): Promise<void> => {
-    setLoading(true);
-    setActionType(action);
-    setActionResult(undefined);
+  const startJob = React.useCallback(
+    async (action: 'sync' | 'generate' | 'send'): Promise<void> => {
+      setLoading(true);
+      setActionType(action);
+      setActionResult(undefined);
 
-    try {
-      const response = await fetch(`/api/confidential/billing/${action}`, { method: 'POST' });
-      const result = (await response.json()) as { success: boolean; jobId?: string; error?: string };
-
-      if (result.success === true && result.jobId !== undefined) {
-        const jobId = result.jobId;
-        setActiveJobs((previous): { sync?: string; generate?: string; send?: string } => {
-          const updated = { ...previous, [action]: jobId };
-          localStorage.setItem('billing_active_jobs', JSON.stringify(updated));
-          return updated;
-        });
-
-        let taskSlug: 'syncParticipants' | 'generateBills' | 'sendBills' = 'syncParticipants';
-        switch (action) {
-          case 'sync': {
-            taskSlug = 'syncParticipants';
-            break;
-          }
-          case 'generate': {
-            taskSlug = 'generateBills';
-            break;
-          }
-          case 'send': {
-            taskSlug = 'sendBills';
-            break;
-          }
-        }
-
-        const placeholderStatus: SyncJobStatus = {
-          id: jobId,
-          taskSlug,
-          status: 'pending',
-          updatedAt: new Date().toISOString(),
+      try {
+        const response = await fetch(`/api/confidential/billing/${action}`, { method: 'POST' });
+        const result = (await response.json()) as {
+          success: boolean;
+          jobId?: string;
+          error?: string;
         };
 
-        switch (action) {
-          case 'sync': {
-            setSyncStatus(placeholderStatus);
-            break;
+        if (result.success === true && result.jobId !== undefined) {
+          const jobId = result.jobId;
+          setActiveJobs((previous): { sync?: string; generate?: string; send?: string } => {
+            const updated = { ...previous, [action]: jobId };
+            localStorage.setItem('billing_active_jobs', JSON.stringify(updated));
+            return updated;
+          });
+
+          let taskSlug: 'syncParticipants' | 'generateBills' | 'sendBills' = 'syncParticipants';
+          switch (action) {
+            case 'sync': {
+              taskSlug = 'syncParticipants';
+              break;
+            }
+            case 'generate': {
+              taskSlug = 'generateBills';
+              break;
+            }
+            case 'send': {
+              taskSlug = 'sendBills';
+              break;
+            }
           }
-          case 'generate': {
-            setGenerateStatus(placeholderStatus);
-            break;
+
+          const placeholderStatus: SyncJobStatus = {
+            id: jobId,
+            taskSlug,
+            status: 'pending',
+            updatedAt: new Date().toISOString(),
+          };
+
+          switch (action) {
+            case 'sync': {
+              setSyncStatus(placeholderStatus);
+              break;
+            }
+            case 'generate': {
+              setGenerateStatus(placeholderStatus);
+              break;
+            }
+            case 'send': {
+              setSendStatus(placeholderStatus);
+              break;
+            }
           }
-          case 'send': {
-            setSendStatus(placeholderStatus);
-            break;
-          }
+        } else {
+          setActionResult({
+            success: false,
+            error: result.error ?? 'Trigger failed',
+          });
         }
-      } else {
+      } catch (error) {
         setActionResult({
           success: false,
-          error: result.error ?? 'Trigger failed',
+          error: error instanceof Error ? error.message : 'Unknown error',
         });
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      setActionResult({
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    },
+    [],
+  );
 
   const isSyncPending =
     (loading && actionType === 'sync') ||
@@ -332,7 +351,7 @@ export const BillingListToolbar: React.FC = () => {
         <div className="rounded-lg border border-dashed border-gray-300 p-4 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
           <div className="mb-2 flex justify-center text-gray-400">{icon}</div>
           <p className="font-semibold">{title}</p>
-          <p className="text-xs mt-1">Keine Aktivität aufgezeichnet</p>
+          <p className="mt-1 text-xs">Keine Aktivität aufgezeichnet</p>
         </div>
       );
     }
@@ -394,27 +413,25 @@ export const BillingListToolbar: React.FC = () => {
       <div
         className={`rounded-lg border p-4 shadow-sm transition-all duration-300 ${borderClass} ${bgClass}`}
       >
-        <div className="flex items-center justify-between mb-3">
+        <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className={`p-1.5 rounded ${iconColorClass}`}>
-              {icon}
-            </div>
-            <h4 className="font-bold text-sm text-gray-900 dark:text-gray-100">{title}</h4>
+            <div className={`rounded p-1.5 ${iconColorClass}`}>{icon}</div>
+            <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100">{title}</h4>
           </div>
-          <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${badgeClass}`}>
+          <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${badgeClass}`}>
             {statusText}
           </span>
         </div>
 
-        <div className="text-xs text-gray-600 dark:text-gray-400 space-y-2">
+        <div className="space-y-2 text-xs text-gray-600 dark:text-gray-400">
           {isPending === true && (
-            <p className="italic text-amber-700 dark:text-amber-400">{pendingMessage}</p>
+            <p className="text-amber-700 italic dark:text-amber-400">{pendingMessage}</p>
           )}
 
           {isFailed === true && (
             <div className="text-red-700 dark:text-red-400">
               <p className="font-semibold">Fehlermeldung:</p>
-              <p className="mt-0.5 text-xs bg-red-100/50 dark:bg-red-950/50 p-2 rounded break-all max-h-24 overflow-y-auto">
+              <p className="mt-0.5 max-h-24 overflow-y-auto rounded bg-red-100/50 p-2 text-xs break-all dark:bg-red-950/50">
                 {statusObject.error ?? 'Unbekannter Fehler'}
               </p>
             </div>
@@ -426,7 +443,7 @@ export const BillingListToolbar: React.FC = () => {
             </div>
           )}
 
-          <div className="border-t border-gray-100 dark:border-gray-900 pt-2 mt-2 flex justify-between items-center text-[10px] text-gray-400 dark:text-gray-500">
+          <div className="mt-2 flex items-center justify-between border-t border-gray-100 pt-2 text-[10px] text-gray-400 dark:border-gray-900 dark:text-gray-500">
             <span>ID: {statusObject.id.slice(-8)}</span>
             <span>Stand: {formattedTime}</span>
           </div>
@@ -449,10 +466,8 @@ export const BillingListToolbar: React.FC = () => {
             void startJob('sync');
           }}
         >
-          <RefreshCcw
-            className={`mr-2 h-4 w-4 ${isSyncPending === true ? 'animate-spin' : ''}`}
-          />
-          <span className="truncate">Synchronisieren</span>
+          <RefreshCcw className={`mr-2 h-4 w-4 ${isSyncPending === true ? 'animate-spin' : ''}`} />
+          <span className="truncate">Abgleichen mit Cevi.DB</span>
         </Button>
         <Button
           buttonStyle="transparent"
@@ -467,7 +482,7 @@ export const BillingListToolbar: React.FC = () => {
           <FilePlus
             className={`mr-2 h-4 w-4 ${isGeneratePending === true ? 'animate-spin' : ''}`}
           />
-          <span className="truncate">Generieren</span>
+          <span className="truncate">Rechnungen Generieren</span>
         </Button>
         <Button
           buttonStyle="transparent"
@@ -479,40 +494,52 @@ export const BillingListToolbar: React.FC = () => {
             void startJob('send');
           }}
         >
-          <Send
-            className={`mr-2 h-4 w-4 ${isSendPending === true ? 'animate-spin' : ''}`}
-          />
-          <span className="truncate">Senden</span>
+          <Send className={`mr-2 h-4 w-4 ${isSendPending === true ? 'animate-spin' : ''}`} />
+          <span className="truncate">Mails versenden</span>
         </Button>
-        <Button
-          buttonStyle="transparent"
-          className={documentControlButtonClasses.neutral()}
-          size="medium"
-          onClick={(event): void => {
-            event.preventDefault();
-            handleCsvExport();
-          }}
-        >
-          <Download className="mr-2 h-4 w-4" />
-          <span className="truncate">CSV</span>
-        </Button>
-        <Button
-          buttonStyle="transparent"
-          className={documentControlButtonClasses.unpublish()}
-          size="medium"
-          disabled={loading === true && actionType === 'regenerate-all'}
-          onClick={(event): void => {
-            event.preventDefault();
-            setConfirmOpen(true);
-          }}
-        >
-          <RefreshCw
-            className={`mr-2 h-4 w-4 ${
-              loading === true && actionType === 'regenerate-all' ? 'animate-spin' : ''
-            }`}
-          />
-          <span className="truncate">Alle neu generieren</span>
-        </Button>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              buttonStyle="transparent"
+              className={documentControlButtonClasses.neutral()}
+              size="medium"
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="end"
+            className="w-48 border-gray-200 bg-white text-gray-900 shadow-lg dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+          >
+            <DropdownMenuItem
+              onClick={(event): void => {
+                event.preventDefault();
+                handleCsvExport();
+              }}
+              className="flex cursor-pointer items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-800"
+            >
+              <Download className="h-4 w-4" />
+              <span>Download CSV</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={(event): void => {
+                event.preventDefault();
+                setConfirmOpen(true);
+              }}
+              disabled={loading === true && actionType === 'regenerate-all'}
+              className="flex cursor-pointer items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 focus:bg-red-50 focus:text-red-700 dark:text-red-400 dark:hover:bg-red-900/30"
+            >
+              <RefreshCw
+                className={`h-4 w-4 ${
+                  loading === true && actionType === 'regenerate-all' ? 'animate-spin' : ''
+                }`}
+              />
+              <span>Alle neu generieren</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Action Result Banner */}
@@ -542,6 +569,9 @@ export const BillingListToolbar: React.FC = () => {
               )}
               {actionResult.generatedCount !== undefined && (
                 <span> Generiert: {actionResult.generatedCount}</span>
+              )}
+              {actionResult.skippedAlreadyExistingCount !== undefined && (
+                <span> | Bereits vorhanden: {actionResult.skippedAlreadyExistingCount}</span>
               )}
               {actionResult.skippedCount !== undefined && (
                 <span> | Übersprungen: {actionResult.skippedCount}</span>
@@ -606,7 +636,7 @@ export const BillingListToolbar: React.FC = () => {
                   {summary.reAddedCount ?? 0}
                 </span>
               </div>
-              <div className="col-span-2 mt-1 pt-1 border-t border-gray-100 dark:border-gray-900/50">
+              <div className="col-span-2 mt-1 border-t border-gray-100 pt-1 dark:border-gray-900/50">
                 Unverändert:{' '}
                 <span className="font-semibold text-gray-900 dark:text-gray-100">
                   {summary.unchangedCount ?? 0}
@@ -630,6 +660,12 @@ export const BillingListToolbar: React.FC = () => {
                 </span>
               </div>
               <div>
+                Bereits vorhanden:{' '}
+                <span className="font-semibold text-gray-900 dark:text-gray-100">
+                  {summary.skippedAlreadyExistingCount ?? 0}
+                </span>
+              </div>
+              <div>
                 Übersprungen:{' '}
                 <span className="font-semibold text-gray-900 dark:text-gray-100">
                   {summary.skippedCount ?? 0}
@@ -642,7 +678,7 @@ export const BillingListToolbar: React.FC = () => {
                     <summary className="cursor-pointer font-medium text-red-600 dark:text-red-400">
                       Details ({summary.errors.length} Fehler)
                     </summary>
-                    <ul className="mt-1 max-h-24 overflow-y-auto list-inside list-disc bg-red-50/50 dark:bg-red-950/20 p-1.5 rounded">
+                    <ul className="mt-1 max-h-24 list-inside list-disc overflow-y-auto rounded bg-red-50/50 p-1.5 dark:bg-red-950/20">
                       {summary.errors.map((jobError, index) => (
                         <li key={index}>{jobError}</li>
                       ))}
@@ -679,7 +715,7 @@ export const BillingListToolbar: React.FC = () => {
                     <summary className="cursor-pointer font-medium text-red-600 dark:text-red-400">
                       Details ({summary.errors.length} Fehler)
                     </summary>
-                    <ul className="mt-1 max-h-24 overflow-y-auto list-inside list-disc bg-red-50/50 dark:bg-red-950/20 p-1.5 rounded">
+                    <ul className="mt-1 max-h-24 list-inside list-disc overflow-y-auto rounded bg-red-50/50 p-1.5 dark:bg-red-950/20">
                       {summary.errors.map((jobError, index) => (
                         <li key={index}>{jobError}</li>
                       ))}
