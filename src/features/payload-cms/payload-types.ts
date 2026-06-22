@@ -199,6 +199,7 @@ export interface Config {
       publishScheduledAnnouncements: TaskPublishScheduledAnnouncements;
       syncActivePiketMembers: TaskSyncActivePiketMembers;
       syncNewUserAnnouncementChats: TaskSyncNewUserAnnouncementChats;
+      syncParticipants: TaskSyncParticipants;
       createCollectionExport: TaskCreateCollectionExport;
       createCollectionImport: TaskCreateCollectionImport;
       inline: {
@@ -3844,6 +3845,7 @@ export interface PayloadJob {
           | 'publishScheduledAnnouncements'
           | 'syncActivePiketMembers'
           | 'syncNewUserAnnouncementChats'
+          | 'syncParticipants'
           | 'createCollectionExport'
           | 'createCollectionImport';
         taskID: string;
@@ -3895,6 +3897,7 @@ export interface PayloadJob {
         | 'publishScheduledAnnouncements'
         | 'syncActivePiketMembers'
         | 'syncNewUserAnnouncementChats'
+        | 'syncParticipants'
         | 'createCollectionExport'
         | 'createCollectionImport'
       )
@@ -7242,6 +7245,14 @@ export interface TaskSyncNewUserAnnouncementChats {
   output: {
     success?: boolean | null;
   };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskSyncParticipants".
+ */
+export interface TaskSyncParticipants {
+  input?: unknown;
+  output?: unknown;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

@@ -22,6 +22,7 @@ import { generatePdfThumbnailTask } from '@/features/payload-cms/payload-cms/tas
 import { publishScheduledAnnouncementsTask } from '@/features/payload-cms/payload-cms/tasks/publish-scheduled-announcements';
 import { syncActivePiketMembersTask } from '@/features/payload-cms/payload-cms/tasks/sync-active-piket-members';
 import { syncNewUserAnnouncementChatsTask } from '@/features/payload-cms/payload-cms/tasks/sync-new-user-announcement-chats';
+import { syncParticipantsTask } from '@/features/payload-cms/payload-cms/tasks/sync-participants';
 import { smartphoneBreakpoints } from '@/features/payload-cms/utils/smartphone-breakpoints';
 import { registrationWorkflow } from '@/features/registration_process/workflows/registration-workflow';
 import { blockJobStep } from '@/features/registration_process/workflows/steps/block-job';
@@ -162,6 +163,7 @@ const jobsConfig: JobsConfig = {
     publishScheduledAnnouncementsTask,
     syncActivePiketMembersTask,
     syncNewUserAnnouncementChatsTask,
+    syncParticipantsTask,
   ],
   workflows: [registrationWorkflow, brevoContactWorkflow],
   autoRun: env.FEATURE_ENABLE_WORKFLOWS

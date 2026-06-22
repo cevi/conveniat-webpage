@@ -9,16 +9,19 @@ import type { PayloadHandler } from 'payload';
 export const billingSyncHandler: PayloadHandler = async (request) => {
   try {
     const hasAccess = await canAccessBilling({ req: request });
-    if (!hasAccess) {
+    if (hasAccess !== true) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { syncParticipants } = await import('@/features/billing/services/sync-service');
-    const result = await syncParticipants(request.payload);
-    return Response.json({ success: true, ...result });
+    const job = await request.payload.jobs.queue({
+      task: 'syncParticipants',
+      input: {},
+    });
+
+    return Response.json({ success: true, jobId: job.id });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
-    request.payload.logger.error({ err: error }, `Billing sync failed: ${message}`);
+    request.payload.logger.error({ err: error }, `Billing sync queue failed: ${message}`);
     return Response.json({ error: message }, { status: 500 });
   }
 };
