@@ -135,7 +135,7 @@ export const BillingActionsCell: React.FC<{
 
       {/* Inline Confirmation Modal */}
       {confirmOpen && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-gray-900">
             <h3 className="mb-2 text-lg font-bold text-gray-900 dark:text-gray-100">
               Rechnung neu generieren?

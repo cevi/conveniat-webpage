@@ -2,7 +2,7 @@ import { HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api';
 import type { Hitobito } from '@/features/registration_process/hitobito-api/index';
 import type { ResolveUserInput } from '@/features/registration_process/hitobito-api/schemas';
 import type { MatchCandidateResult } from '@/features/registration_process/hitobito-api/services/matcher.service';
-import type { Logger } from '@/features/registration_process/hitobito-api/types';
+import type { Logger, PersonResource } from '@/features/registration_process/hitobito-api/types';
 
 export interface StrategyContext {
   logger: Logger;
@@ -40,105 +40,94 @@ export const resolveBySearch = async ({
     birthDate: 'birthDate' in input ? input.birthDate : undefined,
   };
 
-  const processCandidates = async (
-    candidates: { id: string | number; label?: string | undefined; text?: string | undefined }[],
-    existingResults: MatchCandidateResult[],
-  ): Promise<MatchCandidateResult[]> => {
-    const newResults: MatchCandidateResult[] = [];
-    for (const candidate of candidates) {
-      if (
-        existingResults.some((r) => r.personId === String(candidate.id)) ||
-        newResults.some((r) => r.personId === String(candidate.id))
-      ) {
-        continue;
-      }
-
-      try {
-        const match = await hitobito.matcher.matchCandidate({
-          candidate: { id: String(candidate.id), label: candidate.label ?? candidate.text ?? '' },
-          userData,
-        });
-
-        if (match.matched === true) {
-          newResults.push(match);
-        }
-      } catch (error) {
-        // If retrieving match details for a specific candidate fails (e.g. 422 Unprocessable Content),
-        // we log it and continue. That candidate simply won't be considered a perfect match,
-        // and the strategy will either find another or fall back to ambiguous.
-        if (error instanceof Error && error.message.includes('status 401')) {
-          throw error; // Let auth errors still bring down the job
-        }
-
-        const message = error instanceof Error ? error.message : String(error);
-        if (message.includes('Frontend returned 422 Unprocessable Content')) {
-          newResults.push({
-            personId: String(candidate.id),
-            personLabel: candidate.label ?? candidate.text ?? '',
-            matched: false,
-            needsReview: true,
-            reason: 'Hitobito blocked retrieving extended details.',
-          });
-        }
-      }
-    }
-    return newResults;
-  };
-
-  const evaluateResults = (results: MatchCandidateResult[]): StrategyResult | undefined => {
-    if (results.length === 0) return undefined;
-
-    const perfectMatch = results.find((r) => r.needsReview === false);
-    if (perfectMatch !== undefined) {
-      return {
-        peopleId: perfectMatch.personId,
-        status: 'found',
-        reason: 'Matched via search',
-        candidates: results,
-      };
-    }
-    return undefined; /* Ambiguous handled at the very end */
-  };
-
-  // --- Tier 1: /full.json Search ---
-  const tier1Queries = [
-    [input.firstName, input.lastName, input.email, userData.nickname]
-      .filter((v): v is string => typeof v === 'string' && v !== '')
-      .join(' '),
-    `${input.firstName} ${input.lastName}`,
-  ];
-
   const results: MatchCandidateResult[] = [];
+  const candidates: PersonResource[] = [];
+  const seenIds = new Set<string>();
 
-  for (const query of tier1Queries) {
-    const candidates = await hitobito.people.search({ query });
-    const matchResults = await processCandidates(candidates, results);
-    results.push(...matchResults);
+  const addCandidates = (list: PersonResource[]): void => {
+    for (const item of list) {
+      if (!seenIds.has(item.id)) {
+        seenIds.add(item.id);
+        candidates.push(item);
+      }
+    }
+  };
 
-    const evaluation = evaluateResults(results);
-    if (evaluation) return evaluation;
+  try {
+    const nameResults = await hitobito.people.searchByNames({
+      firstName: input.firstName,
+      lastName: input.lastName,
+    });
+    addCandidates(nameResults);
+
+    if ('nickname' in input && input.nickname !== undefined && input.nickname !== '') {
+      const nicknameResults = await hitobito.people.searchByNicknameAndLastName({
+        nickname: input.nickname,
+        lastName: input.lastName,
+      });
+      addCandidates(nicknameResults);
+    }
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('status 401')) {
+      throw error; // Let auth errors still bring down the job
+    }
+    // For other search errors, log and proceed with whatever we have (or empty results)
   }
 
-  // --- Tier 2: /people/query Search ---
-  const tier2Queries = [
-    [input.firstName, input.lastName, userData.nickname]
-      .filter((v): v is string => typeof v === 'string' && v !== '')
-      .join(' '),
-    `${input.firstName} ${input.lastName}`,
-  ];
+  for (const candidate of candidates) {
+    try {
+      const emailPart =
+        typeof candidate.attributes.email === 'string' && candidate.attributes.email !== ''
+          ? ` (${candidate.attributes.email})`
+          : '';
+      const label =
+        `${candidate.attributes.first_name ?? ''} ${candidate.attributes.last_name ?? ''}${emailPart}`.trim();
 
-  for (const query of tier2Queries) {
-    const candidates = await hitobito.people.searchPeopleQuery({ query });
-    const matchResults = await processCandidates(candidates, results);
-    results.push(...matchResults);
+      const match = await hitobito.matcher.matchCandidate({
+        candidate: { id: candidate.id, label },
+        userData,
+        details: candidate.attributes,
+      });
 
-    const evaluation = evaluateResults(results);
-    if (evaluation) return evaluation;
+      if (match.matched === true) {
+        results.push(match);
+      }
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('status 401')) {
+        throw error;
+      }
+      const message = error instanceof Error ? error.message : String(error);
+      if (message.includes('Frontend returned 422 Unprocessable Content')) {
+        const emailPart =
+          typeof candidate.attributes.email === 'string' && candidate.attributes.email !== ''
+            ? ` (${candidate.attributes.email})`
+            : '';
+        const label =
+          `${candidate.attributes.first_name ?? ''} ${candidate.attributes.last_name ?? ''}${emailPart}`.trim();
+        results.push({
+          personId: candidate.id,
+          personLabel: label,
+          matched: false,
+          needsReview: true,
+          reason: 'Hitobito blocked retrieving extended details.',
+        });
+      }
+    }
   }
 
-  // If no perfect match was found across both tiers, handle ambiguous/no results
   if (results.length === 0) return undefined;
 
+  const perfectMatch = results.find((r) => r.needsReview === false);
+  if (perfectMatch !== undefined) {
+    return {
+      peopleId: perfectMatch.personId,
+      status: 'found',
+      reason: 'Matched via search',
+      candidates: results,
+    };
+  }
+
+  // If no perfect match was found, handle ambiguous/no results
   const firstFoundCandidate = results[0];
   if (firstFoundCandidate === undefined) return undefined;
 

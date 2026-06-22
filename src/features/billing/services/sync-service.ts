@@ -25,7 +25,10 @@ interface SyncHistoryEntry {
  * - Missing participation: sets status 'removed', sets removedDate
  * - Re-added user: creates new record with status 're_added' (same userId, different participationUuid)
  */
-export async function syncParticipants(payload: Payload): Promise<SyncSummary> {
+export async function syncParticipants(
+  payload: Payload,
+  dependencies?: { hitobitoClient?: HitobitoClient },
+): Promise<SyncSummary> {
   const now = new Date().toISOString();
   const summary: SyncSummary = {
     newCount: 0,
@@ -62,14 +65,16 @@ export async function syncParticipants(payload: Payload): Promise<SyncSummary> {
     },
   };
 
-  const client = new HitobitoClient(
-    {
-      baseUrl: HITOBITO_CONFIG.baseUrl,
-      apiToken: HITOBITO_CONFIG.apiToken,
-      browserCookie: '', // Not needed for JSON:API endpoints
-    },
-    logger,
-  );
+  const client =
+    dependencies?.hitobitoClient ??
+    new HitobitoClient(
+      {
+        baseUrl: HITOBITO_CONFIG.baseUrl,
+        apiToken: HITOBITO_CONFIG.apiToken,
+        browserCookie: '', // Not needed for JSON:API endpoints
+      },
+      logger,
+    );
   const eventService = new EventService(client, logger);
 
   // 3. Fetch participations for each event

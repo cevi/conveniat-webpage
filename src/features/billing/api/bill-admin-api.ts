@@ -270,8 +270,9 @@ export const billingPreviewPdfHandler: PayloadHandler = async (request) => {
     }
 
     // ── Generate a fictive preview PDF ──────────────────────────────────
-    const { generateQrBillPdf, generateQrReference } =
+    const { generateQrBillPdf } =
       await import('@/features/billing/services/bill-generator-service');
+    const { generateQrReference } = await import('@/features/billing/utils');
 
     const settings = await request.payload.findGlobal({
       slug: 'bill-settings',
