@@ -65,6 +65,7 @@ async function syncSingleEvent(
       const hasNicknameChanged =
         normalize(document_.nickname) !== normalize(participation.nickname);
       const hasGroupIdChanged = normalize(document_.groupId) !== normalize(event.groupId);
+      const hasGroupNameChanged = normalize(document_.groupName) !== normalize(event.eventName);
 
       const history = (document_.syncHistory as SyncHistoryEntry[] | undefined) ?? [];
 
@@ -74,7 +75,8 @@ async function syncSingleEvent(
         hasFirstNameChanged ||
         hasLastNameChanged ||
         hasNicknameChanged ||
-        hasGroupIdChanged
+        hasGroupIdChanged ||
+        hasGroupNameChanged
       ) {
         const diff: Record<string, { from: string; to: string }> = {};
         if (hasRoleChanged)
@@ -104,6 +106,8 @@ async function syncSingleEvent(
           };
         if (hasGroupIdChanged)
           diff['groupId'] = { from: String(document_.groupId), to: event.groupId };
+        if (hasGroupNameChanged)
+          diff['groupName'] = { from: String(document_.groupName), to: event.eventName };
 
         await payload.update({
           collection: 'bill-participants',
@@ -112,6 +116,7 @@ async function syncSingleEvent(
           data: {
             lastSyncDate: now,
             groupId: event.groupId,
+            groupName: event.eventName,
             firstName: participation.firstName,
             lastName: participation.lastName,
             nickname: participation.nickname,
@@ -155,6 +160,7 @@ async function syncSingleEvent(
         userId: participation.participantId,
         eventId: event.eventId,
         groupId: event.groupId,
+        groupName: event.eventName,
         firstName: participation.firstName,
         lastName: participation.lastName,
         nickname: participation.nickname,

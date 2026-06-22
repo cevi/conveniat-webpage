@@ -36,6 +36,7 @@ export const BillParticipantsCollection: CollectionConfig = {
     useAsTitle: 'fullName',
     defaultColumns: [
       'fullName',
+      'groupName',
       'eventId',
       'status',
       'invoiceNumber',
@@ -123,6 +124,16 @@ export const BillParticipantsCollection: CollectionConfig = {
         en: 'Group ID',
         de: 'Gruppen-ID',
         fr: 'ID du groupe',
+      },
+    },
+    {
+      name: 'groupName',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
+      type: 'text',
+      label: {
+        en: 'Group Name',
+        de: 'Gruppenname',
+        fr: 'Nom du groupe',
       },
     },
 

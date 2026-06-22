@@ -16,6 +16,7 @@ export interface SyncedParticipant {
   userId: string;
   eventId: string;
   groupId: string;
+  groupName: string;
   firstName: string;
   lastName: string;
   nickname: string;

@@ -3564,6 +3564,7 @@ export interface BillParticipant {
   userId: string;
   eventId: string;
   groupId?: string | null;
+  groupName?: string | null;
   firstName?: string | null;
   lastName?: string | null;
   nickname?: string | null;
@@ -5640,6 +5641,7 @@ export interface BillParticipantsSelect<T extends boolean = true> {
   userId?: T;
   eventId?: T;
   groupId?: T;
+  groupName?: T;
   firstName?: T;
   lastName?: T;
   nickname?: T;
