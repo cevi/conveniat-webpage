@@ -1,5 +1,16 @@
 import { canAccessBilling } from '@/features/payload-cms/payload-cms/access-rules/can-access-billing';
 import type { GlobalConfig } from 'payload';
+import { z } from 'zod';
+
+const IdValidationSchema = z.union([
+  z
+    .string()
+    .trim()
+    .regex(/^\d{1,6}$/, 'Must be a number up to 6 digits'),
+  z.literal(''),
+  z.null(),
+  z.undefined(),
+]);
 
 /**
  * Payload Global for QR Bill configuration.
@@ -86,7 +97,8 @@ export const BillSettingsGlobal: GlobalConfig = {
                     },
                   },
                   validate: (val: string | null | undefined): string | true => {
-                    if (val && !/^\d{1,6}$/.test(val)) {
+                    const result = IdValidationSchema.safeParse(val);
+                    if (!result.success) {
                       return 'Event ID must be a number up to 6 digits';
                     }
                     return true;
@@ -126,7 +138,8 @@ export const BillSettingsGlobal: GlobalConfig = {
                     },
                   },
                   validate: (val: string | null | undefined): string | true => {
-                    if (val && !/^\d{1,6}$/.test(val)) {
+                    const result = IdValidationSchema.safeParse(val);
+                    if (!result.success) {
                       return 'Group ID must be a number up to 6 digits';
                     }
                     return true;

@@ -2,6 +2,20 @@ import { environmentVariables } from '@/config/environment-variables';
 import { canAccessBilling } from '@/features/payload-cms/payload-cms/access-rules/can-access-billing';
 import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import type { PayloadHandler } from 'payload';
+import { z } from 'zod';
+
+const ParticipantIdSchema = z.object({
+  participantId: z.string().trim().min(1, 'Missing participantId'),
+});
+
+const SyncStatusQuerySchema = z.object({
+  jobId: z.string().trim().min(1).nullable().optional(),
+});
+
+const PreviewPdfQuerySchema = z.object({
+  participantId: z.string().trim().min(1).nullable().optional(),
+  download: z.preprocess((val) => val === 'true', z.boolean()).optional(),
+});
 
 /**
  * POST /api/confidential/billing/sync – Sync participants from Cevi.DB
@@ -55,7 +69,7 @@ export const billingGenerateHandler: PayloadHandler = async (request) => {
 export const billingRegenerateAllHandler: PayloadHandler = async (request) => {
   try {
     const hasAccess = await canAccessBilling({ req: request });
-    if (!hasAccess) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    if (hasAccess !== true) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     // Find all participants with a bill
     const existing = await request.payload.find({
@@ -93,23 +107,28 @@ export const billingRegenerateAllHandler: PayloadHandler = async (request) => {
 export const billingRegenerateSingleHandler: PayloadHandler = async (request) => {
   try {
     const hasAccess = await canAccessBilling({ req: request });
-    if (!hasAccess) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    if (hasAccess !== true) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const body = (await (request as unknown as Request).json()) as { participantId?: string };
-    if (!body.participantId) {
-      return Response.json({ error: 'Missing participantId' }, { status: 400 });
+    const bodyJson = (await (request as unknown as Request).json()) as unknown;
+    const parseResult = ParticipantIdSchema.safeParse(bodyJson);
+    if (!parseResult.success) {
+      return Response.json(
+        { error: parseResult.error.issues[0]?.message ?? 'Invalid input' },
+        { status: 400 },
+      );
     }
+    const { participantId } = parseResult.data;
 
     // Set status to new
     await request.payload.update({
       collection: 'bill-participants',
-      id: body.participantId,
+      id: participantId,
       data: { status: 'new' },
       context: { internal: true },
     });
 
     const { generateBills } = await import('@/features/billing/services/bill-generator-service');
-    const result = await generateBills(request.payload, body.participantId);
+    const result = await generateBills(request.payload, participantId);
     return Response.json({ success: true, ...result });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
@@ -147,17 +166,22 @@ export const billingSendHandler: PayloadHandler = async (request) => {
 export const billingSendSingleHandler: PayloadHandler = async (request) => {
   try {
     const hasAccess = await canAccessBilling({ req: request });
-    if (!hasAccess) {
+    if (hasAccess !== true) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = (await (request as unknown as Request).json()) as { participantId?: string };
-    if (!body.participantId) {
-      return Response.json({ error: 'Missing participantId' }, { status: 400 });
+    const bodyJson = (await (request as unknown as Request).json()) as unknown;
+    const parseResult = ParticipantIdSchema.safeParse(bodyJson);
+    if (!parseResult.success) {
+      return Response.json(
+        { error: parseResult.error.issues[0]?.message ?? 'Invalid input' },
+        { status: 400 },
+      );
     }
+    const { participantId } = parseResult.data;
 
     const { sendBills } = await import('@/features/billing/services/email-service');
-    const result = await sendBills(request.payload, body.participantId);
+    const result = await sendBills(request.payload, participantId);
     return Response.json({ success: true, ...result });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
@@ -172,7 +196,7 @@ export const billingSendSingleHandler: PayloadHandler = async (request) => {
 export const billingExportCsvHandler: PayloadHandler = async (request) => {
   try {
     const hasAccess = await canAccessBilling({ req: request });
-    if (!hasAccess) {
+    if (hasAccess !== true) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -202,16 +226,26 @@ export const billingExportCsvHandler: PayloadHandler = async (request) => {
 export const billingPreviewPdfHandler: PayloadHandler = async (request) => {
   try {
     const hasAccess = await canAccessBilling({ req: request });
-    if (!hasAccess) {
+    if (hasAccess !== true) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const url = new URL(request.url ?? 'http://localhost');
-    const participantId = url.searchParams.get('participantId');
-    const isDownload = url.searchParams.get('download') === 'true';
+    const queryParameters = {
+      participantId: url.searchParams.get('participantId'),
+      download: url.searchParams.get('download'),
+    };
+    const parseResult = PreviewPdfQuerySchema.safeParse(queryParameters);
+    if (!parseResult.success) {
+      return Response.json(
+        { error: parseResult.error.issues[0]?.message ?? 'Invalid input' },
+        { status: 400 },
+      );
+    }
+    const { participantId, download: isDownload } = parseResult.data;
 
     // ── Serve a stored participant PDF ──────────────────────────────────
-    if (participantId) {
+    if (typeof participantId === 'string' && participantId !== '') {
       const document_ = await request.payload.findByID({
         collection: 'bill-participants',
         id: participantId,
@@ -221,7 +255,7 @@ export const billingPreviewPdfHandler: PayloadHandler = async (request) => {
       const pdfDocuments = (document_.billPdfs as (string | { id: string })[] | undefined) ?? [];
       const latestPdfId = pdfDocuments.at(-1);
 
-      if (!latestPdfId) {
+      if (latestPdfId === undefined) {
         return Response.json({ error: 'No PDF available for this participant' }, { status: 404 });
       }
 
@@ -232,14 +266,15 @@ export const billingPreviewPdfHandler: PayloadHandler = async (request) => {
         context: { internal: true },
       });
 
-      if (!pdfDocument.filename) {
+      if (typeof pdfDocument.filename !== 'string' || pdfDocument.filename === '') {
         return Response.json({ error: 'PDF file missing' }, { status: 404 });
       }
 
       const invoiceNumber = (document_.invoiceNumber as string | undefined) ?? 'Rechnung';
-      const disposition = isDownload
-        ? `attachment; filename="Rechnung-${invoiceNumber}.pdf"`
-        : `inline; filename="Rechnung-${invoiceNumber}.pdf"`;
+      const disposition =
+        isDownload === true
+          ? `attachment; filename="Rechnung-${invoiceNumber}.pdf"`
+          : `inline; filename="Rechnung-${invoiceNumber}.pdf"`;
 
       const s3 = new S3Client({
         endpoint: environmentVariables.MINIO_HOST,
@@ -309,30 +344,34 @@ export const billingPreviewPdfHandler: PayloadHandler = async (request) => {
     const participantPricing =
       rolePricing.find((rp) => rp.roleTypePattern.toLowerCase().includes('participant')) ??
       rolePricing[0];
-    const amount = Number(participantPricing?.amount) || 150;
-    const roleLabel = participantPricing?.label || 'Teilnehmer:in';
+    const rawAmount = participantPricing?.amount;
+    const amount = typeof rawAmount === 'number' && !Number.isNaN(rawAmount) ? rawAmount : 150;
+    const roleLabel = participantPricing?.label ?? 'Teilnehmer:in';
     const vatCode = participantPricing?.vatCode;
 
     const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
-    const customReference = settings.customReferenceTemplate
-      ? settings.customReferenceTemplate
-          .replaceAll('{{year}}', new Date().getFullYear().toString())
-          .replaceAll('{{month}}', currentMonth)
-          .replaceAll('{{event-id}}', '1234')
-          .replaceAll('{{group-id}}', '5678')
-          .replaceAll('{{participation-id}}', '9012')
-          .replaceAll('{{people-id}}', '123456')
-      : undefined;
+    const customReference =
+      typeof settings.customReferenceTemplate === 'string' &&
+      settings.customReferenceTemplate !== ''
+        ? settings.customReferenceTemplate
+            .replaceAll('{{year}}', new Date().getFullYear().toString())
+            .replaceAll('{{month}}', currentMonth)
+            .replaceAll('{{event-id}}', '1234')
+            .replaceAll('{{group-id}}', '5678')
+            .replaceAll('{{participation-id}}', '9012')
+            .replaceAll('{{people-id}}', '123456')
+        : undefined;
 
-    const eventNumber = settings.eventNumberTemplate
-      ? settings.eventNumberTemplate
-          .replaceAll('{{year}}', new Date().getFullYear().toString())
-          .replaceAll('{{month}}', currentMonth)
-          .replaceAll('{{event-id}}', '1234')
-          .replaceAll('{{group-id}}', '5678')
-          .replaceAll('{{participation-id}}', '9012')
-          .replaceAll('{{people-id}}', '123456')
-      : undefined;
+    const eventNumber =
+      typeof settings.eventNumberTemplate === 'string' && settings.eventNumberTemplate !== ''
+        ? settings.eventNumberTemplate
+            .replaceAll('{{year}}', new Date().getFullYear().toString())
+            .replaceAll('{{month}}', currentMonth)
+            .replaceAll('{{event-id}}', '1234')
+            .replaceAll('{{group-id}}', '5678')
+            .replaceAll('{{participation-id}}', '9012')
+            .replaceAll('{{people-id}}', '123456')
+        : undefined;
 
     const documentTitle =
       (settings.documentTitle as string | undefined) ?? 'ANMELDEBESTÄTIGUNG UND RECHNUNG';
@@ -360,9 +399,9 @@ export const billingPreviewPdfHandler: PayloadHandler = async (request) => {
       amount,
       currency,
       reference: generateQrReference('123456', '1234', '9012', 1),
-      ...(customReference ? { customReference } : {}),
-      ...(eventNumber ? { eventNumber } : {}),
-      invoiceNumber: `${((settings.invoiceNumberPrefix as string) || '{{year}}')
+      ...(typeof customReference === 'string' && customReference !== '' ? { customReference } : {}),
+      ...(typeof eventNumber === 'string' && eventNumber !== '' ? { eventNumber } : {}),
+      invoiceNumber: `${((settings.invoiceNumberPrefix as string | undefined) ?? '{{year}}')
         .replaceAll('{{year}}', new Date().getFullYear().toString())
         .replaceAll('{{month}}', currentMonth)
         .replaceAll('{{event-id}}', '1234')
@@ -376,7 +415,7 @@ export const billingPreviewPdfHandler: PayloadHandler = async (request) => {
       firstName: 'Maximilian',
     });
 
-    return new Response(pdfBuffer, {
+    return new Response(new Uint8Array(pdfBuffer), {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
@@ -419,14 +458,14 @@ interface EventApiResponse {
 export const billingPopulateSubeventsHandler: PayloadHandler = async (request) => {
   try {
     const hasAccess = await canAccessBilling({ req: request });
-    if (!hasAccess) {
+    if (hasAccess !== true) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { Hitobito } = await import('@/features/registration_process/hitobito-api/hitobito');
     const { HITOBITO_CONFIG } = await import('@/features/registration_process/hitobito-api/config');
 
-    const baseUrl = HITOBITO_CONFIG.baseUrl || 'https://db.cevi.ch';
+    const baseUrl = (HITOBITO_CONFIG.baseUrl as string | undefined) ?? 'https://db.cevi.ch';
     const apiToken = HITOBITO_CONFIG.apiToken;
     if (apiToken === '') {
       return Response.json(
@@ -457,7 +496,7 @@ export const billingPopulateSubeventsHandler: PayloadHandler = async (request) =
       'page[size]': '100',
     };
 
-    while (nextUrl) {
+    while (typeof nextUrl === 'string' && nextUrl !== '') {
       const response: GroupApiResponse = await hitobito.client.apiRequest<GroupApiResponse>(
         'GET',
         nextUrl,
@@ -465,7 +504,7 @@ export const billingPopulateSubeventsHandler: PayloadHandler = async (request) =
       );
       if (response.data) {
         for (const group of response.data) {
-          if (group.id) subgroupLinks.push(group.id);
+          if (typeof group.id === 'string' && group.id !== '') subgroupLinks.push(group.id);
         }
       }
       nextUrl = response.links?.next ?? undefined;
@@ -629,7 +668,17 @@ export const billingSyncStatusHandler: PayloadHandler = async (request) => {
     }
 
     const url = new URL(request.url ?? 'http://localhost');
-    const jobId = url.searchParams.get('jobId');
+    const queryParameters = {
+      jobId: url.searchParams.get('jobId'),
+    };
+    const parseResult = SyncStatusQuerySchema.safeParse(queryParameters);
+    if (!parseResult.success) {
+      return Response.json(
+        { error: parseResult.error.issues[0]?.message ?? 'Invalid input' },
+        { status: 400 },
+      );
+    }
+    const { jobId } = parseResult.data;
 
     if (typeof jobId === 'string' && jobId.length > 0) {
       const job = await request.payload.findByID({

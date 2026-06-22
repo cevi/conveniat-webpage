@@ -1,5 +1,5 @@
 /* eslint-disable unicorn/no-null */
-import { validateParticipant } from '@/features/billing/services/validation-service';
+import { isRoleAllowed, validateParticipant } from '@/features/billing/services/validation-service';
 import type { SyncedParticipant, SyncSummary } from '@/features/billing/types';
 import { HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api';
 import { HitobitoClient } from '@/features/registration_process/hitobito-api/client';
@@ -139,13 +139,18 @@ async function syncSingleEvent(
       const hasGenderChanged = normalize(document_.gender) !== normalize(participation.gender);
       const hasActiveChanged = Boolean(document_.active) !== Boolean(participation.active);
 
+      const isRoleOk = isRoleAllowed(participation.roleType);
       const isMissing = !validationResult.isValid;
-      const wasMissing = (document_.status as string) === 'pflichtangaben_missing';
+      const wasInvalidOrMissing =
+        (document_.status as string) === 'pflichtangaben_missing' ||
+        (document_.status as string) === 'invalid_anmeldeangaben';
 
       let newStatus = document_.status as string;
-      if (isMissing) {
+      if (!isRoleOk) {
+        newStatus = 'invalid_anmeldeangaben';
+      } else if (isMissing) {
         newStatus = 'pflichtangaben_missing';
-      } else if (wasMissing) {
+      } else if (wasInvalidOrMissing) {
         newStatus = 'new';
       } else if (
         hasRoleChanged ||
@@ -317,9 +322,12 @@ async function syncSingleEvent(
         active: participation.active,
       };
 
+      const isRoleOk = isRoleAllowed(participation.roleType);
       const isMissing = !validationResult.isValid;
       let finalStatus = isReAdded ? 're_added' : 'new';
-      if (isMissing) {
+      if (!isRoleOk) {
+        finalStatus = 'invalid_anmeldeangaben';
+      } else if (isMissing) {
         finalStatus = 'pflichtangaben_missing';
       }
 

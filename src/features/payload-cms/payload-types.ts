@@ -3595,6 +3595,7 @@ export interface BillParticipant {
   status:
     | 'new'
     | 'pflichtangaben_missing'
+    | 'invalid_anmeldeangaben'
     | 'bill_created'
     | 'bill_sent'
     | 'removed'

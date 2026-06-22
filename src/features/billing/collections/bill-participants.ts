@@ -442,6 +442,14 @@ export const BillParticipantsCollection: CollectionConfig = {
           value: 'pflichtangaben_missing',
         },
         {
+          label: {
+            en: 'Invalid registration details',
+            de: 'Anmeldeangaben ungültig',
+            fr: "Détails d'inscription invalides",
+          },
+          value: 'invalid_anmeldeangaben',
+        },
+        {
           label: { en: 'Bill Created', de: 'Rechnung erstellt', fr: 'Facture créée' },
           value: 'bill_created',
         },

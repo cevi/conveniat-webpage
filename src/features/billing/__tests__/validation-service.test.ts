@@ -1,4 +1,5 @@
-import { validateParticipant } from '@/features/billing/services/validation-service';
+/* eslint-disable unicorn/no-null, unicorn/no-useless-undefined */
+import { isRoleAllowed, validateParticipant } from '@/features/billing/services/validation-service';
 
 describe('Validation Service', () => {
   const validPerson = {
@@ -25,43 +26,60 @@ describe('Validation Service', () => {
     Essgewohnheit: 'vegetarisch',
   };
 
-  it('should validate a complete participant successfully', () => {
-    const result = validateParticipant({
-      person: validPerson,
-      answers: validAnswers,
+  describe('validateParticipant', () => {
+    it('should validate a complete participant successfully', () => {
+      const result = validateParticipant({
+        person: validPerson,
+        answers: validAnswers,
+      });
+
+      expect(result.isValid).toBe(true);
+      expect(result.missingFields).toHaveLength(0);
     });
 
-    expect(result.isValid).toBe(true);
-    expect(result.missingFields).toHaveLength(0);
+    it('should detect missing contact fields', () => {
+      const result = validateParticipant({
+        person: {
+          ...validPerson,
+          street: undefined,
+          birthday: '',
+        },
+        answers: validAnswers,
+      });
+
+      expect(result.isValid).toBe(false);
+      expect(result.missingFields).toContain('Strasse');
+      expect(result.missingFields).toContain('Geburtsdatum');
+    });
+
+    it('should detect missing answers via fuzzy matching', () => {
+      const result = validateParticipant({
+        person: validPerson,
+        answers: {
+          ...validAnswers,
+          'Mailadresse für Rechnung': '',
+          'AHV-Nummer?': '  ',
+        },
+      });
+
+      expect(result.isValid).toBe(false);
+      expect(result.missingFields).toContain('Mailadresse für Rechnung');
+      expect(result.missingFields).toContain('AHV-Nummer');
+    });
   });
 
-  it('should detect missing contact fields', () => {
-    const result = validateParticipant({
-      person: {
-        ...validPerson,
-        street: undefined,
-        birthday: '',
-      },
-      answers: validAnswers,
+  describe('isRoleAllowed', () => {
+    it('should allow valid event role types', () => {
+      expect(isRoleAllowed('Event::Role::Participant')).toBe(true);
+      expect(isRoleAllowed('Event::Role::Leader')).toBe(true);
+      expect(isRoleAllowed('Event::Role::AssistantLeader')).toBe(true);
     });
 
-    expect(result.isValid).toBe(false);
-    expect(result.missingFields).toContain('Strasse');
-    expect(result.missingFields).toContain('Geburtsdatum');
-  });
-
-  it('should detect missing answers via fuzzy matching', () => {
-    const result = validateParticipant({
-      person: validPerson,
-      answers: {
-        ...validAnswers,
-        'Mailadresse für Rechnung': '',
-        'AHV-Nummer?': '  ',
-      },
+    it('should reject invalid role types', () => {
+      expect(isRoleAllowed('Event::Role::Guest')).toBe(false);
+      expect(isRoleAllowed('Event::Role::Visitor')).toBe(false);
+      expect(isRoleAllowed(undefined)).toBe(false);
+      expect(isRoleAllowed(null)).toBe(false);
     });
-
-    expect(result.isValid).toBe(false);
-    expect(result.missingFields).toContain('Mailadresse für Rechnung');
-    expect(result.missingFields).toContain('AHV-Nummer');
   });
 });
