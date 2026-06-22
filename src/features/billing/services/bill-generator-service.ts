@@ -392,6 +392,7 @@ export async function generateBills(
         vatCode,
         paymentDeadlineDays: settings.paymentDeadlineDays,
         firstName,
+        birthday: document_.birthday ?? undefined,
       });
 
       // Upload PDF buffer to MinIO
@@ -490,6 +491,7 @@ interface PdfGenerationParameters {
   vatCode?: string | undefined;
   paymentDeadlineDays: number;
   firstName: string;
+  birthday?: string | undefined;
 }
 
 /**
@@ -678,12 +680,25 @@ export async function generateQrBillPdf(parameters: PdfGenerationParameters): Pr
 
     // Invoice table
     const amountNumber = Number(parameters.amount) || 0;
-    const vatRate = parameters.vatCode
-      ? Number.parseFloat(parameters.vatCode.replace('%', '').replace(',', '.'))
-      : 0;
-    const isVatApplied = !Number.isNaN(vatRate) && vatRate > 0;
 
-    const vatAmount = isVatApplied ? (amountNumber * vatRate) / (100 + vatRate) : 0;
+    const invoiceYear = new Date().getFullYear();
+    let isSub18 = false;
+    if (parameters.birthday) {
+      const birthYearMatch = parameters.birthday.match(/\d{4}/);
+      if (birthYearMatch) {
+        const birthYear = Number.parseInt(birthYearMatch[0], 10);
+        isSub18 =
+          invoiceYear < 2027 ? birthYear >= invoiceYear - 17 : birthYear >= invoiceYear - 18;
+      }
+    }
+
+    const isVatApplied = parameters.vatCode !== undefined && parameters.vatCode !== '';
+    let vatRate = 0;
+    if (isVatApplied && !isSub18 && parameters.vatCode !== undefined) {
+      vatRate = Number.parseFloat(parameters.vatCode.replace('%', '').replace(',', '.'));
+    }
+
+    const vatAmount = isVatApplied && !isSub18 ? (amountNumber * vatRate) / (100 + vatRate) : 0;
     const subtotal = amountNumber - vatAmount;
 
     // Build the rows array dynamically
@@ -727,6 +742,10 @@ export async function generateQrBillPdf(parameters: PdfGenerationParameters): Pr
     ];
 
     if (isVatApplied) {
+      const vatLabel = isSub18
+        ? 'MWST 0.0% (steuerbefreite Leistung an Jugendliche)'
+        : `MWST ${parameters.vatCode}%`;
+
       tableRows.push(
         {
           borderColor: '#ECF0F1',
@@ -769,7 +788,7 @@ export async function generateQrBillPdf(parameters: PdfGenerationParameters): Pr
           borderWidth: [0, 0, 0, 0],
           columns: [
             {
-              text: `MWST ${parameters.vatCode}%`,
+              text: vatLabel,
               fontSize: 9,
               width: mm2pt(135),
               align: 'right',
