@@ -418,7 +418,13 @@ export const billingPopulateSubeventsHandler: PayloadHandler = async (request) =
     const { HITOBITO_CONFIG } = await import('@/features/registration_process/hitobito-api/config');
 
     const baseUrl = HITOBITO_CONFIG.baseUrl || 'https://db.cevi.ch';
-    const apiToken = HITOBITO_CONFIG.apiToken || '';
+    const apiToken = HITOBITO_CONFIG.apiToken;
+    if (apiToken === '') {
+      return Response.json(
+        { error: 'Cevi.DB API-Token ist nicht konfiguriert (HITOBITO_CONFIG.apiToken fehlt).' },
+        { status: 500 },
+      );
+    }
 
     const hitobito = Hitobito.create(
       { baseUrl, apiToken, browserCookie: '' },
@@ -524,21 +530,41 @@ export const billingPopulateSubeventsHandler: PayloadHandler = async (request) =
       await new Promise((resolve) => setTimeout(resolve, 150));
     }
 
-    // Sort results by eventName for clean structure in the UI
-    results.sort((a, b) => a.eventName.localeCompare(b.eventName));
+    // Fetch existing settings to merge rather than overwriting
+    const settings = await request.payload.findGlobal({
+      slug: 'bill-settings',
+      context: { internal: true },
+    });
+    const existingEvents = Array.isArray(settings.events) ? settings.events : [];
+
+    // Merge new results into existingEvents, using eventId as the key
+    const mergedEvents = [...existingEvents];
+    let newEventsCount = 0;
+    for (const newEvent of results) {
+      const exists = mergedEvents.some(
+        (existingEvent) => existingEvent.eventId === newEvent.eventId,
+      );
+      if (!exists) {
+        mergedEvents.push(newEvent);
+        newEventsCount++;
+      }
+    }
+
+    // Sort merged events by eventName for clean structure in the UI
+    mergedEvents.sort((a, b) => a.eventName.localeCompare(b.eventName));
 
     request.payload.logger.info(
-      `Found ${results.length} matching events. Updating global settings...`,
+      `Found ${results.length} matching events (${String(newEventsCount)} new). Updating global settings...`,
     );
 
     await request.payload.updateGlobal({
       slug: 'bill-settings',
       data: {
-        events: results,
+        events: mergedEvents,
       },
     });
 
-    return Response.json({ success: true, count: results.length });
+    return Response.json({ success: true, count: newEventsCount });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     request.payload.logger.error({ err: error }, `Populating subevents failed: ${message}`);

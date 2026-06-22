@@ -12,6 +12,11 @@ export const PopulateSubeventsButton: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handlePopulate = (): void => {
+    const isConfirmed = globalThis.confirm(
+      'Möchten Sie die Subgruppen-Anlässe aus Cevi.DB jetzt laden? Neue Anlässe werden der Liste hinzugefügt und bestehende Anlässe bleiben erhalten.',
+    );
+    if (isConfirmed === false) return;
+
     void (async (): Promise<void> => {
       try {
         setIsSubmitting(true);
