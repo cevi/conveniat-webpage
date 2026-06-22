@@ -200,6 +200,8 @@ export interface Config {
       syncActivePiketMembers: TaskSyncActivePiketMembers;
       syncNewUserAnnouncementChats: TaskSyncNewUserAnnouncementChats;
       syncParticipants: TaskSyncParticipants;
+      generateBills: TaskGenerateBills;
+      sendBills: TaskSendBills;
       createCollectionExport: TaskCreateCollectionExport;
       createCollectionImport: TaskCreateCollectionImport;
       inline: {
@@ -3846,6 +3848,8 @@ export interface PayloadJob {
           | 'syncActivePiketMembers'
           | 'syncNewUserAnnouncementChats'
           | 'syncParticipants'
+          | 'generateBills'
+          | 'sendBills'
           | 'createCollectionExport'
           | 'createCollectionImport';
         taskID: string;
@@ -3898,6 +3902,8 @@ export interface PayloadJob {
         | 'syncActivePiketMembers'
         | 'syncNewUserAnnouncementChats'
         | 'syncParticipants'
+        | 'generateBills'
+        | 'sendBills'
         | 'createCollectionExport'
         | 'createCollectionImport'
       )
@@ -7251,6 +7257,22 @@ export interface TaskSyncNewUserAnnouncementChats {
  * via the `definition` "TaskSyncParticipants".
  */
 export interface TaskSyncParticipants {
+  input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskGenerateBills".
+ */
+export interface TaskGenerateBills {
+  input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskSendBills".
+ */
+export interface TaskSendBills {
   input?: unknown;
   output?: unknown;
 }

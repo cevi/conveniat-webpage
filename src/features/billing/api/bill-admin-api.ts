@@ -32,16 +32,19 @@ export const billingSyncHandler: PayloadHandler = async (request) => {
 export const billingGenerateHandler: PayloadHandler = async (request) => {
   try {
     const hasAccess = await canAccessBilling({ req: request });
-    if (!hasAccess) {
+    if (hasAccess !== true) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { generateBills } = await import('@/features/billing/services/bill-generator-service');
-    const result = await generateBills(request.payload);
-    return Response.json({ success: true, ...result });
+    const job = await request.payload.jobs.queue({
+      task: 'generateBills',
+      input: {},
+    });
+
+    return Response.json({ success: true, jobId: job.id });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
-    request.payload.logger.error({ err: error }, `Bill generation failed: ${message}`);
+    request.payload.logger.error({ err: error }, `Billing generate queue failed: ${message}`);
     return Response.json({ error: message }, { status: 500 });
   }
 };
@@ -121,16 +124,19 @@ export const billingRegenerateSingleHandler: PayloadHandler = async (request) =>
 export const billingSendHandler: PayloadHandler = async (request) => {
   try {
     const hasAccess = await canAccessBilling({ req: request });
-    if (!hasAccess) {
+    if (hasAccess !== true) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { sendBills } = await import('@/features/billing/services/email-service');
-    const result = await sendBills(request.payload);
-    return Response.json({ success: true, ...result });
+    const job = await request.payload.jobs.queue({
+      task: 'sendBills',
+      input: {},
+    });
+
+    return Response.json({ success: true, jobId: job.id });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
-    request.payload.logger.error({ err: error }, `Bill sending failed: ${message}`);
+    request.payload.logger.error({ err: error }, `Billing send queue failed: ${message}`);
     return Response.json({ error: message }, { status: 500 });
   }
 };
@@ -282,12 +288,11 @@ export const billingPreviewPdfHandler: PayloadHandler = async (request) => {
       context: { internal: true },
     });
 
-    const creditorName = (settings.creditorName as string | undefined) ?? 'conveniat27';
+    const creditorName = (settings.creditorName as string | undefined) ?? 'Verein conveniat27';
     const creditorIban = (settings.creditorIban as string | undefined) ?? 'CH1030700114904034095';
     const creditorUid = (settings.creditorUid as string | undefined) ?? 'CHE-470.917.124';
-    const creditorStreet = (settings.creditorStreet as string | undefined) ?? 'Musterstrasse';
-    const creditorBuildingNumber =
-      (settings.creditorBuildingNumber as string | undefined) ?? undefined;
+    const creditorStreet = (settings.creditorStreet as string | undefined) ?? 'Sihlstrasse';
+    const creditorBuildingNumber = (settings.creditorBuildingNumber as string | undefined) ?? '33';
     const creditorZip = (settings.creditorZip as string | undefined) ?? '8001';
     const creditorCity = (settings.creditorCity as string | undefined) ?? 'Zürich';
     const currency = (settings.currency as string | undefined) ?? 'CHF';
@@ -572,6 +577,145 @@ export const billingPopulateSubeventsHandler: PayloadHandler = async (request) =
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     request.payload.logger.error({ err: error }, `Populating subevents failed: ${message}`);
+    return Response.json({ error: message }, { status: 500 });
+  }
+};
+
+interface SyncJobStatus {
+  id: string;
+  taskSlug: 'syncParticipants' | 'generateBills' | 'sendBills';
+  status: 'pending' | 'failed' | 'success';
+  summary?: Record<string, unknown>;
+  error?: string;
+  updatedAt: string;
+}
+
+function getJobDerivedStatus(job: {
+  completedAt?: string | null;
+  hasError?: boolean | null;
+}): 'pending' | 'failed' | 'success' {
+  if (job.hasError === true) return 'failed';
+  if (typeof job.completedAt === 'string' && job.completedAt.length > 0) return 'success';
+  return 'pending';
+}
+
+function getJobErrorMessage(job: {
+  hasError?: boolean | null;
+  error?: unknown;
+}): string | undefined {
+  if (job.hasError !== true) return undefined;
+  const errorValue = job.error;
+  if (errorValue !== undefined && errorValue !== null && typeof errorValue === 'object') {
+    const errorRecord = errorValue as Record<string, unknown>;
+    if (typeof errorRecord['message'] === 'string') {
+      return errorRecord['message'];
+    }
+    return JSON.stringify(errorValue);
+  }
+  if (typeof errorValue === 'string') {
+    return errorValue;
+  }
+  return 'Unknown error';
+}
+
+/**
+ * GET /api/confidential/billing/sync-status – Get background job status for sync/generate/send tasks
+ */
+export const billingSyncStatusHandler: PayloadHandler = async (request) => {
+  try {
+    const hasAccess = await canAccessBilling({ req: request });
+    if (hasAccess !== true) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const url = new URL(request.url ?? 'http://localhost');
+    const jobId = url.searchParams.get('jobId');
+
+    if (typeof jobId === 'string' && jobId.length > 0) {
+      const job = await request.payload.findByID({
+        collection: 'payload-jobs',
+        id: jobId,
+        context: { internal: true },
+      });
+
+      const status = getJobDerivedStatus(job);
+      const logs = Array.isArray(job.log) ? job.log : [];
+      const taskLog = logs.find((l) => l.taskSlug === job.taskSlug);
+      const output = taskLog?.output as Record<string, unknown> | undefined;
+      const error = getJobErrorMessage(job);
+
+      const jobData: SyncJobStatus = {
+        id: job.id,
+        taskSlug: job.taskSlug as 'syncParticipants' | 'generateBills' | 'sendBills',
+        status,
+        updatedAt: job.updatedAt,
+      };
+      if (output !== undefined) {
+        jobData.summary = output;
+      }
+      if (error !== undefined) {
+        jobData.error = error;
+      }
+
+      return Response.json({
+        success: true,
+        job: jobData,
+      });
+    }
+
+    // Otherwise, return the latest job for each task type
+    const getLatestJob = async (
+      taskSlug: 'syncParticipants' | 'generateBills' | 'sendBills',
+    ): Promise<SyncJobStatus | undefined> => {
+      const result = await request.payload.find({
+        collection: 'payload-jobs',
+        where: {
+          taskSlug: { equals: taskSlug },
+        },
+        sort: '-createdAt',
+        limit: 1,
+        context: { internal: true },
+      });
+      const job = result.docs[0];
+      if (!job) return undefined;
+
+      const status = getJobDerivedStatus(job);
+      const logs = Array.isArray(job.log) ? job.log : [];
+      const taskLog = logs.find((l) => l.taskSlug === taskSlug);
+      const output = taskLog?.output as Record<string, unknown> | undefined;
+      const error = getJobErrorMessage(job);
+
+      const jobData: SyncJobStatus = {
+        id: job.id,
+        taskSlug,
+        status,
+        updatedAt: job.updatedAt,
+      };
+      if (output !== undefined) {
+        jobData.summary = output;
+      }
+      if (error !== undefined) {
+        jobData.error = error;
+      }
+
+      return jobData;
+    };
+
+    const [syncJob, generateJob, sendJob] = await Promise.all([
+      getLatestJob('syncParticipants'),
+      getLatestJob('generateBills'),
+      getLatestJob('sendBills'),
+    ]);
+
+    return Response.json({
+      success: true,
+      sync: syncJob,
+      generate: generateJob,
+      send: sendJob,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    request.payload.logger.error({ err: error }, `Fetch sync status failed: ${message}`);
     return Response.json({ error: message }, { status: 500 });
   }
 };

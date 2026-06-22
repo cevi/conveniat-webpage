@@ -193,7 +193,7 @@ export const BillSettingsGlobal: GlobalConfig = {
                   name: 'creditorBuildingNumber',
                   type: 'text',
                   required: false,
-                  defaultValue: '12a',
+                  defaultValue: '33',
                   label: {
                     en: 'Creditor Building Number',
                     de: 'Hausnummer des Zahlungsempfängers',
