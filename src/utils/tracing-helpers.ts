@@ -21,9 +21,19 @@ export async function withSpan<T>(
   // builds (NEXT_PHASE === PHASE_PRODUCTION_BUILD) and dev-mode prerendering.
   // eslint-disable-next-line n/no-process-env
   if (isBuildPhase() || process.env['NODE_ENV'] === 'development') {
-    const dummySpan = {
+    const dummySpan: Span = {
       end: () => {},
       recordException: () => {},
+      setAttribute: () => dummySpan,
+      setAttributes: () => dummySpan,
+      setStatus: () => dummySpan,
+      updateName: () => dummySpan,
+      isRecording: () => false,
+      spanContext: () => ({
+        traceId: '',
+        spanId: '',
+        traceFlags: 0,
+      }),
     } as unknown as Span;
     return await callback(dummySpan);
   }
