@@ -9,3 +9,5 @@ allowBuilds:
   protobufjs: true
   sharp: true
   unrs-resolver: true
+patchedDependencies:
+  '@payloadcms/next': patches/@payloadcms__next.patch

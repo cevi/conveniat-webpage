@@ -34,16 +34,14 @@ export const BillParticipantsCollection: CollectionConfig = {
       fr: 'Facturation',
     },
     useAsTitle: 'fullName',
+    groupBy: true,
     defaultColumns: [
       'fullName',
-      'groupName',
-      'eventId',
       'status',
-      'invoiceNumber',
-      'invoiceAmount',
-      'billCreatedDate',
       'billSentDate',
       'hitobitoLink',
+      'groupName',
+      'relatedEmails',
       'actions',
     ],
     description: {
@@ -78,6 +76,7 @@ export const BillParticipantsCollection: CollectionConfig = {
         fr: 'UUID de participation',
       },
       admin: {
+        disableGroupBy: true,
         description: {
           en: 'The UUID of the event_participation object in the Cevi.DB. Changes on re-enrollment.',
           de: 'Die UUID des event_participation-Objekts in der Cevi.DB. Ändert sich bei erneuter Anmeldung.',
@@ -97,6 +96,7 @@ export const BillParticipantsCollection: CollectionConfig = {
         fr: 'ID utilisateur (ID personne)',
       },
       admin: {
+        disableGroupBy: true,
         description: {
           en: 'The person ID in the Cevi.DB. Stable across re-enrollments.',
           de: 'Die Personen-ID in der Cevi.DB. Bleibt bei erneuter Anmeldung gleich.',
@@ -115,6 +115,9 @@ export const BillParticipantsCollection: CollectionConfig = {
         de: 'Anlass-ID',
         fr: "ID de l'événement",
       },
+      admin: {
+        disableGroupBy: true,
+      },
     },
     {
       name: 'groupId',
@@ -124,6 +127,9 @@ export const BillParticipantsCollection: CollectionConfig = {
         en: 'Group ID',
         de: 'Gruppen-ID',
         fr: 'ID du groupe',
+      },
+      admin: {
+        disableGroupBy: true,
       },
     },
     {
@@ -146,6 +152,9 @@ export const BillParticipantsCollection: CollectionConfig = {
         de: 'Vorname',
         fr: 'Prénom',
       },
+      admin: {
+        disableGroupBy: true,
+      },
     },
     {
       name: 'lastName',
@@ -154,6 +163,9 @@ export const BillParticipantsCollection: CollectionConfig = {
         en: 'Last Name',
         de: 'Nachname',
         fr: 'Nom de famille',
+      },
+      admin: {
+        disableGroupBy: true,
       },
     },
     {
@@ -164,6 +176,9 @@ export const BillParticipantsCollection: CollectionConfig = {
         de: 'Ceviname',
         fr: 'Surnom',
       },
+      admin: {
+        disableGroupBy: true,
+      },
     },
     {
       name: 'fullName',
@@ -173,6 +188,9 @@ export const BillParticipantsCollection: CollectionConfig = {
         en: 'Full Name',
         de: 'Vollständiger Name',
         fr: 'Nom complet',
+      },
+      admin: {
+        disableGroupBy: true,
       },
     },
     {
@@ -185,6 +203,7 @@ export const BillParticipantsCollection: CollectionConfig = {
         fr: 'Type de rôle',
       },
       admin: {
+        disableGroupBy: true,
         description: {
           en: 'Hitobito event role type (e.g. Event::Camp::Role::Participant)',
           de: 'Hitobito Anlass-Rollentyp (z.B. Event::Camp::Role::Participant)',
@@ -203,6 +222,9 @@ export const BillParticipantsCollection: CollectionConfig = {
         de: 'Anmeldedatum (Cevi.DB)',
         fr: "Date d'inscription (Cevi.DB)",
       },
+      admin: {
+        disableGroupBy: true,
+      },
     },
     {
       name: 'firstSyncDate',
@@ -212,6 +234,9 @@ export const BillParticipantsCollection: CollectionConfig = {
         en: 'First Sync Date',
         de: 'Erstes Sync-Datum',
         fr: 'Date de première synchronisation',
+      },
+      admin: {
+        disableGroupBy: true,
       },
     },
     {
@@ -223,6 +248,9 @@ export const BillParticipantsCollection: CollectionConfig = {
         de: 'Letztes Sync-Datum',
         fr: 'Date de dernière synchronisation',
       },
+      admin: {
+        disableGroupBy: true,
+      },
     },
     {
       name: 'billCreatedDate',
@@ -232,6 +260,9 @@ export const BillParticipantsCollection: CollectionConfig = {
         en: 'Bill Created Date',
         de: 'Rechnung erstellt am',
         fr: 'Date de création de la facture',
+      },
+      admin: {
+        disableGroupBy: true,
       },
     },
     {
@@ -243,6 +274,9 @@ export const BillParticipantsCollection: CollectionConfig = {
         de: 'Rechnung gesendet am',
         fr: "Date d'envoi de la facture",
       },
+      admin: {
+        disableGroupBy: true,
+      },
     },
     {
       name: 'removedDate',
@@ -253,6 +287,9 @@ export const BillParticipantsCollection: CollectionConfig = {
         de: 'Entfernt am',
         fr: 'Date de suppression',
       },
+      admin: {
+        disableGroupBy: true,
+      },
     },
     {
       name: 'reAddedDate',
@@ -262,6 +299,9 @@ export const BillParticipantsCollection: CollectionConfig = {
         en: 'Re-Added Date',
         de: 'Erneut hinzugefügt am',
         fr: 'Date de ré-ajout',
+      },
+      admin: {
+        disableGroupBy: true,
       },
     },
 
@@ -275,6 +315,9 @@ export const BillParticipantsCollection: CollectionConfig = {
         de: 'QR-Referenznummer',
         fr: 'Numéro de référence QR',
       },
+      admin: {
+        disableGroupBy: true,
+      },
     },
     {
       name: 'invoiceNumber',
@@ -286,6 +329,9 @@ export const BillParticipantsCollection: CollectionConfig = {
         de: 'Rechnungsnummer',
         fr: 'Numéro de facture',
       },
+      admin: {
+        disableGroupBy: true,
+      },
     },
     {
       name: 'invoiceAmount',
@@ -295,6 +341,9 @@ export const BillParticipantsCollection: CollectionConfig = {
         en: 'Invoice Amount (CHF)',
         de: 'Rechnungsbetrag (CHF)',
         fr: 'Montant de la facture (CHF)',
+      },
+      admin: {
+        disableGroupBy: true,
       },
     },
     {
@@ -311,6 +360,7 @@ export const BillParticipantsCollection: CollectionConfig = {
       admin: {
         disableListColumn: true,
         disableListFilter: true,
+        disableGroupBy: true,
       },
     },
 
@@ -368,6 +418,7 @@ export const BillParticipantsCollection: CollectionConfig = {
         fr: 'Historique de synchronisation',
       },
       admin: {
+        disableGroupBy: true,
         description: {
           en: 'Array of { date, action } entries for audit trail.',
           de: 'Array von { date, action } Einträgen für den Audit-Trail.',

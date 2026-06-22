@@ -1,0 +1,31 @@
+diff --git a/dist/views/List/handleGroupBy.js b/dist/views/List/handleGroupBy.js
+index ddfb1cab0f6504f3a81f6fdbc878ab007aa1a61f..0bb33205544b875319345db698a751467b188fd1 100644
+--- a/dist/views/List/handleGroupBy.js
++++ b/dist/views/List/handleGroupBy.js
+@@ -1,6 +1,7 @@
+ import { renderTable } from '@payloadcms/ui/rsc';
+ import { formatDate } from '@payloadcms/ui/shared';
+ import { flattenAllFields } from 'payload';
++import { getTranslation } from '@payloadcms/translations';
+ import { createSerializableValue } from './createSerializableValue.js';
+ import { extractRelationshipDisplayValue } from './extractRelationshipDisplayValue.js';
+ import { extractValueOrRelationshipID } from './extractValueOrRelationshipID.js';
+@@ -110,6 +111,18 @@ export const handleGroupBy = async ({
+       if (valueOrRelationshipID === false) {
+         heading = req.i18n.t('general:false');
+       }
++    } else if (groupByField?.type === 'select') {
++      const option = groupByField.options?.find(opt => {
++        if (typeof opt === 'string') {
++          return opt === String(valueOrRelationshipID);
++        }
++        return opt && typeof opt === 'object' && opt.value === String(valueOrRelationshipID);
++      });
++      if (option && typeof option === 'object' && 'label' in option) {
++        heading = getTranslation(option.label, req.i18n);
++      } else {
++        heading = typeof option === 'string' ? option : String(valueOrRelationshipID);
++      }
+     } else {
+       heading = String(valueOrRelationshipID);
+     }
