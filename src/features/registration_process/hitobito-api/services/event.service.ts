@@ -104,6 +104,8 @@ export class EventService {
     const path = `/groups/${groupId}/events/${eventId}/participations.json`;
     const { response, body } = await this.client.frontendRequest('GET', path, {
       params: { returning: 'true', page: '1', q: searchName },
+      headers:
+        this.client.config.apiToken.length > 0 ? { 'X-TOKEN': this.client.config.apiToken } : {},
     });
 
     if (!response.ok) {
@@ -358,6 +360,12 @@ export class EventService {
       const { response: legacyResponse, body: legacyBody } = await this.client.frontendRequest(
         'GET',
         legacyJsonPath,
+        {
+          headers:
+            this.client.config.apiToken.length > 0
+              ? { 'X-TOKEN': this.client.config.apiToken }
+              : {},
+        },
       );
 
       if (legacyResponse.ok) {
@@ -517,7 +525,7 @@ export class EventService {
       const type = match[1];
       const fieldName = match[2];
 
-      if (type && fieldName && !tag.includes('type="file"')) {
+      if (type !== undefined && fieldName !== undefined && !tag.includes('type="file"')) {
         let value = '';
         const valueMatch = tag.match(/value="([^"]*)"/);
         if (valueMatch?.[1] !== undefined) {
