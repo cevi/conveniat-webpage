@@ -260,14 +260,31 @@ export class EventService {
 
       // Process participation data
       for (const participation of parsed.data.data) {
-        const participantId =
+        const participantIdRaw =
           participation.relationships?.participant?.data?.id ??
-          String(participation.attributes.participant_id);
+          participation.attributes.participant_id;
+
+        const participantId = participantIdRaw === undefined ? '' : String(participantIdRaw);
+
+        if (participantId === '' || participantId === 'undefined' || participantId === 'null') {
+          this.logger?.warn(
+            `Participation ${participation.id} has no valid participant ID. Skipping. This might be due to a permission issue.`,
+          );
+          continue;
+        }
 
         const person = includedPeople.get(participantId);
-        const firstName = person?.first_name ?? '';
-        const lastName = person?.last_name ?? '';
-        const nickname = person?.nickname ?? '';
+
+        if (!person) {
+          this.logger?.warn(
+            `Person details for participantId ${participantId} (participationId ${participation.id}) are not included in the Hitobito response. This is likely a permission issue with the API token. Skipping.`,
+          );
+          continue;
+        }
+
+        const firstName = person.first_name ?? '';
+        const lastName = person.last_name ?? '';
+        const nickname = person.nickname ?? '';
         const trimmedName = `${firstName} ${lastName}`.trim();
         const fullName = trimmedName.length > 0 ? trimmedName : `Person ${participantId}`;
 
