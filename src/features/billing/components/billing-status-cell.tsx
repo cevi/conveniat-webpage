@@ -112,14 +112,12 @@ export const BillingStatusCell: React.FC<{
     (stammdatenArray.length > 0 || anmeldeangabenArray.length > 0);
 
   const badge = (
-    <span className={`${baseClasses} ${config.colorClasses} cursor-help`}>
-      {config.label}
-    </span>
+    <span className={`${baseClasses} ${config.colorClasses} cursor-help`}>{config.label}</span>
   );
 
   if (hasMissingData && mounted) {
     return (
-      <div className="flex flex-col gap-1 my-1">
+      <div className="my-1 flex flex-col gap-1">
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>{badge}</TooltipTrigger>
@@ -158,7 +156,7 @@ export const BillingStatusCell: React.FC<{
   }
 
   return (
-    <div className="flex flex-col gap-1 my-1">
+    <div className="my-1 flex flex-col gap-1">
       <div>{badge}</div>
     </div>
   );

@@ -1,11 +1,11 @@
 /* eslint-disable unicorn/no-null */
-import { trace } from '@opentelemetry/api';
 import type {
   HitobitoServicePort,
   SyncedExternalParticipant,
 } from '@/features/billing/ports/hitobito-service.port';
 import { HitobitoClient } from '@/features/registration_process/hitobito-api/client';
 import { EventService } from '@/features/registration_process/hitobito-api/services/event.service';
+import { trace } from '@opentelemetry/api';
 
 interface GroupResource {
   id: string;
@@ -195,15 +195,24 @@ export class HitobitoServiceAdapter implements HitobitoServicePort {
           recordAttempt('Fail Legacy API (participation or linked answers not found in JSON)');
         }
       } catch (error) {
-        recordAttempt(`Fail Legacy API (${error instanceof Error ? error.message : String(error)})`);
+        recordAttempt(
+          `Fail Legacy API (${error instanceof Error ? error.message : String(error)})`,
+        );
       }
     } else {
       recordAttempt('Skip Legacy API (groupId is undefined)');
     }
 
     // 3. As a final resort, try to fetch using frontend hack (edit page scraping)
-    recordAttempt(`Try HTML Scraper (event: ${eventId}, part: ${participationId}, group: ${groupId ?? 'none'})`);
-    const finalAnswers = await this.eventService.fetchParticipationAnswers(eventId, participationId, groupId);
+    recordAttempt(
+      `Try HTML Scraper (event: ${eventId}, part: ${participationId}, group: ${groupId ?? 'none'})`,
+    );
+    const finalAnswers = await this.eventService.fetchParticipationAnswers(
+      eventId,
+      participationId,
+      groupId,
+      recordAttempt,
+    );
     recordAttempt(`Scraper complete (found ${Object.keys(finalAnswers).length} answers)`);
     return finalAnswers;
   }

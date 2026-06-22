@@ -1,16 +1,19 @@
 /* eslint-disable n/no-process-env */
-import { getPayload } from 'payload';
 import config from '@/features/payload-cms/payload.config';
 import { HitobitoClient } from '@/features/registration_process/hitobito-api/client';
+import { getPayload } from 'payload';
 
 async function run(): Promise<void> {
   const payload = await getPayload({ config });
-  
-  const client = new HitobitoClient({
-    baseUrl: 'https://db.cevi.ch',
-    apiToken: process.env['API_TOKEN'] ?? '',
-    browserCookie: process.env['HITOBITO_BROWSER_COOKIE'] ?? '',
-  }, payload.logger);
+
+  const client = new HitobitoClient(
+    {
+      baseUrl: 'https://db.cevi.ch',
+      apiToken: process.env['API_TOKEN'] ?? '',
+      browserCookie: process.env['HITOBITO_BROWSER_COOKIE'] ?? '',
+    },
+    payload.logger,
+  );
 
   console.log('Fetching event_participation 107862 (Max Muster) via new JSON API...');
   try {

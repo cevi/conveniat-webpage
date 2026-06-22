@@ -74,7 +74,9 @@ describe('Sync Service', () => {
       active: true,
       syncHistory: [],
     };
-    mockParticipantRepo.findByParticipationUuid.mockResolvedValue(mockExisting as unknown as BillParticipant);
+    mockParticipantRepo.findByParticipationUuid.mockResolvedValue(
+      mockExisting as unknown as BillParticipant,
+    );
 
     // 2. Hitobito service returns the participation
     const mockExternalParticipant: SyncedExternalParticipant = {
@@ -144,7 +146,9 @@ describe('Sync Service', () => {
       active: true,
       syncHistory: [],
     };
-    mockParticipantRepo.findByParticipationUuid.mockResolvedValue(mockExisting as unknown as BillParticipant);
+    mockParticipantRepo.findByParticipationUuid.mockResolvedValue(
+      mockExisting as unknown as BillParticipant,
+    );
 
     // 2. Hitobito service returns the participation
     const mockExternalParticipant: SyncedExternalParticipant = {

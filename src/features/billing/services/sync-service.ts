@@ -96,7 +96,10 @@ async function syncSingleEvent(
         };
         const validatedOutput = validateParticipant(input);
         if (!validatedOutput.isValid) {
-          console.log(`[VALIDATION DEBUG] Participant: ${participation.fullName}, ID: ${participation.participantId}, missing fields:`, validatedOutput.missingFields);
+          console.log(
+            `[VALIDATION DEBUG] Participant: ${participation.fullName}, ID: ${participation.participantId}, missing fields:`,
+            validatedOutput.missingFields,
+          );
         }
         span.setAttributes({
           'participant.id': participation.participantId,
