@@ -67,12 +67,12 @@ export const billingRegenerateAllHandler: PayloadHandler = async (request) => {
       context: { internal: true },
     });
 
-    // Reset status to re_added
+    // Reset status to new
     for (const document_ of existing.docs) {
       await request.payload.update({
         collection: 'bill-participants',
         id: document_.id,
-        data: { status: 're_added' },
+        data: { status: 'new' },
         context: { internal: true },
       });
     }
@@ -100,11 +100,11 @@ export const billingRegenerateSingleHandler: PayloadHandler = async (request) =>
       return Response.json({ error: 'Missing participantId' }, { status: 400 });
     }
 
-    // Set status to re_added
+    // Set status to new
     await request.payload.update({
       collection: 'bill-participants',
       id: body.participantId,
-      data: { status: 're_added' },
+      data: { status: 'new' },
       context: { internal: true },
     });
 

@@ -23,6 +23,14 @@ export interface SyncedParticipant {
   fullName: string;
   roleType: string;
   enrollmentDate: string;
+  street?: string | null;
+  zip?: string | null;
+  zipCode?: string | null;
+  town?: string | null;
+  email?: string | null;
+  birthday?: string | null;
+  gender?: string | null;
+  active?: boolean;
 }
 
 /**

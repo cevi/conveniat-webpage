@@ -1,8 +1,10 @@
+/* eslint-disable unicorn/no-null */
+import { validateParticipant } from '@/features/billing/services/validation-service';
 import type { SyncedParticipant, SyncSummary } from '@/features/billing/types';
 import { HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api';
 import { HitobitoClient } from '@/features/registration_process/hitobito-api/client';
 import { EventService } from '@/features/registration_process/hitobito-api/services/event.service';
-import { traceFunction } from '@/utils/tracing-helpers';
+import { traceFunction, withSpan } from '@/utils/tracing-helpers';
 import type { Payload } from 'payload';
 
 interface BillSettingsEvent {
@@ -15,6 +17,16 @@ interface SyncHistoryEntry {
   date: string;
   action: string;
   diff?: Record<string, { from: string; to: string }>;
+}
+
+function findInvoiceEmail(answers: Record<string, string>): string | null {
+  const findAnswer = (questionKeywords: string[]): string | undefined => {
+    const entry = Object.entries(answers).find(([qText]) =>
+      questionKeywords.every((kw) => qText.toLowerCase().includes(kw.toLowerCase())),
+    );
+    return entry?.[1];
+  };
+  return findAnswer(['mailadresse', 'rechnung']) ?? findAnswer(['e-mail', 'rechnung']) ?? null;
 }
 
 /**
@@ -39,6 +51,56 @@ async function syncSingleEvent(
       );
       continue;
     }
+
+    // Fetch custom answers for custom questions verification
+    const answers = await withSpan(
+      `syncParticipants:fetchAnswers:${participation.participationId}`,
+      async (span) => {
+        const answersResult = await eventService.fetchParticipationAnswers(
+          event.eventId,
+          participation.participationId,
+        );
+        span.setAttributes({
+          'participant.id': participation.participantId,
+          'participation.id': participation.participationId,
+          'answers.count': Object.keys(answersResult).length,
+        });
+        return answersResult;
+      },
+    );
+
+    // Validate the participant using the verification service component
+    const validationResult = await withSpan(
+      `syncParticipants:validate:${participation.participationId}`,
+      async (span) => {
+        await Promise.resolve();
+        const input = {
+          person: {
+            firstName: participation.firstName,
+            lastName: participation.lastName,
+            nickname: participation.nickname,
+            street: participation.street,
+            housenumber: participation.housenumber,
+            zipCode: participation.zipCode,
+            town: participation.town,
+            country: participation.country,
+            gender: participation.gender,
+            birthday: participation.birthday,
+          },
+          answers,
+        };
+        const validatedOutput = validateParticipant(input);
+        span.setAttributes({
+          'participant.id': participation.participantId,
+          'participation.id': participation.participationId,
+          'validation.isValid': validatedOutput.isValid,
+          'validation.missingFields': validatedOutput.missingFields,
+        });
+        return validatedOutput;
+      },
+    );
+
+    const invoiceEmail = findInvoiceEmail(answers);
 
     // Check if this participation already exists
     const existing = await payload.find({
@@ -67,6 +129,45 @@ async function syncSingleEvent(
       const hasGroupIdChanged = normalize(document_.groupId) !== normalize(event.groupId);
       const hasGroupNameChanged = normalize(document_.groupName) !== normalize(event.eventName);
 
+      const hasStreetChanged = normalize(document_.street) !== normalize(participation.street);
+      const hasZipChanged = normalize(document_.zip) !== normalize(participation.zip);
+      const hasZipCodeChanged = normalize(document_.zipCode) !== normalize(participation.zipCode);
+      const hasTownChanged = normalize(document_.town) !== normalize(participation.town);
+      const hasEmailChanged = normalize(document_.email) !== normalize(invoiceEmail);
+      const hasBirthdayChanged =
+        normalize(document_.birthday) !== normalize(participation.birthday);
+      const hasGenderChanged = normalize(document_.gender) !== normalize(participation.gender);
+      const hasActiveChanged = Boolean(document_.active) !== Boolean(participation.active);
+
+      const isMissing = !validationResult.isValid;
+      const wasMissing = (document_.status as string) === 'pflichtangaben_missing';
+
+      let newStatus = document_.status as string;
+      if (isMissing) {
+        newStatus = 'pflichtangaben_missing';
+      } else if (wasMissing) {
+        newStatus = 'new';
+      } else if (
+        hasRoleChanged ||
+        hasNameChanged ||
+        hasFirstNameChanged ||
+        hasLastNameChanged ||
+        hasNicknameChanged ||
+        hasGroupIdChanged ||
+        hasGroupNameChanged ||
+        hasStreetChanged ||
+        hasZipChanged ||
+        hasZipCodeChanged ||
+        hasTownChanged ||
+        hasEmailChanged ||
+        hasBirthdayChanged ||
+        hasGenderChanged ||
+        hasActiveChanged
+      ) {
+        newStatus = 'updated';
+      }
+
+      const statusChanged = (document_.status as string) !== newStatus;
       const history = (document_.syncHistory as SyncHistoryEntry[] | undefined) ?? [];
 
       if (
@@ -76,7 +177,16 @@ async function syncSingleEvent(
         hasLastNameChanged ||
         hasNicknameChanged ||
         hasGroupIdChanged ||
-        hasGroupNameChanged
+        hasGroupNameChanged ||
+        hasStreetChanged ||
+        hasZipChanged ||
+        hasZipCodeChanged ||
+        hasTownChanged ||
+        hasEmailChanged ||
+        hasBirthdayChanged ||
+        hasGenderChanged ||
+        hasActiveChanged ||
+        statusChanged
       ) {
         const diff: Record<string, { from: string; to: string }> = {};
         if (hasRoleChanged)
@@ -108,6 +218,28 @@ async function syncSingleEvent(
           diff['groupId'] = { from: String(document_.groupId), to: event.groupId };
         if (hasGroupNameChanged)
           diff['groupName'] = { from: String(document_.groupName), to: event.eventName };
+        if (hasStreetChanged)
+          diff['street'] = { from: String(document_.street), to: participation.street ?? '' };
+        if (hasZipChanged)
+          diff['zip'] = { from: String(document_.zip), to: participation.zip ?? '' };
+        if (hasZipCodeChanged)
+          diff['zipCode'] = { from: String(document_.zipCode), to: participation.zipCode ?? '' };
+        if (hasTownChanged)
+          diff['town'] = { from: String(document_.town), to: participation.town ?? '' };
+        if (hasEmailChanged)
+          diff['email'] = { from: String(document_.email), to: invoiceEmail ?? '' };
+        if (hasBirthdayChanged)
+          diff['birthday'] = { from: String(document_.birthday), to: participation.birthday ?? '' };
+        if (hasGenderChanged)
+          diff['gender'] = { from: String(document_.gender), to: participation.gender ?? '' };
+        if (hasActiveChanged)
+          diff['active'] = { from: String(document_.active), to: String(participation.active) };
+        if (statusChanged) {
+          diff['status'] = {
+            from: String(document_.status),
+            to: newStatus,
+          };
+        }
 
         await payload.update({
           collection: 'bill-participants',
@@ -122,7 +254,15 @@ async function syncSingleEvent(
             nickname: participation.nickname,
             fullName: participation.fullName,
             roleType: participation.roleType,
-            status: 'updated',
+            status: newStatus as never,
+            street: participation.street ?? null,
+            zip: participation.zip ?? null,
+            zipCode: participation.zipCode ?? null,
+            town: participation.town ?? null,
+            email: invoiceEmail,
+            birthday: participation.birthday ?? null,
+            gender: participation.gender ?? null,
+            active: participation.active,
             syncHistory: [...history, { date: now, action: 'participant_updated', diff }],
           },
         });
@@ -167,7 +307,21 @@ async function syncSingleEvent(
         fullName: participation.fullName,
         roleType: participation.roleType,
         enrollmentDate: participation.enrollmentDate,
+        street: participation.street ?? null,
+        zip: participation.zip ?? null,
+        zipCode: participation.zipCode ?? null,
+        town: participation.town ?? null,
+        email: invoiceEmail,
+        birthday: participation.birthday ?? null,
+        gender: participation.gender ?? null,
+        active: participation.active,
       };
+
+      const isMissing = !validationResult.isValid;
+      let finalStatus = isReAdded ? 're_added' : 'new';
+      if (isMissing) {
+        finalStatus = 'pflichtangaben_missing';
+      }
 
       await payload.create({
         collection: 'bill-participants',
@@ -176,8 +330,7 @@ async function syncSingleEvent(
           ...newParticipant,
           firstSyncDate: now,
           lastSyncDate: now,
-          status: isReAdded ? 're_added' : 'new',
-          // eslint-disable-next-line unicorn/no-null -- Payload date fields require null, not undefined
+          status: finalStatus as never,
           reAddedDate: isReAdded ? now : null,
           syncHistory: [{ date: now, action: isReAdded ? 're_added_detected' : 'first_sync' }],
         },

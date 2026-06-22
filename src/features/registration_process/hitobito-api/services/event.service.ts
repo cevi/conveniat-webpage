@@ -348,6 +348,16 @@ export class EventService {
             roleType,
             enrollmentDate: participation.attributes.created_at ?? new Date().toISOString(),
             active: participation.attributes.active ?? true,
+            email: person?.email ?? undefined,
+            address: person?.address ?? undefined,
+            street: person?.street ?? undefined,
+            housenumber: person?.housenumber ?? undefined,
+            zip: person?.zip_code ?? undefined,
+            zipCode: person?.zip_code ?? undefined,
+            town: person?.town ?? undefined,
+            birthday: person?.birthday ?? undefined,
+            gender: person?.gender ?? undefined,
+            country: person?.country ?? undefined,
           });
         }
 
@@ -389,6 +399,7 @@ export class EventService {
             town: string | undefined;
             country: string | undefined;
             birthday: string | undefined;
+            gender: string | undefined;
           };
         }
       | undefined
@@ -445,6 +456,7 @@ export class EventService {
                     town: firstParticipation.town ?? undefined,
                     country: firstParticipation.country ?? undefined,
                     birthday: firstParticipation.birthday ?? undefined,
+                    gender: undefined,
                   },
                 };
               }
@@ -563,6 +575,7 @@ export class EventService {
                 town: getField('town'),
                 country: getField('country'),
                 birthday: getField('birthday'),
+                gender: getField('gender'),
               },
             };
           },
@@ -635,5 +648,154 @@ export class EventService {
       match = inputRegex.exec(html);
     }
     return fields;
+  }
+
+  /**
+   * Fetches the custom question answers for a participation by scraping its edit form.
+   */
+  async fetchParticipationAnswers(
+    eventId: string,
+    participationId: string,
+  ): Promise<Record<string, string>> {
+    try {
+      const editPath = `/events/${eventId}/participations/${participationId}/edit`;
+      const { response, body } = await this.client.frontendRequest('GET', editPath);
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch participation edit form: ${response.status}`);
+      }
+
+      return this.parseParticipationAnswersHtml(body);
+    } catch (error) {
+      this.logger?.warn(
+        `fetchParticipationAnswers failed for ${participationId}: ${String(error)}`,
+      );
+      return {};
+    }
+  }
+
+  /**
+   * Helper to parse custom question labels and their input values from the participation edit HTML page.
+   */
+  private parseParticipationAnswersHtml(html: string): Record<string, string> {
+    const answers: Record<string, string> = {};
+
+    const nameRegex = /name="participation\[answer_(\d+)\]/g;
+    const questionIds = new Set<string>();
+    let match = nameRegex.exec(html);
+    while (match !== null) {
+      if (match[1] !== undefined) {
+        questionIds.add(match[1]);
+      }
+      match = nameRegex.exec(html);
+    }
+
+    for (const qId of questionIds) {
+      let questionText = '';
+
+      // Backwards label search to find the main label for a question ID
+      const targetString = `participation[answer_${qId}]`;
+      const inputPos = html.indexOf(targetString);
+      if (inputPos !== -1) {
+        const precedingHtml = html.slice(Math.max(0, inputPos - 1000), inputPos);
+        const labelRegex = /<label[^>]*>([\s\S]*?)<\/label>/gi;
+        const labels = [...precedingHtml.matchAll(labelRegex)];
+
+        if (labels.length > 0) {
+          const controlLabel = labels.reverse().find((l) => {
+            const fullTag = l[0];
+            return fullTag.includes('control-label') || !fullTag.includes('for=');
+          });
+          if (controlLabel?.[1] === undefined) {
+            const firstLabel = labels[0];
+            if (firstLabel?.[1] !== undefined) {
+              questionText = firstLabel[1].replaceAll(/<[^>]*>/g, '').trim();
+            }
+          } else {
+            questionText = controlLabel[1].replaceAll(/<[^>]*>/g, '').trim();
+          }
+        }
+      }
+
+      // If still empty, fall back to label with matching for attribute
+      if (questionText === '') {
+        const labelRegexFor = new RegExp(
+          `<label[^>]*for="participation_answer_${qId}(?:_[^"]*)?"[^>]*>([\\s\\S]*?)<\\/label>`,
+          'i',
+        );
+        const labelMatch = html.match(labelRegexFor);
+        if (labelMatch?.[1] !== undefined) {
+          questionText = labelMatch[1].replaceAll(/<[^>]*>/g, '').trim();
+        }
+      }
+
+      if (questionText !== '') {
+        // Clean up question text (remove trailing colons or asterisks)
+        questionText = questionText.replace(/[:*]$/, '').trim();
+
+        // 1. Select
+        const selectRegex = new RegExp(
+          `<select[^>]*name="participation\\[answer_${qId}\\]"[^>]*>([\\s\\S]*?)<\\/select>`,
+          'i',
+        );
+        const selectMatch = html.match(selectRegex);
+        if (selectMatch?.[1] !== undefined) {
+          const selectedMatch =
+            selectMatch[1].match(/<option[^>]*selected="selected"[^>]*value="([^"]*)"/i) ??
+            selectMatch[1].match(/<option[^>]*value="([^"]*)"[^>]*selected/i);
+          answers[questionText] = selectedMatch?.[1] ?? '';
+          continue;
+        }
+
+        // 2. Radio
+        const radioRegex1 = new RegExp(
+          `<input[^>]*type="radio"[^>]*name="participation\\[answer_${qId}\\]"[^>]*checked="checked"[^>]*value="([^"]*)"`,
+          'i',
+        );
+        const radioRegex2 = new RegExp(
+          `<input[^>]*checked="checked"[^>]*type="radio"[^>]*name="participation\\[answer_${qId}\\]"[^>]*value="([^"]*)"`,
+          'i',
+        );
+        const radioMatch = html.match(radioRegex1) ?? html.match(radioRegex2);
+        if (radioMatch?.[1] !== undefined) {
+          answers[questionText] = radioMatch[1];
+          continue;
+        }
+
+        // 3. Checkbox
+        const checkboxRegex = new RegExp(
+          `<input[^>]*type="checkbox"[^>]*name="participation\\[answer_${qId}\\]"[^>]*checked="checked"[^>]*value="([^"]*)"`,
+          'i',
+        );
+        const checkboxMatch = html.match(checkboxRegex);
+        if (checkboxMatch?.[1] !== undefined) {
+          answers[questionText] = checkboxMatch[1];
+          continue;
+        }
+
+        // 4. Textarea
+        const textareaRegex = new RegExp(
+          `<textarea[^>]*name="participation\\[answer_${qId}\\]"[^>]*>([\\s\\S]*?)<\\/textarea>`,
+          'i',
+        );
+        const textareaMatch = html.match(textareaRegex);
+        if (textareaMatch?.[1] !== undefined) {
+          answers[questionText] = textareaMatch[1].trim();
+          continue;
+        }
+
+        // 5. Input Text
+        const inputRegex = new RegExp(
+          `<input[^>]*name="participation\\[answer_${qId}\\]"[^>]*value="([^"]*)"`,
+          'i',
+        );
+        const inputMatch = html.match(inputRegex);
+        if (inputMatch?.[1] !== undefined) {
+          answers[questionText] = inputMatch[1];
+        }
+      }
+    }
+
+    return answers;
   }
 }

@@ -3573,6 +3573,14 @@ export interface BillParticipant {
    * Hitobito event role type (e.g. Event::Camp::Role::Participant)
    */
   roleType?: string | null;
+  street?: string | null;
+  zip?: string | null;
+  zipCode?: string | null;
+  town?: string | null;
+  email?: string | null;
+  birthday?: string | null;
+  gender?: string | null;
+  active?: boolean | null;
   enrollmentDate?: string | null;
   firstSyncDate?: string | null;
   lastSyncDate?: string | null;
@@ -3584,7 +3592,15 @@ export interface BillParticipant {
   invoiceNumber?: string | null;
   invoiceAmount?: number | null;
   billPdfs?: (string | BillPdf)[] | null;
-  status: 'new' | 'bill_created' | 'bill_sent' | 'removed' | 're_added' | 'updated' | 'reminder_sent';
+  status:
+    | 'new'
+    | 'pflichtangaben_missing'
+    | 'bill_created'
+    | 'bill_sent'
+    | 'removed'
+    | 're_added'
+    | 'updated'
+    | 'reminder_sent';
   /**
    * Array of { date, action } entries for audit trail.
    */
@@ -5647,6 +5663,14 @@ export interface BillParticipantsSelect<T extends boolean = true> {
   nickname?: T;
   fullName?: T;
   roleType?: T;
+  street?: T;
+  zip?: T;
+  zipCode?: T;
+  town?: T;
+  email?: T;
+  birthday?: T;
+  gender?: T;
+  active?: T;
   enrollmentDate?: T;
   firstSyncDate?: T;
   lastSyncDate?: T;

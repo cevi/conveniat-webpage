@@ -211,6 +211,63 @@ export const BillParticipantsCollection: CollectionConfig = {
         },
       },
     },
+    {
+      name: 'street',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
+      type: 'text',
+      label: { en: 'Street', de: 'Strasse', fr: 'Rue' },
+      admin: { disableGroupBy: true },
+    },
+    {
+      name: 'zip',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
+      type: 'text',
+      label: { en: 'Zip', de: 'PLZ (zip)', fr: 'Zip' },
+      admin: { disableGroupBy: true },
+    },
+    {
+      name: 'zipCode',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
+      type: 'text',
+      label: { en: 'Zip Code', de: 'PLZ', fr: 'NPA' },
+      admin: { disableGroupBy: true },
+    },
+    {
+      name: 'town',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
+      type: 'text',
+      label: { en: 'Town', de: 'Ort', fr: 'Localité' },
+      admin: { disableGroupBy: true },
+    },
+    {
+      name: 'email',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
+      type: 'text',
+      label: { en: 'Email', de: 'E-Mail', fr: 'E-mail' },
+      admin: { disableGroupBy: true },
+    },
+    {
+      name: 'birthday',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
+      type: 'text',
+      label: { en: 'Birthday', de: 'Geburtsdatum', fr: 'Date de naissance' },
+      admin: { disableGroupBy: true },
+    },
+    {
+      name: 'gender',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
+      type: 'text',
+      label: { en: 'Gender', de: 'Geschlecht', fr: 'Genre' },
+      admin: { disableGroupBy: true },
+    },
+    {
+      name: 'active',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
+      type: 'checkbox',
+      label: { en: 'Active', de: 'Aktiv', fr: 'Actif' },
+      admin: { disableGroupBy: true },
+      defaultValue: true,
+    },
 
     // Date tracking
     {
@@ -372,7 +429,18 @@ export const BillParticipantsCollection: CollectionConfig = {
       required: true,
       defaultValue: 'new',
       options: [
-        { label: { en: 'New', de: 'Neu', fr: 'Nouveau' }, value: 'new' },
+        {
+          label: { en: 'Fully captured', de: 'Vollständig erfasst', fr: 'Complètement saisi' },
+          value: 'new',
+        },
+        {
+          label: {
+            en: 'Mandatory fields missing',
+            de: 'Pflichtangaben fehlen',
+            fr: 'Données obligatoires manquantes',
+          },
+          value: 'pflichtangaben_missing',
+        },
         {
           label: { en: 'Bill Created', de: 'Rechnung erstellt', fr: 'Facture créée' },
           value: 'bill_created',

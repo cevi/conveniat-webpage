@@ -236,13 +236,7 @@ export async function generateBills(
     where: participantId
       ? { id: { equals: participantId } }
       : {
-          or: [
-            { status: { equals: 'new' } },
-            { status: { equals: 're_added' } },
-            { status: { equals: 'updated' } },
-            { status: { equals: 'bill_created' } },
-            { status: { equals: 'bill_sent' } },
-          ],
+          status: { equals: 'new' },
         },
     limit: 10_000,
   });
@@ -257,8 +251,15 @@ export async function generateBills(
 
   for (const document_ of participants.docs) {
     try {
-      if (document_.status === 'bill_created' || document_.status === 'bill_sent') {
-        summary.skippedAlreadyExistingCount++;
+      if (document_.status !== 'new') {
+        if (document_.status === 'bill_created' || document_.status === 'bill_sent') {
+          summary.skippedAlreadyExistingCount++;
+          continue;
+        }
+        summary.errors.push(
+          `Teilnehmer ${String(document_.id)} (${String(document_.fullName)}) kann nicht verrechnet werden: Status ist nicht "Vollständig erfasst".`,
+        );
+        summary.skippedCount++;
         continue;
       }
 

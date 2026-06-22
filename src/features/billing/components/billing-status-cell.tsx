@@ -4,6 +4,7 @@ import React from 'react';
 
 type BillingStatus =
   | 'new'
+  | 'pflichtangaben_missing'
   | 'bill_created'
   | 'bill_sent'
   | 'removed'
@@ -13,9 +14,14 @@ type BillingStatus =
 
 const statusConfig: Record<BillingStatus, { label: string; colorClasses: string }> = {
   new: {
-    label: 'Neu',
+    label: 'Vollständig erfasst',
     colorClasses:
       'border-blue-200 bg-blue-100 text-blue-800 dark:border-blue-800 dark:bg-blue-900/40 dark:text-blue-200',
+  },
+  pflichtangaben_missing: {
+    label: 'Pflichtangaben fehlen',
+    colorClasses:
+      'border-yellow-200 bg-yellow-100 text-yellow-800 dark:border-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-200',
   },
   bill_created: {
     label: 'Rechnung erstellt',

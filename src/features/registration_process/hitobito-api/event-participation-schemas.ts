@@ -80,6 +80,7 @@ export const IncludedPersonSchema = z.object({
     town: z.string().nullable().optional(),
     country: z.string().nullable().optional(),
     birthday: z.string().nullable().optional(),
+    gender: z.string().nullable().optional(),
   }),
 });
 
@@ -134,4 +135,14 @@ export const EventParticipationWithPersonSchema = z.object({
   roleType: z.string(),
   enrollmentDate: z.string(),
   active: z.boolean(),
+  email: z.string().nullable().optional(),
+  address: z.string().nullable().optional(),
+  street: z.string().nullable().optional(),
+  housenumber: z.string().nullable().optional(),
+  zip: z.string().nullable().optional(),
+  zipCode: z.string().nullable().optional(),
+  town: z.string().nullable().optional(),
+  birthday: z.string().nullable().optional(),
+  gender: z.string().nullable().optional(),
+  country: z.string().nullable().optional(),
 });
