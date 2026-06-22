@@ -1,6 +1,11 @@
-import { environmentVariables } from '@/config/environment-variables';
+import { HitobitoServiceAdapter } from '@/features/billing/adapters/hitobito-service.adapter';
+import { PayloadParticipantRepositoryAdapter } from '@/features/billing/adapters/payload-participant-repository.adapter';
+import { PayloadSettingsAdapter } from '@/features/billing/adapters/payload-settings.adapter';
+import { S3StorageAdapter } from '@/features/billing/adapters/s3-storage.adapter';
+import { populateSubeventsUseCase } from '@/features/billing/services/populate-subevents';
+import { previewPdfUseCase } from '@/features/billing/services/preview-pdf';
 import { canAccessBilling } from '@/features/payload-cms/payload-cms/access-rules/can-access-billing';
-import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api';
 import type { PayloadHandler } from 'payload';
 import { z } from 'zod';
 
@@ -71,24 +76,12 @@ export const billingRegenerateAllHandler: PayloadHandler = async (request) => {
     const hasAccess = await canAccessBilling({ req: request });
     if (hasAccess !== true) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    // Find all participants with a bill
-    const existing = await request.payload.find({
-      collection: 'bill-participants',
-      where: {
-        or: [{ status: { equals: 'bill_created' } }, { status: { equals: 'bill_sent' } }],
-      },
-      limit: 10_000,
-      context: { internal: true },
-    });
+    const participantRepo = new PayloadParticipantRepositoryAdapter(request.payload);
+    const existing = await participantRepo.findForRegenerateAll();
 
     // Reset status to new
-    for (const document_ of existing.docs) {
-      await request.payload.update({
-        collection: 'bill-participants',
-        id: document_.id,
-        data: { status: 'new' },
-        context: { internal: true },
-      });
+    for (const document_ of existing) {
+      await participantRepo.update(document_.id, { status: 'new' });
     }
 
     const { generateBills } = await import('@/features/billing/services/bill-generator-service');
@@ -119,13 +112,8 @@ export const billingRegenerateSingleHandler: PayloadHandler = async (request) =>
     }
     const { participantId } = parseResult.data;
 
-    // Set status to new
-    await request.payload.update({
-      collection: 'bill-participants',
-      id: participantId,
-      data: { status: 'new' },
-      context: { internal: true },
-    });
+    const participantRepo = new PayloadParticipantRepositoryAdapter(request.payload);
+    await participantRepo.update(participantId, { status: 'new' });
 
     const { generateBills } = await import('@/features/billing/services/bill-generator-service');
     const result = await generateBills(request.payload, participantId);
@@ -218,10 +206,6 @@ export const billingExportCsvHandler: PayloadHandler = async (request) => {
 
 /**
  * GET /api/confidential/billing/preview-pdf – Serve a bill PDF
- *
- * If `?participantId=...` is provided, fetches the stored PDF binary for that participant from MinIO/S3.
- * If `?download=true` is also set, serves as attachment instead of inline.
- * Otherwise, generates a preview PDF for a fictive participant using current bill-settings.
  */
 export const billingPreviewPdfHandler: PayloadHandler = async (request) => {
   try {
@@ -244,182 +228,23 @@ export const billingPreviewPdfHandler: PayloadHandler = async (request) => {
     }
     const { participantId, download: isDownload } = parseResult.data;
 
-    // ── Serve a stored participant PDF ──────────────────────────────────
-    if (typeof participantId === 'string' && participantId !== '') {
-      const document_ = await request.payload.findByID({
-        collection: 'bill-participants',
-        id: participantId,
-        context: { internal: true },
-      });
+    const settingsRepo = new PayloadSettingsAdapter(request.payload);
+    const participantRepo = new PayloadParticipantRepositoryAdapter(request.payload);
+    const storagePort = new S3StorageAdapter();
 
-      const pdfDocuments = (document_.billPdfs as (string | { id: string })[] | undefined) ?? [];
-      const latestPdfId = pdfDocuments.at(-1);
-
-      if (latestPdfId === undefined) {
-        return Response.json({ error: 'No PDF available for this participant' }, { status: 404 });
-      }
-
-      const pdfDocumentId = typeof latestPdfId === 'object' ? latestPdfId.id : latestPdfId;
-      const pdfDocument = await request.payload.findByID({
-        collection: 'bill-pdfs',
-        id: pdfDocumentId,
-        context: { internal: true },
-      });
-
-      if (typeof pdfDocument.filename !== 'string' || pdfDocument.filename === '') {
-        return Response.json({ error: 'PDF file missing' }, { status: 404 });
-      }
-
-      const invoiceNumber = (document_.invoiceNumber as string | undefined) ?? 'Rechnung';
-      const disposition =
-        isDownload === true
-          ? `attachment; filename="Rechnung-${invoiceNumber}.pdf"`
-          : `inline; filename="Rechnung-${invoiceNumber}.pdf"`;
-
-      const s3 = new S3Client({
-        endpoint: environmentVariables.MINIO_HOST,
-        region: 'us-east-1',
-        credentials: {
-          accessKeyId: environmentVariables.MINIO_ACCESS_KEY_ID,
-          secretAccessKey: environmentVariables.MINIO_SECRET_ACCESS_KEY,
-        },
-        forcePathStyle: true,
-      });
-
-      const command = new GetObjectCommand({
-        Bucket: environmentVariables.MINIO_BUCKET_NAME,
-        Key: pdfDocument.filename,
-      });
-
-      try {
-        const response = await s3.send(command);
-        if (!response.Body) {
-          return Response.json({ error: 'Failed to read PDF from storage' }, { status: 500 });
-        }
-
-        const pdfBuffer = Buffer.from(await response.Body.transformToByteArray());
-
-        return new Response(pdfBuffer, {
-          status: 200,
-          headers: {
-            'Content-Type': 'application/pdf',
-            'Content-Disposition': disposition,
-            'Cache-Control': 'no-cache',
-          },
-        });
-      } catch (error) {
-        request.payload.logger.error({ err: error }, 'Failed to fetch PDF from MinIO');
-        return Response.json({ error: 'Failed to fetch PDF from storage' }, { status: 500 });
-      }
-    }
-
-    // ── Generate a fictive preview PDF ──────────────────────────────────
-    const { generateQrBillPdf } =
-      await import('@/features/billing/services/bill-generator-service');
-    const { generateQrReference } = await import('@/features/billing/utils');
-
-    const settings = await request.payload.findGlobal({
-      slug: 'bill-settings',
-      context: { internal: true },
-    });
-
-    const creditorName = (settings.creditorName as string | undefined) ?? 'Verein conveniat27';
-    const creditorIban = (settings.creditorIban as string | undefined) ?? 'CH1030700114904034095';
-    const creditorUid = (settings.creditorUid as string | undefined) ?? 'CHE-470.917.124';
-    const creditorStreet = (settings.creditorStreet as string | undefined) ?? 'Sihlstrasse';
-    const creditorBuildingNumber = (settings.creditorBuildingNumber as string | undefined) ?? '33';
-    const creditorZip = (settings.creditorZip as string | undefined) ?? '8001';
-    const creditorCity = (settings.creditorCity as string | undefined) ?? 'Zürich';
-    const currency = (settings.currency as string | undefined) ?? 'CHF';
-    const invoiceLetterText =
-      (settings.invoiceLetterText as string | undefined) ??
-      'Vielen Dank für deine Anmeldung zum conveniat27.';
-    const paymentDeadlineDays = (settings.paymentDeadlineDays as number | undefined) ?? 30;
-
-    // Resolve preview amount from role pricing (use "Participant" default)
-    const rolePricing =
-      (settings.rolePricing as
-        | Array<{ roleTypePattern: string; label: string; amount: number; vatCode?: string }>
-        | undefined) ?? [];
-    const participantPricing =
-      rolePricing.find((rp) => rp.roleTypePattern.toLowerCase().includes('participant')) ??
-      rolePricing[0];
-    const rawAmount = participantPricing?.amount;
-    const amount = typeof rawAmount === 'number' && !Number.isNaN(rawAmount) ? rawAmount : 150;
-    const roleLabel = participantPricing?.label ?? 'Teilnehmer:in';
-    const vatCode = participantPricing?.vatCode;
-
-    const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
-    const customReference =
-      typeof settings.customReferenceTemplate === 'string' &&
-      settings.customReferenceTemplate !== ''
-        ? settings.customReferenceTemplate
-            .replaceAll('{{year}}', new Date().getFullYear().toString())
-            .replaceAll('{{month}}', currentMonth)
-            .replaceAll('{{event-id}}', '1234')
-            .replaceAll('{{group-id}}', '5678')
-            .replaceAll('{{participation-id}}', '9012')
-            .replaceAll('{{people-id}}', '123456')
-        : undefined;
-
-    const eventNumber =
-      typeof settings.eventNumberTemplate === 'string' && settings.eventNumberTemplate !== ''
-        ? settings.eventNumberTemplate
-            .replaceAll('{{year}}', new Date().getFullYear().toString())
-            .replaceAll('{{month}}', currentMonth)
-            .replaceAll('{{event-id}}', '1234')
-            .replaceAll('{{group-id}}', '5678')
-            .replaceAll('{{participation-id}}', '9012')
-            .replaceAll('{{people-id}}', '123456')
-        : undefined;
-
-    const documentTitle =
-      (settings.documentTitle as string | undefined) ?? 'ANMELDEBESTÄTIGUNG UND RECHNUNG';
-
-    const pdfBuffer = await generateQrBillPdf({
-      documentTitle,
-      creditor: {
-        name: creditorName,
-        street: creditorStreet,
-        ...(creditorBuildingNumber ? { buildingNumber: creditorBuildingNumber } : {}),
-        zip: creditorZip,
-        city: creditorCity,
-        account: creditorIban,
-        uid: creditorUid,
-        country: 'CH',
-      },
-      debtor: {
-        name: 'Maximilian Muster',
-        street: 'Musterstrasse',
-        buildingNumber: '42',
-        zip: '8000',
-        city: 'Zürich',
-        country: 'CH',
-      },
-      amount,
-      currency,
-      reference: generateQrReference('123456', '1234', '9012', 1),
-      ...(typeof customReference === 'string' && customReference !== '' ? { customReference } : {}),
-      ...(typeof eventNumber === 'string' && eventNumber !== '' ? { eventNumber } : {}),
-      invoiceNumber: `${((settings.invoiceNumberPrefix as string | undefined) ?? '{{year}}')
-        .replaceAll('{{year}}', new Date().getFullYear().toString())
-        .replaceAll('{{month}}', currentMonth)
-        .replaceAll('{{event-id}}', '1234')
-        .replaceAll('{{group-id}}', '5678')
-        .replaceAll('{{participation-id}}', '9012')
-        .replaceAll('{{people-id}}', '123456')}-0001`,
-      invoiceLetterText,
-      roleLabel,
-      vatCode,
-      paymentDeadlineDays,
-      firstName: 'Maximilian',
-    });
+    const { pdfBuffer, disposition } = await previewPdfUseCase(
+      participantId,
+      isDownload === true,
+      participantRepo,
+      storagePort,
+      settingsRepo,
+    );
 
     return new Response(new Uint8Array(pdfBuffer), {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': 'inline; filename="preview-rechnung.pdf"',
+        'Content-Disposition': disposition,
         'Cache-Control': 'no-cache',
       },
     });
@@ -429,28 +254,6 @@ export const billingPreviewPdfHandler: PayloadHandler = async (request) => {
     return Response.json({ error: message }, { status: 500 });
   }
 };
-
-interface GroupResource {
-  id: string;
-}
-
-interface GroupApiResponse {
-  data?: GroupResource[];
-  links?: {
-    next?: string | null;
-  };
-}
-
-interface EventResource {
-  id: string;
-  attributes?: {
-    name?: string;
-  };
-}
-
-interface EventApiResponse {
-  data?: EventResource[];
-}
 
 /**
  * POST /api/confidential/billing/populate-subevents – Dynamically fetch subevents of group 4337 and save to settings
@@ -462,157 +265,29 @@ export const billingPopulateSubeventsHandler: PayloadHandler = async (request) =
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { Hitobito } = await import('@/features/registration_process/hitobito-api/hitobito');
-    const { HITOBITO_CONFIG } = await import('@/features/registration_process/hitobito-api/config');
+    const settingsRepo = new PayloadSettingsAdapter(request.payload);
+    const regManagement = await settingsRepo.getRegistrationManagement();
+    const cookieValue = regManagement.browserCookie;
+    const browserCookie =
+      typeof cookieValue === 'string' && cookieValue.length > 0 ? cookieValue : '';
 
-    const baseUrl = (HITOBITO_CONFIG.baseUrl as string | undefined) ?? 'https://db.cevi.ch';
-    const apiToken = HITOBITO_CONFIG.apiToken;
-    if (apiToken === '') {
-      return Response.json(
-        { error: 'Cevi.DB API-Token ist nicht konfiguriert (HITOBITO_CONFIG.apiToken fehlt).' },
-        { status: 500 },
-      );
-    }
+    const logger = {
+      info: (m: string): void => request.payload.logger.info(m),
+      warn: (m: string): void => request.payload.logger.warn(m),
+      error: (m: string): void => request.payload.logger.error(m),
+    };
 
-    const hitobito = Hitobito.create(
-      { baseUrl, apiToken, browserCookie: '' },
+    const hitobitoService = new HitobitoServiceAdapter(
       {
-        info: (message) => request.payload.logger.info(message),
-        warn: (message) => request.payload.logger.warn(message),
-        error: (message) => request.payload.logger.error(message),
+        baseUrl: HITOBITO_CONFIG.baseUrl,
+        apiToken: HITOBITO_CONFIG.apiToken,
+        browserCookie,
       },
+      logger,
     );
 
-    const parentGroupId = '4337';
-    request.payload.logger.info(
-      `Fetching subgroups of parent group ${parentGroupId} from Cevi.DB...`,
-    );
-
-    const subgroupLinks: string[] = [];
-    let nextUrl: string | undefined = `/api/groups`;
-    let isFirstPage = true;
-    const baseParameters: Record<string, string> = {
-      'filter[parent_id][eq]': parentGroupId,
-      'page[size]': '100',
-    };
-
-    while (typeof nextUrl === 'string' && nextUrl !== '') {
-      const response: GroupApiResponse = await hitobito.client.apiRequest<GroupApiResponse>(
-        'GET',
-        nextUrl,
-        isFirstPage ? { params: baseParameters } : {},
-      );
-      if (response.data) {
-        for (const group of response.data) {
-          if (typeof group.id === 'string' && group.id !== '') subgroupLinks.push(group.id);
-        }
-      }
-      nextUrl = response.links?.next ?? undefined;
-      isFirstPage = false;
-    }
-
-    request.payload.logger.info(`Found ${subgroupLinks.length} subgroups. Querying events...`);
-
-    const concurrencyLimit = 3;
-    const results: Array<{ eventId: string; eventName: string; groupId: string }> = [];
-
-    const executeBatch = async (ids: string[]): Promise<void[]> => {
-      return Promise.all(
-        ids.map(async (groupId) => {
-          let attempts = 0;
-          const maxAttempts = 3;
-          while (attempts < maxAttempts) {
-            try {
-              const response: EventApiResponse = await hitobito.client.apiRequest<EventApiResponse>(
-                'GET',
-                '/api/events',
-                {
-                  params: {
-                    'filter[group_id][eq]': groupId,
-                  },
-                },
-              );
-              if (response.data) {
-                for (const event of response.data) {
-                  const name = event.attributes?.name ?? '';
-                  if (name.includes('Hauptlager conveniat27') || name.includes('conveniat27')) {
-                    results.push({
-                      eventId: event.id,
-                      eventName: name,
-                      groupId: groupId,
-                    });
-                  }
-                }
-              }
-              break;
-            } catch (error: unknown) {
-              attempts++;
-              const errorMessage = error instanceof Error ? error.message : String(error);
-              const isTransient =
-                errorMessage.includes('503') ||
-                errorMessage.includes('429') ||
-                errorMessage.toLowerCase().includes('timeout');
-
-              if (attempts >= maxAttempts || !isTransient) {
-                request.payload.logger.warn(
-                  `Failed to fetch events for group ${groupId}: ${errorMessage}`,
-                );
-                break;
-              }
-
-              const backoffMs = attempts * 500;
-              request.payload.logger.info(
-                `Rate limited/Error 503 for group ${groupId}. Retrying (attempt ${attempts}/${maxAttempts}) in ${backoffMs}ms...`,
-              );
-              await new Promise((resolve) => setTimeout(resolve, backoffMs));
-            }
-          }
-        }),
-      );
-    };
-
-    for (let index = 0; index < subgroupLinks.length; index += concurrencyLimit) {
-      const chunk = subgroupLinks.slice(index, index + concurrencyLimit);
-      await executeBatch(chunk);
-      // Wait 150ms between batches to stay within rate limits
-      await new Promise((resolve) => setTimeout(resolve, 150));
-    }
-
-    // Fetch existing settings to merge rather than overwriting
-    const settings = await request.payload.findGlobal({
-      slug: 'bill-settings',
-      context: { internal: true },
-    });
-    const existingEvents = Array.isArray(settings.events) ? settings.events : [];
-
-    // Merge new results into existingEvents, using eventId as the key
-    const mergedEvents = [...existingEvents];
-    let newEventsCount = 0;
-    for (const newEvent of results) {
-      const exists = mergedEvents.some(
-        (existingEvent) => existingEvent.eventId === newEvent.eventId,
-      );
-      if (!exists) {
-        mergedEvents.push(newEvent);
-        newEventsCount++;
-      }
-    }
-
-    // Sort merged events by eventName for clean structure in the UI
-    mergedEvents.sort((a, b) => a.eventName.localeCompare(b.eventName));
-
-    request.payload.logger.info(
-      `Found ${results.length} matching events (${String(newEventsCount)} new). Updating global settings...`,
-    );
-
-    await request.payload.updateGlobal({
-      slug: 'bill-settings',
-      data: {
-        events: mergedEvents,
-      },
-    });
-
-    return Response.json({ success: true, count: newEventsCount });
+    const result = await populateSubeventsUseCase(hitobitoService, settingsRepo, logger);
+    return Response.json(result);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     request.payload.logger.error({ err: error }, `Populating subevents failed: ${message}`);

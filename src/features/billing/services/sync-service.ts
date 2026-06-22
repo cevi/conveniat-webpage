@@ -1,9 +1,13 @@
 /* eslint-disable unicorn/no-null */
+import { HitobitoServiceAdapter } from '@/features/billing/adapters/hitobito-service.adapter';
+import { PayloadParticipantRepositoryAdapter } from '@/features/billing/adapters/payload-participant-repository.adapter';
+import { PayloadSettingsAdapter } from '@/features/billing/adapters/payload-settings.adapter';
+import type { HitobitoServicePort } from '@/features/billing/ports/hitobito-service.port';
+import type { ParticipantRepositoryPort } from '@/features/billing/ports/participant-repository.port';
+import type { SettingsPort } from '@/features/billing/ports/settings.port';
 import { isRoleAllowed, validateParticipant } from '@/features/billing/services/validation-service';
-import type { SyncedParticipant, SyncSummary } from '@/features/billing/types';
+import type { SyncSummary } from '@/features/billing/types';
 import { HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api';
-import { HitobitoClient } from '@/features/registration_process/hitobito-api/client';
-import { EventService } from '@/features/registration_process/hitobito-api/services/event.service';
 import { traceFunction, withSpan } from '@/utils/tracing-helpers';
 import type { Payload } from 'payload';
 
@@ -30,16 +34,16 @@ function findInvoiceEmail(answers: Record<string, string>): string | null {
 }
 
 /**
- * Synchronizes event participations for a single event.
+ * Synchronizes event participations for a single event using Ports.
  */
 async function syncSingleEvent(
-  payload: Payload,
   event: BillSettingsEvent,
-  eventService: EventService,
+  hitobitoService: HitobitoServicePort,
+  participantRepo: ParticipantRepositoryPort,
   now: string,
   summary: SyncSummary,
 ): Promise<void> {
-  const participations = await eventService.listEventParticipations(event.groupId, event.eventId);
+  const participations = await hitobitoService.fetchParticipations(event.groupId, event.eventId);
   const fetchedParticipationIds = new Set<string>();
 
   for (const participation of participations) {
@@ -56,7 +60,7 @@ async function syncSingleEvent(
     const answers = await withSpan(
       `syncParticipants:fetchAnswers:${participation.participationId}`,
       async (span) => {
-        const answersResult = await eventService.fetchParticipationAnswers(
+        const answersResult = await hitobitoService.fetchParticipationAnswers(
           event.eventId,
           participation.participationId,
         );
@@ -103,19 +107,64 @@ async function syncSingleEvent(
     const invoiceEmail = findInvoiceEmail(answers);
 
     // Check if this participation already exists
-    const existing = await payload.find({
-      collection: 'bill-participants',
-      context: { internal: true },
-      where: {
-        participationUuid: { equals: participation.participationId },
-      },
-      limit: 1,
-    });
+    const existing = await participantRepo.findByParticipationUuid(participation.participationId);
 
-    if (existing.docs.length > 0) {
+    if (existing === null) {
+      // Check if this is a re-added user (same userId+eventId, different participationUuid)
+      const previousForUser = await participantRepo.findRemovedParticipant(
+        participation.participantId,
+        event.eventId,
+      );
+
+      const isReAdded = previousForUser !== null;
+      const newParticipant = {
+        participationUuid: participation.participationId,
+        userId: participation.participantId,
+        eventId: event.eventId,
+        groupId: event.groupId,
+        groupName: event.eventName,
+        firstName: participation.firstName,
+        lastName: participation.lastName,
+        nickname: participation.nickname,
+        fullName: participation.fullName,
+        roleType: participation.roleType,
+        enrollmentDate: participation.enrollmentDate,
+        street: participation.street ?? null,
+        zip: participation.zip ?? null,
+        zipCode: participation.zipCode ?? null,
+        town: participation.town ?? null,
+        email: invoiceEmail,
+        birthday: participation.birthday ?? null,
+        gender: participation.gender ?? null,
+        active: participation.active,
+      };
+
+      const isRoleOk = isRoleAllowed(participation.roleType);
+      const isMissing = !validationResult.isValid;
+      let finalStatus = isReAdded ? 're_added' : 'new';
+      if (!isRoleOk) {
+        finalStatus = 'invalid_anmeldeangaben';
+      } else if (isMissing) {
+        finalStatus = 'pflichtangaben_missing';
+      }
+
+      await participantRepo.create({
+        ...newParticipant,
+        firstSyncDate: now,
+        lastSyncDate: now,
+        status: finalStatus as never,
+        reAddedDate: isReAdded ? now : null,
+        syncHistory: [{ date: now, action: isReAdded ? 're_added_detected' : 'first_sync' }],
+      });
+
+      if (isReAdded) {
+        summary.reAddedCount++;
+      } else {
+        summary.newCount++;
+      }
+    } else {
       // Already known → check if properties changed
-      const document_ = existing.docs[0];
-      if (document_ === undefined) continue;
+      const document_ = existing;
 
       const normalize = (val: unknown): string => (typeof val === 'string' ? val : '');
       const hasRoleChanged = normalize(document_.roleType) !== normalize(participation.roleType);
@@ -246,136 +295,49 @@ async function syncSingleEvent(
           };
         }
 
-        await payload.update({
-          collection: 'bill-participants',
-          context: { internal: true },
-          id: document_.id,
-          data: {
-            lastSyncDate: now,
-            groupId: event.groupId,
-            groupName: event.eventName,
-            firstName: participation.firstName,
-            lastName: participation.lastName,
-            nickname: participation.nickname,
-            fullName: participation.fullName,
-            roleType: participation.roleType,
-            status: newStatus as never,
-            street: participation.street ?? null,
-            zip: participation.zip ?? null,
-            zipCode: participation.zipCode ?? null,
-            town: participation.town ?? null,
-            email: invoiceEmail,
-            birthday: participation.birthday ?? null,
-            gender: participation.gender ?? null,
-            active: participation.active,
-            syncHistory: [...history, { date: now, action: 'participant_updated', diff }],
-          },
+        await participantRepo.update(document_.id, {
+          lastSyncDate: now,
+          groupId: event.groupId,
+          groupName: event.eventName,
+          firstName: participation.firstName,
+          lastName: participation.lastName,
+          nickname: participation.nickname,
+          fullName: participation.fullName,
+          roleType: participation.roleType,
+          status: newStatus as never,
+          street: participation.street ?? null,
+          zip: participation.zip ?? null,
+          zipCode: participation.zipCode ?? null,
+          town: participation.town ?? null,
+          email: invoiceEmail,
+          birthday: participation.birthday ?? null,
+          gender: participation.gender ?? null,
+          active: participation.active,
+          syncHistory: [...history, { date: now, action: 'participant_updated', diff }],
         });
         summary.changedCount++;
       } else {
-        await payload.update({
-          collection: 'bill-participants',
-          context: { internal: true },
-          id: document_.id,
-          data: {
-            lastSyncDate: now,
-            syncHistory: [...history, { date: now, action: 'sync_confirmed' }],
-          },
+        await participantRepo.update(document_.id, {
+          lastSyncDate: now,
+          syncHistory: [...history, { date: now, action: 'sync_confirmed' }],
         });
         summary.unchangedCount++;
-      }
-    } else {
-      // Check if this is a re-added user (same userId+eventId, different participationUuid)
-      const previousForUser = await payload.find({
-        collection: 'bill-participants',
-        context: { internal: true },
-        where: {
-          and: [
-            { userId: { equals: participation.participantId } },
-            { eventId: { equals: event.eventId } },
-            { status: { equals: 'removed' } },
-          ],
-        },
-        limit: 1,
-      });
-
-      const isReAdded = previousForUser.docs.length > 0;
-      const newParticipant: SyncedParticipant = {
-        participationUuid: participation.participationId,
-        userId: participation.participantId,
-        eventId: event.eventId,
-        groupId: event.groupId,
-        groupName: event.eventName,
-        firstName: participation.firstName,
-        lastName: participation.lastName,
-        nickname: participation.nickname,
-        fullName: participation.fullName,
-        roleType: participation.roleType,
-        enrollmentDate: participation.enrollmentDate,
-        street: participation.street ?? null,
-        zip: participation.zip ?? null,
-        zipCode: participation.zipCode ?? null,
-        town: participation.town ?? null,
-        email: invoiceEmail,
-        birthday: participation.birthday ?? null,
-        gender: participation.gender ?? null,
-        active: participation.active,
-      };
-
-      const isRoleOk = isRoleAllowed(participation.roleType);
-      const isMissing = !validationResult.isValid;
-      let finalStatus = isReAdded ? 're_added' : 'new';
-      if (!isRoleOk) {
-        finalStatus = 'invalid_anmeldeangaben';
-      } else if (isMissing) {
-        finalStatus = 'pflichtangaben_missing';
-      }
-
-      await payload.create({
-        collection: 'bill-participants',
-        context: { internal: true },
-        data: {
-          ...newParticipant,
-          firstSyncDate: now,
-          lastSyncDate: now,
-          status: finalStatus as never,
-          reAddedDate: isReAdded ? now : null,
-          syncHistory: [{ date: now, action: isReAdded ? 're_added_detected' : 'first_sync' }],
-        },
-      });
-
-      if (isReAdded) {
-        summary.reAddedCount++;
-      } else {
-        summary.newCount++;
       }
     }
   }
 
   // Detect removed participations (in DB but not in API response)
-  const allExistingForEvent = await payload.find({
-    collection: 'bill-participants',
-    context: { internal: true },
-    where: {
-      and: [{ eventId: { equals: event.eventId } }, { status: { not_equals: 'removed' } }],
-    },
-    limit: 10_000,
-  });
+  const allExistingForEvent = await participantRepo.findActiveForEvent(event.eventId);
 
-  for (const document_ of allExistingForEvent.docs) {
+  for (const document_ of allExistingForEvent) {
     const participationUuid = document_.participationUuid;
     if (!fetchedParticipationIds.has(participationUuid)) {
       const history = (document_.syncHistory as SyncHistoryEntry[] | undefined) ?? [];
-      await payload.update({
-        collection: 'bill-participants',
-        context: { internal: true },
-        id: document_.id,
-        data: {
-          status: 'removed',
-          removedDate: now,
-          lastSyncDate: now,
-          syncHistory: [...history, { date: now, action: 'removed_detected' }],
-        },
+      await participantRepo.update(document_.id, {
+        status: 'removed',
+        removedDate: now,
+        lastSyncDate: now,
+        syncHistory: [...history, { date: now, action: 'removed_detected' }],
       });
       summary.removedCount++;
     }
@@ -386,10 +348,10 @@ async function syncSingleEvent(
  * Traced version of syncSingleEvent.
  */
 const syncSingleEventTraced = traceFunction(
-  (_payload, event) => `syncParticipants:event:${event.eventId}`,
+  (event) => `syncParticipants:event:${event.eventId}`,
   syncSingleEvent,
   {
-    getAttributes: (_payload, event) => ({
+    getAttributes: (event) => ({
       'event.id': event.eventId,
       'event.name': event.eventName,
       'group.id': event.groupId,
@@ -398,11 +360,17 @@ const syncSingleEventTraced = traceFunction(
 );
 
 /**
- * Pure implementation of syncParticipants.
+ * Pure Domain Use Case implementation of syncParticipants.
  */
-async function syncParticipantsImpl(
-  payload: Payload,
-  dependencies?: { hitobitoClient?: HitobitoClient },
+export async function syncParticipantsUseCase(
+  participantRepo: ParticipantRepositoryPort,
+  hitobitoService: HitobitoServicePort,
+  settingsRepo: SettingsPort,
+  logger: {
+    info: (message: string) => void;
+    warn: (message: string) => void;
+    error: (message: string) => void;
+  },
 ): Promise<SyncSummary> {
   const now = new Date().toISOString();
   const summary: SyncSummary = {
@@ -416,62 +384,24 @@ async function syncParticipantsImpl(
   };
 
   // 1. Load bill settings
-  const settings = await payload.findGlobal({
-    slug: 'bill-settings',
-    context: { internal: true },
-  });
-
-  // Load registration management to get browser cookie
-  const regManagement = await payload.findGlobal({
-    slug: 'registration-management',
-    context: { internal: true },
-  });
-  const cookieValue = regManagement.browserCookie;
-  const browserCookie =
-    typeof cookieValue === 'string' && cookieValue.length > 0 ? cookieValue : '';
-
+  const settings = await settingsRepo.getBillSettings();
   const events = (settings.events as BillSettingsEvent[] | undefined) ?? [];
   if (events.length === 0) {
     summary.errors.push('No events configured in Bill Settings.');
     return summary;
   }
 
-  // 2. Create Hitobito client
-  const logger = {
-    info: (message: string): void => {
-      payload.logger.info(message);
-    },
-    warn: (message: string): void => {
-      payload.logger.warn(message);
-    },
-    error: (message: string): void => {
-      payload.logger.error(message);
-    },
-  };
-
-  const client =
-    dependencies?.hitobitoClient ??
-    new HitobitoClient(
-      {
-        baseUrl: HITOBITO_CONFIG.baseUrl,
-        apiToken: HITOBITO_CONFIG.apiToken,
-        browserCookie,
-      },
-      logger,
-    );
-  const eventService = new EventService(client, logger);
-
-  // 3. Fetch participations for each event
+  // 2. Fetch participations for each event
   for (const event of events) {
     try {
-      await syncSingleEventTraced(payload, event, eventService, now, summary);
+      await syncSingleEventTraced(event, hitobitoService, participantRepo, now, summary);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       summary.errors.push(`Event ${event.eventId} (${event.eventName}): ${errorMessage}`);
     }
   }
 
-  payload.logger.info(
+  logger.info(
     `Sync complete: ${String(summary.newCount)} new, ${String(summary.removedCount)} removed, ${String(summary.reAddedCount)} re-added, ${String(summary.changedCount)} changed, ${String(summary.unchangedCount)} unchanged`,
   );
 
@@ -479,13 +409,37 @@ async function syncParticipantsImpl(
 }
 
 /**
- * Syncs event participations from the Cevi.DB with the local bill-participants collection.
- *
- * Handles the following state transitions:
- * - New participation: creates a new record with status 'new'
- * - Existing participation: updates lastSyncDate
- * - Missing participation: sets status 'removed', sets removedDate
- * - Re-added user: creates new record with status 're_added' (same userId, different participationUuid)
+ * Backwards compatible syncParticipants wrapper function.
+ */
+async function syncParticipantsImpl(payload: Payload): Promise<SyncSummary> {
+  const settingsRepo = new PayloadSettingsAdapter(payload);
+  const participantRepo = new PayloadParticipantRepositoryAdapter(payload);
+
+  const regManagement = await settingsRepo.getRegistrationManagement();
+  const cookieValue = regManagement.browserCookie;
+  const browserCookie =
+    typeof cookieValue === 'string' && cookieValue.length > 0 ? cookieValue : '';
+
+  const logger = {
+    info: (m: string): void => payload.logger.info(m),
+    warn: (m: string): void => payload.logger.warn(m),
+    error: (m: string): void => payload.logger.error(m),
+  };
+
+  const hitobitoService = new HitobitoServiceAdapter(
+    {
+      baseUrl: HITOBITO_CONFIG.baseUrl,
+      apiToken: HITOBITO_CONFIG.apiToken,
+      browserCookie,
+    },
+    logger,
+  );
+
+  return syncParticipantsUseCase(participantRepo, hitobitoService, settingsRepo, logger);
+}
+
+/**
+ * Traced entry point.
  */
 export const syncParticipants = traceFunction('syncParticipants', syncParticipantsImpl, {
   onSuccess: (span, summary) => {
