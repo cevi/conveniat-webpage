@@ -1,4 +1,5 @@
 /* eslint-disable unicorn/no-null */
+import { trace } from '@opentelemetry/api';
 import type {
   HitobitoServicePort,
   SyncedExternalParticipant,
@@ -93,7 +94,63 @@ export class HitobitoServiceAdapter implements HitobitoServicePort {
     participationId: string,
     groupId?: string,
   ): Promise<Record<string, string>> {
+    const activeSpan = trace.getActiveSpan();
+    const attempts: string[] = [];
+    const recordAttempt = (message: string): void => {
+      attempts.push(message);
+      if (activeSpan) {
+        activeSpan.setAttribute('fetch_answers.fallback_path', attempts.join(' -> '));
+      }
+    };
+
+    // 1. First try to fetch using new JSON API
+    recordAttempt(`Try JSON:API (/api/event_participations/${participationId})`);
+    try {
+      const path = `/api/event_participations/${participationId}`;
+      const response = await this.client.apiRequest<{
+        data?: {
+          attributes?: {
+            answers?: Record<string, unknown>;
+            [key: string]: unknown;
+          };
+        };
+      }>('GET', path);
+
+      const attributes = response.data?.attributes;
+      if (attributes !== undefined) {
+        const answers: Record<string, string> = {};
+
+        const answersObject = attributes.answers;
+        if (answersObject !== undefined) {
+          for (const [k, v] of Object.entries(answersObject)) {
+            if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {
+              answers[k] = String(v);
+            }
+          }
+        }
+
+        for (const [k, v] of Object.entries(attributes)) {
+          if (
+            (k.startsWith('answer_') || k.startsWith('answer-')) &&
+            (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean')
+          ) {
+            answers[k] = String(v);
+          }
+        }
+
+        if (Object.keys(answers).length > 0) {
+          recordAttempt(`Success JSON:API (${Object.keys(answers).length} answers)`);
+          return answers;
+        }
+      }
+      recordAttempt('Fail JSON:API (no answers found in response attributes)');
+    } catch (error) {
+      recordAttempt(`Fail JSON:API (${error instanceof Error ? error.message : String(error)})`);
+    }
+
+    // 2. Then try to fetch using .json at the end of the URL (legacy endpoint)
     if (groupId !== undefined && groupId !== '') {
+      recordAttempt(`Try Legacy API (/groups/${groupId}/events/${eventId}/participations.json)`);
       try {
         const cacheKey = `${groupId}:${eventId}`;
         let parsed = this.participationsJsonCache.get(cacheKey);
@@ -107,6 +164,8 @@ export class HitobitoServiceAdapter implements HitobitoServicePort {
           if (response.ok) {
             parsed = JSON.parse(body) as LegacyParticipationsResponse;
             this.participationsJsonCache.set(cacheKey, parsed);
+          } else {
+            recordAttempt(`Fail Legacy API request (status ${response.status})`);
           }
         }
 
@@ -115,30 +174,38 @@ export class HitobitoServiceAdapter implements HitobitoServicePort {
           const linkedAnswers = parsed.linked?.event_answers;
           if (Array.isArray(epList) && Array.isArray(linkedAnswers)) {
             const p = epList.find((ep) => String(ep.id) === participationId);
-            if (p !== undefined && Array.isArray(p.links?.event_answers)) {
-              const answerIds = new Set(p.links.event_answers.map(String));
+            if (p !== undefined) {
               const answers: Record<string, string> = {};
-              for (const ans of linkedAnswers) {
-                if (ans && answerIds.has(String(ans.id))) {
-                  const q = ans.question ?? '';
-                  const a = ans.answer ?? '';
-                  if (q !== '') {
-                    answers[q] = a;
+              const answerIds = new Set(p.links?.event_answers?.map(String) ?? []);
+              if (answerIds.size > 0) {
+                for (const ans of linkedAnswers) {
+                  if (ans && answerIds.has(String(ans.id))) {
+                    const q = ans.question ?? '';
+                    const a = ans.answer ?? '';
+                    if (q !== '') {
+                      answers[q] = a;
+                    }
                   }
                 }
               }
-              if (Object.keys(answers).length > 0) {
-                return answers;
-              }
+              recordAttempt(`Success Legacy API (${Object.keys(answers).length} answers)`);
+              return answers;
             }
           }
+          recordAttempt('Fail Legacy API (participation or linked answers not found in JSON)');
         }
-      } catch {
-        // Fallback silently to HTML scraping if legacy API call fails
+      } catch (error) {
+        recordAttempt(`Fail Legacy API (${error instanceof Error ? error.message : String(error)})`);
       }
+    } else {
+      recordAttempt('Skip Legacy API (groupId is undefined)');
     }
 
-    return this.eventService.fetchParticipationAnswers(eventId, participationId);
+    // 3. As a final resort, try to fetch using frontend hack (edit page scraping)
+    recordAttempt(`Try HTML Scraper (event: ${eventId}, part: ${participationId}, group: ${groupId ?? 'none'})`);
+    const finalAnswers = await this.eventService.fetchParticipationAnswers(eventId, participationId, groupId);
+    recordAttempt(`Scraper complete (found ${Object.keys(finalAnswers).length} answers)`);
+    return finalAnswers;
   }
 
   async fetchSubgroupLinks(parentGroupId: string): Promise<string[]> {

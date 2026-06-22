@@ -656,17 +656,39 @@ export class EventService {
   async fetchParticipationAnswers(
     eventId: string,
     participationId: string,
+    groupId?: string,
+    onLog?: (message: string) => void,
   ): Promise<Record<string, string>> {
     try {
-      const editPath = `/events/${eventId}/participations/${participationId}/edit`;
+      let editPath = `/events/${eventId}/participations/${participationId}/edit`;
+      if (groupId !== undefined && groupId !== '') {
+        editPath = `/groups/${groupId}/events/${eventId}/participations/${participationId}/edit`;
+      }
+      onLog?.(`Scraper Try: ${editPath}`);
       const { response, body } = await this.client.frontendRequest('GET', editPath);
 
+      if (!response.ok && groupId !== undefined && groupId !== '') {
+        // Fallback to non-group path if group-scoped path fails
+        onLog?.(`Scraper Fail group path (status ${response.status})`);
+        const fallbackPath = `/events/${eventId}/participations/${participationId}/edit`;
+        onLog?.(`Scraper Try: ${fallbackPath}`);
+        const fallbackResponse = await this.client.frontendRequest('GET', fallbackPath);
+        if (fallbackResponse.response.ok) {
+          onLog?.('Scraper Success fallback path');
+          return this.parseParticipationAnswersHtml(fallbackResponse.body);
+        }
+        onLog?.(`Scraper Fail fallback path (status ${fallbackResponse.response.status})`);
+      }
+
       if (!response.ok) {
+        onLog?.(`Scraper Fail (status ${response.status})`);
         throw new Error(`Failed to fetch participation edit form: ${response.status}`);
       }
 
+      onLog?.('Scraper Success main path');
       return this.parseParticipationAnswersHtml(body);
     } catch (error) {
+      onLog?.(`Scraper Error: ${error instanceof Error ? error.message : String(error)}`);
       this.logger?.warn(
         `fetchParticipationAnswers failed for ${participationId}: ${String(error)}`,
       );
