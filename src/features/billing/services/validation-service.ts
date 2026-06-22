@@ -19,6 +19,8 @@ export interface ParticipantValidationInput {
 export interface ValidationResult {
   isValid: boolean;
   missingFields: string[];
+  missingStammdaten: string[];
+  missingAnmeldeangaben: string[];
 }
 
 /**
@@ -91,7 +93,11 @@ const ParticipantValidationSchema = z
     const invoiceEmail =
       findAnswer(data.answers, ['mailadresse', 'rechnung']) ??
       findAnswer(data.answers, ['e-mail', 'rechnung']);
-    if (invoiceEmail === undefined || invoiceEmail.trim() === '') {
+    if (
+      invoiceEmail === undefined ||
+      invoiceEmail.trim() === '' ||
+      !z.string().email().safeParse(invoiceEmail.trim()).success
+    ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: 'Mailadresse für Rechnung',
@@ -143,14 +149,32 @@ const ParticipantValidationSchema = z
 export function validateParticipant(input: ParticipantValidationInput): ValidationResult {
   const result = ParticipantValidationSchema.safeParse(input);
   if (!result.success) {
-    const missingFields = result.error.issues.map((issue) => issue.message);
+    const missingFields: string[] = [];
+    const missingStammdaten: string[] = [];
+    const missingAnmeldeangaben: string[] = [];
+
+    for (const issue of result.error.issues) {
+      const fieldName = issue.message;
+      missingFields.push(fieldName);
+
+      if (issue.path[0] === 'person') {
+        missingStammdaten.push(fieldName);
+      } else if (issue.path[0] === 'answers') {
+        missingAnmeldeangaben.push(fieldName);
+      }
+    }
+
     return {
       isValid: false,
       missingFields,
+      missingStammdaten,
+      missingAnmeldeangaben,
     };
   }
   return {
     isValid: true,
     missingFields: [],
+    missingStammdaten: [],
+    missingAnmeldeangaben: [],
   };
 }

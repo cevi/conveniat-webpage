@@ -2,6 +2,8 @@
 
 import React from 'react';
 
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
 type BillingStatus =
   | 'new'
   | 'pflichtangaben_missing'
@@ -64,16 +66,29 @@ const statusConfig: Record<BillingStatus, { label: string; colorClasses: string 
 const baseClasses =
   'inline-flex items-center justify-center whitespace-nowrap rounded border px-1.5 py-0.5 text-xs font-medium';
 
+interface RowData {
+  id: string;
+  missingStammdaten?: unknown;
+  missingAnmeldeangaben?: unknown;
+}
+
 /**
  * Custom Payload CMS Cell component for the `status` field in bill-participants.
  * Renders a colored outline badge matching the SmtpBadge design.
  */
 export const BillingStatusCell: React.FC<{
   cellData: unknown;
-}> = ({ cellData }) => {
+  rowData: RowData;
+}> = ({ cellData, rowData }) => {
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
+
   const status = cellData as BillingStatus | undefined;
 
-  if (!status || !(status in statusConfig)) {
+  if (status === undefined || !(status in statusConfig)) {
     return (
       <span
         className={`${baseClasses} border-gray-200 bg-transparent text-gray-400 dark:border-gray-700 dark:text-gray-500`}
@@ -85,7 +100,68 @@ export const BillingStatusCell: React.FC<{
 
   const config = statusConfig[status];
 
-  return <span className={`${baseClasses} ${config.colorClasses}`}>{config.label}</span>;
+  const stammdatenArray = Array.isArray(rowData.missingStammdaten)
+    ? (rowData.missingStammdaten as string[])
+    : [];
+  const anmeldeangabenArray = Array.isArray(rowData.missingAnmeldeangaben)
+    ? (rowData.missingAnmeldeangaben as string[])
+    : [];
+
+  const hasMissingData =
+    status === 'pflichtangaben_missing' &&
+    (stammdatenArray.length > 0 || anmeldeangabenArray.length > 0);
+
+  const badge = (
+    <span className={`${baseClasses} ${config.colorClasses} cursor-help`}>
+      {config.label}
+    </span>
+  );
+
+  if (hasMissingData && mounted) {
+    return (
+      <div className="flex flex-col gap-1 my-1">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>{badge}</TooltipTrigger>
+            <TooltipContent
+              side="top"
+              align="start"
+              className="max-w-[250px] p-2.5 text-xs whitespace-normal"
+            >
+              <div className="flex flex-col gap-1.5">
+                {stammdatenArray.length > 0 && (
+                  <div>
+                    <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+                      Stammdaten fehlen:{' '}
+                    </span>
+                    <span className="text-zinc-600 dark:text-zinc-400">
+                      {stammdatenArray.join(', ')}
+                    </span>
+                  </div>
+                )}
+                {anmeldeangabenArray.length > 0 && (
+                  <div>
+                    <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+                      Anmeldeangaben fehlen:{' '}
+                    </span>
+                    <span className="text-zinc-600 dark:text-zinc-400">
+                      {anmeldeangabenArray.join(', ')}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-1 my-1">
+      <div>{badge}</div>
+    </div>
+  );
 };
 
 export default BillingStatusCell;

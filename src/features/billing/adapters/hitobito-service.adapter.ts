@@ -28,9 +28,26 @@ interface EventApiResponse {
   data?: EventResource[];
 }
 
+interface LegacyParticipationsResponse {
+  event_participations?: Array<{
+    id: string | number;
+    links?: {
+      event_answers?: Array<string | number>;
+    };
+  }>;
+  linked?: {
+    event_answers?: Array<{
+      id: string | number;
+      question?: string | null;
+      answer?: string | null;
+    } | null>;
+  };
+}
+
 export class HitobitoServiceAdapter implements HitobitoServicePort {
   private readonly client: HitobitoClient;
   private readonly eventService: EventService;
+  private readonly participationsJsonCache = new Map<string, LegacyParticipationsResponse>();
 
   constructor(
     config: { baseUrl: string; apiToken: string; browserCookie: string },
@@ -52,6 +69,7 @@ export class HitobitoServiceAdapter implements HitobitoServicePort {
     return participations.map((p) => ({
       participationId: p.participationId,
       participantId: p.participantId,
+      eventId: p.eventId,
       firstName: p.firstName,
       lastName: p.lastName,
       nickname: p.nickname,
@@ -73,7 +91,53 @@ export class HitobitoServiceAdapter implements HitobitoServicePort {
   async fetchParticipationAnswers(
     eventId: string,
     participationId: string,
+    groupId?: string,
   ): Promise<Record<string, string>> {
+    if (groupId !== undefined && groupId !== '') {
+      try {
+        const cacheKey = `${groupId}:${eventId}`;
+        let parsed = this.participationsJsonCache.get(cacheKey);
+
+        if (parsed === undefined) {
+          const path = `/groups/${groupId}/events/${eventId}/participations.json`;
+          const { response, body } = await this.client.frontendRequest('GET', path, {
+            headers: this.client.getFrontendHeaders(),
+          });
+
+          if (response.ok) {
+            parsed = JSON.parse(body) as LegacyParticipationsResponse;
+            this.participationsJsonCache.set(cacheKey, parsed);
+          }
+        }
+
+        if (parsed !== undefined) {
+          const epList = parsed.event_participations;
+          const linkedAnswers = parsed.linked?.event_answers;
+          if (Array.isArray(epList) && Array.isArray(linkedAnswers)) {
+            const p = epList.find((ep) => String(ep.id) === participationId);
+            if (p !== undefined && Array.isArray(p.links?.event_answers)) {
+              const answerIds = new Set(p.links.event_answers.map(String));
+              const answers: Record<string, string> = {};
+              for (const ans of linkedAnswers) {
+                if (ans && answerIds.has(String(ans.id))) {
+                  const q = ans.question ?? '';
+                  const a = ans.answer ?? '';
+                  if (q !== '') {
+                    answers[q] = a;
+                  }
+                }
+              }
+              if (Object.keys(answers).length > 0) {
+                return answers;
+              }
+            }
+          }
+        }
+      } catch {
+        // Fallback silently to HTML scraping if legacy API call fails
+      }
+    }
+
     return this.eventService.fetchParticipationAnswers(eventId, participationId);
   }
 

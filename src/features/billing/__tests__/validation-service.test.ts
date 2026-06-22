@@ -66,6 +66,41 @@ describe('Validation Service', () => {
       expect(result.missingFields).toContain('Mailadresse für Rechnung');
       expect(result.missingFields).toContain('AHV-Nummer');
     });
+
+    it('should detect invalid email format for Mailadresse für Rechnung', () => {
+      const result = validateParticipant({
+        person: validPerson,
+        answers: {
+          ...validAnswers,
+          'Mailadresse für Rechnung': 'not-an-email',
+        },
+      });
+
+      expect(result.isValid).toBe(false);
+      expect(result.missingFields).toContain('Mailadresse für Rechnung');
+      expect(result.missingAnmeldeangaben).toContain('Mailadresse für Rechnung');
+    });
+
+    it('should correctly separate missingStammdaten and missingAnmeldeangaben', () => {
+      const result = validateParticipant({
+        person: {
+          ...validPerson,
+          street: undefined,
+          birthday: '',
+        },
+        answers: {
+          ...validAnswers,
+          'Mailadresse für Rechnung': '',
+          'AHV-Nummer?': '  ',
+        },
+      });
+
+      expect(result.isValid).toBe(false);
+      expect(result.missingStammdaten).toContain('Strasse');
+      expect(result.missingStammdaten).toContain('Geburtsdatum');
+      expect(result.missingAnmeldeangaben).toContain('Mailadresse für Rechnung');
+      expect(result.missingAnmeldeangaben).toContain('AHV-Nummer');
+    });
   });
 
   describe('isRoleAllowed', () => {

@@ -3602,6 +3602,24 @@ export interface BillParticipant {
     | 're_added'
     | 'updated'
     | 'reminder_sent';
+  missingStammdaten?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  missingAnmeldeangaben?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   /**
    * Array of { date, action } entries for audit trail.
    */
@@ -5684,6 +5702,8 @@ export interface BillParticipantsSelect<T extends boolean = true> {
   invoiceAmount?: T;
   billPdfs?: T;
   status?: T;
+  missingStammdaten?: T;
+  missingAnmeldeangaben?: T;
   syncHistory?: T;
   relatedEmails?: T;
   updatedAt?: T;

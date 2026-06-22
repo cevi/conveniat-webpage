@@ -1,6 +1,7 @@
 export interface SyncedExternalParticipant {
   participationId: string;
   participantId: string;
+  eventId: string;
   firstName: string;
   lastName: string;
   nickname: string;
@@ -23,6 +24,7 @@ export interface HitobitoServicePort {
   fetchParticipationAnswers(
     eventId: string,
     participationId: string,
+    groupId?: string,
   ): Promise<Record<string, string>>;
   fetchSubgroupLinks(parentGroupId: string): Promise<string[]>;
   fetchEventsForGroup(groupId: string): Promise<Array<{ id: string; name: string }>>;

@@ -482,6 +482,34 @@ export const BillParticipantsCollection: CollectionConfig = {
         },
       },
     },
+    {
+      name: 'missingStammdaten',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
+      type: 'json',
+      label: {
+        en: 'Missing Master Data',
+        de: 'Fehlende Stammdaten',
+        fr: 'Stammdaten manquantes',
+      },
+      admin: {
+        readOnly: true,
+        disableGroupBy: true,
+      },
+    },
+    {
+      name: 'missingAnmeldeangaben',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
+      type: 'json',
+      label: {
+        en: 'Missing Event Registration Answers',
+        de: 'Fehlende Anmeldeangaben',
+        fr: 'Anmeldeangaben manquantes',
+      },
+      admin: {
+        readOnly: true,
+        disableGroupBy: true,
+      },
+    },
 
     // Audit trail
     {

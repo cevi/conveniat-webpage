@@ -61,8 +61,9 @@ async function syncSingleEvent(
       `syncParticipants:fetchAnswers:${participation.participationId}`,
       async (span) => {
         const answersResult = await hitobitoService.fetchParticipationAnswers(
-          event.eventId,
+          participation.eventId,
           participation.participationId,
+          event.groupId,
         );
         span.setAttributes({
           'participant.id': participation.participantId,
@@ -94,6 +95,9 @@ async function syncSingleEvent(
           answers,
         };
         const validatedOutput = validateParticipant(input);
+        if (!validatedOutput.isValid) {
+          console.log(`[VALIDATION DEBUG] Participant: ${participation.fullName}, ID: ${participation.participantId}, missing fields:`, validatedOutput.missingFields);
+        }
         span.setAttributes({
           'participant.id': participation.participantId,
           'participation.id': participation.participationId,
@@ -154,6 +158,8 @@ async function syncSingleEvent(
         lastSyncDate: now,
         status: finalStatus as never,
         reAddedDate: isReAdded ? now : null,
+        missingStammdaten: validationResult.missingStammdaten,
+        missingAnmeldeangaben: validationResult.missingAnmeldeangaben,
         syncHistory: [{ date: now, action: isReAdded ? 're_added_detected' : 'first_sync' }],
       });
 
@@ -187,6 +193,13 @@ async function syncSingleEvent(
         normalize(document_.birthday) !== normalize(participation.birthday);
       const hasGenderChanged = normalize(document_.gender) !== normalize(participation.gender);
       const hasActiveChanged = Boolean(document_.active) !== Boolean(participation.active);
+
+      const hasMissingStammdatenChanged =
+        JSON.stringify(document_.missingStammdaten ?? []) !==
+        JSON.stringify(validationResult.missingStammdaten);
+      const hasMissingAnmeldeangabenChanged =
+        JSON.stringify(document_.missingAnmeldeangaben ?? []) !==
+        JSON.stringify(validationResult.missingAnmeldeangaben);
 
       const isRoleOk = isRoleAllowed(participation.roleType);
       const isMissing = !validationResult.isValid;
@@ -240,7 +253,9 @@ async function syncSingleEvent(
         hasBirthdayChanged ||
         hasGenderChanged ||
         hasActiveChanged ||
-        statusChanged
+        statusChanged ||
+        hasMissingStammdatenChanged ||
+        hasMissingAnmeldeangabenChanged
       ) {
         const diff: Record<string, { from: string; to: string }> = {};
         if (hasRoleChanged)
@@ -294,6 +309,18 @@ async function syncSingleEvent(
             to: newStatus,
           };
         }
+        if (hasMissingStammdatenChanged) {
+          diff['missingStammdaten'] = {
+            from: JSON.stringify(document_.missingStammdaten ?? []),
+            to: JSON.stringify(validationResult.missingStammdaten),
+          };
+        }
+        if (hasMissingAnmeldeangabenChanged) {
+          diff['missingAnmeldeangaben'] = {
+            from: JSON.stringify(document_.missingAnmeldeangaben ?? []),
+            to: JSON.stringify(validationResult.missingAnmeldeangaben),
+          };
+        }
 
         await participantRepo.update(document_.id, {
           lastSyncDate: now,
@@ -313,6 +340,8 @@ async function syncSingleEvent(
           birthday: participation.birthday ?? null,
           gender: participation.gender ?? null,
           active: participation.active,
+          missingStammdaten: validationResult.missingStammdaten,
+          missingAnmeldeangaben: validationResult.missingAnmeldeangaben,
           syncHistory: [...history, { date: now, action: 'participant_updated', diff }],
         });
         summary.changedCount++;
