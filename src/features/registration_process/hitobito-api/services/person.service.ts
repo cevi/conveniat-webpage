@@ -156,10 +156,11 @@ export class PersonService {
     );
 
     const parsed = z.array(PersonResourceSchema).safeParse(response.data);
-    if (parsed.success) {
-      return parsed.data;
+    if (!parsed.success) {
+      this.logger?.warn('searchByNames failed to validate response schema', parsed.error);
+      return [];
     }
-    return [];
+    return parsed.data;
   }
 
   async searchByNicknameAndLastName({
@@ -181,9 +182,13 @@ export class PersonService {
     );
 
     const parsed = z.array(PersonResourceSchema).safeParse(response.data);
-    if (parsed.success) {
-      return parsed.data;
+    if (!parsed.success) {
+      this.logger?.warn(
+        'searchByNicknameAndLastName failed to validate response schema',
+        parsed.error,
+      );
+      return [];
     }
-    return [];
+    return parsed.data;
   }
 }

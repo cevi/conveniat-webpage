@@ -29,6 +29,7 @@ export const resolveById = ({ input }: StrategyContext): StrategyResult => {
 export const resolveBySearch = async ({
   input,
   hitobito,
+  logger,
 }: StrategyContext): Promise<StrategyResult> => {
   if (!('email' in input)) return undefined;
 
@@ -71,7 +72,9 @@ export const resolveBySearch = async ({
     if (error instanceof Error && error.message.includes('status 401')) {
       throw error; // Let auth errors still bring down the job
     }
-    // For other search errors, log and proceed with whatever we have (or empty results)
+    logger.warn(
+      `Search failed for ${input.firstName} ${input.lastName}: ${error instanceof Error ? error.message : String(error)}`,
+    );
   }
 
   for (const candidate of candidates) {

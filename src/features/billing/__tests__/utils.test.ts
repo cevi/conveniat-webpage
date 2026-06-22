@@ -34,21 +34,8 @@ describe('Billing Utilities', () => {
     });
 
     it('should slice personId, eventId, and participationId correctly if they are too long', () => {
-      // Inputs longer than their allocated length:
-      // personId limit is 6. "987654321" should be sliced to last 6: "432100" or similar?
-      // Wait, slice(-6) of "987654321" is "543210" or similar?
-      // Let's trace slice(-6): "987654321" -> "432100" (wait, .slice(-6) of "987654321" is "543221" (6 characters from end: "432101"?)
-      // Actually: "987654321".slice(-6) is "543210"? No, let's count:
-      // Index from end:
-      // -1: 1
-      // -2: 2
-      // -3: 3
-      // -4: 4
-      // -5: 5
-      // -6: 6 -> "456789"? No, "987654321".slice(-6) -> "54321".
-      // Let's check: "987654321".slice(-6) -> length is 6, so "4321" starts at index 3.
-      // Yes, "987654321".slice(-6) is "432100"? No, "987654321".slice(-6) = "432100" if we pad or slice.
-      // Let's just test with simpler inputs and verify it is exactly 27 digits.
+      // Inputs longer than their allocated slot are sliced to the last N digits, then zero-padded.
+      // e.g. "999123456".slice(-6) = "123456", "9912345".slice(-5) = "12345", "9991234567".slice(-7) = "1234567"
       const reference = generateQrReference('999123456', '9912345', '9991234567', 123);
       expect(reference).toHaveLength(27);
 

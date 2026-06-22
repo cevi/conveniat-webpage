@@ -249,14 +249,6 @@ export class EventService {
    * Handles pagination automatically via links.next.
    *
    * This replaces any browser-cookie-based scraping for reading event participants.
-   */
-  /**
-   * List all participations for an event using the official JSON:API.
-   *
-   * Uses GET /api/event_participations with filter[event_id][eq] and
-   * include=participant,roles to sideload person data and role types.
-   * Handles pagination automatically via links.next.
-   *
    * Falls back to legacy JSON API or HTML scraping if the participant profile is restricted.
    */
   listEventParticipations = traceMethod(
