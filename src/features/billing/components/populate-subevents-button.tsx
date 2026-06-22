@@ -68,7 +68,15 @@ export const PopulateSubeventsButton: React.FC = () => {
         Anlässe automatisch aus Cevi.DB laden
       </h4>
       <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#666', lineHeight: '1.4' }}>
-        Klicken Sie auf den Button unten, um alle Untergruppen der Hauptlager-Gruppe 4337
+        Klicken Sie auf den Button unten, um alle Untergruppen der{' '}
+        <a
+          href="https://db.cevi.ch/groups/4337/events/simple?returning=true&year=2027"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: '#0070f3', textDecoration: 'underline' }}
+        >
+          Hauptlager-Gruppe 4337
+        </a>{' '}
         abzufragen. Es werden alle Anlässe mit dem Namen &quot;Hauptlager conveniat27&quot; oder
         &quot;conveniat27&quot; ermittelt und die Liste unten automatisch aktualisiert. Dieser
         Vorgang dauert ca. 45 Sekunden.

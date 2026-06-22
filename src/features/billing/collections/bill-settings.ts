@@ -57,6 +57,11 @@ export const BillSettingsGlobal: GlobalConfig = {
                 fr: 'Événements Hitobito à synchroniser',
               },
               admin: {
+                components: {
+                  RowLabel: {
+                    path: '@/features/billing/components/event-row-label#EventRowLabel',
+                  },
+                },
                 description: {
                   en: 'Configure which Hitobito events should be synced for billing.',
                   de: 'Konfigurieren Sie, welche Hitobito-Anlässe für die Rechnungsstellung synchronisiert werden.',

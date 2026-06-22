@@ -7,8 +7,8 @@ import { z } from 'zod';
  * Docs: https://cevi.puzzle.ch/api-docs
  */
 export const EventParticipationAttributesSchema = z.object({
-  event_id: z.number(),
-  participant_id: z.number(),
+  event_id: z.number().optional(),
+  participant_id: z.number().optional(),
   participant_type: z.string().optional(),
   application_id: z.number().nullable().optional(),
   active: z.boolean().optional(),
