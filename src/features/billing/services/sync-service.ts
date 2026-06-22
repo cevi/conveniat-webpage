@@ -98,6 +98,13 @@ export async function syncParticipants(
       for (const participation of participations) {
         fetchedParticipationIds.add(participation.participationId);
 
+        if (participation.participantId.length === 0) {
+          summary.errors.push(
+            `Teilnahme ${participation.participationId} konnte nicht synchronisiert werden: Personen-ID fehlt. Bitte stelle sicher, dass ein gültiger Browser-Cookie in den Registrierungs-Einstellungen eingetragen ist.`,
+          );
+          continue;
+        }
+
         // Check if this participation already exists
         const existing = await payload.find({
           collection: 'bill-participants',
