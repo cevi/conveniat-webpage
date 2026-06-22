@@ -158,7 +158,10 @@ export class HitobitoServiceAdapter implements HitobitoServicePort {
         if (parsed === undefined) {
           const path = `/groups/${groupId}/events/${eventId}/participations.json`;
           const { response, body } = await this.client.frontendRequest('GET', path, {
-            headers: this.client.getFrontendHeaders(),
+            headers: {
+              ...this.client.getFrontendHeaders(),
+              'X-Token': this.client.config.apiToken,
+            },
           });
 
           if (response.ok) {
