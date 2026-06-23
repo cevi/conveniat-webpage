@@ -56,10 +56,15 @@ export const proxyChain = (proxies: { proxy: ProxyModule; name: string }[]): Pro
       }
 
       // Copy all Set-Cookie headers using getSetCookie to preserve multiple cookies
-      const setCookies =
-        typeof response.headers.getSetCookie === 'function' ? response.headers.getSetCookie() : [];
-      for (const cookie of setCookies) {
-        finalResponse.headers.append('set-cookie', cookie);
+      if (typeof response.headers.getSetCookie === 'function') {
+        const setCookies = response.headers.getSetCookie();
+        for (const cookie of setCookies) {
+          finalResponse.headers.append('set-cookie', cookie);
+        }
+      } else {
+        console.error(
+          '[ProxyChain] CRITICAL: response.headers.getSetCookie is not a function. Rotated session cookies cannot be copied, which may break downstream session state.',
+        );
       }
 
       return finalResponse;
