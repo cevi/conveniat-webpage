@@ -91,6 +91,13 @@ export const BillingListToolbar: React.FC = () => {
     return {};
   });
 
+  // Sync activeJobs to localStorage whenever it changes
+  React.useEffect((): void => {
+    if (typeof globalThis !== 'undefined') {
+      localStorage.setItem('billing_active_jobs', JSON.stringify(activeJobs));
+    }
+  }, [activeJobs]);
+
   const [syncStatus, setSyncStatus] = React.useState<SyncJobStatus | undefined>();
   const [generateStatus, setGenerateStatus] = React.useState<SyncJobStatus | undefined>();
   const [sendStatus, setSendStatus] = React.useState<SyncJobStatus | undefined>();
@@ -137,9 +144,7 @@ export const BillingListToolbar: React.FC = () => {
 
         if (hasPending === true) {
           setActiveJobs((previous): { sync?: string; generate?: string; send?: string } => {
-            const merged = { ...previous, ...newActiveJobs };
-            localStorage.setItem('billing_active_jobs', JSON.stringify(merged));
-            return merged;
+            return { ...previous, ...newActiveJobs };
           });
         }
 
@@ -204,7 +209,6 @@ export const BillingListToolbar: React.FC = () => {
 
       if (changed === true) {
         setActiveJobs(updatedActiveJobs);
-        localStorage.setItem('billing_active_jobs', JSON.stringify(updatedActiveJobs));
       }
     },
     [fetchStatuses, router],
@@ -264,9 +268,7 @@ export const BillingListToolbar: React.FC = () => {
         if (result.success === true && result.jobId !== undefined) {
           const jobId = result.jobId;
           setActiveJobs((previous): { sync?: string; generate?: string; send?: string } => {
-            const updated = { ...previous, [action]: jobId };
-            localStorage.setItem('billing_active_jobs', JSON.stringify(updated));
-            return updated;
+            return { ...previous, [action]: jobId };
           });
 
           let taskSlug: 'syncParticipants' | 'generateBills' | 'sendBills' = 'syncParticipants';
