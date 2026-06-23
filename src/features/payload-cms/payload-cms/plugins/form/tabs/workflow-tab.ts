@@ -1,69 +1,74 @@
+import { environmentVariables } from '@/config/environment-variables';
 import type { Field, Tab } from 'payload';
 
 export const WORKFLOW_DEFINITIONS = {
-  registrationWorkflow: {
-    label: {
-      en: 'Helper Registration Workflow',
-      de: 'Helfer:innen-Anmeldung Workflow',
-      fr: "Workflow d'inscription des bénévoles",
-    },
-    inputs: [
-      {
-        key: 'peopleId',
-        label: {
-          en: 'People ID (Cevi.DB User ID)',
-          de: 'People ID (Cevi.DB User ID)',
-          fr: 'People ID (Cevi.DB User ID)',
+  ...(environmentVariables.FEATURE_ENABLE_REGISTRATION_MANAGEMENT
+    ? {
+        registrationWorkflow: {
+          label: {
+            en: 'Helper Registration Workflow',
+            de: 'Helfer:innen-Anmeldung Workflow',
+            fr: "Workflow d'inscription des bénévoles",
+          },
+          inputs: [
+            {
+              key: 'peopleId',
+              label: {
+                en: 'People ID (Cevi.DB User ID)',
+                de: 'People ID (Cevi.DB User ID)',
+                fr: 'People ID (Cevi.DB User ID)',
+              },
+              required: false,
+            },
+            {
+              key: 'firstName',
+              label: {
+                en: 'First Name',
+                de: 'Vorname',
+                fr: 'Prénom',
+              },
+              required: true,
+            },
+            {
+              key: 'lastName',
+              label: {
+                en: 'Last Name',
+                de: 'Nachname',
+                fr: 'Nom',
+              },
+              required: true,
+            },
+            {
+              key: 'nickname',
+              label: {
+                en: 'Nickname',
+                de: 'Ceviname',
+                fr: 'Ceviname',
+              },
+              required: true,
+            },
+            {
+              key: 'email',
+              label: {
+                en: 'Email',
+                de: 'E-Mail',
+                fr: 'Email',
+              },
+              required: true,
+            },
+            {
+              key: 'birthDate',
+              label: {
+                en: 'Birth Date (YYYY-MM-DD)',
+                de: 'Geburtsdatum (YYYY-MM-DD)',
+                fr: 'Date de naissance (YYYY-MM-DD)',
+              },
+              required: true,
+            },
+          ],
         },
-        required: false,
-      },
-      {
-        key: 'firstName',
-        label: {
-          en: 'First Name',
-          de: 'Vorname',
-          fr: 'Prénom',
-        },
-        required: true,
-      },
-      {
-        key: 'lastName',
-        label: {
-          en: 'Last Name',
-          de: 'Nachname',
-          fr: 'Nom',
-        },
-        required: true,
-      },
-      {
-        key: 'nickname',
-        label: {
-          en: 'Nickname',
-          de: 'Ceviname',
-          fr: 'Ceviname',
-        },
-        required: true,
-      },
-      {
-        key: 'email',
-        label: {
-          en: 'Email',
-          de: 'E-Mail',
-          fr: 'Email',
-        },
-        required: true,
-      },
-      {
-        key: 'birthDate',
-        label: {
-          en: 'Birth Date (YYYY-MM-DD)',
-          de: 'Geburtsdatum (YYYY-MM-DD)',
-          fr: 'Date de naissance (YYYY-MM-DD)',
-        },
-        required: true,
-      },
-    ],
-  },
+      }
+    : {}),
   brevoContactWorkflow: {
     label: {
       en: 'Brevo Contact Import',

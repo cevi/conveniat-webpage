@@ -1,3 +1,4 @@
+import { environmentVariables } from '@/config/environment-variables';
 import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import type { GlobalConfig } from 'payload';
@@ -10,10 +11,17 @@ export const RegistrationManagement: GlobalConfig = {
     fr: 'Inscription des assistants',
   },
   access: {
-    read: hasAdminOrWebAccess,
-    update: hasAdminOrWebAccess,
+    read: (args) => {
+      if (!environmentVariables.FEATURE_ENABLE_REGISTRATION_MANAGEMENT) return false;
+      return hasAdminOrWebAccess(args);
+    },
+    update: (args) => {
+      if (!environmentVariables.FEATURE_ENABLE_REGISTRATION_MANAGEMENT) return false;
+      return hasAdminOrWebAccess(args);
+    },
   },
   admin: {
+    hidden: () => !environmentVariables.FEATURE_ENABLE_REGISTRATION_MANAGEMENT,
     group: AdminPanelDashboardGroups.HelferAnmeldung,
     hideAPIURL: true,
     components: {
