@@ -114,8 +114,13 @@ export async function recoverStaleJobs(
       `Found ${staleJobs.docs.length} stuck processing job(s) older than ${maxAgeMinutes} minutes. Recovering...`,
     );
     for (const staleJob of staleJobs.docs) {
+      const taskSlug = staleJob.taskSlug;
+      const tasksConfig = request.payload.config.jobs.tasks ?? [];
+      const taskConfig = tasksConfig.find((t) => t.slug === taskSlug);
+      const maxRetries =
+        taskConfig && typeof taskConfig.retries === 'number' ? taskConfig.retries : 3;
       const totalTried = typeof staleJob.totalTried === 'number' ? staleJob.totalTried : 0;
-      const hasExceededAttempts = totalTried >= 3;
+      const hasExceededAttempts = totalTried > maxRetries;
 
       const updateData: Record<string, unknown> = {
         processing: false,

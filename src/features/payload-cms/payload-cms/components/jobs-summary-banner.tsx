@@ -14,11 +14,12 @@ interface JobDocument {
   id: string;
   taskSlug: string;
   workflowSlug?: string;
+  createdAt: string;
   updatedAt: string;
 }
 
-function getDurationText(updatedAt: string): string {
-  const runDurationSec = Math.floor((Date.now() - new Date(updatedAt).getTime()) / 1000);
+function getDurationText(createdAt: string): string {
+  const runDurationSec = Math.floor((Date.now() - new Date(createdAt).getTime()) / 1000);
   return runDurationSec < 60 ? `${runDurationSec}s` : `${Math.floor(runDurationSec / 60)}m`;
 }
 
@@ -119,7 +120,7 @@ export const JobsSummaryBanner: React.FC = async () => {
           {processingJobs.length > 0 ? (
             <div className="mt-3 space-y-2">
               {processingJobs.map((job) => {
-                const durationText = getDurationText(job.updatedAt);
+                const durationText = getDurationText(job.createdAt);
 
                 return (
                   <div
