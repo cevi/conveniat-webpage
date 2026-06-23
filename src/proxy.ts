@@ -4,7 +4,7 @@ import { proxyChain } from '@/proxy/proxy-chain';
 
 import type { ProxyModule } from '@/proxy/types';
 import { isExcludedFromPathRewrites } from '@/proxy/utils/is-excluded-from-path-rewrites';
-import { auth } from '@/utils/auth';
+import { rotateSessionToken } from '@/proxy/utils/rotate-session-token';
 
 const authSessionProxy: ProxyModule = (next) => {
   return async (request, event, response) => {
@@ -21,13 +21,8 @@ const authSessionProxy: ProxyModule = (next) => {
       return next(request, event, response);
     }
 
-    // Call auth() to trigger the jwt callback and potential token refresh.
-    // Since proxy.ts has access to modify headers, NextAuth will successfully
-    // inject the Set-Cookie header if the token is rotated.
-    //
-    // This does not do an auth check itself (only rotates the token if needed)
-    // this aligns with NextJS's recommendation to only do optimistic checks in proxy
-    await auth();
+    // Check and propagate rotated token cookies
+    await rotateSessionToken(request, event, response);
 
     return next(request, event, response);
   };
