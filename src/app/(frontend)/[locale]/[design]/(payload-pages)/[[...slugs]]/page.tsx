@@ -129,9 +129,11 @@ export const generateMetadata = async ({
       isPreview = await canAccessPreviewOfCurrentPage(awaitedSearchParameters);
     }
   } catch (error) {
+    // Let Next.js control-flow errors (dynamic rendering signals, redirect, notFound)
+    // propagate so the prerender can abort cleanly instead of hitting connection().
     unstable_rethrow(error);
     // During prerendering, searchParams rejects — preview is never active.
-    // Re-throw unexpected errors so they remain visible in logs.
+    // The check below is only reached for non-Next.js errors.
     if (!(error instanceof Error && error.message.includes('searchParams'))) {
       console.error('Unexpected error while resolving preview state:', error);
     }
