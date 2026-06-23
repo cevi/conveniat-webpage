@@ -289,6 +289,13 @@ async function refreshAccessToken(token: JWT, reason: string): Promise<JWT> {
   return refreshPromise;
 }
 
+class TerminalRefreshError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'TerminalRefreshError';
+  }
+}
+
 /**
  * Refreshes the access token using the refresh token.
  * returns the new token with updated expiration and access token
@@ -316,9 +323,22 @@ async function doRefreshAccessToken(token: JWT, reason: string): Promise<JWT> {
       }),
     });
 
-    let refreshedTokens: TokenResponse | undefined;
     const responseText = await response.text();
 
+    if (!response.ok) {
+      const isTerminal =
+        response.status >= 400 &&
+        response.status < 500 &&
+        response.status !== 429 &&
+        response.status !== 408;
+
+      if (isTerminal) {
+        throw new TerminalRefreshError(responseText);
+      }
+      throw new Error(responseText);
+    }
+
+    let refreshedTokens: TokenResponse | undefined;
     try {
       refreshedTokens = JSON.parse(responseText) as TokenResponse;
     } catch {
@@ -326,10 +346,6 @@ async function doRefreshAccessToken(token: JWT, reason: string): Promise<JWT> {
       throw new Error(
         `Invalid JSON response from token refresh endpoint: ${responseText.slice(0, 100)}...`,
       );
-    }
-
-    if (!response.ok) {
-      throw new Error(JSON.stringify(refreshedTokens));
     }
 
     const expiresIn =
@@ -388,9 +404,11 @@ async function doRefreshAccessToken(token: JWT, reason: string): Promise<JWT> {
     if (activeSpan !== undefined) {
       activeSpan.recordException(error as Error);
     }
+    const isTerminal = error instanceof TerminalRefreshError;
     return {
       ...token,
       error: 'RefreshAccessTokenError',
+      ...(isTerminal ? { refresh_token: undefined } : {}),
     };
   }
 }
