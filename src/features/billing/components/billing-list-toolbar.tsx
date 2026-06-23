@@ -71,9 +71,10 @@ export const BillingListToolbar: React.FC = () => {
     generate?: string;
     send?: string;
   }>((): { sync?: string; generate?: string; send?: string } => {
-    if (typeof globalThis !== 'undefined') {
+    // eslint-disable-next-line unicorn/prefer-global-this
+    if (typeof window !== 'undefined') {
       try {
-        const stored = localStorage.getItem('billing_active_jobs');
+        const stored = globalThis.localStorage.getItem('billing_active_jobs');
         if (stored !== null && stored !== '') {
           const parsed = JSON.parse(stored) as { sync?: string; generate?: string; send?: string };
           if (
@@ -93,8 +94,9 @@ export const BillingListToolbar: React.FC = () => {
 
   // Sync activeJobs to localStorage whenever it changes
   React.useEffect((): void => {
-    if (typeof globalThis !== 'undefined') {
-      localStorage.setItem('billing_active_jobs', JSON.stringify(activeJobs));
+    // eslint-disable-next-line unicorn/prefer-global-this
+    if (typeof window !== 'undefined') {
+      globalThis.localStorage.setItem('billing_active_jobs', JSON.stringify(activeJobs));
     }
   }, [activeJobs]);
 
