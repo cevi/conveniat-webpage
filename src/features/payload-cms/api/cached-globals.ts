@@ -1,6 +1,7 @@
 import type {
   AlertSetting,
   AppFeatureFlag,
+  AppLandingPage,
   Footer,
   Header,
   SEO,
@@ -115,6 +116,31 @@ export const getAppFeatureFlagsCached = cache(
           imageUploadEnabled: true,
           reservationsEnabled: true,
           forumEnabled: true,
+        },
+      });
+    });
+  },
+);
+
+/**
+ * Fetches the App Landing Page global with request-level memoization.
+ *
+ * Returns the dashboard title, optional welcome content blocks, and the
+ * showActionCards toggle.
+ */
+export const getAppLandingPageCached = cache(
+  async (
+    locale: Locale,
+  ): Promise<Pick<AppLandingPage, 'title' | 'pageContent' | 'showActionCards'>> => {
+    return await withSpan('getAppLandingPageCached', async () => {
+      const payload = await getPayload({ config });
+      return await payload.findGlobal({
+        slug: 'app-landing-page',
+        locale,
+        select: {
+          title: true,
+          pageContent: true,
+          showActionCards: true,
         },
       });
     });
