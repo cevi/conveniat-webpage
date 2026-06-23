@@ -42,11 +42,24 @@ const postHogRewrites = (): Rewrite[] => {
       source: '/ingest/decide',
       destination: 'https://eu.i.posthog.com/decide',
     },
+    {
+      source: '/api/ingest/static/:path*',
+      destination: 'https://eu-assets.i.posthog.com/static/:path*',
+    },
+    {
+      source: '/api/ingest/:path*',
+      destination: 'https://eu.i.posthog.com/:path*',
+    },
+    {
+      source: '/api/ingest/decide',
+      destination: 'https://eu.i.posthog.com/decide',
+    },
   ];
 };
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  skipTrailingSlashRedirect: true,
   serverExternalPackages: ['esbuild-wasm', 'pdfkit', 'pdfkit-table'],
   productionBrowserSourceMaps: true,
   transpilePackages: ['@t3-oss/env-nextjs', '@t3-oss/env-core'],

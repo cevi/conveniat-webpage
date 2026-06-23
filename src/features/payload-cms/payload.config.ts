@@ -194,14 +194,75 @@ const jobsConfig: JobsConfig = {
       admin: {
         ...defaultJobsCollection.admin,
         hidden: shouldHideInAdminPanel,
-        groupBy: true,
-        defaultColumns: [
-          'id',
-          'totalTried',
-          'workflowSlug',
-          'taskSlug',
-          'processing',
-          'completedAt',
+        groupBy: false,
+        defaultColumns: ['id', 'workflowSlug', 'taskSlug', 'processing', 'createdAt', 'updatedAt'],
+        components: {
+          ...defaultJobsCollection.admin?.components,
+          beforeListTable: ['@/features/payload-cms/payload-cms/components/jobs-summary-banner'],
+        },
+      },
+      hooks: {
+        ...defaultJobsCollection.hooks,
+        beforeOperation: [
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (hookArguments: any): void => {
+            const { args, operation } = hookArguments as {
+              args?: Record<string, unknown>;
+              operation: string;
+            };
+            if (
+              (operation === 'find' || operation === 'findDistinct') &&
+              args &&
+              typeof args['where'] === 'object' &&
+              args['where'] !== null
+            ) {
+              const sanitizeWhere = (where: Record<string, unknown>): void => {
+                if ('state' in where) {
+                  delete where['state'];
+                }
+                const andList = where['and'] as unknown[] | undefined;
+                if (Array.isArray(andList)) {
+                  for (const subWhere of andList) {
+                    if (typeof subWhere === 'object' && subWhere !== null) {
+                      sanitizeWhere(subWhere as Record<string, unknown>);
+                    }
+                  }
+                  const filteredAnd = andList.filter(
+                    (subWhere): boolean =>
+                      typeof subWhere === 'object' &&
+                      subWhere !== null &&
+                      Object.keys(subWhere as Record<string, unknown>).length > 0,
+                  );
+                  if (filteredAnd.length === 0) {
+                    delete where['and'];
+                  } else {
+                    where['and'] = filteredAnd;
+                  }
+                }
+                const orList = where['or'] as unknown[] | undefined;
+                if (Array.isArray(orList)) {
+                  for (const subWhere of orList) {
+                    if (typeof subWhere === 'object' && subWhere !== null) {
+                      sanitizeWhere(subWhere as Record<string, unknown>);
+                    }
+                  }
+                  const filteredOr = orList.filter(
+                    (subWhere): boolean =>
+                      typeof subWhere === 'object' &&
+                      subWhere !== null &&
+                      Object.keys(subWhere as Record<string, unknown>).length > 0,
+                  );
+                  if (filteredOr.length === 0) {
+                    delete where['or'];
+                  } else {
+                    where['or'] = filteredOr;
+                  }
+                }
+              };
+              sanitizeWhere(args['where'] as Record<string, unknown>);
+            }
+          },
+          ...(defaultJobsCollection.hooks?.beforeOperation ?? []),
         ],
       },
       fields,
