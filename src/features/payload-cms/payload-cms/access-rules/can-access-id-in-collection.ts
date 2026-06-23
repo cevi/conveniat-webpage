@@ -19,8 +19,8 @@ export const canAccessDocuments: Access = async ({ req }) => {
       });
 
       // Fetch the session ONCE to avoid redundant auth() calls in the loop
-      const { auth } = await import('@/utils/auth');
-      const userSession = await auth();
+      const { getCachedSession } = await import('@/utils/auth');
+      const userSession = await getCachedSession();
 
       const results = await Promise.all(
         allPermissions.docs.map(async (permission) => {

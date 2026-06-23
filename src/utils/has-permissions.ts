@@ -11,8 +11,8 @@ const isPermissionLoggedInRequired = async (
 ): Promise<boolean> => {
   if (permission?.special_permissions?.logged_in === true) {
     if (userSession !== undefined) return userSession !== null;
-    const { auth } = await import('@/utils/auth');
-    const userPerm = await auth();
+    const { getCachedSession } = await import('@/utils/auth');
+    const userPerm = await getCachedSession();
     return userPerm !== null;
   }
   return true;
@@ -58,8 +58,8 @@ export const hasPermissions = async (
   const userPerm =
     userSession === undefined
       ? await (async (): Promise<Session | null> => {
-          const { auth } = await import('@/utils/auth');
-          return await auth();
+          const { getCachedSession } = await import('@/utils/auth');
+          return await getCachedSession();
         })()
       : userSession;
 

@@ -1,7 +1,7 @@
 import type { User } from '@/features/payload-cms/payload-types';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import { HitobitoNextAuthUserSchema } from '@/types/hitobito-next-auth-user';
-import { auth } from '@/utils/auth';
+import { getCachedSession } from '@/utils/auth';
 import type { AuthStrategyFunction, BasePayload } from 'payload';
 
 /**
@@ -41,7 +41,7 @@ export async function getPayloadUserFromNextAuthUser(
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-expect-error
 export const getAuthenticateUsingCeviDB: AuthStrategyFunction = async ({ payload }) => {
-  const session = await auth();
+  const session = await getCachedSession();
   const validationResult = HitobitoNextAuthUserSchema.safeParse(session?.user);
 
   if (!validationResult.success) {
