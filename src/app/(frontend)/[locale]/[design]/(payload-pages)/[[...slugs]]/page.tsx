@@ -11,7 +11,7 @@ import { i18nConfig } from '@/types/types';
 import { forceDynamicOnBuild } from '@/utils/is-pre-rendering';
 import type { Metadata } from 'next';
 
-import { notFound, redirect } from 'next/navigation';
+import { notFound, redirect, unstable_rethrow } from 'next/navigation';
 import { connection } from 'next/server';
 import type React from 'react';
 import { cache } from 'react';
@@ -129,6 +129,7 @@ export const generateMetadata = async ({
       isPreview = await canAccessPreviewOfCurrentPage(awaitedSearchParameters);
     }
   } catch (error) {
+    unstable_rethrow(error);
     // During prerendering, searchParams rejects — preview is never active.
     // Re-throw unexpected errors so they remain visible in logs.
     if (!(error instanceof Error && error.message.includes('searchParams'))) {
