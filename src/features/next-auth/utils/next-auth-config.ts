@@ -51,13 +51,7 @@ const HITOBITO_FORWARD_URL = environmentVariables.HITOBITO_FORWARD_URL;
 const CEVI_DB_CLIENT_ID = environmentVariables.CEVI_DB_CLIENT_ID;
 const CEVI_DB_CLIENT_SECRET = environmentVariables.CEVI_DB_CLIENT_SECRET;
 
-interface UserGroup {
-  id: number;
-  name: string;
-  role_name: string;
-  role_class: string;
-  [k: string]: unknown;
-}
+type UserGroup = NonNullable<User['groups']>[number];
 
 /**
  * Maps Hitobito profile roles to user groups structure.
@@ -86,6 +80,7 @@ function hasUserGroupsChanged(
     currentGroups.some(
       (existingG) =>
         existingG.id === newG.group_id &&
+        existingG.name === newG.group_name &&
         existingG.role_name === newG.role_name &&
         existingG.role_class === newG.role_class,
     ),
@@ -273,7 +268,7 @@ const inflightRefreshes = new Map<string, Promise<JWT>>();
 async function refreshAccessToken(token: JWT): Promise<JWT> {
   const userId = token.uuid;
 
-  if (userId === undefined || userId === '') {
+  if (typeof userId !== 'string' || userId === '') {
     return doRefreshAccessToken(token); // skip dedup for tokens without a UUID
   }
 

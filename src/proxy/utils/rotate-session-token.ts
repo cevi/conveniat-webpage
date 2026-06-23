@@ -19,9 +19,19 @@ export async function rotateSessionToken(
   const authResponse = await authMiddleware(request, event);
 
   if (authResponse instanceof Response) {
-    const setCookie = authResponse.headers.get('set-cookie');
-    if (setCookie !== null && setCookie !== '') {
-      response.headers.set('set-cookie', setCookie);
+    const headers = authResponse.headers as Headers & { getSetCookie?: () => string[] };
+    const setCookies = typeof headers.getSetCookie === 'function' ? headers.getSetCookie() : [];
+    if (setCookies.length > 0) {
+      for (const cookie of setCookies) {
+        if (cookie !== '') {
+          response.headers.append('set-cookie', cookie);
+        }
+      }
+    } else {
+      const fallback = headers.get('set-cookie');
+      if (fallback !== null && fallback !== '') {
+        response.headers.set('set-cookie', fallback);
+      }
     }
   }
 }
