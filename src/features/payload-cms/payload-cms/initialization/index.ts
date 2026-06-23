@@ -44,7 +44,8 @@ export const onPayloadInit = async (payload: Payload): Promise<void> => {
       // If the database is already seeded, make sure the lock file is marked as 'done' so other workers skip waiting
       await fs.writeFile(LOCK_FILE, 'done').catch(() => {});
 
-      await withSpan('payload.init.ensureIndexes', async () => {
+      // Run in the background so index generation doesn't block the first request
+      void withSpan('payload.init.ensureIndexes', async () => {
         await ensureIndexes(payload);
       }).catch(console.error);
 
@@ -78,7 +79,8 @@ export const onPayloadInit = async (payload: Payload): Promise<void> => {
         console.log('Seeding complete.');
       }).catch(console.error);
 
-      await withSpan('payload.init.ensureIndexes', async () => {
+      // Run in the background so index generation doesn't block the first request
+      void withSpan('payload.init.ensureIndexes', async () => {
         await ensureIndexes(payload);
       }).catch(console.error);
 
