@@ -1202,7 +1202,7 @@ export interface Form {
    */
   configuredWorkflows?:
     | {
-        workflow: 'registrationWorkflow' | 'brevoContactWorkflow';
+        workflow: 'brevoContactWorkflow';
         condition?: {
           enabled?: boolean | null;
           field?: string | null;

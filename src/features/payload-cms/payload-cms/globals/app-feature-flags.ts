@@ -1,3 +1,4 @@
+import { environmentVariables } from '@/config/environment-variables';
 import {
   isFullAdmin,
   shouldHideInAdminPanelIfNotAdmin,
@@ -206,6 +207,7 @@ export const AppFeatureFlags: GlobalConfig = {
       type: 'checkbox',
       defaultValue: true,
       admin: {
+        condition: () => environmentVariables.FEATURE_ENABLE_REGISTRATION_MANAGEMENT,
         description:
           'Toggles whether the scheduled task checks Hitobito approvals for pending registrations.',
         components: {
