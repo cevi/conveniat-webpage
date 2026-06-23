@@ -18,6 +18,7 @@ import type { Field } from 'payload';
 export const internalPageNameField: Field = {
   name: 'internalPageName',
   type: 'text',
+  index: true,
   label: {
     en: 'Internal Page Name',
     de: 'Interner Seitenname',

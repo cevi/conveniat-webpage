@@ -1,12 +1,14 @@
 import {
   billingExportCsvHandler,
   billingGenerateHandler,
+  billingPopulateSubeventsHandler,
   billingPreviewPdfHandler,
   billingRegenerateAllHandler,
   billingRegenerateSingleHandler,
   billingSendHandler,
   billingSendSingleHandler,
   billingSyncHandler,
+  billingSyncStatusHandler,
 } from '@/features/billing/api/bill-admin-api';
 import type { Endpoint } from 'payload';
 
@@ -15,6 +17,11 @@ export const billingEndpoints: Endpoint[] = [
     path: '/confidential/billing/sync',
     method: 'post',
     handler: billingSyncHandler,
+  },
+  {
+    path: '/confidential/billing/sync-status',
+    method: 'get',
+    handler: billingSyncStatusHandler,
   },
   {
     path: '/confidential/billing/generate',
@@ -50,5 +57,10 @@ export const billingEndpoints: Endpoint[] = [
     path: '/confidential/billing/preview-pdf',
     method: 'get',
     handler: billingPreviewPdfHandler,
+  },
+  {
+    path: '/confidential/billing/populate-subevents',
+    method: 'post',
+    handler: billingPopulateSubeventsHandler,
   },
 ];

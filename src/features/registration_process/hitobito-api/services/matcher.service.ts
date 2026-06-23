@@ -13,6 +13,7 @@ export interface MatchCandidateParameters {
     nickname?: string | undefined;
     birthDate?: string | undefined;
   };
+  details?: PersonAttributes;
 }
 
 export interface MatchCandidateResult {
@@ -59,6 +60,7 @@ export class MatcherService {
   async matchCandidate({
     candidate,
     userData,
+    details,
   }: MatchCandidateParameters): Promise<MatchCandidateResult> {
     this.logger?.info(`Matching candidate ${candidate.id} (${candidate.label})`);
 
@@ -74,7 +76,9 @@ export class MatcherService {
     }
 
     // 2. Details Check
-    let detailsResult = await this.hitobito.people.getDetails({ personId: candidate.id });
+    let detailsResult = details
+      ? { success: true, attributes: details }
+      : await this.hitobito.people.getDetails({ personId: candidate.id });
     let addedToSupportGroup = false;
 
     // 403 Handler (Support Group Workaround)

@@ -1,37 +1,17 @@
+import { HitobitoServiceAdapter } from '@/features/billing/adapters/hitobito-service.adapter';
+import { PayloadParticipantRepositoryAdapter } from '@/features/billing/adapters/payload-participant-repository.adapter';
+import { PayloadSettingsAdapter } from '@/features/billing/adapters/payload-settings.adapter';
+import type { HitobitoServicePort } from '@/features/billing/ports/hitobito-service.port';
+import type { ParticipantRepositoryPort } from '@/features/billing/ports/participant-repository.port';
+import type { SettingsPort } from '@/features/billing/ports/settings.port';
 import type { GenerationSummary } from '@/features/billing/types';
+import { generateQrReference } from '@/features/billing/utils';
 import { HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api';
-import { HitobitoClient } from '@/features/registration_process/hitobito-api/client';
-import { PersonService } from '@/features/registration_process/hitobito-api/services/person.service';
+import type { HitobitoClient } from '@/features/registration_process/hitobito-api/client';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { Payload } from 'payload';
 import type { PDFRow } from 'swissqrbill/pdf';
-
-interface BillSettings {
-  creditorName: string;
-  creditorIban: string;
-  creditorStreet: string;
-  creditorBuildingNumber?: string;
-  creditorZip: string;
-  creditorCity: string;
-  creditorUid?: string;
-  creditorEmail?: string;
-  creditorWebsite?: string;
-  currency: string;
-  nextReferenceNumber: number;
-  invoiceNumberPrefix: string;
-  customReferenceTemplate?: string;
-  eventNumberTemplate?: string;
-  documentTitle?: string;
-  paymentDeadlineDays: number;
-  invoiceLetterText: string;
-  rolePricing: Array<{
-    roleTypePattern: string;
-    label: string;
-    amount: number;
-    vatCode?: string;
-  }>;
-}
 
 interface SyncHistoryEntry {
   date: string;
@@ -44,78 +24,76 @@ interface SyncHistoryEntry {
  */
 function resolvePricing(
   roleType: string,
-  rolePricing: BillSettings['rolePricing'],
+  rolePricing: Array<{
+    roleTypePattern: string;
+    label: string;
+    amount: number;
+    vatCode?: string | null;
+  }>,
 ): { amount: number; label: string; vatCode?: string | undefined } {
   for (const pricing of rolePricing) {
     if (roleType.toLowerCase().includes(pricing.roleTypePattern.toLowerCase())) {
+      const amt = Number(pricing.amount);
       return {
-        amount: Number(pricing.amount) || 0,
+        amount: Number.isNaN(amt) ? 0 : amt,
         label: pricing.label,
-        vatCode: pricing.vatCode,
+        vatCode: pricing.vatCode ?? undefined,
       };
     }
   }
   // Default to the first pricing entry if no match
   const defaultPricing = rolePricing[0];
+  const defaultAmt = Number(defaultPricing?.amount);
   return {
-    amount: Number(defaultPricing?.amount) || 0,
+    amount: Number.isNaN(defaultAmt) ? 0 : defaultAmt,
     label: defaultPricing?.label ?? 'Teilnehmer:in',
-    vatCode: defaultPricing?.vatCode,
+    vatCode: defaultPricing?.vatCode ?? undefined,
   };
 }
 
 /**
- * Generates a QR reference number from the prefix and sequential counter.
+ * Calculates the VAT rate, VAT amount, and total gross amount based on net amount, vat code, and birthday.
  */
-
-export function generateQrReference(
-  personId: string | number,
-  eventId: string | number,
-  participationId: string | number,
-  counter: number,
-): string {
-  // Format: 09 0UUUU UUEEE EEPPP PPPPC CCCCX (27 digits total)
-  // 090       = fixer Präfix (Referenznummer-Bereich für Anmelde-Rechnungen)
-  // UUUUUU    = Personen-ID (max. 6-stellig)
-  // EEEEE     = Event-ID (max. 5-stellig)
-  // PPPPPPP   = Teilnahme-ID (max. 7-stellig)
-  // CCCCC     = Rechnungszähler (5-stellig)
-  // X         = Mod-10 Prüfziffer (Swiss QR standard, always last digit)
-  const personString = String(personId || '')
-    .replaceAll(/\D/g, '')
-    .slice(-6)
-    .padStart(6, '0');
-  const eventString = String(eventId || '')
-    .replaceAll(/\D/g, '')
-    .slice(-5)
-    .padStart(5, '0');
-  const partString = String(participationId || '')
-    .replaceAll(/\D/g, '')
-    .slice(-7)
-    .padStart(7, '0');
-  const counterString = String(counter || 0)
-    .replaceAll(/\D/g, '')
-    .slice(-5)
-    .padStart(5, '0');
-
-  // 090 (3) + u (6) + e (5) + p (7) + c (5) = 26 base digits
-  const baseReference = `090${personString}${eventString}${partString}${counterString}`;
-
-  const checkDigit = calculateModule10Recursive(baseReference);
-
-  return `${baseReference}${String(checkDigit)}`;
-}
-
-/**
- * Mod-10 recursive check digit calculation for QR reference numbers.
- */
-function calculateModule10Recursive(reference: string): number {
-  const table = [0, 9, 4, 6, 8, 2, 7, 1, 3, 5];
-  let carry = 0;
-  for (const char of reference) {
-    carry = table[(carry + Number.parseInt(char, 10)) % 10] ?? 0;
+export function calculateVat(
+  netAmount: number,
+  vatCode: string | null | undefined,
+  birthday: string | null | undefined,
+  invoiceYear: number = new Date().getFullYear(),
+): {
+  isSub18: boolean;
+  vatRate: number;
+  vatAmount: number;
+  totalAmount: number;
+  formattedVatCode: string;
+} {
+  let isSub18 = false;
+  if (typeof birthday === 'string' && birthday !== '') {
+    const birthYearMatch = birthday.match(/\d{4}/);
+    if (birthYearMatch !== null) {
+      const birthYear = Number.parseInt(birthYearMatch[0], 10);
+      isSub18 = invoiceYear < 2027 ? birthYear >= invoiceYear - 17 : birthYear >= invoiceYear - 18;
+    }
   }
-  return (10 - carry) % 10;
+
+  const vatCodeString =
+    vatCode !== null && vatCode !== undefined && vatCode !== '' ? vatCode : '0.0%';
+  const formattedVatCode = vatCodeString.endsWith('%') ? vatCodeString : `${vatCodeString}%`;
+
+  let vatRate = 0;
+  if (isSub18 === false) {
+    vatRate = Number.parseFloat(formattedVatCode.replace('%', '').replace(',', '.'));
+  }
+
+  const vatAmount = isSub18 === false ? (netAmount * vatRate) / 100 : 0;
+  const totalAmount = netAmount + vatAmount;
+
+  return {
+    isSub18,
+    vatRate,
+    vatAmount,
+    totalAmount,
+    formattedVatCode,
+  };
 }
 
 /**
@@ -228,33 +206,270 @@ function parseMarkdownSegments(
 /**
  * Generates QR Bill PDFs for all participants with status 'new' or 're_added'.
  */
-export async function generateBills(
-  payload: Payload,
+/**
+ * Generates bills for participants by orchestrating port operations.
+ */
+/**
+ * Generates bills for participants by orchestrating port operations.
+ */
+export async function generateBillsUseCase(
+  participantRepo: ParticipantRepositoryPort,
+  settingsRepo: SettingsPort,
+  hitobitoService: HitobitoServicePort,
+  logger: {
+    info: (message: string) => void;
+    warn: (message: string) => void;
+    error: (message: string) => void;
+  },
   participantId?: string,
 ): Promise<GenerationSummary> {
   const summary: GenerationSummary = {
     generatedCount: 0,
     skippedCount: 0,
+    skippedAlreadyExistingCount: 0,
     errors: [],
   };
 
   // 1. Load bill settings
-  const rawSettings = await payload.findGlobal({
-    slug: 'bill-settings',
-    context: { internal: true },
-  });
-  const settings = rawSettings as unknown as BillSettings;
+  const settings = await settingsRepo.getBillSettings();
 
-  if (!settings.creditorIban || !settings.creditorName) {
+  if (
+    typeof settings.creditorIban !== 'string' ||
+    settings.creditorIban === '' ||
+    typeof settings.creditorName !== 'string' ||
+    settings.creditorName === ''
+  ) {
     summary.errors.push('Creditor IBAN or name not configured in Bill Settings.');
     return summary;
   }
 
   const rolePricing = settings.rolePricing;
-  if (rolePricing.length === 0) {
+  if (rolePricing === undefined || rolePricing === null || rolePricing.length === 0) {
     summary.errors.push('No role pricing configured in Bill Settings.');
     return summary;
   }
+
+  // 2. Query participants needing bills
+  const participants = await participantRepo.findPendingBilling(participantId);
+
+  if (participants.length === 0) {
+    logger.info('No participants need bill generation.');
+    return summary;
+  }
+
+  // 3. Track current reference number
+  let currentReferenceNumber = settings.nextReferenceNumber ?? 1;
+
+  for (const document_ of participants) {
+    try {
+      if (document_.status !== 'new') {
+        if (document_.status === 'bill_created' || document_.status === 'bill_sent') {
+          summary.skippedAlreadyExistingCount++;
+          continue;
+        }
+        summary.errors.push(
+          `Teilnehmer ${String(document_.id)} (${String(document_.fullName)}) kann nicht verrechnet werden: Status ist nicht "Vollständig erfasst".`,
+        );
+        summary.skippedCount++;
+        continue;
+      }
+
+      const userId = document_.userId;
+      const roleType = document_.roleType as string;
+      const pricing = resolvePricing(roleType, rolePricing);
+      const amount = pricing.amount;
+      const roleLabel = pricing.label;
+      const vatCode = pricing.vatCode ?? undefined;
+
+      if (amount <= 0) {
+        summary.skippedCount++;
+        continue;
+      }
+
+      // Fetch person address from Cevi.DB
+      const personAttributes = await hitobitoService.fetchPersonDetails(userId);
+
+      logger.info(
+        `[Billing] Hitobito person attributes for userId=${userId}: ` +
+          JSON.stringify({
+            success: personAttributes !== null,
+            firstName: personAttributes?.firstName,
+            lastName: personAttributes?.lastName,
+            street: personAttributes?.street,
+            houseNumber: personAttributes?.houseNumber,
+            zip: personAttributes?.zip,
+            town: personAttributes?.town,
+          }),
+      );
+
+      const firstName = personAttributes?.firstName ?? document_.fullName.split(' ')[0] ?? '';
+      const lastName =
+        personAttributes?.lastName ?? document_.fullName.split(' ').slice(1).join(' ');
+
+      // Parse Address to Structured format (SIX requirement)
+      let street = '';
+      let buildingNumber: string | undefined = undefined;
+
+      const hitobitoStreet = personAttributes?.street;
+      const hitobitoHouseNumber = personAttributes?.houseNumber;
+
+      if (typeof hitobitoStreet === 'string' && hitobitoStreet !== '') {
+        // Use native structured fields if available
+        street = hitobitoStreet;
+        buildingNumber = hitobitoHouseNumber ?? undefined;
+      } else {
+        // Fallback to participant document fields or parse
+        const documentStreet = document_.street ?? '';
+        const match = documentStreet.match(/^(.*?)\s*(\d+[a-zA-Z]?.*)?$/);
+        street =
+          typeof match?.[1] === 'string' && match[1] !== '' ? match[1].trim() : documentStreet;
+        buildingNumber =
+          typeof match?.[2] === 'string' && match[2] !== '' ? match[2].trim() : undefined;
+      }
+
+      const zip = personAttributes?.zip ?? document_.zipCode ?? document_.zip;
+      const city = personAttributes?.town ?? document_.town;
+
+      const referenceNumber = generateQrReference(
+        document_.userId,
+        document_.eventId,
+        document_.participationUuid,
+        currentReferenceNumber,
+      );
+      const currentYear = new Date().getFullYear().toString();
+      const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
+      const invoiceNumberPrefix = settings.invoiceNumberPrefix ?? '';
+      const prefix = invoiceNumberPrefix
+        .replaceAll('{{year}}', currentYear)
+        .replaceAll('{{month}}', currentMonth)
+        .replaceAll('{{event-id}}', document_.eventId)
+        .replaceAll('{{group-id}}', document_.groupId ?? '')
+        .replaceAll('{{participation-id}}', document_.participationUuid)
+        .replaceAll('{{people-id}}', document_.userId);
+      const invoiceNumber = `${prefix}-${String(currentReferenceNumber).padStart(4, '0')}`;
+
+      const customReferenceTemplate = settings.customReferenceTemplate;
+      const customReference =
+        typeof customReferenceTemplate === 'string' && customReferenceTemplate !== ''
+          ? customReferenceTemplate
+              .replaceAll('{{year}}', currentYear)
+              .replaceAll('{{month}}', currentMonth)
+              .replaceAll('{{event-id}}', document_.eventId)
+              .replaceAll('{{group-id}}', document_.groupId ?? '')
+              .replaceAll('{{participation-id}}', document_.participationUuid)
+              .replaceAll('{{people-id}}', document_.userId)
+          : undefined;
+
+      const eventNumberTemplate = settings.eventNumberTemplate;
+      const eventNumber =
+        typeof eventNumberTemplate === 'string' && eventNumberTemplate !== ''
+          ? eventNumberTemplate
+              .replaceAll('{{year}}', currentYear)
+              .replaceAll('{{month}}', currentMonth)
+              .replaceAll('{{event-id}}', document_.eventId)
+              .replaceAll('{{group-id}}', document_.groupId ?? '')
+              .replaceAll('{{participation-id}}', document_.participationUuid)
+              .replaceAll('{{people-id}}', document_.userId)
+          : undefined;
+
+      // Generate PDF
+      const documentTitle_ = settings.documentTitle;
+      const documentTitle =
+        typeof documentTitle_ === 'string' && documentTitle_ !== ''
+          ? documentTitle_
+          : 'ANMELDEBESTÄTIGUNG UND RECHNUNG';
+
+      const creditorBuildingNumber = settings.creditorBuildingNumber;
+
+      const { totalAmount } = calculateVat(amount, vatCode, document_.birthday ?? undefined);
+
+      const pdfBuffer = await generateQrBillPdf({
+        documentTitle,
+        creditor: {
+          name: settings.creditorName,
+          street: settings.creditorStreet,
+          ...(typeof creditorBuildingNumber === 'string' && creditorBuildingNumber !== ''
+            ? { buildingNumber: creditorBuildingNumber }
+            : {}),
+          zip: settings.creditorZip ?? '',
+          city: settings.creditorCity ?? '',
+          account: settings.creditorIban,
+          country: 'CH',
+        },
+        debtor: {
+          name: `${firstName} ${lastName}`.trim(),
+          street,
+          ...(buildingNumber !== undefined && buildingNumber !== '' ? { buildingNumber } : {}),
+          zip: zip ?? '',
+          city: city ?? '',
+          country: 'CH',
+        },
+        amount,
+        currency: settings.currency ?? 'CHF',
+        reference: referenceNumber,
+        invoiceNumber,
+        ...(customReference !== undefined && customReference !== '' ? { customReference } : {}),
+        ...(eventNumber !== undefined && eventNumber !== '' ? { eventNumber } : {}),
+        invoiceLetterText: settings.invoiceLetterText ?? '',
+        roleLabel,
+        vatCode,
+        paymentDeadlineDays: settings.paymentDeadlineDays ?? 30,
+        firstName,
+        birthday: document_.birthday ?? undefined,
+      });
+
+      // Upload PDF buffer using the port
+      const pdfFileName = `Rechnung-${invoiceNumber}-${Date.now()}.pdf`;
+      const uploadedPdf = await participantRepo.uploadPdf(pdfFileName, pdfBuffer);
+
+      const history = (document_.syncHistory as SyncHistoryEntry[] | undefined) ?? [];
+      const currentPdfs = (document_.billPdfs as (string | { id: string })[] | undefined) ?? [];
+      const updatedPdfs = [
+        ...currentPdfs.map((p) => (typeof p === 'object' ? p.id : p)),
+        String(uploadedPdf.id),
+      ];
+
+      await participantRepo.update(document_.id, {
+        status: 'bill_created',
+        billCreatedDate: new Date().toISOString(),
+        referenceNumber,
+        invoiceNumber,
+        invoiceAmount: totalAmount,
+        billPdfs: updatedPdfs,
+        syncHistory: [...history, { date: new Date().toISOString(), action: 'bill_generated' }],
+      });
+
+      currentReferenceNumber++;
+      summary.generatedCount++;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      summary.errors.push(
+        `Participant ${String(document_.id)} (${String(document_.fullName)}): ${errorMessage}`,
+      );
+    }
+  }
+
+  // Update the next reference number in settings via the port
+  await settingsRepo.updateNextReferenceNumber(currentReferenceNumber);
+
+  logger.info(
+    `Bill generation complete: ${String(summary.generatedCount)} generated, ${String(summary.skippedCount)} skipped, ${String(summary.skippedAlreadyExistingCount)} skipped (already existing)`,
+  );
+
+  return summary;
+}
+
+/**
+ * Generates QR Bill PDFs for all participants with status 'new' or 're_added'.
+ * Backwards-compatible wrapper.
+ */
+export async function generateBills(
+  payload: Payload,
+  participantId?: string,
+  dependencies?: { hitobitoClient?: HitobitoClient },
+): Promise<GenerationSummary> {
+  const settingsRepo = new PayloadSettingsAdapter(payload);
+  const participantRepo = new PayloadParticipantRepositoryAdapter(payload);
 
   const logger = {
     info: (message: string): void => {
@@ -268,232 +483,27 @@ export async function generateBills(
     },
   };
 
-  const client = new HitobitoClient(
-    {
+  const regManagement = await settingsRepo.getRegistrationManagement();
+  const cookieValue = regManagement.browserCookie;
+  const browserCookie =
+    typeof cookieValue === 'string' && cookieValue.length > 0 ? cookieValue : '';
+
+  const hitobitoService = new HitobitoServiceAdapter(
+    dependencies?.hitobitoClient ?? {
       baseUrl: HITOBITO_CONFIG.baseUrl,
       apiToken: HITOBITO_CONFIG.apiToken,
-      browserCookie: '',
+      browserCookie,
     },
     logger,
   );
-  const personService = new PersonService(client, logger);
 
-  // 2. Query participants needing bills
-  const participants = await payload.find({
-    collection: 'bill-participants',
-    context: { internal: true },
-    where: participantId
-      ? { id: { equals: participantId } }
-      : {
-          or: [
-            { status: { equals: 'new' } },
-            { status: { equals: 're_added' } },
-            { status: { equals: 'updated' } },
-          ],
-        },
-    limit: 10_000,
-  });
-
-  if (participants.docs.length === 0) {
-    payload.logger.info('No participants need bill generation.');
-    return summary;
-  }
-
-  // 3. Track current reference number
-  let currentReferenceNumber = settings.nextReferenceNumber;
-
-  for (const document_ of participants.docs) {
-    try {
-      const userId = document_.userId;
-      const roleType = document_.roleType as string;
-      const pricing = resolvePricing(roleType, rolePricing);
-      const amount = pricing.amount;
-      const roleLabel = pricing.label;
-      const vatCode = pricing.vatCode;
-
-      if (amount <= 0) {
-        summary.skippedCount++;
-        continue;
-      }
-
-      // Fetch person address from Cevi.DB
-      const personResult = await personService.getDetails({ personId: userId });
-      const personAttributes = personResult.success ? personResult.attributes : undefined;
-
-      payload.logger.info(
-        {
-          userId,
-          success: personResult.success,
-          address: personAttributes?.address,
-          street: personAttributes?.street,
-          housenumber: personAttributes?.housenumber,
-          house_number: personAttributes?.house_number,
-          zip: personAttributes?.zip,
-          zip_code: personAttributes?.zip_code,
-          town: personAttributes?.town,
-        },
-        `[Billing] Hitobito person attributes for userId=${userId}`,
-      );
-
-      const firstName = personAttributes?.first_name ?? document_.fullName.split(' ')[0] ?? '';
-      const lastName =
-        personAttributes?.last_name ?? document_.fullName.split(' ').slice(1).join(' ');
-
-      // Parse Address to Structured format (SIX requirement)
-      let street = '';
-      let buildingNumber: string | undefined = undefined;
-
-      const hitobitoAddress = personAttributes?.address ?? '';
-      const hitobitoStreet = personAttributes?.street;
-      const hitobitoHouseNumber = personAttributes?.house_number ?? personAttributes?.housenumber;
-
-      if (hitobitoStreet) {
-        // Use native structured fields if available
-        street = hitobitoStreet;
-        buildingNumber = hitobitoHouseNumber ?? undefined;
-      } else if (hitobitoAddress) {
-        // Fallback: parse combined address string
-        const match = hitobitoAddress.match(/^(.*?)\s*(\d+[a-zA-Z]?.*)?$/);
-        street = match?.[1]?.trim() ?? hitobitoAddress;
-        buildingNumber = match?.[2]?.trim();
-      }
-
-      const zip = personAttributes?.zip ?? personAttributes?.zip_code ?? '';
-      const city = personAttributes?.town ?? '';
-
-      const referenceNumber = generateQrReference(
-        document_.userId || '',
-        document_.eventId,
-        document_.participationUuid,
-        currentReferenceNumber,
-      );
-      const currentYear = new Date().getFullYear().toString();
-      const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
-      const prefix = settings.invoiceNumberPrefix
-        .replaceAll('{{year}}', currentYear)
-        .replaceAll('{{month}}', currentMonth)
-        .replaceAll('{{event-id}}', document_.eventId)
-        .replaceAll('{{group-id}}', document_.groupId || '')
-        .replaceAll('{{participation-id}}', document_.participationUuid)
-        .replaceAll('{{people-id}}', String(document_.userId || ''));
-      const invoiceNumber = `${prefix}-${String(currentReferenceNumber).padStart(4, '0')}`;
-
-      const customReference = settings.customReferenceTemplate
-        ? settings.customReferenceTemplate
-            .replaceAll('{{year}}', currentYear)
-            .replaceAll('{{month}}', currentMonth)
-            .replaceAll('{{event-id}}', document_.eventId)
-            .replaceAll('{{group-id}}', document_.groupId || '')
-            .replaceAll('{{participation-id}}', document_.participationUuid)
-            .replaceAll('{{people-id}}', String(document_.userId || ''))
-        : undefined;
-
-      const eventNumber = settings.eventNumberTemplate
-        ? settings.eventNumberTemplate
-            .replaceAll('{{year}}', currentYear)
-            .replaceAll('{{month}}', currentMonth)
-            .replaceAll('{{event-id}}', document_.eventId)
-            .replaceAll('{{group-id}}', document_.groupId || '')
-            .replaceAll('{{participation-id}}', document_.participationUuid)
-            .replaceAll('{{people-id}}', String(document_.userId || ''))
-        : undefined;
-
-      // Generate PDF
-      const documentTitle = settings.documentTitle || 'ANMELDEBESTÄTIGUNG UND RECHNUNG';
-
-      const pdfBuffer = await generateQrBillPdf({
-        documentTitle,
-        creditor: {
-          name: settings.creditorName,
-          street: settings.creditorStreet,
-          ...(settings.creditorBuildingNumber
-            ? { buildingNumber: settings.creditorBuildingNumber }
-            : {}),
-          zip: settings.creditorZip,
-          city: settings.creditorCity,
-          account: settings.creditorIban,
-          country: 'CH',
-        },
-        debtor: {
-          name: `${firstName} ${lastName}`.trim(),
-          street,
-          ...(buildingNumber ? { buildingNumber } : {}),
-          zip,
-          city,
-          country: 'CH',
-        },
-        amount,
-        currency: settings.currency,
-        reference: referenceNumber,
-        invoiceNumber,
-        ...(customReference ? { customReference } : {}),
-        ...(eventNumber ? { eventNumber } : {}),
-        invoiceLetterText: settings.invoiceLetterText,
-        roleLabel,
-        vatCode,
-        paymentDeadlineDays: settings.paymentDeadlineDays,
-        firstName,
-      });
-
-      // Upload PDF buffer to MinIO
-      const pdfFileName = `Rechnung-${invoiceNumber}-${Date.now()}.pdf`;
-      const uploadedPdf = await payload.create({
-        collection: 'bill-pdfs',
-        data: {},
-        file: {
-          data: pdfBuffer,
-          name: pdfFileName,
-          mimetype: 'application/pdf',
-          size: pdfBuffer.length,
-        },
-        context: { internal: true },
-      });
-
-      const history = (document_.syncHistory as SyncHistoryEntry[] | undefined) ?? [];
-      const currentPdfs = (document_.billPdfs as (string | { id: string })[] | undefined) ?? [];
-      const updatedPdfs = [
-        ...currentPdfs.map((p) => (typeof p === 'object' ? p.id : p)),
-        String(uploadedPdf.id),
-      ];
-
-      await payload.update({
-        collection: 'bill-participants',
-        context: { internal: true },
-        id: document_.id,
-        data: {
-          status: 'bill_created',
-          billCreatedDate: new Date().toISOString(),
-          referenceNumber,
-          invoiceNumber,
-          invoiceAmount: amount,
-          billPdfs: updatedPdfs,
-          syncHistory: [...history, { date: new Date().toISOString(), action: 'bill_generated' }],
-        },
-      });
-
-      currentReferenceNumber++;
-      summary.generatedCount++;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      summary.errors.push(
-        `Participant ${String(document_.id)} (${String(document_.fullName)}): ${errorMessage}`,
-      );
-    }
-  }
-
-  // Update the next reference number in settings
-  await payload.updateGlobal({
-    slug: 'bill-settings',
-    data: {
-      nextReferenceNumber: currentReferenceNumber,
-    },
-  });
-
-  payload.logger.info(
-    `Bill generation complete: ${String(summary.generatedCount)} generated, ${String(summary.skippedCount)} skipped`,
+  return generateBillsUseCase(
+    participantRepo,
+    settingsRepo,
+    hitobitoService,
+    logger,
+    participantId,
   );
-
-  return summary;
 }
 
 // ─── PDF Generation ──────────────────────────────────────────────────────────
@@ -531,6 +541,7 @@ interface PdfGenerationParameters {
   vatCode?: string | undefined;
   paymentDeadlineDays: number;
   firstName: string;
+  birthday?: string | undefined;
 }
 
 /**
@@ -719,13 +730,17 @@ export async function generateQrBillPdf(parameters: PdfGenerationParameters): Pr
 
     // Invoice table
     const amountNumber = Number(parameters.amount) || 0;
-    const vatRate = parameters.vatCode
-      ? Number.parseFloat(parameters.vatCode.replace('%', '').replace(',', '.'))
-      : 0;
-    const isVatApplied = !Number.isNaN(vatRate) && vatRate > 0;
 
-    const vatAmount = isVatApplied ? (amountNumber * vatRate) / (100 + vatRate) : 0;
-    const subtotal = amountNumber - vatAmount;
+    const { isSub18, vatAmount, totalAmount, formattedVatCode } = calculateVat(
+      amountNumber,
+      parameters.vatCode,
+      parameters.birthday,
+    );
+    const subtotal = amountNumber;
+
+    const vatLabel = isSub18
+      ? 'MWST 0.0% (steuerbefreite Leistung an Jugendliche)'
+      : `MWST ${formattedVatCode}`;
 
     // Build the rows array dynamically
     const tableRows: PDFRow[] = [
@@ -765,87 +780,81 @@ export async function generateQrBillPdf(parameters: PdfGenerationParameters): Pr
           },
         ],
       },
+      {
+        borderColor: '#ECF0F1',
+        borderWidth: [1, 0, 0, 0],
+        columns: [
+          {
+            text: 'Zwischensumme',
+            fontSize: 9,
+            width: mm2pt(135),
+            align: 'right',
+          },
+          {
+            text: `CHF ${amountNumber.toFixed(2)}`,
+            width: mm2pt(30),
+            fontSize: 9,
+            align: 'right',
+          },
+        ],
+      },
+      {
+        borderColor: '#ECF0F1',
+        borderWidth: [0, 0, 0, 0],
+        columns: [
+          {
+            text: 'Betrag netto',
+            fontSize: 9,
+            width: mm2pt(135),
+            align: 'right',
+          },
+          {
+            text: `CHF ${subtotal.toFixed(2)}`,
+            width: mm2pt(30),
+            fontSize: 9,
+            align: 'right',
+          },
+        ],
+      },
+      {
+        borderColor: '#ECF0F1',
+        borderWidth: [0, 0, 0, 0],
+        columns: [
+          {
+            text: vatLabel,
+            fontSize: 9,
+            width: mm2pt(135),
+            align: 'right',
+          },
+          {
+            text: `CHF ${vatAmount.toFixed(2)}`,
+            width: mm2pt(30),
+            fontSize: 9,
+            align: 'right',
+          },
+        ],
+      },
+      {
+        borderColor: '#ECF0F1',
+        borderWidth: [1, 0, 1, 0],
+        columns: [
+          {
+            text: 'Gesamtbetrag',
+            fontName: 'Helvetica-Bold',
+            fontSize: 9,
+            width: mm2pt(135),
+            align: 'right',
+          },
+          {
+            text: `CHF ${totalAmount.toFixed(2)}`,
+            fontName: 'Helvetica-Bold',
+            width: mm2pt(30),
+            fontSize: 9,
+            align: 'right',
+          },
+        ],
+      },
     ];
-
-    if (isVatApplied) {
-      tableRows.push(
-        {
-          borderColor: '#ECF0F1',
-          borderWidth: [1, 0, 0, 0],
-          columns: [
-            {
-              text: 'Zwischensumme',
-              fontSize: 9,
-              width: mm2pt(135),
-              align: 'right',
-            },
-            {
-              text: `CHF ${amountNumber.toFixed(2)}`,
-              width: mm2pt(30),
-              fontSize: 9,
-              align: 'right',
-            },
-          ],
-        },
-        {
-          borderColor: '#ECF0F1',
-          borderWidth: [0, 0, 0, 0],
-          columns: [
-            {
-              text: 'Betrag netto',
-              fontSize: 9,
-              width: mm2pt(135),
-              align: 'right',
-            },
-            {
-              text: `CHF ${subtotal.toFixed(2)}`,
-              width: mm2pt(30),
-              fontSize: 9,
-              align: 'right',
-            },
-          ],
-        },
-        {
-          borderColor: '#ECF0F1',
-          borderWidth: [0, 0, 0, 0],
-          columns: [
-            {
-              text: `MWST ${parameters.vatCode}%`,
-              fontSize: 9,
-              width: mm2pt(135),
-              align: 'right',
-            },
-            {
-              text: `CHF ${vatAmount.toFixed(2)}`,
-              width: mm2pt(30),
-              fontSize: 9,
-              align: 'right',
-            },
-          ],
-        },
-      );
-    }
-
-    tableRows.push({
-      borderColor: '#ECF0F1',
-      borderWidth: [1, 0, 1, 0],
-      columns: [
-        {
-          text: 'Gesamtbetrag',
-          fontName: 'Helvetica-Bold',
-          fontSize: 9,
-          width: mm2pt(135),
-          align: 'right',
-        },
-        {
-          text: `CHF ${amountNumber.toFixed(2)}`,
-          fontName: 'Helvetica-Bold',
-          width: mm2pt(30),
-          fontSize: 9,
-          align: 'right',
-        },
-      ],
-    });
 
     const tableData = {
       width: mm2pt(165),
@@ -865,12 +874,16 @@ export async function generateQrBillPdf(parameters: PdfGenerationParameters): Pr
         .trim()
         .replace(/ \|$/, ''),
     );
-    if (parameters.creditor.zip && parameters.creditor.city)
+    if (parameters.creditor.zip !== '' && parameters.creditor.city !== '')
       footerLines.push(`${parameters.creditor.zip} ${parameters.creditor.city}`);
-    if (parameters.creditor.account) footerLines.push(`IBAN: ${parameters.creditor.account}`);
-    if (parameters.creditor.uid) footerLines.push(`MWST-Nr.: ${parameters.creditor.uid}`);
-    if (parameters.creditor.email) footerLines.push(`E-Mail: ${parameters.creditor.email}`);
-    if (parameters.creditor.website) footerLines.push(`Web: ${parameters.creditor.website}`);
+    if (parameters.creditor.account !== '')
+      footerLines.push(`IBAN: ${parameters.creditor.account}`);
+    if (parameters.creditor.uid !== undefined && parameters.creditor.uid !== '')
+      footerLines.push(`MWST-Nr.: ${parameters.creditor.uid}`);
+    if (parameters.creditor.email !== undefined && parameters.creditor.email !== '')
+      footerLines.push(`E-Mail: ${parameters.creditor.email}`);
+    if (parameters.creditor.website !== undefined && parameters.creditor.website !== '')
+      footerLines.push(`Web: ${parameters.creditor.website}`);
 
     if (footerLines.length > 0) {
       document_.fontSize(8);
@@ -889,15 +902,16 @@ export async function generateQrBillPdf(parameters: PdfGenerationParameters): Pr
     // Include the generated QR reference (required for QR-IBANs)
     const qrBillData = {
       currency: parameters.currency as 'CHF' | 'EUR',
-      amount: parameters.amount,
+      amount: totalAmount,
       reference: parameters.reference,
       creditor: {
         name: parameters.creditor.name,
         address: parameters.creditor.street,
-        ...(parameters.creditor.buildingNumber
+        ...(parameters.creditor.buildingNumber !== undefined &&
+        parameters.creditor.buildingNumber !== ''
           ? { buildingNumber: parameters.creditor.buildingNumber }
           : {}),
-        zip: parameters.creditor.zip || '',
+        zip: parameters.creditor.zip,
         city: parameters.creditor.city,
         account: parameters.creditor.account,
         country: parameters.creditor.country,
@@ -905,14 +919,15 @@ export async function generateQrBillPdf(parameters: PdfGenerationParameters): Pr
       debtor: {
         name: parameters.debtor.name,
         address: parameters.debtor.street,
-        ...(parameters.debtor.buildingNumber
+        ...(parameters.debtor.buildingNumber !== undefined &&
+        parameters.debtor.buildingNumber !== ''
           ? { buildingNumber: parameters.debtor.buildingNumber }
           : {}),
-        zip: parameters.debtor.zip || '',
+        zip: parameters.debtor.zip,
         city: parameters.debtor.city,
         country: parameters.debtor.country,
       },
-      ...(parameters.customReference
+      ...(parameters.customReference !== undefined && parameters.customReference !== ''
         ? { additionalInformation: `REF: ${parameters.customReference}` }
         : {}),
     };

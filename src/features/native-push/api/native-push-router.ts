@@ -14,20 +14,36 @@ export const nativePushRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      console.log('[NativePush:API] registerDevice: platform =', input.platform);
+
       const payload = await getPayload({ config });
       const payloadUser = await getPayloadUserFromNextAuthUser(payload, ctx.user);
 
       if (!payloadUser) {
+        console.warn('[NativePush:API] registerDevice: user not found');
         throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found' });
       }
 
+      console.log(
+        '[NativePush:API] registerDevice: user =',
+        payloadUser.id,
+        '| deduplicating existing token',
+      );
+
       // Delete any existing subscriptions with the same token globally to ensure uniqueness
-      await payload.delete({
+      const deleted = await payload.delete({
         collection: 'push-notification-subscriptions',
         where: {
           token: { equals: input.token },
         },
       });
+      if (deleted.docs.length > 0) {
+        console.log(
+          '[NativePush:API] registerDevice: removed',
+          deleted.docs.length,
+          'existing record(s) for this token',
+        );
+      }
 
       try {
         await payload.create({
@@ -38,12 +54,16 @@ export const nativePushRouter = createTRPCRouter({
             user: payloadUser.id,
           },
         });
+        console.log(
+          '[NativePush:API] registerDevice: success — token registered for user',
+          payloadUser.id,
+        );
       } catch (error: unknown) {
         // Under concurrent requests, the delete+create pattern is non-atomic.
         // If a duplicate key error occurs, we assume the token is already registered.
         const message = error instanceof Error ? error.message : String(error);
         console.warn(
-          'Failed to create push notification subscription (possibly concurrent duplicate):',
+          '[NativePush:API] registerDevice: create failed (possibly concurrent duplicate):',
           message,
         );
       }
@@ -59,14 +79,17 @@ export const nativePushRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      console.log('[NativePush:API] unregisterDevice: platform =', input.platform);
+
       const payload = await getPayload({ config });
       const payloadUser = await getPayloadUserFromNextAuthUser(payload, ctx.user);
 
       if (!payloadUser) {
+        console.warn('[NativePush:API] unregisterDevice: user not found');
         throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found' });
       }
 
-      await payload.delete({
+      const deleted = await payload.delete({
         collection: 'push-notification-subscriptions',
         where: {
           and: [
@@ -77,6 +100,12 @@ export const nativePushRouter = createTRPCRouter({
         },
       });
 
+      console.log(
+        '[NativePush:API] unregisterDevice: removed',
+        deleted.docs.length,
+        'record(s) for user',
+        payloadUser.id,
+      );
       return { success: true };
     }),
 });

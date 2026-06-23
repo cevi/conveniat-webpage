@@ -9,6 +9,7 @@ import type {
   PersonResource,
   SearchCandidate,
 } from '@/features/registration_process/hitobito-api/types';
+import { z } from 'zod';
 
 export interface GetPersonDetailsParameters {
   personId: string;
@@ -134,5 +135,60 @@ export class PersonService {
       throw new Error(`lookupByEmail failed to validate response schema: ${result.error.message}`);
     }
     return undefined;
+  }
+
+  async searchByNames({
+    firstName,
+    lastName,
+  }: {
+    firstName: string;
+    lastName: string;
+  }): Promise<PersonResource[]> {
+    const response = await this.client.apiRequest<{ data: PersonResource[] }>(
+      'GET',
+      '/api/people',
+      {
+        params: {
+          'filter[first_name]': firstName,
+          'filter[last_name]': lastName,
+        },
+      },
+    );
+
+    const parsed = z.array(PersonResourceSchema).safeParse(response.data);
+    if (!parsed.success) {
+      this.logger?.warn('searchByNames failed to validate response schema', parsed.error);
+      return [];
+    }
+    return parsed.data;
+  }
+
+  async searchByNicknameAndLastName({
+    nickname,
+    lastName,
+  }: {
+    nickname: string;
+    lastName: string;
+  }): Promise<PersonResource[]> {
+    const response = await this.client.apiRequest<{ data: PersonResource[] }>(
+      'GET',
+      '/api/people',
+      {
+        params: {
+          'filter[nickname]': nickname,
+          'filter[last_name]': lastName,
+        },
+      },
+    );
+
+    const parsed = z.array(PersonResourceSchema).safeParse(response.data);
+    if (!parsed.success) {
+      this.logger?.warn(
+        'searchByNicknameAndLastName failed to validate response schema',
+        parsed.error,
+      );
+      return [];
+    }
+    return parsed.data;
   }
 }

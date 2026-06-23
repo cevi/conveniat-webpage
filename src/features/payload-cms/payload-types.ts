@@ -155,6 +155,7 @@ export interface Config {
     PWA: PWA;
     alert_settings: AlertSetting;
     'app-feature-flags': AppFeatureFlag;
+    'app-landing-page': AppLandingPage;
     'support-chat-management': SupportChatManagement;
     'alert-management': AlertManagement;
     'all-chats-management': AllChatsManagement;
@@ -169,6 +170,7 @@ export interface Config {
     PWA: PWASelect<false> | PWASelect<true>;
     alert_settings: AlertSettingsSelect<false> | AlertSettingsSelect<true>;
     'app-feature-flags': AppFeatureFlagsSelect<false> | AppFeatureFlagsSelect<true>;
+    'app-landing-page': AppLandingPageSelect<false> | AppLandingPageSelect<true>;
     'support-chat-management': SupportChatManagementSelect<false> | SupportChatManagementSelect<true>;
     'alert-management': AlertManagementSelect<false> | AlertManagementSelect<true>;
     'all-chats-management': AllChatsManagementSelect<false> | AllChatsManagementSelect<true>;
@@ -199,6 +201,9 @@ export interface Config {
       publishScheduledAnnouncements: TaskPublishScheduledAnnouncements;
       syncActivePiketMembers: TaskSyncActivePiketMembers;
       syncNewUserAnnouncementChats: TaskSyncNewUserAnnouncementChats;
+      syncParticipants: TaskSyncParticipants;
+      generateBills: TaskGenerateBills;
+      sendBills: TaskSendBills;
       createCollectionExport: TaskCreateCollectionExport;
       createCollectionImport: TaskCreateCollectionImport;
       inline: {
@@ -3561,6 +3566,7 @@ export interface BillParticipant {
   userId: string;
   eventId: string;
   groupId?: string | null;
+  eventName?: string | null;
   firstName?: string | null;
   lastName?: string | null;
   nickname?: string | null;
@@ -3569,6 +3575,14 @@ export interface BillParticipant {
    * Hitobito event role type (e.g. Event::Camp::Role::Participant)
    */
   roleType?: string | null;
+  street?: string | null;
+  zip?: string | null;
+  zipCode?: string | null;
+  town?: string | null;
+  email?: string | null;
+  birthday?: string | null;
+  gender?: string | null;
+  active?: boolean | null;
   enrollmentDate?: string | null;
   firstSyncDate?: string | null;
   lastSyncDate?: string | null;
@@ -3580,7 +3594,34 @@ export interface BillParticipant {
   invoiceNumber?: string | null;
   invoiceAmount?: number | null;
   billPdfs?: (string | BillPdf)[] | null;
-  status: 'new' | 'bill_created' | 'bill_sent' | 'removed' | 're_added' | 'updated' | 'reminder_sent';
+  status:
+    | 'new'
+    | 'pflichtangaben_missing'
+    | 'invalid_anmeldeangaben'
+    | 'bill_created'
+    | 'bill_sent'
+    | 'removed'
+    | 're_added'
+    | 'updated'
+    | 'reminder_sent';
+  missingStammdaten?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  missingAnmeldeangaben?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   /**
    * Array of { date, action } entries for audit trail.
    */
@@ -3844,6 +3885,9 @@ export interface PayloadJob {
           | 'publishScheduledAnnouncements'
           | 'syncActivePiketMembers'
           | 'syncNewUserAnnouncementChats'
+          | 'syncParticipants'
+          | 'generateBills'
+          | 'sendBills'
           | 'createCollectionExport'
           | 'createCollectionImport';
         taskID: string;
@@ -3895,6 +3939,9 @@ export interface PayloadJob {
         | 'publishScheduledAnnouncements'
         | 'syncActivePiketMembers'
         | 'syncNewUserAnnouncementChats'
+        | 'syncParticipants'
+        | 'generateBills'
+        | 'sendBills'
         | 'createCollectionExport'
         | 'createCollectionImport'
       )
@@ -5631,11 +5678,20 @@ export interface BillParticipantsSelect<T extends boolean = true> {
   userId?: T;
   eventId?: T;
   groupId?: T;
+  eventName?: T;
   firstName?: T;
   lastName?: T;
   nickname?: T;
   fullName?: T;
   roleType?: T;
+  street?: T;
+  zip?: T;
+  zipCode?: T;
+  town?: T;
+  email?: T;
+  birthday?: T;
+  gender?: T;
+  active?: T;
   enrollmentDate?: T;
   firstSyncDate?: T;
   lastSyncDate?: T;
@@ -5648,6 +5704,8 @@ export interface BillParticipantsSelect<T extends boolean = true> {
   invoiceAmount?: T;
   billPdfs?: T;
   status?: T;
+  missingStammdaten?: T;
+  missingAnmeldeangaben?: T;
   syncHistory?: T;
   relatedEmails?: T;
   updatedAt?: T;
@@ -6569,6 +6627,205 @@ export interface AppFeatureFlag {
   createdAt?: string | null;
 }
 /**
+ * Configure the app dashboard landing page: title, welcome content, and action card visibility.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "app-landing-page".
+ */
+export interface AppLandingPage {
+  id: string;
+  /**
+   * The title displayed in the app header bar on the dashboard (e.g. "Konekta App").
+   */
+  title: string;
+  /**
+   * Optional content blocks displayed below the title on the app dashboard.
+   */
+  pageContent?:
+    | (
+        | {
+            richTextSection: {
+              root: {
+                type: string;
+                children: {
+                  type: any;
+                  version: number;
+                  [k: string]: unknown;
+                }[];
+                direction: ('ltr' | 'rtl') | null;
+                format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                indent: number;
+                version: number;
+              };
+              [k: string]: unknown;
+            };
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'richTextSection';
+          }
+        | {
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'blogPostsOverview';
+          }
+        | FormBlock
+        | {
+            images: (string | Image)[];
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'photoCarousel';
+          }
+        | {
+            image: string | Image;
+            /**
+             * Choose the aspect ratio of the image.
+             */
+            aspectRatio: 'video' | '3/2' | '2/1' | '4/3' | '1/1' | '21/9' | 'auto';
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'singlePicture';
+          }
+        | YoutubeEmbedding
+        | InstagramEmbedding
+        | SwisstopoMapEmbedding
+        | {
+            file: string | Document;
+            openInNewTab?: boolean | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'fileDownload';
+          }
+        | DetailsTable
+        | AccordionBlocks
+        | SummaryBox
+        | TimelineEntries
+        | Countdown
+        | {
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'whiteSpace';
+          }
+        | {
+            /**
+             * Label for the button
+             */
+            label?: string | null;
+            linkField?: {
+              type?: ('reference' | 'custom' | 'email') | null;
+              reference?:
+                | ({
+                    relationTo: 'blog';
+                    value: string | Blog;
+                  } | null)
+                | ({
+                    relationTo: 'generic-page';
+                    value: string | GenericPage;
+                  } | null)
+                | ({
+                    relationTo: 'images';
+                    value: string | Image;
+                  } | null)
+                | ({
+                    relationTo: 'documents';
+                    value: string | Document;
+                  } | null)
+                | ({
+                    relationTo: 'camp-map-annotations';
+                    value: string | CampMapAnnotation;
+                  } | null)
+                | ({
+                    relationTo: 'camp-schedule-entry';
+                    value: string | CampScheduleEntry;
+                  } | null);
+              url?: string | null;
+              email?: string | null;
+              openInNewTab?: boolean | null;
+            };
+            /**
+             * Show inverted colors
+             */
+            inverted?: boolean | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'callToAction';
+          }
+        | {
+            linkField?: {
+              type?: ('reference' | 'custom' | 'email') | null;
+              reference?:
+                | ({
+                    relationTo: 'blog';
+                    value: string | Blog;
+                  } | null)
+                | ({
+                    relationTo: 'generic-page';
+                    value: string | GenericPage;
+                  } | null)
+                | ({
+                    relationTo: 'images';
+                    value: string | Image;
+                  } | null)
+                | ({
+                    relationTo: 'documents';
+                    value: string | Document;
+                  } | null)
+                | ({
+                    relationTo: 'camp-map-annotations';
+                    value: string | CampMapAnnotation;
+                  } | null)
+                | ({
+                    relationTo: 'camp-schedule-entry';
+                    value: string | CampScheduleEntry;
+                  } | null);
+              url?: string | null;
+              email?: string | null;
+              openInNewTab?: boolean | null;
+            };
+            headline: string;
+            date: string;
+            image?: (string | null) | Image;
+            paragraph?: {
+              root: {
+                type: string;
+                children: {
+                  type: any;
+                  version: number;
+                  [k: string]: unknown;
+                }[];
+                direction: ('ltr' | 'rtl') | null;
+                format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                indent: number;
+                version: number;
+              };
+              [k: string]: unknown;
+            } | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'newsCard';
+          }
+        | {
+            date: string;
+            location?: (string | null) | CampMapAnnotation;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'campScheduleEntryBlock';
+          }
+        | CardGridBlock
+        | ContactPersonBlock
+        | TwoColumnBlock
+        | SponsorGridBlock
+        | FeaturedSectionBlock
+        | TabsBlock
+      )[]
+    | null;
+  /**
+   * When enabled, the action cards (quick links to app features) are shown on the dashboard.
+   */
+  showActionCards?: boolean | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "support-chat-management".
  */
@@ -6640,13 +6897,16 @@ export interface BillSetting {
    */
   events?:
     | {
+        /**
+         * Hitobito event ID to sync (up to 6 digits)
+         */
         eventId: string;
         /**
          * Display name, e.g. "Hof Süd"
          */
         eventName: string;
         /**
-         * Hitobito group ID this event belongs to (max 999)
+         * Hitobito group ID this event belongs to (up to 6 digits)
          */
         groupId: string;
         id?: string | null;
@@ -6894,6 +7154,122 @@ export interface AppFeatureFlagsSelect<T extends boolean = true> {
   reservationsEnabled?: T;
   forumEnabled?: T;
   checkHitobitoApprovalsEnabled?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "app-landing-page_select".
+ */
+export interface AppLandingPageSelect<T extends boolean = true> {
+  title?: T;
+  pageContent?:
+    | T
+    | {
+        richTextSection?:
+          | T
+          | {
+              richTextSection?: T;
+              id?: T;
+              blockName?: T;
+            };
+        blogPostsOverview?:
+          | T
+          | {
+              id?: T;
+              blockName?: T;
+            };
+        formBlock?: T | FormBlockSelect<T>;
+        photoCarousel?:
+          | T
+          | {
+              images?: T;
+              id?: T;
+              blockName?: T;
+            };
+        singlePicture?:
+          | T
+          | {
+              image?: T;
+              aspectRatio?: T;
+              id?: T;
+              blockName?: T;
+            };
+        youtubeEmbed?: T | YoutubeEmbeddingSelect<T>;
+        instagramEmbed?: T | InstagramEmbeddingSelect<T>;
+        swisstopoEmbed?: T | SwisstopoMapEmbeddingSelect<T>;
+        fileDownload?:
+          | T
+          | {
+              file?: T;
+              openInNewTab?: T;
+              id?: T;
+              blockName?: T;
+            };
+        detailsTable?: T | DetailsTableSelect<T>;
+        accordion?: T | AccordionBlocksSelect<T>;
+        summaryBox?: T | SummaryBoxSelect<T>;
+        timelineEntries?: T | TimelineEntriesSelect<T>;
+        countdown?: T | CountdownSelect<T>;
+        whiteSpace?:
+          | T
+          | {
+              id?: T;
+              blockName?: T;
+            };
+        callToAction?:
+          | T
+          | {
+              label?: T;
+              linkField?:
+                | T
+                | {
+                    type?: T;
+                    reference?: T;
+                    url?: T;
+                    email?: T;
+                    openInNewTab?: T;
+                  };
+              inverted?: T;
+              id?: T;
+              blockName?: T;
+            };
+        newsCard?:
+          | T
+          | {
+              linkField?:
+                | T
+                | {
+                    type?: T;
+                    reference?: T;
+                    url?: T;
+                    email?: T;
+                    openInNewTab?: T;
+                  };
+              headline?: T;
+              date?: T;
+              image?: T;
+              paragraph?: T;
+              id?: T;
+              blockName?: T;
+            };
+        campScheduleEntryBlock?:
+          | T
+          | {
+              date?: T;
+              location?: T;
+              id?: T;
+              blockName?: T;
+            };
+        cardGrid?: T | CardGridBlockSelect<T>;
+        contactPerson?: T | ContactPersonBlockSelect<T>;
+        twoColumnBlock?: T | TwoColumnBlockSelect<T>;
+        sponsorGrid?: T | SponsorGridBlockSelect<T>;
+        featuredSection?: T | FeaturedSectionBlockSelect<T>;
+        tabsBlock?: T | TabsBlockSelect<T>;
+      };
+  showActionCards?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
@@ -7239,6 +7615,30 @@ export interface TaskSyncNewUserAnnouncementChats {
   output: {
     success?: boolean | null;
   };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskSyncParticipants".
+ */
+export interface TaskSyncParticipants {
+  input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskGenerateBills".
+ */
+export interface TaskGenerateBills {
+  input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskSendBills".
+ */
+export interface TaskSendBills {
+  input?: unknown;
+  output?: unknown;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

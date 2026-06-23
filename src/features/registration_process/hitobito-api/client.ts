@@ -4,6 +4,7 @@ import {
   extractFormFields,
 } from '@/features/registration_process/hitobito-api/html-parser';
 import type { Logger, RequestOptions } from '@/features/registration_process/hitobito-api/types';
+import { withSpan } from '@/utils/tracing-helpers';
 
 export class FatalError extends Error {
   constructor(message: string) {
@@ -64,48 +65,62 @@ export class HitobitoClient {
       signal?: AbortSignal;
     } = {},
   ): Promise<T> {
-    const url = this.buildUrl(this.config.baseUrl, path, options.params);
-    this.logger?.info(`${method} ${url}`);
+    return withSpan(`HitobitoClient.apiRequest:${method} ${path}`, async (span) => {
+      const url = this.buildUrl(this.config.baseUrl, path, options.params);
 
-    const response = await this.fetchWithTimeout(url, {
-      method,
-      headers: {
-        'X-TOKEN': this.config.apiToken,
-        'Content-Type': 'application/vnd.api+json',
-        Accept: 'application/vnd.api+json',
-      },
-      body:
-        options.body !== undefined && options.body !== null
-          ? (JSON.stringify(options.body) as BodyInit)
-          : undefined,
-      signal: options.signal,
-    } as RequestInit);
+      span.setAttributes({
+        'http.method': method,
+        'http.route': path,
+        'http.url': url,
+      });
 
-    if (!response.ok) {
-      // Treat 404 on DELETE as success (idempotency)
-      if (method === 'DELETE' && response.status === 404) {
-        this.logger?.warn(`DELETE ${url} returned 404 (Not Found). Treating as success.`);
+      this.logger?.info(`${method} ${url}`);
+
+      const response = await this.fetchWithTimeout(url, {
+        method,
+        headers: {
+          'X-TOKEN': this.config.apiToken,
+          'Content-Type': 'application/vnd.api+json',
+          Accept: 'application/vnd.api+json',
+        },
+        body:
+          options.body !== undefined && options.body !== null
+            ? (JSON.stringify(options.body) as BodyInit)
+            : undefined,
+        signal: options.signal,
+      } as RequestInit);
+
+      span.setAttribute('http.status_code', response.status);
+
+      if (!response.ok) {
+        // Treat 404 on DELETE as success (idempotency)
+        if (method === 'DELETE' && response.status === 404) {
+          this.logger?.warn(`DELETE ${url} returned 404 (Not Found). Treating as success.`);
+          return {} as T;
+        }
+
+        const text = await response.text();
+        const error = new Error(
+          `API ${method} failed: ${response.status} ${response.statusText} - ${text} at ${url}`,
+        );
+        span.recordException(error);
+        throw error;
+      }
+
+      if (method === 'DELETE' || response.status === 204) {
         return {} as T;
       }
 
       const text = await response.text();
-      throw new Error(
-        `API ${method} failed: ${response.status} ${response.statusText} - ${text} at ${url}`,
-      );
-    }
+      if (text.length === 0) return {} as T;
 
-    if (method === 'DELETE' || response.status === 204) {
-      return {} as T;
-    }
-
-    const text = await response.text();
-    if (text.length === 0) return {} as T;
-
-    try {
-      return JSON.parse(text) as T;
-    } catch {
-      return {} as T;
-    }
+      try {
+        return JSON.parse(text) as T;
+      } catch (error) {
+        span.recordException(error as Error);
+        return {} as T;
+      }
+    });
   }
 
   // Frontend / Browser based Methods (Scraping & Internal JSON)
@@ -114,34 +129,43 @@ export class HitobitoClient {
     urlOrPath: string,
     options: RequestOptions = {},
   ): Promise<{ response: Response; body: string }> {
-    const url = urlOrPath.startsWith('http')
-      ? urlOrPath
-      : this.buildUrl(this.config.baseUrl, urlOrPath, options.params);
+    return withSpan(`HitobitoClient.frontendRequest:${method} ${urlOrPath}`, async (span) => {
+      const url = urlOrPath.startsWith('http')
+        ? urlOrPath
+        : this.buildUrl(this.config.baseUrl, urlOrPath, options.params);
 
-    const headers = new Headers(options.headers);
+      span.setAttributes({
+        'http.method': method,
+        'http.url': url,
+      });
 
-    if (this.config.browserCookie.length > 0) {
-      headers.set('Cookie', this.config.browserCookie);
-    }
+      const headers = new Headers(options.headers);
 
-    if (method === 'POST' && !headers.has('Content-Type')) {
-      headers.set('Content-Type', 'application/x-www-form-urlencoded');
-    }
+      if (this.config.browserCookie.length > 0) {
+        headers.set('Cookie', this.config.browserCookie);
+      }
 
-    if (!headers.has('User-Agent')) {
-      headers.set('User-Agent', 'Mozilla/5.0 (compatible; conveniat27-bot/1.0)');
-    }
+      if (method === 'POST' && !headers.has('Content-Type')) {
+        headers.set('Content-Type', 'application/x-www-form-urlencoded');
+      }
 
-    this.logger?.info(`Frontend ${method} ${url}`);
+      if (!headers.has('User-Agent')) {
+        headers.set('User-Agent', 'Mozilla/5.0 (compatible; conveniat27-bot/1.0)');
+      }
 
-    const response = await this.fetchWithTimeout(url, {
-      ...options,
-      method,
-      headers,
+      this.logger?.info(`Frontend ${method} ${url}`);
+
+      const response = await this.fetchWithTimeout(url, {
+        ...options,
+        method,
+        headers,
+      });
+
+      span.setAttribute('http.status_code', response.status);
+
+      const body = await response.text();
+      return { response, body };
     });
-
-    const body = await response.text();
-    return { response, body };
   }
 
   getFrontendHeaders(referer?: string): HeadersInit {
@@ -171,72 +195,78 @@ export class HitobitoClient {
     extractExtraFields?: boolean;
     extraHeaders?: Record<string, string>;
   }): Promise<{ response: Response; body: string; finalUrl: string }> {
-    // 1. Get Form
-    const { response: formResponse, body: html } = await this.frontendRequest('GET', getFormUrl, {
-      ...(params ? { params } : {}),
-    });
-    if (!formResponse.ok) {
-      throw new Error(`Failed to fetch form from ${getFormUrl}: ${formResponse.status}`);
-    }
+    return withSpan(`HitobitoClient.submitRailsForm:${method} ${postUrl}`, async (span) => {
+      span.setAttributes({
+        getFormUrl: getFormUrl,
+        postUrl: postUrl,
+      });
 
-    // 2. Extract Tokens
-    const token = extractAuthenticityToken(html);
-    const metaToken = extractCsrfMetaToken(html);
-
-    // 3. Prepare Payload
-    const payload = new URLSearchParams();
-
-    // Handle Rails method override
-    if (method !== 'POST') {
-      payload.append('_method', method.toLowerCase());
-    }
-
-    payload.append('authenticity_token', token);
-
-    // Extract pre-existing fields if requested
-    if (extractExtraFields) {
-      const existingFields = extractFormFields(html);
-      for (const [key, value] of Object.entries(existingFields)) {
-        payload.append(key, value);
+      // 1. Get Form
+      const { response: formResponse, body: html } = await this.frontendRequest('GET', getFormUrl, {
+        ...(params ? { params } : {}),
+      });
+      if (!formResponse.ok) {
+        const error = new Error(`Failed to fetch form from ${getFormUrl}: ${formResponse.status}`);
+        span.recordException(error);
+        throw error;
       }
-    }
 
-    // Append provided form data (this can overwrite extracted fields)
-    for (const [key, value] of Object.entries(formData)) {
-      if (Array.isArray(value)) {
-        for (const val of value) {
-          payload.append(key, val);
-        }
-      } else {
-        // Only overwrite if not empty or if explicitly provided?
-        // Actually, URLSearchParams.set would overwrite. append adds multiple.
-        // We probably want to OVERWRITE extracted fields with provided data.
-        if (payload.has(key)) {
-          payload.delete(key);
-        }
-        payload.append(key, value);
+      // 2. Extract Tokens
+      const token = extractAuthenticityToken(html);
+      const metaToken = extractCsrfMetaToken(html);
+
+      // 3. Prepare Payload
+      const payload = new URLSearchParams();
+
+      // Handle Rails method override
+      if (method !== 'POST') {
+        payload.append('_method', method.toLowerCase());
       }
-    }
 
-    // 4. Submit
-    const referer = new URL(getFormUrl, this.config.baseUrl).toString();
-    const finalHeaders = {
-      ...(this.getFrontendHeaders(referer) as Record<string, string>),
-      ...extraHeaders,
-    };
+      payload.append('authenticity_token', token);
 
-    if (metaToken !== '' && finalHeaders['x-csrf-token'] === undefined) {
-      finalHeaders['x-csrf-token'] = metaToken;
-    }
+      // Extract pre-existing fields if requested
+      if (extractExtraFields) {
+        const existingFields = extractFormFields(html);
+        for (const [key, value] of Object.entries(existingFields)) {
+          payload.append(key, value);
+        }
+      }
 
-    const payloadString = payload.toString();
-    this.logger?.info(`submitRailsForm POST to ${postUrl} with ${payloadString.length} bytes`);
+      // Append provided form data (this can overwrite extracted fields)
+      for (const [key, value] of Object.entries(formData)) {
+        if (Array.isArray(value)) {
+          for (const val of value) {
+            payload.append(key, val);
+          }
+        } else {
+          if (payload.has(key)) {
+            payload.delete(key);
+          }
+          payload.append(key, value);
+        }
+      }
 
-    const result = await this.frontendRequest('POST', postUrl, {
-      headers: finalHeaders,
-      body: payloadString,
+      // 4. Submit
+      const referer = new URL(getFormUrl, this.config.baseUrl).toString();
+      const finalHeaders = {
+        ...(this.getFrontendHeaders(referer) as Record<string, string>),
+        ...extraHeaders,
+      };
+
+      if (metaToken !== '' && finalHeaders['x-csrf-token'] === undefined) {
+        finalHeaders['x-csrf-token'] = metaToken;
+      }
+
+      const payloadString = payload.toString();
+      this.logger?.info(`submitRailsForm POST to ${postUrl} with ${payloadString.length} bytes`);
+
+      const result = await this.frontendRequest('POST', postUrl, {
+        headers: finalHeaders,
+        body: payloadString,
+      });
+
+      return { ...result, finalUrl: result.response.url };
     });
-
-    return { ...result, finalUrl: result.response.url };
   }
 }

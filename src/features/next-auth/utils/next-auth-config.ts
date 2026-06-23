@@ -2,6 +2,7 @@ import { environmentVariables } from '@/config/environment-variables';
 import type { HitobitoProfile } from '@/features/next-auth/types/hitobito-profile';
 import type { User } from '@/features/payload-cms/payload-types';
 import { withSpan } from '@/utils/tracing-helpers';
+import { trace } from '@opentelemetry/api';
 import type { NextAuthConfig } from 'next-auth';
 import type { JWT } from 'next-auth/jwt';
 import { after } from 'next/server';
@@ -51,6 +52,76 @@ const HITOBITO_FORWARD_URL = environmentVariables.HITOBITO_FORWARD_URL;
 const CEVI_DB_CLIENT_ID = environmentVariables.CEVI_DB_CLIENT_ID;
 const CEVI_DB_CLIENT_SECRET = environmentVariables.CEVI_DB_CLIENT_SECRET;
 
+type UserGroup = NonNullable<User['groups']>[number];
+
+/**
+ * Maps Hitobito profile roles to user groups structure.
+ */
+function mapProfileRolesToGroups(roles: HitobitoProfile['roles']): UserGroup[] {
+  return roles.map((role) => ({
+    id: role.group_id,
+    name: role.group_name,
+    role_name: role.role_name,
+    role_class: role.role_class,
+  }));
+}
+
+/**
+ * Checks if the groups list of the user has changed compared to the incoming roles.
+ */
+function hasUserGroupsChanged(
+  existingGroups: User['groups'],
+  incomingRoles: HitobitoProfile['roles'],
+): boolean {
+  const currentGroups = Array.isArray(existingGroups) ? existingGroups : [];
+  if (currentGroups.length !== incomingRoles.length) {
+    return true;
+  }
+  return !incomingRoles.every((newG) =>
+    currentGroups.some(
+      (existingG) =>
+        existingG.id === newG.group_id &&
+        existingG.name === newG.group_name &&
+        existingG.role_name === newG.role_name &&
+        existingG.role_class === newG.role_class,
+    ),
+  );
+}
+
+/**
+ * Checks if any critical profile attributes (email, name, groups) have changed.
+ */
+function hasUserProfileChanged(existingUser: User, incomingProfile: HitobitoProfile): boolean {
+  const newFullName = incomingProfile.first_name + ' ' + incomingProfile.last_name;
+  const existingNickname = existingUser.nickname ?? undefined;
+  const incomingNickname = incomingProfile.nickname ?? undefined;
+
+  return (
+    hasUserGroupsChanged(existingUser.groups, incomingProfile.roles) ||
+    existingUser.fullName !== newFullName ||
+    existingNickname !== incomingNickname ||
+    existingUser.email !== incomingProfile.email
+  );
+}
+
+/**
+ * Determines whether user changes require queueing a chat membership sync.
+ */
+function shouldSyncAnnouncementChats(
+  existingUser: User,
+  incomingProfile: HitobitoProfile,
+): boolean {
+  const newFullName = incomingProfile.first_name + ' ' + incomingProfile.last_name;
+  const existingNickname = existingUser.nickname ?? undefined;
+  const incomingNickname = incomingProfile.nickname ?? undefined;
+
+  return (
+    hasUserGroupsChanged(existingUser.groups, incomingProfile.roles) ||
+    existingUser.fullName !== newFullName ||
+    existingNickname !== incomingNickname
+  );
+}
+
 /**
  * Fetches the user from the Payload CMS and saves it if it does not exist.
  * @param payload
@@ -71,12 +142,7 @@ async function saveAndFetchUserFromPayload(
 
     const userData = {
       cevi_db_uuid: ceviDatabaseUuid,
-      groups: userProfile.roles.map((role) => ({
-        id: role.group_id,
-        name: role.group_name,
-        role_name: role.role_name,
-        role_class: role.role_class,
-      })),
+      groups: mapProfileRolesToGroups(userProfile.roles),
       email: userProfile.email,
       fullName: userProfile.first_name + ' ' + userProfile.last_name,
       nickname: userProfile.nickname,
@@ -92,30 +158,32 @@ async function saveAndFetchUserFromPayload(
       throw new Error('Multiple users found with the same UUID');
     }
 
-    // User already exists by UUID — update and return
-    const payloadUserId = matchedByUuid.docs[0]?.id;
-    if (matchedByUuid.totalDocs === 1 && payloadUserId !== undefined) {
+    // User already exists by UUID — update and return if changed
+    const existingUser = matchedByUuid.docs[0];
+    if (matchedByUuid.totalDocs === 1 && existingUser !== undefined) {
+      if (!hasUserProfileChanged(existingUser, userProfile)) {
+        return existingUser;
+      }
+
+      const newFullName = userProfile.first_name + ' ' + userProfile.last_name;
       const updatedUser = await payload.update({
         collection: 'users',
-        id: payloadUserId,
+        id: existingUser.id,
         data: {
-          groups: userProfile.roles.map((role) => ({
-            id: role.group_id,
-            name: role.group_name,
-            role_name: role.role_name,
-            role_class: role.role_class,
-          })),
+          groups: mapProfileRolesToGroups(userProfile.roles),
           email: userProfile.email,
-          fullName: userProfile.first_name + ' ' + userProfile.last_name,
+          fullName: newFullName,
           nickname: userProfile.nickname,
         },
       });
 
-      // Queue background job to sync announcement channels
-      await payload.jobs.queue({
-        task: 'syncNewUserAnnouncementChats',
-        input: { userId: payloadUserId },
-      });
+      // Queue background job to sync announcement channels if groups, nickname or name changed
+      if (shouldSyncAnnouncementChats(existingUser, userProfile)) {
+        await payload.jobs.queue({
+          task: 'syncNewUserAnnouncementChats',
+          input: { userId: existingUser.id },
+        });
+      }
 
       return updatedUser;
     }
@@ -198,11 +266,11 @@ async function syncProfileToPayloadAsync(profile: HitobitoProfile): Promise<void
 
 const inflightRefreshes = new Map<string, Promise<JWT>>();
 
-async function refreshAccessToken(token: JWT): Promise<JWT> {
+async function refreshAccessToken(token: JWT, reason: string): Promise<JWT> {
   const userId = token.uuid;
 
-  if (!userId) {
-    return doRefreshAccessToken(token); // skip dedup for tokens without a UUID
+  if (typeof userId !== 'string' || userId === '') {
+    return doRefreshAccessToken(token, reason); // skip dedup for tokens without a UUID
   }
 
   // If a refresh is already in-flight for this user, wait for it
@@ -212,7 +280,7 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
   }
 
   // Start the actual refresh and store the promise
-  const refreshPromise = doRefreshAccessToken(token).finally(() => {
+  const refreshPromise = doRefreshAccessToken(token, reason).finally(() => {
     // Clean up after a short delay to handle near-simultaneous arrivals
     setTimeout(() => inflightRefreshes.delete(userId), 1000);
   });
@@ -221,13 +289,25 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
   return refreshPromise;
 }
 
+class TerminalRefreshError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'TerminalRefreshError';
+  }
+}
+
 /**
  * Refreshes the access token using the refresh token.
  * returns the new token with updated expiration and access token
  */
-async function doRefreshAccessToken(token: JWT): Promise<JWT> {
+async function doRefreshAccessToken(token: JWT, reason: string): Promise<JWT> {
   try {
-    console.log('Refreshing access token for user', token.uuid);
+    console.log('Refreshing access token for user', token.uuid, 'Reason:', reason);
+
+    const activeSpan = trace.getActiveSpan();
+    if (activeSpan !== undefined) {
+      activeSpan.setAttribute('hitobito.refresh_reason', reason);
+    }
 
     const url = `${HITOBITO_BASE_URL}/oauth/token`;
     const response = await fetchWithRetry(url, {
@@ -243,9 +323,22 @@ async function doRefreshAccessToken(token: JWT): Promise<JWT> {
       }),
     });
 
-    let refreshedTokens: TokenResponse | undefined;
     const responseText = await response.text();
 
+    if (!response.ok) {
+      const isTerminal =
+        response.status >= 400 &&
+        response.status < 500 &&
+        response.status !== 429 &&
+        response.status !== 408;
+
+      if (isTerminal) {
+        throw new TerminalRefreshError(responseText);
+      }
+      throw new Error(responseText);
+    }
+
+    let refreshedTokens: TokenResponse | undefined;
     try {
       refreshedTokens = JSON.parse(responseText) as TokenResponse;
     } catch {
@@ -253,10 +346,6 @@ async function doRefreshAccessToken(token: JWT): Promise<JWT> {
       throw new Error(
         `Invalid JSON response from token refresh endpoint: ${responseText.slice(0, 100)}...`,
       );
-    }
-
-    if (!response.ok) {
-      throw new Error(JSON.stringify(refreshedTokens));
     }
 
     const expiresIn =
@@ -311,9 +400,15 @@ async function doRefreshAccessToken(token: JWT): Promise<JWT> {
     }
   } catch (error) {
     console.error('Error refreshing access token', error);
+    const activeSpan = trace.getActiveSpan();
+    if (activeSpan !== undefined) {
+      activeSpan.recordException(error as Error);
+    }
+    const isTerminal = error instanceof TerminalRefreshError;
     return {
       ...token,
       error: 'RefreshAccessTokenError',
+      ...(isTerminal ? { refresh_token: undefined } : {}),
     };
   }
 }
@@ -392,6 +487,10 @@ export const authOptions: NextAuthConfig = {
     async jwt({ token, account, profile: _profile }): Promise<JWT> {
       // Initial sign in
       if (account && _profile) {
+        const activeSpan = trace.getActiveSpan();
+        if (activeSpan !== undefined) {
+          activeSpan.setAttribute('hitobito.refresh_reason', 'authorization_code_exchange');
+        }
         const profile = _profile as unknown as HitobitoProfile;
 
         const config = await import('@payload-config');
@@ -426,14 +525,23 @@ export const authOptions: NextAuthConfig = {
       }
 
       // Access token has expired, try to update it
-      if (!token.refresh_token) {
+      if (token.refresh_token === undefined || token.refresh_token === '') {
         return {
           ...token,
           error: 'RefreshAccessTokenError',
         };
       }
 
-      return refreshAccessToken(token);
+      let reason = 'unknown';
+      if (expiresAt === 0) {
+        reason = 'missing_expires_at';
+      } else if (Date.now() >= expiresAt * 1000) {
+        reason = 'token_expired';
+      } else {
+        reason = 'token_approaching_expiry';
+      }
+
+      return refreshAccessToken(token, reason);
     },
   },
 

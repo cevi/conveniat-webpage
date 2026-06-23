@@ -22,7 +22,34 @@ import { timelineEntries } from '@/features/payload-cms/payload-cms/shared-block
 import { twoColumnBlock } from '@/features/payload-cms/payload-cms/shared-blocks/two-column-block';
 import { whiteSpaceBlock } from '@/features/payload-cms/payload-cms/shared-blocks/white-space-block';
 import { youtubeEmbedBlock } from '@/features/payload-cms/payload-cms/shared-blocks/youtube-embed-block';
-import type { Field } from 'payload';
+import type { Block, Field } from 'payload';
+
+export const mainContentBlocks: Block[] = [
+  richTextArticleBlock,
+  blockPostsOverview,
+  formBlock,
+  photoCarouselBlock,
+  singlePictureBlock,
+  youtubeEmbedBlock,
+  instagramEmbedBlock,
+  swisstopoMapEmbedBlock,
+  fileDownloadBlock,
+  detailsTable,
+  accordion,
+  summaryBoxBlock,
+  timelineEntries,
+  countdownBlock,
+  whiteSpaceBlock,
+  callToActionBlock,
+  newsCardBlock,
+  campScheduleEntryBlock,
+  cardGridBlock,
+  contactPersonBlock,
+  twoColumnBlock,
+  sponsorGridBlock,
+  featuredSectionBlock,
+  tabsBlock,
+];
 
 export const mainContentField: Field = {
   name: 'mainContent',
@@ -72,30 +99,5 @@ export const mainContentField: Field = {
       blockName: 'Main Page Content',
     },
   ],
-  blocks: [
-    richTextArticleBlock,
-    blockPostsOverview,
-    formBlock,
-    photoCarouselBlock,
-    singlePictureBlock,
-    youtubeEmbedBlock,
-    instagramEmbedBlock,
-    swisstopoMapEmbedBlock,
-    fileDownloadBlock,
-    detailsTable,
-    accordion,
-    summaryBoxBlock,
-    timelineEntries,
-    countdownBlock,
-    whiteSpaceBlock,
-    callToActionBlock,
-    newsCardBlock,
-    campScheduleEntryBlock,
-    cardGridBlock,
-    contactPersonBlock,
-    twoColumnBlock,
-    sponsorGridBlock,
-    featuredSectionBlock,
-    tabsBlock,
-  ],
+  blocks: mainContentBlocks,
 };

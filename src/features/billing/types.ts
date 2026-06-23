@@ -16,12 +16,21 @@ export interface SyncedParticipant {
   userId: string;
   eventId: string;
   groupId: string;
+  eventName: string;
   firstName: string;
   lastName: string;
   nickname: string;
   fullName: string;
   roleType: string;
   enrollmentDate: string;
+  street?: string | null;
+  zip?: string | null;
+  zipCode?: string | null;
+  town?: string | null;
+  email?: string | null;
+  birthday?: string | null;
+  gender?: string | null;
+  active?: boolean;
 }
 
 /**
@@ -43,6 +52,7 @@ export interface SyncSummary {
 export interface GenerationSummary {
   generatedCount: number;
   skippedCount: number;
+  skippedAlreadyExistingCount: number;
   errors: string[];
 }
 
@@ -77,4 +87,22 @@ export interface FinanceCsvRow {
   VatCode: string;
   DateExpiration: string;
   Description: string;
+}
+
+/**
+ * Task slug enum representing billing background operations.
+ */
+export enum BillingTaskSlug {
+  SyncParticipants = 'syncParticipants',
+  GenerateBills = 'generateBills',
+  SendBills = 'sendBills',
+}
+
+/**
+ * Status enum representing the status of background job runs.
+ */
+export enum BillingJobStatus {
+  Pending = 'pending',
+  Failed = 'failed',
+  Success = 'success',
 }

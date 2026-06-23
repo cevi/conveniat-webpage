@@ -34,15 +34,14 @@ export const BillParticipantsCollection: CollectionConfig = {
       fr: 'Facturation',
     },
     useAsTitle: 'fullName',
+    groupBy: true,
     defaultColumns: [
       'fullName',
-      'eventId',
       'status',
-      'invoiceNumber',
-      'invoiceAmount',
-      'billCreatedDate',
       'billSentDate',
       'hitobitoLink',
+      'eventName',
+      'relatedEmails',
       'actions',
     ],
     description: {
@@ -77,6 +76,7 @@ export const BillParticipantsCollection: CollectionConfig = {
         fr: 'UUID de participation',
       },
       admin: {
+        disableGroupBy: true,
         description: {
           en: 'The UUID of the event_participation object in the Cevi.DB. Changes on re-enrollment.',
           de: 'Die UUID des event_participation-Objekts in der Cevi.DB. Ändert sich bei erneuter Anmeldung.',
@@ -96,6 +96,7 @@ export const BillParticipantsCollection: CollectionConfig = {
         fr: 'ID utilisateur (ID personne)',
       },
       admin: {
+        disableGroupBy: true,
         description: {
           en: 'The person ID in the Cevi.DB. Stable across re-enrollments.',
           de: 'Die Personen-ID in der Cevi.DB. Bleibt bei erneuter Anmeldung gleich.',
@@ -114,6 +115,9 @@ export const BillParticipantsCollection: CollectionConfig = {
         de: 'Anlass-ID',
         fr: "ID de l'événement",
       },
+      admin: {
+        disableGroupBy: true,
+      },
     },
     {
       name: 'groupId',
@@ -123,6 +127,19 @@ export const BillParticipantsCollection: CollectionConfig = {
         en: 'Group ID',
         de: 'Gruppen-ID',
         fr: 'ID du groupe',
+      },
+      admin: {
+        disableGroupBy: true,
+      },
+    },
+    {
+      name: 'eventName',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
+      type: 'text',
+      label: {
+        en: 'Event Name',
+        de: 'Anlass-Name',
+        fr: "Nom de l'événement",
       },
     },
 
@@ -135,6 +152,9 @@ export const BillParticipantsCollection: CollectionConfig = {
         de: 'Vorname',
         fr: 'Prénom',
       },
+      admin: {
+        disableGroupBy: true,
+      },
     },
     {
       name: 'lastName',
@@ -143,6 +163,9 @@ export const BillParticipantsCollection: CollectionConfig = {
         en: 'Last Name',
         de: 'Nachname',
         fr: 'Nom de famille',
+      },
+      admin: {
+        disableGroupBy: true,
       },
     },
     {
@@ -153,6 +176,9 @@ export const BillParticipantsCollection: CollectionConfig = {
         de: 'Ceviname',
         fr: 'Surnom',
       },
+      admin: {
+        disableGroupBy: true,
+      },
     },
     {
       name: 'fullName',
@@ -162,6 +188,9 @@ export const BillParticipantsCollection: CollectionConfig = {
         en: 'Full Name',
         de: 'Vollständiger Name',
         fr: 'Nom complet',
+      },
+      admin: {
+        disableGroupBy: true,
       },
     },
     {
@@ -174,12 +203,70 @@ export const BillParticipantsCollection: CollectionConfig = {
         fr: 'Type de rôle',
       },
       admin: {
+        disableGroupBy: true,
         description: {
           en: 'Hitobito event role type (e.g. Event::Camp::Role::Participant)',
           de: 'Hitobito Anlass-Rollentyp (z.B. Event::Camp::Role::Participant)',
           fr: "Type de rôle d'événement Hitobito",
         },
       },
+    },
+    {
+      name: 'street',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
+      type: 'text',
+      label: { en: 'Street', de: 'Strasse', fr: 'Rue' },
+      admin: { disableGroupBy: true },
+    },
+    {
+      name: 'zip',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
+      type: 'text',
+      label: { en: 'Zip', de: 'PLZ (zip)', fr: 'Zip' },
+      admin: { disableGroupBy: true },
+    },
+    {
+      name: 'zipCode',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
+      type: 'text',
+      label: { en: 'Zip Code', de: 'PLZ', fr: 'NPA' },
+      admin: { disableGroupBy: true },
+    },
+    {
+      name: 'town',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
+      type: 'text',
+      label: { en: 'Town', de: 'Ort', fr: 'Localité' },
+      admin: { disableGroupBy: true },
+    },
+    {
+      name: 'email',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
+      type: 'text',
+      label: { en: 'Email', de: 'E-Mail', fr: 'E-mail' },
+      admin: { disableGroupBy: true },
+    },
+    {
+      name: 'birthday',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
+      type: 'text',
+      label: { en: 'Birthday', de: 'Geburtsdatum', fr: 'Date de naissance' },
+      admin: { disableGroupBy: true },
+    },
+    {
+      name: 'gender',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
+      type: 'text',
+      label: { en: 'Gender', de: 'Geschlecht', fr: 'Genre' },
+      admin: { disableGroupBy: true },
+    },
+    {
+      name: 'active',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
+      type: 'checkbox',
+      label: { en: 'Active', de: 'Aktiv', fr: 'Actif' },
+      admin: { disableGroupBy: true },
+      defaultValue: true,
     },
 
     // Date tracking
@@ -192,6 +279,9 @@ export const BillParticipantsCollection: CollectionConfig = {
         de: 'Anmeldedatum (Cevi.DB)',
         fr: "Date d'inscription (Cevi.DB)",
       },
+      admin: {
+        disableGroupBy: true,
+      },
     },
     {
       name: 'firstSyncDate',
@@ -201,6 +291,9 @@ export const BillParticipantsCollection: CollectionConfig = {
         en: 'First Sync Date',
         de: 'Erstes Sync-Datum',
         fr: 'Date de première synchronisation',
+      },
+      admin: {
+        disableGroupBy: true,
       },
     },
     {
@@ -212,6 +305,9 @@ export const BillParticipantsCollection: CollectionConfig = {
         de: 'Letztes Sync-Datum',
         fr: 'Date de dernière synchronisation',
       },
+      admin: {
+        disableGroupBy: true,
+      },
     },
     {
       name: 'billCreatedDate',
@@ -221,6 +317,9 @@ export const BillParticipantsCollection: CollectionConfig = {
         en: 'Bill Created Date',
         de: 'Rechnung erstellt am',
         fr: 'Date de création de la facture',
+      },
+      admin: {
+        disableGroupBy: true,
       },
     },
     {
@@ -232,6 +331,9 @@ export const BillParticipantsCollection: CollectionConfig = {
         de: 'Rechnung gesendet am',
         fr: "Date d'envoi de la facture",
       },
+      admin: {
+        disableGroupBy: true,
+      },
     },
     {
       name: 'removedDate',
@@ -242,6 +344,9 @@ export const BillParticipantsCollection: CollectionConfig = {
         de: 'Entfernt am',
         fr: 'Date de suppression',
       },
+      admin: {
+        disableGroupBy: true,
+      },
     },
     {
       name: 'reAddedDate',
@@ -251,6 +356,9 @@ export const BillParticipantsCollection: CollectionConfig = {
         en: 'Re-Added Date',
         de: 'Erneut hinzugefügt am',
         fr: 'Date de ré-ajout',
+      },
+      admin: {
+        disableGroupBy: true,
       },
     },
 
@@ -264,6 +372,9 @@ export const BillParticipantsCollection: CollectionConfig = {
         de: 'QR-Referenznummer',
         fr: 'Numéro de référence QR',
       },
+      admin: {
+        disableGroupBy: true,
+      },
     },
     {
       name: 'invoiceNumber',
@@ -275,6 +386,9 @@ export const BillParticipantsCollection: CollectionConfig = {
         de: 'Rechnungsnummer',
         fr: 'Numéro de facture',
       },
+      admin: {
+        disableGroupBy: true,
+      },
     },
     {
       name: 'invoiceAmount',
@@ -284,6 +398,9 @@ export const BillParticipantsCollection: CollectionConfig = {
         en: 'Invoice Amount (CHF)',
         de: 'Rechnungsbetrag (CHF)',
         fr: 'Montant de la facture (CHF)',
+      },
+      admin: {
+        disableGroupBy: true,
       },
     },
     {
@@ -300,6 +417,7 @@ export const BillParticipantsCollection: CollectionConfig = {
       admin: {
         disableListColumn: true,
         disableListFilter: true,
+        disableGroupBy: true,
       },
     },
 
@@ -311,7 +429,26 @@ export const BillParticipantsCollection: CollectionConfig = {
       required: true,
       defaultValue: 'new',
       options: [
-        { label: { en: 'New', de: 'Neu', fr: 'Nouveau' }, value: 'new' },
+        {
+          label: { en: 'Fully captured', de: 'Vollständig erfasst', fr: 'Complètement saisi' },
+          value: 'new',
+        },
+        {
+          label: {
+            en: 'Mandatory fields missing',
+            de: 'Pflichtangaben fehlen',
+            fr: 'Données obligatoires manquantes',
+          },
+          value: 'pflichtangaben_missing',
+        },
+        {
+          label: {
+            en: 'Invalid registration details',
+            de: 'Anmeldeangaben ungültig',
+            fr: "Détails d'inscription invalides",
+          },
+          value: 'invalid_anmeldeangaben',
+        },
         {
           label: { en: 'Bill Created', de: 'Rechnung erstellt', fr: 'Facture créée' },
           value: 'bill_created',
@@ -345,6 +482,34 @@ export const BillParticipantsCollection: CollectionConfig = {
         },
       },
     },
+    {
+      name: 'missingStammdaten',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
+      type: 'json',
+      label: {
+        en: 'Missing Master Data',
+        de: 'Fehlende Stammdaten',
+        fr: 'Stammdaten manquantes',
+      },
+      admin: {
+        readOnly: true,
+        disableGroupBy: true,
+      },
+    },
+    {
+      name: 'missingAnmeldeangaben',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
+      type: 'json',
+      label: {
+        en: 'Missing Event Registration Answers',
+        de: 'Fehlende Anmeldeangaben',
+        fr: 'Anmeldeangaben manquantes',
+      },
+      admin: {
+        readOnly: true,
+        disableGroupBy: true,
+      },
+    },
 
     // Audit trail
     {
@@ -357,6 +522,7 @@ export const BillParticipantsCollection: CollectionConfig = {
         fr: 'Historique de synchronisation',
       },
       admin: {
+        disableGroupBy: true,
         description: {
           en: 'Array of { date, action } entries for audit trail.',
           de: 'Array von { date, action } Einträgen für den Audit-Trail.',

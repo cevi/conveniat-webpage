@@ -49,30 +49,6 @@ const processIndexes = async (
 };
 
 /**
- * Ensures localized indices for the form-submissions collection.
- *
- * Why: When forms are viewed in the admin panel, the 'join' field fetch form submissions
- * for the current locale using filters like { formen: id }, { formde: id }, etc.
- * Sorted by createdAt descending to show the latest submissions first.
- *
- * @param connection The MongoDB connection
- * @param locales The available locales
- */
-const ensureFormSubmissionIndexes = async (
-  connection: MongooseAdapter['connection'],
-  locales: string[],
-): Promise<void> => {
-  const collection = connection.collection('form-submissions');
-
-  const tasks: IndexTask[] = locales.map((locale) => ({
-    name: `locale_${locale}`,
-    spec: { [`form${locale}`]: 1, createdAt: -1 },
-  }));
-
-  await processIndexes(collection, tasks, 'form-submissions');
-};
-
-/**
  * Ensures localized indices for main collections that use the _localized_status pattern.
  *
  * Why: Our custom localization logic stores publishing status per locale in _localized_status.
@@ -99,37 +75,10 @@ const ensureCollectionLocalizedIndices = async (
 };
 
 /**
- * Ensures compound indices for routable collections using internalPageName.
- *
- * Why: findAlternatives query in metadata-helper.ts filters by internalPageName
- * and localized publishing status across all locales.
- *
- * @param connection The MongoDB connection
- * @param collectionName The name of the collection
- * @param locales The available locales
- */
-const ensureInternalPageNameIndices = async (
-  connection: MongooseAdapter['connection'],
-  collectionName: string,
-  locales: string[],
-): Promise<void> => {
-  const collection = connection.collection(collectionName);
-
-  const tasks: IndexTask[] = locales.map((locale) => ({
-    name: `internalNameStatus_${locale}`,
-    spec: { internalPageName: 1, [`_localized_status.${locale}.published`]: 1 },
-  }));
-
-  await processIndexes(collection, tasks, collectionName);
-};
-
-/**
  * Ensures indices for version collections, including general and localized publishing status.
  *
  * Why:
- * 1. General Index: Used by Payload to find the latest draft or published version across all locales.
- *    Including 'latest' helps quickly identify the current version.
- * 2. Localized Indices: Used by our custom publishing logic to find the latest version that was
+ * 1. Localized Indices: Used by our custom publishing logic to find the latest version that was
  *    specifically published for a given locale.
  *
  * @param connection The MongoDB connection
@@ -145,12 +94,7 @@ const ensureVersionCollectionIndices = async (
 ): Promise<void> => {
   const collection = connection.collection(versionsCollectionName);
 
-  const tasks: IndexTask[] = [
-    {
-      name: 'general_lookup',
-      spec: { parent: 1, 'version._status': 1, latest: 1, updatedAt: -1 },
-    },
-  ];
+  const tasks: IndexTask[] = [];
 
   if (isLocalized) {
     tasks.push(
@@ -166,94 +110,6 @@ const ensureVersionCollectionIndices = async (
   }
 
   await processIndexes(collection, tasks, versionsCollectionName);
-};
-
-/**
- * Ensures indices for upload-enabled collections (media).
- *
- * Why:
- * 1. UpdatedAt: Used for sorting in the admin panel list view.
- *
- * Note: Payload already creates the upload filename index and marks it unique by default.
- * Re-creating a plain filename index here collides with Payload's auto-generated index name.
- *
- * @param connection The MongoDB connection
- * @param collectionName The name of the collection
- */
-const ensureUploadCollectionIndexes = async (
-  connection: MongooseAdapter['connection'],
-  collectionName: string,
-): Promise<void> => {
-  const collection = connection.collection(collectionName);
-
-  const tasks: IndexTask[] = [
-    {
-      name: 'updatedAt',
-      spec: { updatedAt: -1 },
-    },
-  ];
-
-  await processIndexes(collection, tasks, collectionName);
-};
-
-/**
- * Ensures indices for the globals collection.
- *
- * Why: The globals collection stores various global documents. Some queries filter by 'globalType'.
- *
- * @param connection The MongoDB connection
- */
-const ensureGlobalsCollectionIndexes = async (
-  connection: MongooseAdapter['connection'],
-): Promise<void> => {
-  const collection = connection.collection('globals');
-
-  const tasks: IndexTask[] = [
-    {
-      name: 'globalType',
-      spec: { globalType: 1 },
-    },
-  ];
-
-  await processIndexes(collection, tasks, 'globals');
-};
-
-/**
- * Ensures high-performance indices for authentication and preferences collections.
- *
- * Why: These collections are queried sequentially on almost every authenticated admin or API request.
- *
- * Note: Payload already creates the unique users.email index from the auth field config.
- * Re-creating a plain email index here collides with that auto-generated index name.
- *
- * @param connection The MongoDB connection
- */
-const ensureAuthAndPreferencesIndexes = async (
-  connection: MongooseAdapter['connection'],
-): Promise<void> => {
-  // users collection
-  const usersCollection = connection.collection('users');
-  await processIndexes(
-    usersCollection,
-    [
-      // payload frequently queries by _id + deletedAt for auth resolution
-      { name: 'id_deletedAt', spec: { _id: 1, deletedAt: 1 } },
-    ],
-    'users',
-  );
-
-  // payload-preferences collection
-  const preferencesCollection = connection.collection('payload-preferences');
-  await processIndexes(
-    preferencesCollection,
-    [
-      {
-        name: 'key_userRelation_userValue',
-        spec: { key: 1, 'user.relationTo': 1, 'user.value': 1 },
-      },
-    ],
-    'payload-preferences',
-  );
 };
 
 /**
@@ -331,15 +187,6 @@ export const ensureIndexes = async (payload: Payload): Promise<void> => {
   // to ensure the unique index on `token` can be created.
   await deduplicatePushSubscriptions(connection);
 
-  // Kick off Form Submissions (Promise)
-  const formPromise = ensureFormSubmissionIndexes(connection, locales);
-
-  // Kick off Globals (Promise)
-  const globalsPromise = ensureGlobalsCollectionIndexes(connection);
-
-  // Kick off Auth & Preferences (Promise)
-  const authPreferencesPromise = ensureAuthAndPreferencesIndexes(connection);
-
   // Kick off Entity Processing (Promise)
   const entityPromises = entities.map(async (entity) => {
     const isLocalized = entity.fields.some((f) => 'name' in f && f.name === '_localized_status');
@@ -352,19 +199,6 @@ export const ensureIndexes = async (payload: Payload): Promise<void> => {
       entityTasks.push(ensureCollectionLocalizedIndices(connection, entity.slug, locales));
     }
 
-    // internalPageName compound indices for routable collections
-    const hasInternalPageName = entity.fields.some(
-      (f) => 'name' in f && f.name === 'internalPageName',
-    );
-    if (hasInternalPageName && entity.type === 'collection') {
-      entityTasks.push(ensureInternalPageNameIndices(connection, entity.slug, locales));
-    }
-
-    // Upload Collection Indices
-    if (entity.type === 'collection' && 'upload' in entity && Boolean(entity.upload)) {
-      entityTasks.push(ensureUploadCollectionIndexes(connection, entity.slug));
-    }
-
     // Version Collection Indices
     if (Boolean(entity.versions?.drafts)) {
       entityTasks.push(
@@ -375,7 +209,7 @@ export const ensureIndexes = async (payload: Payload): Promise<void> => {
     await Promise.all(entityTasks);
   });
 
-  await Promise.all([formPromise, globalsPromise, authPreferencesPromise, ...entityPromises]);
+  await Promise.all(entityPromises);
 
   console.log(`${LOG_PREFIX} Finished ensuring indices.`);
 };

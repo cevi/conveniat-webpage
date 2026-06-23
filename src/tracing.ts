@@ -190,12 +190,27 @@ const postHogLogExporter = new OTLPLogExporter({
   },
 });
 
+const postHogTraceExporter = new OTLPTraceExporter({
+  url: `${POSTHOG_HOST}/i/v1/traces`,
+  headers: {
+    Authorization: `Bearer ${POSTHOG_KEY}`,
+  },
+  concurrencyLimit: 10,
+  timeoutMillis: 5000,
+});
+
 export const sdk = new NodeSDK({
   traceExporter,
   metricReader: metricsReader,
   idGenerator: new CryptoIdGenerator(),
   spanProcessors: [
     new BatchSpanProcessor(traceExporter, {
+      exportTimeoutMillis: 5000,
+      maxQueueSize: 2048,
+      scheduledDelayMillis: 5000,
+      maxExportBatchSize: 512,
+    }),
+    new BatchSpanProcessor(postHogTraceExporter, {
       exportTimeoutMillis: 5000,
       maxQueueSize: 2048,
       scheduledDelayMillis: 5000,

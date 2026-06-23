@@ -39,6 +39,34 @@ export const proxyChain = (proxies: { proxy: ProxyModule; name: string }[]): Pro
       };
     },
     (_request, _event, response: NextResponse) => {
-      return response;
+      // Create a new NextResponse.next with the final mutated request headers
+      // so Next.js propagates the updated cookies downstream.
+      const finalResponse = NextResponse.next({
+        request: {
+          headers: _request.headers,
+        },
+      });
+
+      // Copy headers accumulated during the proxy chain execution (e.g. x-proxy-chain)
+      for (const [key, value] of response.headers.entries()) {
+        if (key.toLowerCase() === 'set-cookie') {
+          continue;
+        }
+        finalResponse.headers.set(key, value);
+      }
+
+      // Copy all Set-Cookie headers using getSetCookie to preserve multiple cookies
+      if (typeof response.headers.getSetCookie === 'function') {
+        const setCookies = response.headers.getSetCookie();
+        for (const cookie of setCookies) {
+          finalResponse.headers.append('set-cookie', cookie);
+        }
+      } else {
+        console.error(
+          '[ProxyChain] CRITICAL: response.headers.getSetCookie is not a function. Rotated session cookies cannot be copied, which may break downstream session state.',
+        );
+      }
+
+      return finalResponse;
     },
   );

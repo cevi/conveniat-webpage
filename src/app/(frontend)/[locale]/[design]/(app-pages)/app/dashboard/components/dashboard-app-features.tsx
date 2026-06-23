@@ -1,6 +1,5 @@
-import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import type { AppFeatureFlag } from '@/features/payload-cms/payload-types';
-import type { Locale, StaticTranslationString } from '@/types/types';
+import type { Locale } from '@/types/types';
 import {
   Calendar,
   CalendarCheck2,
@@ -15,12 +14,6 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import type React from 'react';
-
-const appFeaturesTitle: StaticTranslationString = {
-  en: 'conveniat27 App',
-  de: 'conveniat27 App',
-  fr: 'App conveniat27',
-};
 
 interface FeatureCardProperties {
   title: string;
@@ -189,7 +182,6 @@ export const DashboardAppFeatures: React.FC<{
 
   return (
     <div>
-      <HeadlineH1 className="mb-4">{appFeaturesTitle[locale]}</HeadlineH1>
       <div className="overflow-x-auto pb-4">
         <div className="flex w-max gap-4">
           {visibleFeatures.map((feature, index) => (

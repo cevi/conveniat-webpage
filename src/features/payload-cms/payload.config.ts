@@ -18,10 +18,13 @@ import { searchPluginConfiguration } from '@/features/payload-cms/payload-cms/pl
 import { checkHitobitoApprovalsTask } from '@/features/payload-cms/payload-cms/tasks/check-hitobito-approvals';
 import { DEFAULT_QUEUE } from '@/features/payload-cms/payload-cms/tasks/cleanup-stale-jobs';
 import { fetchSmtpBouncesTask } from '@/features/payload-cms/payload-cms/tasks/fetch-smtp-bounces';
+import { generateBillsTask } from '@/features/payload-cms/payload-cms/tasks/generate-bills';
 import { generatePdfThumbnailTask } from '@/features/payload-cms/payload-cms/tasks/generate-pdf-thumbnail';
 import { publishScheduledAnnouncementsTask } from '@/features/payload-cms/payload-cms/tasks/publish-scheduled-announcements';
+import { sendBillsTask } from '@/features/payload-cms/payload-cms/tasks/send-bills';
 import { syncActivePiketMembersTask } from '@/features/payload-cms/payload-cms/tasks/sync-active-piket-members';
 import { syncNewUserAnnouncementChatsTask } from '@/features/payload-cms/payload-cms/tasks/sync-new-user-announcement-chats';
+import { syncParticipantsTask } from '@/features/payload-cms/payload-cms/tasks/sync-participants';
 import { smartphoneBreakpoints } from '@/features/payload-cms/utils/smartphone-breakpoints';
 import { registrationWorkflow } from '@/features/registration_process/workflows/registration-workflow';
 import { blockJobStep } from '@/features/registration_process/workflows/steps/block-job';
@@ -162,6 +165,9 @@ const jobsConfig: JobsConfig = {
     publishScheduledAnnouncementsTask,
     syncActivePiketMembersTask,
     syncNewUserAnnouncementChatsTask,
+    syncParticipantsTask,
+    generateBillsTask,
+    sendBillsTask,
   ],
   workflows: [registrationWorkflow, brevoContactWorkflow],
   autoRun: env.FEATURE_ENABLE_WORKFLOWS

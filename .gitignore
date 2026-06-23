@@ -69,3 +69,9 @@ seeding.lock
 # playwright
 /test-results/
 /playwright-report/
+
+# claude cli settings
+/.claude/
+
+# openapi spec
+openapi.yaml

@@ -1,5 +1,16 @@
 import { canAccessBilling } from '@/features/payload-cms/payload-cms/access-rules/can-access-billing';
 import type { GlobalConfig } from 'payload';
+import { z } from 'zod';
+
+const IdValidationSchema = z.union([
+  z
+    .string()
+    .trim()
+    .regex(/^\d{1,6}$/, 'Must be a number up to 6 digits'),
+  z.literal(''),
+  z.null(),
+  z.undefined(),
+]);
 
 /**
  * Payload Global for QR Bill configuration.
@@ -39,6 +50,16 @@ export const BillSettingsGlobal: GlobalConfig = {
           },
           fields: [
             {
+              name: 'populateSubeventsButton',
+              type: 'ui',
+              admin: {
+                components: {
+                  Field:
+                    '@/features/billing/components/populate-subevents-button#PopulateSubeventsButton',
+                },
+              },
+            },
+            {
               name: 'events',
               type: 'array',
               label: {
@@ -47,6 +68,11 @@ export const BillSettingsGlobal: GlobalConfig = {
                 fr: 'Événements Hitobito à synchroniser',
               },
               admin: {
+                components: {
+                  RowLabel: {
+                    path: '@/features/billing/components/event-row-label#EventRowLabel',
+                  },
+                },
                 description: {
                   en: 'Configure which Hitobito events should be synced for billing.',
                   de: 'Konfigurieren Sie, welche Hitobito-Anlässe für die Rechnungsstellung synchronisiert werden.',
@@ -62,6 +88,20 @@ export const BillSettingsGlobal: GlobalConfig = {
                     en: 'Event ID',
                     de: 'Anlass-ID',
                     fr: "ID de l'événement",
+                  },
+                  admin: {
+                    description: {
+                      en: 'Hitobito event ID to sync (up to 6 digits)',
+                      de: 'Hitobito Anlass-ID zum Synchronisieren (bis zu 6 Stellen)',
+                      fr: "ID de l'événement Hitobito à synchroniser (jusqu'à 6 chiffres)",
+                    },
+                  },
+                  validate: (val: string | null | undefined): string | true => {
+                    const result = IdValidationSchema.safeParse(val);
+                    if (!result.success) {
+                      return 'Event ID must be a number up to 6 digits';
+                    }
+                    return true;
                   },
                 },
                 {
@@ -92,14 +132,15 @@ export const BillSettingsGlobal: GlobalConfig = {
                   },
                   admin: {
                     description: {
-                      en: 'Hitobito group ID this event belongs to (max 999)',
-                      de: 'Hitobito Gruppen-ID, zu der dieser Anlass gehört (max 999)',
-                      fr: 'ID du groupe Hitobito auquel cet événement appartient (max 999)',
+                      en: 'Hitobito group ID this event belongs to (up to 6 digits)',
+                      de: 'Hitobito Gruppen-ID, zu der dieser Anlass gehört (bis zu 6 Stellen)',
+                      fr: "ID du groupe Hitobito auquel cet événement appartient (jusqu'à 6 chiffres)",
                     },
                   },
                   validate: (val: string | null | undefined): string | true => {
-                    if (val && !/^\d{1,3}$/.test(val)) {
-                      return 'Group ID must be a number up to 3 digits (max 999)';
+                    const result = IdValidationSchema.safeParse(val);
+                    if (!result.success) {
+                      return 'Group ID must be a number up to 6 digits';
                     }
                     return true;
                   },
@@ -165,7 +206,7 @@ export const BillSettingsGlobal: GlobalConfig = {
                   name: 'creditorBuildingNumber',
                   type: 'text',
                   required: false,
-                  defaultValue: '12a',
+                  defaultValue: '33',
                   label: {
                     en: 'Creditor Building Number',
                     de: 'Hausnummer des Zahlungsempfängers',
@@ -391,9 +432,14 @@ export const BillSettingsGlobal: GlobalConfig = {
                 },
               },
               defaultValue: [
-                { roleTypePattern: 'Participant', label: 'Teilnehmer:in', amount: 150 },
-                { roleTypePattern: 'Leader', label: 'Leiter:in', amount: 50 },
-                { roleTypePattern: 'Helper', label: 'Helfer:in', amount: 50 },
+                {
+                  roleTypePattern: 'Participant',
+                  label: 'Teilnehmer:in',
+                  vatCode: '2.6%',
+                  amount: 150,
+                },
+                { roleTypePattern: 'Leader', label: 'Leiter:in', vatCode: '2.6%', amount: 50 },
+                { roleTypePattern: 'Helper', label: 'Helfer:in', vatCode: '2.6%', amount: 50 },
               ],
               fields: [
                 {

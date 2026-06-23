@@ -18,7 +18,11 @@ interface SyncHistoryEntry {
  * Uses Payload's built-in email transport (configured via emailSettings in payload.config.ts)
  * instead of importing nodemailer directly, to avoid bundler resolution issues.
  */
-export async function sendBills(payload: Payload, participantId?: string): Promise<SendSummary> {
+export async function sendBills(
+  payload: Payload,
+  participantId?: string,
+  dependencies?: { hitobitoClient?: HitobitoClient; s3Client?: S3Client },
+): Promise<SendSummary> {
   const summary: SendSummary = {
     sentCount: 0,
     failedCount: 0,
@@ -51,14 +55,16 @@ export async function sendBills(payload: Payload, participantId?: string): Promi
     },
   };
 
-  const client = new HitobitoClient(
-    {
-      baseUrl: HITOBITO_CONFIG.baseUrl,
-      apiToken: HITOBITO_CONFIG.apiToken,
-      browserCookie: '',
-    },
-    logger,
-  );
+  const client =
+    dependencies?.hitobitoClient ??
+    new HitobitoClient(
+      {
+        baseUrl: HITOBITO_CONFIG.baseUrl,
+        apiToken: HITOBITO_CONFIG.apiToken,
+        browserCookie: '',
+      },
+      logger,
+    );
   const personService = new PersonService(client, logger);
 
   // 3. Query participants needing email
@@ -81,15 +87,17 @@ export async function sendBills(payload: Payload, participantId?: string): Promi
   }
 
   // 4. Create S3 client once for all PDF fetches
-  const s3 = new S3Client({
-    endpoint: environmentVariables.MINIO_HOST,
-    region: 'us-east-1',
-    credentials: {
-      accessKeyId: environmentVariables.MINIO_ACCESS_KEY_ID,
-      secretAccessKey: environmentVariables.MINIO_SECRET_ACCESS_KEY,
-    },
-    forcePathStyle: true,
-  });
+  const s3 =
+    dependencies?.s3Client ??
+    new S3Client({
+      endpoint: environmentVariables.MINIO_HOST,
+      region: 'us-east-1',
+      credentials: {
+        accessKeyId: environmentVariables.MINIO_ACCESS_KEY_ID,
+        secretAccessKey: environmentVariables.MINIO_SECRET_ACCESS_KEY,
+      },
+      forcePathStyle: true,
+    });
 
   for (const document_ of participants.docs) {
     try {
