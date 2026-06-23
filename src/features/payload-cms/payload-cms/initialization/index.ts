@@ -3,17 +3,100 @@ import { ensureIndexes } from '@/features/payload-cms/payload-cms/initialization
 import { seedDatabase } from '@/features/payload-cms/payload-cms/initialization/seeding';
 import prisma from '@/lib/db/prisma';
 import { withSpan } from '@/utils/tracing-helpers';
+import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 import type { Payload } from 'payload';
 
 const LOCK_FILE = path.join(process.cwd(), 'seeding.lock');
+
+// Generate a stable worker ID for this process instance
+const workerId = crypto.randomUUID();
+let heartbeatStarted = false;
+
+const startWorkerHeartbeat = (payload: Payload): void => {
+  const hostname = os.hostname();
+
+  const sendHeartbeat = async (): Promise<void> => {
+    try {
+      const autoRun = payload.config.jobs.autoRun;
+      let autoRunQueues: { queue?: string }[] = [];
+      if (Array.isArray(autoRun)) {
+        autoRunQueues = autoRun;
+      } else if (typeof autoRun === 'function') {
+        const resolved = await autoRun(payload);
+        if (Array.isArray(resolved)) {
+          autoRunQueues = resolved;
+        }
+      }
+      const queues = autoRunQueues.map((q) => ({ name: q.queue ?? 'default' }));
+
+      // Find if this worker already exists in database
+      const existing = await payload.find({
+        collection: 'payload-workers',
+        where: {
+          workerId: { equals: workerId },
+        },
+        limit: 1,
+        context: { internal: true },
+      });
+
+      const now = new Date().toISOString();
+      const workerDocument = existing.docs[0];
+
+      await (workerDocument
+        ? payload.update({
+            collection: 'payload-workers',
+            id: workerDocument.id,
+            data: {
+              lastHeartbeat: now,
+              queues,
+            },
+            context: { internal: true },
+          })
+        : payload.create({
+            collection: 'payload-workers',
+            data: {
+              workerId,
+              hostname,
+              queues,
+              lastHeartbeat: now,
+            },
+            context: { internal: true },
+          }));
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      payload.logger.error(
+        `[Worker Heartbeat] Failed to send heartbeat for worker ${workerId}: ${errorMessage}`,
+      );
+    }
+  };
+
+  // Send immediate heartbeat
+  void sendHeartbeat();
+
+  // Update heartbeat every 30 seconds
+  const interval = setInterval(() => {
+    void sendHeartbeat();
+  }, 30_000);
+
+  // Unref interval so it does not block process exit (especially in tests)
+  if (typeof interval.unref === 'function') {
+    interval.unref();
+  }
+};
 
 /**
  * This function is called when the Payload server has started.
  * @param payload The Payload instance
  */
 export const onPayloadInit = async (payload: Payload): Promise<void> => {
+  if (!heartbeatStarted) {
+    heartbeatStarted = true;
+    startWorkerHeartbeat(payload);
+  }
+
   const globalForInit = globalThis as unknown as {
     __payloadInitCompleted__?: boolean;
   };
@@ -33,6 +116,22 @@ export const onPayloadInit = async (payload: Payload): Promise<void> => {
     }
   } catch {
     // Lock file doesn't exist or is not written yet, proceed to normal checks
+  }
+
+  // Clear stale preferences for payload-jobs to resolve cached groupBy/where field CastErrors
+  try {
+    await payload.delete({
+      collection: 'payload-preferences',
+      where: {
+        or: [{ key: { equals: 'collection-payload-jobs' } }, { key: { equals: 'payload-jobs' } }],
+      },
+      context: { internal: true },
+    });
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(
+      `[Initialization] Failed to clear stale payload-jobs preferences: ${errorMessage}`,
+    );
   }
 
   // Check if database is already seeded first

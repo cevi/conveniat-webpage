@@ -3,6 +3,7 @@ import {
   cleanupCompletedScheduledJobs,
   cleanupStaleScheduledJobs,
   DEFAULT_QUEUE,
+  recoverStaleJobs,
 } from '@/features/payload-cms/payload-cms/tasks/cleanup-stale-jobs';
 import { getHitobito, HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api';
 import { getFeatureFlag } from '@/lib/db/redis';
@@ -24,6 +25,7 @@ export const checkHitobitoApprovalsTask: TaskConfig<'checkHitobitoApprovals'> = 
         }): Promise<{ shouldSchedule: boolean; input: Record<string, never> }> => {
           await cleanupCompletedScheduledJobs(req, 'checkHitobitoApprovals');
           await cleanupStaleScheduledJobs(req, 'checkHitobitoApprovals', 15);
+          await recoverStaleJobs(req, 60);
 
           const isEnabled = await getFeatureFlag(FEATURE_FLAG_CHECK_HITOBITO_APPROVALS_ENABLED);
           if (!isEnabled || !environmentVariables.FEATURE_ENABLE_REGISTRATION_MANAGEMENT) {

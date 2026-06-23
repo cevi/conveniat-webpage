@@ -14,6 +14,7 @@ import { JobCollection } from '@/features/payload-cms/payload-cms/collections/he
 import { HelperShiftsCollection } from '@/features/payload-cms/payload-cms/collections/helper-shifts-collection';
 import { ImageCollection } from '@/features/payload-cms/payload-cms/collections/image-collection';
 import { OutgoingEmails } from '@/features/payload-cms/payload-cms/collections/outgoing-emails';
+import { PayloadWorkersCollection } from '@/features/payload-cms/payload-cms/collections/payload-workers';
 import { PermissionsCollection } from '@/features/payload-cms/payload-cms/collections/permission-collection';
 import { PiketScheduleCollection } from '@/features/payload-cms/payload-cms/collections/piket-schedule-collection';
 import { PushNotificationSubscriptions } from '@/features/payload-cms/payload-cms/collections/push-notification-subscriptions';
@@ -61,6 +62,7 @@ const rawCollectionsConfig: CollectionConfig[] = [
   BillParticipantsCollection,
   BillPdfsCollection,
   PiketScheduleCollection,
+  PayloadWorkersCollection,
 ];
 
 /**

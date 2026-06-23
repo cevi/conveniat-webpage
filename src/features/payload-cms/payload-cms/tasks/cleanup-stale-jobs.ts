@@ -82,3 +82,62 @@ export async function cleanupCompletedScheduledJobs(
     }
   }
 }
+
+/**
+ * Recovers stale manually-triggered or on-demand jobs that got stuck with `processing: true`
+ * because a worker process crashed, restarted, or was killed.
+ *
+ * It resets `processing: false` so that the job can either be retried
+ * by the runner (if attempts remaining) or marked as completed/failed.
+ */
+export async function recoverStaleJobs(
+  request: PayloadRequest,
+  maxAgeMinutes: number = 60, // 1 hour default
+): Promise<void> {
+  const cutoffDate = new Date();
+  cutoffDate.setMinutes(cutoffDate.getMinutes() - maxAgeMinutes);
+
+  const staleJobs = await request.payload.find({
+    collection: 'payload-jobs',
+    where: {
+      and: [
+        { processing: { equals: true } },
+        { completedAt: { exists: false } },
+        { updatedAt: { less_than: cutoffDate.toISOString() } },
+      ],
+    },
+    limit: 100,
+  });
+
+  if (staleJobs.docs.length > 0) {
+    request.payload.logger.warn(
+      `Found ${staleJobs.docs.length} stuck processing job(s) older than ${maxAgeMinutes} minutes. Recovering...`,
+    );
+    for (const staleJob of staleJobs.docs) {
+      const totalTried = typeof staleJob.totalTried === 'number' ? staleJob.totalTried : 0;
+      const hasExceededAttempts = totalTried >= 3;
+
+      const updateData: Record<string, unknown> = {
+        processing: false,
+      };
+
+      if (hasExceededAttempts) {
+        updateData['completedAt'] = new Date().toISOString();
+        updateData['hasError'] = true;
+        updateData['error'] = 'Job aborted: worker process terminated and retry limit exceeded.';
+      }
+
+      await request.payload.update({
+        collection: 'payload-jobs',
+        id: staleJob.id,
+        data: updateData,
+      });
+
+      request.payload.logger.info(
+        `Recovered stuck job ID ${staleJob.id} (task: ${staleJob.taskSlug}). Status: ${
+          hasExceededAttempts ? 'Marked Failed' : 'Reset for Retry'
+        }`,
+      );
+    }
+  }
+}
