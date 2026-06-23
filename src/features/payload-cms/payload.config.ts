@@ -144,13 +144,60 @@ const jobsConfig: JobsConfig = {
    * deletion locally within its own `onSuccess` hook instead.
    */
   deleteJobOnComplete: false,
-  jobsCollectionOverrides: ({ defaultJobsCollection }) => ({
-    ...defaultJobsCollection,
-    admin: {
-      ...defaultJobsCollection.admin,
-      hidden: shouldHideInAdminPanel,
-    },
-  }),
+  jobsCollectionOverrides: ({ defaultJobsCollection }) => {
+    const fields = defaultJobsCollection.fields.map((field) => {
+      if (
+        'name' in field &&
+        field.type === 'json' &&
+        ['input', 'error', 'taskStatus'].includes(field.name)
+      ) {
+        return {
+          ...field,
+          admin: {
+            ...field.admin,
+            components: {
+              ...field.admin?.components,
+              Field: '@/features/payload-cms/payload-cms/components/simple-json-field',
+            },
+          },
+        };
+      }
+      if ('name' in field && field.name === 'log' && 'fields' in field) {
+        return {
+          ...field,
+          fields: field.fields.map((subField) => {
+            if (
+              'name' in subField &&
+              subField.type === 'json' &&
+              ['input', 'output', 'error'].includes(subField.name)
+            ) {
+              return {
+                ...subField,
+                admin: {
+                  ...subField.admin,
+                  components: {
+                    ...subField.admin?.components,
+                    Field: '@/features/payload-cms/payload-cms/components/simple-json-field',
+                  },
+                },
+              };
+            }
+            return subField;
+          }),
+        };
+      }
+      return field;
+    });
+
+    return {
+      ...defaultJobsCollection,
+      admin: {
+        ...defaultJobsCollection.admin,
+        hidden: shouldHideInAdminPanel,
+      },
+      fields,
+    };
+  },
   tasks: [
     resolveUserStep,
     createUserStep,
