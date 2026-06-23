@@ -51,6 +51,81 @@ const HITOBITO_FORWARD_URL = environmentVariables.HITOBITO_FORWARD_URL;
 const CEVI_DB_CLIENT_ID = environmentVariables.CEVI_DB_CLIENT_ID;
 const CEVI_DB_CLIENT_SECRET = environmentVariables.CEVI_DB_CLIENT_SECRET;
 
+interface UserGroup {
+  id: number;
+  name: string;
+  role_name: string;
+  role_class: string;
+  [k: string]: unknown;
+}
+
+/**
+ * Maps Hitobito profile roles to user groups structure.
+ */
+function mapProfileRolesToGroups(roles: HitobitoProfile['roles']): UserGroup[] {
+  return roles.map((role) => ({
+    id: role.group_id,
+    name: role.group_name,
+    role_name: role.role_name,
+    role_class: role.role_class,
+  }));
+}
+
+/**
+ * Checks if the groups list of the user has changed compared to the incoming roles.
+ */
+function hasUserGroupsChanged(
+  existingGroups: User['groups'],
+  incomingRoles: HitobitoProfile['roles'],
+): boolean {
+  const currentGroups = Array.isArray(existingGroups) ? existingGroups : [];
+  if (currentGroups.length !== incomingRoles.length) {
+    return true;
+  }
+  return !incomingRoles.every((newG) =>
+    currentGroups.some(
+      (existingG) =>
+        existingG.id === newG.group_id &&
+        existingG.role_name === newG.role_name &&
+        existingG.role_class === newG.role_class,
+    ),
+  );
+}
+
+/**
+ * Checks if any critical profile attributes (email, name, groups) have changed.
+ */
+function hasUserProfileChanged(existingUser: User, incomingProfile: HitobitoProfile): boolean {
+  const newFullName = incomingProfile.first_name + ' ' + incomingProfile.last_name;
+  const existingNickname = existingUser.nickname ?? undefined;
+  const incomingNickname = incomingProfile.nickname ?? undefined;
+
+  return (
+    hasUserGroupsChanged(existingUser.groups, incomingProfile.roles) ||
+    existingUser.fullName !== newFullName ||
+    existingNickname !== incomingNickname ||
+    existingUser.email !== incomingProfile.email
+  );
+}
+
+/**
+ * Determines whether user changes require queueing a chat membership sync.
+ */
+function shouldSyncAnnouncementChats(
+  existingUser: User,
+  incomingProfile: HitobitoProfile,
+): boolean {
+  const newFullName = incomingProfile.first_name + ' ' + incomingProfile.last_name;
+  const existingNickname = existingUser.nickname ?? undefined;
+  const incomingNickname = incomingProfile.nickname ?? undefined;
+
+  return (
+    hasUserGroupsChanged(existingUser.groups, incomingProfile.roles) ||
+    existingUser.fullName !== newFullName ||
+    existingNickname !== incomingNickname
+  );
+}
+
 /**
  * Fetches the user from the Payload CMS and saves it if it does not exist.
  * @param payload
@@ -71,12 +146,7 @@ async function saveAndFetchUserFromPayload(
 
     const userData = {
       cevi_db_uuid: ceviDatabaseUuid,
-      groups: userProfile.roles.map((role) => ({
-        id: role.group_id,
-        name: role.group_name,
-        role_name: role.role_name,
-        role_class: role.role_class,
-      })),
+      groups: mapProfileRolesToGroups(userProfile.roles),
       email: userProfile.email,
       fullName: userProfile.first_name + ' ' + userProfile.last_name,
       nickname: userProfile.nickname,
@@ -92,30 +162,32 @@ async function saveAndFetchUserFromPayload(
       throw new Error('Multiple users found with the same UUID');
     }
 
-    // User already exists by UUID — update and return
-    const payloadUserId = matchedByUuid.docs[0]?.id;
-    if (matchedByUuid.totalDocs === 1 && payloadUserId !== undefined) {
+    // User already exists by UUID — update and return if changed
+    const existingUser = matchedByUuid.docs[0];
+    if (matchedByUuid.totalDocs === 1 && existingUser !== undefined) {
+      if (!hasUserProfileChanged(existingUser, userProfile)) {
+        return existingUser;
+      }
+
+      const newFullName = userProfile.first_name + ' ' + userProfile.last_name;
       const updatedUser = await payload.update({
         collection: 'users',
-        id: payloadUserId,
+        id: existingUser.id,
         data: {
-          groups: userProfile.roles.map((role) => ({
-            id: role.group_id,
-            name: role.group_name,
-            role_name: role.role_name,
-            role_class: role.role_class,
-          })),
+          groups: mapProfileRolesToGroups(userProfile.roles),
           email: userProfile.email,
-          fullName: userProfile.first_name + ' ' + userProfile.last_name,
+          fullName: newFullName,
           nickname: userProfile.nickname,
         },
       });
 
-      // Queue background job to sync announcement channels
-      await payload.jobs.queue({
-        task: 'syncNewUserAnnouncementChats',
-        input: { userId: payloadUserId },
-      });
+      // Queue background job to sync announcement channels if groups, nickname or name changed
+      if (shouldSyncAnnouncementChats(existingUser, userProfile)) {
+        await payload.jobs.queue({
+          task: 'syncNewUserAnnouncementChats',
+          input: { userId: existingUser.id },
+        });
+      }
 
       return updatedUser;
     }
@@ -201,7 +273,7 @@ const inflightRefreshes = new Map<string, Promise<JWT>>();
 async function refreshAccessToken(token: JWT): Promise<JWT> {
   const userId = token.uuid;
 
-  if (!userId) {
+  if (userId === undefined || userId === '') {
     return doRefreshAccessToken(token); // skip dedup for tokens without a UUID
   }
 
@@ -426,7 +498,7 @@ export const authOptions: NextAuthConfig = {
       }
 
       // Access token has expired, try to update it
-      if (!token.refresh_token) {
+      if (token.refresh_token === undefined || token.refresh_token === '') {
         return {
           ...token,
           error: 'RefreshAccessTokenError',
