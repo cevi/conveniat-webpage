@@ -2,6 +2,7 @@ import { environmentVariables } from '@/config/environment-variables';
 import type { HitobitoProfile } from '@/features/next-auth/types/hitobito-profile';
 import type { User } from '@/features/payload-cms/payload-types';
 import { withSpan } from '@/utils/tracing-helpers';
+import { trace } from '@opentelemetry/api';
 import type { NextAuthConfig } from 'next-auth';
 import type { JWT } from 'next-auth/jwt';
 import { after } from 'next/server';
@@ -265,11 +266,11 @@ async function syncProfileToPayloadAsync(profile: HitobitoProfile): Promise<void
 
 const inflightRefreshes = new Map<string, Promise<JWT>>();
 
-async function refreshAccessToken(token: JWT): Promise<JWT> {
+async function refreshAccessToken(token: JWT, reason: string): Promise<JWT> {
   const userId = token.uuid;
 
   if (typeof userId !== 'string' || userId === '') {
-    return doRefreshAccessToken(token); // skip dedup for tokens without a UUID
+    return doRefreshAccessToken(token, reason); // skip dedup for tokens without a UUID
   }
 
   // If a refresh is already in-flight for this user, wait for it
@@ -279,7 +280,7 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
   }
 
   // Start the actual refresh and store the promise
-  const refreshPromise = doRefreshAccessToken(token).finally(() => {
+  const refreshPromise = doRefreshAccessToken(token, reason).finally(() => {
     // Clean up after a short delay to handle near-simultaneous arrivals
     setTimeout(() => inflightRefreshes.delete(userId), 1000);
   });
@@ -292,9 +293,14 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
  * Refreshes the access token using the refresh token.
  * returns the new token with updated expiration and access token
  */
-async function doRefreshAccessToken(token: JWT): Promise<JWT> {
+async function doRefreshAccessToken(token: JWT, reason: string): Promise<JWT> {
   try {
-    console.log('Refreshing access token for user', token.uuid);
+    console.log('Refreshing access token for user', token.uuid, 'Reason:', reason);
+
+    const activeSpan = trace.getActiveSpan();
+    if (activeSpan !== undefined) {
+      activeSpan.setAttribute('hitobito.refresh_reason', reason);
+    }
 
     const url = `${HITOBITO_BASE_URL}/oauth/token`;
     const response = await fetchWithRetry(url, {
@@ -378,6 +384,10 @@ async function doRefreshAccessToken(token: JWT): Promise<JWT> {
     }
   } catch (error) {
     console.error('Error refreshing access token', error);
+    const activeSpan = trace.getActiveSpan();
+    if (activeSpan !== undefined) {
+      activeSpan.recordException(error as Error);
+    }
     return {
       ...token,
       error: 'RefreshAccessTokenError',
@@ -459,6 +469,10 @@ export const authOptions: NextAuthConfig = {
     async jwt({ token, account, profile: _profile }): Promise<JWT> {
       // Initial sign in
       if (account && _profile) {
+        const activeSpan = trace.getActiveSpan();
+        if (activeSpan !== undefined) {
+          activeSpan.setAttribute('hitobito.refresh_reason', 'authorization_code_exchange');
+        }
         const profile = _profile as unknown as HitobitoProfile;
 
         const config = await import('@payload-config');
@@ -500,7 +514,16 @@ export const authOptions: NextAuthConfig = {
         };
       }
 
-      return refreshAccessToken(token);
+      let reason = 'unknown';
+      if (expiresAt === 0) {
+        reason = 'missing_expires_at';
+      } else if (Date.now() >= expiresAt * 1000) {
+        reason = 'token_expired';
+      } else {
+        reason = 'token_approaching_expiry';
+      }
+
+      return refreshAccessToken(token, reason);
     },
   },
 
