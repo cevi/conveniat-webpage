@@ -194,6 +194,15 @@ const jobsConfig: JobsConfig = {
       admin: {
         ...defaultJobsCollection.admin,
         hidden: shouldHideInAdminPanel,
+        groupBy: true,
+        defaultColumns: [
+          'id',
+          'totalTried',
+          'workflowSlug',
+          'taskSlug',
+          'processing',
+          'completedAt',
+        ],
       },
       fields,
     };
