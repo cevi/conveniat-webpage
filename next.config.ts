@@ -1,4 +1,5 @@
 import { cachingHeaders, optimizedImageMinimumCacheTTL } from '@/cache-control';
+import { logStartupBanner } from '@/utils/startup-banner';
 import bundleAnalyzer from '@next/bundle-analyzer';
 import { withPayload } from '@payloadcms/next/withPayload';
 import { withPostHogConfig } from '@posthog/nextjs-config';
@@ -7,6 +8,11 @@ import type { Rewrite } from 'next/dist/lib/load-custom-routes';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
+
+// Prevent duplicate logs when webpack compiles internal bundles
+if (!process.env['NEXT_PRIVATE_LOCAL_WEBPACK']) {
+  logStartupBanner();
+}
 
 const withBundleAnalyzer = bundleAnalyzer({
   enabled: process.env['ANALYZE'] === 'true',
