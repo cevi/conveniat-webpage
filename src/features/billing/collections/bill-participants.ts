@@ -40,7 +40,7 @@ export const BillParticipantsCollection: CollectionConfig = {
       'status',
       'billSentDate',
       'hitobitoLink',
-      'groupName',
+      'eventName',
       'relatedEmails',
       'actions',
     ],
@@ -133,13 +133,13 @@ export const BillParticipantsCollection: CollectionConfig = {
       },
     },
     {
-      name: 'groupName',
+      name: 'eventName',
       access: { read: canAccessBillingField, update: canAccessBillingField },
       type: 'text',
       label: {
-        en: 'Group Name',
-        de: 'Gruppenname',
-        fr: 'Nom du groupe',
+        en: 'Event Name',
+        de: 'Anlass-Name',
+        fr: "Nom de l'événement",
       },
     },
 

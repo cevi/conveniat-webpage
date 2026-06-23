@@ -129,7 +129,7 @@ async function syncSingleEvent(
         userId: participation.participantId,
         eventId: event.eventId,
         groupId: event.groupId,
-        groupName: event.eventName,
+        eventName: event.eventName,
         firstName: participation.firstName,
         lastName: participation.lastName,
         nickname: participation.nickname,
@@ -185,7 +185,7 @@ async function syncSingleEvent(
       const hasNicknameChanged =
         normalize(document_.nickname) !== normalize(participation.nickname);
       const hasGroupIdChanged = normalize(document_.groupId) !== normalize(event.groupId);
-      const hasGroupNameChanged = normalize(document_.groupName) !== normalize(event.eventName);
+      const hasEventNameChanged = normalize(document_.eventName) !== normalize(event.eventName);
 
       const hasStreetChanged = normalize(document_.street) !== normalize(participation.street);
       const hasZipChanged = normalize(document_.zip) !== normalize(participation.zip);
@@ -224,7 +224,7 @@ async function syncSingleEvent(
         hasLastNameChanged ||
         hasNicknameChanged ||
         hasGroupIdChanged ||
-        hasGroupNameChanged ||
+        hasEventNameChanged ||
         hasStreetChanged ||
         hasZipChanged ||
         hasZipCodeChanged ||
@@ -247,7 +247,7 @@ async function syncSingleEvent(
         hasLastNameChanged ||
         hasNicknameChanged ||
         hasGroupIdChanged ||
-        hasGroupNameChanged ||
+        hasEventNameChanged ||
         hasStreetChanged ||
         hasZipChanged ||
         hasZipCodeChanged ||
@@ -288,8 +288,8 @@ async function syncSingleEvent(
           };
         if (hasGroupIdChanged)
           diff['groupId'] = { from: String(document_.groupId), to: event.groupId };
-        if (hasGroupNameChanged)
-          diff['groupName'] = { from: String(document_.groupName), to: event.eventName };
+        if (hasEventNameChanged)
+          diff['eventName'] = { from: String(document_.eventName), to: event.eventName };
         if (hasStreetChanged)
           diff['street'] = { from: String(document_.street), to: participation.street ?? '' };
         if (hasZipChanged)
@@ -328,7 +328,7 @@ async function syncSingleEvent(
         await participantRepo.update(document_.id, {
           lastSyncDate: now,
           groupId: event.groupId,
-          groupName: event.eventName,
+          eventName: event.eventName,
           firstName: participation.firstName,
           lastName: participation.lastName,
           nickname: participation.nickname,
