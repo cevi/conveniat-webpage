@@ -45,6 +45,19 @@ export const OutgoingEmails: CollectionConfig = {
     update: () => false,
     delete: () => false,
   },
+  hooks: {
+    beforeOperation: [
+      // eslint-disable-next-line @typescript-eslint/no-deprecated
+      ({ args, operation }): void => {
+        if (
+          (operation === 'find' || operation === 'findByID') &&
+          (args.depth === undefined || args.depth === 0)
+        ) {
+          args.depth = 1;
+        }
+      },
+    ],
+  },
   endpoints: [
     {
       path: '/:id/resend',
@@ -225,6 +238,16 @@ export const OutgoingEmails: CollectionConfig = {
             const safeData = (data ?? {}) as Record<string, unknown>;
             const formSubmission = safeData['formSubmission'];
             if (formSubmission === undefined || formSubmission === null) return undefined;
+
+            // Fast path: if formSubmission is already eagerly populated, extract the form ID directly
+            if (typeof formSubmission === 'object' && 'form' in formSubmission) {
+              const formValue = (formSubmission as Record<string, unknown>)['form'];
+              if (formValue !== undefined && formValue !== null) {
+                return typeof formValue === 'object' && 'id' in formValue
+                  ? (formValue as { id: string }).id
+                  : (formValue as string);
+              }
+            }
 
             const formSubmissionId =
               typeof formSubmission === 'object' && 'id' in formSubmission
