@@ -96,12 +96,7 @@ export function useNativePush(): {
         case 'native-push-token': {
           const token = payload['token'];
           const platform = payload['platform'];
-          console.log(
-            '[NativePush:PWA] token received: platform =',
-            platform,
-            '| token =',
-            typeof token === 'string' ? `${token.slice(0, 8)}…` : 'missing',
-          );
+          console.log('[NativePush:PWA] token received: platform =', platform);
           if (typeof token === 'string' && typeof platform === 'string') {
             console.log('[NativePush:PWA] calling registerDevice: platform =', platform);
             registerDevice({
@@ -127,12 +122,7 @@ export function useNativePush(): {
         case 'native-push-token-deleted': {
           const token = payload['token'];
           const platform = payload['platform'];
-          console.log(
-            '[NativePush:PWA] token deleted: platform =',
-            platform,
-            '| token =',
-            typeof token === 'string' ? `${token.slice(0, 8)}…` : 'missing',
-          );
+          console.log('[NativePush:PWA] token deleted: platform =', platform);
           if (typeof token === 'string' && typeof platform === 'string') {
             console.log('[NativePush:PWA] calling unregisterDevice: platform =', platform);
             unregisterDevice({

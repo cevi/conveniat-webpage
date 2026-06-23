@@ -14,19 +14,13 @@ export const nativePushRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const tokenPreview = `${input.token.slice(0, 8)}…`;
-      console.log(
-        '[NativePush:API] registerDevice: platform =',
-        input.platform,
-        '| token =',
-        tokenPreview,
-      );
+      console.log('[NativePush:API] registerDevice: platform =', input.platform);
 
       const payload = await getPayload({ config });
       const payloadUser = await getPayloadUserFromNextAuthUser(payload, ctx.user);
 
       if (!payloadUser) {
-        console.warn('[NativePush:API] registerDevice: user not found for token', tokenPreview);
+        console.warn('[NativePush:API] registerDevice: user not found');
         throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found' });
       }
 
@@ -85,19 +79,13 @@ export const nativePushRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const tokenPreview = `${input.token.slice(0, 8)}…`;
-      console.log(
-        '[NativePush:API] unregisterDevice: platform =',
-        input.platform,
-        '| token =',
-        tokenPreview,
-      );
+      console.log('[NativePush:API] unregisterDevice: platform =', input.platform);
 
       const payload = await getPayload({ config });
       const payloadUser = await getPayloadUserFromNextAuthUser(payload, ctx.user);
 
       if (!payloadUser) {
-        console.warn('[NativePush:API] unregisterDevice: user not found for token', tokenPreview);
+        console.warn('[NativePush:API] unregisterDevice: user not found');
         throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found' });
       }
 

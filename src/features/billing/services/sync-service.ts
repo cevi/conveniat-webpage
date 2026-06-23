@@ -97,7 +97,7 @@ async function syncSingleEvent(
         const validatedOutput = validateParticipant(input);
         if (!validatedOutput.isValid) {
           console.log(
-            `[VALIDATION DEBUG] Participant: ${participation.fullName}, ID: ${participation.participantId}, missing fields:`,
+            '[VALIDATION DEBUG] Participant registration invalid. Missing fields:',
             validatedOutput.missingFields,
           );
         }
