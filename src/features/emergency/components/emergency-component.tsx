@@ -122,7 +122,7 @@ export const EmergencyComponent: React.FC = () => {
 
   // Fetch dynamic emergency cards from Payload CMS
   const { data: emergencyCards, isLoading } = trpc.emergency.getEmergencyCards.useQuery(undefined, {
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 0,
   });
 
   // Track online/offline status and auth status
