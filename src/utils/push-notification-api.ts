@@ -4,6 +4,7 @@ import { environmentVariables } from '@/config/environment-variables';
 import type { PushNotificationSubscription } from '@/features/payload-cms/payload-types';
 import { sendFcmNotification } from '@/lib/firebase-admin';
 import { PushNotificationChannel } from '@/lib/prisma';
+import type { DatabasePushSubscription, SchemaPushSubscription } from '@/schemas/push';
 import type { StaticTranslationString } from '@/types/types';
 import { auth } from '@/utils/auth';
 import { getPayloadUserFromNextAuthUser, isValidNextAuthUser } from '@/utils/auth-helpers';
@@ -173,7 +174,11 @@ export async function unsubscribeUser(sub: WebPushSubscription): Promise<{ succe
 }
 
 export async function sendNotificationToSubscription(
-  subscription: webpush.PushSubscription | PushNotificationSubscription,
+  subscription:
+    | webpush.PushSubscription
+    | PushNotificationSubscription
+    | SchemaPushSubscription
+    | DatabasePushSubscription,
   message: string,
   url?: string,
   userId?: string,
@@ -236,14 +241,15 @@ export async function sendNotificationToSubscription(
       let webSub = subscription as webpush.PushSubscription;
       // If it's a Payload subscription, format it for web-push
       if ('endpoint' in subscription && 'keys' in subscription) {
-        if (!subscription.endpoint || !subscription.keys.p256dh || !subscription.keys.auth) {
+        const keys = subscription.keys;
+        if (!subscription.endpoint || !keys?.p256dh || !keys.auth) {
           throw new Error('Web Push subscription is missing required fields (endpoint or keys).');
         }
         webSub = {
           endpoint: subscription.endpoint,
           keys: {
-            p256dh: subscription.keys.p256dh,
-            auth: subscription.keys.auth,
+            p256dh: keys.p256dh,
+            auth: keys.auth,
           },
         };
       }

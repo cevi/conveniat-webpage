@@ -1,13 +1,14 @@
 'use client';
 
-import { Input } from '@/components/ui/input';
-import { trpc } from '@/trpc/client';
+import { SendNotificationForm } from '@/features/payload-cms/components/push-notification/send-notification-form';
+import { useSendTestNotification } from '@/features/payload-cms/components/push-notification/use-send-test-notification';
 import { cva } from 'class-variance-authority';
-import { AlertCircle, Send, X } from 'lucide-react';
-import React, { useState } from 'react';
+import { Send, X } from 'lucide-react';
+import React from 'react';
 import { createPortal } from 'react-dom';
 import type webpush from 'web-push';
 
+import type { PushNotificationSubscription } from '@/features/payload-cms/payload-types';
 import { useTranslation } from '@payloadcms/ui';
 
 const translations = {
@@ -55,7 +56,7 @@ const translations = {
 interface SendNotificationModalProperties {
   isOpen: boolean;
   onClose: () => void;
-  subscription: webpush.PushSubscription;
+  subscription: webpush.PushSubscription | PushNotificationSubscription;
   userId?: string | undefined;
 }
 
@@ -69,54 +70,18 @@ export const SendNotificationModal: React.FC<SendNotificationModalProperties> = 
   const t =
     (translations as Record<string, typeof translations.en>)[i18n.language] ?? translations.en;
 
-  const [content, setContent] = useState('');
-  const [url, setUrl] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | undefined>();
-  const utils = trpc.useUtils();
-  const sendTestNotificationMutation = trpc.pushTracking.sendTestNotification.useMutation();
+  const { content, setContent, url, setUrl, isSubmitting, error, setError, handleSend } =
+    useSendTestNotification({
+      subscription,
+      userId,
+      onClose,
+      enterContentErrorText: t.enterContent,
+      unknownErrorText: t.unknownError,
+      sendFailedErrorText: t.sendFailed,
+    });
 
   // eslint-disable-next-line unicorn/no-null
   if (!isOpen) return null;
-
-  const handleSend = async (): Promise<void> => {
-    if (content.trim() === '') {
-      setError(t.enterContent);
-      return;
-    }
-
-    setIsSubmitting(true);
-    setError(undefined);
-
-    try {
-      const result = await sendTestNotificationMutation.mutateAsync({
-        subscription: {
-          endpoint: subscription.endpoint,
-          keys: {
-            p256dh: subscription.keys.p256dh,
-            auth: subscription.keys.auth,
-          },
-        },
-        message: content,
-        url: url === '' ? undefined : url,
-        userId: userId !== undefined && userId !== '' ? userId : undefined,
-      });
-      if (result.success) {
-        setContent('');
-        setUrl('');
-        await utils.pushTracking.getRecentLogs.invalidate();
-        onClose();
-      } else {
-        await utils.pushTracking.getRecentLogs.invalidate();
-        setError(result.error !== undefined && result.error !== '' ? result.error : t.unknownError);
-      }
-    } catch (error_) {
-      console.error(error_);
-      setError(t.sendFailed);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   const confirmClasses = cva(
     'cursor-pointer relative flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 min-w-[100px] bg-slate-900 hover:bg-slate-800 focus:ring-slate-900',
@@ -138,40 +103,15 @@ export const SendNotificationModal: React.FC<SendNotificationModalProperties> = 
           </button>
         </div>
 
-        <div className="mb-6 space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm leading-none font-medium text-gray-700 dark:text-gray-300">
-              {t.contentLabel}
-            </label>
-            <Input
-              placeholder={t.contentPlaceholder}
-              value={content}
-              onChange={(event) => {
-                setContent(event.target.value);
-                if (error !== undefined && error !== '') setError(undefined);
-              }}
-              className="bg-white dark:bg-gray-950"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm leading-none font-medium text-gray-700 dark:text-gray-300">
-              {t.urlLabel}
-            </label>
-            <Input
-              placeholder={t.urlPlaceholder}
-              value={url}
-              onChange={(event) => setUrl(event.target.value)}
-              className="bg-white dark:bg-gray-950"
-            />
-          </div>
-
-          {error !== undefined && error !== '' && (
-            <div className="flex items-start gap-2 rounded-md bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
-        </div>
+        <SendNotificationForm
+          content={content}
+          setContent={setContent}
+          url={url}
+          setUrl={setUrl}
+          error={error}
+          setError={setError}
+          translations={t}
+        />
 
         <div className="flex justify-end gap-3">
           <button
