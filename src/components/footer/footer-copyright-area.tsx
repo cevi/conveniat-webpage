@@ -1,4 +1,5 @@
 import { FooterGraphic } from '@/components/footer/footer-graphics';
+import { NativeAppVersionInfo } from '@/components/native-app-version-info';
 import { CeviSchweiz } from '@/components/svg-logos/cevi-schweiz';
 import { LinkComponent } from '@/components/ui/link-component';
 import { getFooterCached } from '@/features/payload-cms/api/cached-globals';
@@ -193,7 +194,10 @@ export const FooterCopyrightArea: React.FC<{
 
               {!inAppDesign && (
                 <>
-                  <FooterBuildInfoText>Version {build.version} </FooterBuildInfoText>
+                  <FooterBuildInfoText>
+                    Version {build.version}
+                    <NativeAppVersionInfo />
+                  </FooterBuildInfoText>
                   <FooterBuildInfoText>
                     Build {build.git.hash} {footerCopyrightText[locale]} {build.timestamp}
                   </FooterBuildInfoText>
