@@ -240,9 +240,13 @@ export const formPluginConfiguration = formBuilderPlugin({
       },
     },
     access: {
-      read: hasAdminOrWebAccess,
+      read: hasAccessToThisHelper({
+        requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam, Roles.TranslationTeam],
+      }),
       create: hasAdminOrWebAccess,
-      update: hasAdminOrWebAccess,
+      update: hasAccessToThisHelper({
+        requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam, Roles.TranslationTeam],
+      }),
       delete: hasAdminOrWebAccess,
     },
     endpoints: [
