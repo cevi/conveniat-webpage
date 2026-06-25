@@ -2,73 +2,69 @@ import { environmentVariables } from '@/config/environment-variables';
 import type { Field, Tab } from 'payload';
 
 export const WORKFLOW_DEFINITIONS = {
-  ...(environmentVariables.FEATURE_ENABLE_REGISTRATION_MANAGEMENT
-    ? {
-        registrationWorkflow: {
-          label: {
-            en: 'Helper Registration Workflow',
-            de: 'Helfer:innen-Anmeldung Workflow',
-            fr: "Workflow d'inscription des bénévoles",
-          },
-          inputs: [
-            {
-              key: 'peopleId',
-              label: {
-                en: 'People ID (Cevi.DB User ID)',
-                de: 'People ID (Cevi.DB User ID)',
-                fr: 'People ID (Cevi.DB User ID)',
-              },
-              required: false,
-            },
-            {
-              key: 'firstName',
-              label: {
-                en: 'First Name',
-                de: 'Vorname',
-                fr: 'Prénom',
-              },
-              required: true,
-            },
-            {
-              key: 'lastName',
-              label: {
-                en: 'Last Name',
-                de: 'Nachname',
-                fr: 'Nom',
-              },
-              required: true,
-            },
-            {
-              key: 'nickname',
-              label: {
-                en: 'Nickname',
-                de: 'Ceviname',
-                fr: 'Ceviname',
-              },
-              required: true,
-            },
-            {
-              key: 'email',
-              label: {
-                en: 'Email',
-                de: 'E-Mail',
-                fr: 'Email',
-              },
-              required: true,
-            },
-            {
-              key: 'birthDate',
-              label: {
-                en: 'Birth Date (YYYY-MM-DD)',
-                de: 'Geburtsdatum (YYYY-MM-DD)',
-                fr: 'Date de naissance (YYYY-MM-DD)',
-              },
-              required: true,
-            },
-          ],
+  registrationWorkflow: {
+    label: {
+      en: 'Helper Registration Workflow',
+      de: 'Helfer:innen-Anmeldung Workflow',
+      fr: "Workflow d'inscription des bénévoles",
+    },
+    inputs: [
+      {
+        key: 'peopleId',
+        label: {
+          en: 'People ID (Cevi.DB User ID)',
+          de: 'People ID (Cevi.DB User ID)',
+          fr: 'People ID (Cevi.DB User ID)',
         },
-      }
-    : {}),
+        required: false,
+      },
+      {
+        key: 'firstName',
+        label: {
+          en: 'First Name',
+          de: 'Vorname',
+          fr: 'Prénom',
+        },
+        required: true,
+      },
+      {
+        key: 'lastName',
+        label: {
+          en: 'Last Name',
+          de: 'Nachname',
+          fr: 'Nom',
+        },
+        required: true,
+      },
+      {
+        key: 'nickname',
+        label: {
+          en: 'Nickname',
+          de: 'Ceviname',
+          fr: 'Ceviname',
+        },
+        required: true,
+      },
+      {
+        key: 'email',
+        label: {
+          en: 'Email',
+          de: 'E-Mail',
+          fr: 'Email',
+        },
+        required: true,
+      },
+      {
+        key: 'birthDate',
+        label: {
+          en: 'Birth Date (YYYY-MM-DD)',
+          de: 'Geburtsdatum (YYYY-MM-DD)',
+          fr: 'Date de naissance (YYYY-MM-DD)',
+        },
+        required: true,
+      },
+    ],
+  },
   brevoContactWorkflow: {
     label: {
       en: 'Brevo Contact Import',
@@ -158,10 +154,20 @@ export const formWorkflowField: Field = {
       name: 'workflow',
       type: 'select',
       required: true,
-      options: Object.entries(WORKFLOW_DEFINITIONS).map(([value, definition]) => ({
-        label: definition.label,
-        value,
-      })),
+      options: Object.entries(WORKFLOW_DEFINITIONS)
+        .filter(([value]) => {
+          if (value === 'registrationWorkflow') {
+            // eslint-disable-next-line unicorn/prefer-global-this
+            return typeof window === 'undefined'
+              ? environmentVariables.FEATURE_ENABLE_REGISTRATION_MANAGEMENT
+              : false;
+          }
+          return true;
+        })
+        .map(([value, definition]) => ({
+          label: definition.label,
+          value,
+        })),
       label: {
         en: 'Workflow to Trigger',
         de: 'Auslösender Workflow',

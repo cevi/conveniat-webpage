@@ -4,14 +4,16 @@ import { environmentVariables } from '@/config/environment-variables';
 import { flushPersonalData } from '@/lib/flush-personal-data';
 import { makeQueryClient } from '@/trpc/query-client';
 import type { AppRouter } from '@/trpc/routers/_app';
-import type { QueryClient } from '@tanstack/react-query';
-import { QueryClientProvider, defaultShouldDehydrateQuery } from '@tanstack/react-query';
+import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
+import type { DehydratedState } from '@tanstack/react-query';
+import { defaultShouldDehydrateQuery } from '@tanstack/react-query';
 import type { Persister } from '@tanstack/react-query-persist-client';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { httpBatchLink } from '@trpc/client';
 import { createTRPCReact } from '@trpc/react-query';
+import type { inferRouterInputs, inferRouterOutputs } from '@trpc/server';
 import { signOut } from 'next-auth/react';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import superjson from 'superjson';
 
 /**
@@ -33,14 +35,9 @@ const fetchWithAuthRedirect: typeof fetch = async (input, init) => {
 };
 
 export const trpc = createTRPCReact<AppRouter>();
-let clientQueryClientSingleton: QueryClient | undefined;
 
-const getQueryClient = (): QueryClient => {
-  if (typeof globalThis === 'undefined') {
-    return makeQueryClient();
-  }
-  return (clientQueryClientSingleton ??= makeQueryClient());
-};
+export type RouterInputs = inferRouterInputs<AppRouter>;
+export type RouterOutputs = inferRouterOutputs<AppRouter>;
 
 const getUrl = (): string => {
   const base = ((): string => {
@@ -52,76 +49,67 @@ const getUrl = (): string => {
   return `${base}/api/trpc`;
 };
 
+const createHttpBatchLink = (): ReturnType<typeof httpBatchLink> => {
+  return httpBatchLink({
+    url: getUrl(),
+    transformer: superjson,
+    fetch: fetchWithAuthRedirect as unknown as NonNullable<
+      Parameters<typeof httpBatchLink>[0]['fetch']
+    >,
+  });
+};
+
+/**
+ * Setup static persister which falls back to no-op on Server Side Rendering.
+ * This guarantees consistent component mounting during hydration and prevents warnings.
+ */
+const persister: Persister =
+  // eslint-disable-next-line unicorn/prefer-global-this
+  typeof window === 'undefined'
+    ? ({
+        persistClient: (): Promise<void> => Promise.resolve(),
+        restoreClient: (): Promise<DehydratedState | undefined> =>
+          Promise.resolve(undefined as unknown as DehydratedState),
+        removeClient: (): Promise<void> => Promise.resolve(),
+      } as Persister)
+    : createAsyncStoragePersister({
+        storage: globalThis.localStorage,
+        key: 'conveniat-query-cache',
+      });
+
+const persistOptions = {
+  persister,
+  dehydrateOptions: {
+    shouldDehydrateQuery: (query: Parameters<typeof defaultShouldDehydrateQuery>[0]): boolean => {
+      if (query.meta?.['persist'] === false) {
+        return false;
+      }
+      if (query.queryKey[0] === 'qrCodeSvgImage') {
+        return false;
+      }
+      return defaultShouldDehydrateQuery(query);
+    },
+  },
+};
+
 export const TRPCProvider: React.FC<{
   children: React.ReactNode;
 }> = ({ children }) => {
-  const queryClient = getQueryClient();
-
+  // Use React state initializers
+  // eslint-disable-next-line react-naming-convention/use-state
+  const [queryClient] = useState(() => makeQueryClient());
+  // eslint-disable-next-line react-naming-convention/use-state
   const [trpcClient] = useState(() =>
     trpc.createClient({
-      links: [
-        httpBatchLink({
-          url: getUrl(),
-          transformer: superjson,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
-          fetch: fetchWithAuthRedirect as any,
-        }),
-      ],
+      links: [createHttpBatchLink()],
     }),
   );
 
-  const [persister, setPersister] = useState<Persister | undefined>();
-
-  useEffect(() => {
-    if (typeof globalThis !== 'undefined') {
-      void import('@tanstack/query-async-storage-persister')
-        .then(({ createAsyncStoragePersister }) => {
-          setPersister(
-            createAsyncStoragePersister({
-              storage: globalThis.localStorage,
-              key: 'conveniat-query-cache',
-            }),
-          );
-        })
-        .catch(() => {});
-    }
-  }, []);
-
-  const persistOptions = React.useMemo(() => {
-    if (!persister) return;
-    return {
-      persister,
-      dehydrateOptions: {
-        shouldDehydrateQuery: (
-          query: Parameters<typeof defaultShouldDehydrateQuery>[0],
-        ): boolean => {
-          if (query.meta?.['persist'] === false) {
-            return false;
-          }
-          if (query.queryKey[0] === 'qrCodeSvgImage') {
-            return false;
-          }
-          return defaultShouldDehydrateQuery(query);
-        },
-      },
-    };
-  }, [persister]);
-
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
-      {persister && persistOptions ? (
-        <PersistQueryClientProvider
-          key="persisted-query-client"
-          client={queryClient}
-          persistOptions={persistOptions}
-        >
-          {children}
-        </PersistQueryClientProvider>
-      ) : (
-        <QueryClientProvider key="standard-query-client" client={queryClient}>
-          {children}
-        </QueryClientProvider>
-      )}
+      <PersistQueryClientProvider client={queryClient} persistOptions={persistOptions}>
+        {children}
+      </PersistQueryClientProvider>
     </trpc.Provider>
   );
 };
