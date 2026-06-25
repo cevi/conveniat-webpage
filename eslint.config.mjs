@@ -261,6 +261,7 @@ const config = defineConfig([
                 './config',
                 './context',
                 './trpc',
+                './schemas',
               ],
             },
           ],

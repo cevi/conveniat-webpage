@@ -227,7 +227,17 @@ export const formWorkflowField: Field = {
           Field: {
             path: '@/features/payload-cms/payload-cms/plugins/form/components/workflow-field-mapping#WorkflowFieldMapping',
             clientProps: {
-              workflowDefinitions: WORKFLOW_DEFINITIONS,
+              workflowDefinitions: Object.fromEntries(
+                Object.entries(WORKFLOW_DEFINITIONS).filter(([value]) => {
+                  if (value === 'registrationWorkflow') {
+                    // eslint-disable-next-line unicorn/prefer-global-this
+                    return typeof window === 'undefined'
+                      ? environmentVariables.FEATURE_ENABLE_REGISTRATION_MANAGEMENT
+                      : false;
+                  }
+                  return true;
+                }),
+              ),
             },
           },
         },

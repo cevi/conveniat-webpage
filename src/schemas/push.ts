@@ -26,3 +26,6 @@ export const DatabasePushSubscriptionSchema = z.object({
     .nullable()
     .optional(),
 });
+
+export type SchemaPushSubscription = z.infer<typeof PushSubscriptionSchema>;
+export type DatabasePushSubscription = z.infer<typeof DatabasePushSubscriptionSchema>;

@@ -48,7 +48,7 @@ export const pushTrackingRouter = createTRPCRouter({
       const { sendNotificationToSubscription } = await import('@/utils/push-notification-api');
 
       return await sendNotificationToSubscription(
-        input.subscription as unknown as Parameters<typeof sendNotificationToSubscription>[0],
+        input.subscription,
         input.message,
         input.url,
         input.userId,

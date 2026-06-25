@@ -5,7 +5,6 @@ import { flushPersonalData } from '@/lib/flush-personal-data';
 import { makeQueryClient } from '@/trpc/query-client';
 import type { AppRouter } from '@/trpc/routers/_app';
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
-import type { DehydratedState } from '@tanstack/react-query';
 import { defaultShouldDehydrateQuery } from '@tanstack/react-query';
 import type { Persister } from '@tanstack/react-query-persist-client';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
@@ -66,12 +65,11 @@ const createHttpBatchLink = (): ReturnType<typeof httpBatchLink> => {
 const persister: Persister =
   // eslint-disable-next-line unicorn/prefer-global-this
   typeof window === 'undefined'
-    ? ({
+    ? {
         persistClient: (): Promise<void> => Promise.resolve(),
-        restoreClient: (): Promise<DehydratedState | undefined> =>
-          Promise.resolve(undefined as unknown as DehydratedState),
+        restoreClient: () => Promise.resolve(),
         removeClient: (): Promise<void> => Promise.resolve(),
-      } as Persister)
+      }
     : createAsyncStoragePersister({
         storage: globalThis.localStorage,
         key: 'conveniat-query-cache',
