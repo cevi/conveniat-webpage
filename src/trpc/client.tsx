@@ -67,7 +67,7 @@ const persister: Persister =
   typeof window === 'undefined'
     ? {
         persistClient: (): Promise<void> => Promise.resolve(),
-        restoreClient: () => Promise.resolve(),
+        restoreClient: (): Promise<undefined> => Promise.resolve(),
         removeClient: (): Promise<void> => Promise.resolve(),
       }
     : createAsyncStoragePersister({
