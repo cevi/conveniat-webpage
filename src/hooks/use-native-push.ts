@@ -3,7 +3,7 @@
 import { trpc } from '@/trpc/client';
 import { isNativeAppWebView } from '@/utils/standalone-check';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export type NativePushStatus = 'granted' | 'denied' | 'prompt' | 'unknown';
 
@@ -47,6 +47,7 @@ export function useNativePush(): {
   const [isNativeApp, setIsNativeApp] = useState(false);
   const [status, setStatus] = useState<NativePushStatus>('unknown');
   const [hasToken, setHasToken] = useState(false);
+  const rollbackTimeoutReference = useRef<NodeJS.Timeout | undefined>(undefined);
 
   const { mutateAsync: registerDevice } = trpc.nativePush.registerDevice.useMutation();
   const { mutateAsync: unregisterDevice } = trpc.nativePush.unregisterDevice.useMutation();
@@ -148,6 +149,10 @@ export function useNativePush(): {
           break;
         }
         case 'native-push-token-deleted': {
+          if (rollbackTimeoutReference.current) {
+            clearTimeout(rollbackTimeoutReference.current);
+            rollbackTimeoutReference.current = undefined;
+          }
           const token = payload['token'];
           const platform = payload['platform'];
           console.log('[NativePush:PWA] token deleted: platform =', platform);
@@ -177,13 +182,18 @@ export function useNativePush(): {
         }
         case 'native-push-error': {
           console.error('[NativePush:PWA] bridge error:', payload['error']);
-          try {
-            void import('posthog-js').then(({ default: ph }) => {
-              ph.capture('native_push_error', { error: payload['error'] });
-            });
-          } catch (importError) {
-            console.error('Failed to load posthog-js', importError);
+          if (rollbackTimeoutReference.current) {
+            clearTimeout(rollbackTimeoutReference.current);
+            rollbackTimeoutReference.current = undefined;
+            nativePushBridge.getStatus();
           }
+          import('posthog-js')
+            .then(({ default: ph }) => {
+              ph.capture('native_push_error', { error: payload['error'] });
+            })
+            .catch((importError: unknown) => {
+              console.error('Failed to load posthog-js', importError);
+            });
           break;
         }
       }
@@ -197,6 +207,9 @@ export function useNativePush(): {
 
     return (): void => {
       clearTimeout(timeoutId);
+      if (rollbackTimeoutReference.current) {
+        clearTimeout(rollbackTimeoutReference.current);
+      }
       globalThis.removeEventListener('app-webview-native-push-event', handleNativeEvent);
     };
   }, [router, registerDevice, unregisterDevice]);
@@ -211,8 +224,22 @@ export function useNativePush(): {
   const deleteToken = (): void => {
     if (isNativeApp) {
       console.log('[NativePush:PWA] deleteToken called');
+      if (rollbackTimeoutReference.current) {
+        clearTimeout(rollbackTimeoutReference.current);
+      }
+
+      const previousHasToken = hasToken;
+      const previousStatus = status;
+
       setHasToken(false);
       setStatus('prompt');
+
+      rollbackTimeoutReference.current = setTimeout(() => {
+        console.warn('[NativePush:PWA] deleteToken timeout: rolling back optimistic update');
+        setHasToken(previousHasToken);
+        setStatus(previousStatus);
+      }, 5000);
+
       nativePushBridge.deleteToken();
     }
   };
