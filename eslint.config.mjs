@@ -281,6 +281,9 @@ const config = defineConfig([
     'build/**',
     'next-env.d.ts',
 
+    // Worktrees
+    '*-worktree/**',
+
     // this config file
     'eslint.config.mjs',
 

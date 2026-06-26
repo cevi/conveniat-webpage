@@ -20,6 +20,8 @@ const syncUserToPostgres: NonNullable<
   const uuid = doc.id as string | undefined | null;
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const name = doc.fullName as string;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  const hidden = doc.hidden as boolean | undefined | null;
 
   if (uuid === undefined || uuid === null || uuid === '') {
     throw new Error('UUID is required to update the user in the database.');
@@ -29,10 +31,12 @@ const syncUserToPostgres: NonNullable<
     where: { uuid },
     update: {
       name: name,
+      hidden: hidden ?? false,
     },
     create: {
       uuid: uuid,
       name: name,
+      hidden: hidden ?? false,
       // set date to 1970-01-01 to avoid null values
       lastSeen: new Date('1970-01-01T00:00:00Z'),
     },
@@ -67,7 +71,7 @@ export const UserCollection: CollectionConfig = {
     read: hasAdminOrWebAccess,
     create: () => false,
     delete: () => false,
-    update: () => false,
+    update: hasAdminOrWebAccess,
   },
   admin: {
     description:
@@ -134,7 +138,11 @@ export const UserCollection: CollectionConfig = {
       label: 'UserID inside CeviDB',
       type: 'number',
       required: false,
+      access: {
+        update: () => false,
+      },
       admin: {
+        readOnly: true,
         description:
           'The ID of the user in the CeviDB. Set automatically when the user logs in via Hitobito. Leave empty for manually created users.',
       },
@@ -167,7 +175,11 @@ export const UserCollection: CollectionConfig = {
       label: 'Email',
       type: 'email',
       required: true,
+      access: {
+        update: () => false,
+      },
       admin: {
+        readOnly: true,
         description:
           'The email address of the user. Used for matching when the user logs in via Hitobito.',
       },
@@ -178,7 +190,11 @@ export const UserCollection: CollectionConfig = {
       label: 'Full Name',
       type: 'text',
       required: true,
+      access: {
+        update: () => false,
+      },
       admin: {
+        readOnly: true,
         description: 'The full name of the user, as it will be displayed publicly.',
       },
     },
@@ -187,7 +203,11 @@ export const UserCollection: CollectionConfig = {
       label: 'Ceviname',
       type: 'text',
       required: false,
+      access: {
+        update: () => false,
+      },
       admin: {
+        readOnly: true,
         description: 'The Ceviname of the user.',
       },
     },
@@ -197,7 +217,11 @@ export const UserCollection: CollectionConfig = {
       type: 'json',
       required: false,
       defaultValue: [],
+      access: {
+        update: () => false,
+      },
       admin: {
+        readOnly: true,
         description: 'The groups the user is in. Updated automatically from Hitobito on login.',
       },
       jsonSchema: {
@@ -242,7 +266,11 @@ export const UserCollection: CollectionConfig = {
       label: 'Hof of the user',
       type: 'number',
       required: false,
+      access: {
+        update: () => false,
+      },
       admin: {
+        readOnly: true,
         description: 'The Hof of the user.',
       },
     },
@@ -251,8 +279,25 @@ export const UserCollection: CollectionConfig = {
       label: 'Quartier of the user',
       type: 'number',
       required: false,
+      access: {
+        update: () => false,
+      },
       admin: {
+        readOnly: true,
         description: 'The Quartier of the user.',
+      },
+    },
+    {
+      name: 'hidden',
+      label: {
+        en: 'Hidden from Chat Selection',
+        de: 'Aus Chat-Auswahl ausblenden',
+        fr: 'Masquer de la sélection de chat',
+      },
+      type: 'checkbox',
+      defaultValue: false,
+      admin: {
+        description: 'Hide this user from the chat creation selection.',
       },
     },
     LastEditedByUserField,

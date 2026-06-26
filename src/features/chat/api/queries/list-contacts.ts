@@ -19,7 +19,10 @@ export const listContacts = trpcBaseProcedure
     const { user, prisma } = ctx;
 
     const _contacts = await prisma.user.findMany({
-      where: { uuid: { not: user.uuid } },
+      where: {
+        uuid: { not: user.uuid },
+        hidden: false,
+      },
       select: {
         uuid: true,
         name: true,
