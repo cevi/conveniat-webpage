@@ -1,3 +1,4 @@
+import { environmentVariables } from '@/config/environment-variables';
 import { hasAccessToThisUser, Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import config from '@/features/payload-cms/payload.config';
 import { registrationInputSchema } from '@/features/registration_process/workflows/input-schema';
@@ -8,6 +9,12 @@ import { getPayload } from 'payload';
 import { z } from 'zod';
 
 const adminProcedure = trpcBaseProcedure.use(async ({ ctx, next }) => {
+  if (!environmentVariables.FEATURE_ENABLE_REGISTRATION_MANAGEMENT) {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: 'Registration management is disabled via feature flag.',
+    });
+  }
   const hasAccess = hasAccessToThisUser({
     user: ctx.user,
     requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam],

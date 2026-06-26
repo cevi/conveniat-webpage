@@ -7,7 +7,7 @@ import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/ad
 import { overrideOutgoingEmailStatusHandler } from '@/features/payload-cms/payload-cms/endpoints/override-outgoing-email';
 import { resendOutgoingEmailHandler } from '@/features/payload-cms/payload-cms/endpoints/resend-outgoing-email';
 import { parseSmtpResultsHook } from '@/features/payload-cms/payload-cms/hooks/parse-smtp-results';
-import type { CollectionConfig } from 'payload';
+import type { CollectionConfig, FieldHook } from 'payload';
 
 export const OutgoingEmails: CollectionConfig = {
   slug: 'outgoing-emails',
@@ -26,9 +26,12 @@ export const OutgoingEmails: CollectionConfig = {
   admin: {
     useAsTitle: 'subject',
     group: AdminPanelDashboardGroups.GlobalSettings,
+    groupBy: true,
     defaultColumns: [
       'subject',
       'to',
+      'type',
+      'form',
       'deliveryStatus',
       'smtpReceivedAt',
       'dsnReceivedAt',
@@ -41,6 +44,19 @@ export const OutgoingEmails: CollectionConfig = {
     create: () => false,
     update: () => false,
     delete: () => false,
+  },
+  hooks: {
+    beforeOperation: [
+      // eslint-disable-next-line @typescript-eslint/no-deprecated
+      ({ args, operation }): void => {
+        if (
+          (operation === 'find' || operation === 'findByID') &&
+          (args.depth === undefined || args.depth === 0)
+        ) {
+          args.depth = 1;
+        }
+      },
+    ],
   },
   endpoints: [
     {
@@ -146,6 +162,118 @@ export const OutgoingEmails: CollectionConfig = {
       admin: {
         readOnly: true,
         position: 'sidebar',
+      },
+    },
+    {
+      name: 'type',
+      label: {
+        en: 'Type',
+        de: 'Typ',
+        fr: 'Type',
+      },
+      type: 'select',
+      virtual: true,
+      options: [
+        {
+          label: {
+            en: 'Form Submission',
+            de: 'Formular Antwort',
+            fr: 'Soumission de formulaire',
+          },
+          value: 'formSubmission',
+        },
+        {
+          label: {
+            en: 'Bill Participant',
+            de: 'Rechnungsteilnehmer',
+            fr: 'Participant à la facture',
+          },
+          value: 'billParticipant',
+        },
+        {
+          label: {
+            en: 'Other',
+            de: 'Andere',
+            fr: 'Autre',
+          },
+          value: 'other',
+        },
+      ],
+      admin: {
+        readOnly: true,
+      },
+      hooks: {
+        afterRead: [
+          (({ data }): string => {
+            const safeData = (data ?? {}) as Record<string, unknown>;
+            const formSubmission = safeData['formSubmission'];
+            const billParticipant = safeData['billParticipant'];
+            if (formSubmission !== undefined && formSubmission !== null) {
+              return 'formSubmission';
+            }
+            if (billParticipant !== undefined && billParticipant !== null) {
+              return 'billParticipant';
+            }
+            return 'other';
+          }) as FieldHook,
+        ],
+      },
+    },
+    {
+      name: 'form',
+      label: {
+        en: 'Form',
+        de: 'Formular',
+        fr: 'Formulaire',
+      },
+      type: 'relationship',
+      relationTo: 'forms',
+      virtual: true,
+      admin: {
+        readOnly: true,
+      },
+      hooks: {
+        afterRead: [
+          (async ({ data, req }): Promise<string | undefined> => {
+            const safeData = (data ?? {}) as Record<string, unknown>;
+            const formSubmission = safeData['formSubmission'];
+            if (formSubmission === undefined || formSubmission === null) return undefined;
+
+            // Fast path: if formSubmission is already eagerly populated, extract the form ID directly
+            if (typeof formSubmission === 'object' && 'form' in formSubmission) {
+              const formValue = (formSubmission as Record<string, unknown>)['form'];
+              if (formValue !== undefined && formValue !== null) {
+                return typeof formValue === 'object' && 'id' in formValue
+                  ? (formValue as { id: string }).id
+                  : (formValue as string);
+              }
+            }
+
+            const formSubmissionId =
+              typeof formSubmission === 'object' && 'id' in formSubmission
+                ? (formSubmission as { id: string }).id
+                : (formSubmission as string);
+
+            if (typeof formSubmissionId !== 'string' || formSubmissionId === '') return undefined;
+
+            try {
+              const submission = await req.payload.findByID({
+                collection: 'form-submissions',
+                id: formSubmissionId,
+                depth: 0,
+              });
+              const formValue = submission['form'] as unknown;
+              if (formValue !== undefined && formValue !== null) {
+                return typeof formValue === 'object' && 'id' in formValue
+                  ? (formValue as { id: string }).id
+                  : (formValue as string);
+              }
+            } catch (error) {
+              console.error('Error fetching form submission inside form afterRead hook:', error);
+            }
+            return undefined;
+          }) as FieldHook,
+        ],
       },
     },
     {

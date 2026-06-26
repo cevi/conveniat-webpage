@@ -3,6 +3,7 @@ import { FooterBuildInfoText } from '@/components/footer/footer-copyright-area';
 import { MainMenuLanguageSwitcher } from '@/components/menu/main-menu-language-switcher';
 import { PreviewMenuSwitcher } from '@/components/menu/preview-menu-switcher';
 import { SearchComponent } from '@/components/menu/search';
+import { NativeAppVersionInfo } from '@/components/native-app-version-info';
 import { LinkComponent } from '@/components/ui/link-component';
 import { getHeaderCached } from '@/features/payload-cms/api/cached-globals';
 import {
@@ -211,7 +212,10 @@ export const MainMenu: React.FC<{
 
         {inAppDesign && build && (
           <div className="flex flex-col py-6 text-center">
-            <FooterBuildInfoText>Version {build.version} </FooterBuildInfoText>
+            <FooterBuildInfoText>
+              Version {build.version}
+              <NativeAppVersionInfo />
+            </FooterBuildInfoText>
             <FooterBuildInfoText>
               Build {build.git.hash} vom {build.timestamp}
             </FooterBuildInfoText>

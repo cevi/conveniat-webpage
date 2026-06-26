@@ -494,6 +494,9 @@ export const BillParticipantsCollection: CollectionConfig = {
       admin: {
         readOnly: true,
         disableGroupBy: true,
+        components: {
+          Field: '@/features/billing/components/missing-data-field',
+        },
       },
     },
     {
@@ -508,6 +511,9 @@ export const BillParticipantsCollection: CollectionConfig = {
       admin: {
         readOnly: true,
         disableGroupBy: true,
+        components: {
+          Field: '@/features/billing/components/missing-data-field',
+        },
       },
     },
 

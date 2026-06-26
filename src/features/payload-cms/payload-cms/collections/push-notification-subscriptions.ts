@@ -113,7 +113,6 @@ export const PushNotificationSubscriptions: CollectionConfig = asPushNotificatio
     },
   ],
 
-  // hidden from the admin panel
   admin: {
     hidden: shouldHideInAdminPanelIfNotAdmin,
     group: AdminPanelDashboardGroups.GlobalSettings,
@@ -121,6 +120,7 @@ export const PushNotificationSubscriptions: CollectionConfig = asPushNotificatio
     /** this is broken with our localized versions */
     disableCopyToLocale: true,
     hideAPIURL: true,
+    defaultColumns: ['id', 'user', 'platform', 'updatedAt'],
     components: {
       views: {
         edit: {

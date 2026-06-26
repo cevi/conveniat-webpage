@@ -1,3 +1,4 @@
+import { DatabasePushSubscriptionSchema, PushSubscriptionSchema } from '@/schemas/push';
 import { createTRPCRouter, publicProcedure } from '@/trpc/init';
 import { z } from 'zod';
 
@@ -37,13 +38,7 @@ export const pushTrackingRouter = createTRPCRouter({
   sendTestNotification: publicProcedure
     .input(
       z.object({
-        subscription: z.object({
-          endpoint: z.string(),
-          keys: z.object({
-            p256dh: z.string(),
-            auth: z.string(),
-          }),
-        }),
+        subscription: z.union([PushSubscriptionSchema, DatabasePushSubscriptionSchema]),
         message: z.string(),
         url: z.string().optional(),
         userId: z.string().optional(),
@@ -51,13 +46,13 @@ export const pushTrackingRouter = createTRPCRouter({
     )
     .mutation(async ({ input }) => {
       const { sendNotificationToSubscription } = await import('@/utils/push-notification-api');
-      const result = await sendNotificationToSubscription(
+
+      return await sendNotificationToSubscription(
         input.subscription,
         input.message,
         input.url,
         input.userId,
       );
-      return result;
     }),
 
   getRecentLogs: publicProcedure

@@ -1,3 +1,4 @@
+import { environmentVariables } from '@/config/environment-variables';
 import { updateWorkflowStatus } from '@/features/payload-cms/payload-cms/utils/update-workflow-status';
 import {
   RegistrationWorkflowInputSchema,
@@ -38,6 +39,12 @@ export const registrationWorkflow: WorkflowConfig<'registrationWorkflow'> = {
   retries: 1,
   inputSchema: [{ name: 'input', type: 'json', required: true }],
   handler: async ({ job, tasks, req }) => {
+    if (!environmentVariables.FEATURE_ENABLE_REGISTRATION_MANAGEMENT) {
+      throw new Error(
+        '[registrationWorkflow] Registration management is disabled via feature flag.',
+      );
+    }
+
     // 1. Validate Input
     const parseResult = RegistrationWorkflowInputSchema.safeParse(job.input);
     if (!parseResult.success) {

@@ -25,6 +25,39 @@ const notificationsIncognitoText: Record<Locale, string> = {
   fr: "Impossible d'activer les notifications. Vous êtes peut-être en mode privé.",
 };
 
+interface PushNotificationState {
+  isSupported: boolean;
+  isSubscribed: boolean;
+  isLoading: boolean;
+  errorMessage: string | undefined;
+}
+
+/**
+ * Parses a push subscription error to log correctly and return the user-facing message.
+ */
+function getSubscriptionErrorMessage(error: unknown, locale: Locale): string {
+  const message = error instanceof Error ? error.message : String(error);
+  const cause = error instanceof Error ? (error as { cause?: unknown }).cause : undefined;
+  const causeMessage = cause instanceof Error ? cause.message : '';
+
+  const isBlocked =
+    message.toLowerCase().includes('blocked') ||
+    (error instanceof DOMException && error.name === 'NotAllowedError');
+
+  const isIncognito =
+    message.toLowerCase().includes('failed to subscribe to push manager') &&
+    (causeMessage.toLowerCase().includes('permission denied') ||
+      causeMessage.toLowerCase().includes('registration failed'));
+
+  if (isBlocked || isIncognito) {
+    console.warn('Push subscription failed (expected):', error);
+  } else {
+    console.error('Failed to subscribe:', error);
+  }
+
+  return isBlocked ? notificationsBlockedText[locale] : notificationsIncognitoText[locale];
+}
+
 interface UsePushNotificationStateResult {
   isSupported: boolean;
   isSubscribed: boolean;
@@ -42,10 +75,16 @@ export function usePushNotificationState(
   props: UsePushNotificationStateProperties,
 ): UsePushNotificationStateResult {
   const { registrationSource, locale } = props;
-  const [isSupported, setIsSupported] = useState(false);
-  const [isSubscribed, setIsSubscribed] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | undefined>();
+  const [state, setState] = useState<PushNotificationState>({
+    isSupported: false,
+    isSubscribed: false,
+    isLoading: false,
+    errorMessage: undefined,
+  });
+
+  const updateState = useCallback((updates: Partial<PushNotificationState>) => {
+    setState((previousState) => ({ ...previousState, ...updates }));
+  }, []);
 
   // Use shared hook to check SW readiness (2s timeout)
   const { isReady: swReady, error: swError } = useServiceWorkerStatus(2000);
@@ -55,17 +94,34 @@ export function usePushNotificationState(
 
     const checkSubscription = async (): Promise<void> => {
       const supported = isPushSupported();
-      if (mounted) setIsSupported(supported);
+      if (!supported) {
+        if (mounted) {
+          updateState({
+            isSupported: false,
+            isSubscribed: false,
+            isLoading: false,
+            errorMessage: undefined,
+          });
+        }
+        return;
+      }
 
-      if (!supported) return;
-
-      if (Notification.permission === 'denied' && mounted) {
-        setErrorMessage(notificationsBlockedText[locale]);
+      let permissionErrorMessage: string | undefined;
+      if (Notification.permission === 'denied') {
+        permissionErrorMessage = notificationsBlockedText[locale];
       }
 
       // If SW failed or timed out, we assume failure (silent check)
       if (swError) {
         console.warn('SW check failed or timed out:', swError);
+        if (mounted) {
+          updateState({
+            isSupported: true,
+            isSubscribed: false,
+            isLoading: false,
+            errorMessage: permissionErrorMessage,
+          });
+        }
         return;
       }
 
@@ -74,10 +130,23 @@ export function usePushNotificationState(
       try {
         const sub = await getPushSubscription();
         if (mounted) {
-          setIsSubscribed(!!sub);
+          updateState({
+            isSupported: true,
+            isSubscribed: !!sub,
+            isLoading: false,
+            errorMessage: permissionErrorMessage,
+          });
         }
       } catch (error) {
         console.warn('Failed to check push subscription:', error);
+        if (mounted) {
+          updateState({
+            isSupported: true,
+            isSubscribed: false,
+            isLoading: false,
+            errorMessage: permissionErrorMessage,
+          });
+        }
       }
     };
 
@@ -86,74 +155,48 @@ export function usePushNotificationState(
     return (): void => {
       mounted = false;
     };
-  }, [locale, swReady, swError]);
+  }, [locale, swReady, swError, updateState]);
 
   const subscribeToPush = useCallback(async (): Promise<boolean> => {
-    setIsLoading(true);
-    setErrorMessage(undefined);
+    updateState({ isLoading: true, errorMessage: undefined });
     try {
       await subscribeToPushNotifications(locale, registrationSource);
-
-      setIsSubscribed(true);
+      updateState({ isLoading: false, isSubscribed: true });
       return true;
     } catch (error: unknown) {
-      // Check for known errors (Incognito, blocked) to avoid console.error
-      const message = error instanceof Error ? error.message : String(error);
-      const cause = error instanceof Error ? (error as { cause?: unknown }).cause : undefined;
-      const causeMessage = cause instanceof Error ? cause.message : '';
-
-      const isBlocked =
-        message.toLowerCase().includes('blocked') ||
-        (error instanceof DOMException && error.name === 'NotAllowedError');
-
-      const isIncognito =
-        message.toLowerCase().includes('failed to subscribe to push manager') &&
-        (causeMessage.toLowerCase().includes('permission denied') ||
-          causeMessage.toLowerCase().includes('registration failed'));
-
-      if (isBlocked || isIncognito) {
-        console.warn('Push subscription failed (expected):', error);
-      } else {
-        console.error('Failed to subscribe:', error);
-      }
-
-      setErrorMessage(
-        isBlocked ? notificationsBlockedText[locale] : notificationsIncognitoText[locale],
-      );
+      const subscriptionErrorMessage = getSubscriptionErrorMessage(error, locale);
+      updateState({ isLoading: false, errorMessage: subscriptionErrorMessage });
       return false;
-    } finally {
-      setIsLoading(false);
     }
-  }, [locale, registrationSource]);
+  }, [locale, registrationSource, updateState]);
 
   const unsubscribeFromPush = useCallback(async (): Promise<boolean> => {
-    setIsLoading(true);
+    updateState({ isLoading: true, isSubscribed: false }); // Optimistic update
     try {
       await unsubscribeFromPushNotifications();
-      setIsSubscribed(false);
+      updateState({ isLoading: false });
       return true; // Successfully unsubscribed
     } catch (error) {
       console.error('Unsubscribe failed', error);
+      updateState({ isLoading: false, isSubscribed: true }); // Revert on failure
       return false;
-    } finally {
-      setIsLoading(false);
     }
-  }, []);
+  }, [updateState]);
 
   const toggleSubscription = useCallback(async (): Promise<boolean> => {
-    if (isSubscribed) {
+    if (state.isSubscribed) {
       await unsubscribeFromPush();
       return false; // Result is "not subscribed"
     } else {
       return await subscribeToPush(); // Result is "subscribed" (if true)
     }
-  }, [isSubscribed, subscribeToPush, unsubscribeFromPush]);
+  }, [state.isSubscribed, subscribeToPush, unsubscribeFromPush]);
 
   return {
-    isSupported,
-    isSubscribed,
-    isLoading,
-    errorMessage,
+    isSupported: state.isSupported,
+    isSubscribed: state.isSubscribed,
+    isLoading: state.isLoading,
+    errorMessage: state.errorMessage,
     toggleSubscription,
   };
 }

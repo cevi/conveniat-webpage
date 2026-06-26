@@ -1,3 +1,4 @@
+import { environmentVariables } from '@/config/environment-variables';
 import type { Field, Tab } from 'payload';
 
 export const WORKFLOW_DEFINITIONS = {
@@ -153,10 +154,20 @@ export const formWorkflowField: Field = {
       name: 'workflow',
       type: 'select',
       required: true,
-      options: Object.entries(WORKFLOW_DEFINITIONS).map(([value, definition]) => ({
-        label: definition.label,
-        value,
-      })),
+      options: Object.entries(WORKFLOW_DEFINITIONS)
+        .filter(([value]) => {
+          if (value === 'registrationWorkflow') {
+            // eslint-disable-next-line unicorn/prefer-global-this
+            return typeof window === 'undefined'
+              ? environmentVariables.FEATURE_ENABLE_REGISTRATION_MANAGEMENT
+              : false;
+          }
+          return true;
+        })
+        .map(([value, definition]) => ({
+          label: definition.label,
+          value,
+        })),
       label: {
         en: 'Workflow to Trigger',
         de: 'Auslösender Workflow',
@@ -216,7 +227,17 @@ export const formWorkflowField: Field = {
           Field: {
             path: '@/features/payload-cms/payload-cms/plugins/form/components/workflow-field-mapping#WorkflowFieldMapping',
             clientProps: {
-              workflowDefinitions: WORKFLOW_DEFINITIONS,
+              workflowDefinitions: Object.fromEntries(
+                Object.entries(WORKFLOW_DEFINITIONS).filter(([value]) => {
+                  if (value === 'registrationWorkflow') {
+                    // eslint-disable-next-line unicorn/prefer-global-this
+                    return typeof window === 'undefined'
+                      ? environmentVariables.FEATURE_ENABLE_REGISTRATION_MANAGEMENT
+                      : false;
+                  }
+                  return true;
+                }),
+              ),
             },
           },
         },

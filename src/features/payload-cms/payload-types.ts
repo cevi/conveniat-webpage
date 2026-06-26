@@ -75,6 +75,7 @@ export interface Config {
     'bill-participants': BillParticipant;
     'bill-pdfs': BillPdf;
     'piket-schedules': PiketSchedule;
+    'payload-workers': PayloadWorker;
     forms: Form;
     'form-submissions': FormSubmission;
     'search-collection': SearchCollection;
@@ -131,6 +132,7 @@ export interface Config {
     'bill-participants': BillParticipantsSelect<false> | BillParticipantsSelect<true>;
     'bill-pdfs': BillPdfsSelect<false> | BillPdfsSelect<true>;
     'piket-schedules': PiketSchedulesSelect<false> | PiketSchedulesSelect<true>;
+    'payload-workers': PayloadWorkersSelect<false> | PayloadWorkersSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     'search-collection': SearchCollectionSelect<false> | SearchCollectionSelect<true>;
@@ -1200,7 +1202,7 @@ export interface Form {
    */
   configuredWorkflows?:
     | {
-        workflow: 'registrationWorkflow' | 'brevoContactWorkflow';
+        workflow: 'brevoContactWorkflow';
         condition?: {
           enabled?: boolean | null;
           field?: string | null;
@@ -3524,6 +3526,8 @@ export interface OutgoingEmail {
   subject: string;
   formSubmission?: (string | null) | FormSubmission;
   billParticipant?: (string | null) | BillParticipant;
+  type?: ('formSubmission' | 'billParticipant' | 'other') | null;
+  form?: (string | null) | Form;
   html?: string | null;
   smtpResults?:
     | {
@@ -3674,6 +3678,27 @@ export interface PiketSchedule {
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
+}
+/**
+ * Registered background worker instances and their activity heartbeats.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-workers".
+ */
+export interface PayloadWorker {
+  id: string;
+  workerId: string;
+  hostname: string;
+  queues?:
+    | {
+        name: string;
+        id?: string | null;
+      }[]
+    | null;
+  lastHeartbeat: string;
+  activeJobId?: string | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This is a collection of automatically created search results. These results are used by the global site search and will be updated automatically as documents in the CMS are created or updated.
@@ -4067,6 +4092,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'piket-schedules';
         value: string | PiketSchedule;
+      } | null)
+    | ({
+        relationTo: 'payload-workers';
+        value: string | PayloadWorker;
       } | null)
     | ({
         relationTo: 'forms';
@@ -5661,6 +5690,8 @@ export interface OutgoingEmailsSelect<T extends boolean = true> {
   subject?: T;
   formSubmission?: T;
   billParticipant?: T;
+  type?: T;
+  form?: T;
   html?: T;
   smtpResults?: T;
   rawSmtpResults?: T;
@@ -5741,6 +5772,24 @@ export interface PiketSchedulesSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-workers_select".
+ */
+export interface PayloadWorkersSelect<T extends boolean = true> {
+  workerId?: T;
+  hostname?: T;
+  queues?:
+    | T
+    | {
+        name?: T;
+        id?: T;
+      };
+  lastHeartbeat?: T;
+  activeJobId?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -7675,6 +7724,7 @@ export interface TaskCreateCollectionExport {
       | 'bill-participants'
       | 'bill-pdfs'
       | 'piket-schedules'
+      | 'payload-workers'
       | 'forms'
       | 'form-submissions'
       | 'search-collection'

@@ -7,7 +7,7 @@ import { emailSettings } from '@/features/payload-cms/payload-cms/email-settings
 import { autoTranslateHandler } from '@/features/payload-cms/payload-cms/endpoints/auto-translate';
 import { dropRouteInfo } from '@/features/payload-cms/payload-cms/global-routes';
 import { globalConfig } from '@/features/payload-cms/payload-cms/globals';
-import { onPayloadInit } from '@/features/payload-cms/payload-cms/initialization';
+import { onPayloadInit, workerId } from '@/features/payload-cms/payload-cms/initialization';
 import { LOCALE, locales } from '@/features/payload-cms/payload-cms/locales';
 import { formPluginConfiguration } from '@/features/payload-cms/payload-cms/plugins/form/form-plugin-configuration';
 import { importExportConfiguration } from '@/features/payload-cms/payload-cms/plugins/import-export-plugin-configuration';
@@ -46,7 +46,7 @@ import {
   widgetDefaultLayout,
 } from '@/features/payload-cms/payload-cms/widgets/widget-configuration';
 import { dbConfig } from '@/lib/db/mongodb';
-import type { Endpoint, JobsConfig, MetaConfig } from 'payload';
+import type { CollectionBeforeChangeHook, Endpoint, JobsConfig, MetaConfig } from 'payload';
 import { de } from 'payload/i18n/de';
 import { en } from 'payload/i18n/en';
 import { fr } from 'payload/i18n/fr';
@@ -144,13 +144,172 @@ const jobsConfig: JobsConfig = {
    * deletion locally within its own `onSuccess` hook instead.
    */
   deleteJobOnComplete: false,
-  jobsCollectionOverrides: ({ defaultJobsCollection }) => ({
-    ...defaultJobsCollection,
-    admin: {
-      ...defaultJobsCollection.admin,
-      hidden: shouldHideInAdminPanel,
-    },
-  }),
+  jobsCollectionOverrides: ({ defaultJobsCollection }) => {
+    const fields = defaultJobsCollection.fields.map((field) => {
+      if (
+        'name' in field &&
+        field.type === 'json' &&
+        ['input', 'error', 'taskStatus'].includes(field.name)
+      ) {
+        return {
+          ...field,
+          admin: {
+            ...field.admin,
+            components: {
+              ...field.admin?.components,
+              Field: '@/features/payload-cms/payload-cms/components/simple-json-field',
+            },
+          },
+        };
+      }
+      if ('name' in field && field.name === 'log' && 'fields' in field) {
+        return {
+          ...field,
+          fields: field.fields.map((subField) => {
+            if (
+              'name' in subField &&
+              subField.type === 'json' &&
+              ['input', 'output', 'error'].includes(subField.name)
+            ) {
+              return {
+                ...subField,
+                admin: {
+                  ...subField.admin,
+                  components: {
+                    ...subField.admin?.components,
+                    Field: '@/features/payload-cms/payload-cms/components/simple-json-field',
+                  },
+                },
+              };
+            }
+            return subField;
+          }),
+        };
+      }
+      return field;
+    });
+
+    return {
+      ...defaultJobsCollection,
+      admin: {
+        ...defaultJobsCollection.admin,
+        hidden: shouldHideInAdminPanel,
+        groupBy: false,
+        defaultColumns: ['id', 'workflowSlug', 'taskSlug', 'processing', 'createdAt', 'updatedAt'],
+        components: {
+          ...defaultJobsCollection.admin?.components,
+          beforeListTable: ['@/features/payload-cms/payload-cms/components/jobs-summary-banner'],
+        },
+      },
+      hooks: {
+        ...defaultJobsCollection.hooks,
+        beforeOperation: [
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (hookArguments: any): void => {
+            const { args, operation } = hookArguments as {
+              args?: Record<string, unknown>;
+              operation: string;
+            };
+            if (
+              (operation === 'find' || operation === 'findDistinct') &&
+              args &&
+              typeof args['where'] === 'object' &&
+              args['where'] !== null
+            ) {
+              const sanitizeWhere = (where: Record<string, unknown>): void => {
+                if ('state' in where) {
+                  delete where['state'];
+                }
+                const andList = where['and'] as unknown[] | undefined;
+                if (Array.isArray(andList)) {
+                  for (const subWhere of andList) {
+                    if (typeof subWhere === 'object' && subWhere !== null) {
+                      sanitizeWhere(subWhere as Record<string, unknown>);
+                    }
+                  }
+                  const filteredAnd = andList.filter(
+                    (subWhere): boolean =>
+                      typeof subWhere === 'object' &&
+                      subWhere !== null &&
+                      Object.keys(subWhere as Record<string, unknown>).length > 0,
+                  );
+                  if (filteredAnd.length === 0) {
+                    delete where['and'];
+                  } else {
+                    where['and'] = filteredAnd;
+                  }
+                }
+                const orList = where['or'] as unknown[] | undefined;
+                if (Array.isArray(orList)) {
+                  for (const subWhere of orList) {
+                    if (typeof subWhere === 'object' && subWhere !== null) {
+                      sanitizeWhere(subWhere as Record<string, unknown>);
+                    }
+                  }
+                  const filteredOr = orList.filter(
+                    (subWhere): boolean =>
+                      typeof subWhere === 'object' &&
+                      subWhere !== null &&
+                      Object.keys(subWhere as Record<string, unknown>).length > 0,
+                  );
+                  if (filteredOr.length === 0) {
+                    delete where['or'];
+                  } else {
+                    where['or'] = filteredOr;
+                  }
+                }
+              };
+              sanitizeWhere(args['where'] as Record<string, unknown>);
+            }
+          },
+          ...(defaultJobsCollection.hooks?.beforeOperation ?? []),
+        ],
+        beforeChange: [
+          (async ({ data, originalDoc, req }) => {
+            const originalJobDocument = originalDoc as Record<string, unknown> | undefined;
+            if (data['processing'] === true && originalJobDocument?.['processing'] !== true) {
+              try {
+                await req.payload.update({
+                  collection: 'payload-workers',
+                  where: { workerId: { equals: workerId } },
+                  data: { activeJobId: String(data['id'] || originalJobDocument?.['id'] || '') },
+                  context: { internal: true },
+                });
+              } catch (error) {
+                req.payload.logger.error(
+                  `[Jobs Hook] Failed to set activeJobId on worker: ${error instanceof Error ? error.message : String(error)}`,
+                );
+              }
+            }
+            if (
+              ((typeof data['completedAt'] === 'string' && data['completedAt'].length > 0) ||
+                data['processing'] === false) &&
+              originalJobDocument?.['processing'] === true
+            ) {
+              try {
+                await req.payload.update({
+                  collection: 'payload-workers',
+                  where: { workerId: { equals: workerId } },
+                  data: {
+                    // eslint-disable-next-line unicorn/no-null
+                    activeJobId: null,
+                  },
+                  context: { internal: true },
+                });
+              } catch (error) {
+                req.payload.logger.error(
+                  `[Jobs Hook] Failed to clear activeJobId on worker: ${error instanceof Error ? error.message : String(error)}`,
+                );
+              }
+            }
+            return data;
+          }) as CollectionBeforeChangeHook,
+          ...(defaultJobsCollection.hooks?.beforeChange ?? []),
+        ],
+      },
+      fields,
+    };
+  },
   tasks: [
     resolveUserStep,
     createUserStep,
