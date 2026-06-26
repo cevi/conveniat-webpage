@@ -2130,6 +2130,10 @@ export interface CampMapAnnotation {
    */
   isInteractive?: boolean | null;
   /**
+   * If checked, this annotation will not be shown on the main map, but can still be linked to from schedules.
+   */
+  hiddenOnDefaultMap?: boolean | null;
+  /**
    * If checked, users will be able to report issues and start a support chat from this location.
    */
   enableSupportChat?: boolean | null;
@@ -5227,6 +5231,7 @@ export interface CampMapAnnotationsSelect<T extends boolean = true> {
   geometry?: T;
   polygonCoordinates?: T;
   isInteractive?: T;
+  hiddenOnDefaultMap?: T;
   enableSupportChat?: T;
   description?: T;
   openingHours?:

@@ -21,9 +21,10 @@ export const mapRouter = createTRPCRouter({
     });
 
     // Transform to simplified frontend format
-    // Transform to simplified frontend format
     const polygons = annotations.docs
-      .filter((document_) => document_.annotationType === 'polygon')
+      .filter(
+        (document_) => document_.annotationType === 'polygon' && !document_.hiddenOnDefaultMap,
+      )
       .map((document_) => {
         interface CoordinateObject {
           longitude?: number;

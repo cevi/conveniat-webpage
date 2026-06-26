@@ -92,26 +92,39 @@ export const MapLibreRenderer = ({
     !disableUrlSync,
   );
 
+  // Filter annotations based on hiddenOnDefaultMap and open status
+  const visibleAnnotationPoints = useMemo(() => {
+    return campMapAnnotationPoints.filter(
+      (annotation) => !annotation.hiddenOnDefaultMap || annotation.id === openAnnotation?.id,
+    );
+  }, [campMapAnnotationPoints, openAnnotation?.id]);
+
+  const visibleAnnotationPolygons = useMemo(() => {
+    return campMapAnnotationPolygons.filter(
+      (annotation) => !annotation.hiddenOnDefaultMap || annotation.id === openAnnotation?.id,
+    );
+  }, [campMapAnnotationPolygons, openAnnotation?.id]);
+
   // Filter annotations based on search term
   const filteredAnnotationPoints = useMemo(() => {
     if (searchTerm === '') {
-      return campMapAnnotationPoints;
+      return visibleAnnotationPoints;
     }
     const lowerCaseSearchTerm = searchTerm.toLowerCase();
-    return campMapAnnotationPoints.filter((annotation) =>
+    return visibleAnnotationPoints.filter((annotation) =>
       annotation.title.toLowerCase().includes(lowerCaseSearchTerm),
     );
-  }, [campMapAnnotationPoints, searchTerm]);
+  }, [visibleAnnotationPoints, searchTerm]);
 
   const filteredAnnotationPolygons = useMemo(() => {
     if (searchTerm === '') {
-      return campMapAnnotationPolygons;
+      return visibleAnnotationPolygons;
     }
     const lowerCaseSearchTerm = searchTerm.toLowerCase();
-    return campMapAnnotationPolygons.filter((annotation) =>
+    return visibleAnnotationPolygons.filter((annotation) =>
       annotation.title.toLowerCase().includes(lowerCaseSearchTerm),
     );
-  }, [campMapAnnotationPolygons, searchTerm]);
+  }, [visibleAnnotationPolygons, searchTerm]);
 
   const handleSearch = useCallback(
     (term: string) => {
