@@ -100,7 +100,6 @@ export const pushNotificationHandler =
 
         if (isFocused) {
           console.log('App is in focus.');
-          broadcastToClients(clients, data);
 
           const ignoreIfAppOpen =
             data.data.ignoreIfAppOpen === true || data.data.ignoreIfAppOpen === 'true';
@@ -133,14 +132,17 @@ export const pushNotificationHandler =
             shouldShowNotification = true;
             console.log('Notification shown by default when app is in focus.');
           }
+
+          if (!shouldShowNotification) {
+            broadcastToClients(clients, data);
+          }
         }
 
         if (shouldShowNotification) {
           await serviceWorkerScope.registration.showNotification(data.title, options);
-        }
-
-        if (data.data.notificationId) {
-          await trackPushEvent(data.data.notificationId, 'DELIVERED');
+          if (data.data.notificationId) {
+            await trackPushEvent(data.data.notificationId, 'DELIVERED');
+          }
         }
       })(),
     );

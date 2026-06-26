@@ -274,10 +274,10 @@ export async function sendNotificationToSubscription(
             url: urlToSend,
             notificationId: logId,
             ...(options?.ignoreIfAppOpen !== undefined && {
-              ignoreIfAppOpen: options.ignoreIfAppOpen,
+              ignoreIfAppOpen: options.ignoreIfAppOpen ? 'true' : 'false',
             }),
             ...(options?.ignoreIfUrlMatches !== undefined && {
-              ignoreIfUrlMatches: options.ignoreIfUrlMatches,
+              ignoreIfUrlMatches: options.ignoreIfUrlMatches ? 'true' : 'false',
             }),
           },
         }),
