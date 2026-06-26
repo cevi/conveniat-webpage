@@ -169,6 +169,14 @@ export const CampMapAnnotationsCollection: CollectionConfig = {
                     },
                     {
                       label: {
+                        en: 'Blue',
+                        de: 'Blau',
+                        fr: 'Bleu',
+                      },
+                      value: '1e88e5',
+                    },
+                    {
+                      label: {
                         en: 'Red',
                         de: 'Rot',
                         fr: 'Rouge',
