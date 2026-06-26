@@ -25,6 +25,7 @@ interface ChatParticipant {
   name: string;
   isOnline: boolean;
   chatPermission: ChatMembershipPermission;
+  description?: string | null;
 }
 
 export interface ChatDetails {

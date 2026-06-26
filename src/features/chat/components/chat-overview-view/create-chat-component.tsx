@@ -301,6 +301,9 @@ export const CreateNewChatPage: React.FC = () => {
                         </div>
                         <div className="flex-1">
                           <p className="font-body text-sm font-medium">{contact.name}</p>
+                          {contact.description && (
+                            <p className="font-body text-xs text-gray-500">{contact.description}</p>
+                          )}
                         </div>
                         {isSelected && (
                           <div className="bg-conveniat-green flex h-5 w-5 items-center justify-center rounded-full">

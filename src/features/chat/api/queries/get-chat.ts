@@ -94,6 +94,7 @@ export const getChat = trpcBaseProcedure
         name: membership.user.name,
         isOnline: membership.user.lastSeen > new Date(Date.now() - 30 * 1000),
         chatPermission: membership.chatPermission,
+        description: membership.user.description,
       })),
       capabilities: chat.capabilities,
       description: chat.description,
