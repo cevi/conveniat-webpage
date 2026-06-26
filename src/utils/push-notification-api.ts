@@ -184,6 +184,10 @@ export async function sendNotificationToSubscription(
   userId?: string,
   existingLogId?: string,
   logContent?: string,
+  options?: {
+    ignoreIfAppOpen?: boolean;
+    ignoreIfUrlMatches?: boolean;
+  },
 ): Promise<{ success: boolean; error?: string }> {
   const urlToSend = url === '' ? undefined : url; // empty url is undefined
   const { default: prisma } = await import('@/lib/db/prisma');
@@ -234,6 +238,12 @@ export async function sendNotificationToSubscription(
         data: {
           ...(normalizedUrl !== undefined && { url: normalizedUrl }),
           ...(logId !== undefined && { notificationId: logId }),
+          ...(options?.ignoreIfAppOpen !== undefined && {
+            ignoreIfAppOpen: options.ignoreIfAppOpen ? 'true' : 'false',
+          }),
+          ...(options?.ignoreIfUrlMatches !== undefined && {
+            ignoreIfUrlMatches: options.ignoreIfUrlMatches ? 'true' : 'false',
+          }),
         },
       });
       if (!result.success) throw new Error(result.error);
@@ -263,6 +273,12 @@ export async function sendNotificationToSubscription(
           data: {
             url: urlToSend,
             notificationId: logId,
+            ...(options?.ignoreIfAppOpen !== undefined && {
+              ignoreIfAppOpen: options.ignoreIfAppOpen,
+            }),
+            ...(options?.ignoreIfUrlMatches !== undefined && {
+              ignoreIfUrlMatches: options.ignoreIfUrlMatches,
+            }),
           },
         }),
       );
