@@ -7,7 +7,7 @@ import { emailSettings } from '@/features/payload-cms/payload-cms/email-settings
 import { autoTranslateHandler } from '@/features/payload-cms/payload-cms/endpoints/auto-translate';
 import { dropRouteInfo } from '@/features/payload-cms/payload-cms/global-routes';
 import { globalConfig } from '@/features/payload-cms/payload-cms/globals';
-import { onPayloadInit } from '@/features/payload-cms/payload-cms/initialization';
+import { onPayloadInit, workerId } from '@/features/payload-cms/payload-cms/initialization';
 import { LOCALE, locales } from '@/features/payload-cms/payload-cms/locales';
 import { formPluginConfiguration } from '@/features/payload-cms/payload-cms/plugins/form/form-plugin-configuration';
 import { importExportConfiguration } from '@/features/payload-cms/payload-cms/plugins/import-export-plugin-configuration';
@@ -46,7 +46,7 @@ import {
   widgetDefaultLayout,
 } from '@/features/payload-cms/payload-cms/widgets/widget-configuration';
 import { dbConfig } from '@/lib/db/mongodb';
-import type { Endpoint, JobsConfig, MetaConfig } from 'payload';
+import type { CollectionBeforeChangeHook, Endpoint, JobsConfig, MetaConfig } from 'payload';
 import { de } from 'payload/i18n/de';
 import { en } from 'payload/i18n/en';
 import { fr } from 'payload/i18n/fr';
@@ -263,6 +263,48 @@ const jobsConfig: JobsConfig = {
             }
           },
           ...(defaultJobsCollection.hooks?.beforeOperation ?? []),
+        ],
+        beforeChange: [
+          (async ({ data, originalDoc, req }) => {
+            const originalJobDocument = originalDoc as Record<string, unknown> | undefined;
+            if (data['processing'] === true && originalJobDocument?.['processing'] !== true) {
+              try {
+                await req.payload.update({
+                  collection: 'payload-workers',
+                  where: { workerId: { equals: workerId } },
+                  data: { activeJobId: String(data['id'] || originalJobDocument?.['id'] || '') },
+                  context: { internal: true },
+                });
+              } catch (error) {
+                req.payload.logger.error(
+                  `[Jobs Hook] Failed to set activeJobId on worker: ${error instanceof Error ? error.message : String(error)}`,
+                );
+              }
+            }
+            if (
+              ((typeof data['completedAt'] === 'string' && data['completedAt'].length > 0) ||
+                data['processing'] === false) &&
+              originalJobDocument?.['processing'] === true
+            ) {
+              try {
+                await req.payload.update({
+                  collection: 'payload-workers',
+                  where: { workerId: { equals: workerId } },
+                  data: {
+                    // eslint-disable-next-line unicorn/no-null
+                    activeJobId: null,
+                  },
+                  context: { internal: true },
+                });
+              } catch (error) {
+                req.payload.logger.error(
+                  `[Jobs Hook] Failed to clear activeJobId on worker: ${error instanceof Error ? error.message : String(error)}`,
+                );
+              }
+            }
+            return data;
+          }) as CollectionBeforeChangeHook,
+          ...(defaultJobsCollection.hooks?.beforeChange ?? []),
         ],
       },
       fields,

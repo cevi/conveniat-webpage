@@ -39,20 +39,12 @@ const postHogRewrites = (): Rewrite[] => {
       destination: 'https://eu.i.posthog.com/:path*',
     },
     {
-      source: '/ingest/decide',
-      destination: 'https://eu.i.posthog.com/decide',
-    },
-    {
       source: '/api/ingest/static/:path*',
       destination: 'https://eu-assets.i.posthog.com/static/:path*',
     },
     {
       source: '/api/ingest/:path*',
       destination: 'https://eu.i.posthog.com/:path*',
-    },
-    {
-      source: '/api/ingest/decide',
-      destination: 'https://eu.i.posthog.com/decide',
     },
   ];
 };
