@@ -12,6 +12,7 @@ model User {
   uuid     String   @id
   lastSeen DateTime @default(now())
   name     String
+  hidden   Boolean  @default(false)
 
   messages             Message[]
   chatMemberships      ChatMembership[]

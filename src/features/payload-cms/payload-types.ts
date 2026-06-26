@@ -532,6 +532,10 @@ export interface User {
    * The Quartier of the user.
    */
   quartier?: number | null;
+  /**
+   * Hide this user from the chat creation selection.
+   */
+  hidden?: boolean | null;
   lastEditedByUser?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
@@ -2129,6 +2133,10 @@ export interface CampMapAnnotation {
    * If checked, the polygon will be clickable and show metadata. If unchecked, it will be a background-only shape.
    */
   isInteractive?: boolean | null;
+  /**
+   * If checked, this annotation will not be shown on the main map, but can still be linked to from schedules.
+   */
+  hiddenOnDefaultMap?: boolean | null;
   /**
    * If checked, users will be able to report issues and start a support chat from this location.
    */
@@ -5227,6 +5235,7 @@ export interface CampMapAnnotationsSelect<T extends boolean = true> {
   geometry?: T;
   polygonCoordinates?: T;
   isInteractive?: T;
+  hiddenOnDefaultMap?: T;
   enableSupportChat?: T;
   description?: T;
   openingHours?:
@@ -5559,6 +5568,7 @@ export interface UsersSelect<T extends boolean = true> {
   groups?: T;
   hof?: T;
   quartier?: T;
+  hidden?: T;
   lastEditedByUser?: T;
   updatedAt?: T;
   createdAt?: T;

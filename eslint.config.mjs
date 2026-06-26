@@ -281,6 +281,9 @@ const config = defineConfig([
     'build/**',
     'next-env.d.ts',
 
+    // Worktrees
+    '*-worktree/**',
+
     // this config file
     'eslint.config.mjs',
 
@@ -296,6 +299,9 @@ const config = defineConfig([
     'src/app/(payload)/admin/importMap.js',
     'postcss.config.js',
     '**/*.cjs',
+
+    // Worktrees
+    '**/*-worktree/**',
 
     // code coverage
     'coverage/**',
