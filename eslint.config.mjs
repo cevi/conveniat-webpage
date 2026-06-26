@@ -300,6 +300,9 @@ const config = defineConfig([
     'postcss.config.js',
     '**/*.cjs',
 
+    // Worktrees
+    '**/*-worktree/**',
+
     // code coverage
     'coverage/**',
 

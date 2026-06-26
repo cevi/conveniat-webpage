@@ -57,6 +57,6 @@
     "public/sw.js",
     "public/sw.js.map",
     "serwist.config.js",
-    "*-worktree"
+    "**/*-worktree"
   ]
 }
