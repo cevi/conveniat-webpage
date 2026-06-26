@@ -17,14 +17,17 @@ const isBuild =
 let prisma: PrismaClient;
 
 if (isBuild) {
-  prisma = new Proxy({} as unknown as PrismaClient, {
-    get: (_target, property): (() => Promise<null | undefined>) | undefined => {
-      if (property === 'then') return undefined; // Should be undefined for promises
-      // Return a function that returns a promise resolving to undefined (simulating null/void)
-      // eslint-disable-next-line unicorn/no-null
-      return () => Promise.resolve(null);
+  prisma = new Proxy(
+    {},
+    {
+      get: (_target, property): (() => Promise<null | undefined>) | undefined => {
+        if (property === 'then') return undefined; // Should be undefined for promises
+        // Return a function that returns a promise resolving to undefined (simulating null/void)
+        // eslint-disable-next-line unicorn/no-null
+        return () => Promise.resolve(null);
+      },
     },
-  });
+  ) as unknown as PrismaClient;
 } else {
   const adapter = new PrismaPg({ connectionString: environmentVariables.CHAT_DATABASE_URL });
   prisma =

@@ -38,7 +38,16 @@ export function getFirebaseAdmin(): typeof admin | undefined {
 
 export async function sendFcmNotification(
   token: string,
-  payload: { title: string; body: string; data: { url?: string; notificationId?: string } },
+  payload: {
+    title: string;
+    body: string;
+    data: {
+      url?: string;
+      notificationId?: string;
+      ignoreIfAppOpen?: string;
+      ignoreIfUrlMatches?: string;
+    };
+  },
 ): Promise<{ success: boolean; error?: string }> {
   const adminInstance = getFirebaseAdmin();
 
@@ -65,6 +74,12 @@ export async function sendFcmNotification(
       data: {
         url: payload.data.url ?? '/app/dashboard',
         notificationId,
+        ...(payload.data.ignoreIfAppOpen !== undefined && {
+          ignoreIfAppOpen: payload.data.ignoreIfAppOpen,
+        }),
+        ...(payload.data.ignoreIfUrlMatches !== undefined && {
+          ignoreIfUrlMatches: payload.data.ignoreIfUrlMatches,
+        }),
       },
       apns: {
         headers: {

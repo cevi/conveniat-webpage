@@ -56,6 +56,7 @@ async function processSubscription(
     userId,
     undefined, // existingLogId
     logContent,
+    { ignoreIfUrlMatches: true },
   );
 }
 
