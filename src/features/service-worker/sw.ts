@@ -9,6 +9,7 @@ import { serwist } from '@/features/service-worker/offline-support/caching';
 import { handleFetchEvent } from '@/features/service-worker/offline-support/fetch-handler';
 import { registerMapOfflineSupport } from '@/features/service-worker/offline-support/map-viewer';
 import {
+  cachePageAndScrape,
   isOfflineSupportEnabled,
   prefetchOfflinePages,
 } from '@/features/service-worker/offline-support/prefetch';
@@ -146,6 +147,20 @@ self.addEventListener('message', (event) => {
           type: ServiceWorkerMessages.CHECK_OFFLINE_READY,
           payload: { ready: isReady },
         });
+      })(),
+    );
+  }
+
+  if (data?.type === ServiceWorkerMessages.UPDATE_MAP_CACHE && event.source instanceof Client) {
+    event.waitUntil(
+      (async (): Promise<void> => {
+        try {
+          console.log('[SW] Updating map page cache (online update)...');
+          await cachePageAndScrape('/app/map');
+          console.log('[SW] Map page cache updated.');
+        } catch (error) {
+          console.error('[SW] Failed to update map page cache:', error);
+        }
       })(),
     );
   }

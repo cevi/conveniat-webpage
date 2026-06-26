@@ -169,7 +169,7 @@ async function cacheAsset(url: string): Promise<void> {
   await cacheTarget.put(new Request(url, { mode: 'cors' }), safeResponse);
 }
 
-async function cachePageAndScrape(pageUrl: string): Promise<void> {
+export async function cachePageAndScrape(pageUrl: string): Promise<void> {
   console.log(`[SW] Fetching HTML for: ${pageUrl}`);
   const pagesCache = await caches.open(CACHE_NAMES.PAGES);
   const rscCache = await caches.open(CACHE_NAMES.RSC);
