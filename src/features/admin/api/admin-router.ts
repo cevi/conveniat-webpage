@@ -916,6 +916,7 @@ export const adminRouter = createTRPCRouter({
         email: u.email,
         hof: u.hof ?? undefined,
         quartier: u.quartier ?? undefined,
+        description: u.description ?? '',
       }));
     }),
 

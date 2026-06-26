@@ -9,9 +9,10 @@ datasource db {
 }
 
 model User {
-  uuid     String   @id
-  lastSeen DateTime @default(now())
-  name     String
+  uuid        String   @id
+  lastSeen    DateTime @default(now())
+  name        String
+  description String?
 
   messages             Message[]
   chatMemberships      ChatMembership[]
