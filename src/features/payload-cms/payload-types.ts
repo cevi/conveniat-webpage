@@ -532,6 +532,10 @@ export interface User {
    * The Quartier of the user.
    */
   quartier?: number | null;
+  /**
+   * Hide this user from the chat creation selection.
+   */
+  hidden?: boolean | null;
   lastEditedByUser?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
@@ -5564,6 +5568,7 @@ export interface UsersSelect<T extends boolean = true> {
   groups?: T;
   hof?: T;
   quartier?: T;
+  hidden?: T;
   lastEditedByUser?: T;
   updatedAt?: T;
   createdAt?: T;
