@@ -12,9 +12,14 @@ export const updatePresence = trpcBaseProcedure
   .mutation(async ({ ctx, input }) => {
     const { user, prisma } = ctx;
 
-    const updatedUser = await prisma.user.update({
+    const updatedUser = await prisma.user.upsert({
       where: { uuid: user.uuid },
-      data: {
+      create: {
+        uuid: user.uuid,
+        name: user.name,
+        presentAtCamp: input.presentAtCamp,
+      },
+      update: {
         presentAtCamp: input.presentAtCamp,
       },
     });
