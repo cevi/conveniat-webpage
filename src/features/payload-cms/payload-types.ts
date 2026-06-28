@@ -165,6 +165,7 @@ export interface Config {
     'all-chats-management': AllChatsManagement;
     'registration-management': RegistrationManagement;
     'bill-settings': BillSetting;
+    'campsite-presence': CampsitePresence;
     'payload-jobs-stats': PayloadJobsStat;
   };
   globalsSelect: {
@@ -180,6 +181,7 @@ export interface Config {
     'all-chats-management': AllChatsManagementSelect<false> | AllChatsManagementSelect<true>;
     'registration-management': RegistrationManagementSelect<false> | RegistrationManagementSelect<true>;
     'bill-settings': BillSettingsSelect<false> | BillSettingsSelect<true>;
+    'campsite-presence': CampsitePresenceSelect<false> | CampsitePresenceSelect<true>;
     'payload-jobs-stats': PayloadJobsStatsSelect<false> | PayloadJobsStatsSelect<true>;
   };
   locale: 'en' | 'de' | 'fr';
@@ -7064,6 +7066,16 @@ export interface BillSetting {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "campsite-presence".
+ */
+export interface CampsitePresence {
+  id: string;
+  dummy?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-jobs-stats".
  */
 export interface PayloadJobsStat {
@@ -7448,6 +7460,16 @@ export interface BillSettingsSelect<T extends boolean = true> {
   financeEmailRecipients?: T;
   invoiceEmailSubject?: T;
   invoiceEmailBody?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "campsite-presence_select".
+ */
+export interface CampsitePresenceSelect<T extends boolean = true> {
+  dummy?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

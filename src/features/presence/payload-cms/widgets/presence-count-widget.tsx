@@ -1,6 +1,7 @@
 import { environmentVariables } from '@/config/environment-variables';
 import prisma from '@/lib/db/prisma';
 import type { Locale, StaticTranslationString } from '@/types/types';
+import Link from 'next/link';
 import type { WidgetServerProps } from 'payload';
 
 const title: StaticTranslationString = {
@@ -9,10 +10,10 @@ const title: StaticTranslationString = {
   fr: 'Utilisateurs sur le terrain de camp',
 };
 
-const noUsersLabel: StaticTranslationString = {
-  en: 'No users currently on campsite.',
-  de: 'Niemand auf dem Lagerplatz.',
-  fr: 'Personne sur le terrain de camp.',
+const viewDetailsLabel: StaticTranslationString = {
+  en: 'View present users →',
+  de: 'Personen anzeigen →',
+  fr: 'Voir les personnes →',
 };
 
 export default async function PresenceCounterWidget({
@@ -29,18 +30,6 @@ export default async function PresenceCounterWidget({
     where: { presentAtCamp: true },
   });
 
-  const presentUsers = await prisma.user.findMany({
-    where: { presentAtCamp: true },
-    orderBy: { name: 'asc' },
-    select: { uuid: true, name: true },
-  });
-
-  const getCurrentlyPresentLabel = (): string => {
-    if (locale === 'de') return 'Aktuell anwesend:';
-    if (locale === 'fr') return 'Actuellement présent:';
-    return 'Currently present:';
-  };
-
   return (
     <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
       <div>
@@ -48,25 +37,12 @@ export default async function PresenceCounterWidget({
         <p className="text-conveniat-green mt-1 text-4xl font-bold">{presentCount}</p>
       </div>
       <div className="border-t border-gray-100 pt-3">
-        <h4 className="mb-2 text-xs font-semibold tracking-wider text-gray-400 uppercase">
-          {getCurrentlyPresentLabel()}
-        </h4>
-        {presentUsers.length === 0 ? (
-          <p className="text-sm text-gray-400 italic">{noUsersLabel[locale as Locale]}</p>
-        ) : (
-          <ul className="max-h-48 space-y-1.5 overflow-y-auto pr-1">
-            {presentUsers.map((u) => (
-              <li key={u.uuid} className="text-sm">
-                <a
-                  href={`/admin/collections/users/${u.uuid}`}
-                  className="text-conveniat-green font-medium transition-colors hover:text-green-800 hover:underline"
-                >
-                  {u.name}
-                </a>
-              </li>
-            ))}
-          </ul>
-        )}
+        <Link
+          href="/admin/globals/campsite-presence"
+          className="text-conveniat-green text-sm font-medium transition-colors hover:text-green-800 hover:underline"
+        >
+          {viewDetailsLabel[locale as Locale]}
+        </Link>
       </div>
     </div>
   );
