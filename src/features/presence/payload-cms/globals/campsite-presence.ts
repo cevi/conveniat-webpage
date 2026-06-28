@@ -34,9 +34,24 @@ export const CampsitePresenceGlobal: GlobalConfig = {
   },
   fields: [
     {
-      name: 'dummy',
-      type: 'text',
-      hidden: true,
+      name: 'startDate',
+      label: {
+        en: 'Presence Tracking Start Date',
+        de: 'Startdatum der Anwesenheitserfassung',
+        fr: 'Date de début du suivi de présence',
+      },
+      type: 'date',
+      required: false,
+    },
+    {
+      name: 'endDate',
+      label: {
+        en: 'Presence Tracking End Date',
+        de: 'Enddatum der Anwesenheitserfassung',
+        fr: 'Date de fin du suivi de présence',
+      },
+      type: 'date',
+      required: false,
     },
   ],
 };

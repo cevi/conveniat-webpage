@@ -1,4 +1,6 @@
 import { trpcBaseProcedure } from '@/trpc/init';
+import config from '@payload-config';
+import { getPayload } from 'payload';
 import { z } from 'zod';
 
 export const listPresentUsers = trpcBaseProcedure
@@ -12,6 +14,28 @@ export const listPresentUsers = trpcBaseProcedure
   .query(async ({ ctx, input }) => {
     const { prisma } = ctx;
     const { page, limit, search } = input;
+
+    const payload = await getPayload({ config });
+    const globalData = await payload.findGlobal({
+      slug: 'campsite-presence',
+    });
+
+    const now = new Date();
+
+    if (globalData.endDate) {
+      const endDate = new Date(globalData.endDate);
+      if (now > endDate) {
+        await prisma.user.updateMany({
+          where: { presentAtCamp: true },
+          data: { presentAtCamp: false },
+        });
+        return {
+          users: [],
+          totalCount: 0,
+          pageCount: 0,
+        };
+      }
+    }
 
     const skip = (page - 1) * limit;
 

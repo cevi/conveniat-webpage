@@ -7070,7 +7070,8 @@ export interface BillSetting {
  */
 export interface CampsitePresence {
   id: string;
-  dummy?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -7469,7 +7470,8 @@ export interface BillSettingsSelect<T extends boolean = true> {
  * via the `definition` "campsite-presence_select".
  */
 export interface CampsitePresenceSelect<T extends boolean = true> {
-  dummy?: T;
+  startDate?: T;
+  endDate?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
