@@ -28,6 +28,17 @@ export const getPresence = trpcBaseProcedure.query(async ({ ctx }) => {
         where: { presentAtCamp: true },
         data: { presentAtCamp: false },
       });
+      await payload.update({
+        collection: 'users',
+        where: {
+          presentAtCamp: {
+            equals: true,
+          },
+        },
+        data: {
+          presentAtCamp: false,
+        },
+      });
     }
   }
 

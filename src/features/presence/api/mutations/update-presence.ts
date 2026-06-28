@@ -68,6 +68,14 @@ export const updatePresence = trpcBaseProcedure
       },
     });
 
+    await payload.update({
+      collection: 'users',
+      id: user.uuid,
+      data: {
+        presentAtCamp: input.presentAtCamp,
+      },
+    });
+
     return {
       success: true,
       presentAtCamp: updatedUser.presentAtCamp,

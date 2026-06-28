@@ -16,15 +16,7 @@ export const CampsitePresenceGlobal: GlobalConfig = {
   admin: {
     group: AdminPanelDashboardGroups.BackofficeAppFeatures,
     hideAPIURL: true,
-    components: {
-      views: {
-        edit: {
-          default: {
-            Component: '@/features/presence/payload-cms/views/campsite-presence-view',
-          },
-        },
-      },
-    },
+
     hidden: (args): boolean => {
       if (!environmentVariables.FEATURE_ENABLE_PRESENCE_TRACKING) {
         return true;
@@ -33,6 +25,24 @@ export const CampsitePresenceGlobal: GlobalConfig = {
     },
   },
   fields: [
+    {
+      name: 'densityPlot',
+      type: 'ui',
+      admin: {
+        components: {
+          Field: '@/features/presence/payload-cms/components/density-plot-field',
+        },
+      },
+    },
+    {
+      name: 'openPeopleList',
+      type: 'ui',
+      admin: {
+        components: {
+          Field: '@/features/presence/payload-cms/components/open-people-list-field',
+        },
+      },
+    },
     {
       name: 'startDate',
       label: {

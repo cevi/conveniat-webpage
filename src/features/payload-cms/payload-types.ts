@@ -94,6 +94,9 @@ export interface Config {
     'helper-jobs': {
       submissions: 'form-submissions';
     };
+    users: {
+      presenceLogs: 'presence-logs';
+    };
     timelineCategory: {
       relatedTimelineEntries: 'timeline';
     };
@@ -541,11 +544,35 @@ export interface User {
    * Hide this user from the chat creation selection.
    */
   hidden?: boolean | null;
+  /**
+   * Whether the user is currently present on the campsite.
+   */
+  presentAtCamp?: boolean | null;
+  /**
+   * Verlauf der Anwesenheit auf dem Lagerplatz (Check-in / Check-out).
+   */
+  presenceLogs?: {
+    docs?: (string | PresenceLog)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
   lastEditedByUser?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
   collection: 'users';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "presence-logs".
+ */
+export interface PresenceLog {
+  id: string;
+  user: string | User;
+  isPresent: boolean;
+  timestamp: string;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -3714,18 +3741,6 @@ export interface PayloadWorker {
   createdAt: string;
 }
 /**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "presence-logs".
- */
-export interface PresenceLog {
-  id: string;
-  user: string | User;
-  isPresent: boolean;
-  timestamp: string;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
  * This is a collection of automatically created search results. These results are used by the global site search and will be updated automatically as documents in the CMS are created or updated.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -5590,6 +5605,8 @@ export interface UsersSelect<T extends boolean = true> {
   hof?: T;
   quartier?: T;
   hidden?: T;
+  presentAtCamp?: T;
+  presenceLogs?: T;
   lastEditedByUser?: T;
   updatedAt?: T;
   createdAt?: T;
