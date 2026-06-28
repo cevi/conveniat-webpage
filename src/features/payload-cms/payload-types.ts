@@ -183,6 +183,7 @@ export interface Config {
   locale: 'en' | 'de' | 'fr';
   widgets: {
     'emergency-alerts': EmergencyAlertsWidget;
+    'presence-count': PresenceCountWidget;
     'user-count': UserCountWidget;
     'email-stats': EmailStatsWidget;
     collections: CollectionsWidget;
@@ -7437,6 +7438,16 @@ export interface PayloadJobsStatsSelect<T extends boolean = true> {
  * via the `definition` "emergency-alerts_widget".
  */
 export interface EmergencyAlertsWidget {
+  data?: {
+    [k: string]: unknown;
+  };
+  width: 'x-small' | 'small' | 'medium' | 'large' | 'x-large' | 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "presence-count_widget".
+ */
+export interface PresenceCountWidget {
   data?: {
     [k: string]: unknown;
   };
