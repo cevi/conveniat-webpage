@@ -22,6 +22,7 @@ model User {
   Stars                Star[]
   pushNotificationLogs PushNotificationLog[]
   reactions            MessageReaction[]
+  presenceLogs         PresenceLog[]
 
   @@index([name])
 }
@@ -326,4 +327,16 @@ model MessageReaction {
   @@unique([messageId, userId, emoji])
   @@index([messageId])
   @@index([userId])
+}
+
+model PresenceLog {
+  uuid      String   @id @default(uuid(7))
+  userUuid  String
+  isPresent Boolean
+  timestamp DateTime @default(now())
+
+  user      User     @relation(fields: [userUuid], references: [uuid], onDelete: Cascade)
+
+  @@index([userUuid])
+  @@index([timestamp])
 }

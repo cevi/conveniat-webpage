@@ -1,4 +1,6 @@
 import { trpcBaseProcedure } from '@/trpc/init';
+import config from '@payload-config';
+import { getPayload } from 'payload';
 import { z } from 'zod';
 
 export const updatePresence = trpcBaseProcedure
@@ -14,6 +16,23 @@ export const updatePresence = trpcBaseProcedure
       where: { uuid: user.uuid },
       data: {
         presentAtCamp: input.presentAtCamp,
+      },
+    });
+
+    await prisma.presenceLog.create({
+      data: {
+        userUuid: user.uuid,
+        isPresent: input.presentAtCamp,
+      },
+    });
+
+    const payload = await getPayload({ config });
+    await payload.create({
+      collection: 'presence-logs',
+      data: {
+        user: user.uuid,
+        isPresent: input.presentAtCamp,
+        timestamp: new Date().toISOString(),
       },
     });
 

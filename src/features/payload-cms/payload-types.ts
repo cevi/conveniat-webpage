@@ -76,6 +76,7 @@ export interface Config {
     'bill-pdfs': BillPdf;
     'piket-schedules': PiketSchedule;
     'payload-workers': PayloadWorker;
+    'presence-logs': PresenceLog;
     forms: Form;
     'form-submissions': FormSubmission;
     'search-collection': SearchCollection;
@@ -133,6 +134,7 @@ export interface Config {
     'bill-pdfs': BillPdfsSelect<false> | BillPdfsSelect<true>;
     'piket-schedules': PiketSchedulesSelect<false> | PiketSchedulesSelect<true>;
     'payload-workers': PayloadWorkersSelect<false> | PayloadWorkersSelect<true>;
+    'presence-logs': PresenceLogsSelect<false> | PresenceLogsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     'search-collection': SearchCollectionSelect<false> | SearchCollectionSelect<true>;
@@ -3710,6 +3712,18 @@ export interface PayloadWorker {
   createdAt: string;
 }
 /**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "presence-logs".
+ */
+export interface PresenceLog {
+  id: string;
+  user: string | User;
+  isPresent: boolean;
+  timestamp: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This is a collection of automatically created search results. These results are used by the global site search and will be updated automatically as documents in the CMS are created or updated.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -4105,6 +4119,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'payload-workers';
         value: string | PayloadWorker;
+      } | null)
+    | ({
+        relationTo: 'presence-logs';
+        value: string | PresenceLog;
       } | null)
     | ({
         relationTo: 'forms';
@@ -5799,6 +5817,17 @@ export interface PayloadWorkersSelect<T extends boolean = true> {
       };
   lastHeartbeat?: T;
   activeJobId?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "presence-logs_select".
+ */
+export interface PresenceLogsSelect<T extends boolean = true> {
+  user?: T;
+  isPresent?: T;
+  timestamp?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -7746,6 +7775,7 @@ export interface TaskCreateCollectionExport {
       | 'bill-pdfs'
       | 'piket-schedules'
       | 'payload-workers'
+      | 'presence-logs'
       | 'forms'
       | 'form-submissions'
       | 'search-collection'
