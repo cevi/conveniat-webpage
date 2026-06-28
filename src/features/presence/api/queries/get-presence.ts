@@ -11,23 +11,36 @@ export const getPresence = trpcBaseProcedure.query(async ({ ctx }) => {
   });
 
   const now = new Date();
+  let isOutsideTrackingPeriod = false;
 
   if (globalData.startDate) {
     const startDate = new Date(globalData.startDate);
     if (now < startDate) {
-      return false;
+      isOutsideTrackingPeriod = true;
     }
   }
 
   if (globalData.endDate) {
     const endDate = new Date(globalData.endDate);
     if (now > endDate) {
+      isOutsideTrackingPeriod = true;
       await prisma.user.updateMany({
         where: { presentAtCamp: true },
         data: { presentAtCamp: false },
       });
-      return false;
     }
+  }
+
+  const startDateString = globalData.startDate ? String(globalData.startDate) : undefined;
+  const endDateString = globalData.endDate ? String(globalData.endDate) : undefined;
+
+  if (isOutsideTrackingPeriod) {
+    return {
+      isPresent: false,
+      isOutsideTrackingPeriod: true,
+      startDate: startDateString,
+      endDate: endDateString,
+    };
   }
 
   const prismaUser = await prisma.user.findUnique({
@@ -35,5 +48,10 @@ export const getPresence = trpcBaseProcedure.query(async ({ ctx }) => {
     select: { presentAtCamp: true },
   });
 
-  return prismaUser?.presentAtCamp ?? false;
+  return {
+    isPresent: prismaUser?.presentAtCamp ?? false,
+    isOutsideTrackingPeriod: false,
+    startDate: startDateString,
+    endDate: endDateString,
+  };
 });

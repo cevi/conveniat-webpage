@@ -45,19 +45,28 @@ const updatingText: StaticTranslationString = {
   fr: 'Mise à jour...',
 };
 
+const outsidePeriodText: StaticTranslationString = {
+  de: 'Ausserhalb des Erfassungszeitraums',
+  en: 'Outside the tracking period',
+  fr: 'En dehors de la période de suivi',
+};
+
 export const PresenceSlider: React.FC = () => {
   const { status } = useSession();
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const trpcUtils = trpc.useUtils();
 
   const {
-    data: isPresent,
+    data: presenceData,
     isLoading,
     refetch,
   } = trpc.presence.getPresence.useQuery(undefined, {
     enabled: status === 'authenticated',
     staleTime: 1000 * 60 * 5,
   });
+
+  const isPresent = presenceData?.isPresent;
+  const isOutsideTrackingPeriod = presenceData?.isOutsideTrackingPeriod ?? false;
 
   const updatePresenceMutation = trpc.presence.updatePresence.useMutation();
 
@@ -87,13 +96,29 @@ export const PresenceSlider: React.FC = () => {
     }
   }, [isPresent]);
 
-  const activeText = isPresent ? slideToAbsentText[locale] : slideToPresentText[locale];
+  let activeText = '';
+  if (isOutsideTrackingPeriod) {
+    activeText = outsidePeriodText[locale];
+  } else if (isPresent) {
+    activeText = slideToAbsentText[locale];
+  } else {
+    activeText = slideToPresentText[locale];
+  }
+
+  let displayStatusLabel = '';
+  if (isOutsideTrackingPeriod) {
+    displayStatusLabel = outsidePeriodText[locale];
+  } else if (isPresent) {
+    displayStatusLabel = presentLabel[locale];
+  } else {
+    displayStatusLabel = absentLabel[locale];
+  }
 
   useEffect(() => {
     if (!isProcessing) {
       setDisplayText(activeText);
     }
-  }, [isPresent, locale, activeText, isProcessing]);
+  }, [isPresent, locale, activeText, isProcessing, isOutsideTrackingPeriod]);
 
   // Adjust handle position on resize
   useEffect((): (() => void) => {
@@ -225,6 +250,7 @@ export const PresenceSlider: React.FC = () => {
       if (
         isDraggingReference.current ||
         isProcessing ||
+        isOutsideTrackingPeriod ||
         !handleReference.current ||
         !trackReference.current
       )
@@ -247,7 +273,7 @@ export const PresenceSlider: React.FC = () => {
       globalThis.addEventListener('pointermove', handlePointerMove);
       globalThis.addEventListener('pointerup', handlePointerUp);
     },
-    [handlePointerMove, handlePointerUp, isProcessing, isPresent],
+    [handlePointerMove, handlePointerUp, isProcessing, isPresent, isOutsideTrackingPeriod],
   );
 
   if (status !== 'authenticated' || isLoading) {
@@ -255,9 +281,13 @@ export const PresenceSlider: React.FC = () => {
     return null;
   }
 
-  const renderHandleIcon = (): React.ReactElement => {
+  const renderHandleIcon = (): React.ReactElement | null => {
     if (isProcessing) {
       return <LoaderCircle className="relative z-10 animate-spin text-white" size={24} />;
+    }
+    if (isOutsideTrackingPeriod) {
+      // eslint-disable-next-line unicorn/no-null
+      return null;
     }
     if (isPresent) {
       return <ChevronLeft className="relative z-10 text-white" size={24} />;
@@ -274,37 +304,39 @@ export const PresenceSlider: React.FC = () => {
         <div className="flex items-center gap-2">
           <span
             className={cn('inline-block h-2 w-2 rounded-full', {
-              'bg-green-500 shadow-[0_0_8px_rgba(93,111,99,0.6)]': isPresent,
-              'bg-cevi-blue shadow-[0_0_8px_rgba(50,51,148,0.6)]': !isPresent,
+              'bg-green-500 shadow-[0_0_8px_rgba(93,111,99,0.6)]':
+                isPresent && !isOutsideTrackingPeriod,
+              'bg-cevi-blue shadow-[0_0_8px_rgba(50,51,148,0.6)]':
+                !isPresent && !isOutsideTrackingPeriod,
+              'bg-gray-400': isOutsideTrackingPeriod,
             })}
           />
-          <span className="text-sm font-semibold text-gray-800">
-            {isPresent ? presentLabel[locale] : absentLabel[locale]}
-          </span>
+          <span className="text-sm font-semibold text-gray-800">{displayStatusLabel}</span>
         </div>
       </div>
 
       <div
         ref={trackReference}
-        className={cn(
-          'relative flex h-16 cursor-grab items-center rounded-full transition-all duration-500',
-          {
-            'border border-green-500/20 bg-green-500/10': isPresent,
-            'border-cevi-blue/20 bg-cevi-blue/10 border': !isPresent,
-            'cursor-not-allowed': isProcessing,
-          },
-        )}
+        className={cn('relative flex h-16 items-center rounded-full transition-all duration-500', {
+          'border border-green-500/20 bg-green-500/10': isPresent && !isOutsideTrackingPeriod,
+          'border-cevi-blue/20 bg-cevi-blue/10 border': !isPresent && !isOutsideTrackingPeriod,
+          'cursor-not-allowed border-gray-200 bg-gray-50 opacity-60': isOutsideTrackingPeriod,
+          'cursor-grab': !isProcessing && !isOutsideTrackingPeriod,
+          'cursor-not-allowed': isProcessing,
+        })}
         onPointerDown={handlePointerDown}
         style={{ touchAction: 'none' }}
       >
         <div
           ref={handleReference}
           className={cn(
-            'relative z-10 flex h-12 w-12 items-center justify-center rounded-full shadow-md transition-all duration-300 hover:shadow-lg',
+            'relative z-10 flex h-12 w-12 items-center justify-center rounded-full shadow-md transition-all duration-300',
             {
               'absolute left-2': true,
-              'border border-green-700/10 bg-green-600': isPresent,
-              'border-cevi-blue/10 bg-cevi-blue border': !isPresent,
+              'border border-green-700/10 bg-green-600': isPresent && !isOutsideTrackingPeriod,
+              'border-cevi-blue/10 bg-cevi-blue border': !isPresent && !isOutsideTrackingPeriod,
+              'cursor-not-allowed border-gray-300 bg-gray-400': isOutsideTrackingPeriod,
+              'hover:shadow-lg': !isOutsideTrackingPeriod,
             },
           )}
         >
@@ -315,8 +347,9 @@ export const PresenceSlider: React.FC = () => {
           className={cn(
             'pointer-events-none absolute left-1/2 -translate-x-1/2 transform text-xs font-bold tracking-wider uppercase select-none',
             {
-              'text-green-800': isPresent,
-              'text-cevi-blue': !isPresent,
+              'text-green-800': isPresent && !isOutsideTrackingPeriod,
+              'text-cevi-blue': !isPresent && !isOutsideTrackingPeriod,
+              'text-gray-400': isOutsideTrackingPeriod,
             },
           )}
         >
