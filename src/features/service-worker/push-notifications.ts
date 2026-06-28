@@ -6,12 +6,16 @@ interface NotificationPayload {
   data: {
     url?: string;
     notificationId?: string;
+    ignoreIfAppOpen?: boolean | string;
+    ignoreIfUrlMatches?: boolean | string;
   };
 }
 
 interface NotificationData {
   url?: string;
   notificationId?: string;
+  ignoreIfAppOpen?: boolean | string;
+  ignoreIfUrlMatches?: boolean | string;
 }
 
 /**
@@ -49,7 +53,7 @@ async function trackPushEvent(
  */
 async function isAppFocused(
   serviceWorkerScope: ServiceWorkerGlobalScope,
-): Promise<{ isFocused: boolean; clients: readonly Client[] }> {
+): Promise<{ isFocused: boolean; clients: readonly WindowClient[] }> {
   const clientList = await serviceWorkerScope.clients.matchAll({
     type: 'window',
     includeUncontrolled: true,
@@ -92,15 +96,53 @@ export const pushNotificationHandler =
       (async (): Promise<void> => {
         const { isFocused, clients } = await isAppFocused(serviceWorkerScope);
 
+        let shouldShowNotification = !isFocused;
+
         if (isFocused) {
-          console.log('App is in focus; skipping notification.');
-          broadcastToClients(clients, data);
-        } else {
-          await serviceWorkerScope.registration.showNotification(data.title, options);
+          console.log('App is in focus.');
+
+          const ignoreIfAppOpen =
+            data.data.ignoreIfAppOpen === true || data.data.ignoreIfAppOpen === 'true';
+          const ignoreIfUrlMatches =
+            data.data.ignoreIfUrlMatches === true || data.data.ignoreIfUrlMatches === 'true';
+          const targetUrlString = data.data.url;
+
+          if (ignoreIfAppOpen) {
+            shouldShowNotification = false;
+            console.log('Notification ignored because ignoreIfAppOpen is enabled.');
+          } else if (ignoreIfUrlMatches && targetUrlString) {
+            const hasMatchingActiveClient = clients.some((client) => {
+              if (client.visibilityState !== 'visible') return false;
+              try {
+                const clientUrl = new URL(client.url);
+                const targetUrl = new URL(targetUrlString, serviceWorkerScope.location.origin);
+                return clientUrl.pathname === targetUrl.pathname;
+              } catch {
+                return false;
+              }
+            });
+            if (hasMatchingActiveClient) {
+              shouldShowNotification = false;
+              console.log('Notification ignored because user has the matching page open.');
+            } else {
+              shouldShowNotification = true;
+              console.log('Notification shown because matching page is not open.');
+            }
+          } else {
+            shouldShowNotification = true;
+            console.log('Notification shown by default when app is in focus.');
+          }
+
+          if (!shouldShowNotification) {
+            broadcastToClients(clients, data);
+          }
         }
 
-        if (data.data.notificationId) {
-          await trackPushEvent(data.data.notificationId, 'DELIVERED');
+        if (shouldShowNotification) {
+          await serviceWorkerScope.registration.showNotification(data.title, options);
+          if (data.data.notificationId) {
+            await trackPushEvent(data.data.notificationId, 'DELIVERED');
+          }
         }
       })(),
     );
