@@ -25,6 +25,7 @@ import { UserCollection } from '@/features/payload-cms/payload-cms/collections/u
 import { UserSubmittedImagesCollection } from '@/features/payload-cms/payload-cms/collections/user-submitted-images-collection';
 import { asInstrumentalCollection } from '@/features/payload-cms/payload-cms/utils/instrumentalized-collection';
 import { slugToUrlMapping } from '@/features/payload-cms/slug-to-url-mapping';
+import { PresenceLogCollection } from '@/features/presence/payload-cms/collections/presence-log-collection';
 import { BlockedJobs } from '@/features/registration_process/collections/blocked-jobs';
 import type { RoutableCollectionConfigs } from '@/types/types';
 import type { CollectionConfig } from 'payload';
@@ -63,6 +64,7 @@ const rawCollectionsConfig: CollectionConfig[] = [
   BillPdfsCollection,
   PiketScheduleCollection,
   PayloadWorkersCollection,
+  PresenceLogCollection,
 ];
 
 /**

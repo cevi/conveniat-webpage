@@ -81,7 +81,7 @@ export const UserCollection: CollectionConfig = {
     groupBy: true,
     /** this is broken with our localized versions */
     disableCopyToLocale: true,
-    defaultColumns: ['nickname', 'fullName', 'email', 'adminPanelAccess'],
+    defaultColumns: ['nickname', 'fullName', 'email', 'presentAtCamp', 'adminPanelAccess'],
     listSearchableFields: ['nickname', 'fullName', 'email'],
   },
   auth: {
@@ -298,6 +298,28 @@ export const UserCollection: CollectionConfig = {
       defaultValue: false,
       admin: {
         description: 'Hide this user from the chat creation selection.',
+      },
+    },
+    {
+      name: 'presentAtCamp',
+      label: {
+        en: 'Present at Campsite',
+        de: 'Auf dem Lagerplatz anwesend',
+        fr: 'Présent sur le terrain de camp',
+      },
+      type: 'checkbox',
+      defaultValue: false,
+      admin: {
+        description: 'Whether the user is currently present on the campsite.',
+      },
+    },
+    {
+      name: 'presenceLogs',
+      type: 'join',
+      collection: 'presence-logs',
+      on: 'user',
+      admin: {
+        description: 'Verlauf der Anwesenheit auf dem Lagerplatz (Check-in / Check-out).',
       },
     },
     LastEditedByUserField,
