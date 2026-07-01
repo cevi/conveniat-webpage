@@ -22,13 +22,7 @@ const MainMenu: Field = {
       type: 'text',
       required: true,
     },
-    {
-      ...LinkField(false),
-      admin: {
-        condition: (_, siblingData) =>
-          !siblingData['subMenu'] || (siblingData['subMenu'] as Field[]).length === 0,
-      },
-    },
+    LinkField(false),
     {
       name: 'subMenu',
       label: 'Sub Menu Items',
@@ -48,7 +42,29 @@ const MainMenu: Field = {
           type: 'text',
           required: true,
         },
-        LinkField(),
+        LinkField(false),
+        {
+          name: 'subMenu',
+          label: 'Sub Sub Menu Items',
+          admin: {
+            components: {
+              RowLabel: {
+                path: '@/features/payload-cms/payload-cms/components/main-menu-row-label#MainEntryRowLabel',
+              },
+            },
+          },
+          type: 'array',
+          localized: true,
+          fields: [
+            {
+              name: 'label',
+              label: 'Label',
+              type: 'text',
+              required: true,
+            },
+            LinkField(false),
+          ],
+        },
       ],
     },
   ],
