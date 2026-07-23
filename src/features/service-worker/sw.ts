@@ -155,8 +155,14 @@ self.addEventListener('message', (event) => {
     event.waitUntil(
       (async (): Promise<void> => {
         try {
+          const isEnabled = await isOfflineSupportEnabled();
+          if (!isEnabled) {
+            return;
+          }
+          const messageData = data as { type?: string; locale?: string };
+          const locale = typeof messageData.locale === 'string' ? messageData.locale : undefined;
           console.log('[SW] Updating map page cache (online update)...');
-          await cachePageAndScrape('/app/map');
+          await cachePageAndScrape('/app/map', locale);
           console.log('[SW] Map page cache updated.');
         } catch (error) {
           console.error('[SW] Failed to update map page cache:', error);

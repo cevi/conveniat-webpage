@@ -128,6 +128,7 @@ export const MapLibreRenderer = ({
       if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
         navigator.serviceWorker.controller.postMessage({
           type: ServiceWorkerMessages.UPDATE_MAP_CACHE,
+          locale,
         });
       }
     }

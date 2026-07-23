@@ -78,13 +78,13 @@ export const mapRouter = createTRPCRouter({
 
       const annotations = await payload.find({
         collection: 'camp-map-annotations',
-        limit: 100,
+        limit: 1000,
         depth: 1,
       });
 
       const scheduleEntries = await payload.find({
         collection: 'camp-schedule-entry',
-        limit: 100,
+        limit: 1000,
         depth: 1,
       });
 
@@ -99,7 +99,7 @@ export const mapRouter = createTRPCRouter({
       for (const annotation of annotations.docs) {
         const annotationID: string = annotation.id;
         schedulesPerAnnotations[annotationID] = simplifiedScheduleEntries.filter(
-          (scheduleEntry: CampScheduleEntry) => scheduleEntry.location.id === annotation.id,
+          (scheduleEntry: CampScheduleEntry) => scheduleEntry.location?.id === annotation.id,
         );
       }
 
