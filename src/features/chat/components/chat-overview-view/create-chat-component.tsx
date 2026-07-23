@@ -8,6 +8,7 @@ import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
+import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft, Users, X } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
@@ -227,30 +228,6 @@ export const CreateNewChatPage: React.FC = () => {
       {/* Main Content */}
       <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
         <div className="mx-auto max-w-xl space-y-5">
-          {/* Group Chat Name Input */}
-          {isGroupChat && (
-            <div className="space-y-2 rounded-2xl border border-gray-100 bg-white p-4 shadow-xs">
-              <label className="font-body text-xs font-semibold tracking-wider text-gray-500 uppercase">
-                {groupChatNameLabel[locale]} <span className="text-red-500">*</span>
-              </label>
-              <Input
-                placeholder={groupNamePlaceholder[locale]}
-                value={groupChatName}
-                onChange={(changeEvent) => handleGroupNameChange(changeEvent.target.value)}
-                className={`font-body focus:ring-conveniat-green ${
-                  groupChatNameError === ''
-                    ? 'focus:border-conveniat-green border-gray-300'
-                    : 'border-red-300 focus:border-red-500'
-                }`}
-                required
-              />
-              {groupChatNameError !== '' && (
-                <p className="font-body text-sm text-red-600">{groupChatNameError}</p>
-              )}
-              <p className="font-body text-xs text-gray-400">{groupMinMaxLength[locale]}</p>
-            </div>
-          )}
-
           {/* Search Input - Only shown if contacts exist */}
           {hasContacts && (
             <div className="relative">
@@ -263,33 +240,82 @@ export const CreateNewChatPage: React.FC = () => {
             </div>
           )}
 
-          {/* Selected Contacts Pills */}
-          {selectedContacts.length > 0 && (
-            <div className="space-y-2.5 rounded-2xl border border-emerald-100 bg-emerald-50/50 p-4">
-              <div className="flex items-center gap-2">
-                <Users size={15} className="text-conveniat-green" />
-                <span className="font-heading text-xs font-semibold tracking-wider text-emerald-800 uppercase">
-                  {selectedCountText[locale]} ({selectedContacts.length})
-                </span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {selectedContacts.map((contact) => (
-                  <div
-                    key={contact.userId}
-                    className="font-body text-conveniat-green flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-3 py-1 text-sm font-medium shadow-xs"
-                  >
-                    <span>{contact.name}</span>
-                    <button
-                      onClick={() => handleContactToggle(contact)}
-                      className="rounded-full p-0.5 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-800"
-                    >
-                      <X size={13} />
-                    </button>
+          <AnimatePresence initial={false}>
+            {/* Selected Contacts Pills */}
+            {selectedContacts.length > 0 && (
+              <motion.div
+                key="selected-contacts-pills"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2, ease: 'easeInOut' }}
+                className="overflow-hidden"
+              >
+                <div className="space-y-2.5 rounded-2xl border border-emerald-100 bg-emerald-50/50 p-4">
+                  <div className="flex items-center gap-2">
+                    <Users size={15} className="text-conveniat-green" />
+                    <span className="font-heading text-xs font-semibold tracking-wider text-emerald-800 uppercase">
+                      {selectedCountText[locale]} ({selectedContacts.length})
+                    </span>
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
+                  <div className="flex flex-wrap gap-2">
+                    {selectedContacts.map((contact) => (
+                      <div
+                        key={contact.userId}
+                        className="font-body text-conveniat-green flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-3 py-1.5 text-sm font-medium shadow-xs"
+                      >
+                        <span>{contact.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleContactToggle(contact)}
+                          className="rounded-full p-0.5 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-800"
+                        >
+                          <X size={13} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Group Chat Name Input - App Aligned Input Styling */}
+            {isGroupChat && (
+              <motion.div
+                key="group-chat-name-input"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2, ease: 'easeInOut' }}
+                className="overflow-hidden"
+              >
+                <div className="space-y-2 rounded-2xl border border-gray-100 bg-white p-4 shadow-xs">
+                  <div className="flex items-center gap-2">
+                    <Users size={15} className="text-conveniat-green" />
+                    <label className="font-heading text-xs font-semibold tracking-wider text-gray-700 uppercase">
+                      {groupChatNameLabel[locale]} <span className="text-red-500">*</span>
+                    </label>
+                  </div>
+                  <Input
+                    placeholder={groupNamePlaceholder[locale]}
+                    value={groupChatName}
+                    onChange={(changeEvent) => handleGroupNameChange(changeEvent.target.value)}
+                    className={cn(
+                      'font-body h-12 rounded-xl border border-gray-200 bg-gray-50/50 px-4 text-sm text-gray-900 transition-all placeholder:text-gray-400',
+                      'focus:border-conveniat-green focus:ring-conveniat-green/20 focus:bg-white focus:ring-2 focus:outline-hidden',
+                      groupChatNameError !== '' &&
+                        'border-red-300 focus:border-red-500 focus:ring-red-500/20',
+                    )}
+                    required
+                  />
+                  {groupChatNameError !== '' && (
+                    <p className="font-body text-xs text-red-600">{groupChatNameError}</p>
+                  )}
+                  <p className="font-body text-xs text-gray-400">{groupMinMaxLength[locale]}</p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Contacts List Card */}
           <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-xs">
