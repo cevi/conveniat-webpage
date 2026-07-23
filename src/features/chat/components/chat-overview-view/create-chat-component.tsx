@@ -8,7 +8,7 @@ import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { ArrowLeft, MessageSquarePlus, Users, X } from 'lucide-react';
+import { ArrowLeft, Users, X } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -201,14 +201,9 @@ export const CreateNewChatPage: React.FC = () => {
               <ArrowLeft className="h-5 w-5" />
             </Button>
           </Link>
-          <div className="flex items-center gap-2.5">
-            <div className="text-conveniat-green flex h-9 w-9 items-center justify-center rounded-xl bg-green-50">
-              <MessageSquarePlus className="h-5 w-5" />
-            </div>
-            <h1 className="font-heading text-lg font-bold tracking-tight text-gray-900">
-              {newChat[locale]}
-            </h1>
-          </div>
+          <h1 className="font-heading text-lg font-bold tracking-tight text-gray-900">
+            {newChat[locale]}
+          </h1>
         </div>
 
         <div>
