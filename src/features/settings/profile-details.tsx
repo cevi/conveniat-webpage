@@ -70,7 +70,12 @@ const supportMailSubject: StaticTranslationString = {
 
 export const ProfileDetails: React.FC = async () => {
   const locale = await getLocaleFromCookies();
-  const session = await auth();
+  let session;
+  try {
+    session = await auth();
+  } catch {
+    // Gracefully handle auth lookup errors when offline or db unavailable
+  }
   const user = isValidNextAuthUser(session?.user) ? session.user : undefined;
   const isAuthenticated = !!user;
 
@@ -83,9 +88,13 @@ export const ProfileDetails: React.FC = async () => {
     supportMailContent[locale].replace('__ID__', getDetail(user?.uuid)),
   )}`;
 
-  const hideHofAndQuartier = await getFeatureFlag(FEATURE_HIDE_HOF_AND_QUARTIER);
-  const shouldShowHofAndQuartier =
-    isAuthenticated && /*(user?.hof || user?.quartier) &&*/ !hideHofAndQuartier;
+  let hideHofAndQuartier = false;
+  try {
+    hideHofAndQuartier = await getFeatureFlag(FEATURE_HIDE_HOF_AND_QUARTIER);
+  } catch {
+    // Default to false if Redis is unreachable
+  }
+  const shouldShowHofAndQuartier = isAuthenticated && !hideHofAndQuartier;
 
   console.log(hideHofAndQuartier, shouldShowHofAndQuartier);
   return (

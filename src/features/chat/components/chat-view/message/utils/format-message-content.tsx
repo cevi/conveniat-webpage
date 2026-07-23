@@ -1,4 +1,9 @@
 import { environmentVariables } from '@/config/environment-variables';
+import {
+  getJoinedAsAdminMessagePayload,
+  getJoinGroupMessagePayload,
+  getLeftGroupMessagePayload,
+} from '@/features/chat/api/utils/system-message-helpers';
 import { SYSTEM_MSG_TYPE_EMERGENCY_ALERT } from '@/lib/chat-shared';
 import type { JsonArray, JsonObject } from '@/lib/prisma/runtime/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -10,6 +15,36 @@ const alertMessageText: StaticTranslationString = {
   de: '🚨 Notfallwarnung von',
   en: '🚨 Emergency Alert from',
   fr: "🚨 Alerte d'urgence de",
+};
+
+const swissIntlPattern = String.raw`(?:(?:\+41|0041)[\s\-\./]*(?:\(0\)[\s\-\./]*)?(?:\d[\s\-\./]*){8}\d)`;
+const swissDomPattern = String.raw`(?:0[1-9](?:[\s\-\./]*\d){8})`;
+const swissPhonePattern = `(?<![\\d\\+\\w])(?:${swissIntlPattern}|${swissDomPattern})(?![\\d\\w])`;
+
+const splitFormattingLinkAndPhoneRegex = new RegExp(
+  `(\\*.*?\\*|_.*?_|~.*?~|\\[[^\\]]+\\]\\(https?:\\/\\/[^\\s)]+\\)|https?:\\/\\/[^\\s)]+|${swissPhonePattern})`,
+  'g',
+);
+
+const boldRegex = /^\*(.+)\*$/;
+const italicRegex = /^_(.+)_$/;
+const strikethroughRegex = /^~(.+)~$/;
+const markdownLinkRegex = /^\[(.+?)\]\((https?:\/\/[^\s)]+)\)$/;
+const urlRegex = /^(https?:\/\/[^\s)]+)$/;
+const phoneRegex = new RegExp(`^${swissPhonePattern}$`);
+
+export const formatPhoneToTel = (match: string): string => {
+  let cleaned = match.trim();
+  if (cleaned.startsWith('0041')) {
+    cleaned = `+41${cleaned.slice(4)}`;
+  }
+  if (cleaned.startsWith('+41')) {
+    cleaned = cleaned.replace(/^\+41\s*(?:\(0\)|0)\s*/, '+41 ');
+    const digits = cleaned.replaceAll(/[^\d+]/g, '');
+    return `tel:${digits}`;
+  }
+  const digits = cleaned.replaceAll(/\D/g, '');
+  return `tel:${digits}`;
 };
 
 export const formatMessageContent = (
@@ -39,9 +74,10 @@ export const formatMessageContent = (
     !Array.isArray(text) &&
     text['system_msg_type'] === SYSTEM_MSG_TYPE_EMERGENCY_ALERT
   ) {
-    const { userName, userNickname } = text;
+    const { userName, userNickname, caseNumber } = text;
     const userNameString = typeof userName === 'string' ? userName : '';
     const userNicknameString = typeof userNickname === 'string' ? userNickname : '';
+    const caseNumberString = typeof caseNumber === 'string' ? caseNumber : '';
 
     return [
       <div
@@ -49,6 +85,9 @@ export const formatMessageContent = (
         className="my-1 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-[0.95rem] font-semibold text-red-700 shadow-sm"
       >
         {alertMessageText[locale]} {userNameString === '' ? userNicknameString : userNameString}
+        {caseNumberString !== '' && (
+          <span className="ml-2 font-mono text-xs opacity-90">({caseNumberString})</span>
+        )}
       </div>,
     ];
   }
@@ -91,18 +130,26 @@ export const formatMessageContent = (
     return [JSON.stringify(text, undefined, 2)];
   }
 
-  const splitFormattingAndLinkRegex =
-    /(\*.*?\*|_.*?_|~.*?~|\[[^\]]+\]\(https?:\/\/[^\s)]+\)|https?:\/\/[^\s)]+)/g;
-  const boldRegex = /^\*(.+)\*$/;
-  const italicRegex = /^_(.+)_$/;
-  const strikethroughRegex = /^~(.+)~$/;
-  const markdownLinkRegex = /^\[(.+?)\]\((https?:\/\/[^\s)]+)\)$/;
-  const urlRegex = /^(https?:\/\/[^\s)]+)$/;
+  const joinedMatch = text.match(/^(.+) joined the group$/);
+  if (joinedMatch?.[1]) {
+    const name = joinedMatch[1];
+    return [getJoinGroupMessagePayload(name)[locale]];
+  }
 
+  const leftMatch = text.match(/^(.+) left the group$/);
+  if (leftMatch?.[1]) {
+    const name = leftMatch[1];
+    return [getLeftGroupMessagePayload(name)[locale]];
+  }
+
+  const joinedAdminMatch = text.match(/^(.+) joined as admin$/);
+  if (joinedAdminMatch?.[1]) {
+    const name = joinedAdminMatch[1];
+    return [getJoinedAsAdminMessagePayload(name)[locale]];
   const lines = text.split('\n');
 
   return lines.flatMap((line, lineIndex) => {
-    const parts = line.split(splitFormattingAndLinkRegex).filter(Boolean);
+    const parts = line.split(splitFormattingLinkAndPhoneRegex).filter(Boolean);
     const formattedParts = parts.map((part, partIndex) => {
       let match;
       match = part.match(boldRegex);
@@ -170,6 +217,16 @@ export const formatMessageContent = (
         return (
           <Link key={`${lineIndex}-${partIndex}-link`} className="underline" {...linkProperties}>
             {url}
+          </Link>
+        );
+      }
+      match = part.match(phoneRegex);
+      if (match?.[0] !== undefined) {
+        const phoneText = part;
+        const phoneHref = formatPhoneToTel(phoneText);
+        return (
+          <Link key={`${lineIndex}-${partIndex}-phone`} className="underline" href={phoneHref}>
+            {phoneText}
           </Link>
         );
       }

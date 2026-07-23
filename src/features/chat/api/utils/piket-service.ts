@@ -3,6 +3,7 @@ import { chatPubSub } from '@/lib/db/chat-pubsub';
 import prisma from '@/lib/db/prisma';
 import type { ChatType } from '@/lib/prisma/client';
 import { ChatMembershipPermission, MessageEventType, MessageType } from '@/lib/prisma/client';
+import { formatUserFullName } from '@/utils/format-user-name';
 import config from '@payload-config';
 import type { Payload } from 'payload';
 import { getPayload } from 'payload';
@@ -18,9 +19,9 @@ interface PiketScheduleDocument {
   endTime: string;
   chatTypes: string[];
   users?:
-    | Array<string | { id: string; fullName?: string }>
+    | Array<string | { id: string; fullName?: string; nickname?: string }>
     | string
-    | { id: string; fullName?: string }
+    | { id: string; fullName?: string; nickname?: string }
     | null;
 }
 
@@ -57,9 +58,10 @@ export async function getActivePiketMembers(
 
     for (const u of usersList) {
       if (typeof u === 'object') {
+        const formatted = formatUserFullName(u.fullName, u.nickname);
         uniqueUsers.set(u.id, {
           id: u.id,
-          name: u.fullName !== undefined && u.fullName !== '' ? u.fullName : 'Piket Member',
+          name: formatted === '' ? 'Piket Member' : formatted,
         });
       } else {
         uniqueUsers.set(u, {
@@ -111,9 +113,10 @@ export async function syncPiketMembersToOpenChats(payload: Payload): Promise<voi
     const membersToSync: PiketMember[] = [];
     for (const u of usersList) {
       if (typeof u === 'object') {
+        const formatted = formatUserFullName(u.fullName, u.nickname);
         membersToSync.push({
           id: u.id,
-          name: u.fullName !== undefined && u.fullName !== '' ? u.fullName : 'Piket Member',
+          name: formatted === '' ? 'Piket Member' : formatted,
         });
       } else if (typeof u === 'string') {
         membersToSync.push({

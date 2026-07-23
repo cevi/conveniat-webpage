@@ -76,9 +76,16 @@ export const ChatHeader: React.FC = () => {
           </Link>
 
           <div className="flex min-w-0 flex-col">
-            <h1 className="font-heading truncate text-lg leading-tight font-bold text-gray-900">
-              {chatDetails.name}
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className="font-heading truncate text-lg leading-tight font-bold text-gray-900">
+                {chatDetails.name}
+              </h1>
+              {chatDetails.caseNumber != undefined && chatDetails.caseNumber !== '' && (
+                <span className="shrink-0 rounded bg-red-100 px-2 py-0.5 font-mono text-xs font-bold text-red-700">
+                  {chatDetails.caseNumber}
+                </span>
+              )}
+            </div>
             {isOneToOne && (
               <div className="mt-0.5 flex items-center gap-1.5">
                 <div

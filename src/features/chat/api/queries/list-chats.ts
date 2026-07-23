@@ -1,4 +1,5 @@
 /* eslint-disable unicorn/no-null */
+import { formatCaseNumber } from '@/features/chat/api/utils/case-number-utils';
 import { getMessagePreviewText } from '@/features/chat/api/utils/get-message-preview-text';
 import { resolveChatName } from '@/features/chat/api/utils/resolve-chat-name';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
@@ -143,6 +144,7 @@ export const getChatList = trpcBaseProcedure
         description: chat.description,
         status: chat.status,
         chatType: chat.type,
+        caseNumber: formatCaseNumber(chat.caseNumber),
         id: chat.uuid,
         messageCount: chat._count.messages,
         lastMessage: {

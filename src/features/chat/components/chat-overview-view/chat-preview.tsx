@@ -89,6 +89,11 @@ export const ChatPreview: React.FC<{
                 >
                   {chat.name}
                 </p>
+                {chat.caseNumber != undefined && chat.caseNumber !== '' && (
+                  <span className="shrink-0 rounded bg-red-100 px-1.5 py-0.5 font-mono text-[10px] font-bold text-red-700">
+                    {chat.caseNumber}
+                  </span>
+                )}
               </div>
             </div>
             <span

@@ -3,7 +3,7 @@ import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
 import { useChatActions } from '@/features/chat/context/chat-actions-context';
 import { generateOptimisticId, isOptimisticMessageMatch } from '@/features/chat/utils';
 import { addMessageToOutbox } from '@/features/chat/utils/offline-outbox';
-import { SYSTEM_SENDER_ID } from '@/lib/chat-shared';
+import { ChatStatus, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import { ChatType, MessageEventType, MessageType } from '@/lib/prisma/client';
 import { toast } from '@/lib/toast';
 import { trpc } from '@/trpc/client';
@@ -143,6 +143,7 @@ const performOptimisticMessageUpdate = async (
             messages: [optimisticMessage],
             capabilities: [],
             type: ChatType.ONE_TO_ONE,
+            status: ChatStatus.OPEN,
           };
         }
         return {

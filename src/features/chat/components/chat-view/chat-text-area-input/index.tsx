@@ -6,7 +6,7 @@ import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import { useImageUpload } from '@/features/chat/hooks/use-image-upload';
 import { useMessageSend } from '@/features/chat/hooks/use-message-send';
-import { ChatCapability } from '@/lib/chat-shared';
+import { ChatCapability, ChatStatus } from '@/lib/chat-shared';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
@@ -71,6 +71,12 @@ const chatLockedText: StaticTranslationString = {
   fr: 'Ce chat a été verrouillé. Plus aucun message ne peut être envoyé.',
 };
 
+const emergencyLockedText: StaticTranslationString = {
+  de: 'Dieser Notfall wurde als abgeschlossen markiert. Es können keine Nachrichten mehr gesendet werden.',
+  en: 'This emergency alert has been marked as completed. No further messages can be sent.',
+  fr: "Cette alerte d'urgence a été marquée comme terminée. Plus aucun message ne peut être envoyé.",
+};
+
 const sendErrorMessageText: StaticTranslationString = {
   de: 'Nachricht konnte nicht gesendet werden. Bitte versuche es erneut.',
   en: 'Failed to send message. Please try again.',
@@ -106,6 +112,9 @@ export const ChatTextAreaInput: React.FC = () => {
   const getLocalizedError = (error: string | undefined): string | undefined => {
     if (error === undefined || error === '') return undefined;
     if (error.includes('disabled')) {
+      if (chatDetails?.type === ChatType.EMERGENCY) {
+        return emergencyLockedText[locale];
+      }
       return messagingDisabledErrorText[locale];
     }
     return sendErrorMessageText[locale];
@@ -132,7 +141,8 @@ export const ChatTextAreaInput: React.FC = () => {
     chatDetails?.capabilities.includes(ChatCapability.PICTURE_UPLOAD) ?? false;
 
   const canSendMessagesInChat =
-    chatDetails?.capabilities.includes(ChatCapability.CAN_SEND_MESSAGES) ?? true;
+    (chatDetails?.capabilities.includes(ChatCapability.CAN_SEND_MESSAGES) ?? true) &&
+    chatDetails?.status !== ChatStatus.CLOSED;
 
   const { uploadImage } = useImageUpload({
     chatId,
@@ -239,9 +249,10 @@ export const ChatTextAreaInput: React.FC = () => {
   }
 
   if (!canSendMessagesInChat) {
+    const isEmergency = chatDetails.type === ChatType.EMERGENCY;
     return (
       <div className="flex w-full items-center justify-center rounded-lg border border-red-100 bg-red-50 p-4 text-center text-sm text-red-600">
-        {chatLockedText[locale]}
+        {isEmergency ? emergencyLockedText[locale] : chatLockedText[locale]}
       </div>
     );
   }

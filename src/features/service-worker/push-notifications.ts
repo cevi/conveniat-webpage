@@ -75,6 +75,13 @@ function broadcastToClients(clients: readonly Client[], data: NotificationPayloa
   }
 }
 
+/**
+ * Handles incoming push notifications.
+ * Displays notifications by default (including test notifications sent from admin panel
+ * and subscription confirmation push notifications).
+ * Only suppresses notifications if `ignoreIfAppOpen` is true or if `ignoreIfUrlMatches`
+ * matches the currently open active client URL.
+ */
 export const pushNotificationHandler =
   (serviceWorkerScope: ServiceWorkerGlobalScope) =>
   (event: PushEvent): void => {

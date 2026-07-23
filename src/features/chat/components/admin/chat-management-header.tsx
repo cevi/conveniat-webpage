@@ -37,9 +37,16 @@ export const ChatManagementHeader: React.FC<ChatManagementHeaderProperties> = ({
   return (
     <div className="flex items-center justify-between border-b border-(--theme-border-color) bg-(--theme-elevation-50) px-6 py-4">
       <div className="min-w-0 flex-1">
-        <h2 className="truncate text-lg font-semibold text-(--theme-elevation-900)">
-          {selectedChat.name}
-        </h2>
+        <div className="flex items-center gap-2">
+          <h2 className="truncate text-lg font-semibold text-(--theme-elevation-900)">
+            {selectedChat.name}
+          </h2>
+          {selectedChat.caseNumber != undefined && selectedChat.caseNumber !== '' && (
+            <span className="shrink-0 rounded bg-red-100 px-2 py-0.5 font-mono text-xs font-bold text-red-700">
+              {selectedChat.caseNumber}
+            </span>
+          )}
+        </div>
         {selectedChat.description != undefined && (
           <div className="mt-0.5 truncate text-sm text-(--theme-elevation-500)">
             {selectedChat.description}
