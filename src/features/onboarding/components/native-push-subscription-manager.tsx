@@ -1,6 +1,8 @@
 'use client';
 
 import type { StaticTranslationString } from '@/types/types';
+import { Cookie } from '@/types/types';
+import Cookies from 'js-cookie';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 const descriptionText: StaticTranslationString = {
@@ -28,6 +30,7 @@ const openSettingsButtonText: StaticTranslationString = {
 };
 
 const handleOpenSettings = (): void => {
+  Cookies.remove(Cookie.SKIP_PUSH_NOTIFICATION);
   globalThis.AppWebViewNativePush?.openSettings();
 };
 
@@ -42,6 +45,7 @@ export const NativePushSubscriptionManager: React.FC<{
 }> = ({ callback, locale }) => {
   const [isRequesting, setIsRequesting] = useState(false);
   const [isDenied, setIsDenied] = useState(false);
+  const [isAuthorized, setIsAuthorized] = useState(false);
   const callbackReference = useRef(callback);
   const hasAdvancedReference = useRef(false);
 
@@ -58,7 +62,7 @@ export const NativePushSubscriptionManager: React.FC<{
   }, []);
 
   useEffect(() => {
-    // Check current status on mount — auto-advances if already authorized
+    // Check current status on mount
     globalThis.AppWebViewNativePush?.getStatus();
 
     const handleEvent = (event: Event): void => {
@@ -70,16 +74,27 @@ export const NativePushSubscriptionManager: React.FC<{
       if (type === 'native-push-status') {
         const label = payload['authorizationLabel'];
         if (label === 'authorized' || label === 'provisional') {
-          advance();
+          setIsDenied(false);
+          setIsAuthorized(true);
+          // Only auto-advance if the permission prompt was explicitly requested via handleEnable
+          if (isRequesting) {
+            advance();
+          }
         } else if (label === 'denied') {
           setIsRequesting(false);
           setIsDenied(true);
+          setIsAuthorized(false);
         } else {
           // not-determined or unknown — permission dialog dismissed without granting
           setIsRequesting(false);
+          setIsDenied(false);
+          setIsAuthorized(false);
         }
       } else if (type === 'native-push-token' && typeof payload['token'] === 'string') {
-        advance();
+        setIsAuthorized(true);
+        if (isRequesting) {
+          advance();
+        }
       }
     };
 
@@ -87,11 +102,16 @@ export const NativePushSubscriptionManager: React.FC<{
     return (): void => {
       globalThis.removeEventListener('app-webview-native-push-event', handleEvent);
     };
-  }, [advance]);
+  }, [advance, isRequesting]);
 
   const handleEnable = (): void => {
-    setIsRequesting(true);
-    globalThis.AppWebViewNativePush?.requestPermission();
+    Cookies.remove(Cookie.SKIP_PUSH_NOTIFICATION);
+    if (isAuthorized) {
+      advance();
+    } else {
+      setIsRequesting(true);
+      globalThis.AppWebViewNativePush?.requestPermission();
+    }
   };
 
   if (isDenied) {
