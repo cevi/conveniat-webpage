@@ -284,7 +284,9 @@ const config = defineConfig([
 
     // Worktrees
     '*-worktree/**',
+    '**/*-worktree/**',
     'worktrees/**',
+    '**/worktrees/**',
 
     // this config file
     'eslint.config.mjs',

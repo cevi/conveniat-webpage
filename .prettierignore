@@ -12,3 +12,5 @@ coverage
 media
 test-results
 **/*-worktree
+worktrees/**
+**/worktrees/**
