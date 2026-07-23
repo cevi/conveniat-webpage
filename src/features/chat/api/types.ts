@@ -1,3 +1,4 @@
+import type { ChatStatus } from '@/lib/chat-shared';
 import type { JsonArray, JsonObject } from '@/lib/prisma/runtime/client';
 import type { ChatMembershipPermission, MessageEventType } from '@prisma/client';
 
@@ -32,6 +33,8 @@ export interface ChatDetails {
   name: string;
   id: string;
   type: string;
+  status: ChatStatus;
+  caseNumber?: string | undefined;
   courseId?: string | null;
   archivedAt: Date | null;
   messages: ChatMessage[];

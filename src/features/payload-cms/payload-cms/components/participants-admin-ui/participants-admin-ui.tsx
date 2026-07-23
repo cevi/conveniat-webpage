@@ -284,11 +284,70 @@ export const ParticipantsAdminUI: React.FC = () => {
                 placeholder="Search user..."
                 isDisabled={loading || mutating}
                 styles={{
-                  control: (base) => ({
+                  control: (base, state) => ({
                     ...base,
                     minHeight: '40px',
                     borderRadius: '4px',
-                    borderColor: 'var(--theme-elevation-150)',
+                    backgroundColor: 'var(--theme-elevation-50)',
+                    borderColor: state.isFocused
+                      ? 'var(--theme-elevation-300)'
+                      : 'var(--theme-elevation-150)',
+                    boxShadow: 'none',
+                    '&:hover': {
+                      borderColor: 'var(--theme-elevation-200)',
+                    },
+                  }),
+                  singleValue: (base) => ({
+                    ...base,
+                    color: 'var(--theme-elevation-800)',
+                  }),
+                  input: (base) => ({
+                    ...base,
+                    color: 'var(--theme-elevation-800)',
+                  }),
+                  placeholder: (base) => ({
+                    ...base,
+                    color: 'var(--theme-elevation-400)',
+                  }),
+                  menu: (base) => ({
+                    ...base,
+                    backgroundColor: 'var(--theme-elevation-100)',
+                    border: '1px solid var(--theme-elevation-150)',
+                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+                    zIndex: 50,
+                  }),
+                  option: (base, state) => {
+                    let backgroundColor = 'transparent';
+                    if (state.isSelected) {
+                      backgroundColor = 'var(--theme-elevation-300)';
+                    } else if (state.isFocused) {
+                      backgroundColor = 'var(--theme-elevation-150)';
+                    }
+                    return {
+                      ...base,
+                      backgroundColor,
+                      color: 'var(--theme-elevation-800)',
+                      cursor: 'pointer',
+                      '&:active': {
+                        backgroundColor: 'var(--theme-elevation-200)',
+                      },
+                    };
+                  },
+                  dropdownIndicator: (base, state) => ({
+                    ...base,
+                    color: state.isFocused
+                      ? 'var(--theme-elevation-800)'
+                      : 'var(--theme-elevation-400)',
+                    '&:hover': {
+                      color: 'var(--theme-elevation-800)',
+                    },
+                  }),
+                  clearIndicator: (base) => ({
+                    ...base,
+                    color: 'var(--theme-elevation-400)',
+                    '&:hover': {
+                      color: 'var(--theme-elevation-800)',
+                    },
                   }),
                 }}
               />

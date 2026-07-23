@@ -16,7 +16,11 @@ import { redirectsPluginConfiguration } from '@/features/payload-cms/payload-cms
 import { s3StorageConfiguration } from '@/features/payload-cms/payload-cms/plugins/s3-storage-plugin-configuration';
 import { searchPluginConfiguration } from '@/features/payload-cms/payload-cms/plugins/search/search-plugin-configuration';
 import { checkHitobitoApprovalsTask } from '@/features/payload-cms/payload-cms/tasks/check-hitobito-approvals';
-import { DEFAULT_QUEUE } from '@/features/payload-cms/payload-cms/tasks/cleanup-stale-jobs';
+import {
+  DEFAULT_QUEUE,
+  MAIL_QUEUE,
+} from '@/features/payload-cms/payload-cms/tasks/cleanup-stale-jobs';
+
 import { fetchSmtpBouncesTask } from '@/features/payload-cms/payload-cms/tasks/fetch-smtp-bounces';
 import { generateBillsTask } from '@/features/payload-cms/payload-cms/tasks/generate-bills';
 import { generatePdfThumbnailTask } from '@/features/payload-cms/payload-cms/tasks/generate-pdf-thumbnail';
@@ -340,6 +344,11 @@ const jobsConfig: JobsConfig = {
           cron: '*/10 * * * * *', // Every 10 seconds
           limit: 10,
           queue: DEFAULT_QUEUE,
+        },
+        {
+          cron: '*/10 * * * * *', // Every 10 seconds
+          limit: 10,
+          queue: MAIL_QUEUE,
         },
       ]
     : [],

@@ -46,17 +46,18 @@ export const ScheduleItem: React.FC<ScheduleItemProperties> = ({
   return (
     <div
       className={cn(
-        'group relative overflow-hidden rounded-xl border bg-white shadow-sm transition-all duration-200',
+        'group relative overflow-hidden rounded-2xl border border-l-4 bg-white shadow-xs transition-all duration-200',
         'hover:border-gray-300 hover:shadow-md',
-        isEnrolled && 'border-conveniat-green/50 bg-green-50/30',
-        !isEnrolled && 'border-gray-200',
+        isEnrolled
+          ? 'border-l-conveniat-green border-emerald-200 bg-emerald-50/40'
+          : 'border-l-conveniat-green/80 border-gray-100',
       )}
     >
       {/* Clickable header area - Wrapped in Link for soft navigation */}
       <Link
         href={href}
         onClick={saveScrollPosition}
-        className={cn('block cursor-pointer p-4', hasEnrollment && 'pb-2')}
+        className={cn('block cursor-pointer p-4', hasEnrollment && 'pb-3')}
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">

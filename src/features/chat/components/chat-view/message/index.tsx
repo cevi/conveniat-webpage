@@ -11,7 +11,7 @@ import { formatMessageContent } from '@/features/chat/components/chat-view/messa
 import { useChatActions } from '@/features/chat/context/chat-actions-context';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { formatMessageTimeOnlyRaw } from '@/features/chat/hooks/use-format-date';
-import { ChatCapability } from '@/lib/chat-shared';
+import { ChatCapability, ChatStatus } from '@/lib/chat-shared';
 import { MessageEventType, MessageType } from '@/lib/prisma/client';
 import { toast } from '@/lib/toast';
 import { trpc } from '@/trpc/client';
@@ -138,7 +138,8 @@ export const MessageComponent: React.FC<MessageProperties> = ({
   const canReact = hasEmojiReactionCapability;
   const canThread = chatDetails?.capabilities.includes(ChatCapability.THREADS) ?? false;
   const canSendMessagesInChat =
-    chatDetails?.capabilities.includes(ChatCapability.CAN_SEND_MESSAGES) ?? true;
+    (chatDetails?.capabilities.includes(ChatCapability.CAN_SEND_MESSAGES) ?? true) &&
+    chatDetails?.status !== ChatStatus.CLOSED;
   const hasThreadRepliesCapability =
     chatDetails?.capabilities.includes(ChatCapability.THREAD_REPLIES) ?? false;
   const isAllowedGuestThreadReplies =

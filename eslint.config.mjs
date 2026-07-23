@@ -35,6 +35,7 @@ const features_folder = [
   'registration_process',
   'billing',
   'native-push',
+  'presence',
 ];
 
 const featuresDirectory = path.join(__dirname, 'src', 'features');
@@ -280,6 +281,12 @@ const config = defineConfig([
     'out/**',
     'build/**',
     'next-env.d.ts',
+
+    // Worktrees
+    '*-worktree/**',
+    '**/*-worktree/**',
+    'worktrees/**',
+    '**/worktrees/**',
 
     // this config file
     'eslint.config.mjs',

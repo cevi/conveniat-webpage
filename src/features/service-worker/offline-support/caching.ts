@@ -153,6 +153,11 @@ const pageCaching: RuntimeCaching = {
   handler: new NetworkFirst({
     cacheName: CACHE_NAMES.PAGES,
     networkTimeoutSeconds: TIMEOUTS.DEFAULT_FETCH / 1000,
+    plugins: [
+      new CacheableResponsePlugin({
+        statuses: [200],
+      }) as SerwistPlugin,
+    ],
   }),
 };
 

@@ -159,9 +159,9 @@ export const AddMemberModal: React.FC<AddMemberModalProperties> = ({
             const nickname = item.nickname as string | null;
             return (
               <tr key={item.id} className="transition-colors hover:bg-(--theme-elevation-50)">
-                <td className="px-4 py-3 font-medium whitespace-nowrap">
+                <td className="px-4 py-3 font-medium">
                   <div>
-                    <div>{item.fullName}</div>
+                    <div className="whitespace-nowrap">{item.fullName}</div>
                     {item.description && (
                       <div className="text-xs font-normal text-(--theme-elevation-400)">
                         {item.description}

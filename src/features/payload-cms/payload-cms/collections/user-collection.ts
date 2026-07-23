@@ -9,6 +9,7 @@ import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared
 import type { User } from '@/features/payload-cms/payload-types';
 import prisma from '@/lib/db/prisma';
 import { getAuthenticateUsingCeviDB } from '@/utils/auth-helpers';
+import { formatUserFullName } from '@/utils/format-user-name';
 import type { CollectionConfig } from 'payload';
 
 const GROUPS_WITH_API_ACCESS = new Set(environmentVariables.GROUPS_WITH_API_ACCESS);
@@ -19,7 +20,11 @@ const syncUserToPostgres: NonNullable<
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const uuid = doc.id as string | undefined | null;
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  const name = doc.fullName as string;
+  const fullName = doc.fullName as string | undefined;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  const nickname = doc.nickname as string | undefined | null;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  const hidden = doc.hidden as boolean | undefined | null;
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const description = doc.description as string | undefined | null;
 
@@ -27,18 +32,22 @@ const syncUserToPostgres: NonNullable<
     throw new Error('UUID is required to update the user in the database.');
   }
 
+  const name = formatUserFullName(fullName, nickname);
+
   await prisma.user.upsert({
     where: { uuid },
     update: {
       name: name,
       // eslint-disable-next-line unicorn/no-null
       description: description ?? null,
+      hidden: hidden ?? false,
     },
     create: {
       uuid: uuid,
       name: name,
       // eslint-disable-next-line unicorn/no-null
       description: description ?? null,
+      hidden: hidden ?? false,
       // set date to 1970-01-01 to avoid null values
       lastSeen: new Date('1970-01-01T00:00:00Z'),
     },
@@ -73,7 +82,7 @@ export const UserCollection: CollectionConfig = {
     read: hasAdminOrWebAccess,
     create: () => false,
     delete: () => false,
-    update: () => false,
+    update: hasAdminOrWebAccess,
   },
   admin: {
     description:
@@ -83,7 +92,7 @@ export const UserCollection: CollectionConfig = {
     groupBy: true,
     /** this is broken with our localized versions */
     disableCopyToLocale: true,
-    defaultColumns: ['nickname', 'fullName', 'email', 'adminPanelAccess'],
+    defaultColumns: ['nickname', 'fullName', 'email', 'presentAtCamp', 'adminPanelAccess'],
     listSearchableFields: ['nickname', 'fullName', 'email'],
   },
   auth: {
@@ -118,15 +127,7 @@ export const UserCollection: CollectionConfig = {
             const fullName = (data as User).fullName;
             const nickname = (data as User).nickname;
 
-            const nameParts: string[] = [];
-            if (typeof fullName === 'string' && fullName !== '') {
-              nameParts.push(fullName);
-            }
-            if (typeof nickname === 'string' && nickname !== '') {
-              nameParts.push(`v/o ${nickname}`);
-            }
-
-            const nameString = nameParts.join(' ');
+            const nameString = formatUserFullName(fullName, nickname);
             if (typeof email === 'string' && email !== '') {
               return nameString === '' ? email : `${nameString} (${email})`;
             }
@@ -140,7 +141,11 @@ export const UserCollection: CollectionConfig = {
       label: 'UserID inside CeviDB',
       type: 'number',
       required: false,
+      access: {
+        update: () => false,
+      },
       admin: {
+        readOnly: true,
         description:
           'The ID of the user in the CeviDB. Set automatically when the user logs in via Hitobito. Leave empty for manually created users.',
       },
@@ -173,7 +178,11 @@ export const UserCollection: CollectionConfig = {
       label: 'Email',
       type: 'email',
       required: true,
+      access: {
+        update: () => false,
+      },
       admin: {
+        readOnly: true,
         description:
           'The email address of the user. Used for matching when the user logs in via Hitobito.',
       },
@@ -184,7 +193,11 @@ export const UserCollection: CollectionConfig = {
       label: 'Full Name',
       type: 'text',
       required: true,
+      access: {
+        update: () => false,
+      },
       admin: {
+        readOnly: true,
         description: 'The full name of the user, as it will be displayed publicly.',
       },
     },
@@ -193,7 +206,11 @@ export const UserCollection: CollectionConfig = {
       label: 'Ceviname',
       type: 'text',
       required: false,
+      access: {
+        update: () => false,
+      },
       admin: {
+        readOnly: true,
         description: 'The Ceviname of the user.',
       },
     },
@@ -203,7 +220,11 @@ export const UserCollection: CollectionConfig = {
       type: 'json',
       required: false,
       defaultValue: [],
+      access: {
+        update: () => false,
+      },
       admin: {
+        readOnly: true,
         description: 'The groups the user is in. Updated automatically from Hitobito on login.',
       },
       jsonSchema: {
@@ -248,7 +269,11 @@ export const UserCollection: CollectionConfig = {
       label: 'Hof of the user',
       type: 'number',
       required: false,
+      access: {
+        update: () => false,
+      },
       admin: {
+        readOnly: true,
         description: 'The Hof of the user.',
       },
     },
@@ -257,7 +282,11 @@ export const UserCollection: CollectionConfig = {
       label: 'Quartier of the user',
       type: 'number',
       required: false,
+      access: {
+        update: () => false,
+      },
       admin: {
+        readOnly: true,
         description: 'The Quartier of the user.',
       },
     },
@@ -268,6 +297,41 @@ export const UserCollection: CollectionConfig = {
       required: false,
       admin: {
         description: 'An additional description of the user shown in the chat.',
+      },
+    },
+    {
+      name: 'hidden',
+      label: {
+        en: 'Hidden from Chat Selection',
+        de: 'Aus Chat-Auswahl ausblenden',
+        fr: 'Masquer de la sélection de chat',
+      },
+      type: 'checkbox',
+      defaultValue: false,
+      admin: {
+        description: 'Hide this user from the chat creation selection.',
+      },
+    },
+    {
+      name: 'presentAtCamp',
+      label: {
+        en: 'Present at Campsite',
+        de: 'Auf dem Lagerplatz anwesend',
+        fr: 'Présent sur le terrain de camp',
+      },
+      type: 'checkbox',
+      defaultValue: false,
+      admin: {
+        description: 'Whether the user is currently present on the campsite.',
+      },
+    },
+    {
+      name: 'presenceLogs',
+      type: 'join',
+      collection: 'presence-logs',
+      on: 'user',
+      admin: {
+        description: 'Verlauf der Anwesenheit auf dem Lagerplatz (Check-in / Check-out).',
       },
     },
     LastEditedByUserField,

@@ -54,7 +54,6 @@ export const determineNextStep = (context: OnboardingContext): OnboardingStep =>
     authStatus,
     hasSkippedLogin,
     hasSkippedPush,
-    pushPermission,
     hasPushSubscription,
     offlineContentHandled,
     hasCachedContent,
@@ -78,8 +77,8 @@ export const determineNextStep = (context: OnboardingContext): OnboardingStep =>
   }
 
   // Push Notification check
-  // Show if: NO subscription AND NOT skipped AND NOT denied
-  const showPush = !hasPushSubscription && !hasSkippedPush && pushPermission !== 'denied';
+  // Show if: NO subscription AND NOT skipped
+  const showPush = !hasPushSubscription && !hasSkippedPush;
   if (showPush) {
     return OnboardingStep.PushNotifications;
   }

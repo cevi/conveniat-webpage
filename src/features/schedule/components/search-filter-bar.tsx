@@ -13,9 +13,9 @@ import { Filter, Star, X } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 
 const searchPlaceholder: StaticTranslationString = {
-  de: 'Nach Titel oder Beschreibung suchen...',
-  en: 'Search by title or description...',
-  fr: 'Rechercher par titre ou description...',
+  de: 'Suchen...',
+  en: 'Search...',
+  fr: 'Rechercher...',
 };
 
 const clearAllText: StaticTranslationString = {
@@ -58,7 +58,6 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
   className = '',
 }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [showCategoryFilter, setShowCategoryFilter] = useState(false);
 
   const handleSearchChange = useCallback(
@@ -100,118 +99,143 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
   const hasCategoryFilter = filters.selectedCategory !== undefined;
 
   return (
-    <div className={`space-y-3 ${className}`}>
+    <div className={`space-y-2 ${className}`}>
       {/* Search Input with Filter and Starred Toggle */}
       <div className="flex items-center gap-2">
-        <div className="relative flex-1 transition-all duration-300 ease-out">
+        <div className="relative flex-1">
           <AppSearchBar
             placeholder={searchPlaceholder[locale]}
             value={filters.searchText}
             onChange={(event) => handleSearchChange(event.target.value)}
-            onFocus={() => setIsSearchFocused(true)}
-            onBlur={() => setIsSearchFocused(false)}
-            className={cn(
-              'transition-all duration-200',
-              isSearchFocused && 'ring-conveniat-green/20 ring-2',
-            )}
+            className="h-10 text-xs"
           />
         </div>
 
         {/* Filter Button */}
         <Button
           variant="outline"
-          size="icon"
+          size="sm"
           onClick={() => setShowCategoryFilter(!showCategoryFilter)}
           className={cn(
-            'h-12 w-12 shrink-0 rounded-lg border-gray-200 transition-all duration-200',
+            'font-heading h-10 shrink-0 cursor-pointer rounded-xl px-3 text-xs font-semibold transition-all duration-200',
             showCategoryFilter || hasCategoryFilter
-              ? 'border-conveniat-green bg-conveniat-green/10 text-conveniat-green'
-              : 'bg-white text-gray-700 hover:bg-gray-50',
-            isSearchFocused && 'w-0 overflow-hidden border-0 p-0 opacity-0',
+              ? 'border-transparent bg-gray-900 text-white shadow-xs'
+              : 'border-gray-100 bg-white text-gray-700 shadow-2xs hover:border-gray-200 hover:bg-gray-50',
           )}
           aria-label="Filter by category"
         >
-          <Filter className="h-5 w-5" />
+          <Filter
+            className={cn(
+              'h-4 w-4',
+              showCategoryFilter || hasCategoryFilter ? 'text-white' : 'text-gray-500',
+            )}
+          />
+          <span className="hidden sm:inline">Filter</span>
+          {hasCategoryFilter && (
+            <span
+              className={cn(
+                'flex h-2 w-2 rounded-full',
+                showCategoryFilter || hasCategoryFilter ? 'bg-emerald-400' : 'bg-conveniat-green',
+              )}
+            />
+          )}
         </Button>
 
         {/* Starred Toggle */}
         <Button
           variant="outline"
-          size="icon"
+          size="sm"
           onClick={() => onFiltersChange({ ...filters, starredOnly: !filters.starredOnly })}
           className={cn(
-            'h-12 w-12 shrink-0 rounded-lg border-gray-200 transition-all duration-200',
+            'font-heading h-10 shrink-0 cursor-pointer rounded-xl px-3 text-xs font-semibold transition-all duration-200',
             filters.starredOnly
-              ? 'border-red-200 bg-red-50 text-red-700'
-              : 'bg-white text-gray-700 hover:bg-gray-50',
-            isSearchFocused && 'w-0 overflow-hidden border-0 p-0 opacity-0',
+              ? 'border-transparent bg-gray-900 text-white shadow-xs'
+              : 'border-gray-100 bg-white text-gray-700 shadow-2xs hover:border-gray-200 hover:bg-gray-50',
           )}
           aria-label={starredOnlyText[locale]}
         >
-          <Star className={cn('h-5 w-5', filters.starredOnly && 'fill-red-400 text-red-600')} />
+          <Star
+            className={cn(
+              'h-4 w-4',
+              filters.starredOnly ? 'fill-amber-400 text-amber-400' : 'text-gray-500',
+            )}
+          />
+          <span className="hidden sm:inline">{starredOnlyText[locale]}</span>
         </Button>
       </div>
 
       {/* Category Filter Dropdown */}
       {showCategoryFilter && (
-        <div className="animate-in fade-in slide-in-from-top-2 flex flex-wrap gap-2 rounded-lg border border-gray-200 bg-white p-3 shadow-sm duration-200">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleCategoryChange()}
-            className={cn(
-              'h-8 rounded-full px-3 text-sm',
-              filters.selectedCategory === undefined && 'bg-gray-100 font-medium',
-            )}
-          >
-            {allCategoriesText[locale]}
-          </Button>
-          {availableCategories.map((category) => (
-            <Button
-              key={category.id}
-              variant="ghost"
-              size="sm"
-              onClick={() => handleCategoryChange({ id: category.id, title: category.title })}
+        <div className="animate-in fade-in slide-in-from-top-2 flex flex-col gap-2.5 rounded-2xl border border-gray-100 bg-white p-4 shadow-xs duration-200">
+          <div className="flex items-center justify-between">
+            <span className="font-heading text-xs font-semibold tracking-wider text-gray-500 uppercase">
+              {allCategoriesText[locale]}
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => handleCategoryChange()}
               className={cn(
-                'h-8 rounded-full px-3 text-sm',
-                filters.selectedCategory?.id === category.id &&
-                  'bg-conveniat-green/10 text-conveniat-green font-medium',
+                'cursor-pointer rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all',
+                filters.selectedCategory === undefined
+                  ? 'bg-conveniat-green text-white shadow-xs'
+                  : 'border border-gray-200 bg-gray-50 text-gray-700 hover:border-gray-300 hover:bg-gray-100',
               )}
             >
-              {category.title}
-            </Button>
-          ))}
+              {allCategoriesText[locale]}
+            </button>
+            {availableCategories.map((category) => {
+              const isSelected = filters.selectedCategory?.id === category.id;
+              return (
+                <button
+                  key={category.id}
+                  type="button"
+                  onClick={() => handleCategoryChange({ id: category.id, title: category.title })}
+                  className={cn(
+                    'cursor-pointer rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all',
+                    isSelected
+                      ? 'bg-conveniat-green text-white shadow-xs'
+                      : 'border border-gray-200 bg-gray-50 text-gray-700 hover:border-gray-300 hover:bg-gray-100',
+                  )}
+                >
+                  {category.title}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 
       {/* Active Filters / Clear */}
-      <div className="flex flex-wrap items-center gap-2">
-        {/* Show selected category as a chip */}
-        {hasCategoryFilter && filters.selectedCategory && (
-          <span className="animate-in fade-in border-conveniat-green/30 bg-conveniat-green/10 text-conveniat-green flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-medium">
-            {filters.selectedCategory.title}
-            <button
-              onClick={() => handleCategoryChange()}
-              className="hover:bg-conveniat-green/20 ml-1 cursor-pointer rounded-full p-0.5"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          </span>
-        )}
+      {hasActiveFilters && (
+        <div className="flex flex-wrap items-center gap-2 pt-0.5">
+          {/* Show selected category as a chip */}
+          {hasCategoryFilter && filters.selectedCategory && (
+            <span className="animate-in fade-in flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-900 shadow-2xs">
+              {filters.selectedCategory.title}
+              <button
+                type="button"
+                onClick={() => handleCategoryChange()}
+                className="cursor-pointer rounded-full p-0.5 text-emerald-700 transition-colors hover:bg-emerald-200/50"
+                aria-label="Filter entfernen"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          )}
 
-        {/* Clear Filters */}
-        {hasActiveFilters && (
-          <Button
-            variant="ghost"
-            size="sm"
+          {/* Clear All Filters */}
+          <button
+            type="button"
             onClick={clearAllFilters}
-            className="h-8 text-gray-500 hover:text-gray-700"
+            className="font-body hover:text-conveniat-green inline-flex cursor-pointer items-center gap-1 text-xs font-medium text-gray-500 transition-colors"
           >
-            <X className="mr-1.5 h-3.5 w-3.5" />
+            <X className="h-3.5 w-3.5" />
             {clearAllText[locale]}
-          </Button>
-        )}
-      </div>
+          </button>
+        </div>
+      )}
     </div>
   );
 };

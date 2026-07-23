@@ -133,13 +133,20 @@ async function cacheAsset(url: string): Promise<void> {
 
   // Use load balancing for map tiles (vectortiles0-4)
   const isMapTile = url.includes('vectortiles') || url.includes('geo.admin.ch');
+  const isSameOrigin =
+    url.startsWith('/') || new URL(url, location.origin).origin === location.origin;
+
   const response = await fetchWithRetryAndTimeout(
     url,
     {
       mode: 'cors',
-      headers: {
-        [DesignModeTriggers.HEADER_IMPLICIT]: 'true',
-      },
+      ...(isSameOrigin
+        ? {
+            headers: {
+              [DesignModeTriggers.HEADER_IMPLICIT]: 'true',
+            },
+          }
+        : {}),
     },
     TIMEOUTS.ASSET_FETCH,
     isMapTile,
@@ -169,7 +176,7 @@ async function cacheAsset(url: string): Promise<void> {
   await cacheTarget.put(new Request(url, { mode: 'cors' }), safeResponse);
 }
 
-async function cachePageAndScrape(pageUrl: string): Promise<void> {
+async function cacheSinglePageAndScrape(pageUrl: string): Promise<void> {
   console.log(`[SW] Fetching HTML for: ${pageUrl}`);
   const pagesCache = await caches.open(CACHE_NAMES.PAGES);
   const rscCache = await caches.open(CACHE_NAMES.RSC);
@@ -217,10 +224,20 @@ async function cachePageAndScrape(pageUrl: string): Promise<void> {
   };
 
   try {
-    let rscResponse = await fetch(rscUrl, {
-      credentials: 'same-origin',
-      headers: rscHeaders,
-    });
+    let rscResponse = await fetchWithRetryAndTimeout(
+      rscUrl,
+      {
+        credentials: 'same-origin',
+        headers: rscHeaders,
+      },
+      TIMEOUTS.RSC_FETCH,
+      false,
+    );
+
+    if (rscResponse === undefined) {
+      console.warn(`[SW] RSC Prefetch failed for ${rscUrl}`);
+      return;
+    }
 
     const contentType = rscResponse.headers.get('content-type');
     const isRscData = contentType?.includes('text/x-component');
@@ -233,27 +250,47 @@ async function cachePageAndScrape(pageUrl: string): Promise<void> {
       const retryUrl = new URL(pageUrl, location.origin);
       retryUrl.searchParams.append('_rsc', '1'); // Add dummy value
 
-      rscResponse = await fetch(retryUrl.toString(), {
-        credentials: 'same-origin',
-        headers: rscHeaders,
-      });
+      rscResponse = await fetchWithRetryAndTimeout(
+        retryUrl.toString(),
+        {
+          credentials: 'same-origin',
+          headers: rscHeaders,
+        },
+        TIMEOUTS.RSC_FETCH,
+        false,
+      );
     }
 
-    const finalContentType = rscResponse.headers.get('content-type');
-    if (rscResponse.ok && finalContentType?.includes('text/x-component') === true) {
-      const safeRscHeaders = cleanHeaders(rscResponse.headers);
-      const safeRscResponse = new Response(await rscResponse.blob(), {
-        status: rscResponse.status,
-        headers: safeRscHeaders,
-      });
+    if (rscResponse?.ok === true) {
+      const finalContentType = rscResponse.headers.get('content-type');
+      if (finalContentType?.includes('text/x-component') === true) {
+        const safeRscHeaders = cleanHeaders(rscResponse.headers);
+        const safeRscResponse = new Response(await rscResponse.blob(), {
+          status: rscResponse.status,
+          headers: safeRscHeaders,
+        });
 
-      await rscCache.put(rscUrl, safeRscResponse);
-      console.log(`[SW] RSC Cached (Confirmed Flight Data): ${rscUrl}`);
-    } else {
-      console.error(`[SW] SKIPPING RSC Cache for ${pageUrl}. Received ${finalContentType}`);
+        await rscCache.put(rscUrl, safeRscResponse);
+        console.log(`[SW] RSC Cached (Confirmed Flight Data): ${rscUrl}`);
+      } else {
+        console.error(`[SW] SKIPPING RSC Cache for ${pageUrl}. Received ${finalContentType}`);
+      }
     }
   } catch (error) {
     console.warn(`[SW] RSC Network Error`, error);
+  }
+}
+
+export async function cachePageAndScrape(pageUrl: string, locale?: string): Promise<void> {
+  const targetUrls = new Set<string>();
+  targetUrls.add(pageUrl);
+  if (locale && !pageUrl.startsWith(`/${locale}`)) {
+    const prefixedPath = pageUrl.startsWith('/') ? pageUrl : `/${pageUrl}`;
+    targetUrls.add(`/${locale}${prefixedPath}`);
+  }
+
+  for (const url of targetUrls) {
+    await cacheSinglePageAndScrape(url);
   }
 }
 

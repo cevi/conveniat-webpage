@@ -6,6 +6,11 @@ import {
   MessageEventType,
   MessageType,
 } from '@prisma/client';
+// eslint-disable-next-line import/no-restricted-paths
+import {
+  getJoinedAsAdminMessagePayload,
+  getLeftGroupMessagePayload,
+} from '@/features/chat/api/utils/system-message-helpers';
 import type { CollectionAfterChangeHook } from 'payload';
 
 export const syncOrganisers: CollectionAfterChangeHook<CampScheduleEntry> = async ({ doc }) => {
@@ -57,7 +62,7 @@ export const syncOrganisers: CollectionAfterChangeHook<CampScheduleEntry> = asyn
             chatId: chat.uuid,
             type: MessageType.SYSTEM_MSG,
             contentVersions: {
-              create: [{ payload: user.name + ' joined as admin' }],
+              create: [{ payload: getJoinedAsAdminMessagePayload(user.name) }],
             },
             messageEvents: {
               create: [{ type: MessageEventType.CREATED }, { type: MessageEventType.STORED }],
@@ -124,7 +129,7 @@ export const syncOrganisers: CollectionAfterChangeHook<CampScheduleEntry> = asyn
             chatId: chat.uuid,
             type: MessageType.SYSTEM_MSG,
             contentVersions: {
-              create: [{ payload: user.name + ' left the group' }],
+              create: [{ payload: getLeftGroupMessagePayload(user.name) }],
             },
             messageEvents: {
               create: [{ type: MessageEventType.CREATED }, { type: MessageEventType.STORED }],

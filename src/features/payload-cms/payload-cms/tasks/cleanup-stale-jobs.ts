@@ -1,6 +1,7 @@
 import type { Payload, PayloadRequest } from 'payload';
 
 export const DEFAULT_QUEUE = 'default';
+export const MAIL_QUEUE = 'mail';
 
 async function getActiveWorkerJobIds(payload: Payload): Promise<Set<string>> {
   const twoMinutesAgo = new Date();
