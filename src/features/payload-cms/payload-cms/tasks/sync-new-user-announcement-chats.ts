@@ -1,6 +1,7 @@
 import { environmentVariables } from '@/config/environment-variables';
 import prisma from '@/lib/db/prisma';
 import { ChatMembershipPermission } from '@/lib/prisma/client';
+import { formatUserFullName } from '@/utils/format-user-name';
 import type { TaskConfig } from 'payload';
 
 export const syncNewUserAnnouncementChatsTask: TaskConfig<{
@@ -76,15 +77,17 @@ export const syncNewUserAnnouncementChatsTask: TaskConfig<{
         return false;
       });
 
+      const formattedName = formatUserFullName(user.fullName, user.nickname) || 'Unknown User';
+
       // 4. Ensure the user exists in the Prisma User table before creating memberships
       await prisma.user.upsert({
         where: { uuid: userId },
         update: {
-          name: user.fullName || user.nickname || 'Unknown User',
+          name: formattedName,
         },
         create: {
           uuid: userId,
-          name: user.fullName || user.nickname || 'Unknown User',
+          name: formattedName,
           lastSeen: new Date('1970-01-01T00:00:00Z'),
         },
       });

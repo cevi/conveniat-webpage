@@ -1,6 +1,7 @@
 import { environmentVariables } from '@/config/environment-variables';
 import type { HitobitoProfile } from '@/features/next-auth/types/hitobito-profile';
 import type { User } from '@/features/payload-cms/payload-types';
+import { formatUserFullName } from '@/utils/format-user-name';
 import { withSpan } from '@/utils/tracing-helpers';
 import { trace } from '@opentelemetry/api';
 import type { NextAuthConfig } from 'next-auth';
@@ -382,7 +383,7 @@ async function doRefreshAccessToken(token: JWT, reason: string): Promise<JWT> {
         cevi_db_uuid: identity.cevi_db_uuid,
         group_ids: profile.roles.map((role) => role.group_id),
         email: profile.email,
-        name: profile.first_name + ' ' + profile.last_name,
+        name: formatUserFullName(profile.first_name + ' ' + profile.last_name, profile.nickname),
         nickname: profile.nickname,
         firstName: profile.first_name,
         lastName: profile.last_name,
@@ -506,7 +507,7 @@ export const authOptions: NextAuthConfig = {
           cevi_db_uuid: payloadCMSUser.cevi_db_uuid ?? undefined, // the id of the user in the CeviDB as number
           group_ids: profile.roles.map((role) => role.group_id),
           email: profile.email,
-          name: profile.first_name + ' ' + profile.last_name,
+          name: formatUserFullName(profile.first_name + ' ' + profile.last_name, profile.nickname),
           nickname: profile.nickname,
           firstName: profile.first_name,
           lastName: profile.last_name,
