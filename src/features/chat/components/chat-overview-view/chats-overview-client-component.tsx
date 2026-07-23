@@ -196,7 +196,7 @@ export const ChatsOverviewClientComponent: React.FC<{
         <>
           {mounted && typeof document !== 'undefined'
             ? createPortal(
-                <div className="fixed top-[18px] right-6 z-30">{qrCodeButton}</div>,
+                <div className="fixed top-[18px] right-6 z-[55]">{qrCodeButton}</div>,
                 document.body,
               )
             : undefined}
