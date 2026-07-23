@@ -201,13 +201,15 @@ export const ChatsOverviewClientComponent: React.FC<{
               )
             : undefined}
 
-          <div className="fixed right-6 bottom-18 z-30">
-            <Link href="/app/chat/new">
-              <div className="bg-conveniat-green flex h-14 w-14 items-center justify-center rounded-2xl text-white shadow-lg transition-transform hover:scale-105 hover:bg-green-600">
-                <MessageSquarePlus className="h-7 w-7" />
-              </div>
-            </Link>
-          </div>
+          {hasChats && (
+            <div className="fixed right-6 bottom-18 z-30">
+              <Link href="/app/chat/new">
+                <div className="bg-conveniat-green flex h-14 w-14 items-center justify-center rounded-2xl text-white shadow-lg transition-transform hover:scale-105 hover:bg-green-600">
+                  <MessageSquarePlus className="h-7 w-7" />
+                </div>
+              </Link>
+            </div>
+          )}
         </>
       )}
 
