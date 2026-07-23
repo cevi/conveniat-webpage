@@ -4,7 +4,7 @@ import type { JsonArray, JsonObject } from '@/lib/prisma/runtime/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { isStaticTranslationString } from '@/utils/type-guards';
 import Link from 'next/link';
-import React from 'react';
+import type React from 'react';
 
 const alertMessageText: StaticTranslationString = {
   de: '🚨 Notfallwarnung von',
@@ -13,7 +13,7 @@ const alertMessageText: StaticTranslationString = {
 };
 
 const swissIntlPattern = String.raw`(?:(?:\+41|0041)[\s\-\./]*(?:\(0\)[\s\-\./]*)?(?:\d[\s\-\./]*){8}\d)`;
-const swissDomPattern = String.raw`(?:0[\s\-\./]*[1-9](?:[\s\-\./]*\d){8})`;
+const swissDomPattern = String.raw`(?:0[1-9](?:[\s\-\./]*\d){8})`;
 const swissPhonePattern = `(?<![\\d\\+\\w])(?:${swissIntlPattern}|${swissDomPattern})(?![\\d\\w])`;
 
 const splitFormattingLinkAndPhoneRegex = new RegExp(

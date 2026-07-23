@@ -73,5 +73,11 @@ describe('formatMessageContent phone number parser', () => {
       const result = formatMessageContent(text, 'de');
       expect(result).toEqual([text]);
     });
+
+    it('does not parse list-item prefix followed by digits as phone number', () => {
+      const text = 'Option 0. 79 123 45 67 is the extension';
+      const result = formatMessageContent(text, 'de');
+      expect(result).toEqual([text]);
+    });
   });
 });
