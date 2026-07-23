@@ -99,7 +99,8 @@ export const mapRouter = createTRPCRouter({
       for (const annotation of annotations.docs) {
         const annotationID: string = annotation.id;
         schedulesPerAnnotations[annotationID] = simplifiedScheduleEntries.filter(
-          (scheduleEntry: CampScheduleEntry) => scheduleEntry.location?.id === annotation.id,
+          (scheduleEntry: CampScheduleEntry) =>
+            (scheduleEntry.location as { id?: string } | null | undefined)?.id === annotation.id,
         );
       }
 

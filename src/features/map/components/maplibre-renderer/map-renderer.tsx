@@ -132,7 +132,7 @@ export const MapLibreRenderer = ({
         });
       }
     }
-  }, [updatedMapData]);
+  }, [updatedMapData, locale]);
 
   // Sync openAnnotation reference when state updates
   useEffect(() => {

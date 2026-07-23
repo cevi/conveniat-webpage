@@ -131,14 +131,7 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
             )}
           />
           <span className="hidden sm:inline">Filter</span>
-          {hasCategoryFilter && (
-            <span
-              className={cn(
-                'flex h-2 w-2 rounded-full',
-                showCategoryFilter || hasCategoryFilter ? 'bg-emerald-400' : 'bg-conveniat-green',
-              )}
-            />
-          )}
+          {hasCategoryFilter && <span className="flex h-2 w-2 rounded-full bg-emerald-400" />}
         </Button>
 
         {/* Starred Toggle */}

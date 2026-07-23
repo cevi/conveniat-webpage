@@ -87,37 +87,41 @@ export const SwipeToDeleteChat: React.FC<SwipeToDeleteChatProperties> = ({ chat,
       className="relative overflow-hidden rounded-md"
       style={{ touchAction: 'pan-y' }}
     >
-      {/* Background Track (Revealed when swiping right) */}
-      <div
-        className={cn(
-          'absolute inset-y-0 left-0 flex w-full items-center justify-start rounded-md pl-6 transition-colors duration-200',
-          !canDelete ? 'bg-gray-100' : pastThreshold ? 'bg-red-500' : 'bg-red-100',
-        )}
-      >
-        <motion.div style={{ opacity: binOpacity, scale: binScale }}>
-          <div className="relative">
-            <Trash2
-              className={cn(
-                'h-6 w-6 transition-colors duration-200',
-                !canDelete ? 'text-gray-400' : pastThreshold ? 'text-white' : 'text-red-600',
-              )}
-            />
-            {!canDelete && (
-              <svg
-                className="absolute inset-0 h-6 w-6 text-gray-400"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <line x1="4" y1="4" x2="20" y2="20" />
-              </svg>
+      {((): React.ReactElement => {
+        let trackBg = 'bg-gray-100';
+        let iconColor = 'text-gray-400';
+        if (canDelete) {
+          trackBg = pastThreshold ? 'bg-red-500' : 'bg-red-100';
+          iconColor = pastThreshold ? 'text-white' : 'text-red-600';
+        }
+        return (
+          <div
+            className={cn(
+              'absolute inset-y-0 left-0 flex w-full items-center justify-start rounded-md pl-6 transition-colors duration-200',
+              trackBg,
             )}
+          >
+            <motion.div style={{ opacity: binOpacity, scale: binScale }}>
+              <div className="relative">
+                <Trash2 className={cn('h-6 w-6 transition-colors duration-200', iconColor)} />
+                {canDelete ? undefined : (
+                  <svg
+                    className="absolute inset-0 h-6 w-6 text-gray-400"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <line x1="4" y1="4" x2="20" y2="20" />
+                  </svg>
+                )}
+              </div>
+            </motion.div>
           </div>
-        </motion.div>
-      </div>
+        );
+      })()}
 
       {/* Foreground Draggable Card */}
       <motion.div

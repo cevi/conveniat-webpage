@@ -146,13 +146,11 @@ export const PullToRefresh: React.FC<PullToRefreshProperties> = ({
         className="pointer-events-none absolute top-2 left-0 z-20 flex w-full justify-center"
       >
         <div className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-100 bg-white shadow-md">
-          {isRefreshing ? (
-            isOnline ? (
-              <Loader2 className="text-conveniat-green h-6 w-6 animate-spin" />
-            ) : (
-              <OfflineLogo className="h-6 w-6 text-gray-400" />
-            )
-          ) : (
+          {isRefreshing && isOnline && (
+            <Loader2 className="text-conveniat-green h-6 w-6 animate-spin" />
+          )}
+          {isRefreshing && !isOnline && <OfflineLogo className="h-6 w-6 text-gray-400" />}
+          {!isRefreshing && (
             <motion.div style={{ rotate: iconRotation }}>
               <Loader2 className="text-conveniat-green h-6 w-6" />
             </motion.div>

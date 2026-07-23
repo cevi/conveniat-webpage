@@ -62,7 +62,7 @@ export const DateCarousel: React.FC<DateCarouselProperties> = ({
           const dateString = formatDate(date);
           const isSelected = formattedCurrentDate === dateString;
           const weekday = date.toLocaleDateString(locale, { weekday: 'short' });
-          const dayNum = date.getDate();
+          const dayNumber = date.getDate();
 
           return (
             <button
@@ -84,7 +84,9 @@ export const DateCarousel: React.FC<DateCarouselProperties> = ({
               >
                 {weekday}
               </span>
-              <span className="font-heading mt-0.5 text-xs leading-none font-bold">{dayNum}.</span>
+              <span className="font-heading mt-0.5 text-xs leading-none font-bold">
+                {dayNumber}.
+              </span>
             </button>
           );
         })}

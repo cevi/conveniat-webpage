@@ -57,7 +57,7 @@ const EnrollmentSection: React.FC<{
 }> = ({ courseId, locale }) => {
   const { status, isLoading } = useCourseStatus(courseId);
 
-  if (isLoading || !status || !status.enableEnrolment) {
+  if (isLoading || !status?.enableEnrolment) {
     return <></>;
   }
 
