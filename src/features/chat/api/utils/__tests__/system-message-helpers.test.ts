@@ -51,13 +51,37 @@ describe('System Message Helpers and Formatting', () => {
   });
 
   it('formats legacy string payload correctly in formatMessageContent', () => {
-    const legacyPayload = 'Cyrill Püntener joined the group';
-    expect(formatMessageContent(legacyPayload, 'de')).toEqual([
+    const legacyJoinPayload = 'Cyrill Püntener joined the group';
+    expect(formatMessageContent(legacyJoinPayload, 'de')).toEqual([
       'Cyrill Püntener ist der Gruppe beigetreten',
     ]);
-    expect(formatMessageContent(legacyPayload, 'en')).toEqual(['Cyrill Püntener joined the group']);
-    expect(formatMessageContent(legacyPayload, 'fr')).toEqual([
+    expect(formatMessageContent(legacyJoinPayload, 'en')).toEqual([
+      'Cyrill Püntener joined the group',
+    ]);
+    expect(formatMessageContent(legacyJoinPayload, 'fr')).toEqual([
       'Cyrill Püntener a rejoint le groupe',
+    ]);
+
+    const legacyLeftPayload = 'Cyrill Püntener left the group';
+    expect(formatMessageContent(legacyLeftPayload, 'de')).toEqual([
+      'Cyrill Püntener hat die Gruppe verlassen',
+    ]);
+    expect(formatMessageContent(legacyLeftPayload, 'en')).toEqual([
+      'Cyrill Püntener left the group',
+    ]);
+    expect(formatMessageContent(legacyLeftPayload, 'fr')).toEqual([
+      'Cyrill Püntener a quitté le groupe',
+    ]);
+
+    const legacyAdminPayload = 'Cyrill Püntener joined as admin';
+    expect(formatMessageContent(legacyAdminPayload, 'de')).toEqual([
+      'Cyrill Püntener ist als Admin beigetreten',
+    ]);
+    expect(formatMessageContent(legacyAdminPayload, 'en')).toEqual([
+      'Cyrill Püntener joined as admin',
+    ]);
+    expect(formatMessageContent(legacyAdminPayload, 'fr')).toEqual([
+      "Cyrill Püntener a rejoint en tant qu'administrateur",
     ]);
   });
 
@@ -73,14 +97,32 @@ describe('System Message Helpers and Formatting', () => {
     });
   });
 
-  it('provides localized preview text for legacy string payload in getMessagePreviewText', () => {
-    const preview = getMessagePreviewText({
+  it('provides localized preview text for legacy string payloads in getMessagePreviewText', () => {
+    const joinPreview = getMessagePreviewText({
       contentVersions: [{ payload: 'Cyrill Püntener joined the group' }],
     });
-    expect(preview).toEqual({
+    expect(joinPreview).toEqual({
       de: 'Cyrill Püntener ist der Gruppe beigetreten',
       en: 'Cyrill Püntener joined the group',
       fr: 'Cyrill Püntener a rejoint le groupe',
+    });
+
+    const leftPreview = getMessagePreviewText({
+      contentVersions: [{ payload: 'Cyrill Püntener left the group' }],
+    });
+    expect(leftPreview).toEqual({
+      de: 'Cyrill Püntener hat die Gruppe verlassen',
+      en: 'Cyrill Püntener left the group',
+      fr: 'Cyrill Püntener a quitté le groupe',
+    });
+
+    const adminPreview = getMessagePreviewText({
+      contentVersions: [{ payload: 'Cyrill Püntener joined as admin' }],
+    });
+    expect(adminPreview).toEqual({
+      de: 'Cyrill Püntener ist als Admin beigetreten',
+      en: 'Cyrill Püntener joined as admin',
+      fr: "Cyrill Püntener a rejoint en tant qu'administrateur",
     });
   });
 });

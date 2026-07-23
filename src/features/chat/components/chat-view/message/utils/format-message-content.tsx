@@ -1,4 +1,9 @@
 import { environmentVariables } from '@/config/environment-variables';
+import {
+  getJoinedAsAdminMessagePayload,
+  getJoinGroupMessagePayload,
+  getLeftGroupMessagePayload,
+} from '@/features/chat/api/utils/system-message-helpers';
 import { SYSTEM_MSG_TYPE_EMERGENCY_ALERT } from '@/lib/chat-shared';
 import type { JsonArray, JsonObject } from '@/lib/prisma/runtime/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -94,34 +99,19 @@ export const formatMessageContent = (
   const joinedMatch = text.match(/^(.+) joined the group$/);
   if (joinedMatch?.[1]) {
     const name = joinedMatch[1];
-    const translations: Record<Locale, string> = {
-      de: `${name} ist der Gruppe beigetreten`,
-      en: `${name} joined the group`,
-      fr: `${name} a rejoint le groupe`,
-    };
-    return [translations[locale]];
+    return [getJoinGroupMessagePayload(name)[locale]];
   }
 
   const leftMatch = text.match(/^(.+) left the group$/);
   if (leftMatch?.[1]) {
     const name = leftMatch[1];
-    const translations: Record<Locale, string> = {
-      de: `${name} hat die Gruppe verlassen`,
-      en: `${name} left the group`,
-      fr: `${name} a quitté le groupe`,
-    };
-    return [translations[locale]];
+    return [getLeftGroupMessagePayload(name)[locale]];
   }
 
   const joinedAdminMatch = text.match(/^(.+) joined as admin$/);
   if (joinedAdminMatch?.[1]) {
     const name = joinedAdminMatch[1];
-    const translations: Record<Locale, string> = {
-      de: `${name} ist als Admin beigetreten`,
-      en: `${name} joined as admin`,
-      fr: `${name} a rejoint en tant qu'administrateur`,
-    };
-    return [translations[locale]];
+    return [getJoinedAsAdminMessagePayload(name)[locale]];
   }
 
   const splitFormattingAndLinkRegex =
