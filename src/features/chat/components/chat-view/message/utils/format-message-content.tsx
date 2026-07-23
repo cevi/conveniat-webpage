@@ -69,9 +69,10 @@ export const formatMessageContent = (
     !Array.isArray(text) &&
     text['system_msg_type'] === SYSTEM_MSG_TYPE_EMERGENCY_ALERT
   ) {
-    const { userName, userNickname } = text;
+    const { userName, userNickname, caseNumber } = text;
     const userNameString = typeof userName === 'string' ? userName : '';
     const userNicknameString = typeof userNickname === 'string' ? userNickname : '';
+    const caseNumberString = typeof caseNumber === 'string' ? caseNumber : '';
 
     return [
       <div
@@ -79,6 +80,9 @@ export const formatMessageContent = (
         className="my-1 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-[0.95rem] font-semibold text-red-700 shadow-sm"
       >
         {alertMessageText[locale]} {userNameString === '' ? userNicknameString : userNameString}
+        {caseNumberString !== '' && (
+          <span className="ml-2 font-mono text-xs opacity-90">({caseNumberString})</span>
+        )}
       </div>,
     ];
   }

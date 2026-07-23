@@ -7,6 +7,8 @@ import {
 } from '@/lib/chat-shared';
 import { FEATURE_FLAG_SEND_MESSAGES } from '@/lib/feature-flags';
 // eslint-disable-next-line import/no-restricted-paths
+import { formatCaseNumber } from '@/features/chat/api/utils/case-number-utils';
+// eslint-disable-next-line import/no-restricted-paths
 import { getMessagePreviewText } from '@/features/chat/api/utils/get-message-preview-text';
 // eslint-disable-next-line import/no-restricted-paths
 import { resolveChatName } from '@/features/chat/api/utils/resolve-chat-name';
@@ -128,6 +130,9 @@ export const adminRouter = createTRPCRouter({
           description: chat.description,
           status: chat.status,
           type: chat.type,
+          caseNumber:
+            chat.caseNumber ??
+            (chat.type === 'EMERGENCY' ? formatCaseNumber(undefined, chat.createdAt) : undefined),
           capabilities: chat.capabilities,
           lastUpdate: chat.lastUpdate,
           messageCount: chat._count.messages,

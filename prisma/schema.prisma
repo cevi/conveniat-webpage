@@ -92,6 +92,9 @@ model Chat {
   /// discriminates between program schedule entries and helper shifts
   courseType CourseType @default(PROGRAM)
 
+  /// Case number for alert / emergency chats (e.g. 2026-06-01-001)
+  caseNumber String?
+
   messages        Message[]
   chatMemberships ChatMembership[]
   capabilities    ChatCapability[]
@@ -99,6 +102,7 @@ model Chat {
   @@index([name])
   @@index([description])
   @@index([lastUpdate])
+  @@index([caseNumber])
   @@unique([courseId, courseType])
 }
 

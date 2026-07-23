@@ -87,12 +87,47 @@ export const emergencyRouter = createTRPCRouter({
         `New emergency alert from user ${user.nickname} at location: ${JSON.stringify(location)}`,
       );
 
+      // Prepare messages with explicit timestamps to ensure order: System -> Location -> Question
+      const baseTime = new Date();
+
+      // Generate human-readable case number: YYYY-MM-DD-XXX
+      const year = baseTime.getFullYear();
+      const month = String(baseTime.getMonth() + 1).padStart(2, '0');
+      const day = String(baseTime.getDate()).padStart(2, '0');
+      const dateString = `${year}-${month}-${day}`;
+
+      const startOfDay = new Date(baseTime);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(baseTime);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      const countToday = await prisma.chat.count({
+        where: {
+          type: ChatType.EMERGENCY,
+          createdAt: {
+            gte: startOfDay,
+            lte: endOfDay,
+          },
+        },
+      });
+
+      let counter = countToday + 1;
+      let caseNumber = `${dateString}-${String(counter).padStart(3, '0')}`;
+
+      let existing = await prisma.chat.findFirst({ where: { caseNumber } });
+      while (existing !== null) {
+        counter++;
+        caseNumber = `${dateString}-${String(counter).padStart(3, '0')}`;
+        existing = await prisma.chat.findFirst({ where: { caseNumber } });
+      }
+
       const emergencyAlertSystemMessage = {
         payload: {
           system_msg_type: SYSTEM_MSG_TYPE_EMERGENCY_ALERT,
           userUuid: user.uuid,
           userName: user.name,
           userNickname: user.nickname,
+          caseNumber,
         },
       };
 
@@ -102,9 +137,6 @@ export const emergencyRouter = createTRPCRouter({
         locale: ctx.locale,
         fallbackLocale: 'de',
       });
-
-      // Prepare messages with explicit timestamps to ensure order: System -> Location -> Question
-      const baseTime = new Date();
 
       // Fetch currently active piket members for emergency
       const activePiketMembers = await getActivePiketMembers(ChatType.EMERGENCY, baseTime).catch(
@@ -218,6 +250,7 @@ export const emergencyRouter = createTRPCRouter({
         data: {
           name: resolveEmergencyChatName(ctx.locale, user.name),
           type: ChatType.EMERGENCY,
+          caseNumber,
 
           messages: {
             create: messagesToCreate,
@@ -243,11 +276,11 @@ export const emergencyRouter = createTRPCRouter({
       if (activePiketMembers.length > 0) {
         const piketRecipientIds = activePiketMembers.map((m) => m.id);
 
-        let localizedAlertMessage = `Emergency from ${user.name}!`;
+        let localizedAlertMessage = `Emergency from ${user.name}! (${caseNumber})`;
         if (ctx.locale === 'de') {
-          localizedAlertMessage = `Notfall von ${user.name}!`;
+          localizedAlertMessage = `Notfall von ${user.name}! (${caseNumber})`;
         } else if (ctx.locale === 'fr') {
-          localizedAlertMessage = `Urgence de ${user.name}!`;
+          localizedAlertMessage = `Urgence de ${user.name}! (${caseNumber})`;
         }
 
         sendNotification(localizedAlertMessage, piketRecipientIds, chat.uuid).catch(
