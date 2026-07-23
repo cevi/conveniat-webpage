@@ -53,6 +53,22 @@ export const JobsSummaryBanner: React.FC = async () => {
 
   const processingJobs = processingJobsResult.docs as unknown as JobDocument[];
 
+  // Get pending queued jobs (waiting in queue)
+  const queuedJobsResult = await payload.find({
+    collection: 'payload-jobs',
+    where: {
+      and: [
+        { processing: { equals: false } },
+        { completedAt: { exists: false } },
+        { hasError: { equals: false } },
+      ],
+    },
+    limit: 20,
+    context: { internal: true },
+  });
+
+  const queuedJobs = queuedJobsResult.docs as unknown as JobDocument[];
+
   return (
     <div className="mb-6 w-full rounded-xl border border-gray-200/80 bg-white p-5 shadow-sm dark:border-gray-800/80 dark:bg-gray-900">
       <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
@@ -108,16 +124,17 @@ export const JobsSummaryBanner: React.FC = async () => {
           )}
         </div>
 
-        {/* Processing Jobs */}
+        {/* Processing & Queued Jobs */}
         <div className="flex-1 border-t border-gray-100 pt-5 md:border-t-0 md:border-l md:pt-0 md:pl-6 dark:border-gray-800">
           <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
-            Active Jobs ({processingJobs.length})
+            Active / Queued Jobs ({processingJobs.length + queuedJobs.length})
           </h3>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Tasks currently being executed by the workers.
+            Tasks currently executing ({processingJobs.length}) or waiting in queue (
+            {queuedJobs.length}).
           </p>
 
-          {processingJobs.length > 0 ? (
+          {processingJobs.length > 0 || queuedJobs.length > 0 ? (
             <div className="mt-3 space-y-2">
               {processingJobs.map((job) => {
                 const durationText = getDurationText(job.createdAt);
@@ -144,9 +161,30 @@ export const JobsSummaryBanner: React.FC = async () => {
                   </div>
                 );
               })}
+
+              {queuedJobs.map((job) => {
+                const durationText = getDurationText(job.createdAt);
+
+                return (
+                  <div
+                    key={job.id}
+                    className="flex items-center justify-between rounded-lg border border-amber-100 bg-amber-50/50 px-3 py-2 text-xs dark:border-amber-950/40 dark:bg-amber-950/20"
+                  >
+                    <div className="flex flex-col">
+                      <span className="font-semibold text-amber-900 dark:text-amber-400">
+                        {job.taskSlug}{' '}
+                        <span className="font-normal text-gray-400">({String(job.id)})</span>
+                      </span>
+                    </div>
+                    <span className="rounded bg-amber-100 px-2 py-0.5 font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-300">
+                      Queued ({durationText})
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           ) : (
-            <div className="mt-3 text-sm text-gray-400 italic">No jobs currently processing.</div>
+            <div className="mt-3 text-sm text-gray-400 italic">No active or queued jobs.</div>
           )}
         </div>
       </div>
