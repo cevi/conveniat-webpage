@@ -225,18 +225,18 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
       {/* Full-screen container */}
       <div className="fixed inset-0 z-60 flex flex-col overflow-hidden bg-gray-50">
         {/* Header */}
-        <header className="flex h-16 items-center justify-between gap-3 border-b-2 border-gray-200 bg-white px-4">
+        <header className="flex h-16 items-center justify-between gap-3 border-b border-gray-100 bg-white/95 px-4 backdrop-blur-md">
           <div className="flex items-center gap-3 overflow-hidden">
             <button
               type="button"
               onClick={() => router.back()}
-              className="rounded-lg p-2 transition-colors hover:bg-gray-100"
+              className="cursor-pointer rounded-xl p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
               aria-label={labels.back[locale]}
             >
-              <ChevronLeft className="h-5 w-5 text-gray-700" />
+              <ChevronLeft className="h-5 w-5" />
             </button>
             <div className="min-w-0 flex-1">
-              <h1 className="font-heading truncate text-xl font-bold text-gray-900">
+              <h1 className="font-heading truncate text-lg font-bold text-gray-900">
                 {entry.title}
               </h1>
             </div>
@@ -298,15 +298,15 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
 
         {/* Navigation Footer */}
         {!isEditing && (previous || next) && (
-          <nav className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-2">
+          <nav className="relative z-20 flex items-center justify-between border-t border-gray-100 bg-white/95 px-4 py-2.5 backdrop-blur-md">
             {previous ? (
               <button
                 type="button"
                 onClick={() => navigateToEntry(previous.id, -1)}
-                className="flex max-w-[45%] min-w-0 cursor-pointer items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-sm text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
+                className="flex max-w-[45%] min-w-0 cursor-pointer items-center gap-1.5 rounded-xl border border-gray-100 bg-white px-3 py-1.5 text-left text-xs font-semibold text-gray-600 shadow-2xs transition-all hover:border-gray-200 hover:bg-gray-50 hover:text-gray-900"
                 aria-label={previousEntryLabel[locale]}
               >
-                <ChevronLeft className="h-4 w-4 shrink-0" />
+                <ChevronLeft className="text-conveniat-green h-4 w-4 shrink-0" />
                 <span className="truncate">{previous.title}</span>
               </button>
             ) : (
@@ -316,11 +316,11 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
               <button
                 type="button"
                 onClick={() => navigateToEntry(next.id, 1)}
-                className="flex max-w-[45%] min-w-0 cursor-pointer items-center gap-1.5 rounded-lg px-2 py-1.5 text-right text-sm text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
+                className="flex max-w-[45%] min-w-0 cursor-pointer items-center gap-1.5 rounded-xl border border-gray-100 bg-white px-3 py-1.5 text-right text-xs font-semibold text-gray-600 shadow-2xs transition-all hover:border-gray-200 hover:bg-gray-50 hover:text-gray-900"
                 aria-label={nextEntryLabel[locale]}
               >
                 <span className="truncate">{next.title}</span>
-                <ChevronRight className="h-4 w-4 shrink-0" />
+                <ChevronRight className="text-conveniat-green h-4 w-4 shrink-0" />
               </button>
             ) : (
               <div />
