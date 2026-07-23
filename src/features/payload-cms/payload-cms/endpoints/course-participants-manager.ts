@@ -1,6 +1,7 @@
 import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import { isOverlapping } from '@/features/schedule/utils/time-utils';
 import prisma from '@/lib/db/prisma';
+import { formatUserFullName } from '@/utils/format-user-name';
 import type { PayloadHandler } from 'payload';
 
 export const handleParticipantMutation: PayloadHandler = async (request) => {
@@ -38,12 +39,14 @@ export const handleParticipantMutation: PayloadHandler = async (request) => {
           depth: 0,
         });
 
+        const formattedName = formatUserFullName(payloadUser.fullName, payloadUser.nickname);
+
         await prisma.user.upsert({
           where: { uuid: userId },
-          update: { name: String(payloadUser.fullName) },
+          update: { name: formattedName },
           create: {
             uuid: userId,
-            name: String(payloadUser.fullName),
+            name: formattedName,
             lastSeen: new Date('1970-01-01T00:00:00Z'),
           },
         });
