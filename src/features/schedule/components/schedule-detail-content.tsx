@@ -140,7 +140,7 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
   return (
     <TRPCProvider>
       <ScheduleStatusProvider courseIds={[entry.id]} isOnline={isOnline}>
-        <article className="mx-auto w-full max-w-xl space-y-4 p-4 pb-20 sm:p-6">
+        <article className="mx-auto w-full max-w-xl space-y-4 overflow-x-hidden p-4 pb-24 sm:p-6">
           {/* Edit Warning Banner */}
           {isEditing && (
             <div className="flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs font-medium text-amber-800 shadow-xs">
@@ -332,18 +332,22 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
                     key={organiser.id}
                     className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50/60 p-3.5"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="bg-conveniat-green font-heading flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold text-white shadow-xs">
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
+                      <div className="bg-conveniat-green font-heading flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white shadow-xs">
                         {organiser.fullName.charAt(0).toUpperCase()}
                       </div>
-                      <div>
-                        <div className="font-body text-sm font-semibold text-gray-900">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-body truncate text-sm font-semibold text-gray-900">
                           {organiser.fullName}
                         </div>
-                        <div className="font-body text-xs text-gray-500">{organiser.email}</div>
+                        <div className="font-body truncate text-xs text-gray-500">
+                          {organiser.email}
+                        </div>
                       </div>
                     </div>
-                    <ChatLinkButton userId={organiser.id} />
+                    <div className="shrink-0">
+                      <ChatLinkButton userId={organiser.id} />
+                    </div>
                   </div>
                 ))}
               </div>
