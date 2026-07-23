@@ -184,6 +184,10 @@ export const CreateNewChatPage: React.FC = () => {
     setGroupChatNameError(error);
   };
 
+  const unselectedContacts = filteredContacts?.filter(
+    (contact) => !selectedContacts.some((selected) => selected.userId === contact.userId),
+  );
+
   const hasContacts = (allContacts?.length ?? 0) > 0;
 
   return (
@@ -227,58 +231,8 @@ export const CreateNewChatPage: React.FC = () => {
 
       {/* Main Content */}
       <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
-        <div className="mx-auto max-w-xl space-y-5">
-          {/* Search Input - Only shown if contacts exist */}
-          {hasContacts && (
-            <div className="relative">
-              <AppSearchBar
-                placeholder={searchContactsPlaceholder[locale]}
-                value={searchQuery}
-                onChange={(changeEvent) => setSearchQuery(changeEvent.target.value)}
-                onClear={() => setSearchQuery('')}
-              />
-            </div>
-          )}
-
+        <div className="mx-auto max-w-xl space-y-4">
           <AnimatePresence initial={false}>
-            {/* Selected Contacts Pills */}
-            {selectedContacts.length > 0 && (
-              <motion.div
-                key="selected-contacts-pills"
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.2, ease: 'easeInOut' }}
-                className="overflow-hidden"
-              >
-                <div className="space-y-2.5 rounded-2xl border border-emerald-100 bg-emerald-50/50 p-4">
-                  <div className="flex items-center gap-2">
-                    <Users size={15} className="text-conveniat-green" />
-                    <span className="font-heading text-xs font-semibold tracking-wider text-emerald-800 uppercase">
-                      {selectedCountText[locale]} ({selectedContacts.length})
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedContacts.map((contact) => (
-                      <div
-                        key={contact.userId}
-                        className="font-body text-conveniat-green flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-3 py-1.5 text-sm font-medium shadow-xs"
-                      >
-                        <span>{contact.name}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleContactToggle(contact)}
-                          className="rounded-full p-0.5 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-800"
-                        >
-                          <X size={13} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </motion.div>
-            )}
-
             {/* Group Chat Name Input - App Aligned Input Styling */}
             {isGroupChat && (
               <motion.div
@@ -315,17 +269,71 @@ export const CreateNewChatPage: React.FC = () => {
                 </div>
               </motion.div>
             )}
+
+            {/* Selected Contacts Horizontal Avatars Bar (WhatsApp Style) */}
+            {selectedContacts.length > 0 && (
+              <motion.div
+                key="selected-contacts-pills"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2, ease: 'easeInOut' }}
+                className="overflow-hidden"
+              >
+                <div className="rounded-2xl border border-emerald-100 bg-emerald-50/50 p-3 shadow-xs">
+                  <div className="mb-2 flex items-center justify-between px-1">
+                    <span className="font-heading text-xs font-semibold tracking-wider text-emerald-800 uppercase">
+                      {selectedCountText[locale]} ({selectedContacts.length})
+                    </span>
+                  </div>
+                  <div className="flex scrollbar-none items-center gap-3 overflow-x-auto pb-1">
+                    {selectedContacts.map((contact) => (
+                      <div
+                        key={contact.userId}
+                        className="group relative flex shrink-0 flex-col items-center gap-1"
+                      >
+                        <div className="bg-conveniat-green font-heading relative flex h-11 w-11 items-center justify-center rounded-full text-sm font-bold text-white shadow-xs">
+                          {contact.name.charAt(0).toUpperCase()}
+                          <button
+                            type="button"
+                            onClick={() => handleContactToggle(contact)}
+                            className="absolute -top-1 -right-1 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-emerald-800 text-white shadow-xs transition-transform hover:scale-110"
+                          >
+                            <X size={11} />
+                          </button>
+                        </div>
+                        <span className="font-body max-w-[64px] truncate text-center text-xs font-medium text-emerald-950">
+                          {contact.name.split(' ')[0]}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            )}
           </AnimatePresence>
 
-          {/* Contacts List Card */}
+          {/* Contacts List Card with Search Bar Directly Attached */}
           <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-xs">
-            <div className="border-b border-gray-100 bg-gray-50/50 px-5 py-3.5">
-              <h2 className="font-heading text-sm font-semibold tracking-tight text-gray-800">
+            {/* Search Input - Placed directly above the contact list */}
+            {hasContacts && (
+              <div className="border-b border-gray-100 bg-gray-50/50 p-3">
+                <AppSearchBar
+                  placeholder={searchContactsPlaceholder[locale]}
+                  value={searchQuery}
+                  onChange={(changeEvent) => setSearchQuery(changeEvent.target.value)}
+                  onClear={() => setSearchQuery('')}
+                />
+              </div>
+            )}
+
+            <div className="border-b border-gray-100 px-5 py-3">
+              <h2 className="font-heading text-xs font-semibold tracking-wider text-gray-500 uppercase">
                 {selectContactsText[locale]}
               </h2>
             </div>
 
-            <div className="min-h-[320px]">
+            <div className="min-h-[300px]">
               {isLoading && (
                 <div className="flex items-center justify-center py-16">
                   <div className="flex flex-col items-center gap-3">
@@ -335,7 +343,7 @@ export const CreateNewChatPage: React.FC = () => {
                 </div>
               )}
 
-              {!isLoading && filteredContacts?.length === 0 && (
+              {!isLoading && unselectedContacts?.length === 0 && (
                 <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
                   <div className="relative mb-4 flex items-center justify-center">
                     <div className="absolute -inset-2 rounded-full bg-linear-to-tr from-green-500/20 via-emerald-400/15 to-blue-500/20 blur-lg" />
@@ -354,46 +362,26 @@ export const CreateNewChatPage: React.FC = () => {
                 </div>
               )}
 
-              {!isLoading && (filteredContacts?.length ?? 0) > 0 && (
+              {!isLoading && (unselectedContacts?.length ?? 0) > 0 && (
                 <div className="divide-y divide-gray-50 p-2">
-                  {filteredContacts?.map((contact) => {
-                    const isSelected = selectedContacts.some((c) => c.userId === contact.userId);
-                    return (
-                      <div
-                        key={contact.userId}
-                        className={cn(
-                          'flex cursor-pointer items-center space-x-3 rounded-xl p-3 transition-all',
-                          isSelected
-                            ? 'bg-emerald-50/70 font-medium text-emerald-950'
-                            : 'hover:bg-gray-50/80',
-                        )}
-                        onClick={() => handleContactToggle(contact)}
-                      >
-                        <div
-                          className={cn(
-                            'flex h-10 w-10 items-center justify-center rounded-full transition-transform',
-                            isSelected
-                              ? 'bg-conveniat-green text-white shadow-xs'
-                              : 'bg-linear-to-tr from-gray-100 to-gray-200 text-gray-600',
-                          )}
-                        >
-                          <span className="font-heading text-sm font-bold">
-                            {contact.name.charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-body text-sm font-medium text-gray-900">
-                            {contact.name}
-                          </p>
-                        </div>
-                        {isSelected && (
-                          <div className="bg-conveniat-green flex h-5 w-5 items-center justify-center rounded-full shadow-xs">
-                            <span className="text-xs text-white">✓</span>
-                          </div>
-                        )}
+                  {unselectedContacts?.map((contact) => (
+                    <div
+                      key={contact.userId}
+                      className="flex cursor-pointer items-center space-x-3 rounded-xl p-3 transition-all hover:bg-gray-50/80"
+                      onClick={() => handleContactToggle(contact)}
+                    >
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-tr from-gray-100 to-gray-200 text-gray-600 transition-transform">
+                        <span className="font-heading text-sm font-bold">
+                          {contact.name.charAt(0).toUpperCase()}
+                        </span>
                       </div>
-                    );
-                  })}
+                      <div className="flex-1">
+                        <p className="font-body text-sm font-medium text-gray-900">
+                          {contact.name}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
