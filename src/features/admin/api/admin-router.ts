@@ -130,9 +130,7 @@ export const adminRouter = createTRPCRouter({
           description: chat.description,
           status: chat.status,
           type: chat.type,
-          caseNumber:
-            chat.caseNumber ??
-            (chat.type === 'EMERGENCY' ? formatCaseNumber(undefined, chat.createdAt) : undefined),
+          caseNumber: formatCaseNumber(chat.caseNumber),
           capabilities: chat.capabilities,
           lastUpdate: chat.lastUpdate,
           messageCount: chat._count.messages,

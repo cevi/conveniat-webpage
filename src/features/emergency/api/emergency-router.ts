@@ -5,8 +5,13 @@ import { chatPubSub } from '@/lib/db/chat-pubsub';
 import { createTRPCRouter, publicProcedure, trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import config from '@payload-config';
-import type { Prisma } from '@prisma/client';
-import { ChatMembershipPermission, ChatType, MessageEventType, MessageType } from '@prisma/client';
+import {
+  ChatMembershipPermission,
+  ChatType,
+  MessageEventType,
+  MessageType,
+  Prisma,
+} from '@prisma/client';
 import { getPayload } from 'payload';
 import { z } from 'zod';
 // eslint-disable-next-line import/no-restricted-paths
@@ -98,38 +103,20 @@ export const emergencyRouter = createTRPCRouter({
 
       const startOfDay = new Date(baseTime);
       startOfDay.setHours(0, 0, 0, 0);
-      const endOfDay = new Date(baseTime);
-      endOfDay.setHours(23, 59, 59, 999);
+      const startOfNextDay = new Date(startOfDay);
+      startOfNextDay.setDate(startOfNextDay.getDate() + 1);
 
       const countToday = await prisma.chat.count({
         where: {
           type: ChatType.EMERGENCY,
           createdAt: {
             gte: startOfDay,
-            lte: endOfDay,
+            lt: startOfNextDay,
           },
         },
       });
 
       let counter = countToday + 1;
-      let caseNumber = `${dateString}-${String(counter).padStart(3, '0')}`;
-
-      let existing = await prisma.chat.findFirst({ where: { caseNumber } });
-      while (existing !== null) {
-        counter++;
-        caseNumber = `${dateString}-${String(counter).padStart(3, '0')}`;
-        existing = await prisma.chat.findFirst({ where: { caseNumber } });
-      }
-
-      const emergencyAlertSystemMessage = {
-        payload: {
-          system_msg_type: SYSTEM_MSG_TYPE_EMERGENCY_ALERT,
-          userUuid: user.uuid,
-          userName: user.name,
-          userNickname: user.nickname,
-          caseNumber,
-        },
-      };
 
       const payloadAPI = await getPayload({ config });
       const alertSettings: AlertSetting = await payloadAPI.findGlobal({
@@ -161,21 +148,12 @@ export const emergencyRouter = createTRPCRouter({
         });
       }
 
-      const messagesToCreate: Prisma.MessageCreateWithoutChatInput[] = [];
-
-      // 1. System Message
-      messagesToCreate.push({
-        contentVersions: { create: emergencyAlertSystemMessage },
-        type: MessageType.SYSTEM_MSG,
-        createdAt: baseTime,
-        messageEvents: {
-          create: [{ type: MessageEventType.STORED }],
-        },
-      });
+      // Base additional messages (Location, Questions, Piket notifications)
+      const additionalMessagesToCreate: Prisma.MessageCreateWithoutChatInput[] = [];
 
       // 2. Location Message (if available)
       if (location) {
-        messagesToCreate.push({
+        additionalMessagesToCreate.push({
           contentVersions: {
             create: {
               payload: {
@@ -195,10 +173,9 @@ export const emergencyRouter = createTRPCRouter({
       }
 
       // 3. First Question (if available)
-      // Only create the *first* question initially. Subsequent questions are created as user answers.
       const firstQuestion = (alertSettings.questions ?? [])[0];
       if (firstQuestion) {
-        messagesToCreate.push({
+        additionalMessagesToCreate.push({
           contentVersions: {
             create: {
               payload: {
@@ -230,7 +207,7 @@ export const emergencyRouter = createTRPCRouter({
           messageText = `${member.name} a été ajouté automatiquement (Service de piquet)`;
         }
 
-        messagesToCreate.push({
+        additionalMessagesToCreate.push({
           contentVersions: {
             create: {
               payload: messageText,
@@ -245,32 +222,75 @@ export const emergencyRouter = createTRPCRouter({
         piketIndex++;
       }
 
-      // set up the emergency alert in the Payload CMS
-      const chat = await prisma.chat.create({
-        data: {
-          name: resolveEmergencyChatName(ctx.locale, user.name),
-          type: ChatType.EMERGENCY,
-          caseNumber,
+      // Atomic retry loop for creating chat with unique caseNumber
+      let chat;
+      let caseNumber = `${dateString}-${String(counter).padStart(3, '0')}`;
+      let attempts = 0;
 
-          messages: {
-            create: messagesToCreate,
+      while (!chat && attempts < 10) {
+        attempts++;
+        caseNumber = `${dateString}-${String(counter).padStart(3, '0')}`;
+
+        const emergencyAlertSystemMessage = {
+          payload: {
+            system_msg_type: SYSTEM_MSG_TYPE_EMERGENCY_ALERT,
+            userUuid: user.uuid,
+            userName: user.name,
+            userNickname: user.nickname,
+            caseNumber,
           },
+        };
 
-          chatMemberships: {
-            create: [
-              {
-                user: { connect: { uuid: user.uuid } },
-                chatPermission: ChatMembershipPermission.MEMBER,
+        const messagesToCreate: Prisma.MessageCreateWithoutChatInput[] = [
+          {
+            contentVersions: { create: emergencyAlertSystemMessage },
+            type: MessageType.SYSTEM_MSG,
+            createdAt: baseTime,
+            messageEvents: {
+              create: [{ type: MessageEventType.STORED }],
+            },
+          },
+          ...additionalMessagesToCreate,
+        ];
+
+        try {
+          chat = await prisma.chat.create({
+            data: {
+              name: resolveEmergencyChatName(ctx.locale, user.name),
+              type: ChatType.EMERGENCY,
+              caseNumber,
+
+              messages: {
+                create: messagesToCreate,
               },
-              ...activePiketMembers.map((member) => ({
-                user: { connect: { uuid: member.id } },
-                chatPermission: ChatMembershipPermission.MEMBER,
-              })),
-            ],
-          },
-          capabilities: [ChatCapability.CAN_SEND_MESSAGES],
-        },
-      });
+
+              chatMemberships: {
+                create: [
+                  {
+                    user: { connect: { uuid: user.uuid } },
+                    chatPermission: ChatMembershipPermission.MEMBER,
+                  },
+                  ...activePiketMembers.map((member) => ({
+                    user: { connect: { uuid: member.id } },
+                    chatPermission: ChatMembershipPermission.MEMBER,
+                  })),
+                ],
+              },
+              capabilities: [ChatCapability.CAN_SEND_MESSAGES],
+            },
+          });
+        } catch (error) {
+          if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+            counter++;
+            continue;
+          }
+          throw error;
+        }
+      }
+
+      if (!chat) {
+        throw new Error('Failed to generate unique case number for emergency alert');
+      }
 
       // Send push notification to all piket members
       if (activePiketMembers.length > 0) {

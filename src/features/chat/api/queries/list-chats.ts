@@ -144,9 +144,7 @@ export const getChatList = trpcBaseProcedure
         description: chat.description,
         status: chat.status,
         chatType: chat.type,
-        caseNumber:
-          chat.caseNumber ??
-          (chat.type === 'EMERGENCY' ? formatCaseNumber(undefined, chat.createdAt) : undefined),
+        caseNumber: formatCaseNumber(chat.caseNumber),
         id: chat.uuid,
         messageCount: chat._count.messages,
         lastMessage: {

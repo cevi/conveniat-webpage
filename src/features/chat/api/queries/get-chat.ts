@@ -72,9 +72,7 @@ export const getChat = trpcBaseProcedure
       archivedAt: chat.archivedAt,
       type: chat.type,
       status: chat.status,
-      caseNumber:
-        chat.caseNumber ??
-        (chat.type === 'EMERGENCY' ? formatCaseNumber(undefined, chat.createdAt) : undefined),
+      caseNumber: formatCaseNumber(chat.caseNumber),
       courseId: chat.courseId,
       // Reverse to chronological order (we fetched in desc to get newest 25)
       messages: [...messages].reverse().map((message) => {
