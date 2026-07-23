@@ -33,6 +33,7 @@ export interface ChatDetails {
   id: string;
   type: string;
   status: ChatStatus;
+  caseNumber?: string | undefined;
   courseId?: string | null;
   archivedAt: Date | null;
   messages: ChatMessage[];

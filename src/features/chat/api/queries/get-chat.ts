@@ -1,5 +1,6 @@
 import { USER_RELEVANT_MESSAGE_EVENTS } from '@/features/chat/api/definitions';
 import type { ChatDetails } from '@/features/chat/api/types';
+import { formatCaseNumber } from '@/features/chat/api/utils/case-number-utils';
 import { getStatusFromMessageEvents } from '@/features/chat/api/utils/get-status-from-message-events';
 import { resolveChatName } from '@/features/chat/api/utils/resolve-chat-name';
 import { MessageEventType } from '@/lib/prisma/client';
@@ -71,6 +72,7 @@ export const getChat = trpcBaseProcedure
       archivedAt: chat.archivedAt,
       type: chat.type,
       status: chat.status,
+      caseNumber: formatCaseNumber(chat.caseNumber),
       courseId: chat.courseId,
       // Reverse to chronological order (we fetched in desc to get newest 25)
       messages: [...messages].reverse().map((message) => {
