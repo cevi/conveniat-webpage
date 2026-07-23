@@ -33,15 +33,15 @@ export const SwipeToDeleteChat: React.FC<SwipeToDeleteChatProperties> = ({ chat,
         ] as ChatMembershipPermission[]
       ).includes(chat.userChatPermission));
 
-  // Transforms for left swipe (draggingX is negative)
-  const binOpacity = useTransform(draggingX, [0, -30], [0, 1]);
-  const binScale = useTransform(draggingX, [0, -80, -160], [0.8, 1, 1.2]);
+  // Transforms for right swipe (draggingX is positive)
+  const binOpacity = useTransform(draggingX, [0, 30], [0, 1]);
+  const binScale = useTransform(draggingX, [0, 80, 160], [0.8, 1, 1.2]);
 
   const handleDrag = useCallback((): void => {
     const currentX = draggingX.get();
     const containerWidth = containerReference.current?.offsetWidth ?? 0;
     const threshold = containerWidth * DELETE_THRESHOLD_PERCENT;
-    const isPast = Math.abs(currentX) >= threshold && currentX < 0;
+    const isPast = currentX >= threshold;
     setPastThreshold(isPast);
   }, [draggingX]);
 
@@ -51,14 +51,14 @@ export const SwipeToDeleteChat: React.FC<SwipeToDeleteChatProperties> = ({ chat,
 
     const containerWidth = containerReference.current?.offsetWidth ?? 0;
     const threshold = containerWidth * DELETE_THRESHOLD_PERCENT;
-    const isLeftSwipe = info.offset.x < 0;
+    const isRightSwipe = info.offset.x > 0;
     const distanceMet = Math.abs(info.offset.x) >= threshold;
 
-    if (isLeftSwipe && distanceMet && canDelete) {
+    if (isRightSwipe && distanceMet && canDelete) {
       setIsDeleting(true);
 
-      // Stage 1: Fast slide off-screen to the left (iOS / Gmail style)
-      await animate(draggingX, -containerWidth * 1.25, {
+      // Stage 1: Fast slide off-screen to the right
+      await animate(draggingX, containerWidth * 1.25, {
         duration: 0.2,
         ease: 'easeOut',
       });
@@ -87,10 +87,10 @@ export const SwipeToDeleteChat: React.FC<SwipeToDeleteChatProperties> = ({ chat,
       className="relative overflow-hidden rounded-md"
       style={{ touchAction: 'pan-y' }}
     >
-      {/* Background Track (Revealed when swiping left) */}
+      {/* Background Track (Revealed when swiping right) */}
       <div
         className={cn(
-          'absolute inset-y-0 right-0 flex w-full items-center justify-end rounded-md pr-6 transition-colors duration-200',
+          'absolute inset-y-0 left-0 flex w-full items-center justify-start rounded-md pl-6 transition-colors duration-200',
           !canDelete ? 'bg-gray-100' : pastThreshold ? 'bg-red-500' : 'bg-red-100',
         )}
       >
@@ -123,8 +123,8 @@ export const SwipeToDeleteChat: React.FC<SwipeToDeleteChatProperties> = ({ chat,
       <motion.div
         drag={isDeleting ? false : 'x'}
         dragDirectionLock
-        dragConstraints={{ left: canDelete ? -200 : 0, right: 0 }}
-        dragElastic={{ left: 0.35, right: 0 }}
+        dragConstraints={{ left: 0, right: canDelete ? 200 : 0 }}
+        dragElastic={{ left: 0, right: 0.35 }}
         onDrag={handleDrag}
         onDragEnd={(event_, info) => void handleDragEnd(event_, info)}
         style={{
