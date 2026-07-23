@@ -297,9 +297,9 @@ export const CreateNewChatPage: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => handleContactToggle(contact)}
-                            className="absolute -top-1 -right-1 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-emerald-800 text-white shadow-xs transition-transform hover:scale-110"
+                            className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white shadow-xs ring-2 ring-white transition-transform hover:scale-110 hover:bg-red-600"
                           >
-                            <X size={11} />
+                            <X size={12} className="stroke-[2.5]" />
                           </button>
                         </div>
                         <span className="font-body max-w-[64px] truncate text-center text-xs font-medium text-emerald-950">
