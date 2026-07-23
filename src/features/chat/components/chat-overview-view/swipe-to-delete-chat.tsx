@@ -14,24 +14,13 @@ interface SwipeToDeleteChatProperties {
   children: React.ReactNode;
 }
 
-const DELETE_THRESHOLD_PERCENT = 0.4;
-
-const getBgClass = (canDelete: boolean, pastThreshold: boolean): string => {
-  if (!canDelete) return 'bg-gray-100';
-  return pastThreshold ? 'bg-red-500' : 'bg-red-100';
-};
-
-const getIconClass = (canDelete: boolean, pastThreshold: boolean): string => {
-  if (!canDelete) return 'text-gray-400';
-  return pastThreshold ? 'text-white' : 'text-red-600';
-};
+const DELETE_THRESHOLD_PERCENT = 0.35;
 
 export const SwipeToDeleteChat: React.FC<SwipeToDeleteChatProperties> = ({ chat, children }) => {
   const deleteChatMutation = useArchiveChatMutation();
   const draggingX = useMotionValue(0);
   const containerReference = useRef<HTMLDivElement>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isSwiping, setIsSwiping] = useState(false);
   const [pastThreshold, setPastThreshold] = useState(false);
 
   const canDelete =
@@ -44,42 +33,41 @@ export const SwipeToDeleteChat: React.FC<SwipeToDeleteChatProperties> = ({ chat,
         ] as ChatMembershipPermission[]
       ).includes(chat.userChatPermission));
 
-  const binOpacity = useTransform(draggingX, [0, 30], [0, 1]);
-  const binScale = useTransform(draggingX, [0, 80, 160], [0.8, 1, 1.25]);
+  // Transforms for left swipe (draggingX is negative)
+  const binOpacity = useTransform(draggingX, [0, -30], [0, 1]);
+  const binScale = useTransform(draggingX, [0, -80, -160], [0.8, 1, 1.2]);
 
-  const handleDragStart = useCallback((): void => {
-    setIsSwiping(true);
-  }, []);
-
-  const handleDrag = useCallback((_: unknown, info: { offset: { x: number } }): void => {
+  const handleDrag = useCallback((): void => {
+    const currentX = draggingX.get();
     const containerWidth = containerReference.current?.offsetWidth ?? 0;
     const threshold = containerWidth * DELETE_THRESHOLD_PERCENT;
-    const isPast = info.offset.x >= threshold;
+    const isPast = Math.abs(currentX) >= threshold && currentX < 0;
     setPastThreshold(isPast);
-  }, []);
+  }, [draggingX]);
 
   const handleDragEnd = async (_: unknown, info: { offset: { x: number } }): Promise<void> => {
-    setIsSwiping(false);
     setPastThreshold(false);
     if (isDeleting) return;
 
     const containerWidth = containerReference.current?.offsetWidth ?? 0;
     const threshold = containerWidth * DELETE_THRESHOLD_PERCENT;
+    const isLeftSwipe = info.offset.x < 0;
+    const distanceMet = Math.abs(info.offset.x) >= threshold;
 
-    if (info.offset.x >= threshold && canDelete) {
+    if (isLeftSwipe && distanceMet && canDelete) {
       setIsDeleting(true);
 
-      // Stage 1: Fast slide off-screen to the right (Gmail style)
-      await animate(draggingX, containerWidth * 1.25, {
-        duration: 0.18,
+      // Stage 1: Fast slide off-screen to the left (iOS / Gmail style)
+      await animate(draggingX, -containerWidth * 1.25, {
+        duration: 0.2,
         ease: 'easeOut',
       });
 
-      // Stage 2: Trigger mutation (height collapse handles removal visually)
+      // Stage 2: Trigger mutation
       deleteChatMutation.mutate({ chatUuid: chat.id });
     } else {
       // Snap back if threshold not met or delete not allowed
-      animate(draggingX, 0, { type: 'spring', stiffness: 450, damping: 32 });
+      animate(draggingX, 0, { type: 'spring', stiffness: 500, damping: 35 });
     }
   };
 
@@ -97,19 +85,21 @@ export const SwipeToDeleteChat: React.FC<SwipeToDeleteChatProperties> = ({ chat,
         opacity: { duration: 0.18, ease: 'easeOut' },
       }}
       className="relative overflow-hidden rounded-md"
+      style={{ touchAction: 'pan-y' }}
     >
+      {/* Background Track (Revealed when swiping left) */}
       <div
         className={cn(
-          'absolute inset-y-0 left-0 flex w-full items-center justify-start rounded-md pl-6 transition-colors duration-150',
-          getBgClass(canDelete, pastThreshold),
+          'absolute inset-y-0 right-0 flex w-full items-center justify-end rounded-md pr-6 transition-colors duration-200',
+          !canDelete ? 'bg-gray-100' : pastThreshold ? 'bg-red-500' : 'bg-red-100',
         )}
       >
         <motion.div style={{ opacity: binOpacity, scale: binScale }}>
           <div className="relative">
             <Trash2
               className={cn(
-                'h-6 w-6 transition-colors duration-150',
-                getIconClass(canDelete, pastThreshold),
+                'h-6 w-6 transition-colors duration-200',
+                !canDelete ? 'text-gray-400' : pastThreshold ? 'text-white' : 'text-red-600',
               )}
             />
             {!canDelete && (
@@ -129,20 +119,19 @@ export const SwipeToDeleteChat: React.FC<SwipeToDeleteChatProperties> = ({ chat,
         </motion.div>
       </div>
 
+      {/* Foreground Draggable Card */}
       <motion.div
         drag={isDeleting ? false : 'x'}
-        dragConstraints={{ left: 0, right: 0 }}
-        dragElastic={{ right: 0.35, left: 0 }}
         dragDirectionLock
-        onDragStart={handleDragStart}
+        dragConstraints={{ left: canDelete ? -200 : 0, right: 0 }}
+        dragElastic={{ left: 0.35, right: 0 }}
         onDrag={handleDrag}
         onDragEnd={(event_, info) => void handleDragEnd(event_, info)}
         style={{
           x: draggingX,
-          touchAction: isSwiping ? 'none' : 'pan-y',
+          touchAction: 'pan-y',
         }}
-        className="relative z-10 select-none"
-        whileTap={{ cursor: 'grabbing' }}
+        className="relative z-10 cursor-grab select-none active:cursor-grabbing"
       >
         {children}
       </motion.div>
