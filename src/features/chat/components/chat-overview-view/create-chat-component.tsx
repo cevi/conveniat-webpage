@@ -270,7 +270,7 @@ export const CreateNewChatPage: React.FC = () => {
               </motion.div>
             )}
 
-            {/* Selected Contacts Horizontal Avatars Bar (WhatsApp Style) */}
+            {/* Selected Contacts Horizontal Avatars Bar (WhatsApp / App Card Style) */}
             {selectedContacts.length > 0 && (
               <motion.div
                 key="selected-contacts-pills"
@@ -278,31 +278,31 @@ export const CreateNewChatPage: React.FC = () => {
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.2, ease: 'easeInOut' }}
-                className="overflow-hidden"
+                className="overflow-hidden p-0.5"
               >
-                <div className="rounded-2xl border border-emerald-100 bg-emerald-50/50 p-3 shadow-xs">
-                  <div className="mb-2 flex items-center justify-between px-1">
-                    <span className="font-heading text-xs font-semibold tracking-wider text-emerald-800 uppercase">
+                <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-xs">
+                  <div className="border-b border-gray-100 bg-gray-50/50 px-5 py-3">
+                    <span className="font-heading text-xs font-semibold tracking-wider text-gray-500 uppercase">
                       {selectedCountText[locale]} ({selectedContacts.length})
                     </span>
                   </div>
-                  <div className="flex scrollbar-none items-center gap-3 overflow-x-auto pb-1">
+                  <div className="flex scrollbar-none items-center gap-4 overflow-x-auto px-4 pt-3.5 pb-3">
                     {selectedContacts.map((contact) => (
                       <div
                         key={contact.userId}
-                        className="group relative flex shrink-0 flex-col items-center gap-1"
+                        className="group relative flex shrink-0 flex-col items-center gap-1.5 pt-1"
                       >
-                        <div className="bg-conveniat-green font-heading relative flex h-11 w-11 items-center justify-center rounded-full text-sm font-bold text-white shadow-xs">
+                        <div className="bg-conveniat-green font-heading relative flex h-12 w-12 items-center justify-center rounded-full text-sm font-bold text-white shadow-xs">
                           {contact.name.charAt(0).toUpperCase()}
                           <button
                             type="button"
                             onClick={() => handleContactToggle(contact)}
-                            className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white shadow-xs ring-2 ring-white transition-transform hover:scale-110 hover:bg-red-600"
+                            className="absolute -top-1 -right-1 flex h-5 w-5 cursor-pointer items-center justify-center rounded-full bg-red-500 text-white shadow-xs ring-2 ring-white transition-transform hover:scale-110 hover:bg-red-600"
                           >
                             <X size={12} className="stroke-[2.5]" />
                           </button>
                         </div>
-                        <span className="font-body max-w-[64px] truncate text-center text-xs font-medium text-emerald-950">
+                        <span className="font-body max-w-[68px] truncate text-center text-xs font-medium text-gray-800">
                           {contact.name.split(' ')[0]}
                         </span>
                       </div>
