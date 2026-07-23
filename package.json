@@ -124,7 +124,7 @@
     "lucide-react": "^0.540.0",
     "mailparser": "^3.9.8",
     "maplibre-gl": "^5.24.0",
-    "next": "^16.2.6",
+    "next": "^16.2.11",
     "next-auth": "5.0.0-beta.30",
     "next-devtools-mcp": "^0.3.10",
     "next-i18n-router": "^5.5.8",
