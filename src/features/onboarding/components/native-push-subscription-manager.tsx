@@ -27,12 +27,6 @@ const openSettingsButtonText: StaticTranslationString = {
   fr: 'Ouvrir les paramètres',
 };
 
-const skipButtonText: StaticTranslationString = {
-  en: 'Skip for now',
-  de: 'Überspringen',
-  fr: "Passer pour l'instant",
-};
-
 const handleOpenSettings = (): void => {
   globalThis.AppWebViewNativePush?.openSettings();
 };
@@ -111,12 +105,6 @@ export const NativePushSubscriptionManager: React.FC<{
           onClick={handleOpenSettings}
         >
           {openSettingsButtonText[locale]}
-        </button>
-        <button
-          className="cursor-pointer font-semibold text-gray-400 hover:text-gray-600"
-          onClick={advance}
-        >
-          {skipButtonText[locale]}
         </button>
       </div>
     );
