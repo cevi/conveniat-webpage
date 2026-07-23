@@ -216,7 +216,7 @@ export const emergencyRouter = createTRPCRouter({
       // set up the emergency alert in the Payload CMS
       const chat = await prisma.chat.create({
         data: {
-          name: resolveEmergencyChatName(ctx.locale, user.nickname ?? user.name),
+          name: resolveEmergencyChatName(ctx.locale, user.name),
           type: ChatType.EMERGENCY,
 
           messages: {
@@ -243,11 +243,11 @@ export const emergencyRouter = createTRPCRouter({
       if (activePiketMembers.length > 0) {
         const piketRecipientIds = activePiketMembers.map((m) => m.id);
 
-        let localizedAlertMessage = `Emergency from ${user.nickname ?? user.name}!`;
+        let localizedAlertMessage = `Emergency from ${user.name}!`;
         if (ctx.locale === 'de') {
-          localizedAlertMessage = `Notfall von ${user.nickname ?? user.name}!`;
+          localizedAlertMessage = `Notfall von ${user.name}!`;
         } else if (ctx.locale === 'fr') {
-          localizedAlertMessage = `Urgence de ${user.nickname ?? user.name}!`;
+          localizedAlertMessage = `Urgence de ${user.name}!`;
         }
 
         sendNotification(localizedAlertMessage, piketRecipientIds, chat.uuid).catch(

@@ -9,6 +9,7 @@ import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared
 import type { User } from '@/features/payload-cms/payload-types';
 import prisma from '@/lib/db/prisma';
 import { getAuthenticateUsingCeviDB } from '@/utils/auth-helpers';
+import { formatUserFullName } from '@/utils/format-user-name';
 import type { CollectionConfig } from 'payload';
 
 const GROUPS_WITH_API_ACCESS = new Set(environmentVariables.GROUPS_WITH_API_ACCESS);
@@ -19,13 +20,17 @@ const syncUserToPostgres: NonNullable<
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const uuid = doc.id as string | undefined | null;
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  const name = doc.fullName as string;
+  const fullName = doc.fullName as string | undefined;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  const nickname = doc.nickname as string | undefined | null;
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const hidden = doc.hidden as boolean | undefined | null;
 
   if (uuid === undefined || uuid === null || uuid === '') {
     throw new Error('UUID is required to update the user in the database.');
   }
+
+  const name = formatUserFullName(fullName, nickname);
 
   await prisma.user.upsert({
     where: { uuid },
@@ -116,15 +121,7 @@ export const UserCollection: CollectionConfig = {
             const fullName = (data as User).fullName;
             const nickname = (data as User).nickname;
 
-            const nameParts: string[] = [];
-            if (typeof fullName === 'string' && fullName !== '') {
-              nameParts.push(fullName);
-            }
-            if (typeof nickname === 'string' && nickname !== '') {
-              nameParts.push(`v/o ${nickname}`);
-            }
-
-            const nameString = nameParts.join(' ');
+            const nameString = formatUserFullName(fullName, nickname);
             if (typeof email === 'string' && email !== '') {
               return nameString === '' ? email : `${nameString} (${email})`;
             }

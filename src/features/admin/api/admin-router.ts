@@ -27,6 +27,7 @@ import {
 } from '@/lib/prisma/client';
 import { MINIO_BUCKET_NAME, s3ClientPublic } from '@/lib/s3';
 import { createTRPCRouter, trpcBaseProcedure } from '@/trpc/init';
+import { formatUserFullName } from '@/utils/format-user-name';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import type { Prisma } from '@prisma/client';
@@ -949,16 +950,18 @@ export const adminRouter = createTRPCRouter({
         });
       }
 
+      const formattedName = formatUserFullName(userDocument.fullName, userDocument.nickname);
+
       // Ensure the user exists in PostgreSQL to satisfy foreign key constraints
       await prisma.user.upsert({
         where: { uuid: userId },
         create: {
           uuid: userId,
-          name: userDocument.fullName,
+          name: formattedName,
           lastSeen: new Date('1970-01-01T00:00:00Z'),
         },
         update: {
-          name: userDocument.fullName,
+          name: formattedName,
         },
       });
 
@@ -979,7 +982,7 @@ export const adminRouter = createTRPCRouter({
       });
 
       // Create a SYSTEM_MSG so it gets stored in history and displayed in the UI
-      const joinMessagePayload = getJoinGroupMessagePayload(userDocument.fullName);
+      const joinMessagePayload = getJoinGroupMessagePayload(formattedName);
 
       const systemMessage = await prisma.message.create({
         data: {
