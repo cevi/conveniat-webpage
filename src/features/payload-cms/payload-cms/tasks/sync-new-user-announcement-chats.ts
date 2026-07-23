@@ -1,7 +1,7 @@
 import { environmentVariables } from '@/config/environment-variables';
 import prisma from '@/lib/db/prisma';
-import { ChatMembershipPermission } from '@/lib/prisma/client';
 import { formatUserFullName } from '@/utils/format-user-name';
+import { ChatMembershipPermission } from '@prisma/client';
 import type { TaskConfig } from 'payload';
 
 export const syncNewUserAnnouncementChatsTask: TaskConfig<{
