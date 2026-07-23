@@ -16,6 +16,16 @@ interface SwipeToDeleteChatProperties {
 
 const DELETE_THRESHOLD_PERCENT = 0.4;
 
+const getBgClass = (canDelete: boolean, pastThreshold: boolean): string => {
+  if (!canDelete) return 'bg-gray-100';
+  return pastThreshold ? 'bg-red-500' : 'bg-red-100';
+};
+
+const getIconClass = (canDelete: boolean, pastThreshold: boolean): string => {
+  if (!canDelete) return 'text-gray-400';
+  return pastThreshold ? 'text-white' : 'text-red-600';
+};
+
 export const SwipeToDeleteChat: React.FC<SwipeToDeleteChatProperties> = ({ chat, children }) => {
   const deleteChatMutation = useArchiveChatMutation();
   const draggingX = useMotionValue(0);
@@ -91,7 +101,7 @@ export const SwipeToDeleteChat: React.FC<SwipeToDeleteChatProperties> = ({ chat,
       <div
         className={cn(
           'absolute inset-y-0 left-0 flex w-full items-center justify-start rounded-md pl-6 transition-colors duration-150',
-          canDelete ? (pastThreshold ? 'bg-red-500' : 'bg-red-100') : 'bg-gray-100',
+          getBgClass(canDelete, pastThreshold),
         )}
       >
         <motion.div style={{ opacity: binOpacity, scale: binScale }}>
@@ -99,7 +109,7 @@ export const SwipeToDeleteChat: React.FC<SwipeToDeleteChatProperties> = ({ chat,
             <Trash2
               className={cn(
                 'h-6 w-6 transition-colors duration-150',
-                canDelete ? (pastThreshold ? 'text-white' : 'text-red-600') : 'text-gray-400',
+                getIconClass(canDelete, pastThreshold),
               )}
             />
             {!canDelete && (
