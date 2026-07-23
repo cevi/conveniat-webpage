@@ -144,14 +144,6 @@ export const formatMessageContent = (
     return [getJoinedAsAdminMessagePayload(name)[locale]];
   }
 
-  const splitFormattingAndLinkRegex =
-    /(\*.*?\*|_.*?_|~.*?~|\[[^\]]+\]\(https?:\/\/[^\s)]+\)|https?:\/\/[^\s)]+)/g;
-  const boldRegex = /^\*(.+)\*$/;
-  const italicRegex = /^_(.+)_$/;
-  const strikethroughRegex = /^~(.+)~$/;
-  const markdownLinkRegex = /^\[(.+?)\]\((https?:\/\/[^\s)]+)\)$/;
-  const urlRegex = /^(https?:\/\/[^\s)]+)$/;
-
   const lines = text.split('\n');
 
   return lines.flatMap((line, lineIndex) => {
