@@ -296,41 +296,46 @@ export const PresenceSlider: React.FC = () => {
   };
 
   return (
-    <div className="mx-auto w-full max-w-md rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-      <div className="mb-3 flex items-center justify-between px-2">
-        <span className="text-xs font-semibold tracking-wider text-gray-500 uppercase">
+    <div className="mx-auto w-full max-w-md rounded-2xl border border-gray-200/70 bg-white p-3.5 shadow-sm transition-all sm:p-4">
+      <div className="mb-3 flex items-center justify-between gap-2 px-1">
+        <span className="text-[11px] font-bold tracking-wider text-gray-500 uppercase sm:text-xs">
           {statusLabel[locale]}
         </span>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 rounded-full border border-gray-100 bg-gray-50/90 px-2.5 py-1">
           <span
-            className={cn('inline-block h-2 w-2 rounded-full', {
-              'bg-green-500 shadow-[0_0_8px_rgba(93,111,99,0.6)]':
+            className={cn('inline-block h-2 w-2 rounded-full transition-colors', {
+              'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]':
                 isPresent && !isOutsideTrackingPeriod,
               'bg-cevi-blue shadow-[0_0_8px_rgba(50,51,148,0.6)]':
                 !isPresent && !isOutsideTrackingPeriod,
               'bg-gray-400': isOutsideTrackingPeriod,
             })}
           />
-          <span className="text-sm font-semibold text-gray-800">{displayStatusLabel}</span>
+          <span className="text-xs font-semibold text-gray-800 sm:text-sm">
+            {displayStatusLabel}
+          </span>
         </div>
       </div>
 
       <div
         ref={trackReference}
-        className={cn('relative flex h-16 items-center rounded-full transition-all duration-500', {
-          'border border-green-500/20 bg-green-500/10': isPresent && !isOutsideTrackingPeriod,
-          'border-cevi-blue/20 bg-cevi-blue/10 border': !isPresent && !isOutsideTrackingPeriod,
-          'cursor-not-allowed border-gray-200 bg-gray-50 opacity-60': isOutsideTrackingPeriod,
-          'cursor-grab': !isProcessing && !isOutsideTrackingPeriod,
-          'cursor-not-allowed': isProcessing,
-        })}
+        className={cn(
+          'relative flex h-14 items-center rounded-full transition-all duration-500 sm:h-16',
+          {
+            'border border-green-500/20 bg-green-500/10': isPresent && !isOutsideTrackingPeriod,
+            'border-cevi-blue/20 bg-cevi-blue/10 border': !isPresent && !isOutsideTrackingPeriod,
+            'cursor-not-allowed border-gray-200 bg-gray-50 opacity-60': isOutsideTrackingPeriod,
+            'cursor-grab': !isProcessing && !isOutsideTrackingPeriod,
+            'cursor-not-allowed': isProcessing,
+          },
+        )}
         onPointerDown={handlePointerDown}
         style={{ touchAction: 'none' }}
       >
         <div
           ref={handleReference}
           className={cn(
-            'relative z-10 flex h-12 w-12 items-center justify-center rounded-full shadow-md transition-all duration-300',
+            'relative z-10 flex h-11 w-11 items-center justify-center rounded-full shadow-md transition-all duration-300 sm:h-12 sm:w-12',
             {
               'absolute left-2': true,
               'border border-green-700/10 bg-green-600': isPresent && !isOutsideTrackingPeriod,
@@ -345,7 +350,7 @@ export const PresenceSlider: React.FC = () => {
 
         <div
           className={cn(
-            'pointer-events-none absolute left-1/2 -translate-x-1/2 transform text-xs font-bold tracking-wider uppercase select-none',
+            'pointer-events-none absolute left-1/2 -translate-x-1/2 transform text-[11px] font-bold tracking-wider whitespace-nowrap uppercase select-none sm:text-xs',
             {
               'text-green-800': isPresent && !isOutsideTrackingPeriod,
               'text-cevi-blue': !isPresent && !isOutsideTrackingPeriod,

@@ -18,7 +18,7 @@ const Dashboard: React.FC<{
   return (
     <>
       <section className="container mx-auto mt-8 py-6">
-        <article className="mx-auto w-full max-w-2xl space-y-6 px-8">
+        <article className="mx-auto w-full max-w-2xl space-y-6 px-4 sm:px-6 md:px-8">
           {/* Presence Status Slider */}
           {showPresence && (
             <SafeErrorBoundary fallback={<></>}>

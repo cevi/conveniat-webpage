@@ -51,9 +51,10 @@ export const PullToRefresh: React.FC<PullToRefreshProperties> = ({
 
   const handleTouchStart = useCallback(
     (event: React.TouchEvent<HTMLDivElement>): void => {
+      const touch = event.touches[0];
       const scrollTop = getScrollTop();
-      if (scrollTop <= 0 && !isRefreshing && event.touches.length === 1) {
-        startYReference.current = event.touches[0].clientY;
+      if (scrollTop <= 0 && !isRefreshing && touch) {
+        startYReference.current = touch.clientY;
         isPullingReference.current = false;
       } else {
         startYReference.current = undefined;
@@ -64,9 +65,10 @@ export const PullToRefresh: React.FC<PullToRefreshProperties> = ({
 
   const handleTouchMove = useCallback(
     (event: React.TouchEvent<HTMLDivElement>): void => {
-      if (startYReference.current === undefined || isRefreshing) return;
+      const touch = event.touches[0];
+      if (startYReference.current === undefined || isRefreshing || !touch) return;
 
-      const currentY = event.touches[0].clientY;
+      const currentY = touch.clientY;
       const dy = currentY - startYReference.current;
       const scrollTop = getScrollTop();
 
