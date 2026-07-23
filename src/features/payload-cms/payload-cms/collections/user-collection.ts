@@ -25,6 +25,8 @@ const syncUserToPostgres: NonNullable<
   const nickname = doc.nickname as string | undefined | null;
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const hidden = doc.hidden as boolean | undefined | null;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  const description = doc.description as string | undefined | null;
 
   if (uuid === undefined || uuid === null || uuid === '') {
     throw new Error('UUID is required to update the user in the database.');
@@ -36,11 +38,15 @@ const syncUserToPostgres: NonNullable<
     where: { uuid },
     update: {
       name: name,
+      // eslint-disable-next-line unicorn/no-null
+      description: description ?? null,
       hidden: hidden ?? false,
     },
     create: {
       uuid: uuid,
       name: name,
+      // eslint-disable-next-line unicorn/no-null
+      description: description ?? null,
       hidden: hidden ?? false,
       // set date to 1970-01-01 to avoid null values
       lastSeen: new Date('1970-01-01T00:00:00Z'),
@@ -282,6 +288,15 @@ export const UserCollection: CollectionConfig = {
       admin: {
         readOnly: true,
         description: 'The Quartier of the user.',
+      },
+    },
+    {
+      name: 'description',
+      label: 'Description',
+      type: 'text',
+      required: false,
+      admin: {
+        description: 'An additional description of the user shown in the chat.',
       },
     },
     {

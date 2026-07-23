@@ -541,6 +541,10 @@ export interface User {
    */
   quartier?: number | null;
   /**
+   * An additional description of the user shown in the chat.
+   */
+  description?: string | null;
+  /**
    * Hide this user from the chat creation selection.
    */
   hidden?: boolean | null;
@@ -5604,6 +5608,7 @@ export interface UsersSelect<T extends boolean = true> {
   groups?: T;
   hof?: T;
   quartier?: T;
+  description?: T;
   hidden?: T;
   presentAtCamp?: T;
   presenceLogs?: T;

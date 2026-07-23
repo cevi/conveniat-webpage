@@ -4,6 +4,7 @@ import { z } from 'zod';
 export interface Contact {
   userId: string;
   name: string;
+  description?: string | null;
 }
 
 /**
@@ -26,11 +27,13 @@ export const listContacts = trpcBaseProcedure
       select: {
         uuid: true,
         name: true,
+        description: true,
       },
     });
 
     return _contacts.map((contact) => ({
       userId: contact.uuid,
       name: contact.name,
+      description: contact.description,
     }));
   });

@@ -379,6 +379,9 @@ export const CreateNewChatPage: React.FC = () => {
                         <p className="font-body text-sm font-medium text-gray-900">
                           {contact.name}
                         </p>
+                        {contact.description && (
+                          <p className="font-body text-xs text-gray-500">{contact.description}</p>
+                        )}
                       </div>
                     </div>
                   ))}

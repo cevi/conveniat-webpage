@@ -12,6 +12,7 @@ model User {
   uuid          String   @id
   lastSeen      DateTime @default(now())
   name          String
+  description   String?
   hidden        Boolean  @default(false)
   presentAtCamp Boolean  @default(false)
 
