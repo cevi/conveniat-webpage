@@ -1,4 +1,9 @@
 import { environmentVariables } from '@/config/environment-variables';
+import {
+  getJoinedAsAdminMessagePayload,
+  getJoinGroupMessagePayload,
+  getLeftGroupMessagePayload,
+} from '@/features/chat/api/utils/system-message-helpers';
 import { SYSTEM_MSG_TYPE_EMERGENCY_ALERT } from '@/lib/chat-shared';
 import type { JsonArray, JsonObject } from '@/lib/prisma/runtime/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -125,6 +130,23 @@ export const formatMessageContent = (
     return [JSON.stringify(text, undefined, 2)];
   }
 
+  const joinedMatch = text.match(/^(.+) joined the group$/);
+  if (joinedMatch?.[1]) {
+    const name = joinedMatch[1];
+    return [getJoinGroupMessagePayload(name)[locale]];
+  }
+
+  const leftMatch = text.match(/^(.+) left the group$/);
+  if (leftMatch?.[1]) {
+    const name = leftMatch[1];
+    return [getLeftGroupMessagePayload(name)[locale]];
+  }
+
+  const joinedAdminMatch = text.match(/^(.+) joined as admin$/);
+  if (joinedAdminMatch?.[1]) {
+    const name = joinedAdminMatch[1];
+    return [getJoinedAsAdminMessagePayload(name)[locale]];
+  }
   const lines = text.split('\n');
 
   return lines.flatMap((line, lineIndex) => {

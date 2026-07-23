@@ -1,3 +1,8 @@
+import {
+  getJoinedAsAdminMessagePayload,
+  getJoinGroupMessagePayload,
+  getLeftGroupMessagePayload,
+} from '@/features/chat/api/utils/system-message-helpers';
 import { SYSTEM_MSG_TYPE_EMERGENCY_ALERT } from '@/lib/chat-shared';
 import type { StaticTranslationString } from '@/types/types';
 
@@ -20,7 +25,24 @@ export const getMessagePreviewText = (lastMessage: {
   const payload = lastMessage.contentVersions[0]?.payload;
 
   if (payload === undefined || payload === null || typeof payload !== 'object') {
-    if (typeof payload === 'string') return payload;
+    if (typeof payload === 'string') {
+      const joinedMatch = payload.match(/^(.+) joined the group$/);
+      if (joinedMatch?.[1]) {
+        return getJoinGroupMessagePayload(joinedMatch[1]);
+      }
+
+      const leftMatch = payload.match(/^(.+) left the group$/);
+      if (leftMatch?.[1]) {
+        return getLeftGroupMessagePayload(leftMatch[1]);
+      }
+
+      const joinedAdminMatch = payload.match(/^(.+) joined as admin$/);
+      if (joinedAdminMatch?.[1]) {
+        return getJoinedAsAdminMessagePayload(joinedAdminMatch[1]);
+      }
+
+      return payload;
+    }
     return '';
   }
 
