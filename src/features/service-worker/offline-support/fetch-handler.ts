@@ -276,19 +276,32 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
 
   try {
     // If we are in App Mode and requesting a Document or RSC payload, bypass Serwist's
-    // automatic precache which might contain Web Mode versions. Do a manual network-first fetch.
+    // automatic precache which might contain Web Mode versions. Do a manual network-first fetch with a 4s timeout.
     if (isAppMode && (isDocument || isRsc)) {
-      const networkResponse = await fetch(requestToHandle);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
 
-      const contentType = networkResponse.headers.get('content-type') ?? '';
-      const isJsAsset = url.pathname.endsWith('.js') || url.pathname.endsWith('.mjs');
+      try {
+        const networkResponse = await fetch(requestToHandle, { signal: controller.signal });
+        clearTimeout(timeoutId);
 
-      if (!networkResponse.ok && isJsAsset && contentType.includes('text/html')) {
-        return Response.error();
+        const contentType = networkResponse.headers.get('content-type') ?? '';
+        const isJsAsset = url.pathname.endsWith('.js') || url.pathname.endsWith('.mjs');
+
+        if (!networkResponse.ok && isJsAsset && contentType.includes('text/html')) {
+          return Response.error();
+        }
+
+        if (isRsc) return sanitizeRscResponse(networkResponse);
+        return networkResponse;
+      } catch (error) {
+        clearTimeout(timeoutId);
+        console.warn(
+          `[SW] App Mode fetch timed out or failed for ${url.pathname}, bailing to offline fallback`,
+          error,
+        );
+        return offlineFallback(event.request, url, isAppMode);
       }
-
-      if (isRsc) return sanitizeRscResponse(networkResponse);
-      return networkResponse;
     }
 
     // 3. Serwist Strategies
