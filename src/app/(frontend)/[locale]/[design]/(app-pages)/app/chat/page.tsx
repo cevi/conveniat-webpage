@@ -31,8 +31,8 @@ const ChatPage: React.FC<{
 
   return (
     <>
-      <article className="container mx-auto mt-8 mb-20 py-6">
-        <div className="mx-auto w-full max-w-2xl px-8">
+      <article className="container mx-auto mt-8 mb-20 px-3 py-6 sm:px-6 md:px-8">
+        <div className="mx-auto w-full max-w-2xl">
           <ChatsOverviewClientComponent user={user} qrCodeButton={qrCodeButton} />
         </div>
       </article>
