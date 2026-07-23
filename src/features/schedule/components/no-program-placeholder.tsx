@@ -63,29 +63,37 @@ export const NoProgramPlaceholder: React.FC<NoProgramPlaceholderProperties> = ({
   });
 
   return (
-    <div className="flex flex-col items-center justify-center rounded-xl border border-gray-200 bg-white px-6 py-12 text-center shadow-sm">
-      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
-        {hasActiveFilters ? (
-          <FilterX className="h-8 w-8 text-gray-400" />
-        ) : (
-          <Calendar className="h-8 w-8 text-gray-400" />
-        )}
+    <div className="flex flex-col items-center justify-center overflow-hidden rounded-2xl border border-gray-100 bg-white px-6 py-14 text-center shadow-xs">
+      <div className="relative mb-4 flex items-center justify-center">
+        <div className="absolute -inset-2 rounded-full bg-linear-to-tr from-green-500/20 via-emerald-400/15 to-blue-500/20 blur-lg" />
+        <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-gray-100 bg-white shadow-md">
+          {hasActiveFilters ? (
+            <FilterX className="text-conveniat-green h-8 w-8" />
+          ) : (
+            <Calendar className="text-conveniat-green h-8 w-8" />
+          )}
+        </div>
       </div>
-      <h3 className="mb-2 text-lg font-semibold text-gray-900">
+
+      <h3 className="font-heading text-base font-bold text-gray-900">
         {hasActiveFilters ? noMatchingResultsText[locale] : noProgramAvailableText[locale]}
       </h3>
-      <p className="max-w-sm text-sm text-gray-600">
+
+      <p className="font-body mt-1 max-w-xs text-xs leading-relaxed text-balance text-gray-500">
         {hasActiveFilters ? noMatchingEventsText[locale] : noEventsText[locale]}{' '}
-        <span className="font-medium text-gray-900">{formattedDate}</span>.
+        <span className="font-semibold text-gray-800">{formattedDate}</span>.
       </p>
 
       {hasActiveFilters && onClearFilters ? (
-        <Button variant="outline" size="sm" onClick={onClearFilters} className="mt-4 h-9">
-          <FilterX className="mr-2 h-4 w-4" />
+        <Button
+          onClick={onClearFilters}
+          className="bg-conveniat-green font-heading mt-4 cursor-pointer rounded-xl px-4 py-2 text-xs font-semibold text-white shadow-xs transition-all hover:bg-green-600 hover:shadow-md"
+        >
+          <FilterX className="mr-1.5 h-3.5 w-3.5" />
           {clearFiltersText[locale]}
         </Button>
       ) : (
-        <p className="mt-3 text-xs text-gray-400">{checkOtherDatesText[locale]}</p>
+        <p className="font-body mt-3 text-xs text-gray-400">{checkOtherDatesText[locale]}</p>
       )}
     </div>
   );

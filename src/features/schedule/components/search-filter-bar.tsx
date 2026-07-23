@@ -13,9 +13,9 @@ import { Filter, Star, X } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 
 const searchPlaceholder: StaticTranslationString = {
-  de: 'Nach Titel oder Beschreibung suchen...',
-  en: 'Search by title or description...',
-  fr: 'Rechercher par titre ou description...',
+  de: 'Suchen...',
+  en: 'Search...',
+  fr: 'Rechercher...',
 };
 
 const clearAllText: StaticTranslationString = {

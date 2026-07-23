@@ -23,12 +23,6 @@ import React, { useMemo } from 'react';
 
 import { ScheduleLoadingSkeleton } from '@/features/schedule/components/schedule-loading-skeleton';
 
-const noEventsText: StaticTranslationString = {
-  en: 'No events match your filters for this date',
-  de: 'Keine Veranstaltungen entsprechen deinen Filtern für dieses Datum',
-  fr: 'Aucun événement ne correspond à vos filtres pour cette date',
-};
-
 const foundEventsText: StaticTranslationString = {
   en: 'Found {{count}} event{{plural}} for ',
   de: '{{count}} Veranstaltung{{plural}} gefunden für ',
@@ -198,22 +192,18 @@ export const ScheduleComponent: React.FC = () => {
       </div>
 
       {/* Results Summary */}
-      {hasActiveFilters && (
-        <div className="mb-4 text-sm text-gray-600">
-          {hasProgram ? (
-            <span>
-              {foundEventsText[locale]
-                .replace('{{count}}', String(totalEventsCount))
-                .replace('{{plural}}', pluralSuffix)}
-              {currentDate.toLocaleDateString(locale, {
-                weekday: 'long',
-                month: 'long',
-                day: 'numeric',
-              })}
-            </span>
-          ) : (
-            <span>{noEventsText[locale]}</span>
-          )}
+      {hasActiveFilters && hasProgram && (
+        <div className="mb-3 text-xs font-medium text-gray-500">
+          <span>
+            {foundEventsText[locale]
+              .replace('{{count}}', String(totalEventsCount))
+              .replace('{{plural}}', pluralSuffix)}
+            {currentDate.toLocaleDateString(locale, {
+              weekday: 'long',
+              month: 'long',
+              day: 'numeric',
+            })}
+          </span>
         </div>
       )}
 
