@@ -117,16 +117,28 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
           size="sm"
           onClick={() => setShowCategoryFilter(!showCategoryFilter)}
           className={cn(
-            'font-heading h-10 shrink-0 cursor-pointer rounded-xl border-gray-200 px-3 text-xs font-semibold shadow-xs transition-all duration-200',
+            'font-heading h-10 shrink-0 cursor-pointer rounded-xl px-3 text-xs font-semibold transition-all duration-200',
             showCategoryFilter || hasCategoryFilter
-              ? 'border-conveniat-green bg-emerald-50 text-emerald-800'
-              : 'bg-white text-gray-700 hover:bg-gray-50',
+              ? 'border-transparent bg-gray-900 text-white shadow-xs'
+              : 'border-gray-100 bg-white text-gray-700 shadow-2xs hover:border-gray-200 hover:bg-gray-50',
           )}
           aria-label="Filter by category"
         >
-          <Filter className="h-4 w-4" />
+          <Filter
+            className={cn(
+              'h-4 w-4',
+              showCategoryFilter || hasCategoryFilter ? 'text-white' : 'text-gray-500',
+            )}
+          />
           <span className="hidden sm:inline">Filter</span>
-          {hasCategoryFilter && <span className="bg-conveniat-green flex h-2 w-2 rounded-full" />}
+          {hasCategoryFilter && (
+            <span
+              className={cn(
+                'flex h-2 w-2 rounded-full',
+                showCategoryFilter || hasCategoryFilter ? 'bg-emerald-400' : 'bg-conveniat-green',
+              )}
+            />
+          )}
         </Button>
 
         {/* Starred Toggle */}
@@ -135,14 +147,19 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
           size="sm"
           onClick={() => onFiltersChange({ ...filters, starredOnly: !filters.starredOnly })}
           className={cn(
-            'font-heading h-10 shrink-0 cursor-pointer rounded-xl border-gray-200 px-3 text-xs font-semibold shadow-xs transition-all duration-200',
+            'font-heading h-10 shrink-0 cursor-pointer rounded-xl px-3 text-xs font-semibold transition-all duration-200',
             filters.starredOnly
-              ? 'border-amber-200 bg-amber-50 text-amber-900'
-              : 'bg-white text-gray-700 hover:bg-gray-50',
+              ? 'border-transparent bg-gray-900 text-white shadow-xs'
+              : 'border-gray-100 bg-white text-gray-700 shadow-2xs hover:border-gray-200 hover:bg-gray-50',
           )}
           aria-label={starredOnlyText[locale]}
         >
-          <Star className={cn('h-4 w-4', filters.starredOnly && 'fill-amber-400 text-amber-600')} />
+          <Star
+            className={cn(
+              'h-4 w-4',
+              filters.starredOnly ? 'fill-amber-400 text-amber-400' : 'text-gray-500',
+            )}
+          />
           <span className="hidden sm:inline">{starredOnlyText[locale]}</span>
         </Button>
       </div>
