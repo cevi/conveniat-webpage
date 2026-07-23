@@ -176,7 +176,7 @@ async function cacheAsset(url: string): Promise<void> {
   await cacheTarget.put(new Request(url, { mode: 'cors' }), safeResponse);
 }
 
-async function cachePageAndScrape(pageUrl: string): Promise<void> {
+async function cacheSinglePageAndScrape(pageUrl: string): Promise<void> {
   console.log(`[SW] Fetching HTML for: ${pageUrl}`);
   const pagesCache = await caches.open(CACHE_NAMES.PAGES);
   const rscCache = await caches.open(CACHE_NAMES.RSC);
@@ -278,6 +278,19 @@ async function cachePageAndScrape(pageUrl: string): Promise<void> {
     }
   } catch (error) {
     console.warn(`[SW] RSC Network Error`, error);
+  }
+}
+
+export async function cachePageAndScrape(pageUrl: string, locale?: string): Promise<void> {
+  const targetUrls = new Set<string>();
+  targetUrls.add(pageUrl);
+  if (locale && !pageUrl.startsWith(`/${locale}`)) {
+    const prefixedPath = pageUrl.startsWith('/') ? pageUrl : `/${pageUrl}`;
+    targetUrls.add(`/${locale}${prefixedPath}`);
+  }
+
+  for (const url of targetUrls) {
+    await cacheSinglePageAndScrape(url);
   }
 }
 
