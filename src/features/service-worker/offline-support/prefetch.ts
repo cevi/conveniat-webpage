@@ -133,13 +133,20 @@ async function cacheAsset(url: string): Promise<void> {
 
   // Use load balancing for map tiles (vectortiles0-4)
   const isMapTile = url.includes('vectortiles') || url.includes('geo.admin.ch');
+  const isSameOrigin =
+    url.startsWith('/') || new URL(url, location.origin).origin === location.origin;
+
   const response = await fetchWithRetryAndTimeout(
     url,
     {
       mode: 'cors',
-      headers: {
-        [DesignModeTriggers.HEADER_IMPLICIT]: 'true',
-      },
+      ...(isSameOrigin
+        ? {
+            headers: {
+              [DesignModeTriggers.HEADER_IMPLICIT]: 'true',
+            },
+          }
+        : {}),
     },
     TIMEOUTS.ASSET_FETCH,
     isMapTile,
