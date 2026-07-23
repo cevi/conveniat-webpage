@@ -57,12 +57,12 @@ const EnrollmentSection: React.FC<{
 }> = ({ courseId, locale }) => {
   const { status, isLoading } = useCourseStatus(courseId);
 
-  if (!isLoading && status && !status.enableEnrolment) {
+  if (isLoading || !status || !status.enableEnrolment) {
     return <></>;
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-xs">
       <div className="flex items-center gap-2">
         <div className="bg-conveniat-green/10 text-conveniat-green flex h-9 w-9 shrink-0 items-center justify-center rounded-xl font-bold">
           <UserPlus className="h-4 w-4" />
@@ -309,11 +309,7 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
           )}
 
           {/* Enrollment Section (when enabled & not editing) */}
-          {!isEditing && (
-            <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-xs">
-              <EnrollmentSection courseId={entry.id} locale={locale} />
-            </div>
-          )}
+          {!isEditing && <EnrollmentSection courseId={entry.id} locale={locale} />}
 
           {/* Contact Organisers Section */}
           {organisers.length > 0 && !isEditing && (
