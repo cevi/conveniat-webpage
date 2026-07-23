@@ -20,7 +20,39 @@ export const getMessagePreviewText = (lastMessage: {
   const payload = lastMessage.contentVersions[0]?.payload;
 
   if (payload === undefined || payload === null || typeof payload !== 'object') {
-    if (typeof payload === 'string') return payload;
+    if (typeof payload === 'string') {
+      const joinedMatch = payload.match(/^(.+) joined the group$/);
+      if (joinedMatch?.[1]) {
+        const name = joinedMatch[1];
+        return {
+          de: `${name} ist der Gruppe beigetreten`,
+          en: `${name} joined the group`,
+          fr: `${name} a rejoint le groupe`,
+        };
+      }
+
+      const leftMatch = payload.match(/^(.+) left the group$/);
+      if (leftMatch?.[1]) {
+        const name = leftMatch[1];
+        return {
+          de: `${name} hat die Gruppe verlassen`,
+          en: `${name} left the group`,
+          fr: `${name} a quitté le groupe`,
+        };
+      }
+
+      const joinedAdminMatch = payload.match(/^(.+) joined as admin$/);
+      if (joinedAdminMatch?.[1]) {
+        const name = joinedAdminMatch[1];
+        return {
+          de: `${name} ist als Admin beigetreten`,
+          en: `${name} joined as admin`,
+          fr: `${name} a rejoint en tant qu'administrateur`,
+        };
+      }
+
+      return payload;
+    }
     return '';
   }
 

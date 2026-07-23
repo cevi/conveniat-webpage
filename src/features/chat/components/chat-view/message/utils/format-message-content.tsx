@@ -91,6 +91,39 @@ export const formatMessageContent = (
     return [JSON.stringify(text, undefined, 2)];
   }
 
+  const joinedMatch = text.match(/^(.+) joined the group$/);
+  if (joinedMatch?.[1]) {
+    const name = joinedMatch[1];
+    const translations: Record<Locale, string> = {
+      de: `${name} ist der Gruppe beigetreten`,
+      en: `${name} joined the group`,
+      fr: `${name} a rejoint le groupe`,
+    };
+    return [translations[locale]];
+  }
+
+  const leftMatch = text.match(/^(.+) left the group$/);
+  if (leftMatch?.[1]) {
+    const name = leftMatch[1];
+    const translations: Record<Locale, string> = {
+      de: `${name} hat die Gruppe verlassen`,
+      en: `${name} left the group`,
+      fr: `${name} a quitté le groupe`,
+    };
+    return [translations[locale]];
+  }
+
+  const joinedAdminMatch = text.match(/^(.+) joined as admin$/);
+  if (joinedAdminMatch?.[1]) {
+    const name = joinedAdminMatch[1];
+    const translations: Record<Locale, string> = {
+      de: `${name} ist als Admin beigetreten`,
+      en: `${name} joined as admin`,
+      fr: `${name} a rejoint en tant qu'administrateur`,
+    };
+    return [translations[locale]];
+  }
+
   const splitFormattingAndLinkRegex =
     /(\*.*?\*|_.*?_|~.*?~|\[[^\]]+\]\(https?:\/\/[^\s)]+\)|https?:\/\/[^\s)]+)/g;
   const boldRegex = /^\*(.+)\*$/;

@@ -16,6 +16,8 @@ const config: Config = {
     '^.+\\.(t|j)sx?$': '@swc/jest',
   },
 
+  transformIgnorePatterns: [String.raw`/node_modules/(?!(\.pnpm|@t3-oss)/)`],
+
   testPathIgnorePatterns: ['<rootDir>/node_modules/', '<rootDir>/.next/', '<rootDir>/e2e/'],
 };
 

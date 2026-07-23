@@ -9,6 +9,8 @@ import { FEATURE_FLAG_SEND_MESSAGES } from '@/lib/feature-flags';
 // eslint-disable-next-line import/no-restricted-paths
 import { getMessagePreviewText } from '@/features/chat/api/utils/get-message-preview-text';
 // eslint-disable-next-line import/no-restricted-paths
+import { getJoinGroupMessagePayload } from '@/features/chat/api/utils/system-message-helpers';
+// eslint-disable-next-line import/no-restricted-paths
 import { resolveChatName } from '@/features/chat/api/utils/resolve-chat-name';
 // eslint-disable-next-line import/no-restricted-paths
 import { sendNotification } from '@/features/chat/api/utils/send-push-notifications';
@@ -977,6 +979,8 @@ export const adminRouter = createTRPCRouter({
       });
 
       // Create a SYSTEM_MSG so it gets stored in history and displayed in the UI
+      const joinMessagePayload = getJoinGroupMessagePayload(userDocument.fullName);
+
       const systemMessage = await prisma.message.create({
         data: {
           chatId,
@@ -984,7 +988,7 @@ export const adminRouter = createTRPCRouter({
           contentVersions: {
             create: [
               {
-                payload: `${userDocument.fullName} joined the group`,
+                payload: joinMessagePayload,
               },
             ],
           },
@@ -1010,7 +1014,7 @@ export const adminRouter = createTRPCRouter({
           message: {
             id: systemMessage.uuid,
             createdAt: systemMessage.createdAt,
-            messagePayload: `${userDocument.fullName} joined the group`,
+            messagePayload: joinMessagePayload,
             senderId: SYSTEM_SENDER_ID,
             status: MessageEventType.STORED,
             type: MessageType.SYSTEM_MSG,
