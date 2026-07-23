@@ -58,7 +58,6 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
   className = '',
 }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [showCategoryFilter, setShowCategoryFilter] = useState(false);
 
   const handleSearchChange = useCallback(
@@ -100,55 +99,51 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
   const hasCategoryFilter = filters.selectedCategory !== undefined;
 
   return (
-    <div className={`space-y-3 ${className}`}>
+    <div className={`space-y-2 ${className}`}>
       {/* Search Input with Filter and Starred Toggle */}
       <div className="flex items-center gap-2">
-        <div className="relative flex-1 transition-all duration-300 ease-out">
+        <div className="relative flex-1">
           <AppSearchBar
             placeholder={searchPlaceholder[locale]}
             value={filters.searchText}
             onChange={(event) => handleSearchChange(event.target.value)}
-            onFocus={() => setIsSearchFocused(true)}
-            onBlur={() => setIsSearchFocused(false)}
-            className={cn(
-              'transition-all duration-200',
-              isSearchFocused && 'ring-conveniat-green/20 ring-2',
-            )}
+            className="h-10 text-xs"
           />
         </div>
 
         {/* Filter Button */}
         <Button
           variant="outline"
-          size="icon"
+          size="sm"
           onClick={() => setShowCategoryFilter(!showCategoryFilter)}
           className={cn(
-            'h-12 w-12 shrink-0 rounded-lg border-gray-200 transition-all duration-200',
+            'font-heading h-10 shrink-0 cursor-pointer rounded-xl border-gray-200 px-3 text-xs font-semibold shadow-xs transition-all duration-200',
             showCategoryFilter || hasCategoryFilter
-              ? 'border-conveniat-green bg-conveniat-green/10 text-conveniat-green'
+              ? 'border-conveniat-green bg-emerald-50 text-emerald-800'
               : 'bg-white text-gray-700 hover:bg-gray-50',
-            isSearchFocused && 'w-0 overflow-hidden border-0 p-0 opacity-0',
           )}
           aria-label="Filter by category"
         >
-          <Filter className="h-5 w-5" />
+          <Filter className="h-4 w-4" />
+          <span className="hidden sm:inline">Filter</span>
+          {hasCategoryFilter && <span className="bg-conveniat-green flex h-2 w-2 rounded-full" />}
         </Button>
 
         {/* Starred Toggle */}
         <Button
           variant="outline"
-          size="icon"
+          size="sm"
           onClick={() => onFiltersChange({ ...filters, starredOnly: !filters.starredOnly })}
           className={cn(
-            'h-12 w-12 shrink-0 rounded-lg border-gray-200 transition-all duration-200',
+            'font-heading h-10 shrink-0 cursor-pointer rounded-xl border-gray-200 px-3 text-xs font-semibold shadow-xs transition-all duration-200',
             filters.starredOnly
-              ? 'border-red-200 bg-red-50 text-red-700'
+              ? 'border-amber-200 bg-amber-50 text-amber-900'
               : 'bg-white text-gray-700 hover:bg-gray-50',
-            isSearchFocused && 'w-0 overflow-hidden border-0 p-0 opacity-0',
           )}
           aria-label={starredOnlyText[locale]}
         >
-          <Star className={cn('h-5 w-5', filters.starredOnly && 'fill-red-400 text-red-600')} />
+          <Star className={cn('h-4 w-4', filters.starredOnly && 'fill-amber-400 text-amber-600')} />
+          <span className="hidden sm:inline">{starredOnlyText[locale]}</span>
         </Button>
       </div>
 

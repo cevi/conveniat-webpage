@@ -176,7 +176,7 @@ export const ScheduleComponent: React.FC = () => {
   }
 
   return (
-    <article className="mx-auto w-full max-w-2xl px-4 py-8">
+    <article className="mx-auto w-full max-w-2xl p-4 sm:p-6">
       <DateCarousel
         allDates={allDates}
         currentDate={currentDate}
@@ -188,7 +188,7 @@ export const ScheduleComponent: React.FC = () => {
       />
 
       {/* Search and Filter Bar */}
-      <div className="mt-6 mb-4">
+      <div className="mt-3 mb-3">
         <SearchFilterBar
           filters={filters}
           onFiltersChange={handleFiltersChange}
