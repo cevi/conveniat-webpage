@@ -23,17 +23,17 @@ export const footerNavBarMenuEntries = [
   {
     icon: House,
     label: {
-      de: 'Dashboard',
-      en: 'Dashboard',
-      fr: 'Dashboard',
+      de: 'Home',
+      en: 'Home',
+      fr: 'Accueil',
     },
     href: '/app/dashboard',
   },
   {
     icon: MapIcon,
     label: {
-      de: 'Lagerplatz',
-      en: 'Campsite',
+      de: 'Karte',
+      en: 'Map',
       fr: 'Carte',
     },
     href: '/app/map',
