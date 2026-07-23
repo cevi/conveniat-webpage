@@ -40,6 +40,21 @@ export const updatePresence = trpcBaseProcedure
       }
     }
 
+    const existingUser = await prisma.user.findUnique({
+      where: { uuid: user.uuid },
+      select: { presentAtCamp: true },
+    });
+
+    const previousPresentAtCamp = existingUser?.presentAtCamp ?? false;
+
+    // Prevent duplicate logs and density count corruption when value is unchanged
+    if (existingUser ? previousPresentAtCamp === input.presentAtCamp : !input.presentAtCamp) {
+      return {
+        success: true,
+        presentAtCamp: previousPresentAtCamp,
+      };
+    }
+
     const updatedUser = await prisma.user.upsert({
       where: { uuid: user.uuid },
       create: {
@@ -52,29 +67,68 @@ export const updatePresence = trpcBaseProcedure
       },
     });
 
-    await prisma.presenceLog.create({
+    const prismaLog = await prisma.presenceLog.create({
       data: {
         userUuid: user.uuid,
         isPresent: input.presentAtCamp,
       },
     });
 
-    await payload.create({
-      collection: 'presence-logs',
-      data: {
-        user: user.uuid,
-        isPresent: input.presentAtCamp,
-        timestamp: new Date().toISOString(),
-      },
-    });
+    let payloadLogId: string | number | undefined;
 
-    await payload.update({
-      collection: 'users',
-      id: user.uuid,
-      data: {
-        presentAtCamp: input.presentAtCamp,
-      },
-    });
+    try {
+      const payloadLog = await payload.create({
+        collection: 'presence-logs',
+        data: {
+          user: user.uuid,
+          isPresent: input.presentAtCamp,
+          timestamp: new Date().toISOString(),
+        },
+      });
+      payloadLogId = payloadLog.id;
+
+      await payload.update({
+        collection: 'users',
+        id: user.uuid,
+        data: {
+          presentAtCamp: input.presentAtCamp,
+        },
+      });
+    } catch (payloadError: unknown) {
+      if (payloadLogId !== undefined) {
+        try {
+          await payload.delete({
+            collection: 'presence-logs',
+            id: payloadLogId,
+          });
+        } catch (revertError: unknown) {
+          console.error('Failed to revert Payload presence log:', revertError);
+        }
+      }
+
+      try {
+        await prisma.presenceLog.delete({
+          where: { uuid: prismaLog.uuid },
+        });
+      } catch (revertError: unknown) {
+        console.error('Failed to revert Prisma presence log:', revertError);
+      }
+
+      try {
+        await prisma.user.update({
+          where: { uuid: user.uuid },
+          data: { presentAtCamp: previousPresentAtCamp },
+        });
+      } catch (revertError: unknown) {
+        console.error('Failed to revert Prisma user presence state:', revertError);
+      }
+
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to sync presence state to Payload CMS.',
+        cause: payloadError,
+      });
+    }
 
     return {
       success: true,

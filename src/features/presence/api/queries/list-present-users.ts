@@ -1,9 +1,9 @@
-import { trpcBaseProcedure } from '@/trpc/init';
+import { trpcAdminProcedure } from '@/trpc/init';
 import config from '@payload-config';
 import { getPayload } from 'payload';
 import { z } from 'zod';
 
-export const listPresentUsers = trpcBaseProcedure
+export const listPresentUsers = trpcAdminProcedure
   .input(
     z.object({
       page: z.number().min(1).default(1),

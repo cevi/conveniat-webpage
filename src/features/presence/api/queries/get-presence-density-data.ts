@@ -1,6 +1,6 @@
-import { trpcBaseProcedure } from '@/trpc/init';
+import { trpcAdminProcedure } from '@/trpc/init';
 
-export const getPresenceDensityData = trpcBaseProcedure.query(async ({ ctx }) => {
+export const getPresenceDensityData = trpcAdminProcedure.query(async ({ ctx }) => {
   const { prisma } = ctx;
 
   const logs = await prisma.presenceLog.findMany({
