@@ -134,12 +134,12 @@ export const ChatsOverviewClientComponent: React.FC<{
         <>
           {mounted && typeof document !== 'undefined'
             ? createPortal(
-                <div className="fixed top-[18px] right-6 z-[60]">{qrCodeButton}</div>,
+                <div className="fixed top-[18px] right-6 z-30">{qrCodeButton}</div>,
                 document.body,
               )
             : undefined}
 
-          <div className="fixed right-6 bottom-18 z-50">
+          <div className="fixed right-6 bottom-18 z-30">
             <Link href="/app/chat/new">
               <div className="bg-conveniat-green flex h-14 w-14 items-center justify-center rounded-2xl text-white shadow-lg transition-transform hover:scale-105 hover:bg-green-600">
                 <MessageSquarePlus className="h-7 w-7" />
