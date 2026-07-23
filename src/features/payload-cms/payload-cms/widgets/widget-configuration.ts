@@ -1,3 +1,4 @@
+import { environmentVariables } from '@/config/environment-variables';
 import { hasAccessToThisUser, Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { auth } from '@/utils/auth';
 import { isValidNextAuthUser } from '@/utils/auth-helpers';
@@ -7,6 +8,10 @@ export const enabledWidgets: Widget[] = [
   {
     slug: 'emergency-alerts',
     Component: '@/features/payload-cms/payload-cms/widgets/emergency-widget#default',
+  },
+  {
+    slug: 'presence-count',
+    Component: '@/features/presence/payload-cms/widgets/presence-count-widget#default',
   },
   {
     slug: 'user-count',
@@ -34,10 +39,18 @@ export const widgetDefaultLayout = async (): Promise<WidgetInstance[]> => {
     return [{ widgetSlug: 'collections', width: 'full' }];
   }
 
-  return [
-    { widgetSlug: 'emergency-alerts', width: 'small' },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const layout: WidgetInstance<any>[] = [{ widgetSlug: 'emergency-alerts', width: 'small' }];
+
+  if (environmentVariables.FEATURE_ENABLE_PRESENCE_TRACKING) {
+    layout.push({ widgetSlug: 'presence-count', width: 'small' });
+  }
+
+  layout.push(
     { widgetSlug: 'user-count', width: 'small' },
     { widgetSlug: 'email-stats', width: 'small' },
     { widgetSlug: 'collections', width: 'full' },
-  ];
+  );
+
+  return layout;
 };

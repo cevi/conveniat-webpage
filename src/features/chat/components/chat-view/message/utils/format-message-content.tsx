@@ -17,6 +17,36 @@ const alertMessageText: StaticTranslationString = {
   fr: "🚨 Alerte d'urgence de",
 };
 
+const swissIntlPattern = String.raw`(?:(?:\+41|0041)[\s\-\./]*(?:\(0\)[\s\-\./]*)?(?:\d[\s\-\./]*){8}\d)`;
+const swissDomPattern = String.raw`(?:0[1-9](?:[\s\-\./]*\d){8})`;
+const swissPhonePattern = `(?<![\\d\\+\\w])(?:${swissIntlPattern}|${swissDomPattern})(?![\\d\\w])`;
+
+const splitFormattingLinkAndPhoneRegex = new RegExp(
+  `(\\*.*?\\*|_.*?_|~.*?~|\\[[^\\]]+\\]\\(https?:\\/\\/[^\\s)]+\\)|https?:\\/\\/[^\\s)]+|${swissPhonePattern})`,
+  'g',
+);
+
+const boldRegex = /^\*(.+)\*$/;
+const italicRegex = /^_(.+)_$/;
+const strikethroughRegex = /^~(.+)~$/;
+const markdownLinkRegex = /^\[(.+?)\]\((https?:\/\/[^\s)]+)\)$/;
+const urlRegex = /^(https?:\/\/[^\s)]+)$/;
+const phoneRegex = new RegExp(`^${swissPhonePattern}$`);
+
+export const formatPhoneToTel = (match: string): string => {
+  let cleaned = match.trim();
+  if (cleaned.startsWith('0041')) {
+    cleaned = `+41${cleaned.slice(4)}`;
+  }
+  if (cleaned.startsWith('+41')) {
+    cleaned = cleaned.replace(/^\+41\s*(?:\(0\)|0)\s*/, '+41 ');
+    const digits = cleaned.replaceAll(/[^\d+]/g, '');
+    return `tel:${digits}`;
+  }
+  const digits = cleaned.replaceAll(/\D/g, '');
+  return `tel:${digits}`;
+};
+
 export const formatMessageContent = (
   text: string | number | boolean | JsonObject | JsonArray,
   locale: Locale,
@@ -113,19 +143,10 @@ export const formatMessageContent = (
     const name = joinedAdminMatch[1];
     return [getJoinedAsAdminMessagePayload(name)[locale]];
   }
-
-  const splitFormattingAndLinkRegex =
-    /(\*.*?\*|_.*?_|~.*?~|\[[^\]]+\]\(https?:\/\/[^\s)]+\)|https?:\/\/[^\s)]+)/g;
-  const boldRegex = /^\*(.+)\*$/;
-  const italicRegex = /^_(.+)_$/;
-  const strikethroughRegex = /^~(.+)~$/;
-  const markdownLinkRegex = /^\[(.+?)\]\((https?:\/\/[^\s)]+)\)$/;
-  const urlRegex = /^(https?:\/\/[^\s)]+)$/;
-
   const lines = text.split('\n');
 
   return lines.flatMap((line, lineIndex) => {
-    const parts = line.split(splitFormattingAndLinkRegex).filter(Boolean);
+    const parts = line.split(splitFormattingLinkAndPhoneRegex).filter(Boolean);
     const formattedParts = parts.map((part, partIndex) => {
       let match;
       match = part.match(boldRegex);
@@ -193,6 +214,16 @@ export const formatMessageContent = (
         return (
           <Link key={`${lineIndex}-${partIndex}-link`} className="underline" {...linkProperties}>
             {url}
+          </Link>
+        );
+      }
+      match = part.match(phoneRegex);
+      if (match?.[0] !== undefined) {
+        const phoneText = part;
+        const phoneHref = formatPhoneToTel(phoneText);
+        return (
+          <Link key={`${lineIndex}-${partIndex}-phone`} className="underline" href={phoneHref}>
+            {phoneText}
           </Link>
         );
       }
