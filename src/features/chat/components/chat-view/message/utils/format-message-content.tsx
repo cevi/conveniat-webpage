@@ -146,7 +146,6 @@ export const formatMessageContent = (
   if (joinedAdminMatch?.[1]) {
     const name = joinedAdminMatch[1];
     return [getJoinedAsAdminMessagePayload(name)[locale]];
-  }
   const lines = text.split('\n');
 
   return lines.flatMap((line, lineIndex) => {
