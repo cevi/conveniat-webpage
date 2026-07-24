@@ -29,11 +29,14 @@ jobs:
         with:
           node-version: 24
 
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
       - name: Generate Build Info
         run: bash create_build_info.sh
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Check database migrations status (Issue #570)
+        run: pnpm exec prisma migrate status
 
       - name: Run tests
         run: pnpm test
