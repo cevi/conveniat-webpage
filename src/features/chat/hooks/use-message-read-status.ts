@@ -2,6 +2,8 @@
 
 import type { ChatMessage } from '@/features/chat/api/types';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
+import { SYSTEM_SENDER_ID } from '@/lib/chat-shared';
+import { MessageType } from '@/lib/prisma';
 import { trpc } from '@/trpc/client';
 import { useEffect, useState } from 'react';
 
@@ -48,10 +50,15 @@ export const useMessageReadStatus = ({
 
   useEffect(() => {
     if (currentUser !== undefined && sortedMessages.length > 0) {
-      // Find the latest message not sent by the current user
+      // Find the latest message (system message or message not sent by current user)
       const latestMessageToRead = [...sortedMessages]
         .reverse()
-        .find((message) => message.senderId !== currentUser);
+        .find(
+          (message) =>
+            message.type === MessageType.SYSTEM_MSG ||
+            message.senderId === SYSTEM_SENDER_ID ||
+            (message.senderId !== currentUser && message.senderId !== undefined),
+        );
 
       if (
         latestMessageToRead !== undefined &&

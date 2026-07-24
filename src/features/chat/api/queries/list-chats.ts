@@ -9,7 +9,7 @@ import {
   USER_RELEVANT_MESSAGE_EVENTS,
   getStatusFromMessageEvents,
 } from '@/lib/chat-shared';
-import { ChatMembershipPermission, type Prisma } from '@/lib/prisma';
+import { ChatMembershipPermission, MessageType, type Prisma } from '@/lib/prisma';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { TRPCError } from '@trpc/server';
@@ -74,22 +74,32 @@ export const getChatList = trpcBaseProcedure
 
         const baseCondition: Prisma.MessageWhereInput = {
           chatId: chat.uuid,
-          senderId: { not: prismaUser.uuid },
-          OR: [
+          AND: [
             {
-              parentId: null,
-              ...(lastReadId !== null && lastReadId !== undefined && lastReadId !== ''
-                ? { uuid: { gt: lastReadId } }
-                : {}),
+              OR: [
+                { senderId: { not: prismaUser.uuid } },
+                { senderId: null },
+                { type: MessageType.SYSTEM_MSG },
+              ],
             },
             {
-              parentId: { not: null },
-              messageEvents: {
-                none: {
-                  type: 'READ',
-                  userId: prismaUser.uuid,
+              OR: [
+                {
+                  parentId: null,
+                  ...(lastReadId !== null && lastReadId !== undefined && lastReadId !== ''
+                    ? { uuid: { gt: lastReadId } }
+                    : {}),
                 },
-              },
+                {
+                  parentId: { not: null },
+                  messageEvents: {
+                    none: {
+                      type: 'READ',
+                      userId: prismaUser.uuid,
+                    },
+                  },
+                },
+              ],
             },
           ],
         };

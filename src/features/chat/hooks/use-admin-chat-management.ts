@@ -65,7 +65,25 @@ export const useAdminChatManagement = ({
     },
   );
 
-  const { mutate: markChatAsRead } = trpc.admin.markChatAsRead.useMutation();
+  const { mutate: markChatAsRead } = trpc.admin.markChatAsRead.useMutation({
+    onMutate({ chatId }) {
+      utils.admin.listSupportChats.setData(
+        {
+          type: chatType,
+          status: showClosed ? undefined : ChatStatus.OPEN,
+          search: debouncedSearch || undefined,
+          includeId: selectedChatId ?? undefined,
+        },
+        (oldChats?: ChatWithMessagePreview[]) => {
+          if (!oldChats) return [];
+          return oldChats.map((chat) => (chat.id === chatId ? { ...chat, unreadCount: 0 } : chat));
+        },
+      );
+    },
+    onSettled() {
+      utils.admin.listSupportChats.invalidate().catch(console.error);
+    },
+  });
 
   const selectedChat = chats.find((c) => c.id === selectedChatId);
   const hasUnread = selectedChat ? selectedChat.unreadCount > 0 : false;

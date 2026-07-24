@@ -3321,7 +3321,8 @@ export interface PhotoContest {
   maxPointsPerImage?: number | null;
   images?:
     | {
-        imageUrl: string;
+        image?: (string | null) | Image;
+        imageUrl?: string | null;
         title?: string | null;
         description?: string | null;
         order?: number | null;
@@ -5485,6 +5486,7 @@ export interface PhotoContestsSelect<T extends boolean = true> {
   images?:
     | T
     | {
+        image?: T;
         imageUrl?: T;
         title?: T;
         description?: T;

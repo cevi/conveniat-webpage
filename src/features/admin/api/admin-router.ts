@@ -468,10 +468,32 @@ export const adminRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const { prisma, user } = ctx;
 
+      const now = new Date();
+
       await prisma.chat.update({
         where: { uuid: input.chatId },
-        data: { adminReadAt: new Date() },
+        data: { adminReadAt: now },
       });
+
+      const lastMessage = await prisma.message.findFirst({
+        where: { chatId: input.chatId },
+        orderBy: [{ createdAt: 'desc' }, { uuid: 'desc' }],
+        select: { uuid: true },
+      });
+
+      if (lastMessage) {
+        await prisma.chatMembership
+          .updateMany({
+            where: {
+              userId: user.uuid,
+              chatId: input.chatId,
+            },
+            data: {
+              lastReadMessageId: lastMessage.uuid,
+            },
+          })
+          .catch(() => {});
+      }
 
       // Publish real-time event to update standard users' checkmarks instantly
       void chatPubSub.publish({
