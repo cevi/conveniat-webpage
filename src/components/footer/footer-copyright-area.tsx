@@ -11,7 +11,6 @@ import {
   getURLForLinkField,
   openURLInNewTab,
 } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
-import type { Image as ImageType } from '@/features/payload-cms/payload-types';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { getBuildInfo } from '@/utils/get-build-info';
 import { ForceDynamicOnBuild } from '@/utils/is-pre-rendering';
@@ -67,12 +66,15 @@ const FooterLayoutCached: React.FC<{ locale: Locale }> = async ({ locale }) => {
         <div className="mt-6 mb-4 flex flex-wrap items-center justify-center gap-4">
           {sponsors.map((sponsor) => {
             const url = getURLForLinkField(sponsor.linkField, locale);
-            const image = sponsor.logo as ImageType | undefined;
+            const image =
+              typeof sponsor.logo === 'object' && sponsor.logo !== null ? sponsor.logo : undefined;
+            const name = sponsor.name as string | undefined;
 
-            if (!image?.url) return <></>;
+            if (!image?.url && !name) return <Fragment key={sponsor.id} />;
 
-            const cardContent = (
-              <div className="flex aspect-square w-24 items-center justify-center overflow-hidden rounded bg-white p-2 sm:w-32">
+            let innerContent: React.ReactNode;
+            if (image?.url) {
+              innerContent = (
                 <div className="relative size-full">
                   <ImageNode
                     src={getRelativeImageUrl(image.url)}
@@ -81,6 +83,18 @@ const FooterLayoutCached: React.FC<{ locale: Locale }> = async ({ locale }) => {
                     className="object-contain"
                   />
                 </div>
+              );
+            } else if (name !== undefined && name !== '') {
+              innerContent = (
+                <span className="font-heading text-conveniat-green p-1 text-center text-xs font-bold whitespace-pre-line sm:text-sm">
+                  {name}
+                </span>
+              );
+            }
+
+            const cardContent = (
+              <div className="flex aspect-square w-24 items-center justify-center overflow-hidden rounded bg-white p-2 sm:w-32">
+                {innerContent}
               </div>
             );
 
