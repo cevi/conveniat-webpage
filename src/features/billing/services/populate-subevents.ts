@@ -84,7 +84,8 @@ export async function populateSubeventsUseCase(
   }
 
   // Sort merged events by eventName for clean structure in the UI
-  mergedEvents.sort((a, b) => a.eventName.localeCompare(b.eventName));
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  mergedEvents.sort((a, b) => (a.eventName ?? '').localeCompare(b.eventName ?? ''));
 
   logger.info(
     `Found ${results.length} matching events (${String(newEventsCount)} new). Updating global settings...`,
