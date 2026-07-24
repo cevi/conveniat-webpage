@@ -4,7 +4,7 @@ import { MessageType } from '@/lib/prisma';
 interface TestMessage {
   id: string;
   type: string;
-  senderId?: string;
+  senderId?: string | undefined;
 }
 
 describe('useMessageReadStatus target message logic', () => {

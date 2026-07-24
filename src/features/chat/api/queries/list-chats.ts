@@ -66,59 +66,101 @@ export const getChatList = trpcBaseProcedure
     const unreadCountMap = new Map<string, number>();
 
     if (_chats.length > 0) {
-      const unreadQueries = _chats.map((chat) => {
-        const currentUserMembership = chat.chatMemberships.find(
-          (m) => m.userId === prismaUser.uuid,
-        );
-        const lastReadId = currentUserMembership?.lastReadMessageId;
+      const lastReadIds = _chats
+        .map((chat) => {
+          const membership = chat.chatMemberships.find((m) => m.userId === prismaUser.uuid);
+          return membership?.lastReadMessageId;
+        })
+        .filter((id): id is string => typeof id === 'string' && id.trim() !== '');
 
-        const baseCondition: Prisma.MessageWhereInput = {
-          chatId: chat.uuid,
-          AND: [
-            {
-              OR: [
-                { senderId: { not: prismaUser.uuid } },
-                { senderId: null },
-                { type: MessageType.SYSTEM_MSG },
-              ],
-            },
-            {
-              OR: [
-                {
-                  parentId: null,
-                  ...(lastReadId !== null && lastReadId !== undefined && lastReadId !== ''
-                    ? { uuid: { gt: lastReadId } }
-                    : {}),
-                },
-                {
-                  parentId: { not: null },
-                  messageEvents: {
-                    none: {
-                      type: 'READ',
-                      userId: prismaUser.uuid,
-                    },
+      const lastReadMessages =
+        lastReadIds.length > 0
+          ? await prisma.message.findMany({
+              where: { uuid: { in: lastReadIds } },
+              select: { uuid: true, createdAt: true },
+            })
+          : [];
+
+      const lastReadMap = new Map<string, Date>(lastReadMessages.map((m) => [m.uuid, m.createdAt]));
+
+      const unreadQueries = _chats
+        .map((chat) => {
+          const currentUserMembership = chat.chatMemberships.find(
+            (m) => m.userId === prismaUser.uuid,
+          );
+          const lastReadId = currentUserMembership?.lastReadMessageId;
+          const lastMessage = chat.messages[0];
+
+          const isReadUpToLatest =
+            Boolean(lastReadId) && Boolean(lastMessage) && lastReadId === lastMessage?.uuid;
+
+          const lastReadCreatedAt = lastReadId ? lastReadMap.get(lastReadId) : undefined;
+
+          const innerConditions: Prisma.MessageWhereInput[] = [];
+
+          if (!isReadUpToLatest) {
+            if (lastReadCreatedAt && lastReadId) {
+              innerConditions.push({
+                parentId: null,
+                OR: [
+                  { createdAt: { gt: lastReadCreatedAt } },
+                  {
+                    createdAt: lastReadCreatedAt,
+                    uuid: { gt: lastReadId },
                   },
-                },
-              ],
+                ],
+              });
+            } else {
+              innerConditions.push({
+                parentId: null,
+              });
+            }
+          }
+
+          innerConditions.push({
+            parentId: { not: null },
+            messageEvents: {
+              none: {
+                type: 'READ',
+                userId: prismaUser.uuid,
+              },
             },
-          ],
-        };
+          });
 
-        return baseCondition;
-      });
+          const baseCondition: Prisma.MessageWhereInput = {
+            chatId: chat.uuid,
+            AND: [
+              {
+                OR: [
+                  { senderId: { not: prismaUser.uuid } },
+                  { senderId: null },
+                  { type: MessageType.SYSTEM_MSG },
+                ],
+              },
+              {
+                OR: innerConditions,
+              },
+            ],
+          };
 
-      const unreadCounts = await prisma.message.groupBy({
-        by: ['chatId'],
-        where: {
-          OR: unreadQueries,
-        },
-        _count: {
-          uuid: true,
-        },
-      });
+          return baseCondition;
+        })
+        .filter(Boolean);
 
-      for (const item of unreadCounts) {
-        unreadCountMap.set(item.chatId, item._count.uuid);
+      if (unreadQueries.length > 0) {
+        const unreadCounts = await prisma.message.groupBy({
+          by: ['chatId'],
+          where: {
+            OR: unreadQueries,
+          },
+          _count: {
+            uuid: true,
+          },
+        });
+
+        for (const item of unreadCounts) {
+          unreadCountMap.set(item.chatId, item._count.uuid);
+        }
       }
     }
 

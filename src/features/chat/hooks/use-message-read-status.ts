@@ -66,8 +66,7 @@ export const useMessageReadStatus = ({
 
       if (
         latestMessageToRead !== undefined &&
-        (lastMarkedReadIdReference.current === undefined ||
-          latestMessageToRead.id > lastMarkedReadIdReference.current)
+        lastMarkedReadIdReference.current !== latestMessageToRead.id
       ) {
         markChatAsRead({
           chatId: chatId,

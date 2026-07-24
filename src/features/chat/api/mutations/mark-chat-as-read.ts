@@ -20,7 +20,7 @@ export const markChatAsRead = trpcBaseProcedure
         uuid: lastMessageId,
         chatId: chatId,
       },
-      select: { uuid: true },
+      select: { uuid: true, createdAt: true },
     });
 
     if (!message) {
@@ -50,9 +50,24 @@ export const markChatAsRead = trpcBaseProcedure
       });
     }
 
-    // 3. Update the high-water mark only if the watermark advances (lexicographically greater for UUIDv7)
-    const currentLastRead = membership.lastReadMessageId;
-    if (!currentLastRead || lastMessageId > currentLastRead) {
+    // 3. Update the high-water mark if watermark is not set or target message creation date >= current last read message creation date
+    let shouldUpdate = false;
+    if (!membership.lastReadMessageId) {
+      shouldUpdate = true;
+    } else if (membership.lastReadMessageId === lastMessageId) {
+      shouldUpdate = false;
+    } else {
+      const currentReadMessage = await prisma.message.findUnique({
+        where: { uuid: membership.lastReadMessageId },
+        select: { createdAt: true },
+      });
+
+      if (!currentReadMessage || message.createdAt >= currentReadMessage.createdAt) {
+        shouldUpdate = true;
+      }
+    }
+
+    if (shouldUpdate) {
       await prisma.chatMembership.update({
         where: {
           userId_chatId: {
