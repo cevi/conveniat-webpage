@@ -173,10 +173,25 @@ async function offlineFallback(request: Request, url: URL, isAppMode: boolean): 
   }
 
   // Strategy C: Assets (Non-Document Only)
+  const isJs =
+    url.pathname.endsWith('.js') ||
+    url.pathname.endsWith('.mjs') ||
+    request.destination === 'script';
+
   const assetMatch = await caches.match(request, { ignoreSearch: true, ignoreVary: true });
   if (assetMatch) {
+    const contentType = assetMatch.headers.get('content-type') ?? '';
+    if (isJs && contentType.includes('text/html')) {
+      console.error(`[SW] Blocked HTML asset fallback for script: ${url.toString()}`);
+      return Response.error();
+    }
     console.log(`[SW] Serving fallback for: ${url.toString()}`);
     return assetMatch;
+  }
+
+  if (isJs) {
+    console.error(`[SW] JS script asset unavailable: ${url.toString()}`);
+    return Response.error();
   }
 
   // Strategy D: Map Tiles (Cross-Origin, Load-Balanced)
