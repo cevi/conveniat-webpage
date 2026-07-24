@@ -145,16 +145,42 @@ export const formPluginConfiguration = formBuilderPlugin({
     admin: {
       group: AdminPanelDashboardGroups.GlobalSettings,
       groupBy: true,
-      defaultColumns: ['id', 'form', 'createdAt', 'smtpResults', 'workflowResults', 'resendMail'],
+      defaultColumns: [
+        'id',
+        'form',
+        'approved',
+        'createdAt',
+        'smtpResults',
+        'workflowResults',
+        'resendMail',
+      ],
     },
     access: {
       read: hasAccessToThisHelper({ requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam] }),
       create: () => true, // allow creating submissions
-      update: () => false, // disable update for submissions
+      update: hasAccessToThisHelper({ requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam] }),
       delete: () => false, // disable delete for submissions
     },
     fields: ({ defaultFields }) => [
       ...defaultFields,
+      {
+        name: 'approved',
+        type: 'checkbox',
+        defaultValue: false,
+        label: {
+          en: 'Approved',
+          de: 'Freigegeben',
+          fr: 'Approuvé',
+        },
+        admin: {
+          position: 'sidebar',
+          description: {
+            en: 'Approve this submission to display it on the website',
+            de: 'Formular-Antwort freigeben, um sie auf der Website anzuzeigen',
+            fr: 'Approuver cette soumission pour l’afficher sur le site web',
+          },
+        },
+      },
       {
         name: 'smtpResults',
         type: 'json',

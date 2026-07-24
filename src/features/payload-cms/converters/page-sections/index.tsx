@@ -5,6 +5,7 @@ import type {
 import {
   AccordionBlock,
   DetailsTable,
+  RenderApprovedFormSubmissions,
   RenderBlogPostsOverview,
   RenderCallToAction,
   RenderCampScheduleEntry,
@@ -54,6 +55,7 @@ export const PageSectionsConverter: React.FC<
     richTextSection: RenderRichTextSection,
     blogPostsOverview: RenderBlogPostsOverview,
     formBlock: RenderFormBlock,
+    approvedFormSubmissionsBlock: RenderApprovedFormSubmissions,
     photoCarousel: RenderPhotoCarousel,
     singlePicture: RenderSinglePicture,
     youtubeEmbed: RenderYoutubeEmbed,

@@ -61,6 +61,7 @@ export type ContentBlockTypeNames =
   | 'blogPostsOverview'
   | 'richTextSection'
   | 'formBlock'
+  | 'approvedFormSubmissionsBlock'
   | 'photoCarousel'
   | 'youtubeEmbed'
   | 'instagramEmbed'
@@ -836,6 +837,35 @@ export const RenderTabsBlock: SectionRenderer<TabsBlockPayloadType> = ({
       {...rest}
     >
       <TabsBlock {...block} {...rest} />
+    </SectionWrapper>
+  );
+};
+
+import { ApprovedFormSubmissions } from '@/features/payload-cms/components/content-blocks/approved-form-submissions';
+import type { ApprovedFormSubmissionsBlock as ApprovedFormSubmissionsBlockType } from '@/features/payload-cms/payload-types';
+
+export const RenderApprovedFormSubmissions: SectionRenderer<ApprovedFormSubmissionsBlockType> = ({
+  block,
+  sectionClassName,
+  sectionOverrides,
+  locale,
+}) => {
+  return (
+    <SectionWrapper
+      block={block}
+      sectionClassName={sectionClassName}
+      sectionOverrides={sectionOverrides}
+      errorFallbackMessage={errorMessageForType(
+        {
+          de: 'Die freigegebenen Formular-Antworten',
+          en: 'approved form submissions',
+          fr: 'les soumissions de formulaires approuvées',
+        },
+        locale,
+      )}
+      locale={locale}
+    >
+      <ApprovedFormSubmissions {...block} locale={locale} />
     </SectionWrapper>
   );
 };

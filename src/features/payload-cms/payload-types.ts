@@ -691,6 +691,27 @@ export interface FormBlock {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ApprovedFormSubmissionsBlock".
+ */
+export interface ApprovedFormSubmissionsBlock {
+  form: string | Form;
+  heading?: string | null;
+  titleFieldName?: string | null;
+  categoryFieldName?: string | null;
+  fileFieldName?: string | null;
+  displayFields?:
+    | {
+        fieldName: string;
+        label?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'approvedFormSubmissionsBlock';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "forms".
  */
 export interface Form {
@@ -1298,6 +1319,7 @@ export interface Form {
 export interface FormSubmission {
   id: string;
   form: string | Form;
+  approved?: boolean | null;
   submissionData?:
     | {
         field: string;
