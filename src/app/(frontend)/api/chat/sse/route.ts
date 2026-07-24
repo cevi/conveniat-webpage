@@ -76,9 +76,14 @@ export async function GET(request: NextRequest): Promise<Response> {
   let cleanedUp = false;
   const isCleanedUp = (): boolean => cleanedUp;
 
+  const onAbort = (): void => {
+    cleanup();
+  };
+
   const cleanup = (): void => {
     if (cleanedUp) return;
     cleanedUp = true;
+    request.signal.removeEventListener('abort', onAbort);
     if (keepAliveInterval) {
       clearInterval(keepAliveInterval);
     }
@@ -152,9 +157,11 @@ export async function GET(request: NextRequest): Promise<Response> {
   });
 
   // Handle client abort gracefully
-  request.signal.addEventListener('abort', () => {
+  if (request.signal.aborted) {
     cleanup();
-  });
+  } else {
+    request.signal.addEventListener('abort', onAbort, { once: true });
+  }
 
   return new Response(stream, {
     headers: {

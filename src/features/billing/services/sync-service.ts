@@ -361,6 +361,14 @@ async function syncSingleEvent(
   // Detect removed participations (in DB but not in API response)
   const allExistingForEvent = await participantRepo.findActiveForEvent(event.eventId);
 
+  // Safety guard: If API returns 0 participations for an event that has existing active participants in DB,
+  // abort removal detection to prevent catastrophic data wiping caused by unauthenticated/failed API responses.
+  if (participations.length === 0 && allExistingForEvent.length > 0) {
+    throw new Error(
+      `Received 0 participations from Hitobito for event ${event.eventId} (${event.eventName}) which has ${allExistingForEvent.length} active participant(s) in the database. Aborting removal detection for safety.`,
+    );
+  }
+
   for (const document_ of allExistingForEvent) {
     const participationUuid = document_.participationUuid;
     if (!fetchedParticipationIds.has(participationUuid)) {
@@ -457,6 +465,21 @@ async function syncParticipantsImpl(payload: Payload): Promise<SyncSummary> {
     warn: (m: string): void => payload.logger.warn(m),
     error: (m: string): void => payload.logger.error(m),
   };
+
+  if (browserCookie.trim() === '') {
+    const errorMessage =
+      'Hitobito browser cookie is missing in Registration Management settings. Aborting participant sync to prevent data loss.';
+    logger.error(errorMessage);
+    return {
+      newCount: 0,
+      removedCount: 0,
+      reAddedCount: 0,
+      changedCount: 0,
+      unchangedCount: 0,
+      syncDate: new Date().toISOString(),
+      errors: [errorMessage],
+    };
+  }
 
   const hitobitoService = new HitobitoServiceAdapter(
     {
